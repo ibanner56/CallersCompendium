@@ -1,0 +1,9 @@
+{
+  "id": "theme-labels-l10n",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Theme names, theme descriptions and the custom-theme editor are now translated: Settings › Appearance and the colour-role, group and contrast labels in the theme editor follow the app language instead of staying in English."
+    ]
+  }
+}

@@ -14,7 +14,8 @@ enum AppThemeGroup {
 
   const AppThemeGroup(this.label);
 
-  /// Section heading shown in the gallery.
+  /// English heading: a stable fallback only. The gallery renders
+  /// `appThemeGroupLabel` from `app_theme_labels_l10n.dart`.
   final String label;
 }
 
@@ -147,7 +148,9 @@ enum AppThemeSelection {
     _ => brightness == Brightness.light ? ThemeMode.light : ThemeMode.dark,
   };
 
-  /// Human-readable label for settings UI.
+  /// English name: a stable fallback for brand palettes (proper nouns, shown
+  /// as-is) and the gallery's sort key. UI text goes through `appThemeLabel`
+  /// in `app_theme_labels_l10n.dart`, which translates the generic names.
   String get label => switch (this) {
     AppThemeSelection.system => 'System',
     AppThemeSelection.light => 'Light',
@@ -184,49 +187,6 @@ enum AppThemeSelection {
     AppThemeSelection.catppuccinFrappe => 'Catppuccin Frappé',
     AppThemeSelection.synthwave84 => 'Synthwave ’84',
     AppThemeSelection.noctisLilac => 'Noctis Lilac',
-  };
-
-  /// One-line description shown under each option.
-  String get description => switch (this) {
-    AppThemeSelection.system => 'Match the device light/dark setting',
-    AppThemeSelection.light => 'Warm light palette',
-    AppThemeSelection.dark => 'Warm dark palette',
-    AppThemeSelection.softDark => 'Warm dark on a softer, lighter canvas',
-    AppThemeSelection.highContrast =>
-      'Maximum contrast for dim rooms and low vision',
-    AppThemeSelection.blulocoLight =>
-      'Crisp cool-neutral canvas with vivid jewel tones',
-    AppThemeSelection.oneDarkPro => 'One Dark Pro, the popular editor theme',
-    AppThemeSelection.monokai => 'One Monokai — Monokai syntax on charcoal',
-    AppThemeSelection.noctis => 'The original deep teal Noctis night',
-    AppThemeSelection.githubLight => 'GitHub’s clean neutral light',
-    AppThemeSelection.catppuccinLatte =>
-      'Soft pastel light, community favorite',
-    AppThemeSelection.gruvboxLight => 'Warm retro cream and earth tones',
-    AppThemeSelection.everforestLight => 'Gentle green, easy on the eyes',
-    AppThemeSelection.rosePineDawn => 'Muted rose and iris on warm paper',
-    AppThemeSelection.ayuLight => 'Bright, minimal light with amber accents',
-    AppThemeSelection.tokyoNightLight =>
-      'Crisp indigo daylight, Tokyo Night’s day',
-    AppThemeSelection.nordLight => 'Cool arctic snow-storm neutrals',
-    AppThemeSelection.kanagawaLotus => 'Warm sumi-e paper with ink accents',
-    AppThemeSelection.dracula => 'The classic purple-on-charcoal favorite',
-    AppThemeSelection.nord => 'Cool arctic blues, understated',
-    AppThemeSelection.tokyoNight => 'Neon indigo city-at-night palette',
-    AppThemeSelection.gruvboxDark => 'Warm retro amber on charcoal',
-    AppThemeSelection.catppuccinMocha => 'Cozy pastel dark, community favorite',
-    AppThemeSelection.githubDark => 'GitHub’s neutral dark',
-    AppThemeSelection.everforestDark => 'Soft forest green, low fatigue',
-    AppThemeSelection.rosePine => 'Muted rose and iris in the dark',
-    AppThemeSelection.ayuMirage => 'Smooth slate with amber accents',
-    AppThemeSelection.cutiePro => 'Cute af dark pastel, pink-forward',
-    AppThemeSelection.pinkAsHeck => 'Unapologetic hot pink on berry',
-    AppThemeSelection.vitesseLight => 'Modern muted sage, teal and rose',
-    AppThemeSelection.zenburn => 'The classic low-contrast warm grey',
-    AppThemeSelection.shadesOfPurple => 'Bold gold on deep indigo',
-    AppThemeSelection.catppuccinFrappe => 'Lighter blue-gray pastel Catppuccin',
-    AppThemeSelection.synthwave84 => 'Glowing neon on retro purple',
-    AppThemeSelection.noctisLilac => 'Gentle lilac Noctis daylight',
   };
 
   /// Resolves a persisted name back to a selection, or `null` if unknown.

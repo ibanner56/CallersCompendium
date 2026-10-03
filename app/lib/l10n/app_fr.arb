@@ -1380,6 +1380,386 @@
   "@settingsAppearanceCustomThemesHeader": {
     "x-sourceSha256": "343cee86594115cca8ccfc399c3c2568d16b8a11b7462bd7e1b8c82052eb7b36"
   },
+  "appThemeGroupSystem": "Système",
+  "@appThemeGroupSystem": {
+    "x-sourceSha256": "6725e7bbcd28f3a8a586fa34bf191fd72dde8b61756932cd3237c17a6f196f1a"
+  },
+  "appThemeGroupDefault": "Par défaut",
+  "@appThemeGroupDefault": {
+    "x-sourceSha256": "21b111cbfe6e8fca2d181c43f53ad548b22e38aca955b9824706a504b0a07a2d"
+  },
+  "appThemeGroupLight": "Clair",
+  "@appThemeGroupLight": {
+    "x-sourceSha256": "dbcd5e7bb7a0f538810de44c3efbd813037ee3fa358747bb71fa58e157af45f7"
+  },
+  "appThemeGroupDark": "Sombre",
+  "@appThemeGroupDark": {
+    "x-sourceSha256": "60acc53f13a5d1bf115878c4a785e9a43e8286c4139a8402a6ac7d23966f9153"
+  },
+  "appThemeLabelSystem": "Système",
+  "@appThemeLabelSystem": {
+    "x-sourceSha256": "6725e7bbcd28f3a8a586fa34bf191fd72dde8b61756932cd3237c17a6f196f1a"
+  },
+  "appThemeLabelLight": "Clair",
+  "@appThemeLabelLight": {
+    "x-sourceSha256": "dbcd5e7bb7a0f538810de44c3efbd813037ee3fa358747bb71fa58e157af45f7"
+  },
+  "appThemeLabelDark": "Sombre",
+  "@appThemeLabelDark": {
+    "x-sourceSha256": "60acc53f13a5d1bf115878c4a785e9a43e8286c4139a8402a6ac7d23966f9153"
+  },
+  "appThemeLabelSoftDark": "Sombre doux",
+  "@appThemeLabelSoftDark": {
+    "x-sourceSha256": "a1d6e637a8d9be9f105e29966e53aae07800bdab367b773f1950484e196fd0c6"
+  },
+  "appThemeLabelHighContrast": "Contraste élevé",
+  "@appThemeLabelHighContrast": {
+    "x-sourceSha256": "415a8336713e6a3bb61660818c7ae7691e2246b94bcbc61a3f92dd33408d5488"
+  },
+  "appThemeDescriptionSystem": "Suit le réglage clair/sombre de l’appareil",
+  "@appThemeDescriptionSystem": {
+    "x-sourceSha256": "73151d13926dcd43b2aad98215c5f98153012fdadee88f5fe2da8fc0988c02e9"
+  },
+  "appThemeDescriptionLight": "Palette claire et chaleureuse",
+  "@appThemeDescriptionLight": {
+    "x-sourceSha256": "0522ae15d56d78fcfa70ab4297e02cb4a7d0bc961568286dd194465c16a3da96"
+  },
+  "appThemeDescriptionDark": "Palette sombre et chaleureuse",
+  "@appThemeDescriptionDark": {
+    "x-sourceSha256": "b84d4b63a0fe30b1d8eca043d4997c52cc69673a7c49942564fb47faeff91a2b"
+  },
+  "appThemeDescriptionSoftDark": "Sombre chaleureux sur un fond plus doux et plus clair",
+  "@appThemeDescriptionSoftDark": {
+    "x-sourceSha256": "dd92ad0d0024de7eac3e0ada6e06461e4d4fade502ed7a8587b7ffa6b6cefb98"
+  },
+  "appThemeDescriptionHighContrast": "Contraste maximal pour les pièces sombres et la basse vision",
+  "@appThemeDescriptionHighContrast": {
+    "x-sourceSha256": "436563219de95bc4c26f6314c5292f52a77a28fecd0a2a5d241679a14a9d6ca1"
+  },
+  "appThemeDescriptionBlulocoLight": "Fond neutre et froid, net, avec des tons de joyau éclatants",
+  "@appThemeDescriptionBlulocoLight": {
+    "x-sourceSha256": "0cf2c563fed17cf0b5a48ff9e1b2b4d6b7990006e135ce0343380fb0737bdc46"
+  },
+  "appThemeDescriptionOneDarkPro": "One Dark Pro, le thème d’éditeur très apprécié",
+  "@appThemeDescriptionOneDarkPro": {
+    "x-sourceSha256": "3d66c0a549829ac2c86715d91f53517fa393c91f746d752e798cec40d318a7ff"
+  },
+  "appThemeDescriptionMonokai": "One Monokai – syntaxe Monokai sur fond anthracite",
+  "@appThemeDescriptionMonokai": {
+    "x-sourceSha256": "42a71302289f9b4a20d33d17880926050cfb25113c21ca2e9f5242d27948b02e"
+  },
+  "appThemeDescriptionNoctis": "La nuit Noctis originale, d’un bleu-vert profond",
+  "@appThemeDescriptionNoctis": {
+    "x-sourceSha256": "65c6b6c8402cab7468d1f6a63a1059558b7e61d83436954fe119b1ac85664a6a"
+  },
+  "appThemeDescriptionGithubLight": "Le clair neutre et net de GitHub",
+  "@appThemeDescriptionGithubLight": {
+    "x-sourceSha256": "17c66c0577067c22814f35aa8ab0849a6f3d85de4069d801bb856b1e63188ec3"
+  },
+  "appThemeDescriptionCatppuccinLatte": "Clair pastel doux, favori de la communauté",
+  "@appThemeDescriptionCatppuccinLatte": {
+    "x-sourceSha256": "afb2ffa622bba0fc18e2ebb5f22482f7a4aca8d8cc94b9b5d69830134f935e0c"
+  },
+  "appThemeDescriptionGruvboxLight": "Crème rétro chaleureuse et tons terreux",
+  "@appThemeDescriptionGruvboxLight": {
+    "x-sourceSha256": "6c9f5702c90cb0e2fb8e3ba375584be7b816f096b9614d7ae1b9784b19970cfe"
+  },
+  "appThemeDescriptionEverforestLight": "Vert doux, reposant pour les yeux",
+  "@appThemeDescriptionEverforestLight": {
+    "x-sourceSha256": "a4aa0fb5f5ea9d83c876c83e1000d6ac51d6c5b47ca5df174ce20c840303871a"
+  },
+  "appThemeDescriptionRosePineDawn": "Rose et iris atténués sur papier chaud",
+  "@appThemeDescriptionRosePineDawn": {
+    "x-sourceSha256": "98f7c45e0a9cc2db12bdd4028579d2d9ff83dac9f1980e12c295a08c9c0877f3"
+  },
+  "appThemeDescriptionAyuLight": "Clair lumineux et minimal avec des accents ambrés",
+  "@appThemeDescriptionAyuLight": {
+    "x-sourceSha256": "add88085dc8c899de7075bd63e2ea598cdf674d30ef05a80d27ff432de082e4f"
+  },
+  "appThemeDescriptionTokyoNightLight": "Lumière du jour indigo nette, le jour de Tokyo Night",
+  "@appThemeDescriptionTokyoNightLight": {
+    "x-sourceSha256": "f1730a93880cb5e53916dfbd19f954b0eda809dcf95794ff13097acb7e6a1113"
+  },
+  "appThemeDescriptionNordLight": "Neutres arctiques froids, tempête de neige",
+  "@appThemeDescriptionNordLight": {
+    "x-sourceSha256": "26fb410d1fcc004c8824c3d317fe80b7971767df4d87449d507c795f4ad4a9df"
+  },
+  "appThemeDescriptionKanagawaLotus": "Papier sumi-e chaleureux avec des accents d’encre",
+  "@appThemeDescriptionKanagawaLotus": {
+    "x-sourceSha256": "96712c0fda23344a1756eaa87dfbdaa04bb88287c08b170e370e5447500a9db8"
+  },
+  "appThemeDescriptionDracula": "Le grand classique : violet sur anthracite",
+  "@appThemeDescriptionDracula": {
+    "x-sourceSha256": "0e280fae7219a870d5160b99abff280a225ffb0b97d20b7faab28f49eda08898"
+  },
+  "appThemeDescriptionNord": "Bleus arctiques froids, discrets",
+  "@appThemeDescriptionNord": {
+    "x-sourceSha256": "0428e37590a4e7fb582bd49424a4faae47d34ea1fefd8d5c804e3d43acf2338b"
+  },
+  "appThemeDescriptionTokyoNight": "Palette indigo néon d’une ville la nuit",
+  "@appThemeDescriptionTokyoNight": {
+    "x-sourceSha256": "fc348fd5a1b1b1dc3ff182dc8c9dd2a47884a6ddc59a0b91b0301a5a73a0468d"
+  },
+  "appThemeDescriptionGruvboxDark": "Ambre rétro chaleureux sur anthracite",
+  "@appThemeDescriptionGruvboxDark": {
+    "x-sourceSha256": "ada0e2aaf877bbdcd4e6f7b44cc4d201d1abb158d8c1e0730b26b6fb7d56f2f3"
+  },
+  "appThemeDescriptionCatppuccinMocha": "Sombre pastel cosy, favori de la communauté",
+  "@appThemeDescriptionCatppuccinMocha": {
+    "x-sourceSha256": "31493edc84a012a80e1bd4755f4451b27136d3d9a5c524ad58f3546fb37e3ac0"
+  },
+  "appThemeDescriptionGithubDark": "Le sombre neutre de GitHub",
+  "@appThemeDescriptionGithubDark": {
+    "x-sourceSha256": "26a0934cc46b014ced2a9c1a92a532252ff4d2db8c785ffd725c75795307580c"
+  },
+  "appThemeDescriptionEverforestDark": "Vert forêt doux, peu fatigant",
+  "@appThemeDescriptionEverforestDark": {
+    "x-sourceSha256": "31097600a7fb09b1a6fe2abe9edfb98b1f74746f7f8551aa9ea509574651a463"
+  },
+  "appThemeDescriptionRosePine": "Rose et iris atténués dans le noir",
+  "@appThemeDescriptionRosePine": {
+    "x-sourceSha256": "4ff75f44de41b4d3b3f0178aa9b1725046ac3cc65ad789ac06d10538830f173b"
+  },
+  "appThemeDescriptionAyuMirage": "Ardoise douce avec des accents ambrés",
+  "@appThemeDescriptionAyuMirage": {
+    "x-sourceSha256": "7c23da42889ecc6a43908f8a76e843eec3359990c9d0b4b841fe6c5b7d0235f5"
+  },
+  "appThemeDescriptionCutiePro": "Pastel sombre ultra mignon, dominante rose",
+  "@appThemeDescriptionCutiePro": {
+    "x-sourceSha256": "061d6ce8faa75b2d5c38cc20c632c5d33e8fe15a8fab401e1e1eec08a8a719a3"
+  },
+  "appThemeDescriptionPinkAsHeck": "Rose vif sans complexe sur fond baie",
+  "@appThemeDescriptionPinkAsHeck": {
+    "x-sourceSha256": "55f80d245333565ef834b95a02cfcd6d3b75045c561daee2d9d3a8794e7126c6"
+  },
+  "appThemeDescriptionVitesseLight": "Sauge, bleu-vert et rose modernes et atténués",
+  "@appThemeDescriptionVitesseLight": {
+    "x-sourceSha256": "d00184a3aff9e5fa9fe55a434a4c12c256a7039632c5a1367fcba8866ac676a3"
+  },
+  "appThemeDescriptionZenburn": "Le grand classique : gris chaud à faible contraste",
+  "@appThemeDescriptionZenburn": {
+    "x-sourceSha256": "8eed33d5cf01f8faaf8ba8185596ce8d269eaf39b7c3cde4658117f0d57eb302"
+  },
+  "appThemeDescriptionShadesOfPurple": "Or éclatant sur indigo profond",
+  "@appThemeDescriptionShadesOfPurple": {
+    "x-sourceSha256": "735bb079dcedcb2d0ac260e7bf696aeed10047805ac52a0ab08dfcd51b58ab98"
+  },
+  "appThemeDescriptionCatppuccinFrappe": "Catppuccin pastel gris-bleu plus clair",
+  "@appThemeDescriptionCatppuccinFrappe": {
+    "x-sourceSha256": "5f6ae7e2ffe43b2dedb7a65cdfaeda4ab4c205f2fa539c52c4f4b0fbb458a16b"
+  },
+  "appThemeDescriptionSynthwave84": "Néon lumineux sur violet rétro",
+  "@appThemeDescriptionSynthwave84": {
+    "x-sourceSha256": "d3ad954d3f7c26c107bd982751b50d2adec5f0ee73fe6d072312a5c1d4153ee2"
+  },
+  "appThemeDescriptionNoctisLilac": "Lumière du jour lilas douce de Noctis",
+  "@appThemeDescriptionNoctisLilac": {
+    "x-sourceSha256": "d39470a5a25cfb9ed445bfbd9701fbe47ee4812bdcea0e32a8573df7a9c23e01"
+  },
+  "themeEditorGroupPrimary": "Primaire",
+  "@themeEditorGroupPrimary": {
+    "x-sourceSha256": "efe10c80ec8a9f38624cbb47103010a8cf32488a503e4b4bfe4f92307a9cefa7"
+  },
+  "themeEditorGroupSecondary": "Secondaire",
+  "@themeEditorGroupSecondary": {
+    "x-sourceSha256": "62f2ccfffcc5103eabb193172833e6d95db890898849ea1ce84b8d7843997539"
+  },
+  "themeEditorGroupTertiary": "Tertiaire",
+  "@themeEditorGroupTertiary": {
+    "x-sourceSha256": "af3ddd815af84ae581f631295b763f729697b8a8dc36e4b49b301ea423bc1500"
+  },
+  "themeEditorGroupError": "Erreur",
+  "@themeEditorGroupError": {
+    "x-sourceSha256": "54a0e8c17ebb21a11f8a25b8042786ef7efe52441e6cc87e92c67e0c4c0c6e78"
+  },
+  "themeEditorGroupSurfaceText": "Surface et texte",
+  "@themeEditorGroupSurfaceText": {
+    "x-sourceSha256": "c2d412de1ddab66102457ff85c349d20891fb2506d6284c5d67913c0c94adf21"
+  },
+  "themeEditorGroupSurfaceContainers": "Conteneurs de surface",
+  "@themeEditorGroupSurfaceContainers": {
+    "x-sourceSha256": "7b1f3eb3e6a80bcabb8367027c44ebb47374f636a5ce3c28414d13c852eef67d"
+  },
+  "themeEditorGroupOutlineEffects": "Contour et effets",
+  "@themeEditorGroupOutlineEffects": {
+    "x-sourceSha256": "62b15f9015a365974ae2ee0e225c82592f75cecada905476dc01d5c313e1f89c"
+  },
+  "themeEditorRolePrimary": "Primaire",
+  "@themeEditorRolePrimary": {
+    "x-sourceSha256": "efe10c80ec8a9f38624cbb47103010a8cf32488a503e4b4bfe4f92307a9cefa7"
+  },
+  "themeEditorRoleOnPrimary": "Sur primaire",
+  "@themeEditorRoleOnPrimary": {
+    "x-sourceSha256": "dae7d8f32cd8148515645ec62c028005be41c4c46dc2ad86e28cfecb8c9030dd"
+  },
+  "themeEditorRolePrimaryContainer": "Conteneur primaire",
+  "@themeEditorRolePrimaryContainer": {
+    "x-sourceSha256": "9e6596e7ba36d418be8593f51da38aa46391f5716f0a7e80251653413d4a85a6"
+  },
+  "themeEditorRoleOnPrimaryContainer": "Sur conteneur primaire",
+  "@themeEditorRoleOnPrimaryContainer": {
+    "x-sourceSha256": "a391d34321dbfd7517cb93b432c437fe45fa6caa70333b1113b4809b8b5f9f06"
+  },
+  "themeEditorRoleSecondary": "Secondaire",
+  "@themeEditorRoleSecondary": {
+    "x-sourceSha256": "62f2ccfffcc5103eabb193172833e6d95db890898849ea1ce84b8d7843997539"
+  },
+  "themeEditorRoleOnSecondary": "Sur secondaire",
+  "@themeEditorRoleOnSecondary": {
+    "x-sourceSha256": "fd73808427c14d94b4a7e7d541ecb431d482051bf60eb96c49c292dbc315aead"
+  },
+  "themeEditorRoleSecondaryContainer": "Conteneur secondaire",
+  "@themeEditorRoleSecondaryContainer": {
+    "x-sourceSha256": "bc8ee523ab960a2ff80f9b6602ac72bb396a4ca7c415826a6efe82e8279b5b3c"
+  },
+  "themeEditorRoleOnSecondaryContainer": "Sur conteneur secondaire",
+  "@themeEditorRoleOnSecondaryContainer": {
+    "x-sourceSha256": "ed3f96e2423a93c030879d694338fe8bdddfb6ca6cfa4640e468c0d9a070d2ea"
+  },
+  "themeEditorRoleTertiary": "Tertiaire",
+  "@themeEditorRoleTertiary": {
+    "x-sourceSha256": "af3ddd815af84ae581f631295b763f729697b8a8dc36e4b49b301ea423bc1500"
+  },
+  "themeEditorRoleOnTertiary": "Sur tertiaire",
+  "@themeEditorRoleOnTertiary": {
+    "x-sourceSha256": "b445d512ab0ce2600cd56dbcf4d9a8f11378f0804f8f5d653f955d4e7c2b2ed7"
+  },
+  "themeEditorRoleTertiaryContainer": "Conteneur tertiaire",
+  "@themeEditorRoleTertiaryContainer": {
+    "x-sourceSha256": "c488f64085533deaaf211aa6fef6be3d3f96ec371b22c105b5347d89ec81292d"
+  },
+  "themeEditorRoleOnTertiaryContainer": "Sur conteneur tertiaire",
+  "@themeEditorRoleOnTertiaryContainer": {
+    "x-sourceSha256": "dc44ae519732318d102f61a6def204e3682e67755d0dbaac06513a65720c5358"
+  },
+  "themeEditorRoleError": "Erreur",
+  "@themeEditorRoleError": {
+    "x-sourceSha256": "54a0e8c17ebb21a11f8a25b8042786ef7efe52441e6cc87e92c67e0c4c0c6e78"
+  },
+  "themeEditorRoleOnError": "Sur erreur",
+  "@themeEditorRoleOnError": {
+    "x-sourceSha256": "817fc01c9fd571ac01adbeb12e441ef40344ce8f3a4dae71c6452a4273d6696c"
+  },
+  "themeEditorRoleErrorContainer": "Conteneur d’erreur",
+  "@themeEditorRoleErrorContainer": {
+    "x-sourceSha256": "421d350a1bd5580ccf10eb12dda0700ba791abc2648e3005d9d4b4f0ad8e64b3"
+  },
+  "themeEditorRoleOnErrorContainer": "Sur conteneur d’erreur",
+  "@themeEditorRoleOnErrorContainer": {
+    "x-sourceSha256": "e3b32e422e7cde24da3d2e3197e591e0637a299e412f8dbb414a48251c59ee76"
+  },
+  "themeEditorRoleSurface": "Surface",
+  "@themeEditorRoleSurface": {
+    "x-sourceSha256": "0905f7f59021c2a85f1c0a50d7c252a3e6c6ee006514f01d7264097f1fd4337a"
+  },
+  "themeEditorRoleOnSurface": "Sur surface",
+  "@themeEditorRoleOnSurface": {
+    "x-sourceSha256": "40e1cf2854c570ba58ead0baededb0a1423c9fd5feb9e8c5f9d1100220f6bacb"
+  },
+  "themeEditorRoleOnSurfaceVariant": "Sur variante de surface",
+  "@themeEditorRoleOnSurfaceVariant": {
+    "x-sourceSha256": "0ed2808e1a6207c3f794abe432600f06af856b54418af3dfc19ed35287c0e410"
+  },
+  "themeEditorRoleInverseSurface": "Surface inversée",
+  "@themeEditorRoleInverseSurface": {
+    "x-sourceSha256": "849d58834dec7fc0168e2dbe952fd301c6234c0015612eaa3856e3c17c375fc1"
+  },
+  "themeEditorRoleOnInverseSurface": "Sur surface inversée",
+  "@themeEditorRoleOnInverseSurface": {
+    "x-sourceSha256": "6155170e83a20e77cbbc52864a48e7e9a90e34cc70c3ade5947b05803f2178cf"
+  },
+  "themeEditorRoleInversePrimary": "Primaire inversée",
+  "@themeEditorRoleInversePrimary": {
+    "x-sourceSha256": "5ec1fbcfbc98b7631d6f180f981283ab990b4ce19961767d624eb7982fc4a316"
+  },
+  "themeEditorRoleSurfaceContainerLowest": "Conteneur (le plus bas)",
+  "@themeEditorRoleSurfaceContainerLowest": {
+    "x-sourceSha256": "a8c158fb86fb4ee807c1af6bae0adb7e64e4f6a8c9184ce53b5b5c925c9c168e"
+  },
+  "themeEditorRoleSurfaceContainerLow": "Conteneur (bas)",
+  "@themeEditorRoleSurfaceContainerLow": {
+    "x-sourceSha256": "47c377542e0bc1d3b2b7a07d501e97aa87aff20960c57d4983d7ea13e3aeac86"
+  },
+  "themeEditorRoleSurfaceContainer": "Conteneur",
+  "@themeEditorRoleSurfaceContainer": {
+    "x-sourceSha256": "0c7823e8c759af7d0d04bea22a6d64fb56065c7168977b5f19ad2225a2986178"
+  },
+  "themeEditorRoleSurfaceContainerHigh": "Conteneur (élevé)",
+  "@themeEditorRoleSurfaceContainerHigh": {
+    "x-sourceSha256": "b54e46a9fe50df951f282e7d9e3d3500b2f2a50372c74d206b02250b8b146f67"
+  },
+  "themeEditorRoleSurfaceContainerHighest": "Conteneur (le plus élevé)",
+  "@themeEditorRoleSurfaceContainerHighest": {
+    "x-sourceSha256": "bc4d36f458848e80d5f8567942e5cc3ccbe6c28233f4297ca310505c2f9945a8"
+  },
+  "themeEditorRoleOutline": "Contour",
+  "@themeEditorRoleOutline": {
+    "x-sourceSha256": "eabbf3abaf8d98abb9763d83f29b04716524a9d697dfdd06ae3ed77bdd12c929"
+  },
+  "themeEditorRoleOutlineVariant": "Variante de contour",
+  "@themeEditorRoleOutlineVariant": {
+    "x-sourceSha256": "f2b95d59af5eec6fb6cc8b00ff66e828312a399ba57436cfcf8ceb29d676db55"
+  },
+  "themeEditorRoleSurfaceTint": "Teinte de surface",
+  "@themeEditorRoleSurfaceTint": {
+    "x-sourceSha256": "50fc3498c23aee91a9588c9b2048c627db90bd4725c3ba3abf1b49ae8126c510"
+  },
+  "themeEditorRoleShadow": "Ombre",
+  "@themeEditorRoleShadow": {
+    "x-sourceSha256": "4c764cb6248ef9337fc1c8769d4b74fc1d4c1fff6a9e8d00ca6753a560b3e74b"
+  },
+  "themeEditorRoleScrim": "Voile",
+  "@themeEditorRoleScrim": {
+    "x-sourceSha256": "b72b765b11de350fbefc015e56962ec035642aa8b3edcf3061b4ac94aa412a62"
+  },
+  "themeEditorPairOnPrimary": "Texte sur primaire",
+  "@themeEditorPairOnPrimary": {
+    "x-sourceSha256": "0607c072e37dc5486d8c3e2848217cd24fa959eeaf08071f49af21fc294363f4"
+  },
+  "themeEditorPairOnPrimaryContainer": "Texte sur conteneur primaire",
+  "@themeEditorPairOnPrimaryContainer": {
+    "x-sourceSha256": "8818e6dd1e545914b5d895722e79a82cbf0475fe03d6d32cce52e3dbd98021a4"
+  },
+  "themeEditorPairOnSecondary": "Texte sur secondaire",
+  "@themeEditorPairOnSecondary": {
+    "x-sourceSha256": "28d8b08671c91539e3ae28dae8201c574a32b1da9878368d39d231d69b5b6a37"
+  },
+  "themeEditorPairOnSecondaryContainer": "Texte sur conteneur secondaire",
+  "@themeEditorPairOnSecondaryContainer": {
+    "x-sourceSha256": "7d4bc15246953d3991379b58763a726226ed941270dc4d7b5db32a8c7c8be2bf"
+  },
+  "themeEditorPairOnTertiary": "Texte sur tertiaire",
+  "@themeEditorPairOnTertiary": {
+    "x-sourceSha256": "7b3f0c45e82fa675451b9bca343b0d39ecb6b9b2ea12bca7678703ccc119ebf8"
+  },
+  "themeEditorPairOnTertiaryContainer": "Texte sur conteneur tertiaire",
+  "@themeEditorPairOnTertiaryContainer": {
+    "x-sourceSha256": "5ecd7fcedff3902e43a5ec61fd30d4009c1bd621038320a10af4a6f36a2905cb"
+  },
+  "themeEditorPairOnError": "Texte sur erreur",
+  "@themeEditorPairOnError": {
+    "x-sourceSha256": "72e5ace23e83772a87540e83b392ef6d25155c92eb7e08771d667a84764d6b8c"
+  },
+  "themeEditorPairOnErrorContainer": "Texte sur conteneur d’erreur",
+  "@themeEditorPairOnErrorContainer": {
+    "x-sourceSha256": "dc4696846d9678599dd6932dfa9cb6d30dc7bd539da7c7f517f7b3e890e9565e"
+  },
+  "themeEditorPairOnSurface": "Texte courant sur surface",
+  "@themeEditorPairOnSurface": {
+    "x-sourceSha256": "1a8eaa9e0d7b55451edca7fb7ed2f348485761e73e3bd2a3deed8aa2fbd3ff6f"
+  },
+  "themeEditorPairOnSurfaceVariant": "Texte secondaire sur surface",
+  "@themeEditorPairOnSurfaceVariant": {
+    "x-sourceSha256": "44164a61acc50bc2a829dfc7c87f90ec8709b712d0fe27e69f3eac609c194819"
+  },
+  "themeEditorPairOnInverseSurface": "Texte sur surface inversée",
+  "@themeEditorPairOnInverseSurface": {
+    "x-sourceSha256": "a4574fb9ec5459f80d68c21fbb2a4e9b83fe561ed67ea09f098da12692730866"
+  },
+  "themeEditorPairOutline": "Contour sur surface",
+  "@themeEditorPairOutline": {
+    "x-sourceSha256": "99b7bdbf2e12071cf313ae0bc216ed066e8d70a77db51c118ba1d01e9ab99060"
+  },
   "settingsAppearanceEasterEggsHeader": "Easter eggs",
   "@settingsAppearanceEasterEggsHeader": {
     "x-sourceSha256": "1a420070d362964df352f37d1b6c07e5c3ceeb52372cc9e6848f1dd0741f0a59"

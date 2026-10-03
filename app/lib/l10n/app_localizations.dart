@@ -2181,6 +2181,576 @@ abstract class AppLocalizations {
   /// **'Custom themes'**
   String get settingsAppearanceCustomThemesHeader;
 
+  /// Section heading above the "System" themes in the Appearance theme gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get appThemeGroupSystem;
+
+  /// Section heading above the "Default" themes in the Appearance theme gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get appThemeGroupDefault;
+
+  /// Section heading above the "Light" themes in the Appearance theme gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get appThemeGroupLight;
+
+  /// Section heading above the "Dark" themes in the Appearance theme gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get appThemeGroupDark;
+
+  /// Name of the built-in "System" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get appThemeLabelSystem;
+
+  /// Name of the built-in "Light" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get appThemeLabelLight;
+
+  /// Name of the built-in "Dark" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get appThemeLabelDark;
+
+  /// Name of the built-in "Soft Dark" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft Dark'**
+  String get appThemeLabelSoftDark;
+
+  /// Name of the built-in "High contrast" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'High contrast'**
+  String get appThemeLabelHighContrast;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Match the device light/dark setting'**
+  String get appThemeDescriptionSystem;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm light palette'**
+  String get appThemeDescriptionLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm dark palette'**
+  String get appThemeDescriptionDark;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm dark on a softer, lighter canvas'**
+  String get appThemeDescriptionSoftDark;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum contrast for dim rooms and low vision'**
+  String get appThemeDescriptionHighContrast;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Crisp cool-neutral canvas with vivid jewel tones'**
+  String get appThemeDescriptionBlulocoLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'One Dark Pro, the popular editor theme'**
+  String get appThemeDescriptionOneDarkPro;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'One Monokai — Monokai syntax on charcoal'**
+  String get appThemeDescriptionMonokai;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'The original deep teal Noctis night'**
+  String get appThemeDescriptionNoctis;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub’s clean neutral light'**
+  String get appThemeDescriptionGithubLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft pastel light, community favorite'**
+  String get appThemeDescriptionCatppuccinLatte;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm retro cream and earth tones'**
+  String get appThemeDescriptionGruvboxLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Gentle green, easy on the eyes'**
+  String get appThemeDescriptionEverforestLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Muted rose and iris on warm paper'**
+  String get appThemeDescriptionRosePineDawn;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Bright, minimal light with amber accents'**
+  String get appThemeDescriptionAyuLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Crisp indigo daylight, Tokyo Night’s day'**
+  String get appThemeDescriptionTokyoNightLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Cool arctic snow-storm neutrals'**
+  String get appThemeDescriptionNordLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm sumi-e paper with ink accents'**
+  String get appThemeDescriptionKanagawaLotus;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'The classic purple-on-charcoal favorite'**
+  String get appThemeDescriptionDracula;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Cool arctic blues, understated'**
+  String get appThemeDescriptionNord;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Neon indigo city-at-night palette'**
+  String get appThemeDescriptionTokyoNight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm retro amber on charcoal'**
+  String get appThemeDescriptionGruvboxDark;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Cozy pastel dark, community favorite'**
+  String get appThemeDescriptionCatppuccinMocha;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub’s neutral dark'**
+  String get appThemeDescriptionGithubDark;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft forest green, low fatigue'**
+  String get appThemeDescriptionEverforestDark;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Muted rose and iris in the dark'**
+  String get appThemeDescriptionRosePine;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Smooth slate with amber accents'**
+  String get appThemeDescriptionAyuMirage;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Cute af dark pastel, pink-forward'**
+  String get appThemeDescriptionCutiePro;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Unapologetic hot pink on berry'**
+  String get appThemeDescriptionPinkAsHeck;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Modern muted sage, teal and rose'**
+  String get appThemeDescriptionVitesseLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'The classic low-contrast warm grey'**
+  String get appThemeDescriptionZenburn;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold gold on deep indigo'**
+  String get appThemeDescriptionShadesOfPurple;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Lighter blue-gray pastel Catppuccin'**
+  String get appThemeDescriptionCatppuccinFrappe;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Glowing neon on retro purple'**
+  String get appThemeDescriptionSynthwave84;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Gentle lilac Noctis daylight'**
+  String get appThemeDescriptionNoctisLilac;
+
+  /// Heading of the "Primary" group of colour roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary'**
+  String get themeEditorGroupPrimary;
+
+  /// Heading of the "Secondary" group of colour roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary'**
+  String get themeEditorGroupSecondary;
+
+  /// Heading of the "Tertiary" group of colour roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Tertiary'**
+  String get themeEditorGroupTertiary;
+
+  /// Heading of the "Error" group of colour roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get themeEditorGroupError;
+
+  /// Heading of the "Surface & text" group of colour roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Surface & text'**
+  String get themeEditorGroupSurfaceText;
+
+  /// Heading of the "Surface containers" group of colour roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Surface containers'**
+  String get themeEditorGroupSurfaceContainers;
+
+  /// Heading of the "Outline & effects" group of colour roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Outline & effects'**
+  String get themeEditorGroupOutlineEffects;
+
+  /// Label of the "Primary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Primary'**
+  String get themeEditorRolePrimary;
+
+  /// Label of the "On primary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On primary'**
+  String get themeEditorRoleOnPrimary;
+
+  /// Label of the "Primary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Primary container'**
+  String get themeEditorRolePrimaryContainer;
+
+  /// Label of the "On primary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On primary container'**
+  String get themeEditorRoleOnPrimaryContainer;
+
+  /// Label of the "Secondary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary'**
+  String get themeEditorRoleSecondary;
+
+  /// Label of the "On secondary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On secondary'**
+  String get themeEditorRoleOnSecondary;
+
+  /// Label of the "Secondary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary container'**
+  String get themeEditorRoleSecondaryContainer;
+
+  /// Label of the "On secondary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On secondary container'**
+  String get themeEditorRoleOnSecondaryContainer;
+
+  /// Label of the "Tertiary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Tertiary'**
+  String get themeEditorRoleTertiary;
+
+  /// Label of the "On tertiary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On tertiary'**
+  String get themeEditorRoleOnTertiary;
+
+  /// Label of the "Tertiary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Tertiary container'**
+  String get themeEditorRoleTertiaryContainer;
+
+  /// Label of the "On tertiary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On tertiary container'**
+  String get themeEditorRoleOnTertiaryContainer;
+
+  /// Label of the "Error" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get themeEditorRoleError;
+
+  /// Label of the "On error" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On error'**
+  String get themeEditorRoleOnError;
+
+  /// Label of the "Error container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Error container'**
+  String get themeEditorRoleErrorContainer;
+
+  /// Label of the "On error container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On error container'**
+  String get themeEditorRoleOnErrorContainer;
+
+  /// Label of the "Surface" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Surface'**
+  String get themeEditorRoleSurface;
+
+  /// Label of the "On surface" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On surface'**
+  String get themeEditorRoleOnSurface;
+
+  /// Label of the "On surface variant" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On surface variant'**
+  String get themeEditorRoleOnSurfaceVariant;
+
+  /// Label of the "Inverse surface" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Inverse surface'**
+  String get themeEditorRoleInverseSurface;
+
+  /// Label of the "On inverse surface" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On inverse surface'**
+  String get themeEditorRoleOnInverseSurface;
+
+  /// Label of the "Inverse primary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Inverse primary'**
+  String get themeEditorRoleInversePrimary;
+
+  /// Label of the "Container lowest" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Container lowest'**
+  String get themeEditorRoleSurfaceContainerLowest;
+
+  /// Label of the "Container low" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Container low'**
+  String get themeEditorRoleSurfaceContainerLow;
+
+  /// Label of the "Container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Container'**
+  String get themeEditorRoleSurfaceContainer;
+
+  /// Label of the "Container high" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Container high'**
+  String get themeEditorRoleSurfaceContainerHigh;
+
+  /// Label of the "Container highest" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Container highest'**
+  String get themeEditorRoleSurfaceContainerHighest;
+
+  /// Label of the "Outline" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Outline'**
+  String get themeEditorRoleOutline;
+
+  /// Label of the "Outline variant" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Outline variant'**
+  String get themeEditorRoleOutlineVariant;
+
+  /// Label of the "Surface tint" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Surface tint'**
+  String get themeEditorRoleSurfaceTint;
+
+  /// Label of the "Shadow" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Shadow'**
+  String get themeEditorRoleShadow;
+
+  /// Label of the "Scrim" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Scrim'**
+  String get themeEditorRoleScrim;
+
+  /// Label of the live WCAG contrast badge for the "Text on primary" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on primary'**
+  String get themeEditorPairOnPrimary;
+
+  /// Label of the live WCAG contrast badge for the "Text on primary container" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on primary container'**
+  String get themeEditorPairOnPrimaryContainer;
+
+  /// Label of the live WCAG contrast badge for the "Text on secondary" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on secondary'**
+  String get themeEditorPairOnSecondary;
+
+  /// Label of the live WCAG contrast badge for the "Text on secondary container" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on secondary container'**
+  String get themeEditorPairOnSecondaryContainer;
+
+  /// Label of the live WCAG contrast badge for the "Text on tertiary" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on tertiary'**
+  String get themeEditorPairOnTertiary;
+
+  /// Label of the live WCAG contrast badge for the "Text on tertiary container" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on tertiary container'**
+  String get themeEditorPairOnTertiaryContainer;
+
+  /// Label of the live WCAG contrast badge for the "Text on error" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on error'**
+  String get themeEditorPairOnError;
+
+  /// Label of the live WCAG contrast badge for the "Text on error container" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on error container'**
+  String get themeEditorPairOnErrorContainer;
+
+  /// Label of the live WCAG contrast badge for the "Body text on surface" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Body text on surface'**
+  String get themeEditorPairOnSurface;
+
+  /// Label of the live WCAG contrast badge for the "Secondary text on surface" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary text on surface'**
+  String get themeEditorPairOnSurfaceVariant;
+
+  /// Label of the live WCAG contrast badge for the "Text on inverse surface" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on inverse surface'**
+  String get themeEditorPairOnInverseSurface;
+
+  /// Label of the live WCAG contrast badge for the "Outline on surface" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Outline on surface'**
+  String get themeEditorPairOutline;
+
   /// Section header for playful optional visual features in Appearance settings.
   ///
   /// In en, this message translates to:

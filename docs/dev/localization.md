@@ -12,8 +12,20 @@ This document is the contract for the string-extraction work: the framework and
 every user-facing UI string have landed, and new strings are added to the ARB as
 features land. Follow the conventions here so the app stays consistent.
 
-**Extraction status: complete.** Every user-facing UI surface now sources its
-prose from `AppLocalizations`. The phased extraction (layers 1–6) is finished:
+**Extraction status: every UI string the guard can see is extracted.** The
+hard-coded-string guard (see [below](#guarding-against-hardcoded-strings))
+scans string literals passed as *widget arguments*. It cannot see prose that is
+stored in an enum or a value object and read back later, so those labels must
+be routed through `AppLocalizations` **by convention**: keep the data type's
+English `label` as a stable key/fallback (and sort key), and add a resolver in
+the app layer that switches on the stable identity. The theme gallery and the
+custom-theme editor are the worked example — `AppThemeGroup`,
+`AppThemeSelection` and `CustomThemeRoles` keep English labels, and
+`app_theme_labels_l10n.dart` (`appThemeLabel`, `appThemeDescription`,
+`themeEditorRoleLabel`, …) resolves them (CS-47, L10N-02). Brand palette names
+are proper nouns and stay literal; user-authored names are user data.
+
+Beyond that, the phased extraction (layers 1–6) is finished:
 the framework, shared cross-cutting vocabulary (facet domain-value labels), the
 import-gap badge, the `(copy)` title suffix, global/shared chrome, the full
 **Settings surface**, all secondary screens and editors (custom fields, dialect
@@ -22,8 +34,7 @@ figure-shorthand mappings, reparse-custom-figures), the large chrome widgets
 (`collection_picker`, `command_palette`, `update_banner`), and the
 **venue-management trio** (`venue_manager_screen`, `venue_editor_sheet`,
 `venue_picker`) are all localized. New user-facing strings go straight into the
-ARB — the guard (see [below](#guarding-against-hardcoded-strings)) keeps it that
-way.
+ARB — the guard keeps widget literals that way.
 
 The only remaining hardcoded English is **intentional and permanent**, in one
 bucket:
