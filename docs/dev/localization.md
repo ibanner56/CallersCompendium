@@ -127,6 +127,10 @@ as `InheritedNotifier` scopes (mirroring `AppThemeScope`/`DateFormatScope`):
 | Date format       | `DateFormatScope`     | `kDateFormatKey`       | enum token           |
 | First day of week | `FirstDayOfWeekScope` | `kFirstDayOfWeekKey`   | enum token           |
 
+New preference scopes are added to `_appScopeWrappers` in `main.dart` (outermost
+first; `build` folds the list onto the navigator) and to the type list in
+`app/test/app_scopes_test.dart`.
+
 `DateFormatScope` carries a `DateFormatSetting` (the enum token plus, for the
 `custom` variant, a raw user-entered pattern persisted separately under
 `kDateFormatCustomPatternKey`). The custom pattern is validated at the point of
