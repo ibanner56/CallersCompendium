@@ -112,6 +112,14 @@ jobs:
         run: python3 tools/ci/test_check_debug_print.py
       - name: Guard debugPrint call sites (must be kDebugMode-guarded)
         run: python3 tools/ci/check_debug_print.py
+      # Ratchet: `syncIdentityKdfIterations` is a @visibleForTesting mutable
+      # global in lib/ that lowers the sync identity PBKDF2 cost for tests. No
+      # production file may assign it, and its default must stay the private
+      # 600,000-iteration constant (decided Q-E9, 2026-10-01).
+      - name: Test the sync KDF override ratchet
+        run: python3 tools/ci/test_check_kdf_override_unassigned.py
+      - name: Guard the sync KDF iteration override (never assigned in lib/)
+        run: python3 tools/ci/check_kdf_override_unassigned.py
       # Ratchet: every caught, user-facing error must reach the on-device
       # diagnostic log (or explicitly say why not). Before issue #963, the
       # crash log had exactly four writers — three global handlers plus one

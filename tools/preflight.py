@@ -236,6 +236,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "kdf-override",
+        "no production code assigns the test-only sync KDF iteration override",
+        (
+            py("tools/ci/test_check_kdf_override_unassigned.py"),
+            py("tools/ci/check_kdf_override_unassigned.py"),
+        ),
+    ),
+    Step(
         "caught-errors",
         "every caught user-facing error reaches the diagnostic log",
         (
