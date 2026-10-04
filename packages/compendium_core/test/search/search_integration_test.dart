@@ -1506,7 +1506,7 @@ void main() {
             id: 'a',
             title: 'Custom Dance',
             figures: [
-              Figure(move: customMove, params: const {'text': 'role1s chain'}),
+              Figure(move: 'custom', params: const {'text': 'role1s chain'}),
             ],
           ),
         );

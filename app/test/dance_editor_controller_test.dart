@@ -881,10 +881,10 @@ void main() {
     () {
       Dance customDance() => sampleDance(id: 'd1').copyWith(
         figures: [
-          Figure(move: customMove, params: const {'text': 'role1s chain wide'}),
+          Figure(move: 'custom', params: const {'text': 'role1s chain wide'}),
           Figure.meanwhile(
             figures: [
-              Figure(move: customMove, params: const {'text': 'role2s wait'}),
+              Figure(move: 'custom', params: const {'text': 'role2s wait'}),
               Figure(move: 'swing'),
             ],
             beats: 8,
@@ -938,7 +938,7 @@ void main() {
           addTearDown(controller.dispose);
           controller.insertFreeTextFigures([
             Figure(
-              move: customMove,
+              move: 'custom',
               params: const {'text': 'role1s chain wide'},
               customOrigin: CustomOrigin.importGap,
             ),
