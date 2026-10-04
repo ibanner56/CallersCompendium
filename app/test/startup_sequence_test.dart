@@ -54,6 +54,7 @@ import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
 
+import 'support/full_app_harness.dart';
 import 'support/test_repositories.dart';
 import 'support/noop_sync_transport.dart';
 import 'support/sync_test_network.dart';
@@ -88,16 +89,6 @@ final class _SwitchableNetwork implements SyncNetworkClassifier {
   SyncNetworkKind kind;
   @override
   Future<SyncNetworkKind> current() async => kind;
-}
-
-class _NoopWindowService extends WindowService {
-  _NoopWindowService(super.settings);
-
-  @override
-  Future<void> initialize() async {}
-
-  @override
-  void dispose() {}
 }
 
 /// A [WindowService] whose restore fails as if the database could not be opened.
@@ -257,15 +248,6 @@ Future<void> _restoreFromPaste(
   await tester.pumpAndSettle();
 }
 
-AppData _openAppData() {
-  final appData = AppData(openWidgetTestDatabase(closeOnTearDown: false));
-  // The database is also closed by CompendiumApp.dispose(); sqlite3's close is
-  // idempotent, so this teardown just guarantees cleanup even for the last test
-  // in the file (whose widget tree is never unmounted).
-  addTearDown(appData.close);
-  return appData;
-}
-
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -288,7 +270,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       // A FIXED sweep instant (injected via nowOverride) so this
       // retention-window assertion is fully deterministic and never depends on
       // real wall-clock timing (issue #459 de-flake). All timestamps below are
@@ -320,7 +302,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           nowOverride: () => fixedNow,
         ),
       );
@@ -371,7 +353,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           nowOverride: () => fixedNow,
         ),
       );
@@ -393,7 +375,7 @@ void main() {
     'a DB-open failure during window restore reaches the error/retry screen '
     '(Stage 1.6)',
     (tester) async {
-      final appData = _openAppData();
+      final appData = openTestAppData();
 
       await tester.pumpWidget(
         CompendiumApp(
@@ -430,14 +412,14 @@ void main() {
         LazyDatabase(() async => throw StateError('open failed')),
       ),
     );
-    final healthyAppData = _openAppData();
+    final healthyAppData = openTestAppData();
 
     await tester.pumpWidget(
       CompendiumApp(
         appData: failingAppData,
         appDataFactory: () => healthyAppData,
-        windowService: _NoopWindowService(failingAppData.repositories.settings),
-        windowServiceFactory: (settings) => _NoopWindowService(settings),
+        windowService: NoopWindowService(failingAppData.repositories.settings),
+        windowServiceFactory: (settings) => NoopWindowService(settings),
         integrityCheck: () async => true,
       ),
     );
@@ -498,7 +480,7 @@ void main() {
       final db = openWidgetTestDatabase(closeOnTearDown: false);
       final appData = _FailOnceMigrationAppData(db);
       addTearDown(appData.close);
-      final retryAppData = _openAppData();
+      final retryAppData = openTestAppData();
 
       // Durably mark that a derived-index rebuild is owed so ensureMigrated()
       // invokes runDerivedRebuild() (which throws on its first attempt).
@@ -511,13 +493,13 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           // Retry now reopens the database (see the failed-open test above), so
           // it asks for a replacement AppData rather than reusing the failed
           // one; hand it a fresh healthy in-memory one instead of the real
           // on-disk database.
           appDataFactory: () => retryAppData,
-          windowServiceFactory: (settings) => _NoopWindowService(settings),
+          windowServiceFactory: (settings) => NoopWindowService(settings),
           // Keep the (advisory) integrity probe green so the only failure under
           // test is the migration itself.
           integrityCheck: () async => true,
@@ -557,12 +539,12 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final appData = _openAppData();
+    final appData = openTestAppData();
 
     await tester.pumpWidget(
       CompendiumApp(
         appData: appData,
-        windowService: _NoopWindowService(appData.repositories.settings),
+        windowService: NoopWindowService(appData.repositories.settings),
         integrityCheck: () async => false,
       ),
     );
@@ -580,12 +562,12 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
 
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           // Throw *synchronously* (before any Future is returned). This escapes
           // a `.catchError` on the probe's result — the throw happens before
           // there is a Future to attach the handler to — so it is the clearest
@@ -615,13 +597,13 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final appData = _openAppData();
+    final appData = openTestAppData();
     final probe = Completer<bool>();
 
     await tester.pumpWidget(
       CompendiumApp(
         appData: appData,
-        windowService: _NoopWindowService(appData.repositories.settings),
+        windowService: NoopWindowService(appData.repositories.settings),
         integrityCheck: () => probe.future,
       ),
     );
@@ -641,13 +623,13 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final appData = _openAppData();
+    final appData = openTestAppData();
     final probe = Completer<bool>();
 
     await tester.pumpWidget(
       CompendiumApp(
         appData: appData,
-        windowService: _NoopWindowService(appData.repositories.settings),
+        windowService: NoopWindowService(appData.repositories.settings),
         integrityCheck: () => probe.future,
       ),
     );
@@ -670,13 +652,13 @@ void main() {
     installCaughtErrorLog(sink);
     addTearDown(resetCaughtErrorLogForTesting);
 
-    final appData = _openAppData();
+    final appData = openTestAppData();
     final probe = Completer<bool>();
 
     await tester.pumpWidget(
       CompendiumApp(
         appData: appData,
-        windowService: _NoopWindowService(appData.repositories.settings),
+        windowService: NoopWindowService(appData.repositories.settings),
         integrityCheck: () => probe.future,
       ),
     );
@@ -701,12 +683,12 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final appData = _openAppData();
+    final appData = openTestAppData();
 
     await tester.pumpWidget(
       CompendiumApp(
         appData: appData,
-        windowService: _NoopWindowService(appData.repositories.settings),
+        windowService: NoopWindowService(appData.repositories.settings),
         // No injected check → uses the real CompendiumDatabase.quickCheck,
         // which reports ok on a fresh in-memory database.
       ),
@@ -724,7 +706,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       var passes = 0;
       final passStarted = <Completer<void>>[];
 
@@ -747,7 +729,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           integrityCheck: () async => true,
           syncCoordinatorFactory: factory,
           syncNetworkClassifier: const UnmeteredSyncNetwork(),
@@ -784,7 +766,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       var passes = 0;
       final network = _SwitchableNetwork(SyncNetworkKind.offline);
 
@@ -809,7 +791,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           integrityCheck: () async => true,
           syncCoordinatorFactory: factory,
           syncNetworkClassifier: network,
@@ -851,7 +833,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       final gates = <Completer<void>>[];
       var factoryCalls = 0;
       var running = 0;
@@ -884,7 +866,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           integrityCheck: () async => true,
           syncCoordinatorFactory: factory,
           syncNetworkClassifier: const UnmeteredSyncNetwork(),
@@ -937,12 +919,12 @@ void main() {
       final sink = _RecordingCrashLogSink();
       installCaughtErrorLog(sink);
       addTearDown(resetCaughtErrorLogForTesting);
-      final appData = _openAppData();
+      final appData = openTestAppData();
 
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           integrityCheck: () async => true,
           // A malformed persisted sync setting can throw synchronously before
           // the factory returns a Future. Device Sync is optional, so this
@@ -965,7 +947,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       final source = openTestRepositories();
       await source.dances.create(
         Dance(
@@ -1015,7 +997,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           integrityCheck: () async => true,
           syncCoordinatorFactory: factory,
           syncNetworkClassifier: const UnmeteredSyncNetwork(),
@@ -1069,7 +1051,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       final firstPassGate = Completer<void>();
       final firstPassStarted = Completer<void>();
       final shutdownController = ApplicationShutdownController(() async {});
@@ -1098,7 +1080,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           applicationShutdownController: shutdownController,
           integrityCheck: () async => true,
           syncCoordinatorFactory: factory,
@@ -1146,7 +1128,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       final events = <String>[];
       var factoryCalls = 0;
       Completer<void>? racingFactoryGate;
@@ -1181,7 +1163,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           integrityCheck: () async => true,
           syncCoordinatorFactory: factory,
           syncNetworkClassifier: const UnmeteredSyncNetwork(),
@@ -1262,13 +1244,13 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       const error = DatabaseDowngradeError(fileVersion: 99, appVersion: 9);
 
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           // The preflight runs first; a downgrade rejection must reach the
           // AppBootstrap error screen with a tailored, non-retryable message.
           migrationPreflight: (_) async => throw error,
@@ -1309,12 +1291,12 @@ void main() {
         minSupportedVersion: 11,
         bridgeTag: 'v0.1.0-beta.6',
       );
-      final initialAppData = _openAppData();
+      final initialAppData = openTestAppData();
 
       await tester.pumpWidget(
         CompendiumApp(
           appData: initialAppData,
-          windowService: _NoopWindowService(
+          windowService: NoopWindowService(
             initialAppData.repositories.settings,
           ),
           initialRequirePerformedForHistory: true,
@@ -1327,11 +1309,11 @@ void main() {
           databaseResetter: (_) async => const ResetComplete(),
           appDataFactory: () {
             replacementAppDataCount++;
-            return _openAppData();
+            return openTestAppData();
           },
           windowServiceFactory: (settings) {
             replacementWindowServiceCount++;
-            return _NoopWindowService(settings);
+            return NoopWindowService(settings);
           },
         ),
       );
@@ -1384,7 +1366,7 @@ void main() {
       );
       final backupJson = await BackupService(source).exportToJson();
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       await appData.repositories.settings.set(
         kRequirePerformedForHistoryKey,
         true,
@@ -1393,7 +1375,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
         ),
       );
       await tester.pumpAndSettle();
@@ -1512,13 +1494,13 @@ void main() {
         final source = openTestRepositories();
         final backupJson = await BackupService(source).exportToJson();
 
-        final appData = _openAppData();
+        final appData = openTestAppData();
         await appData.repositories.settings.set(c.key, !c.defaultValue);
 
         await tester.pumpWidget(
           CompendiumApp(
             appData: appData,
-            windowService: _NoopWindowService(appData.repositories.settings),
+            windowService: NoopWindowService(appData.repositories.settings),
           ),
         );
         await tester.pumpAndSettle();
@@ -1547,7 +1529,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
         ),
       );
       await tester.pumpAndSettle();
@@ -1572,7 +1554,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
         ),
       );
       await tester.pumpAndSettle();
@@ -1604,7 +1586,7 @@ void main() {
         await tester.pumpWidget(
           CompendiumApp(
             appData: appData,
-            windowService: _NoopWindowService(appData.repositories.settings),
+            windowService: NoopWindowService(appData.repositories.settings),
           ),
         );
         await tester.pumpAndSettle();
@@ -1659,14 +1641,14 @@ void main() {
     final source = openTestRepositories();
     final backupJson = await BackupService(source).exportToJson();
 
-    final appData = _openAppData();
+    final appData = openTestAppData();
     await appData.repositories.settings.set(kProgramDanceShareFieldsKey, [
       DanceShareField.authors.name,
     ]);
     await tester.pumpWidget(
       CompendiumApp(
         appData: appData,
-        windowService: _NoopWindowService(appData.repositories.settings),
+        windowService: NoopWindowService(appData.repositories.settings),
       ),
     );
     await tester.pumpAndSettle();
@@ -1715,7 +1697,7 @@ void main() {
     await tester.pumpWidget(
       CompendiumApp(
         appData: initialAppData,
-        windowService: _NoopWindowService(initialAppData.repositories.settings),
+        windowService: NoopWindowService(initialAppData.repositories.settings),
         applicationShutdownController: applicationShutdownController,
         editorDraftShutdownController: draftShutdownController,
         migrationPreflight: (_) async {
@@ -1738,7 +1720,7 @@ void main() {
           addTearDown(replacementAppData.close);
           return replacementAppData;
         },
-        windowServiceFactory: (settings) => _NoopWindowService(settings),
+        windowServiceFactory: (settings) => NoopWindowService(settings),
       ),
     );
     await tester.pumpAndSettle();
@@ -1779,7 +1761,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       final failure = SnapshotFailure(
         fromVersion: 1,
         toVersion: 2,
@@ -1790,7 +1772,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           // Stand in for a real snapshot failure: drive the injected consent
           // seam exactly as runMigrationPreflight would, so the app's real
           // dialog + gating is exercised end-to-end.
@@ -1829,7 +1811,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       final failure = SnapshotFailure(
         fromVersion: 1,
         toVersion: 2,
@@ -1841,7 +1823,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           migrationPreflight: (onSnapshotFailure) async {
             final proceed = await onSnapshotFailure(failure);
             if (!proceed) throw MigrationSnapshotAborted(failure);
@@ -1878,7 +1860,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       // Simulate a restored/corrupt backup that persisted a non-string under
       // the theme key. The old startup read cast this with `as String?`, which
       // threw here and — because the value stays on disk — re-threw on every
@@ -1889,7 +1871,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
         ),
       );
       await tester.pumpAndSettle();
@@ -1912,7 +1894,7 @@ void main() {
     ) async {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
-      final appData = _openAppData();
+      final appData = openTestAppData();
       if (stored != null) {
         await appData.repositories.settings.set(
           kCollectionHiddenFacetsKey,
@@ -1922,7 +1904,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           integrityCheck: () async => true,
         ),
       );
@@ -1955,7 +1937,7 @@ void main() {
     Future<AppData> bootWithEcdTaggedDance(WidgetTester tester) async {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
-      final appData = _openAppData();
+      final appData = openTestAppData();
       // Lowercase "ecd", proving the match is case-insensitive.
       // ignore: unused_result
       await appData.repositories.tags.upsert(Tag(id: 'tag-ecd', name: 'ecd'));
@@ -1975,7 +1957,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           integrityCheck: () async => true,
         ),
       );
@@ -1988,12 +1970,12 @@ void main() {
       (tester) async {
         await tester.binding.setSurfaceSize(const Size(1200, 900));
         addTearDown(() => tester.binding.setSurfaceSize(null));
-        final appData = _openAppData();
+        final appData = openTestAppData();
 
         await tester.pumpWidget(
           CompendiumApp(
             appData: appData,
-            windowService: _NoopWindowService(appData.repositories.settings),
+            windowService: NoopWindowService(appData.repositories.settings),
             integrityCheck: () async => true,
           ),
         );
@@ -2006,7 +1988,7 @@ void main() {
     testWidgets('does not appear once the user has opted out', (tester) async {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
-      final appData = _openAppData();
+      final appData = openTestAppData();
       // ignore: unused_result
       await appData.repositories.tags.upsert(Tag(id: 'tag-ecd', name: 'ECD'));
       await appData.repositories.dances.create(
@@ -2026,7 +2008,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           integrityCheck: () async => true,
         ),
       );

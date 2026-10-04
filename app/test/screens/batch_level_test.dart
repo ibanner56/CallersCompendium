@@ -2,15 +2,8 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:compendium_app/src/data/active_dialect_scope.dart';
-import 'package:compendium_app/src/data/app_theme_scope.dart';
-import 'package:compendium_app/src/data/custom_themes_controller.dart';
-import 'package:compendium_app/src/data/custom_themes_scope.dart';
-import 'package:compendium_app/src/data/repositories_scope.dart';
-import 'package:compendium_app/src/screens/dance_list_screen.dart';
-
 import '../support/test_repositories.dart';
-import '../support/l10n_harness.dart';
+import '../support/batch_screen_harness.dart';
 
 Dance _dance({required String id, required String title, DanceLevel? level}) =>
     Dance(
@@ -26,41 +19,6 @@ Dance _dance({required String id, required String title, DanceLevel? level}) =>
       createdAt: DateTime.utc(2026, 1, 1),
       updatedAt: DateTime.utc(2026, 1, 1),
     );
-
-Future<void> _pumpScreen(
-  WidgetTester tester,
-  CompendiumRepositories repos,
-) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 3000));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
-  final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
-  addTearDown(notifier.dispose);
-  final themeNotifier = ValueNotifier<AppThemeSelection>(
-    AppThemeSelection.system,
-  );
-  addTearDown(themeNotifier.dispose);
-  final customThemes = CustomThemesController(repos.settings);
-  await customThemes.load();
-  addTearDown(customThemes.dispose);
-  await tester.pumpWidget(
-    MaterialApp(
-      localizationsDelegates: testLocalizationsDelegates,
-      supportedLocales: testSupportedLocales,
-      builder: (context, child) => RepositoriesScope(
-        repositories: repos,
-        child: AppThemeScope(
-          notifier: themeNotifier,
-          child: CustomThemesScope(
-            controller: customThemes,
-            child: ActiveDialectScope(notifier: notifier, child: child!),
-          ),
-        ),
-      ),
-      home: const DanceListScreen(),
-    ),
-  );
-  await tester.pumpAndSettle();
-}
 
 Future<void> _enterSelectionMode(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey('batch-select')));
@@ -89,7 +47,7 @@ void main() {
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
     await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
     await repos.dances.create(_dance(id: 'd3', title: 'Charlie'));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -118,7 +76,7 @@ void main() {
       _dance(id: 'd1', title: 'Alpha', level: DanceLevel.beginner),
     );
     await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -144,7 +102,7 @@ void main() {
     await repos.dances.create(
       _dance(id: 'd1', title: 'Alpha', level: DanceLevel.advanced),
     );
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -160,7 +118,7 @@ void main() {
       _dance(id: 'd1', title: 'Alpha', level: DanceLevel.beginner),
     );
     await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -194,7 +152,7 @@ void main() {
     await repos.dances.create(
       _dance(id: 'd1', title: 'Alpha', level: DanceLevel.intermediate),
     );
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
     await _toggle(tester, 'd1');
@@ -212,7 +170,7 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
-    await _pumpScreen(tester, repos);
+    await pumpBatchScreen(tester, repos);
 
     await _enterSelectionMode(tester);
 

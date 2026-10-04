@@ -15,9 +15,11 @@ import 'figures_support.dart';
 /// complements the widget-level `editor_autosave_undo_test.dart` by exercising
 /// the extracted controller in isolation.
 ///
-/// The controller's debounce timers are real 500 ms [Timer]s, so tests wait a
-/// little past that window (`settleDebounce`) to let them fire.
+/// The controller's debounce timers are real [Timer]s, so tests build it with a
+/// short [testDebounce] and wait a little past that window (`settleDebounce`)
+/// to let them fire.
 void main() {
+  const testDebounce = Duration(milliseconds: 10);
   final now = DateTime.utc(2026, 1, 1);
 
   Dance sampleDance({
@@ -41,16 +43,15 @@ void main() {
       repositories: repos,
       danceId: null,
       dialect: Dialect.larksRobins,
+      debounce: testDebounce,
     );
     await controller.load(dance: null, fieldDefs: const []);
     return controller;
   }
 
-  /// Waits past the 500 ms undo/autosave debounce window, then lets the async
-  /// draft write settle.
-  Future<void> settleDebounce() async {
-    await Future<void>.delayed(const Duration(milliseconds: 650));
-  }
+  /// Waits past the injected undo/autosave [testDebounce] window, then lets the
+  /// async draft write settle.
+  Future<void> settleDebounce() => Future<void>.delayed(testDebounce * 2);
 
   /// Polls until the autosave draft exists (or times out), tolerating the async
   /// db write kicked off by the debounce timer.
@@ -235,6 +236,27 @@ void main() {
     expect(controller.titleController.text, isEmpty);
   });
 
+  test('the injected debounce governs the autosave timer', () async {
+    final repos = openTestRepositories();
+    final controller = DanceEditorController(
+      repositories: repos,
+      danceId: null,
+      dialect: Dialect.larksRobins,
+      debounce: const Duration(milliseconds: 10),
+    );
+    await controller.load(dance: null, fieldDefs: const []);
+    addTearDown(controller.dispose);
+
+    controller.titleController.text = 'Quick';
+    controller.onTextEdited();
+    expect(await repos.settings.contains('editor_draft:new'), isFalse);
+
+    // Well inside the 500 ms default, so only the injected value can have
+    // fired the timer.
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    expect(await repos.settings.contains('editor_draft:new'), isTrue);
+  });
+
   group('initialTitle seed (issue #881 program-slot "create a dance")', () {
     test('seeds a new dance\'s title field', () async {
       final repos = openTestRepositories();
@@ -400,7 +422,7 @@ void main() {
     // right after starting, simulating a write already "in flight" when
     // cleanup runs.
     delayed.settings.holdNextWrite();
-    await Future<void>.delayed(const Duration(milliseconds: 650));
+    await settleDebounce();
     await delayed.settings.writeStarted;
 
     // Fire the cleanup while the autosave write is still suspended. If
@@ -480,7 +502,7 @@ void main() {
     controller.titleController.text = 'First Edit';
     controller.onTextEdited();
     delayed.settings.holdNextWrite();
-    await Future<void>.delayed(const Duration(milliseconds: 650));
+    await settleDebounce();
     await delayed.settings.writeStarted;
 
     // While the first write is still suspended, make a second edit. Its
@@ -491,7 +513,7 @@ void main() {
     controller.titleController.text = 'Second Edit';
     controller.onTextEdited();
     delayed.settings.holdNextWrite();
-    await Future<void>.delayed(const Duration(milliseconds: 650));
+    await settleDebounce();
 
     // The second write is queued behind the still-suspended first write,
     // so it hasn't started yet.

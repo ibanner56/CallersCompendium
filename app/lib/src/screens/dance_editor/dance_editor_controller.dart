@@ -35,6 +35,7 @@ class DanceEditorController extends ChangeNotifier {
     required this.danceId,
     required Dialect dialect,
     this.initialTitle,
+    this._debounce = const Duration(milliseconds: 500),
   }) : _repos = repositories,
        _activeDialect = dialect,
        titleController = LingoTextEditingController(dialect: dialect),
@@ -46,6 +47,10 @@ class DanceEditorController extends ChangeNotifier {
        tuneController = LingoTextEditingController(dialect: dialect);
 
   final CompendiumRepositories _repos;
+
+  /// How long an edit must sit idle before the undo snapshot is pushed and the
+  /// autosave draft is written. Tests inject a short one.
+  final Duration _debounce;
   final String? danceId;
   Dialect _activeDialect;
 
@@ -699,11 +704,11 @@ class DanceEditorController extends ChangeNotifier {
     }
   }
 
-  /// Debounces undo pushes for rapid text-field edits (500 ms).
+  /// Debounces undo pushes for rapid text-field edits (500 ms by default).
   void scheduleUndoPush() {
     if (_applyingSnapshot || !_loaded) return;
     _undoTimer?.cancel();
-    _undoTimer = Timer(const Duration(milliseconds: 500), () {
+    _undoTimer = Timer(_debounce, () {
       if (!_disposed && !_applyingSnapshot && _loaded) {
         _undoStack.push(captureSnapshot());
         _notify(); // Refresh canUndo/canRedo button states.
@@ -743,11 +748,11 @@ class DanceEditorController extends ChangeNotifier {
   // Autosave
   // -------------------------------------------------------------------------
 
-  /// Debounces autosave writes (500 ms after last change).
+  /// Debounces autosave writes (500 ms by default, after the last change).
   void scheduleAutosave() {
     _markDirty();
     _autosaveTimer?.cancel();
-    _autosaveTimer = Timer(const Duration(milliseconds: 500), _saveDraft);
+    _autosaveTimer = Timer(_debounce, _saveDraft);
   }
 
   /// Cancels the pending debounce and queues one immutable final snapshot
