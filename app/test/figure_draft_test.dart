@@ -172,6 +172,62 @@ void main() {
     });
   });
 
+  group('FigureDraft.toFigure canonicalises custom text (DIA-02)', () {
+    String canon(String t) => canonicalizeText(t.trim(), Dialect.larksRobins);
+
+    test('a custom leaf draft stores params[text] canonically', () {
+      final draft = FigureDraft(
+        move: customMove,
+        params: {'text': 'Larks chain wide'},
+      );
+      expect(
+        draft.toFigure(canonicalizeNote: canon)!.params['text'],
+        'role1s chain wide',
+      );
+      // The draft keeps the dialect text being edited.
+      expect(draft.params['text'], 'Larks chain wide');
+    });
+
+    test('re-saving already-canonical text is idempotent', () {
+      final draft = FigureDraft(
+        move: customMove,
+        params: {'text': 'role1s chain wide'},
+      );
+      expect(
+        draft.toFigure(canonicalizeNote: canon)!.params['text'],
+        'role1s chain wide',
+      );
+    });
+
+    test('a structured figure keeps its params untouched', () {
+      final draft = FigureDraft(move: 'swing', params: {'who': 'Larks'});
+      expect(draft.toFigure(canonicalizeNote: canon)!.params['who'], 'Larks');
+    });
+
+    test('a custom child inside a meanwhile is canonicalised', () {
+      final container = FigureDraft(
+        meanwhileSides: [
+          FigureDraft(move: customMove, params: {'text': 'Robins gypsy'}),
+          FigureDraft(move: 'swing'),
+        ],
+      )..params['beats'] = 8;
+      final sides = container.toFigure(canonicalizeNote: canon)!.subFigures;
+      expect(sides.first.params['text'], 'role2s gypsy');
+    });
+
+    test('an incomplete side materialised as a custom is canonicalised', () {
+      final container = FigureDraft(
+        meanwhileSides: [
+          FigureDraft(move: 'swing'),
+          FigureDraft()..params['text'] = 'Larks wait',
+          FigureDraft(move: 'allemande'),
+        ],
+      )..params['beats'] = 8;
+      final sides = container.toFigure(canonicalizeNote: canon)!.subFigures;
+      expect(sides.map((f) => f.params['text']), contains('role1s wait'));
+    });
+  });
+
   group('FigureDraft meanwhile round-trip (#590/#593)', () {
     test(
       'fromFigure seeds meanwhileSides and shared beats from a container',
