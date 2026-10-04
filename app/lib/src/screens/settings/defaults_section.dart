@@ -28,6 +28,7 @@ import '../../widgets/figure_param_editors.dart';
 import '../../widgets/move_autocomplete.dart';
 import '../../widgets/collection_picker.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/settings_dropdown_row.dart';
 import 'default_import_tags_editor.dart';
 import 'settings_keys.dart';
 
@@ -1333,49 +1334,53 @@ class _DefaultsView extends StatelessWidget {
       keyboardDismissBehavior: kTextEntryKeyboardDismiss,
       children: [
         SectionHeader(title: l10n.settingsDefaultsDisplayHeader),
-        ListTile(
+        SettingsDropdownRow(
           title: Text(l10n.settingsDefaultsSortTitle),
           subtitle: Text(l10n.settingsDefaultsSortSubtitle),
-          trailing: DropdownButton<SortDefaultSetting<CollectionSort>>(
-            key: const ValueKey('defaults-collection-sort'),
-            value: defaultCollectionSort,
-            onChanged: (value) {
-              if (value != null) onDefaultCollectionSortChanged(value);
-            },
-            items: [
-              for (final sort in _collectionSortOptions)
-                DropdownMenuItem(
-                  value: SortDefaultSetting.concrete(sort),
-                  child: Text(collectionSortLabel(l10n, sort)),
-                ),
-              DropdownMenuItem(
-                value: SortDefaultSetting.lastUsed(CollectionSort.title),
-                child: Text(l10n.settingsDefaultsSortLastUsed),
+          dropdownBuilder: (expanded) =>
+              DropdownButton<SortDefaultSetting<CollectionSort>>(
+                isExpanded: expanded,
+                key: const ValueKey('defaults-collection-sort'),
+                value: defaultCollectionSort,
+                onChanged: (value) {
+                  if (value != null) onDefaultCollectionSortChanged(value);
+                },
+                items: [
+                  for (final sort in _collectionSortOptions)
+                    DropdownMenuItem(
+                      value: SortDefaultSetting.concrete(sort),
+                      child: Text(collectionSortLabel(l10n, sort)),
+                    ),
+                  DropdownMenuItem(
+                    value: SortDefaultSetting.lastUsed(CollectionSort.title),
+                    child: Text(l10n.settingsDefaultsSortLastUsed),
+                  ),
+                ],
               ),
-            ],
-          ),
         ),
-        ListTile(
+        SettingsDropdownRow(
           title: Text(l10n.settingsDefaultsProgramSortTitle),
           subtitle: Text(l10n.settingsDefaultsProgramSortSubtitle),
-          trailing: DropdownButton<SortDefaultSetting<ProgramSort>>(
-            key: const ValueKey('defaults-program-sort'),
-            value: defaultProgramSort,
-            onChanged: (value) {
-              if (value != null) onDefaultProgramSortChanged(value);
-            },
-            items: [
-              for (final sort in _programSortOptions)
-                DropdownMenuItem(
-                  value: SortDefaultSetting.concrete(sort),
-                  child: Text(programSortLabel(l10n, sort)),
-                ),
-              DropdownMenuItem(
-                value: SortDefaultSetting.lastUsed(ProgramSort.title),
-                child: Text(l10n.settingsDefaultsSortLastUsed),
+          dropdownBuilder: (expanded) =>
+              DropdownButton<SortDefaultSetting<ProgramSort>>(
+                isExpanded: expanded,
+                key: const ValueKey('defaults-program-sort'),
+                value: defaultProgramSort,
+                onChanged: (value) {
+                  if (value != null) onDefaultProgramSortChanged(value);
+                },
+                items: [
+                  for (final sort in _programSortOptions)
+                    DropdownMenuItem(
+                      value: SortDefaultSetting.concrete(sort),
+                      child: Text(programSortLabel(l10n, sort)),
+                    ),
+                  DropdownMenuItem(
+                    value: SortDefaultSetting.lastUsed(ProgramSort.title),
+                    child: Text(l10n.settingsDefaultsSortLastUsed),
+                  ),
+                ],
               ),
-            ],
-          ),
         ),
         SectionHeader(title: l10n.settingsDefaultsCollectionCardHeader),
         Padding(
@@ -1740,10 +1745,11 @@ class _DefaultsView extends StatelessWidget {
               initiallyExpanded: false,
               children: const [DifficultyLevelsEditor()],
             ),
-            ListTile(
+            SettingsDropdownRow(
               title: Text(l10n.settingsDefaultsFormTitle),
               subtitle: Text(l10n.settingsDefaultsFormSubtitle),
-              trailing: DropdownButton<DanceForm>(
+              dropdownBuilder: (expanded) => DropdownButton<DanceForm>(
+                isExpanded: expanded,
                 key: const ValueKey('defaults-dance-form'),
                 value: defaultDanceForm,
                 onChanged: (value) {
@@ -1758,10 +1764,11 @@ class _DefaultsView extends StatelessWidget {
                 ],
               ),
             ),
-            ListTile(
+            SettingsDropdownRow(
               title: Text(l10n.settingsDefaultsFormationTitle),
               subtitle: Text(l10n.settingsDefaultsFormationSubtitle),
-              trailing: DropdownButton<FormationShape>(
+              dropdownBuilder: (expanded) => DropdownButton<FormationShape>(
+                isExpanded: expanded,
                 key: const ValueKey('defaults-dance-formation'),
                 value: defaultDanceFormationShape,
                 onChanged: (value) {
@@ -1776,10 +1783,11 @@ class _DefaultsView extends StatelessWidget {
                 ],
               ),
             ),
-            ListTile(
+            SettingsDropdownRow(
               title: Text(l10n.settingsDefaultsProgressionTitle),
               subtitle: Text(l10n.settingsDefaultsProgressionSubtitle),
-              trailing: DropdownButton<Progression>(
+              dropdownBuilder: (expanded) => DropdownButton<Progression>(
+                isExpanded: expanded,
                 key: const ValueKey('defaults-dance-progression'),
                 value: defaultDanceProgression,
                 onChanged: (value) {

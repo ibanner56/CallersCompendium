@@ -29,6 +29,7 @@ import '../../diagnostics/error_log.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/settings_dropdown_row.dart';
 import '../import_review_screen.dart';
 import '../published_collection_navigation.dart';
 import '../reparse_custom_figures_screen.dart';
@@ -711,11 +712,12 @@ class _GeneralView extends StatelessWidget {
           isThreeLine: true,
         ),
         SectionHeader(title: l10n.settingsGeneralDeletedItemsHeader),
-        ListTile(
+        SettingsDropdownRow(
           title: Text(l10n.settingsGeneralSoftDeleteRetentionTitle),
           subtitle: Text(l10n.settingsGeneralSoftDeleteRetentionSubtitle),
           isThreeLine: true,
-          trailing: DropdownButton<int>(
+          dropdownBuilder: (expanded) => DropdownButton<int>(
+            isExpanded: expanded,
             key: const ValueKey('general-soft-delete-retention'),
             value: softDeleteRetentionDays,
             onChanged: (value) {
@@ -812,10 +814,11 @@ class _GeneralView extends StatelessWidget {
           label: Text(l10n.backupRestoreAction),
         ),
       ),
-      ListTile(
+      SettingsDropdownRow(
         title: Text(l10n.backupReminderTitle),
         subtitle: Text(lastBackupLabel),
-        trailing: DropdownButton<BackupReminderCadence>(
+        dropdownBuilder: (expanded) => DropdownButton<BackupReminderCadence>(
+          isExpanded: expanded,
           key: const ValueKey('backup-reminder-cadence'),
           value: backupCadence,
           onChanged: (value) {
