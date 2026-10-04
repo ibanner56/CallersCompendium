@@ -92,6 +92,14 @@
   "@migrationDowngradeMessage": {
     "x-sourceSha256": "5cc72c824106a61526d695c3a2f0bca5287d5a97935ec78445ef6a34891372b6"
   },
+  "migrationRelocationBothExist": "保存データが新しい場所と以前のバージョンが使っていたフォルダーの2か所で見つかったため、Caller’s Compendium を起動できませんでした。変更や削除は行われていません。残したいほうのコピーを選び、もう一方を別の場所へ移動してから、アプリをもう一度開いてください。FAQの「データはどこに保存されますか？」に両方の場所が記載されています。",
+  "@migrationRelocationBothExist": {
+    "x-sourceSha256": "17a2bd5c0a55148cf649909be430b0fd2938c0bdf4be83e2d99334d2fbc15f11"
+  },
+  "migrationRelocationFailed": "保存データを新しい場所へ移す処理を完了できなかったため、Caller’s Compendium を起動できませんでした。削除されたデータはありません。空き容量を確保するかフォルダーのアクセス権を確認してから、アプリをもう一度開いて再試行してください。",
+  "@migrationRelocationFailed": {
+    "x-sourceSha256": "786ebdbaf7f3e1e3c8e078b35d11ac85232a82d640520caa8278b8249d332a5c"
+  },
   "migrationSnapshotAbortedMessage": "保存データをアップグレードする前に自動バックアップを作成できなかったため、Caller’s Compendiumを起動できませんでした。{cause}空き容量を確保する（またはバックアップフォルダを修復する）か、アプリを再度開いてください。あるいは、再度開いてバックアップなしで続行することもできます。",
   "@migrationSnapshotAbortedMessage": {
     "x-sourceSha256": "8a37a47a06cea0588a1b29ca9e254a91a9159d14a11eafdcb86aae462a7cb3dc"

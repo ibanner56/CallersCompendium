@@ -9,6 +9,7 @@ import '../data/migration_guard.dart'
     show
         DatabaseBelowFloorError,
         DatabaseDowngradeError,
+        DatabaseRelocationBlocked,
         MigrationSnapshotAborted,
         SnapshotFailure,
         SnapshotFailureCause,
@@ -120,6 +121,30 @@ class AppBootstrap extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         migrationSnapshotAbortedMessage(l10n, error.failure),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+          // The one-time move of the database out of Documents could not be
+          // completed safely. Terminal, no Retry: nothing was deleted, and
+          // opening a database now would create an empty one beside the real
+          // library.
+          if (error is DatabaseRelocationBlocked) {
+            return Scaffold(
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.folder_off_outlined, size: 48),
+                      const SizedBox(height: 8),
+                      Text(
+                        databaseRelocationMessage(l10n, error.reason),
                         textAlign: TextAlign.center,
                       ),
                     ],

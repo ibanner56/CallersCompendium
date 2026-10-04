@@ -3,7 +3,8 @@ import 'migration_guard.dart';
 
 /// Localized presentation of the startup migration-guard diagnostics
 /// (`migration_guard.dart`): [DatabaseDowngradeError], [DatabaseBelowFloorError],
-/// [MigrationSnapshotAborted], and the [SnapshotFailureCause] discriminator.
+/// [MigrationSnapshotAborted], [DatabaseRelocationBlocked], and the
+/// [SnapshotFailureCause] discriminator.
 ///
 /// The guard never bakes English prose into these types; it exposes typed
 /// discriminators (the exception type itself, plus [SnapshotFailure.cause]).
@@ -59,3 +60,13 @@ String migrationSnapshotAbortedMessage(
   final cause = sentence.isEmpty ? '' : '$sentence ';
   return l10n.migrationSnapshotAbortedMessage(cause);
 }
+
+/// Terminal-screen message for a [DatabaseRelocationBlocked]. Generic and
+/// path-free; the FAQ names the per-OS locations.
+String databaseRelocationMessage(
+  AppLocalizations l10n,
+  DatabaseRelocationFailure reason,
+) => switch (reason) {
+  DatabaseRelocationFailure.bothExist => l10n.migrationRelocationBothExist,
+  DatabaseRelocationFailure.moveFailed => l10n.migrationRelocationFailed,
+};

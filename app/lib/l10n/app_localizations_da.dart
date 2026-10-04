@@ -91,6 +91,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Disse data blev oprettet med en nyere version af Caller’s Compendium — opdatér appen.';
 
   @override
+  String get migrationRelocationBothExist =>
+      'Caller’s Compendium blev ikke startet, fordi der blev fundet gemte data to steder: den nye placering og den mappe, en tidligere version brugte. Intet blev ændret eller slettet. Behold den kopi, du vil bruge, flyt den anden væk, og åbn derefter appen igen. Spørgsmålet “Hvor er mine data gemt?” i FAQ’en angiver begge placeringer.';
+
+  @override
+  String get migrationRelocationFailed =>
+      'Caller’s Compendium blev ikke startet, fordi det ikke kunne færdiggøre flytningen af dine gemte data til deres nye placering. Intet blev slettet. Frigør plads eller kontrollér mappens tilladelser, og åbn derefter appen igen for at prøve igen.';
+
+  @override
   String migrationSnapshotAbortedMessage(String cause) {
     return 'Caller’s Compendium startede ikke, fordi der ikke kunne oprettes en automatisk sikkerhedskopi, før dine gemte data blev opgraderet. ${cause}Frigør plads (eller reparer sikkerhedskopimappen), og åbn derefter appen igen — eller åbn igen og vælg at fortsætte uden en sikkerhedskopi.';
   }

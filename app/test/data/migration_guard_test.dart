@@ -503,4 +503,207 @@ void main() {
       );
     },
   );
+
+  group('relocateLegacyDatabase', () {
+    late File legacy;
+    late File target;
+    late Directory legacyBackups;
+    late Directory targetBackups;
+
+    setUp(() {
+      final legacyDir = Directory(p.join(dir.path, 'Documents'))..createSync();
+      final targetDir = Directory(p.join(dir.path, 'AppData'));
+      legacy = File(p.join(legacyDir.path, 'compendium.sqlite'));
+      target = File(p.join(targetDir.path, 'compendium.sqlite'));
+      legacyBackups = Directory(
+        p.join(legacyDir.path, kDatabaseBackupsDirName),
+      );
+      targetBackups = Directory(
+        p.join(targetDir.path, kDatabaseBackupsDirName),
+      );
+    });
+
+    String seeded(File file) {
+      final db = sql.sqlite3.open(file.path);
+      try {
+        return db.select('SELECT v FROM t ORDER BY id LIMIT 1').single['v']
+            as String;
+      } finally {
+        db.close();
+      }
+    }
+
+    test('moves the database, its sidecars and the snapshots once', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'my library');
+      // An open WAL connection holds un-checkpointed rows in the sidecar.
+      final live = sql.sqlite3.open(legacy.path)
+        ..execute('PRAGMA journal_mode = WAL')
+        ..execute("INSERT INTO t (v) VALUES ('in the wal')");
+      expect(File('${legacy.path}-wal').existsSync(), isTrue);
+      live.close();
+      File('${legacy.path}-shm').writeAsBytesSync(const [9]);
+      legacyBackups.createSync();
+      File(
+        p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'),
+      ).writeAsBytesSync(const [1, 2, 3]);
+      File(p.join(legacyBackups.path, 'notes.txt')).writeAsStringSync('mine');
+
+      final moved = await relocateLegacyDatabase(
+        target: target,
+        legacy: [legacy],
+      );
+
+      expect(moved, isTrue);
+      expect(readUserVersion(target.path), 7);
+      final db = sql.sqlite3.open(target.path);
+      expect(db.select('SELECT v FROM t ORDER BY id').map((r) => r['v']), [
+        'my library',
+        'in the wal',
+      ]);
+      db.close();
+      expect(legacy.existsSync(), isFalse);
+      expect(File('${legacy.path}-wal').existsSync(), isFalse);
+      expect(File('${legacy.path}-shm').existsSync(), isFalse);
+      expect(
+        File(
+          p.join(targetBackups.path, 'compendium.pre-v6-x.sqlite.bak'),
+        ).readAsBytesSync(),
+        const [1, 2, 3],
+      );
+      // Only our own snapshots move: a stranger's file in Documents stays.
+      expect(
+        File(p.join(legacyBackups.path, 'notes.txt')).existsSync(),
+        isTrue,
+      );
+      expect(
+        target.parent.listSync(recursive: true).map((e) => e.path),
+        isNot(contains(endsWith('.relocating'))),
+      );
+
+      // A second launch is a no-op.
+      expect(
+        await relocateLegacyDatabase(target: target, legacy: [legacy]),
+        isFalse,
+      );
+      expect(seeded(target), 'my library');
+    });
+
+    test('removes the emptied legacy db_backups folder', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'x');
+      legacyBackups.createSync();
+      File(
+        p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'),
+      ).writeAsBytesSync(const [1]);
+
+      await relocateLegacyDatabase(target: target, legacy: [legacy]);
+
+      expect(legacyBackups.existsSync(), isFalse);
+    });
+
+    test('does nothing when no legacy database exists', () async {
+      expect(
+        await relocateLegacyDatabase(target: target, legacy: [legacy]),
+        isFalse,
+      );
+      expect(target.parent.existsSync(), isFalse);
+    });
+
+    test('leaves both untouched when the new location already has a '
+        'database', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'old');
+      target.parent.createSync(recursive: true);
+      _createFixture(target.path, userVersion: 8, seedValue: 'new');
+      final legacyBytes = legacy.readAsBytesSync();
+      final targetBytes = target.readAsBytesSync();
+
+      await expectLater(
+        relocateLegacyDatabase(target: target, legacy: [legacy]),
+        throwsA(
+          isA<DatabaseRelocationBlocked>().having(
+            (e) => e.reason,
+            'reason',
+            DatabaseRelocationFailure.bothExist,
+          ),
+        ),
+      );
+
+      expect(legacy.readAsBytesSync(), legacyBytes);
+      expect(target.readAsBytesSync(), targetBytes);
+    });
+
+    test('leaves both untouched when two legacy locations hold a '
+        'database', () async {
+      final other = File(p.join(dir.path, 'Roaming', 'compendium.sqlite'))
+        ..parent.createSync();
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'documents');
+      _createFixture(other.path, userVersion: 7, seedValue: 'roaming');
+
+      await expectLater(
+        relocateLegacyDatabase(target: target, legacy: [legacy, other]),
+        throwsA(isA<DatabaseRelocationBlocked>()),
+      );
+
+      expect(seeded(legacy), 'documents');
+      expect(seeded(other), 'roaming');
+      expect(target.existsSync(), isFalse);
+    });
+
+    test('deletes nothing and leaves nothing behind when the move '
+        'fails', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'keep me');
+      legacyBackups.createSync();
+      File(
+        p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'),
+      ).writeAsBytesSync(const [1]);
+      // The target directory cannot be created: its parent is a regular file.
+      final blocker = File(p.join(dir.path, 'blocker'))..writeAsStringSync('');
+      final blockedTarget = File(
+        p.join(blocker.path, 'AppData', 'compendium.sqlite'),
+      );
+
+      await expectLater(
+        relocateLegacyDatabase(target: blockedTarget, legacy: [legacy]),
+        throwsA(
+          isA<DatabaseRelocationBlocked>().having(
+            (e) => e.reason,
+            'reason',
+            DatabaseRelocationFailure.moveFailed,
+          ),
+        ),
+      );
+
+      expect(seeded(legacy), 'keep me');
+      expect(
+        File(
+          p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'),
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
+    test('a failure part-way removes the partial copy so the next launch '
+        'can retry cleanly', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'keep me');
+      legacyBackups.createSync();
+      File(
+        p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'),
+      ).writeAsBytesSync(const [1]);
+      // The database file copies fine; the snapshot destination cannot be
+      // created because a regular file squats on the db_backups name.
+      target.parent.createSync(recursive: true);
+      File(targetBackups.path).writeAsStringSync('squatter');
+
+      await expectLater(
+        relocateLegacyDatabase(target: target, legacy: [legacy]),
+        throwsA(isA<DatabaseRelocationBlocked>()),
+      );
+
+      expect(seeded(legacy), 'keep me');
+      expect(target.existsSync(), isFalse);
+      expect(
+        target.parent.listSync().map((e) => p.basename(e.path)),
+        isNot(contains('compendium.sqlite.relocating')),
+      );
+    });
+  });
 }

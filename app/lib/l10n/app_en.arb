@@ -110,6 +110,14 @@
   "@migrationDowngradeMessage": {
     "description": "Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered."
   },
+  "migrationRelocationBothExist": "Caller’s Compendium didn’t start because it found saved data in two places: the new location and the folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists both locations.",
+  "@migrationRelocationBothExist": {
+    "description": "Terminal startup-screen message shown when the one-time move of the database out of the Documents folder found a database in both the new and the old location. Nothing is deleted. No Retry is offered."
+  },
+  "migrationRelocationFailed": "Caller’s Compendium didn’t start because it couldn’t finish moving your saved data to its new location. Nothing was deleted. Free up space or check the folder permissions, then reopen the app to try again.",
+  "@migrationRelocationFailed": {
+    "description": "Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Retry is offered."
+  },
   "migrationSnapshotAbortedMessage": "Caller’s Compendium didn’t start because it couldn’t create an automatic backup before upgrading your saved data. {cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.",
   "@migrationSnapshotAbortedMessage": {
     "description": "Terminal startup-screen message shown when a pre-migration backup could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.",

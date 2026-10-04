@@ -244,6 +244,18 @@ abstract class AppLocalizations {
   /// **'This data was created by a newer version of Caller’s Compendium — please update the app.'**
   String get migrationDowngradeMessage;
 
+  /// Terminal startup-screen message shown when the one-time move of the database out of the Documents folder found a database in both the new and the old location. Nothing is deleted. No Retry is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller’s Compendium didn’t start because it found saved data in two places: the new location and the folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists both locations.'**
+  String get migrationRelocationBothExist;
+
+  /// Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Retry is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller’s Compendium didn’t start because it couldn’t finish moving your saved data to its new location. Nothing was deleted. Free up space or check the folder permissions, then reopen the app to try again.'**
+  String get migrationRelocationFailed;
+
   /// Terminal startup-screen message shown when a pre-migration backup could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.
   ///
   /// In en, this message translates to:
