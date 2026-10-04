@@ -6,7 +6,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import '../data/venue_label.dart';
+import 'share_sanitization.dart';
 import 'program_figure_widgets.dart';
 
 /// Loads the bundled Unicode font (Roboto, SIL OFL-1.1) used for PDF export.
@@ -127,9 +127,15 @@ Future<pw.Font> loadProgramMatrixMarkerFont() async {
 /// - [venuesById] maps venue ids to the loaded [Venue] records. When the
 ///   program links a resolvable venue ([Program.venueId]), its
 ///   [Venue.displayName] wins in the header date·venue line and a richer venue
-///   block (address, contacts, sponsor/website, schedule/price) is rendered
-///   below the metadata; otherwise the free-text [Program.venue] is used and no
-///   block is drawn. Defaults to empty, preserving the pre-venue-entity output.
+///   block (sponsor/website, schedule/price, and the contact lines the user
+///   consented to) is rendered below the metadata; otherwise the free-text
+///   [Program.venue] is used and no block is drawn. The builder runs the venue
+///   through [sanitizeVenueForShare] itself: the postal address is never
+///   printed, in the block or the header label. Defaults to empty, preserving
+///   the pre-venue-entity output.
+/// - [includeVenueContact] names the venue contact fields the user opted in to
+///   print (empty by default: none). Same contract as
+///   [buildProgramShareBundle].
 /// - [theme] supplies the Unicode font; when omitted it is loaded from the
 ///   bundled asset via [loadProgramPdfTheme].
 /// - [appendDances] — when non-null and non-empty, appends a figure appendix
@@ -169,19 +175,23 @@ Future<Uint8List> buildProgramPdf(
   DanceCardLabels Function(Dance dance)? cardLabelsFor,
   Set<DanceShareField> fields = DanceShareField.allExceptTunes,
   PdfPageFormat pageFormat = PdfPageFormat.a4,
+  Set<VenueContactField> includeVenueContact = const {},
 }) async {
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
   final doc = pw.Document(title: program.title, theme: resolvedTheme);
   final fig = renderer ?? FigureRenderer(contraTaxonomy);
   final resolvedDialect = dialect ?? Dialect.larksRobins;
 
-  final linkedVenue = program.venueId != null
-      ? venuesById[program.venueId!]
-      : null;
+  final venueText = programPdfVenueText(
+    program,
+    venuesById,
+    labels,
+    includeVenueContact: includeVenueContact,
+  );
 
   final metaLines = programHeaderLines(
     program,
-    venueNameFor: (_) => resolveVenueLabel(program, venuesById),
+    venueNameFor: (_) => venueText.headerLabel,
     formatDate: formatDate,
     labels: labels,
     renderer: fig,
@@ -230,7 +240,7 @@ Future<Uint8List> buildProgramPdf(
         ),
         for (final line in metaLines)
           pw.Text(line, style: const pw.TextStyle(fontSize: 12)),
-        if (linkedVenue != null) ..._venueBlock(linkedVenue, labels),
+        ..._venueBlock(venueText.blockLines, labels),
         if (program.outputGrouped.isNotEmpty) pw.SizedBox(height: 12),
         ..._slotWidgets(
           program,
@@ -440,14 +450,47 @@ List<pw.Widget> _slotWidgets(
   return widgets;
 }
 
-/// Renders the richer venue detail block shown when a program links a
-/// resolvable [Venue]. Each line/field is emitted only when present (relying on
-/// the model's trim/empty→null normalization) so an unset field never shows a
-/// placeholder. Values are drawn as plain PDF text — no markup interpolation —
-/// so stored venue text can't inject layout.
-List<pw.Widget> _venueBlock(Venue venue, ProgramExportLabels labels) {
-  final cityLine = venueLocalityLine(venue);
+/// The venue text [buildProgramPdf] prints for [program]: the header
+/// date/venue label and the venue detail block's lines (empty when the program
+/// links no resolvable venue).
+///
+/// The venue goes through [sanitizeVenueForShare] here, so the postal address
+/// is never printed (in the block or in the header label) and a contact field
+/// is printed only when it is in [includeVenueContact]. Callers pass the raw
+/// venue; they need no redaction of their own.
+///
+/// Extracted so the redaction is testable without decoding PDF bytes; it is the
+/// single path [buildProgramPdf] draws from.
+@visibleForTesting
+({String? headerLabel, List<String> blockLines}) programPdfVenueText(
+  Program program,
+  Map<String, Venue> venuesById,
+  ProgramExportLabels labels, {
+  Set<VenueContactField> includeVenueContact = const {},
+}) {
+  final linkedVenue = program.venueId != null
+      ? venuesById[program.venueId!]
+      : null;
+  return (
+    headerLabel: resolveSanitizedVenueLabelParts(
+      program.venueId,
+      program.venue,
+      venuesById,
+    ),
+    blockLines: linkedVenue == null
+        ? const []
+        : _venueLines(
+            sanitizeVenueForShare(linkedVenue, include: includeVenueContact),
+            labels,
+          ),
+  );
+}
 
+/// The venue detail block's text lines for an already-sanitised [venue]: the
+/// descriptive fields, then the contact lines that survived the consent
+/// choice. Each line/field is emitted only when present (relying on the model's
+/// trim/empty→null normalization) so an unset field never shows a placeholder.
+List<String> _venueLines(Venue venue, ProgramExportLabels labels) {
   final detail = <String>[
     if (_has(venue.eventName)) venue.eventName!,
     if (_has(venue.time)) '${labels.time}: ${venue.time}',
@@ -458,19 +501,18 @@ List<pw.Widget> _venueBlock(Venue venue, ProgramExportLabels labels) {
     if (_has(venue.website)) venue.website!,
   ];
 
-  final address = <String>[
-    if (_has(venue.address1)) venue.address1!,
-    if (_has(venue.address2)) venue.address2!,
-    if (cityLine.isNotEmpty) cityLine,
-    if (_has(venue.country)) venue.country!,
-  ];
-
   final contacts = <String>[
     _contactLine(venue.contact1Name, venue.contact1Phone, venue.contact1Email),
     _contactLine(venue.contact2Name, venue.contact2Phone, venue.contact2Email),
   ].where((l) => l.isNotEmpty).toList();
 
-  final lines = [...address, ...detail, ...contacts];
+  return [...detail, ...contacts];
+}
+
+/// Renders the venue detail block for [lines] (see [programPdfVenueText]).
+/// Values are drawn as plain PDF text — no markup interpolation — so stored
+/// venue text can't inject layout.
+List<pw.Widget> _venueBlock(List<String> lines, ProgramExportLabels labels) {
   if (lines.isEmpty) return const [];
 
   return [
