@@ -93,6 +93,18 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ces données ont été créées avec une version plus récente de Caller’s Compendium — veuillez mettre à jour l\'application.';
 
   @override
+  String get migrationRelocationBothExist =>
+      'Caller’s Compendium ne s’est pas lancé, car des fichiers de données enregistrées ont été trouvés à la fois au nouvel emplacement et dans un dossier utilisé par une version précédente. Rien n’a été modifié ni supprimé. Conservez la copie souhaitée, déplacez l’autre ailleurs, puis rouvrez l’application. L’entrée « Où sont stockées mes données ? » de la FAQ indique les emplacements.';
+
+  @override
+  String get migrationRelocationMultipleLegacy =>
+      'Caller’s Compendium ne s’est pas lancé, car des données enregistrées ont été trouvées dans plusieurs dossiers utilisés par des versions précédentes. Rien n’a été modifié ni supprimé. Conservez la copie souhaitée, déplacez les autres ailleurs, puis rouvrez l’application. L’entrée « Où sont stockées mes données ? » de la FAQ indique les emplacements.';
+
+  @override
+  String get migrationRelocationFailed =>
+      'Caller’s Compendium ne s’est pas lancé, car il n’a pas pu terminer le déplacement de vos données enregistrées vers leur nouvel emplacement. Rien n’a été supprimé. Libérez de l’espace, fermez les autres programmes qui les utilisent peut-être, ou vérifiez les autorisations du dossier, puis rouvrez l’application pour réessayer.';
+
+  @override
   String migrationSnapshotAbortedMessage(String cause) {
     return 'Caller’s Compendium n\'a pas démarré car une sauvegarde automatique n\'a pas pu être créée avant la mise à niveau de vos données enregistrées. ${cause}Libérez de l\'espace (ou réparez le dossier de sauvegardes), puis rouvrez l\'application — ou rouvrez-la et choisissez de continuer sans sauvegarde.';
   }

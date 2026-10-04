@@ -26,12 +26,26 @@ turned on Device Sync.
 
 On your device, in a single database file named `compendium.sqlite`:
 
-- **Windows and Linux:** your `Documents` folder.
-- **Linux without `xdg-user-dirs`:** `$XDG_DATA_HOME/org.callerscompendium.compendiumApp/`
-  (by default `~/.local/share/org.callerscompendium.compendiumApp/`). Once the
-  file is there, the app keeps using it.
+- **Windows:** `%LOCALAPPDATA%\org.callerscompendium\Caller's Compendium` (type
+  that into the File Explorer address bar). It is deliberately not in
+  `Documents`, so OneDrive's folder backup does not sync a live database.
+- **Linux:** `$XDG_DATA_HOME/org.callerscompendium.compendiumApp/` (by default
+  `~/.local/share/org.callerscompendium.compendiumApp/`).
 - **Android, iOS and macOS:** the app's own documents folder (on macOS, inside
   the app's sandbox container).
+
+Earlier versions kept the file in your `Documents` folder on Windows and Linux
+(on Linux without a Documents folder configured, that is your home folder). A
+few Windows installs instead have it in the Roaming folder,
+`%APPDATA%\org.callerscompendium\Caller's Compendium`. The first time you open
+the app after updating, it moves your library (and the `db_backups` folder) to
+the location above and deletes the old copy only after the new one is verified.
+
+If it finds data files in the new location *and* in an old one, or in more than
+one old location (for example both `Documents` and the Roaming folder), or it
+cannot finish the move (the disk is full, the folder is not writable, or another
+program is using the file), it stops without changing anything and tells you.
+Keep the copy you want, move the others out of the way, and reopen the app.
 
 Safety copies the app makes before updating the database go in a `db_backups`
 folder beside it.

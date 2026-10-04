@@ -244,6 +244,24 @@ abstract class AppLocalizations {
   /// **'This data was created by a newer version of Caller’s Compendium — please update the app.'**
   String get migrationDowngradeMessage;
 
+  /// Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Retry is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller’s Compendium didn’t start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.'**
+  String get migrationRelocationBothExist;
+
+  /// Terminal startup-screen message shown when the one-time move of the database found saved data in more than one old location (Windows: Documents and the Roaming fallback) and none in the new location. Nothing is deleted. No Retry is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller’s Compendium didn’t start because it found saved data in more than one folder used by earlier versions. Nothing was changed or deleted. Keep the copy you want, move the others out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.'**
+  String get migrationRelocationMultipleLegacy;
+
+  /// Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Retry is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller’s Compendium didn’t start because it couldn’t finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.'**
+  String get migrationRelocationFailed;
+
   /// Terminal startup-screen message shown when a pre-migration backup could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.
   ///
   /// In en, this message translates to:

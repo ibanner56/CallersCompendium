@@ -92,6 +92,18 @@ class AppLocalizationsNl extends AppLocalizations {
       'Deze gegevens zijn gemaakt met een nieuwere versie van Caller’s Compendium — werk de app bij.';
 
   @override
+  String get migrationRelocationBothExist =>
+      'Caller’s Compendium is niet gestart, omdat opgeslagen gegevensbestanden zowel op de nieuwe locatie als in een map van een eerdere versie zijn gevonden. Er is niets gewijzigd of verwijderd. Bewaar de kopie die je wilt houden, verplaats de andere naar een andere plek en open de app daarna opnieuw. In het FAQ-onderdeel “Waar worden mijn gegevens opgeslagen?” staan de locaties.';
+
+  @override
+  String get migrationRelocationMultipleLegacy =>
+      'Caller’s Compendium is niet gestart, omdat opgeslagen gegevens in meer dan één map van eerdere versies zijn gevonden. Er is niets gewijzigd of verwijderd. Bewaar de kopie die je wilt houden, verplaats de andere naar een andere plek en open de app daarna opnieuw. In het FAQ-onderdeel “Waar worden mijn gegevens opgeslagen?” staan de locaties.';
+
+  @override
+  String get migrationRelocationFailed =>
+      'Caller’s Compendium is niet gestart, omdat het verplaatsen van je opgeslagen gegevens naar de nieuwe locatie niet kon worden voltooid. Er is niets verwijderd. Maak ruimte vrij, sluit andere programma’s die de gegevens mogelijk gebruiken of controleer de maprechten en open de app daarna opnieuw om het opnieuw te proberen.';
+
+  @override
   String migrationSnapshotAbortedMessage(String cause) {
     return 'Caller’s Compendium is niet gestart omdat er geen automatische back-up kon worden gemaakt voordat je opgeslagen gegevens werden bijgewerkt. ${cause}Maak ruimte vrij (of herstel de back-upmap) en open de app dan opnieuw — of open opnieuw en kies om zonder back-up door te gaan.';
   }

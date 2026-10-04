@@ -90,6 +90,18 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Daten wurden mit einer neueren Version von Caller’s Compendium erstellt – bitte aktualisiere die App.';
 
   @override
+  String get migrationRelocationBothExist =>
+      'Caller’s Compendium wurde nicht gestartet, weil gespeicherte Datendateien am neuen Speicherort und zusätzlich in einem Ordner gefunden wurden, den eine frühere Version verwendet hat. Es wurde nichts geändert oder gelöscht. Behalte die gewünschte Kopie, verschiebe die andere an einen anderen Ort und öffne die App dann erneut. Der FAQ-Eintrag „Wo werden meine Daten gespeichert?“ nennt die Speicherorte.';
+
+  @override
+  String get migrationRelocationMultipleLegacy =>
+      'Caller’s Compendium wurde nicht gestartet, weil gespeicherte Daten in mehr als einem Ordner gefunden wurden, den frühere Versionen verwendet haben. Es wurde nichts geändert oder gelöscht. Behalte die gewünschte Kopie, verschiebe die anderen an einen anderen Ort und öffne die App dann erneut. Der FAQ-Eintrag „Wo werden meine Daten gespeichert?“ nennt die Speicherorte.';
+
+  @override
+  String get migrationRelocationFailed =>
+      'Caller’s Compendium wurde nicht gestartet, weil das Verschieben deiner gespeicherten Daten an den neuen Speicherort nicht abgeschlossen werden konnte. Es wurde nichts gelöscht. Schaffe Speicherplatz, schließe andere Programme, die die Daten möglicherweise verwenden, oder prüfe die Ordnerberechtigungen und öffne die App dann erneut, um es noch einmal zu versuchen.';
+
+  @override
   String migrationSnapshotAbortedMessage(String cause) {
     return 'Caller’s Compendium wurde nicht gestartet, weil vor der Aktualisierung deiner gespeicherten Daten keine automatische Sicherung erstellt werden konnte. ${cause}Schaffe Speicherplatz (oder repariere den Sicherungsordner) und öffne die App dann erneut – oder öffne sie erneut und fahre ohne Sicherung fort.';
   }

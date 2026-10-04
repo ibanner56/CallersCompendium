@@ -339,6 +339,240 @@ SnapshotFailureCause classifySnapshotFailure(Object error) {
   return SnapshotFailureCause.unknown;
 }
 
+/// Why [relocateLegacyDatabase] refused to move (or could not finish moving) a
+/// database, as a typed discriminator the presentation layer localizes.
+enum DatabaseRelocationFailure {
+  /// Data files already exist at the new location (the database or a stray
+  /// `-wal`/`-shm`) *and* a database exists at a legacy location. Which is
+  /// current is not for the app to guess, so every file is left exactly as
+  /// found.
+  bothExist,
+
+  /// The new location is empty but more than one legacy location holds a
+  /// database (on Windows: Documents and the Roaming fallback directory). Left
+  /// exactly as found for the user to choose.
+  multipleLegacy,
+
+  /// The WAL could not be checkpointed (another connection holds the database),
+  /// or copying, verifying or removing the legacy files failed (disk full,
+  /// unwritable directory, a file locked by another process). Anything the
+  /// attempt wrote at the new location is removed and any legacy file it had
+  /// already deleted is restored from the verified copy, so the next launch
+  /// starts again from the original state.
+  moveFailed,
+}
+
+/// Thrown by [relocateLegacyDatabase] when it cannot safely complete the move.
+///
+/// Fail-closed like [MigrationSnapshotAborted] (issue #442): startup stops with
+/// a terminal screen and no database is opened, so no second, empty database is
+/// created beside the real one. Nothing is deleted on the way out.
+class DatabaseRelocationBlocked implements Exception {
+  const DatabaseRelocationBlocked(this.reason, {this.error});
+
+  final DatabaseRelocationFailure reason;
+
+  /// The underlying error for [DatabaseRelocationFailure.moveFailed], for
+  /// diagnostics only: it can embed absolute paths and is never rendered.
+  final Object? error;
+
+  @override
+  String toString() => 'DatabaseRelocationBlocked($reason, error: $error)';
+}
+
+const String _relocatingSuffix = '.relocating';
+const List<String> _sidecarSuffixes = ['-wal', '-shm'];
+
+/// Moves a database left in a legacy location (Documents, or an earlier
+/// fallback directory) to [target], once, before anything opens either file.
+///
+/// Returns `true` when a database was moved and `false` when there was nothing
+/// to do (no legacy database exists, which is every launch after the first).
+///
+/// Moves `compendium.sqlite`, its `-wal`/`-shm` sidecars and the pre-migration
+/// snapshots from the legacy directory's [kDatabaseBackupsDirName] folder. Only
+/// files matching the snapshot naming are moved from that folder (Documents is
+/// the user's own folder), and the folder is removed only if that leaves it
+/// empty.
+///
+/// Rules, in the order they bite:
+/// - **Never overwrite.** If the target database (or a sidecar) exists, or more
+///   than one legacy database exists, throw [DatabaseRelocationBlocked]
+///   ([DatabaseRelocationFailure.bothExist]) and touch nothing.
+/// - **Checkpoint first** (`wal_checkpoint(TRUNCATE)`, as the pre-migration
+///   snapshot does), and require it to report not busy: a busy result means
+///   another connection holds the WAL, so the main file is not yet a complete
+///   database and nothing is copied ([DatabaseRelocationFailure.moveFailed]).
+/// - **Copy, fsync, verify size, then rename into place**: every file is copied
+///   to `<name>.relocating` beside its destination, flushed to disk and its
+///   length compared with the source; only when all of them verify are they
+///   renamed to their final names. A crash before that leaves only `.relocating`
+///   files, which the next launch discards and redoes.
+/// - **Delete the source last.** Sidecars and snapshots first, the main database
+///   file last. Any failure before or during this step is rolled back: legacy
+///   files already deleted are restored from the verified copy and what this
+///   attempt wrote at the target is removed, so the legacy files are exactly as
+///   found. Only if that restore itself fails is the target copy kept (data is
+///   never left in fewer places than before).
+///
+/// A *crash* (not a reported failure) between the rename and the last delete
+/// leaves both copies; the next launch reports
+/// [DatabaseRelocationFailure.bothExist] rather than overwriting either: a user
+/// (not the app) decides which to delete, see `docs/user/faq.md`.
+///
+/// [deleter] is injectable so tests can fail the source cleanup part-way; the
+/// production default deletes via [File].
+Future<bool> relocateLegacyDatabase({
+  required File target,
+  required List<File> legacy,
+  Future<void> Function(File file)? deleter,
+}) async {
+  final delete = deleter ?? (file) => file.delete();
+  final sources = <File>[
+    for (final file in legacy)
+      if (p.canonicalize(file.path) != p.canonicalize(target.path) &&
+          file.existsSync())
+        file,
+  ];
+  if (sources.isEmpty) return false;
+
+  final targetOccupied = [
+    target,
+    for (final suffix in _sidecarSuffixes) File('${target.path}$suffix'),
+  ].any((file) => file.existsSync());
+  if (targetOccupied) {
+    throw const DatabaseRelocationBlocked(DatabaseRelocationFailure.bothExist);
+  }
+  if (sources.length > 1) {
+    throw const DatabaseRelocationBlocked(
+      DatabaseRelocationFailure.multipleLegacy,
+    );
+  }
+  final source = sources.single;
+
+  final moves = <(File, File)>[];
+  final temps = <File>[];
+  final finals = <File>[];
+  try {
+    _checkpointOrThrowIfBusy(source.path);
+    moves.add((source, target));
+    for (final suffix in _sidecarSuffixes) {
+      final sidecar = File('${source.path}$suffix');
+      if (sidecar.existsSync()) {
+        moves.add((sidecar, File('${target.path}$suffix')));
+      }
+    }
+    final legacyBackups = Directory(
+      p.join(source.parent.path, kDatabaseBackupsDirName),
+    );
+    final targetBackups = Directory(
+      p.join(target.parent.path, kDatabaseBackupsDirName),
+    );
+    if (legacyBackups.existsSync()) {
+      for (final entry in legacyBackups.listSync(followLinks: false)) {
+        if (entry is File && _isSnapshot(p.basename(entry.path))) {
+          moves.add((
+            entry,
+            File(p.join(targetBackups.path, p.basename(entry.path))),
+          ));
+        }
+      }
+    }
+    if (moves.any((move) => move.$2.existsSync())) {
+      throw const DatabaseRelocationBlocked(
+        DatabaseRelocationFailure.bothExist,
+      );
+    }
+
+    await target.parent.create(recursive: true);
+    if (moves.any(
+      (move) => p.basename(move.$2.parent.path) == kDatabaseBackupsDirName,
+    )) {
+      await targetBackups.create(recursive: true);
+    }
+    for (final (from, to) in moves) {
+      final temp = File('${to.path}$_relocatingSuffix');
+      temps.add(temp);
+      await from.copy(temp.path);
+      final handle = await temp.open(mode: FileMode.append);
+      try {
+        await handle.flush();
+      } finally {
+        await handle.close();
+      }
+      if (await temp.length() != await from.length()) {
+        throw FileSystemException('relocated copy has the wrong size', to.path);
+      }
+    }
+    for (final (index, (_, to)) in moves.indexed) {
+      await temps[index].rename(to.path);
+      finals.add(to);
+    }
+  } on DatabaseRelocationBlocked {
+    // diagnostics: silent — typed fail-closed outcome, thrown before anything
+    // was written; the caller routes it to the terminal screen.
+    rethrow;
+  } on Object catch (error) {
+    // diagnostics: silent — fail-closed; the typed error carries the cause.
+    await _discard([...temps, ...finals]);
+    throw DatabaseRelocationBlocked(
+      DatabaseRelocationFailure.moveFailed,
+      error: error,
+    );
+  }
+
+  final deleted = <(File, File)>[];
+  try {
+    // Main database file last: until it is gone the legacy library is intact.
+    for (final move in moves.reversed) {
+      await delete(move.$1);
+      deleted.add(move);
+    }
+  } on Object catch (error) {
+    // diagnostics: silent — rolled back below; the typed error carries the cause.
+    var restored = true;
+    for (final (from, to) in deleted) {
+      try {
+        await to.copy(from.path);
+      } on Object {
+        // diagnostics: silent — the target copy is kept below.
+        restored = false;
+      }
+    }
+    // Only a fully restored legacy library lets the target copy go: otherwise
+    // keep it, so the data is never left in fewer places than before.
+    if (restored) await _discard(finals);
+    throw DatabaseRelocationBlocked(
+      DatabaseRelocationFailure.moveFailed,
+      error: error,
+    );
+  }
+  // Best-effort: an emptied legacy folder is cosmetic.
+  try {
+    final legacyBackups = Directory(
+      p.join(source.parent.path, kDatabaseBackupsDirName),
+    );
+    if (legacyBackups.existsSync() && legacyBackups.listSync().isEmpty) {
+      await legacyBackups.delete();
+    }
+  } on FileSystemException {
+    // diagnostics: silent — cosmetic cleanup of an empty folder.
+  }
+  return true;
+}
+
+/// Best-effort removal of files this relocation attempt itself created.
+Future<void> _discard(List<File> files) async {
+  for (final file in files) {
+    try {
+      if (file.existsSync()) await file.delete();
+    } on FileSystemException {
+      // diagnostics: silent — a leftover `.relocating` file is discarded by the
+      // next attempt; a leftover final file is reported as bothExist.
+    }
+  }
+}
+
 /// App-facing entry point: resolves the real database file + snapshot directory
 /// (via `path_provider`) and runs [runMigrationPreflight]. Wired into
 /// `main.dart`'s startup sequence. [onSnapshotFailure] is the consent seam
@@ -350,7 +584,17 @@ Future<void> runMigrationPreflightForApp({
   required int runningSchemaVersion,
   SnapshotFailureDecision? onSnapshotFailure,
 }) async {
-  final dbFile = await resolveDatabaseFile();
+  final locations = await resolveDatabaseLocations();
+  const fileName = '$kDatabaseName.sqlite';
+  final dbFile = File(p.join(locations.primary.path, fileName));
+  // Before any open: drift would otherwise create a new, empty database beside
+  // the library an earlier build left in Documents.
+  await relocateLegacyDatabase(
+    target: dbFile,
+    legacy: [
+      for (final dir in locations.legacy) File(p.join(dir.path, fileName)),
+    ],
+  );
   final snapshotDir = Directory(
     p.join(dbFile.parent.path, kDatabaseBackupsDirName),
   );
@@ -416,6 +660,24 @@ void _checkpoint(String path) {
   final db = sql.sqlite3.open(path);
   try {
     db.execute('PRAGMA wal_checkpoint(TRUNCATE)');
+  } finally {
+    db.close();
+  }
+}
+
+/// Like [_checkpoint], but also reads the result row: `wal_checkpoint(TRUNCATE)`
+/// reports a blocked checkpoint (another connection holds the WAL) as `busy = 1`
+/// rather than by throwing, and a copy taken then would miss committed data.
+void _checkpointOrThrowIfBusy(String path) {
+  final db = sql.sqlite3.open(path);
+  try {
+    final row = db.select('PRAGMA wal_checkpoint(TRUNCATE)').first;
+    if (row.values.first != 0) {
+      throw FileSystemException(
+        'WAL checkpoint is blocked (database busy)',
+        path,
+      );
+    }
   } finally {
     db.close();
   }
@@ -627,10 +889,8 @@ final class ResetFailed extends ResetResult {
 /// touching the real filesystem; the production default deletes via [File].
 ///
 /// With [keepPath], an empty file is left at [dbFile] after the delete. An
-/// empty file is a brand-new database to SQLite, and its presence keeps
-/// [resolveDatabaseFile] selecting this path on the reopen: without it, a reset
-/// of a support-directory database could fall through to a still-present
-/// Documents database. Best-effort: the reset has already succeeded.
+/// empty file is a brand-new database to SQLite, so the reopen lands on exactly
+/// this path. Best-effort: the reset has already succeeded.
 Future<ResetResult> performReset({
   required File dbFile,
   Future<void> Function(File file)? dbDeleter,
@@ -661,9 +921,8 @@ Future<ResetResult> performReset({
     try {
       await dbFile.create(recursive: true);
     } on FileSystemException {
-      // diagnostics: silent — best-effort: without the placeholder the
-      // resolver's normal precedence applies, which only differs when a
-      // Documents database also exists.
+      // diagnostics: silent — best-effort: without the placeholder drift
+      // creates the file on the reopen.
     }
   }
   return const ResetComplete();

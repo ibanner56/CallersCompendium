@@ -5,12 +5,24 @@ lives in the core package; all access through repositories.*
 
 ## Approach
 
-- One SQLite database file per profile (`compendium.sqlite`), in the
-  application documents directory: `Documents` on Windows and Linux, the app's
-  own documents directory on Android, iOS and macOS. Where Linux cannot resolve
-  Documents (no `xdg-user-dirs`), it is in the application support directory
-  (`$XDG_DATA_HOME/<app id>`) instead, and stays there once created
-  (`resolveDatabaseFile`). Pre-migration snapshots go in `db_backups/` beside
+- One SQLite database file per profile (`compendium.sqlite`), in a per-app
+  data directory that is never a user-visible, cloud-synced folder
+  (`resolveDatabaseFile`): `%LOCALAPPDATA%\org.callerscompendium\Caller's
+  Compendium` on Windows (Local, not Roaming: roaming profiles copy Roaming, a
+  poor home for a live WAL database; `path_provider` exposes LocalAppData only
+  as the application *cache* directory, which is what the resolver asks for),
+  the application support directory (`$XDG_DATA_HOME/<app id>`) on Linux, and the
+  app's own documents directory on Android, iOS and macOS (sandboxed or
+  app-private). Earlier builds used `Documents` on Windows and Linux, which
+  OneDrive's folder backup syncs and which on Linux is `$HOME` itself when
+  `XDG_DOCUMENTS_DIR` is unset. The first launch after updating moves the
+  database, its `-wal`/`-shm` sidecars and the pre-migration snapshots out of
+  Documents (and out of the Roaming fallback directory an earlier build could
+  use on Windows) inside the migration preflight, before anything opens the file
+  (`relocateLegacyDatabase`): copy, fsync, verify size, rename into place, then
+  delete the source; it never overwrites a destination, and if a database exists
+  at both the old and new location, or the move fails, nothing is deleted and
+  startup stops on a non-retryable screen (`DatabaseRelocationBlocked`). Pre-migration snapshots go in `db_backups/` beside
   the file. User-triggered backup/restore = timestamped JSON export/import (6.6), not
   file copying.
 - **Hybrid figure storage** (fixing ContraDB's unqueryable JSON blob):
@@ -649,7 +661,7 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   committed under the old stamp where the next open re-enters them and fails.
 - **Backup-before-migrate.** If an upgrade is pending (file version < running),
   the preflight first checkpoints the WAL and copies the whole SQLite file to
-  `<app-documents>/db_backups/compendium.pre-v<from>-<UTC-timestamp>.sqlite.bak`,
+  `<database directory>/db_backups/compendium.pre-v<from>-<UTC-timestamp>.sqlite.bak`,
   retaining the newest 5. This is a raw byte snapshot, distinct from the
   user-triggered JSON backup/restore (6.6/G.5): the JSON path is a *logical*
   export through the current-schema repositories and cannot run against a file
@@ -669,7 +681,7 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   unchanged — no prompt.
 
   **Restoring a pre-migration snapshot:** quit the app, replace the live
-  `compendium.sqlite` in the app-documents directory with the chosen
+  `compendium.sqlite` in the database directory (see Approach) with the chosen
   `.sqlite.bak` (renaming it back to `compendium.sqlite`), and relaunch. Because
   the snapshot is stamped at the older `user_version`, opening it with the build
   that created the backup migrates it forward again; if the migration itself was
