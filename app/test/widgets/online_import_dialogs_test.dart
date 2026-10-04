@@ -100,10 +100,9 @@ Future<Future<DedupeResolution?> Function()> _pumpCrossSourceDialog(
 /// supplied it returns `created`. Records every call so a test can see which
 /// resolution (if any) was retried.
 class _ConfirmingService implements OnlineSearchService {
-  _ConfirmingService(this.firstKind, {this.firstDanceId = 'existing'});
+  _ConfirmingService(this.firstKind);
 
   final OnlineImportKind firstKind;
-  final String? firstDanceId;
   final resolutions = <DedupeResolution?>[];
 
   @override
@@ -134,7 +133,7 @@ class _ConfirmingService implements OnlineSearchService {
       return OnlineImportResult(
         kind: firstKind,
         title: 'Existing Dance',
-        danceId: firstDanceId,
+        danceId: 'existing',
       );
     }
     return const OnlineImportResult(

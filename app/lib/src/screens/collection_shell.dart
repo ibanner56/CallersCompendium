@@ -4,7 +4,6 @@ import '../../l10n/app_localizations.dart';
 import '../data/callersbox_online.dart';
 import '../data/contradb_online.dart';
 import '../data/dance_reimport.dart';
-import '../data/default_import_tags.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
@@ -14,13 +13,13 @@ import '../diagnostics/error_log.dart';
 import '../search/dance_detail_data.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/brand_mark.dart';
+import '../widgets/online_import_dialogs.dart';
 import '../published_collections/published_collection_service.dart';
 import 'dance_detail_screen.dart';
 import 'dance_list_screen.dart';
 import 'dance_reimport_flow.dart';
 import 'custom_fields_screen.dart';
 import 'import_review_screen.dart';
-import 'online_import_variation_dialog.dart';
 import 'recently_deleted_screen.dart';
 
 /// Responsive collection shell (`docs/design/ux.md` — list/detail split pane
@@ -412,64 +411,14 @@ class _CollectionShellState extends State<CollectionShell> {
     final l10n = AppLocalizations.of(context);
     try {
       final service = _serviceFor(preview.result.source);
-      var result = await service.import(
-        repos,
-        preview.plan,
-        defaultTagIds: await resolveDefaultImportTagIds(repos),
+      final result = await resolveAndImportOnline(
+        context,
+        service: service,
+        repos: repos,
+        preview: preview,
+        l10n: l10n,
       );
-      if (result.kind == OnlineImportKind.needsConfirmation) {
-        if (!mounted) return;
-        final existingId = result.danceId;
-        // needsConfirmation requires a candidate id — a null here is a service
-        // bug. Assert in debug; silently cancel in release (better than crashing).
-        assert(
-          existingId != null,
-          'needsConfirmation must carry an existing dance id',
-        );
-        if (existingId == null) return;
-        final existingTitle =
-            (await repos.dances.getById(existingId))?.title ?? result.title;
-        if (!mounted) return;
-        final resolution = await showOnlineImportVariationDialog(
-          context,
-          l10n,
-          existingTitle: existingTitle,
-          existingId: existingId,
-        );
-        if (resolution == null || !mounted) return; // user cancelled
-        result = await service.import(
-          repos,
-          preview.plan,
-          ambiguousResolution: resolution,
-          defaultTagIds: await resolveDefaultImportTagIds(repos),
-        );
-      } else if (result.kind == OnlineImportKind.needsConfirmationIdentical) {
-        if (!mounted) return;
-        final existingId = result.danceId;
-        // needsConfirmationIdentical requires a candidate id — a null here is a
-        // service bug. Assert in debug; silently cancel in release.
-        assert(
-          existingId != null,
-          'needsConfirmationIdentical must carry an existing dance id',
-        );
-        if (existingId == null) return;
-        final existingTitle =
-            (await repos.dances.getById(existingId))?.title ?? result.title;
-        if (!mounted) return;
-        final resolution = await showOnlineImportCrossSourceDuplicateDialog(
-          context,
-          l10n,
-          existingTitle: existingTitle,
-          existingId: existingId,
-        );
-        if (resolution == null || !mounted) return; // user cancelled
-        result = await service.import(
-          repos,
-          preview.plan,
-          ambiguousResolution: resolution,
-          defaultTagIds: await resolveDefaultImportTagIds(repos),
-        );
-      }
+      if (result == null) return; // cancelled, or the shell went away
       if (!mounted) return;
       final danceId = result.danceId;
       // Land on the imported dance ONLY for a single-dance import. This online
