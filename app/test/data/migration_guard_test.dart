@@ -723,7 +723,9 @@ void main() {
       expect(target.existsSync(), isFalse);
       expect(File('${target.path}-shm').existsSync(), isFalse);
       expect(
-        targetBackups.existsSync() ? targetBackups.listSync() : [],
+        targetBackups.existsSync()
+            ? targetBackups.listSync()
+            : <FileSystemEntity>[],
         isEmpty,
       );
     });
