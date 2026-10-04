@@ -54,7 +54,11 @@ class SyncRecordBlob {
     _validateVersion(v);
     _validateId(id);
     _validateBlobBody(kind, id, this.body);
-    canonicalJson(this.body);
+    // The whole envelope, not the body: the wire hash covers `toJson()`. Eager
+    // on purpose — encoding is also what rejects a body that cannot be
+    // canonicalised, and every wire hash reads these bytes instead of
+    // re-encoding.
+    canonicalUtf8 = canonicalJsonUtf8(toJson()).asUnmodifiableView();
   }
 
   final int v;
@@ -64,6 +68,11 @@ class SyncRecordBlob {
   final DateTime? deletedAt;
   final DateTime existenceAt;
   final Map<String, Object?> body;
+
+  /// The canonical UTF-8 encoding of [toJson], computed once at construction.
+  /// Assigned in the constructor body, never lazily. A read-only view, because
+  /// [encodeSyncRecordBlobUtf8] hands the same instance to every caller.
+  late final Uint8List canonicalUtf8;
 
   Map<String, Object?> toJson() => {
     'v': v,
@@ -253,8 +262,7 @@ class SyncManifest {
 }
 
 /// Returns canonical UTF-8 bytes for a record blob.
-Uint8List encodeSyncRecordBlobUtf8(SyncRecordBlob blob) =>
-    canonicalJsonUtf8(blob.toJson());
+Uint8List encodeSyncRecordBlobUtf8(SyncRecordBlob blob) => blob.canonicalUtf8;
 
 /// Returns canonical JSON for a record blob.
 String encodeSyncRecordBlob(SyncRecordBlob blob) =>

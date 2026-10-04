@@ -1,0 +1,9 @@
+{
+  "id": "1604-sync-snapshot-canonical-cache",
+  "user_visible": false,
+  "core": {
+    "changed": [
+      "A sync record blob now encodes its canonical bytes once at construction and reuses them for every wire hash, and the sync snapshot reads dance and program timestamps with a four-column query instead of re-reading whole rows. Wire bytes and hashes are unchanged."
+    ]
+  }
+}

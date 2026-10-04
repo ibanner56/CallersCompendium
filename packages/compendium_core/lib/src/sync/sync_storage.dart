@@ -118,6 +118,12 @@ final class _NaturalKeyIndex {
 }
 
 /// A complete local sync snapshot owned by the repository/database boundary.
+typedef _RowTimestamps = ({
+  DateTime updatedAt,
+  DateTime? existenceAt,
+  DateTime? deletedAt,
+});
+
 class SyncStorageSnapshot {
   const SyncStorageSnapshot({
     required this.epoch,
@@ -319,6 +325,29 @@ final class CompendiumSyncStorage
     return result;
   }
 
+  /// The envelope timestamps of every row of [table], by id. The snapshot loops
+  /// read nothing else from the row, so this selects four columns rather than
+  /// hydrating whole dance and program rows a second time.
+  Future<Map<String, _RowTimestamps>> _readTimestamps<T extends HasResultSet>(
+    ResultSetImplementation<T, dynamic> table,
+    GeneratedColumn<String> id,
+    GeneratedColumn<DateTime> updatedAt,
+    GeneratedColumn<DateTime> existenceAt,
+    GeneratedColumn<DateTime> deletedAt,
+  ) async {
+    final rows = await (_db.selectOnly(
+      table,
+    )..addColumns([id, updatedAt, existenceAt, deletedAt])).get();
+    return {
+      for (final row in rows)
+        row.read(id)!: (
+          updatedAt: row.read(updatedAt)!,
+          existenceAt: row.read(existenceAt),
+          deletedAt: row.read(deletedAt),
+        ),
+    };
+  }
+
   Future<SyncStorageSnapshot> snapshot({
     String? syncId,
   }) => repositories.transaction(() async {
@@ -368,8 +397,13 @@ final class CompendiumSyncStorage
     }
 
     final dances = await repositories.dances.listAll(includeDeleted: true);
-    final danceRows = await _db.select(_db.dances).get();
-    final danceRowsById = {for (final row in danceRows) row.id: row};
+    final danceRowsById = await _readTimestamps(
+      _db.dances,
+      _db.dances.id,
+      _db.dances.updatedAt,
+      _db.dances.existenceAt,
+      _db.dances.deletedAt,
+    );
     for (final dance in dances) {
       final row = danceRowsById[dance.id];
       if (row == null) continue;
@@ -407,8 +441,13 @@ final class CompendiumSyncStorage
     }
 
     final programs = await repositories.programs.listAll(includeDeleted: true);
-    final programRows = await _db.select(_db.programs).get();
-    final programRowsById = {for (final row in programRows) row.id: row};
+    final programRowsById = await _readTimestamps(
+      _db.programs,
+      _db.programs.id,
+      _db.programs.updatedAt,
+      _db.programs.existenceAt,
+      _db.programs.deletedAt,
+    );
     for (final program in programs) {
       final row = programRowsById[program.id];
       if (row == null) continue;
