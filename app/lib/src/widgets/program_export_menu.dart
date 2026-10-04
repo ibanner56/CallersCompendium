@@ -452,45 +452,14 @@ class ProgramExportMenu extends StatelessWidget {
     );
     if (bundle == null || !context.mounted) return;
 
-    final delivery = _jsonDelivery;
-    final choice = await delivery.choose(context);
-    if (choice == null || !context.mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-
-    switch (choice) {
-      case JsonExportChoice.save:
-        await guardExport(messenger, l10n.exportJsonSaveError, () async {
-          final result = await delivery.save(bundle.json, bundle.fileName);
-          if (result == null || !context.mounted) return;
-          final message = result.fileName == null
-              ? l10n.exportJsonSavedGeneric
-              : result.path.isEmpty
-              ? l10n.exportJsonSaved(result.fileName!)
-              : l10n.exportJsonSavedTo(result.fileName!, result.path);
-          messenger.showSnackBar(SnackBar(content: Text(message)));
-        }, source: 'program_export_menu._guard');
-      case JsonExportChoice.copy:
-        await guardExport(messenger, l10n.exportJsonCopyError, () async {
-          await delivery.copy(bundle.json);
-          if (context.mounted) {
-            messenger.showSnackBar(
-              SnackBar(content: Text(l10n.exportJsonCopied)),
-            );
-          }
-        }, source: 'program_export_menu._guard');
-      case JsonExportChoice.share:
-        await guardExport(messenger, l10n.exportJsonShareError, () {
-          return delivery
-              .share(
-                json: bundle.json,
-                fileName: bundle.fileName,
-                subject: program.title,
-                sharePositionOrigin: origin,
-              )
-              .then((result) => announceBundleSaved(messenger, l10n, result));
-        }, source: 'program_export_menu._guard');
-    }
+    await _jsonDelivery.deliver(
+      context,
+      json: bundle.json,
+      fileName: bundle.fileName,
+      subject: program.title,
+      sharePositionOrigin: origin,
+      source: 'program_export_menu._guard',
+    );
   }
 
   Future<void> _copyText(BuildContext context) async {

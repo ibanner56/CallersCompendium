@@ -197,42 +197,14 @@ class DanceExportActions {
     Rect? origin,
   }) => guardExport(messenger, l10n.exportJsonShareError, () async {
     final bundle = _buildBundle(extension: danceShareJsonExtension);
-    final delivery = _jsonDelivery;
-    final choice = await delivery.choose(context);
-    if (choice == null || !context.mounted) return;
-
-    switch (choice) {
-      case JsonExportChoice.save:
-        await guardExport(messenger, l10n.exportJsonSaveError, () async {
-          final result = await delivery.save(bundle.json, bundle.fileName);
-          if (result == null || !context.mounted) return;
-          final message = result.fileName == null
-              ? l10n.exportJsonSavedGeneric
-              : result.path.isEmpty
-              ? l10n.exportJsonSaved(result.fileName!)
-              : l10n.exportJsonSavedTo(result.fileName!, result.path);
-          messenger.showSnackBar(SnackBar(content: Text(message)));
-        }, source: 'dance_export_actions.exportJson');
-      case JsonExportChoice.copy:
-        await guardExport(messenger, l10n.exportJsonCopyError, () async {
-          await delivery.copy(bundle.json);
-          if (context.mounted) {
-            messenger.showSnackBar(
-              SnackBar(content: Text(l10n.exportJsonCopied)),
-            );
-          }
-        }, source: 'dance_export_actions.exportJson');
-      case JsonExportChoice.share:
-        await guardExport(messenger, l10n.exportJsonShareError, () async {
-          final result = await delivery.share(
-            json: bundle.json,
-            fileName: bundle.fileName,
-            subject: dance.title,
-            sharePositionOrigin: origin,
-          );
-          announceBundleSaved(messenger, l10n, result);
-        }, source: 'dance_export_actions.exportJson');
-    }
+    await _jsonDelivery.deliver(
+      context,
+      json: bundle.json,
+      fileName: bundle.fileName,
+      subject: dance.title,
+      sharePositionOrigin: origin,
+      source: 'dance_export_actions.exportJson',
+    );
   }, source: 'dance_export_actions.exportJson');
 
   /// Hands a generated PDF to the OS print/save dialog.
