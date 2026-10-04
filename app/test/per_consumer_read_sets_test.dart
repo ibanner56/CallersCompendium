@@ -13,6 +13,7 @@ import 'package:compendium_app/src/screens/dance_detail/calling_history_section.
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
+import 'package:compendium_app/src/search/collection_data.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/search/dance_editor_reference_data.dart';
 
@@ -579,6 +580,138 @@ void main() {
         );
       });
     }
+  });
+
+  group('CollectionData.watch classifies each sentinel table as a full or '
+      'counts-only reload (CS-27)', () {
+    // The read class is observed through `dancesById`: a full `load()` builds a
+    // new map, a counts-only emit reuses the previous snapshot's own.
+    Future<({int emits, bool counted})> classify({
+      required bool watchVenues,
+      required Future<void> Function(CompendiumRepositories repos) write,
+    }) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(id: 'd1', title: 'Alpha', createdAt: now, updatedAt: now),
+      );
+      final snapshots = <CollectionData>[];
+      final sub = CollectionData.watch(
+        repos,
+        watchVenues: watchVenues,
+      ).listen(snapshots.add);
+      addTearDown(sub.cancel);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(snapshots, hasLength(1));
+
+      await write(repos);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      final emitted = snapshots.length - 1;
+      return (
+        emits: emitted,
+        counted:
+            emitted > 0 &&
+            identical(snapshots.last.dancesById, snapshots.first.dancesById),
+      );
+    }
+
+    final writes =
+        <
+          ({
+            String table,
+            bool counted,
+            Future<void> Function(CompendiumRepositories) write,
+          })
+        >[
+          (
+            table: 'dances',
+            counted: false,
+            write: (r) => r.dances.create(
+              Dance(id: 'd2', title: 'Beta', createdAt: now, updatedAt: now),
+            ),
+          ),
+          (
+            table: 'choreographers',
+            counted: false,
+            write: (r) async {
+              // ignore: unused_result
+              await r.choreographers.upsert(Choreographer(id: 'c1', name: 'G'));
+            },
+          ),
+          (
+            table: 'tags',
+            counted: false,
+            write: (r) async {
+              // ignore: unused_result
+              await r.tags.upsert(Tag(id: 't1', name: 'Gentle'));
+            },
+          ),
+          (
+            table: 'custom_field_defs',
+            counted: false,
+            write: (r) async {
+              // ignore: unused_result
+              await r.customFieldDefs.upsert(
+                CustomFieldDef(
+                  id: 'f1',
+                  key: 'mood',
+                  label: 'Mood',
+                  type: CustomFieldType.text,
+                ),
+              );
+            },
+          ),
+          (
+            table: 'published_sources',
+            counted: false,
+            write: (r) async {
+              await r.publishedSources.upsert(
+                PublishedSource(id: 'ps1', title: 'Book'),
+              );
+            },
+          ),
+          (
+            table: 'programs',
+            counted: true,
+            write: (r) => r.programs.create(
+              Program(
+                id: 'p1',
+                title: 'Friday',
+                slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+                createdAt: now,
+                updatedAt: now,
+              ),
+            ),
+          ),
+          (
+            table: 'program_slots',
+            counted: true,
+            write: (r) async => r.db.markTablesUpdated({r.db.programSlots}),
+          ),
+        ];
+    for (final w in writes) {
+      test('a ${w.table} write is a '
+          '${w.counted ? 'counts-only' : 'full'} reload', () async {
+        final result = await classify(watchVenues: false, write: w.write);
+        expect(result.emits, greaterThan(0), reason: 'the write must wake it');
+        expect(result.counted, w.counted);
+      });
+    }
+
+    test(
+      'a venues write wakes only a watchVenues subscriber, counts-only',
+      () async {
+        Future<void> write(CompendiumRepositories r) =>
+            r.venues.upsert(Venue(id: 'v1', name: 'Town Hall'));
+
+        final plain = await classify(watchVenues: false, write: write);
+        final withVenues = await classify(watchVenues: true, write: write);
+
+        expect(plain.emits, 0);
+        expect(withVenues.emits, greaterThan(0));
+        expect(withVenues.counted, isTrue);
+      },
+    );
   });
 }
 

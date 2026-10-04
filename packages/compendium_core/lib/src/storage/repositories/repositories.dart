@@ -330,7 +330,16 @@ class CompendiumRepositories {
   /// A **change signal**, not the data: it carries no payload, because the
   /// snapshot is assembled app-side from a fan-out of queries across seven
   /// repositories and there is no single row set to hand back. Callers pair it
-  /// with their own loader (see `CollectionData.watch`).
+  /// with their own loader.
+  ///
+  /// `CollectionData.watch` **no longer consumes this stream**: it needs to know
+  /// *which* tables changed (a `programs`/`program_slots`-only burst refreshes
+  /// just the calling tallies), which a payload-less sentinel cannot say, so it
+  /// listens to `db.tableUpdates` over the same set instead. That set is
+  /// restated there; a table added here must be added there, and
+  /// `per_consumer_read_sets_test.dart` classifies each one. This method and its
+  /// read set stay as they were for consumers that only need "something
+  /// changed".
   ///
   /// ## The declared table set, justified per entry
   ///
