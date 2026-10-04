@@ -2051,6 +2051,110 @@ class _CompendiumAppState extends State<CompendiumApp> {
     }
   }
 
+  /// The preference/controller scopes mounted above the navigator, outermost
+  /// first. `build` folds them (reversed) onto the `MaterialApp.builder` child.
+  /// New scopes are added here and to `test/app_scopes_test.dart`.
+  List<Widget Function(Widget child)> _appScopeWrappers() => [
+    (child) =>
+        RepositoriesScope(repositories: _appData.repositories, child: child),
+    (child) => UpdateScope(controller: _updateController, child: child),
+    (child) => SyncScope(controller: _syncController, child: child),
+    (child) => AppThemeScope(notifier: _themeNotifier, child: child),
+    (child) => CustomThemesScope(controller: _customThemes, child: child),
+    (child) => FormationColorsScope(controller: _formationColors, child: child),
+    (child) => DialectLibraryScope(controller: _dialectLibrary, child: child),
+    (child) =>
+        ShorthandMappingsScope(controller: _shorthandMappings, child: child),
+    (child) => WalkthroughSnippetLibraryScope(
+      controller: _walkthroughSnippets,
+      child: child,
+    ),
+    (child) => ActiveDialectScope(notifier: _dialectNotifier, child: child),
+    (child) => RequirePerformedForHistoryScope(
+      notifier: _requirePerformedForHistoryNotifier,
+      child: child,
+    ),
+    (child) => CollectionTileFieldsScope(
+      notifier: _collectionTileFieldsNotifier,
+      child: child,
+    ),
+    (child) => DanceShareFieldsScope(
+      notifier: _danceShareFieldsNotifier,
+      child: child,
+    ),
+    (child) => TrackHistoryForAllCallersScope(
+      notifier: _trackHistoryForAllCallersNotifier,
+      child: child,
+    ),
+    (child) =>
+        VenueCallCountScope(notifier: _venueCallCountNotifier, child: child),
+    (child) => SortIgnoreArticlesScope(
+      notifier: _sortIgnoreArticlesNotifier,
+      child: child,
+    ),
+    (child) => ReduceMotionScope(notifier: _reduceMotionNotifier, child: child),
+    (child) => VerboseFigureRenderingScope(
+      notifier: _verboseFigureRenderingNotifier,
+      child: child,
+    ),
+    (child) => CanonicalDiscouragedTermsScope(
+      notifier: _canonicalDiscouragedTermsNotifier,
+      child: child,
+    ),
+    (child) => DecimalTurnsScope(notifier: _decimalTurnsNotifier, child: child),
+    (child) => AggressiveBeatsUpdateScope(
+      notifier: _aggressiveBeatsUpdateNotifier,
+      child: child,
+    ),
+    (child) => ConfirmBeforeDeleteScope(
+      notifier: _confirmBeforeDeleteNotifier,
+      child: child,
+    ),
+    (child) => ColourDanceThemeScope(
+      notifier: _colourDanceThemeNotifier,
+      child: child,
+    ),
+    (child) => SetListColorCodingScope(
+      notifier: _setListColorCodingNotifier,
+      child: child,
+    ),
+    (child) => MatrixCollisionModeScope(
+      notifier: _matrixExactBeatCollisionNotifier,
+      child: child,
+    ),
+    (child) => ProgramMatrixColumnConfigScope(
+      notifier: _programMatrixColumnsNotifier,
+      child: child,
+    ),
+    (child) => DateFormatScope(notifier: _dateFormatNotifier, child: child),
+    (child) =>
+        FirstDayOfWeekScope(notifier: _firstDayOfWeekNotifier, child: child),
+    (child) => LocaleScope(notifier: _localeNotifier, child: child),
+    (child) => EditorDraftShutdownScope(
+      controller: _editorDraftShutdownController,
+      child: child,
+    ),
+    (child) => SyncWriterLifecycleScope(
+      runWrite: _runSyncWriter,
+      onRestored: reloadFromSettings,
+      child: child,
+    ),
+    (child) => CollectionFilterScope(
+      controller: _collectionFilterController,
+      child: child,
+    ),
+    (child) =>
+        VenueEntityModeScope(notifier: _venueEntityModeNotifier, child: child),
+    (child) => ProgramAutoCommitScope(
+      notifier: _autoCommitProgramChangesNotifier,
+      child: child,
+    ),
+    (child) => CollectionFacetsScope(
+      notifier: _collectionHiddenFacetsNotifier,
+      child: child,
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     // The theme depends on two sources — the built-in selection and the active
@@ -2110,131 +2214,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
           highContrastTheme: AppTheme.highContrast,
           highContrastDarkTheme: AppTheme.highContrast,
           themeMode: themeMode,
-          builder: (context, child) => RepositoriesScope(
-            repositories: _appData.repositories,
-            child: UpdateScope(
-              controller: _updateController,
-              child: SyncScope(
-                controller: _syncController,
-                child: AppThemeScope(
-                  notifier: _themeNotifier,
-                  child: CustomThemesScope(
-                    controller: _customThemes,
-                    child: FormationColorsScope(
-                      controller: _formationColors,
-                      child: DialectLibraryScope(
-                        controller: _dialectLibrary,
-                        child: ShorthandMappingsScope(
-                          controller: _shorthandMappings,
-                          child: WalkthroughSnippetLibraryScope(
-                            controller: _walkthroughSnippets,
-                            child: ActiveDialectScope(
-                              notifier: _dialectNotifier,
-                              child: RequirePerformedForHistoryScope(
-                                notifier: _requirePerformedForHistoryNotifier,
-                                child: CollectionTileFieldsScope(
-                                  notifier: _collectionTileFieldsNotifier,
-                                  child: DanceShareFieldsScope(
-                                    notifier: _danceShareFieldsNotifier,
-                                    child: TrackHistoryForAllCallersScope(
-                                      notifier:
-                                          _trackHistoryForAllCallersNotifier,
-                                      child: VenueCallCountScope(
-                                        notifier: _venueCallCountNotifier,
-                                        child: SortIgnoreArticlesScope(
-                                          notifier: _sortIgnoreArticlesNotifier,
-                                          child: ReduceMotionScope(
-                                            notifier: _reduceMotionNotifier,
-                                            child: VerboseFigureRenderingScope(
-                                              notifier:
-                                                  _verboseFigureRenderingNotifier,
-                                              child: CanonicalDiscouragedTermsScope(
-                                                notifier:
-                                                    _canonicalDiscouragedTermsNotifier,
-                                                child: DecimalTurnsScope(
-                                                  notifier:
-                                                      _decimalTurnsNotifier,
-                                                  child: AggressiveBeatsUpdateScope(
-                                                    notifier:
-                                                        _aggressiveBeatsUpdateNotifier,
-                                                    child: ConfirmBeforeDeleteScope(
-                                                      notifier:
-                                                          _confirmBeforeDeleteNotifier,
-                                                      child: ColourDanceThemeScope(
-                                                        notifier:
-                                                            _colourDanceThemeNotifier,
-                                                        child: SetListColorCodingScope(
-                                                          notifier:
-                                                              _setListColorCodingNotifier,
-                                                          child: MatrixCollisionModeScope(
-                                                            notifier:
-                                                                _matrixExactBeatCollisionNotifier,
-                                                            child: ProgramMatrixColumnConfigScope(
-                                                              notifier:
-                                                                  _programMatrixColumnsNotifier,
-                                                              child: DateFormatScope(
-                                                                notifier:
-                                                                    _dateFormatNotifier,
-                                                                child: FirstDayOfWeekScope(
-                                                                  notifier:
-                                                                      _firstDayOfWeekNotifier,
-                                                                  child: LocaleScope(
-                                                                    notifier:
-                                                                        _localeNotifier,
-                                                                    child: EditorDraftShutdownScope(
-                                                                      controller:
-                                                                          _editorDraftShutdownController,
-                                                                      child: SyncWriterLifecycleScope(
-                                                                        runWrite:
-                                                                            _runSyncWriter,
-                                                                        onRestored:
-                                                                            reloadFromSettings,
-                                                                        child: CollectionFilterScope(
-                                                                          controller:
-                                                                              _collectionFilterController,
-                                                                          child: VenueEntityModeScope(
-                                                                            notifier:
-                                                                                _venueEntityModeNotifier,
-                                                                            child: ProgramAutoCommitScope(
-                                                                              notifier: _autoCommitProgramChangesNotifier,
-                                                                              child: CollectionFacetsScope(
-                                                                                notifier: _collectionHiddenFacetsNotifier,
-                                                                                child: child!,
-                                                                              ),
-                                                                            ),
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          builder: (context, child) => _appScopeWrappers().reversed
+              .fold<Widget>(child!, (inner, wrap) => wrap(inner)),
           home: AppBootstrap(
             future: _bootstrap,
             onRetry: _retry,
