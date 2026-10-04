@@ -58,8 +58,8 @@ import 'share_sanitization.dart';
 /// [includeVenueContact] survive. This set is empty by default (full
 /// redaction) and is populated **only** from an explicit, opt-in pre-share
 /// consent dialog in the UI layer — there is no path that embeds an
-/// unsanitized venue. All venue-descriptive fields (name/address/schedule/…)
-/// are kept, matching the choreographer precedent.
+/// unsanitized venue. The venue-descriptive fields (name/schedule/…) are kept,
+/// matching the choreographer precedent; the postal address is always cleared.
 ///
 /// [tagFor], [publishedSourceFor] and [customFieldFor] resolve the tags,
 /// published sources and custom-field definitions the bundled dances reference,

@@ -1976,6 +1976,10 @@ that tombstones a tag and then receives a dance citing it revives the row and
 re-marks the tombstone pending, rather than writing a join row against a
 tombstoned parent.
 
+Difficulty levels are the one kind whose guard also counts tombstoned dances (a
+deleted dance can be restored, and restore does not re-check its level), so a
+level tombstone is held pending while a dance in Recently Deleted still uses it.
+
 This preserves the property the guard exists for — no dance ever credits a
 tombstone — without achieving it by resurrecting deleted data. The cost is real
 and is disclosed rather than hidden: a deletion can sit unapplied on another

@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/program_pdf.dart';
+import 'package:compendium_app/src/export/share_sanitization.dart';
 import 'package:compendium_app/src/export/json_export.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
@@ -1740,6 +1741,44 @@ void main() {
       );
       expect(bytes, isNotEmpty);
       expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+    });
+
+    // The text is font-encoded inside the PDF, so the content check goes
+    // through the seam `buildProgramPdf` draws its venue text from.
+    test('buildProgramPdf renders a raw venue as its sanitised form', () {
+      final text = programPdfVenueText(_program(venueId: 'v1'), {
+        'v1': _venue,
+      }, const ProgramExportLabels());
+      final printed = [?text.headerLabel, ...text.blockLines].join('\n');
+
+      for (final leak in const [
+        '123 Main St',
+        'Room 2',
+        'Montpelier',
+        '05602',
+        'Pat Caller',
+        '555-0100',
+        'pat@example.com',
+      ]) {
+        expect(printed, isNot(contains(leak)), reason: leak);
+      }
+      expect(printed, contains('Grange Hall'));
+      expect(printed, contains('https://grange.example'));
+    });
+
+    test('buildProgramPdf prints only the consented contact field', () {
+      final text = programPdfVenueText(
+        _program(venueId: 'v1'),
+        {'v1': _venue},
+        const ProgramExportLabels(),
+        includeVenueContact: {VenueContactField.contact1Email},
+      );
+      final printed = text.blockLines.join('\n');
+
+      expect(printed, contains('pat@example.com'));
+      expect(printed, isNot(contains('555-0100')));
+      expect(printed, isNot(contains('Pat Caller')));
+      expect(printed, isNot(contains('123 Main St')));
     });
 
     testWidgets('renders a linked venue with only a name (no detail fields)', (
