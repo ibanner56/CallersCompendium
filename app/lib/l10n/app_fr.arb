@@ -92,13 +92,17 @@
   "@migrationDowngradeMessage": {
     "x-sourceSha256": "5cc72c824106a61526d695c3a2f0bca5287d5a97935ec78445ef6a34891372b6"
   },
-  "migrationRelocationBothExist": "Caller’s Compendium ne s’est pas lancé, car des données enregistrées ont été trouvées à deux endroits : le nouvel emplacement et le dossier utilisé par une version précédente. Rien n’a été modifié ni supprimé. Conservez la copie souhaitée, déplacez l’autre ailleurs, puis rouvrez l’application. L’entrée « Où sont stockées mes données ? » de la FAQ indique les deux emplacements.",
+  "migrationRelocationBothExist": "Caller’s Compendium ne s’est pas lancé, car des fichiers de données enregistrées ont été trouvés à la fois au nouvel emplacement et dans un dossier utilisé par une version précédente. Rien n’a été modifié ni supprimé. Conservez la copie souhaitée, déplacez l’autre ailleurs, puis rouvrez l’application. L’entrée « Où sont stockées mes données ? » de la FAQ indique les emplacements.",
   "@migrationRelocationBothExist": {
-    "x-sourceSha256": "17a2bd5c0a55148cf649909be430b0fd2938c0bdf4be83e2d99334d2fbc15f11"
+    "x-sourceSha256": "cad53d54c7447308b20e3c9780d595b1e708718c46738a1f0af5913ba7affebd"
   },
-  "migrationRelocationFailed": "Caller’s Compendium ne s’est pas lancé, car il n’a pas pu terminer le déplacement de vos données enregistrées vers leur nouvel emplacement. Rien n’a été supprimé. Libérez de l’espace ou vérifiez les autorisations du dossier, puis rouvrez l’application pour réessayer.",
+  "migrationRelocationMultipleLegacy": "Caller’s Compendium ne s’est pas lancé, car des données enregistrées ont été trouvées dans plusieurs dossiers utilisés par des versions précédentes. Rien n’a été modifié ni supprimé. Conservez la copie souhaitée, déplacez les autres ailleurs, puis rouvrez l’application. L’entrée « Où sont stockées mes données ? » de la FAQ indique les emplacements.",
+  "@migrationRelocationMultipleLegacy": {
+    "x-sourceSha256": "7d8dee5a9bba016f5ebf6a74248ffdc5f2f87fc251ff1e2063944dfc900b6ea2"
+  },
+  "migrationRelocationFailed": "Caller’s Compendium ne s’est pas lancé, car il n’a pas pu terminer le déplacement de vos données enregistrées vers leur nouvel emplacement. Rien n’a été supprimé. Libérez de l’espace, fermez les autres programmes qui les utilisent peut-être, ou vérifiez les autorisations du dossier, puis rouvrez l’application pour réessayer.",
   "@migrationRelocationFailed": {
-    "x-sourceSha256": "786ebdbaf7f3e1e3c8e078b35d11ac85232a82d640520caa8278b8249d332a5c"
+    "x-sourceSha256": "92053efe3d799c18cb1d651dfbde58bc0807ba270c55cbdc4f148ff0389c4dfa"
   },
   "migrationSnapshotAbortedMessage": "Caller’s Compendium n'a pas démarré car une sauvegarde automatique n'a pas pu être créée avant la mise à niveau de vos données enregistrées. {cause}Libérez de l'espace (ou réparez le dossier de sauvegardes), puis rouvrez l'application — ou rouvrez-la et choisissez de continuer sans sauvegarde.",
   "@migrationSnapshotAbortedMessage": {

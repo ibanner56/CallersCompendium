@@ -588,6 +588,146 @@ void main() {
       expect(seeded(target), 'my library');
     });
 
+    test('moves the sidecars that survive the checkpoint', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'first');
+      // A connection left open keeps the -wal/-shm in place through the move.
+      final live = sql.sqlite3.open(legacy.path)
+        ..execute('PRAGMA journal_mode = WAL')
+        ..execute("INSERT INTO t (v) VALUES ('second')");
+      addTearDown(live.close);
+      expect(File('${legacy.path}-wal').existsSync(), isTrue);
+      expect(File('${legacy.path}-shm').existsSync(), isTrue);
+
+      await relocateLegacyDatabase(target: target, legacy: [legacy]);
+
+      // The checkpoint folded the WAL into the main file before the copy.
+      expect(File('${target.path}-wal').existsSync(), isTrue);
+      expect(File('${target.path}-wal').lengthSync(), 0);
+      expect(File('${target.path}-shm').existsSync(), isTrue);
+      expect(File('${legacy.path}-wal').existsSync(), isFalse);
+      expect(File('${legacy.path}-shm').existsSync(), isFalse);
+      expect(legacy.existsSync(), isFalse);
+      final db = sql.sqlite3.open(target.path);
+      expect(db.select('SELECT v FROM t ORDER BY id').map((r) => r['v']), [
+        'first',
+        'second',
+      ]);
+      db.close();
+    });
+
+    test('fails closed without copying or deleting when a reader holds the '
+        'WAL (busy checkpoint)', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'first');
+      final writer = sql.sqlite3.open(legacy.path)
+        ..execute('PRAGMA journal_mode = WAL');
+      addTearDown(writer.close);
+      // A read transaction pins a snapshot, so later commits cannot be fully
+      // checkpointed: wal_checkpoint(TRUNCATE) returns busy = 1 (no throw).
+      final reader = sql.sqlite3.open(legacy.path)
+        ..execute('BEGIN')
+        ..select('SELECT * FROM t');
+      addTearDown(reader.close);
+      writer.execute("INSERT INTO t (v) VALUES ('committed after the reader')");
+      final walLength = File('${legacy.path}-wal').lengthSync();
+      expect(walLength, greaterThan(0));
+
+      await expectLater(
+        relocateLegacyDatabase(target: target, legacy: [legacy]),
+        throwsA(
+          isA<DatabaseRelocationBlocked>().having(
+            (e) => e.reason,
+            'reason',
+            DatabaseRelocationFailure.moveFailed,
+          ),
+        ),
+      );
+
+      expect(legacy.existsSync(), isTrue);
+      expect(File('${legacy.path}-wal').lengthSync(), walLength);
+      expect(target.existsSync(), isFalse);
+      expect(target.parent.existsSync(), isFalse);
+    });
+
+    test('reports a distinct reason when only legacy locations conflict, and '
+        'when a stray target sidecar exists', () async {
+      final other = File(p.join(dir.path, 'Roaming', 'compendium.sqlite'))
+        ..parent.createSync();
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'documents');
+      _createFixture(other.path, userVersion: 7, seedValue: 'roaming');
+      await expectLater(
+        relocateLegacyDatabase(target: target, legacy: [legacy, other]),
+        throwsA(
+          isA<DatabaseRelocationBlocked>().having(
+            (e) => e.reason,
+            'reason',
+            DatabaseRelocationFailure.multipleLegacy,
+          ),
+        ),
+      );
+
+      other.deleteSync();
+      target.parent.createSync(recursive: true);
+      File('${target.path}-wal').writeAsBytesSync(const [1]);
+      await expectLater(
+        relocateLegacyDatabase(target: target, legacy: [legacy]),
+        throwsA(
+          isA<DatabaseRelocationBlocked>().having(
+            (e) => e.reason,
+            'reason',
+            DatabaseRelocationFailure.bothExist,
+          ),
+        ),
+      );
+      expect(seeded(legacy), 'documents');
+      expect(File('${target.path}-wal').readAsBytesSync(), const [1]);
+    });
+
+    test('a delete failure part-way restores the deleted source files and '
+        'removes the target copy', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'keep me');
+      legacyBackups.createSync();
+      final snapshot = File(
+        p.join(legacyBackups.path, 'compendium.pre-v6-x.sqlite.bak'),
+      )..writeAsBytesSync(const [1, 2, 3]);
+      File('${legacy.path}-shm').writeAsBytesSync(const [9]);
+      final deleteAttempts = <String>[];
+
+      await expectLater(
+        relocateLegacyDatabase(
+          target: target,
+          legacy: [legacy],
+          // Snapshots and the sidecar are deleted first, the database last:
+          // fail on the database, after the others are already gone.
+          deleter: (file) async {
+            deleteAttempts.add(p.basename(file.path));
+            if (file.path == legacy.path) {
+              throw const FileSystemException('locked');
+            }
+            await file.delete();
+          },
+        ),
+        throwsA(
+          isA<DatabaseRelocationBlocked>().having(
+            (e) => e.reason,
+            'reason',
+            DatabaseRelocationFailure.moveFailed,
+          ),
+        ),
+      );
+
+      expect(deleteAttempts.last, 'compendium.sqlite');
+      expect(deleteAttempts.length, greaterThan(1));
+      expect(snapshot.readAsBytesSync(), const [1, 2, 3]);
+      expect(File('${legacy.path}-shm').readAsBytesSync(), const [9]);
+      expect(seeded(legacy), 'keep me');
+      expect(target.existsSync(), isFalse);
+      expect(File('${target.path}-shm').existsSync(), isFalse);
+      expect(
+        targetBackups.existsSync() ? targetBackups.listSync() : [],
+        isEmpty,
+      );
+    });
+
     test('removes the emptied legacy db_backups folder', () async {
       _createFixture(legacy.path, userVersion: 7, seedValue: 'x');
       legacyBackups.createSync();

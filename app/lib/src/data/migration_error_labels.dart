@@ -68,5 +68,7 @@ String databaseRelocationMessage(
   DatabaseRelocationFailure reason,
 ) => switch (reason) {
   DatabaseRelocationFailure.bothExist => l10n.migrationRelocationBothExist,
+  DatabaseRelocationFailure.multipleLegacy =>
+    l10n.migrationRelocationMultipleLegacy,
   DatabaseRelocationFailure.moveFailed => l10n.migrationRelocationFailed,
 };

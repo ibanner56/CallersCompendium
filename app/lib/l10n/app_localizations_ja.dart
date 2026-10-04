@@ -88,11 +88,15 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get migrationRelocationBothExist =>
-      '保存データが新しい場所と以前のバージョンが使っていたフォルダーの2か所で見つかったため、Caller’s Compendium を起動できませんでした。変更や削除は行われていません。残したいほうのコピーを選び、もう一方を別の場所へ移動してから、アプリをもう一度開いてください。FAQの「データはどこに保存されますか？」に両方の場所が記載されています。';
+      '保存データのファイルが新しい場所と以前のバージョンが使っていたフォルダーの両方で見つかったため、Caller’s Compendium を起動できませんでした。変更や削除は行われていません。残したいほうのコピーを選び、もう一方を別の場所へ移動してから、アプリをもう一度開いてください。FAQの「データはどこに保存されますか？」に保存場所が記載されています。';
+
+  @override
+  String get migrationRelocationMultipleLegacy =>
+      '保存データが以前のバージョンが使っていた複数のフォルダーで見つかったため、Caller’s Compendium を起動できませんでした。変更や削除は行われていません。残したいコピーを選び、ほかのコピーを別の場所へ移動してから、アプリをもう一度開いてください。FAQの「データはどこに保存されますか？」に保存場所が記載されています。';
 
   @override
   String get migrationRelocationFailed =>
-      '保存データを新しい場所へ移す処理を完了できなかったため、Caller’s Compendium を起動できませんでした。削除されたデータはありません。空き容量を確保するかフォルダーのアクセス権を確認してから、アプリをもう一度開いて再試行してください。';
+      '保存データを新しい場所へ移す処理を完了できなかったため、Caller’s Compendium を起動できませんでした。削除されたデータはありません。空き容量を確保するか、データを使用している可能性のある他のプログラムを閉じるか、フォルダーのアクセス権を確認してから、アプリをもう一度開いて再試行してください。';
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {

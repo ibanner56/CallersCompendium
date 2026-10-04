@@ -110,11 +110,15 @@
   "@migrationDowngradeMessage": {
     "description": "Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered."
   },
-  "migrationRelocationBothExist": "Caller’s Compendium didn’t start because it found saved data in two places: the new location and the folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists both locations.",
+  "migrationRelocationBothExist": "Caller’s Compendium didn’t start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.",
   "@migrationRelocationBothExist": {
-    "description": "Terminal startup-screen message shown when the one-time move of the database out of the Documents folder found a database in both the new and the old location. Nothing is deleted. No Retry is offered."
+    "description": "Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Retry is offered."
   },
-  "migrationRelocationFailed": "Caller’s Compendium didn’t start because it couldn’t finish moving your saved data to its new location. Nothing was deleted. Free up space or check the folder permissions, then reopen the app to try again.",
+  "migrationRelocationMultipleLegacy": "Caller’s Compendium didn’t start because it found saved data in more than one folder used by earlier versions. Nothing was changed or deleted. Keep the copy you want, move the others out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.",
+  "@migrationRelocationMultipleLegacy": {
+    "description": "Terminal startup-screen message shown when the one-time move of the database found saved data in more than one old location (Windows: Documents and the Roaming fallback) and none in the new location. Nothing is deleted. No Retry is offered."
+  },
+  "migrationRelocationFailed": "Caller’s Compendium didn’t start because it couldn’t finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.",
   "@migrationRelocationFailed": {
     "description": "Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Retry is offered."
   },

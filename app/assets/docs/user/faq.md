@@ -34,12 +34,18 @@ On your device, in a single database file named `compendium.sqlite`:
 - **Android, iOS and macOS:** the app's own documents folder (on macOS, inside
   the app's sandbox container).
 
-Earlier versions kept the file in your `Documents` folder on Windows and Linux.
-The first time you open the app after updating, it moves your library (and the
-`db_backups` folder) to the location above and deletes the old copy only after
-the new one is verified. If it finds a library in both places, or cannot finish
-the move, it stops without deleting anything and tells you; keep the copy you
-want, move the other out of the way, and reopen the app.
+Earlier versions kept the file in your `Documents` folder on Windows and Linux
+(on Linux without a Documents folder configured, that is your home folder). A
+few Windows installs instead have it in the Roaming folder,
+`%APPDATA%\org.callerscompendium\Caller's Compendium`. The first time you open
+the app after updating, it moves your library (and the `db_backups` folder) to
+the location above and deletes the old copy only after the new one is verified.
+
+If it finds data files in the new location *and* in an old one, or in more than
+one old location (for example both `Documents` and the Roaming folder), or it
+cannot finish the move (the disk is full, the folder is not writable, or another
+program is using the file), it stops without changing anything and tells you.
+Keep the copy you want, move the others out of the way, and reopen the app.
 
 Safety copies the app makes before updating the database go in a `db_backups`
 folder beside it.

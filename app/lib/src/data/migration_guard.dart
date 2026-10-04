@@ -342,15 +342,23 @@ SnapshotFailureCause classifySnapshotFailure(Object error) {
 /// Why [relocateLegacyDatabase] refused to move (or could not finish moving) a
 /// database, as a typed discriminator the presentation layer localizes.
 enum DatabaseRelocationFailure {
-  /// A database already exists at the new location *and* one at a legacy
-  /// location (or more than one legacy location holds one). Which is current is
-  /// not for the app to guess, so every file is left exactly as found.
+  /// Data files already exist at the new location (the database or a stray
+  /// `-wal`/`-shm`) *and* a database exists at a legacy location. Which is
+  /// current is not for the app to guess, so every file is left exactly as
+  /// found.
   bothExist,
 
-  /// Copying, verifying or removing the legacy files failed (disk full,
+  /// The new location is empty but more than one legacy location holds a
+  /// database (on Windows: Documents and the Roaming fallback directory). Left
+  /// exactly as found for the user to choose.
+  multipleLegacy,
+
+  /// The WAL could not be checkpointed (another connection holds the database),
+  /// or copying, verifying or removing the legacy files failed (disk full,
   /// unwritable directory, a file locked by another process). Anything the
-  /// attempt wrote at the new location is removed; the legacy database is only
-  /// ever removed after the copy was verified in place.
+  /// attempt wrote at the new location is removed and any legacy file it had
+  /// already deleted is restored from the verified copy, so the next launch
+  /// starts again from the original state.
   moveFailed,
 }
 
@@ -392,26 +400,34 @@ const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 ///   than one legacy database exists, throw [DatabaseRelocationBlocked]
 ///   ([DatabaseRelocationFailure.bothExist]) and touch nothing.
 /// - **Checkpoint first** (`wal_checkpoint(TRUNCATE)`, as the pre-migration
-///   snapshot does) so the `-wal` is empty or gone and the main file is a
-///   complete database.
+///   snapshot does), and require it to report not busy: a busy result means
+///   another connection holds the WAL, so the main file is not yet a complete
+///   database and nothing is copied ([DatabaseRelocationFailure.moveFailed]).
 /// - **Copy, fsync, verify size, then rename into place**: every file is copied
 ///   to `<name>.relocating` beside its destination, flushed to disk and its
 ///   length compared with the source; only when all of them verify are they
 ///   renamed to their final names. A crash before that leaves only `.relocating`
 ///   files, which the next launch discards and redoes.
 /// - **Delete the source last.** Sidecars and snapshots first, the main database
-///   file last. Any failure before this point removes what this attempt wrote
-///   and leaves the legacy files untouched.
+///   file last. Any failure before or during this step is rolled back: legacy
+///   files already deleted are restored from the verified copy and what this
+///   attempt wrote at the target is removed, so the legacy files are exactly as
+///   found. Only if that restore itself fails is the target copy kept (data is
+///   never left in fewer places than before).
 ///
-/// A failure while deleting the legacy files (after the copy is verified and in
-/// place) also throws [DatabaseRelocationFailure.moveFailed]. The new copy is
-/// complete and is kept, so the next launch reports [DatabaseRelocationFailure
-/// .bothExist] rather than overwriting either: a user (not the app) decides
-/// which to delete, see `docs/user/faq.md`.
+/// A *crash* (not a reported failure) between the rename and the last delete
+/// leaves both copies; the next launch reports
+/// [DatabaseRelocationFailure.bothExist] rather than overwriting either: a user
+/// (not the app) decides which to delete, see `docs/user/faq.md`.
+///
+/// [deleter] is injectable so tests can fail the source cleanup part-way; the
+/// production default deletes via [File].
 Future<bool> relocateLegacyDatabase({
   required File target,
   required List<File> legacy,
+  Future<void> Function(File file)? deleter,
 }) async {
+  final delete = deleter ?? (file) => file.delete();
   final sources = <File>[
     for (final file in legacy)
       if (p.canonicalize(file.path) != p.canonicalize(target.path) &&
@@ -424,8 +440,13 @@ Future<bool> relocateLegacyDatabase({
     target,
     for (final suffix in _sidecarSuffixes) File('${target.path}$suffix'),
   ].any((file) => file.existsSync());
-  if (targetOccupied || sources.length > 1) {
+  if (targetOccupied) {
     throw const DatabaseRelocationBlocked(DatabaseRelocationFailure.bothExist);
+  }
+  if (sources.length > 1) {
+    throw const DatabaseRelocationBlocked(
+      DatabaseRelocationFailure.multipleLegacy,
+    );
   }
   final source = sources.single;
 
@@ -433,7 +454,7 @@ Future<bool> relocateLegacyDatabase({
   final temps = <File>[];
   final finals = <File>[];
   try {
-    _checkpoint(source.path);
+    _checkpointOrThrowIfBusy(source.path);
     moves.add((source, target));
     for (final suffix in _sidecarSuffixes) {
       final sidecar = File('${source.path}$suffix');
@@ -500,23 +521,42 @@ Future<bool> relocateLegacyDatabase({
     );
   }
 
+  final deleted = <(File, File)>[];
   try {
     // Main database file last: until it is gone the legacy library is intact.
-    for (final (from, _) in moves.reversed) {
-      await from.delete();
+    for (final move in moves.reversed) {
+      await delete(move.$1);
+      deleted.add(move);
     }
+  } on Object catch (error) {
+    // diagnostics: silent — rolled back below; the typed error carries the cause.
+    var restored = true;
+    for (final (from, to) in deleted) {
+      try {
+        await to.copy(from.path);
+      } on Object {
+        // diagnostics: silent — the target copy is kept below.
+        restored = false;
+      }
+    }
+    // Only a fully restored legacy library lets the target copy go: otherwise
+    // keep it, so the data is never left in fewer places than before.
+    if (restored) await _discard(finals);
+    throw DatabaseRelocationBlocked(
+      DatabaseRelocationFailure.moveFailed,
+      error: error,
+    );
+  }
+  // Best-effort: an emptied legacy folder is cosmetic.
+  try {
     final legacyBackups = Directory(
       p.join(source.parent.path, kDatabaseBackupsDirName),
     );
     if (legacyBackups.existsSync() && legacyBackups.listSync().isEmpty) {
       await legacyBackups.delete();
     }
-  } on Object catch (error) {
-    // diagnostics: silent — the copy is verified and in place; see the dartdoc.
-    throw DatabaseRelocationBlocked(
-      DatabaseRelocationFailure.moveFailed,
-      error: error,
-    );
+  } on FileSystemException {
+    // diagnostics: silent — cosmetic cleanup of an empty folder.
   }
   return true;
 }
@@ -620,6 +660,24 @@ void _checkpoint(String path) {
   final db = sql.sqlite3.open(path);
   try {
     db.execute('PRAGMA wal_checkpoint(TRUNCATE)');
+  } finally {
+    db.close();
+  }
+}
+
+/// Like [_checkpoint], but also reads the result row: `wal_checkpoint(TRUNCATE)`
+/// reports a blocked checkpoint (another connection holds the WAL) as `busy = 1`
+/// rather than by throwing, and a copy taken then would miss committed data.
+void _checkpointOrThrowIfBusy(String path) {
+  final db = sql.sqlite3.open(path);
+  try {
+    final row = db.select('PRAGMA wal_checkpoint(TRUNCATE)').first;
+    if (row.values.first != 0) {
+      throw FileSystemException(
+        'WAL checkpoint is blocked (database busy)',
+        path,
+      );
+    }
   } finally {
     db.close();
   }

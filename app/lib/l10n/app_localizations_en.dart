@@ -91,11 +91,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get migrationRelocationBothExist =>
-      'Caller’s Compendium didn’t start because it found saved data in two places: the new location and the folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists both locations.';
+      'Caller’s Compendium didn’t start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.';
+
+  @override
+  String get migrationRelocationMultipleLegacy =>
+      'Caller’s Compendium didn’t start because it found saved data in more than one folder used by earlier versions. Nothing was changed or deleted. Keep the copy you want, move the others out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.';
 
   @override
   String get migrationRelocationFailed =>
-      'Caller’s Compendium didn’t start because it couldn’t finish moving your saved data to its new location. Nothing was deleted. Free up space or check the folder permissions, then reopen the app to try again.';
+      'Caller’s Compendium didn’t start because it couldn’t finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.';
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {

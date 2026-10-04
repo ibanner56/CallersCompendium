@@ -91,11 +91,15 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get migrationRelocationBothExist =>
-      'Caller’s Compendium wurde nicht gestartet, weil gespeicherte Daten an zwei Orten gefunden wurden: am neuen Speicherort und in dem Ordner, den eine frühere Version verwendet hat. Es wurde nichts geändert oder gelöscht. Behalte die gewünschte Kopie, verschiebe die andere an einen anderen Ort und öffne die App dann erneut. Der FAQ-Eintrag „Wo werden meine Daten gespeichert?“ nennt beide Speicherorte.';
+      'Caller’s Compendium wurde nicht gestartet, weil gespeicherte Datendateien am neuen Speicherort und zusätzlich in einem Ordner gefunden wurden, den eine frühere Version verwendet hat. Es wurde nichts geändert oder gelöscht. Behalte die gewünschte Kopie, verschiebe die andere an einen anderen Ort und öffne die App dann erneut. Der FAQ-Eintrag „Wo werden meine Daten gespeichert?“ nennt die Speicherorte.';
+
+  @override
+  String get migrationRelocationMultipleLegacy =>
+      'Caller’s Compendium wurde nicht gestartet, weil gespeicherte Daten in mehr als einem Ordner gefunden wurden, den frühere Versionen verwendet haben. Es wurde nichts geändert oder gelöscht. Behalte die gewünschte Kopie, verschiebe die anderen an einen anderen Ort und öffne die App dann erneut. Der FAQ-Eintrag „Wo werden meine Daten gespeichert?“ nennt die Speicherorte.';
 
   @override
   String get migrationRelocationFailed =>
-      'Caller’s Compendium wurde nicht gestartet, weil das Verschieben deiner gespeicherten Daten an den neuen Speicherort nicht abgeschlossen werden konnte. Es wurde nichts gelöscht. Schaffe Speicherplatz oder prüfe die Ordnerberechtigungen und öffne die App dann erneut, um es noch einmal zu versuchen.';
+      'Caller’s Compendium wurde nicht gestartet, weil das Verschieben deiner gespeicherten Daten an den neuen Speicherort nicht abgeschlossen werden konnte. Es wurde nichts gelöscht. Schaffe Speicherplatz, schließe andere Programme, die die Daten möglicherweise verwenden, oder prüfe die Ordnerberechtigungen und öffne die App dann erneut, um es noch einmal zu versuchen.';
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {

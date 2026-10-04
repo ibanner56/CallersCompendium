@@ -92,11 +92,15 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get migrationRelocationBothExist =>
-      'Caller’s Compendium blev ikke startet, fordi der blev fundet gemte data to steder: den nye placering og den mappe, en tidligere version brugte. Intet blev ændret eller slettet. Behold den kopi, du vil bruge, flyt den anden væk, og åbn derefter appen igen. Spørgsmålet “Hvor er mine data gemt?” i FAQ’en angiver begge placeringer.';
+      'Caller’s Compendium blev ikke startet, fordi der blev fundet gemte datafiler både på den nye placering og i en mappe, en tidligere version brugte. Intet blev ændret eller slettet. Behold den kopi, du vil bruge, flyt den anden væk, og åbn derefter appen igen. Spørgsmålet “Hvor er mine data gemt?” i FAQ’en angiver placeringerne.';
+
+  @override
+  String get migrationRelocationMultipleLegacy =>
+      'Caller’s Compendium blev ikke startet, fordi der blev fundet gemte data i mere end én mappe, som tidligere versioner brugte. Intet blev ændret eller slettet. Behold den kopi, du vil bruge, flyt de andre væk, og åbn derefter appen igen. Spørgsmålet “Hvor er mine data gemt?” i FAQ’en angiver placeringerne.';
 
   @override
   String get migrationRelocationFailed =>
-      'Caller’s Compendium blev ikke startet, fordi det ikke kunne færdiggøre flytningen af dine gemte data til deres nye placering. Intet blev slettet. Frigør plads eller kontrollér mappens tilladelser, og åbn derefter appen igen for at prøve igen.';
+      'Caller’s Compendium blev ikke startet, fordi det ikke kunne færdiggøre flytningen af dine gemte data til deres nye placering. Intet blev slettet. Frigør plads, luk andre programmer, der muligvis bruger dem, eller kontrollér mappens tilladelser, og åbn derefter appen igen for at prøve igen.';
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
