@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/program_pdf.dart';
+import 'package:compendium_app/src/export/share_sanitization.dart';
 import 'package:compendium_app/src/export/json_export.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
@@ -1440,9 +1441,8 @@ void main() {
       expect(files.single.path, isNot(endsWith('.ccshare')));
       expect(captured!.fileNameOverrides, ['Friday_Contra.json']);
 
-      final archive = decodeArchive(
-        File(files.single.path).readAsStringSync(),
-      ).archive;
+      final archive = decodeArchive(File(files.single.path).readAsStringSync())
+          .archive;
       expect(archive.programs.single.id, 'p1');
       expect(archive.dances.map((d) => d.id).toSet(), {'d1', 'd2'});
     });
@@ -1740,6 +1740,44 @@ void main() {
       );
       expect(bytes, isNotEmpty);
       expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+    });
+
+    // The text is font-encoded inside the PDF, so the content check goes
+    // through the seam `buildProgramPdf` draws its venue text from.
+    test('buildProgramPdf renders a raw venue as its sanitised form', () {
+      final text = programPdfVenueText(_program(venueId: 'v1'), {
+        'v1': _venue,
+      }, const ProgramExportLabels());
+      final printed = [?text.headerLabel, ...text.blockLines].join('\n');
+
+      for (final leak in const [
+        '123 Main St',
+        'Room 2',
+        'Montpelier',
+        '05602',
+        'Pat Caller',
+        '555-0100',
+        'pat@example.com',
+      ]) {
+        expect(printed, isNot(contains(leak)), reason: leak);
+      }
+      expect(printed, contains('Grange Hall'));
+      expect(printed, contains('https://grange.example'));
+    });
+
+    test('buildProgramPdf prints only the consented contact field', () {
+      final text = programPdfVenueText(
+        _program(venueId: 'v1'),
+        {'v1': _venue},
+        const ProgramExportLabels(),
+        includeVenueContact: {VenueContactField.contact1Email},
+      );
+      final printed = text.blockLines.join('\n');
+
+      expect(printed, contains('pat@example.com'));
+      expect(printed, isNot(contains('555-0100')));
+      expect(printed, isNot(contains('Pat Caller')));
+      expect(printed, isNot(contains('123 Main St')));
     });
 
     testWidgets('renders a linked venue with only a name (no detail fields)', (
@@ -2266,37 +2304,38 @@ void main() {
       },
     );
 
-    testWidgets('PDF path: Cancel on figures prompt → pdf layouter NOT invoked', (
-      tester,
-    ) async {
-      // Mutation: remove null-check on _figuresConsent → PDF is invoked after
-      // cancel → pdfInvoked flips to true → assertion fails.
-      // Note: this test asserts on invocation, not content — that's correct
-      // here because the question is "did cancel abort the export", not "what
-      // did the PDF contain". Checked by mutation audit: goes RED when the
-      // null-guard is removed. The content question is covered by the test above.
-      var pdfInvoked = false;
-      await tester.pumpWidget(
-        figuresMenu(
-          program: _program(
-            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+    testWidgets(
+      'PDF path: Cancel on figures prompt → pdf layouter NOT invoked',
+      (tester) async {
+        // Mutation: remove null-check on _figuresConsent → PDF is invoked after
+        // cancel → pdfInvoked flips to true → assertion fails.
+        // Note: this test asserts on invocation, not content — that's correct
+        // here because the question is "did cancel abort the export", not "what
+        // did the PDF contain". Checked by mutation audit: goes RED when the
+        // null-guard is removed. The content question is covered by the test above.
+        var pdfInvoked = false;
+        await tester.pumpWidget(
+          figuresMenu(
+            program: _program(
+              slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+            ),
+            onShare: (_) {},
+            onPdf: () => pdfInvoked = true,
           ),
-          onShare: (_) {},
-          onPdf: () => pdfInvoked = true,
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Export / print PDF'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Export / print PDF'));
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Cancel'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
 
-      expect(pdfInvoked, isFalse);
-    });
+        expect(pdfInvoked, isFalse);
+      },
+    );
   });
 
   group('DanceShareField picker (issue #1434)', () {
