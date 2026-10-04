@@ -1296,15 +1296,20 @@ final class CompendiumSyncStorage
         }
         return false;
       case SyncRecordKind.difficultyLevel:
-        final rows = await (_db.select(
-          _db.dances,
-        )..where((row) => row.levelId.equals(recordId))).get();
-        for (final row in rows) {
-          if (await ownerRemainsLive(SyncRecordKind.dance, row.id)) {
-            return true;
-          }
-        }
-        return false;
+        // Counts tombstoned dances too, unlike every other kind here: a deleted
+        // dance can be restored, so it still protects its level. This is the
+        // policy `DifficultyLevelRepository.delete` states (see its comment), so
+        // an inbound tombstone is held pending exactly when a local delete would
+        // be refused. Because a tombstoned dance counts, an inbound tombstone of
+        // the citing dance does not release the level either, and
+        // `ignoreInboundTombstones` has nothing to exclude for this kind.
+        final citations = _db.dances.id.count();
+        final counted =
+            await (_db.selectOnly(_db.dances)
+                  ..addColumns([citations])
+                  ..where(_db.dances.levelId.equals(recordId)))
+                .get();
+        return (counted.single.read(citations) ?? 0) > 0;
       case SyncRecordKind.venue:
         final rows = await (_db.select(
           _db.programs,
