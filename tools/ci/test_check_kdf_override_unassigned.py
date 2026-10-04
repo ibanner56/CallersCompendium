@@ -62,6 +62,18 @@ def test_accepted() -> None:
         ),
     )
     check(
+        "a raw string is not interpolated",
+        not violations(DECL + "final r = r'${syncIdentityKdfIterations = 1}';\n"),
+    )
+    check(
+        "a read inside an interpolation is fine",
+        not violations(DECL + "final s = 'n=${syncIdentityKdfIterations}';\n"),
+    )
+    check(
+        "an escaped dollar is text, not an interpolation",
+        not violations(DECL + "final s = '\\${syncIdentityKdfIterations = 1}';\n"),
+    )
+    check(
         "a longer identifier is a different symbol",
         not violations(DECL + "var mySyncIdentityKdfIterations = 1;\n"
                        "var syncIdentityKdfIterationsX = 1;\n"),
@@ -83,6 +95,10 @@ def test_rejected() -> None:
         ("split across lines", "syncIdentityKdfIterations\n    = 1000;"),
         ("inside a closure", "final f = () => syncIdentityKdfIterations = 1;"),
         ("after a comment on the line", "/* c */ syncIdentityKdfIterations = 1;"),
+        ("inside a string interpolation", "print('${syncIdentityKdfIterations = 1}');"),
+        ("inside a nested interpolation", "print('a ${'b ${syncIdentityKdfIterations = 1}'}');"),
+        ("interpolation after a brace-bearing literal", "print('{x} ${syncIdentityKdfIterations += 1}');"),
+        ("interpolation in a triple-quoted string", "print('''\n${syncIdentityKdfIterations = 1}\n''');"),
         ("prefixed by a string interpolation line", "final s = 'a'; syncIdentityKdfIterations = 1;"),
     ]:
         src = DECL + "void f() {\n  " + stmt + "\n}\n"

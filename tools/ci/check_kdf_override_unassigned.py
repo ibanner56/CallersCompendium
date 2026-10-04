@@ -48,70 +48,83 @@ _ASSIGN_RE = re.compile(
 
 
 def mask_source(text: str) -> str:
-    """[text] with comments and string-literal contents blanked to spaces.
+    """[text] with comments and string-literal text blanked to spaces.
 
     Same length and newlines preserved, so offsets and line numbers survive.
-    Handles `//`, nesting `/* */`, ordinary, raw and triple-quoted strings.
+    Handles `//`, nesting `/* */`, and ordinary, raw and triple-quoted strings.
+    Code inside a `${ ... }` interpolation is *executable* Dart, so it is kept
+    (and scanned recursively, nested strings included); only the surrounding
+    string text is blanked. A raw string has no interpolation and is blanked
+    whole.
     """
-    out: list[str] = []
-    i, n = 0, len(text)
-    quote: str | None = None
-    raw = False
-    block = 0
+    res = list(text)
+    n = len(text)
 
-    def blank(s: str) -> str:
-        return "".join(c if c == "\n" else " " for c in s)
+    def blank(start: int, end: int) -> None:
+        for k in range(start, min(end, n)):
+            if res[k] != "\n":
+                res[k] = " "
 
-    while i < n:
-        c = text[i]
-        if block:
+    def string(i: int, raw: bool) -> int:
+        """[i] is at the opening quote; returns the index after the closer."""
+        quote = text[i : i + 3] if text.startswith(("'''", '"""'), i) else text[i]
+        j = i + len(quote)
+        while j < n:
+            if text.startswith(quote, j):
+                return j + len(quote)
+            if text[j] == "\\" and not raw:
+                blank(j, j + 2)
+                j += 2
+            elif text.startswith("${", j) and not raw:
+                blank(j, j + 2)
+                j = code(j + 2, True)
+                if j < n:  # the closing `}` of the interpolation
+                    blank(j, j + 1)
+                    j += 1
+            else:
+                blank(j, j + 1)
+                j += 1
+        return j
+
+    def code(i: int, in_interpolation: bool) -> int:
+        """Scan code from [i]; inside an interpolation, stop at its `}`."""
+        depth = 0
+        while i < n:
+            c = text[i]
             if text.startswith("/*", i):
-                block += 1
-                out.append("  ")
-                i += 2
-            elif text.startswith("*/", i):
-                block -= 1
-                out.append("  ")
-                i += 2
-            else:
-                out.append(blank(c))
+                level, j = 1, i + 2
+                while j < n and level:
+                    if text.startswith("/*", j):
+                        level += 1
+                        j += 2
+                    elif text.startswith("*/", j):
+                        level -= 1
+                        j += 2
+                    else:
+                        j += 1
+                blank(i, j)
+                i = j
+            elif text.startswith("//", i):
+                end = text.find("\n", i)
+                end = n if end == -1 else end
+                blank(i, end)
+                i = end
+            elif c in "'\"":
+                i = string(i, i > 0 and text[i - 1] == "r")
+            elif in_interpolation and c == "{":
+                depth += 1
                 i += 1
-            continue
-        if quote:
-            if c == "\\" and not raw:
-                out.append(blank(text[i : i + 2]))
-                i += 2
-            elif text.startswith(quote, i):
-                out.append(quote)
-                i += len(quote)
-                quote = None
-            else:
-                out.append(blank(c))
+            elif in_interpolation and c == "}":
+                if depth == 0:
+                    return i
+                depth -= 1
                 i += 1
-            continue
-        if text.startswith("/*", i):
-            block = 1
-            out.append("  ")
-            i += 2
-        elif text.startswith("//", i):
-            end = text.find("\n", i)
-            end = n if end == -1 else end
-            out.append(" " * (end - i))
-            i = end
-        elif text.startswith(("'''", '"""'), i):
-            raw = i > 0 and text[i - 1] == "r"
-            quote = text[i : i + 3]
-            out.append(quote)
-            i += 3
-        elif c in "'\"":
-            raw = i > 0 and text[i - 1] == "r"
-            quote = c
-            out.append(c)
-            i += 1
-        else:
-            out.append(c)
-            i += 1
-    return "".join(out)
+            else:
+                i += 1
+        return i
+
+    code(0, False)
+    return "".join(res)
 
 
 def _line_of(text: str, offset: int) -> int:

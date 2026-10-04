@@ -89,7 +89,8 @@ final class _WholeRowSelectCounter extends QueryCounter {
 }
 
 /// The lowered PBKDF2 count this suite runs under. The real 600,000-iteration
-/// value is asserted in `sync_identity_kdf_test.dart`, which sets no override.
+/// value is asserted in `sync_identity_kdf_test.dart`, which sets no
+/// suite-wide override (its mismatch test lowers it for one test only).
 const _testKdfIterations = 1000;
 
 void main() {

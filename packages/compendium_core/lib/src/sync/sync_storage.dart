@@ -5692,9 +5692,10 @@ int syncIdentityVerifierDerivationCount = 0;
 ///
 /// One real derivation costs about two seconds, so suites that mark an
 /// identity as used lower it in `setUpAll` (and restore it in `tearDownAll`).
-/// Nothing in this package assigns or reads it outside tests, and a CI check
-/// (`tools/ci/check_kdf_override_unassigned.py`) fails if any file under `lib/`
-/// assigns it. A lowered value can never validate a production marker: the
+/// Production code only reads it (the stored marker, the decode check and the
+/// derivation loop); nothing in this package assigns it outside tests, and a
+/// CI check (`tools/ci/check_kdf_override_unassigned.py`) fails if any file
+/// under `lib/` assigns it. A lowered value can never validate a production marker: the
 /// marker records the count it was derived with, and
 /// [_decodeUsedIdentityVerifiers] skips entries whose `iterations` differ from
 /// the value in force, so a marker written at one count is ignored at another.
