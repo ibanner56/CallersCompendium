@@ -63,6 +63,31 @@ final class _SqliteBindLimitGuard extends QueryInterceptor {
   }
 }
 
+/// Records bare `SELECT * FROM <table>;` statements for [tables] — a whole-table
+/// hydration with no filter or ordering, which `listAll` never issues (it
+/// orders by title). A `selectOnly` read names its columns, so it is not
+/// recorded.
+final class _WholeRowSelectCounter extends QueryCounter {
+  _WholeRowSelectCounter(this.tables);
+
+  final Set<String> tables;
+  final statements = <String>[];
+
+  @override
+  void reset() {
+    super.reset();
+    statements.clear();
+  }
+
+  @override
+  bool matches(String statement) {
+    final s = statement.toLowerCase();
+    final hit = tables.any((t) => s == 'select * from "$t";');
+    if (hit) statements.add(statement);
+    return hit;
+  }
+}
+
 void main() {
   late CompendiumDatabase db;
   late CompendiumRepositories repositories;
@@ -127,6 +152,37 @@ void main() {
       expect(row.deletedAt, isNull);
     },
   );
+
+  test('snapshot() reads timestamps without hydrating dance rows', () async {
+    final counter = _WholeRowSelectCounter(const {'dances', 'programs'});
+    await db.close();
+    final countingDb = openCountingTestDatabase(counter);
+    db = countingDb;
+    final countingRepositories = CompendiumRepositories(
+      countingDb,
+      contraTaxonomy,
+    );
+    final countingStorage = CompendiumSyncStorage(countingRepositories);
+    final stamp = DateTime.utc(2026, 7, 15, 12);
+    await countingRepositories.dances.create(
+      Dance(id: 'd1', title: 'One', createdAt: stamp, updatedAt: stamp),
+    );
+    await countingRepositories.programs.create(
+      Program(id: 'p1', title: 'One', createdAt: stamp, updatedAt: stamp),
+    );
+    counter.reset();
+
+    final snapshot = await countingStorage.snapshot();
+
+    expect(
+      snapshot.local.keys,
+      containsAll([
+        (kind: SyncRecordKind.dance, recordId: 'd1'),
+        (kind: SyncRecordKind.program, recordId: 'p1'),
+      ]),
+    );
+    expect(counter.statements, isEmpty);
+  });
 
   test(
     'rejects a noncanonical natural-key body before reconciliation side effects',
