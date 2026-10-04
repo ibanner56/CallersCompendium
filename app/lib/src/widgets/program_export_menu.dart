@@ -138,15 +138,16 @@ class ProgramExportMenu extends StatelessWidget {
   /// reading it straight off the stored record would put the venue's postal
   /// address — seven fields classified [EgressClass.deviceLocal] — into the
   /// shared/copied set list. The venue is therefore routed through
-  /// [sanitizeVenueForShare] first, exactly as the bundle and PDF paths do, and
-  /// the label collapses to the venue's public name (issue #853).
+  /// [resolveSanitizedVenueLabelParts] (which applies [sanitizeVenueForShare]),
+  /// exactly as the bundle and PDF builders do, and the label collapses to the
+  /// venue's public name (issue #853). An unresolvable link falls back to the
+  /// program's free-text venue, the same label the renderer would use anyway.
   ///
   /// No `include` set is threaded through: the six opt-in contact fields are
   /// not part of `displayName`, so there is nothing here for the consent dialog
   /// to grant, and the text export never prompts.
   String? _venueNameFor(String venueId) {
-    final venue = venuesById[venueId];
-    return venue == null ? null : sanitizeVenueForShare(venue).displayName;
+    return resolveSanitizedVenueLabelParts(venueId, program.venue, venuesById);
   }
 
   /// Resolves [danceId]'s author names via [danceFor] + [choreographerFor] —
@@ -495,15 +496,6 @@ class ProgramExportMenu extends StatelessWidget {
     if (includeFigures == null) return;
     if (!context.mounted) return;
 
-    // Feed the PDF builder a venue already run through the single
-    // `sanitizeVenueForShare` primitive, so un-consented contact fields are
-    // physically absent — the renderer never needs its own redaction.
-    final venuesForPdf = venuesWithSanitizedContact(
-      venuesById,
-      program.venueId,
-      include: includeVenueContact,
-    );
-
     final List<({Dance dance, bool isAlternate})>? appendDances;
     final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
     final renderer = FigureRenderer(contraTaxonomy);
@@ -539,7 +531,8 @@ class ProgramExportMenu extends StatelessWidget {
       onLayout: (format) => buildProgramPdf(
         program,
         titleFor: titleFor,
-        venuesById: venuesForPdf,
+        venuesById: venuesById,
+        includeVenueContact: includeVenueContact,
         formatDate: localizations.formatMediumDate,
         labels: labels,
         appendDances: appendDances,

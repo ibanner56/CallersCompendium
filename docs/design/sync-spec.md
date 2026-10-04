@@ -2997,6 +2997,11 @@ be applied. Such a device MUST:
 - **not** advance its baseline entry for that record;
 - apply the deletion when its last citation goes.
 
+For difficulty levels the citation count includes **tombstoned** dances: a
+deleted dance can be restored, so it still holds its level, exactly as
+`DifficultyLevelRepository.delete` refuses a delete while any dance, live or in
+Recently Deleted, uses the level. Every other kind counts live owners only.
+
 A pending tombstone is cancelled by exactly two things, and by nothing else.
 
 **A deliberate local user edit**, gated on `existenceAt` per §6.4 — never on a

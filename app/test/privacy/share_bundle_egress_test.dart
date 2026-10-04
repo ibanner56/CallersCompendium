@@ -32,6 +32,7 @@ library;
 
 import 'dart:convert';
 
+import 'package:compendium_app/src/export/program_pdf.dart';
 import 'package:compendium_app/src/export/program_share_bundle.dart';
 import 'package:compendium_app/src/export/share_sanitization.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -372,6 +373,38 @@ void main() {
             'NOT in archive_codec.dart, which also serializes the user\'s own '
             'backup:\n  ${leaked.join('\n  ')}',
       );
+    });
+
+    test('no non-shareable venue column survives into the program PDF', () {
+      final text = programPdfVenueText(
+        Program(
+          id: 'p1',
+          title: 'Friday Contra',
+          venueId: 'v1',
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+        {'v1': _venue},
+        const ProgramExportLabels(),
+      );
+      final printed = [?text.headerLabel, ...text.blockLines].join('\n');
+
+      final leaked = [
+        for (final column in _probes.keys)
+          if (column.startsWith('venues.') && printed.contains(_p(column)))
+            column,
+      ];
+      expect(
+        leaked..sort(),
+        isEmpty,
+        reason:
+            'These venue columns are classified non-shareable in the privacy '
+            'registry but the program PDF printed them. buildProgramPdf must '
+            'run the venue through sanitizeVenueForShare:\n  '
+            '${leaked.join('\n  ')}',
+      );
+      // Not satisfiable by printing nothing.
+      expect(printed, contains('Grange Hall'));
     });
 
     test('a non-shareable custom field never reaches the program bundle', () {

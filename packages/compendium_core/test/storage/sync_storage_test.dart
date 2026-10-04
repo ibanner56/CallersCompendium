@@ -1559,6 +1559,114 @@ void main() {
     },
   );
 
+  test('holds an inbound difficulty-level tombstone pending while only a '
+      'tombstoned dance cites the level', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final level = await repositories.difficultyLevels.createCustom(
+      label: 'Sizzling',
+      position: 99,
+    );
+    await repositories.dances.create(
+      Dance(
+        id: 'deleted-dance',
+        title: 'Deleted dance',
+        difficultyLevelId: level.id,
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+    await repositories.dances.softDelete('deleted-dance', at: stamp);
+    // The local guard agrees: a dance in Recently Deleted still holds it.
+    expect(await repositories.difficultyLevels.isInUse(level.id), isTrue);
+
+    final tombstone = level.copyWith();
+    await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.difficultyLevel,
+            id: level.id,
+            updatedAt: stamp,
+            deletedAt: stamp,
+            existenceAt: stamp,
+            body: syncBodyForEntity(SyncRecordKind.difficultyLevel, tombstone),
+          ),
+        ),
+      ],
+      storage: storage,
+    );
+
+    final row = await (db.select(
+      db.difficultyLevels,
+    )..where((t) => t.id.equals(level.id))).getSingle();
+    expect(row.deletedAt, isNull);
+    final pending = await repositories.syncLocal.listPendingDeletions();
+    expect(
+      pending.map((p) => (p.kind, p.recordId)),
+      contains((SyncRecordKind.difficultyLevel, level.id)),
+    );
+  });
+
+  test('holds a difficulty-level tombstone pending when its citing dance is '
+      'tombstoned in the same batch', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final later = DateTime.utc(2025, 1, 3, 12);
+    final level = await repositories.difficultyLevels.createCustom(
+      label: 'Sizzling',
+      position: 99,
+    );
+    final dance = Dance(
+      id: 'citing-dance',
+      title: 'Citing dance',
+      difficultyLevelId: level.id,
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    await repositories.dances.create(dance);
+
+    // A peer deletes the dance and its level together. The dance is
+    // restorable, so the level it cites must survive the batch.
+    await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.dance,
+            id: dance.id,
+            updatedAt: later,
+            deletedAt: later,
+            existenceAt: later,
+            body: syncBodyForEntity(SyncRecordKind.dance, dance),
+          ),
+        ),
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.difficultyLevel,
+            id: level.id,
+            updatedAt: later,
+            deletedAt: later,
+            existenceAt: later,
+            body: syncBodyForEntity(SyncRecordKind.difficultyLevel, level),
+          ),
+        ),
+      ],
+      storage: storage,
+    );
+
+    final danceRow = await (db.select(
+      db.dances,
+    )..where((t) => t.id.equals(dance.id))).getSingle();
+    expect(danceRow.deletedAt, isNotNull);
+    final levelRow = await (db.select(
+      db.difficultyLevels,
+    )..where((t) => t.id.equals(level.id))).getSingle();
+    expect(levelRow.deletedAt, isNull);
+    final pending = await repositories.syncLocal.listPendingDeletions();
+    expect(
+      pending.map((p) => (p.kind, p.recordId)),
+      contains((SyncRecordKind.difficultyLevel, level.id)),
+    );
+  });
+
   test(
     'applies an inbound update to a record held by a pending tombstone',
     () async {
