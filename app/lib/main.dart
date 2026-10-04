@@ -181,7 +181,8 @@ Future<void> main() async {
         throw PlatformException(
           code: 'not_implemented',
           // Developer-facing platform-channel error, never shown in the UI.
-          message: 'Unsupported application lifecycle method: ${call.method}', // i18n-ignore
+          message:
+              'Unsupported application lifecycle method: ${call.method}', // i18n-ignore
         );
       }
       await shutdownController.close();
@@ -1178,8 +1179,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
       _messengerKey.currentState?.showSnackBar(
         SnackBar(
           content: Text(
-            AppLocalizations.of(navContext)
-                .onlineLoadError(service.source.label),
+            AppLocalizations.of(
+              navContext,
+            ).onlineLoadError(service.source.label),
           ),
         ),
       );
