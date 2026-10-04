@@ -126,7 +126,9 @@ correction — nothing is changed for you.
 
 Role words you type here (such as "Larks" or "Leads") are saved in a neutral
 form, shown in your own [dialect](./dialects.md), and found by role searches.
-Custom text saved before this change updates the next time you save the dance.
+Custom text saved before this change updates the next time you save the dance
+while the same dialect is active; text typed in a different dialect may need a
+manual edit.
 
 ### Reorder, cut, and duplicate
 
