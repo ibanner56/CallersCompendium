@@ -1,0 +1,20 @@
+{
+  "id": "backup-progress-summary",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A progress bar while a backup is exported or restored."
+    ],
+    "changed": [
+      "Choosing a backup file shows a summary (date, dances, programs, size) instead of pasting the whole file into the text box."
+    ],
+    "fixed": [
+      "The 'too large' backup messages are now translated."
+    ]
+  },
+  "core": {
+    "added": [
+      "`ArchiveRestorer.restore` takes an optional `onProgress(done, total)` callback that reports `(0, total)` first and then one call per restored entity, ending at `(total, total)`."
+    ]
+  }
+}

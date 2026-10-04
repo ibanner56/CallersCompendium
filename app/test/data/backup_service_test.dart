@@ -659,6 +659,28 @@ void main() {
     );
   });
 
+  test(
+    'restoreFromJson with a decoded result does not decode the text',
+    () async {
+      final source = openTestRepositories();
+      await _seed(source);
+      final json = await BackupService(source).exportToJson();
+      final read = await decodeBackupOnIsolate(json);
+
+      // The text is garbage: only the handed-in decode can make this restore.
+      final target = openTestRepositories();
+      final outcome = await BackupService(
+        target,
+      ).restoreFromJson('not a backup', decoded: read);
+
+      expect(outcome.applied, isTrue);
+      expect(
+        (await target.dances.listAll()).map((d) => d.id),
+        (await source.dances.listAll()).map((d) => d.id),
+      );
+    },
+  );
+
   test('retryApplySettings reuses the decoded document', () async {
     final source = openTestRepositories();
     await _seed(source);

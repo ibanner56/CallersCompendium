@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
@@ -9,7 +10,9 @@ import 'package:compendium_app/src/data/backup_io.dart';
 import 'package:compendium_app/src/data/backup_reminder.dart';
 import 'package:compendium_app/src/data/backup_document.dart'
     show
+        BackupDocument,
         defaultBackupCodecRunner,
+        encodeBackup,
         runBackupCodecInline,
         runBackupCodecOnIsolate;
 import 'package:compendium_app/src/data/backup_service.dart';
@@ -22,13 +25,49 @@ import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' as drift;
 import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/native.dart' show NativeDatabase;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 import 'support/noop_sync_transport.dart';
+
+/// Parks the write after the first [passes] inserts until released, so a
+/// restore can be frozen mid-`_load` (an in-memory DB otherwise finishes in one
+/// microtask and the progress frame would never render).
+class _InsertGate extends drift.QueryInterceptor {
+  Completer<void>? _gate;
+  int _passes = 0;
+
+  void arm(Completer<void> gate, {required int passes}) {
+    _gate = gate;
+    _passes = passes;
+  }
+
+  Future<void> _maybeBlock() async {
+    final gate = _gate;
+    if (gate == null || gate.isCompleted) return;
+    if (_passes > 0) {
+      _passes--;
+      return;
+    }
+    _gate = null;
+    await gate.future;
+  }
+
+  @override
+  Future<int> runInsert(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) async {
+    await _maybeBlock();
+    return executor.runInsert(statement, args);
+  }
+}
 
 Dance _dance(String id, String title) => Dance(
   id: id,
@@ -350,7 +389,10 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('restore-choose-file')));
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('restore-confirm')));
-      await tester.pumpAndSettle();
+      // pump, not pumpAndSettle: the restore progress dialog is already up
+      // while the pre-hook waits, and its indeterminate bar never settles.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
       expect(beforeCalls, 1);
 
@@ -584,11 +626,231 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('restore-choose-file')));
     await tester.pumpAndSettle();
 
-    // The size-cap refusal is shown as a friendly message, not a crash, and
-    // live data is untouched (the file was never read).
-    expect(find.textContaining('too large'), findsOneWidget);
+    // The size-cap refusal is shown as a friendly, translated message (not
+    // the exception's text, not a crash), and live data is untouched (the file
+    // was never read).
+    expect(
+      find.text(AppLocalizationsEn().backupFileTooLarge('60.0', '50.0')),
+      findsOneWidget,
+    );
     final dances = await repos.dances.listAll();
     expect(dances.map((d) => d.id), ['stale']);
+  });
+
+  testWidgets('restore shows determinate progress while the service runs', (
+    tester,
+  ) async {
+    final source = openTestRepositories();
+    await source.dances.create(_dance('restored', 'Restored Dance'));
+    final backupJson = await BackupService(source).exportToJson();
+
+    final gate = _InsertGate();
+    final repos = CompendiumRepositories(
+      openWidgetTestDatabase(
+        executor: NativeDatabase.memory().interceptWith(gate),
+      ),
+      contraTaxonomy,
+    );
+    await _pumpGeneral(tester, repos, picker: () async => backupJson);
+
+    await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('restore-choose-file')));
+    await tester.pumpAndSettle();
+
+    // Park the restore after its first record is written.
+    final release = Completer<void>();
+    gate.arm(release, passes: 1);
+    await tester.tap(find.byKey(const ValueKey('restore-confirm')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final bar = find.descendant(
+      of: find.byKey(const ValueKey('restore-progress')),
+      matching: find.byType(LinearProgressIndicator),
+    );
+    expect(bar, findsOneWidget);
+    final value = tester.widget<LinearProgressIndicator>(bar).value;
+    expect(value, isNotNull, reason: 'determinate once the total is known');
+    expect(value, greaterThan(0));
+    expect(value, lessThan(1));
+    expect(
+      find.textContaining(RegExp(r'^Restoring \d+ of \d+')),
+      findsOneWidget,
+    );
+
+    // The progress dialog cannot be dismissed (back button / barrier).
+    await tester.tapAt(const Offset(2, 2));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('restore-progress')), findsOneWidget);
+
+    release.complete();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('restore-progress')), findsNothing);
+    expect(find.text(AppLocalizationsEn().backupRestored), findsOneWidget);
+    expect((await repos.dances.listAll()).map((d) => d.id), ['restored']);
+  });
+
+  testWidgets('export shows a progress state until the saver returns', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('d1', 'A Dance'));
+    final saverGate = Completer<bool>();
+    await _pumpGeneral(tester, repos, saver: (json, name) => saverGate.future);
+
+    await tester.tap(find.byKey(const ValueKey('backup-export-button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final progress = find.byKey(const ValueKey('export-progress'));
+    expect(progress, findsOneWidget);
+    expect(
+      tester
+          .widget<LinearProgressIndicator>(
+            find.descendant(
+              of: progress,
+              matching: find.byType(LinearProgressIndicator),
+            ),
+          )
+          .value,
+      isNull,
+      reason: 'export has no done/total, so the bar is indeterminate',
+    );
+    expect(
+      find.text(AppLocalizationsEn().backupExportInProgress),
+      findsOneWidget,
+    );
+
+    saverGate.complete(true);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('export-progress')), findsNothing);
+    expect(find.text(AppLocalizationsEn().backupExported), findsOneWidget);
+  });
+
+  testWidgets('a cancelled export closes the progress state with no snackbar', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpGeneral(tester, repos, saver: (json, name) async => false);
+
+    await tester.tap(find.byKey(const ValueKey('backup-export-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('export-progress')), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
+  });
+
+  testWidgets('an export over the size cap shows the translated refusal', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpGeneral(
+      tester,
+      repos,
+      saver: (json, name) async => throw const BackupExportTooLargeException(
+        sizeBytes: 60 * 1024 * 1024,
+        maxBytes: 50 * 1024 * 1024,
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('backup-export-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('export-progress')), findsNothing);
+    expect(
+      find.text(AppLocalizationsEn().backupExportTooLarge('60.0', '50.0')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('choosing a large file shows a summary, not the pasted file', (
+    tester,
+  ) async {
+    // ~5 MB of valid backup: 50 dances with 100 kB of calling notes each.
+    final big = encodeBackup(
+      BackupDocument(
+        createdAt: DateTime.utc(2026, 7, 15),
+        core: CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [
+            for (var i = 0; i < 50; i++)
+              Dance(
+                id: 'd$i',
+                title: 'Dance $i',
+                callingNotes: 'x' * 100000,
+                createdAt: DateTime.utc(2026, 1, 1),
+                updatedAt: DateTime.utc(2026, 1, 1),
+              ),
+          ],
+        ),
+      ),
+    );
+    expect(big.length, greaterThan(5 * 1000 * 1000));
+
+    final repos = openTestRepositories();
+    await _pumpGeneral(tester, repos, picker: () async => big);
+
+    await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('restore-choose-file')));
+    await tester.pumpAndSettle();
+
+    final field = tester.widget<TextField>(
+      find.byKey(const ValueKey('restore-paste-field')),
+    );
+    expect(field.controller!.text, isEmpty);
+    expect(field.enabled, isFalse, reason: 'a held file disables pasting');
+    expect(find.byKey(const ValueKey('restore-file-summary')), findsOneWidget);
+    expect(find.textContaining('50 dances'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(find.byKey(const ValueKey('restore-confirm')))
+          .onPressed,
+      isNotNull,
+    );
+
+    // Clear forgets the file and re-enables pasting.
+    await tester.tap(find.byKey(const ValueKey('restore-file-clear')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('restore-file-summary')), findsNothing);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('restore-paste-field')))
+          .enabled,
+      isTrue,
+    );
+    expect(
+      tester
+          .widget<FilledButton>(find.byKey(const ValueKey('restore-confirm')))
+          .onPressed,
+      isNull,
+    );
+  });
+
+  testWidgets('an unreadable file is summarised as such and Replace stays on', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('keep', 'Keep Me'));
+    await _pumpGeneral(tester, repos, picker: () async => 'not a backup');
+
+    await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('restore-choose-file')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('restore-file-summary')), findsOneWidget);
+    expect(find.textContaining("doesn't look like a readable"), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('restore-confirm')));
+    await tester.pumpAndSettle();
+
+    // The service owns the refusal; live data is untouched.
+    expect(
+      find.text(AppLocalizationsEn().backupRestoreInvalidFile),
+      findsOneWidget,
+    );
+    expect((await repos.dances.listAll()).map((d) => d.id), ['keep']);
   });
 
   testWidgets('a picker that throws FormatException shows a message', (

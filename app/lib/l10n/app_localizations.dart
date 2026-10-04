@@ -4395,6 +4395,54 @@ abstract class AppLocalizations {
   /// **'Replace all data'**
   String get backupReplaceAllDataAction;
 
+  /// Summary of the backup file chosen in the restore-from-backup dialog, shown instead of pasting the file into the text box: when it was made, how many dances and programs it holds, and its size in megabytes. 'MB' is the megabyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup from {date}: {dances, plural, one {{dances} dance} other {{dances} dances}}, {programs, plural, one {{programs} program} other {{programs} programs}}, {size} MB'**
+  String backupFileSummary(String date, int dances, int programs, String size);
+
+  /// Summary shown in the restore-from-backup dialog for a chosen file that could not be read as a backup (not valid, or failed its integrity check). The Replace button stays enabled; the restore itself explains the refusal and leaves data unchanged. 'MB' is the megabyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'This file doesn\'t look like a readable backup ({size} MB). Replacing will tell you why if it can\'t be restored.'**
+  String backupFileUnreadable(String size);
+
+  /// Button in the restore-from-backup dialog that forgets the chosen backup file so another file can be chosen or text pasted.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get backupFileClearAction;
+
+  /// Snackbar shown in the restore-from-backup dialog when the chosen file is larger than the size limit; the file was not read and data is unchanged. 'MB' is the megabyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'That file is too large to be a Caller’s Compendium backup ({sizeMb} MB; limit {limitMb} MB). Your data is unchanged.'**
+  String backupFileTooLarge(String sizeMb, String limitMb);
+
+  /// Snackbar shown when exporting a backup is refused because the encoded backup would exceed the size limit that restore can read; nothing is saved. 'MB' is the megabyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Your collection is too large to export as a single backup ({sizeMb} MB; limit {limitMb} MB), so nothing was saved. Your data is unchanged.'**
+  String backupExportTooLarge(String sizeMb, String limitMb);
+
+  /// Text in the progress dialog shown while a backup is being built and saved. No percentage is shown.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing your backup…'**
+  String get backupExportInProgress;
+
+  /// Text in the restore progress dialog while the backup is being read, before the count of restored items is known.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the backup…'**
+  String get backupRestorePreparing;
+
+  /// Text in the restore progress dialog: how many items (dances, tags, programs and so on) have been restored out of the total.
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring {done} of {total}…'**
+  String backupRestoreProgress(int done, int total);
+
   /// Snackbar shown when the user tries to export diagnostics but the local diagnostics log is empty.
   ///
   /// In en, this message translates to:

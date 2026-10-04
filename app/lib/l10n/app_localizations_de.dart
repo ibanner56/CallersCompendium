@@ -2705,6 +2705,52 @@ class AppLocalizationsDe extends AppLocalizations {
   String get backupReplaceAllDataAction => 'Alle Daten ersetzen';
 
   @override
+  String backupFileSummary(String date, int dances, int programs, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      dances,
+      locale: localeName,
+      other: '$dances Tänze',
+      one: '$dances Tanz',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      programs,
+      locale: localeName,
+      other: '$programs Programme',
+      one: '$programs Programm',
+    );
+    return 'Sicherung vom $date: $_temp0, $_temp1, $size MB';
+  }
+
+  @override
+  String backupFileUnreadable(String size) {
+    return 'Diese Datei sieht nicht wie eine lesbare Sicherung aus ($size MB). Beim Ersetzen erfahren Sie, warum sie sich nicht wiederherstellen lässt.';
+  }
+
+  @override
+  String get backupFileClearAction => 'Entfernen';
+
+  @override
+  String backupFileTooLarge(String sizeMb, String limitMb) {
+    return 'Diese Datei ist zu groß für eine Caller’s-Compendium-Sicherung ($sizeMb MB; Grenze $limitMb MB). Ihre Daten bleiben unverändert.';
+  }
+
+  @override
+  String backupExportTooLarge(String sizeMb, String limitMb) {
+    return 'Ihre Sammlung ist zu groß, um sie als einzelne Sicherung zu exportieren ($sizeMb MB; Grenze $limitMb MB), daher wurde nichts gespeichert. Ihre Daten bleiben unverändert.';
+  }
+
+  @override
+  String get backupExportInProgress => 'Sicherung wird vorbereitet…';
+
+  @override
+  String get backupRestorePreparing => 'Sicherung wird gelesen…';
+
+  @override
+  String backupRestoreProgress(int done, int total) {
+    return '$done von $total werden wiederhergestellt…';
+  }
+
+  @override
   String get diagnosticsNoDiagnosticsToExport =>
       'Keine Diagnosen zum Exportieren.';
 

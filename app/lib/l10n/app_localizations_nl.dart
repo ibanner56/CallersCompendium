@@ -2690,6 +2690,52 @@ class AppLocalizationsNl extends AppLocalizations {
   String get backupReplaceAllDataAction => 'Alle gegevens vervangen';
 
   @override
+  String backupFileSummary(String date, int dances, int programs, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      dances,
+      locale: localeName,
+      other: '$dances dansen',
+      one: '$dances dans',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      programs,
+      locale: localeName,
+      other: '$programs programma\'s',
+      one: '$programs programma',
+    );
+    return 'Back-up van $date: $_temp0, $_temp1, $size MB';
+  }
+
+  @override
+  String backupFileUnreadable(String size) {
+    return 'Dit bestand lijkt geen leesbare back-up te zijn ($size MB). Bij het vervangen zie je waarom herstellen niet lukt.';
+  }
+
+  @override
+  String get backupFileClearAction => 'Wissen';
+
+  @override
+  String backupFileTooLarge(String sizeMb, String limitMb) {
+    return 'Dat bestand is te groot voor een Caller’s Compendium-back-up ($sizeMb MB; limiet $limitMb MB). Je gegevens zijn ongewijzigd.';
+  }
+
+  @override
+  String backupExportTooLarge(String sizeMb, String limitMb) {
+    return 'Je collectie is te groot om als één back-up te exporteren ($sizeMb MB; limiet $limitMb MB), dus er is niets opgeslagen. Je gegevens zijn ongewijzigd.';
+  }
+
+  @override
+  String get backupExportInProgress => 'Je back-up wordt voorbereid…';
+
+  @override
+  String get backupRestorePreparing => 'De back-up wordt gelezen…';
+
+  @override
+  String backupRestoreProgress(int done, int total) {
+    return '$done van $total herstellen…';
+  }
+
+  @override
   String get diagnosticsNoDiagnosticsToExport =>
       'Geen diagnostics te exporteren.';
 

@@ -53,17 +53,20 @@ void main() {
       expect(await readBackupFile(file), '');
     });
 
-    test('the friendly message names both sizes and reassures the user', () {
-      const e = BackupFileTooLargeException(
-        sizeBytes: 60 * 1024 * 1024,
-        maxBytes: 50 * 1024 * 1024,
-      );
+    test(
+      'the log text names both sizes; the UI text is translated elsewhere',
+      () {
+        const e = BackupFileTooLargeException(
+          sizeBytes: 60 * 1024 * 1024,
+          maxBytes: 50 * 1024 * 1024,
+        );
 
-      expect(e.message, contains('too large'));
-      expect(e.message, contains('60.0 MB'));
-      expect(e.message, contains('50.0 MB'));
-      expect(e.message, contains('unchanged'));
-    });
+        expect(e.toString(), contains('60.0 MB'));
+        expect(e.toString(), contains('50.0 MB'));
+        expect(backupMegabytes(e.sizeBytes), '60.0');
+        expect(backupMegabytes(e.maxBytes), '50.0');
+      },
+    );
 
     test('rejects a file that reports a small/stale length but STREAMS more '
         'than the cap (TOCTOU: the stat is not trusted as the bound)', () async {

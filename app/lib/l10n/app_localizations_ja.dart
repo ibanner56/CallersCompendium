@@ -2543,6 +2543,50 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupReplaceAllDataAction => 'すべてのデータを置き換え';
 
   @override
+  String backupFileSummary(String date, int dances, int programs, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      dances,
+      locale: localeName,
+      other: '$dances件',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      programs,
+      locale: localeName,
+      other: '$programs件',
+    );
+    return '$dateのバックアップ：ダンス$_temp0、プログラム$_temp1、$size MB';
+  }
+
+  @override
+  String backupFileUnreadable(String size) {
+    return 'このファイルは読み取れるバックアップではないようです（$size MB）。復元できない場合は、置き換えを実行するとその理由が表示されます。';
+  }
+
+  @override
+  String get backupFileClearAction => 'クリア';
+
+  @override
+  String backupFileTooLarge(String sizeMb, String limitMb) {
+    return 'このファイルはCaller’s Compendiumのバックアップとしては大きすぎます（$sizeMb MB、上限 $limitMb MB）。データは変更されていません。';
+  }
+
+  @override
+  String backupExportTooLarge(String sizeMb, String limitMb) {
+    return 'コレクションが大きすぎて1つのバックアップとして書き出せません（$sizeMb MB、上限 $limitMb MB）。何も保存されておらず、データは変更されていません。';
+  }
+
+  @override
+  String get backupExportInProgress => 'バックアップを準備しています…';
+
+  @override
+  String get backupRestorePreparing => 'バックアップを読み込んでいます…';
+
+  @override
+  String backupRestoreProgress(int done, int total) {
+    return '$total件中$done件を復元しています…';
+  }
+
+  @override
   String get diagnosticsNoDiagnosticsToExport => 'エクスポートできる診断情報がありません。';
 
   @override
