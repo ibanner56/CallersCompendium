@@ -22,7 +22,10 @@ import 'perform_card.dart';
 import 'perform_wakelock.dart';
 import 'perform_walkthrough_overlay.dart';
 import 'settings_screen.dart'
-    show kAutoSizePerformKey, kShowProgramSlotCallerNotesKey;
+    show
+        kAutoSizePerformDefault,
+        kAutoSizePerformKey,
+        kShowProgramSlotCallerNotesKey;
 
 /// Full-screen, large-print performance view for a whole [Program]
 /// (`docs/design/ux.md` §5; ROADMAP 5.2 — program navigation).
@@ -223,7 +226,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// Auto-size the card to fit the viewport (ROADMAP G.1). Initialised from the
   /// General setting (on by default) in [didChangeDependencies]; recomputes per
   /// slot as the shown dance/slot changes.
-  bool _autoSize = true;
+  bool _autoSize = kAutoSizePerformDefault;
 
   /// Guards the one-shot settings load in [didChangeDependencies] (auto-size
   /// plus the persisted Perform a11y prefs) so it runs exactly once.
@@ -328,7 +331,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         .then((v) {
           // Don't clobber an in-view choice the user made before the read resolved.
           if (!mounted || _autoSizeUserSet) return;
-          final enabled = v is bool ? v : true;
+          final enabled = v is bool ? v : kAutoSizePerformDefault;
           if (enabled != _autoSize) setState(() => _autoSize = enabled);
         })
         .catchError((_) {

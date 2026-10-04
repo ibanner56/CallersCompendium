@@ -429,8 +429,15 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<Dialect> _dialectNotifier = ValueNotifier(
     Dialect.larksRobins,
   );
-  final ValueNotifier<AppThemeSelection> _themeNotifier = ValueNotifier(
-    AppThemeSelection.system,
+  final _themeNotifier = PreferenceNotifier<AppThemeSelection>(
+    key: kAppThemeKey,
+    defaultValue: AppThemeSelection.system,
+    // The stored value is untrusted (issue #609): a non-string or an unknown
+    // name degrades to the System default.
+    decode: (Object? v) =>
+        AppThemeSelection.forName(v is String ? v : null) ??
+        AppThemeSelection.system,
+    encode: (v) => v.name,
   );
   // The constructor seam only seeds the first frame; reset and load go through
   // the literal `false` default, so this is `late final` to read the widget.
@@ -441,20 +448,36 @@ class _CompendiumAppState extends State<CompendiumApp> {
     decode: (Object? v) => v is bool ? v : false,
     encode: (v) => v,
   );
-  final ValueNotifier<Set<CollectionTileField>> _collectionTileFieldsNotifier =
-      ValueNotifier(CollectionTileField.all);
-  final ValueNotifier<Set<DanceShareField>> _danceShareFieldsNotifier =
-      ValueNotifier(DanceShareField.allExceptTunes);
-  final ValueNotifier<Set<String>> _collectionHiddenFacetsNotifier =
-      ValueNotifier(const <String>{});
+  final _collectionTileFieldsNotifier =
+      PreferenceNotifier<Set<CollectionTileField>>(
+        key: kCollectionTileVisibleFieldsKey,
+        defaultValue: CollectionTileField.all,
+        decode: CollectionTileFieldsScope.decodeStored,
+        encode: (v) => v.map((f) => f.toJson()).toList(),
+      );
+  final _danceShareFieldsNotifier = PreferenceNotifier<Set<DanceShareField>>(
+    key: kProgramDanceShareFieldsKey,
+    defaultValue: DanceShareField.allExceptTunes,
+    decode: DanceShareFieldsScope.decodeStored,
+    encode: (v) => v.map((f) => f.toJson()).toList(),
+  );
+  final _collectionHiddenFacetsNotifier = PreferenceNotifier<Set<String>>(
+    key: kCollectionHiddenFacetsKey,
+    defaultValue: const <String>{},
+    decode: CollectionFacetsScope.decodeStored,
+    encode: CollectionFacetsScope.encode,
+  );
   final _trackHistoryForAllCallersNotifier = PreferenceNotifier<bool>(
     key: kTrackHistoryForAllCallersKey,
     defaultValue: false,
     decode: (Object? v) => v is bool ? v : false,
     encode: (v) => v,
   );
-  final ValueNotifier<int> _venueCallCountNotifier = ValueNotifier(
-    kVenueCallCountDefault,
+  final _venueCallCountNotifier = PreferenceNotifier<int>(
+    key: kVenueCallCountKey,
+    defaultValue: kVenueCallCountDefault,
+    decode: venueCallCountFromStored,
+    encode: (v) => v,
   );
   final _sortIgnoreArticlesNotifier = PreferenceNotifier<bool>(
     key: kSortIgnoreArticlesKey,
@@ -531,20 +554,35 @@ class _CompendiumAppState extends State<CompendiumApp> {
     decode: (Object? v) => v is bool ? v : true,
     encode: (v) => v,
   );
-  final ValueNotifier<MatrixColumnConfig> _programMatrixColumnsNotifier =
-      ValueNotifier(MatrixColumnConfig.empty);
-  final ValueNotifier<DateFormatSetting> _dateFormatNotifier = ValueNotifier(
-    DateFormatSetting.system,
+  final _programMatrixColumnsNotifier = PreferenceNotifier<MatrixColumnConfig>(
+    key: kProgramMatrixColumnsKey,
+    defaultValue: MatrixColumnConfig.empty,
+    // A malformed blob falls back to empty (issue #935).
+    decode: (Object? v) =>
+        MatrixColumnConfig.tryDecode(v) ?? MatrixColumnConfig.empty,
+    encode: (v) => v.toJson(),
   );
-  final ValueNotifier<FirstDayOfWeekPref> _firstDayOfWeekNotifier =
-      ValueNotifier(FirstDayOfWeekPref.system);
+  final _dateFormatNotifier = DateFormatPreferenceNotifier();
+  final _firstDayOfWeekNotifier = PreferenceNotifier<FirstDayOfWeekPref>(
+    key: kFirstDayOfWeekKey,
+    defaultValue: FirstDayOfWeekPref.system,
+    decode: firstDayOfWeekPrefFromStored,
+    encode: (v) => v.token,
+  );
 
   /// The user's chosen app-interface locale; `null` follows the system locale.
   /// Drives `MaterialApp.locale` directly, so it is included in the
   /// [Listenable.merge] below and the app re-renders in the selected language
   /// live when it changes. Loaded (and validated against
   /// [AppLocalizations.supportedLocales]) in [_loadPreferences].
-  final ValueNotifier<Locale?> _localeNotifier = ValueNotifier(null);
+  final _localeNotifier = PreferenceNotifier<Locale?>(
+    key: kLocaleKey,
+    defaultValue: null,
+    // The stored tag is untrusted (OWASP): only a supported locale resolves.
+    decode: (Object? v) =>
+        localeFromStored(v, AppLocalizations.supportedLocales),
+    encode: localeToTag,
+  );
 
   /// App-level "tap a tag → show the Collection filtered to it" coordinator
   /// (issue #414). Provided via [CollectionFilterScope] above the root
@@ -830,9 +868,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
     );
   }
 
-  /// The boolean preferences, in one place: the reset and the load iterate this
-  /// list, so a preference listed here cannot be left out of either.
-  late final List<PreferenceNotifier<Object?>> _boolPreferences = [
+  /// Every settings-backed preference, in one place: the reset and the load
+  /// iterate this list, so a preference listed here cannot be left out of
+  /// either. (The dialect is not here: it comes from the dialect library, not a
+  /// settings key.)
+  late final List<PreferenceNotifier<Object?>> _preferences = [
     _requirePerformedForHistoryNotifier,
     _trackHistoryForAllCallersNotifier,
     _sortIgnoreArticlesNotifier,
@@ -847,22 +887,22 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _colourDanceThemeNotifier,
     _setListColorCodingNotifier,
     _matrixExactBeatCollisionNotifier,
+    _themeNotifier,
+    _collectionTileFieldsNotifier,
+    _danceShareFieldsNotifier,
+    _collectionHiddenFacetsNotifier,
+    _venueCallCountNotifier,
+    _programMatrixColumnsNotifier,
+    _dateFormatNotifier,
+    _firstDayOfWeekNotifier,
+    _localeNotifier,
   ];
 
   void _resetAppPreferenceNotifiers() {
     _dialectNotifier.value = Dialect.larksRobins;
-    _themeNotifier.value = AppThemeSelection.system;
-    for (final p in _boolPreferences) {
+    for (final p in _preferences) {
       p.reset();
     }
-    _collectionTileFieldsNotifier.value = CollectionTileField.all;
-    _danceShareFieldsNotifier.value = DanceShareField.allExceptTunes;
-    _collectionHiddenFacetsNotifier.value = const <String>{};
-    _venueCallCountNotifier.value = kVenueCallCountDefault;
-    _programMatrixColumnsNotifier.value = MatrixColumnConfig.empty;
-    _dateFormatNotifier.value = DateFormatSetting.system;
-    _firstDayOfWeekNotifier.value = FirstDayOfWeekPref.system;
-    _localeNotifier.value = null;
   }
 
   void _startBootstrap() {
@@ -1542,69 +1582,16 @@ class _CompendiumAppState extends State<CompendiumApp> {
       'startup.dialect_library_load',
       _dialectLibrary.load,
     );
-    // Theme selection. Defensive (issue #609): the stored value is untrusted (a
-    // restored backup can smuggle a non-string under this key). Guard with
-    // `is String` instead of an unchecked `as String?` cast so a wrong-typed
-    // value degrades to the System default rather than throwing here and
-    // bricking startup on every subsequent launch.
-    final storedTheme = await _appData.repositories.settings
-        .get(kAppThemeKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    final venueCallCount = await _appData.repositories.settings
-        .get(kVenueCallCountKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    // The app-wide program-matrix column configuration (issue #935). The codec
-    // tolerates a stored blob with dangling built-in ids; a malformed blob (via
-    // a hand-edited DB, say) falls back to empty via tryDecode rather than
-    // throwing during startup.
-    final programMatrixColumns = await _appData.repositories.settings
-        .get(kProgramMatrixColumnsKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the empty (default) config below.
-    // The regional-format preference (ROADMAP G.8). Defensive: a read failure
-    // or garbage token resolves to the safe System default via the resolver. For
-    // the custom variant (#584) the raw pattern is loaded from a second key and
-    // validated on use; a missing/over-long/garbage pattern collapses back to
-    // System.
-    final dateFormat = await _appData.repositories.settings
-        .get(kDateFormatKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    final dateFormatCustom = await _appData.repositories.settings
-        .get(kDateFormatCustomPatternKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    // The first-day-of-week preference (ROADMAP G.8).
-    final firstDayOfWeek = await _appData.repositories.settings
-        .get(kFirstDayOfWeekKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    // The app-language preference (ROADMAP G.8). SECURITY (OWASP): the stored
-    // tag is untrusted — [localeFromStored] (phase 2) only ever resolves it to
-    // a locale that is actually in [AppLocalizations.supportedLocales], and a
-    // missing/garbage value falls back to the system locale (`null`) without
-    // throwing, so a corrupted setting can never crash startup or select an
-    // unsupported locale.
-    final locale = await _appData.repositories.settings
-        .get(kLocaleKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    // The boolean preferences (key, default and decoder live on each
+    // Every settings-backed preference (key, default and decoder live on each
     // [PreferenceNotifier]). Every read is guarded, so one unreadable key leaves
-    // that preference at its default. Reduce-motion is tri-state (issue #447,
-    // WCAG 2.3.3): a stored `bool` is an explicit in-app override, an absent key
-    // leaves it `null` so the scope follows the OS-level Reduce Motion setting.
-    final storedBools = <Object?>[
-      for (final p in _boolPreferences)
+    // that preference at its default. The stored values are untrusted: a
+    // restored backup can smuggle any JSON type under a key, and each decoder
+    // degrades a wrong-typed value to its default. Reduce-motion is tri-state
+    // (issue #447, WCAG 2.3.3): a stored `bool` is an explicit in-app override,
+    // an absent key leaves it `null` so the scope follows the OS-level Reduce
+    // Motion setting.
+    final storedPreferences = <Object?>[
+      for (final p in _preferences)
         await p.read(_appData.repositories.settings),
     ];
     // Locally-saved custom themes (and the active one), the per-formation label
@@ -1630,63 +1617,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
     );
     await _guardedControllerLoad('startup.update_load', _updateController.load);
     await _guardedControllerLoad('startup.sync_load', _syncController.load);
-    // The collection tile visible fields preference (issue #767), a JSON list
-    // of CollectionTileField name strings. See
-    // CollectionTileFieldsScope.decodeStored for the three-case logic.
-    final storedTileFields = await _appData.repositories.settings
-        .get(kCollectionTileVisibleFieldsKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    // The program/dance share-fields preference (issue #1434), a JSON list of
-    // DanceShareField name strings. See DanceShareFieldsScope.decodeStored for
-    // the three-case logic.
-    final storedShareFields = await _appData.repositories.settings
-        .get(kProgramDanceShareFieldsKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
-    // The hidden filter sections (issue #1419). A deny-list: absent or
-    // unreadable means every filter is shown.
-    final storedHiddenFacets = await _appData.repositories.settings
-        .get(kCollectionHiddenFacetsKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to showing every filter.
-
     // Phase 2: reset, then apply every decoded value. Synchronous — no `await`
     // from here to the end of the method.
     _resetAppPreferenceNotifiers();
     _dialectNotifier.value = _dialectLibrary.active;
-    final themeName = storedTheme is String ? storedTheme : null;
-    final selection = AppThemeSelection.forName(themeName);
-    if (selection != null) _themeNotifier.value = selection;
-    for (var i = 0; i < _boolPreferences.length; i++) {
-      _boolPreferences[i].applyStored(storedBools[i]);
+    for (var i = 0; i < _preferences.length; i++) {
+      _preferences[i].applyStored(storedPreferences[i]);
     }
-    _venueCallCountNotifier.value = venueCallCountFromStored(venueCallCount);
-    _programMatrixColumnsNotifier.value =
-        MatrixColumnConfig.tryDecode(programMatrixColumns) ??
-        MatrixColumnConfig.empty;
-    _dateFormatNotifier.value = dateFormatSettingFromStored(
-      dateFormat,
-      dateFormatCustom,
-    );
-    _firstDayOfWeekNotifier.value = firstDayOfWeekPrefFromStored(
-      firstDayOfWeek,
-    );
-    _localeNotifier.value = localeFromStored(
-      locale,
-      AppLocalizations.supportedLocales,
-    );
-    _collectionTileFieldsNotifier.value =
-        CollectionTileFieldsScope.decodeStored(storedTileFields);
-    _danceShareFieldsNotifier.value = DanceShareFieldsScope.decodeStored(
-      storedShareFields,
-    );
-    _collectionHiddenFacetsNotifier.value = CollectionFacetsScope.decodeStored(
-      storedHiddenFacets,
-    );
   }
 
   /// Runs a controller's `load()` so a failure does not fail startup (or a

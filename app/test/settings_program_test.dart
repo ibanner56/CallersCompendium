@@ -11,6 +11,7 @@ import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
+import 'package:compendium_app/src/data/venue_call_count_scope.dart';
 import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/screens/settings/matrix_column_editor_screen.dart';
@@ -31,6 +32,8 @@ Future<ValueNotifier<bool>> _pumpProgram(
   bool initialAutoCommit = false,
   Size surface = const Size(1200, 1400),
   double textScale = 1,
+  void Function(ValueNotifier<bool> autoCommit, ValueNotifier<int> venueCalls)?
+  onScopeNotifiers,
 }) async {
   await setScreenSize(tester, surface);
 
@@ -41,6 +44,9 @@ Future<ValueNotifier<bool>> _pumpProgram(
   final requirePerformed = ValueNotifier<bool>(false);
   final trackAllCallers = ValueNotifier<bool>(false);
   final autoCommit = ValueNotifier<bool>(initialAutoCommit);
+  final venueCalls = ValueNotifier<int>(kVenueCallCountDefault);
+  onScopeNotifiers?.call(autoCommit, venueCalls);
+  addTearDown(venueCalls.dispose);
   final customThemes = CustomThemesController(repos.settings);
   await customThemes.load();
   addTearDown(dialect.dispose);
@@ -74,11 +80,14 @@ Future<ValueNotifier<bool>> _pumpProgram(
                       notifier: trackAllCallers,
                       child: ProgramAutoCommitScope(
                         notifier: autoCommit,
-                        child:
-                            (textScaleBuilder(
-                              textScale,
-                            )?.call(context, child)) ??
-                            child!,
+                        child: VenueCallCountScope(
+                          notifier: venueCalls,
+                          child:
+                              (textScaleBuilder(
+                                textScale,
+                              )?.call(context, child)) ??
+                              child!,
+                        ),
                       ),
                     ),
                   ),
@@ -308,6 +317,43 @@ void main() {
     );
 
     handle.dispose();
+  });
+
+  testWidgets('Program section reflects a restored auto-commit and venue call '
+      'count without reopening', (tester) async {
+    final repos = openTestRepositories();
+    late ValueNotifier<bool> autoCommit;
+    late ValueNotifier<int> venueCalls;
+    await _pumpProgram(
+      tester,
+      repos,
+      onScopeNotifiers: (a, v) {
+        autoCommit = a;
+        venueCalls = v;
+      },
+    );
+    final toggle = find.byKey(
+      const ValueKey('settings-auto-commit-program-changes'),
+    );
+    final dropdown = find.byKey(const ValueKey('program-venue-call-count'));
+    await tester.scrollUntilVisible(
+      dropdown,
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    expect(
+      tester.widget<DropdownButton<int>>(dropdown).value,
+      kVenueCallCountDefault,
+    );
+
+    // What `reloadFromSettings` does after a restore: the live notifiers change.
+    autoCommit.value = true;
+    venueCalls.value = 8;
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+    expect(tester.widget<DropdownButton<int>>(dropdown).value, 8);
   });
 
   testWidgets('toggling program auto-commit persists the setting', (

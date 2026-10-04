@@ -19,6 +19,12 @@ import 'package:compendium_app/src/data/backup_document.dart'
         runBackupCodecOnIsolate;
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/collection_facets_scope.dart';
+import 'package:compendium_app/src/data/collection_tile_fields_scope.dart';
+import 'package:compendium_app/src/data/date_format_scope.dart';
+import 'package:compendium_app/src/data/first_day_of_week_scope.dart';
+import 'package:compendium_app/src/data/program_matrix_column_config_scope.dart';
+import 'package:compendium_app/src/data/regional_formats.dart';
+import 'package:compendium_app/src/data/venue_call_count_scope.dart';
 import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart'
     show kCustomDialectsKey;
@@ -1507,6 +1513,120 @@ void main() {
         expect(
           c.read(tester.element(find.byType(AppShell))),
           !c.defaultValue,
+          reason: 'the stored non-default value is applied at startup',
+        );
+
+        await _restoreFromPaste(tester, backupJson);
+
+        expect(await appData.repositories.settings.get(c.key), isNull);
+        expect(c.read(tester.element(find.byType(AppShell))), c.defaultValue);
+      });
+    }
+  });
+
+  // The non-boolean half of the descriptor-list ratchet: each of these live
+  // preferences must also return to its default when a restored backup lacks
+  // its key, and show a stored non-default value at startup.
+  group('restoring a backup without a non-boolean preference resets it', () {
+    final matrixStored = const MatrixColumnConfig(
+      hidden: {'some-column'},
+    ).toJson();
+    final cases =
+        <
+          ({
+            String key,
+            Object? stored,
+            Object? Function(BuildContext) read,
+            Object? storedResult,
+            Object? defaultValue,
+          })
+        >[
+          (
+            key: kAppThemeKey,
+            stored: 'dark',
+            read: AppThemeScope.of,
+            storedResult: AppThemeSelection.dark,
+            defaultValue: AppThemeSelection.system,
+          ),
+          (
+            key: kVenueCallCountKey,
+            stored: 7,
+            read: VenueCallCountScope.of,
+            storedResult: 7,
+            defaultValue: kVenueCallCountDefault,
+          ),
+          (
+            key: kDateFormatKey,
+            stored: DateFormatPref.ymd.token,
+            read: (c) => DateFormatScope.of(c).pref,
+            storedResult: DateFormatPref.ymd,
+            defaultValue: DateFormatPref.system,
+          ),
+          (
+            key: kFirstDayOfWeekKey,
+            stored: FirstDayOfWeekPref.monday.token,
+            read: FirstDayOfWeekScope.of,
+            storedResult: FirstDayOfWeekPref.monday,
+            defaultValue: FirstDayOfWeekPref.system,
+          ),
+          (
+            key: kLocaleKey,
+            stored: 'de',
+            read: LocaleScope.of,
+            storedResult: const Locale('de'),
+            defaultValue: null,
+          ),
+          (
+            key: kCollectionTileVisibleFieldsKey,
+            stored: [CollectionTileField.authors.toJson()],
+            read: CollectionTileFieldsScope.of,
+            storedResult: {CollectionTileField.authors},
+            defaultValue: CollectionTileField.all,
+          ),
+          (
+            key: kProgramDanceShareFieldsKey,
+            stored: [DanceShareField.values.first.toJson()],
+            read: DanceShareFieldsScope.of,
+            storedResult: {DanceShareField.values.first},
+            defaultValue: DanceShareField.allExceptTunes,
+          ),
+          (
+            key: kCollectionHiddenFacetsKey,
+            stored: ['form'],
+            read: CollectionFacetsScope.of,
+            storedResult: {'form'},
+            defaultValue: <String>{},
+          ),
+          (
+            key: kProgramMatrixColumnsKey,
+            stored: matrixStored,
+            read: (c) => ProgramMatrixColumnConfigScope.of(c).toJson(),
+            storedResult: matrixStored,
+            defaultValue: MatrixColumnConfig.empty.toJson(),
+          ),
+        ];
+
+    for (final c in cases) {
+      testWidgets('without ${c.key}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1200, 2600));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final source = openTestRepositories();
+        final backupJson = await BackupService(source).exportToJson();
+
+        final appData = openTestAppData();
+        await appData.repositories.settings.set(c.key, c.stored);
+
+        await tester.pumpWidget(
+          CompendiumApp(
+            appData: appData,
+            windowService: NoopWindowService(appData.repositories.settings),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          c.read(tester.element(find.byType(AppShell))),
+          c.storedResult,
           reason: 'the stored non-default value is applied at startup',
         );
 

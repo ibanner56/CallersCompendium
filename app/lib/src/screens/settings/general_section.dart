@@ -20,6 +20,7 @@ import '../../data/backup_service.dart';
 import '../../data/confirm_before_delete_scope.dart';
 import '../../data/import_io.dart';
 import '../../data/reduce_motion_scope.dart';
+import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/soft_delete_retention.dart';
 import '../../data/sort_ignore_articles_scope.dart';
@@ -145,7 +146,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       _softDeleteRetentionDays = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kSoftDeleteRetentionKey, value);
+    await persistSetting(repos.settings, kSoftDeleteRetentionKey, value);
   }
 
   /// Backup-reminder cadence (ROADMAP G.5). `null` = not yet loaded; the view
@@ -188,9 +189,11 @@ class _GeneralSectionState extends State<GeneralSection> {
 
   Future<void> _onBackupCadenceChanged(BackupReminderCadence cadence) async {
     setState(() => _backupCadence = cadence);
-    await RepositoriesScope.of(
-      context,
-    ).settings.set(kBackupReminderCadenceKey, cadence.token);
+    await persistSetting(
+      RepositoriesScope.of(context).settings,
+      kBackupReminderCadenceKey,
+      cadence.token,
+    );
   }
 
   /// Suggested filename for an exported backup, dated (UTC) so backups sort and
@@ -543,7 +546,7 @@ class _GeneralSectionState extends State<GeneralSection> {
     // dance list re-sorts immediately, then persist in the background.
     SortIgnoreArticlesScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kSortIgnoreArticlesKey, value);
+    await persistSetting(repos.settings, kSortIgnoreArticlesKey, value);
   }
 
   Future<void> _onReduceMotionChanged(bool value) async {
@@ -551,25 +554,25 @@ class _GeneralSectionState extends State<GeneralSection> {
     // notifier so animation-gated widgets rebuild immediately, then persist.
     ReduceMotionScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kReduceMotionKey, value);
+    await persistSetting(repos.settings, kReduceMotionKey, value);
   }
 
   Future<void> _onVerboseFigureRenderingChanged(bool value) async {
     VerboseFigureRenderingScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kVerboseFigureRenderingKey, value);
+    await persistSetting(repos.settings, kVerboseFigureRenderingKey, value);
   }
 
   Future<void> _onDecimalTurnsChanged(bool value) async {
     DecimalTurnsScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDecimalTurnsKey, value);
+    await persistSetting(repos.settings, kDecimalTurnsKey, value);
   }
 
   Future<void> _onConfirmBeforeDeleteChanged(bool value) async {
     ConfirmBeforeDeleteScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kConfirmBeforeDeleteKey, value);
+    await persistSetting(repos.settings, kConfirmBeforeDeleteKey, value);
   }
 
   @override

@@ -1,10 +1,12 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:flutter/material.dart';
+
 import '../../data/date_format_scope.dart';
 import '../../data/custom_date_pattern.dart';
 import '../../data/first_day_of_week_scope.dart';
 import '../../data/locale_scope.dart';
 import '../../data/regional_formats.dart';
+import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/section_header.dart';
@@ -65,9 +67,10 @@ class _RegionalSectionState extends State<RegionalSection> {
   Future<void> _applySetting(DateFormatSetting setting) async {
     DateFormatScope.notifierOf(context).value = setting;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDateFormatKey, setting.pref.token);
+    await persistSetting(repos.settings, kDateFormatKey, setting.pref.token);
     if (setting.pref == DateFormatPref.custom) {
-      await repos.settings.set(
+      await persistSetting(
+        repos.settings,
         kDateFormatCustomPatternKey,
         setting.customPattern ?? '',
       );
@@ -101,7 +104,7 @@ class _RegionalSectionState extends State<RegionalSection> {
     final repos = RepositoriesScope.of(context);
     // Persist the BCP-47 tag; empty string means "follow system" and is
     // validated back to null on load (see localeFromStored).
-    await repos.settings.set(kLocaleKey, localeToTag(value));
+    await persistSetting(repos.settings, kLocaleKey, localeToTag(value));
   }
 
   // Same instant-notifier-then-persist shape as date format / locale above:
@@ -111,7 +114,7 @@ class _RegionalSectionState extends State<RegionalSection> {
   Future<void> _onFirstDayOfWeekPrefChanged(FirstDayOfWeekPref pref) async {
     FirstDayOfWeekScope.notifierOf(context).value = pref;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kFirstDayOfWeekKey, pref.token);
+    await persistSetting(repos.settings, kFirstDayOfWeekKey, pref.token);
   }
 
   @override

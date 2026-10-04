@@ -11,6 +11,7 @@ import '../../data/collection_facets_scope.dart';
 import '../../data/collection_tile_fields_scope.dart';
 import '../../data/dance_share_fields_scope.dart';
 import '../../data/display_defaults.dart';
+import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
 import '../../diagnostics/error_log.dart';
@@ -347,7 +348,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   Future<void> _persistStartingProgramTemplate() async {
     _startingProgramTemplateUserSet = true;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(
+    await persistSetting(
+      repos.settings,
       kDefaultStartingProgramKey,
       encodeStartingProgramTemplate(_startingProgramTemplate),
     );
@@ -464,13 +466,17 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   Future<void> _onDefaultProgramCallerChanged(String value) async {
     _defaultCallerUserSet = true;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultProgramCallerKey, value.trim());
+    await persistSetting(
+      repos.settings,
+      kDefaultProgramCallerKey,
+      value.trim(),
+    );
   }
 
   Future<void> _onDefaultProgramBandChanged(String value) async {
     _defaultBandUserSet = true;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultProgramBandKey, value.trim());
+    await persistSetting(repos.settings, kDefaultProgramBandKey, value.trim());
   }
 
   Future<void> _onDefaultDanceFormChanged(DanceForm value) async {
@@ -479,7 +485,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       _defaultDanceForm = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultDanceFormKey, value.name);
+    await persistSetting(repos.settings, kDefaultDanceFormKey, value.name);
   }
 
   Future<void> _onDefaultDanceFormationShapeChanged(
@@ -490,7 +496,11 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       _defaultDanceFormationShape = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultDanceFormationShapeKey, value.name);
+    await persistSetting(
+      repos.settings,
+      kDefaultDanceFormationShapeKey,
+      value.name,
+    );
   }
 
   Future<void> _onDefaultDanceProgressionChanged(Progression value) async {
@@ -499,13 +509,21 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       _defaultDanceProgression = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultDanceProgressionKey, value.name);
+    await persistSetting(
+      repos.settings,
+      kDefaultDanceProgressionKey,
+      value.name,
+    );
   }
 
   Future<void> _onDefaultDancePhraseChanged(String value) async {
     _defaultDancePhraseUserSet = true;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultDancePhraseStructureKey, value.trim());
+    await persistSetting(
+      repos.settings,
+      kDefaultDancePhraseStructureKey,
+      value.trim(),
+    );
   }
 
   /// Persists the current starting-figures template as a `figures_json` string
@@ -518,7 +536,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       for (final draft in _defaultDanceFigureDrafts) ?draft.toFigure(),
     ];
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(
+    await persistSetting(
+      repos.settings,
       kDefaultDanceFiguresTemplateKey,
       encodeFigures(figures),
     );
@@ -532,7 +551,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       for (final draft in _defaultMeanwhileSideDrafts) ?draft.toFigure(),
     ];
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(
+    await persistSetting(
+      repos.settings,
       kDefaultMeanwhileSideFiguresKey,
       encodeMeanwhileSideFigures(figures),
     );
@@ -547,9 +567,11 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     final figures = [
       for (final draft in _defaultModifierDrafts) ?draft.toFigure(),
     ];
-    await RepositoriesScope.of(
-      context,
-    ).settings.set(kDefaultModifierFiguresKey, encodeModifierFigures(figures));
+    await persistSetting(
+      RepositoriesScope.of(context).settings,
+      kDefaultModifierFiguresKey,
+      encodeModifierFigures(figures),
+    );
   }
 
   void _groupDefaultDanceFigures(FigureDraft draft) {
@@ -586,7 +608,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   Future<void> _persistMoveParamOverrides() async {
     _defaultMoveParamOverridesUserSet = true;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(
+    await persistSetting(
+      repos.settings,
       kDefaultMoveParamOverridesKey,
       encodeMoveParamOverrides(_defaultMoveParamOverrides),
     );
@@ -653,7 +676,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       _defaultCollectionSort = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(
+    await persistSetting(
+      repos.settings,
       kDefaultCollectionSortKey,
       encodeSortDefaultSetting(value),
     );
@@ -667,7 +691,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       _defaultProgramSort = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(
+    await persistSetting(
+      repos.settings,
       kDefaultProgramSortKey,
       encodeSortDefaultSetting(value),
     );
@@ -1415,7 +1440,8 @@ class _DefaultsView extends StatelessWidget {
                 updated.remove(field);
               }
               notifier.value = updated;
-              await settings.set(
+              await persistSetting(
+                settings,
                 kCollectionTileVisibleFieldsKey,
                 updated.map((f) => f.toJson()).toList(),
               );
@@ -1520,7 +1546,8 @@ class _DefaultsView extends StatelessWidget {
                 updated.remove(field);
               }
               notifier.value = updated;
-              await settings.set(
+              await persistSetting(
+                settings,
                 kProgramDanceShareFieldsKey,
                 updated.map((f) => f.toJson()).toList(),
               );
@@ -1624,7 +1651,8 @@ class _DefaultsView extends StatelessWidget {
               final updated = Set.of(notifier.value);
               shown ? updated.remove(id) : updated.add(id);
               notifier.value = updated;
-              await settings.set(
+              await persistSetting(
+                settings,
                 kCollectionHiddenFacetsKey,
                 CollectionFacetsScope.encode(updated),
               );
@@ -2001,7 +2029,11 @@ class _DefaultsView extends StatelessWidget {
                     AggressiveBeatsUpdateScope.notifierOf(context).value =
                         value;
                     final repos = RepositoriesScope.of(context);
-                    await repos.settings.set(kAggressiveBeatsUpdateKey, value);
+                    await persistSetting(
+                      repos.settings,
+                      kAggressiveBeatsUpdateKey,
+                      value,
+                    );
                   },
                   title: Text(l10n.settingsDefaultsAggressiveBeatsUpdateTitle),
                   subtitle: Text(

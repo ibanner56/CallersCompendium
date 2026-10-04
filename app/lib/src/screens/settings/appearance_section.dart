@@ -10,6 +10,7 @@ import '../../data/custom_theme.dart';
 import '../../data/custom_themes_controller.dart';
 import '../../data/custom_themes_scope.dart';
 import '../../data/formation_colors_scope.dart';
+import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/set_list_color_coding_scope.dart';
 import '../../theme/app_spacing.dart';
@@ -36,7 +37,7 @@ class _AppearanceSectionState extends State<AppearanceSection> {
     // rebuilds whenever the setting changes elsewhere.
     ColourDanceThemeScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kColourDanceThemeKey, value);
+    await persistSetting(repos.settings, kColourDanceThemeKey, value);
   }
 
   Future<void> _onThemeChanged(AppThemeSelection selection) async {
@@ -47,7 +48,7 @@ class _AppearanceSectionState extends State<AppearanceSection> {
     AppThemeScope.notifierOf(context).value = selection;
     final repos = RepositoriesScope.of(context);
     await customs.setActive(null);
-    await repos.settings.set(kAppThemeKey, selection.name);
+    await persistSetting(repos.settings, kAppThemeKey, selection.name);
   }
 
   /// Persists the "colour-code set-list rows" toggle (issue #270): flip the
@@ -56,7 +57,7 @@ class _AppearanceSectionState extends State<AppearanceSection> {
   Future<void> _onSetListColorCodingChanged(bool value) async {
     final repos = RepositoriesScope.of(context);
     SetListColorCodingScope.notifierOf(context).value = value;
-    await repos.settings.set(kSetListColorCodingKey, value);
+    await persistSetting(repos.settings, kSetListColorCodingKey, value);
   }
 
   @override
