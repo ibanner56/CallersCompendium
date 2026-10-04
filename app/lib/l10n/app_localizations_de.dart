@@ -1387,6 +1387,323 @@ class AppLocalizationsDe extends AppLocalizations {
       'Benutzerdefinierte Designs';
 
   @override
+  String get appThemeGroupSystem => 'System';
+
+  @override
+  String get appThemeGroupDefault => 'Standard';
+
+  @override
+  String get appThemeGroupLight => 'Hell';
+
+  @override
+  String get appThemeGroupDark => 'Dunkel';
+
+  @override
+  String get appThemeLabelSystem => 'System';
+
+  @override
+  String get appThemeLabelLight => 'Hell';
+
+  @override
+  String get appThemeLabelDark => 'Dunkel';
+
+  @override
+  String get appThemeLabelSoftDark => 'Sanftes Dunkel';
+
+  @override
+  String get appThemeLabelHighContrast => 'Hoher Kontrast';
+
+  @override
+  String get appThemeDescriptionSystem =>
+      'Folgt der Hell-/Dunkel-Einstellung des Geräts';
+
+  @override
+  String get appThemeDescriptionLight => 'Warme helle Palette';
+
+  @override
+  String get appThemeDescriptionDark => 'Warme dunkle Palette';
+
+  @override
+  String get appThemeDescriptionSoftDark =>
+      'Warmes Dunkel auf einem weicheren, helleren Hintergrund';
+
+  @override
+  String get appThemeDescriptionHighContrast =>
+      'Maximaler Kontrast für dunkle Räume und eingeschränktes Sehvermögen';
+
+  @override
+  String get appThemeDescriptionBlulocoLight =>
+      'Klare, kühl-neutrale Fläche mit lebhaften Juwelentönen';
+
+  @override
+  String get appThemeDescriptionOneDarkPro =>
+      'One Dark Pro, das beliebte Editor-Theme';
+
+  @override
+  String get appThemeDescriptionMonokai =>
+      'One Monokai – Monokai-Syntax auf Anthrazit';
+
+  @override
+  String get appThemeDescriptionNoctis =>
+      'Die originale tiefe petrolfarbene Noctis-Nacht';
+
+  @override
+  String get appThemeDescriptionGithubLight => 'GitHubs klares, neutrales Hell';
+
+  @override
+  String get appThemeDescriptionCatppuccinLatte =>
+      'Sanftes Pastell-Hell, Liebling der Community';
+
+  @override
+  String get appThemeDescriptionGruvboxLight =>
+      'Warmes Retro-Creme und Erdtöne';
+
+  @override
+  String get appThemeDescriptionEverforestLight =>
+      'Sanftes Grün, schonend für die Augen';
+
+  @override
+  String get appThemeDescriptionRosePineDawn =>
+      'Gedämpftes Rosé und Iris auf warmem Papier';
+
+  @override
+  String get appThemeDescriptionAyuLight =>
+      'Helles, minimalistisches Hell mit Bernstein-Akzenten';
+
+  @override
+  String get appThemeDescriptionTokyoNightLight =>
+      'Klares Indigo-Tageslicht, der Tag von Tokyo Night';
+
+  @override
+  String get appThemeDescriptionNordLight =>
+      'Kühle arktische Schneesturm-Neutraltöne';
+
+  @override
+  String get appThemeDescriptionKanagawaLotus =>
+      'Warmes Sumi-e-Papier mit Tuscheakzenten';
+
+  @override
+  String get appThemeDescriptionDracula =>
+      'Der klassische Favorit: Lila auf Anthrazit';
+
+  @override
+  String get appThemeDescriptionNord =>
+      'Kühle arktische Blautöne, zurückhaltend';
+
+  @override
+  String get appThemeDescriptionTokyoNight =>
+      'Neon-Indigo-Palette einer Stadt bei Nacht';
+
+  @override
+  String get appThemeDescriptionGruvboxDark =>
+      'Warmes Retro-Bernstein auf Anthrazit';
+
+  @override
+  String get appThemeDescriptionCatppuccinMocha =>
+      'Gemütliches Pastell-Dunkel, Liebling der Community';
+
+  @override
+  String get appThemeDescriptionGithubDark => 'GitHubs neutrales Dunkel';
+
+  @override
+  String get appThemeDescriptionEverforestDark =>
+      'Sanftes Waldgrün, ermüdungsarm';
+
+  @override
+  String get appThemeDescriptionRosePine =>
+      'Gedämpftes Rosé und Iris im Dunkeln';
+
+  @override
+  String get appThemeDescriptionAyuMirage =>
+      'Weiches Schiefergrau mit Bernstein-Akzenten';
+
+  @override
+  String get appThemeDescriptionCutiePro =>
+      'Superniedliches dunkles Pastell, rosa betont';
+
+  @override
+  String get appThemeDescriptionPinkAsHeck =>
+      'Unverschämt grelles Pink auf Beerenton';
+
+  @override
+  String get appThemeDescriptionVitesseLight =>
+      'Modernes, gedämpftes Salbei, Petrol und Rosé';
+
+  @override
+  String get appThemeDescriptionZenburn =>
+      'Das klassische, kontrastarme warme Grau';
+
+  @override
+  String get appThemeDescriptionShadesOfPurple =>
+      'Kräftiges Gold auf tiefem Indigo';
+
+  @override
+  String get appThemeDescriptionCatppuccinFrappe =>
+      'Helleres blaugraues Pastell-Catppuccin';
+
+  @override
+  String get appThemeDescriptionSynthwave84 =>
+      'Leuchtendes Neon auf Retro-Lila';
+
+  @override
+  String get appThemeDescriptionNoctisLilac =>
+      'Sanftes Flieder-Tageslicht von Noctis';
+
+  @override
+  String get themeEditorGroupPrimary => 'Primär';
+
+  @override
+  String get themeEditorGroupSecondary => 'Sekundär';
+
+  @override
+  String get themeEditorGroupTertiary => 'Tertiär';
+
+  @override
+  String get themeEditorGroupError => 'Fehler';
+
+  @override
+  String get themeEditorGroupSurfaceText => 'Oberfläche & Text';
+
+  @override
+  String get themeEditorGroupSurfaceContainers => 'Oberflächen-Container';
+
+  @override
+  String get themeEditorGroupOutlineEffects => 'Umriss & Effekte';
+
+  @override
+  String get themeEditorRolePrimary => 'Primär';
+
+  @override
+  String get themeEditorRoleOnPrimary => 'Auf Primär';
+
+  @override
+  String get themeEditorRolePrimaryContainer => 'Primär-Container';
+
+  @override
+  String get themeEditorRoleOnPrimaryContainer => 'Auf Primär-Container';
+
+  @override
+  String get themeEditorRoleSecondary => 'Sekundär';
+
+  @override
+  String get themeEditorRoleOnSecondary => 'Auf Sekundär';
+
+  @override
+  String get themeEditorRoleSecondaryContainer => 'Sekundär-Container';
+
+  @override
+  String get themeEditorRoleOnSecondaryContainer => 'Auf Sekundär-Container';
+
+  @override
+  String get themeEditorRoleTertiary => 'Tertiär';
+
+  @override
+  String get themeEditorRoleOnTertiary => 'Auf Tertiär';
+
+  @override
+  String get themeEditorRoleTertiaryContainer => 'Tertiär-Container';
+
+  @override
+  String get themeEditorRoleOnTertiaryContainer => 'Auf Tertiär-Container';
+
+  @override
+  String get themeEditorRoleError => 'Fehler';
+
+  @override
+  String get themeEditorRoleOnError => 'Auf Fehler';
+
+  @override
+  String get themeEditorRoleErrorContainer => 'Fehler-Container';
+
+  @override
+  String get themeEditorRoleOnErrorContainer => 'Auf Fehler-Container';
+
+  @override
+  String get themeEditorRoleSurface => 'Oberfläche';
+
+  @override
+  String get themeEditorRoleOnSurface => 'Auf Oberfläche';
+
+  @override
+  String get themeEditorRoleOnSurfaceVariant => 'Auf Oberflächenvariante';
+
+  @override
+  String get themeEditorRoleInverseSurface => 'Inverse Oberfläche';
+
+  @override
+  String get themeEditorRoleOnInverseSurface => 'Auf inverser Oberfläche';
+
+  @override
+  String get themeEditorRoleInversePrimary => 'Inverse Primärfarbe';
+
+  @override
+  String get themeEditorRoleSurfaceContainerLowest => 'Container (niedrigste)';
+
+  @override
+  String get themeEditorRoleSurfaceContainerLow => 'Container (niedrig)';
+
+  @override
+  String get themeEditorRoleSurfaceContainer => 'Container';
+
+  @override
+  String get themeEditorRoleSurfaceContainerHigh => 'Container (hoch)';
+
+  @override
+  String get themeEditorRoleSurfaceContainerHighest => 'Container (höchste)';
+
+  @override
+  String get themeEditorRoleOutline => 'Umriss';
+
+  @override
+  String get themeEditorRoleOutlineVariant => 'Umrissvariante';
+
+  @override
+  String get themeEditorRoleSurfaceTint => 'Oberflächentönung';
+
+  @override
+  String get themeEditorRoleShadow => 'Schatten';
+
+  @override
+  String get themeEditorRoleScrim => 'Abdunkelung';
+
+  @override
+  String get themeEditorPairOnPrimary => 'Text auf Primär';
+
+  @override
+  String get themeEditorPairOnPrimaryContainer => 'Text auf Primär-Container';
+
+  @override
+  String get themeEditorPairOnSecondary => 'Text auf Sekundär';
+
+  @override
+  String get themeEditorPairOnSecondaryContainer =>
+      'Text auf Sekundär-Container';
+
+  @override
+  String get themeEditorPairOnTertiary => 'Text auf Tertiär';
+
+  @override
+  String get themeEditorPairOnTertiaryContainer => 'Text auf Tertiär-Container';
+
+  @override
+  String get themeEditorPairOnError => 'Text auf Fehler';
+
+  @override
+  String get themeEditorPairOnErrorContainer => 'Text auf Fehler-Container';
+
+  @override
+  String get themeEditorPairOnSurface => 'Fließtext auf Oberfläche';
+
+  @override
+  String get themeEditorPairOnSurfaceVariant => 'Sekundärtext auf Oberfläche';
+
+  @override
+  String get themeEditorPairOnInverseSurface => 'Text auf inverser Oberfläche';
+
+  @override
+  String get themeEditorPairOutline => 'Umriss auf Oberfläche';
+
+  @override
   String get settingsAppearanceEasterEggsHeader => 'Easter Eggs';
 
   @override
@@ -2386,6 +2703,52 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get backupReplaceAllDataAction => 'Alle Daten ersetzen';
+
+  @override
+  String backupFileSummary(String date, int dances, int programs, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      dances,
+      locale: localeName,
+      other: '$dances Tänze',
+      one: '$dances Tanz',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      programs,
+      locale: localeName,
+      other: '$programs Programme',
+      one: '$programs Programm',
+    );
+    return 'Sicherung vom $date: $_temp0, $_temp1, $size MB';
+  }
+
+  @override
+  String backupFileUnreadable(String size) {
+    return 'Diese Datei sieht nicht wie eine lesbare Sicherung aus ($size MB). Beim Ersetzen erfahren Sie, warum sie sich nicht wiederherstellen lässt.';
+  }
+
+  @override
+  String get backupFileClearAction => 'Entfernen';
+
+  @override
+  String backupFileTooLarge(String sizeMb, String limitMb) {
+    return 'Diese Datei ist zu groß für eine Caller’s-Compendium-Sicherung ($sizeMb MB; Grenze $limitMb MB). Ihre Daten bleiben unverändert.';
+  }
+
+  @override
+  String backupExportTooLarge(String sizeMb, String limitMb) {
+    return 'Ihre Sammlung ist zu groß, um sie als einzelne Sicherung zu exportieren ($sizeMb MB; Grenze $limitMb MB), daher wurde nichts gespeichert. Ihre Daten bleiben unverändert.';
+  }
+
+  @override
+  String get backupExportInProgress => 'Sicherung wird vorbereitet…';
+
+  @override
+  String get backupRestorePreparing => 'Sicherung wird gelesen…';
+
+  @override
+  String backupRestoreProgress(int done, int total) {
+    return '$done von $total werden wiederhergestellt…';
+  }
 
   @override
   String get diagnosticsNoDiagnosticsToExport =>

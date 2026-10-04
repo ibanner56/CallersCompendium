@@ -242,6 +242,18 @@ Future<BackupReadResult> decodeBackupOnIsolate(
   BackupCodecRunner runner = runBackupCodecOnIsolate,
 }) => runner(() => decodeBackup(json));
 
+/// [decodeBackup] on a worker plus the UTF-8 byte length of [json], so the
+/// restore dialog can summarise a chosen file and hand the decoded result on to
+/// [BackupService.restoreFromJson] without a second decode. The result returns
+/// by exit, so the document is not copied onto the UI isolate. Does not throw
+/// for a malformed file: that is a fatal [BackupReadResult].
+Future<({BackupReadResult read, int sizeBytes})> decodeBackupSizedOnIsolate(
+  String json, {
+  BackupCodecRunner runner = runBackupCodecOnIsolate,
+}) => runner(
+  () => (read: decodeBackup(json), sizeBytes: utf8.encode(json).length),
+);
+
 /// Serializes just the [doc] payload (no container/checksum) to a JSON string.
 ///
 /// This is the exact byte sequence the container checksums and that

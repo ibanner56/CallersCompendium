@@ -1,10 +1,10 @@
 /// Pure field-gating logic for a dance card (issue #1434): which of the
 /// share-fields picker's [DanceShareField] values turn each line on or off.
 ///
-/// This is the single gate used by `danceToPlainText`, `buildDancePdf` and
-/// `buildProgramPdf`'s figure-appendix cards, so the text and PDF renderers
+/// `DanceCardContent.build` is the single caller of these helpers; the text
+/// card (`danceToPlainText`) and the PDF builders consume its result, so they
 /// can't drift on which fields a selection emits. Figures are handled
-/// separately by each caller (unaffected by this parameter).
+/// separately (unaffected by this parameter).
 library;
 
 import '../model/dance.dart';

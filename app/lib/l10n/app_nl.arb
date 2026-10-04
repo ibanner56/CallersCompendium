@@ -1380,6 +1380,386 @@
   "@settingsAppearanceCustomThemesHeader": {
     "x-sourceSha256": "343cee86594115cca8ccfc399c3c2568d16b8a11b7462bd7e1b8c82052eb7b36"
   },
+  "appThemeGroupSystem": "Systeem",
+  "@appThemeGroupSystem": {
+    "x-sourceSha256": "6725e7bbcd28f3a8a586fa34bf191fd72dde8b61756932cd3237c17a6f196f1a"
+  },
+  "appThemeGroupDefault": "Standaard",
+  "@appThemeGroupDefault": {
+    "x-sourceSha256": "21b111cbfe6e8fca2d181c43f53ad548b22e38aca955b9824706a504b0a07a2d"
+  },
+  "appThemeGroupLight": "Licht",
+  "@appThemeGroupLight": {
+    "x-sourceSha256": "dbcd5e7bb7a0f538810de44c3efbd813037ee3fa358747bb71fa58e157af45f7"
+  },
+  "appThemeGroupDark": "Donker",
+  "@appThemeGroupDark": {
+    "x-sourceSha256": "60acc53f13a5d1bf115878c4a785e9a43e8286c4139a8402a6ac7d23966f9153"
+  },
+  "appThemeLabelSystem": "Systeem",
+  "@appThemeLabelSystem": {
+    "x-sourceSha256": "6725e7bbcd28f3a8a586fa34bf191fd72dde8b61756932cd3237c17a6f196f1a"
+  },
+  "appThemeLabelLight": "Licht",
+  "@appThemeLabelLight": {
+    "x-sourceSha256": "dbcd5e7bb7a0f538810de44c3efbd813037ee3fa358747bb71fa58e157af45f7"
+  },
+  "appThemeLabelDark": "Donker",
+  "@appThemeLabelDark": {
+    "x-sourceSha256": "60acc53f13a5d1bf115878c4a785e9a43e8286c4139a8402a6ac7d23966f9153"
+  },
+  "appThemeLabelSoftDark": "Zacht donker",
+  "@appThemeLabelSoftDark": {
+    "x-sourceSha256": "a1d6e637a8d9be9f105e29966e53aae07800bdab367b773f1950484e196fd0c6"
+  },
+  "appThemeLabelHighContrast": "Hoog contrast",
+  "@appThemeLabelHighContrast": {
+    "x-sourceSha256": "415a8336713e6a3bb61660818c7ae7691e2246b94bcbc61a3f92dd33408d5488"
+  },
+  "appThemeDescriptionSystem": "Volgt de licht/donker-instelling van het apparaat",
+  "@appThemeDescriptionSystem": {
+    "x-sourceSha256": "73151d13926dcd43b2aad98215c5f98153012fdadee88f5fe2da8fc0988c02e9"
+  },
+  "appThemeDescriptionLight": "Warm lichtpalet",
+  "@appThemeDescriptionLight": {
+    "x-sourceSha256": "0522ae15d56d78fcfa70ab4297e02cb4a7d0bc961568286dd194465c16a3da96"
+  },
+  "appThemeDescriptionDark": "Warm donker palet",
+  "@appThemeDescriptionDark": {
+    "x-sourceSha256": "b84d4b63a0fe30b1d8eca043d4997c52cc69673a7c49942564fb47faeff91a2b"
+  },
+  "appThemeDescriptionSoftDark": "Warm donker op een zachtere, lichtere ondergrond",
+  "@appThemeDescriptionSoftDark": {
+    "x-sourceSha256": "dd92ad0d0024de7eac3e0ada6e06461e4d4fade502ed7a8587b7ffa6b6cefb98"
+  },
+  "appThemeDescriptionHighContrast": "Maximaal contrast voor schemerige ruimtes en slechtziendheid",
+  "@appThemeDescriptionHighContrast": {
+    "x-sourceSha256": "436563219de95bc4c26f6314c5292f52a77a28fecd0a2a5d241679a14a9d6ca1"
+  },
+  "appThemeDescriptionBlulocoLight": "Heldere, koel-neutrale ondergrond met levendige juweeltinten",
+  "@appThemeDescriptionBlulocoLight": {
+    "x-sourceSha256": "0cf2c563fed17cf0b5a48ff9e1b2b4d6b7990006e135ce0343380fb0737bdc46"
+  },
+  "appThemeDescriptionOneDarkPro": "One Dark Pro, het populaire editorthema",
+  "@appThemeDescriptionOneDarkPro": {
+    "x-sourceSha256": "3d66c0a549829ac2c86715d91f53517fa393c91f746d752e798cec40d318a7ff"
+  },
+  "appThemeDescriptionMonokai": "One Monokai – Monokai-syntaxis op antraciet",
+  "@appThemeDescriptionMonokai": {
+    "x-sourceSha256": "42a71302289f9b4a20d33d17880926050cfb25113c21ca2e9f5242d27948b02e"
+  },
+  "appThemeDescriptionNoctis": "De originele diepteal Noctis-nacht",
+  "@appThemeDescriptionNoctis": {
+    "x-sourceSha256": "65c6b6c8402cab7468d1f6a63a1059558b7e61d83436954fe119b1ac85664a6a"
+  },
+  "appThemeDescriptionGithubLight": "GitHubs heldere, neutrale licht",
+  "@appThemeDescriptionGithubLight": {
+    "x-sourceSha256": "17c66c0577067c22814f35aa8ab0849a6f3d85de4069d801bb856b1e63188ec3"
+  },
+  "appThemeDescriptionCatppuccinLatte": "Zacht pastellicht, favoriet van de community",
+  "@appThemeDescriptionCatppuccinLatte": {
+    "x-sourceSha256": "afb2ffa622bba0fc18e2ebb5f22482f7a4aca8d8cc94b9b5d69830134f935e0c"
+  },
+  "appThemeDescriptionGruvboxLight": "Warm retro-crème en aardtinten",
+  "@appThemeDescriptionGruvboxLight": {
+    "x-sourceSha256": "6c9f5702c90cb0e2fb8e3ba375584be7b816f096b9614d7ae1b9784b19970cfe"
+  },
+  "appThemeDescriptionEverforestLight": "Zacht groen, rustig voor de ogen",
+  "@appThemeDescriptionEverforestLight": {
+    "x-sourceSha256": "a4aa0fb5f5ea9d83c876c83e1000d6ac51d6c5b47ca5df174ce20c840303871a"
+  },
+  "appThemeDescriptionRosePineDawn": "Gedempt roze en iris op warm papier",
+  "@appThemeDescriptionRosePineDawn": {
+    "x-sourceSha256": "98f7c45e0a9cc2db12bdd4028579d2d9ff83dac9f1980e12c295a08c9c0877f3"
+  },
+  "appThemeDescriptionAyuLight": "Helder, minimaal licht met amberkleurige accenten",
+  "@appThemeDescriptionAyuLight": {
+    "x-sourceSha256": "add88085dc8c899de7075bd63e2ea598cdf674d30ef05a80d27ff432de082e4f"
+  },
+  "appThemeDescriptionTokyoNightLight": "Heldere indigo daglicht, de dag van Tokyo Night",
+  "@appThemeDescriptionTokyoNightLight": {
+    "x-sourceSha256": "f1730a93880cb5e53916dfbd19f954b0eda809dcf95794ff13097acb7e6a1113"
+  },
+  "appThemeDescriptionNordLight": "Koele arctische sneeuwstorm-neutrale tinten",
+  "@appThemeDescriptionNordLight": {
+    "x-sourceSha256": "26fb410d1fcc004c8824c3d317fe80b7971767df4d87449d507c795f4ad4a9df"
+  },
+  "appThemeDescriptionKanagawaLotus": "Warm sumi-e-papier met inktaccenten",
+  "@appThemeDescriptionKanagawaLotus": {
+    "x-sourceSha256": "96712c0fda23344a1756eaa87dfbdaa04bb88287c08b170e370e5447500a9db8"
+  },
+  "appThemeDescriptionDracula": "De klassieke favoriet: paars op antraciet",
+  "@appThemeDescriptionDracula": {
+    "x-sourceSha256": "0e280fae7219a870d5160b99abff280a225ffb0b97d20b7faab28f49eda08898"
+  },
+  "appThemeDescriptionNord": "Koele arctische blauwtinten, ingetogen",
+  "@appThemeDescriptionNord": {
+    "x-sourceSha256": "0428e37590a4e7fb582bd49424a4faae47d34ea1fefd8d5c804e3d43acf2338b"
+  },
+  "appThemeDescriptionTokyoNight": "Neon-indigo palet van een stad bij nacht",
+  "@appThemeDescriptionTokyoNight": {
+    "x-sourceSha256": "fc348fd5a1b1b1dc3ff182dc8c9dd2a47884a6ddc59a0b91b0301a5a73a0468d"
+  },
+  "appThemeDescriptionGruvboxDark": "Warm retro-amber op antraciet",
+  "@appThemeDescriptionGruvboxDark": {
+    "x-sourceSha256": "ada0e2aaf877bbdcd4e6f7b44cc4d201d1abb158d8c1e0730b26b6fb7d56f2f3"
+  },
+  "appThemeDescriptionCatppuccinMocha": "Gezellig pasteldonker, favoriet van de community",
+  "@appThemeDescriptionCatppuccinMocha": {
+    "x-sourceSha256": "31493edc84a012a80e1bd4755f4451b27136d3d9a5c524ad58f3546fb37e3ac0"
+  },
+  "appThemeDescriptionGithubDark": "GitHubs neutrale donker",
+  "@appThemeDescriptionGithubDark": {
+    "x-sourceSha256": "26a0934cc46b014ced2a9c1a92a532252ff4d2db8c785ffd725c75795307580c"
+  },
+  "appThemeDescriptionEverforestDark": "Zacht bosgroen, weinig vermoeiend",
+  "@appThemeDescriptionEverforestDark": {
+    "x-sourceSha256": "31097600a7fb09b1a6fe2abe9edfb98b1f74746f7f8551aa9ea509574651a463"
+  },
+  "appThemeDescriptionRosePine": "Gedempt roze en iris in het donker",
+  "@appThemeDescriptionRosePine": {
+    "x-sourceSha256": "4ff75f44de41b4d3b3f0178aa9b1725046ac3cc65ad789ac06d10538830f173b"
+  },
+  "appThemeDescriptionAyuMirage": "Zacht leisteengrijs met amberkleurige accenten",
+  "@appThemeDescriptionAyuMirage": {
+    "x-sourceSha256": "7c23da42889ecc6a43908f8a76e843eec3359990c9d0b4b841fe6c5b7d0235f5"
+  },
+  "appThemeDescriptionCutiePro": "Superschattig donker pastel, roze als blikvanger",
+  "@appThemeDescriptionCutiePro": {
+    "x-sourceSha256": "061d6ce8faa75b2d5c38cc20c632c5d33e8fe15a8fab401e1e1eec08a8a719a3"
+  },
+  "appThemeDescriptionPinkAsHeck": "Onbeschaamd felroze op bessenkleur",
+  "@appThemeDescriptionPinkAsHeck": {
+    "x-sourceSha256": "55f80d245333565ef834b95a02cfcd6d3b75045c561daee2d9d3a8794e7126c6"
+  },
+  "appThemeDescriptionVitesseLight": "Modern gedempt saliegroen, teal en roze",
+  "@appThemeDescriptionVitesseLight": {
+    "x-sourceSha256": "d00184a3aff9e5fa9fe55a434a4c12c256a7039632c5a1367fcba8866ac676a3"
+  },
+  "appThemeDescriptionZenburn": "Het klassieke warmgrijs met laag contrast",
+  "@appThemeDescriptionZenburn": {
+    "x-sourceSha256": "8eed33d5cf01f8faaf8ba8185596ce8d269eaf39b7c3cde4658117f0d57eb302"
+  },
+  "appThemeDescriptionShadesOfPurple": "Rijk goud op diep indigo",
+  "@appThemeDescriptionShadesOfPurple": {
+    "x-sourceSha256": "735bb079dcedcb2d0ac260e7bf696aeed10047805ac52a0ab08dfcd51b58ab98"
+  },
+  "appThemeDescriptionCatppuccinFrappe": "Lichter blauwgrijs pastel-Catppuccin",
+  "@appThemeDescriptionCatppuccinFrappe": {
+    "x-sourceSha256": "5f6ae7e2ffe43b2dedb7a65cdfaeda4ab4c205f2fa539c52c4f4b0fbb458a16b"
+  },
+  "appThemeDescriptionSynthwave84": "Gloeiend neon op retropaars",
+  "@appThemeDescriptionSynthwave84": {
+    "x-sourceSha256": "d3ad954d3f7c26c107bd982751b50d2adec5f0ee73fe6d072312a5c1d4153ee2"
+  },
+  "appThemeDescriptionNoctisLilac": "Zacht lila daglicht van Noctis",
+  "@appThemeDescriptionNoctisLilac": {
+    "x-sourceSha256": "d39470a5a25cfb9ed445bfbd9701fbe47ee4812bdcea0e32a8573df7a9c23e01"
+  },
+  "themeEditorGroupPrimary": "Primair",
+  "@themeEditorGroupPrimary": {
+    "x-sourceSha256": "efe10c80ec8a9f38624cbb47103010a8cf32488a503e4b4bfe4f92307a9cefa7"
+  },
+  "themeEditorGroupSecondary": "Secundair",
+  "@themeEditorGroupSecondary": {
+    "x-sourceSha256": "62f2ccfffcc5103eabb193172833e6d95db890898849ea1ce84b8d7843997539"
+  },
+  "themeEditorGroupTertiary": "Tertiair",
+  "@themeEditorGroupTertiary": {
+    "x-sourceSha256": "af3ddd815af84ae581f631295b763f729697b8a8dc36e4b49b301ea423bc1500"
+  },
+  "themeEditorGroupError": "Fout",
+  "@themeEditorGroupError": {
+    "x-sourceSha256": "54a0e8c17ebb21a11f8a25b8042786ef7efe52441e6cc87e92c67e0c4c0c6e78"
+  },
+  "themeEditorGroupSurfaceText": "Oppervlak en tekst",
+  "@themeEditorGroupSurfaceText": {
+    "x-sourceSha256": "c2d412de1ddab66102457ff85c349d20891fb2506d6284c5d67913c0c94adf21"
+  },
+  "themeEditorGroupSurfaceContainers": "Oppervlaktecontainers",
+  "@themeEditorGroupSurfaceContainers": {
+    "x-sourceSha256": "7b1f3eb3e6a80bcabb8367027c44ebb47374f636a5ce3c28414d13c852eef67d"
+  },
+  "themeEditorGroupOutlineEffects": "Omlijning en effecten",
+  "@themeEditorGroupOutlineEffects": {
+    "x-sourceSha256": "62b15f9015a365974ae2ee0e225c82592f75cecada905476dc01d5c313e1f89c"
+  },
+  "themeEditorRolePrimary": "Primair",
+  "@themeEditorRolePrimary": {
+    "x-sourceSha256": "efe10c80ec8a9f38624cbb47103010a8cf32488a503e4b4bfe4f92307a9cefa7"
+  },
+  "themeEditorRoleOnPrimary": "Op primair",
+  "@themeEditorRoleOnPrimary": {
+    "x-sourceSha256": "dae7d8f32cd8148515645ec62c028005be41c4c46dc2ad86e28cfecb8c9030dd"
+  },
+  "themeEditorRolePrimaryContainer": "Primaire container",
+  "@themeEditorRolePrimaryContainer": {
+    "x-sourceSha256": "9e6596e7ba36d418be8593f51da38aa46391f5716f0a7e80251653413d4a85a6"
+  },
+  "themeEditorRoleOnPrimaryContainer": "Op primaire container",
+  "@themeEditorRoleOnPrimaryContainer": {
+    "x-sourceSha256": "a391d34321dbfd7517cb93b432c437fe45fa6caa70333b1113b4809b8b5f9f06"
+  },
+  "themeEditorRoleSecondary": "Secundair",
+  "@themeEditorRoleSecondary": {
+    "x-sourceSha256": "62f2ccfffcc5103eabb193172833e6d95db890898849ea1ce84b8d7843997539"
+  },
+  "themeEditorRoleOnSecondary": "Op secundair",
+  "@themeEditorRoleOnSecondary": {
+    "x-sourceSha256": "fd73808427c14d94b4a7e7d541ecb431d482051bf60eb96c49c292dbc315aead"
+  },
+  "themeEditorRoleSecondaryContainer": "Secundaire container",
+  "@themeEditorRoleSecondaryContainer": {
+    "x-sourceSha256": "bc8ee523ab960a2ff80f9b6602ac72bb396a4ca7c415826a6efe82e8279b5b3c"
+  },
+  "themeEditorRoleOnSecondaryContainer": "Op secundaire container",
+  "@themeEditorRoleOnSecondaryContainer": {
+    "x-sourceSha256": "ed3f96e2423a93c030879d694338fe8bdddfb6ca6cfa4640e468c0d9a070d2ea"
+  },
+  "themeEditorRoleTertiary": "Tertiair",
+  "@themeEditorRoleTertiary": {
+    "x-sourceSha256": "af3ddd815af84ae581f631295b763f729697b8a8dc36e4b49b301ea423bc1500"
+  },
+  "themeEditorRoleOnTertiary": "Op tertiair",
+  "@themeEditorRoleOnTertiary": {
+    "x-sourceSha256": "b445d512ab0ce2600cd56dbcf4d9a8f11378f0804f8f5d653f955d4e7c2b2ed7"
+  },
+  "themeEditorRoleTertiaryContainer": "Tertiaire container",
+  "@themeEditorRoleTertiaryContainer": {
+    "x-sourceSha256": "c488f64085533deaaf211aa6fef6be3d3f96ec371b22c105b5347d89ec81292d"
+  },
+  "themeEditorRoleOnTertiaryContainer": "Op tertiaire container",
+  "@themeEditorRoleOnTertiaryContainer": {
+    "x-sourceSha256": "dc44ae519732318d102f61a6def204e3682e67755d0dbaac06513a65720c5358"
+  },
+  "themeEditorRoleError": "Fout",
+  "@themeEditorRoleError": {
+    "x-sourceSha256": "54a0e8c17ebb21a11f8a25b8042786ef7efe52441e6cc87e92c67e0c4c0c6e78"
+  },
+  "themeEditorRoleOnError": "Op fout",
+  "@themeEditorRoleOnError": {
+    "x-sourceSha256": "817fc01c9fd571ac01adbeb12e441ef40344ce8f3a4dae71c6452a4273d6696c"
+  },
+  "themeEditorRoleErrorContainer": "Foutcontainer",
+  "@themeEditorRoleErrorContainer": {
+    "x-sourceSha256": "421d350a1bd5580ccf10eb12dda0700ba791abc2648e3005d9d4b4f0ad8e64b3"
+  },
+  "themeEditorRoleOnErrorContainer": "Op foutcontainer",
+  "@themeEditorRoleOnErrorContainer": {
+    "x-sourceSha256": "e3b32e422e7cde24da3d2e3197e591e0637a299e412f8dbb414a48251c59ee76"
+  },
+  "themeEditorRoleSurface": "Oppervlak",
+  "@themeEditorRoleSurface": {
+    "x-sourceSha256": "0905f7f59021c2a85f1c0a50d7c252a3e6c6ee006514f01d7264097f1fd4337a"
+  },
+  "themeEditorRoleOnSurface": "Op oppervlak",
+  "@themeEditorRoleOnSurface": {
+    "x-sourceSha256": "40e1cf2854c570ba58ead0baededb0a1423c9fd5feb9e8c5f9d1100220f6bacb"
+  },
+  "themeEditorRoleOnSurfaceVariant": "Op oppervlakvariant",
+  "@themeEditorRoleOnSurfaceVariant": {
+    "x-sourceSha256": "0ed2808e1a6207c3f794abe432600f06af856b54418af3dfc19ed35287c0e410"
+  },
+  "themeEditorRoleInverseSurface": "Omgekeerd oppervlak",
+  "@themeEditorRoleInverseSurface": {
+    "x-sourceSha256": "849d58834dec7fc0168e2dbe952fd301c6234c0015612eaa3856e3c17c375fc1"
+  },
+  "themeEditorRoleOnInverseSurface": "Op omgekeerd oppervlak",
+  "@themeEditorRoleOnInverseSurface": {
+    "x-sourceSha256": "6155170e83a20e77cbbc52864a48e7e9a90e34cc70c3ade5947b05803f2178cf"
+  },
+  "themeEditorRoleInversePrimary": "Omgekeerd primair",
+  "@themeEditorRoleInversePrimary": {
+    "x-sourceSha256": "5ec1fbcfbc98b7631d6f180f981283ab990b4ce19961767d624eb7982fc4a316"
+  },
+  "themeEditorRoleSurfaceContainerLowest": "Container (laagste)",
+  "@themeEditorRoleSurfaceContainerLowest": {
+    "x-sourceSha256": "a8c158fb86fb4ee807c1af6bae0adb7e64e4f6a8c9184ce53b5b5c925c9c168e"
+  },
+  "themeEditorRoleSurfaceContainerLow": "Container (laag)",
+  "@themeEditorRoleSurfaceContainerLow": {
+    "x-sourceSha256": "47c377542e0bc1d3b2b7a07d501e97aa87aff20960c57d4983d7ea13e3aeac86"
+  },
+  "themeEditorRoleSurfaceContainer": "Container",
+  "@themeEditorRoleSurfaceContainer": {
+    "x-sourceSha256": "0c7823e8c759af7d0d04bea22a6d64fb56065c7168977b5f19ad2225a2986178"
+  },
+  "themeEditorRoleSurfaceContainerHigh": "Container (hoog)",
+  "@themeEditorRoleSurfaceContainerHigh": {
+    "x-sourceSha256": "b54e46a9fe50df951f282e7d9e3d3500b2f2a50372c74d206b02250b8b146f67"
+  },
+  "themeEditorRoleSurfaceContainerHighest": "Container (hoogste)",
+  "@themeEditorRoleSurfaceContainerHighest": {
+    "x-sourceSha256": "bc4d36f458848e80d5f8567942e5cc3ccbe6c28233f4297ca310505c2f9945a8"
+  },
+  "themeEditorRoleOutline": "Omlijning",
+  "@themeEditorRoleOutline": {
+    "x-sourceSha256": "eabbf3abaf8d98abb9763d83f29b04716524a9d697dfdd06ae3ed77bdd12c929"
+  },
+  "themeEditorRoleOutlineVariant": "Omlijningsvariant",
+  "@themeEditorRoleOutlineVariant": {
+    "x-sourceSha256": "f2b95d59af5eec6fb6cc8b00ff66e828312a399ba57436cfcf8ceb29d676db55"
+  },
+  "themeEditorRoleSurfaceTint": "Oppervlaktetint",
+  "@themeEditorRoleSurfaceTint": {
+    "x-sourceSha256": "50fc3498c23aee91a9588c9b2048c627db90bd4725c3ba3abf1b49ae8126c510"
+  },
+  "themeEditorRoleShadow": "Schaduw",
+  "@themeEditorRoleShadow": {
+    "x-sourceSha256": "4c764cb6248ef9337fc1c8769d4b74fc1d4c1fff6a9e8d00ca6753a560b3e74b"
+  },
+  "themeEditorRoleScrim": "Scrim",
+  "@themeEditorRoleScrim": {
+    "x-sourceSha256": "b72b765b11de350fbefc015e56962ec035642aa8b3edcf3061b4ac94aa412a62"
+  },
+  "themeEditorPairOnPrimary": "Tekst op primair",
+  "@themeEditorPairOnPrimary": {
+    "x-sourceSha256": "0607c072e37dc5486d8c3e2848217cd24fa959eeaf08071f49af21fc294363f4"
+  },
+  "themeEditorPairOnPrimaryContainer": "Tekst op primaire container",
+  "@themeEditorPairOnPrimaryContainer": {
+    "x-sourceSha256": "8818e6dd1e545914b5d895722e79a82cbf0475fe03d6d32cce52e3dbd98021a4"
+  },
+  "themeEditorPairOnSecondary": "Tekst op secundair",
+  "@themeEditorPairOnSecondary": {
+    "x-sourceSha256": "28d8b08671c91539e3ae28dae8201c574a32b1da9878368d39d231d69b5b6a37"
+  },
+  "themeEditorPairOnSecondaryContainer": "Tekst op secundaire container",
+  "@themeEditorPairOnSecondaryContainer": {
+    "x-sourceSha256": "7d4bc15246953d3991379b58763a726226ed941270dc4d7b5db32a8c7c8be2bf"
+  },
+  "themeEditorPairOnTertiary": "Tekst op tertiair",
+  "@themeEditorPairOnTertiary": {
+    "x-sourceSha256": "7b3f0c45e82fa675451b9bca343b0d39ecb6b9b2ea12bca7678703ccc119ebf8"
+  },
+  "themeEditorPairOnTertiaryContainer": "Tekst op tertiaire container",
+  "@themeEditorPairOnTertiaryContainer": {
+    "x-sourceSha256": "5ecd7fcedff3902e43a5ec61fd30d4009c1bd621038320a10af4a6f36a2905cb"
+  },
+  "themeEditorPairOnError": "Tekst op fout",
+  "@themeEditorPairOnError": {
+    "x-sourceSha256": "72e5ace23e83772a87540e83b392ef6d25155c92eb7e08771d667a84764d6b8c"
+  },
+  "themeEditorPairOnErrorContainer": "Tekst op foutcontainer",
+  "@themeEditorPairOnErrorContainer": {
+    "x-sourceSha256": "dc4696846d9678599dd6932dfa9cb6d30dc7bd539da7c7f517f7b3e890e9565e"
+  },
+  "themeEditorPairOnSurface": "Lopende tekst op oppervlak",
+  "@themeEditorPairOnSurface": {
+    "x-sourceSha256": "1a8eaa9e0d7b55451edca7fb7ed2f348485761e73e3bd2a3deed8aa2fbd3ff6f"
+  },
+  "themeEditorPairOnSurfaceVariant": "Secundaire tekst op oppervlak",
+  "@themeEditorPairOnSurfaceVariant": {
+    "x-sourceSha256": "44164a61acc50bc2a829dfc7c87f90ec8709b712d0fe27e69f3eac609c194819"
+  },
+  "themeEditorPairOnInverseSurface": "Tekst op omgekeerd oppervlak",
+  "@themeEditorPairOnInverseSurface": {
+    "x-sourceSha256": "a4574fb9ec5459f80d68c21fbb2a4e9b83fe561ed67ea09f098da12692730866"
+  },
+  "themeEditorPairOutline": "Omlijning op oppervlak",
+  "@themeEditorPairOutline": {
+    "x-sourceSha256": "99b7bdbf2e12071cf313ae0bc216ed066e8d70a77db51c118ba1d01e9ab99060"
+  },
   "settingsAppearanceEasterEggsHeader": "Verrassingen",
   "@settingsAppearanceEasterEggsHeader": {
     "x-sourceSha256": "1a420070d362964df352f37d1b6c07e5c3ceeb52372cc9e6848f1dd0741f0a59"
@@ -2475,6 +2855,38 @@
   "backupReplaceAllDataAction": "Alle gegevens vervangen",
   "@backupReplaceAllDataAction": {
     "x-sourceSha256": "b8667a4cafecbe0b101c651e98c27c2c2a8d7bf668b95aa6038f07629029bb39"
+  },
+  "backupFileSummary": "Back-up van {date}: {dances, plural, one {{dances} dans} other {{dances} dansen}}, {programs, plural, one {{programs} programma} other {{programs} programma's}}, {size} MB",
+  "@backupFileSummary": {
+    "x-sourceSha256": "d3ca7f78a56484717b1cbd4241cfaccd2f4218c5a2fa31aef25f4a04498a15f6"
+  },
+  "backupFileUnreadable": "Dit bestand lijkt geen leesbare back-up te zijn ({size} MB). Bij het vervangen zie je waarom herstellen niet lukt.",
+  "@backupFileUnreadable": {
+    "x-sourceSha256": "04a82a832fe8002275a7c27c5f3547dc0a009e0ed8c5f4d66eedd819dcee2dbc"
+  },
+  "backupFileClearAction": "Wissen",
+  "@backupFileClearAction": {
+    "x-sourceSha256": "83b12c2216efb4fdc924e1deb5182e905e4926ed0c1c324d467107f46d5a26a9"
+  },
+  "backupFileTooLarge": "Dat bestand is te groot voor een Caller’s Compendium-back-up ({sizeMb} MB; limiet {limitMb} MB). Je gegevens zijn ongewijzigd.",
+  "@backupFileTooLarge": {
+    "x-sourceSha256": "3e9ac5f6ca85f6efe2676e53a0d0460c736dc1cb76c50731257083782748d37c"
+  },
+  "backupExportTooLarge": "Je collectie is te groot om als één back-up te exporteren ({sizeMb} MB; limiet {limitMb} MB), dus er is niets opgeslagen. Je gegevens zijn ongewijzigd.",
+  "@backupExportTooLarge": {
+    "x-sourceSha256": "1416959a2f449b0558cc843bfa3dbd39209ae1069307cb905582625594368e3e"
+  },
+  "backupExportInProgress": "Je back-up wordt voorbereid…",
+  "@backupExportInProgress": {
+    "x-sourceSha256": "9174795f8bf8199c1a9f40bd555b24c33361d0c752e5f0d07215277151a36101"
+  },
+  "backupRestorePreparing": "De back-up wordt gelezen…",
+  "@backupRestorePreparing": {
+    "x-sourceSha256": "19ca1b5b4e8e8354382be47c93d1485d89d0282e12155b8392ad84b1c76390ef"
+  },
+  "backupRestoreProgress": "{done} van {total} herstellen…",
+  "@backupRestoreProgress": {
+    "x-sourceSha256": "399de1a943b7134dfed9179444eed01ab33c2e94a72a792f1833075a8d5ae880"
   },
   "diagnosticsNoDiagnosticsToExport": "Geen diagnostics te exporteren.",
   "@diagnosticsNoDiagnosticsToExport": {

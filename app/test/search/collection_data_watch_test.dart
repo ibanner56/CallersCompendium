@@ -16,7 +16,7 @@ import '../support/test_repositories.dart';
 /// that re-reads on every commit is easy; one that does so exactly once per
 /// user action is the constraint issue #340 records, and the batch paths in
 /// this app write one row per transaction in a loop.
-/// Holds the watched-collection query open, so the stream can be closed before
+/// Holds the initial collection load open, so the stream can be closed before
 /// it ever emits.
 ///
 /// `QueryInterceptor.runSelect` returns a `Future`, so an interceptor may await
@@ -38,18 +38,59 @@ class _ParkFirstWatchQuery extends drift.QueryInterceptor {
     String statement,
     List<Object?> args,
   ) async {
-    // `watchCollectionSources`'s sentinel; parking it stops the snapshot being
-    // assembled at all.
-    //
-    // Matched by its marker comment rather than by the whole statement: the
-    // sentinel's SQL text now varies per read set on purpose (issue #944 — see
-    // `watchCollectionSources`, where the marker is what keeps drift's stream
-    // cache from merging two different read sets into one stream). An exact
-    // `== 'SELECT 1'` compare silently stopped matching when that landed, so
-    // this parks on the substring that identifies the query instead.
-    if (_armed && !didPark && statement.contains('/* collection sources')) {
+    // The first read of `CollectionData.load` (`dances.listAll`); parking it
+    // stops the snapshot being assembled at all. `watch` no longer issues the
+    // `watchCollectionSources` sentinel (it listens to `tableUpdates` to learn
+    // which tables changed), so this parks on the initial load instead.
+    if (_armed && !didPark && statement.contains('FROM "dances"')) {
       didPark = true;
       await _gate.future;
+    }
+    return executor.runSelect(statement, args);
+  }
+}
+
+/// Records every `SELECT` statement once armed, so a test can assert which
+/// tables a reload read.
+class _RecordSelects extends drift.QueryInterceptor {
+  final statements = <String>[];
+  bool _armed = false;
+
+  void arm() {
+    statements.clear();
+    _armed = true;
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (_armed) statements.add(statement);
+    return executor.runSelect(statement, args);
+  }
+}
+
+/// Fails the next `dances` select once armed, then delegates normally.
+class _FailNextDancesSelect extends drift.QueryInterceptor {
+  bool _armed = false;
+
+  void arm() => _armed = true;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) async {
+    // `dances.listAll`, the first read of `load()`; not the dance write's own
+    // lookups.
+    if (_armed &&
+        statement.contains('FROM "dances"') &&
+        statement.contains('ORDER BY "title"')) {
+      _armed = false;
+      throw StateError('injected dances read failure');
     }
     return executor.runSelect(statement, args);
   }
@@ -431,6 +472,277 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 120));
 
     expect(latest!.callCounts['d1']?.all, 1);
+  });
+
+  group('counts-only reload for program writes', () {
+    final programSlot = ProgramSlot(id: 's1', position: 0, danceId: 'd1');
+
+    Program program(String id, {String title = 'Friday'}) => Program(
+      id: id,
+      title: title,
+      slots: [programSlot],
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    ({CompendiumRepositories repos, _RecordSelects log}) openRecording() {
+      final log = _RecordSelects();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(log),
+        ),
+        contraTaxonomy,
+      );
+      return (repos: repos, log: log);
+    }
+
+    bool reads(_RecordSelects log, String table) =>
+        log.statements.any((s) => s.contains('FROM "$table"'));
+
+    test(
+      'a programs write while a watch is live issues no dances read',
+      () async {
+        final (:repos, :log) = openRecording();
+        await repos.dances.create(dance('d1', 'Petronella'));
+        final snapshots = <CollectionData>[];
+        final sub = CollectionData.watch(repos).listen(snapshots.add);
+        addTearDown(sub.cancel);
+        await pumpEventQueue();
+        expect(snapshots, hasLength(1));
+
+        log.arm();
+        await repos.programs.create(program('p1'));
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+
+        expect(snapshots, hasLength(2), reason: 'the write still emits');
+        expect(snapshots.last.callCounts['d1']?.all, 1);
+        for (final table in ['dances', 'choreographers', 'tags']) {
+          expect(
+            reads(log, table),
+            isFalse,
+            reason:
+                'a counts-only reload must not read $table: ${log.statements}',
+          );
+        }
+      },
+    );
+
+    test(
+      'a counts-only emit preserves the previous snapshot content',
+      () async {
+        final repos = openRepos();
+        await repos.dances.create(dance('d1', 'Petronella'));
+        // ignore: unused_result
+        await repos.customFieldDefs.upsert(
+          CustomFieldDef(
+            id: 'f1',
+            key: 'mood',
+            label: 'Mood',
+            type: CustomFieldType.text,
+          ),
+        );
+        final snapshots = <CollectionData>[];
+        final sub = CollectionData.watch(repos).listen(snapshots.add);
+        addTearDown(sub.cancel);
+        await pumpEventQueue();
+
+        await repos.programs.create(program('p1'));
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+
+        expect(snapshots, hasLength(2));
+        final (previous, next) = (snapshots.first, snapshots.last);
+        expect(identical(next.dancesById, previous.dancesById), isTrue);
+        expect(identical(next.tags, previous.tags), isTrue);
+        expect(identical(next.citedSources, previous.citedSources), isTrue);
+        expect(next.customFieldFor('f1')?.label, 'Mood');
+        expect(next.callCounts['d1']?.all, 1);
+        expect(previous.callCounts, isEmpty);
+      },
+    );
+
+    test('a mixed burst in one window runs one full load', () async {
+      final (:repos, :log) = openRecording();
+      await repos.dances.create(dance('d1', 'Petronella'));
+      final snapshots = <CollectionData>[];
+      final sub = CollectionData.watch(repos).listen(snapshots.add);
+      addTearDown(sub.cancel);
+      await pumpEventQueue();
+
+      log.arm();
+      await repos.db.transaction(() async {
+        await repos.dances.create(dance('d2', 'Chase the Squirrel'));
+        await repos.programs.create(program('p1'));
+      });
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+
+      expect(snapshots.last.dancesById.keys, containsAll(['d1', 'd2']));
+      expect(snapshots.last.callCounts['d1']?.all, 1);
+      expect(
+        log.statements.where((s) => s.contains('FROM "dances"')),
+        isNotEmpty,
+        reason: 'a dance write inside the burst forces the full load',
+      );
+    });
+
+    // One write per table the watch is built from: the expected read class.
+    // Each case is a (table, write, full-load?) triple.
+    final cases =
+        <
+          ({
+            String table,
+            bool full,
+            Future<void> Function(CompendiumRepositories) write,
+          })
+        >[
+          (
+            table: 'dances',
+            full: true,
+            write: (r) => r.dances.create(dance('d9', 'New')),
+          ),
+          (
+            table: 'choreographers',
+            full: true,
+            write: (r) async {
+              // ignore: unused_result
+              await r.choreographers.upsert(
+                Choreographer(id: 'c1', name: 'Gene Hubert'),
+              );
+            },
+          ),
+          (
+            table: 'tags',
+            full: true,
+            write: (r) async {
+              // ignore: unused_result
+              await r.tags.upsert(Tag(id: 't1', name: 'Gentle'));
+            },
+          ),
+          (
+            table: 'custom_field_defs',
+            full: true,
+            write: (r) async {
+              // ignore: unused_result
+              await r.customFieldDefs.upsert(
+                CustomFieldDef(
+                  id: 'f9',
+                  key: 'mood9',
+                  label: 'Mood',
+                  type: CustomFieldType.text,
+                ),
+              );
+            },
+          ),
+          (
+            table: 'published_sources',
+            full: true,
+            write: (r) async {
+              // ignore: unused_result
+              await r.publishedSources.upsert(
+                PublishedSource(id: 'ps1', title: 'Book'),
+              );
+            },
+          ),
+          (
+            table: 'programs',
+            full: false,
+            write: (r) => r.programs.create(program('p9')),
+          ),
+        ];
+    for (final c in cases) {
+      test('a ${c.table} write runs a ${c.full ? 'full' : 'counts-only'} '
+          'reload', () async {
+        final (:repos, :log) = openRecording();
+        await repos.dances.create(dance('d1', 'Petronella'));
+        final sub = CollectionData.watch(repos).listen((_) {});
+        addTearDown(sub.cancel);
+        await pumpEventQueue();
+
+        log.arm();
+        await c.write(repos);
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+
+        expect(reads(log, 'dances'), c.full, reason: '${log.statements}');
+      });
+    }
+
+    test('a failed content reload is retried in full by the next '
+        'program-only write', () async {
+      final failer = _FailNextDancesSelect();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(failer),
+        ),
+        contraTaxonomy,
+      );
+      await repos.dances.create(dance('d1', 'Petronella'));
+      final snapshots = <CollectionData>[];
+      var errors = 0;
+      final sub = CollectionData.watch(
+        repos,
+      ).listen(snapshots.add, onError: (Object _) => errors++);
+      addTearDown(sub.cancel);
+      await pumpEventQueue();
+      expect(snapshots, hasLength(1));
+
+      failer.arm();
+      await repos.dances.create(dance('d2', 'Chase the Squirrel'));
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      expect(errors, 1, reason: 'the content reload failed');
+      expect(snapshots, hasLength(1));
+
+      await repos.programs.create(program('p1'));
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+
+      expect(snapshots, hasLength(2));
+      expect(
+        snapshots.last.dancesById.keys,
+        containsAll(['d1', 'd2']),
+        reason: 'the program-only write must retry the full load',
+      );
+      expect(snapshots.last.callCounts['d1']?.all, 1);
+    });
+
+    test('a program_slots-only write is counts-only', () async {
+      final (:repos, :log) = openRecording();
+      await repos.dances.create(dance('d1', 'Petronella'));
+      await repos.programs.create(program('p1'));
+      final sub = CollectionData.watch(repos).listen((_) {});
+      addTearDown(sub.cancel);
+      await pumpEventQueue();
+
+      log.arm();
+      // A write confined to `program_slots`, as a drift notification.
+      repos.db.markTablesUpdated({repos.db.programSlots});
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+
+      expect(log.statements, isNotEmpty, reason: 'the tallies were re-read');
+      expect(reads(log, 'dances'), isFalse, reason: '${log.statements}');
+    });
+
+    test('a venues-only write is counts-only for watchVenues subscribers, '
+        'and invisible to others', () async {
+      final (:repos, :log) = openRecording();
+      await repos.dances.create(dance('d1', 'Petronella'));
+      var withVenues = 0;
+      var without = 0;
+      final subA = CollectionData.watch(
+        repos,
+        watchVenues: true,
+      ).listen((_) => withVenues++);
+      final subB = CollectionData.watch(repos).listen((_) => without++);
+      addTearDown(subA.cancel);
+      addTearDown(subB.cancel);
+      await pumpEventQueue();
+      expect((withVenues, without), (1, 1));
+
+      log.arm();
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Town Hall'));
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+
+      expect(withVenues, 2, reason: 'a venue write still emits for them');
+      expect(without, 1, reason: 'and does not wake a plain subscriber');
+      expect(reads(log, 'dances'), isFalse, reason: '${log.statements}');
+    });
   });
 
   group('CoalesceTrailing input validation', () {

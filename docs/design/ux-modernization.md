@@ -169,7 +169,8 @@ icon+text by `program_status_chip.dart`; tokens add theme-driven color):
 
 - `statusActive` → no chip (default)
 - `statusDeprecated` → onSurfaceVariant + `history_toggle_off` "Deprecated"
-- `statusBroken` → error + `report_problem_outlined` "Broken"
+- `statusBroken` → error, eased toward the surface only as far as the chip label needs to stay AA
+  (`AppThemeExtension._chipSafe`) + `report_problem_outlined` "Broken"
 - `draft` → statusDeprecated + `edit_note_outlined` "Draft"
 - `variation` → statusDeprecated + `alt_route` "Variation"
 

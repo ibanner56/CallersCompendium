@@ -1319,6 +1319,292 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsAppearanceCustomThemesHeader => 'カスタムテーマ';
 
   @override
+  String get appThemeGroupSystem => 'システム';
+
+  @override
+  String get appThemeGroupDefault => 'デフォルト';
+
+  @override
+  String get appThemeGroupLight => 'ライト';
+
+  @override
+  String get appThemeGroupDark => 'ダーク';
+
+  @override
+  String get appThemeLabelSystem => 'システム';
+
+  @override
+  String get appThemeLabelLight => 'ライト';
+
+  @override
+  String get appThemeLabelDark => 'ダーク';
+
+  @override
+  String get appThemeLabelSoftDark => 'ソフトダーク';
+
+  @override
+  String get appThemeLabelHighContrast => 'ハイコントラスト';
+
+  @override
+  String get appThemeDescriptionSystem => '端末のライト/ダーク設定に合わせます';
+
+  @override
+  String get appThemeDescriptionLight => '暖かみのあるライトパレット';
+
+  @override
+  String get appThemeDescriptionDark => '暖かみのあるダークパレット';
+
+  @override
+  String get appThemeDescriptionSoftDark => 'より柔らかく明るい背景の、暖かみのあるダーク';
+
+  @override
+  String get appThemeDescriptionHighContrast => '暗い部屋や弱視向けの最大コントラスト';
+
+  @override
+  String get appThemeDescriptionBlulocoLight => 'すっきりしたクールニュートラルの背景と鮮やかな宝石色';
+
+  @override
+  String get appThemeDescriptionOneDarkPro => 'One Dark Pro、人気のエディターテーマ';
+
+  @override
+  String get appThemeDescriptionMonokai => 'One Monokai — チャコール地にMonokaiの配色';
+
+  @override
+  String get appThemeDescriptionNoctis => 'オリジナルの深いティールのNoctisの夜';
+
+  @override
+  String get appThemeDescriptionGithubLight => 'GitHubのすっきりしたニュートラルなライト';
+
+  @override
+  String get appThemeDescriptionCatppuccinLatte => '柔らかなパステルのライト、コミュニティの人気テーマ';
+
+  @override
+  String get appThemeDescriptionGruvboxLight => '暖かいレトロなクリーム色とアースカラー';
+
+  @override
+  String get appThemeDescriptionEverforestLight => '目にやさしい穏やかなグリーン';
+
+  @override
+  String get appThemeDescriptionRosePineDawn => '暖かい紙色にくすんだローズとアイリス';
+
+  @override
+  String get appThemeDescriptionAyuLight => 'アンバーのアクセントが映える明るくミニマルなライト';
+
+  @override
+  String get appThemeDescriptionTokyoNightLight =>
+      'くっきりしたインディゴの昼、Tokyo Nightの日中版';
+
+  @override
+  String get appThemeDescriptionNordLight => 'クールな北極の雪嵐を思わせるニュートラル';
+
+  @override
+  String get appThemeDescriptionKanagawaLotus => '墨のアクセントが効いた、暖かい墨絵の紙';
+
+  @override
+  String get appThemeDescriptionDracula => '定番の人気、チャコール地にパープル';
+
+  @override
+  String get appThemeDescriptionNord => 'クールで控えめな北極のブルー';
+
+  @override
+  String get appThemeDescriptionTokyoNight => 'ネオンインディゴの夜の街のパレット';
+
+  @override
+  String get appThemeDescriptionGruvboxDark => 'チャコール地に暖かいレトロなアンバー';
+
+  @override
+  String get appThemeDescriptionCatppuccinMocha => '居心地のよいパステルダーク、コミュニティの人気テーマ';
+
+  @override
+  String get appThemeDescriptionGithubDark => 'GitHubのニュートラルなダーク';
+
+  @override
+  String get appThemeDescriptionEverforestDark => '疲れにくい穏やかな森の緑';
+
+  @override
+  String get appThemeDescriptionRosePine => '闇の中にくすんだローズとアイリス';
+
+  @override
+  String get appThemeDescriptionAyuMirage => 'アンバーのアクセントが映えるなめらかなスレート';
+
+  @override
+  String get appThemeDescriptionCutiePro => 'とびきりキュートなダークパステル、ピンク基調';
+
+  @override
+  String get appThemeDescriptionPinkAsHeck => 'ベリー色に堂々のホットピンク';
+
+  @override
+  String get appThemeDescriptionVitesseLight => 'モダンでくすんだセージ、ティール、ローズ';
+
+  @override
+  String get appThemeDescriptionZenburn => '定番の低コントラストな暖かいグレー';
+
+  @override
+  String get appThemeDescriptionShadesOfPurple => '深いインディゴに映える大胆なゴールド';
+
+  @override
+  String get appThemeDescriptionCatppuccinFrappe => 'やや明るい青灰色のパステルCatppuccin';
+
+  @override
+  String get appThemeDescriptionSynthwave84 => 'レトロなパープルに輝くネオン';
+
+  @override
+  String get appThemeDescriptionNoctisLilac => '穏やかなライラックのNoctisの昼';
+
+  @override
+  String get themeEditorGroupPrimary => 'プライマリ';
+
+  @override
+  String get themeEditorGroupSecondary => 'セカンダリ';
+
+  @override
+  String get themeEditorGroupTertiary => 'ターシャリ';
+
+  @override
+  String get themeEditorGroupError => 'エラー';
+
+  @override
+  String get themeEditorGroupSurfaceText => 'サーフェスとテキスト';
+
+  @override
+  String get themeEditorGroupSurfaceContainers => 'サーフェスコンテナ';
+
+  @override
+  String get themeEditorGroupOutlineEffects => 'アウトラインと効果';
+
+  @override
+  String get themeEditorRolePrimary => 'プライマリ';
+
+  @override
+  String get themeEditorRoleOnPrimary => 'プライマリ上';
+
+  @override
+  String get themeEditorRolePrimaryContainer => 'プライマリコンテナ';
+
+  @override
+  String get themeEditorRoleOnPrimaryContainer => 'プライマリコンテナ上';
+
+  @override
+  String get themeEditorRoleSecondary => 'セカンダリ';
+
+  @override
+  String get themeEditorRoleOnSecondary => 'セカンダリ上';
+
+  @override
+  String get themeEditorRoleSecondaryContainer => 'セカンダリコンテナ';
+
+  @override
+  String get themeEditorRoleOnSecondaryContainer => 'セカンダリコンテナ上';
+
+  @override
+  String get themeEditorRoleTertiary => 'ターシャリ';
+
+  @override
+  String get themeEditorRoleOnTertiary => 'ターシャリ上';
+
+  @override
+  String get themeEditorRoleTertiaryContainer => 'ターシャリコンテナ';
+
+  @override
+  String get themeEditorRoleOnTertiaryContainer => 'ターシャリコンテナ上';
+
+  @override
+  String get themeEditorRoleError => 'エラー';
+
+  @override
+  String get themeEditorRoleOnError => 'エラー上';
+
+  @override
+  String get themeEditorRoleErrorContainer => 'エラーコンテナ';
+
+  @override
+  String get themeEditorRoleOnErrorContainer => 'エラーコンテナ上';
+
+  @override
+  String get themeEditorRoleSurface => 'サーフェス';
+
+  @override
+  String get themeEditorRoleOnSurface => 'サーフェス上';
+
+  @override
+  String get themeEditorRoleOnSurfaceVariant => 'サーフェスバリアント上';
+
+  @override
+  String get themeEditorRoleInverseSurface => '反転サーフェス';
+
+  @override
+  String get themeEditorRoleOnInverseSurface => '反転サーフェス上';
+
+  @override
+  String get themeEditorRoleInversePrimary => '反転プライマリ';
+
+  @override
+  String get themeEditorRoleSurfaceContainerLowest => 'コンテナ(最低)';
+
+  @override
+  String get themeEditorRoleSurfaceContainerLow => 'コンテナ(低)';
+
+  @override
+  String get themeEditorRoleSurfaceContainer => 'コンテナ';
+
+  @override
+  String get themeEditorRoleSurfaceContainerHigh => 'コンテナ(高)';
+
+  @override
+  String get themeEditorRoleSurfaceContainerHighest => 'コンテナ(最高)';
+
+  @override
+  String get themeEditorRoleOutline => 'アウトライン';
+
+  @override
+  String get themeEditorRoleOutlineVariant => 'アウトラインバリアント';
+
+  @override
+  String get themeEditorRoleSurfaceTint => 'サーフェスティント';
+
+  @override
+  String get themeEditorRoleShadow => 'シャドウ';
+
+  @override
+  String get themeEditorRoleScrim => 'スクリム';
+
+  @override
+  String get themeEditorPairOnPrimary => 'プライマリ上のテキスト';
+
+  @override
+  String get themeEditorPairOnPrimaryContainer => 'プライマリコンテナ上のテキスト';
+
+  @override
+  String get themeEditorPairOnSecondary => 'セカンダリ上のテキスト';
+
+  @override
+  String get themeEditorPairOnSecondaryContainer => 'セカンダリコンテナ上のテキスト';
+
+  @override
+  String get themeEditorPairOnTertiary => 'ターシャリ上のテキスト';
+
+  @override
+  String get themeEditorPairOnTertiaryContainer => 'ターシャリコンテナ上のテキスト';
+
+  @override
+  String get themeEditorPairOnError => 'エラー上のテキスト';
+
+  @override
+  String get themeEditorPairOnErrorContainer => 'エラーコンテナ上のテキスト';
+
+  @override
+  String get themeEditorPairOnSurface => 'サーフェス上の本文テキスト';
+
+  @override
+  String get themeEditorPairOnSurfaceVariant => 'サーフェス上のサブテキスト';
+
+  @override
+  String get themeEditorPairOnInverseSurface => '反転サーフェス上のテキスト';
+
+  @override
+  String get themeEditorPairOutline => 'サーフェス上のアウトライン';
+
+  @override
   String get settingsAppearanceEasterEggsHeader => 'イースターエッグ';
 
   @override
@@ -2255,6 +2541,50 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get backupReplaceAllDataAction => 'すべてのデータを置き換え';
+
+  @override
+  String backupFileSummary(String date, int dances, int programs, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      dances,
+      locale: localeName,
+      other: '$dances件',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      programs,
+      locale: localeName,
+      other: '$programs件',
+    );
+    return '$dateのバックアップ：ダンス$_temp0、プログラム$_temp1、$size MB';
+  }
+
+  @override
+  String backupFileUnreadable(String size) {
+    return 'このファイルは読み取れるバックアップではないようです（$size MB）。復元できない場合は、置き換えを実行するとその理由が表示されます。';
+  }
+
+  @override
+  String get backupFileClearAction => 'クリア';
+
+  @override
+  String backupFileTooLarge(String sizeMb, String limitMb) {
+    return 'このファイルはCaller’s Compendiumのバックアップとしては大きすぎます（$sizeMb MB、上限 $limitMb MB）。データは変更されていません。';
+  }
+
+  @override
+  String backupExportTooLarge(String sizeMb, String limitMb) {
+    return 'コレクションが大きすぎて1つのバックアップとして書き出せません（$sizeMb MB、上限 $limitMb MB）。何も保存されておらず、データは変更されていません。';
+  }
+
+  @override
+  String get backupExportInProgress => 'バックアップを準備しています…';
+
+  @override
+  String get backupRestorePreparing => 'バックアップを読み込んでいます…';
+
+  @override
+  String backupRestoreProgress(int done, int total) {
+    return '$total件中$done件を復元しています…';
+  }
 
   @override
   String get diagnosticsNoDiagnosticsToExport => 'エクスポートできる診断情報がありません。';

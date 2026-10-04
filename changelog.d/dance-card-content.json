@@ -1,0 +1,9 @@
+{
+  "id": "dance-card-content",
+  "user_visible": false,
+  "core": {
+    "added": [
+      "DanceCardContent, the pre-gated, dialect-rendered content of a dance card that danceToPlainText and the PDF builders share; programHeaderLines, programSlotLine and isoDate are now public program_text helpers."
+    ]
+  }
+}
