@@ -34,6 +34,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 import 'support/noop_sync_transport.dart';
+import 'support/screen_size.dart';
+import 'support/text_scale.dart';
 
 /// Parks the write after the first [passes] inserts until released, so a
 /// restore can be frozen mid-`_load` (an in-memory DB otherwise finishes in one
@@ -86,9 +88,10 @@ Future<void> _pumpGeneral(
   Future<void> Function()? onRestored,
   Future<void> Function()? beforeRestore,
   Future<void> Function()? afterRestore,
+  Size surface = const Size(1200, 2200),
+  double textScale = 1,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 2200));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await setScreenSize(tester, surface);
 
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
   final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
@@ -98,39 +101,43 @@ Future<void> _pumpGeneral(
   addTearDown(theme.dispose);
   addTearDown(customThemes.dispose);
 
-  Widget tree = RepositoriesScope(
-    repositories: repos,
-    child: AppThemeScope(
-      notifier: theme,
-      child: CustomThemesScope(
-        controller: customThemes,
-        child: ActiveDialectScope(
-          notifier: dialect,
-          child: SettingsScreen(backupSaver: saver, backupPicker: picker),
+  // The scopes sit above the Navigator (as in the real app) so a narrow
+  // surface, where a section opens as a pushed route, still reaches them.
+  Widget wrap(Widget inner) {
+    Widget tree = RepositoriesScope(
+      repositories: repos,
+      child: AppThemeScope(
+        notifier: theme,
+        child: CustomThemesScope(
+          controller: customThemes,
+          child: ActiveDialectScope(notifier: dialect, child: inner),
         ),
       ),
-    ),
-  );
-  if (onRestored != null || beforeRestore != null || afterRestore != null) {
-    tree = SyncWriterLifecycleScope(
-      onRestored: onRestored ?? () async {},
-      runWrite: <T>(operation) async {
-        try {
-          await beforeRestore?.call();
-          return await operation();
-        } finally {
-          await afterRestore?.call();
-        }
-      },
-      child: tree,
     );
+    if (onRestored != null || beforeRestore != null || afterRestore != null) {
+      tree = SyncWriterLifecycleScope(
+        onRestored: onRestored ?? () async {},
+        runWrite: <T>(operation) async {
+          try {
+            await beforeRestore?.call();
+            return await operation();
+          } finally {
+            await afterRestore?.call();
+          }
+        },
+        child: tree,
+      );
+    }
+    return tree;
   }
 
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      home: tree,
+      builder: (context, child) =>
+          wrap(textScaleBuilder(textScale)?.call(context, child) ?? child!),
+      home: SettingsScreen(backupSaver: saver, backupPicker: picker),
     ),
   );
   await tester.pumpAndSettle();
@@ -1073,6 +1080,40 @@ void main() {
     expect(refreshed, isFalse);
     expect(find.text("Couldn't restore the backup."), findsOneWidget);
     expect((await repos.dances.listAll()).map((dance) => dance.id), ['stale']);
+  });
+
+  testWidgets('the reminder cadence row survives 360 dp wide at 1.3x text', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpGeneral(
+      tester,
+      repos,
+      surface: const Size(360, 2600),
+      textScale: 1.3,
+    );
+    expect(tester.takeException(), isNull);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('backup-reminder-cadence')),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    // A dropdown inside a ListTile's trailing slot cannot wrap.
+    expect(
+      find.descendant(
+        of: find.byType(ListTile),
+        matching: find.byKey(const ValueKey('backup-reminder-cadence')),
+      ),
+      findsNothing,
+    );
+    final box = tester.getRect(
+      find.byKey(const ValueKey('backup-reminder-cadence')),
+    );
+    expect(box.left, greaterThanOrEqualTo(0));
+    expect(box.right, lessThanOrEqualTo(360));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('changing the reminder cadence persists it', (tester) async {
