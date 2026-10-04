@@ -198,6 +198,9 @@ class CallersBoxOnline implements OnlineSearchService {
   /// - any other fuzzy near-match is imported as a new dance (the user
   ///   explicitly asked for this Caller's Box dance).
   ///
+  /// The policy lives in [commitPreviewedOnlinePlan], including the rule that an
+  /// undecodable transcription never compares as identical (#1347).
+  ///
   /// Pass [ambiguousResolution] to skip the needsConfirmation check and commit
   /// immediately with the given resolution (used on the retry after the dialog).
   ///
@@ -212,116 +215,16 @@ class CallersBoxOnline implements OnlineSearchService {
     DedupeResolution? ambiguousResolution,
     List<String> defaultTagIds = const [],
   }) async {
-    final title = plan.draft.dance.title;
-    if (plan.verdict.kind == DedupeKind.reimport) {
-      return OnlineImportResult(
-        kind: OnlineImportKind.alreadyInCollection,
-        title: title,
-        // The exact re-import verdict carries the existing dance's id so the UI
-        // can open it in the detail pane instead of leaving the user to hunt.
-        danceId: plan.verdict.targetDanceId,
-        danceCount: 1,
-      );
-    }
-
-    // When the verdict is ambiguous and a confident candidate exists, check
-    // whether the figures differ. If they do and no resolution has been
-    // supplied yet, return needsConfirmation so the caller can prompt the user
-    // before writing anything (issue #797). Mirrors the detection in
-    // program_import_online_resolver.dart:resolveConfidentOnlineDanceId.
-    if (ambiguousResolution == null &&
-        plan.verdict.kind == DedupeKind.ambiguous &&
-        plan.verdict.hasConfidentMatch) {
-      final candidateId = plan.verdict.candidates
-          .firstWhere((c) => c.confident)
-          .danceId;
-      final existing = await repos.dances.getById(candidateId);
-      if (existing != null) {
-        // Mapping an undecodable side to an empty list was wrong: when the
-        // incoming dance legitimately has no figures, BOTH sides compare as
-        // empty, `figuresCanonicallyIdentical` returns true, and the flow skips
-        // confirmation on the strength of a comparison that was never possible.
-        // "Cannot read it" must never become "it is empty".
-        final oldFigures = switch (existing.figuresSource) {
-          DecodedFigures(:final figures) => figures,
-          UnreadableFigures() => null,
-        };
-        final newFigures = switch (plan.draft.dance.figuresSource) {
-          DecodedFigures(:final figures) => figures,
-          UnreadableFigures() => null,
-        };
-        final identical =
-            oldFigures != null &&
-            newFigures != null &&
-            figuresCanonicallyIdentical(
-              oldFigures: oldFigures,
-              newFigures: newFigures,
-              taxonomy: contraTaxonomy,
-            );
-        if (!identical) {
-          return OnlineImportResult(
-            kind: OnlineImportKind.needsConfirmation,
-            title: title,
-            danceId: candidateId,
-            danceCount: 1,
-          );
-        } else if (existing.provenance?.source != null &&
-            plan.draft.raw.source != existing.provenance!.source) {
-          // Canonically identical figures (same moves and order; beats and
-          // notes may differ) from a confirmed different source: prompt the
-          // user instead of silently creating a second copy (issue #811).
-          // Condition guards are:
-          //   - existing.provenance.source != null: skip hand-entered dances
-          //     (null provenance) so we never claim they are "from a different
-          //     source".
-          //   - sources differ: a same-source re-import with a drifted
-          //     externalId stays silent (DedupeResolution.duplicate() below).
-          return OnlineImportResult(
-            kind: OnlineImportKind.needsConfirmationIdentical,
-            title: title,
-            danceId: candidateId,
-            danceCount: 1,
-          );
-        }
-      }
-    }
-
-    final resolutions = plan.verdict.kind == DedupeKind.ambiguous
-        ? {0: ambiguousResolution ?? DedupeResolution.duplicate()}
-        : const <int, DedupeResolution>{};
-
-    final pipeline = ImportPipeline(
-      repos.dances,
-      repos.choreographers,
-      difficultyLevels: repos.difficultyLevels,
-    );
-    final session = await pipeline.commit(
-      ImportBatchResult(records: [plan]),
-      now: now ?? DateTime.now().toUtc(),
-      newId: uuidV4,
-      resolutions: resolutions,
+    // The commit flow (reimport / needs-confirmation / unreadable-figures
+    // guard / pipeline commit) is shared with the other online source.
+    return commitPreviewedOnlinePlan(
+      repos,
+      plan,
+      now: now,
+      ambiguousResolution: ambiguousResolution,
       defaultTagIds: defaultTagIds,
-    );
-
-    // A single-record batch: surface a failed/skipped commit as a user-safe
-    // error instead of letting `firstWhere` throw an opaque StateError.
-    final record = session.records.first;
-    if (!record.succeeded || record.danceId == null) {
-      // Keep the raw commit error for debug logging only; the UI gets a generic
-      // localized message so no lower-layer detail leaks (CWE-209).
-      if (kDebugMode && record.error != null) {
-        debugPrint("Caller's Box import commit failed: ${record.error}");
-      }
-      throw const UrlFetchException(
-        UrlFetchFailureReason.callersBoxImportFailed,
-      );
-    }
-    return OnlineImportResult(
-      kind: OnlineImportKind.created,
-      title: title,
-      danceId: record.danceId,
-      // Committed exactly this one previewed dance (single-record batch).
-      danceCount: session.committedCount,
+      importFailedReason: UrlFetchFailureReason.callersBoxImportFailed,
+      debugLabel: "Caller's Box",
     );
   }
 

@@ -1,7 +1,9 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 
 import '../search/dance_detail_data.dart';
-import 'import_io.dart' show CallersBoxPhraseQuery;
+import 'import_io.dart'
+    show CallersBoxPhraseQuery, UrlFetchException, UrlFetchFailureReason;
 
 /// Which online search source a query/result/preview belongs to.
 ///
@@ -260,4 +262,147 @@ abstract interface class OnlineSearchService {
     DedupeResolution? ambiguousResolution,
     List<String> defaultTagIds = const [],
   });
+}
+
+/// The single-dance commit flow shared by every [OnlineSearchService]
+/// ([OnlineSearchService.import] for The Caller's Box and ContraDB): decides
+/// between "already in collection", "needs confirmation", "identical from
+/// another source" and a single-record [ImportPipeline] commit. Both services'
+/// `import` methods delegate here, passing only their failure reason and debug
+/// label, so the policy cannot drift between sources.
+///
+/// - an exact re-import verdict returns [OnlineImportKind.alreadyInCollection]
+///   with the existing dance's id (the shell opens that dance);
+/// - an ambiguous verdict with a confident title+author candidate and no
+///   [ambiguousResolution] yet returns [OnlineImportKind.needsConfirmation]
+///   (figures differ or cannot be compared) or
+///   [OnlineImportKind.needsConfirmationIdentical] (canonically identical
+///   figures from a confirmed different source), writing nothing (issues #797,
+///   #811);
+/// - anything else commits the one previewed [plan].
+///
+/// An undecodable transcription on either side never compares as identical
+/// (#1347): "cannot read it" must not become "it is empty", so that case
+/// always returns [OnlineImportKind.needsConfirmation] and the user decides.
+///
+/// [importFailedReason] is the localized failure the UI shows when the commit
+/// fails; [debugLabel] prefixes the debug-only log of the raw commit error.
+Future<OnlineImportResult> commitPreviewedOnlinePlan(
+  CompendiumRepositories repos,
+  ImportRecordPlan plan, {
+  required DateTime? now,
+  required DedupeResolution? ambiguousResolution,
+  required List<String> defaultTagIds,
+  required UrlFetchFailureReason importFailedReason,
+  required String debugLabel,
+}) async {
+  final title = plan.draft.dance.title;
+  if (plan.verdict.kind == DedupeKind.reimport) {
+    return OnlineImportResult(
+      kind: OnlineImportKind.alreadyInCollection,
+      title: title,
+      // The exact re-import verdict carries the existing dance's id so the UI
+      // can open it in the detail pane instead of leaving the user to hunt.
+      danceId: plan.verdict.targetDanceId,
+      danceCount: 1,
+    );
+  }
+
+  // When the verdict is ambiguous and a confident candidate exists, check
+  // whether the figures differ. If they do and no resolution has been
+  // supplied yet, return needsConfirmation so the caller can prompt the user
+  // before writing anything (issue #797). Mirrors the detection in
+  // program_import_online_resolver.dart:resolveConfidentOnlineDanceId.
+  if (ambiguousResolution == null &&
+      plan.verdict.kind == DedupeKind.ambiguous &&
+      plan.verdict.hasConfidentMatch) {
+    final candidateId = plan.verdict.candidates
+        .firstWhere((c) => c.confident)
+        .danceId;
+    final existing = await repos.dances.getById(candidateId);
+    if (existing != null) {
+      // Mapping an undecodable side to an empty list was wrong: when the
+      // incoming dance legitimately has no figures, BOTH sides compare as
+      // empty, `figuresCanonicallyIdentical` returns true, and the flow skips
+      // confirmation on the strength of a comparison that was never possible.
+      // "Cannot read it" must never become "it is empty".
+      final oldFigures = switch (existing.figuresSource) {
+        DecodedFigures(:final figures) => figures,
+        UnreadableFigures() => null,
+      };
+      final newFigures = switch (plan.draft.dance.figuresSource) {
+        DecodedFigures(:final figures) => figures,
+        UnreadableFigures() => null,
+      };
+      final identical =
+          oldFigures != null &&
+          newFigures != null &&
+          figuresCanonicallyIdentical(
+            oldFigures: oldFigures,
+            newFigures: newFigures,
+            taxonomy: contraTaxonomy,
+          );
+      if (!identical) {
+        return OnlineImportResult(
+          kind: OnlineImportKind.needsConfirmation,
+          title: title,
+          danceId: candidateId,
+          danceCount: 1,
+        );
+      } else if (existing.provenance?.source != null &&
+          plan.draft.raw.source != existing.provenance!.source) {
+        // Canonically identical figures (same moves and order; beats and
+        // notes may differ) from a confirmed different source: prompt the
+        // user instead of silently creating a second copy (issue #811).
+        // Condition guards are:
+        //   - existing.provenance.source != null: skip hand-entered dances
+        //     (null provenance) so we never claim they are "from a different
+        //     source".
+        //   - sources differ: a same-source re-import with a drifted
+        //     externalId stays silent (DedupeResolution.duplicate() below).
+        return OnlineImportResult(
+          kind: OnlineImportKind.needsConfirmationIdentical,
+          title: title,
+          danceId: candidateId,
+          danceCount: 1,
+        );
+      }
+    }
+  }
+
+  final resolutions = plan.verdict.kind == DedupeKind.ambiguous
+      ? {0: ambiguousResolution ?? DedupeResolution.duplicate()}
+      : const <int, DedupeResolution>{};
+
+  final pipeline = ImportPipeline(
+    repos.dances,
+    repos.choreographers,
+    difficultyLevels: repos.difficultyLevels,
+  );
+  final session = await pipeline.commit(
+    ImportBatchResult(records: [plan]),
+    now: now ?? DateTime.now().toUtc(),
+    newId: uuidV4,
+    resolutions: resolutions,
+    defaultTagIds: defaultTagIds,
+  );
+
+  // A single-record batch: surface a failed/skipped commit as a user-safe
+  // error instead of letting `firstWhere` throw an opaque StateError.
+  final record = session.records.first;
+  if (!record.succeeded || record.danceId == null) {
+    // Keep the raw commit error for debug logging only; the UI gets a generic
+    // localized message so no lower-layer detail leaks (CWE-209).
+    if (kDebugMode && record.error != null) {
+      debugPrint('$debugLabel import commit failed: ${record.error}');
+    }
+    throw UrlFetchException(importFailedReason);
+  }
+  return OnlineImportResult(
+    kind: OnlineImportKind.created,
+    title: title,
+    danceId: record.danceId,
+    // Committed exactly this one previewed dance (single-record batch).
+    danceCount: session.committedCount,
+  );
 }
