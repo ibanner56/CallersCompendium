@@ -661,6 +661,31 @@ void main() {
     expect(all.length, 2);
   });
 
+  testWidgets('skip all possible matches sets every ambiguous row to skip', (
+    tester,
+  ) async {
+    final l10n = lookupAppLocalizations(const Locale('en'));
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('existing', "Sackett's Harbor"));
+
+    await _pump(
+      tester,
+      repos,
+      payload: _archivePayload([_dance('incoming', 'Sacketts Harbor')]),
+    );
+    await _toReview(tester);
+    // Only possible matches here, so only that bulk control is offered.
+    expect(find.byKey(const ValueKey('import-bulk-reimport')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('import-row-0-duplicate')));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.importReviewWillImport(1, 1)), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('import-bulk-skip-ambiguous')));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.importReviewWillImport(0, 1)), findsOneWidget);
+  });
+
   testWidgets('linking an ambiguous row updates the chosen candidate', (
     tester,
   ) async {
@@ -1798,7 +1823,7 @@ void main() {
     // (external ids 4/7 → "Simplicity Swing", "Petronella"), one set whose
     // Location becomes the program title ("Grange Hall"), and a SetItem
     // referencing an absent dance (99) so a program note is produced.
-    Uint8List ccUsrBytes() => buildFmp12Fixture([
+    Uint8List ccUsrBytes({bool thirdDance = false}) => buildFmp12Fixture([
       FmpFixtureTable(
         index: 1,
         name: 'Dance',
@@ -1806,6 +1831,7 @@ void main() {
         rows: [
           MapEntry(10, {1: '4', 2: 'Simplicity Swing', 3: 'Becky Hill'}),
           MapEntry(11, {1: '7', 2: 'Petronella', 3: 'Trad'}),
+          if (thirdDance) MapEntry(12, {1: '9', 2: 'Chorus Jig', 3: 'Trad'}),
         ],
       ),
       FmpFixtureTable(
@@ -1998,6 +2024,127 @@ void main() {
       expect(find.text('Simplicity Swing'), findsOneWidget);
       expect(find.text('Petronella'), findsOneWidget);
       expect(find.text('2 of 2 will be imported'), findsOneWidget);
+    });
+
+    testWidgets(
+      're-import all sets every matched dance to Re-import in one tap, '
+      'and Skip puts them back',
+      (tester) async {
+        final l10n = lookupAppLocalizations(const Locale('en'));
+        final repos = openTestRepositories();
+        final bytes = ccUsrBytes(thirdDance: true);
+        await _pump(
+          tester,
+          repos,
+          payload: 'unused',
+          sources: sourcesFor(() async => bytes),
+          bytePicker: () async => bytes,
+        );
+        await selectUsr(tester);
+        await chooseAndReview(tester);
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+        expect(repos.dances.listAll(), completion(hasLength(3)));
+
+        // Open the same file again: every row now matches a local dance.
+        await tester.pumpWidget(const SizedBox.shrink());
+        await _pump(
+          tester,
+          repos,
+          payload: 'unused',
+          sources: sourcesFor(() async => bytes),
+          bytePicker: () async => bytes,
+        );
+        await selectUsr(tester);
+        await chooseAndReview(tester);
+        expect(find.text(l10n.importReviewWillImport(0, 3)), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('import-overwrite-warning')),
+          findsNothing,
+        );
+
+        await tester.tap(find.byKey(const ValueKey('import-bulk-reimport')));
+        await tester.pumpAndSettle();
+        expect(find.text(l10n.importReviewWillImport(3, 3)), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('import-overwrite-warning')),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.byKey(const ValueKey('import-bulk-skip')));
+        await tester.pumpAndSettle();
+        expect(find.text(l10n.importReviewWillImport(0, 3)), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('import-overwrite-warning')),
+          findsNothing,
+        );
+
+        // Per-row choices stay editable after a bulk change.
+        await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
+        await tester.pumpAndSettle();
+        expect(find.text(l10n.importReviewWillImport(1, 3)), findsOneWidget);
+      },
+    );
+
+    testWidgets('a batch with no match shows no bulk controls', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => ccUsrBytes()),
+        bytePicker: () async => ccUsrBytes(),
+      );
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+      expect(find.byKey(const ValueKey('import-bulk-reimport')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('import-bulk-skip-ambiguous')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('the commit shows how many dances have been written', (
+      tester,
+    ) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final gate = _CommitGate();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(gate),
+        ),
+        contraTaxonomy,
+      );
+      final bytes = ccUsrBytes(thirdDance: true);
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => bytes),
+        bytePicker: () async => bytes,
+      );
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+
+      final commitGate = Completer<void>();
+      gate.arm(commitGate);
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('import-committing')), findsOneWidget);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('import-commit-progress')))
+            .data,
+        l10n.importReviewCommitProgress(0, 3),
+      );
+
+      commitGate.complete();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('import-committing')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('import-result-dialog')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('the file is released once planning succeeds, kept when it '

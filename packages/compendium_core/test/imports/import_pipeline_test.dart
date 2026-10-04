@@ -213,7 +213,24 @@ void main() {
     });
   });
 
-  group('commit writes provenance transactionally', () {
+  group('commit writes provenance per record', () {
+    test('commit reports progress per record, ending at the total', () async {
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          for (var i = 0; i < 3; i++) record('p$i', 'Progress Dance $i'),
+        ]),
+        const ImportRequest(),
+      );
+      final events = <(int, int)>[];
+      await pipeline.commit(
+        batch,
+        now: now,
+        newId: nextId,
+        onProgress: (done, total) => events.add((done, total)),
+      );
+      expect(events, [(1, 3), (2, 3), (3, 3), (3, 3)]);
+    });
+
     test('resolves a matching configured custom difficulty label', () async {
       final custom = await difficultyLevels.createCustom(
         label: 'Workshop',

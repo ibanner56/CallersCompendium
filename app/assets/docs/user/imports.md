@@ -444,7 +444,10 @@ correction an archive has made since you first imported.
 
 Dances already in your collection show **Re-import** and **Skip** choices in the
 review list, and **Skip** is the default, so choose **Re-import** on the ones you
-want updated. The commit summary counts re-imports separately — **Re-imported: 4**
+want updated. When many dances match, use **Set all matched dances to:
+Re-import** or **Skip** at the top of the list to change every one in a single tap
+(you can still change individual rows afterwards), and **Skip all possible
+matches** to skip every row marked as a possible match. The commit summary counts re-imports separately — **Re-imported: 4**
 — so you can see at a glance how much of an import was new material and how much
 was an update. The **Imported** badge appears only on a row you brought in with **Import and
 edit** during review.

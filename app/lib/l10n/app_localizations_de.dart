@@ -5780,6 +5780,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String importReviewCommitProgress(int done, int total) {
+    return '$done / $total';
+  }
+
+  @override
   String importReviewTitleListPasted(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -6429,6 +6434,20 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importReviewOptionNewDance => 'Neuer Tanz';
+
+  @override
+  String get importReviewBulkSetAllLabel =>
+      'Alle übereinstimmenden Tänze festlegen auf:';
+
+  @override
+  String get importReviewBulkReimport => 'Neu importieren';
+
+  @override
+  String get importReviewBulkSkip => 'Überspringen';
+
+  @override
+  String get importReviewBulkSkipAmbiguous =>
+      'Alle möglichen Übereinstimmungen überspringen';
 
   @override
   String get importReviewOptionSkip => 'Überspringen';

@@ -5487,6 +5487,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String importReviewCommitProgress(int done, int total) {
+    return '$done / $total';
+  }
+
+  @override
   String importReviewTitleListPasted(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -6104,6 +6109,18 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importReviewOptionNewDance => '新しいダンス';
+
+  @override
+  String get importReviewBulkSetAllLabel => '一致したすべてのダンスを次に設定:';
+
+  @override
+  String get importReviewBulkReimport => '再インポート';
+
+  @override
+  String get importReviewBulkSkip => 'スキップ';
+
+  @override
+  String get importReviewBulkSkipAmbiguous => '可能性のある一致をすべてスキップ';
 
   @override
   String get importReviewOptionSkip => 'スキップ';
