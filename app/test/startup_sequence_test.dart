@@ -30,6 +30,20 @@ import 'package:compendium_app/src/data/locale_scope.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
+import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart';
+import 'package:compendium_app/src/data/canonical_discouraged_terms_scope.dart';
+import 'package:compendium_app/src/data/colour_dance_theme_scope.dart';
+import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
+import 'package:compendium_app/src/data/decimal_turns_scope.dart';
+import 'package:compendium_app/src/data/display_defaults.dart'
+    show kCanonicalDiscouragedTermsKey;
+import 'package:compendium_app/src/data/matrix_collision_mode_scope.dart';
+import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
+import 'package:compendium_app/src/data/reduce_motion_scope.dart';
+import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
+import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
+import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
+import 'package:compendium_app/src/data/verbose_figure_rendering_scope.dart';
 import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_scope.dart';
@@ -1409,6 +1423,118 @@ void main() {
       expect(RequirePerformedForHistoryScope.of(context), isFalse);
     },
   );
+
+  // Ratchet for the boolean-preference descriptor list in `main.dart`: every
+  // preference on it must return to its default when a restored backup lacks
+  // its key. A preference left off the list would keep its pre-restore value.
+  group('restoring a backup without a boolean preference resets it', () {
+    final cases =
+        <({String key, bool Function(BuildContext) read, bool defaultValue})>[
+          (
+            key: kRequirePerformedForHistoryKey,
+            read: RequirePerformedForHistoryScope.of,
+            defaultValue: false,
+          ),
+          (
+            key: kTrackHistoryForAllCallersKey,
+            read: TrackHistoryForAllCallersScope.of,
+            defaultValue: false,
+          ),
+          (
+            key: kSortIgnoreArticlesKey,
+            read: SortIgnoreArticlesScope.of,
+            defaultValue: true,
+          ),
+          // Tri-state: the stored value is an explicit override; with no key
+          // the scope follows the OS setting, which is off under test.
+          (
+            key: kReduceMotionKey,
+            read: ReduceMotionScope.of,
+            defaultValue: false,
+          ),
+          (
+            key: kVerboseFigureRenderingKey,
+            read: VerboseFigureRenderingScope.of,
+            defaultValue: false,
+          ),
+          (
+            key: kCanonicalDiscouragedTermsKey,
+            read: CanonicalDiscouragedTermsScope.of,
+            defaultValue: true,
+          ),
+          (
+            key: kDecimalTurnsKey,
+            read: DecimalTurnsScope.of,
+            defaultValue: false,
+          ),
+          (
+            key: kAggressiveBeatsUpdateKey,
+            read: AggressiveBeatsUpdateScope.of,
+            defaultValue: false,
+          ),
+          (
+            key: kConfirmBeforeDeleteKey,
+            read: ConfirmBeforeDeleteScope.of,
+            defaultValue: false,
+          ),
+          (
+            key: kVenueEntityModeKey,
+            read: VenueEntityModeScope.of,
+            defaultValue: false,
+          ),
+          (
+            key: kAutoCommitProgramChangesKey,
+            read: ProgramAutoCommitScope.of,
+            defaultValue: false,
+          ),
+          (
+            key: kColourDanceThemeKey,
+            read: ColourDanceThemeScope.of,
+            defaultValue: false,
+          ),
+          (
+            key: kSetListColorCodingKey,
+            read: SetListColorCodingScope.of,
+            defaultValue: true,
+          ),
+          (
+            key: kMatrixExactBeatCollisionKey,
+            read: MatrixCollisionModeScope.of,
+            defaultValue: true,
+          ),
+        ];
+
+    for (final c in cases) {
+      testWidgets('without ${c.key}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1200, 2600));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final source = openTestRepositories();
+        final backupJson = await BackupService(source).exportToJson();
+
+        final appData = _openAppData();
+        await appData.repositories.settings.set(c.key, !c.defaultValue);
+
+        await tester.pumpWidget(
+          CompendiumApp(
+            appData: appData,
+            windowService: _NoopWindowService(appData.repositories.settings),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          c.read(tester.element(find.byType(AppShell))),
+          !c.defaultValue,
+          reason: 'the stored non-default value is applied at startup',
+        );
+
+        await _restoreFromPaste(tester, backupJson);
+
+        expect(await appData.repositories.settings.get(c.key), isNull);
+        expect(c.read(tester.element(find.byType(AppShell))), c.defaultValue);
+      });
+    }
+  });
 
   testWidgets(
     'a settings read that throws for one key starts the app with that key at '
