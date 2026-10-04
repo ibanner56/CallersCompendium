@@ -1,0 +1,9 @@
+{
+  "id": "1602-defaults-section-reads",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Settings › Defaults no longer reloads your whole collection on every redraw after a failed load, and opens faster on large libraries."
+    ]
+  }
+}
