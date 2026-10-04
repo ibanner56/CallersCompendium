@@ -88,10 +88,19 @@ final class _WholeRowSelectCounter extends QueryCounter {
   }
 }
 
+/// The lowered PBKDF2 count this suite runs under. The real 600,000-iteration
+/// value is asserted in `sync_identity_kdf_test.dart`, which sets no
+/// suite-wide override (its mismatch test lowers it for one test only).
+const _testKdfIterations = 1000;
+
 void main() {
   late CompendiumDatabase db;
   late CompendiumRepositories repositories;
   late CompendiumSyncStorage storage;
+
+  final productionKdfIterations = syncIdentityKdfIterations;
+  setUpAll(() => syncIdentityKdfIterations = _testKdfIterations);
+  tearDownAll(() => syncIdentityKdfIterations = productionKdfIterations);
 
   setUp(() {
     db = openTestDatabase();
@@ -1349,7 +1358,7 @@ void main() {
       expect(entries, hasLength(1));
       final verifier = (entries.single as Map).cast<String, Object?>();
       expect(verifier['algorithm'], 'pbkdf2-sha256');
-      expect(verifier['iterations'], 600000);
+      expect(verifier['iterations'], _testKdfIterations);
       expect(verifier['salt'], isA<String>());
       expect(verifier['verifier'], isA<String>());
       expect(verifier['verifier'], isNot(sha256Hex(utf8.encode('sync-a'))));
@@ -1362,6 +1371,19 @@ void main() {
       expect((await storage.snapshot(syncId: 'sync-b')).previouslyUsed, isTrue);
     },
   );
+
+  test('the KDF iteration override is recorded in the stored marker and '
+      'costs one derivation', () async {
+    syncIdentityKdfIterations = 1000;
+    syncIdentityVerifierDerivationCount = 0;
+
+    await storage.markSyncUsed('sync-override');
+
+    final marker = await repositories.settings.get(syncLastUsedFingerprintKey);
+    final entry = ((marker! as List).single as Map).cast<String, Object?>();
+    expect(entry['iterations'], 1000);
+    expect(syncIdentityVerifierDerivationCount, 1);
+  });
 
   test('derives the slow identity verifier at most once per pass, for an '
       'identity already marked used before the pass began', () async {

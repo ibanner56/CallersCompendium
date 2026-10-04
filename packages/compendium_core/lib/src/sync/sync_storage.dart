@@ -5687,6 +5687,21 @@ final _syncIdentityRandom = Random.secure();
 @visibleForTesting
 int syncIdentityVerifierDerivationCount = 0;
 
+/// Test-only override of the PBKDF2 iteration count behind sync identity
+/// verifiers; defaults to [_syncIdentityKdfIterations] (600,000).
+///
+/// One real derivation costs about two seconds, so suites that mark an
+/// identity as used lower it in `setUpAll` (and restore it in `tearDownAll`).
+/// Production code only reads it (the stored marker, the decode check and the
+/// derivation loop); nothing in this package assigns it outside tests, and a
+/// CI check (`tools/ci/check_kdf_override_unassigned.py`) fails if any file
+/// under `lib/` assigns it. A lowered value can never validate a production marker: the
+/// marker records the count it was derived with, and
+/// [_decodeUsedIdentityVerifiers] skips entries whose `iterations` differ from
+/// the value in force, so a marker written at one count is ignored at another.
+@visibleForTesting
+int syncIdentityKdfIterations = _syncIdentityKdfIterations;
+
 final class _StoredSyncIdentityVerifier {
   const _StoredSyncIdentityVerifier({
     required this.salt,
@@ -5712,7 +5727,7 @@ final class _StoredSyncIdentityVerifier {
 
   Map<String, Object?> toJson() => {
     'algorithm': _syncIdentityVerifierAlgorithm,
-    'iterations': _syncIdentityKdfIterations,
+    'iterations': syncIdentityKdfIterations,
     'salt': _encodeVerifierBytes(salt),
     'verifier': _encodeVerifierBytes(verifier),
   };
@@ -5724,7 +5739,7 @@ List<_StoredSyncIdentityVerifier> _decodeUsedIdentityVerifiers(Object? marker) {
   for (final value in marker) {
     if (value is! Map ||
         value['algorithm'] != _syncIdentityVerifierAlgorithm ||
-        value['iterations'] != _syncIdentityKdfIterations ||
+        value['iterations'] != syncIdentityKdfIterations ||
         value['salt'] is! String ||
         value['verifier'] is! String) {
       continue;
@@ -5761,7 +5776,7 @@ List<int> _deriveSyncIdentityVerifier(String syncId, List<int> salt) {
   final hmac = Hmac(sha256, utf8.encode(normalizeSyncId(syncId)));
   var block = hmac.convert([...salt, 0, 0, 0, 1]).bytes;
   final derived = List<int>.from(block);
-  for (var iteration = 1; iteration < _syncIdentityKdfIterations; iteration++) {
+  for (var iteration = 1; iteration < syncIdentityKdfIterations; iteration++) {
     block = hmac.convert(block).bytes;
     for (var index = 0; index < derived.length; index++) {
       derived[index] ^= block[index];
