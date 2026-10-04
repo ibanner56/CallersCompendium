@@ -58,7 +58,7 @@ class SyncRecordBlob {
     // on purpose — encoding is also what rejects a body that cannot be
     // canonicalised, and every wire hash reads these bytes instead of
     // re-encoding.
-    canonicalUtf8 = canonicalJsonUtf8(toJson());
+    canonicalUtf8 = canonicalJsonUtf8(toJson()).asUnmodifiableView();
   }
 
   final int v;
@@ -70,7 +70,8 @@ class SyncRecordBlob {
   final Map<String, Object?> body;
 
   /// The canonical UTF-8 encoding of [toJson], computed once at construction.
-  /// Assigned in the constructor body, never lazily.
+  /// Assigned in the constructor body, never lazily. A read-only view, because
+  /// [encodeSyncRecordBlobUtf8] hands the same instance to every caller.
   late final Uint8List canonicalUtf8;
 
   Map<String, Object?> toJson() => {

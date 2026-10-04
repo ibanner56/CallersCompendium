@@ -170,6 +170,23 @@ void main() {
       );
     });
 
+    test('caches read-only canonical bytes equal to the string encoding', () {
+      final blob = SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: 'd1',
+        updatedAt: _stamp,
+        deletedAt: null,
+        existenceAt: _stamp,
+        body: const {'id': 'd1', 'title': 'Café ☃'},
+      );
+
+      final bytes = encodeSyncRecordBlobUtf8(blob);
+
+      expect(identical(bytes, encodeSyncRecordBlobUtf8(blob)), isTrue);
+      expect(utf8.decode(bytes), encodeSyncRecordBlob(blob));
+      expect(() => bytes[0] = 0, throwsUnsupportedError);
+    });
+
     test('rejects non-JSON body values at construction', () {
       for (final value in <Object?>[
         DateTime.utc(2026, 7, 15),
