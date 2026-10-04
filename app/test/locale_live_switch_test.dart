@@ -3,28 +3,8 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/main.dart';
-import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/locale_scope.dart';
-import 'package:compendium_app/src/data/window_service.dart';
-import 'support/test_repositories.dart';
-
-/// A [WindowService] whose restore is a no-op: the plugin glue is untestable
-/// under `flutter test`, and these tests only care about the running app.
-class _NoopWindowService extends WindowService {
-  _NoopWindowService(super.settings);
-
-  @override
-  Future<void> initialize() async {}
-
-  @override
-  void dispose() {}
-}
-
-AppData _openAppData() {
-  final appData = AppData(openWidgetTestDatabase(closeOnTearDown: false));
-  addTearDown(appData.close);
-  return appData;
-}
+import 'support/full_app_harness.dart';
 
 Locale? _appLocale(WidgetTester tester) =>
     tester.widget<MaterialApp>(find.byType(MaterialApp)).locale;
@@ -43,11 +23,11 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
         ),
       );
       await tester.pumpAndSettle();
@@ -96,11 +76,11 @@ void main() {
       tester.platformDispatcher.localesTestValue = deviceLocales;
       addTearDown(tester.platformDispatcher.clearLocalesTestValue);
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
         ),
       );
       await tester.pumpAndSettle();
