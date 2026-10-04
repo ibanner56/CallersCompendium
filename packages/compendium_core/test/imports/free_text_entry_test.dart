@@ -326,4 +326,66 @@ void main() {
       expect(fs.single.isCustom, isTrue);
     });
   });
+  group('parseFreeTextFigureEntry — common phrasings (COL-02)', () {
+    // Each row: typed line, expected move, expected params (subset).
+    const structured = <(String, String, Map<String, Object?>)>[
+      (
+        'half hey, ladies start by the right',
+        'hey',
+        {'length': 'half', 'pass1': 'role2s', 'shoulder': 'right'},
+      ),
+      ('N swing', 'swing', {'who': 'neighbors'}),
+      ('neighbours balance and swing', 'swing', {'who': 'neighbors'}),
+      ('N2 neighbor swing', 'swing', {'who': 'nextNeighbors'}),
+    ];
+    for (final (line, move, params) in structured) {
+      test('"$line" → structured $move', () {
+        final fs = parseFreeTextFigureEntry(line);
+        expect(fs, hasLength(1));
+        expect(fs.single.isCustom, isFalse, reason: 'got ${fs.single.params}');
+        expect(fs.single.move, move);
+        params.forEach((k, v) => expect(fs.single.params[k], v, reason: k));
+      });
+    }
+
+    test('"ladies chain over and back" is never a note-bearing chain', () {
+      final fs = parseFreeTextFigureEntry('ladies chain over and back');
+      expect(fs.any((f) => f.note == 'and back'), isFalse);
+      expect(fs.single.isCustom, isTrue);
+    });
+
+    test('"neighbors swing 16" is 16 beats or custom, never 8 + note', () {
+      final f = parseFreeTextFigureEntry('neighbors swing 16').single;
+      expect(f.note, isNull);
+      if (!f.isCustom) expect(f.beats, 16);
+    });
+
+    test('a leftover move name is demoted to custom, not a note', () {
+      final f = parseFreeTextFigureEntry('neighbors swing petronella').single;
+      expect(f.isCustom, isTrue);
+    });
+
+    test('a note-tail rejected in a while-container stays custom', () {
+      final fs = parseFreeTextFigureEntry(
+        'neighbors swing 16 while partners swing',
+      );
+      expect(fs.single.isCustom, isTrue);
+    });
+
+    test('entry → reparse: a demoted custom is not upgraded back to a swing '
+        'with note "16"', () {
+      final typed = parseFreeTextFigureEntry('neighbors swing 16').single;
+      expect(typed.isCustom, isTrue);
+      final outcome = reparseImportGapFigures([typed]);
+      expect(outcome.upgradedCount, 0);
+      expect(outcome.figures.single.isCustom, isTrue);
+      expect(outcome.figures.single.customOrigin, CustomOrigin.importGap);
+    });
+
+    test('bare "give and take" stays custom (no default giver/target)', () {
+      final fs = parseFreeTextFigureEntry('give and take');
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isTrue);
+    });
+  });
 }

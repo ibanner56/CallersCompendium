@@ -168,6 +168,10 @@ Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy) {
     beats: beats,
     progression: figure.progression,
     taxonomy: taxonomy,
+    // Same rule as free-text entry: a saved import-gap custom whose line only
+    // parses with a leftover move/`and back`/number note must stay custom, or
+    // this upgrade would undo the demotion that made it one.
+    demoteNoteTails: true,
   );
 
   // Keep the original when the re-parse is empty or still custom: an import-gap
