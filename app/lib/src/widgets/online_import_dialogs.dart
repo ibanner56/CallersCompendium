@@ -35,8 +35,9 @@ Future<DedupeResolution?> showOnlineImportVariationDialog(
           const SizedBox(height: 8),
           Text(
             l10n.onlineImportVariationDialogLinkWarning(existingTitle),
-            style: Theme.of(ctx).textTheme.bodySmall
-                ?.copyWith(color: Theme.of(ctx).colorScheme.onSurfaceVariant),
+            style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+              color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -112,8 +113,9 @@ Future<DedupeResolution?> showOnlineImportCrossSourceDuplicateDialog(
           const SizedBox(height: 8),
           Text(
             l10n.onlineImportVariationDialogLinkWarning(existingTitle),
-            style: Theme.of(ctx).textTheme.bodySmall
-                ?.copyWith(color: Theme.of(ctx).colorScheme.onSurfaceVariant),
+            style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+              color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
