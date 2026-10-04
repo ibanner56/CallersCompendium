@@ -143,7 +143,10 @@ the English month-name allowlist it already uses for its month-name tiers. See
 #632.
 
 Read a scope with `Scope.of(context)` (registers a rebuild); change it with
-`Scope.notifierOf(context)`. Changing `LocaleScope` updates `MaterialApp.locale`,
+`Scope.notifierOf(context)`, then write it with
+`persistSetting(settings, key, value)` (`persisted_preference.dart`), which logs a
+failed write instead of throwing; flip the notifier first so the UI reacts at
+once. Changing `LocaleScope` updates `MaterialApp.locale`,
 so the whole app re-renders in the selected language live. The Language & region
 settings section (`app/lib/src/screens/settings/regional_section.dart`) is the
 UI for all three.
