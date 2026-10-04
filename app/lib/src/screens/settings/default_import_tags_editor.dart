@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/display_defaults.dart';
+import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../theme/app_spacing.dart';
@@ -74,14 +75,12 @@ class _DefaultImportTagsEditorState extends State<DefaultImportTagsEditor> {
       for (final t in tags)
         if (_selected.contains(t.id)) t.name,
     ];
-    try {
-      await repos.settings.set(
-        kDefaultImportTagNamesKey,
-        encodeDefaultImportTagNames(names),
-      );
-    } catch (e, stackTrace) {
-      logCaughtError(e, stackTrace, source: 'DefaultImportTagsEditor._toggle');
-    }
+    await persistSetting(
+      repos.settings,
+      kDefaultImportTagNamesKey,
+      encodeDefaultImportTagNames(names),
+      source: 'DefaultImportTagsEditor._toggle',
+    );
   }
 
   @override

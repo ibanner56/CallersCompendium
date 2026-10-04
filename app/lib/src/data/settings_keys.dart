@@ -36,6 +36,10 @@ const String kVenueCallCountKey = 'venue_call_count';
 /// (ROADMAP G.1). Defaults to `true` (on) when unset.
 const String kAutoSizePerformKey = 'auto_size_perform_cards';
 
+/// The value [kAutoSizePerformKey] takes when unset or not a bool. One literal
+/// for the Settings toggle and both Perform screens.
+const bool kAutoSizePerformDefault = true;
+
 /// Key used to persist the default-on "show an elapsed timer for an individual
 /// dance in Perform" preference. Stored as a bool; absent/unset means on.
 const String kShowIndividualPerformTimerKey = 'show_individual_perform_timer';

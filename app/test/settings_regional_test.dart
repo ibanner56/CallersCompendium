@@ -13,6 +13,8 @@ import 'package:compendium_app/src/data/first_day_of_week_scope.dart';
 import 'package:compendium_app/src/data/locale_scope.dart';
 import 'package:compendium_app/src/data/regional_formats.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 
 import 'support/test_repositories.dart';
@@ -459,4 +461,35 @@ void main() {
       FirstDayOfWeekPref.system,
     );
   });
+
+  testWidgets('a failed settings.set from a settings handler is logged, not '
+      'thrown', (tester) async {
+    final sources = <String>[];
+    installCaughtErrorLog(_RecordingSink(sources));
+    addTearDown(resetCaughtErrorLogForTesting);
+    final failing = openTestRepositoriesWithFailingSettings();
+    final notifiers = await _pumpRegional(tester, failing.repos);
+
+    await tester.tap(find.byKey(const ValueKey('regional-date-format')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Year-month-day (2026-07-15)').last);
+    await tester.pumpAndSettle();
+
+    // The write failed: no unhandled async error, one logged entry, and the
+    // live value still flipped first.
+    expect(tester.takeException(), isNull);
+    expect(sources, hasLength(1));
+    expect(sources.single, contains('persist'));
+    expect(notifiers.dateFormat.value, DateFormatSetting(DateFormatPref.ymd));
+  });
+}
+
+class _RecordingSink implements CrashLogSink {
+  _RecordingSink(this.sources);
+  final List<String> sources;
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) {
+    sources.add(source);
+  }
 }

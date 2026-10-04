@@ -15,7 +15,10 @@ import 'perform_card.dart';
 import 'perform_wakelock.dart';
 import 'perform_walkthrough_overlay.dart';
 import 'settings_screen.dart'
-    show kAutoSizePerformKey, kShowIndividualPerformTimerKey;
+    show
+        kAutoSizePerformDefault,
+        kAutoSizePerformKey,
+        kShowIndividualPerformTimerKey;
 
 /// Full-screen, large-print performance view for a single [Dance]
 /// (`docs/design/ux.md` §5; ROADMAP 5.1). Entered explicitly from the dance
@@ -60,7 +63,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   /// General setting (on by default) in [didChangeDependencies]; mutable in-view
   /// via the auto-fit toggle and the A-/A+ controls without writing back to the
   /// global setting.
-  bool _autoSize = true;
+  bool _autoSize = kAutoSizePerformDefault;
 
   /// Guards the one-shot settings load in [didChangeDependencies] (auto-size
   /// plus the persisted Perform a11y prefs) so it runs exactly once.
@@ -125,7 +128,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
         .then((v) {
           // Don't clobber an in-view choice the user made before the read resolved.
           if (!mounted || _autoSizeUserSet) return;
-          final enabled = v is bool ? v : true;
+          final enabled = v is bool ? v : kAutoSizePerformDefault;
           if (enabled != _autoSize) setState(() => _autoSize = enabled);
         })
         .catchError((_) {
