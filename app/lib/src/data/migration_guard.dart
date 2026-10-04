@@ -488,6 +488,8 @@ Future<bool> relocateLegacyDatabase({
       finals.add(to);
     }
   } on DatabaseRelocationBlocked {
+    // diagnostics: silent — typed fail-closed outcome, thrown before anything
+    // was written; the caller routes it to the terminal screen.
     rethrow;
   } on Object catch (error) {
     // diagnostics: silent — fail-closed; the typed error carries the cause.
