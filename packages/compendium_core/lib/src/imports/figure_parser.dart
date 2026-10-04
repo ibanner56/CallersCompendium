@@ -508,6 +508,11 @@ List<String>? splitTopLevelOnWord(String t, RegExp word) {
 const Map<String, String> _dancerWords = {
   'neighbor': 'neighbors',
   'neighbors': 'neighbors',
+  // Free-text shorthand ("N swing") and the British spelling. Distinct tokens
+  // from the TCB `n0..n4` codes below, which keep their own entries.
+  'n': 'neighbors',
+  'neighbour': 'neighbors',
+  'neighbours': 'neighbors',
   'partner': 'partners',
   'partners': 'partners',
   'role1': 'role1s',
@@ -948,6 +953,9 @@ final List<_Recognizer> _recognizers = [
   // ContraDB lines are recognized by `contradb_figure_dialect.dart` instead.
   _madRobin,
   _butterflyWhirl,
+  // Free-text phrasing "half hey, ladies start by the right": anchors on the
+  // `hey` word plus a `start by` clause that no other recognizer consumes.
+  _heyStartBy,
   // Additive TCB-attested moves (issue #553, Gap 1). Each is conservative
   // (leftover token → null → custom) and anchors on a distinct lead phrase, so
   // none shadows or is shadowed by the recognizers above.
@@ -1059,6 +1067,9 @@ _Match? _shoulderRound(List<String> w) {
 _Match? _allemande(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['allemande'])) return null;
+  // "allemande left 1 1/2 with neighbor": a trailing `with <dancer>` names the
+  // `who` (precedent: _weaveTheLine's "with <dancer>").
+  _consumePhrase(w, ['with']);
   final who2 = who ?? _takeDancer(w);
   final hand = _takeSide(w);
   final turn = _takeRotation(w);
@@ -1920,6 +1931,37 @@ _Match? _butterflyWhirl(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('butterfly_whirl', {'who': who2, 'direction': direction});
+}
+
+/// Free-text phrasing of a hey with a starting position: "half hey, ladies start
+/// by the right", "full hey, ones start by the left". Maps onto the taxonomy's
+/// existing hey params — `length` (`half`/`full`), `pass1` (the pair that starts)
+/// and `shoulder` (the shoulder of the first pass) — and nothing else.
+///
+/// Both the starting pair and the shoulder are REQUIRED: a bare "half hey" is
+/// not matched here (it stays custom, as before), and any leftover token yields
+/// null so the line degrades to a faithful custom figure.
+_Match? _heyStartBy(List<String> w) {
+  String? length;
+  if (_consumePhrase(w, ['half', 'hey'])) {
+    length = 'half';
+  } else if (_consumePhrase(w, ['full', 'hey'])) {
+    length = 'full';
+  } else if (!_consumePhrase(w, ['hey'])) {
+    return null;
+  }
+  if (!_consumePhrase(w, ['start', 'by'])) return null;
+  final pass1 = _takeDancer(w);
+  if (pass1 == null) return null;
+  final shoulder = _takeSide(w);
+  if (shoulder == null) return null;
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('hey', {
+    'pass1': pass1,
+    'length': ?length,
+    'shoulder': shoulder,
+  });
 }
 
 /// Tier A: TCB writes "Partner California twirl" (dance id 11 "Hocus Pocus").

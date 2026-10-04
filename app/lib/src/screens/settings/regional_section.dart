@@ -8,6 +8,7 @@ import '../../data/regional_formats.dart';
 import '../../data/repositories_scope.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/settings_dropdown_row.dart';
 
 /// The Language & region settings section (ROADMAP G.8): the app-language
 /// selector, the date-format preference, and the first-day-of-week preference.
@@ -210,11 +211,12 @@ class _RegionalView extends StatelessWidget {
     return ListView(
       children: [
         SectionHeader(title: l10n.settingsRegionalLanguageHeader),
-        ListTile(
+        SettingsDropdownRow(
           title: Text(l10n.settingsAppLanguageTitle),
           subtitle: Text(l10n.settingsAppLanguageSubtitle),
           isThreeLine: true,
-          trailing: DropdownButton<Locale?>(
+          dropdownBuilder: (expanded) => DropdownButton<Locale?>(
+            isExpanded: expanded,
             key: const ValueKey('regional-language'),
             value: locale,
             // A null value (System default) is not matched to the null-valued
@@ -233,11 +235,12 @@ class _RegionalView extends StatelessWidget {
           ),
         ),
         SectionHeader(title: l10n.settingsRegionalFormatsHeader),
-        ListTile(
+        SettingsDropdownRow(
           title: Text(l10n.settingsDateFormatTitle),
           subtitle: Text(l10n.settingsDateFormatSubtitle(example)),
           isThreeLine: true,
-          trailing: DropdownButton<DateFormatPref>(
+          dropdownBuilder: (expanded) => DropdownButton<DateFormatPref>(
+            isExpanded: expanded,
             key: const ValueKey('regional-date-format'),
             value: dateFormat.pref,
             onChanged: (value) {
@@ -291,12 +294,13 @@ class _RegionalView extends StatelessWidget {
         // Live control (ROADMAP G.8): honored by the Programs list's "this
         // week" header strip (WeekdayHeaderStrip), which reorders its columns
         // to match the chosen first day of week.
-        ListTile(
-          key: const ValueKey('regional-first-day-of-week'),
+        SettingsDropdownRow(
+          tileKey: const ValueKey('regional-first-day-of-week'),
           title: Text(l10n.settingsFirstDayOfWeekTitle),
           subtitle: Text(l10n.settingsFirstDayOfWeekSubtitle),
           isThreeLine: true,
-          trailing: DropdownButton<FirstDayOfWeekPref>(
+          dropdownBuilder: (expanded) => DropdownButton<FirstDayOfWeekPref>(
+            isExpanded: expanded,
             key: const ValueKey('regional-first-day-of-week-dropdown'),
             value: firstDayOfWeek,
             onChanged: (value) {

@@ -893,6 +893,22 @@ void main() {
         move: 'allemande',
         params: {'hand': 'right', 'travel': 1.25},
       ),
+      // COL-02 free-text phrasings: bare `N`, British spelling, `with <dancer>`
+      // and a hey with a starting pair + shoulder.
+      'N swing': (move: 'swing', params: {'who': 'neighbors'}),
+      'neighbours balance and swing': (
+        move: 'swing',
+        params: {'who': 'neighbors', 'prefix': 'balance'},
+      ),
+      'N2 neighbor swing': (move: 'swing', params: {'who': 'nextNeighbors'}),
+      'allemande left 1 1/2 with neighbor': (
+        move: 'allemande',
+        params: {'who': 'neighbors', 'hand': 'left', 'travel': 1.5},
+      ),
+      'half hey, ladies start by the right': (
+        move: 'hey',
+        params: {'pass1': 'role2s', 'length': 'half', 'shoulder': 'right'},
+      ),
       // 2. Parenthetical annotations stripped for recognition (TCB appends
       //    "(NR)"/"(PR)" to pass through exclusively).
       'Pass through (NR)': (move: 'pass_through', params: {}),

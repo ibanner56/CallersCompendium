@@ -68,6 +68,14 @@ figures; type `16 circle left 3/4` and you get a sixteen-beat circle left
 three-quarters. The app tells you how many figures it added and invites you to
 type another.
 
+It also understands common phrasings such as `N swing`, `neighbours balance and
+swing`, `half hey, ladies start by the right` and
+`allemande left 1 1/2 with neighbor`. A line whose leftover is only another
+move, `and back` or a bare number (`neighbors swing 16`) is kept as a custom
+figure, marked unparsed, rather than becoming a figure with the wrong beats; use
+the leading `16 neighbors swing` form to set the beats. `give and take` still
+needs a giver and a target.
+
 As always, anything it cannot parse is kept as a custom figure rather than
 dropped.
 
