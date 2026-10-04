@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import 'settings_keys.dart';
+import '../../data/app_theme_labels_l10n.dart';
 import '../../data/app_theme_scope.dart';
 import '../../data/colour_dance_theme_scope.dart';
 import '../../data/custom_theme.dart';
@@ -197,6 +198,7 @@ class _ThemeGallery extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final groups = <Widget>[];
     for (final group in AppThemeGroup.values) {
       final options = AppThemeSelection.inGroup(group);
@@ -208,7 +210,7 @@ class _ThemeGallery extends StatelessWidget {
             bottom: AppSpacing.xs,
           ),
           child: Text(
-            group.label,
+            appThemeGroupLabel(l10n, group),
             style: theme.textTheme.titleSmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -276,7 +278,9 @@ class _ThemePreviewCard extends StatelessWidget {
       button: true,
       inMutuallyExclusiveGroup: true,
       selected: selected,
-      label: '${option.label}. ${option.description}',
+      label:
+          '${appThemeLabel(l10n, option)}. '
+          '${appThemeDescription(l10n, option)}',
       child: SizedBox(
         width: 220,
         child: Material(
@@ -312,7 +316,7 @@ class _ThemePreviewCard extends StatelessWidget {
                       const SizedBox(width: AppSpacing.xs),
                       Expanded(
                         child: Text(
-                          option.label,
+                          appThemeLabel(l10n, option),
                           style: fonts.labelLarge,
                           overflow: TextOverflow.ellipsis,
                         ),

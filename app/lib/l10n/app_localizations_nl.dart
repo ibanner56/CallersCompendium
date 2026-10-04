@@ -1382,6 +1382,320 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsAppearanceCustomThemesHeader => 'Aangepaste thema\'s';
 
   @override
+  String get appThemeGroupSystem => 'Systeem';
+
+  @override
+  String get appThemeGroupDefault => 'Standaard';
+
+  @override
+  String get appThemeGroupLight => 'Licht';
+
+  @override
+  String get appThemeGroupDark => 'Donker';
+
+  @override
+  String get appThemeLabelSystem => 'Systeem';
+
+  @override
+  String get appThemeLabelLight => 'Licht';
+
+  @override
+  String get appThemeLabelDark => 'Donker';
+
+  @override
+  String get appThemeLabelSoftDark => 'Zacht donker';
+
+  @override
+  String get appThemeLabelHighContrast => 'Hoog contrast';
+
+  @override
+  String get appThemeDescriptionSystem =>
+      'Volgt de licht/donker-instelling van het apparaat';
+
+  @override
+  String get appThemeDescriptionLight => 'Warm lichtpalet';
+
+  @override
+  String get appThemeDescriptionDark => 'Warm donker palet';
+
+  @override
+  String get appThemeDescriptionSoftDark =>
+      'Warm donker op een zachtere, lichtere ondergrond';
+
+  @override
+  String get appThemeDescriptionHighContrast =>
+      'Maximaal contrast voor schemerige ruimtes en slechtziendheid';
+
+  @override
+  String get appThemeDescriptionBlulocoLight =>
+      'Heldere, koel-neutrale ondergrond met levendige juweeltinten';
+
+  @override
+  String get appThemeDescriptionOneDarkPro =>
+      'One Dark Pro, het populaire editorthema';
+
+  @override
+  String get appThemeDescriptionMonokai =>
+      'One Monokai – Monokai-syntaxis op antraciet';
+
+  @override
+  String get appThemeDescriptionNoctis => 'De originele diepteal Noctis-nacht';
+
+  @override
+  String get appThemeDescriptionGithubLight =>
+      'GitHubs heldere, neutrale licht';
+
+  @override
+  String get appThemeDescriptionCatppuccinLatte =>
+      'Zacht pastellicht, favoriet van de community';
+
+  @override
+  String get appThemeDescriptionGruvboxLight =>
+      'Warm retro-crème en aardtinten';
+
+  @override
+  String get appThemeDescriptionEverforestLight =>
+      'Zacht groen, rustig voor de ogen';
+
+  @override
+  String get appThemeDescriptionRosePineDawn =>
+      'Gedempt roze en iris op warm papier';
+
+  @override
+  String get appThemeDescriptionAyuLight =>
+      'Helder, minimaal licht met amberkleurige accenten';
+
+  @override
+  String get appThemeDescriptionTokyoNightLight =>
+      'Heldere indigo daglicht, de dag van Tokyo Night';
+
+  @override
+  String get appThemeDescriptionNordLight =>
+      'Koele arctische sneeuwstorm-neutrale tinten';
+
+  @override
+  String get appThemeDescriptionKanagawaLotus =>
+      'Warm sumi-e-papier met inktaccenten';
+
+  @override
+  String get appThemeDescriptionDracula =>
+      'De klassieke favoriet: paars op antraciet';
+
+  @override
+  String get appThemeDescriptionNord =>
+      'Koele arctische blauwtinten, ingetogen';
+
+  @override
+  String get appThemeDescriptionTokyoNight =>
+      'Neon-indigo palet van een stad bij nacht';
+
+  @override
+  String get appThemeDescriptionGruvboxDark => 'Warm retro-amber op antraciet';
+
+  @override
+  String get appThemeDescriptionCatppuccinMocha =>
+      'Gezellig pasteldonker, favoriet van de community';
+
+  @override
+  String get appThemeDescriptionGithubDark => 'GitHubs neutrale donker';
+
+  @override
+  String get appThemeDescriptionEverforestDark =>
+      'Zacht bosgroen, weinig vermoeiend';
+
+  @override
+  String get appThemeDescriptionRosePine =>
+      'Gedempt roze en iris in het donker';
+
+  @override
+  String get appThemeDescriptionAyuMirage =>
+      'Zacht leisteengrijs met amberkleurige accenten';
+
+  @override
+  String get appThemeDescriptionCutiePro =>
+      'Superschattig donker pastel, roze als blikvanger';
+
+  @override
+  String get appThemeDescriptionPinkAsHeck =>
+      'Onbeschaamd felroze op bessenkleur';
+
+  @override
+  String get appThemeDescriptionVitesseLight =>
+      'Modern gedempt saliegroen, teal en roze';
+
+  @override
+  String get appThemeDescriptionZenburn =>
+      'Het klassieke warmgrijs met laag contrast';
+
+  @override
+  String get appThemeDescriptionShadesOfPurple => 'Rijk goud op diep indigo';
+
+  @override
+  String get appThemeDescriptionCatppuccinFrappe =>
+      'Lichter blauwgrijs pastel-Catppuccin';
+
+  @override
+  String get appThemeDescriptionSynthwave84 => 'Gloeiend neon op retropaars';
+
+  @override
+  String get appThemeDescriptionNoctisLilac => 'Zacht lila daglicht van Noctis';
+
+  @override
+  String get themeEditorGroupPrimary => 'Primair';
+
+  @override
+  String get themeEditorGroupSecondary => 'Secundair';
+
+  @override
+  String get themeEditorGroupTertiary => 'Tertiair';
+
+  @override
+  String get themeEditorGroupError => 'Fout';
+
+  @override
+  String get themeEditorGroupSurfaceText => 'Oppervlak en tekst';
+
+  @override
+  String get themeEditorGroupSurfaceContainers => 'Oppervlaktecontainers';
+
+  @override
+  String get themeEditorGroupOutlineEffects => 'Omlijning en effecten';
+
+  @override
+  String get themeEditorRolePrimary => 'Primair';
+
+  @override
+  String get themeEditorRoleOnPrimary => 'Op primair';
+
+  @override
+  String get themeEditorRolePrimaryContainer => 'Primaire container';
+
+  @override
+  String get themeEditorRoleOnPrimaryContainer => 'Op primaire container';
+
+  @override
+  String get themeEditorRoleSecondary => 'Secundair';
+
+  @override
+  String get themeEditorRoleOnSecondary => 'Op secundair';
+
+  @override
+  String get themeEditorRoleSecondaryContainer => 'Secundaire container';
+
+  @override
+  String get themeEditorRoleOnSecondaryContainer => 'Op secundaire container';
+
+  @override
+  String get themeEditorRoleTertiary => 'Tertiair';
+
+  @override
+  String get themeEditorRoleOnTertiary => 'Op tertiair';
+
+  @override
+  String get themeEditorRoleTertiaryContainer => 'Tertiaire container';
+
+  @override
+  String get themeEditorRoleOnTertiaryContainer => 'Op tertiaire container';
+
+  @override
+  String get themeEditorRoleError => 'Fout';
+
+  @override
+  String get themeEditorRoleOnError => 'Op fout';
+
+  @override
+  String get themeEditorRoleErrorContainer => 'Foutcontainer';
+
+  @override
+  String get themeEditorRoleOnErrorContainer => 'Op foutcontainer';
+
+  @override
+  String get themeEditorRoleSurface => 'Oppervlak';
+
+  @override
+  String get themeEditorRoleOnSurface => 'Op oppervlak';
+
+  @override
+  String get themeEditorRoleOnSurfaceVariant => 'Op oppervlakvariant';
+
+  @override
+  String get themeEditorRoleInverseSurface => 'Omgekeerd oppervlak';
+
+  @override
+  String get themeEditorRoleOnInverseSurface => 'Op omgekeerd oppervlak';
+
+  @override
+  String get themeEditorRoleInversePrimary => 'Omgekeerd primair';
+
+  @override
+  String get themeEditorRoleSurfaceContainerLowest => 'Container (laagste)';
+
+  @override
+  String get themeEditorRoleSurfaceContainerLow => 'Container (laag)';
+
+  @override
+  String get themeEditorRoleSurfaceContainer => 'Container';
+
+  @override
+  String get themeEditorRoleSurfaceContainerHigh => 'Container (hoog)';
+
+  @override
+  String get themeEditorRoleSurfaceContainerHighest => 'Container (hoogste)';
+
+  @override
+  String get themeEditorRoleOutline => 'Omlijning';
+
+  @override
+  String get themeEditorRoleOutlineVariant => 'Omlijningsvariant';
+
+  @override
+  String get themeEditorRoleSurfaceTint => 'Oppervlaktetint';
+
+  @override
+  String get themeEditorRoleShadow => 'Schaduw';
+
+  @override
+  String get themeEditorRoleScrim => 'Scrim';
+
+  @override
+  String get themeEditorPairOnPrimary => 'Tekst op primair';
+
+  @override
+  String get themeEditorPairOnPrimaryContainer => 'Tekst op primaire container';
+
+  @override
+  String get themeEditorPairOnSecondary => 'Tekst op secundair';
+
+  @override
+  String get themeEditorPairOnSecondaryContainer =>
+      'Tekst op secundaire container';
+
+  @override
+  String get themeEditorPairOnTertiary => 'Tekst op tertiair';
+
+  @override
+  String get themeEditorPairOnTertiaryContainer =>
+      'Tekst op tertiaire container';
+
+  @override
+  String get themeEditorPairOnError => 'Tekst op fout';
+
+  @override
+  String get themeEditorPairOnErrorContainer => 'Tekst op foutcontainer';
+
+  @override
+  String get themeEditorPairOnSurface => 'Lopende tekst op oppervlak';
+
+  @override
+  String get themeEditorPairOnSurfaceVariant => 'Secundaire tekst op oppervlak';
+
+  @override
+  String get themeEditorPairOnInverseSurface => 'Tekst op omgekeerd oppervlak';
+
+  @override
+  String get themeEditorPairOutline => 'Omlijning op oppervlak';
+
+  @override
   String get settingsAppearanceEasterEggsHeader => 'Verrassingen';
 
   @override

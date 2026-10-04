@@ -1694,6 +1694,386 @@
   "@settingsAppearanceCustomThemesHeader": {
     "description": "Section header above the user's saved custom themes in Appearance settings."
   },
+  "appThemeGroupSystem": "System",
+  "@appThemeGroupSystem": {
+    "description": "Section heading above the \"System\" themes in the Appearance theme gallery."
+  },
+  "appThemeGroupDefault": "Default",
+  "@appThemeGroupDefault": {
+    "description": "Section heading above the \"Default\" themes in the Appearance theme gallery."
+  },
+  "appThemeGroupLight": "Light",
+  "@appThemeGroupLight": {
+    "description": "Section heading above the \"Light\" themes in the Appearance theme gallery."
+  },
+  "appThemeGroupDark": "Dark",
+  "@appThemeGroupDark": {
+    "description": "Section heading above the \"Dark\" themes in the Appearance theme gallery."
+  },
+  "appThemeLabelSystem": "System",
+  "@appThemeLabelSystem": {
+    "description": "Name of the built-in \"System\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+  },
+  "appThemeLabelLight": "Light",
+  "@appThemeLabelLight": {
+    "description": "Name of the built-in \"Light\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+  },
+  "appThemeLabelDark": "Dark",
+  "@appThemeLabelDark": {
+    "description": "Name of the built-in \"Dark\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+  },
+  "appThemeLabelSoftDark": "Soft Dark",
+  "@appThemeLabelSoftDark": {
+    "description": "Name of the built-in \"Soft Dark\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+  },
+  "appThemeLabelHighContrast": "High contrast",
+  "@appThemeLabelHighContrast": {
+    "description": "Name of the built-in \"High contrast\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+  },
+  "appThemeDescriptionSystem": "Match the device light/dark setting",
+  "@appThemeDescriptionSystem": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionLight": "Warm light palette",
+  "@appThemeDescriptionLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionDark": "Warm dark palette",
+  "@appThemeDescriptionDark": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionSoftDark": "Warm dark on a softer, lighter canvas",
+  "@appThemeDescriptionSoftDark": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionHighContrast": "Maximum contrast for dim rooms and low vision",
+  "@appThemeDescriptionHighContrast": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionBlulocoLight": "Crisp cool-neutral canvas with vivid jewel tones",
+  "@appThemeDescriptionBlulocoLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionOneDarkPro": "One Dark Pro, the popular editor theme",
+  "@appThemeDescriptionOneDarkPro": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionMonokai": "One Monokai — Monokai syntax on charcoal",
+  "@appThemeDescriptionMonokai": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionNoctis": "The original deep teal Noctis night",
+  "@appThemeDescriptionNoctis": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionGithubLight": "GitHub’s clean neutral light",
+  "@appThemeDescriptionGithubLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionCatppuccinLatte": "Soft pastel light, community favorite",
+  "@appThemeDescriptionCatppuccinLatte": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionGruvboxLight": "Warm retro cream and earth tones",
+  "@appThemeDescriptionGruvboxLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionEverforestLight": "Gentle green, easy on the eyes",
+  "@appThemeDescriptionEverforestLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionRosePineDawn": "Muted rose and iris on warm paper",
+  "@appThemeDescriptionRosePineDawn": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionAyuLight": "Bright, minimal light with amber accents",
+  "@appThemeDescriptionAyuLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionTokyoNightLight": "Crisp indigo daylight, Tokyo Night’s day",
+  "@appThemeDescriptionTokyoNightLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionNordLight": "Cool arctic snow-storm neutrals",
+  "@appThemeDescriptionNordLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionKanagawaLotus": "Warm sumi-e paper with ink accents",
+  "@appThemeDescriptionKanagawaLotus": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionDracula": "The classic purple-on-charcoal favorite",
+  "@appThemeDescriptionDracula": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionNord": "Cool arctic blues, understated",
+  "@appThemeDescriptionNord": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionTokyoNight": "Neon indigo city-at-night palette",
+  "@appThemeDescriptionTokyoNight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionGruvboxDark": "Warm retro amber on charcoal",
+  "@appThemeDescriptionGruvboxDark": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionCatppuccinMocha": "Cozy pastel dark, community favorite",
+  "@appThemeDescriptionCatppuccinMocha": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionGithubDark": "GitHub’s neutral dark",
+  "@appThemeDescriptionGithubDark": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionEverforestDark": "Soft forest green, low fatigue",
+  "@appThemeDescriptionEverforestDark": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionRosePine": "Muted rose and iris in the dark",
+  "@appThemeDescriptionRosePine": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionAyuMirage": "Smooth slate with amber accents",
+  "@appThemeDescriptionAyuMirage": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionCutiePro": "Cute af dark pastel, pink-forward",
+  "@appThemeDescriptionCutiePro": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionPinkAsHeck": "Unapologetic hot pink on berry",
+  "@appThemeDescriptionPinkAsHeck": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionVitesseLight": "Modern muted sage, teal and rose",
+  "@appThemeDescriptionVitesseLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionZenburn": "The classic low-contrast warm grey",
+  "@appThemeDescriptionZenburn": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionShadesOfPurple": "Bold gold on deep indigo",
+  "@appThemeDescriptionShadesOfPurple": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionCatppuccinFrappe": "Lighter blue-gray pastel Catppuccin",
+  "@appThemeDescriptionCatppuccinFrappe": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionSynthwave84": "Glowing neon on retro purple",
+  "@appThemeDescriptionSynthwave84": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionNoctisLilac": "Gentle lilac Noctis daylight",
+  "@appThemeDescriptionNoctisLilac": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "themeEditorGroupPrimary": "Primary",
+  "@themeEditorGroupPrimary": {
+    "description": "Heading of the \"Primary\" group of colour roles in the custom-theme editor."
+  },
+  "themeEditorGroupSecondary": "Secondary",
+  "@themeEditorGroupSecondary": {
+    "description": "Heading of the \"Secondary\" group of colour roles in the custom-theme editor."
+  },
+  "themeEditorGroupTertiary": "Tertiary",
+  "@themeEditorGroupTertiary": {
+    "description": "Heading of the \"Tertiary\" group of colour roles in the custom-theme editor."
+  },
+  "themeEditorGroupError": "Error",
+  "@themeEditorGroupError": {
+    "description": "Heading of the \"Error\" group of colour roles in the custom-theme editor."
+  },
+  "themeEditorGroupSurfaceText": "Surface & text",
+  "@themeEditorGroupSurfaceText": {
+    "description": "Heading of the \"Surface & text\" group of colour roles in the custom-theme editor."
+  },
+  "themeEditorGroupSurfaceContainers": "Surface containers",
+  "@themeEditorGroupSurfaceContainers": {
+    "description": "Heading of the \"Surface containers\" group of colour roles in the custom-theme editor."
+  },
+  "themeEditorGroupOutlineEffects": "Outline & effects",
+  "@themeEditorGroupOutlineEffects": {
+    "description": "Heading of the \"Outline & effects\" group of colour roles in the custom-theme editor."
+  },
+  "themeEditorRolePrimary": "Primary",
+  "@themeEditorRolePrimary": {
+    "description": "Label of the \"Primary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnPrimary": "On primary",
+  "@themeEditorRoleOnPrimary": {
+    "description": "Label of the \"On primary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRolePrimaryContainer": "Primary container",
+  "@themeEditorRolePrimaryContainer": {
+    "description": "Label of the \"Primary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnPrimaryContainer": "On primary container",
+  "@themeEditorRoleOnPrimaryContainer": {
+    "description": "Label of the \"On primary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSecondary": "Secondary",
+  "@themeEditorRoleSecondary": {
+    "description": "Label of the \"Secondary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnSecondary": "On secondary",
+  "@themeEditorRoleOnSecondary": {
+    "description": "Label of the \"On secondary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSecondaryContainer": "Secondary container",
+  "@themeEditorRoleSecondaryContainer": {
+    "description": "Label of the \"Secondary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnSecondaryContainer": "On secondary container",
+  "@themeEditorRoleOnSecondaryContainer": {
+    "description": "Label of the \"On secondary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleTertiary": "Tertiary",
+  "@themeEditorRoleTertiary": {
+    "description": "Label of the \"Tertiary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnTertiary": "On tertiary",
+  "@themeEditorRoleOnTertiary": {
+    "description": "Label of the \"On tertiary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleTertiaryContainer": "Tertiary container",
+  "@themeEditorRoleTertiaryContainer": {
+    "description": "Label of the \"Tertiary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnTertiaryContainer": "On tertiary container",
+  "@themeEditorRoleOnTertiaryContainer": {
+    "description": "Label of the \"On tertiary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleError": "Error",
+  "@themeEditorRoleError": {
+    "description": "Label of the \"Error\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnError": "On error",
+  "@themeEditorRoleOnError": {
+    "description": "Label of the \"On error\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleErrorContainer": "Error container",
+  "@themeEditorRoleErrorContainer": {
+    "description": "Label of the \"Error container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnErrorContainer": "On error container",
+  "@themeEditorRoleOnErrorContainer": {
+    "description": "Label of the \"On error container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSurface": "Surface",
+  "@themeEditorRoleSurface": {
+    "description": "Label of the \"Surface\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnSurface": "On surface",
+  "@themeEditorRoleOnSurface": {
+    "description": "Label of the \"On surface\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnSurfaceVariant": "On surface variant",
+  "@themeEditorRoleOnSurfaceVariant": {
+    "description": "Label of the \"On surface variant\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleInverseSurface": "Inverse surface",
+  "@themeEditorRoleInverseSurface": {
+    "description": "Label of the \"Inverse surface\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnInverseSurface": "On inverse surface",
+  "@themeEditorRoleOnInverseSurface": {
+    "description": "Label of the \"On inverse surface\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleInversePrimary": "Inverse primary",
+  "@themeEditorRoleInversePrimary": {
+    "description": "Label of the \"Inverse primary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSurfaceContainerLowest": "Container lowest",
+  "@themeEditorRoleSurfaceContainerLowest": {
+    "description": "Label of the \"Container lowest\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSurfaceContainerLow": "Container low",
+  "@themeEditorRoleSurfaceContainerLow": {
+    "description": "Label of the \"Container low\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSurfaceContainer": "Container",
+  "@themeEditorRoleSurfaceContainer": {
+    "description": "Label of the \"Container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSurfaceContainerHigh": "Container high",
+  "@themeEditorRoleSurfaceContainerHigh": {
+    "description": "Label of the \"Container high\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSurfaceContainerHighest": "Container highest",
+  "@themeEditorRoleSurfaceContainerHighest": {
+    "description": "Label of the \"Container highest\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOutline": "Outline",
+  "@themeEditorRoleOutline": {
+    "description": "Label of the \"Outline\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOutlineVariant": "Outline variant",
+  "@themeEditorRoleOutlineVariant": {
+    "description": "Label of the \"Outline variant\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSurfaceTint": "Surface tint",
+  "@themeEditorRoleSurfaceTint": {
+    "description": "Label of the \"Surface tint\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleShadow": "Shadow",
+  "@themeEditorRoleShadow": {
+    "description": "Label of the \"Shadow\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleScrim": "Scrim",
+  "@themeEditorRoleScrim": {
+    "description": "Label of the \"Scrim\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorPairOnPrimary": "Text on primary",
+  "@themeEditorPairOnPrimary": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on primary\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnPrimaryContainer": "Text on primary container",
+  "@themeEditorPairOnPrimaryContainer": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on primary container\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnSecondary": "Text on secondary",
+  "@themeEditorPairOnSecondary": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on secondary\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnSecondaryContainer": "Text on secondary container",
+  "@themeEditorPairOnSecondaryContainer": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on secondary container\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnTertiary": "Text on tertiary",
+  "@themeEditorPairOnTertiary": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on tertiary\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnTertiaryContainer": "Text on tertiary container",
+  "@themeEditorPairOnTertiaryContainer": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on tertiary container\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnError": "Text on error",
+  "@themeEditorPairOnError": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on error\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnErrorContainer": "Text on error container",
+  "@themeEditorPairOnErrorContainer": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on error container\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnSurface": "Body text on surface",
+  "@themeEditorPairOnSurface": {
+    "description": "Label of the live WCAG contrast badge for the \"Body text on surface\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnSurfaceVariant": "Secondary text on surface",
+  "@themeEditorPairOnSurfaceVariant": {
+    "description": "Label of the live WCAG contrast badge for the \"Secondary text on surface\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnInverseSurface": "Text on inverse surface",
+  "@themeEditorPairOnInverseSurface": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on inverse surface\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOutline": "Outline on surface",
+  "@themeEditorPairOutline": {
+    "description": "Label of the live WCAG contrast badge for the \"Outline on surface\" colour pair in the custom-theme editor."
+  },
   "settingsAppearanceEasterEggsHeader": "Easter eggs",
   "@settingsAppearanceEasterEggsHeader": {
     "description": "Section header for playful optional visual features in Appearance settings."

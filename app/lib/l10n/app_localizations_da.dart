@@ -1376,6 +1376,315 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsAppearanceCustomThemesHeader => 'Brugerdefinerede temaer';
 
   @override
+  String get appThemeGroupSystem => 'System';
+
+  @override
+  String get appThemeGroupDefault => 'Standard';
+
+  @override
+  String get appThemeGroupLight => 'Lys';
+
+  @override
+  String get appThemeGroupDark => 'Mørk';
+
+  @override
+  String get appThemeLabelSystem => 'System';
+
+  @override
+  String get appThemeLabelLight => 'Lys';
+
+  @override
+  String get appThemeLabelDark => 'Mørk';
+
+  @override
+  String get appThemeLabelSoftDark => 'Blød mørk';
+
+  @override
+  String get appThemeLabelHighContrast => 'Høj kontrast';
+
+  @override
+  String get appThemeDescriptionSystem =>
+      'Følger enhedens indstilling for lys/mørk';
+
+  @override
+  String get appThemeDescriptionLight => 'Varm lys palet';
+
+  @override
+  String get appThemeDescriptionDark => 'Varm mørk palet';
+
+  @override
+  String get appThemeDescriptionSoftDark =>
+      'Varm mørk på en blødere, lysere baggrund';
+
+  @override
+  String get appThemeDescriptionHighContrast =>
+      'Maksimal kontrast til svagt oplyste rum og nedsat syn';
+
+  @override
+  String get appThemeDescriptionBlulocoLight =>
+      'Knivskarp, kølig-neutral baggrund med levende juveltoner';
+
+  @override
+  String get appThemeDescriptionOneDarkPro =>
+      'One Dark Pro, det populære editortema';
+
+  @override
+  String get appThemeDescriptionMonokai =>
+      'One Monokai – Monokai-syntaks på trækul';
+
+  @override
+  String get appThemeDescriptionNoctis =>
+      'Den originale dybe turkisgrønne Noctis-nat';
+
+  @override
+  String get appThemeDescriptionGithubLight => 'GitHubs rene, neutrale lys';
+
+  @override
+  String get appThemeDescriptionCatppuccinLatte =>
+      'Blød pastellys, fællesskabets favorit';
+
+  @override
+  String get appThemeDescriptionGruvboxLight =>
+      'Varm retro-creme og jordfarver';
+
+  @override
+  String get appThemeDescriptionEverforestLight =>
+      'Mildt grønt, skånsomt for øjnene';
+
+  @override
+  String get appThemeDescriptionRosePineDawn =>
+      'Dæmpet rosa og iris på varmt papir';
+
+  @override
+  String get appThemeDescriptionAyuLight =>
+      'Lyst, minimalistisk lys med ravgule accenter';
+
+  @override
+  String get appThemeDescriptionTokyoNightLight =>
+      'Klart indigo dagslys, Tokyo Nights dag';
+
+  @override
+  String get appThemeDescriptionNordLight =>
+      'Kolde arktiske sneestorm-neutraler';
+
+  @override
+  String get appThemeDescriptionKanagawaLotus =>
+      'Varmt sumi-e-papir med blækaccenter';
+
+  @override
+  String get appThemeDescriptionDracula =>
+      'Den klassiske favorit: lilla på trækul';
+
+  @override
+  String get appThemeDescriptionNord => 'Kolde arktiske blå toner, afdæmpede';
+
+  @override
+  String get appThemeDescriptionTokyoNight =>
+      'Neonindigo-palet fra en by om natten';
+
+  @override
+  String get appThemeDescriptionGruvboxDark => 'Varm retro-rav på trækul';
+
+  @override
+  String get appThemeDescriptionCatppuccinMocha =>
+      'Hyggeligt pastelmørk, fællesskabets favorit';
+
+  @override
+  String get appThemeDescriptionGithubDark => 'GitHubs neutrale mørk';
+
+  @override
+  String get appThemeDescriptionEverforestDark =>
+      'Blødt skovgrønt, let for øjnene';
+
+  @override
+  String get appThemeDescriptionRosePine => 'Dæmpet rosa og iris i mørket';
+
+  @override
+  String get appThemeDescriptionAyuMirage => 'Blød skifer med ravgule accenter';
+
+  @override
+  String get appThemeDescriptionCutiePro =>
+      'Superlækker mørk pastel, med lyserød i front';
+
+  @override
+  String get appThemeDescriptionPinkAsHeck => 'Skamløs knaldpink på bærfarve';
+
+  @override
+  String get appThemeDescriptionVitesseLight =>
+      'Moderne dæmpet salvie, turkis og rosa';
+
+  @override
+  String get appThemeDescriptionZenburn =>
+      'Den klassiske varme gråtone med lav kontrast';
+
+  @override
+  String get appThemeDescriptionShadesOfPurple => 'Kraftigt guld på dyb indigo';
+
+  @override
+  String get appThemeDescriptionCatppuccinFrappe =>
+      'Lysere blågrå pastel-Catppuccin';
+
+  @override
+  String get appThemeDescriptionSynthwave84 => 'Glødende neon på retrolilla';
+
+  @override
+  String get appThemeDescriptionNoctisLilac => 'Blidt lilla dagslys fra Noctis';
+
+  @override
+  String get themeEditorGroupPrimary => 'Primær';
+
+  @override
+  String get themeEditorGroupSecondary => 'Sekundær';
+
+  @override
+  String get themeEditorGroupTertiary => 'Tertiær';
+
+  @override
+  String get themeEditorGroupError => 'Fejl';
+
+  @override
+  String get themeEditorGroupSurfaceText => 'Overflade og tekst';
+
+  @override
+  String get themeEditorGroupSurfaceContainers => 'Overfladebeholdere';
+
+  @override
+  String get themeEditorGroupOutlineEffects => 'Kontur og effekter';
+
+  @override
+  String get themeEditorRolePrimary => 'Primær';
+
+  @override
+  String get themeEditorRoleOnPrimary => 'På primær';
+
+  @override
+  String get themeEditorRolePrimaryContainer => 'Primær beholder';
+
+  @override
+  String get themeEditorRoleOnPrimaryContainer => 'På primær beholder';
+
+  @override
+  String get themeEditorRoleSecondary => 'Sekundær';
+
+  @override
+  String get themeEditorRoleOnSecondary => 'På sekundær';
+
+  @override
+  String get themeEditorRoleSecondaryContainer => 'Sekundær beholder';
+
+  @override
+  String get themeEditorRoleOnSecondaryContainer => 'På sekundær beholder';
+
+  @override
+  String get themeEditorRoleTertiary => 'Tertiær';
+
+  @override
+  String get themeEditorRoleOnTertiary => 'På tertiær';
+
+  @override
+  String get themeEditorRoleTertiaryContainer => 'Tertiær beholder';
+
+  @override
+  String get themeEditorRoleOnTertiaryContainer => 'På tertiær beholder';
+
+  @override
+  String get themeEditorRoleError => 'Fejl';
+
+  @override
+  String get themeEditorRoleOnError => 'På fejl';
+
+  @override
+  String get themeEditorRoleErrorContainer => 'Fejlbeholder';
+
+  @override
+  String get themeEditorRoleOnErrorContainer => 'På fejlbeholder';
+
+  @override
+  String get themeEditorRoleSurface => 'Overflade';
+
+  @override
+  String get themeEditorRoleOnSurface => 'På overflade';
+
+  @override
+  String get themeEditorRoleOnSurfaceVariant => 'På overfladevariant';
+
+  @override
+  String get themeEditorRoleInverseSurface => 'Omvendt overflade';
+
+  @override
+  String get themeEditorRoleOnInverseSurface => 'På omvendt overflade';
+
+  @override
+  String get themeEditorRoleInversePrimary => 'Omvendt primær';
+
+  @override
+  String get themeEditorRoleSurfaceContainerLowest => 'Beholder (lavest)';
+
+  @override
+  String get themeEditorRoleSurfaceContainerLow => 'Beholder (lav)';
+
+  @override
+  String get themeEditorRoleSurfaceContainer => 'Beholder';
+
+  @override
+  String get themeEditorRoleSurfaceContainerHigh => 'Beholder (høj)';
+
+  @override
+  String get themeEditorRoleSurfaceContainerHighest => 'Beholder (højest)';
+
+  @override
+  String get themeEditorRoleOutline => 'Kontur';
+
+  @override
+  String get themeEditorRoleOutlineVariant => 'Konturvariant';
+
+  @override
+  String get themeEditorRoleSurfaceTint => 'Overfladetone';
+
+  @override
+  String get themeEditorRoleShadow => 'Skygge';
+
+  @override
+  String get themeEditorRoleScrim => 'Scrim';
+
+  @override
+  String get themeEditorPairOnPrimary => 'Tekst på primær';
+
+  @override
+  String get themeEditorPairOnPrimaryContainer => 'Tekst på primær beholder';
+
+  @override
+  String get themeEditorPairOnSecondary => 'Tekst på sekundær';
+
+  @override
+  String get themeEditorPairOnSecondaryContainer =>
+      'Tekst på sekundær beholder';
+
+  @override
+  String get themeEditorPairOnTertiary => 'Tekst på tertiær';
+
+  @override
+  String get themeEditorPairOnTertiaryContainer => 'Tekst på tertiær beholder';
+
+  @override
+  String get themeEditorPairOnError => 'Tekst på fejl';
+
+  @override
+  String get themeEditorPairOnErrorContainer => 'Tekst på fejlbeholder';
+
+  @override
+  String get themeEditorPairOnSurface => 'Brødtekst på overflade';
+
+  @override
+  String get themeEditorPairOnSurfaceVariant => 'Sekundær tekst på overflade';
+
+  @override
+  String get themeEditorPairOnInverseSurface => 'Tekst på omvendt overflade';
+
+  @override
+  String get themeEditorPairOutline => 'Kontur på overflade';
+
+  @override
   String get settingsAppearanceEasterEggsHeader => 'Påskeæg';
 
   @override

@@ -1393,6 +1393,325 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsAppearanceCustomThemesHeader => 'Thèmes personnalisés';
 
   @override
+  String get appThemeGroupSystem => 'Système';
+
+  @override
+  String get appThemeGroupDefault => 'Par défaut';
+
+  @override
+  String get appThemeGroupLight => 'Clair';
+
+  @override
+  String get appThemeGroupDark => 'Sombre';
+
+  @override
+  String get appThemeLabelSystem => 'Système';
+
+  @override
+  String get appThemeLabelLight => 'Clair';
+
+  @override
+  String get appThemeLabelDark => 'Sombre';
+
+  @override
+  String get appThemeLabelSoftDark => 'Sombre doux';
+
+  @override
+  String get appThemeLabelHighContrast => 'Contraste élevé';
+
+  @override
+  String get appThemeDescriptionSystem =>
+      'Suit le réglage clair/sombre de l’appareil';
+
+  @override
+  String get appThemeDescriptionLight => 'Palette claire et chaleureuse';
+
+  @override
+  String get appThemeDescriptionDark => 'Palette sombre et chaleureuse';
+
+  @override
+  String get appThemeDescriptionSoftDark =>
+      'Sombre chaleureux sur un fond plus doux et plus clair';
+
+  @override
+  String get appThemeDescriptionHighContrast =>
+      'Contraste maximal pour les pièces sombres et la basse vision';
+
+  @override
+  String get appThemeDescriptionBlulocoLight =>
+      'Fond neutre et froid, net, avec des tons de joyau éclatants';
+
+  @override
+  String get appThemeDescriptionOneDarkPro =>
+      'One Dark Pro, le thème d’éditeur très apprécié';
+
+  @override
+  String get appThemeDescriptionMonokai =>
+      'One Monokai – syntaxe Monokai sur fond anthracite';
+
+  @override
+  String get appThemeDescriptionNoctis =>
+      'La nuit Noctis originale, d’un bleu-vert profond';
+
+  @override
+  String get appThemeDescriptionGithubLight =>
+      'Le clair neutre et net de GitHub';
+
+  @override
+  String get appThemeDescriptionCatppuccinLatte =>
+      'Clair pastel doux, favori de la communauté';
+
+  @override
+  String get appThemeDescriptionGruvboxLight =>
+      'Crème rétro chaleureuse et tons terreux';
+
+  @override
+  String get appThemeDescriptionEverforestLight =>
+      'Vert doux, reposant pour les yeux';
+
+  @override
+  String get appThemeDescriptionRosePineDawn =>
+      'Rose et iris atténués sur papier chaud';
+
+  @override
+  String get appThemeDescriptionAyuLight =>
+      'Clair lumineux et minimal avec des accents ambrés';
+
+  @override
+  String get appThemeDescriptionTokyoNightLight =>
+      'Lumière du jour indigo nette, le jour de Tokyo Night';
+
+  @override
+  String get appThemeDescriptionNordLight =>
+      'Neutres arctiques froids, tempête de neige';
+
+  @override
+  String get appThemeDescriptionKanagawaLotus =>
+      'Papier sumi-e chaleureux avec des accents d’encre';
+
+  @override
+  String get appThemeDescriptionDracula =>
+      'Le grand classique : violet sur anthracite';
+
+  @override
+  String get appThemeDescriptionNord => 'Bleus arctiques froids, discrets';
+
+  @override
+  String get appThemeDescriptionTokyoNight =>
+      'Palette indigo néon d’une ville la nuit';
+
+  @override
+  String get appThemeDescriptionGruvboxDark =>
+      'Ambre rétro chaleureux sur anthracite';
+
+  @override
+  String get appThemeDescriptionCatppuccinMocha =>
+      'Sombre pastel cosy, favori de la communauté';
+
+  @override
+  String get appThemeDescriptionGithubDark => 'Le sombre neutre de GitHub';
+
+  @override
+  String get appThemeDescriptionEverforestDark =>
+      'Vert forêt doux, peu fatigant';
+
+  @override
+  String get appThemeDescriptionRosePine =>
+      'Rose et iris atténués dans le noir';
+
+  @override
+  String get appThemeDescriptionAyuMirage =>
+      'Ardoise douce avec des accents ambrés';
+
+  @override
+  String get appThemeDescriptionCutiePro =>
+      'Pastel sombre ultra mignon, dominante rose';
+
+  @override
+  String get appThemeDescriptionPinkAsHeck =>
+      'Rose vif sans complexe sur fond baie';
+
+  @override
+  String get appThemeDescriptionVitesseLight =>
+      'Sauge, bleu-vert et rose modernes et atténués';
+
+  @override
+  String get appThemeDescriptionZenburn =>
+      'Le grand classique : gris chaud à faible contraste';
+
+  @override
+  String get appThemeDescriptionShadesOfPurple =>
+      'Or éclatant sur indigo profond';
+
+  @override
+  String get appThemeDescriptionCatppuccinFrappe =>
+      'Catppuccin pastel gris-bleu plus clair';
+
+  @override
+  String get appThemeDescriptionSynthwave84 => 'Néon lumineux sur violet rétro';
+
+  @override
+  String get appThemeDescriptionNoctisLilac =>
+      'Lumière du jour lilas douce de Noctis';
+
+  @override
+  String get themeEditorGroupPrimary => 'Primaire';
+
+  @override
+  String get themeEditorGroupSecondary => 'Secondaire';
+
+  @override
+  String get themeEditorGroupTertiary => 'Tertiaire';
+
+  @override
+  String get themeEditorGroupError => 'Erreur';
+
+  @override
+  String get themeEditorGroupSurfaceText => 'Surface et texte';
+
+  @override
+  String get themeEditorGroupSurfaceContainers => 'Conteneurs de surface';
+
+  @override
+  String get themeEditorGroupOutlineEffects => 'Contour et effets';
+
+  @override
+  String get themeEditorRolePrimary => 'Primaire';
+
+  @override
+  String get themeEditorRoleOnPrimary => 'Sur primaire';
+
+  @override
+  String get themeEditorRolePrimaryContainer => 'Conteneur primaire';
+
+  @override
+  String get themeEditorRoleOnPrimaryContainer => 'Sur conteneur primaire';
+
+  @override
+  String get themeEditorRoleSecondary => 'Secondaire';
+
+  @override
+  String get themeEditorRoleOnSecondary => 'Sur secondaire';
+
+  @override
+  String get themeEditorRoleSecondaryContainer => 'Conteneur secondaire';
+
+  @override
+  String get themeEditorRoleOnSecondaryContainer => 'Sur conteneur secondaire';
+
+  @override
+  String get themeEditorRoleTertiary => 'Tertiaire';
+
+  @override
+  String get themeEditorRoleOnTertiary => 'Sur tertiaire';
+
+  @override
+  String get themeEditorRoleTertiaryContainer => 'Conteneur tertiaire';
+
+  @override
+  String get themeEditorRoleOnTertiaryContainer => 'Sur conteneur tertiaire';
+
+  @override
+  String get themeEditorRoleError => 'Erreur';
+
+  @override
+  String get themeEditorRoleOnError => 'Sur erreur';
+
+  @override
+  String get themeEditorRoleErrorContainer => 'Conteneur d’erreur';
+
+  @override
+  String get themeEditorRoleOnErrorContainer => 'Sur conteneur d’erreur';
+
+  @override
+  String get themeEditorRoleSurface => 'Surface';
+
+  @override
+  String get themeEditorRoleOnSurface => 'Sur surface';
+
+  @override
+  String get themeEditorRoleOnSurfaceVariant => 'Sur variante de surface';
+
+  @override
+  String get themeEditorRoleInverseSurface => 'Surface inversée';
+
+  @override
+  String get themeEditorRoleOnInverseSurface => 'Sur surface inversée';
+
+  @override
+  String get themeEditorRoleInversePrimary => 'Primaire inversée';
+
+  @override
+  String get themeEditorRoleSurfaceContainerLowest => 'Conteneur (le plus bas)';
+
+  @override
+  String get themeEditorRoleSurfaceContainerLow => 'Conteneur (bas)';
+
+  @override
+  String get themeEditorRoleSurfaceContainer => 'Conteneur';
+
+  @override
+  String get themeEditorRoleSurfaceContainerHigh => 'Conteneur (élevé)';
+
+  @override
+  String get themeEditorRoleSurfaceContainerHighest =>
+      'Conteneur (le plus élevé)';
+
+  @override
+  String get themeEditorRoleOutline => 'Contour';
+
+  @override
+  String get themeEditorRoleOutlineVariant => 'Variante de contour';
+
+  @override
+  String get themeEditorRoleSurfaceTint => 'Teinte de surface';
+
+  @override
+  String get themeEditorRoleShadow => 'Ombre';
+
+  @override
+  String get themeEditorRoleScrim => 'Voile';
+
+  @override
+  String get themeEditorPairOnPrimary => 'Texte sur primaire';
+
+  @override
+  String get themeEditorPairOnPrimaryContainer =>
+      'Texte sur conteneur primaire';
+
+  @override
+  String get themeEditorPairOnSecondary => 'Texte sur secondaire';
+
+  @override
+  String get themeEditorPairOnSecondaryContainer =>
+      'Texte sur conteneur secondaire';
+
+  @override
+  String get themeEditorPairOnTertiary => 'Texte sur tertiaire';
+
+  @override
+  String get themeEditorPairOnTertiaryContainer =>
+      'Texte sur conteneur tertiaire';
+
+  @override
+  String get themeEditorPairOnError => 'Texte sur erreur';
+
+  @override
+  String get themeEditorPairOnErrorContainer => 'Texte sur conteneur d’erreur';
+
+  @override
+  String get themeEditorPairOnSurface => 'Texte courant sur surface';
+
+  @override
+  String get themeEditorPairOnSurfaceVariant => 'Texte secondaire sur surface';
+
+  @override
+  String get themeEditorPairOnInverseSurface => 'Texte sur surface inversée';
+
+  @override
+  String get themeEditorPairOutline => 'Contour sur surface';
+
+  @override
   String get settingsAppearanceEasterEggsHeader => 'Easter eggs';
 
   @override
