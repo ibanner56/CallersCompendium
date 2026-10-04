@@ -588,12 +588,31 @@ void main() {
       expect(f.customOrigin, CustomOrigin.importGap);
     });
 
-    test('demoteNoteTails keeps a note that is not a leftover move/number', () {
+    test('demoteNoteTails keeps a genuine prose tail as a note', () {
+      // `slowly` is not a move name, `and back` or a number, so the note must
+      // survive; demoting every note-bearing attempt would turn this custom.
       final f = parseFigureLinesFanOut(
-        'ladies chain (NR)',
+        'neighbors swing slowly',
         demoteNoteTails: true,
       ).single;
       expect(f.isCustom, isFalse);
+      expect(f.move, 'swing');
+      expect(f.note, 'slowly');
+    });
+
+    test('demoteNoteTails also sees notes on container children', () {
+      final f = parseFigureLinesFanOut(
+        'neighbors swing 16 while partners swing',
+        demoteNoteTails: true,
+      ).single;
+      expect(f.isCustom, isTrue);
+      // Default (imports) keeps the structured container.
+      expect(
+        parseFigureLinesFanOut(
+          'neighbors swing 16 while partners swing',
+        ).single.isCustom,
+        isFalse,
+      );
     });
   });
 }

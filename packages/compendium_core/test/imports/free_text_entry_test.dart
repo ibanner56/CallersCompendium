@@ -365,6 +365,23 @@ void main() {
       expect(f.isCustom, isTrue);
     });
 
+    test('a note-tail rejected in a while-container stays custom', () {
+      final fs = parseFreeTextFigureEntry(
+        'neighbors swing 16 while partners swing',
+      );
+      expect(fs.single.isCustom, isTrue);
+    });
+
+    test('entry → reparse: a demoted custom is not upgraded back to a swing '
+        'with note "16"', () {
+      final typed = parseFreeTextFigureEntry('neighbors swing 16').single;
+      expect(typed.isCustom, isTrue);
+      final outcome = reparseImportGapFigures([typed]);
+      expect(outcome.upgradedCount, 0);
+      expect(outcome.figures.single.isCustom, isTrue);
+      expect(outcome.figures.single.customOrigin, CustomOrigin.importGap);
+    });
+
     test('bare "give and take" stays custom (no default giver/target)', () {
       final fs = parseFreeTextFigureEntry('give and take');
       expect(fs, hasLength(1));

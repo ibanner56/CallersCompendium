@@ -8,5 +8,11 @@
     "fixed": [
       "Free-text entry no longer turns a line like \"ladies chain over and back\" or \"neighbors swing 16\" into a figure with the wrong beats and the rest hidden in a note: a leftover that is only another move, \"and back\" or a bare number is now marked unparsed. \"give and take\" still needs a giver and a target."
     ]
+  },
+  "core": {
+    "added": [
+      "The shared figure parser recognises `N`, `neighbour` and `neighbours` as neighbors, a hey with a starting pair and shoulder (`half hey, ladies start by the right`), and `allemande ... with <dancer>`.",
+      "`parseFigureLineFanOut` and `parseFigureLinesFanOut` take an opt-in `demoteNoteTails` flag: a note-bearing parse whose notes are only another move name, `and back` or a bare number falls to the import-gap custom. Free-text entry and the custom-figure reparse upgrade turn it on; imports keep the default (off)."
+    ]
   }
 }

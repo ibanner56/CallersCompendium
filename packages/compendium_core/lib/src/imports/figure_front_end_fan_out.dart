@@ -123,17 +123,37 @@ _AttemptTier _classify(
       result.any((f) => _noteSwallowedCompound(f.note))) {
     return _AttemptTier.none;
   }
-  if (demoteNoteTails &&
-      result.any((f) => f.note != null) &&
-      result.every(
-        (f) => f.note == null || _noteIsLeftover(f.note!, moveNames),
-      )) {
-    return _AttemptTier.none;
+  if (demoteNoteTails) {
+    // Descendants count too: a ContraDB `while` builds a noteless container
+    // whose first child carries the tail (`neighbors swing 16 while partners
+    // swing`), which would otherwise rank clean.
+    final notes = _allNotes(result).toList();
+    if (notes.isNotEmpty && notes.every((n) => _noteIsLeftover(n, moveNames))) {
+      return _AttemptTier.none;
+    }
   }
   return result.any((f) => f.note != null || _hasCustomDescendant(f))
       ? _AttemptTier.noteBearing
       : _AttemptTier.clean;
 }
+
+/// Every non-null note on [figures] and, recursively, their sub-figures.
+Iterable<String> _allNotes(Iterable<Figure> figures) sync* {
+  for (final f in figures) {
+    if (f.note != null) yield f.note!;
+    if (f.isContainer) yield* _allNotes(f.subFigures);
+  }
+}
+
+/// The whole-line import-gap custom a demoted line falls to when no front-end
+/// produced a custom of its own.
+Figure _demotedCustom(String rawText, int beats, bool progression) =>
+    customFigure(
+      scrubFigureText(rawText),
+      beats: beats < 0 ? 0 : beats,
+      progression: progression,
+      origin: CustomOrigin.importGap,
+    );
 
 /// Whether [note] is only a leftover that must not count as a parse: another
 /// move name (`petronella`), `and back`, or a bare number (`16`) — each the
@@ -334,18 +354,26 @@ Figure? _attemptLine(
 /// non-empty set of front-ends in tests, and an empty set is meaningless (you
 /// cannot fan out across nothing), so it is treated as "use the defaults" rather
 /// than silently dropping a non-empty line.
+///
+/// [demoteNoteTails] has the same opt-in meaning as on [parseFigureLinesFanOut]
+/// (free-text entry and the reparse upgrade only; imports keep `false`).
 Figure? parseFigureLineFanOut(
   String rawText, {
   int beats = 0,
   bool progression = false,
   Taxonomy? taxonomy,
   List<FigureFrontEnd>? frontEnds,
+  bool demoteNoteTails = false,
 }) {
   final fes = (frontEnds == null || frontEnds.isEmpty)
       ? figureFanOutFrontEnds
       : frontEnds;
+  final moveNames = demoteNoteTails
+      ? _moveNamesOf(taxonomy ?? contraTaxonomy)
+      : const <String>{};
   Figure? noteWin;
   Figure? customFallback;
+  var demoted = false;
   for (final fe in fes) {
     final parsed = _attemptLine(
       rawText,
@@ -356,15 +384,27 @@ Figure? parseFigureLineFanOut(
     );
     // Empty after scrubbing is front-end-independent: nothing to store.
     if (parsed == null) return null;
-    switch (_classify([parsed], frontEnd: fe)) {
+    switch (_classify(
+      [parsed],
+      frontEnd: fe,
+      demoteNoteTails: demoteNoteTails,
+      moveNames: moveNames,
+    )) {
       case _AttemptTier.clean:
         // Highest-precedence clean parse: nothing lower can beat it.
         return parsed;
       case _AttemptTier.noteBearing:
         noteWin ??= parsed;
       case _AttemptTier.none:
-        if (parsed.isCustom) customFallback ??= parsed;
+        if (parsed.isCustom) {
+          customFallback ??= parsed;
+        } else {
+          demoted = true;
+        }
     }
+  }
+  if (noteWin == null && customFallback == null && demoted) {
+    return _demotedCustom(rawText, beats, progression);
   }
   return noteWin ?? customFallback;
 }
@@ -459,14 +499,7 @@ List<Figure> parseFigureLinesFanOut(
   if (noteWin == null && customFallback == null && demoted) {
     // Every attempt was a demoted note tail, so no front-end produced the
     // custom itself: build the same whole-line import-gap custom they would.
-    return [
-      customFigure(
-        scrubFigureText(rawText),
-        beats: beats < 0 ? 0 : beats,
-        progression: progression,
-        origin: CustomOrigin.importGap,
-      ),
-    ];
+    return [_demotedCustom(rawText, beats, progression)];
   }
   return noteWin ?? customFallback ?? const [];
 }
