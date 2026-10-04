@@ -591,6 +591,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final onDanceImported = widget.onDanceImported;
     final onAddDance = widget.onAddDance;
     final l10n = AppLocalizations.of(context);
+    final navigator = Navigator.of(context);
     final service = _online;
     final searchGeneration = _onlineSeq;
     var importReported = false;
@@ -598,11 +599,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
       importReported = true;
       onImportingChanged?.call(_importActivityOwner, true);
       final preview = await service.loadPreview(_repos, onlineResult);
-      if (!mounted) return;
-      // [context] is the picker's own: a picker that unmounted mid-import
-      // gets a null back, same as a cancelled dialog.
+      // The navigator's context, not the picker's: the picker can be removed
+      // mid-import (a responsive layout change) while its route lives on, and
+      // the import must still complete (program_editor_screen_test).
+      if (!navigator.mounted) return;
       final result = await resolveAndImportOnline(
-        context,
+        navigator.context,
         service: service,
         repos: _repos,
         preview: preview,
