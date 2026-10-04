@@ -18,6 +18,13 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/test_repositories.dart';
 
 void main() {
+  // Passes that reach a real `CompendiumSyncCoordinatorStore` mark identities
+  // used; run the PBKDF2 derivation at a lowered count (the real one is pinned
+  // in compendium_core's sync_identity_kdf_test.dart).
+  final productionKdfIterations = syncIdentityKdfIterations;
+  setUpAll(() => syncIdentityKdfIterations = 1000);
+  tearDownAll(() => syncIdentityKdfIterations = productionKdfIterations);
+
   test('isolated peer cache namespaces peer ids from diagnostic fields', () {
     final peerManifest = _manifest(deviceId: 'peer', records: const {});
     final diagnosticAddress = (

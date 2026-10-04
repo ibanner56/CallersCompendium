@@ -376,6 +376,10 @@ void main() {
       final repositories = CompendiumRepositories(database, contraTaxonomy);
       await repositories.ensureMigrated();
       const syncId = 'alpha-beta-gamma-delta';
+      // Deliberately the real derivation, with no `syncIdentityKdfIterations`
+      // override: the pass runs in a spawned isolate whose copy of that global
+      // is still 600,000, so a marker written at a lowered count would be
+      // skipped there as a mismatch.
       await CompendiumSyncStorage(repositories).markSyncUsed(syncId);
 
       final requests = <String>[];
