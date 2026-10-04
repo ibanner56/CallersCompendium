@@ -124,6 +124,12 @@ underline, role terms are underlined, and
 [discouraged terms](./dialects.md) are struck through. It is a hint, not a
 correction — nothing is changed for you.
 
+Role words you type here (such as "Larks" or "Leads") are saved in a neutral
+form, shown in your own [dialect](./dialects.md), and found by role searches.
+Custom text saved before this change updates the next time you save the dance
+while the same dialect is active; text typed in a different dialect may need a
+manual edit.
+
 ### Reorder, cut, and duplicate
 
 Each figure row has a drag handle and an actions menu:

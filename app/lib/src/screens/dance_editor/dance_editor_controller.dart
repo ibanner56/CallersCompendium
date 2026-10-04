@@ -95,20 +95,25 @@ class DanceEditorController extends ChangeNotifier {
   String _canonicalizeNote(String typed) =>
       canonicalizeText(typed.trim(), _activeDialect);
 
-  /// Renders every [FigureDraft.note] in [drafts] (recursing into structural
+  /// Renders every [FigureDraft.note] (and custom figures' `params['text']`) in [drafts] (recursing into structural
   /// container children) from canonical storage into the active
   /// dialect via [_renderNote], so `draft.note` holds active-dialect text while
   /// being edited. Called once, right after each site that seeds `figureDrafts`
   /// via [FigureDraft.fromFigure] (issue #715 — figure notes were previously
   /// outside the canonicalization chokepoint entirely).
-  void _renderNotesRecursively(Iterable<FigureDraft> drafts) {
+  void _renderDraftTextRecursively(Iterable<FigureDraft> drafts) {
     for (final draft in drafts) {
       draft.note = _renderNote(draft.note);
+      // Custom figure text is stored canonical like notes (DIA-02).
+      final text = draft.params['text'];
+      if (draft.move == customMove && text is String && text.isNotEmpty) {
+        draft.params['text'] = _renderNote(text);
+      }
       if (draft.meanwhileSides case final sides?) {
-        _renderNotesRecursively(sides);
+        _renderDraftTextRecursively(sides);
       }
       if (draft.modifierFigures case final children?) {
-        _renderNotesRecursively(children);
+        _renderDraftTextRecursively(children);
       }
     }
   }
@@ -395,7 +400,7 @@ class DanceEditorController extends ChangeNotifier {
         case UnreadableFigures():
           _loadedUnreadableFigures = true;
       }
-      _renderNotesRecursively(figureDrafts);
+      _renderDraftTextRecursively(figureDrafts);
     } else {
       // New dance (ROADMAP DD.1): seed the initial metadata from the saved
       // dance-authoring defaults. Each read is independently guarded so a
@@ -458,7 +463,7 @@ class DanceEditorController extends ChangeNotifier {
           defaultNewDanceFigureTemplate().map(FigureDraft.fromFigure),
         );
       }
-      _renderNotesRecursively(figureDrafts);
+      _renderDraftTextRecursively(figureDrafts);
     }
 
     // Seed text controllers for custom text/number fields.
@@ -1212,7 +1217,7 @@ class DanceEditorController extends ChangeNotifier {
     }
     final group = FigureDraft(meanwhileSides: sides);
     group.params['beats'] = sides.first.beats;
-    _renderNotesRecursively([group]);
+    _renderDraftTextRecursively([group]);
     figureDrafts.add(group);
     recomputeWarnings();
     pushUndoNow();
@@ -1242,7 +1247,7 @@ class DanceEditorController extends ChangeNotifier {
     }
     final group = FigureDraft(modifierFigures: children);
     group.params['beats'] = children.first.beats;
-    _renderNotesRecursively([group]);
+    _renderDraftTextRecursively([group]);
     figureDrafts.add(group);
     recomputeWarnings();
     pushUndoNow();
@@ -1262,7 +1267,7 @@ class DanceEditorController extends ChangeNotifier {
     if (figures.isEmpty) return 0;
     final inserted = figures.map(FigureDraft.fromFigure).toList();
     figureDrafts.addAll(inserted);
-    _renderNotesRecursively(inserted);
+    _renderDraftTextRecursively(inserted);
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();

@@ -898,6 +898,82 @@ void main() {
     expect(controller.figureDrafts.last.note, 'robins allemande right 1/2');
   });
 
+  group(
+    'custom figure text is canonical on save, dialect on read (DIA-02)',
+    () {
+      Dance customDance() => sampleDance(id: 'd1').copyWith(
+        figures: [
+          Figure(move: 'custom', params: const {'text': 'role1s chain wide'}),
+          Figure.meanwhile(
+            figures: [
+              Figure(move: 'custom', params: const {'text': 'role2s wait'}),
+              Figure(move: 'swing'),
+            ],
+            beats: 8,
+          ),
+        ],
+      );
+
+      for (final (dialect, first, nested) in [
+        (Dialect.larksRobins, 'larks chain wide', 'robins wait'),
+        (Dialect.leadsFollows, 'leads chain wide', 'follows wait'),
+      ]) {
+        test('load renders stored text in ${dialect.name}', () async {
+          final controller = DanceEditorController(
+            repositories: openTestRepositories(),
+            danceId: 'd1',
+            dialect: dialect,
+          );
+          addTearDown(controller.dispose);
+          await controller.load(dance: customDance(), fieldDefs: const []);
+          expect(controller.figureDrafts.first.params['text'], first);
+          expect(
+            controller.figureDrafts.last.meanwhileSides!.first.params['text'],
+            nested,
+          );
+          // Saving round-trips to the canonical form.
+          final rebuilt = figuresOf(controller.buildDance());
+          expect(rebuilt.first.params['text'], 'role1s chain wide');
+          expect(rebuilt.last.subFigures.first.params['text'], 'role2s wait');
+        });
+      }
+
+      test('typed custom text is saved canonically', () async {
+        final controller = await newDanceController(openTestRepositories());
+        addTearDown(controller.dispose);
+        controller.addFigure();
+        final draft = controller.figureDrafts.last;
+        draft.move = customMove;
+        draft.params['text'] = 'Larks chain wide';
+        controller.titleController.text = 'Some Dance';
+        controller.onTextEdited();
+        expect(
+          figuresOf(controller.buildDance()).last.params['text'],
+          'role1s chain wide',
+        );
+      });
+
+      test(
+        'insertFreeTextFigures shows custom text in the active dialect',
+        () async {
+          final controller = await newDanceController(openTestRepositories());
+          addTearDown(controller.dispose);
+          controller.insertFreeTextFigures([
+            Figure(
+              move: 'custom',
+              params: const {'text': 'role1s chain wide'},
+              customOrigin: CustomOrigin.importGap,
+            ),
+          ]);
+          expect(
+            controller.figureDrafts.last.params['text'],
+            'larks chain wide',
+          );
+        },
+      );
+    },
+  );
+
   test('duplicateFigure preserves the assumed-subject marker on the copy '
       '(#460)', () async {
     final repos = openTestRepositories();

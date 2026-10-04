@@ -1498,6 +1498,28 @@ void main() {
       },
     );
 
+    test(
+      'a larks full-text term matches canonical custom figure text (DIA-02)',
+      () async {
+        await dances.create(
+          _dance(
+            id: 'a',
+            title: 'Custom Dance',
+            figures: [
+              Figure(move: 'custom', params: const {'text': 'role1s chain'}),
+            ],
+          ),
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('larks'),
+            dialect: Dialect.larksRobins,
+          ),
+          ['a'],
+        );
+      },
+    );
+
     group('omni raw branch (role words in verbatim columns)', () {
       Future<void> seedAuthored() async {
         // ignore: unused_result
