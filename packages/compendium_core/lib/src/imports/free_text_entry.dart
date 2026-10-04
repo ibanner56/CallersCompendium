@@ -155,6 +155,7 @@ List<Figure> parseFreeTextFigureEntry(
     split.text,
     beats: split.beats,
     taxonomy: taxonomy,
+    demoteNoteTails: true,
   );
   if (dialect == null || !raw.every((f) => f.isCustom)) return raw;
   final canonical = canonicalizeText(split.text, dialect);
@@ -163,6 +164,7 @@ List<Figure> parseFreeTextFigureEntry(
     canonical,
     beats: split.beats,
     taxonomy: taxonomy,
+    demoteNoteTails: true,
   );
   return retried.every((f) => f.isCustom) ? raw : retried;
 }

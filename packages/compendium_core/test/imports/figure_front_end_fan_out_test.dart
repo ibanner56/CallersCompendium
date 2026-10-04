@@ -570,4 +570,30 @@ void main() {
       expect(result?.isCustom, isTrue);
     });
   });
+
+  group('parseFigureLinesFanOut — demoteNoteTails', () {
+    test('default (imports) keeps a note tail: swing + note "16"', () {
+      final f = parseFigureLinesFanOut('neighbors swing 16').single;
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'swing');
+      expect(f.note, '16');
+    });
+
+    test('demoteNoteTails turns a bare-number note tail into a custom', () {
+      final f = parseFigureLinesFanOut(
+        'neighbors swing 16',
+        demoteNoteTails: true,
+      ).single;
+      expect(f.isCustom, isTrue);
+      expect(f.customOrigin, CustomOrigin.importGap);
+    });
+
+    test('demoteNoteTails keeps a note that is not a leftover move/number', () {
+      final f = parseFigureLinesFanOut(
+        'ladies chain (NR)',
+        demoteNoteTails: true,
+      ).single;
+      expect(f.isCustom, isFalse);
+    });
+  });
 }

@@ -1,9 +1,12 @@
 import '../model/figure.dart';
+import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/taxonomy.dart';
 import 'callers_companion_mapping.dart';
 import 'callersbox_figure_dialect.dart';
 import 'contradb_figure_dialect.dart';
 import 'figure_parser.dart';
+import 'figure_text_scrub.dart';
+import 'structured_draft.dart';
 
 /// The source front-ends the local free-text consumers fan OUT across, in
 /// descending PRECEDENCE order (issue: free-text fan-out). On a shorthand miss,
@@ -55,8 +58,12 @@ enum _AttemptTier {
   /// may indicate absorbed `;`-compound or simultaneity source syntax.
   noteBearing,
 
-  /// Not a usable structured win: either custom/empty, OR a structured parse
-  /// from a **non-TCB** front-end (ContraDB, CallersCompanion) whose
+  /// Not a usable structured win: either custom/empty, OR (free-text entry
+  /// only, `demoteNoteTails`) a note-bearing parse whose every note is only
+  /// another move name, `and back` or a bare number — see [_noteIsLeftover];
+  /// such a note would otherwise structure the line with the wrong beats and
+  /// hide the rest of it, so the line stays custom instead — OR a structured
+  /// parse from a **non-TCB** front-end (ContraDB, CallersCompanion) whose
   /// captured note swallowed a top-level `;`/`||`. The latter means the
   /// front-end absorbed compound (`;`) or simultaneity (`||`) syntax it must
   /// not represent as one figure, so it is rejected here and the line is left
@@ -102,19 +109,58 @@ bool _noteSwallowedCompound(String? note) =>
 /// check is applied as before — ContraDB and CallersCompanion do not split on
 /// `;`, so a top-level `;`/`||` in their note still means the front-end absorbed
 /// compound/simultaneity source syntax it must not represent as one figure.
+///
+/// With [demoteNoteTails] (free-text entry only), a note-bearing result whose
+/// every note passes [_noteIsLeftover] is also [_AttemptTier.none].
 _AttemptTier _classify(
   List<Figure> result, {
   required FigureFrontEnd frontEnd,
+  bool demoteNoteTails = false,
+  Set<String> moveNames = const {},
 }) {
   if (result.isEmpty || result.any((f) => f.isCustom)) return _AttemptTier.none;
   if (!identical(frontEnd, tcbFigureFrontEnd) &&
       result.any((f) => _noteSwallowedCompound(f.note))) {
     return _AttemptTier.none;
   }
+  if (demoteNoteTails &&
+      result.any((f) => f.note != null) &&
+      result.every(
+        (f) => f.note == null || _noteIsLeftover(f.note!, moveNames),
+      )) {
+    return _AttemptTier.none;
+  }
   return result.any((f) => f.note != null || _hasCustomDescendant(f))
       ? _AttemptTier.noteBearing
       : _AttemptTier.clean;
 }
+
+/// Whether [note] is only a leftover that must not count as a parse: another
+/// move name (`petronella`), `and back`, or a bare number (`16`) — each the
+/// unconsumed tail of a line a recognizer matched only as a PREFIX, so the
+/// structured figure would carry the wrong beats/moves with the rest hidden.
+///
+/// [moveNames] is derived from the active taxonomy ([_moveNamesOf]); nothing
+/// here is a hard-coded move list.
+bool _noteIsLeftover(String note, Set<String> moveNames) {
+  var n = note.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+  n = n.replaceAll(RegExp(r'^[\s,.;:!-]+|[\s,.;:!-]+$'), '');
+  n = n.replaceFirst(RegExp(r'^(and|then) '), '');
+  if (n.isEmpty) return false;
+  return RegExp(r'^(over )?(and )?back$').hasMatch(n) ||
+      RegExp(r'^\d+$').hasMatch(n) ||
+      moveNames.contains(n);
+}
+
+/// The lowercase move names of [taxonomy]: display names, ids spelled with
+/// spaces, and search keywords.
+Set<String> _moveNamesOf(Taxonomy taxonomy) => {
+  for (final m in taxonomy.moves.values) ...[
+    m.displayName.toLowerCase(),
+    m.id.replaceAll('_', ' '),
+    ...m.searchKeywords.map((k) => k.toLowerCase()),
+  ],
+};
 
 /// Whether a container [f] holds a custom child. A container is never itself
 /// [Figure.isCustom], so without this a `meanwhile[long_lines, custom]` built by
@@ -355,18 +401,33 @@ Figure? parseFigureLineFanOut(
 /// [frontEnds] defaults to (and an EMPTY list is coalesced to)
 /// [figureFanOutFrontEnds] — see [parseFigureLineFanOut] for the rationale — so
 /// an empty set never silently turns a real line into "nothing to insert".
+///
+/// [demoteNoteTails] is OPT-IN and meant for the free-text entry path only. When
+/// true, a note-bearing attempt whose every note is just another move name,
+/// `and back` or a bare number is treated as a miss (see [_classify]) and the
+/// line falls to the custom fallback, instead of becoming a structured figure
+/// with the wrong beats and the rest of the line hidden in a note
+/// (`ladies chain over and back`, `neighbors swing 16`). It defaults to false
+/// because source-rendered imports (ContraDB HTML, `.USR`, CallersBox)
+/// legitimately rely on the note tail, and changing it there would churn the
+/// import fixtures.
 List<Figure> parseFigureLinesFanOut(
   String rawText, {
   int beats = 0,
   bool progression = false,
   Taxonomy? taxonomy,
   List<FigureFrontEnd>? frontEnds,
+  bool demoteNoteTails = false,
 }) {
   final fes = (frontEnds == null || frontEnds.isEmpty)
       ? figureFanOutFrontEnds
       : frontEnds;
+  final moveNames = demoteNoteTails
+      ? _moveNamesOf(taxonomy ?? contraTaxonomy)
+      : const <String>{};
   List<Figure>? noteWin;
   List<Figure>? customFallback;
+  var demoted = false;
   for (final fe in fes) {
     final result = _attemptLines(
       rawText,
@@ -377,14 +438,35 @@ List<Figure> parseFigureLinesFanOut(
     );
     // Empty after scrubbing is front-end-independent: nothing to insert.
     if (result.isEmpty) return const [];
-    switch (_classify(result, frontEnd: fe)) {
+    switch (_classify(
+      result,
+      frontEnd: fe,
+      demoteNoteTails: demoteNoteTails,
+      moveNames: moveNames,
+    )) {
       case _AttemptTier.clean:
         return result;
       case _AttemptTier.noteBearing:
         noteWin ??= result;
       case _AttemptTier.none:
-        if (result.every((f) => f.isCustom)) customFallback ??= result;
+        if (result.every((f) => f.isCustom)) {
+          customFallback ??= result;
+        } else {
+          demoted = true;
+        }
     }
+  }
+  if (noteWin == null && customFallback == null && demoted) {
+    // Every attempt was a demoted note tail, so no front-end produced the
+    // custom itself: build the same whole-line import-gap custom they would.
+    return [
+      customFigure(
+        scrubFigureText(rawText),
+        beats: beats < 0 ? 0 : beats,
+        progression: progression,
+        origin: CustomOrigin.importGap,
+      ),
+    ];
   }
   return noteWin ?? customFallback ?? const [];
 }

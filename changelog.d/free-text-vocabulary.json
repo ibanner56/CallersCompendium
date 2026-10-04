@@ -1,0 +1,12 @@
+{
+  "id": "free-text-vocabulary",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Free-text entry recognises more everyday phrasings: a hey with a starting pair and shoulder (\"half hey, ladies start by the right\"), \"N\" and \"neighbours\" for neighbors, and \"allemande left 1 1/2 with neighbor\"."
+    ],
+    "fixed": [
+      "Free-text entry no longer turns a line like \"ladies chain over and back\" or \"neighbors swing 16\" into a figure with the wrong beats and the rest hidden in a note: a leftover that is only another move, \"and back\" or a bare number is now marked unparsed. \"give and take\" still needs a giver and a target."
+    ]
+  }
+}
