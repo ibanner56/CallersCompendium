@@ -1,0 +1,9 @@
+{
+  "id": "1613-settings-dropdown-row",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Settings rows with a dropdown (Language, Date format, Defaults, Backup reminder, Venue call count and others) no longer clip or hide their label at larger text sizes on phones."
+    ]
+  }
+}

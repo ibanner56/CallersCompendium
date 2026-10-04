@@ -17,6 +17,8 @@ import 'package:compendium_app/src/screens/settings_screen.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
+import 'support/screen_size.dart';
+import 'support/text_scale.dart';
 
 /// The live notifiers the Language & region controls read and mutate, seeded
 /// (with validation) from persisted settings — mirroring how `main.dart` wires
@@ -33,10 +35,11 @@ typedef _RegionalNotifiers = ({
 /// assert that a control change flows through to app-wide state.
 Future<_RegionalNotifiers> _pumpRegional(
   WidgetTester tester,
-  CompendiumRepositories repos,
-) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 1200));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  CompendiumRepositories repos, {
+  Size surface = const Size(1200, 1200),
+  double textScale = 1,
+}) async {
+  await setScreenSize(tester, surface);
 
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
   final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
@@ -64,32 +67,38 @@ Future<_RegionalNotifiers> _pumpRegional(
   addTearDown(firstDayOfWeek.dispose);
   addTearDown(locale.dispose);
 
+  // The scopes sit above the Navigator (as in the real app) so a narrow
+  // surface, where a section opens as a pushed route, still reaches them.
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      home: RepositoriesScope(
-        repositories: repos,
-        child: AppThemeScope(
-          notifier: theme,
-          child: CustomThemesScope(
-            controller: customThemes,
-            child: ActiveDialectScope(
-              notifier: dialect,
-              child: DateFormatScope(
-                notifier: dateFormat,
-                child: FirstDayOfWeekScope(
-                  notifier: firstDayOfWeek,
-                  child: LocaleScope(
-                    notifier: locale,
-                    child: const SettingsScreen(),
+      builder: (context, child) {
+        final scaled = textScaleBuilder(textScale)?.call(context, child);
+        return RepositoriesScope(
+          repositories: repos,
+          child: AppThemeScope(
+            notifier: theme,
+            child: CustomThemesScope(
+              controller: customThemes,
+              child: ActiveDialectScope(
+                notifier: dialect,
+                child: DateFormatScope(
+                  notifier: dateFormat,
+                  child: FirstDayOfWeekScope(
+                    notifier: firstDayOfWeek,
+                    child: LocaleScope(
+                      notifier: locale,
+                      child: scaled ?? child!,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
+      home: const SettingsScreen(),
     ),
   );
   await tester.pumpAndSettle();
@@ -125,6 +134,31 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Coming soon'), findsNothing);
+  });
+
+  testWidgets('Language & region renders without overflow at 360x640 and 1.3x '
+      'text', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpRegional(
+      tester,
+      repos,
+      surface: const Size(360, 640),
+      textScale: 1.3,
+    );
+
+    expect(tester.takeException(), isNull);
+    for (final key in const [
+      'regional-language',
+      'regional-date-format',
+      'regional-first-day-of-week-dropdown',
+    ]) {
+      await tester.ensureVisible(find.byKey(ValueKey(key)));
+      await tester.pumpAndSettle();
+      final box = tester.getRect(find.byKey(ValueKey(key)));
+      expect(box.left, greaterThanOrEqualTo(0), reason: key);
+      expect(box.right, lessThanOrEqualTo(360), reason: key);
+    }
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('the date-format dropdown shows the persisted value', (

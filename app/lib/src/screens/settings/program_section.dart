@@ -15,6 +15,7 @@ import '../../data/venue_call_count_scope.dart';
 import '../../data/venue_entity_mode_scope.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/settings_dropdown_row.dart';
 import '../venue_manager_screen.dart';
 
 /// The Program settings section: preferences that shape how programs are built,
@@ -428,12 +429,14 @@ class _ProgramView extends StatelessWidget {
           subtitle: Text(l10n.settingsGeneralTrackHistoryForAllCallersSubtitle),
           isThreeLine: true,
         ),
-        ListTile(
-          key: const ValueKey('general-venue-call-count'),
+        SettingsDropdownRow(
+          tileKey: const ValueKey('general-venue-call-count'),
           title: Text(l10n.settingsProgramVenueCallCountTitle),
           subtitle: Text(l10n.settingsProgramVenueCallCountSubtitle),
           isThreeLine: true,
-          trailing: DropdownButton<int>(
+          dropdownBuilder: (expanded) => DropdownButton<int>(
+            key: const ValueKey('program-venue-call-count'),
+            isExpanded: expanded,
             value: venueCallCount,
             onChanged: (value) {
               if (value != null) onVenueCallCountChanged(value);

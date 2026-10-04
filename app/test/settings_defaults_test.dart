@@ -27,6 +27,8 @@ import 'package:compendium_app/src/widgets/collection_picker.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
+import 'support/screen_size.dart';
+import 'support/text_scale.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -132,14 +134,10 @@ Future<void> _pumpDefaults(
   CompendiumRepositories repos, {
   bool expandGroups = true,
   ValueNotifier<Set<String>>? hiddenFacets,
-
-  /// Also provides the repositories and dialect above the Navigator, as the
-  /// real app does, so a modal sheet opened from the section (the
-  /// starting-program picker) can read them.
-  bool scopesAboveNavigator = false,
+  Size surface = const Size(1200, 4500),
+  double textScale = 1,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 4500));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await setScreenSize(tester, surface);
 
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
   final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
@@ -163,41 +161,41 @@ Future<void> _pumpDefaults(
   addTearDown(shorthandMappings.dispose);
   addTearDown(walkthroughSnippets.dispose);
 
+  // The scopes sit above the Navigator (as in the real app) so a narrow
+  // surface, where a section opens as a pushed route, still reaches them.
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      builder: scopesAboveNavigator
-          ? (context, child) => RepositoriesScope(
-              repositories: repos,
-              child: ActiveDialectScope(notifier: dialect, child: child!),
-            )
-          : null,
-      home: RepositoriesScope(
-        repositories: repos,
-        child: AppThemeScope(
-          notifier: theme,
-          child: CustomThemesScope(
-            controller: customThemes,
-            child: ActiveDialectScope(
-              notifier: dialect,
-              child: AggressiveBeatsUpdateScope(
-                notifier: aggressiveBeatsUpdate,
-                child: ShorthandMappingsScope(
-                  controller: shorthandMappings,
-                  child: WalkthroughSnippetLibraryScope(
-                    controller: walkthroughSnippets,
-                    child: CollectionFacetsScope(
-                      notifier: facetsNotifier,
-                      child: const SettingsScreen(),
+      builder: (context, child) {
+        final scaled = textScaleBuilder(textScale)?.call(context, child);
+        return RepositoriesScope(
+          repositories: repos,
+          child: AppThemeScope(
+            notifier: theme,
+            child: CustomThemesScope(
+              controller: customThemes,
+              child: ActiveDialectScope(
+                notifier: dialect,
+                child: AggressiveBeatsUpdateScope(
+                  notifier: aggressiveBeatsUpdate,
+                  child: ShorthandMappingsScope(
+                    controller: shorthandMappings,
+                    child: WalkthroughSnippetLibraryScope(
+                      controller: walkthroughSnippets,
+                      child: CollectionFacetsScope(
+                        notifier: facetsNotifier,
+                        child: scaled ?? child!,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
+      home: const SettingsScreen(),
     ),
   );
   await tester.pumpAndSettle();
@@ -292,6 +290,47 @@ void main() {
       expect(startingProgramTemplateFromStored('not-json'), isEmpty);
     },
   );
+
+  testWidgets('Defaults dropdown rows survive 360 dp wide at 2x text', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(
+      tester,
+      repos,
+      surface: const Size(360, 4500),
+      textScale: 2,
+      expandGroups: false,
+    );
+    expect(tester.takeException(), isNull);
+
+    Future<void> expectOnScreen(String key) async {
+      await tester.scrollUntilVisible(
+        find.byKey(ValueKey(key)),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      final box = tester.getRect(find.byKey(ValueKey(key)));
+      expect(box.left, greaterThanOrEqualTo(0), reason: key);
+      expect(box.right, lessThanOrEqualTo(360), reason: key);
+    }
+
+    await expectOnScreen('defaults-collection-sort');
+    await expectOnScreen('defaults-program-sort');
+    // The dance-form rows live in the authoring group, collapsed by default.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('defaults-authoring-group')),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.byKey(const ValueKey('defaults-authoring-group')));
+    await tester.pumpAndSettle();
+    await expectOnScreen('defaults-dance-form');
+    await expectOnScreen('defaults-dance-formation');
+    await expectOnScreen('defaults-dance-progression');
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('program and authoring groups start collapsed', (tester) async {
     final repos = openTestRepositories();
@@ -2392,7 +2431,7 @@ void main() {
       tester,
     ) async {
       final opened = await open();
-      await _pumpDefaults(tester, opened.repos, scopesAboveNavigator: true);
+      await _pumpDefaults(tester, opened.repos);
       await tester.tap(
         find.byKey(const ValueKey('starting-program-add-dance')),
       );
@@ -2405,7 +2444,7 @@ void main() {
     testWidgets('a failed picker load is logged per tap and retried on the '
         'next tap', (tester) async {
       final opened = await open(failFullLoad: true);
-      await _pumpDefaults(tester, opened.repos, scopesAboveNavigator: true);
+      await _pumpDefaults(tester, opened.repos);
       final add = find.byKey(const ValueKey('starting-program-add-dance'));
 
       await tester.tap(add);

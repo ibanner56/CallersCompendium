@@ -17,6 +17,8 @@ import 'package:compendium_app/src/screens/settings/matrix_column_editor_screen.
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
+import 'support/screen_size.dart';
+import 'support/text_scale.dart';
 
 /// Pumps the [SettingsScreen] and opens the Program section, wiring every scope
 /// the Program pane reads (venues, matrix-collision, and the two calling-history
@@ -27,9 +29,10 @@ Future<ValueNotifier<bool>> _pumpProgram(
   CompendiumRepositories repos, {
   bool initialExactBeatCollision = true,
   bool initialAutoCommit = false,
+  Size surface = const Size(1200, 1400),
+  double textScale = 1,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 1400));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await setScreenSize(tester, surface);
 
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
   final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
@@ -71,7 +74,11 @@ Future<ValueNotifier<bool>> _pumpProgram(
                       notifier: trackAllCallers,
                       child: ProgramAutoCommitScope(
                         notifier: autoCommit,
-                        child: child!,
+                        child:
+                            (textScaleBuilder(
+                              textScale,
+                            )?.call(context, child)) ??
+                            child!,
                       ),
                     ),
                   ),
@@ -93,6 +100,31 @@ Future<ValueNotifier<bool>> _pumpProgram(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('Program venue call count survives 360 dp wide at 1.3x text', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpProgram(
+      tester,
+      repos,
+      surface: const Size(360, 1400),
+      textScale: 1.3,
+    );
+    expect(tester.takeException(), isNull);
+    for (final key in const ['program-venue-call-count']) {
+      await tester.scrollUntilVisible(
+        find.byKey(ValueKey(key)),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      final box = tester.getRect(find.byKey(ValueKey(key)));
+      expect(box.left, greaterThanOrEqualTo(0), reason: key);
+      expect(box.right, lessThanOrEqualTo(360), reason: key);
+    }
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('Program pane renders all four relocated subsections', (
     tester,
