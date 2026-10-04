@@ -119,6 +119,15 @@ void main() {
         scrollable: find.byType(Scrollable).last,
       );
       await tester.pumpAndSettle();
+      // A dropdown inside a ListTile's trailing slot cannot wrap.
+      expect(
+        find.descendant(
+          of: find.byType(ListTile),
+          matching: find.byKey(ValueKey(key)),
+        ),
+        findsNothing,
+        reason: key,
+      );
       final box = tester.getRect(find.byKey(ValueKey(key)));
       expect(box.left, greaterThanOrEqualTo(0), reason: key);
       expect(box.right, lessThanOrEqualTo(360), reason: key);
