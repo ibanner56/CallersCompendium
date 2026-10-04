@@ -683,5 +683,71 @@ void main() {
         expect(saved, hasLength(2));
       },
     );
+
+    test(
+      'an undecodable existing transcription never compares as identical (#1347, ContraDB)',
+      () async {
+        // The trap this guards: mapping an undecodable side to an empty list
+        // made BOTH sides empty when the incoming dance legitimately has no
+        // figures, so `figuresCanonicallyIdentical` returned true and the flow
+        // skipped confirmation — acting on a comparison that was impossible.
+        final repos = openTestRepositories();
+        final existing = Dance(
+          id: 'existing-id-unreadable',
+          title: 'The Rendezvous',
+          form: DanceForm.contra,
+          formation: const Formation(FormationShape.dupleImproper),
+          status: DanceStatus.active,
+          figures: [customFigure('neighbors balance and swing')],
+          hook: '',
+          createdAt: now,
+          updatedAt: now,
+          provenance: Provenance(
+            source: ProvenanceSource.callersbox,
+            importedAt: now,
+          ),
+        );
+        await repos.dances.create(existing);
+        await repos.db.customStatement(
+          'UPDATE dances SET figures_json = ? WHERE id = ?',
+          ['[{"kind":', existing.id],
+        );
+
+        // Incoming draft carries NO figures, which is what makes the empty-list
+        // mapping collide with the undecodable side.
+        final plan = ImportRecordPlan(
+          draft: StructuredDraft(
+            dance: Dance(
+              id: 'draft-unreadable',
+              title: 'The Rendezvous',
+              form: DanceForm.contra,
+              formation: const Formation(FormationShape.dupleImproper),
+              status: DanceStatus.active,
+              figures: const [],
+              hook: '',
+              createdAt: now,
+              updatedAt: now,
+            ),
+            raw: const RawRecord(
+              source: ProvenanceSource.contradb,
+              externalId: '99999',
+              payload: '{}',
+            ),
+          ),
+          verdict: DedupeVerdict.ambiguous([
+            DedupeCandidate(danceId: existing.id, score: 0.95, confident: true),
+          ]),
+        );
+        final result = await ContraDbOnline().import(repos, plan);
+
+        expect(
+          result.kind,
+          OnlineImportKind.needsConfirmation,
+          reason: 'an unreadable side cannot be compared, so the user decides',
+        );
+        final saved = await repos.dances.listAll();
+        expect(saved, hasLength(1), reason: 'nothing written without consent');
+      },
+    );
   });
 }
