@@ -1,0 +1,9 @@
+{
+  "id": "palette-aa-contrast",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Section headers, text buttons and error text are now readable on every gallery theme."
+    ]
+  }
+}

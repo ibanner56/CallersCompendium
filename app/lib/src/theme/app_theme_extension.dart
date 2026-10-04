@@ -2,6 +2,8 @@ import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
 
+import 'wcag.dart';
+
 /// Semantic color tokens that Material 3's [ColorScheme] does not model
 /// directly (§2). Each token is derived from the active [ColorScheme] so it
 /// adapts automatically across light / dark / high-contrast.
@@ -77,7 +79,7 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
       statusFinalized: scheme.secondary,
       statusPerformed: scheme.tertiary,
       statusDeprecated: scheme.onSurfaceVariant,
-      statusBroken: scheme.error,
+      statusBroken: _chipSafe(scheme.error, scheme),
       dialectAccent: scheme.tertiary,
       performSurface: const Color(0xFF0A0705),
       performOnSurface: const Color(0xFFFFF3EC),
@@ -86,6 +88,24 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
       focusRing: highContrast ? const Color(0xFFFFD54A) : scheme.primary,
       focusRingWidth: highContrast ? 3.0 : 2.0,
     );
+  }
+
+  /// [token] eased toward the surface only as far as needed for the status
+  /// chip's `onSurface` label to clear AA against the chip's 10% [token] tint
+  /// (see `StatusChip`). `scheme.error` is derived to read as text on the
+  /// surface, which can darken (or, on dark themes, lighten) the tint enough to
+  /// pull the label below 4.5:1; this token is only an icon, border and tint,
+  /// so it is relaxed independently and leaves `scheme.error` untouched.
+  static Color _chipSafe(Color token, ColorScheme scheme) {
+    for (var step = 0; step <= 20; step++) {
+      final c = Color.lerp(token, scheme.surface, step / 20)!;
+      final fill = Color.alphaBlend(c.withValues(alpha: 0.10), scheme.surface);
+      if (Wcag.meetsAA(scheme.onSurface, fill)) return c;
+    }
+    // No candidate can pass (e.g. a custom theme whose onSurface already
+    // fails against its surface): keep the original token rather than fading
+    // the icon into the surface.
+    return token;
   }
 
   @override
