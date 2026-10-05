@@ -688,11 +688,12 @@ void main() {
         tester,
         data: data,
         program: program,
-        danceOverrides: await resolveDeletedSlotDances(
+        danceOverrides: (await resolveDeletedSlotDances(
           repos.dances,
+          repos.choreographers,
           program,
           data,
-        ),
+        )).dances,
       );
 
       expect(find.byType(PerformCard), findsOneWidget);
@@ -751,11 +752,12 @@ void main() {
         _slot(id: 's5', position: 4, text: 'Break'),
       ]);
 
-      final resolved = await resolveDeletedSlotDances(
+      final resolved = (await resolveDeletedSlotDances(
         repos.dances,
+        repos.choreographers,
         program,
         data,
-      );
+      )).dances;
 
       expect(resolved.keys, ['dead']);
       expect(resolved['dead']!.isDeleted, isTrue);
