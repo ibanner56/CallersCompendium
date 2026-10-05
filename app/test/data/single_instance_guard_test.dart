@@ -443,7 +443,7 @@ void main() {
       server = LoopbackRaiseChannel(timeout: const Duration(seconds: 5));
       final port = await server.listen(dir, () {});
       final held = [
-        for (var i = 0; i < 4; i++)
+        for (var i = 0; i < kMaxRaiseConnections; i++)
           await Socket.connect(InternetAddress.loopbackIPv4, port),
       ];
       // Let the listener accept the held ones before the extra arrives.

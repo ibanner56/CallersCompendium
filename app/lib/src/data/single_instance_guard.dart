@@ -181,6 +181,11 @@ abstract class InstanceRaiseChannel {
   Future<void> close();
 }
 
+/// Most raise connections the first instance serves at once; more are closed
+/// on accept. A loopback port is reachable by every local process (any user's),
+/// and each open connection holds a file descriptor in the app.
+const int kMaxRaiseConnections = 4;
+
 /// [InstanceRaiseChannel] over a loopback-only TCP socket (IPv4, ephemeral
 /// port). The port is written to `<lockDir>/single_instance.port`.
 ///
@@ -196,7 +201,9 @@ class LoopbackRaiseChannel implements InstanceRaiseChannel {
   final String portFileName;
 
   /// Bounds connect and read so a wedged peer can neither hang a second launch
-  /// nor hold a connection in the first instance open indefinitely.
+  /// nor hold a connection in the first instance open indefinitely. In the
+  /// first instance it is a deadline for the whole connection, not an idle
+  /// timeout, so trickling one byte at a time does not extend it.
   final Duration timeout;
 
   /// Longest request line accepted before the connection is dropped.
@@ -205,6 +212,7 @@ class LoopbackRaiseChannel implements InstanceRaiseChannel {
   ServerSocket? _server;
   File? _portFile;
   int? _port;
+  int _serving = 0;
 
   File _portFileIn(Directory dir) => File(p.join(dir.path, portFileName));
 
@@ -214,7 +222,14 @@ class LoopbackRaiseChannel implements InstanceRaiseChannel {
     final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
     _server = server;
     server.listen(
-      (socket) => unawaited(_serve(socket, onRaise)),
+      (socket) {
+        if (_serving >= kMaxRaiseConnections) {
+          socket.destroy();
+          return;
+        }
+        _serving++;
+        unawaited(_serve(socket, onRaise).whenComplete(() => _serving--));
+      },
       onError: (Object error, StackTrace stackTrace) {
         logCaughtErrorTypeOnly(
           error,
@@ -238,6 +253,8 @@ class LoopbackRaiseChannel implements InstanceRaiseChannel {
   }
 
   Future<void> _serve(Socket socket, void Function() onRaise) async {
+    // Destroying the socket ends the read loop below with no raise.
+    final deadline = Timer(timeout, socket.destroy);
     try {
       final bytes = <int>[];
       var raise = false;
@@ -257,6 +274,7 @@ class LoopbackRaiseChannel implements InstanceRaiseChannel {
       // diagnostics: silent — a malformed, slow or reset peer is ignored; the
       // channel only ever acts on a well-formed raise line.
     } finally {
+      deadline.cancel();
       socket.destroy();
     }
   }
