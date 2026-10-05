@@ -819,6 +819,12 @@ class _CompendiumAppState extends State<CompendiumApp> {
   void _replaceDatabaseBackedServices() {
     // Controllers retain their SettingsRepository, so they must be recreated
     // with the replacement database rather than reusing closed repositories.
+    //
+    // Every preference notifier is reset to its default synchronously here,
+    // before the replacement bootstrap has read the stored values back, so on
+    // Retry or Reset the recovery screen can briefly re-theme to the system
+    // theme and English until the bootstrap applies them. Accepted: the screen
+    // is transient and nothing is lost, only shown in defaults for that moment.
     _resetAppPreferenceNotifiers();
     _windowService.dispose();
     _customThemes.dispose();
