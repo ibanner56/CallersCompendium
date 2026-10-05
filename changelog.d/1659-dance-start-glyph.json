@@ -1,0 +1,9 @@
+{
+  "id": "1659-dance-start-glyph",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Perform now has a dance-start button on slots with a walkthrough length: tap it when the walkthrough really ends. \"Walkthrough complete\" and \"over\" then follow your mark for that slot, and the timing line shows how far the walkthrough ran from its plan. Tap again to undo. Slots you never mark behave exactly as before."
+    ]
+  }
+}

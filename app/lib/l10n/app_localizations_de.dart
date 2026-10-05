@@ -5093,6 +5093,10 @@ class AppLocalizationsDe extends AppLocalizations {
     String walkthroughComplete,
     String over,
     String paused,
+    String manual,
+    String actual,
+    String direction,
+    String delta,
   ) {
     String _temp0 = intl.Intl.pluralLogic(
       planned,
@@ -5105,19 +5109,28 @@ class AppLocalizationsDe extends AppLocalizations {
           ', geplant $_temp0: $walkthrough Minuten Durchlauf und $dance Minuten Tanz',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(walkthroughComplete, {
+    String _temp2 = intl.Intl.selectLogic(direction, {
+      'over': ', $delta über Plan',
+      'under': ', $delta unter Plan',
+      'other': ', planmäßig',
+    });
+    String _temp3 = intl.Intl.selectLogic(manual, {
+      'yes': ', Durchlauf endete bei $actual$_temp2',
+      'other': '',
+    });
+    String _temp4 = intl.Intl.selectLogic(walkthroughComplete, {
       'yes': ', Durchlauf abgeschlossen',
       'other': '',
     });
-    String _temp3 = intl.Intl.selectLogic(over, {
+    String _temp5 = intl.Intl.selectLogic(over, {
       'yes': ', über der geplanten Zeit',
       'other': '',
     });
-    String _temp4 = intl.Intl.selectLogic(paused, {
+    String _temp6 = intl.Intl.selectLogic(paused, {
       'yes': ', pausiert',
       'other': '',
     });
-    return 'Programmzeit $programTime, Slotzeit $slotTime$_temp1$_temp2$_temp3$_temp4';
+    return 'Programmzeit $programTime, Slotzeit $slotTime$_temp1$_temp3$_temp4$_temp5$_temp6';
   }
 
   @override
@@ -5132,6 +5145,27 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String performPlannedSplit(int planned, int walkthrough, int dance) {
     return 'geplant $planned Min. ($walkthrough:$dance)';
+  }
+
+  @override
+  String get performDanceStartUnused => 'Durchlauf fertig — Tanz starten';
+
+  @override
+  String get performDanceStartUsed =>
+      'Tanz gestartet — zum Rückgängigmachen tippen';
+
+  @override
+  String performWalkthroughActual(
+    String actual,
+    String direction,
+    String delta,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(direction, {
+      'over': ' (+$delta)',
+      'under': ' (−$delta)',
+      'other': ' (planmäßig)',
+    });
+    return 'Durchlauf $actual$_temp0';
   }
 
   @override

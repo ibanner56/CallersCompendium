@@ -4841,6 +4841,10 @@ class AppLocalizationsJa extends AppLocalizations {
     String walkthroughComplete,
     String over,
     String paused,
+    String manual,
+    String actual,
+    String direction,
+    String delta,
   ) {
     String _temp0 = intl.Intl.pluralLogic(
       planned,
@@ -4851,16 +4855,25 @@ class AppLocalizationsJa extends AppLocalizations {
       'yes': '、予定 $_temp0: ウォークスルー $walkthrough分、ダンス $dance分',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(walkthroughComplete, {
+    String _temp2 = intl.Intl.selectLogic(direction, {
+      'over': '、予定より$delta超過',
+      'under': '、予定より$delta短縮',
+      'other': '、予定どおり',
+    });
+    String _temp3 = intl.Intl.selectLogic(manual, {
+      'yes': '、ウォークスルーは$actualで終了$_temp2',
+      'other': '',
+    });
+    String _temp4 = intl.Intl.selectLogic(walkthroughComplete, {
       'yes': '、ウォークスルー完了',
       'other': '',
     });
-    String _temp3 = intl.Intl.selectLogic(over, {'yes': '、予定超過', 'other': ''});
-    String _temp4 = intl.Intl.selectLogic(paused, {
+    String _temp5 = intl.Intl.selectLogic(over, {'yes': '、予定超過', 'other': ''});
+    String _temp6 = intl.Intl.selectLogic(paused, {
       'yes': '、一時停止中',
       'other': '',
     });
-    return 'プログラム経過時間 $programTime、スロット経過時間 $slotTime$_temp1$_temp2$_temp3$_temp4';
+    return 'プログラム経過時間 $programTime、スロット経過時間 $slotTime$_temp1$_temp3$_temp4$_temp5$_temp6';
   }
 
   @override
@@ -4875,6 +4888,26 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String performPlannedSplit(int planned, int walkthrough, int dance) {
     return '予定 $planned分（$walkthrough:$dance）';
+  }
+
+  @override
+  String get performDanceStartUnused => 'ウォークスルー終了 — ダンスを開始';
+
+  @override
+  String get performDanceStartUsed => 'ダンス開始済み — タップで取り消し';
+
+  @override
+  String performWalkthroughActual(
+    String actual,
+    String direction,
+    String delta,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(direction, {
+      'over': ' (+$delta)',
+      'under': ' (−$delta)',
+      'other': '（予定どおり）',
+    });
+    return 'ウォークスルー $actual$_temp0';
   }
 
   @override

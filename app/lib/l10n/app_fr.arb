@@ -5156,9 +5156,9 @@
   "@performPauseTimers": {
     "x-sourceSha256": "18b85c0574b83bcd592f1959021cfd910c460a5bfccd2c80a7280d81fb4fe196"
   },
-  "performTimingSemantic": "Temps du programme {programTime}, temps du créneau {slotTime}{hasPlanned, select, yes{, prévu {planned, plural, =1{1 minute} other{{planned} minutes}} : {walkthrough} minutes de déroulé et {dance} minutes de danse} other{}}{walkthroughComplete, select, yes{, déroulé terminé} other{}}{over, select, yes{, dépassement du temps prévu} other{}}{paused, select, yes{, en pause} other{}}",
+  "performTimingSemantic": "Temps du programme {programTime}, temps du créneau {slotTime}{hasPlanned, select, yes{, prévu {planned, plural, =1{1 minute} other{{planned} minutes}} : {walkthrough} minutes de déroulé et {dance} minutes de danse} other{}}{manual, select, yes{, déroulé terminé à {actual}{direction, select, over{, {delta} de plus que prévu} under{, {delta} de moins que prévu} other{, comme prévu}}} other{}}{walkthroughComplete, select, yes{, déroulé terminé} other{}}{over, select, yes{, dépassement du temps prévu} other{}}{paused, select, yes{, en pause} other{}}",
   "@performTimingSemantic": {
-    "x-sourceSha256": "b481989b8c0ed66ecd58941fca432d33516d0823d5f434b055030c5479c96682"
+    "x-sourceSha256": "01bd1a6f6039355065cf9bfeda8e220c463f9738472835c5838843737801f3dc"
   },
   "performIndividualTimingSemantic": "Temps écoulé {elapsedTime}{paused, select, yes{, en pause} other{}}",
   "@performIndividualTimingSemantic": {
@@ -5167,6 +5167,18 @@
   "performPlannedSplit": "prévu {planned} min ({walkthrough}:{dance})",
   "@performPlannedSplit": {
     "x-sourceSha256": "f00ce488a307637ede1d33c0e91658a79b9b0b960eb86ac8aa541367cd79684b"
+  },
+  "performDanceStartUnused": "Déroulé terminé — lancer la danse",
+  "@performDanceStartUnused": {
+    "x-sourceSha256": "e92edca90964e4b477d200ef6be8b84b06caf7bc6a0d2051de249ec49663623c"
+  },
+  "performDanceStartUsed": "Danse lancée — touchez pour annuler",
+  "@performDanceStartUsed": {
+    "x-sourceSha256": "df3731aa1e3f5c58ae6888723a837fcd8e88af4f6475c48b3ce532aa30605d37"
+  },
+  "performWalkthroughActual": "déroulé {actual}{direction, select, over{ (+{delta})} under{ (−{delta})} other{ (comme prévu)}}",
+  "@performWalkthroughActual": {
+    "x-sourceSha256": "4d138a6ae37bcfc37f09fe98c77ece2550ab866dceefb42b44815fb7a1c40aab"
   },
   "performWalkthroughCompleteSuffix": " déroulé terminé",
   "@performWalkthroughCompleteSuffix": {

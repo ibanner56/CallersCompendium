@@ -5071,6 +5071,10 @@ class AppLocalizationsNl extends AppLocalizations {
     String walkthroughComplete,
     String over,
     String paused,
+    String manual,
+    String actual,
+    String direction,
+    String delta,
   ) {
     String _temp0 = intl.Intl.pluralLogic(
       planned,
@@ -5083,19 +5087,28 @@ class AppLocalizationsNl extends AppLocalizations {
           ', gepland $_temp0: $walkthrough minuten doorloop en $dance minuten dans',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(walkthroughComplete, {
+    String _temp2 = intl.Intl.selectLogic(direction, {
+      'over': ', $delta boven plan',
+      'under': ', $delta onder plan',
+      'other': ', volgens plan',
+    });
+    String _temp3 = intl.Intl.selectLogic(manual, {
+      'yes': ', doorloop eindigde bij $actual$_temp2',
+      'other': '',
+    });
+    String _temp4 = intl.Intl.selectLogic(walkthroughComplete, {
       'yes': ', doorloop voltooid',
       'other': '',
     });
-    String _temp3 = intl.Intl.selectLogic(over, {
+    String _temp5 = intl.Intl.selectLogic(over, {
       'yes': ', over de geplande tijd',
       'other': '',
     });
-    String _temp4 = intl.Intl.selectLogic(paused, {
+    String _temp6 = intl.Intl.selectLogic(paused, {
       'yes': ', gepauzeerd',
       'other': '',
     });
-    return 'Programmatijd $programTime, slottijd $slotTime$_temp1$_temp2$_temp3$_temp4';
+    return 'Programmatijd $programTime, slottijd $slotTime$_temp1$_temp3$_temp4$_temp5$_temp6';
   }
 
   @override
@@ -5110,6 +5123,26 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String performPlannedSplit(int planned, int walkthrough, int dance) {
     return 'gepland $planned min ($walkthrough:$dance)';
+  }
+
+  @override
+  String get performDanceStartUnused => 'Doorloop klaar — start de dans';
+
+  @override
+  String get performDanceStartUsed => 'Dans gestart — tik om ongedaan te maken';
+
+  @override
+  String performWalkthroughActual(
+    String actual,
+    String direction,
+    String delta,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(direction, {
+      'over': ' (+$delta)',
+      'under': ' (−$delta)',
+      'other': ' (volgens plan)',
+    });
+    return 'doorloop $actual$_temp0';
   }
 
   @override
