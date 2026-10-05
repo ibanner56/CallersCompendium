@@ -2635,6 +2635,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'It\'s been a while since your last backup — consider exporting one now.';
 
   @override
+  String get backupReminderBannerText =>
+      'Your backup is overdue. Export one now to keep your collection safe.';
+
+  @override
+  String get backupReminderBannerExport => 'Export backup';
+
+  @override
+  String get backupReminderBannerNotNow => 'Not now';
+
+  @override
   String get backupRestoreDialogBody =>
       'Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup\'s contents. This cannot be undone.';
 

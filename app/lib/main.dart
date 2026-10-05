@@ -17,6 +17,14 @@ import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
 import 'src/data/archive_intake_labels.dart';
 import 'src/data/archive_intake_service.dart';
+import 'src/data/backup_io.dart'
+    show
+        BackupExportTooLargeException,
+        BackupSaver,
+        backupMegabytes,
+        saveBackupToFile;
+import 'src/data/backup_reminder.dart';
+import 'src/data/backup_service.dart' show exportBackupNow;
 import 'src/data/sync_writer_lifecycle_scope.dart';
 import 'src/data/callersbox_online.dart';
 import 'src/data/collection_filter_scope.dart';
@@ -245,6 +253,7 @@ class CompendiumApp extends StatefulWidget {
     this.initialRequirePerformedForHistory = false,
     this.migrationPreflight,
     this.integrityCheck,
+    this.backupSaver,
     this.crashReporter,
     this.seedInitialCollection,
     this.incomingFileChannel,
@@ -338,6 +347,11 @@ class CompendiumApp extends StatefulWidget {
   /// corruption warning. Defaults to [CompendiumDatabase.quickCheck]; injected
   /// in tests to exercise the warning path.
   final Future<bool> Function()? integrityCheck;
+
+  /// Save/share seam used by the overdue-backup reminder banner's Export backup
+  /// action. Defaults to [saveBackupToFile]; injected in tests so no real
+  /// file/share plugin is invoked, mirroring the General settings section.
+  final BackupSaver? backupSaver;
 
   /// Local, offline crash-log sink for global error capture (issue #458). The
   /// startup integrity probe routes a *thrown* failure here so a real
@@ -647,6 +661,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
   bool _dataIntegrityOk = true;
   bool _corruptionBannerShown = false;
 
+  /// Guards the once-per-launch overdue-backup reminder banner (DAT-05). "Not
+  /// now" dismisses it for this launch only; nothing is persisted.
+  bool _backupReminderShown = false;
+
   /// `true` when the once-per-launch integrity probe *threw* (as opposed to
   /// returning `false`). Kept distinct so the advisory banner can tell the user
   /// the check couldn't complete rather than reporting a definitive failure
@@ -906,6 +924,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
 
   void _startBootstrap() {
     _corruptionBannerShown = false;
+    _backupReminderShown = false;
     // The deferred probe re-runs after this bootstrap succeeds; clear any
     // verdict from a previous database so it cannot raise a stale banner.
     _dataIntegrityOk = true;
@@ -1930,14 +1949,108 @@ class _CompendiumAppState extends State<CompendiumApp> {
         await _runColdStartIntake(channel);
         if (!context.mounted) return;
         await _maybeShowEcdConvertPrompt(context);
+        if (!context.mounted) return;
+        await _maybeShowBackupReminder(context);
       });
     } else if (!_ecdConvertPromptChecked) {
       _ecdConvertPromptChecked = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _maybeShowEcdConvertPrompt(context);
+        if (!context.mounted) return;
+        await _maybeShowBackupReminder(context);
+      });
+    } else if (!_backupReminderShown) {
       WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _maybeShowEcdConvertPrompt(context),
+        (_) => _maybeShowBackupReminder(context),
       );
     }
     return const AppShell();
+  }
+
+  /// Shows, once per launch, a [MaterialBanner] when the user's chosen backup
+  /// reminder cadence says a backup is overdue (DAT-05). Runs after the
+  /// cold-start intake and ECD prompt settle so it never races a modal route.
+  /// A settings read failure shows nothing. "Not now" hides it for this launch
+  /// only; no snooze is persisted.
+  Future<void> _maybeShowBackupReminder(BuildContext context) async {
+    if (_backupReminderShown) return;
+    _backupReminderShown = true;
+    final bool overdue;
+    try {
+      final settings = _appData.repositories.settings;
+      final cadence = backupReminderCadenceFromStored(
+        await settings.get(kBackupReminderCadenceKey),
+      );
+      if (cadence == BackupReminderCadence.off) return;
+      final lastBackupAt = lastBackupAtFromStored(
+        await settings.get(kLastBackupAtKey),
+      );
+      overdue = isBackupOverdue(
+        cadence: cadence,
+        lastBackupAt: lastBackupAt,
+        now: DateTime.now(),
+      );
+    } on Object {
+      // diagnostics: silent — advisory reminder; a settings read failure just
+      // shows nothing and must never break startup.
+      return;
+    }
+    if (!overdue || !mounted || !context.mounted) return;
+    final messenger = _messengerKey.currentState;
+    if (messenger == null) return;
+    final l10n = AppLocalizations.of(context);
+    messenger.showMaterialBanner(
+      MaterialBanner(
+        key: const ValueKey('backup-reminder-banner'),
+        content: Text(l10n.backupReminderBannerText),
+        leading: const Icon(Icons.backup_outlined),
+        actions: [
+          TextButton(
+            onPressed: () => _exportFromBackupReminder(l10n),
+            child: Text(l10n.backupReminderBannerExport),
+          ),
+          TextButton(
+            onPressed: messenger.hideCurrentMaterialBanner,
+            child: Text(l10n.backupReminderBannerNotNow),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _backupReminderExporting = false;
+
+  Future<void> _exportFromBackupReminder(AppLocalizations l10n) async {
+    if (_backupReminderExporting) return;
+    _backupReminderExporting = true;
+    final messenger = _messengerKey.currentState;
+    try {
+      final delivered = await exportBackupNow(
+        _appData.repositories,
+        widget.backupSaver ?? saveBackupToFile,
+        DateTime.now(),
+      );
+      if (!delivered || !mounted) return;
+      messenger?.hideCurrentMaterialBanner();
+      messenger?.showSnackBar(SnackBar(content: Text(l10n.backupExported)));
+    } on BackupExportTooLargeException catch (e, st) {
+      logCaughtError(e, st, source: 'main.backupReminderExport');
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.backupExportTooLarge(
+              backupMegabytes(e.sizeBytes),
+              backupMegabytes(e.maxBytes),
+            ),
+          ),
+        ),
+      );
+    } on Object catch (e, st) {
+      logCaughtError(e, st, source: 'main.backupReminderExport');
+      messenger?.showSnackBar(SnackBar(content: Text(l10n.backupExportFailed)));
+    } finally {
+      _backupReminderExporting = false;
+    }
   }
 
   Future<void> _runColdStartIntake(IncomingFileChannel channel) async {

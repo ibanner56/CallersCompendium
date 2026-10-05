@@ -5,7 +5,8 @@ import '../editor/editor_draft_codec.dart' show kDanceEditorDraftKeyPrefix;
 import '../editor/program_editor_draft_codec.dart'
     show kProgramEditorDraftKeyPrefix;
 import 'backup_document.dart';
-import 'backup_io.dart' show BackupExportTooLargeException, kMaxBackupFileBytes;
+import 'backup_io.dart'
+    show BackupExportTooLargeException, BackupSaver, kMaxBackupFileBytes;
 import 'backup_reminder.dart';
 import 'backup_settings_schema.dart';
 import 'custom_theme.dart';
@@ -663,4 +664,32 @@ class BackupService {
     }
     return result;
   }
+}
+
+/// Suggested filename for an exported backup, dated (UTC) so backups sort and
+/// are easy to tell apart, e.g. `callers-compendium-backup-2026-07-15.json`.
+String backupFileName(DateTime when) {
+  final d = when.toUtc();
+  String two(int n) => n.toString().padLeft(2, '0');
+  return 'callers-compendium-backup-${d.year}-${two(d.month)}-${two(d.day)}.json';
+}
+
+/// Builds the whole-app backup, hands it to [saver], and stamps the last-backup
+/// time on success. Shared by Settings › General and the overdue-backup
+/// reminder banner so both run the identical export.
+///
+/// Returns `false` (nothing stamped) when the user cancelled the save/share
+/// dialog. Throws on failure ([BackupExportTooLargeException] included); each
+/// caller owns its progress UI, error logging and snackbar.
+Future<bool> exportBackupNow(
+  CompendiumRepositories repos,
+  BackupSaver saver,
+  DateTime now,
+) async {
+  final service = BackupService(repos);
+  final json = await service.exportToJson(createdAt: now);
+  final delivered = await saver(json, backupFileName(now));
+  if (!delivered) return false;
+  await service.recordBackup(now);
+  return true;
 }

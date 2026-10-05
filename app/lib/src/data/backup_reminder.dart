@@ -3,8 +3,9 @@
 /// Back up / restore stores two small preferences via `SettingsRepository`:
 /// a reminder *cadence* (how often the user wants to be nudged to back up) and
 /// the timestamp of the last successful export. The ROADMAP frames the cadence
-/// as a lightweight *preference* — we surface a "Last backup" date and a gentle
-/// inline hint when overdue, not a nagging-notification system.
+/// as a lightweight *preference* — we surface a "Last backup" date, a gentle
+/// inline hint when overdue, and a once-per-launch banner on the main screen
+/// ("Not now" dismisses it for the launch), not a nagging-notification system.
 ///
 /// The key, enum, and resolvers below are Flutter-free pure functions so they
 /// can be unit-tested directly, mirroring `soft_delete_retention.dart` and

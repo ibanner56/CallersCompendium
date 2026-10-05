@@ -2848,6 +2848,18 @@
   "@backupOverdueHint": {
     "x-sourceSha256": "4ad654a10e666f795dc18c962c83cf76605c5ed9239968decc5b91107cb976e8"
   },
+  "backupReminderBannerText": "Votre sauvegarde est en retard. Exportez-en une maintenant pour protéger votre collection.",
+  "@backupReminderBannerText": {
+    "x-sourceSha256": "3f308d39a35ee1c3e19650a4ef61f6d17518668fe67b3a51c20697698b55c23c"
+  },
+  "backupReminderBannerExport": "Exporter une sauvegarde",
+  "@backupReminderBannerExport": {
+    "x-sourceSha256": "d6dfd0f0828004b8d9b5e268ba72d41106f93ae2800d18e3ce78bbfde25f601d"
+  },
+  "backupReminderBannerNotNow": "Pas maintenant",
+  "@backupReminderBannerNotNow": {
+    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
+  },
   "backupRestoreDialogBody": "La restauration remplace tout le contenu actuel de l’application — votre collection, programmes, dialectes, thèmes et paramètres — par le contenu de la sauvegarde. Cette action est irréversible.",
   "@backupRestoreDialogBody": {
     "x-sourceSha256": "ff51802a21a8219092f0aaebcde7ad04aebb7aa77bf34404915dc4e39b24b83e"

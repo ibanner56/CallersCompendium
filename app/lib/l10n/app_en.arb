@@ -3245,6 +3245,18 @@
   "@backupOverdueHint": {
     "description": "Gentle hint shown under the backup reminder row when the selected cadence says a backup is overdue."
   },
+  "backupReminderBannerText": "Your backup is overdue. Export one now to keep your collection safe.",
+  "@backupReminderBannerText": {
+    "description": "Text of the once-per-launch banner on the main screen shown when the user's chosen backup reminder cadence says a backup is overdue."
+  },
+  "backupReminderBannerExport": "Export backup",
+  "@backupReminderBannerExport": {
+    "description": "Banner action that exports a backup immediately, from the overdue-backup reminder banner."
+  },
+  "backupReminderBannerNotNow": "Not now",
+  "@backupReminderBannerNotNow": {
+    "description": "Banner action that dismisses the overdue-backup reminder banner for this launch."
+  },
   "backupRestoreDialogBody": "Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup's contents. This cannot be undone.",
   "@backupRestoreDialogBody": {
     "description": "Warning text in the restore-from-backup dialog explaining that restore destructively replaces current app data."
