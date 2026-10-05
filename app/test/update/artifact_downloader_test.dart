@@ -757,8 +757,8 @@ void main() {
       expect(consumer.closeCalls, 0, reason: 'cannot close mid-flush');
 
       consumer.gate.complete();
-      for (var i = 0; i < 20 && consumer.closeCalls == 0; i++) {
-        await pump();
+      for (var i = 0; i < 20 && !consumer.closed; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
       }
       expect(consumer.closeCalls, 1, reason: 'handle released after flush');
     });
@@ -784,7 +784,7 @@ void main() {
 
       expect((await result).kind, DownloadResultKind.cancelled);
       for (var i = 0; i < 20 && dest.existsSync(); i++) {
-        await pump();
+        await Future<void>.delayed(const Duration(milliseconds: 10));
       }
       expect(consumer.closeCalls, 1);
       expect(dest.existsSync(), isFalse, reason: 'partial file left behind');
@@ -798,6 +798,10 @@ class _GatedConsumer implements StreamConsumer<List<int>> {
   final gate = Completer<void>();
   int closeCalls = 0;
 
+  /// Whether a [close] has finished; releasing a real handle is itself
+  /// asynchronous I/O, so it lags the call.
+  bool closed = false;
+
   @override
   Future<void> addStream(Stream<List<int>> stream) async {
     await stream.drain<void>();
@@ -807,6 +811,8 @@ class _GatedConsumer implements StreamConsumer<List<int>> {
   @override
   Future<void> close() async {
     closeCalls++;
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    closed = true;
   }
 }
 
@@ -905,7 +911,7 @@ class _WindowsLikeFile extends _SinkFile {
 
   @override
   Future<FileSystemEntity> delete({bool recursive = false}) async {
-    if (consumer.closeCalls == 0) {
+    if (!consumer.closed) {
       throw FileSystemException('file is open in another process', path);
     }
     return super.delete(recursive: recursive);
