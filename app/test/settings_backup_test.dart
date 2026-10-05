@@ -681,10 +681,12 @@ void main() {
     expect(value, isNotNull, reason: 'determinate once the total is known');
     expect(value, greaterThan(0));
     expect(value, lessThan(1));
-    expect(
-      find.textContaining(RegExp(r'^Restoring \d+ of \d+')),
-      findsOneWidget,
-    );
+    // Pinned through the key, not its English text: the message with
+    // sentinel numbers, turned into a pattern for the live counts.
+    final progressPattern = RegExp.escape(
+      AppLocalizationsEn().backupRestoreProgress(1111111, 2222222),
+    ).replaceAll('1111111', r'\d+').replaceAll('2222222', r'\d+');
+    expect(find.textContaining(RegExp('^$progressPattern\$')), findsOneWidget);
 
     // The progress dialog cannot be dismissed (back button / barrier).
     await tester.tapAt(const Offset(2, 2));
@@ -809,7 +811,19 @@ void main() {
     expect(field.controller!.text, isEmpty);
     expect(field.enabled, isFalse, reason: 'a held file disables pasting');
     expect(find.byKey(const ValueKey('restore-file-summary')), findsOneWidget);
-    expect(find.textContaining('50 dances'), findsOneWidget);
+    expect(
+      find.text(
+        AppLocalizationsEn().backupFileSummary(
+          MaterialLocalizations.of(
+            tester.element(find.byKey(const ValueKey('restore-file-summary'))),
+          ).formatMediumDate(DateTime.utc(2026, 7, 15).toLocal()),
+          50,
+          0,
+          backupMegabytes(big.length),
+        ),
+      ),
+      findsOneWidget,
+    );
     expect(
       tester
           .widget<FilledButton>(find.byKey(const ValueKey('restore-confirm')))
@@ -848,7 +862,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('restore-file-summary')), findsOneWidget);
-    expect(find.textContaining("doesn't look like a readable"), findsOneWidget);
+    expect(
+      find.text(
+        AppLocalizationsEn().backupFileUnreadable(
+          backupMegabytes('not a backup'.length),
+        ),
+      ),
+      findsOneWidget,
+    );
     await tester.tap(find.byKey(const ValueKey('restore-confirm')));
     await tester.pumpAndSettle();
 

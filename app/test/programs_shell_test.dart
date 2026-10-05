@@ -1,7 +1,9 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
@@ -116,7 +118,7 @@ void main() {
     final repos = openTestRepositories();
     await _pumpWide(tester, repos);
 
-    const bodyText = 'Choose a program from the list, or create a new one.';
+    final bodyText = AppLocalizationsEn().programsSelectBody;
     final finder = find.text(bodyText);
     expect(finder, findsOneWidget);
 
