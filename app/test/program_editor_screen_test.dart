@@ -36,11 +36,12 @@ Dance _dance({
   required String title,
   List<Figure> figures = const [],
   List<String> authorIds = const [],
+  List<String> tagIds = const [],
 }) => Dance(
   id: id,
   title: title,
   authorIds: authorIds,
-  tagIds: const [],
+  tagIds: tagIds,
   form: DanceForm.contra,
   formation: const Formation(FormationShape.dupleImproper),
   status: DanceStatus.active,
@@ -182,6 +183,7 @@ class _ProgramOnlineService implements OnlineSearchService {
         id: 'imported',
         title: 'Imported Dance',
         authorIds: const ['imported-author'],
+        tagIds: defaultTagIds,
       ),
     );
     return const OnlineImportResult(
@@ -211,6 +213,7 @@ class _QueuedProgramOnlineService extends _ProgramOnlineService {
       plan,
       now: now,
       ambiguousResolution: ambiguousResolution,
+      defaultTagIds: defaultTagIds,
     );
     committed[index].complete();
     await release[index].future;
@@ -1869,6 +1872,30 @@ void main() {
       );
     },
   );
+
+  testWidgets('online import from the picker applies the default import tags', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    final _ = await repos.tags.upsert(Tag(id: 'tag-fav', name: 'Favourite'));
+    await repos.settings.set(
+      kDefaultImportTagNamesKey,
+      encodeDefaultImportTagNames(const ['Favourite']),
+    );
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      callersBoxOnline: _ProgramOnlineService(),
+    );
+
+    await _startInlineOnlineImport(tester);
+    await tester.pumpAndSettle();
+
+    final imported = await repos.dances.getById('imported');
+    expect(imported!.tagIds, ['tag-fav']);
+  });
 
   testWidgets(
     'responsive removal during preview still adds the imported dance',
@@ -3993,9 +4020,8 @@ void main() {
   });
 
   test('_exportMatrixPdf reads no BuildContext or state inside onLayout', () {
-    final src = File(
-      'lib/src/screens/program_editor_screen.dart',
-    ).readAsStringSync();
+    final src = File('lib/src/screens/program_editor_screen.dart')
+        .readAsStringSync();
     final start = src.indexOf('Future<void> _exportMatrixPdf(');
     expect(start, isNonNegative);
     final onLayout = src.indexOf('onLayout:', start);
