@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -5151,6 +5152,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get exportJsonShare => 'Partager';
+
+  @override
+  String get exportJsonSaveAs => 'Enregistrer sous…';
 
   @override
   String get exportJsonCancel => 'Annuler';
