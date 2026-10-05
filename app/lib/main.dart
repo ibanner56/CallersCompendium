@@ -1950,6 +1950,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
         await _runColdStartIntake(channel);
         if (!context.mounted) return;
         await _maybeShowEcdConvertPrompt(context);
+        if (!context.mounted) return;
         await _maybeShowBackupReminder(context);
       });
     } else if (!_ecdConvertPromptChecked) {
