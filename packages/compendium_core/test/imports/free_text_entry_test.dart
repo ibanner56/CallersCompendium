@@ -354,6 +354,27 @@ void main() {
       expect(fs.single.isCustom, isTrue);
     });
 
+    // "X chain back" is ordinary phrasing for the return chain: the brief's
+    // leftover rule is "and back", not a bare "back" (the sweep's corpus diff
+    // found these structured at cb40eb5 and custom after CS-45d).
+    for (final line in [
+      'Ladies chain back',
+      'Robins chain back',
+      'ladies chain, back',
+    ]) {
+      test('"$line" stays a structured chain', () {
+        final f = parseFreeTextFigureEntry(line).single;
+        expect(f.isCustom, isFalse);
+        expect(f.move, 'chain');
+      });
+    }
+
+    test('"ladies chain, and back" is still demoted', () {
+      final fs = parseFreeTextFigureEntry('ladies chain, and back');
+      expect(fs.any((f) => f.note == 'and back'), isFalse);
+      expect(fs.single.isCustom, isTrue);
+    });
+
     test('"neighbors swing 16" is 16 beats or custom, never 8 + note', () {
       final f = parseFreeTextFigureEntry('neighbors swing 16').single;
       expect(f.note, isNull);
