@@ -1,0 +1,14 @@
+{
+  "id": "sync-conflict-details",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "When Device Sync asks you to choose between versions, it now shows exactly what's different: which dialects, themes, shorthands or snippets are only on one device or differ, which details of a dance differ (with figures compared line by line), and which dances a program's versions don't share. With several items, choose Show differences on one to see its comparison. Each version also says when it was last changed."
+    ]
+  },
+  "core": {
+    "added": [
+      "syncCollectionEntries, compareSyncCollection and syncDifferingFields compare two versions of a conflicted record; SyncConflictGroup carries this device's copy projected to shareable fields and its last-changed time (CompendiumSyncStorage.recordUpdatedAt)."
+    ]
+  }
+}

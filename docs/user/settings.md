@@ -791,9 +791,26 @@ you.
   waiting.
 
 For each item you see **This device** and **Another device**, with a short
-description of each version — the value of a setting, the names in a list, or
-how many details differ. Nothing is selected for you. Pick the version you want
-for each item, then choose **Keep selected**; with several items, **Keep all
+description of each version and, when they were changed at different times,
+when each was last changed. Under them, a line sums up what differs — for
+example "1 only on this device · 1 only on the other device" for a list such
+as your shorthands, or "Differs in: Figures, Calling notes" for a dance.
+
+To see exactly what's different, look at the comparison. With one item it's
+shown straight away; with several, choose **Show differences** on an item. The
+comparison shows:
+
+- for a list such as dialects, themes, shorthands or walkthrough snippets: what
+  is only on this device, what is only on the other device, and what both have
+  but differently — with the two versions side by side;
+- for a dance: each detail that differs, with both versions. Figures are
+  compared line by line under the part of the dance they start in (A1, A2, B1,
+  B2), and figures that match aren't repeated;
+- for a program: the dances only one version has, or that the same dances are
+  in a different order.
+
+Nothing is selected for you. Pick the version you want for each item, then
+choose **Keep selected**; with several items, **Keep all
 from this device** or **Keep all from the other device** fills in every choice
 at once, and you still confirm. **Decide later** closes the list and changes
 nothing.
