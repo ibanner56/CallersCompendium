@@ -360,7 +360,13 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
 
     // Starts open while sync is on, so its status and any failure stay in
     // view; folds away otherwise to keep the Experimental pane uncluttered.
+    //
+    // `expanded` only feeds the tile's `initiallyExpanded`, which is read once,
+    // so the section is keyed on [SyncController.settingsUnreadable]: when a
+    // later load (after a backup restore) fails, the tile is rebuilt open and
+    // the notice is not hidden inside an already-collapsed section.
     return CollapsibleSection(
+      key: ValueKey('sync-section-unreadable-${controller.settingsUnreadable}'),
       sectionKey: const ValueKey('sync-section'),
       title: l10n.settingsSyncHeader,
       expanded: controller.enabled || controller.settingsUnreadable,

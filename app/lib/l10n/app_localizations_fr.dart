@@ -334,7 +334,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncStatusSettingsUnreadable =>
-      'Les réglages de la synchronisation des appareils n\'ont pas pu être lus ; elle peut donc être désactivée même si vous l\'avez activée. Redémarrez l\'application pour réessayer.';
+      'Les réglages de la synchronisation des appareils n\'ont pas pu être lus ; les réglages affichés ici peuvent donc être obsolètes, et la synchronisation peut être désactivée même si vous l\'avez activée. Redémarrez l\'application pour réessayer.';
 
   @override
   String get settingsSyncFailureUnreachable =>

@@ -329,7 +329,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncStatusSettingsUnreadable =>
-      'Die Einstellungen der Gerätesynchronisierung konnten nicht gelesen werden, daher kann die Gerätesynchronisierung ausgeschaltet sein, obwohl du sie eingeschaltet hast. Starte die App neu, um es erneut zu versuchen.';
+      'Die Einstellungen der Gerätesynchronisierung konnten nicht gelesen werden, daher können die hier angezeigten Einstellungen veraltet sein, und die Gerätesynchronisierung kann ausgeschaltet sein, obwohl du sie eingeschaltet hast. Starte die App neu, um es erneut zu versuchen.';
 
   @override
   String get settingsSyncFailureUnreachable =>

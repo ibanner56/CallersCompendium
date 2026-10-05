@@ -329,7 +329,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncStatusSettingsUnreadable =>
-      'De instellingen voor apparaatsynchronisatie konden niet worden gelezen, dus apparaatsynchronisatie kan uit staan, ook als je het had aangezet. Start de app opnieuw op om het nog eens te proberen.';
+      'De instellingen voor apparaatsynchronisatie konden niet worden gelezen, dus de hier getoonde instellingen kunnen verouderd zijn, en apparaatsynchronisatie kan uit staan, ook als je het had aangezet. Start de app opnieuw op om het nog eens te proberen.';
 
   @override
   String get settingsSyncFailureUnreachable =>

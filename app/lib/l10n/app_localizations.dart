@@ -622,10 +622,10 @@ abstract class AppLocalizations {
   /// **'Last sync failed.'**
   String get settingsSyncStatusFailed;
 
-  /// Shown in the Device Sync section when the app failed to read its stored Device Sync settings at startup (or after restoring a backup). Device Sync stays off for that launch although the saved setting may say on, so the user must be told rather than left to assume it is syncing. Not a sync failure: nothing was sent or lost.
+  /// Shown in the Device Sync section when the app failed to read its stored Device Sync settings. At startup, Device Sync stays off for that launch although the saved setting may say on. After restoring a backup, the app keeps the Device Sync state it had before the restore (which may be on), so what is shown may not match the restored settings. In both cases the user must be told rather than left to assume the screen is current. Not a sync failure: nothing was sent or lost.
   ///
   /// In en, this message translates to:
-  /// **'Device Sync\'s settings couldn\'t be read, so Device Sync may be off even if you turned it on. Restart the app to try again.'**
+  /// **'Device Sync\'s settings couldn\'t be read, so the settings shown here may be out of date, and Device Sync may be off even if you turned it on. Restart the app to try again.'**
   String get settingsSyncStatusSettingsUnreadable;
 
   /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the transport could not connect at all: DNS failure, refused or dropped connection, or a failed secure (TLS) handshake.

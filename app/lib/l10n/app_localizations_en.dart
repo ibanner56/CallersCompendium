@@ -323,7 +323,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncStatusSettingsUnreadable =>
-      'Device Sync\'s settings couldn\'t be read, so Device Sync may be off even if you turned it on. Restart the app to try again.';
+      'Device Sync\'s settings couldn\'t be read, so the settings shown here may be out of date, and Device Sync may be off even if you turned it on. Restart the app to try again.';
 
   @override
   String get settingsSyncFailureUnreachable =>
