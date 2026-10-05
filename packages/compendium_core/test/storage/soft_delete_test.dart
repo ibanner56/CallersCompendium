@@ -1026,6 +1026,7 @@ void main() {
 
   group('a soft-deleted dance credited to a soft-deleted choreographer', () {
     setUp(() async {
+      // ignore: unused_result
       await repos.choreographers.upsert(
         Choreographer(id: 'c1', name: 'Author'),
         at: t0,
