@@ -49,7 +49,8 @@ void main() {
     // parse test below proves that claim for each entry.
     const readByDialectOwnList = {
       'second shadows': '2nd shadows',
-      'previous neighbors': 'previous neighbors',
+      // ContraDB renders the libfigure abbreviation, not the table's spelling.
+      'previous neighbors': 'prev neighbors',
       'next neighbors': 'next neighbors',
       'third neighbors': '3rd neighbors',
       'fourth neighbors': '4th neighbors',
