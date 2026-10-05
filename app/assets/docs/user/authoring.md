@@ -136,7 +136,9 @@ Role words you type here (such as "Larks" or "Leads") are saved in a neutral
 form, shown in your own [dialect](./dialects.md), and found by role searches.
 Custom text saved before this change updates the next time you save the dance
 while the same dialect is active; text typed in a different dialect may need a
-manual edit.
+manual edit. The same rewriting applies to the everyday words "man", "men",
+"lady" and "ladies" inside custom figure text (for example, "the man and lady
+swing"), which are saved as role terms and shown in your dialect's words.
 
 ### Reorder, cut, and duplicate
 
