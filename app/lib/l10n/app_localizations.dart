@@ -1060,7 +1060,7 @@ abstract class AppLocalizations {
   /// **'{device}: {value}'**
   String syncConflictVersionLine(String device, String value);
 
-  /// A custom field and its value in the comparison, e.g. "Source book: Zesty Contras".
+  /// A name and its value in the comparison, e.g. "Source book: Zesty Contras" for a custom field, or "My dialect: Move substitutions" for a part of a dialect.
   ///
   /// In en, this message translates to:
   /// **'{field}: {value}'**
@@ -1131,6 +1131,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Something newer arrived after you chose, so nothing was changed.'**
   String get syncConflictUndoChanged;
+
+  /// Label for a tag's colour in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour'**
+  String get syncConflictFieldColour;
+
+  /// Label for whether a custom theme is light or dark, in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Light or dark'**
+  String get syncConflictThemeBrightness;
+
+  /// A figure's own walkthrough text, shown after the figure in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'walkthrough: {text}'**
+  String syncConflictFigureWalkthrough(String text);
+
+  /// A figure's own calling wording, shown after the figure in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'wording: {text}'**
+  String syncConflictFigureWording(String text);
+
+  /// A figure in the conflict comparison whose words are the same on both versions but whose other saved details differ.
+  ///
+  /// In en, this message translates to:
+  /// **'{figure} (other details differ)'**
+  String syncConflictFigureDetailsDiffer(String figure);
+
+  /// Marks a link that joins the related-dance group, in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'in the related-dance group'**
+  String get syncConflictLinkInGroup;
 
   /// Shown for a version of a setting that has no value.
   ///

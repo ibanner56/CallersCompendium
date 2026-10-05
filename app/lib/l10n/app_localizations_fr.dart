@@ -737,6 +737,30 @@ class AppLocalizationsFr extends AppLocalizations {
       'Une version plus récente est arrivée après votre choix ; rien n’a été modifié.';
 
   @override
+  String get syncConflictFieldColour => 'Couleur';
+
+  @override
+  String get syncConflictThemeBrightness => 'Clair ou sombre';
+
+  @override
+  String syncConflictFigureWalkthrough(String text) {
+    return 'explication : $text';
+  }
+
+  @override
+  String syncConflictFigureWording(String text) {
+    return 'formulation : $text';
+  }
+
+  @override
+  String syncConflictFigureDetailsDiffer(String figure) {
+    return '$figure (d’autres détails diffèrent)';
+  }
+
+  @override
+  String get syncConflictLinkInGroup => 'dans le groupe de danses liées';
+
+  @override
   String get syncConflictValueNotSet => 'Non défini';
 
   @override

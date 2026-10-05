@@ -722,6 +722,30 @@ class AppLocalizationsEn extends AppLocalizations {
       'Something newer arrived after you chose, so nothing was changed.';
 
   @override
+  String get syncConflictFieldColour => 'Colour';
+
+  @override
+  String get syncConflictThemeBrightness => 'Light or dark';
+
+  @override
+  String syncConflictFigureWalkthrough(String text) {
+    return 'walkthrough: $text';
+  }
+
+  @override
+  String syncConflictFigureWording(String text) {
+    return 'wording: $text';
+  }
+
+  @override
+  String syncConflictFigureDetailsDiffer(String figure) {
+    return '$figure (other details differ)';
+  }
+
+  @override
+  String get syncConflictLinkInGroup => 'in the related-dance group';
+
+  @override
   String get syncConflictValueNotSet => 'Not set';
 
   @override

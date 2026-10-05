@@ -803,12 +803,21 @@ comparison shows:
 
 - for a list such as dialects, themes, shorthands or walkthrough snippets: what
   is only on this device, what is only on the other device, and what both have
-  but differently — with the two versions side by side;
+  but differently — with the two versions side by side. For a dialect, that
+  means the terms that differ in each section; for a theme, whether it's light
+  or dark and each colour that differs;
 - for a dance: each detail that differs, with both versions. Figures are
   compared line by line under the part of the dance they start in (A1, A2, B1,
-  B2), and figures that match aren't repeated;
-- for a program: the dances only one version has, or that the same dances are
-  in a different order.
+  B2), and figures that match aren't repeated; when a figure reads the same in
+  both, its note, its own walkthrough or wording, or its beats show what
+  differs. Links show where they go, what kind they are and whether they join
+  the related-dance group; published sources show their page and number;
+- for a program: each detail that differs, then the dances only one version
+  has (a dance is matched by which dance it is, not its title, and repeats are
+  counted), whether the dances they share are in a different order, and
+  whether their timings, alternates or other details differ;
+- for a tag, venue or choreographer: each detail that differs, such as a tag's
+  colour or a venue's sponsor, schedule or price.
 
 Nothing is selected for you. Pick the version you want for each item, then
 choose **Keep selected**; with several items, **Keep all

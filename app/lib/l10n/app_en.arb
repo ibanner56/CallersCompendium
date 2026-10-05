@@ -854,7 +854,7 @@
   },
   "syncConflictFieldValue": "{field}: {value}",
   "@syncConflictFieldValue": {
-    "description": "A custom field and its value in the comparison, e.g. \"Source book: Zesty Contras\".",
+    "description": "A name and its value in the comparison, e.g. \"Source book: Zesty Contras\" for a custom field, or \"My dialect: Move substitutions\" for a part of a dialect.",
     "placeholders": {
       "field": {
         "type": "String",
@@ -925,6 +925,48 @@
   "syncConflictUndoChanged": "Something newer arrived after you chose, so nothing was changed.",
   "@syncConflictUndoChanged": {
     "description": "Shown when an undo cannot be saved because the item changed since the original choice (for example, a newer edit arrived from another device)."
+  },
+  "syncConflictFieldColour": "Colour",
+  "@syncConflictFieldColour": {
+    "description": "Label for a tag's colour in the conflict comparison."
+  },
+  "syncConflictThemeBrightness": "Light or dark",
+  "@syncConflictThemeBrightness": {
+    "description": "Label for whether a custom theme is light or dark, in the conflict comparison."
+  },
+  "syncConflictFigureWalkthrough": "walkthrough: {text}",
+  "@syncConflictFigureWalkthrough": {
+    "description": "A figure's own walkthrough text, shown after the figure in the conflict comparison.",
+    "placeholders": {
+      "text": {
+        "type": "String",
+        "example": "Walk it slowly first"
+      }
+    }
+  },
+  "syncConflictFigureWording": "wording: {text}",
+  "@syncConflictFigureWording": {
+    "description": "A figure's own calling wording, shown after the figure in the conflict comparison.",
+    "placeholders": {
+      "text": {
+        "type": "String",
+        "example": "Neighbours, balance and swing"
+      }
+    }
+  },
+  "syncConflictFigureDetailsDiffer": "{figure} (other details differ)",
+  "@syncConflictFigureDetailsDiffer": {
+    "description": "A figure in the conflict comparison whose words are the same on both versions but whose other saved details differ.",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "Neighbour balance and swing"
+      }
+    }
+  },
+  "syncConflictLinkInGroup": "in the related-dance group",
+  "@syncConflictLinkInGroup": {
+    "description": "Marks a link that joins the related-dance group, in the conflict comparison."
   },
   "syncConflictValueNotSet": "Not set",
   "@syncConflictValueNotSet": {

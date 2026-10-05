@@ -731,6 +731,30 @@ class AppLocalizationsDe extends AppLocalizations {
       'Nach deiner Auswahl ist etwas Neueres eingetroffen, daher wurde nichts geändert.';
 
   @override
+  String get syncConflictFieldColour => 'Farbe';
+
+  @override
+  String get syncConflictThemeBrightness => 'Hell oder dunkel';
+
+  @override
+  String syncConflictFigureWalkthrough(String text) {
+    return 'Durchgang: $text';
+  }
+
+  @override
+  String syncConflictFigureWording(String text) {
+    return 'Formulierung: $text';
+  }
+
+  @override
+  String syncConflictFigureDetailsDiffer(String figure) {
+    return '$figure (weitere Details unterscheiden sich)';
+  }
+
+  @override
+  String get syncConflictLinkInGroup => 'in der Gruppe verwandter Tänze';
+
+  @override
   String get syncConflictValueNotSet => 'Nicht festgelegt';
 
   @override

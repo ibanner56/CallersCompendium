@@ -694,6 +694,30 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncConflictUndoChanged => '選択した後に新しい変更が届いたため、何も変更されていません。';
 
   @override
+  String get syncConflictFieldColour => '色';
+
+  @override
+  String get syncConflictThemeBrightness => 'ライトまたはダーク';
+
+  @override
+  String syncConflictFigureWalkthrough(String text) {
+    return 'ウォークスルー：$text';
+  }
+
+  @override
+  String syncConflictFigureWording(String text) {
+    return '言い回し：$text';
+  }
+
+  @override
+  String syncConflictFigureDetailsDiffer(String figure) {
+    return '$figure（その他の詳細が異なります）';
+  }
+
+  @override
+  String get syncConflictLinkInGroup => '関連ダンスのグループ内';
+
+  @override
   String get syncConflictValueNotSet => '未設定';
 
   @override

@@ -684,6 +684,30 @@
   "@syncConflictUndoChanged": {
     "x-sourceSha256": "f67b95c5117c22c183cf37f66d2a3fdfbf574157d9fa7efdbf60314b632db5eb"
   },
+  "syncConflictFieldColour": "Farve",
+  "@syncConflictFieldColour": {
+    "x-sourceSha256": "3a9dfa58df63e0dda962a147a6cea86cc5294a5e859d89ddfa8e74a977fedf5d"
+  },
+  "syncConflictThemeBrightness": "Lys eller mørk",
+  "@syncConflictThemeBrightness": {
+    "x-sourceSha256": "9c259901979dc2195dc36e59bf07ea998c75f090cbd266614bb4b3bcffe04333"
+  },
+  "syncConflictFigureWalkthrough": "gennemgang: {text}",
+  "@syncConflictFigureWalkthrough": {
+    "x-sourceSha256": "4a2db98e253ea43f885a5a9d12b184164bc47cc0e99632f4be5b51c3fe3186a8"
+  },
+  "syncConflictFigureWording": "formulering: {text}",
+  "@syncConflictFigureWording": {
+    "x-sourceSha256": "374ef857ff128ceeb05b02102e309a97eafbf24b226e406598d5b8a2f0648d81"
+  },
+  "syncConflictFigureDetailsDiffer": "{figure} (andre detaljer er forskellige)",
+  "@syncConflictFigureDetailsDiffer": {
+    "x-sourceSha256": "0310ffd75bd0fa6d73fd1dda7f3a9b7644f36f80c99ed146ac164a5b8c4d097e"
+  },
+  "syncConflictLinkInGroup": "i gruppen af beslægtede danse",
+  "@syncConflictLinkInGroup": {
+    "x-sourceSha256": "d1a359338ea194360c70271351bd658b2f4aab0dd6483a2612677283c80c3ddc"
+  },
   "syncConflictValueNotSet": "Ikke angivet",
   "@syncConflictValueNotSet": {
     "x-sourceSha256": "4895f73177ab5d67c30c183a49d2477e014a2ef69b65150762d17e877f4f5b95"
