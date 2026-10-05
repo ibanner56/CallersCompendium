@@ -215,7 +215,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**219 columns**: 147 shareable, 21 device-local, 26 device-scoped, 25 derived. 26 personal data by category.
+**220 columns**: 148 shareable, 21 device-local, 26 device-scoped, 25 derived. 26 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -359,6 +359,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `programs` | `created_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `programs` | `dancer_level` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. |
+| `programs` | `dialect_name` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | Name of a dialect from the caller's own library (user-authored text, like custom_dialects and active_dialect_ref, which are classified the same way). It names the caller's wording choice, not a venue contact or choreographer, so the subject is the app user. A soft by-name reference: a name that does not resolve on another device silently falls back to that device's app dialect. |
 | `programs` | `event_date` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. |
 | `programs` | `hide_alternates` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |

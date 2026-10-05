@@ -1054,6 +1054,50 @@ void main() {
     expect(restored.notes, 'keep me');
   });
 
+  test('imports carry a program dialectName on both the fresh and the '
+      're-import path (issue #1554)', () async {
+    final d1 = _dance('orig-d1', 'Simplicity Swing');
+    Program variant({String? dialectName}) => Program(
+      id: 'orig-dialect',
+      title: 'Spring Fling',
+      dialectName: dialectName,
+      status: ProgramStatus.draft,
+      slots: [ProgramSlot(id: 'sl-1', position: 0, danceId: 'orig-d1')],
+      createdAt: DateTime.utc(2026, 4, 1),
+      updatedAt: DateTime.utc(2026, 4, 1),
+    );
+    Future<CompendiumArchiveImportResult> run(Program p, String tag, int day) {
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15 + day),
+        dances: [d1],
+        programs: [p],
+      );
+      return importer.import(
+        encodeArchive(archive),
+        archive,
+        now: now.add(Duration(days: day)),
+        newId: sequentialIds(tag),
+        newSlotId: sequentialIds('$tag-slot'),
+      );
+    }
+
+    // Fresh import: the program is minted with the archive's dialect.
+    await run(variant(dialectName: 'Leads/Follows'), 'first', 0);
+    expect((await programs.listAll()).single.dialectName, 'Leads/Follows');
+
+    // Re-import onto the same program: the archive's value replaces it, as
+    // every other archive field (hideAlternates, band, ...) does. Only
+    // venueId is preserved for an archive that cannot carry it; there is no
+    // archive-version signal for dialectName, so a re-import of an archive
+    // that carries none clears the local value.
+    final second = await run(variant(dialectName: 'Larks/Robins'), 'second', 1);
+    expect(second.updatedProgramCount, 1);
+    expect((await programs.listAll()).single.dialectName, 'Larks/Robins');
+
+    await run(variant(), 'third', 2);
+    expect((await programs.listAll()).single.dialectName, isNull);
+  });
+
   test('unresolved dance placeholder preserves any existing note', () async {
     final program = Program(
       id: 'orig-p1',

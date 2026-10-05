@@ -486,6 +486,12 @@ class ProgramRepository {
               notes: Value(normalizeShareableText(program.notes)),
               status: program.status,
               hideAlternates: Value(program.hideAlternates),
+              // Verbatim, not normalizeShareableText: the value must equal a
+              // dialect library name byte-for-byte for Dialect.resolveByName
+              // to match, and the library does not NFC-normalize names. See
+              // the `programs.dialect_name` exemption in
+              // test/storage/normalisation_structure_test.dart.
+              dialectName: Value(program.dialectName),
               createdAt: program.createdAt,
               updatedAt: program.updatedAt,
               deletedAt: Value(program.deletedAt),
@@ -1373,6 +1379,7 @@ class ProgramRepository {
     notes: row.notes,
     status: row.status,
     hideAlternates: row.hideAlternates,
+    dialectName: row.dialectName,
     slots: slots,
     createdAt: asUtc(row.createdAt),
     updatedAt: asUtc(row.updatedAt),

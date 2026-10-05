@@ -213,6 +213,7 @@ class Program {
     this.notes = '',
     this.status = ProgramStatus.draft,
     this.hideAlternates = false,
+    this.dialectName,
     List<ProgramSlot> slots = const [],
     required this.createdAt,
     required this.updatedAt,
@@ -259,6 +260,15 @@ class Program {
   /// `SetList_HideALT`). The builder editor and Perform mode ignore this flag
   /// and always show every slot; the stored slots are never mutated.
   final bool hideAlternates;
+
+  /// Name of the dialect Perform uses for this program, or `null` to follow the
+  /// application dialect (the default, and every program before schema v37).
+  /// Applies to that program's Perform view only — the editor preview, summary
+  /// and exports keep the application dialect. A soft reference by name,
+  /// resolved with `Dialect.resolveByName` when Perform opens: a name that no
+  /// longer resolves silently falls back to the application dialect, so it is
+  /// never validated or cleared when a dialect is renamed or deleted.
+  final String? dialectName;
 
   /// Slots, always ordered by position.
   final List<ProgramSlot> slots;
@@ -455,6 +465,7 @@ class Program {
     String? notes,
     ProgramStatus? status,
     bool? hideAlternates,
+    String? dialectName,
     List<ProgramSlot>? slots,
     DateTime? updatedAt,
     DateTime? deletedAt,
@@ -465,6 +476,7 @@ class Program {
     bool clearBand = false,
     bool clearCaller = false,
     bool clearDancerLevel = false,
+    bool clearDialectName = false,
     bool clearDeletedAt = false,
     bool clearProvenance = false,
   }) => Program(
@@ -479,6 +491,7 @@ class Program {
     notes: notes ?? this.notes,
     status: status ?? this.status,
     hideAlternates: hideAlternates ?? this.hideAlternates,
+    dialectName: clearDialectName ? null : (dialectName ?? this.dialectName),
     slots: slots ?? this.slots,
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -507,6 +520,7 @@ class Program {
     notes: notes,
     status: ProgramStatus.draft,
     hideAlternates: hideAlternates,
+    dialectName: dialectName,
     slots: [
       for (final s in slots)
         ProgramSlot(
@@ -578,6 +592,7 @@ class Program {
       other.notes == notes &&
       other.status == status &&
       other.hideAlternates == hideAlternates &&
+      other.dialectName == dialectName &&
       _listEq.equals(other.slots, slots) &&
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt &&

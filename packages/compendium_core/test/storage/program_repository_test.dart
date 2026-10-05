@@ -284,6 +284,38 @@ void main() {
       expect(loaded, program);
     });
 
+    test('round-trips dialectName verbatim, and clears it', () async {
+      // Verbatim: a decomposed "é" must come back unchanged, because the value
+      // has to equal a dialect library name byte-for-byte to resolve.
+      const name = 'Cafe\u0301 Calls';
+      final program = sampleProgram().copyWith(dialectName: name);
+      await repo.create(program);
+      final loaded = await repo.getById(program.id);
+      expect(loaded!.dialectName, name);
+      expect(loaded, program);
+
+      await repo.update(loaded.copyWith(clearDialectName: true));
+      expect((await repo.getById(program.id))!.dialectName, isNull);
+    });
+
+    test('dialectName defaults to null when unset', () async {
+      final program = sampleProgram();
+      await repo.create(program);
+      expect((await repo.getById(program.id))!.dialectName, isNull);
+    });
+
+    test('duplicate keeps dialectName', () async {
+      final program = sampleProgram().copyWith(dialectName: 'Leads/Follows');
+      await repo.create(program);
+      final copy = await repo.duplicate(
+        id: program.id,
+        newId: 'dup',
+        newSlotId: () => 'dup-slot',
+        now: DateTime.utc(2026, 2, 1),
+      );
+      expect(copy.dialectName, 'Leads/Follows');
+    });
+
     test('hideAlternates defaults to false when unset', () async {
       final program = sampleProgram();
       await repo.create(program);

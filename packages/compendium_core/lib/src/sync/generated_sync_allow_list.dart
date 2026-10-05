@@ -59,6 +59,7 @@ const Map<SyncRecordKind, Set<String>> generatedShareableWirePaths = {
     'createdAt',
     'dancerLevel',
     'deletedAt',
+    'dialectName',
     'eventDate',
     'hideAlternates',
     'id',

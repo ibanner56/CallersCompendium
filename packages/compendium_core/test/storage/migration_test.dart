@@ -2490,6 +2490,61 @@ void main() {
     );
   });
 
+  group('v36 -> v37 upgrade (issue #1554 programs.dialect_name)', () {
+    test(
+      'adds a nullable dialect_name and keeps legacy program rows',
+      () async {
+        final raw = sqlite3.sqlite3.openInMemory();
+        final historical = GeneratedHelper().databaseForVersion(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          36,
+        );
+        await historical.customSelect('SELECT 1').get();
+        final before = await historical
+            .customSelect("PRAGMA table_info('programs')")
+            .get();
+        expect(
+          before.map((row) => row.read<String>('name')),
+          isNot(contains('dialect_name')),
+        );
+        await historical.customStatement(
+          "INSERT INTO programs "
+          "(id, title, notes, status, hide_alternates, created_at, updated_at) "
+          "VALUES ('legacy-program', 'Legacy', 'keep', 'draft', 1, 0, 0)",
+        );
+        await historical.close();
+
+        final db = CompendiumDatabase(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        );
+        addTearDown(() async {
+          await db.close();
+          raw.close();
+        });
+        await db.customSelect('SELECT 1').get();
+
+        final columns = await db
+            .customSelect("PRAGMA table_info('programs')")
+            .get();
+        final dialect = columns.singleWhere(
+          (row) => row.read<String>('name') == 'dialect_name',
+        );
+        expect(dialect.read<int>('notnull'), 0, reason: 'must be nullable');
+
+        final row = await db
+            .customSelect(
+              'SELECT title, notes, hide_alternates, dialect_name '
+              "FROM programs WHERE id = 'legacy-program'",
+            )
+            .getSingle();
+        expect(row.read<String>('title'), 'Legacy');
+        expect(row.read<String>('notes'), 'keep');
+        expect(row.read<int>('hide_alternates'), 1);
+        expect(row.read<String?>('dialect_name'), isNull);
+      },
+    );
+  });
+
   group('v34 -> v35 upgrade (issue #1233 split program-slot timing)', () {
     test(
       'copies null, zero, and positive legacy planned minutes to dance',

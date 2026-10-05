@@ -469,7 +469,7 @@ Future<void> clearNormalisationSkipAt(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 36;
+const int kCompendiumSchemaVersion = 37;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -507,6 +507,13 @@ const int kMinSupportedSchemaVersion = 20;
 ///   taxonomy source JSON is rewritten recursively, including nested
 ///   `meanwhile` figures; derived figure/search rows are rebuilt after the
 ///   rewrite.
+///
+/// - v37 (issue #1554): adds the nullable `programs.dialect_name`, the name of
+///   the dialect Perform uses for that program. `null` (every existing row)
+///   means Perform follows the application dialect. Purely additive: one
+///   `addColumn`, no back-fill, no derived rebuild. The value is a soft
+///   reference by name that is never validated or cascaded on dialect rename
+///   or delete.
 ///
 /// - v36: adds the nullable queue-time local wire hash to actionable sync
 ///   review rows so resolution can reject edits made after enqueue.
@@ -1153,6 +1160,21 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           );
           if (!hasLocalHash) {
             await m.addColumn(reviewQueue, reviewQueue.localHash);
+          }
+        }
+        if (from < 37) {
+          // Issue #1554. No earlier step recreates `programs` from the current
+          // Dart definition, so the column is normally absent here. The
+          // live-schema check is defensive only: it keeps the step idempotent
+          // if a prior partial run or a hand-restored file already has it.
+          final programColumns = await customSelect(
+            "SELECT name FROM pragma_table_info('${programs.actualTableName}')",
+          ).get();
+          final hasDialectName = programColumns.any(
+            (row) => row.read<String>('name') == programs.dialectName.name,
+          );
+          if (!hasDialectName) {
+            await m.addColumn(programs, programs.dialectName);
           }
         }
 
