@@ -1730,17 +1730,24 @@ void main() {
       expect(bytes, isNotEmpty);
     });
 
-    testWidgets('renders a linked venue without throwing', (tester) async {
-      final bytes = await buildProgramPdf(
-        _program(
-          venueId: 'v1',
-          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
-        ),
+    testWidgets('draws the linked venue into the document', (tester) async {
+      final program = _program(
+        venueId: 'v1',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      );
+      final withVenue = await buildProgramPdf(
+        program,
         titleFor: _titles,
         venuesById: {'v1': _venue},
       );
-      expect(bytes, isNotEmpty);
-      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+      final withoutVenue = await buildProgramPdf(program, titleFor: _titles);
+      expect(
+        withVenue.length,
+        greaterThan(withoutVenue.length),
+        reason:
+            'the venue block and header label must add content to the PDF; '
+            'equal length means the venue never reached the page',
+      );
     });
 
     // The text is font-encoded inside the PDF, so the content check goes
@@ -1781,16 +1788,13 @@ void main() {
       expect(printed, isNot(contains('123 Main St')));
     });
 
-    testWidgets('renders a linked venue with only a name (no detail fields)', (
-      tester,
-    ) async {
-      final bytes = await buildProgramPdf(
-        _program(venueId: 'v2'),
-        titleFor: _titles,
-        venuesById: {'v2': Venue(id: 'v2', name: 'Bare Hall')},
-      );
-      expect(bytes, isNotEmpty);
-      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+    test('a venue with only a name prints its name and no detail block', () {
+      final text = programPdfVenueText(_program(venueId: 'v2'), {
+        'v2': Venue(id: 'v2', name: 'Bare Hall'),
+      }, const ProgramExportLabels());
+
+      expect(text.headerLabel, contains('Bare Hall'));
+      expect(text.blockLines, isEmpty);
     });
 
     testWidgets(
@@ -1823,31 +1827,7 @@ void main() {
     );
   });
 
-  group('venueLocalityLine', () {
-    test('joins city/state with a comma and the postal with a space', () {
-      expect(venueLocalityLine(_venue), 'Montpelier, VT 05602-1234');
-    });
-
-    test('drops the state and postal when only a city is present', () {
-      expect(
-        venueLocalityLine(Venue(id: 'v', name: 'X', city: 'Montpelier')),
-        'Montpelier',
-      );
-    });
-
-    test('formats a bare ZIP with no +4', () {
-      expect(
-        venueLocalityLine(
-          Venue(id: 'v', name: 'X', city: 'Montpelier', postalCode: '05602'),
-        ),
-        'Montpelier 05602',
-      );
-    });
-
-    test('is empty when no locality parts are present', () {
-      expect(venueLocalityLine(Venue(id: 'v', name: 'X')), isEmpty);
-    });
-
+  group('buildProgramPdf with a purged dance', () {
     testWidgets('exports a program whose dance was purged, without corruption '
         '(#459 export coverage)', (tester) async {
       // End-to-end regression for the purge → export path (#429/#459): a

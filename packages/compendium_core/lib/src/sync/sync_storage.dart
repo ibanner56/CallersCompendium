@@ -118,13 +118,13 @@ final class _NaturalKeyIndex {
   }
 }
 
-/// A complete local sync snapshot owned by the repository/database boundary.
 typedef _RowTimestamps = ({
   DateTime updatedAt,
   DateTime? existenceAt,
   DateTime? deletedAt,
 });
 
+/// A complete local sync snapshot owned by the repository/database boundary.
 class SyncStorageSnapshot {
   const SyncStorageSnapshot({
     required this.epoch,

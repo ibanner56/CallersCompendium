@@ -104,6 +104,19 @@ def test_passed() -> None:
     check("each clause needs its own marker", lines(both) == [], str(lines(both)))
     block = "final f = x ?? saveBackupToFile;\n} on Exception catch (_) { /* export-guard: exempt — r */ }\n"
     check("block-comment marker counts", lines(block) == [], str(lines(block)))
+    above = (
+        "final f = x ?? saveBackupToFile;\n"
+        "// export-guard: exempt — on the line above, outside the clause\n"
+        "} on Exception catch (_) {\n"
+        "}\n"
+    )
+    check("marker on the line above does not count", lines(above) == [3], str(lines(above)))
+    trailing = (
+        "final f = x ?? saveBackupToFile;\n"
+        "} on Exception catch (_) {\n"
+        "} // export-guard: exempt — trailing the closing brace\n"
+    )
+    check("marker trailing the closing brace counts", lines(trailing) == [], str(lines(trailing)))
     obj = "final f = x ?? saveBackupToFile;\n} on Object catch (e) {\n"
     check("`on Object` is fine", lines(obj) == [])
     unrelated = "Future<void> g() async {\n} on Exception catch (e) {\n}\n"

@@ -169,25 +169,21 @@ Future<DedupeResolution?> showOnlineImportCrossSourceDuplicateDialog(
 /// `check_caught_error_logged` obligations. It does not touch
 /// `ScaffoldMessenger` or `Navigator` either.
 ///
-/// [applyDefaultTags] adds the user's default import tags (#1476), resolved
-/// immediately before each commit; the picker's add-dance flow passes `false`
-/// to keep its existing behaviour.
+/// Every commit adds the user's default import tags (#1476), resolved
+/// immediately before it.
 Future<OnlineImportResult?> resolveAndImportOnline(
   BuildContext context, {
   required OnlineSearchService service,
   required CompendiumRepositories repos,
   required OnlinePreview preview,
   required AppLocalizations l10n,
-  bool applyDefaultTags = true,
 }) async {
   Future<OnlineImportResult> commit([DedupeResolution? resolution]) async =>
       service.import(
         repos,
         preview.plan,
         ambiguousResolution: resolution,
-        defaultTagIds: applyDefaultTags
-            ? await resolveDefaultImportTagIds(repos)
-            : const [],
+        defaultTagIds: await resolveDefaultImportTagIds(repos),
       );
 
   final first = await commit();

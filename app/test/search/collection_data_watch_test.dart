@@ -618,6 +618,17 @@ void main() {
             },
           ),
           (
+            table: 'difficulty_levels',
+            full: true,
+            write: (r) async {
+              // ignore: unused_result
+              await r.difficultyLevels.createCustom(
+                label: 'Gentle',
+                position: 90,
+              );
+            },
+          ),
+          (
             table: 'custom_field_defs',
             full: true,
             write: (r) async {

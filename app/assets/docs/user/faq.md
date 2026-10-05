@@ -144,8 +144,9 @@ The app couldn't open or get your collection ready at startup. Try, in order:
    when the database can't be opened. On Linux that is
    `~/.local/share/org.callerscompendium.compendiumApp/diagnostics/crash.log`.
 
-On Linux, a machine without `xdg-user-dirs` has no `Documents` folder to put the
-database in; see [Where is my data stored?](#where-is-my-data-stored).
+On Linux the database lives in the app's support folder whether or not your
+machine has a `Documents` folder (for example, one without `xdg-user-dirs`); see
+[Where is my data stored?](#where-is-my-data-stored).
 
 ### Why can't I find a dance I imported?
 

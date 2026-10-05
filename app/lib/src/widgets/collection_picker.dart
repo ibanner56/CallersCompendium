@@ -609,7 +609,6 @@ class _CollectionPickerState extends State<CollectionPicker> {
         repos: _repos,
         preview: preview,
         l10n: l10n,
-        applyDefaultTags: false,
       );
       if (result == null) return;
       final danceId = result.danceId;

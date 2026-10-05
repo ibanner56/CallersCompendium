@@ -31,12 +31,13 @@ typedef PdfLayouter =
 /// The two surfaces used to carry their own copies of this wiring, which drifted
 /// apart (#1395). Each method runs inside [guardExport] and takes the
 /// [ScaffoldMessengerState] and [AppLocalizations] the caller resolved before
-/// calling, so nothing here reads an inherited widget after an `await`. (Where
-/// that happens differs by surface: the wide menu resolves them in
-/// `onSelected`, once the popup has closed; the overflow menu resolves them
-/// when it builds, before its `onTap`s fire.) [exportJson] is the one method that also takes a [BuildContext]: the
-/// JSON choice dialog needs a live one, and it is only used for that dialog and
-/// for `context.mounted` after it closes.
+/// calling, so no method other than [exportJson] reads an inherited widget
+/// after an `await`. (Where that happens differs by surface: the wide menu
+/// resolves them in `onSelected`, once the popup has closed; the overflow menu
+/// resolves them when it builds, before its `onTap`s fire.) [exportJson] is the
+/// exception: it also takes a [BuildContext] for the JSON choice dialog and,
+/// once the dialog closes, `JsonExportDelivery.deliver` re-reads the messenger
+/// and localizations from it, guarded by `context.mounted`.
 ///
 /// Diagnostic `source:` tags are `dance_export_actions.<method>`.
 class DanceExportActions {
