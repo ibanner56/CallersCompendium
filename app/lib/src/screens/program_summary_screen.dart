@@ -572,10 +572,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     if (_resolvingPerform) return;
     _resolvingPerform = true;
     _invalidateBulkUndo();
-    final Map<String, Dance> deletedDances;
+    final DeletedSlotDances deletedDances;
     try {
       deletedDances = await resolveDeletedSlotDances(
         _repos.dances,
+        _repos.choreographers,
         program,
         data,
       );
@@ -590,7 +591,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         builder: (_) => PerformProgramScreen(
           program: program,
           data: data,
-          danceOverrides: deletedDances,
+          danceOverrides: deletedDances.dances,
+          authorNameOverrides: deletedDances.authorNames,
           difficultyLevels: _difficultyLevels,
           renderer: _performRenderer,
           // Resume where the caller left off (issue #434).

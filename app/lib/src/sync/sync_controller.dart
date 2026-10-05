@@ -656,6 +656,21 @@ class SyncController extends ChangeNotifier {
     _scheduleDebounced();
   }
 
+  /// Forwards a batch of changed table names from the database's change
+  /// stream to [notifyLocalChange].
+  ///
+  /// Tables the sync engine itself writes ([syncBookkeepingTables]) are not
+  /// user edits and are dropped; an empty remainder schedules nothing.
+  /// `settingsOnly` is computed on the remainder, so a batch of `settings`
+  /// plus a bookkeeping table is a settings-only write.
+  void notifyTableUpdates(Set<String> tables) {
+    final changed = tables.difference(syncBookkeepingTables);
+    if (changed.isEmpty) return;
+    notifyLocalChange(
+      settingsOnly: changed.length == 1 && changed.contains('settings'),
+    );
+  }
+
   void _scheduleDebounced() {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(_debounce, () {

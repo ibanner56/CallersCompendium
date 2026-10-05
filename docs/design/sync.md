@@ -623,6 +623,8 @@ it:
 | Records this device has selected for publication (`kind`, `record_id`) | `published_records` | `deviceScoped` |
 | Rows the normalisation pass could not repair (`table`, `column`, `record_id`) | `normalisation_skips` | `deviceScoped` |
 
+Writes to the sync bookkeeping tables above (`baseline_state`, `baseline_entries`, `id_aliases`, `pending_deletions`, `review_queue`, `published_records`) never schedule a sync pass: they are the engine's own state, not user edits. The app derives that set from the registry (`syncBookkeepingTables`).
+
 **Three of these are scoped to the store identity**, and `id_aliases` and
 `review_queue` are additionally scoped to the epoch and cleared with the
 baseline. Each records a conclusion drawn *about a particular store* — that two

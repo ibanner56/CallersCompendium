@@ -626,6 +626,19 @@ final Map<String, DataClassification> fieldClassifications = {
   'published_records.record_id': _syncBookkeeping,
 };
 
+/// Tables with at least one column classified as Device Sync bookkeeping.
+///
+/// Writes to these tables are the sync engine's own state, not user edits, so
+/// they must never schedule a sync pass. "Any column", not "every column":
+/// `pending_deletions` and `review_queue` also hold payload columns with their
+/// own classification. Derived by identity with the private classification, so
+/// a table gains or loses membership by changing the registry alone.
+final Set<String> syncBookkeepingTables = {
+  for (final entry in fieldClassifications.entries)
+    if (identical(entry.value, _syncBookkeeping))
+      entry.key.substring(0, entry.key.indexOf('.')),
+};
+
 const _contactStreet = DataClassification(
   term: DpvTerm.street,
   subject: DataSubject.thirdParty,

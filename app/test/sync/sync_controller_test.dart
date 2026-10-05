@@ -390,6 +390,39 @@ void main() {
       },
     );
 
+    test('bookkeeping-only table updates schedule nothing', () async {
+      final controller = build(debounce: const Duration(milliseconds: 10));
+      await controller.load();
+      await controller.setEnabled(true);
+      passes.clear();
+      controller.notifyTableUpdates({'baseline_entries', 'review_queue'});
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(passes, isEmpty);
+    });
+
+    test('a content table alongside a bookkeeping table still schedules a '
+        'pass', () async {
+      final controller = build(debounce: const Duration(milliseconds: 10));
+      await controller.load();
+      await controller.setEnabled(true);
+      passes.clear();
+      controller.notifyTableUpdates({'baseline_state', 'dances'});
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(passes, hasLength(1));
+    });
+
+    test('settings plus a bookkeeping table is a settings-only write, so the '
+        'controller\'s own write is swallowed', () async {
+      final controller = build(debounce: const Duration(milliseconds: 10));
+      await controller.load();
+      await controller.setEnabled(true);
+      passes.clear();
+      controller.expectOwnSettingsWrite();
+      controller.notifyTableUpdates({'baseline_entries', 'settings'});
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(passes, isEmpty);
+    });
+
     test('local changes while sync is off schedule nothing', () async {
       final controller = build(debounce: const Duration(milliseconds: 10));
       await controller.load();

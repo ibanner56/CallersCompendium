@@ -1783,10 +1783,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (_resolvingPerform) return;
     _resolvingPerform = true;
     _invalidateBulkUndo();
-    final Map<String, Dance> deletedDances;
+    final DeletedSlotDances deletedDances;
     try {
       deletedDances = await resolveDeletedSlotDances(
         _repos.dances,
+        _repos.choreographers,
         program,
         data,
       );
@@ -1802,9 +1803,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           program: program,
           data: data,
           // Created dances win over a resolved soft-deleted copy.
-          danceOverrides: {...deletedDances, ..._createdDances},
+          danceOverrides: {...deletedDances.dances, ..._createdDances},
           difficultyLevels: _difficultyLevels,
           authorNameOverrides: {
+            ...deletedDances.authorNames,
             for (final entry in _createdChoreographers.entries)
               entry.key: entry.value.name,
           },

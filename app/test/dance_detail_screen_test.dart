@@ -3028,9 +3028,17 @@ class _DanglingDances extends DanceRepository {
   final Dance danglingDance;
 
   @override
-  Future<Dance?> getById(String id, {bool includeDeleted = false}) async {
+  Future<Dance?> getById(
+    String id, {
+    bool includeDeleted = false,
+    bool includeDeletedAuthors = false,
+  }) async {
     if (id == danglingDance.id) return danglingDance;
-    return super.getById(id, includeDeleted: includeDeleted);
+    return super.getById(
+      id,
+      includeDeleted: includeDeleted,
+      includeDeletedAuthors: includeDeletedAuthors,
+    );
   }
 }
 

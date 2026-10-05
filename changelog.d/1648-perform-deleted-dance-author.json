@@ -1,0 +1,14 @@
+{
+  "id": "1648-perform-deleted-dance-author",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Perform now shows the author line for a program dance that is in Recently deleted even when its choreographer was deleted too."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Add an opt-in includeDeletedAuthors flag to DanceRepository.getById that keeps soft-deleted choreographers in a dance's authorIds. The default read is unchanged."
+    ]
+  }
+}
