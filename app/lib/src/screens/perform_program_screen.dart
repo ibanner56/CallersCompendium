@@ -567,8 +567,9 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     if (!mounted) return;
     SemanticsService.sendAnnouncement(
       View.of(context),
-      AppLocalizations.of(context)
-          .performSlotPosition(_groupIndex + 1, _groups.length),
+      AppLocalizations.of(
+        context,
+      ).performSlotPosition(_groupIndex + 1, _groups.length),
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
@@ -1125,9 +1126,9 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
             bottomNavigationBar: BottomAppBar(
               // Grow with the system text size (A11Y-01): the fixed 80 px bar
               // cannot hold the position + timing lines at large scales.
-              height: MediaQuery.textScalerOf(context)
-                  .scale(80)
-                  .clamp(80.0, 200.0),
+              height: MediaQuery.textScalerOf(
+                context,
+              ).scale(80).clamp(80.0, 200.0),
               child: Row(
                 children: [
                   _buildPauseButton(),

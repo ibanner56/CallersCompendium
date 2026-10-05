@@ -406,7 +406,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um $count Elemente zu erhalten.',
-      one: 'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um 1 Element zu erhalten.',
+      one:
+          'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um 1 Element zu erhalten.',
     );
     return '$_temp0';
   }
@@ -824,7 +825,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Einträge wurden auf zwei Geräten geändert und warten auf deine Wahl.',
-      one: '1 Eintrag wurde auf zwei Geräten geändert und wartet auf deine Wahl.',
+      one:
+          '1 Eintrag wurde auf zwei Geräten geändert und wartet auf deine Wahl.',
     );
     return '$_temp0';
   }
@@ -6715,7 +6717,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Dieser Import enthält $count Elemente — mehr als für eine normale Freigabe erwartet.',
-      one: 'Dieser Import enthält 1 Element — mehr als für eine normale Freigabe erwartet.',
+      one:
+          'Dieser Import enthält 1 Element — mehr als für eine normale Freigabe erwartet.',
     );
     return '$_temp0';
   }
@@ -7470,7 +7473,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Figuren hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
-      one: '1 Figur hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
+      one:
+          '1 Figur hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
     );
     return '$_temp0';
   }
@@ -8199,7 +8203,8 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Kontrastpaare unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
-      one: '1 Kontrastpaar unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
+      one:
+          '1 Kontrastpaar unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
     );
     return '$_temp0';
   }

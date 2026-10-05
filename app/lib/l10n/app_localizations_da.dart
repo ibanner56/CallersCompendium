@@ -405,7 +405,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage $count elementer.',
-      one: 'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage 1 element.',
+      one:
+          'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage 1 element.',
     );
     return '$_temp0';
   }
@@ -6633,7 +6634,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'Denne import indeholder $count elementer – mere end forventet for en normal deling.',
-      one: 'Denne import indeholder 1 element – mere end forventet for en normal deling.',
+      one:
+          'Denne import indeholder 1 element – mere end forventet for en normal deling.',
     );
     return '$_temp0';
   }
@@ -7379,7 +7381,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'Tilføjede $count figurer. Skriv en anden, eller tryk Escape for at afslutte.',
-      one: 'Tilføjede 1 figur. Skriv en anden, eller tryk Escape for at afslutte.',
+      one:
+          'Tilføjede 1 figur. Skriv en anden, eller tryk Escape for at afslutte.',
     );
     return '$_temp0';
   }
@@ -8099,7 +8102,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           '$count kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
-      one: '1 kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
+      one:
+          '1 kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
     );
     return '$_temp0';
   }
