@@ -4383,6 +4383,24 @@ abstract class AppLocalizations {
   /// **'It\'s been a while since your last backup — consider exporting one now.'**
   String get backupOverdueHint;
 
+  /// Text of the once-per-launch banner on the main screen shown when the user's chosen backup reminder cadence says a backup is overdue.
+  ///
+  /// In en, this message translates to:
+  /// **'Your backup is overdue. Export one now to keep your collection safe.'**
+  String get backupReminderBannerText;
+
+  /// Banner action that exports a backup immediately, from the overdue-backup reminder banner.
+  ///
+  /// In en, this message translates to:
+  /// **'Export backup'**
+  String get backupReminderBannerExport;
+
+  /// Banner action that dismisses the overdue-backup reminder banner for this launch.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get backupReminderBannerNotNow;
+
   /// Warning text in the restore-from-backup dialog explaining that restore destructively replaces current app data.
   ///
   /// In en, this message translates to:

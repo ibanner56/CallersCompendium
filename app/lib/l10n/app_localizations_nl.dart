@@ -2686,6 +2686,16 @@ class AppLocalizationsNl extends AppLocalizations {
       'Het is al een tijdje geleden dat je een back-up hebt gemaakt — overweeg er nu een te exporteren.';
 
   @override
+  String get backupReminderBannerText =>
+      'Je back-up is te oud. Exporteer er nu een om je collectie veilig te houden.';
+
+  @override
+  String get backupReminderBannerExport => 'Back-up exporteren';
+
+  @override
+  String get backupReminderBannerNotNow => 'Niet nu';
+
+  @override
   String get backupRestoreDialogBody =>
       'Herstellen vervangt alles in de app — je collectie, programma’s, dialecten, thema’s en instellingen — met de inhoud van de back-up. Dit kan niet ongedaan worden gemaakt.';
 

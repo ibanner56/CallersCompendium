@@ -2539,6 +2539,16 @@ class AppLocalizationsJa extends AppLocalizations {
       '前回のバックアップから時間が経っています — 今すぐエクスポートすることを検討してください。';
 
   @override
+  String get backupReminderBannerText =>
+      'バックアップの期限が過ぎています。コレクションを守るため、今すぐエクスポートしてください。';
+
+  @override
+  String get backupReminderBannerExport => 'バックアップをエクスポート';
+
+  @override
+  String get backupReminderBannerNotNow => '今はしない';
+
+  @override
   String get backupRestoreDialogBody =>
       '復元すると、アプリの現在の内容（コレクション、プログラム、ダイアレクト、テーマ、設定）がすべてバックアップの内容に置き換えられます。この操作は元に戻せません。';
 

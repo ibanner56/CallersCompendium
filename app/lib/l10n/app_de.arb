@@ -2848,6 +2848,18 @@
   "@backupOverdueHint": {
     "x-sourceSha256": "4ad654a10e666f795dc18c962c83cf76605c5ed9239968decc5b91107cb976e8"
   },
+  "backupReminderBannerText": "Ihre Sicherung ist überfällig. Exportieren Sie jetzt eine, um Ihre Sammlung zu schützen.",
+  "@backupReminderBannerText": {
+    "x-sourceSha256": "3f308d39a35ee1c3e19650a4ef61f6d17518668fe67b3a51c20697698b55c23c"
+  },
+  "backupReminderBannerExport": "Sicherung exportieren",
+  "@backupReminderBannerExport": {
+    "x-sourceSha256": "d6dfd0f0828004b8d9b5e268ba72d41106f93ae2800d18e3ce78bbfde25f601d"
+  },
+  "backupReminderBannerNotNow": "Nicht jetzt",
+  "@backupReminderBannerNotNow": {
+    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
+  },
   "backupRestoreDialogBody": "Bei der Wiederherstellung wird alles in der App – Ihre Sammlung, Programme, Dialekte, Designs und Einstellungen – durch den Inhalt der Sicherung ersetzt. Dies kann nicht rückgängig gemacht werden.",
   "@backupRestoreDialogBody": {
     "x-sourceSha256": "ff51802a21a8219092f0aaebcde7ad04aebb7aa77bf34404915dc4e39b24b83e"

@@ -2663,6 +2663,16 @@ class AppLocalizationsDa extends AppLocalizations {
       'Det er et stykke tid siden din seneste sikkerhedskopi – overvej at eksportere en nu.';
 
   @override
+  String get backupReminderBannerText =>
+      'Din sikkerhedskopi er forfalden. Eksportér en nu for at holde din samling sikker.';
+
+  @override
+  String get backupReminderBannerExport => 'Eksportér sikkerhedskopi';
+
+  @override
+  String get backupReminderBannerNotNow => 'Ikke nu';
+
+  @override
   String get backupRestoreDialogBody =>
       'Gendannelse erstatter alt i appen – din samling, programmer, dialekter, temaer og indstillinger – med indholdet af sikkerhedskopien. Dette kan ikke fortrydes.';
 

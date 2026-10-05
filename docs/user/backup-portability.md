@@ -169,7 +169,10 @@ includes a **Backup reminder** setting. You can choose:
 
 The setting also shows **Last backup: never** or the date of your most
 recent backup, so you always know where you stand. When a backup is
-overdue, a note under the setting suggests exporting one now.
+overdue, a note under the setting suggests exporting one now. The app also
+shows a reminder bar on the main screen, once each time you open the app,
+with **Export backup** and **Not now** buttons. **Not now** hides it until
+the next time you open the app.
 
 ## Backups happen automatically too
 
