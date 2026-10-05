@@ -149,16 +149,20 @@ Future<DedupeResolution?> showOnlineImportCrossSourceDuplicateDialog(
 /// retried with the chosen [DedupeResolution]. Every interactive online-import
 /// surface calls this, so a change to the resolution policy is made once.
 ///
-/// Returns the final [OnlineImportResult], or `null` when nothing more should
-/// happen: the user cancelled a dialog, [context] was unmounted while awaiting,
-/// or the service broke its contract and returned a confirmation outcome with no
-/// candidate id (asserted in debug).
+/// Returns the final [OnlineImportResult] of the import that committed, or
+/// `null` when no further import was made: the user cancelled a dialog,
+/// [context] was unmounted before a dialog could be shown or while it was open,
+/// or the service broke its contract and returned a confirmation outcome with
+/// no candidate id (asserted in debug). A result is returned even if [context]
+/// unmounted while that import was in flight: the write has happened, so the
+/// caller must still see its outcome (the picker relies on this).
 ///
-/// Liveness is [BuildContext.mounted], checked after every await and before the
-/// context is handed to a dialog. For a live route it agrees with
-/// `State.mounted` and `NavigatorState.mounted`, which the callers used to
-/// check separately. A caller that also needs its own staleness test (the
-/// picker's search generation) keeps it around the call.
+/// Liveness is [BuildContext.mounted], checked before the context is handed to
+/// a dialog and after the dialog closes. It is only as live as the context the
+/// caller passes: a State's own context goes away with the State, while a
+/// NavigatorState's context outlives a widget removed from a live route (the
+/// picker passes the navigator's for that reason). A caller that also needs its
+/// own staleness test (the picker's search generation) keeps it around the call.
 ///
 /// The helper deliberately catches nothing: each caller has its own error sink
 /// (snackbar, detail-pane messenger, inline picker error) and its own
