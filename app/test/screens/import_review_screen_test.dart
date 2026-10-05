@@ -3104,6 +3104,76 @@ void main() {
       await tester.pumpAndSettle();
     }
 
+    // Rewrites the bundle's `schemaVersion` to one this build has not seen,
+    // as a bundle exported by a newer app would carry.
+    SharedBundleImport newerBundleFor(CompendiumArchive archive) {
+      final json = jsonDecode(encodeArchive(archive)) as Map<String, Object?>;
+      json['schemaVersion'] = archiveSchemaVersion + 1;
+      final text = jsonEncode(json);
+      return SharedBundleImport(
+        json: text,
+        archive: archive,
+        entityCount: compendiumArchiveEntityCount(archive),
+      );
+    }
+
+    // The same update-first banner the pasted-file path shows (IMP-10): once,
+    // for the whole bundle, with no per-row decoding note beside it.
+    void expectNewerVersionBannerOnly(AppLocalizations l10n) {
+      expect(
+        find.byKey(const ValueKey('import-batch-warnings')),
+        findsOneWidget,
+      );
+      expect(find.text(l10n.importIssueArchiveNewerSchema), findsOneWidget);
+      expect(find.text(l10n.importIssueArchiveReadWarning), findsNothing);
+    }
+
+    testWidgets('a dance + program bundle from a newer version shows the '
+        'update-first banner once', (tester) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final repos = openTestRepositories();
+
+      await pumpShared(
+        tester,
+        repos,
+        newerBundleFor(danceProgramVenueArchive()),
+      );
+
+      expect(find.byKey(const ValueKey('import-row-0')), findsOneWidget);
+      expectNewerVersionBannerOnly(l10n);
+    });
+
+    testWidgets('a programs-only bundle from a newer version shows the '
+        'update-first banner', (tester) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final repos = openTestRepositories();
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        programs: [
+          Program(
+            id: 'p1',
+            title: 'Announcements Only',
+            slots: [ProgramSlot(id: 's1', position: 0, text: 'Welcome')],
+            createdAt: DateTime.utc(2026, 4, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+          ),
+        ],
+      );
+
+      await pumpShared(tester, repos, newerBundleFor(archive));
+
+      expect(find.byKey(const ValueKey('import-row-0')), findsNothing);
+      expectNewerVersionBannerOnly(l10n);
+    });
+
+    testWidgets('a bundle from this version shows no banner', (tester) async {
+      final repos = openTestRepositories();
+
+      await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+
+      expect(find.byKey(const ValueKey('import-batch-warnings')), findsNothing);
+    });
+
     testWidgets(
       'lands directly on the review list and commits NOTHING until Import',
       (tester) async {
