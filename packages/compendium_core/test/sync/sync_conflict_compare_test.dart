@@ -145,4 +145,48 @@ void main() {
       expect(syncDifferingFields(null, {'notes': 'x'}), ['notes']);
     });
   });
+
+  group('combineSyncCollection', () {
+    test("keeps snippets from both in the library's own shape", () {
+      final combined = combineSyncCollection(
+        'walkthrough_snippets',
+        {
+          'version': 2,
+          'snippets': {'a': 'Mine', 'shared': 'Mine too'},
+        },
+        {
+          'version': 2,
+          'snippets': {'b': 'Theirs', 'shared': 'Theirs too'},
+        },
+        takeOtherFor: {'shared'},
+      )!;
+
+      expect(combined.value, {
+        'version': 2,
+        'snippets': {'a': 'Mine', 'shared': 'Theirs too', 'b': 'Theirs'},
+      });
+      expect(combined.count, 3);
+      expect(combined.overLimit, isFalse);
+    });
+
+    test("reports a combination over the library's limit", () {
+      final combined = combineSyncCollection(
+        'shorthand_mappings',
+        [
+          for (var i = 0; i < maxShorthandMappings; i++)
+            {'token': 'mine$i', 'figures': <Object?>[]},
+        ],
+        [
+          {'token': 'theirs', 'figures': <Object?>[]},
+        ],
+      )!;
+
+      expect(combined.count, maxShorthandMappings + 1);
+      expect(combined.overLimit, isTrue);
+    });
+
+    test('themes have no limit', () {
+      expect(syncCollectionLimit('custom_themes'), isNull);
+    });
+  });
 }

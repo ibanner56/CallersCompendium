@@ -1,4 +1,6 @@
-import '../imports/shorthand_mappings.dart' show normalizeShorthandToken;
+import '../imports/shorthand_mappings.dart'
+    show maxShorthandMappings, normalizeShorthandToken;
+import '../snippet/snippet_library.dart' show kMaxSnippetLibraryEntries;
 import 'canonical_json.dart';
 
 /// One entry of a whole-collection setting, identified the way the user's own
@@ -166,4 +168,94 @@ List<String> syncDifferingFields(
           canonicalJson(local?[key]) != canonicalJson(other?[key]))
         key,
   ];
+}
+
+/// The most custom dialects a library keeps. Mirrors the app's backup limit
+/// (`kMaxCustomDialects`); `sync_whole_collection_keys_test.dart` holds the
+/// two together.
+const int syncMaxCustomDialects = 128;
+
+/// How many entries the library for whole-collection setting [key] keeps, or
+/// null when it keeps any number. A combination above it would be cut short
+/// when the library next loads, losing entries without a word, so it is
+/// refused instead.
+int? syncCollectionLimit(String key) => switch (key) {
+  'custom_dialects' => syncMaxCustomDialects,
+  'shorthand_mappings' => maxShorthandMappings,
+  'walkthrough_snippets' => kMaxSnippetLibraryEntries,
+  _ => null,
+};
+
+/// Both versions of a whole-collection setting combined into one.
+class SyncCollectionCombination {
+  const SyncCollectionCombination({
+    required this.value,
+    required this.count,
+    required this.limit,
+  });
+
+  /// The combined setting value, shaped as the library stores it.
+  final Object? value;
+
+  /// How many entries it holds.
+  final int count;
+
+  /// The library's limit, or null when it has none.
+  final int? limit;
+
+  bool get overLimit => limit != null && count > limit!;
+}
+
+/// Combines two versions of the whole-collection setting [key]: every entry
+/// either version has, in this device's order and then the other's. Where
+/// both have an entry with different contents, the other device's is taken
+/// for the keys in [takeOtherFor] and this device's for the rest. Returns
+/// null when either version cannot be read as that collection.
+SyncCollectionCombination? combineSyncCollection(
+  String key,
+  Object? local,
+  Object? other, {
+  Set<String> takeOtherFor = const {},
+}) {
+  final localEntries = local == null
+      ? const <SyncCollectionEntry>[]
+      : syncCollectionEntries(key, local);
+  final otherEntries = other == null
+      ? const <SyncCollectionEntry>[]
+      : syncCollectionEntries(key, other);
+  if (localEntries == null || otherEntries == null) return null;
+  final otherByKey = {for (final entry in otherEntries) entry.key: entry};
+  final combined = <SyncCollectionEntry>[
+    for (final entry in localEntries)
+      if (takeOtherFor.contains(entry.key) && otherByKey[entry.key] != null)
+        otherByKey[entry.key]!
+      else
+        entry,
+  ];
+  final localKeys = {for (final entry in localEntries) entry.key};
+  combined.addAll([
+    for (final entry in otherEntries)
+      if (!localKeys.contains(entry.key)) entry,
+  ]);
+  final Object? value;
+  if (key == 'walkthrough_snippets') {
+    final localMap = local is Map ? local : const <String, Object?>{};
+    final otherMap = other is Map ? other : const <String, Object?>{};
+    final conflicts = <String, Object?>{
+      ...?(otherMap['conflicts'] as Map?)?.cast<String, Object?>(),
+      ...?(localMap['conflicts'] as Map?)?.cast<String, Object?>(),
+    };
+    value = {
+      'version': localMap['version'] ?? otherMap['version'],
+      'snippets': {for (final entry in combined) entry.key: entry.value},
+      if (conflicts.isNotEmpty) 'conflicts': conflicts,
+    };
+  } else {
+    value = [for (final entry in combined) entry.value];
+  }
+  return SyncCollectionCombination(
+    value: value,
+    count: combined.length,
+    limit: syncCollectionLimit(key),
+  );
 }

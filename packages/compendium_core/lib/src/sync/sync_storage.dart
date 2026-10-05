@@ -30,6 +30,7 @@ import '../storage/shareable_text.dart';
 import 'sync_apply.dart';
 import 'sync_admission.dart';
 import 'sync_codec.dart';
+import 'sync_conflict_compare.dart' show combineSyncCollection;
 import 'sync_id.dart';
 import 'sync_merge.dart';
 import 'sync_quarantine.dart'
@@ -1524,39 +1525,35 @@ final class CompendiumSyncStorage
 
   /// Applies the user's conflict choices, all or none.
   ///
-  /// Each kept version is written with `updatedAt` one tick past every
-  /// version that was on offer (or the clock, if later), so it reaches every
-  /// other device as an ordinary newer edit and their queued choices clear on
-  /// their next pass. Keeping this device's own version re-stamps an
-  /// unchanged body: the one write I2 permits for that reason (§6.5).
-  /// Existence is not touched — a content choice must not revive or delete.
+  /// Each kept version — or, for a whole-collection setting, both versions
+  /// combined — is written with `updatedAt` one tick past every version that
+  /// was on offer (or the clock, if later), so it reaches every other device
+  /// as an ordinary newer edit and their queued choices clear on their next
+  /// pass. Keeping this device's own version re-stamps an unchanged body: the
+  /// one write I2 permits for that reason (§6.5). Existence is not touched — a
+  /// content choice must not revive or delete.
   ///
   /// Writes go through the inbound apply engine, so the kept version is
   /// admitted, reference-checked and overlaid exactly like a peer's blob, and
   /// a local edit made since the choice was queued refuses the whole batch
   /// rather than being overwritten. Returns the kinds written, so the caller
-  /// can reload in-memory preferences when a setting changed.
-  Future<Set<SyncRecordKind>> resolveConflicts(
+  /// can reload in-memory preferences when a setting changed, and how to
+  /// reconsider each choice.
+  Future<SyncConflictResolution> resolveConflicts(
     Iterable<SyncConflictDecision> decisions, {
     DateTime Function()? now,
   }) => repositories.transaction(() async {
     final clockNow = (now ?? DateTime.now)().toUtc();
-    final localNow = DateTime.fromMillisecondsSinceEpoch(
-      clockNow.millisecondsSinceEpoch - clockNow.millisecondsSinceEpoch % 1000,
-      isUtc: true,
-    );
     final snapshot = await this.snapshot();
     final local = {...snapshot.local, ...snapshot.pendingLive};
     final rows = [
       for (final row in await repositories.syncLocal.listReviewQueue())
         if (row.reason == syncConflictChoiceReason) row,
     ];
-    final writes = <SyncMergeCandidate>[];
-    final expected = <SyncRecordAddress, String?>{};
-    final decided = <SyncRecordAddress>{};
+    final plans = <_ConflictChoicePlan>[];
     for (final decision in decisions) {
       final address = (kind: decision.kind, recordId: decision.recordId);
-      if (!decided.add(address)) continue;
+      if (plans.any((plan) => plan.address == address)) continue;
       final recordRows = [
         for (final row in rows)
           if (row.kind == decision.kind && row.recordId == decision.recordId)
@@ -1566,7 +1563,6 @@ final class CompendiumSyncStorage
         throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
       }
       final current = local[address];
-      final localLive = current != null && !current.isDeleted ? current : null;
       if (recordRows.any((row) => row.localHash != current?.wireHash)) {
         throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
       }
@@ -1591,42 +1587,160 @@ final class CompendiumSyncStorage
         }
         offered.add(blob);
       }
-      final SyncRecordBlob kept;
-      final keepHash = decision.keepCandidateHash;
-      if (keepHash == null) {
-        if (localLive == null) {
+      plans.add(
+        _ConflictChoicePlan(
+          address: address,
+          current: current,
+          before: current != null && !current.isDeleted ? current.blob : null,
+          offered: offered,
+          keepHash: decision.keepCandidateHash,
+          combineTakingOther: decision.combineTakingOther,
+        ),
+      );
+    }
+    final resolution = await _applyConflictChoices(plans, clockNow);
+    for (final row in rows) {
+      if (plans.any(
+        (plan) => plan.address == (kind: row.kind, recordId: row.recordId),
+      )) {
+        await repositories.syncLocal.deleteReview(
+          kind: row.kind,
+          recordId: row.recordId,
+          counterpartId: row.counterpartId,
+        );
+      }
+    }
+    return resolution;
+  });
+
+  /// Makes a new choice for records already decided — the undo of a choice.
+  ///
+  /// The versions offered are the ones the first choice was made between,
+  /// held in memory by the caller; the new choice is written exactly as
+  /// [resolveConflicts] writes one, stamped one tick past the first choice
+  /// too, so it supersedes that choice on every device. Refused, writing
+  /// nothing, when this device's copy is no longer what the first choice
+  /// wrote: something newer has arrived since, and undoing would overwrite
+  /// it.
+  Future<SyncConflictResolution> reconsiderConflicts(
+    Iterable<SyncConflictRechoice> rechoices, {
+    DateTime Function()? now,
+  }) => repositories.transaction(() async {
+    final clockNow = (now ?? DateTime.now)().toUtc();
+    final snapshot = await this.snapshot();
+    final local = {...snapshot.local, ...snapshot.pendingLive};
+    final plans = <_ConflictChoicePlan>[];
+    for (final rechoice in rechoices) {
+      final earlier = rechoice.reconsideration;
+      final address = (kind: earlier.kind, recordId: earlier.recordId);
+      if (plans.any((plan) => plan.address == address)) continue;
+      final current = local[address];
+      if (current == null || current.wireHash != earlier.writtenWireHash) {
+        throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+      }
+      plans.add(
+        _ConflictChoicePlan(
+          address: address,
+          current: current,
+          before: earlier.before,
+          offered: earlier.offered,
+          keepHash: rechoice.keepVersionHash,
+          combineTakingOther: rechoice.combineTakingOther,
+          floor: earlier.writtenAt,
+        ),
+      );
+    }
+    return _applyConflictChoices(plans, clockNow);
+  });
+
+  Future<SyncConflictResolution> _applyConflictChoices(
+    List<_ConflictChoicePlan> plans,
+    DateTime clockNow,
+  ) async {
+    final localNow = DateTime.fromMillisecondsSinceEpoch(
+      clockNow.millisecondsSinceEpoch - clockNow.millisecondsSinceEpoch % 1000,
+      isUtc: true,
+    );
+    final writes = <SyncMergeCandidate>[];
+    final expected = <SyncRecordAddress, String?>{};
+    final stamps = <SyncRecordAddress, DateTime>{};
+    for (final plan in plans) {
+      final ({SyncRecordBlob template, Map<String, Object?> body}) kept;
+      final combine = plan.combineTakingOther;
+      if (combine != null) {
+        final key = plan.address.recordId;
+        if (plan.address.kind != SyncRecordKind.setting ||
+            !syncWholeCollectionSettingKeys.contains(key) ||
+            plan.offered.length != 1) {
+          throw const SyncReviewException(
+            SyncReviewFailureCode.combineUnavailable,
+          );
+        }
+        final other = plan.offered.single;
+        final combination = combineSyncCollection(
+          key,
+          plan.before?.body['value'],
+          other.body['value'],
+          takeOtherFor: combine,
+        );
+        if (combination == null) {
+          throw const SyncReviewException(
+            SyncReviewFailureCode.candidateInvalid,
+          );
+        }
+        if (combination.overLimit) {
+          throw const SyncReviewException(
+            SyncReviewFailureCode.combineOverLimit,
+          );
+        }
+        kept = (
+          template: plan.before ?? other,
+          body: {'value': combination.value},
+        );
+      } else if (plan.keepHash == null) {
+        final before = plan.before;
+        if (before == null) {
           throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
         }
-        kept = localLive.blob;
+        kept = (template: before, body: before.body);
       } else {
-        final index = recordRows.indexWhere(
-          (row) => row.candidateHash == keepHash,
+        final match = plan.offered.where(
+          (blob) => sha256Hex(encodeSyncRecordBlobUtf8(blob)) == plan.keepHash,
         );
-        if (index < 0) {
+        if (match.isEmpty) {
           throw const SyncReviewException(
             SyncReviewFailureCode.candidateChanged,
           );
         }
-        kept = offered[index];
+        kept = (template: match.first, body: match.first.body);
       }
-      var latest = kept.updatedAt;
-      for (final blob in [?localLive?.blob, ...offered]) {
-        if (blob.updatedAt.isAfter(latest)) latest = blob.updatedAt;
+      var latest = kept.template.updatedAt;
+      for (final at in [
+        ?plan.before?.updatedAt,
+        for (final blob in plan.offered) blob.updatedAt,
+        ?plan.floor,
+        ?plan.current?.updatedAt,
+      ]) {
+        if (at.isAfter(latest)) latest = at;
       }
       final superseding = latest.toUtc().add(existenceStampTick);
       final stamp = superseding.isAfter(localNow) ? superseding : localNow;
       if (stamp.isAfter(syncQuarantineWindowEnd(clockNow))) {
         throw const SyncReviewException(SyncReviewFailureCode.clockOutOfRange);
       }
+      final current = plan.current;
+      final liveCurrent = current != null && !current.isDeleted
+          ? current
+          : null;
       final admission = admitSyncInboundCandidate(
         SyncMergeCandidate.fromBlob(
           SyncRecordBlob(
-            v: kept.v,
-            kind: kept.kind,
-            id: kept.id,
+            v: kept.template.v,
+            kind: kept.template.kind,
+            id: kept.template.id,
             updatedAt: stamp,
             deletedAt: null,
-            existenceAt: localLive?.existenceAt ?? kept.existenceAt,
+            existenceAt: liveCurrent?.existenceAt ?? kept.template.existenceAt,
             body: kept.body,
           ),
         ),
@@ -1636,7 +1750,8 @@ final class CompendiumSyncStorage
         throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
       }
       writes.add(admitted);
-      expected[address] = current?.wireHash;
+      expected[plan.address] = current?.wireHash;
+      stamps[plan.address] = stamp;
     }
     final result = await SyncApplyEngine(
       now: () => clockNow,
@@ -1644,17 +1759,24 @@ final class CompendiumSyncStorage
     if (result.applied.toSet().length != writes.length) {
       throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
     }
-    for (final row in rows) {
-      if (decided.contains((kind: row.kind, recordId: row.recordId))) {
-        await repositories.syncLocal.deleteReview(
-          kind: row.kind,
-          recordId: row.recordId,
-          counterpartId: row.counterpartId,
-        );
-      }
-    }
-    return {for (final address in decided) address.kind};
-  });
+    // What each choice wrote, as this device now publishes it: the hash a
+    // later reconsideration checks to know nothing newer has arrived.
+    final written = (await snapshot()).local;
+    return SyncConflictResolution(
+      kinds: {for (final plan in plans) plan.address.kind},
+      reconsiderations: [
+        for (final plan in plans)
+          SyncConflictReconsideration(
+            kind: plan.address.kind,
+            recordId: plan.address.recordId,
+            before: plan.before,
+            offered: plan.offered,
+            writtenWireHash: written[plan.address]?.wireHash ?? '',
+            writtenAt: stamps[plan.address]!,
+          ),
+      ],
+    );
+  }
 
   /// Resolves persisted W8 choreography and W14 tombstone review decisions.
   ///
@@ -5854,4 +5976,29 @@ bool _constantTimeEquals(List<int> left, List<int> right) {
     difference |= left[index] ^ right[index];
   }
   return difference == 0;
+}
+
+/// One conflict choice, ready to write: the record, this device's copy now,
+/// the versions it was chosen between, and what to keep.
+class _ConflictChoicePlan {
+  const _ConflictChoicePlan({
+    required this.address,
+    required this.current,
+    required this.before,
+    required this.offered,
+    required this.keepHash,
+    required this.combineTakingOther,
+    this.floor,
+  });
+
+  final SyncRecordAddress address;
+  final SyncMergeCandidate? current;
+  final SyncRecordBlob? before;
+  final List<SyncRecordBlob> offered;
+  final String? keepHash;
+  final Set<String>? combineTakingOther;
+
+  /// A time the written version must also follow — the earlier choice's
+  /// stamp, when reconsidering.
+  final DateTime? floor;
 }

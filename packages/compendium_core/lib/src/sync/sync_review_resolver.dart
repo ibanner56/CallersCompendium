@@ -121,9 +121,15 @@ final class SyncReviewQueueResolver {
     newNaturalKey: newNaturalKey,
   );
 
-  /// Applies the user's conflict choices, all or none, and returns the kinds
-  /// written (see [CompendiumSyncStorage.resolveConflicts]).
-  Future<Set<SyncRecordKind>> resolveConflicts(
+  /// Applies the user's conflict choices, all or none (see
+  /// [CompendiumSyncStorage.resolveConflicts]).
+  Future<SyncConflictResolution> resolveConflicts(
     Iterable<SyncConflictDecision> decisions,
   ) => storage.resolveConflicts(decisions);
+
+  /// Makes a new choice for records already decided — the undo of a choice
+  /// (see [CompendiumSyncStorage.reconsiderConflicts]).
+  Future<SyncConflictResolution> reconsiderConflicts(
+    Iterable<SyncConflictRechoice> rechoices,
+  ) => storage.reconsiderConflicts(rechoices);
 }
