@@ -692,49 +692,49 @@ class AppLocalizationsFr extends AppLocalizations {
   String get syncConflictFieldName => 'Nom';
 
   @override
-  String get syncConflictCombineBoth => 'Combine both';
+  String get syncConflictCombineBoth => 'Combiner les deux';
 
   @override
   String syncConflictCombineSummary(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Keeps all $count items from both devices',
-      one: 'Keeps the 1 item from both devices',
+      other: 'Conserve les $count éléments des deux appareils',
+      one: 'Conserve l’élément des deux appareils',
     );
     return '$_temp0';
   }
 
   @override
   String syncConflictCombineOverLimit(int count, int limit) {
-    return 'Can\'t combine: together these would be $count, and this list holds at most $limit.';
+    return 'Combinaison impossible : ensemble, cela ferait $count, et cette liste en contient au plus $limit.';
   }
 
   @override
   String get syncConflictCombinePickEach =>
-      'Both devices changed these. For each, choose which to keep:';
+      'Les deux appareils ont modifié ceux-ci. Pour chacun, choisissez la version à conserver :';
 
   @override
   String get syncConflictCombineUnavailable =>
-      'These can\'t be combined, so nothing was changed.';
+      'Ces éléments ne peuvent pas être combinés ; rien n’a été modifié.';
 
   @override
   String get syncConflictCombineOverLimitError =>
-      'Together these would be more than this list can hold, so nothing was changed.';
+      'Ensemble, cela dépasserait ce que cette liste peut contenir ; rien n’a été modifié.';
 
   @override
-  String get syncConflictSaved => 'Your choices are saved.';
+  String get syncConflictSaved => 'Vos choix sont enregistrés.';
 
   @override
-  String get syncConflictUndo => 'Undo';
+  String get syncConflictUndo => 'Annuler';
 
   @override
   String get syncConflictReconsiderIntro =>
-      'Choose again between the versions you had. Nothing changes until you save.';
+      'Choisissez à nouveau entre les versions que vous aviez. Rien ne change tant que vous n’enregistrez pas.';
 
   @override
   String get syncConflictUndoChanged =>
-      'Something newer arrived after you chose, so nothing was changed.';
+      'Une version plus récente est arrivée après votre choix ; rien n’a été modifié.';
 
   @override
   String get syncConflictValueNotSet => 'Non défini';

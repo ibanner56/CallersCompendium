@@ -652,49 +652,46 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncConflictFieldName => '名前';
 
   @override
-  String get syncConflictCombineBoth => 'Combine both';
+  String get syncConflictCombineBoth => '両方を統合';
 
   @override
   String syncConflictCombineSummary(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Keeps all $count items from both devices',
-      one: 'Keeps the 1 item from both devices',
+      other: '両方のデバイスの$count件をすべて残します',
     );
     return '$_temp0';
   }
 
   @override
   String syncConflictCombineOverLimit(int count, int limit) {
-    return 'Can\'t combine: together these would be $count, and this list holds at most $limit.';
+    return '統合できません：合計$count件になりますが、このリストには最大$limit件までしか保存できません。';
   }
 
   @override
   String get syncConflictCombinePickEach =>
-      'Both devices changed these. For each, choose which to keep:';
+      '両方のデバイスでこれらが変更されています。それぞれ残すものを選んでください：';
 
   @override
-  String get syncConflictCombineUnavailable =>
-      'These can\'t be combined, so nothing was changed.';
+  String get syncConflictCombineUnavailable => 'これらは統合できないため、何も変更されていません。';
 
   @override
   String get syncConflictCombineOverLimitError =>
-      'Together these would be more than this list can hold, so nothing was changed.';
+      '合計するとこのリストに保存できる件数を超えるため、何も変更されていません。';
 
   @override
-  String get syncConflictSaved => 'Your choices are saved.';
+  String get syncConflictSaved => '選択を保存しました。';
 
   @override
-  String get syncConflictUndo => 'Undo';
+  String get syncConflictUndo => '元に戻す';
 
   @override
   String get syncConflictReconsiderIntro =>
-      'Choose again between the versions you had. Nothing changes until you save.';
+      '以前のバージョンからもう一度選んでください。保存するまで何も変わりません。';
 
   @override
-  String get syncConflictUndoChanged =>
-      'Something newer arrived after you chose, so nothing was changed.';
+  String get syncConflictUndoChanged => '選択した後に新しい変更が届いたため、何も変更されていません。';
 
   @override
   String get syncConflictValueNotSet => '未設定';
