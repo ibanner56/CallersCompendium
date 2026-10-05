@@ -328,6 +328,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'De laatste synchronisatie is mislukt.';
 
   @override
+  String get settingsSyncStatusSettingsUnreadable =>
+      'De instellingen voor apparaatsynchronisatie konden niet worden gelezen, dus de hier getoonde instellingen kunnen verouderd zijn, en apparaatsynchronisatie kan uit staan, ook als je het had aangezet. Start de app opnieuw op om het nog eens te proberen.';
+
+  @override
   String get settingsSyncFailureUnreachable =>
       'Kan de synchronisatieserver niet bereiken.';
 

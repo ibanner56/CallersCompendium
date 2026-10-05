@@ -360,10 +360,16 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
 
     // Starts open while sync is on, so its status and any failure stay in
     // view; folds away otherwise to keep the Experimental pane uncluttered.
+    //
+    // `expanded` only feeds the tile's `initiallyExpanded`, which is read once,
+    // so the section is keyed on [SyncController.settingsUnreadable]: when a
+    // later load (after a backup restore) fails, the tile is rebuilt open and
+    // the notice is not hidden inside an already-collapsed section.
     return CollapsibleSection(
+      key: ValueKey('sync-section-unreadable-${controller.settingsUnreadable}'),
       sectionKey: const ValueKey('sync-section'),
       title: l10n.settingsSyncHeader,
-      expanded: controller.enabled,
+      expanded: controller.enabled || controller.settingsUnreadable,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -376,6 +382,18 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
             value: controller.enabled,
             onChanged: controller.setEnabled,
           ),
+          // Shown whether or not sync is on: a failed settings read leaves it
+          // off for the launch although the stored setting may say on, and the
+          // status block below only exists while it is on.
+          if (controller.settingsUnreadable)
+            ListTile(
+              key: const ValueKey('sync-settings-unreadable'),
+              leading: Icon(
+                Icons.error_outline,
+                color: theme.colorScheme.error,
+              ),
+              title: Text(l10n.settingsSyncStatusSettingsUnreadable),
+            ),
           if (controller.enabled) ...[
             SwitchListTile(
               key: _wifiTileKey,

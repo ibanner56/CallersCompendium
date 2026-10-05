@@ -327,6 +327,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsSyncStatusFailed => 'Sidste synkronisering mislykkedes.';
 
   @override
+  String get settingsSyncStatusSettingsUnreadable =>
+      'Indstillingerne for enhedssynkronisering kunne ikke læses, så de indstillinger, der vises her, kan være forældede, og enhedssynkronisering kan være slået fra, selvom du har slået den til. Genstart appen for at prøve igen.';
+
+  @override
   String get settingsSyncFailureUnreachable =>
       'Synkroniseringsserveren kunne ikke nås.';
 
