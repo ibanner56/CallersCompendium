@@ -71,8 +71,9 @@ void main() {
       // change the taxonomy. Schema 33 adds a program-slot purge-caption
       // marker, schema 34 adds difficulty vocabulary, and schema 35 splits
       // planned slot timing. Schema 36 adds the sync review local-version
-      // guard; none of them changes the taxonomy.
-      expect(kCompendiumSchemaVersion, 36);
+      // guard; none of them changes the taxonomy. Schema 37 (#1554) adds the
+      // nullable programs.dialect_name, likewise leaving the taxonomy alone.
+      expect(kCompendiumSchemaVersion, 37);
     });
 
     test('registers with the maintainer-ruled param set', () {
