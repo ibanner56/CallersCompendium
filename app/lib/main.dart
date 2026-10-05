@@ -113,6 +113,7 @@ import 'src/sync/sync_runtime.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
 import 'src/widgets/app_bootstrap.dart';
+import 'src/widgets/command_palette.dart';
 import 'src/widgets/ecd_convert_prompt_dialog.dart';
 import 'src/widgets/online_import_dialogs.dart';
 
@@ -686,6 +687,26 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// snackbars: a global navigator + messenger so the incoming-file handler can
   /// open the imported program and report results from outside the widget tree.
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  /// Lets the root-level Ctrl/Cmd-K action reach the shell (tab switching and
+  /// the palette-result routing stay the shell's).
+  final GlobalKey<AppShellState> _shellKey = GlobalKey<AppShellState>();
+
+  /// Opens global search from any route, except while performing a program.
+  void _openGlobalSearch() {
+    final navigator = _navigatorKey.currentState;
+    if (navigator == null) return;
+    // `popUntil` with an always-true predicate pops nothing; it only reveals
+    // the top route.
+    var performing = false;
+    navigator.popUntil((route) {
+      performing = route.settings.name == performRouteName;
+      return true;
+    });
+    if (performing) return;
+    _shellKey.currentState?.openSearch();
+  }
+
   final GlobalKey<ScaffoldMessengerState> _messengerKey =
       GlobalKey<ScaffoldMessengerState>();
 
@@ -1989,7 +2010,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
         (_) => _maybeShowBackupReminder(context),
       );
     }
-    return const AppShell();
+    return AppShell(key: _shellKey);
   }
 
   /// Shows, once per launch, a [MaterialBanner] when the user's chosen backup
@@ -2314,6 +2335,18 @@ class _CompendiumAppState extends State<CompendiumApp> {
               resolveSystemLocale(locales, supported),
           navigatorKey: _navigatorKey,
           scaffoldMessengerKey: _messengerKey,
+          // Replacing these drops Flutter's defaults (arrows, Escape, …), so
+          // spread them back in.
+          shortcuts: {...WidgetsApp.defaultShortcuts, ...searchShortcuts},
+          actions: {
+            ...WidgetsApp.defaultActions,
+            OpenSearchIntent: CallbackAction<OpenSearchIntent>(
+              onInvoke: (_) {
+                _openGlobalSearch();
+                return null;
+              },
+            ),
+          },
           theme: lightTheme,
           darkTheme: darkTheme,
           highContrastTheme: AppTheme.highContrast,

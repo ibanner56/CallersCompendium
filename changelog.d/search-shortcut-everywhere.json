@@ -1,0 +1,9 @@
+{
+  "id": "search-shortcut-everywhere",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Ctrl-K (Cmd-K on macOS) now opens search from a dance's detail page and from the editors, not only from the main tabs. It stays off while you are performing a program."
+    ]
+  }
+}

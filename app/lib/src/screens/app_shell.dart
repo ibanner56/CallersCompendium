@@ -1,6 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/callersbox_online.dart';
@@ -49,10 +48,10 @@ class AppShell extends StatefulWidget {
   static const double railBreakpoint = 900;
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  State<AppShell> createState() => AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class AppShellState extends State<AppShell> {
   int _index = 0;
   late DanceReimportCoordinator _reimport;
   CompendiumRepositories? _reimportRepos;
@@ -148,16 +147,25 @@ class _AppShellState extends State<AppShell> {
 
   void _onSelect(int index) => setState(() => _index = index);
 
+  /// Guards against a second palette while one is open (a held Ctrl-K repeats).
+  bool _paletteOpen = false;
+
   /// Opens the global search palette and, if the user picks a result, switches
-  /// to the matching section and opens that item's route. Wired to Ctrl/Cmd-K
-  /// and the persistent rail search affordance (`ux-modernization.md` §6).
+  /// to the matching section and opens that item's route. Called by the root
+  /// `MaterialApp`'s Ctrl/Cmd-K action through the app's
+  /// `GlobalKey<AppShellState>` (so it works from pushed routes too) and by the
+  /// persistent rail search affordance (`ux-modernization.md` §6).
   ///
   /// Both kinds land on a **read view** — [DanceDetailScreen] and
   /// [ProgramSummaryScreen] — rather than an editor. Search is a way to reach
   /// something, not a request to change it, and the builder stays one tap away
   /// behind the summary's "Edit program".
-  Future<void> _openSearch() async {
-    final result = await showCommandPalette(context);
+  Future<void> openSearch() async {
+    if (_paletteOpen) return;
+    _paletteOpen = true;
+    final result = await showCommandPalette(
+      context,
+    ).whenComplete(() => _paletteOpen = false);
     if (result == null || !mounted) return;
     final (tabIndex, route) = switch (result.kind) {
       CommandResultKind.dance => (
@@ -208,14 +216,7 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    return CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.keyK, control: true):
-            _openSearch,
-        const SingleActivator(LogicalKeyboardKey.keyK, meta: true): _openSearch,
-      },
-      child: Focus(autofocus: true, child: _buildScaffold(context)),
-    );
+    return Focus(autofocus: true, child: _buildScaffold(context));
   }
 
   Widget _buildScaffold(BuildContext context) {
@@ -263,7 +264,7 @@ class _AppShellState extends State<AppShell> {
                           semanticLabel: l10n.appTitle,
                         ),
                         const SizedBox(height: AppSpacing.sm),
-                        _RailSearchButton(onPressed: _openSearch),
+                        _RailSearchButton(onPressed: openSearch),
                       ],
                     ),
                   ),
@@ -306,7 +307,7 @@ class _AppShellState extends State<AppShell> {
         // action). This avoids the phone double-FAB collision while keeping a
         // labeled affordance consistent with the wide layout's rail search.
         return AppShellSearchScope(
-          openSearch: _openSearch,
+          openSearch: openSearch,
           child: Scaffold(
             body: body,
             bottomNavigationBar: NavigationBar(
