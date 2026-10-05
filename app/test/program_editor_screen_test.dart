@@ -2118,43 +2118,43 @@ void main() {
     },
   );
 
-  testWidgets('bulk Undo keeps a dialectName the editor does not edit '
-      '(issue #1554)', (tester) async {
-    final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'Called'));
-    await repos.programs.create(
+  testWidgets('Undo with a later edit keeps a dialectName the editor does not '
+      'edit (issue #1554)', (tester) async {
+    // The scenario of 'Undo tracks a marked write with a later edit
+    // generation': an edit lands while the marking write is in flight, so Undo
+    // takes the `_mergeUndoProgram` path and writes the merged program back.
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
       _program(
         id: 'p1',
-        title: 'Night',
-        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
       ).copyWith(dialectName: 'Leads/Follows'),
     );
-    await _pumpBuilder(tester, repos, programId: 'p1');
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
 
+    delayed.programs.holdNextWrite();
     await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
-    await tester.pumpAndSettle();
-    expect(
-      (await repos.programs.getById('p1'))!.dialectName,
-      'Leads/Follows',
-      reason: 'the marking auto-commit rebuilds the program',
-    );
-    await tester.tap(find.text('Undo'));
-    await tester.pumpAndSettle();
-
-    final afterUndo = await repos.programs.getById('p1');
-    expect(afterUndo!.slots.single.performedAt, isNull);
-    expect(afterUndo.dialectName, 'Leads/Follows');
-
-    // Undo merges the live program back into the editor (`_existing`), and the
-    // next Save rebuilds from it, so the merge must carry the field too.
-    await tester.enterText(
+    await tester.pump(const Duration(milliseconds: 100));
+    final titleField = tester.widget<TextFormField>(
       find.byKey(const ValueKey('program-title')),
-      'Renamed after undo',
     );
-    await tester.tap(find.byKey(const ValueKey('save-program')));
+    titleField.controller!.text = 'Later edit';
+    titleField.onChanged!('Later edit');
+    await tester.pump(const Duration(milliseconds: 600));
+    await delayed.programs.writeStarted;
+    tester.widget<SnackBarAction>(find.byType(SnackBarAction)).onPressed.call();
+    delayed.programs.releaseWrite();
     await tester.pumpAndSettle();
-    final saved = await repos.programs.getById('p1');
-    expect(saved!.title, 'Renamed after undo');
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.title, 'Later edit');
+    expect(saved.slots.single.performedAt, isNull);
     expect(saved.dialectName, 'Leads/Follows');
   });
 
