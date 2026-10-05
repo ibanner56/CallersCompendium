@@ -660,6 +660,49 @@ void main() {
   });
 
   test(
+    'export refuses past the default cap, which is the restore cap',
+    () async {
+      // A real export is far under 50 MiB, so only an injected codec can reach
+      // the default cap. The runner reports one byte past it for the encode.
+      final source = openTestRepositories();
+      await _seed(source);
+      Future<T> oversized<T>(T Function() work) async {
+        final result = work();
+        if (result is ({String json, int byteLength})) {
+          return (json: result.json, byteLength: kMaxBackupFileBytes + 1) as T;
+        }
+        return result;
+      }
+
+      await expectLater(
+        BackupService(source, codecRunner: oversized).exportToJson(),
+        throwsA(
+          isA<BackupExportTooLargeException>()
+              .having((e) => e.maxBytes, 'maxBytes', kMaxBackupFileBytes)
+              .having((e) => e.sizeBytes, 'sizeBytes', kMaxBackupFileBytes + 1),
+        ),
+      );
+    },
+  );
+
+  test('export at exactly the restore cap is allowed', () async {
+    final source = openTestRepositories();
+    await _seed(source);
+    Future<T> atCap<T>(T Function() work) async {
+      final result = work();
+      if (result is ({String json, int byteLength})) {
+        return (json: result.json, byteLength: kMaxBackupFileBytes) as T;
+      }
+      return result;
+    }
+
+    expect(
+      await BackupService(source, codecRunner: atCap).exportToJson(),
+      isNotEmpty,
+    );
+  });
+
+  test(
     'restoreFromJson with a decoded result does not decode the text',
     () async {
       final source = openTestRepositories();
