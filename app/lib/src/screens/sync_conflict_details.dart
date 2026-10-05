@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/app_theme_labels_l10n.dart';
+import '../data/custom_theme.dart';
 import '../search/facet_labels.dart';
 import '../sync/sync_setting_labels.dart';
 import '../theme/app_spacing.dart';
@@ -58,6 +60,30 @@ class SyncConflictLookups {
   }
 }
 
+/// A program's event date as the calendar day it names. The editor stores
+/// the chosen day as midnight UTC, so the day is read in UTC: converting to
+/// local time would show the day before anywhere west of Greenwich.
+DateTime syncConflictCalendarDate(String stored) {
+  final utc = DateTime.parse(stored).toUtc();
+  return DateTime(utc.year, utc.month, utc.day);
+}
+
+/// A colour as a hex code, with its opacity only when it is not opaque.
+String syncConflictColourText(int argb) {
+  String hex(int v) => v.toRadixString(16).padLeft(2, '0').toUpperCase();
+  final alpha = (argb >> 24) & 0xff;
+  final rgb =
+      '#${hex((argb >> 16) & 0xff)}${hex((argb >> 8) & 0xff)}${hex(argb & 0xff)}';
+  return alpha == 0xff ? rgb : '$rgb${hex(alpha)}';
+}
+
+typedef _FigureLine = ({
+  String section,
+  String text,
+  String data,
+  Figure figure,
+});
+
 /// When a version was last changed, for telling versions apart.
 String syncConflictWhen(BuildContext context, DateTime when) =>
     DateFormat.yMMMd(
@@ -96,20 +122,34 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
       SyncRecordKind.program => {
         'title': l10n.programsTitleLabel,
         'eventDate': l10n.programsEventDateLabel,
+        // The linked venue and the free-text venue are shown together, as
+        // one row: the program display prefers the linked one.
         'venue': l10n.programsVenueLabel,
-        'venueId': l10n.programsVenueLabel,
         'band': l10n.programsBandLabel,
         'caller': l10n.programsCallerLabel,
         'dancerLevel': l10n.programsDancerLevelLabel,
         'status': l10n.programsStatusFieldLabel,
         'notes': l10n.programsNotesLabel,
         'slots': l10n.programsSlotsLabel,
+        'hideAlternates': l10n.programsHideAlternatesTitle,
       },
-      SyncRecordKind.choreographer ||
-      SyncRecordKind.tag ||
-      SyncRecordKind.venue => {
+      SyncRecordKind.choreographer => {
         'name': l10n.syncConflictFieldName,
         'website': l10n.danceEditorWebsiteLabel,
+        'notes': l10n.danceEditorNotesLabel,
+      },
+      SyncRecordKind.tag => {
+        'name': l10n.syncConflictFieldName,
+        'color': l10n.syncConflictFieldColour,
+      },
+      SyncRecordKind.venue => {
+        'name': l10n.syncConflictFieldName,
+        'eventName': l10n.venueEditorEventNameLabel,
+        'sponsor': l10n.venueEditorSponsorLabel,
+        'time': l10n.venueEditorTimeLabel,
+        'genericSchedule': l10n.venueEditorScheduleLabel,
+        'price': l10n.venueEditorPriceLabel,
+        'website': l10n.venueEditorWebsiteLabel,
         'notes': l10n.danceEditorNotesLabel,
       },
       _ => const {},
@@ -128,15 +168,13 @@ List<({String key, String label})> syncConflictDifferingFields(
   if (labels.isEmpty) {
     return [for (final key in differing) (key: key, label: key)];
   }
-  final shown = <({String key, String label})>[];
-  final seenLabels = <String>{};
-  for (final entry in labels.entries) {
-    if (!differing.contains(entry.key)) continue;
-    if (seenLabels.add(entry.value)) {
-      shown.add((key: entry.key, label: entry.value));
-    }
+  if (kind == SyncRecordKind.program && differing.contains('venueId')) {
+    differing.add('venue');
   }
-  return shown;
+  return [
+    for (final entry in labels.entries)
+      if (differing.contains(entry.key)) (key: entry.key, label: entry.value),
+  ];
 }
 
 /// One line summarising how a version differs from this device's, for the
@@ -283,15 +321,169 @@ class SyncConflictComparison extends StatelessWidget {
       if (diff.changed.isNotEmpty) ...[
         _header(context, l10n.syncConflictDifferentHeader),
         for (final pair in diff.changed)
-          _versions(
-            context,
-            l10n,
-            label: pair.local.label,
-            local: _entryText(context, l10n, pair.local),
-            other: _entryText(context, l10n, pair.other),
-          ),
+          ..._changedEntry(context, l10n, pair.local, pair.other),
       ],
       if (diff.same > 0) _note(context, l10n.syncConflictSameCount(diff.same)),
+    ];
+  }
+
+  /// Rows for one collection entry both versions have, but differently. A
+  /// dialect or theme is compared part by part: its name alone would read
+  /// the same on both sides.
+  List<Widget> _changedEntry(
+    BuildContext context,
+    AppLocalizations l10n,
+    SyncCollectionEntry local,
+    SyncCollectionEntry other,
+  ) {
+    final parts = switch (group.recordId) {
+      'custom_dialects' => _dialectParts(l10n, local.value, other.value),
+      'custom_themes' => _themeParts(l10n, local.value, other.value),
+      _ => null,
+    };
+    if (parts == null || parts.isEmpty) {
+      return [
+        _versions(
+          context,
+          l10n,
+          label: local.label,
+          local: _entryText(context, l10n, local),
+          other: _entryText(context, l10n, other),
+        ),
+      ];
+    }
+    return [
+      for (final part in parts)
+        _versions(
+          context,
+          l10n,
+          label: local.label == null
+              ? part.label
+              : l10n.syncConflictFieldValue(local.label!, part.label),
+          local: part.local,
+          other: part.other,
+        ),
+    ];
+  }
+
+  /// The parts of a dialect that differ: each section, showing only the
+  /// terms that differ within it.
+  List<({String label, String local, String other})>? _dialectParts(
+    AppLocalizations l10n,
+    Object? local,
+    Object? other,
+  ) {
+    if (local is! Map || other is! Map) return null;
+    final parts = <({String label, String local, String other})>[];
+    if (local['name'] != other['name']) {
+      parts.add((
+        label: l10n.syncConflictFieldName,
+        local: syncSettingValueText(l10n, local['name']),
+        other: syncSettingValueText(l10n, other['name']),
+      ));
+    }
+    String term(Object? value) => switch (value) {
+      final Map<Object?, Object?> forms => [
+        for (final form in [forms['singular'], forms['plural']])
+          if (form is String && form.isNotEmpty) form,
+      ].join(' / '),
+      final String text => text,
+      _ => canonicalJson(value),
+    };
+    void section(String label, List<String> keys) {
+      final mine = <String, Object?>{};
+      final theirs = <String, Object?>{};
+      for (final key in keys) {
+        if (local[key] case final Map<Object?, Object?> terms) {
+          mine.addAll({for (final e in terms.entries) '${e.key}': e.value});
+        }
+        if (other[key] case final Map<Object?, Object?> terms) {
+          theirs.addAll({for (final e in terms.entries) '${e.key}': e.value});
+        }
+      }
+      final names = {...mine.keys, ...theirs.keys}.toList()..sort();
+      final differing = [
+        for (final name in names)
+          if (canonicalJson(mine[name]) != canonicalJson(theirs[name])) name,
+      ];
+      if (differing.isEmpty) return;
+      String side(Map<String, Object?> terms) {
+        final text = [
+          for (final name in differing)
+            if (terms.containsKey(name)) '$name → ${term(terms[name])}',
+        ].join(', ');
+        return text.isEmpty ? l10n.syncConflictValueNotSet : text;
+      }
+
+      parts.add((label: label, local: side(mine), other: side(theirs)));
+    }
+
+    section(l10n.dialectEditorSectionRoleTerms, ['roles']);
+    section(l10n.dialectEditorSectionMoveSubs, ['moves']);
+    section(l10n.dialectEditorSectionDancerSubs, ['dancers']);
+    section(l10n.dialectEditorSectionMoveWordings, [
+      'moveWordings',
+      'moveWordingBranches',
+    ]);
+    if (canonicalJson(local['discouragedTerms']) !=
+        canonicalJson(other['discouragedTerms'])) {
+      parts.add((
+        label: l10n.dialectEditorSectionDiscouraged,
+        local: syncSettingValueText(l10n, local['discouragedTerms']),
+        other: syncSettingValueText(l10n, other['discouragedTerms']),
+      ));
+    }
+    return parts;
+  }
+
+  /// The parts of a theme that differ: its name, light or dark, and each
+  /// colour that differs, as a hex code.
+  List<({String label, String local, String other})>? _themeParts(
+    AppLocalizations l10n,
+    Object? local,
+    Object? other,
+  ) {
+    if (local is! Map || other is! Map) return null;
+    String brightness(Object? value) => switch (value) {
+      'dark' => l10n.appThemeGroupDark,
+      'light' => l10n.appThemeGroupLight,
+      _ => syncSettingValueText(l10n, value),
+    };
+    String colour(Object? value) => value is int
+        ? syncConflictColourText(value)
+        : l10n.syncConflictValueNotSet;
+    final mine = local['roles'] is Map
+        ? local['roles'] as Map
+        : const <Object?, Object?>{};
+    final theirs = other['roles'] is Map
+        ? other['roles'] as Map
+        : const <Object?, Object?>{};
+    final known = [for (final role in CustomThemeRoles.all) role.key];
+    final keys = [
+      ...known,
+      for (final key in {...mine.keys, ...theirs.keys})
+        if (!known.contains(key)) '$key',
+    ];
+    return [
+      if (local['name'] != other['name'])
+        (
+          label: l10n.syncConflictFieldName,
+          local: syncSettingValueText(l10n, local['name']),
+          other: syncSettingValueText(l10n, other['name']),
+        ),
+      if (local['brightness'] != other['brightness'])
+        (
+          label: l10n.syncConflictThemeBrightness,
+          local: brightness(local['brightness']),
+          other: brightness(other['brightness']),
+        ),
+      for (final key in keys)
+        if (mine[key] != theirs[key])
+          (
+            label: themeEditorRoleLabel(l10n, ColorRole(key, key)),
+            local: colour(mine[key]),
+            other: colour(theirs[key]),
+          ),
     ];
   }
 
@@ -335,25 +527,53 @@ class SyncConflictComparison extends StatelessWidget {
     for (var i = 0; i < count; i++) {
       final left = i < mine.length ? mine[i] : null;
       final right = i < theirs.length ? theirs[i] : null;
-      if (left?.text == right?.text && left?.section == right?.section) {
+      if (left?.data == right?.data && left?.section == right?.section) {
         continue;
+      }
+      var localText = left?.text, otherText = right?.text;
+      if (left != null && right != null && left.text == right.text) {
+        // The same figure in words; what differs is a detail the summary
+        // leaves out: a note, its own walkthrough or wording, its beats.
+        localText = _figureDetails(l10n, left);
+        otherText = _figureDetails(l10n, right);
+        if (localText == otherText) {
+          localText = left.text;
+          otherText = l10n.syncConflictFigureDetailsDiffer(right.text);
+        }
       }
       rows.add(
         _versions(
           context,
           l10n,
           label: left?.section ?? right?.section,
-          local: left?.text ?? l10n.syncConflictValueNotSet,
-          other: right?.text ?? l10n.syncConflictValueNotSet,
+          local: localText ?? l10n.syncConflictValueNotSet,
+          other: otherText ?? l10n.syncConflictValueNotSet,
         ),
       );
     }
     return rows;
   }
 
+  /// A figure in words with the details its summary leaves out.
+  String _figureDetails(AppLocalizations l10n, _FigureLine line) {
+    final figure = line.figure;
+    final beats = figure.params['beats'];
+    return [
+      line.text,
+      if (beats is int) l10n.danceFigureBeats(beats),
+      if (figure.note case final note? when note.trim().isNotEmpty)
+        l10n.danceFigureNote(note),
+      if (figure.walkthroughOverride case final text?
+          when text.trim().isNotEmpty)
+        l10n.syncConflictFigureWalkthrough(text),
+      if (figure.wordingOverride case final text? when text.trim().isNotEmpty)
+        l10n.syncConflictFigureWording(text),
+    ].join(' · ');
+  }
+
   /// The dance's figures as section-labelled lines, or null when they cannot
   /// be read.
-  List<({String section, String text})>? _sectionedLines(
+  List<_FigureLine>? _sectionedLines(
     Map<String, Object?>? body,
     Dialect dialect,
   ) {
@@ -376,7 +596,12 @@ class SyncConflictComparison extends StatelessWidget {
     );
     return [
       for (final s in sections)
-        (section: s.label, text: _renderer.renderSummary(s.figure, dialect)),
+        (
+          section: s.label,
+          text: _renderer.renderSummary(s.figure, dialect),
+          data: canonicalJson(figureToJson(s.figure)),
+          figure: s.figure,
+        ),
     ];
   }
 
@@ -402,52 +627,82 @@ class SyncConflictComparison extends StatelessWidget {
     String label,
     Map<String, Object?>? other,
   ) {
-    List<String> titles(Map<String, Object?>? body) {
+    List<Map<String, Object?>> ordered(Map<String, Object?>? body) {
       final slots = body?['slots'];
       if (slots is! List) return const [];
-      final ordered =
-          [
-            for (final slot in slots)
-              if (slot is Map) Map<String, Object?>.from(slot),
-          ]..sort(
-            (a, b) => ((a['position'] as num?) ?? 0).compareTo(
-              (b['position'] as num?) ?? 0,
-            ),
-          );
       return [
-        for (final slot in ordered)
-          switch (slot['danceId']) {
-            final String id =>
-              lookups.dances[id] ?? l10n.programsDeletedDanceFallback,
-            _ =>
-              (slot['text'] as String?) ?? l10n.programsUntitledDanceFallback,
-          },
-      ];
+        for (final slot in slots)
+          if (slot is Map) Map<String, Object?>.from(slot),
+      ]..sort(
+        (a, b) => ((a['position'] as num?) ?? 0).compareTo(
+          (b['position'] as num?) ?? 0,
+        ),
+      );
     }
 
-    final mine = titles(group.localBody);
-    final theirs = titles(other);
+    // A slot is the dance it holds, or its text: two dances with the same
+    // title are still different dances.
+    String identity(Map<String, Object?> slot) => switch (slot['danceId']) {
+      final String id => 'd:$id',
+      _ => 't:${slot['text'] ?? ''}',
+    };
+    String title(Map<String, Object?> slot) => switch (slot['danceId']) {
+      final String id =>
+        lookups.dances[id] ?? l10n.programsDeletedDanceFallback,
+      _ => (slot['text'] as String?) ?? l10n.programsUntitledDanceFallback,
+    };
+    // Each slot keyed by what it holds and which repeat of it it is, so the
+    // second of two identical slots is compared with the other's second.
+    Map<String, Map<String, Object?>> byOccurrence(
+      List<Map<String, Object?>> slots,
+    ) {
+      final seen = <String, int>{};
+      final keyed = <String, Map<String, Object?>>{};
+      for (final slot in slots) {
+        final id = identity(slot);
+        final n = seen.update(id, (n) => n + 1, ifAbsent: () => 0);
+        keyed['$id#$n'] = slot;
+      }
+      return keyed;
+    }
+
+    final mine = byOccurrence(ordered(group.localBody));
+    final theirs = byOccurrence(ordered(other));
     final onlyMine = [
-      for (final t in mine)
-        if (!theirs.contains(t)) t,
+      for (final e in mine.entries)
+        if (!theirs.containsKey(e.key)) title(e.value),
     ];
     final onlyTheirs = [
-      for (final t in theirs)
-        if (!mine.contains(t)) t,
+      for (final e in theirs.entries)
+        if (!mine.containsKey(e.key)) title(e.value),
     ];
+    final sharedMine = [
+      for (final key in mine.keys)
+        if (theirs.containsKey(key)) key,
+    ];
+    final sharedTheirs = [
+      for (final key in theirs.keys)
+        if (mine.containsKey(key)) key,
+    ];
+    var reordered = false;
+    for (var i = 0; i < sharedMine.length; i++) {
+      if (sharedMine[i] != sharedTheirs[i]) reordered = true;
+    }
+    final detailsDiffer = sharedMine.any(
+      (key) => syncDifferingFields(
+        mine[key],
+        theirs[key],
+        ignore: const {'id', 'position'},
+      ).isNotEmpty,
+    );
     return [
       _header(context, label),
       if (onlyMine.isNotEmpty)
         _list(context, l10n.syncConflictOnlyHereHeader, onlyMine),
       if (onlyTheirs.isNotEmpty)
         _list(context, l10n.syncConflictOnlyThereHeader, onlyTheirs),
-      if (onlyMine.isEmpty && onlyTheirs.isEmpty)
-        _note(
-          context,
-          mine.length == theirs.length
-              ? l10n.syncConflictSlotsReordered
-              : l10n.syncConflictSlotsDetailsDiffer,
-        ),
+      if (reordered) _note(context, l10n.syncConflictSlotsReordered),
+      if (detailsDiffer) _note(context, l10n.syncConflictSlotsDetailsDiffer),
     ];
   }
 
@@ -458,6 +713,16 @@ class SyncConflictComparison extends StatelessWidget {
     String key,
     Map<String, Object?>? body,
   ) {
+    if (key == 'venue' && group.kind == SyncRecordKind.program) {
+      final linked = body?['venueId'];
+      final text = body?['venue'];
+      final parts = [
+        if (linked is String)
+          lookups.venues[linked] ?? l10n.syncConflictUnknownItem,
+        if (text is String && text.trim().isNotEmpty) text,
+      ];
+      return parts.isEmpty ? l10n.syncConflictValueNotSet : parts.join(' · ');
+    }
     final value = body?[key];
     if (value == null || value == '' || (value is List && value.isEmpty)) {
       return l10n.syncConflictValueNotSet;
@@ -516,21 +781,27 @@ class SyncConflictComparison extends StatelessWidget {
           return [
             for (final c in value as List)
               if (c is Map)
-                lookups.sources[c['sourceId']] ?? l10n.syncConflictUnknownItem,
-          ].join(', ');
+                [
+                  lookups.sources[c['sourceId']] ??
+                      l10n.syncConflictUnknownItem,
+                  if (c['page'] case final String page when page.isNotEmpty)
+                    l10n.danceSourcePage(page),
+                  if (c['number'] case final String number
+                      when number.isNotEmpty)
+                    l10n.danceSourceNumber(number),
+                ].join(', '),
+          ].join('; ');
         case 'links':
           return [
             for (final link in value as List)
-              if (link is Map)
-                (link['label'] as String?) ??
-                    (link['url'] as String?) ??
-                    lookups.dances[link['targetDanceId']] ??
-                    l10n.syncConflictUnknownItem,
-          ].join(', ');
+              if (link is Map) _linkText(l10n, link),
+          ].join('; ');
         case 'eventDate':
           return DateFormat.yMMMd(
             Localizations.localeOf(context).toString(),
-          ).format(DateTime.parse(value as String).toLocal());
+          ).format(syncConflictCalendarDate(value as String));
+        case 'color':
+          return syncConflictColourText(value as int);
       }
     } on Object {
       // diagnostics: silent — a value this view cannot name falls through to
@@ -542,6 +813,27 @@ class SyncConflictComparison extends StatelessWidget {
       return _renderer.renderFreeText(value, dialect);
     }
     return syncSettingValueText(l10n, value);
+  }
+
+  /// A link in full: what kind it is, its label, where it goes, and whether
+  /// it joins the related-dance group; everything the chosen version saves.
+  String _linkText(AppLocalizations l10n, Map<Object?, Object?> link) {
+    final kind = switch (link['kind']) {
+      'video' => l10n.danceLinkKindVideo,
+      'source' => l10n.danceLinkKindSource,
+      _ => l10n.danceLinkKindLink,
+    };
+    final label = link['label'];
+    final destination = switch (link['targetDanceId']) {
+      final String id => lookups.dances[id] ?? l10n.syncConflictUnknownItem,
+      _ => (link['url'] as String?) ?? l10n.syncConflictUnknownItem,
+    };
+    return [
+      kind,
+      if (label is String && label.trim().isNotEmpty) label,
+      destination,
+      if (link['transitive'] == true) l10n.syncConflictLinkInGroup,
+    ].join(' · ');
   }
 
   Widget _versions(

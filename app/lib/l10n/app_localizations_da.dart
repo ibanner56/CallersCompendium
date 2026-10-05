@@ -684,6 +684,30 @@ class AppLocalizationsDa extends AppLocalizations {
   String get syncConflictFieldName => 'Navn';
 
   @override
+  String get syncConflictFieldColour => 'Farve';
+
+  @override
+  String get syncConflictThemeBrightness => 'Lys eller mørk';
+
+  @override
+  String syncConflictFigureWalkthrough(String text) {
+    return 'gennemgang: $text';
+  }
+
+  @override
+  String syncConflictFigureWording(String text) {
+    return 'formulering: $text';
+  }
+
+  @override
+  String syncConflictFigureDetailsDiffer(String figure) {
+    return '$figure (andre detaljer er forskellige)';
+  }
+
+  @override
+  String get syncConflictLinkInGroup => 'i gruppen af beslægtede danse';
+
+  @override
   String get syncConflictValueNotSet => 'Ikke angivet';
 
   @override
