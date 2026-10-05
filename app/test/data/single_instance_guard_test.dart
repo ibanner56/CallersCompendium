@@ -449,4 +449,36 @@ void main() {
       expect(await portFile().exists(), isTrue);
     });
   });
+
+  // Release (AOT) builds tree-shake fields that production code never reads.
+  // `_held` and the handle's `_raf` exist only to keep the locked
+  // RandomAccessFile reachable; their sole reader is the test-only
+  // `releaseHeld()`. Without an entry-point pragma AOT drops both, the file is
+  // finalized (fd closed) about half a second after start, the OS releases the
+  // advisory lock, and a second launch runs on the same database. `flutter
+  // test` runs JIT, which keeps the fields, so no behavioural test here can see
+  // it: this pins the annotation on each declaration instead.
+  group('lock handle survives AOT tree shaking', () {
+    final source = File(
+      p.join('lib', 'src', 'data', 'single_instance_guard.dart'),
+    ).readAsLinesSync();
+
+    void expectEntryPoint(String declaration) {
+      final line = source.indexWhere((l) => l.trim() == declaration);
+      expect(line, greaterThan(0), reason: 'declaration not found');
+      expect(
+        source[line - 1].trim(),
+        "@pragma('vm:entry-point')",
+        reason: '$declaration must be kept alive in release builds',
+      );
+    }
+
+    test('DesktopSingleInstance._held', () {
+      expectEntryPoint('static InstanceLockHandle? _held;');
+    });
+
+    test('the lock handle\'s RandomAccessFile', () {
+      expectEntryPoint('final RandomAccessFile _raf;');
+    });
+  });
 }
