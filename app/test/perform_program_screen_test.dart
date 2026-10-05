@@ -436,7 +436,10 @@ void main() {
           // 44px target: it lives outside both FittedBoxes, so the readout's
           // scale-down cannot shrink it.
           expect(
-            tester.getSize(find.byKey(const ValueKey('perform-dance-start'))),
+            // getRect (not getSize) so a FittedBox paint transform would show.
+            tester
+                .getRect(find.byKey(const ValueKey('perform-dance-start')))
+                .size,
             const Size(44, 44),
           );
 
@@ -2474,7 +2477,7 @@ void main() {
         expect(actual, findsOneWidget);
         expect(complete, findsOneWidget);
         expect(tester.takeException(), isNull);
-        expect(tester.getSize(danceStart), const Size(44, 44));
+        expect(tester.getRect(danceStart).size, const Size(44, 44));
         // The readout is squeezed into what is left beside the button.
         final bar = tester.getRect(find.byType(BottomAppBar));
         final clock = tester.getRect(
