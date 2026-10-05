@@ -11,9 +11,15 @@ drives an export.
 Rule: in any ``app/lib/**/*.dart`` file whose code (comments and string literals
 masked) mentions ``Printing.layoutPdf``, ``SharePlus.instance.share(``,
 ``saveBackupToFile`` or ``pickBackupFile``, an ``on Exception catch`` /
-``on Exception {`` clause is rejected unless its line carries
+``on Exception {`` clause is rejected unless a comment inside the clause carries
 
     // export-guard: exempt — <reason>
+
+The clause runs from ``on Exception`` through the end of the line holding its
+closing brace, so the marker may sit on the ``on Exception`` line (after the
+``{``), or anywhere in the body, or trailing the closing brace. A comment on the
+line above ``on`` is outside the clause and does not count, and a marker inside
+a nested ``on Exception`` clause belongs to that nested clause only.
 
 The detectors match the *token*, not only a call: the screens take these as
 injectable seams (``widget.backupSaver ?? saveBackupToFile``,
@@ -159,7 +165,7 @@ def main() -> int:
         print(
             f"::error::{len(offenders)} `on Exception` clause(s) in export/share/"
             "backup files. Catch `Object` so an Error still reaches the user, or "
-            "mark the line `// export-guard: exempt — <reason>`."
+            "put `// export-guard: exempt — <reason>` inside the clause."
         )
         return 1
     print(
