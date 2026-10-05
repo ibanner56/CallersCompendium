@@ -131,14 +131,19 @@ def strip_comments(src: str) -> str:
     return "".join(out)
 
 
+_REF_RE = re.compile(r"\.\s*([A-Za-z_]\w*)|([A-Za-z_]\w*)\s*\(")
+
+
 def referenced(keys: list[str], code: str) -> set[str]:
-    """The subset of [keys] read in comment-stripped [code]: ``.key`` or ``key(``."""
-    found: set[str] = set()
-    for key in keys:
-        k = re.escape(key)
-        if re.search(rf"\.\s*{k}(?![\w$])|(?<![\w$.]){k}\s*\(", code):
-            found.add(key)
-    return found
+    """The subset of [keys] read in comment-stripped [code]: ``.key`` or ``key(``.
+
+    One pass over the identifiers in [code] rather than a regex per key (an ARB
+    has ~2,000 keys; the per-key form took over a minute on the real tree). A
+    ``key(`` match preceded by ``.`` is the ``.key`` form; a bare ``key(`` is a
+    call of a local function and also counts, per the documented rule.
+    """
+    wanted = set(keys)
+    return {m.group(1) or m.group(2) for m in _REF_RE.finditer(code)} & wanted
 
 
 def dart_files(root: Path) -> list[Path]:
