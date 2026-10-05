@@ -333,6 +333,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'La dernière synchronisation a échoué.';
 
   @override
+  String get settingsSyncStatusSettingsUnreadable =>
+      'Les réglages de la synchronisation des appareils n\'ont pas pu être lus ; elle peut donc être désactivée même si vous l\'avez activée. Redémarrez l\'application pour réessayer.';
+
+  @override
   String get settingsSyncFailureUnreachable =>
       'Impossible de joindre le serveur de synchronisation.';
 

@@ -75,6 +75,17 @@ SyncCoordinator? _syncCoordinator;
 SyncPairingProbeFactory? _pairingProbeFactory;
 SyncDeviceAdminFactory? _deviceAdminFactory;
 
+/// A [SettingsRepository] whose reads of the Device Sync keys throw.
+class _UnreadableSyncSettings extends SettingsRepository {
+  _UnreadableSyncSettings(super.db);
+
+  @override
+  Future<Object?> get(String key) async {
+    if (key.startsWith('sync_')) throw StateError('unreadable: $key');
+    return super.get(key);
+  }
+}
+
 Future<
   ({
     CompendiumRepositories repos,
@@ -101,6 +112,10 @@ _pumpSettings(
   /// test can make the local half of a wipe fail after the server half has
   /// already succeeded.
   SyncLocalRepository Function(CompendiumRepositories)? syncLocalOverride,
+
+  /// Makes the Device Sync controller's settings reads throw, as at a startup
+  /// where the settings table could not be read.
+  bool syncSettingsUnreadable = false,
 }) async {
   final repos = openTestRepositories();
   await repos.ensureMigrated();
@@ -143,7 +158,9 @@ _pumpSettings(
   final updateController = UpdateController(repos.settings);
   await updateController.load();
   final syncController = SyncController(
-    settings: repos.settings,
+    settings: syncSettingsUnreadable
+        ? _UnreadableSyncSettings(repos.db)
+        : repos.settings,
     syncLocal: syncLocalOverride?.call(repos) ?? repos.syncLocal,
     coordinator: () => _syncCoordinator,
     reconfigure: ({bool startPass = true}) async {},
@@ -151,7 +168,12 @@ _pumpSettings(
     deviceAdminFactory: _deviceAdminFactory,
     classifier: _syncNetwork,
   );
-  await syncController.load();
+  try {
+    await syncController.load();
+  } on StateError {
+    // The injected unreadable-settings case; the controller records it.
+    if (!syncSettingsUnreadable) rethrow;
+  }
 
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -1391,6 +1413,37 @@ void main() {
         expect(find.byKey(const ValueKey('sync-status')), findsNothing);
         expect(find.byKey(const ValueKey('sync-now')), findsNothing);
         expect(await harness.repos.settings.get('sync_enabled'), isNull);
+      });
+
+      testWidgets('says so when the saved sync settings could not be read, '
+          'even though sync is off', (tester) async {
+        await _pumpSettings(tester, syncSettingsUnreadable: true);
+        await openExperimental(tester);
+
+        expect(
+          find.byKey(const ValueKey('sync-settings-unreadable')),
+          findsOneWidget,
+        );
+        expect(
+          tester
+              .widget<SwitchListTile>(
+                find.byKey(const ValueKey('sync-enabled-toggle')),
+              )
+              .value,
+          isFalse,
+        );
+      });
+
+      testWidgets('shows no unreadable-settings notice when the read works', (
+        tester,
+      ) async {
+        await _pumpSettings(tester);
+        await openExperimental(tester);
+
+        expect(
+          find.byKey(const ValueKey('sync-settings-unreadable')),
+          findsNothing,
+        );
       });
 
       testWidgets('turning it on persists consent and shows WiFi-only on', (

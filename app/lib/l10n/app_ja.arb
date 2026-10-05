@@ -344,6 +344,10 @@
   "@settingsSyncStatusFailed": {
     "x-sourceSha256": "53fa99d78ec8627b66d1f608b171626f6d73f1d7d70a1c3eab42afa83106af14"
   },
+  "settingsSyncStatusSettingsUnreadable": "デバイス同期の設定を読み込めなかったため、オンにしていてもデバイス同期がオフになっている可能性があります。アプリを再起動してもう一度お試しください。",
+  "@settingsSyncStatusSettingsUnreadable": {
+    "x-sourceSha256": "3b1393fc455761f2a8840555084c02b977d7fc51272f422618e1fff787a01577"
+  },
   "settingsSyncFailureUnreachable": "同期サーバーに接続できませんでした。",
   "@settingsSyncFailureUnreachable": {
     "x-sourceSha256": "1fec844573d970b89ddae666fddb4c01cf8065fb587bcb5fa4de0e8f4fcce1c7"

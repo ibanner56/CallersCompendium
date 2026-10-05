@@ -108,4 +108,30 @@ void main() {
     expect(controller.enabled, isFalse, reason: 'must not be a hybrid');
     expect(controller.wifiOnly, isTrue, reason: 'must not be a hybrid');
   });
+  test('SyncController raises settingsUnreadable when load fails, leaves sync '
+      'off, and clears it on a later good load', () async {
+    final (repos, settings) = await _open();
+    final controller = SyncController(
+      settings: settings,
+      syncLocal: repos.syncLocal,
+      coordinator: () => null,
+      reconfigure: ({bool startPass = true}) async {},
+    );
+    addTearDown(controller.dispose);
+    await settings.set(kSyncEnabledKey, true);
+    var notified = 0;
+    controller.addListener(() => notified++);
+
+    settings.failingKey = kSyncEnabledKey;
+    await expectLater(controller.load(), throwsStateError);
+
+    expect(controller.settingsUnreadable, isTrue);
+    expect(controller.enabled, isFalse, reason: 'sync stays off');
+    expect(notified, 1, reason: 'the status surface is told');
+
+    settings.failingKey = null;
+    await controller.load();
+    expect(controller.settingsUnreadable, isFalse);
+    expect(controller.enabled, isTrue);
+  });
 }

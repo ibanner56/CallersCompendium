@@ -363,7 +363,7 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     return CollapsibleSection(
       sectionKey: const ValueKey('sync-section'),
       title: l10n.settingsSyncHeader,
-      expanded: controller.enabled,
+      expanded: controller.enabled || controller.settingsUnreadable,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -376,6 +376,18 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
             value: controller.enabled,
             onChanged: controller.setEnabled,
           ),
+          // Shown whether or not sync is on: a failed settings read leaves it
+          // off for the launch although the stored setting may say on, and the
+          // status block below only exists while it is on.
+          if (controller.settingsUnreadable)
+            ListTile(
+              key: const ValueKey('sync-settings-unreadable'),
+              leading: Icon(
+                Icons.error_outline,
+                color: theme.colorScheme.error,
+              ),
+              title: Text(l10n.settingsSyncStatusSettingsUnreadable),
+            ),
           if (controller.enabled) ...[
             SwitchListTile(
               key: _wifiTileKey,

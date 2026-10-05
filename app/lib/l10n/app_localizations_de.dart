@@ -328,6 +328,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die letzte Synchronisierung ist fehlgeschlagen.';
 
   @override
+  String get settingsSyncStatusSettingsUnreadable =>
+      'Die Einstellungen der Gerätesynchronisierung konnten nicht gelesen werden, daher kann die Gerätesynchronisierung ausgeschaltet sein, obwohl du sie eingeschaltet hast. Starte die App neu, um es erneut zu versuchen.';
+
+  @override
   String get settingsSyncFailureUnreachable =>
       'Der Synchronisierungsserver war nicht erreichbar.';
 
