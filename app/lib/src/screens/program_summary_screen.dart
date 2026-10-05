@@ -30,6 +30,7 @@ import '../widgets/program_export_menu.dart';
 import '../widgets/program_status_chip.dart';
 import 'dance_detail_screen.dart';
 import 'dance_reimport_flow.dart';
+import '../widgets/command_palette.dart';
 import 'perform_program_screen.dart';
 import 'program_editor_screen.dart';
 
@@ -584,6 +585,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
+        // Ctrl-K is suppressed while this route is on top ([performRouteName]).
+        settings: const RouteSettings(name: performRouteName),
         builder: (_) => PerformProgramScreen(
           program: program,
           data: data,

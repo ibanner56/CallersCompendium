@@ -19,6 +19,7 @@ import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_scope.dart';
 import 'package:compendium_app/src/update/update_service.dart';
 import 'package:compendium_app/src/widgets/brand_mark.dart';
+import 'package:compendium_app/src/widgets/command_palette.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
@@ -50,8 +51,20 @@ Future<void> _pump(
     service: UpdateService(fetcher: (_, {client}) async => null),
   );
   addTearDown(updateController.dispose);
+  final shellKey = GlobalKey<AppShellState>();
   await tester.pumpWidget(
     MaterialApp(
+      // Mirrors the root MaterialApp in main.dart, which owns Ctrl/Cmd-K.
+      shortcuts: {...WidgetsApp.defaultShortcuts, ...searchShortcuts},
+      actions: {
+        ...WidgetsApp.defaultActions,
+        OpenSearchIntent: CallbackAction<OpenSearchIntent>(
+          onInvoke: (_) {
+            shellKey.currentState?.openSearch();
+            return null;
+          },
+        ),
+      },
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
@@ -73,7 +86,7 @@ Future<void> _pump(
           ),
         ),
       ),
-      home: AppShell(reimportPicker: reimportPicker),
+      home: AppShell(key: shellKey, reimportPicker: reimportPicker),
     ),
   );
   await tester.pumpAndSettle();

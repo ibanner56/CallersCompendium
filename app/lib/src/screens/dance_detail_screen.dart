@@ -26,6 +26,7 @@ import '../utils/confirm_delete.dart';
 import '../utils/launch_external_url.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/add_to_program_sheet.dart';
+import '../widgets/command_palette.dart';
 import '../widgets/dance_export_actions.dart';
 import '../widgets/dance_export_menu.dart';
 import '../widgets/dialect_quick_switch.dart';
@@ -431,6 +432,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   Future<void> _perform(DanceDetailData detail) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
+        // Ctrl-K is suppressed while this route is open ([performRouteName]).
+        settings: const RouteSettings(name: performRouteName),
         builder: (_) => PerformDanceScreen(
           dance: detail.dance,
           renderer: _renderer,

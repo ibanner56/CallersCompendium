@@ -6664,6 +6664,10 @@
   "@exportJsonShare": {
     "description": "JSON export delivery-choice button that invokes the existing OS share flow."
   },
+  "exportJsonSaveAs": "Save as…",
+  "@exportJsonSaveAs": {
+    "description": "JSON export delivery-choice button shown instead of 'Share' on Linux, where the OS share sheet cannot carry files: it saves the file through the system Save As dialog."
+  },
   "exportJsonCancel": "Cancel",
   "@exportJsonCancel": {
     "description": "JSON export delivery-choice button that produces no output."
