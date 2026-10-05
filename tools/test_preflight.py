@@ -9,6 +9,7 @@ import importlib.machinery
 import importlib.util
 import io
 import re
+import subprocess
 import sys
 import tempfile
 import threading
@@ -478,12 +479,19 @@ def test_core_coverage_driver_forwards_jobs_to_dart_test() -> None:
         commands.append(list(command))
         return _Done()
 
+    # driver.subprocess is the process-wide module: restore it, or every later
+    # test that really runs a subprocess would get this fake instead.
+    real_run = driver.subprocess.run
     driver.subprocess.run = fake_run
-    with tempfile.TemporaryDirectory() as tmp:
-        core = Path(tmp)
-        (core / "test").mkdir()
-        (core / "test" / "a_test.dart").write_text("", encoding="utf-8")
-        assert driver.run(core, jobs=3) == 0
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            core = Path(tmp)
+            (core / "test").mkdir()
+            (core / "test" / "a_test.dart").write_text("", encoding="utf-8")
+            assert driver.run(core, jobs=3) == 0
+    finally:
+        driver.subprocess.run = real_run
+    assert subprocess.run is real_run
     (command,) = commands
     jobs_at = command.index("-j")
     assert command[jobs_at + 1] == "3", command
