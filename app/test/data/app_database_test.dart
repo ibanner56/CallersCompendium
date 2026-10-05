@@ -99,23 +99,39 @@ void main() {
     }
   });
 
-  test(
-    'a reset reopens the same path and leaves the legacy file alone',
-    () async {
-      final legacy = File(p.join(documents, name))
-        ..createSync(recursive: true)
-        ..writeAsBytesSync(const [1]);
-      final selected = await resolveDatabaseFile(operatingSystem: 'linux');
-      selected.createSync(recursive: true);
-      selected.writeAsBytesSync(const [2]);
+  test('a reset leaves nothing at the primary path, reopens the same path and '
+      'leaves the legacy file alone', () async {
+    final legacy = File(p.join(documents, name))
+      ..createSync(recursive: true)
+      ..writeAsBytesSync(const [1]);
+    final selected = await resolveDatabaseFile(operatingSystem: 'linux');
+    selected.createSync(recursive: true);
+    selected.writeAsBytesSync(const [2]);
 
-      final result = await performReset(dbFile: selected, keepPath: true);
+    final result = await performReset(dbFile: selected);
 
-      expect(result, isA<ResetComplete>());
-      final reopened = await resolveDatabaseFile(operatingSystem: 'linux');
-      expect(reopened.path, selected.path);
-      expect(reopened.lengthSync(), 0);
-      expect(legacy.readAsBytesSync(), const [1]);
-    },
-  );
+    expect(result, isA<ResetComplete>());
+    final reopened = await resolveDatabaseFile(operatingSystem: 'linux');
+    expect(reopened.path, selected.path);
+    // No placeholder: a leftover empty primary file would trip the
+    // relocation's bothExist guard if a legacy database later reappears.
+    expect(reopened.existsSync(), isFalse);
+    expect(legacy.readAsBytesSync(), const [1]);
+  });
+
+  test('after a reset a reappearing legacy database relocates instead of '
+      'tripping bothExist', () async {
+    final selected = await resolveDatabaseFile(operatingSystem: 'linux');
+    selected.createSync(recursive: true);
+    expect(await performReset(dbFile: selected), isA<ResetComplete>());
+    final legacy = File(p.join(documents, name))
+      ..createSync(recursive: true)
+      ..writeAsBytesSync(const [1]);
+
+    expect(
+      await relocateLegacyDatabase(target: selected, legacy: [legacy]),
+      isTrue,
+    );
+    expect(selected.readAsBytesSync(), const [1]);
+  });
 }

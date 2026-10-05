@@ -887,14 +887,9 @@ final class ResetFailed extends ResetResult {
 ///
 /// [dbDeleter] is injectable so tests can inject a failing deleter without
 /// touching the real filesystem; the production default deletes via [File].
-///
-/// With [keepPath], an empty file is left at [dbFile] after the delete. An
-/// empty file is a brand-new database to SQLite, so the reopen lands on exactly
-/// this path. Best-effort: the reset has already succeeded.
 Future<ResetResult> performReset({
   required File dbFile,
   Future<void> Function(File file)? dbDeleter,
-  bool keepPath = false,
 }) async {
   final deleter = dbDeleter ?? (file) => file.delete();
   try {
@@ -915,14 +910,6 @@ Future<ResetResult> performReset({
         // diagnostics: silent — best-effort: a stale sidecar is harmless once
         // the main file is gone.
       }
-    }
-  }
-  if (keepPath) {
-    try {
-      await dbFile.create(recursive: true);
-    } on FileSystemException {
-      // diagnostics: silent — best-effort: without the placeholder drift
-      // creates the file on the reopen.
     }
   }
   return const ResetComplete();

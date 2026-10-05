@@ -622,6 +622,12 @@ abstract class AppLocalizations {
   /// **'Last sync failed.'**
   String get settingsSyncStatusFailed;
 
+  /// Shown in the Device Sync section when the app failed to read its stored Device Sync settings. At startup, Device Sync stays off for that launch although the saved setting may say on. After restoring a backup, the app keeps the Device Sync state it had before the restore (which may be on), so what is shown may not match the restored settings. In both cases the user must be told rather than left to assume the screen is current. Not a sync failure: nothing was sent or lost.
+  ///
+  /// In en, this message translates to:
+  /// **'Device Sync\'s settings couldn\'t be read, so the settings shown here may be out of date, and Device Sync may be off even if you turned it on. Restart the app to try again.'**
+  String get settingsSyncStatusSettingsUnreadable;
+
   /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the transport could not connect at all: DNS failure, refused or dropped connection, or a failed secure (TLS) handshake.
   ///
   /// In en, this message translates to:
@@ -7863,10 +7869,10 @@ abstract class AppLocalizations {
   /// **'Pause timers'**
   String get performPauseTimers;
 
-  /// Screen-reader label for the perform-mode timing line: elapsed program and slot times, optional split timing, walkthrough-transition and over-plan cues, and paused state.
+  /// Screen-reader label for the perform-mode timing line: elapsed program and slot times, optional split timing, manual walkthrough-end mark (with how far it ran from plan), walkthrough-transition and over-plan cues, and paused state.
   ///
   /// In en, this message translates to:
-  /// **'Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}: {walkthrough} walkthrough and {dance} dance} other{}}{walkthroughComplete, select, yes{, walkthrough complete} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}'**
+  /// **'Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}: {walkthrough} walkthrough and {dance} dance} other{}}{manual, select, yes{, walkthrough ended at {actual}{direction, select, over{, {delta} over plan} under{, {delta} under plan} other{, on plan}}} other{}}{walkthroughComplete, select, yes{, walkthrough complete} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}'**
   String performTimingSemantic(
     String programTime,
     String slotTime,
@@ -7877,6 +7883,10 @@ abstract class AppLocalizations {
     String walkthroughComplete,
     String over,
     String paused,
+    String manual,
+    String actual,
+    String direction,
+    String delta,
   );
 
   /// Screen-reader label for the individual Perform elapsed-timer line.
@@ -7890,6 +7900,28 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'planned {planned} min ({walkthrough}:{dance})'**
   String performPlannedSplit(int planned, int walkthrough, int dance);
+
+  /// Tooltip and screen-reader label of the icon-only dance-start toggle in program Perform while the walkthrough has not been marked as ended.
+  ///
+  /// In en, this message translates to:
+  /// **'Walkthrough done — start the dance'**
+  String get performDanceStartUnused;
+
+  /// Tooltip and screen-reader label of the icon-only dance-start toggle once the caller has marked the walkthrough as ended; tapping again clears the mark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance started — tap to undo'**
+  String get performDanceStartUsed;
+
+  /// Visible readout shown after a manual walkthrough-end mark: the slot time at which the walkthrough ended, and in parentheses how far that ran over or under the planned walkthrough minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'walkthrough {actual}{direction, select, over{ (+{delta})} under{ (−{delta})} other{ (on plan)}}'**
+  String performWalkthroughActual(
+    String actual,
+    String direction,
+    String delta,
+  );
 
   /// Visible suffix, with a leading space, shown after the split planned-duration label once a positive walkthrough duration has elapsed.
   ///

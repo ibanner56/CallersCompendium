@@ -355,10 +355,17 @@ class SyncController extends ChangeNotifier {
   bool _resumeInFlight = false;
   StreamSubscription<SyncReplacementRequiredEvent>? _replacementSubscription;
   bool _disposed = false;
+  bool _settingsUnreadable = false;
 
   /// Bumped when a manual attempt on a metered connection is routed to the
   /// *Sync only on WiFi* setting; the settings section listens and surfaces it.
   final ValueNotifier<int> wifiSettingRequests = ValueNotifier<int>(0);
+
+  /// Whether the latest [load] could not read the stored Device Sync settings.
+  /// While true the in-memory state is the defaults (or, after a backup
+  /// restore, the pre-restore state), which can be *off* although the stored
+  /// `sync_enabled` is on; the status surface says so.
+  bool get settingsUnreadable => _settingsUnreadable;
 
   bool get enabled => _enabled;
   bool get paired => _syncId != null;
@@ -535,13 +542,34 @@ class SyncController extends ChangeNotifier {
   ///
   /// Transactional: every read finishes before any field changes, so a failing
   /// read leaves the previous state intact instead of a mix of old and new.
+  ///
+  /// A failing read is rethrown (the caller logs it) after raising
+  /// [settingsUnreadable], which the status surface shows: otherwise a stored
+  /// `sync_enabled = true` would leave Device Sync silently off for the launch.
+  /// A later successful load clears it.
   Future<void> load() async {
-    final enabled = await _settings.get(kSyncEnabledKey);
-    final wifi = await _settings.get(kSyncWifiOnlyKey);
-    final excludeImports = await _settings.get(kSyncExcludeImportsKey);
-    final id = await _settings.get(kSyncIdKey);
-    final endpoint = await _settings.get(kSyncEndpointKey);
-    final last = await _settings.get(kSyncLastSuccessAtKey);
+    final Object? enabled;
+    final Object? wifi;
+    final Object? excludeImports;
+    final Object? id;
+    final Object? endpoint;
+    final Object? last;
+    try {
+      enabled = await _settings.get(kSyncEnabledKey);
+      wifi = await _settings.get(kSyncWifiOnlyKey);
+      excludeImports = await _settings.get(kSyncExcludeImportsKey);
+      id = await _settings.get(kSyncIdKey);
+      endpoint = await _settings.get(kSyncEndpointKey);
+      last = await _settings.get(kSyncLastSuccessAtKey);
+    } catch (_) {
+      // diagnostics: silent — rethrown below; the caller logs the failure.
+      if (!_disposed && !_settingsUnreadable) {
+        _settingsUnreadable = true;
+        _notify();
+      }
+      rethrow;
+    }
+    _settingsUnreadable = false;
     _enabled = enabled == true;
     _wifiOnly = wifi is bool ? wifi : true;
     _excludeImports = excludeImports == true;

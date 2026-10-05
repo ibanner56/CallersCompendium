@@ -1,0 +1,9 @@
+{
+  "id": "sync-load-failure-status",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "If the app cannot read its saved Device Sync settings at startup, Settings now says so instead of leaving Device Sync silently off."
+    ]
+  }
+}

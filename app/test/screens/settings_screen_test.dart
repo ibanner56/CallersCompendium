@@ -75,9 +75,27 @@ SyncCoordinator? _syncCoordinator;
 SyncPairingProbeFactory? _pairingProbeFactory;
 SyncDeviceAdminFactory? _deviceAdminFactory;
 
+/// A [SettingsRepository] whose reads of the Device Sync keys throw while
+/// [failing] is set, so a test can make `SyncController.load()` fail at startup
+/// or later (as after a backup restore).
+class _ControllableSyncSettings extends SettingsRepository {
+  _ControllableSyncSettings(super.db);
+
+  bool failing = false;
+
+  @override
+  Future<Object?> get(String key) async {
+    if (failing && key.startsWith('sync_')) {
+      throw StateError('unreadable: $key');
+    }
+    return super.get(key);
+  }
+}
+
 Future<
   ({
     CompendiumRepositories repos,
+    _ControllableSyncSettings syncSettings,
     ValueNotifier<Dialect> notifier,
     DialectLibraryController dialectLibrary,
     ValueNotifier<AppThemeSelection> themeNotifier,
@@ -101,6 +119,10 @@ _pumpSettings(
   /// test can make the local half of a wipe fail after the server half has
   /// already succeeded.
   SyncLocalRepository Function(CompendiumRepositories)? syncLocalOverride,
+
+  /// Makes the Device Sync controller's settings reads throw, as at a startup
+  /// where the settings table could not be read.
+  bool syncSettingsUnreadable = false,
 }) async {
   final repos = openTestRepositories();
   await repos.ensureMigrated();
@@ -142,8 +164,10 @@ _pumpSettings(
   final canonicalDiscouragedTermsNotifier = ValueNotifier<bool>(true);
   final updateController = UpdateController(repos.settings);
   await updateController.load();
+  final syncSettings = _ControllableSyncSettings(repos.db)
+    ..failing = syncSettingsUnreadable;
   final syncController = SyncController(
-    settings: repos.settings,
+    settings: syncSettings,
     syncLocal: syncLocalOverride?.call(repos) ?? repos.syncLocal,
     coordinator: () => _syncCoordinator,
     reconfigure: ({bool startPass = true}) async {},
@@ -151,7 +175,12 @@ _pumpSettings(
     deviceAdminFactory: _deviceAdminFactory,
     classifier: _syncNetwork,
   );
-  await syncController.load();
+  try {
+    await syncController.load();
+  } on StateError {
+    // The injected unreadable-settings case; the controller records it.
+    if (!syncSettingsUnreadable) rethrow;
+  }
 
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -221,6 +250,7 @@ _pumpSettings(
   await tester.pumpAndSettle();
   return (
     repos: repos,
+    syncSettings: syncSettings,
     notifier: notifier,
     dialectLibrary: dialectLibrary,
     themeNotifier: themeNotifier,
@@ -1391,6 +1421,67 @@ void main() {
         expect(find.byKey(const ValueKey('sync-status')), findsNothing);
         expect(find.byKey(const ValueKey('sync-now')), findsNothing);
         expect(await harness.repos.settings.get('sync_enabled'), isNull);
+      });
+
+      testWidgets('says so when the saved sync settings could not be read, '
+          'even though sync is off', (tester) async {
+        await _pumpSettings(tester, syncSettingsUnreadable: true);
+        await openExperimental(tester);
+
+        expect(
+          find.byKey(const ValueKey('sync-settings-unreadable')),
+          findsOneWidget,
+        );
+        expect(
+          tester
+              .widget<SwitchListTile>(
+                find.byKey(const ValueKey('sync-enabled-toggle')),
+              )
+              .value,
+          isFalse,
+        );
+      });
+
+      testWidgets(
+        'a load that fails later (a backup restore) expands a collapsed '
+        'section to show the notice',
+        (tester) async {
+          final harness = await _pumpSettings(tester);
+          // Navigate only: the section must still be collapsed (sync is off).
+          await tester.tap(
+            find.byKey(const ValueKey('settings-nav-experimental')),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('sync-enabled-toggle')),
+            findsNothing,
+            reason: 'sync is off, so the section starts collapsed',
+          );
+
+          harness.syncSettings.failing = true;
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await expectLater(controller.load(), throwsStateError);
+          await tester.pumpAndSettle();
+
+          expect(
+            find.byKey(const ValueKey('sync-settings-unreadable')),
+            findsOneWidget,
+          );
+        },
+      );
+
+      testWidgets('shows no unreadable-settings notice when the read works', (
+        tester,
+      ) async {
+        await _pumpSettings(tester);
+        await openExperimental(tester);
+
+        expect(
+          find.byKey(const ValueKey('sync-settings-unreadable')),
+          findsNothing,
+        );
       });
 
       testWidgets('turning it on persists consent and shows WiFi-only on', (

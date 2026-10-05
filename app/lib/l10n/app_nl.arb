@@ -344,6 +344,10 @@
   "@settingsSyncStatusFailed": {
     "x-sourceSha256": "53fa99d78ec8627b66d1f608b171626f6d73f1d7d70a1c3eab42afa83106af14"
   },
+  "settingsSyncStatusSettingsUnreadable": "De instellingen voor apparaatsynchronisatie konden niet worden gelezen, dus de hier getoonde instellingen kunnen verouderd zijn, en apparaatsynchronisatie kan uit staan, ook als je het had aangezet. Start de app opnieuw op om het nog eens te proberen.",
+  "@settingsSyncStatusSettingsUnreadable": {
+    "x-sourceSha256": "ca37e41b6ed2d11c6b10cc81f386b054608b46b292f35d4b47ef8a395e84576b"
+  },
   "settingsSyncFailureUnreachable": "Kan de synchronisatieserver niet bereiken.",
   "@settingsSyncFailureUnreachable": {
     "x-sourceSha256": "1fec844573d970b89ddae666fddb4c01cf8065fb587bcb5fa4de0e8f4fcce1c7"
@@ -5152,9 +5156,9 @@
   "@performPauseTimers": {
     "x-sourceSha256": "18b85c0574b83bcd592f1959021cfd910c460a5bfccd2c80a7280d81fb4fe196"
   },
-  "performTimingSemantic": "Programmatijd {programTime}, slottijd {slotTime}{hasPlanned, select, yes{, gepland {planned, plural, =1{1 minuut} other{{planned} minuten}}: {walkthrough} minuten doorloop en {dance} minuten dans} other{}}{walkthroughComplete, select, yes{, doorloop voltooid} other{}}{over, select, yes{, over de geplande tijd} other{}}{paused, select, yes{, gepauzeerd} other{}}",
+  "performTimingSemantic": "Programmatijd {programTime}, slottijd {slotTime}{hasPlanned, select, yes{, gepland {planned, plural, =1{1 minuut} other{{planned} minuten}}: {walkthrough} minuten doorloop en {dance} minuten dans} other{}}{manual, select, yes{, doorloop eindigde bij {actual}{direction, select, over{, {delta} boven plan} under{, {delta} onder plan} other{, volgens plan}}} other{}}{walkthroughComplete, select, yes{, doorloop voltooid} other{}}{over, select, yes{, over de geplande tijd} other{}}{paused, select, yes{, gepauzeerd} other{}}",
   "@performTimingSemantic": {
-    "x-sourceSha256": "b481989b8c0ed66ecd58941fca432d33516d0823d5f434b055030c5479c96682"
+    "x-sourceSha256": "01bd1a6f6039355065cf9bfeda8e220c463f9738472835c5838843737801f3dc"
   },
   "performIndividualTimingSemantic": "Verstreken tijd {elapsedTime}{paused, select, yes{, gepauzeerd} other{}}",
   "@performIndividualTimingSemantic": {
@@ -5163,6 +5167,18 @@
   "performPlannedSplit": "gepland {planned} min ({walkthrough}:{dance})",
   "@performPlannedSplit": {
     "x-sourceSha256": "f00ce488a307637ede1d33c0e91658a79b9b0b960eb86ac8aa541367cd79684b"
+  },
+  "performDanceStartUnused": "Doorloop klaar — start de dans",
+  "@performDanceStartUnused": {
+    "x-sourceSha256": "e92edca90964e4b477d200ef6be8b84b06caf7bc6a0d2051de249ec49663623c"
+  },
+  "performDanceStartUsed": "Dans gestart — tik om ongedaan te maken",
+  "@performDanceStartUsed": {
+    "x-sourceSha256": "df3731aa1e3f5c58ae6888723a837fcd8e88af4f6475c48b3ce532aa30605d37"
+  },
+  "performWalkthroughActual": "doorloop {actual}{direction, select, over{ (+{delta})} under{ (−{delta})} other{ (volgens plan)}}",
+  "@performWalkthroughActual": {
+    "x-sourceSha256": "4d138a6ae37bcfc37f09fe98c77ece2550ab866dceefb42b44815fb7a1c40aab"
   },
   "performWalkthroughCompleteSuffix": " doorloop voltooid",
   "@performWalkthroughCompleteSuffix": {

@@ -50,10 +50,11 @@ import 'package:compendium_app/src/update/update_scope.dart';
 import 'support/full_app_harness.dart';
 
 /// Every scope `CompendiumApp` mounts above the navigator, outermost first.
-/// Written out by hand (not derived from `_appScopeWrappers`) so removing a
-/// wrapper from the production list turns this test red. A new scope is one
-/// line in `_appScopeWrappers` plus one line here.
-const _appScopeTypes = <Type>[
+/// Pinned by hand against the real list (`AppScopeTypesSource.appScopeTypes`)
+/// so removing, adding or reordering a wrapper in `_appScopeWrappers` turns the
+/// first test below red. A new scope is one line in `_appScopeWrappers` plus
+/// one line here. The mount and order tests then iterate the real list.
+const _expectedAppScopeTypes = <Type>[
   RepositoriesScope,
   UpdateScope,
   SyncScope,
@@ -97,6 +98,11 @@ void main() {
   setUp(() => defaultBackupCodecRunner = runBackupCodecInline);
   tearDown(() => defaultBackupCodecRunner = runBackupCodecOnIsolate);
 
+  /// The real scope types, read from the mounted app after [bootApp].
+  List<Type> realScopeTypes(WidgetTester tester) =>
+      (tester.state(find.byType(CompendiumApp)) as AppScopeTypesSource)
+          .appScopeTypes;
+
   Future<void> bootApp(WidgetTester tester) async {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -111,10 +117,18 @@ void main() {
     expect(find.byType(AppShell), findsOneWidget);
   }
 
+  testWidgets('the real scope list is the expected one, in order', (
+    tester,
+  ) async {
+    await bootApp(tester);
+
+    expect(realScopeTypes(tester), _expectedAppScopeTypes);
+  });
+
   testWidgets('every app scope is mounted above AppBootstrap', (tester) async {
     await bootApp(tester);
 
-    for (final type in _appScopeTypes) {
+    for (final type in realScopeTypes(tester)) {
       expect(find.byType(type), findsOneWidget, reason: '$type is not mounted');
       expect(
         find.ancestor(
@@ -131,14 +145,15 @@ void main() {
     await bootApp(tester);
 
     // Outermost first: each scope is an ancestor of the next one.
-    for (var i = 0; i < _appScopeTypes.length - 1; i++) {
+    final types = realScopeTypes(tester);
+    for (var i = 0; i < types.length - 1; i++) {
       expect(
         find.descendant(
-          of: find.byType(_appScopeTypes[i]),
-          matching: find.byType(_appScopeTypes[i + 1]),
+          of: find.byType(types[i]),
+          matching: find.byType(types[i + 1]),
         ),
         findsOneWidget,
-        reason: '${_appScopeTypes[i]} must wrap ${_appScopeTypes[i + 1]}',
+        reason: '${types[i]} must wrap ${types[i + 1]}',
       );
     }
     expect(
