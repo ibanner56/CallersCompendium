@@ -284,10 +284,8 @@ void main() {
       expect(loaded, program);
     });
 
-    test('round-trips dialectName verbatim, and clears it', () async {
-      // Verbatim: a decomposed "é" must come back unchanged, because the value
-      // has to equal a dialect library name byte-for-byte to resolve.
-      const name = 'Cafe\u0301 Calls';
+    test('round-trips dialectName, and clears it', () async {
+      const name = 'Leads/Follows';
       final program = sampleProgram().copyWith(dialectName: name);
       await repo.create(program);
       final loaded = await repo.getById(program.id);

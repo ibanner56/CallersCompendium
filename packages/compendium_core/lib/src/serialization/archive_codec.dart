@@ -860,16 +860,6 @@ List<SourceCitation> _sourceCitationsFromJson(Object? raw) {
 /// codec's other soft-clamped free-text fields (see [_clampLength]).
 const int kMaxExternalIdLength = 200;
 
-/// Soft bound on a restored [Program.dialectName] (OWASP): a dialect name is a
-/// short label, but the dialect library itself imposes no cap, so a hostile
-/// archive is clamped here rather than trusted verbatim or rejected.
-const int kMaxDialectNameLength = 200;
-
-String? _dialectNameOrNull(Map<String, Object?> m) {
-  final name = _strOrNull(m, 'dialectName');
-  return name == null ? null : _clampLength(name, kMaxDialectNameLength);
-}
-
 Provenance _provenanceFromJson(Map<String, Object?> m) {
   final externalId = _strOrNull(m, 'externalId');
   return Provenance(
@@ -901,7 +891,10 @@ Program _programFromJson(Map<String, Object?> m) => Program(
     'status',
   ),
   hideAlternates: _boolOr(m, 'hideAlternates', false),
-  dialectName: _dialectNameOrNull(m),
+  // Not clamped: the dialect library imposes no name cap, so truncating would
+  // rewrite a valid reference into a different name (and could split a
+  // surrogate pair, which canonical sync JSON rejects).
+  dialectName: _strOrNull(m, 'dialectName'),
   slots: _programSlotsFromJson(m['slots']),
   provenance: m['provenance'] == null
       ? null

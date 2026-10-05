@@ -1077,14 +1077,19 @@ void main() {
       expect(result.errors.single.entityType, 'program');
     });
 
-    test('an oversized value is clamped on decode, not rejected (OWASP)', () {
-      final p = encodedP1();
-      final overlong = 'x' * (kMaxDialectNameLength + 500);
-      p['dialectName'] = overlong;
-      expect(
-        decodedP1(p).dialectName,
-        overlong.substring(0, kMaxDialectNameLength),
-      );
+    test('long and emoji-bounded names survive a round trip unchanged', () {
+      // The dialect library imposes no name cap, and a duplicated dialect
+      // appends " 2", so a clamp would rewrite a valid reference into another
+      // dialect's name. 199 units then an emoji also puts a surrogate pair
+      // across what a 200-unit cut would split.
+      for (final name in [
+        'x' * 300,
+        '${'x' * 199}\u{1F600}',
+        '${'x' * 200} 2',
+      ]) {
+        final p = encodedP1()..['dialectName'] = name;
+        expect(decodedP1(p).dialectName, name);
+      }
     });
 
     test('control and bidi characters are stripped on decode', () {

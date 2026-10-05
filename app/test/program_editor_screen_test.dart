@@ -573,6 +573,26 @@ void main() {
     expect(updated!.hideAlternates, isTrue);
   });
 
+  testWidgets('saving keeps a dialectName the editor does not edit '
+      '(issue #1554)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(id: 'p1', title: 'Night').copyWith(dialectName: 'Leads/Follows'),
+    );
+    await _pump(tester, repos, programId: 'p1', onSaved: (_) {});
+
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Renamed',
+    );
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.title, 'Renamed');
+    expect(saved.dialectName, 'Leads/Follows');
+  });
+
   testWidgets('expanded Tier 2 metadata persists on save', (tester) async {
     final repos = openTestRepositories();
     await repos.programs.create(_program(id: 'p1', title: 'Night'));
@@ -2097,6 +2117,34 @@ void main() {
       expect(saved.slots[2].performedAt, isNull);
     },
   );
+
+  testWidgets('bulk Undo keeps a dialectName the editor does not edit '
+      '(issue #1554)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Called'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      ).copyWith(dialectName: 'Leads/Follows'),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pumpAndSettle();
+    expect(
+      (await repos.programs.getById('p1'))!.dialectName,
+      'Leads/Follows',
+      reason: 'the marking auto-commit rebuilds the program',
+    );
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    final afterUndo = await repos.programs.getById('p1');
+    expect(afterUndo!.slots.single.performedAt, isNull);
+    expect(afterUndo.dialectName, 'Leads/Follows');
+  });
 
   testWidgets('bulk Undo reserves its timestamp from a manual re-mark', (
     tester,

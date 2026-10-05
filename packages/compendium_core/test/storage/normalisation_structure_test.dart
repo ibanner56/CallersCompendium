@@ -25,9 +25,6 @@ const _normalisationExemptions = <String, String>{
   'program_provenance.source': 'enum value',
   'venue_provenance.source': 'enum value',
   'programs.status': 'enum value',
-  'programs.dialect_name':
-      'opaque key: must equal a dialect library name byte-for-byte, and the '
-      'library does not NFC-normalize names',
   'custom_field_defs.type': 'enum value',
   'custom_field_defs.choices_json':
       'choice strings are normalized before JSON encoding',

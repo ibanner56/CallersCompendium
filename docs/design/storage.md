@@ -519,8 +519,11 @@ can still fire.
   follows the application dialect. A soft reference by name, deliberately not
   validated at write time and never cascaded on dialect rename or delete: a name
   that does not resolve falls back to the application dialect when Perform
-  resolves it. Stored verbatim (not NFC-normalised) so it equals the dialect
-  library's name byte-for-byte. Additive `addColumn`; no back-fill and no derived
+  resolves it. Written NFC-normalised like every shareable string: the dialect
+  library's own names are NFC-normalised on their way to storage
+  (`custom_dialects` is a shareable setting), and Device Sync rejects a program
+  body that is not already canonical. Not length-limited, because the library
+  imposes no name cap. Additive `addColumn`; no back-fill and no derived
   rebuild.
 
 ## The delete model
