@@ -528,32 +528,6 @@ List<pw.Widget> _venueBlock(List<String> lines, ProgramExportLabels labels) {
   ];
 }
 
-/// Joins a US-style ZIP and its +4 add-on ("12345-6789"); returns the bare ZIP
-/// when there is no add-on, or `null` when neither is set.
-String? _postal(String? postalCode, String? plus4) {
-  final zip = postalCode?.trim();
-  final add = plus4?.trim();
-  if (zip == null || zip.isEmpty) return null;
-  return (add == null || add.isEmpty) ? zip : '$zip-$add';
-}
-
-/// Formats a venue's locality line as "City, ST 05602-1234": the city and
-/// state/province are comma-joined, and the postal code follows separated by a
-/// SPACE (US convention), never a comma. Any absent part is dropped, so a
-/// city-only venue is just "City" and a postal-only one is just the ZIP.
-/// Returns an empty string when none of the parts are present.
-@visibleForTesting
-String venueLocalityLine(Venue venue) {
-  final cityState = [
-    venue.city,
-    venue.stateProv,
-  ].whereType<String>().where((s) => s.isNotEmpty).join(', ');
-  return [
-    if (cityState.isNotEmpty) cityState,
-    ?_postal(venue.postalCode, venue.plus4),
-  ].join(' ');
-}
-
 /// Renders one contact as "name · phone · email", skipping empty parts; empty
 /// when the contact has no fields at all.
 String _contactLine(String? name, String? phone, String? email) => [

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -49,6 +51,18 @@ Dance _dance({required String id, required String title}) => Dance(
 
 AppLocalizations _l10n(WidgetTester tester) =>
     AppLocalizations.of(tester.element(find.byType(Scaffold).first));
+
+/// Counts the transactions the database opens. `DifficultyLevelRepository.delete`
+/// runs inside one, so a count of zero means `delete` was never reached.
+class _TransactionCounter extends drift.QueryInterceptor {
+  int begun = 0;
+
+  @override
+  drift.TransactionExecutor beginTransaction(drift.QueryExecutor parent) {
+    begun++;
+    return parent.beginTransaction();
+  }
+}
 
 /// A [SettingsRepository] whose reads can be held open per key. The value is
 /// captured *before* the gate, so a released read resolves with what storage
@@ -311,6 +325,15 @@ void main() {
         scrollable: find.byType(Scrollable).last,
       );
       await tester.pumpAndSettle();
+      // A dropdown inside a ListTile's trailing slot cannot wrap.
+      expect(
+        find.descendant(
+          of: find.byType(ListTile),
+          matching: find.byKey(ValueKey(key)),
+        ),
+        findsNothing,
+        reason: key,
+      );
       final box = tester.getRect(find.byKey(ValueKey(key)));
       expect(box.left, greaterThanOrEqualTo(0), reason: key);
       expect(box.right, lessThanOrEqualTo(360), reason: key);
@@ -591,6 +614,72 @@ void main() {
     expect(
       await repos.difficultyLevels.getById(DifficultyLevel.beginnerId),
       DifficultyLevel.beginner,
+    );
+  });
+
+  testWidgets('deleting an in-use difficulty level never reaches the '
+      'repository delete (the pre-check refuses it)', (tester) async {
+    // The repository's own guard throws a DifficultyLevelInUse that renders the
+    // same text, so the message cannot tell the pre-check from the fallback.
+    // `delete` is the only thing here that opens a transaction.
+    final counter = _TransactionCounter();
+    final repos = CompendiumRepositories(
+      openWidgetTestDatabase(
+        executor: NativeDatabase.memory().interceptWith(counter),
+      ),
+      contraTaxonomy,
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Uses it',
+      ).copyWith(difficultyLevelId: DifficultyLevel.beginnerId),
+    );
+    await _pumpDefaults(tester, repos);
+    await _openDifficultySection(tester);
+
+    final before = counter.begun;
+    await tester.tap(
+      find.byKey(
+        const ValueKey('difficulty-level-delete-${DifficultyLevel.beginnerId}'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        _l10n(tester).settingsDefaultsDifficultyLevelInUse('Beginner', 1),
+      ),
+      findsOneWidget,
+    );
+    expect(counter.begun, before, reason: 'delete opened a transaction');
+  });
+
+  testWidgets('deleting an unused difficulty level does reach the repository '
+      'delete', (tester) async {
+    // Control for the test above: the same counter does see `delete`.
+    final counter = _TransactionCounter();
+    final repos = CompendiumRepositories(
+      openWidgetTestDatabase(
+        executor: NativeDatabase.memory().interceptWith(counter),
+      ),
+      contraTaxonomy,
+    );
+    await _pumpDefaults(tester, repos);
+    await _openDifficultySection(tester);
+
+    final before = counter.begun;
+    await tester.tap(
+      find.byKey(
+        const ValueKey('difficulty-level-delete-${DifficultyLevel.beginnerId}'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(counter.begun, greaterThan(before));
+    expect(
+      (await repos.difficultyLevels.listAll()).map((l) => l.id),
+      isNot(contains(DifficultyLevel.beginnerId)),
     );
   });
 

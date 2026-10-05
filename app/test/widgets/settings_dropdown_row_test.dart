@@ -48,6 +48,24 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a 360 dp phone at default text size stays inline', (
+    tester,
+  ) async {
+    await _pump(tester, 360);
+
+    final tile = tester.widget<ListTile>(find.byType(ListTile));
+    expect(tile.trailing, isNotNull);
+    expect(
+      tester
+          .widget<DropdownButton<int>>(
+            find.byKey(const ValueKey('row-dropdown')),
+          )
+          .isExpanded,
+      isFalse,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('without room, the expanded dropdown sits below the label', (
     tester,
   ) async {

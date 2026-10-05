@@ -47,8 +47,9 @@ one and it is added with that move's default settings. Typing `sw` and pressing
 Enter, for example, gives you a swing.
 
 Anything the app cannot recognise is still kept — it becomes a **custom figure**,
-holding your text exactly as you typed it. Nothing you type is ever thrown away
-because the app did not understand it.
+holding your text. Nothing you type is ever thrown away because the app did not
+understand it; the only change is that role words are saved as role terms and
+shown in your own dialect (see below).
 
 *The dance editor while entering figures, with recognized rows and the running
 beat total visible below the list.*
@@ -136,7 +137,9 @@ Role words you type here (such as "Larks" or "Leads") are saved in a neutral
 form, shown in your own [dialect](./dialects.md), and found by role searches.
 Custom text saved before this change updates the next time you save the dance
 while the same dialect is active; text typed in a different dialect may need a
-manual edit.
+manual edit. The same rewriting applies to the everyday words "man", "men",
+"lady" and "ladies" inside custom figure text (for example, "the man and lady
+swing"), which are saved as role terms and shown in your dialect's words.
 
 ### Reorder, cut, and duplicate
 
