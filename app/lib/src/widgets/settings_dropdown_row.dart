@@ -27,7 +27,10 @@ class SettingsDropdownRow extends StatelessWidget {
   /// The row is inline when the available width is at least this many logical
   /// pixels per unit of text scale; below that the dropdown moves under the
   /// label. Scaling keeps the same text-to-space ratio at every system size.
-  static const double inlineWidthPerTextScale = 520;
+  /// 360 is the width of an ordinary phone, so at the default text size a short
+  /// dropdown stays inline there and rows only stack once text is enlarged or
+  /// the surface is narrower than a phone.
+  static const double inlineWidthPerTextScale = 360;
 
   final Widget title;
   final Widget? subtitle;
