@@ -724,7 +724,88 @@ void main() {
         expect(dest.existsSync(), isFalse);
       },
     );
+
+    // The fakes above accept close() during a flush; dart:io's IOSink does
+    // not (it throws "StreamSink is bound to a stream" synchronously), so
+    // these two drive a real IOSink over a consumer whose writes are gated.
+    test('cancelling during a flush on a real IOSink reports cancelled and '
+        'closes the sink once the flush settles', () async {
+      final consumer = _GatedConsumer();
+      final body = StreamController<List<int>>();
+      final token = DownloadCancelToken();
+      const total = half * 4;
+
+      final result = downloadArtifact(
+        _artifact(size: total),
+        destination: _SinkFile(dest, IOSink(consumer)),
+        client: bodyClient(body, total),
+        cancelToken: token,
+      );
+      await listening(body);
+      body.add(bytes(half));
+      body.add(bytes(half));
+      await pump();
+      expect(body.isPaused, isTrue, reason: 'flush outstanding');
+
+      token.cancel();
+      final outcome = await result.timeout(
+        kDownloadCancelPollInterval * 10,
+        onTimeout: () => fail('cancel hung behind a stuck flush'),
+      );
+      expect(outcome.kind, DownloadResultKind.cancelled);
+      expect(dest.existsSync(), isFalse);
+      expect(consumer.closeCalls, 0, reason: 'cannot close mid-flush');
+
+      consumer.gate.complete();
+      for (var i = 0; i < 20 && consumer.closeCalls == 0; i++) {
+        await pump();
+      }
+      expect(consumer.closeCalls, 1, reason: 'handle released after flush');
+    });
+
+    test('cancelling with no flush in flight on a real IOSink closes it before '
+        'returning', () async {
+      final consumer = _GatedConsumer()..gate.complete();
+      final body = StreamController<List<int>>();
+      final token = DownloadCancelToken();
+      const total = half * 4;
+
+      final result = downloadArtifact(
+        _artifact(size: total),
+        destination: _SinkFile(dest, IOSink(consumer)),
+        client: bodyClient(body, total),
+        cancelToken: token,
+      );
+      await listening(body);
+      body.add(bytes(half ~/ 2));
+      await pump();
+      token.cancel();
+      body.add(bytes(half ~/ 2)); // onData observes the cancel
+
+      final outcome = await result;
+      expect(outcome.kind, DownloadResultKind.cancelled);
+      expect(consumer.closeCalls, 1);
+      expect(dest.existsSync(), isFalse);
+    });
   });
+}
+
+/// A [StreamConsumer] behind a real dart:io [IOSink]: each write batch
+/// completes only once [gate] completes, standing in for a stalled disk.
+class _GatedConsumer implements StreamConsumer<List<int>> {
+  final gate = Completer<void>();
+  int closeCalls = 0;
+
+  @override
+  Future<void> addStream(Stream<List<int>> stream) async {
+    await stream.drain<void>();
+    await gate.future;
+  }
+
+  @override
+  Future<void> close() async {
+    closeCalls++;
+  }
 }
 
 /// An [IOSink] test double: records calls and lets a test fail or gate
