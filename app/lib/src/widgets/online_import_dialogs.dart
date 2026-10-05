@@ -2,13 +2,17 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/default_import_tags.dart';
+import '../data/online_search.dart';
 
 /// Shows the resolution dialog for a confident title+author match with
 /// differing figures (issue #797). Returns the chosen [DedupeResolution], or
 /// `null` if the user cancelled.
 ///
-/// Shared by [DanceListScreen] and [CollectionShell] so both surfaces use
-/// identical wording. Add a new online-import surface? Route through here.
+/// Shared by every interactive online-import surface ([DanceListScreen],
+/// [CollectionShell], [CollectionPicker] and the incoming-dance flow in
+/// `main.dart`) via [resolveAndImportOnline], so all use identical wording.
+/// Add a new online-import surface? Route through [resolveAndImportOnline].
 Future<DedupeResolution?> showOnlineImportVariationDialog(
   BuildContext context,
   AppLocalizations l10n, {
@@ -81,8 +85,10 @@ Future<DedupeResolution?> showOnlineImportVariationDialog(
 /// problem wearing a button. The user who wants both provenance records in the
 /// collection can use "Import a second copy" instead.
 ///
-/// Shared by [DanceListScreen] and [CollectionShell] so both surfaces use
-/// identical wording. Add a new online-import surface? Route through here.
+/// Shared by every interactive online-import surface ([DanceListScreen],
+/// [CollectionShell], [CollectionPicker] and the incoming-dance flow in
+/// `main.dart`) via [resolveAndImportOnline], so all use identical wording.
+/// Add a new online-import surface? Route through [resolveAndImportOnline].
 ///
 /// Returns the chosen [DedupeResolution], or `null` if the user cancelled.
 Future<DedupeResolution?> showOnlineImportCrossSourceDuplicateDialog(
@@ -134,3 +140,85 @@ Future<DedupeResolution?> showOnlineImportCrossSourceDuplicateDialog(
     ],
   ),
 );
+
+/// Commits [preview] through [service] and resolves the two confirmation
+/// outcomes interactively: [OnlineImportKind.needsConfirmation] shows
+/// [showOnlineImportVariationDialog] (#797) and
+/// [OnlineImportKind.needsConfirmationIdentical] shows
+/// [showOnlineImportCrossSourceDuplicateDialog] (#811); the import is then
+/// retried with the chosen [DedupeResolution]. Every interactive online-import
+/// surface calls this, so a change to the resolution policy is made once.
+///
+/// Returns the final [OnlineImportResult] of the import that committed, or
+/// `null` when no further import was made: the user cancelled a dialog,
+/// [context] was unmounted before a dialog could be shown or while it was open,
+/// or the service broke its contract and returned a confirmation outcome with
+/// no candidate id (asserted in debug). A result is returned even if [context]
+/// unmounted while that import was in flight: the write has happened, so the
+/// caller must still see its outcome (the picker relies on this).
+///
+/// Liveness is [BuildContext.mounted], checked before the context is handed to
+/// a dialog and after the dialog closes. It is only as live as the context the
+/// caller passes: a State's own context goes away with the State, while a
+/// NavigatorState's context outlives a widget removed from a live route (the
+/// picker passes the navigator's for that reason). A caller that also needs its
+/// own staleness test (the picker's search generation) keeps it around the call.
+///
+/// The helper deliberately catches nothing: each caller has its own error sink
+/// (snackbar, detail-pane messenger, inline picker error) and its own
+/// `check_caught_error_logged` obligations. It does not touch
+/// `ScaffoldMessenger` or `Navigator` either.
+///
+/// [applyDefaultTags] adds the user's default import tags (#1476), resolved
+/// immediately before each commit; the picker's add-dance flow passes `false`
+/// to keep its existing behaviour.
+Future<OnlineImportResult?> resolveAndImportOnline(
+  BuildContext context, {
+  required OnlineSearchService service,
+  required CompendiumRepositories repos,
+  required OnlinePreview preview,
+  required AppLocalizations l10n,
+  bool applyDefaultTags = true,
+}) async {
+  Future<OnlineImportResult> commit([DedupeResolution? resolution]) async =>
+      service.import(
+        repos,
+        preview.plan,
+        ambiguousResolution: resolution,
+        defaultTagIds: applyDefaultTags
+            ? await resolveDefaultImportTagIds(repos)
+            : const [],
+      );
+
+  final first = await commit();
+  final isVariation = first.kind == OnlineImportKind.needsConfirmation;
+  final isIdentical = first.kind == OnlineImportKind.needsConfirmationIdentical;
+  if (!isVariation && !isIdentical) return first;
+
+  final existingId = first.danceId;
+  // A confirmation outcome requires a candidate id; null is a service bug.
+  // Assert in debug, silently cancel in release (better than crashing).
+  assert(
+    existingId != null,
+    '${first.kind.name} must carry an existing dance id',
+  );
+  if (existingId == null || !context.mounted) return null;
+  final existingTitle =
+      (await repos.dances.getById(existingId))?.title ?? first.title;
+  if (!context.mounted) return null;
+  final resolution = isVariation
+      ? await showOnlineImportVariationDialog(
+          context,
+          l10n,
+          existingTitle: existingTitle,
+          existingId: existingId,
+        )
+      : await showOnlineImportCrossSourceDuplicateDialog(
+          context,
+          l10n,
+          existingTitle: existingTitle,
+          existingId: existingId,
+        );
+  if (resolution == null || !context.mounted) return null;
+  return commit(resolution);
+}

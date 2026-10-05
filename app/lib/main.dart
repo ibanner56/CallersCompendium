@@ -12,7 +12,6 @@ import 'package:path/path.dart' as p;
 import 'l10n/app_localizations.dart';
 import 'src/data/active_dialect_scope.dart';
 import 'src/data/aggressive_beats_update_scope.dart';
-import 'src/data/default_import_tags.dart';
 import 'src/data/application_shutdown_controller.dart';
 import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
@@ -80,7 +79,6 @@ import 'src/screens/contradb_program_import_screen.dart';
 import 'src/screens/dance_detail_screen.dart';
 import 'src/screens/dance_reimport_flow.dart';
 import 'src/screens/import_review_screen.dart';
-import 'src/screens/online_import_variation_dialog.dart';
 import 'src/screens/settings_screen.dart'
     show
         kAppThemeKey,
@@ -108,6 +106,7 @@ import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
 import 'src/widgets/app_bootstrap.dart';
 import 'src/widgets/ecd_convert_prompt_dialog.dart';
+import 'src/widgets/online_import_dialogs.dart';
 
 AppData _defaultAppDataFactory() => AppData(openAppDatabase());
 
@@ -1234,61 +1233,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
     }
     final l10n = AppLocalizations.of(navContext);
     try {
-      var imported = await service.import(
-        _appData.repositories,
-        preview.plan,
-        defaultTagIds: await resolveDefaultImportTagIds(_appData.repositories),
+      final imported = await resolveAndImportOnline(
+        navContext,
+        service: service,
+        repos: _appData.repositories,
+        preview: preview,
+        l10n: l10n,
       );
-      if (imported.kind == OnlineImportKind.needsConfirmation) {
-        final existingId = imported.danceId;
-        assert(existingId != null, 'needsConfirmation must carry a dance id');
-        if (existingId == null) return;
-        final existingTitle =
-            (await _appData.repositories.dances.getById(existingId))?.title ??
-            imported.title;
-        if (!mounted || !navContext.mounted) return;
-        final resolution = await showOnlineImportVariationDialog(
-          navContext,
-          l10n,
-          existingTitle: existingTitle,
-          existingId: existingId,
-        );
-        if (resolution == null || !mounted) return;
-        imported = await service.import(
-          _appData.repositories,
-          preview.plan,
-          ambiguousResolution: resolution,
-          defaultTagIds: await resolveDefaultImportTagIds(
-            _appData.repositories,
-          ),
-        );
-      } else if (imported.kind == OnlineImportKind.needsConfirmationIdentical) {
-        final existingId = imported.danceId;
-        assert(
-          existingId != null,
-          'needsConfirmationIdentical must carry a dance id',
-        );
-        if (existingId == null) return;
-        final existingTitle =
-            (await _appData.repositories.dances.getById(existingId))?.title ??
-            imported.title;
-        if (!mounted || !navContext.mounted) return;
-        final resolution = await showOnlineImportCrossSourceDuplicateDialog(
-          navContext,
-          l10n,
-          existingTitle: existingTitle,
-          existingId: existingId,
-        );
-        if (resolution == null || !mounted) return;
-        imported = await service.import(
-          _appData.repositories,
-          preview.plan,
-          ambiguousResolution: resolution,
-          defaultTagIds: await resolveDefaultImportTagIds(
-            _appData.repositories,
-          ),
-        );
-      }
+      if (imported == null || !mounted) return; // cancelled, or gone
       if (mounted && navigator.canPop()) navigator.pop(imported);
     } on UrlFetchException catch (e, stackTrace) {
       logCaughtError(e, stackTrace, source: 'main._importIncomingDance');

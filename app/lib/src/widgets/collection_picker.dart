@@ -18,11 +18,11 @@ import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
-import '../screens/online_import_variation_dialog.dart';
 import 'advanced_query_builder.dart';
 import 'by_phrase_panel.dart';
 import 'dance_list_tile.dart';
 import 'facet_panel.dart';
+import 'online_import_dialogs.dart';
 import 'online_result_tile.dart';
 import 'preview_hold_listener.dart';
 
@@ -599,52 +599,19 @@ class _CollectionPickerState extends State<CollectionPicker> {
       importReported = true;
       onImportingChanged?.call(_importActivityOwner, true);
       final preview = await service.loadPreview(_repos, onlineResult);
-      var result = await service.import(_repos, preview.plan);
-      if (result.kind == OnlineImportKind.needsConfirmation) {
-        final existingId = result.danceId;
-        assert(
-          existingId != null,
-          'needsConfirmation must carry an existing dance id',
-        );
-        if (existingId == null || !navigator.mounted) return;
-        final existingTitle =
-            (await _repos.dances.getById(existingId))?.title ?? result.title;
-        if (!navigator.mounted) return;
-        final resolution = await showOnlineImportVariationDialog(
-          navigator.context,
-          l10n,
-          existingTitle: existingTitle,
-          existingId: existingId,
-        );
-        if (resolution == null || !navigator.mounted) return;
-        result = await service.import(
-          _repos,
-          preview.plan,
-          ambiguousResolution: resolution,
-        );
-      } else if (result.kind == OnlineImportKind.needsConfirmationIdentical) {
-        final existingId = result.danceId;
-        assert(
-          existingId != null,
-          'needsConfirmationIdentical must carry an existing dance id',
-        );
-        if (existingId == null || !navigator.mounted) return;
-        final existingTitle =
-            (await _repos.dances.getById(existingId))?.title ?? result.title;
-        if (!navigator.mounted) return;
-        final resolution = await showOnlineImportCrossSourceDuplicateDialog(
-          navigator.context,
-          l10n,
-          existingTitle: existingTitle,
-          existingId: existingId,
-        );
-        if (resolution == null || !navigator.mounted) return;
-        result = await service.import(
-          _repos,
-          preview.plan,
-          ambiguousResolution: resolution,
-        );
-      }
+      // The navigator's context, not the picker's: the picker can be removed
+      // mid-import (a responsive layout change) while its route lives on, and
+      // the import must still complete (program_editor_screen_test).
+      if (!navigator.mounted) return;
+      final result = await resolveAndImportOnline(
+        navigator.context,
+        service: service,
+        repos: _repos,
+        preview: preview,
+        l10n: l10n,
+        applyDefaultTags: false,
+      );
+      if (result == null) return;
       final danceId = result.danceId;
       if ((result.kind == OnlineImportKind.created ||
               result.kind == OnlineImportKind.alreadyInCollection) &&

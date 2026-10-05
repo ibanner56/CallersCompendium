@@ -9,7 +9,6 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/callersbox_online.dart';
-import '../data/default_import_tags.dart';
 import '../data/collection_facets_scope.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/collection_tile_fields_scope.dart';
@@ -46,6 +45,7 @@ import '../widgets/brand_mark.dart';
 import '../widgets/by_phrase_panel.dart';
 import '../widgets/dance_list_tile.dart';
 import '../widgets/facet_panel.dart';
+import '../widgets/online_import_dialogs.dart';
 import '../widgets/online_result_tile.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/sync_now_action.dart';
@@ -55,7 +55,6 @@ import 'app_shell_search_scope.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
 import 'dance_reimport_flow.dart';
-import 'online_import_variation_dialog.dart';
 
 /// Collection screen: browse and search the dance library
 /// (`docs/design/ux.md` §1). A unified full-text search bar, a one-tap facet
@@ -1122,16 +1121,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// to [_pushOnlinePreview], which lands the user on the persisted dance. An
   /// [_importing] guard blocks a rapid double-tap before the commit resolves.
   ///
-  /// When the service detects a confident title+author match with differing
-  /// figures, it returns [OnlineImportKind.needsConfirmation] without writing
-  /// anything. In that case, this method shows a resolution dialog and retries
-  /// the import with the chosen [DedupeResolution] (issue #797).
-  ///
-  /// When the service detects a confident title+author match with identical
-  /// figures from a different source, it returns
-  /// [OnlineImportKind.needsConfirmationIdentical]. In that case, this method
-  /// shows a cross-source duplicate dialog and retries if the user confirms
-  /// (issue #811).
+  /// The confirmation outcomes (#797 variation, #811 cross-source duplicate)
+  /// are resolved by [resolveAndImportOnline]; a `null` result means the user
+  /// cancelled or this screen went away, and nothing more happens here.
   Future<void> _importOnline(OnlinePreview preview) async {
     if (_importing) return;
     _importing = true;
@@ -1140,64 +1132,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final l10n = AppLocalizations.of(context);
     final service = _serviceFor(preview.result.source);
     try {
-      var result = await service.import(
-        _repos,
-        preview.plan,
-        defaultTagIds: await resolveDefaultImportTagIds(_repos),
+      final result = await resolveAndImportOnline(
+        context,
+        service: service,
+        repos: _repos,
+        preview: preview,
+        l10n: l10n,
       );
-      if (result.kind == OnlineImportKind.needsConfirmation) {
-        if (!mounted) return;
-        final existingId = result.danceId;
-        // needsConfirmation requires a candidate id — a null here is a service
-        // bug. Assert in debug; silently cancel in release (better than crashing).
-        assert(
-          existingId != null,
-          'needsConfirmation must carry an existing dance id',
-        );
-        if (existingId == null) return;
-        final existingTitle =
-            (await _repos.dances.getById(existingId))?.title ?? result.title;
-        if (!mounted) return;
-        final resolution = await showOnlineImportVariationDialog(
-          context,
-          l10n,
-          existingTitle: existingTitle,
-          existingId: existingId,
-        );
-        if (resolution == null || !mounted) return; // user cancelled
-        result = await service.import(
-          _repos,
-          preview.plan,
-          ambiguousResolution: resolution,
-          defaultTagIds: await resolveDefaultImportTagIds(_repos),
-        );
-      } else if (result.kind == OnlineImportKind.needsConfirmationIdentical) {
-        if (!mounted) return;
-        final existingId = result.danceId;
-        // needsConfirmationIdentical requires a candidate id — a null here is a
-        // service bug. Assert in debug; silently cancel in release.
-        assert(
-          existingId != null,
-          'needsConfirmationIdentical must carry an existing dance id',
-        );
-        if (existingId == null) return;
-        final existingTitle =
-            (await _repos.dances.getById(existingId))?.title ?? result.title;
-        if (!mounted) return;
-        final resolution = await showOnlineImportCrossSourceDuplicateDialog(
-          context,
-          l10n,
-          existingTitle: existingTitle,
-          existingId: existingId,
-        );
-        if (resolution == null || !mounted) return; // user cancelled
-        result = await service.import(
-          _repos,
-          preview.plan,
-          ambiguousResolution: resolution,
-          defaultTagIds: await resolveDefaultImportTagIds(_repos),
-        );
-      }
+      if (result == null) return; // cancelled, or the screen went away
       if (!mounted) return;
       if (result.kind == OnlineImportKind.created) {
         _boot();
