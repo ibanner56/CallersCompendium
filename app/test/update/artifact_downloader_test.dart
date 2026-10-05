@@ -763,8 +763,8 @@ void main() {
       expect(consumer.closeCalls, 1, reason: 'handle released after flush');
     });
 
-    test('cancelling with no flush in flight on a real IOSink closes it before '
-        'returning', () async {
+    test('a cancelled download deletes its file only after the sink has '
+        'closed (an open handle blocks the delete on Windows)', () async {
       final consumer = _GatedConsumer()..gate.complete();
       final body = StreamController<List<int>>();
       final token = DownloadCancelToken();
@@ -772,7 +772,7 @@ void main() {
 
       final result = downloadArtifact(
         _artifact(size: total),
-        destination: _SinkFile(dest, IOSink(consumer)),
+        destination: _WindowsLikeFile(dest, IOSink(consumer), consumer),
         client: bodyClient(body, total),
         cancelToken: token,
       );
@@ -782,10 +782,12 @@ void main() {
       token.cancel();
       body.add(bytes(half ~/ 2)); // onData observes the cancel
 
-      final outcome = await result;
-      expect(outcome.kind, DownloadResultKind.cancelled);
+      expect((await result).kind, DownloadResultKind.cancelled);
+      for (var i = 0; i < 20 && dest.existsSync(); i++) {
+        await pump();
+      }
       expect(consumer.closeCalls, 1);
-      expect(dest.existsSync(), isFalse);
+      expect(dest.existsSync(), isFalse, reason: 'partial file left behind');
     });
   });
 }
@@ -892,4 +894,20 @@ class SocketExceptionLike implements Exception {
   final String message;
   @override
   String toString() => 'SocketExceptionLike: $message';
+}
+
+/// A [_SinkFile] with Windows delete semantics: deleting fails while the
+/// file's write handle ([consumer]) is still open.
+class _WindowsLikeFile extends _SinkFile {
+  _WindowsLikeFile(super.inner, super.sink, this.consumer);
+
+  final _GatedConsumer consumer;
+
+  @override
+  Future<FileSystemEntity> delete({bool recursive = false}) async {
+    if (consumer.closeCalls == 0) {
+      throw FileSystemException('file is open in another process', path);
+    }
+    return super.delete(recursive: recursive);
+  }
 }
