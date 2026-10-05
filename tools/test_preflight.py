@@ -9,6 +9,7 @@ import importlib.machinery
 import importlib.util
 import io
 import re
+import subprocess
 import sys
 import tempfile
 import threading
@@ -452,6 +453,53 @@ def test_unavailable_toolchain_step_does_not_take_the_lock() -> None:
         assert code == 0
         assert "wait toolchain" not in output
         assert "skip slow" in output
+
+
+def _core_coverage_driver():
+    spec = importlib.util.spec_from_file_location(
+        "run_core_tests_with_coverage",
+        Path(__file__).resolve().parent / "ci" / "run_core_tests_with_coverage.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_core_coverage_driver_forwards_jobs_to_dart_test() -> None:
+    """CI runs the core suite through this driver with no `-j` of its own
+    (`_checks.yml`), so the driver's own `-j` is what pins core-test
+    concurrency there (CS-09 T1). Dropping it left every test green."""
+    driver = _core_coverage_driver()
+    commands: list[list[str]] = []
+
+    class _Done:
+        returncode = 0
+
+    def fake_run(command, **_kwargs):
+        commands.append(list(command))
+        return _Done()
+
+    # driver.subprocess is the process-wide module: restore it, or every later
+    # test that really runs a subprocess would get this fake instead.
+    real_run = driver.subprocess.run
+    driver.subprocess.run = fake_run
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            core = Path(tmp)
+            (core / "test").mkdir()
+            (core / "test" / "a_test.dart").write_text("", encoding="utf-8")
+            assert driver.run(core, jobs=3) == 0
+    finally:
+        driver.subprocess.run = real_run
+    assert subprocess.run is real_run
+    (command,) = commands
+    jobs_at = command.index("-j")
+    assert command[jobs_at + 1] == "3", command
+
+    seen: list[int] = []
+    driver.run = lambda core_dir=None, jobs=None: seen.append(jobs) or 0
+    assert driver.main([]) == 0
+    assert seen == [driver.DEFAULT_JOBS]
 
 
 def main() -> int:
