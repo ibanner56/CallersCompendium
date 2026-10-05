@@ -166,7 +166,9 @@ catch body or a stray brace inside a string can't mis-count. Its `catch`/
 `on Type { }` detection is exact; its `.catchError`/`onError:` detection walks
 to the first unnested comma or closing bracket, which is correct for every
 shape in this codebase today but is a narrower guarantee — see the script's own
-docstring before assuming it can't be fooled by an unusual call shape.
+docstring before assuming it can't be fooled by an unusual call shape. Each
+`catch`/`on` clause is checked on its own: a log call in the `try` body, or the
+marker of an earlier clause, does not cover a later one.
 
 ### Architecture decisions
 Non-trivial, hard-to-reverse choices are recorded as ADRs in
