@@ -121,7 +121,7 @@ a spot that reads poorly, we'd genuinely like to hear about it — see
 You can drive Caller's Compendium from the keyboard without reaching for a
 pointer.
 
-**Quick search.** Press **Ctrl-K** (or **Cmd-K** on macOS) from anywhere except while performing a program to open a
+**Quick search.** Press **Ctrl-K** (or **Cmd-K** on macOS) from anywhere except while performing (Perform mode) to open a
 search box over whatever you're doing. Start typing to filter your dances and
 programs, use the **up** and **down arrow keys** to move through results, press
 **Enter** to open the highlighted item, and press **Esc** to close.

@@ -1,6 +1,7 @@
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
+import 'package:compendium_app/src/screens/perform_dance_screen.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -161,5 +162,20 @@ void main() {
     await _chord(tester, LogicalKeyboardKey.controlLeft);
 
     expect(find.byKey(_palette), findsOneWidget);
+  });
+
+  testWidgets('Ctrl-K does nothing while PerformDanceScreen is on top', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await tester.tap(find.text('Petronella'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-dance')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PerformDanceScreen), findsOneWidget);
+
+    await _chord(tester, LogicalKeyboardKey.controlLeft);
+
+    expect(find.byKey(_palette), findsNothing);
   });
 }
