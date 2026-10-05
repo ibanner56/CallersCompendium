@@ -154,19 +154,17 @@ Future<void> main() async {
     // advisory lock when the holder dies, so a crashed prior instance never
     // bricks a relaunch. No-op off desktop (mobile owns single-instance; web has
     // no `dart:io`) and in the headless test harness, which never runs `main`.
-    // The raise request is ignored until [windowService] exists and has shown
-    // the window; the first launch shows it by itself.
-    WindowService? windowService;
+    // The raise request is ignored until a [WindowService] exists and has shown
+    // the window (the first launch shows it by itself); [raiseForwarder] follows
+    // the service when a Retry or reset replaces it.
+    final raiseForwarder = WindowRaiseForwarder();
     final singleInstance = DesktopSingleInstance.isSupportedPlatform
         ? DesktopSingleInstance()
         : null;
     if (singleInstance != null &&
         await handleSecondLaunch(
               singleInstance,
-              onRaise: () {
-                final service = windowService;
-                if (service != null) unawaited(service.raise());
-              },
+              onRaise: raiseForwarder.raise,
             ) ==
             SecondLaunchOutcome.exitNow) {
       exit(0);
@@ -203,15 +201,16 @@ Future<void> main() async {
       }
       await shutdownController.close();
     });
-    final appWindowService = windowService = WindowService(
-      appData.repositories.settings,
-      onClose: () async {
-        await shutdownController.close();
-        // Remove the raise port file on a clean exit. A crash leaves it behind,
-        // which is harmless (the next launch overwrites it).
-        await singleInstance?.raiseChannel.close();
-      },
-    );
+    Future<void> closeWindow() async {
+      await shutdownController.close();
+      // Remove the raise port file on a clean exit. A crash leaves it behind,
+      // which is harmless (the next launch overwrites it).
+      await singleInstance?.raiseChannel.close();
+    }
+
+    WindowService buildWindowService(SettingsRepository settings) =>
+        raiseForwarder.register(WindowService(settings, onClose: closeWindow));
+    final appWindowService = buildWindowService(appData.repositories.settings);
     // Kept as a variable (not just `.call` torn off) so `_CompendiumAppState`
     // can assign `onBeforeAppliedInvalidation` once its `SyncController`
     // exists — this factory is built here, before that controller does.
@@ -220,6 +219,7 @@ Future<void> main() async {
       CompendiumApp(
         appData: appData,
         windowService: appWindowService,
+        windowServiceFactory: buildWindowService,
         applicationShutdownController: shutdownController,
         syncCoordinatorFactory: syncCoordinatorFactory.call,
         productionSyncCoordinatorFactory: syncCoordinatorFactory,

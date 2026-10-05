@@ -80,6 +80,28 @@ class WindowCloseCoordinator {
   }
 }
 
+/// Forwards raise requests to whichever [WindowService] is current.
+///
+/// `main` builds the first service, but `CompendiumApp` replaces it (and
+/// disposes the old one) when a failed startup is retried or the database is
+/// reset. The single-instance listener outlives every such replacement, so it
+/// holds this forwarder, not a service; each newly built service is registered
+/// with [register].
+class WindowRaiseForwarder {
+  WindowService? _current;
+
+  /// Makes [service] the target of later [raise] calls, replacing any earlier
+  /// one. Returns [service] so it can wrap a constructor call.
+  WindowService register(WindowService service) => _current = service;
+
+  /// Asks the current service to raise its window; a no-op before the first
+  /// [register].
+  void raise() {
+    final service = _current;
+    if (service != null) unawaited(service.raise());
+  }
+}
+
 /// Desktop-only wiring around the `window_manager` plugin that restores the
 /// last-known window size/position on startup and persists changes as the user
 /// resizes/moves/maximizes the window.
