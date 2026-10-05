@@ -235,7 +235,7 @@ class DedupeResolution {
   /// #686). When [linkBack] is true (the default — both the interactive
   /// "Import as a variation" prompt and the non-interactive program-import
   /// auto-import path default it on), the pipeline creates a symmetric
-  /// [DanceLinkKind.relatedDance]-equivalent pair of links between the new
+  /// [LinkKind.relatedDance] pair of links between the new
   /// dance and [targetDanceId] so the relationship is visible from either
   /// dance's detail screen.
   factory DedupeResolution.variation(

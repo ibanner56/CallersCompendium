@@ -112,6 +112,15 @@ jobs:
         run: python3 tools/ci/test_check_debug_print.py
       - name: Guard debugPrint call sites (must be kDebugMode-guarded)
         run: python3 tools/ci/check_debug_print.py
+      # Ratchet: comment citations (`[Type.member]` dartdoc references and
+      # backticked identifiers) must resolve to a symbol in app/lib,
+      # app/test/support or compendium_core/lib, or to an ARB key. A count
+      # ceiling, not a clean baseline: tools/ci/stale_comment_refs_ceiling.json
+      # holds the unresolved backlog, which may only shrink.
+      - name: Test the stale comment citation ceiling
+        run: python3 tools/ci/test_check_stale_comment_refs.py
+      - name: Guard comment citations (count ceiling)
+        run: python3 tools/ci/check_stale_comment_refs.py
       # Ratchet: `syncIdentityKdfIterations` is a @visibleForTesting mutable
       # global in lib/ that lowers the sync identity PBKDF2 cost for tests. No
       # production file may assign it, and its default must stay the private

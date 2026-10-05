@@ -20,9 +20,9 @@ class BatchTagSelection {
 ///   creation of a staged tag (minted with [uuidV4]); the returned selection is
 ///   committed together with the affected dances. Commit-time natural-key
 ///   matching reuses a hidden live row or revives a tombstone.
-/// - [BatchTagMode.remove] lists only [presentTags] (the tags currently on the
-///   selected dances); the returned set is subtracted from every selected
-///   dance.
+/// - [BatchTagMode.remove] lists only the [tags] whose ids are in
+///   `presentTagIds` (the tags currently on the selected dances); the returned
+///   set is subtracted from every selected dance.
 ///
 /// Returns the chosen tag ids, or `null` if the user cancelled. Selection uses
 /// [CheckboxListTile] so state is exposed to assistive tech (checkbox role +

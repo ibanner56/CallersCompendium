@@ -19,5 +19,5 @@ import 'package:compendium_app/l10n/app_localizations.dart';
 const List<LocalizationsDelegate<dynamic>> testLocalizationsDelegates =
     AppLocalizations.localizationsDelegates;
 
-/// The locales the app ships translations for (English only, for now).
+/// The locales the app ships translations for (the six shipped locales).
 const List<Locale> testSupportedLocales = AppLocalizations.supportedLocales;

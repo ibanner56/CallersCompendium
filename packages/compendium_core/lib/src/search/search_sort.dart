@@ -22,8 +22,7 @@ enum SearchSort {
   author,
 
   /// Most recently added first (`created_at DESC`, ties by title). This is the
-  /// Collection's "recently added" order (`docs/design/ux.md` §1) and the SQL
-  /// analogue of the Phase 3.1 `DanceSort.recentlyAdded`.
+  /// Collection's "recently added" order (`docs/design/ux.md` §1).
   recentlyAdded,
 
   /// Most recently edited first (`updated_at DESC`, ties by title).
