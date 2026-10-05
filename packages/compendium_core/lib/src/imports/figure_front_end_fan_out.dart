@@ -166,12 +166,16 @@ Figure _demotedCustom(String rawText, int beats, bool progression) =>
 bool _noteIsLeftover(String note, Set<String> moveNames) {
   var n = note.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
   n = n.replaceAll(RegExp(r'^[\s,.;:!-]+|[\s,.;:!-]+$'), '');
+  // Checked before the leading "and"/"then" is stripped: "and back" is the
+  // leftover the rule targets, but a bare "back" ("ladies chain back") is the
+  // ordinary phrasing for the return chain and must keep the structured parse.
+  if (_andBackNote.hasMatch(n)) return true;
   n = n.replaceFirst(RegExp(r'^(and|then) '), '');
   if (n.isEmpty) return false;
-  return RegExp(r'^(over )?(and )?back$').hasMatch(n) ||
-      RegExp(r'^\d+$').hasMatch(n) ||
-      moveNames.contains(n);
+  return RegExp(r'^\d+$').hasMatch(n) || moveNames.contains(n);
 }
+
+final RegExp _andBackNote = RegExp(r'^(over )?and back$');
 
 /// The lowercase move names of [taxonomy]: display names, ids spelled with
 /// spaces, and search keywords.
