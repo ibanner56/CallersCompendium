@@ -644,6 +644,46 @@
   "@syncConflictFieldName": {
     "x-sourceSha256": "dcd1d5223f73b3a965c07e3ff5dbee3eedcfedb806686a05b9b3868a2c3d6d50"
   },
+  "syncConflictCombineBoth": "両方を統合",
+  "@syncConflictCombineBoth": {
+    "x-sourceSha256": "8017d383bfbdc52bb9f107f52e10ab4b2dac54983175f7e9e0c6eabad7f1155e"
+  },
+  "syncConflictCombineSummary": "{count, plural, other{両方のデバイスの{count}件をすべて残します}}",
+  "@syncConflictCombineSummary": {
+    "x-sourceSha256": "2208c32919b0b421c5b90c75d4a54c3de99a5e199ec5f64be5eef78c24b9d142"
+  },
+  "syncConflictCombineOverLimit": "統合できません：合計{count}件になりますが、このリストには最大{limit}件までしか保存できません。",
+  "@syncConflictCombineOverLimit": {
+    "x-sourceSha256": "8fe3d554da71b26402ff9d3913a93ad8a8ee092586fafb6ef027a6cccafe79b0"
+  },
+  "syncConflictCombinePickEach": "両方のデバイスでこれらが変更されています。それぞれ残すものを選んでください：",
+  "@syncConflictCombinePickEach": {
+    "x-sourceSha256": "2f2aabf8a65c0af3f835767a0f4234ec51a15e0584413fe746ba87e9a605d299"
+  },
+  "syncConflictCombineUnavailable": "これらは統合できないため、何も変更されていません。",
+  "@syncConflictCombineUnavailable": {
+    "x-sourceSha256": "c9b1bf15e8e01d03075aafa3dfc84559be3d097991f9333c2d6b3c1ca52fde34"
+  },
+  "syncConflictCombineOverLimitError": "合計するとこのリストに保存できる件数を超えるため、何も変更されていません。",
+  "@syncConflictCombineOverLimitError": {
+    "x-sourceSha256": "db88271a77fc1dec70c5d8beb99cb99710a3b132bf1af43a077784175716650e"
+  },
+  "syncConflictSaved": "選択を保存しました。",
+  "@syncConflictSaved": {
+    "x-sourceSha256": "0807e986007d5e9d684dddd2d8e8a1daa8b9eaca4e021361713fa8ae1310c6ff"
+  },
+  "syncConflictUndo": "元に戻す",
+  "@syncConflictUndo": {
+    "x-sourceSha256": "a8283ade31856f71220db0e6f60a257c6889dc4dad0f275f66ad44b9ed9bf8d5"
+  },
+  "syncConflictReconsiderIntro": "以前のバージョンからもう一度選んでください。保存するまで何も変わりません。",
+  "@syncConflictReconsiderIntro": {
+    "x-sourceSha256": "2df0aed512050fc5fce295cc644d828502dba52e9830bc5f854b11fb85324a1f"
+  },
+  "syncConflictUndoChanged": "選択した後に新しい変更が届いたため、何も変更されていません。",
+  "@syncConflictUndoChanged": {
+    "x-sourceSha256": "f67b95c5117c22c183cf37f66d2a3fdfbf574157d9fa7efdbf60314b632db5eb"
+  },
   "syncConflictFieldColour": "色",
   "@syncConflictFieldColour": {
     "x-sourceSha256": "3a9dfa58df63e0dda962a147a6cea86cc5294a5e859d89ddfa8e74a977fedf5d"

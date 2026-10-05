@@ -27,12 +27,50 @@ const double kSyncConflictDialogBreakpoint = 600;
 /// closes. Callers must not open it over Perform or an unsaved editor; the
 /// surfaces that do open it — the Collection and Programs toolbars and Device
 /// Sync settings — are neither.
-Future<void> showSyncConflictSheet(BuildContext context) {
+///
+/// With [reconsider], it offers choices already made again — the undo of a
+/// choice — between the versions they were made between, held in memory.
+/// Whenever choices are saved, a snackbar offers to undo them once the sheet
+/// has closed.
+Future<void> showSyncConflictSheet(
+  BuildContext context, {
+  List<SyncConflictReconsideration>? reconsider,
+}) async {
   final repositories = RepositoriesScope.of(context);
   final lifecycle = SyncWriterLifecycleScope.maybeOf(context);
   final resolver = SyncReviewQueueResolver(CompendiumSyncStorage(repositories));
-  Widget body(BuildContext _) =>
-      SyncConflictChoice(resolver: resolver, lifecycle: lifecycle);
+  final saved = <SyncConflictReconsideration>[];
+  Widget body(BuildContext _) => SyncConflictChoice(
+    resolver: resolver,
+    lifecycle: lifecycle,
+    reconsider: reconsider,
+    onSaved: saved.addAll,
+  );
+  await _presentSyncConflictChoice(context, body);
+  if (saved.isEmpty || !context.mounted) return;
+  final l10n = AppLocalizations.of(context);
+  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+    SnackBar(
+      key: const ValueKey('sync-conflict-saved'),
+      content: Text(l10n.syncConflictSaved),
+      duration: const Duration(seconds: 10),
+      action: SnackBarAction(
+        key: const ValueKey('sync-conflict-undo'),
+        label: l10n.syncConflictUndo,
+        onPressed: () {
+          if (context.mounted) {
+            showSyncConflictSheet(context, reconsider: List.of(saved));
+          }
+        },
+      ),
+    ),
+  );
+}
+
+Future<void> _presentSyncConflictChoice(
+  BuildContext context,
+  Widget Function(BuildContext) body,
+) {
   if (MediaQuery.sizeOf(context).width >= kSyncConflictDialogBreakpoint) {
     return showDialog<void>(
       context: context,
@@ -68,9 +106,17 @@ class SyncConflictChoice extends StatefulWidget {
     super.key,
     required this.resolver,
     required this.lifecycle,
+    this.reconsider,
+    this.onSaved,
   });
 
   final SyncReviewQueueResolver resolver;
+
+  /// Choices already made, offered again; null for the queued conflicts.
+  final List<SyncConflictReconsideration>? reconsider;
+
+  /// Told how to reconsider every batch of choices saved here.
+  final void Function(List<SyncConflictReconsideration>)? onSaved;
 
   /// Serialises the write with sync, and reloads preferences when a setting
   /// was chosen. Null in focused tests, which then write directly.
@@ -80,11 +126,26 @@ class SyncConflictChoice extends StatefulWidget {
   State<SyncConflictChoice> createState() => _SyncConflictChoiceState();
 }
 
-/// Which version of one record the user has picked: null for this device's.
-typedef _Choice = ({bool picked, String? candidateHash});
+/// What the user has picked for one record: a version (null for this
+/// device's), or to combine both — with, for each entry both devices changed,
+/// whether to take the other device's version.
+typedef _Choice = ({
+  bool picked,
+  String? candidateHash,
+  bool combine,
+  Map<String, bool> takeOther,
+});
 
 class _SyncConflictChoiceState extends State<SyncConflictChoice> {
   List<SyncConflictGroup>? _groups;
+
+  /// The choices still to reconsider, by record, in reconsider mode.
+  late final Map<(SyncRecordKind, String), SyncConflictReconsideration>
+  _remembered = {
+    for (final earlier
+        in widget.reconsider ?? const <SyncConflictReconsideration>[])
+      (earlier.kind, earlier.recordId): earlier,
+  };
   SyncConflictLookups _lookups = const SyncConflictLookups();
   final Map<(SyncRecordKind, String), _Choice> _choices = {};
   String? _error;
@@ -98,7 +159,12 @@ class _SyncConflictChoiceState extends State<SyncConflictChoice> {
 
   Future<void> _load() async {
     try {
-      final groups = await widget.resolver.listConflicts();
+      final groups = widget.reconsider == null
+          ? await widget.resolver.listConflicts()
+          : [
+              for (final earlier in _remembered.values)
+                syncConflictGroupFor(earlier),
+            ];
       // Names for what records refer to, only when a record (not just a
       // setting) is in conflict.
       final lookups = groups.any((g) => g.kind != SyncRecordKind.setting)
@@ -122,8 +188,50 @@ class _SyncConflictChoiceState extends State<SyncConflictChoice> {
     () => _choices[(group.kind, group.recordId)] = (
       picked: true,
       candidateHash: candidateHash,
+      combine: false,
+      takeOther: const {},
     ),
   );
+
+  void _chooseCombine(SyncConflictGroup group) => setState(
+    () => _choices[(group.kind, group.recordId)] = (
+      picked: true,
+      candidateHash: null,
+      combine: true,
+      takeOther: const {},
+    ),
+  );
+
+  void _pickEntry(SyncConflictGroup group, String key, bool takeOther) {
+    final current = _choices[(group.kind, group.recordId)];
+    if (current == null || !current.combine) return;
+    setState(
+      () => _choices[(group.kind, group.recordId)] = (
+        picked: true,
+        candidateHash: null,
+        combine: true,
+        takeOther: {...current.takeOther, key: takeOther},
+      ),
+    );
+  }
+
+  /// Whether every pick is complete: a combination needs a choice for each
+  /// entry both devices changed.
+  bool get _picksComplete {
+    for (final group in _groups ?? const <SyncConflictGroup>[]) {
+      final choice = _choices[(group.kind, group.recordId)];
+      if (choice == null || !choice.picked || !choice.combine) continue;
+      final diff = compareSyncCollection(
+        group.recordId,
+        group.localBody?['value'],
+        group.candidates.single.candidate?.body['value'],
+      );
+      for (final pair in diff?.changed ?? const []) {
+        if (!choice.takeOther.containsKey(pair.local.key)) return false;
+      }
+    }
+    return true;
+  }
 
   void _chooseAll({required bool thisDevice}) => setState(() {
     for (final group in _groups ?? const <SyncConflictGroup>[]) {
@@ -136,28 +244,56 @@ class _SyncConflictChoiceState extends State<SyncConflictChoice> {
   });
 
   Future<void> _apply() async {
-    final decisions = [
+    final picks = [
       for (final entry in _choices.entries)
-        if (entry.value.picked)
-          SyncConflictDecision(
-            kind: entry.key.$1,
-            recordId: entry.key.$2,
-            keepCandidateHash: entry.value.candidateHash,
-          ),
+        if (entry.value.picked) entry,
     ];
-    if (decisions.isEmpty) return;
+    if (picks.isEmpty || !_picksComplete) return;
+    Set<String>? combineTaking(_Choice choice) => choice.combine
+        ? {
+            for (final e in choice.takeOther.entries)
+              if (e.value) e.key,
+          }
+        : null;
+    final reconsidering = widget.reconsider != null;
     final l10n = AppLocalizations.of(context);
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      Future<Set<SyncRecordKind>> write() =>
-          widget.resolver.resolveConflicts(decisions);
+      Future<SyncConflictResolution> write() => reconsidering
+          ? widget.resolver.reconsiderConflicts([
+              for (final pick in picks)
+                SyncConflictRechoice(
+                  reconsideration: _remembered[pick.key]!,
+                  keepVersionHash: pick.value.combine
+                      ? null
+                      : pick.value.candidateHash,
+                  combineTakingOther: combineTaking(pick.value),
+                ),
+            ])
+          : widget.resolver.resolveConflicts([
+              for (final pick in picks)
+                SyncConflictDecision(
+                  kind: pick.key.$1,
+                  recordId: pick.key.$2,
+                  keepCandidateHash: pick.value.combine
+                      ? null
+                      : pick.value.candidateHash,
+                  combineTakingOther: combineTaking(pick.value),
+                ),
+            ]);
       final runWrite = widget.lifecycle?.runWrite;
-      final kinds = runWrite == null ? await write() : await runWrite(write);
-      if (kinds.contains(SyncRecordKind.setting)) {
+      final resolution = runWrite == null
+          ? await write()
+          : await runWrite(write);
+      widget.onSaved?.call(resolution.reconsiderations);
+      if (resolution.kinds.contains(SyncRecordKind.setting)) {
         await widget.lifecycle?.onRestored?.call();
+      }
+      for (final pick in picks) {
+        _remembered.remove(pick.key);
       }
       _choices.clear();
       await _load();
@@ -166,9 +302,15 @@ class _SyncConflictChoiceState extends State<SyncConflictChoice> {
       logCaughtError(error, stackTrace, source: 'sync_conflict_sheet._apply');
       if (!mounted) return;
       setState(
-        () => _error = error.code == SyncReviewFailureCode.clockOutOfRange
-            ? l10n.syncConflictClockWrong
-            : l10n.syncReviewCandidateChanged,
+        () => _error = switch (error.code) {
+          SyncReviewFailureCode.clockOutOfRange => l10n.syncConflictClockWrong,
+          SyncReviewFailureCode.combineOverLimit =>
+            l10n.syncConflictCombineOverLimitError,
+          SyncReviewFailureCode.combineUnavailable =>
+            l10n.syncConflictCombineUnavailable,
+          _ when reconsidering => l10n.syncConflictUndoChanged,
+          _ => l10n.syncReviewCandidateChanged,
+        },
       );
       await _load();
     } on Object catch (error, stackTrace) {
@@ -184,7 +326,8 @@ class _SyncConflictChoiceState extends State<SyncConflictChoice> {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final groups = _groups;
-    final anyPicked = _choices.values.any((choice) => choice.picked);
+    final anyPicked =
+        _choices.values.any((choice) => choice.picked) && _picksComplete;
     final everyGroupHasOneOther =
         groups != null &&
         groups.isNotEmpty &&
@@ -209,7 +352,11 @@ class _SyncConflictChoiceState extends State<SyncConflictChoice> {
                 semanticsLabel: l10n.syncConflictTitle,
               ),
               const SizedBox(height: AppSpacing.xs),
-              Text(l10n.syncConflictIntro),
+              Text(
+                widget.reconsider == null
+                    ? l10n.syncConflictIntro
+                    : l10n.syncConflictReconsiderIntro,
+              ),
             ],
           ),
         ),
@@ -243,6 +390,10 @@ class _SyncConflictChoiceState extends State<SyncConflictChoice> {
                     expanded: groups.length == 1,
                     choice: _choices[(group.kind, group.recordId)],
                     onChoose: _busy ? null : (hash) => _choose(group, hash),
+                    onCombine: _busy ? null : () => _chooseCombine(group),
+                    onPickEntry: _busy
+                        ? null
+                        : (key, takeOther) => _pickEntry(group, key, takeOther),
                   ),
               ],
             ),
@@ -312,12 +463,19 @@ class _ConflictGroupTile extends StatelessWidget {
     required this.expanded,
     required this.choice,
     required this.onChoose,
+    required this.onCombine,
+    required this.onPickEntry,
   });
 
   final SyncConflictGroup group;
   final SyncConflictLookups lookups;
   final bool expanded;
   final _Choice? choice;
+  final VoidCallback? onCombine;
+
+  /// Called with an entry both devices changed, and whether to take the
+  /// other device's version of it in the combination.
+  final void Function(String key, bool takeOther)? onPickEntry;
 
   /// Called with the chosen candidate's hash, or null for this device's.
   final void Function(String? candidateHash)? onChoose;
@@ -328,9 +486,31 @@ class _ConflictGroupTile extends StatelessWidget {
     final theme = Theme.of(context);
     final local = group.localBody;
     // Nothing is preselected: a choice is only ever the user's.
-    final selected = choice?.picked == true
-        ? (choice!.candidateHash ?? _thisDevice)
+    final picked = choice?.picked == true ? choice : null;
+    final selected = picked == null
+        ? null
+        : picked.combine
+        ? _combineBoth
+        : (picked.candidateHash ?? _thisDevice);
+    // Combine both is offered for a whole-collection setting with two
+    // versions to combine.
+    final combinable =
+        group.kind == SyncRecordKind.setting &&
+        syncWholeCollectionSettingKeys.contains(group.recordId) &&
+        group.candidates.length == 1 &&
+        local != null;
+    final otherValue = group.candidates.first.candidate?.body['value'];
+    final combination = combinable
+        ? combineSyncCollection(group.recordId, local['value'], otherValue)
         : null;
+    final changedEntries = combinable
+        ? compareSyncCollection(
+                group.recordId,
+                local['value'],
+                otherValue,
+              )?.changed ??
+              const []
+        : const <({SyncCollectionEntry local, SyncCollectionEntry other})>[];
     final numbered = group.candidates.length > 1;
     final summaries = {
       for (final item in group.candidates)
@@ -356,8 +536,12 @@ class _ConflictGroupTile extends StatelessWidget {
         child: RadioGroup<String>(
           groupValue: selected,
           onChanged: (value) {
-            if (value == null || onChoose == null) return;
-            onChoose!(value == _thisDevice ? null : value);
+            if (value == null) return;
+            if (value == _combineBoth) {
+              onCombine?.call();
+              return;
+            }
+            onChoose?.call(value == _thisDevice ? null : value);
           },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -403,6 +587,76 @@ class _ConflictGroupTile extends StatelessWidget {
                       _versionText(l10n, item.candidate?.body),
                       item.candidate?.updatedAt,
                     ),
+                  ),
+                ),
+              if (combination != null)
+                RadioListTile<String>(
+                  key: ValueKey(
+                    'sync-conflict-option-${group.recordId}-combine',
+                  ),
+                  value: _combineBoth,
+                  enabled: onCombine != null && !combination.overLimit,
+                  title: Text(l10n.syncConflictCombineBoth),
+                  subtitle: Text(
+                    combination.overLimit
+                        ? l10n.syncConflictCombineOverLimit(
+                            combination.count,
+                            combination.limit!,
+                          )
+                        : l10n.syncConflictCombineSummary(combination.count),
+                  ),
+                ),
+              if (choice?.combine == true && changedEntries.isNotEmpty)
+                Padding(
+                  key: ValueKey('sync-conflict-pick-each-${group.recordId}'),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.syncConflictCombinePickEach,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      for (final pair in changedEntries)
+                        Padding(
+                          padding: const EdgeInsets.only(top: AppSpacing.xs),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(_entryLabel(pair.local)),
+                              SegmentedButton<bool>(
+                                key: ValueKey(
+                                  'sync-conflict-entry-${pair.local.key}',
+                                ),
+                                emptySelectionAllowed: true,
+                                showSelectedIcon: false,
+                                segments: [
+                                  ButtonSegment(
+                                    value: false,
+                                    label: Text(l10n.syncConflictThisDevice),
+                                  ),
+                                  ButtonSegment(
+                                    value: true,
+                                    label: Text(l10n.syncConflictOtherDevice),
+                                  ),
+                                ],
+                                selected: {?choice?.takeOther[pair.local.key]},
+                                onSelectionChanged: onPickEntry == null
+                                    ? null
+                                    : (picked) {
+                                        if (picked.isEmpty) return;
+                                        onPickEntry!(
+                                          pair.local.key,
+                                          picked.first,
+                                        );
+                                      },
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               if (expanded)
@@ -481,6 +735,16 @@ class _ConflictGroupTile extends StatelessWidget {
   /// The radio value for this device's version. Candidate values are wire
   /// hashes, which this can never equal.
   static const String _thisDevice = 'this-device';
+
+  /// The radio value for combining both versions.
+  static const String _combineBoth = 'combine-both';
+
+  /// What a collection entry is known by: its name, or for a walkthrough
+  /// snippet (which has none) its text.
+  static String _entryLabel(SyncCollectionEntry entry) {
+    final value = entry.value;
+    return entry.label ?? (value is String ? value : entry.key);
+  }
 
   String _recordTitle(AppLocalizations l10n) {
     if (group.kind == SyncRecordKind.setting) {

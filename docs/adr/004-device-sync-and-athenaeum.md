@@ -1481,6 +1481,16 @@ makes self-hosting materially harder, which constraint 4 forbids.
   > long-established devices is exactly the case that would lose work. What
   > remains accepted is that the choice is between whole sets: the user
   > keeps one device's dialects, say, not a merge of both.
+  >
+  > **Amended 2026-10-05.** That remaining limitation is withdrawn
+  > (@ibanner56's ruling): the user may also **combine both**, keeping every
+  > entry from each device's set and choosing a version only of entries both
+  > changed (spec §6.6, *Conflict choices*). A combination longer than the
+  > library keeps is refused rather than truncated. Any choice can also be
+  > undone by reconsidering it between the same earlier versions, held in
+  > memory only; because a written choice is already the newest version
+  > everywhere, undo cannot restore "undecided", so it reopens the choice and
+  > writes only when the user chooses again.
 - **Re-attaching to the same store can leave the previous attachment behind
   as an inactive device.** Because each attachment has its own device ID, an
   old manifest left on the server stays under the old identifier. It shows

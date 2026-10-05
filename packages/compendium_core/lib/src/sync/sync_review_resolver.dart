@@ -1,3 +1,6 @@
+import '../storage/database.dart' show ReviewQueueRow;
+import 'canonical_json.dart' show sha256Hex;
+import 'sync_codec.dart';
 import 'sync_record_kind.dart';
 import 'wire_mapping.dart' show projectShareableRecordBody;
 import 'sync_review.dart';
@@ -121,9 +124,46 @@ final class SyncReviewQueueResolver {
     newNaturalKey: newNaturalKey,
   );
 
-  /// Applies the user's conflict choices, all or none, and returns the kinds
-  /// written (see [CompendiumSyncStorage.resolveConflicts]).
-  Future<Set<SyncRecordKind>> resolveConflicts(
+  /// Applies the user's conflict choices, all or none (see
+  /// [CompendiumSyncStorage.resolveConflicts]).
+  Future<SyncConflictResolution> resolveConflicts(
     Iterable<SyncConflictDecision> decisions,
   ) => storage.resolveConflicts(decisions);
+
+  /// Makes a new choice for records already decided — the undo of a choice
+  /// (see [CompendiumSyncStorage.reconsiderConflicts]).
+  Future<SyncConflictResolution> reconsiderConflicts(
+    Iterable<SyncConflictRechoice> rechoices,
+  ) => storage.reconsiderConflicts(rechoices);
+}
+
+/// The conflict group a remembered choice is reconsidered from: this device's
+/// version before the choice and the other versions it was made between,
+/// shaped like a queued conflict so the same choice can show it.
+///
+/// Built in memory; nothing is queued. Each other version is identified by
+/// its wire hash, as a queued one is.
+SyncConflictGroup syncConflictGroupFor(SyncConflictReconsideration earlier) {
+  final before = earlier.before;
+  return SyncConflictGroup(
+    kind: earlier.kind,
+    recordId: earlier.recordId,
+    localBody: before?.body,
+    localUpdatedAt: before?.updatedAt,
+    candidates: [
+      for (final blob in earlier.offered)
+        SyncReviewQueueItem.fromRow(
+          ReviewQueueRow(
+            kind: earlier.kind,
+            recordId: earlier.recordId,
+            counterpartId: sha256Hex(encodeSyncRecordBlobUtf8(blob)),
+            reason: syncConflictChoiceReason,
+            candidateBlob: encodeSyncRecordBlob(blob),
+            candidateHash: sha256Hex(encodeSyncRecordBlobUtf8(blob)),
+            localHash: earlier.writtenWireHash,
+            queuedAt: earlier.writtenAt,
+          ),
+        ),
+    ],
+  );
 }

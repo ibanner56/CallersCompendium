@@ -692,6 +692,51 @@ class AppLocalizationsFr extends AppLocalizations {
   String get syncConflictFieldName => 'Nom';
 
   @override
+  String get syncConflictCombineBoth => 'Combiner les deux';
+
+  @override
+  String syncConflictCombineSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Conserve les $count éléments des deux appareils',
+      one: 'Conserve l’élément des deux appareils',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictCombineOverLimit(int count, int limit) {
+    return 'Combinaison impossible : ensemble, cela ferait $count, et cette liste en contient au plus $limit.';
+  }
+
+  @override
+  String get syncConflictCombinePickEach =>
+      'Les deux appareils ont modifié ceux-ci. Pour chacun, choisissez la version à conserver :';
+
+  @override
+  String get syncConflictCombineUnavailable =>
+      'Ces éléments ne peuvent pas être combinés ; rien n’a été modifié.';
+
+  @override
+  String get syncConflictCombineOverLimitError =>
+      'Ensemble, cela dépasserait ce que cette liste peut contenir ; rien n’a été modifié.';
+
+  @override
+  String get syncConflictSaved => 'Vos choix sont enregistrés.';
+
+  @override
+  String get syncConflictUndo => 'Annuler';
+
+  @override
+  String get syncConflictReconsiderIntro =>
+      'Choisissez à nouveau entre les versions que vous aviez. Rien ne change tant que vous n’enregistrez pas.';
+
+  @override
+  String get syncConflictUndoChanged =>
+      'Une version plus récente est arrivée après votre choix ; rien n’a été modifié.';
+
+  @override
   String get syncConflictFieldColour => 'Couleur';
 
   @override

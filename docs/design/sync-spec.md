@@ -2516,16 +2516,18 @@ both:
 > advance its `updatedAt`.
 
 > **I2.** No write may advance `updatedAt` while leaving both `body` and the
-> record's existence state unchanged — except a conflict choice that keeps
-> this device's version (§6.6, *Conflict choices*).
+> record's existence state unchanged — except a conflict choice, or a
+> reconsideration of one, that keeps a version whose body this device already
+> holds (§6.6, *Conflict choices*).
 
 I1 protects the merge discriminator; a record's serialised form includes fields
 hydrated from other tables, so a write that never touches the record's own row
 can still change what it publishes. I2 protects the repair classifier in §6.9,
 which compares body hashes: a metadata-only re-stamp would be invisible to it.
 
-I2's one exception is the user keeping their own version in a conflict choice.
-The body is unchanged by definition, and the re-stamp is the only thing that
+I2's one exception is the user keeping a version this device already holds —
+their own in a conflict choice, or, when reconsidering a choice, the version
+the first choice already wrote. The body is unchanged by definition, and the re-stamp is the only thing that
 lets it reach the other devices as a newer edit. It does not weaken what I2
 protects: the stamp is computed from the versions on offer and the local clock,
 and a decision that would land outside the clock window is refused rather than
@@ -2904,6 +2906,32 @@ next pass. If two devices decide before either syncs, the later decision wins,
 by the same last-writer-wins — unless both decisions land in the same stored
 tick with different bodies, which is itself an equal-`updatedAt` tie and is
 queued again.
+
+**Combine both** (amended 2026-10-05, @ibanner56's ruling). For a
+whole-collection setting with exactly two versions on offer, the user may
+combine them instead of keeping one: every entry either version holds, in this
+device's order and then the other's, matched as each library identifies its
+entries (a dialect by name, a theme by id, a shorthand by its normalized token,
+a snippet by its figure signature). Snippet libraries are first read as the
+library loads them, so a version saved under an older signature scheme is
+migrated to the current one before matching, and the combination is written at
+the current scheme; the alternatives either library retained for a signature
+are all kept. Where both hold an entry with different contents, the user
+chooses that entry's version; none is preselected. The combined value is
+written exactly as a kept version is. A combination holding
+more entries than its library keeps (128 dialects, 500 shorthands, 2000
+snippets) MUST be refused rather than written, because loading it would drop
+entries without a word.
+
+**Undo** (amended 2026-10-05, @ibanner56's ruling). Once written, a choice is
+the newest version everywhere, so the record cannot be returned to undecided:
+the next pass on any device raises no conflict. Undo instead reconsiders the
+choice: it offers again the versions the choice was made between — held in
+memory by the client, never queued or stored — and writes nothing until the
+user chooses again. The new choice is written as any choice is, stamped one tick
+past the first choice too, so it supersedes it on every device. It MUST be
+refused, writing nothing, when this device's copy is no longer what the first
+choice wrote: something newer has arrived, and undoing would overwrite it.
 
 ### 6.7 Apply
 

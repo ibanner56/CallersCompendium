@@ -831,8 +831,19 @@ either has synced, the later choice wins — unless you made different choices
 in the same second, in which case you're asked again.
 
 Your dialects, custom themes, figure shorthands and walkthrough snippets are
-each one whole set, so if both devices changed them you choose one device's
-set — the app can't combine the two.
+each one whole set. If both devices changed one, you can keep either device's
+set, or choose **Combine both** to keep everything from both. If both devices
+have the same item — the same dialect, say — but changed it differently, the
+app asks you which version of that item to keep before it saves. **Combine
+both** isn't offered when the combined list would be longer than the app keeps
+(128 dialects, 500 shorthands or 2,000 snippets); it says so instead.
+
+**Changing your mind.** After you save your choices, a message offers **Undo**
+for a few seconds. It reopens the items you just decided with the versions you
+chose between, and nothing changes until you choose again and save — closing it
+leaves your earlier choice in place. If something newer has arrived from
+another device in the meantime, Undo tells you so and leaves things as they
+are.
 
 #### Sync decisions
 

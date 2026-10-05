@@ -169,6 +169,10 @@ class _SyncReviewScreenState extends State<SyncReviewScreen> {
       l10n.syncReviewCounterpartDeleted,
     // Raised only by a conflict choice, which this screen does not list.
     SyncReviewFailureCode.clockOutOfRange => l10n.syncConflictClockWrong,
+    SyncReviewFailureCode.combineUnavailable =>
+      l10n.syncConflictCombineUnavailable,
+    SyncReviewFailureCode.combineOverLimit =>
+      l10n.syncConflictCombineOverLimitError,
   };
 
   /// The explanation shown on an actionable row.

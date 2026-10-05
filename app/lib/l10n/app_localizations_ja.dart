@@ -652,6 +652,48 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncConflictFieldName => '名前';
 
   @override
+  String get syncConflictCombineBoth => '両方を統合';
+
+  @override
+  String syncConflictCombineSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '両方のデバイスの$count件をすべて残します',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictCombineOverLimit(int count, int limit) {
+    return '統合できません：合計$count件になりますが、このリストには最大$limit件までしか保存できません。';
+  }
+
+  @override
+  String get syncConflictCombinePickEach =>
+      '両方のデバイスでこれらが変更されています。それぞれ残すものを選んでください：';
+
+  @override
+  String get syncConflictCombineUnavailable => 'これらは統合できないため、何も変更されていません。';
+
+  @override
+  String get syncConflictCombineOverLimitError =>
+      '合計するとこのリストに保存できる件数を超えるため、何も変更されていません。';
+
+  @override
+  String get syncConflictSaved => '選択を保存しました。';
+
+  @override
+  String get syncConflictUndo => '元に戻す';
+
+  @override
+  String get syncConflictReconsiderIntro =>
+      '以前のバージョンからもう一度選んでください。保存するまで何も変わりません。';
+
+  @override
+  String get syncConflictUndoChanged => '選択した後に新しい変更が届いたため、何も変更されていません。';
+
+  @override
   String get syncConflictFieldColour => '色';
 
   @override
