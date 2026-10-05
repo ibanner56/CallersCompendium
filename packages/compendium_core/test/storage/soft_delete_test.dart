@@ -1023,4 +1023,50 @@ void main() {
       expect(await repos.programs.getById('p1'), isNotNull);
     });
   });
+
+  group('a soft-deleted dance credited to a soft-deleted choreographer', () {
+    setUp(() async {
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Author'),
+        at: t0,
+      );
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Gone',
+          authorIds: const ['c1'],
+          figures: [
+            Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
+          ],
+          status: DanceStatus.active,
+          createdAt: t0,
+          updatedAt: t0,
+        ),
+      );
+      final at = t0.add(const Duration(minutes: 1));
+      await repos.dances.softDelete('d1', at: at);
+      await repos.choreographers.delete('c1', at: at);
+    });
+
+    test('hides the deleted author by default (issue #1648)', () async {
+      final dance = await repos.dances.getById('d1', includeDeleted: true);
+      expect(dance!.authorIds, isEmpty);
+    });
+
+    test('keeps it with includeDeletedAuthors', () async {
+      final dance = await repos.dances.getById(
+        'd1',
+        includeDeleted: true,
+        includeDeletedAuthors: true,
+      );
+      expect(dance!.authorIds, ['c1']);
+      expect(
+        (await repos.choreographers.listAll(
+          includeDeleted: true,
+        )).map((c) => c.name),
+        ['Author'],
+      );
+    });
+  });
 }

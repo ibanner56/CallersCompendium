@@ -1345,13 +1345,29 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   }
 }
 
-/// Soft-deleted dances behind [program]'s slots, keyed by id, for
-/// [PerformProgramScreen.danceOverrides]. [CollectionData] excludes deleted
-/// dances, so without this a slot whose dance sits in Recently deleted would
-/// lose its figures mid-program. Ids already in [data] are not duplicated, and
-/// purged ids are absent from the result.
-Future<Map<String, Dance>> resolveDeletedSlotDances(
+/// What [resolveDeletedSlotDances] resolved for Perform's override parameters.
+class DeletedSlotDances {
+  const DeletedSlotDances({required this.dances, required this.authorNames});
+
+  /// For [PerformProgramScreen.danceOverrides].
+  final Map<String, Dance> dances;
+
+  /// For [PerformProgramScreen.authorNameOverrides]: names of the authors of
+  /// [dances], including choreographers that are soft-deleted themselves.
+  final Map<String, String> authorNames;
+}
+
+/// Soft-deleted dances behind [program]'s slots, keyed by id, with the names of
+/// their authors, for [PerformProgramScreen.danceOverrides] and
+/// [PerformProgramScreen.authorNameOverrides]. [CollectionData] excludes
+/// deleted dances, so without this a slot whose dance sits in Recently deleted
+/// would lose its figures mid-program; and it excludes deleted choreographers,
+/// so a deleted dance's deleted author would lose their credit line. Ids
+/// already in [data] are not duplicated, and purged ids are absent from the
+/// result. Authors already named by [data] are left to it.
+Future<DeletedSlotDances> resolveDeletedSlotDances(
   DanceRepository dances,
+  ChoreographerRepository choreographers,
   Program program,
   CollectionData data,
 ) async {
@@ -1361,8 +1377,23 @@ Future<Map<String, Dance>> resolveDeletedSlotDances(
     final id = slot.danceId;
     if (id == null || data.dancesById.containsKey(id)) continue;
     if (!attempted.add(id)) continue;
-    final dance = await dances.getById(id, includeDeleted: true);
+    final dance = await dances.getById(
+      id,
+      includeDeleted: true,
+      includeDeletedAuthors: true,
+    );
     if (dance != null) resolved[id] = dance;
   }
-  return resolved;
+  final authorNames = <String, String>{};
+  final missingAuthors = {
+    for (final dance in resolved.values)
+      for (final id in dance.authorIds)
+        if (!data.choreographerNames.containsKey(id)) id,
+  };
+  if (missingAuthors.isNotEmpty) {
+    for (final c in await choreographers.listAll(includeDeleted: true)) {
+      if (missingAuthors.contains(c.id)) authorNames[c.id] = c.name;
+    }
+  }
+  return DeletedSlotDances(dances: resolved, authorNames: authorNames);
 }

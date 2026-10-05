@@ -1299,7 +1299,15 @@ class DanceRepository {
     }
   }
 
-  Future<Dance?> getById(String id, {bool includeDeleted = false}) async {
+  /// [includeDeletedAuthors] keeps soft-deleted choreographers in the returned
+  /// `authorIds`, which every other read hides (see [_authorsForMany]). Off by
+  /// default; it exists for the one reader that shows a soft-deleted dance with
+  /// its credit line (Perform, issue #1648) and resolves the names itself.
+  Future<Dance?> getById(
+    String id, {
+    bool includeDeleted = false,
+    bool includeDeletedAuthors = false,
+  }) async {
     final row =
         await (_db.select(_db.dances)..where(
               (t) =>
@@ -1310,7 +1318,7 @@ class DanceRepository {
             ))
             .getSingleOrNull();
     if (row == null) return null;
-    return _toModel(row);
+    return _toModel(row, includeDeletedAuthors: includeDeletedAuthors);
   }
 
   /// Returns the soft-delete state for [id] without hydrating child
@@ -2676,12 +2684,17 @@ class DanceRepository {
     return ids.toList();
   }
 
-  Future<Dance> _toModel(DanceRow row) async {
+  Future<Dance> _toModel(
+    DanceRow row, {
+    bool includeDeletedAuthors = false,
+  }) async {
     // Single-dance hydration reuses the same batched child loaders as
     // [listAll] (each becomes a one-`id` `IN (…)` query), so the two paths
     // stay byte-for-byte consistent in field ordering and decoding.
     final id = row.id;
-    final authors = await _authorsForMany([id]);
+    final authors = await _authorsForMany([
+      id,
+    ], includeDeletedChoreographers: includeDeletedAuthors);
     final tags = await _tagsForMany([id]);
     final links = await _linksForMany([id]);
     final sources = await _sourcesForMany([id]);
@@ -2829,7 +2842,13 @@ class DanceRepository {
   }
 
   /// First-author-first `dance_id → [choreographerId]` in position order.
-  Future<Map<String, List<String>>> _authorsForMany(List<String> ids) async {
+  ///
+  /// Soft-deleted choreographers are skipped unless
+  /// [includeDeletedChoreographers] (only [getById]'s opt-in sets it).
+  Future<Map<String, List<String>>> _authorsForMany(
+    List<String> ids, {
+    bool includeDeletedChoreographers = false,
+  }) async {
     if (ids.isEmpty) return const {};
     final byDance = <String, List<String>>{};
     for (final chunk in _chunkIds(ids)) {
@@ -2842,7 +2861,9 @@ class DanceRepository {
                   _db.choreographers.id.equalsExp(
                         _db.danceAuthors.choreographerId,
                       ) &
-                      _db.choreographers.deletedAt.isNull(),
+                      (includeDeletedChoreographers
+                          ? const Constant(true)
+                          : _db.choreographers.deletedAt.isNull()),
                 ),
               ])..orderBy([
                 OrderingTerm(expression: _db.danceAuthors.danceId),
