@@ -2,10 +2,13 @@ import 'dart:io';
 
 import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
+import 'package:compendium_core/compendium_core.dart'
+    show kCompendiumSchemaVersion;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:sqlite3/sqlite3.dart' as sql;
 
 /// Distinct Documents / support / cache locations, so a resolved path says which
 /// provider it came from. [documents] null models Linux without xdg-user-dirs
@@ -134,4 +137,43 @@ void main() {
     );
     expect(selected.readAsBytesSync(), const [1]);
   });
+
+  // The startup preflight is the only caller of relocateLegacyDatabase. Every
+  // other test drives the relocation directly, and startup_sequence_test
+  // injects its own preflight, so without these an upgrade that silently
+  // stopped moving the library (every Windows/Linux user opening an empty one,
+  // then blocked on bothExist next launch) would stay green.
+  for (final (os, primary) in [
+    ('linux', () => support),
+    ('windows', () => cache),
+  ]) {
+    test('the startup preflight moves a $os library out of Documents before '
+        'anything opens it', () async {
+      final legacy = File(p.join(documents, name));
+      legacy.parent.createSync(recursive: true);
+      final db = sql.sqlite3.open(legacy.path);
+      try {
+        db.execute('CREATE TABLE t (v TEXT)');
+        db.execute("INSERT INTO t (v) VALUES ('kept')");
+        db.execute('PRAGMA user_version = $kCompendiumSchemaVersion');
+      } finally {
+        db.close();
+      }
+
+      await runMigrationPreflightForApp(
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        operatingSystem: os,
+      );
+
+      final moved = File(p.join(primary(), name));
+      expect(moved.existsSync(), isTrue, reason: 'library not at the new path');
+      expect(legacy.existsSync(), isFalse, reason: 'library left in Documents');
+      final reopened = sql.sqlite3.open(moved.path);
+      try {
+        expect(reopened.select('SELECT v FROM t').single['v'], 'kept');
+      } finally {
+        reopened.close();
+      }
+    });
+  }
 }
