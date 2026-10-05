@@ -2170,7 +2170,7 @@ void main() {
       },
     );
 
-    for (final scale in const [1.3, 2.0]) {
+    for (final scale in const [1.3, 2.0, 3.0]) {
       testWidgets(
         'the bottom bar shows the clock inside its bounds at $scale× system '
         'text',
@@ -2195,6 +2195,13 @@ void main() {
 
           expect(tester.takeException(), isNull);
           final bar = tester.getRect(find.byType(BottomAppBar));
+          // The bar itself grows with the system text size (A11Y-01), up to a
+          // 200 px cap, rather than leaning on the FittedBox below to shrink
+          // the position/timing lines into the fixed 80 px. At these scales
+          // the lines are shrunk to fit the bar's *width* either way, so the
+          // containment checks below pass with a fixed-height bar; the height
+          // is what pins the fix.
+          expect(bar.height, (80 * scale).clamp(80.0, 200.0));
           final clock = tester.getRect(
             find.byKey(const ValueKey('perform-clock')),
           );
