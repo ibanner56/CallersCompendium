@@ -2701,6 +2701,16 @@ class AppLocalizationsDe extends AppLocalizations {
       'Es ist schon eine Weile her seit Ihrer letzten Sicherung – erwägen Sie, jetzt eine zu exportieren.';
 
   @override
+  String get backupReminderBannerText =>
+      'Ihre Sicherung ist überfällig. Exportieren Sie jetzt eine, um Ihre Sammlung zu schützen.';
+
+  @override
+  String get backupReminderBannerExport => 'Sicherung exportieren';
+
+  @override
+  String get backupReminderBannerNotNow => 'Nicht jetzt';
+
+  @override
   String get backupRestoreDialogBody =>
       'Bei der Wiederherstellung wird alles in der App – Ihre Sammlung, Programme, Dialekte, Designs und Einstellungen – durch den Inhalt der Sicherung ersetzt. Dies kann nicht rückgängig gemacht werden.';
 

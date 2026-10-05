@@ -196,16 +196,6 @@ class _GeneralSectionState extends State<GeneralSection> {
     );
   }
 
-  /// Suggested filename for an exported backup, dated (UTC) so backups sort and
-  /// are easy to tell apart, e.g. `callers-compendium-backup-2026-07-15.json`.
-  String _backupFileName(DateTime when) => '${_backupFileStem(when)}.json';
-
-  String _backupFileStem(DateTime when) {
-    final d = when.toUtc();
-    String two(int n) => n.toString().padLeft(2, '0');
-    return 'callers-compendium-backup-${d.year}-${two(d.month)}-${two(d.day)}';
-  }
-
   /// Builds the whole-app backup and hands it to the save/share seam, then
   /// stamps the last-backup time on success.
   ///
@@ -228,14 +218,10 @@ class _GeneralSectionState extends State<GeneralSection> {
       idleLabel: l10n.backupExportInProgress,
     );
     try {
-      final service = BackupService(repos);
       final now = DateTime.now();
-      final json = await service.exportToJson(createdAt: now);
-
-      final delivered = await saver(json, _backupFileName(now));
+      final delivered = await exportBackupNow(repos, saver, now);
       closeProgress();
       if (!delivered) return;
-      await service.recordBackup(now);
       if (!mounted) return;
       setState(() {
         _backupPrefsRequested = true;

@@ -2711,6 +2711,16 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cela fait un moment que vous n’avez pas fait de sauvegarde — pensez à en exporter une maintenant.';
 
   @override
+  String get backupReminderBannerText =>
+      'Votre sauvegarde est en retard. Exportez-en une maintenant pour protéger votre collection.';
+
+  @override
+  String get backupReminderBannerExport => 'Exporter la sauvegarde';
+
+  @override
+  String get backupReminderBannerNotNow => 'Pas maintenant';
+
+  @override
   String get backupRestoreDialogBody =>
       'La restauration remplace tout le contenu actuel de l’application — votre collection, programmes, dialectes, thèmes et paramètres — par le contenu de la sauvegarde. Cette action est irréversible.';
 
