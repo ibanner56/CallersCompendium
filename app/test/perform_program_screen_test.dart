@@ -2448,6 +2448,43 @@ void main() {
       expect(actual, findsNothing);
     });
 
+    for (final width in const [360.0]) {
+      testWidgets('keeps a 44px target beside the widest (marked) readout at '
+          '${width.toInt()}px with no overflow', (tester) async {
+        final data = await _dataWith([_dance(id: 'd1', title: 'Timed Dance')]);
+        await _pumpProgram(
+          tester,
+          data: data,
+          surfaceSize: Size(width, 900),
+          program: _program([
+            _slot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              walkthroughMinutes: 10,
+              danceMinutes: 45,
+            ),
+          ]),
+        );
+        await tester.pump(const Duration(seconds: 100));
+        await tester.tap(danceStart);
+        await tester.pump();
+        // Marked adds the delta text and the walkthrough-complete cue: the
+        // longest the readout gets, so the scale-down path is certainly taken.
+        expect(actual, findsOneWidget);
+        expect(complete, findsOneWidget);
+        expect(tester.takeException(), isNull);
+        expect(tester.getSize(danceStart), const Size(44, 44));
+        // The readout is squeezed into what is left beside the button.
+        final bar = tester.getRect(find.byType(BottomAppBar));
+        final clock = tester.getRect(
+          find.byKey(const ValueKey('perform-clock')),
+        );
+        expect(clock.right, lessThanOrEqualTo(tester.getRect(danceStart).left));
+        expect(bar.contains(tester.getRect(danceStart).bottomRight), isTrue);
+      });
+    }
+
     testWidgets('records slot-elapsed time, not the program clock', (
       tester,
     ) async {
