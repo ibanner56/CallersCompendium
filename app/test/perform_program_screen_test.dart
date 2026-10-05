@@ -2448,6 +2448,23 @@ void main() {
       expect(actual, findsNothing);
     });
 
+    testWidgets('records slot-elapsed time, not the program clock', (
+      tester,
+    ) async {
+      await pumpTimed(tester, second: true);
+      await tester.pump(const Duration(seconds: 20));
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 10));
+      await tester.tap(danceStart);
+      await tester.pump();
+      // Program clock is ~0:30 here; the slot has only run ~0:10.
+      expect(
+        _textOf(tester, 'perform-walkthrough-actual'),
+        'walkthrough ${_textOf(tester, 'perform-slot-elapsed')} (−0:50)',
+      );
+    });
+
     testWidgets('exposes toggled state, tooltip and label to AT', (
       tester,
     ) async {
