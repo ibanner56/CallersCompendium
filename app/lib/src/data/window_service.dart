@@ -135,6 +135,11 @@ class WindowService with WindowListener {
   /// restore so we don't immediately persist what we just applied.
   bool _restoring = false;
 
+  /// True once [initialize] has restored and shown the window. [raise] is a
+  /// no-op before then: the first launch shows the window itself, and raising
+  /// mid-restore would fight the programmatic bounds.
+  bool _shown = false;
+
   /// Initializes the plugin, restores the persisted frame (clamped to the
   /// active display and a sensible minimum), shows the window, and starts
   /// listening for user-driven geometry changes. No-ops entirely off desktop.
@@ -174,6 +179,7 @@ class WindowService with WindowListener {
       await windowManager.show();
     });
     _restoring = false;
+    _shown = true;
 
     windowManager.addListener(this);
     if (_closeCoordinator != null) {
@@ -186,6 +192,22 @@ class WindowService with WindowListener {
           source: 'window_service._enablePreventClose',
         );
       }
+    }
+  }
+
+  /// Brings the window to the front, un-minimizing it first, in response to a
+  /// second launch (see `handleSecondLaunch`). Best effort: on Linux/Wayland the
+  /// compositor may only flag the window as needing attention, and Windows
+  /// applies its foreground-lock rules. No-ops off desktop, before [initialize]
+  /// has shown the window, and while the persisted frame is being restored.
+  Future<void> raise() async {
+    if (!isDesktopWindowPlatform || !_shown || _restoring) return;
+    try {
+      if (await windowManager.isMinimized()) await windowManager.restore();
+      await windowManager.show();
+      await windowManager.focus();
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(error, stackTrace, source: 'window_service.raise');
     }
   }
 
