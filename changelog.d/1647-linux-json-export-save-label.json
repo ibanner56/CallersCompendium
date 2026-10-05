@@ -1,0 +1,9 @@
+{
+  "id": "1647-linux-json-export-save-label",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "On Linux, the third button in the JSON export dialog now says \"Save as…\" instead of \"Share\", because it saves the file through the system dialog."
+    ]
+  }
+}
