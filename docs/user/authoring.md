@@ -130,8 +130,9 @@ for both:
 
 As you type, the app styles what it recognises: move names get a dotted
 underline, role terms are underlined, and
-[discouraged terms](./dialects.md) are struck through. It is a hint, not a
-correction — nothing is changed for you.
+[discouraged terms](./dialects.md) are struck through. The styling is only a
+hint: it does not change your text while you type. Role words are rewritten
+when you save, as described next.
 
 Role words you type here (such as "Larks" or "Leads") are saved in a neutral
 form, shown in your own [dialect](./dialects.md), and found by role searches.

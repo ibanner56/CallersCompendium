@@ -102,8 +102,11 @@ _BeatSplit _splitInlineBeats(String line) {
 /// Raw goes first because a dialect term can also be a MOVE word — `lead` in
 /// `ones lead down the hall` — and canonicalising first would rewrite it into
 /// a role token and break a line that parses fine as typed. When the retry
-/// also misses, the raw result is returned so the custom keeps exactly what
-/// the user typed. With no [dialect] only the raw parse runs.
+/// also misses, the raw result is returned, so the custom is not
+/// dialect-canonicalised here. It is not verbatim either: the parser's import
+/// scrub (`scrubFigureText`) has already run over it, and the editor
+/// canonicalises custom text against the active dialect when the dance is
+/// saved. With no [dialect] only the raw parse runs.
 ///
 /// Before parsing, an optional inline beat count is peeled off the line and
 /// passed as the `beats` argument:

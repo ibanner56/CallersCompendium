@@ -1371,6 +1371,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
 
   Future<void> _startupSequence() async {
     // Data-safety preflight, before anything opens the database (Phase 7):
+    // move a database an earlier build left in a legacy location into place,
     // refuse to open a file written by a newer build (routes to the error
     // screen) and snapshot the file before a pending upgrade migration. Runs
     // first so no drift open — including the window restore below — precedes it.

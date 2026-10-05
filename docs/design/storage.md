@@ -632,7 +632,9 @@ and does not leak into what the user sees.
 ### Migration safety (app-layer preflight)
 
 Before the app opens the drift database it runs a preflight
-(`app/lib/src/data/migration_guard.dart`) that reads the file's persisted
+(`app/lib/src/data/migration_guard.dart`). It first moves a database an earlier
+build left in a legacy location into the database directory
+(`relocateLegacyDatabase`, see Approach). It then reads the file's persisted
 `PRAGMA user_version` — via a short-lived, WAL-aware `sqlite3` connection, not
 by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
 

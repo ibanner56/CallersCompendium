@@ -1,10 +1,13 @@
 # Repository-backed work tracking
 
-Git is the source of truth for large implementation programmes. GitHub Projects
-is a generated view: its cards may be rebuilt and ordinary direct card edits are
-overwritten. If both generated identity markers are edited to name different
-valid units, synchronization fails closed; restore either the `Work Unit ID`
-field or the hidden `tracking-card` marker before rerunning it.
+Git is the source of truth for large implementation programmes.
+
+The tooling that validated these files and projected them onto a GitHub Project
+(`tools/tracking/`, the `device-sync-tracking.yml` workflow, and its
+`_checks.yml` and preflight steps) was removed in #1475. Nothing in CI or
+`tools/preflight.py` reads these files any more: the unit JSONs are unvalidated
+historical records, and the GitHub Project is no longer synchronised from them.
+The rules below describe how the records were kept; nothing enforces them now.
 
 Device Sync is tracked under `adr-004/`:
 
@@ -12,10 +15,6 @@ Device Sync is tracked under `adr-004/`:
   and maintainer decisions that alter scheduling.
 - `units/WN.json` defines one implementation work unit from
   `docs/design/sync-implementation.md`.
-- `tools/tracking/validate.py` rejects missing units, unknown fields, broken
-  source references, duplicate PR ownership, and dependency cycles.
-- `tools/tracking/sync_project.py` combines merged repository state with open PR
-  state and reconciles the public Project.
 
 The normative behavior remains in `docs/design/sync-spec.md`. Tracking metadata
 may summarize a unit and its completion conditions but must not override or
@@ -43,8 +42,8 @@ dependency that permits early or parallel work but must finish before this unit
 can be declared complete.
 
 `project.json` defines which units gate each checkpoint. A unit's `checkpoints`
-array mirrors that relation for card rendering; validation rejects drift in
-either direction.
+array mirrors that relation for card rendering. (The removed validator rejected
+drift in either direction.)
 
 ## Pull request identity
 
@@ -74,12 +73,11 @@ Target: main
 The marker is valid only for an owner-authored pull request whose head and base
 repositories are both `ibanner56/CallersCompendium`. It may update multiple
 `adr-004/units/W*.json` files alongside implementation files, but it may not
-change tracking control files such as `tools/tracking/**`, workflows,
-instructions, `project.json`, or other non-unit tracking files. It cannot be
-combined with `tracking-unit` or `tracking-admin`. This path exists so the
-Athenaeum implementation can be merged as one topic while CI continues to run
-the validator from the trusted base commit; the validator change must therefore
-land first.
+change tracking control files such as workflows, instructions, `project.json`,
+or other non-unit tracking files. It cannot be combined with `tracking-unit` or
+`tracking-admin`. This path existed so the Athenaeum implementation could be
+merged as one topic while CI ran the validator from the trusted base commit; CI
+no longer runs that validator (#1475).
 
 Do not create GitHub Issues for Device Sync implementation tracking. Historical
 issue and PR numbers may remain as evidence of work completed before this system.
@@ -114,19 +112,3 @@ issue and PR numbers may remain as evidence of work completed before this system
   }
 }
 ```
-
-Run:
-
-```sh
-python3 tools/tracking/test_validate.py
-python3 tools/tracking/test_validate_pr.py
-python3 tools/tracking/test_sync_project.py
-python3 tools/tracking/test_workflow_integration.py
-python3 tools/tracking/validate.py
-```
-
-Project synchronization uses a standard personal access token owned by
-`ibanner56`, with Project read/write access, in the
-`DEVICE_SYNC_PROJECT_TOKEN` Actions secret. The Project token is used only for
-Project API mutations; repository reads use the workflow's `GITHUB_TOKEN`, and
-no privileged workflow checks out or executes pull-request code.
