@@ -1072,6 +1072,66 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get syncConflictFieldName;
 
+  /// Third option for a list such as dialects or shorthands that both devices changed: keep every entry from both instead of one device's whole list.
+  ///
+  /// In en, this message translates to:
+  /// **'Combine both'**
+  String get syncConflictCombineBoth;
+
+  /// Subtitle of Combine both: how many entries the combined list would hold.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Keeps the 1 item from both devices} other{Keeps all {count} items from both devices}}'**
+  String syncConflictCombineSummary(int count);
+
+  /// Subtitle of a disabled Combine both: the combined list would be longer than the app keeps, so some entries would be lost.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t combine: together these would be {count}, and this list holds at most {limit}.'**
+  String syncConflictCombineOverLimit(int count, int limit);
+
+  /// Shown under Combine both when some entries exist on both devices with different contents; the user picks a version of each before saving.
+  ///
+  /// In en, this message translates to:
+  /// **'Both devices changed these. For each, choose which to keep:'**
+  String get syncConflictCombinePickEach;
+
+  /// Shown when Combine both was chosen for something that cannot be combined.
+  ///
+  /// In en, this message translates to:
+  /// **'These can\'t be combined, so nothing was changed.'**
+  String get syncConflictCombineUnavailable;
+
+  /// Shown when saving a combination failed because it would exceed the list's limit.
+  ///
+  /// In en, this message translates to:
+  /// **'Together these would be more than this list can hold, so nothing was changed.'**
+  String get syncConflictCombineOverLimitError;
+
+  /// Snackbar after saving conflict choices; its action reopens them to choose again.
+  ///
+  /// In en, this message translates to:
+  /// **'Your choices are saved.'**
+  String get syncConflictSaved;
+
+  /// Snackbar action after saving conflict choices: reopens those items with the versions you chose between. Nothing changes until you choose again and save.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get syncConflictUndo;
+
+  /// Intro of the conflict choice when reopened by Undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose again between the versions you had. Nothing changes until you save.'**
+  String get syncConflictReconsiderIntro;
+
+  /// Shown when an undo cannot be saved because the item changed since the original choice (for example, a newer edit arrived from another device).
+  ///
+  /// In en, this message translates to:
+  /// **'Something newer arrived after you chose, so nothing was changed.'**
+  String get syncConflictUndoChanged;
+
   /// Shown for a version of a setting that has no value.
   ///
   /// In en, this message translates to:

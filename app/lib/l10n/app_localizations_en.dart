@@ -677,6 +677,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncConflictFieldName => 'Name';
 
   @override
+  String get syncConflictCombineBoth => 'Combine both';
+
+  @override
+  String syncConflictCombineSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Keeps all $count items from both devices',
+      one: 'Keeps the 1 item from both devices',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictCombineOverLimit(int count, int limit) {
+    return 'Can\'t combine: together these would be $count, and this list holds at most $limit.';
+  }
+
+  @override
+  String get syncConflictCombinePickEach =>
+      'Both devices changed these. For each, choose which to keep:';
+
+  @override
+  String get syncConflictCombineUnavailable =>
+      'These can\'t be combined, so nothing was changed.';
+
+  @override
+  String get syncConflictCombineOverLimitError =>
+      'Together these would be more than this list can hold, so nothing was changed.';
+
+  @override
+  String get syncConflictSaved => 'Your choices are saved.';
+
+  @override
+  String get syncConflictUndo => 'Undo';
+
+  @override
+  String get syncConflictReconsiderIntro =>
+      'Choose again between the versions you had. Nothing changes until you save.';
+
+  @override
+  String get syncConflictUndoChanged =>
+      'Something newer arrived after you chose, so nothing was changed.';
+
+  @override
   String get syncConflictValueNotSet => 'Not set';
 
   @override
