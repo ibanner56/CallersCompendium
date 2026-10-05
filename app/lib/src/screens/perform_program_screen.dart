@@ -1377,7 +1377,11 @@ Future<DeletedSlotDances> resolveDeletedSlotDances(
     final id = slot.danceId;
     if (id == null || data.dancesById.containsKey(id)) continue;
     if (!attempted.add(id)) continue;
-    final dance = await dances.getById(id, includeDeleted: true);
+    final dance = await dances.getById(
+      id,
+      includeDeleted: true,
+      includeDeletedAuthors: true,
+    );
     if (dance != null) resolved[id] = dance;
   }
   final authorNames = <String, String>{};
