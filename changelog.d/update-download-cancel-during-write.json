@@ -1,0 +1,9 @@
+{
+  "id": "update-download-cancel-during-write",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Cancelling an update download while the disk is slow to write no longer reports that the install failed, and the partial download is removed on Windows too."
+    ]
+  }
+}

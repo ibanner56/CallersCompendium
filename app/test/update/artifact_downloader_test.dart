@@ -720,11 +720,138 @@ void main() {
           onTimeout: () => fail('cancel hung behind a stuck flush'),
         );
         expect(outcome.kind, DownloadResultKind.cancelled);
-        expect(sink.closeCalls, 1);
+        // A real IOSink cannot be closed while its flush is outstanding, so
+        // the close waits for a flush that never settles (see the real-IOSink
+        // tests below); the file is still deleted.
+        expect(sink.closeCalls, 0);
         expect(dest.existsSync(), isFalse);
       },
     );
+
+    // The fakes above accept close() during a flush; dart:io's IOSink does
+    // not (it throws "StreamSink is bound to a stream" synchronously), so
+    // these two drive a real IOSink over a consumer whose writes are gated.
+    test('cancelling during a flush on a real IOSink reports cancelled and '
+        'closes the sink once the flush settles', () async {
+      final consumer = _GatedConsumer();
+      final body = StreamController<List<int>>();
+      final token = DownloadCancelToken();
+      const total = half * 4;
+
+      final result = downloadArtifact(
+        _artifact(size: total),
+        destination: _SinkFile(dest, IOSink(consumer)),
+        client: bodyClient(body, total),
+        cancelToken: token,
+      );
+      await listening(body);
+      body.add(bytes(half));
+      body.add(bytes(half));
+      await pump();
+      expect(body.isPaused, isTrue, reason: 'flush outstanding');
+
+      token.cancel();
+      final outcome = await result.timeout(
+        kDownloadCancelPollInterval * 10,
+        onTimeout: () => fail('cancel hung behind a stuck flush'),
+      );
+      expect(outcome.kind, DownloadResultKind.cancelled);
+      expect(dest.existsSync(), isFalse);
+      expect(consumer.closeCalls, 0, reason: 'cannot close mid-flush');
+
+      consumer.gate.complete();
+      for (var i = 0; i < 20 && !consumer.closed; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      expect(consumer.closeCalls, 1, reason: 'handle released after flush');
+    });
+
+    test('the deferred cleanup never deletes a file that replaced the '
+        'cancelled one at the same path', () async {
+      final consumer = _GatedConsumer();
+      final body = StreamController<List<int>>();
+      final token = DownloadCancelToken();
+      const total = half * 4;
+
+      final result = downloadArtifact(
+        _artifact(size: total),
+        destination: _SinkFile(dest, IOSink(consumer)),
+        client: bodyClient(body, total),
+        cancelToken: token,
+      );
+      await listening(body);
+      body.add(bytes(half));
+      body.add(bytes(half));
+      await pump();
+      expect(body.isPaused, isTrue, reason: 'flush outstanding');
+
+      token.cancel();
+      expect((await result).kind, DownloadResultKind.cancelled);
+      expect(dest.existsSync(), isFalse);
+
+      // A new Save As download now owns the same path.
+      dest.writeAsStringSync('replacement');
+      consumer.gate.complete();
+      for (var i = 0; i < 20 && !consumer.closed; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(consumer.closed, isTrue);
+      expect(dest.existsSync(), isTrue, reason: 'replacement was deleted');
+      expect(dest.readAsStringSync(), 'replacement');
+    });
+
+    test('a cancelled download deletes its file only after the sink has '
+        'closed (an open handle blocks the delete on Windows)', () async {
+      final consumer = _GatedConsumer()..gate.complete();
+      final body = StreamController<List<int>>();
+      final token = DownloadCancelToken();
+      const total = half * 4;
+
+      final result = downloadArtifact(
+        _artifact(size: total),
+        destination: _WindowsLikeFile(dest, IOSink(consumer), consumer),
+        client: bodyClient(body, total),
+        cancelToken: token,
+      );
+      await listening(body);
+      body.add(bytes(half ~/ 2));
+      await pump();
+      token.cancel();
+      body.add(bytes(half ~/ 2)); // onData observes the cancel
+
+      expect((await result).kind, DownloadResultKind.cancelled);
+      for (var i = 0; i < 20 && dest.existsSync(); i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      expect(consumer.closeCalls, 1);
+      expect(dest.existsSync(), isFalse, reason: 'partial file left behind');
+    });
   });
+}
+
+/// A [StreamConsumer] behind a real dart:io [IOSink]: each write batch
+/// completes only once [gate] completes, standing in for a stalled disk.
+class _GatedConsumer implements StreamConsumer<List<int>> {
+  final gate = Completer<void>();
+  int closeCalls = 0;
+
+  /// Whether a [close] has finished; releasing a real handle is itself
+  /// asynchronous I/O, so it lags the call.
+  bool closed = false;
+
+  @override
+  Future<void> addStream(Stream<List<int>> stream) async {
+    await stream.drain<void>();
+    await gate.future;
+  }
+
+  @override
+  Future<void> close() async {
+    closeCalls++;
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    closed = true;
+  }
 }
 
 /// An [IOSink] test double: records calls and lets a test fail or gate
@@ -811,4 +938,20 @@ class SocketExceptionLike implements Exception {
   final String message;
   @override
   String toString() => 'SocketExceptionLike: $message';
+}
+
+/// A [_SinkFile] with Windows delete semantics: deleting fails while the
+/// file's write handle ([consumer]) is still open.
+class _WindowsLikeFile extends _SinkFile {
+  _WindowsLikeFile(super.inner, super.sink, this.consumer);
+
+  final _GatedConsumer consumer;
+
+  @override
+  Future<FileSystemEntity> delete({bool recursive = false}) async {
+    if (!consumer.closed) {
+      throw FileSystemException('file is open in another process', path);
+    }
+    return super.delete(recursive: recursive);
+  }
 }
