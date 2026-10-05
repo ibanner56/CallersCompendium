@@ -76,6 +76,11 @@ def test_backtick_prose_is_not_a_citation() -> None:
     assert names(lib(src)) == []
 
 
+def test_acronym_leading_type_member_is_checked() -> None:
+    src = "// `IOSink.add` and `IOSink.gone`; also [HTTPThing.gone].\nclass IOSink { void add() {} }\n"
+    assert names(lib(src)) == ["HTTPThing.gone", "IOSink.gone"]
+
+
 def test_arb_key_resolves() -> None:
     src = "// Uses `someMessageKey`; the old `goneMessageKey` was removed.\nclass W {}\n"
     arb = {"@@locale": "en", "someMessageKey": "x", "@someMessageKey": "{}"}

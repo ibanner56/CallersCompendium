@@ -80,7 +80,7 @@ _TOKEN_RE = re.compile(r"[A-Za-z_$][A-Za-z0-9_$]*")
 _BRACKET_RE = re.compile(r"\[([^\[\]\n]+)\]")
 _BACKTICK_RE = re.compile(r"`([^`\n]+)`")
 _CAMEL_RE = re.compile(r"[a-z0-9][A-Z]")
-_PASCAL_HEAD_RE = re.compile(r"^[A-Z][a-z0-9]")
+_PASCAL_HEAD_RE = re.compile(r"^[A-Z]")
 _FENCE_RE = re.compile(r"^\s*```")
 
 
