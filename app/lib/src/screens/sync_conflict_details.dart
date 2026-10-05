@@ -366,6 +366,7 @@ class SyncConflictComparison extends StatelessWidget {
         figures.add(figureFromJson(Map<String, Object?>.from(item as Map)));
       }
     } on Object {
+      // diagnostics: silent — surfaced as "The figures can't be compared here."
       return null;
     }
     final phrase = body?['phraseStructure'];
@@ -390,6 +391,7 @@ class SyncConflictComparison extends StatelessWidget {
           ),
       ].join('; ');
     } on Object {
+      // diagnostics: silent — surfaced as "Not set" for that shorthand entry
       return null;
     }
   }
@@ -531,7 +533,8 @@ class SyncConflictComparison extends StatelessWidget {
           ).format(DateTime.parse(value as String).toLocal());
       }
     } on Object {
-      // A value this view cannot name falls through to the plain rendering.
+      // diagnostics: silent — a value this view cannot name falls through to
+      // the plain rendering below; the merge already admitted it.
     }
     if (value is String) {
       final dialect =
