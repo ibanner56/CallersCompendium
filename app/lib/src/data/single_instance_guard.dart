@@ -356,7 +356,11 @@ class DesktopSingleInstance {
     this.primitive = const AdvisoryFileLock(),
     this.lockFileName = kSingleInstanceLockFileName,
     InstanceRaiseChannel? raiseChannel,
+    bool? listensForRaise,
   }) : raiseChannel = raiseChannel ?? _defaultRaiseChannel,
+       listensForRaise =
+           listensForRaise ??
+           (!kIsWeb && (Platform.isLinux || Platform.isWindows)),
        _lockDirectoryProvider =
            lockDirectoryProvider ?? getApplicationSupportDirectory;
 
@@ -366,6 +370,13 @@ class DesktopSingleInstance {
 
   /// How a second launch reaches the first instance, and how the first listens.
   final InstanceRaiseChannel raiseChannel;
+
+  /// Whether the first instance starts [raiseChannel]'s listener. Linux and
+  /// Windows only: on macOS LaunchServices already brings the running app
+  /// forward, and the sandboxed release build has no
+  /// `com.apple.security.network.server` entitlement, so binding the loopback
+  /// listener there would fail and log an error on every launch.
+  final bool listensForRaise;
 
   /// Shared by every guard built with the default, so the listener started in
   /// the first instance is the one [releaseHeld] closes.
@@ -479,6 +490,7 @@ Future<SecondLaunchOutcome> handleSecondLaunch(
       );
       return SecondLaunchOutcome.exitNow;
     case SingleInstanceResult.acquired:
+      if (!guard.listensForRaise) return SecondLaunchOutcome.proceed;
       try {
         await guard.raiseChannel.listen(await guard.lockDirectory(), onRaise);
       } catch (error, stackTrace) {
