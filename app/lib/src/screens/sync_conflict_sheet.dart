@@ -8,6 +8,7 @@ import '../diagnostics/error_log.dart';
 import '../sync/sync_setting_labels.dart';
 import '../theme/app_spacing.dart';
 import 'settings/sync_notice_labels.dart' show syncRecordKindLabel;
+import 'sync_conflict_details.dart';
 
 /// How many records await a conflict choice.
 Future<int> syncConflictCount(CompendiumRepositories repositories) =>
@@ -84,6 +85,7 @@ typedef _Choice = ({bool picked, String? candidateHash});
 
 class _SyncConflictChoiceState extends State<SyncConflictChoice> {
   List<SyncConflictGroup>? _groups;
+  SyncConflictLookups _lookups = const SyncConflictLookups();
   final Map<(SyncRecordKind, String), _Choice> _choices = {};
   String? _error;
   bool _busy = false;
@@ -97,7 +99,13 @@ class _SyncConflictChoiceState extends State<SyncConflictChoice> {
   Future<void> _load() async {
     try {
       final groups = await widget.resolver.listConflicts();
+      // Names for what records refer to, only when a record (not just a
+      // setting) is in conflict.
+      final lookups = groups.any((g) => g.kind != SyncRecordKind.setting)
+          ? await SyncConflictLookups.load(widget.resolver.storage.repositories)
+          : const SyncConflictLookups();
       if (!mounted) return;
+      _lookups = lookups;
       setState(() {
         _groups = groups;
         _choices.removeWhere(
@@ -229,6 +237,10 @@ class _SyncConflictChoiceState extends State<SyncConflictChoice> {
                       'sync-conflict-${group.kind.name}-${group.recordId}',
                     ),
                     group: group,
+                    lookups: _lookups,
+                    // One conflict gets the whole comparison at once; several
+                    // stay compact, each with its own way in.
+                    expanded: groups.length == 1,
                     choice: _choices[(group.kind, group.recordId)],
                     onChoose: _busy ? null : (hash) => _choose(group, hash),
                   ),
@@ -296,11 +308,15 @@ class _ConflictGroupTile extends StatelessWidget {
   const _ConflictGroupTile({
     super.key,
     required this.group,
+    required this.lookups,
+    required this.expanded,
     required this.choice,
     required this.onChoose,
   });
 
   final SyncConflictGroup group;
+  final SyncConflictLookups lookups;
+  final bool expanded;
   final _Choice? choice;
 
   /// Called with the chosen candidate's hash, or null for this device's.
@@ -316,14 +332,20 @@ class _ConflictGroupTile extends StatelessWidget {
         ? (choice!.candidateHash ?? _thisDevice)
         : null;
     final numbered = group.candidates.length > 1;
-    // Compared on the keys the other versions carry: this device's body also
-    // holds fields that never sync, which are not part of the choice.
-    final sharedKeys = {
-      for (final item in group.candidates) ...?item.candidate?.body.keys,
+    final summaries = {
+      for (final item in group.candidates)
+        ?syncConflictSummary(l10n, group, item),
     };
-    final differing = group.kind == SyncRecordKind.setting
-        ? 0
-        : _differingKeys(local, group.candidates, sharedKeys);
+    // Times are shown only when they tell the versions apart: an exact tie
+    // has one time on every version.
+    final times = {
+      ?group.localUpdatedAt?.toUtc(),
+      for (final item in group.candidates) ?item.candidate?.updatedAt.toUtc(),
+    };
+    final showTimes = times.length > 1;
+    String subtitle(String text, DateTime? when) => showTimes && when != null
+        ? '$text\n${l10n.syncConflictChangedAt(syncConflictWhen(context, when))}'
+        : text;
     return Card(
       margin: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -347,15 +369,12 @@ class _ConflictGroupTile extends StatelessWidget {
                   style: theme.textTheme.titleMedium,
                 ),
               ),
-              if (differing > 0)
+              for (final summary in summaries)
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.md,
                   ),
-                  child: Text(
-                    l10n.syncConflictDiffersIn(differing),
-                    style: theme.textTheme.bodySmall,
-                  ),
+                  child: Text(summary, style: theme.textTheme.bodySmall),
                 ),
               if (local != null)
                 RadioListTile<String>(
@@ -363,7 +382,9 @@ class _ConflictGroupTile extends StatelessWidget {
                   value: _thisDevice,
                   enabled: onChoose != null,
                   title: Text(l10n.syncConflictThisDevice),
-                  subtitle: Text(_versionText(l10n, local)),
+                  subtitle: Text(
+                    subtitle(_versionText(l10n, local), group.localUpdatedAt),
+                  ),
                 ),
               for (final (index, item) in group.candidates.indexed)
                 RadioListTile<String>(
@@ -377,10 +398,81 @@ class _ConflictGroupTile extends StatelessWidget {
                         ? l10n.syncConflictOtherDeviceNumbered(index + 1)
                         : l10n.syncConflictOtherDevice,
                   ),
-                  subtitle: Text(_versionText(l10n, item.candidate?.body)),
+                  subtitle: Text(
+                    subtitle(
+                      _versionText(l10n, item.candidate?.body),
+                      item.candidate?.updatedAt,
+                    ),
+                  ),
+                ),
+              if (expanded)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                  ),
+                  child: SyncConflictComparison(
+                    key: ValueKey('sync-conflict-comparison-${group.recordId}'),
+                    group: group,
+                    lookups: lookups,
+                  ),
+                )
+              else
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xs,
+                    ),
+                    child: TextButton(
+                      key: ValueKey(
+                        'sync-conflict-show-differences-${group.recordId}',
+                      ),
+                      onPressed: () => _showDifferences(context),
+                      child: Text(l10n.syncConflictShowDifferences),
+                    ),
+                  ),
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// The full comparison for this record: a page of its own on a phone, a
+  /// dialog over the list on a wide window.
+  Future<void> _showDifferences(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final title = _recordTitle(l10n);
+    Widget body(BuildContext context) => SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: SyncConflictComparison(group: group, lookups: lookups),
+    );
+    if (MediaQuery.sizeOf(context).width >= kSyncConflictDialogBreakpoint) {
+      return showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          key: const ValueKey('sync-conflict-differences-dialog'),
+          title: Text(title),
+          content: SizedBox(width: 520, child: body(dialogContext)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(
+                MaterialLocalizations.of(dialogContext).closeButtonLabel,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (pageContext) => Scaffold(
+          key: const ValueKey('sync-conflict-differences-page'),
+          appBar: AppBar(title: Text(title)),
+          body: body(pageContext),
         ),
       ),
     );
@@ -413,24 +505,5 @@ class _ConflictGroupTile extends StatelessWidget {
     final value =
         body?['title'] ?? body?['name'] ?? body?['label'] ?? body?['key'];
     return value is String && value.isNotEmpty ? value : null;
-  }
-
-  static int _differingKeys(
-    Map<String, Object?>? local,
-    List<SyncReviewQueueItem> candidates,
-    Set<String> keys,
-  ) {
-    const ignored = {'id', 'updatedAt', 'deletedAt', 'createdAt'};
-    var count = 0;
-    for (final key in keys) {
-      if (ignored.contains(key)) continue;
-      final values = <String>{
-        if (local != null) canonicalJson(local[key]),
-        for (final item in candidates)
-          if (item.candidate != null) canonicalJson(item.candidate!.body[key]),
-      };
-      if (values.length > 1) count++;
-    }
-    return count;
   }
 }

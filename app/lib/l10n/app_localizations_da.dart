@@ -581,15 +581,131 @@ class AppLocalizationsDa extends AppLocalizations {
   String get syncConflictDecideLater => 'Beslut senere';
 
   @override
-  String syncConflictDiffersIn(int count) {
+  String get syncConflictShowDifferences => 'Vis forskelle';
+
+  @override
+  String syncConflictChangedAt(String when) {
+    return 'Ændret $when';
+  }
+
+  @override
+  String get syncConflictOnlyHereHeader => 'Kun på denne enhed';
+
+  @override
+  String get syncConflictOnlyThereHeader => 'Kun på den anden enhed';
+
+  @override
+  String get syncConflictDifferentHeader => 'Forskellig på hver enhed';
+
+  @override
+  String syncConflictSameCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Afviger i $count detaljer',
-      one: 'Afviger i 1 detalje',
+      other: '$count mere er ens på begge',
+      one: '1 mere er ens på begge',
     );
     return '$_temp0';
   }
+
+  @override
+  String syncConflictSummaryOnlyHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kun på denne enhed',
+      one: '1 kun på denne enhed',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictSummaryOnlyThere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kun på den anden enhed',
+      one: '1 kun på den anden enhed',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictSummaryChanged(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count forskellige',
+      one: '1 forskellig',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictDiffersInFields(String fields) {
+    return 'Forskelle i: $fields';
+  }
+
+  @override
+  String syncConflictComparedWith(String version) {
+    return 'Sammenlignet med $version';
+  }
+
+  @override
+  String get syncConflictNothingToShow =>
+      'Disse versioner er kun forskellige i detaljer, der ikke vises her.';
+
+  @override
+  String get syncConflictFiguresUnreadable =>
+      'Figurerne kan ikke sammenlignes her.';
+
+  @override
+  String get syncConflictSlotsReordered =>
+      'De samme danse i en anden rækkefølge.';
+
+  @override
+  String get syncConflictSlotsDetailsDiffer =>
+      'De samme danse med andre detaljer, fx tider eller alternativer.';
+
+  @override
+  String get syncConflictUnknownItem => 'Ikke på denne enhed';
+
+  @override
+  String syncConflictVersionLine(String device, String value) {
+    return '$device: $value';
+  }
+
+  @override
+  String syncConflictFieldValue(String field, String value) {
+    return '$field: $value';
+  }
+
+  @override
+  String get syncConflictFieldName => 'Navn';
+
+  @override
+  String get syncConflictFieldColour => 'Farve';
+
+  @override
+  String get syncConflictThemeBrightness => 'Lys eller mørk';
+
+  @override
+  String syncConflictFigureWalkthrough(String text) {
+    return 'gennemgang: $text';
+  }
+
+  @override
+  String syncConflictFigureWording(String text) {
+    return 'formulering: $text';
+  }
+
+  @override
+  String syncConflictFigureDetailsDiffer(String figure) {
+    return '$figure (andre detaljer er forskellige)';
+  }
+
+  @override
+  String get syncConflictLinkInGroup => 'i gruppen af beslægtede danse';
 
   @override
   String get syncConflictValueNotSet => 'Ikke angivet';

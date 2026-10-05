@@ -958,11 +958,155 @@ abstract class AppLocalizations {
   /// **'Decide later'**
   String get syncConflictDecideLater;
 
-  /// How many fields differ between the versions of an item in the conflict choice.
+  /// Button on one item in the conflict choice that opens the full comparison of its versions. Shown when several items are listed; a single item shows the comparison directly.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{Differs in 1 detail} other{Differs in {count} details}}'**
-  String syncConflictDiffersIn(int count);
+  /// **'Show differences'**
+  String get syncConflictShowDifferences;
+
+  /// Second line under a version in the conflict choice: when that version was last changed. Shown only when the versions were changed at different times.
+  ///
+  /// In en, this message translates to:
+  /// **'Changed {when}'**
+  String syncConflictChangedAt(String when);
+
+  /// Heading in the comparison listing entries (dialects, shorthands, a program's dances…) that only this device's version has.
+  ///
+  /// In en, this message translates to:
+  /// **'Only on this device'**
+  String get syncConflictOnlyHereHeader;
+
+  /// Heading in the comparison listing entries that only the other device's version has.
+  ///
+  /// In en, this message translates to:
+  /// **'Only on the other device'**
+  String get syncConflictOnlyThereHeader;
+
+  /// Heading in the comparison listing entries both versions have but with different contents.
+  ///
+  /// In en, this message translates to:
+  /// **'Different on each device'**
+  String get syncConflictDifferentHeader;
+
+  /// Note at the end of a collection comparison: how many entries are identical in both versions.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 more is the same on both} other{{count} more are the same on both}}'**
+  String syncConflictSameCount(int count);
+
+  /// Part of the one-line summary of a collection conflict: how many entries only this device has. Joined with the other parts by " · ".
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 only on this device} other{{count} only on this device}}'**
+  String syncConflictSummaryOnlyHere(int count);
+
+  /// Part of the one-line summary of a collection conflict: how many entries only the other device has.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 only on the other device} other{{count} only on the other device}}'**
+  String syncConflictSummaryOnlyThere(int count);
+
+  /// Part of the one-line summary of a collection conflict: how many entries both have with different contents.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 different} other{{count} different}}'**
+  String syncConflictSummaryChanged(int count);
+
+  /// One-line summary of a conflicted dance, program or other item: the names of the fields that differ, e.g. "Figures, Calling notes".
+  ///
+  /// In en, this message translates to:
+  /// **'Differs in: {fields}'**
+  String syncConflictDiffersInFields(String fields);
+
+  /// Heading in the comparison when more than one other version is on offer; {version} is e.g. "Another device (2)".
+  ///
+  /// In en, this message translates to:
+  /// **'Compared with {version}'**
+  String syncConflictComparedWith(String version);
+
+  /// Shown in the comparison when the versions differ only in fields that are never shown here.
+  ///
+  /// In en, this message translates to:
+  /// **'These versions differ only in details this view doesn\'t show.'**
+  String get syncConflictNothingToShow;
+
+  /// Shown in the comparison when either version's figures cannot be read.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures can\'t be compared here.'**
+  String get syncConflictFiguresUnreadable;
+
+  /// Shown in a program comparison when both versions list the same dances but in a different order.
+  ///
+  /// In en, this message translates to:
+  /// **'The same dances, in a different order.'**
+  String get syncConflictSlotsReordered;
+
+  /// Shown in a program comparison when both versions list the same dances but slot details differ.
+  ///
+  /// In en, this message translates to:
+  /// **'The same dances, with different details such as timings or alternates.'**
+  String get syncConflictSlotsDetailsDiffer;
+
+  /// Shown in the comparison in place of a name for something a version refers to that this device doesn't have (a tag, choreographer or dance).
+  ///
+  /// In en, this message translates to:
+  /// **'Not on this device'**
+  String get syncConflictUnknownItem;
+
+  /// One version's value in the comparison, e.g. "This device: Dark". {device} is "This device" or "Another device".
+  ///
+  /// In en, this message translates to:
+  /// **'{device}: {value}'**
+  String syncConflictVersionLine(String device, String value);
+
+  /// A name and its value in the comparison, e.g. "Source book: Zesty Contras" for a custom field, or "My dialect: Move substitutions" for a part of a dialect.
+  ///
+  /// In en, this message translates to:
+  /// **'{field}: {value}'**
+  String syncConflictFieldValue(String field, String value);
+
+  /// Label for the name field of a choreographer, tag or venue in the comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get syncConflictFieldName;
+
+  /// Label for a tag's colour in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour'**
+  String get syncConflictFieldColour;
+
+  /// Label for whether a custom theme is light or dark, in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Light or dark'**
+  String get syncConflictThemeBrightness;
+
+  /// A figure's own walkthrough text, shown after the figure in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'walkthrough: {text}'**
+  String syncConflictFigureWalkthrough(String text);
+
+  /// A figure's own calling wording, shown after the figure in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'wording: {text}'**
+  String syncConflictFigureWording(String text);
+
+  /// A figure in the conflict comparison whose words are the same on both versions but whose other saved details differ.
+  ///
+  /// In en, this message translates to:
+  /// **'{figure} (other details differ)'**
+  String syncConflictFigureDetailsDiffer(String figure);
+
+  /// Marks a link that joins the related-dance group, in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'in the related-dance group'**
+  String get syncConflictLinkInGroup;
 
   /// Shown for a version of a setting that has no value.
   ///
