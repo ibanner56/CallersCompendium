@@ -602,6 +602,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           initialPaused: _performResume?.paused ?? false,
           initialWalkthroughEndedAtSlotSeconds:
               _performResume?.walkthroughEndedAtSlotSeconds,
+          initialWalkthroughEndedSlotId: _performResume?.walkthroughEndedSlotId,
           onExit: (state) => _performResume = state,
           // This is the real in-event path: the program is saved, so in-event
           // adjustments (`docs/design/ux.md` §5) persist immediately via the

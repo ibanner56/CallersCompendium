@@ -102,6 +102,8 @@ Future<void> _pumpProgram(
   DialectLibraryController? dialectLibrary,
   Map<String, Dance> danceOverrides = const {},
   Map<String, String> authorNameOverrides = const {},
+  int? initialWalkthroughEndedAtSlotSeconds,
+  String? initialWalkthroughEndedSlotId,
 }) async {
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -133,6 +135,9 @@ Future<void> _pumpProgram(
         danceOverrides: danceOverrides,
         authorNameOverrides: authorNameOverrides,
         initialGroup: initialGroup,
+        initialWalkthroughEndedAtSlotSeconds:
+            initialWalkthroughEndedAtSlotSeconds,
+        initialWalkthroughEndedSlotId: initialWalkthroughEndedSlotId,
       ),
     ),
   );
@@ -2489,6 +2494,101 @@ void main() {
         expect(bar.contains(tester.getRect(danceStart).bottomRight), isTrue);
       });
     }
+
+    for (final c in const [
+      (id: 's1', applied: true, name: 'the slot it was set on'),
+      (id: 's2', applied: false, name: 'a different slot (alternate/edited)'),
+      (id: null, applied: false, name: 'no slot id'),
+    ]) {
+      testWidgets('a resumed mark is applied only to ${c.name}', (
+        tester,
+      ) async {
+        final data = await _dataWith([_dance(id: 'd1', title: 'Timed Dance')]);
+        await _pumpProgram(
+          tester,
+          data: data,
+          program: _program([
+            _slot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              walkthroughMinutes: 1,
+              danceMinutes: 1,
+            ),
+          ]),
+          initialWalkthroughEndedAtSlotSeconds: 20,
+          initialWalkthroughEndedSlotId: c.id,
+        );
+        expect(tester.widget<IconButton>(danceStart).isSelected, c.applied);
+        expect(actual, c.applied ? findsOneWidget : findsNothing);
+      });
+    }
+
+    testWidgets(
+      're-entry after marking an ALTERNATE does not move the mark onto the '
+      'primary',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1200, 2000));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Primary Dance'));
+        await repos.dances.create(_dance(id: 'd2', title: 'Alternate Dance'));
+        await repos.programs.create(
+          _program([
+            _slot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              walkthroughMinutes: 1,
+              danceMinutes: 1,
+            ),
+            _slot(
+              id: 's2',
+              position: 1,
+              danceId: 'd2',
+              isAlt: true,
+              walkthroughMinutes: 1,
+              danceMinutes: 1,
+            ),
+          ]),
+        );
+        final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+        addTearDown(notifier.dispose);
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            builder: (context, child) => RepositoriesScope(
+              repositories: repos,
+              child: ActiveDialectScope(notifier: notifier, child: child!),
+            ),
+            home: const ProgramEditorScreen(programId: 'p1'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-program')));
+        await tester.pumpAndSettle();
+
+        // Swap to the alternate, then mark it.
+        await tester.tap(find.byKey(const ValueKey('perform-alt-swap')));
+        await tester.pump();
+        await tester.tap(danceStart);
+        await tester.pump();
+        expect(tester.widget<IconButton>(danceStart).isSelected, isTrue);
+
+        await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+        await tester.pumpAndSettle();
+
+        // Re-entry shows the primary: the alternate's mark must not follow.
+        await tester.tap(find.byKey(const ValueKey('perform-program')));
+        await tester.pumpAndSettle();
+        expect(find.text('Primary Dance'), findsWidgets);
+        expect(tester.widget<IconButton>(danceStart).isSelected, isFalse);
+        expect(actual, findsNothing);
+      },
+    );
 
     testWidgets('records slot-elapsed time, not the program clock', (
       tester,

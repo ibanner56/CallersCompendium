@@ -61,6 +61,7 @@ class PerformResumeState {
     required this.slotStartSeconds,
     required this.paused,
     this.walkthroughEndedAtSlotSeconds,
+    this.walkthroughEndedSlotId,
   });
 
   /// Navigable group index that was on screen.
@@ -81,6 +82,13 @@ class PerformResumeState {
   /// like the rest of this snapshot: never written to the domain model.
   final int? walkthroughEndedAtSlotSeconds;
 
+  /// Id of the slot (the selected alternate, not just its group) that
+  /// [walkthroughEndedAtSlotSeconds] belongs to. A re-entry restores only the
+  /// group index, so without this the mark would land on whichever slot is
+  /// shown first — the primary instead of a marked alternate, or a different
+  /// slot after the program was edited in between.
+  final String? walkthroughEndedSlotId;
+
   @override
   bool operator ==(Object other) =>
       other is PerformResumeState &&
@@ -88,7 +96,8 @@ class PerformResumeState {
       other.elapsedSeconds == elapsedSeconds &&
       other.slotStartSeconds == slotStartSeconds &&
       other.paused == paused &&
-      other.walkthroughEndedAtSlotSeconds == walkthroughEndedAtSlotSeconds;
+      other.walkthroughEndedAtSlotSeconds == walkthroughEndedAtSlotSeconds &&
+      other.walkthroughEndedSlotId == walkthroughEndedSlotId;
 
   @override
   int get hashCode => Object.hash(
@@ -97,6 +106,7 @@ class PerformResumeState {
     slotStartSeconds,
     paused,
     walkthroughEndedAtSlotSeconds,
+    walkthroughEndedSlotId,
   );
 }
 
@@ -114,6 +124,7 @@ class PerformProgramScreen extends StatefulWidget {
     this.initialSlotStartSeconds = 0,
     this.initialPaused = false,
     this.initialWalkthroughEndedAtSlotSeconds,
+    this.initialWalkthroughEndedSlotId,
     this.onExit,
     this.onProgramChanged,
   });
@@ -147,6 +158,11 @@ class PerformProgramScreen extends StatefulWidget {
   /// Slot-elapsed second of the manual "walkthrough ended" mark on the
   /// [initialGroup] slot, preserved across a re-entry (issue #1659).
   final int? initialWalkthroughEndedAtSlotSeconds;
+
+  /// Slot id the [initialWalkthroughEndedAtSlotSeconds] mark belongs to; the
+  /// mark is applied only when that slot is the one shown on entry (issue
+  /// #1659), and dropped otherwise.
+  final String? initialWalkthroughEndedSlotId;
 
   /// Called as the view is torn down — via the guarded close control, a system
   /// back, or any other pop — with the live position + clock (issue #434). The
@@ -298,7 +314,17 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// (issue #1659), or `null` while unmarked. Session-only UI state (ADR-001):
   /// never persisted, handed back through [PerformResumeState]. Follows the
   /// per-slot timer exactly — [_resetSlotTimer] clears it.
-  late int? _walkthroughEndedAt = widget.initialWalkthroughEndedAtSlotSeconds;
+  late int? _walkthroughEndedAt = _restoredWalkthroughMark();
+
+  /// The resumed mark, or `null` when the slot now on screen is not the one it
+  /// was set on (a marked alternate re-enters as its primary; edits between
+  /// entries can move or remove the slot).
+  int? _restoredWalkthroughMark() {
+    final seconds = widget.initialWalkthroughEndedAtSlotSeconds;
+    final slotId = widget.initialWalkthroughEndedSlotId;
+    if (seconds == null || slotId == null || _groups.isEmpty) return null;
+    return _currentSlot.id == slotId ? seconds : null;
+  }
 
   /// Dark-stage high-contrast theme, on by default (`docs/design/ux.md` §5).
   /// Persisted across sessions (issue #449) and restored on entry.
@@ -335,6 +361,9 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         slotStartSeconds: _slotStartSeconds,
         paused: _paused,
         walkthroughEndedAtSlotSeconds: _walkthroughEndedAt,
+        walkthroughEndedSlotId: _walkthroughEndedAt == null || _groups.isEmpty
+            ? null
+            : _currentSlot.id,
       ),
     );
     _timer?.cancel();
