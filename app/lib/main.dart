@@ -692,18 +692,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// the palette-result routing stay the shell's).
   final GlobalKey<AppShellState> _shellKey = GlobalKey<AppShellState>();
 
+  /// Tracks the live route stack so Perform is detected even when a dialog or
+  /// sheet of Perform's own is on top of it.
+  final _PerformRouteObserver _performObserver = _PerformRouteObserver();
+
   /// Opens global search from any route, except while performing a program.
   void _openGlobalSearch() {
-    final navigator = _navigatorKey.currentState;
-    if (navigator == null) return;
-    // `popUntil` with an always-true predicate pops nothing; it only reveals
-    // the top route.
-    var performing = false;
-    navigator.popUntil((route) {
-      performing = route.settings.name == performRouteName;
-      return true;
-    });
-    if (performing) return;
+    if (_performObserver.performing) return;
     _shellKey.currentState?.openSearch();
   }
 
@@ -2334,6 +2329,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
           localeListResolutionCallback: (locales, supported) =>
               resolveSystemLocale(locales, supported),
           navigatorKey: _navigatorKey,
+          navigatorObservers: [_performObserver],
           scaffoldMessengerKey: _messengerKey,
           // Replacing these drops Flutter's defaults (arrows, Escape, …), so
           // spread them back in.
@@ -2365,5 +2361,41 @@ class _CompendiumAppState extends State<CompendiumApp> {
         );
       },
     );
+  }
+}
+
+/// Keeps the navigator's live route stack, so "is a Perform route anywhere in
+/// it" does not depend on which route is on top (Perform opens unnamed dialogs
+/// and sheets over itself).
+class _PerformRouteObserver extends NavigatorObserver {
+  final List<Route<dynamic>> _routes = [];
+
+  bool get performing =>
+      _routes.any((route) => route.settings.name == performRouteName);
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _routes.add(route);
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _routes.remove(route);
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _routes.remove(route);
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    final index = oldRoute == null ? -1 : _routes.indexOf(oldRoute);
+    if (index >= 0) {
+      if (newRoute == null) {
+        _routes.removeAt(index);
+      } else {
+        _routes[index] = newRoute;
+      }
+    } else if (newRoute != null) {
+      _routes.add(newRoute);
+    }
   }
 }

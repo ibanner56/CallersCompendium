@@ -130,4 +130,36 @@ void main() {
 
     expect(find.byKey(_palette), findsNothing);
   });
+
+  testWidgets('Ctrl-K does nothing over a dialog opened from Perform', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await _openProgramSummary(tester);
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('perform-exit-dialog')), findsOneWidget);
+
+    await _chord(tester, LogicalKeyboardKey.controlLeft);
+
+    expect(find.byKey(_palette), findsNothing);
+  });
+
+  testWidgets('Ctrl-K works again after leaving Perform', (tester) async {
+    await _pump(tester);
+    await _openProgramSummary(tester);
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PerformProgramScreen), findsNothing);
+
+    await _chord(tester, LogicalKeyboardKey.controlLeft);
+
+    expect(find.byKey(_palette), findsOneWidget);
+  });
 }
