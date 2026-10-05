@@ -182,6 +182,10 @@ Future<DownloadOutcome> downloadArtifact(
   // below), so a symlink an attacker pre-planted at a predictable path is
   // never touched, let alone followed.
   var createdDestination = false;
+  // Completed by the `finally` cleanup of a failed download: true when the
+  // partial file is gone (deleted, or already absent). The deferred cleanup
+  // below deletes only when this is false.
+  final finallyRemovedFile = Completer<bool>();
 
   try {
     if (cancelToken != null && cancelToken.isCancelled) {
@@ -406,9 +410,11 @@ Future<DownloadOutcome> downloadArtifact(
     // Awaiting here would re-block on the very flush a cancel or write
     // watchdog just gave up on, and dart:io throws if a sink is closed while a
     // flush is outstanding. So close once any in-flight flush settles, then
-    // delete: the `finally` delete below runs first and fails on Windows while
-    // the handle is still open, so this second delete is what removes the
-    // partial file there.
+    // delete, but only if the `finally` delete below could not: it fails on
+    // Windows while the handle is open, and then the file still exists, so a
+    // new download cannot have created a replacement at this path (the
+    // exclusive create refuses). Where that delete succeeded, the path may
+    // already belong to a new download and must not be touched.
     if (!outcome.isSuccess) {
       sinkClosed = true;
       final openSink = sink;
@@ -428,7 +434,9 @@ Future<DownloadOutcome> downloadArtifact(
           // diagnostics: silent — the outcome is already determined; the file
           // is discarded.
         }
-        // The sink exists only after this call created [destination].
+        if (await finallyRemovedFile.future) return;
+        // The sink exists only after this call created [destination], and the
+        // file has stayed in place since, so it is still this call's file.
         try {
           if (await destination.exists()) await destination.delete();
         } on Object {
@@ -474,12 +482,15 @@ Future<DownloadOutcome> downloadArtifact(
       }
     }
     if (!succeeded && createdDestination) {
+      var removed = false;
       try {
         if (await destination.exists()) await destination.delete();
+        removed = true;
       } on Object {
         // diagnostics: silent — best-effort cleanup; never mask the real
-        // outcome with a delete error.
+        // outcome with a delete error. A deferred retry runs after the close.
       }
+      finallyRemovedFile.complete(removed);
     }
     if (ownClient) effectiveClient.close();
   }
