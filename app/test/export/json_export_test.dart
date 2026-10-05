@@ -39,6 +39,42 @@ void main() {
     expect(choice, JsonExportChoice.copy);
   });
 
+  for (final unsupported in [true, false]) {
+    testWidgets('choice dialog third button is '
+        '${unsupported ? 'Save as… on Linux' : 'Share elsewhere'}', (
+      tester,
+    ) async {
+      final saved = isBundleShareUnsupported;
+      isBundleShareUnsupported = () => unsupported;
+      addTearDown(() => isBundleShareUnsupported = saved);
+      JsonExportChoice? choice;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async {
+                choice = await showJsonExportChoiceDialog(context);
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Save as…'),
+        unsupported ? findsOneWidget : findsNothing,
+      );
+      expect(find.text('Share'), unsupported ? findsNothing : findsOneWidget);
+      await tester.tap(find.text(unsupported ? 'Save as…' : 'Share'));
+      await tester.pumpAndSettle();
+      expect(choice, JsonExportChoice.share);
+    });
+  }
+
   testWidgets('dismissing the choice dialog returns null', (tester) async {
     JsonExportChoice? choice = JsonExportChoice.save;
     await tester.pumpWidget(

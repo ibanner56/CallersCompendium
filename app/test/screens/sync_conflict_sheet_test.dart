@@ -714,8 +714,11 @@ void main() {
       testWidgets('$name is shown when it is all that changed', (tester) async {
         final repos = await _pump(tester);
         await tester.runAsync(() async {
-          await repos.tags.upsert(
-            Tag(id: 't1', name: 'Easy', color: 0xFF112233),
+          expect(
+            await repos.tags.upsert(
+              Tag(id: 't1', name: 'Easy', color: 0xFF112233),
+            ),
+            't1',
           );
           await repos.venues.upsert(
             Venue(id: 'v1', name: 'Grange', sponsor: 'CDS'),

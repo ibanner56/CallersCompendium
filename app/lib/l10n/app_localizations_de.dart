@@ -5301,6 +5301,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportJsonShare => 'Teilen';
 
   @override
+  String get exportJsonSaveAs => 'Speichern unter…';
+
+  @override
   String get exportJsonCancel => 'Abbrechen';
 
   @override
