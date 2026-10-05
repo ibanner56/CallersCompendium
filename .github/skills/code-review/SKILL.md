@@ -164,6 +164,9 @@ mechanical; a diff that violates one is a hard fail, not an opinion:
 
 - **settings-reads** — raw settings reads must filter `deleted_at IS NULL`.
 - **debug-print** — no unguarded `debugPrint` reaches a release build.
+- **stale-comment-refs** — a comment's `[Type.member]` reference or backticked
+  identifier must name a symbol that exists; the unresolved count may not rise
+  above `tools/ci/stale_comment_refs_ceiling.json`.
 - **caught-errors** — every caught user-facing error must reach the diagnostic
   log. (Note the redactor preserves `https` URLs, so logging an exception that
   embeds a URL can leak it into exported diagnostics.)

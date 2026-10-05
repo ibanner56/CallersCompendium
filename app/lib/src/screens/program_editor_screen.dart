@@ -3722,8 +3722,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 }
 
-/// Non-blocking warnings card mirroring the dance editor's `_WarningsCard`,
-/// surfacing `Program.validate()` issues (e.g. `orphaned_alt`) with icon+text.
+/// Non-blocking warnings card surfacing `Program.validate()` issues (e.g.
+/// `orphaned_alt`) with icon+text.
 class _ProgramWarningsCard extends StatelessWidget {
   const _ProgramWarningsCard({required this.warnings});
 

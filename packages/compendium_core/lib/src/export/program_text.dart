@@ -20,7 +20,7 @@ import 'export_labels.dart';
 ///
 /// - [titleFor] resolves a slot's [ProgramSlot.danceId] to a dance title;
 ///   return `null` for an unknown/unavailable dance and the renderer falls back
-///   to [unknownDanceLabel].
+///   to [ProgramExportLabels.unknownDance] (`labels.unknownDance`).
 /// - [venueNameFor] resolves a linked venue entity's id ([Program.venueId]) to
 ///   its already-formatted display label; return `null` when the id doesn't
 ///   resolve. This keeps the renderer pure Dart (it never imports the `Venue`

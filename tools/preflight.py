@@ -236,6 +236,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "stale-comment-refs",
+        "comment citations resolve to code (count ceiling)",
+        (
+            py("tools/ci/test_check_stale_comment_refs.py"),
+            py("tools/ci/check_stale_comment_refs.py"),
+        ),
+    ),
+    Step(
         "kdf-override",
         "no production code assigns the test-only sync KDF iteration override",
         (

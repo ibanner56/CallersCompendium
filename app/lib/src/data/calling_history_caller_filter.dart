@@ -13,9 +13,10 @@ import 'display_defaults.dart' show kDefaultProgramCallerKey;
 ///   (absent/blank), or on a settings read failure (fail-open so history is
 ///   never silently over-filtered).
 /// * the trimmed default-caller name otherwise, to be passed as `callerFilter`
-///   to `ProgramRepository.countByDance` / `lastCalledByDance` /
-///   `callingHistoryForDance` / `halfCallingStatsForDance`, which fold it with
-///   `LOWER(TRIM(...))` for a trim + case-insensitive match.
+///   to `CollectionData.watch` / `CollectionData.load` (which hand it to
+///   `ProgramRepository.programDerivedCounts`) and to
+///   `ProgramRepository.watchCallingHistoryForDance`; the repository folds it
+///   with `LOWER(TRIM(...))` for a trim + case-insensitive match.
 ///
 /// Caller reads [trackAllCallers] from the scope synchronously (before any
 /// `await`) and passes it here; this reads the default caller from settings.

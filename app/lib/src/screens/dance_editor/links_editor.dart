@@ -122,9 +122,10 @@ class LinksEditor extends StatelessWidget {
 /// generic [LinksEditor]: it lets the user pick another dance from the
 /// collection and attach an optional free-text note.
 ///
-/// Operates on the shared `_links` list, filtered to
-/// [LinkKind.relatedDance] drafts, so save/load/undo wiring is unchanged. The
-/// note reuses [DanceLink.label] — no schema change is required.
+/// Operates on the dance editor controller's shared [links] draft list (passed
+/// in whole), filtered to [LinkKind.relatedDance] drafts, so save/load/undo
+/// wiring is unchanged. The note reuses [DanceLink.label] — no schema change is
+/// required.
 class RelatedDancesEditor extends StatelessWidget {
   const RelatedDancesEditor({
     super.key,

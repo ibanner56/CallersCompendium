@@ -122,7 +122,8 @@ Future<pw.Font> loadProgramMatrixMarkerFont() async {
 /// [pw.MultiPage] so a long set list flows onto extra pages for a handout.
 ///
 /// - [titleFor] resolves a slot's dance id to a title (same contract as the
-///   text renderer); [unknownDanceLabel] is used when it returns null.
+///   text renderer); [ProgramExportLabels.unknownDance] (`labels.unknownDance`)
+///   is used when it returns null.
 /// - [formatDate] formats the event date; defaults to ISO `yyyy-MM-dd`.
 /// - [venuesById] maps venue ids to the loaded [Venue] records. When the
 ///   program links a resolvable venue ([Program.venueId]), its

@@ -42,7 +42,7 @@ enum ParamKind {
   /// Free text; dialect-aware.
   text,
 
-  /// Boolean flag (e.g. `withBalance`).
+  /// Boolean flag (e.g. `balance`).
   flag,
 }
 

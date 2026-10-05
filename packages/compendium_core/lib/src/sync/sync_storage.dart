@@ -2184,7 +2184,7 @@ final class CompendiumSyncStorage
   /// [deduplicateFreshAttach], which has already reported the same record from
   /// its dedupe plan — a second report would carry an identical
   /// [SyncReport.coalescingKey] and be dropped anyway, so passing a sink there
-  /// would add a path without adding a notice. `resolveDanceReview` is a user
+  /// would add a path without adding a notice. `resolveReviewQueue` is a user
   /// gesture rather than a pass: it raises
   /// `SyncReviewException(targetMissing)` and has no report sink to fill.
   Future<SyncMergeCandidate?> _danceCandidate(
