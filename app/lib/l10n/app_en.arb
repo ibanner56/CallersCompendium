@@ -732,15 +732,143 @@
   "@syncConflictDecideLater": {
     "description": "Closes the conflict choice without changing anything; the items stay listed until decided."
   },
-  "syncConflictDiffersIn": "{count, plural, =1{Differs in 1 detail} other{Differs in {count} details}}",
-  "@syncConflictDiffersIn": {
-    "description": "How many fields differ between the versions of an item in the conflict choice.",
+  "syncConflictShowDifferences": "Show differences",
+  "@syncConflictShowDifferences": {
+    "description": "Button on one item in the conflict choice that opens the full comparison of its versions. Shown when several items are listed; a single item shows the comparison directly."
+  },
+  "syncConflictChangedAt": "Changed {when}",
+  "@syncConflictChangedAt": {
+    "description": "Second line under a version in the conflict choice: when that version was last changed. Shown only when the versions were changed at different times.",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "example": "Oct 3, 2026 2:14 PM"
+      }
+    }
+  },
+  "syncConflictOnlyHereHeader": "Only on this device",
+  "@syncConflictOnlyHereHeader": {
+    "description": "Heading in the comparison listing entries (dialects, shorthands, a program's dances…) that only this device's version has."
+  },
+  "syncConflictOnlyThereHeader": "Only on the other device",
+  "@syncConflictOnlyThereHeader": {
+    "description": "Heading in the comparison listing entries that only the other device's version has."
+  },
+  "syncConflictDifferentHeader": "Different on each device",
+  "@syncConflictDifferentHeader": {
+    "description": "Heading in the comparison listing entries both versions have but with different contents."
+  },
+  "syncConflictSameCount": "{count, plural, =1{1 more is the same on both} other{{count} more are the same on both}}",
+  "@syncConflictSameCount": {
+    "description": "Note at the end of a collection comparison: how many entries are identical in both versions.",
     "placeholders": {
       "count": {
         "type": "int",
-        "example": "3"
+        "example": "2"
       }
     }
+  },
+  "syncConflictSummaryOnlyHere": "{count, plural, =1{1 only on this device} other{{count} only on this device}}",
+  "@syncConflictSummaryOnlyHere": {
+    "description": "Part of the one-line summary of a collection conflict: how many entries only this device has. Joined with the other parts by \" · \".",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "syncConflictSummaryOnlyThere": "{count, plural, =1{1 only on the other device} other{{count} only on the other device}}",
+  "@syncConflictSummaryOnlyThere": {
+    "description": "Part of the one-line summary of a collection conflict: how many entries only the other device has.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "syncConflictSummaryChanged": "{count, plural, =1{1 different} other{{count} different}}",
+  "@syncConflictSummaryChanged": {
+    "description": "Part of the one-line summary of a collection conflict: how many entries both have with different contents.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "syncConflictDiffersInFields": "Differs in: {fields}",
+  "@syncConflictDiffersInFields": {
+    "description": "One-line summary of a conflicted dance, program or other item: the names of the fields that differ, e.g. \"Figures, Calling notes\".",
+    "placeholders": {
+      "fields": {
+        "type": "String",
+        "example": "Figures, Calling notes"
+      }
+    }
+  },
+  "syncConflictComparedWith": "Compared with {version}",
+  "@syncConflictComparedWith": {
+    "description": "Heading in the comparison when more than one other version is on offer; {version} is e.g. \"Another device (2)\".",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "Another device (2)"
+      }
+    }
+  },
+  "syncConflictNothingToShow": "These versions differ only in details this view doesn't show.",
+  "@syncConflictNothingToShow": {
+    "description": "Shown in the comparison when the versions differ only in fields that are never shown here."
+  },
+  "syncConflictFiguresUnreadable": "The figures can't be compared here.",
+  "@syncConflictFiguresUnreadable": {
+    "description": "Shown in the comparison when either version's figures cannot be read."
+  },
+  "syncConflictSlotsReordered": "The same dances, in a different order.",
+  "@syncConflictSlotsReordered": {
+    "description": "Shown in a program comparison when both versions list the same dances but in a different order."
+  },
+  "syncConflictSlotsDetailsDiffer": "The same dances, with different details such as timings or alternates.",
+  "@syncConflictSlotsDetailsDiffer": {
+    "description": "Shown in a program comparison when both versions list the same dances but slot details differ."
+  },
+  "syncConflictUnknownItem": "Not on this device",
+  "@syncConflictUnknownItem": {
+    "description": "Shown in the comparison in place of a name for something a version refers to that this device doesn't have (a tag, choreographer or dance)."
+  },
+  "syncConflictVersionLine": "{device}: {value}",
+  "@syncConflictVersionLine": {
+    "description": "One version's value in the comparison, e.g. \"This device: Dark\". {device} is \"This device\" or \"Another device\".",
+    "placeholders": {
+      "device": {
+        "type": "String",
+        "example": "This device"
+      },
+      "value": {
+        "type": "String",
+        "example": "Dark"
+      }
+    }
+  },
+  "syncConflictFieldValue": "{field}: {value}",
+  "@syncConflictFieldValue": {
+    "description": "A custom field and its value in the comparison, e.g. \"Source book: Zesty Contras\".",
+    "placeholders": {
+      "field": {
+        "type": "String",
+        "example": "Source book"
+      },
+      "value": {
+        "type": "String",
+        "example": "Zesty Contras"
+      }
+    }
+  },
+  "syncConflictFieldName": "Name",
+  "@syncConflictFieldName": {
+    "description": "Label for the name field of a choreographer, tag or venue in the comparison."
   },
   "syncConflictValueNotSet": "Not set",
   "@syncConflictValueNotSet": {
@@ -3313,7 +3441,7 @@
   "@backupFileClearAction": {
     "description": "Button in the restore-from-backup dialog that forgets the chosen backup file so another file can be chosen or text pasted."
   },
-  "backupFileTooLarge": "That file is too large to be a Caller\u2019s Compendium backup ({sizeMb} MB; limit {limitMb} MB). Your data is unchanged.",
+  "backupFileTooLarge": "That file is too large to be a Caller’s Compendium backup ({sizeMb} MB; limit {limitMb} MB). Your data is unchanged.",
   "@backupFileTooLarge": {
     "description": "Snackbar shown in the restore-from-backup dialog when the chosen file is larger than the size limit; the file was not read and data is unchanged. 'MB' is the megabyte unit.",
     "placeholders": {

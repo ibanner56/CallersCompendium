@@ -568,10 +568,6 @@
   "@syncConflictDecideLater": {
     "x-sourceSha256": "892c45a22edb0db9ba0cd725f06f38d7860c7867e1615ec6826f1f5bcbf057c8"
   },
-  "syncConflictDiffersIn": "{count, plural, =1{Unterscheidet sich in 1 Detail} other{Unterscheidet sich in {count} Details}}",
-  "@syncConflictDiffersIn": {
-    "x-sourceSha256": "da5a4e742829220ee27c2d1b34064310562f4bdbf554abd9a176ae967eca4bf2"
-  },
   "syncConflictValueNotSet": "Nicht festgelegt",
   "@syncConflictValueNotSet": {
     "x-sourceSha256": "4895f73177ab5d67c30c183a49d2477e014a2ef69b65150762d17e877f4f5b95"
