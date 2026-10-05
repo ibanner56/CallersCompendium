@@ -363,6 +363,7 @@ STEPS: tuple[Step, ...] = (
         "release identity / SBOM / metadata / notes / Pages publishing",
         (
             py("tools/release/test_bash.py"),
+            py("tools/release/test_apprun.py"),
             py("tools/release/test_android_version_code.py"),
             py("tools/release/test_check_beta_prerelease_history.py"),
             py("tools/release/test_gen_sbom.py"),
