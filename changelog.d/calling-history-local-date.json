@@ -1,0 +1,9 @@
+{
+  "id": "calling-history-local-date",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A dance's calling history shows the day you called it in your own time zone. An evening dance in the Americas was listed under the next day."
+    ]
+  }
+}

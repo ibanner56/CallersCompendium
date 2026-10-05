@@ -594,6 +594,34 @@ void main() {
       findsOneWidget,
     );
   });
+
+  group('callingHistoryDisplayDate', () {
+    final instant = DateTime.utc(2026, 10, 4, 2, 30);
+    DanceCallingRecord record({DateTime? performedAt, DateTime? eventDate}) =>
+        DanceCallingRecord(
+          slotId: 's1',
+          programId: 'p1',
+          programTitle: 'Autumn Ball',
+          programUpdatedAt: instant,
+          performedAt: performedAt,
+          eventDate: eventDate,
+        );
+
+    test('shows a performed or last-updated instant in local time', () {
+      for (final r in [record(performedAt: instant), record()]) {
+        final shown = callingHistoryDisplayDate(r);
+        expect(shown.isUtc, isFalse);
+        expect(shown, instant.toLocal());
+      }
+    });
+
+    test('shows a calendar event date as stored', () {
+      final day = DateTime.utc(2026, 10, 4);
+      final shown = callingHistoryDisplayDate(record(eventDate: day));
+      expect(shown, day);
+      expect(shown.isUtc, isTrue);
+    });
+  });
 }
 
 /// Counts reads of the venue catalogue, so a test can assert the section pays

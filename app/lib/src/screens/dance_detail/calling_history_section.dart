@@ -375,6 +375,22 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
 
 /// One program in the dance's calling history: its title, the date it was
 /// called (or scheduled) and its venue, tappable to open the program.
+/// The calendar day a calling-history row shows for [record].
+///
+/// Programs appear as soon as they include the dance, so `performedAt` is often
+/// null; like [DanceCallingRecord.effectiveDate] this falls back to the
+/// program's event date, then its last-updated time, so a date always shows.
+/// `performedAt` and `programUpdatedAt` are instants stored in UTC, so they are
+/// shown in local time: a dance called at 22:30 in New York is stored as 02:30Z
+/// the next day. `eventDate` is a calendar date stored as UTC midnight, so it
+/// is shown as stored (converting it would move it back a day west of UTC).
+/// Ordering still uses the UTC `effectiveDate`.
+@visibleForTesting
+DateTime callingHistoryDisplayDate(DanceCallingRecord record) =>
+    record.performedAt?.toLocal() ??
+    record.eventDate ??
+    record.programUpdatedAt.toLocal();
+
 class CallingHistoryRow extends StatelessWidget {
   const CallingHistoryRow({
     super.key,
@@ -398,11 +414,9 @@ class CallingHistoryRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final localizations = MaterialLocalizations.of(context);
-    // Programs appear as soon as they include the dance, so `performedAt` is
-    // often null; `effectiveDate` falls back to the program's event date, then
-    // its last-updated time, so a date always shows. These are stored UTC
-    // values rendered directly (matching the other date labels on this screen).
-    final date = localizations.formatMediumDate(record.effectiveDate);
+    final date = localizations.formatMediumDate(
+      callingHistoryDisplayDate(record),
+    );
     final venue = (venueLabel ?? record.venue)?.trim();
     final subtitleParts = <String>[
       date,
