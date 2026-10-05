@@ -362,9 +362,10 @@ Select **Import defaults** to open this group.
 
 - **Tags for imported dances** — tick the tags you want added to each new dance
   you import on its own: from the import screen (including a pasted list of
-  titles), from an online search, or from a shared dance link. It applies only
+  titles), from an online search (including the one in the program editor's
+  dance picker), or from a shared dance link. It applies only
   to dances the import creates. A dance an import updates in place, a dance
-  created for a program slot while importing a program, and dances restored
+  created for a program slot while importing a program file, and dances restored
   from a Compendium archive keep whatever tags they already have. A program in
   a Caller's Companion file or a published collection is still imported, but
   only its dances receive the tags. You can choose up to 50 tags. The choice is remembered by tag name, so it

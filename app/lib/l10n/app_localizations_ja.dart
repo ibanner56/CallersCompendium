@@ -4994,6 +4994,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportJsonShare => '共有';
 
   @override
+  String get exportJsonSaveAs => '名前を付けて保存…';
+
+  @override
   String get exportJsonCancel => 'キャンセル';
 
   @override

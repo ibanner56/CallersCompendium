@@ -113,6 +113,7 @@ import 'src/sync/sync_runtime.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
 import 'src/widgets/app_bootstrap.dart';
+import 'src/widgets/command_palette.dart';
 import 'src/widgets/ecd_convert_prompt_dialog.dart';
 import 'src/widgets/online_import_dialogs.dart';
 
@@ -686,6 +687,21 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// snackbars: a global navigator + messenger so the incoming-file handler can
   /// open the imported program and report results from outside the widget tree.
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  /// Lets the root-level Ctrl/Cmd-K action reach the shell (tab switching and
+  /// the palette-result routing stay the shell's).
+  final GlobalKey<AppShellState> _shellKey = GlobalKey<AppShellState>();
+
+  /// Tracks the live route stack so Perform is detected even when a dialog or
+  /// sheet of Perform's own is on top of it.
+  final _PerformRouteObserver _performObserver = _PerformRouteObserver();
+
+  /// Opens global search from any route, except while performing a program.
+  void _openGlobalSearch() {
+    if (_performObserver.performing) return;
+    _shellKey.currentState?.openSearch();
+  }
+
   final GlobalKey<ScaffoldMessengerState> _messengerKey =
       GlobalKey<ScaffoldMessengerState>();
 
@@ -1989,7 +2005,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
         (_) => _maybeShowBackupReminder(context),
       );
     }
-    return const AppShell();
+    return AppShell(key: _shellKey);
   }
 
   /// Shows, once per launch, a [MaterialBanner] when the user's chosen backup
@@ -2313,7 +2329,20 @@ class _CompendiumAppState extends State<CompendiumApp> {
           localeListResolutionCallback: (locales, supported) =>
               resolveSystemLocale(locales, supported),
           navigatorKey: _navigatorKey,
+          navigatorObservers: [_performObserver],
           scaffoldMessengerKey: _messengerKey,
+          // Replacing these drops Flutter's defaults (arrows, Escape, …), so
+          // spread them back in.
+          shortcuts: {...WidgetsApp.defaultShortcuts, ...searchShortcuts},
+          actions: {
+            ...WidgetsApp.defaultActions,
+            OpenSearchIntent: CallbackAction<OpenSearchIntent>(
+              onInvoke: (_) {
+                _openGlobalSearch();
+                return null;
+              },
+            ),
+          },
           theme: lightTheme,
           darkTheme: darkTheme,
           highContrastTheme: AppTheme.highContrast,
@@ -2332,5 +2361,41 @@ class _CompendiumAppState extends State<CompendiumApp> {
         );
       },
     );
+  }
+}
+
+/// Keeps the navigator's live route stack, so "is a Perform route anywhere in
+/// it" does not depend on which route is on top (Perform opens unnamed dialogs
+/// and sheets over itself).
+class _PerformRouteObserver extends NavigatorObserver {
+  final List<Route<dynamic>> _routes = [];
+
+  bool get performing =>
+      _routes.any((route) => route.settings.name == performRouteName);
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _routes.add(route);
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _routes.remove(route);
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _routes.remove(route);
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    final index = oldRoute == null ? -1 : _routes.indexOf(oldRoute);
+    if (index >= 0) {
+      if (newRoute == null) {
+        _routes.removeAt(index);
+      } else {
+        _routes[index] = newRoute;
+      }
+    } else if (newRoute != null) {
+      _routes.add(newRoute);
+    }
   }
 }

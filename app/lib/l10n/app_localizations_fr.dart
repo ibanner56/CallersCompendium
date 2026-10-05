@@ -5269,6 +5269,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportJsonShare => 'Partager';
 
   @override
+  String get exportJsonSaveAs => 'Enregistrer sous…';
+
+  @override
   String get exportJsonCancel => 'Annuler';
 
   @override

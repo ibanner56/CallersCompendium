@@ -45,6 +45,7 @@ import '../widgets/venue_picker.dart';
 import 'dance_editor_screen.dart';
 import 'dance_detail_screen.dart';
 import 'dance_reimport_flow.dart';
+import '../widgets/command_palette.dart';
 import 'perform_program_screen.dart';
 import '../widgets/export_guard.dart';
 import '../widgets/program_export_menu.dart';
@@ -1795,6 +1796,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
+        // Ctrl-K is suppressed while this route is on top ([performRouteName]).
+        settings: const RouteSettings(name: performRouteName),
         builder: (_) => PerformProgramScreen(
           program: program,
           data: data,
@@ -3035,7 +3038,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // `onLayout` callback can run after further internal awaits (font loading)
     // or more than once, so a BuildContext read inside it can observe a
     // different value than at tap time, or a disposed element. Mirrors
-    // dance_detail_screen.dart._exportDancePdf and
+    // DanceExportActions.exportPdf and
     // program_export_menu.dart._exportPdf (issue #1434).
     final messenger = ScaffoldMessenger.of(context);
     final localizations = MaterialLocalizations.of(context);
