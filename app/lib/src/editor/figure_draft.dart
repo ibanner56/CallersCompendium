@@ -228,7 +228,9 @@ class FigureDraft {
     final copy = Map<String, Object?>.of(params);
     if (moveId == customMove && copy['text'] is String) {
       final text = copy['text']! as String;
-      if (text.isNotEmpty) copy['text'] = canonicalizeNote(text);
+      if (text.isNotEmpty) {
+        copy['text'] = _canonicalizeKeepingMadRobin(text, canonicalizeNote);
+      }
     }
     return copy;
   }
@@ -343,3 +345,28 @@ String? _trimOptionalOverride(String? value) {
   final trimmed = value?.trim();
   return trimmed == null || trimmed.isEmpty ? null : trimmed;
 }
+
+/// "mad robin(s)" is a move name, not the role, so custom text keeps it as
+/// typed, matching the import scrub (`figure_text_scrub.dart`), which shields
+/// the same phrase from role canonicalization. Without this, saving "Mad robin
+/// twice" stored "Mad role2 twice", shown as "mad follow" under Leads/Follows.
+/// Each occurrence is swapped for a token with no role word in it and restored
+/// verbatim afterwards.
+String _canonicalizeKeepingMadRobin(
+  String text,
+  String Function(String) canonicalizeNote,
+) {
+  final kept = <String>[];
+  final shielded = text.replaceAllMapped(_madRobinTerm, (m) {
+    kept.add(m[0]!);
+    return '$_madRobinToken${kept.length - 1}x';
+  });
+  if (kept.isEmpty) return canonicalizeNote(text);
+  return canonicalizeNote(
+    shielded,
+  ).replaceAllMapped(_madRobinTokenTerm, (m) => kept[int.parse(m[1]!)]);
+}
+
+const String _madRobinToken = 'xmadrobinx';
+final RegExp _madRobinTerm = RegExp(r'\bmad robins?\b', caseSensitive: false);
+final RegExp _madRobinTokenTerm = RegExp('$_madRobinToken(\\d+)x');
