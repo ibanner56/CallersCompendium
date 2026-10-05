@@ -557,29 +557,28 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncConflictDecideLater => '後で決める';
 
   @override
-  String get syncConflictShowDifferences => 'Show differences';
+  String get syncConflictShowDifferences => '違いを表示';
 
   @override
   String syncConflictChangedAt(String when) {
-    return 'Changed $when';
+    return '$whenに変更';
   }
 
   @override
-  String get syncConflictOnlyHereHeader => 'Only on this device';
+  String get syncConflictOnlyHereHeader => 'このデバイスにのみあるもの';
 
   @override
-  String get syncConflictOnlyThereHeader => 'Only on the other device';
+  String get syncConflictOnlyThereHeader => '別のデバイスにのみあるもの';
 
   @override
-  String get syncConflictDifferentHeader => 'Different on each device';
+  String get syncConflictDifferentHeader => 'デバイスごとに異なるもの';
 
   @override
   String syncConflictSameCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count more are the same on both',
-      one: '1 more is the same on both',
+      other: 'ほか$count件は両方で同じです',
     );
     return '$_temp0';
   }
@@ -589,8 +588,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count only on this device',
-      one: '1 only on this device',
+      other: 'このデバイスのみ$count件',
     );
     return '$_temp0';
   }
@@ -600,8 +598,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count only on the other device',
-      one: '1 only on the other device',
+      other: '別のデバイスのみ$count件',
     );
     return '$_temp0';
   }
@@ -611,53 +608,48 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count different',
-      one: '1 different',
+      other: '$count件が異なる',
     );
     return '$_temp0';
   }
 
   @override
   String syncConflictDiffersInFields(String fields) {
-    return 'Differs in: $fields';
+    return '違い：$fields';
   }
 
   @override
   String syncConflictComparedWith(String version) {
-    return 'Compared with $version';
+    return '$versionとの比較';
   }
 
   @override
-  String get syncConflictNothingToShow =>
-      'These versions differ only in details this view doesn\'t show.';
+  String get syncConflictNothingToShow => 'これらのバージョンの違いは、ここに表示されない詳細のみです。';
 
   @override
-  String get syncConflictFiguresUnreadable =>
-      'The figures can\'t be compared here.';
+  String get syncConflictFiguresUnreadable => 'ここではフィギュアを比較できません。';
 
   @override
-  String get syncConflictSlotsReordered =>
-      'The same dances, in a different order.';
+  String get syncConflictSlotsReordered => '同じダンスで、順序が異なります。';
 
   @override
-  String get syncConflictSlotsDetailsDiffer =>
-      'The same dances, with different details such as timings or alternates.';
+  String get syncConflictSlotsDetailsDiffer => '同じダンスで、時間や代替などの詳細が異なります。';
 
   @override
-  String get syncConflictUnknownItem => 'Not on this device';
+  String get syncConflictUnknownItem => 'このデバイスにはありません';
 
   @override
   String syncConflictVersionLine(String device, String value) {
-    return '$device: $value';
+    return '$device：$value';
   }
 
   @override
   String syncConflictFieldValue(String field, String value) {
-    return '$field: $value';
+    return '$field：$value';
   }
 
   @override
-  String get syncConflictFieldName => 'Name';
+  String get syncConflictFieldName => '名前';
 
   @override
   String get syncConflictValueNotSet => '未設定';

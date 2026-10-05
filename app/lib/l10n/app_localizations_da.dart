@@ -581,29 +581,29 @@ class AppLocalizationsDa extends AppLocalizations {
   String get syncConflictDecideLater => 'Beslut senere';
 
   @override
-  String get syncConflictShowDifferences => 'Show differences';
+  String get syncConflictShowDifferences => 'Vis forskelle';
 
   @override
   String syncConflictChangedAt(String when) {
-    return 'Changed $when';
+    return 'Ændret $when';
   }
 
   @override
-  String get syncConflictOnlyHereHeader => 'Only on this device';
+  String get syncConflictOnlyHereHeader => 'Kun på denne enhed';
 
   @override
-  String get syncConflictOnlyThereHeader => 'Only on the other device';
+  String get syncConflictOnlyThereHeader => 'Kun på den anden enhed';
 
   @override
-  String get syncConflictDifferentHeader => 'Different on each device';
+  String get syncConflictDifferentHeader => 'Forskellig på hver enhed';
 
   @override
   String syncConflictSameCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count more are the same on both',
-      one: '1 more is the same on both',
+      other: '$count mere er ens på begge',
+      one: '1 mere er ens på begge',
     );
     return '$_temp0';
   }
@@ -613,8 +613,8 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count only on this device',
-      one: '1 only on this device',
+      other: '$count kun på denne enhed',
+      one: '1 kun på denne enhed',
     );
     return '$_temp0';
   }
@@ -624,8 +624,8 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count only on the other device',
-      one: '1 only on the other device',
+      other: '$count kun på den anden enhed',
+      one: '1 kun på den anden enhed',
     );
     return '$_temp0';
   }
@@ -635,40 +635,40 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count different',
-      one: '1 different',
+      other: '$count forskellige',
+      one: '1 forskellig',
     );
     return '$_temp0';
   }
 
   @override
   String syncConflictDiffersInFields(String fields) {
-    return 'Differs in: $fields';
+    return 'Forskelle i: $fields';
   }
 
   @override
   String syncConflictComparedWith(String version) {
-    return 'Compared with $version';
+    return 'Sammenlignet med $version';
   }
 
   @override
   String get syncConflictNothingToShow =>
-      'These versions differ only in details this view doesn\'t show.';
+      'Disse versioner er kun forskellige i detaljer, der ikke vises her.';
 
   @override
   String get syncConflictFiguresUnreadable =>
-      'The figures can\'t be compared here.';
+      'Figurerne kan ikke sammenlignes her.';
 
   @override
   String get syncConflictSlotsReordered =>
-      'The same dances, in a different order.';
+      'De samme danse i en anden rækkefølge.';
 
   @override
   String get syncConflictSlotsDetailsDiffer =>
-      'The same dances, with different details such as timings or alternates.';
+      'De samme danse med andre detaljer, fx tider eller alternativer.';
 
   @override
-  String get syncConflictUnknownItem => 'Not on this device';
+  String get syncConflictUnknownItem => 'Ikke på denne enhed';
 
   @override
   String syncConflictVersionLine(String device, String value) {
@@ -681,7 +681,7 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get syncConflictFieldName => 'Name';
+  String get syncConflictFieldName => 'Navn';
 
   @override
   String get syncConflictValueNotSet => 'Ikke angivet';

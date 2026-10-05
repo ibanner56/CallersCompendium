@@ -589,29 +589,29 @@ class AppLocalizationsFr extends AppLocalizations {
   String get syncConflictDecideLater => 'Décider plus tard';
 
   @override
-  String get syncConflictShowDifferences => 'Show differences';
+  String get syncConflictShowDifferences => 'Afficher les différences';
 
   @override
   String syncConflictChangedAt(String when) {
-    return 'Changed $when';
+    return 'Modifié le $when';
   }
 
   @override
-  String get syncConflictOnlyHereHeader => 'Only on this device';
+  String get syncConflictOnlyHereHeader => 'Uniquement sur cet appareil';
 
   @override
-  String get syncConflictOnlyThereHeader => 'Only on the other device';
+  String get syncConflictOnlyThereHeader => 'Uniquement sur l’autre appareil';
 
   @override
-  String get syncConflictDifferentHeader => 'Different on each device';
+  String get syncConflictDifferentHeader => 'Différent sur chaque appareil';
 
   @override
   String syncConflictSameCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count more are the same on both',
-      one: '1 more is the same on both',
+      other: '$count autres sont identiques sur les deux',
+      one: '1 autre est identique sur les deux',
     );
     return '$_temp0';
   }
@@ -621,8 +621,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count only on this device',
-      one: '1 only on this device',
+      other: '$count uniquement sur cet appareil',
+      one: '1 uniquement sur cet appareil',
     );
     return '$_temp0';
   }
@@ -632,8 +632,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count only on the other device',
-      one: '1 only on the other device',
+      other: '$count uniquement sur l’autre appareil',
+      one: '1 uniquement sur l’autre appareil',
     );
     return '$_temp0';
   }
@@ -643,53 +643,53 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count different',
-      one: '1 different',
+      other: '$count différents',
+      one: '1 différent',
     );
     return '$_temp0';
   }
 
   @override
   String syncConflictDiffersInFields(String fields) {
-    return 'Differs in: $fields';
+    return 'Diffère par : $fields';
   }
 
   @override
   String syncConflictComparedWith(String version) {
-    return 'Compared with $version';
+    return 'Comparé avec $version';
   }
 
   @override
   String get syncConflictNothingToShow =>
-      'These versions differ only in details this view doesn\'t show.';
+      'Ces versions ne diffèrent que par des détails qui ne sont pas affichés ici.';
 
   @override
   String get syncConflictFiguresUnreadable =>
-      'The figures can\'t be compared here.';
+      'Les figures ne peuvent pas être comparées ici.';
 
   @override
   String get syncConflictSlotsReordered =>
-      'The same dances, in a different order.';
+      'Les mêmes danses, dans un autre ordre.';
 
   @override
   String get syncConflictSlotsDetailsDiffer =>
-      'The same dances, with different details such as timings or alternates.';
+      'Les mêmes danses, avec d’autres détails comme les durées ou les alternatives.';
 
   @override
-  String get syncConflictUnknownItem => 'Not on this device';
+  String get syncConflictUnknownItem => 'Absent de cet appareil';
 
   @override
   String syncConflictVersionLine(String device, String value) {
-    return '$device: $value';
+    return '$device : $value';
   }
 
   @override
   String syncConflictFieldValue(String field, String value) {
-    return '$field: $value';
+    return '$field : $value';
   }
 
   @override
-  String get syncConflictFieldName => 'Name';
+  String get syncConflictFieldName => 'Nom';
 
   @override
   String get syncConflictValueNotSet => 'Non défini';

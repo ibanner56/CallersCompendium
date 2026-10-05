@@ -568,6 +568,82 @@
   "@syncConflictDecideLater": {
     "x-sourceSha256": "892c45a22edb0db9ba0cd725f06f38d7860c7867e1615ec6826f1f5bcbf057c8"
   },
+  "syncConflictShowDifferences": "Unterschiede anzeigen",
+  "@syncConflictShowDifferences": {
+    "x-sourceSha256": "9d5acd90f1743601d3ddf06f787672d3f8b3675a4942432ab053c3cb4ff052a2"
+  },
+  "syncConflictChangedAt": "Geändert am {when}",
+  "@syncConflictChangedAt": {
+    "x-sourceSha256": "a85e04a97d40f25ba0a0784a9eaffe9758241db4cc7d607d45b6f85c3eed3add"
+  },
+  "syncConflictOnlyHereHeader": "Nur auf diesem Gerät",
+  "@syncConflictOnlyHereHeader": {
+    "x-sourceSha256": "040f8f2e203d42ce5562f25989856c577664299eaf14cea0e1f5048478a29d3f"
+  },
+  "syncConflictOnlyThereHeader": "Nur auf dem anderen Gerät",
+  "@syncConflictOnlyThereHeader": {
+    "x-sourceSha256": "9461b2bd258ae6bce85f891ab7d3796c198d8438b5510847ac9ffa69d975b0bd"
+  },
+  "syncConflictDifferentHeader": "Auf jedem Gerät anders",
+  "@syncConflictDifferentHeader": {
+    "x-sourceSha256": "84d6e0002322ad146264f381230162338ea145bfb764fddd711a2bee34f6d8e6"
+  },
+  "syncConflictSameCount": "{count, plural, =1{1 weiterer ist auf beiden gleich} other{{count} weitere sind auf beiden gleich}}",
+  "@syncConflictSameCount": {
+    "x-sourceSha256": "fcf52610012bbf88d2e76fff98fc39cfe4c7db92d70548c0bd3979679d338499"
+  },
+  "syncConflictSummaryOnlyHere": "{count, plural, =1{1 nur auf diesem Gerät} other{{count} nur auf diesem Gerät}}",
+  "@syncConflictSummaryOnlyHere": {
+    "x-sourceSha256": "c6ede9b997fd8434dcd71d7de1f695358a5c9f20a3873477855a8363ec408247"
+  },
+  "syncConflictSummaryOnlyThere": "{count, plural, =1{1 nur auf dem anderen Gerät} other{{count} nur auf dem anderen Gerät}}",
+  "@syncConflictSummaryOnlyThere": {
+    "x-sourceSha256": "bc95d781f8e6b538fdb271846536bccf10e3f33970ad52d5713862ef97275b38"
+  },
+  "syncConflictSummaryChanged": "{count, plural, =1{1 unterschiedlich} other{{count} unterschiedlich}}",
+  "@syncConflictSummaryChanged": {
+    "x-sourceSha256": "64391f3fa1178a475b7dc823360ab90a5810cbc7c53c63c0fa6ce06d9c59b830"
+  },
+  "syncConflictDiffersInFields": "Unterschiede bei: {fields}",
+  "@syncConflictDiffersInFields": {
+    "x-sourceSha256": "db5abf2c1b8fbc6d31a22e98e9d3f986f1b9ee8444cbb80fb6944f523350fe23"
+  },
+  "syncConflictComparedWith": "Verglichen mit {version}",
+  "@syncConflictComparedWith": {
+    "x-sourceSha256": "4e63094edb0223ae4cbfdbafdcfc6c9e3d7ca82f52f703467a9c8d17db6f4e7e"
+  },
+  "syncConflictNothingToShow": "Diese Fassungen unterscheiden sich nur in Details, die hier nicht angezeigt werden.",
+  "@syncConflictNothingToShow": {
+    "x-sourceSha256": "bd8ac43291e14b3061e593e6c5784ec3186c6acfbe26e9252192dee3dfaf0a29"
+  },
+  "syncConflictFiguresUnreadable": "Die Figuren können hier nicht verglichen werden.",
+  "@syncConflictFiguresUnreadable": {
+    "x-sourceSha256": "a6da953c0f15c3e6022421e50f079bab716503e876c3c3d4bd571fc813f184c5"
+  },
+  "syncConflictSlotsReordered": "Dieselben Tänze in anderer Reihenfolge.",
+  "@syncConflictSlotsReordered": {
+    "x-sourceSha256": "a11dcf8ce10fb0a8738fd4e857feee7747db6f4d3360a3ab81bd7cffd964a53e"
+  },
+  "syncConflictSlotsDetailsDiffer": "Dieselben Tänze mit anderen Details, etwa Zeiten oder Alternativen.",
+  "@syncConflictSlotsDetailsDiffer": {
+    "x-sourceSha256": "1a6a50605cd16e15a9fde788887f983dda0999db5ed5dbc91c10e335537b9397"
+  },
+  "syncConflictUnknownItem": "Nicht auf diesem Gerät",
+  "@syncConflictUnknownItem": {
+    "x-sourceSha256": "bcbf339f46394b2d6f35e73452b3532a2477e878a495b86f9beed3b471334229"
+  },
+  "syncConflictVersionLine": "{device}: {value}",
+  "@syncConflictVersionLine": {
+    "x-sourceSha256": "4b3e5ee67f36114ab8f3d896ac32e86c15ee3c93d04bba4c223194dc17c5925d"
+  },
+  "syncConflictFieldValue": "{field}: {value}",
+  "@syncConflictFieldValue": {
+    "x-sourceSha256": "d3ba5ccd5a5fb39ef6e9fff0582fbef871d2952d1fa9e1e2b454753407c5e043"
+  },
+  "syncConflictFieldName": "Name",
+  "@syncConflictFieldName": {
+    "x-sourceSha256": "dcd1d5223f73b3a965c07e3ff5dbee3eedcfedb806686a05b9b3868a2c3d6d50"
+  },
   "syncConflictValueNotSet": "Nicht festgelegt",
   "@syncConflictValueNotSet": {
     "x-sourceSha256": "4895f73177ab5d67c30c183a49d2477e014a2ef69b65150762d17e877f4f5b95"
