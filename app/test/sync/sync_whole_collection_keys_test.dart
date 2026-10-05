@@ -1,3 +1,5 @@
+import 'package:compendium_app/src/data/backup_document.dart'
+    show kMaxCustomDialects;
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
@@ -19,5 +21,12 @@ void main() {
       kShorthandMappingsKey,
       kWalkthroughSnippetsKey,
     });
+  });
+
+  test('a combined dialect list is held to the same limit backups keep', () {
+    // Combine both refuses a dialect list longer than core's limit; a longer
+    // one would be cut short the next time a backup restores it.
+    expect(syncMaxCustomDialects, kMaxCustomDialects);
+    expect(syncCollectionLimit('custom_dialects'), kMaxCustomDialects);
   });
 }

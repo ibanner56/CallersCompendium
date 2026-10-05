@@ -59,17 +59,77 @@ const String syncConflictChoiceReason =
     'versions of one record differ and need the user to choose which to keep';
 
 /// One user choice in a conflict review: keep [keepCandidateHash]'s version
-/// of the record, or this device's own when it is null.
+/// of the record, or this device's own when it is null — or, when
+/// [combineTakingOther] is set, combine both versions of a whole-collection
+/// setting, taking the other device's version of each entry named in it and
+/// this device's for every other entry both have.
 class SyncConflictDecision {
   const SyncConflictDecision({
     required this.kind,
     required this.recordId,
     this.keepCandidateHash,
+    this.combineTakingOther,
   });
 
   final SyncRecordKind kind;
   final String recordId;
   final String? keepCandidateHash;
+  final Set<String>? combineTakingOther;
+}
+
+/// What one conflict choice replaced and wrote, so it can be reconsidered.
+///
+/// Held in memory only, for as long as the app offers to undo the choice. A
+/// reconsideration offers [before] and [offered] again; it is refused when
+/// this device's copy no longer matches [writtenWireHash] — something newer
+/// has arrived since, and the choice is no longer the one being undone.
+class SyncConflictReconsideration {
+  const SyncConflictReconsideration({
+    required this.kind,
+    required this.recordId,
+    required this.before,
+    required this.offered,
+    required this.writtenWireHash,
+    required this.writtenAt,
+  });
+
+  final SyncRecordKind kind;
+  final String recordId;
+
+  /// This device's version before the choice, or null when it had none.
+  final SyncRecordBlob? before;
+
+  /// The other versions that were on offer.
+  final List<SyncRecordBlob> offered;
+  final String writtenWireHash;
+  final DateTime writtenAt;
+}
+
+/// The outcome of a batch of conflict choices: the kinds written, and how to
+/// reconsider each choice.
+class SyncConflictResolution {
+  const SyncConflictResolution({
+    required this.kinds,
+    required this.reconsiderations,
+  });
+
+  final Set<SyncRecordKind> kinds;
+  final List<SyncConflictReconsideration> reconsiderations;
+}
+
+/// A new choice for a reconsidered record: keep the offered version whose
+/// wire hash is [keepVersionHash], this device's earlier version when it is
+/// null, or combine as in [SyncConflictDecision.combineTakingOther].
+class SyncConflictRechoice {
+  const SyncConflictRechoice({
+    required this.reconsideration,
+    this.keepVersionHash,
+    this.combineTakingOther,
+  });
+
+  final SyncConflictReconsideration reconsideration;
+  final String? keepVersionHash;
+  final Set<String>? combineTakingOther;
 }
 
 /// The decisions supported by the persisted sync review surface.
@@ -95,6 +155,14 @@ enum SyncReviewFailureCode {
   /// arises. Merging it with a live record would be an *existence* decision,
   /// and keep-both remains available.
   counterpartDeleted,
+
+  /// Combine both was asked for a record that cannot be combined: not a
+  /// whole-collection setting, or not exactly two versions to combine.
+  combineUnavailable,
+
+  /// The combined collection would hold more entries than its library keeps,
+  /// so loading it would quietly drop some.
+  combineOverLimit,
 
   /// The decision could not be stamped later than every version on offer
   /// without leaving this device's clock window (§6.9), so applying it would

@@ -684,6 +684,51 @@ class AppLocalizationsDa extends AppLocalizations {
   String get syncConflictFieldName => 'Navn';
 
   @override
+  String get syncConflictCombineBoth => 'Kombinér begge';
+
+  @override
+  String syncConflictCombineSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Beholder alle $count elementer fra begge enheder',
+      one: 'Beholder det 1 element fra begge enheder',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictCombineOverLimit(int count, int limit) {
+    return 'Kan ikke kombineres: tilsammen ville det være $count, og denne liste kan højst rumme $limit.';
+  }
+
+  @override
+  String get syncConflictCombinePickEach =>
+      'Begge enheder har ændret disse. Vælg for hver, hvilken du vil beholde:';
+
+  @override
+  String get syncConflictCombineUnavailable =>
+      'Disse kan ikke kombineres, så intet blev ændret.';
+
+  @override
+  String get syncConflictCombineOverLimitError =>
+      'Tilsammen ville det være mere, end denne liste kan rumme, så intet blev ændret.';
+
+  @override
+  String get syncConflictSaved => 'Dine valg er gemt.';
+
+  @override
+  String get syncConflictUndo => 'Fortryd';
+
+  @override
+  String get syncConflictReconsiderIntro =>
+      'Vælg igen mellem de versioner, du havde. Intet ændres, før du gemmer.';
+
+  @override
+  String get syncConflictUndoChanged =>
+      'Der kom noget nyere efter dit valg, så intet blev ændret.';
+
+  @override
   String get syncConflictFieldColour => 'Farve';
 
   @override

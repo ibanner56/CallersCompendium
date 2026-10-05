@@ -222,7 +222,7 @@ void main() {
         ),
       ], now: () => tie);
 
-      expect(kinds, {SyncRecordKind.setting});
+      expect(kinds.kinds, {SyncRecordKind.setting});
       final theme = await themeRow();
       expect(theme.value, 'light');
       expect(
@@ -400,7 +400,7 @@ void main() {
         ),
       ], now: () => tie);
 
-      expect(kinds, {SyncRecordKind.tag});
+      expect(kinds.kinds, {SyncRecordKind.tag});
       final after = await localCandidate(tagAddress);
       expect(after.blob.body['name'], 'Remote');
       expect(after.updatedAt, tie.add(const Duration(seconds: 1)));
@@ -409,6 +409,189 @@ void main() {
         localTag.existenceAt,
         reason: 'a content choice decides nothing about existence',
       );
+    });
+  });
+
+  group('combine both (whole-collection settings)', () {
+    Future<void> seedDialects(
+      List<Map<String, Object?>> mine,
+      List<Map<String, Object?>> theirs,
+    ) async {
+      await repositories.settings.set('custom_dialects', mine, at: tie);
+      const address = (
+        kind: SyncRecordKind.setting,
+        recordId: 'custom_dialects',
+      );
+      final local = await localCandidate(address);
+      await mergeAndQueue(address, [
+        peerVersion(local, {'value': theirs}),
+      ]);
+    }
+
+    test("keeps every entry from both, taking the other device's version "
+        "only where asked", () async {
+      await seedDialects(
+        [
+          {'name': 'Shared', 'v': 'mine'},
+          {'name': 'Mine only'},
+        ],
+        [
+          {'name': 'Shared', 'v': 'theirs'},
+          {'name': 'Theirs only'},
+        ],
+      );
+
+      await storage.resolveConflicts([
+        const SyncConflictDecision(
+          kind: SyncRecordKind.setting,
+          recordId: 'custom_dialects',
+          combineTakingOther: {'Shared'},
+        ),
+      ], now: () => tie);
+
+      expect(await repositories.settings.get('custom_dialects'), [
+        {'name': 'Shared', 'v': 'theirs'},
+        {'name': 'Mine only'},
+        {'name': 'Theirs only'},
+      ]);
+      expect(await queued(), isEmpty);
+    });
+
+    test('is refused for a setting that is not a collection', () async {
+      await seedTie();
+
+      await expectLater(
+        storage.resolveConflicts([
+          const SyncConflictDecision(
+            kind: SyncRecordKind.setting,
+            recordId: 'theme_mode',
+            combineTakingOther: {},
+          ),
+        ], now: () => tie),
+        throwsA(
+          isA<SyncReviewException>().having(
+            (e) => e.code,
+            'code',
+            SyncReviewFailureCode.combineUnavailable,
+          ),
+        ),
+      );
+      expect(await queued(), hasLength(1));
+    });
+
+    test('is refused, writing nothing, when the combination would be more '
+        'than the library keeps', () async {
+      await seedDialects(
+        [
+          for (var i = 0; i < syncMaxCustomDialects; i++) {'name': 'mine $i'},
+        ],
+        [
+          {'name': 'theirs'},
+        ],
+      );
+
+      await expectLater(
+        storage.resolveConflicts([
+          const SyncConflictDecision(
+            kind: SyncRecordKind.setting,
+            recordId: 'custom_dialects',
+            combineTakingOther: {},
+          ),
+        ], now: () => tie),
+        throwsA(
+          isA<SyncReviewException>().having(
+            (e) => e.code,
+            'code',
+            SyncReviewFailureCode.combineOverLimit,
+          ),
+        ),
+      );
+      expect(
+        (await repositories.settings.get('custom_dialects') as List).length,
+        syncMaxCustomDialects,
+      );
+    });
+  });
+
+  group('reconsiderConflicts (undo)', () {
+    test('offers the earlier versions again and writes the new choice past '
+        'the first', () async {
+      await seedTie();
+      final row = (await queued()).single;
+      final first = await storage.resolveConflicts([
+        SyncConflictDecision(
+          kind: SyncRecordKind.setting,
+          recordId: 'theme_mode',
+          keepCandidateHash: row.candidateHash,
+        ),
+      ], now: () => tie);
+      expect(await repositories.settings.get('theme_mode'), 'light');
+      final earlier = first.reconsiderations.single;
+      expect(earlier.before!.body['value'], 'dark');
+      expect(earlier.offered.single.body['value'], 'light');
+
+      final second = await storage.reconsiderConflicts([
+        SyncConflictRechoice(reconsideration: earlier),
+      ], now: () => tie);
+
+      final themeRow = await (db.select(
+        db.settings,
+      )..where((t) => t.key.equals('theme_mode'))).getSingle();
+      expect(await repositories.settings.get('theme_mode'), 'dark');
+      expect(
+        themeRow.updatedAt!.toUtc(),
+        earlier.writtenAt.add(const Duration(seconds: 1)),
+        reason: 'the new choice must supersede the first on every device',
+      );
+      expect(second.reconsiderations.single.before, earlier.before);
+    });
+
+    test('changes nothing when no new choice is made', () async {
+      await seedTie();
+      final row = (await queued()).single;
+      await storage.resolveConflicts([
+        SyncConflictDecision(
+          kind: SyncRecordKind.setting,
+          recordId: 'theme_mode',
+          keepCandidateHash: row.candidateHash,
+        ),
+      ], now: () => tie);
+
+      await storage.reconsiderConflicts(const [], now: () => tie);
+
+      expect(await repositories.settings.get('theme_mode'), 'light');
+    });
+
+    test('is refused, writing nothing, when something newer arrived after '
+        'the first choice', () async {
+      await seedTie();
+      final row = (await queued()).single;
+      final first = await storage.resolveConflicts([
+        SyncConflictDecision(
+          kind: SyncRecordKind.setting,
+          recordId: 'theme_mode',
+          keepCandidateHash: row.candidateHash,
+        ),
+      ], now: () => tie);
+      await repositories.settings.set(
+        'theme_mode',
+        'system',
+        at: tie.add(const Duration(minutes: 5)),
+      );
+
+      await expectLater(
+        storage.reconsiderConflicts([
+          SyncConflictRechoice(reconsideration: first.reconsiderations.single),
+        ], now: () => tie.add(const Duration(minutes: 6))),
+        throwsA(
+          isA<SyncReviewException>().having(
+            (e) => e.code,
+            'code',
+            SyncReviewFailureCode.candidateChanged,
+          ),
+        ),
+      );
+      expect(await repositories.settings.get('theme_mode'), 'system');
     });
   });
 }

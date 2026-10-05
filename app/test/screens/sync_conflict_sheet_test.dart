@@ -479,6 +479,219 @@ void main() {
       expect(find.text('A1'), findsNothing);
     });
   });
+
+  group('combine both', () {
+    testWidgets('is offered for a list, not for a single setting', (
+      tester,
+    ) async {
+      final repos = await _pump(tester, size: const Size(400, 1400));
+      await tester.runAsync(
+        () => _queueTie(repos, [
+          ('theme_mode', 'dark', 'light'),
+          (
+            'custom_dialects',
+            [
+              {'name': 'Mine'},
+            ],
+            [
+              {'name': 'Theirs'},
+            ],
+          ),
+        ]),
+      );
+      await _open(tester);
+
+      expect(
+        find.byKey(
+          const ValueKey('sync-conflict-option-custom_dialects-combine'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('sync-conflict-option-theme_mode-combine')),
+        findsNothing,
+      );
+      expect(find.text('Keeps all 2 items from both devices'), findsOneWidget);
+    });
+
+    testWidgets('asks which version to keep of each entry both changed '
+        'before it can be saved, then keeps everything', (tester) async {
+      final repos = await _pump(tester, size: const Size(400, 1600));
+      await tester.runAsync(
+        () => _queueTie(repos, [
+          (
+            'custom_dialects',
+            [
+              {'name': 'Shared', 'v': 'mine'},
+              {'name': 'Mine only'},
+            ],
+            [
+              {'name': 'Shared', 'v': 'theirs'},
+              {'name': 'Theirs only'},
+            ],
+          ),
+        ]),
+      );
+      await _open(tester);
+
+      await tester.tap(find.text('Combine both'));
+      await tester.pump();
+      FilledButton apply() => tester.widget<FilledButton>(
+        find.byKey(const ValueKey('sync-conflict-apply')),
+      );
+      expect(
+        apply().onPressed,
+        isNull,
+        reason: 'the entry both changed has no choice yet',
+      );
+
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('sync-conflict-entry-Shared')),
+          matching: find.text('Another device'),
+        ),
+      );
+      await tester.pump();
+      expect(apply().onPressed, isNotNull);
+
+      await tester.runAsync(() async {
+        await tester.tap(find.byKey(const ValueKey('sync-conflict-apply')));
+        await tester.pump();
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      });
+      await tester.pumpAndSettle();
+
+      expect(
+        await tester.runAsync(() => repos.settings.get('custom_dialects')),
+        [
+          {'name': 'Shared', 'v': 'theirs'},
+          {'name': 'Mine only'},
+          {'name': 'Theirs only'},
+        ],
+      );
+    });
+
+    testWidgets('is unavailable, and says why, when the result would be too '
+        'long to keep', (tester) async {
+      final repos = await _pump(tester, size: const Size(400, 1400));
+      await tester.runAsync(
+        () => _queueTie(repos, [
+          (
+            'custom_dialects',
+            [
+              for (var i = 0; i < syncMaxCustomDialects; i++) {'name': 'm$i'},
+            ],
+            [
+              {'name': 'theirs'},
+            ],
+          ),
+        ]),
+      );
+      await _open(tester);
+
+      final combine = tester.widget<RadioListTile<String>>(
+        find.byKey(
+          const ValueKey('sync-conflict-option-custom_dialects-combine'),
+        ),
+      );
+      expect(combine.enabled, isFalse);
+      expect(
+        find.text(
+          "Can't combine: together these would be 129, and this list holds "
+          'at most 128.',
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group('undo', () {
+    Future<void> saveOtherDevicesTheme(
+      WidgetTester tester,
+      CompendiumRepositories repos,
+    ) async {
+      await tester.runAsync(
+        () => _queueTie(repos, [('theme_mode', 'dark', 'light')]),
+      );
+      await _open(tester);
+      await tester.tap(find.text('Another device'));
+      await tester.pump();
+      await tester.runAsync(() async {
+        await tester.tap(find.byKey(const ValueKey('sync-conflict-apply')));
+        await tester.pump();
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      });
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('reopens the choice with the earlier versions; picking again '
+        'saves the new choice', (tester) async {
+      final repos = await _pump(tester);
+      await saveOtherDevicesTheme(tester, repos);
+      expect(
+        await tester.runAsync(() => repos.settings.get('theme_mode')),
+        'light',
+      );
+      expect(find.text('Your choices are saved.'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('sync-conflict-undo')));
+      await tester.pumpAndSettle();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Choose again between the versions you had. Nothing changes until '
+          'you save.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('dark'), findsOneWidget);
+      expect(find.text('light'), findsOneWidget);
+      expect(
+        await tester.runAsync(() => repos.settings.get('theme_mode')),
+        'light',
+        reason: 'reopening changes nothing',
+      );
+
+      await tester.tap(find.text('This device'));
+      await tester.pump();
+      await tester.runAsync(() async {
+        await tester.tap(find.byKey(const ValueKey('sync-conflict-apply')));
+        await tester.pump();
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      });
+      await tester.pumpAndSettle();
+
+      expect(
+        await tester.runAsync(() => repos.settings.get('theme_mode')),
+        'dark',
+      );
+    });
+
+    testWidgets('closing the reopened choice without picking changes '
+        'nothing', (tester) async {
+      final repos = await _pump(tester);
+      await saveOtherDevicesTheme(tester, repos);
+
+      await tester.tap(find.byKey(const ValueKey('sync-conflict-undo')));
+      await tester.pumpAndSettle();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('sync-conflict-later')));
+      await tester.pumpAndSettle();
+
+      expect(
+        await tester.runAsync(() => repos.settings.get('theme_mode')),
+        'light',
+      );
+    });
+  });
+
   group('showing every saved detail', () {
     for (final (name, kind, id, edit, mine, theirs) in [
       (

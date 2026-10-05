@@ -870,6 +870,62 @@
   "@syncConflictFieldName": {
     "description": "Label for the name field of a choreographer, tag or venue in the comparison."
   },
+  "syncConflictCombineBoth": "Combine both",
+  "@syncConflictCombineBoth": {
+    "description": "Third option for a list such as dialects or shorthands that both devices changed: keep every entry from both instead of one device's whole list."
+  },
+  "syncConflictCombineSummary": "{count, plural, =1{Keeps the 1 item from both devices} other{Keeps all {count} items from both devices}}",
+  "@syncConflictCombineSummary": {
+    "description": "Subtitle of Combine both: how many entries the combined list would hold.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "14"
+      }
+    }
+  },
+  "syncConflictCombineOverLimit": "Can't combine: together these would be {count}, and this list holds at most {limit}.",
+  "@syncConflictCombineOverLimit": {
+    "description": "Subtitle of a disabled Combine both: the combined list would be longer than the app keeps, so some entries would be lost.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "130"
+      },
+      "limit": {
+        "type": "int",
+        "example": "128"
+      }
+    }
+  },
+  "syncConflictCombinePickEach": "Both devices changed these. For each, choose which to keep:",
+  "@syncConflictCombinePickEach": {
+    "description": "Shown under Combine both when some entries exist on both devices with different contents; the user picks a version of each before saving."
+  },
+  "syncConflictCombineUnavailable": "These can't be combined, so nothing was changed.",
+  "@syncConflictCombineUnavailable": {
+    "description": "Shown when Combine both was chosen for something that cannot be combined."
+  },
+  "syncConflictCombineOverLimitError": "Together these would be more than this list can hold, so nothing was changed.",
+  "@syncConflictCombineOverLimitError": {
+    "description": "Shown when saving a combination failed because it would exceed the list's limit."
+  },
+  "syncConflictSaved": "Your choices are saved.",
+  "@syncConflictSaved": {
+    "description": "Snackbar after saving conflict choices; its action reopens them to choose again."
+  },
+  "syncConflictUndo": "Undo",
+  "@syncConflictUndo": {
+    "description": "Snackbar action after saving conflict choices: reopens those items with the versions you chose between. Nothing changes until you choose again and save."
+  },
+  "syncConflictReconsiderIntro": "Choose again between the versions you had. Nothing changes until you save.",
+  "@syncConflictReconsiderIntro": {
+    "description": "Intro of the conflict choice when reopened by Undo."
+  },
+  "syncConflictUndoChanged": "Something newer arrived after you chose, so nothing was changed.",
+  "@syncConflictUndoChanged": {
+    "description": "Shown when an undo cannot be saved because the item changed since the original choice (for example, a newer edit arrived from another device)."
+  },
   "syncConflictFieldColour": "Colour",
   "@syncConflictFieldColour": {
     "description": "Label for a tag's colour in the conflict comparison."
