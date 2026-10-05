@@ -5049,6 +5049,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportJsonShare => 'Share';
 
   @override
+  String get exportJsonSaveAs => 'Save as…';
+
+  @override
   String get exportJsonCancel => 'Cancel';
 
   @override

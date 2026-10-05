@@ -5118,6 +5118,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportJsonShare => 'Delen';
 
   @override
+  String get exportJsonSaveAs => 'Opslaan als…';
+
+  @override
   String get exportJsonCancel => 'Annuleren';
 
   @override

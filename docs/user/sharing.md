@@ -177,8 +177,8 @@ itself is the name: `.json` instead of `.ccshare`. A
 [JSON file](./glossary.md#json-file) is a plain-text format that almost any
 device can open.
 
-On Linux, **Share** also saves the file through the system dialog, because
-there is no file share sheet to open. On desktop, **Save** opens a native
+On Linux, the third button reads **Save as…** instead of **Share** and saves the
+file through the system dialog, because there is no file share sheet to open. On desktop, **Save** opens a native
 file-save dialog. On Android and iOS it
 opens the platform's document-save flow so you can choose a user-accessible
 location. If the platform reports the destination, the confirmation names it.

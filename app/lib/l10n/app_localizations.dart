@@ -7965,6 +7965,12 @@ abstract class AppLocalizations {
   /// **'Share'**
   String get exportJsonShare;
 
+  /// JSON export delivery-choice button shown instead of 'Share' on Linux, where the OS share sheet cannot carry files: it saves the file through the system Save As dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as…'**
+  String get exportJsonSaveAs;
+
   /// JSON export delivery-choice button that produces no output.
   ///
   /// In en, this message translates to:
