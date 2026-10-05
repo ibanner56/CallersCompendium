@@ -256,9 +256,6 @@ Future<void> main() async {
 /// bootstrap future completes so no screen reads stale data, and an error
 /// screen with retry is shown if any step fails — including a database that
 /// won't open during the window restore.
-/// Sync-local tables whose writes are not user edits.
-const _syncBookkeepingTables = {'published_records', 'id_aliases'};
-
 class CompendiumApp extends StatefulWidget {
   const CompendiumApp({
     super.key,
@@ -815,12 +812,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _syncChangeSubscription = _appData.repositories.db.tableUpdates().listen((
       updates,
     ) {
-      final tables = {for (final u in updates) u.table}
-        ..removeAll(_syncBookkeepingTables);
-      if (tables.isEmpty) return;
-      _syncController.notifyLocalChange(
-        settingsOnly: tables.length == 1 && tables.contains('settings'),
-      );
+      _syncController.notifyTableUpdates({for (final u in updates) u.table});
     });
   }
 
