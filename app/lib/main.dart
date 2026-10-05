@@ -665,6 +665,17 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// now" dismisses it for this launch only; nothing is persisted.
   bool _backupReminderShown = false;
 
+  /// Completes once the deferred integrity probe has either passed or (on
+  /// failure) has posted its warning banner, so the backup reminder is always
+  /// queued *behind* the more important corruption warning rather than ahead
+  /// of it. Replaced on each bootstrap run.
+  Completer<void> _integrityGate = Completer<void>();
+
+  /// The reminder banner's own controller, so closing it never hides a
+  /// different banner that has since become current. Cleared when it closes.
+  ScaffoldFeatureController<MaterialBanner, MaterialBannerClosedReason>?
+  _backupReminderBanner;
+
   /// `true` when the once-per-launch integrity probe *threw* (as opposed to
   /// returning `false`). Kept distinct so the advisory banner can tell the user
   /// the check couldn't complete rather than reporting a definitive failure
@@ -925,6 +936,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
   void _startBootstrap() {
     _corruptionBannerShown = false;
     _backupReminderShown = false;
+    _backupReminderBanner = null;
+    _integrityGate = Completer<void>();
     // The deferred probe re-runs after this bootstrap succeeds; clear any
     // verdict from a previous database so it cannot raise a stale banner.
     _dataIntegrityOk = true;
@@ -1456,12 +1469,20 @@ class _CompendiumAppState extends State<CompendiumApp> {
       }
       logCaughtError(error, stackTrace, source: 'integrity-probe');
     }
-    if (!mounted || ok) return;
-    // setState so [_buildReadyApp] raises the banner on the next build.
+    if (!mounted || ok) {
+      _completeIntegrityGate();
+      return;
+    }
+    // setState so [_buildReadyApp] raises the banner on the next build; that
+    // banner's post-frame callback completes the gate.
     setState(() {
       _integrityProbeThrew = threw;
       _dataIntegrityOk = false;
     });
+  }
+
+  void _completeIntegrityGate() {
+    if (!_integrityGate.isCompleted) _integrityGate.complete();
   }
 
   /// Reconfigurations run one at a time, in request order. An enable that is
@@ -1909,7 +1930,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (!_dataIntegrityOk && !_corruptionBannerShown) {
       _corruptionBannerShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
+        if (!mounted) {
+          _completeIntegrityGate();
+          return;
+        }
         final messenger = ScaffoldMessenger.of(context);
         final l10n = AppLocalizations.of(context);
         messenger.showMaterialBanner(
@@ -1928,6 +1952,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
             ],
           ),
         );
+        _completeIntegrityGate();
       });
     }
     // Cold start: the app may have been launched to open a shared file. Pull it
@@ -1975,6 +2000,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
   Future<void> _maybeShowBackupReminder(BuildContext context) async {
     if (_backupReminderShown) return;
     _backupReminderShown = true;
+    // Wait for the deferred integrity probe (it runs after the first frame) so
+    // a failing probe's warning is current before the reminder is queued.
+    final gate = _integrityGate;
+    await gate.future;
+    if (!mounted || !context.mounted || !identical(gate, _integrityGate)) {
+      return;
+    }
     final bool overdue;
     try {
       final settings = _appData.repositories.settings;
@@ -1999,7 +2031,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     final messenger = _messengerKey.currentState;
     if (messenger == null) return;
     final l10n = AppLocalizations.of(context);
-    messenger.showMaterialBanner(
+    final controller = messenger.showMaterialBanner(
       MaterialBanner(
         key: const ValueKey('backup-reminder-banner'),
         content: Text(l10n.backupReminderBannerText),
@@ -2010,11 +2042,19 @@ class _CompendiumAppState extends State<CompendiumApp> {
             child: Text(l10n.backupReminderBannerExport),
           ),
           TextButton(
-            onPressed: messenger.hideCurrentMaterialBanner,
+            onPressed: () => _backupReminderBanner?.close(),
             child: Text(l10n.backupReminderBannerNotNow),
           ),
         ],
       ),
+    );
+    _backupReminderBanner = controller;
+    unawaited(
+      controller.closed.whenComplete(() {
+        if (identical(_backupReminderBanner, controller)) {
+          _backupReminderBanner = null;
+        }
+      }),
     );
   }
 
@@ -2031,7 +2071,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
         DateTime.now(),
       );
       if (!delivered || !mounted) return;
-      messenger?.hideCurrentMaterialBanner();
+      _backupReminderBanner?.close();
       messenger?.showSnackBar(SnackBar(content: Text(l10n.backupExported)));
     } on BackupExportTooLargeException catch (e, st) {
       logCaughtError(e, st, source: 'main.backupReminderExport');

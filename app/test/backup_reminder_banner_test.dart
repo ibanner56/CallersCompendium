@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
@@ -39,12 +41,13 @@ Future<void> _pump(
   WidgetTester tester,
   AppData appData, {
   BackupSaverFn? saver,
+  Future<bool> Function()? integrityCheck,
 }) async {
   await tester.pumpWidget(
     CompendiumApp(
       appData: appData,
       windowService: NoopWindowService(appData.repositories.settings),
-      integrityCheck: () async => true,
+      integrityCheck: integrityCheck ?? () async => true,
       backupSaver: saver,
     ),
   );
@@ -173,5 +176,71 @@ void main() {
     await _pump(tester, appData);
 
     expect(find.byKey(_bannerKey), findsNothing);
+  });
+
+  testWidgets('a slow failing integrity probe is shown before the reminder', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final l10n = await _l10n();
+    final appData = openTestAppData();
+    await _seed(appData, cadence: 'weekly');
+    final probe = Completer<bool>();
+
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: NoopWindowService(appData.repositories.settings),
+        integrityCheck: () => probe.future,
+      ),
+    );
+    await tester.pumpAndSettle();
+    // The probe is still pending: the reminder must wait for it.
+    expect(find.byKey(_bannerKey), findsNothing);
+
+    probe.complete(false);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.startupIntegrityCheckFailed), findsOneWidget);
+    expect(find.byKey(_bannerKey), findsNothing);
+
+    // Dismissing the warning lets the queued reminder through.
+    await tester.tap(find.text(l10n.updateBannerDismiss));
+    await tester.pumpAndSettle();
+    expect(find.byKey(_bannerKey), findsOneWidget);
+  });
+
+  testWidgets('export finishing after Not now does not hide another banner', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final l10n = await _l10n();
+    final appData = openTestAppData();
+    await _seed(appData, cadence: 'weekly');
+    final save = Completer<bool>();
+
+    await _pump(tester, appData, saver: (_, _) => save.future);
+    await tester.tap(find.text(l10n.backupReminderBannerExport));
+    await tester.pump();
+    await tester.tap(find.text(l10n.backupReminderBannerNotNow));
+    await tester.pumpAndSettle();
+    expect(find.byKey(_bannerKey), findsNothing);
+
+    const otherKey = ValueKey('other-banner');
+    ScaffoldMessenger.of(
+      tester.element(find.byType(AppShell)),
+    ).showMaterialBanner(
+      MaterialBanner(
+        key: otherKey,
+        content: const Text('other'),
+        actions: const [SizedBox.shrink()],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    save.complete(true);
+    await tester.pumpAndSettle();
+    expect(find.byKey(otherKey), findsOneWidget);
   });
 }
