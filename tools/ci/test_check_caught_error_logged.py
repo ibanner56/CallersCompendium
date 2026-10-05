@@ -291,6 +291,53 @@ def test_unmarked_forms() -> None:
         == [4],
     )
 
+    # A marker in the try body, or in an EARLIER sibling clause, does not mark
+    # a later clause: each clause is its own handler. (An earlier lookback
+    # walked back over the whole try statement, so these passed unmarked.)
+    check(
+        "later clause is not marked by an earlier clause's log call",
+        unmarked_lines(
+            "void f() {\n"
+            "  try {\n"
+            "    a();\n"
+            "  } on Foo catch (e, st) {\n"
+            "    logCaughtError(e, st);\n"
+            "  } on Object catch (e) {\n"
+            "    show(e);\n"
+            "  }\n"
+            "}\n"
+        )
+        == [6],
+    )
+    check(
+        "clause is not marked by a log call in the try body",
+        unmarked_lines(
+            "void f() {\n"
+            "  try {\n"
+            "    logCaughtError(1, 2);\n"
+            "  } catch (e) {\n"
+            "    show(e);\n"
+            "  }\n"
+            "}\n"
+        )
+        == [4],
+    )
+    check(
+        "on-block is not marked by an earlier clause's annotation",
+        unmarked_lines(
+            "void f() {\n"
+            "  try {\n"
+            "    a();\n"
+            "  } on Foo {\n"
+            "    // diagnostics: silent — expected\n"
+            "  } on Object {\n"
+            "    b();\n"
+            "  }\n"
+            "}\n"
+        )
+        == [6],
+    )
+
     check(
         "typed catch with neither",
         unmarked_lines(
