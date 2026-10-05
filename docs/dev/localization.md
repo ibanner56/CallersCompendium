@@ -155,12 +155,12 @@ so the whole app re-renders in the selected language live. The Language & region
 settings section (`app/lib/src/screens/settings/regional_section.dart`) is the
 UI for all three.
 
-Separately from the three locale and regional-format scopes above (which hold
-`Locale?`, `DateFormatSetting` and `FirstDayOfWeekPref`, and are not converted),
-the app's boolean preference scopes are backed by `PreferenceNotifier<T>`
-(`app/lib/src/data/persisted_preference.dart`), each owning its settings key,
-default, decoder and encoder. They are listed once, in `_boolPreferences` in
-`app/lib/main.dart`, which both the reset and the load iterate; a scope still
+Every settings-backed preference, including the three locale and regional-format
+scopes above (`Locale?`, `DateFormatSetting` and `FirstDayOfWeekPref`), is a
+`PreferenceNotifier<T>` (`app/lib/src/data/persisted_preference.dart`), each
+owning its settings key, default, decoder and encoder. They are listed once, in
+`_preferences` in `app/lib/main.dart`, which both the reset and the load
+iterate; a scope still
 receives its notifier as a plain `ValueNotifier<T>`, so the scope API above is
 unchanged.
 
