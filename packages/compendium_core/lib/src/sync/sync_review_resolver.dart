@@ -1,23 +1,29 @@
 import 'sync_record_kind.dart';
+import 'wire_mapping.dart' show projectShareableRecordBody;
 import 'sync_review.dart';
 import 'sync_storage.dart';
 
 /// One record awaiting the user's choice between its versions.
 ///
-/// [localBody] is this device's current copy as it would sync, or null when
-/// this device holds no live copy (two other devices tied). [candidates] are
-/// the other versions on offer, one queue row each.
+/// [localBody] is this device's current copy as it would sync — projected to
+/// the fields that travel, so a comparison never reports a difference in
+/// fields that stay on this device — or null when this device holds no live
+/// copy (two other devices tied). [localUpdatedAt] is when this device last
+/// changed it. [candidates] are the other versions on offer, one queue row
+/// each.
 class SyncConflictGroup {
   const SyncConflictGroup({
     required this.kind,
     required this.recordId,
     required this.localBody,
     required this.candidates,
+    this.localUpdatedAt,
   });
 
   final SyncRecordKind kind;
   final String recordId;
   final Map<String, Object?>? localBody;
+  final DateTime? localUpdatedAt;
   final List<SyncReviewQueueItem> candidates;
 }
 
@@ -64,15 +70,36 @@ final class SyncReviewQueueResolver {
           .add(SyncReviewQueueItem.fromRow(row));
     }
     final groups = <SyncConflictGroup>[];
+    Set<String>? shareableFieldIds;
     for (final entry in grouped.entries) {
       final (kind, recordId) = entry.key;
+      final address = (kind: kind, recordId: recordId);
       final items = entry.value
         ..sort((a, b) => a.row.candidateHash.compareTo(b.row.candidateHash));
+      final body = await storage.read(address);
+      if (kind == SyncRecordKind.dance && shareableFieldIds == null) {
+        shareableFieldIds = {
+          for (final def
+              in await storage.repositories.customFieldDefs
+                  .listAllWithDeleted())
+            if (def.field.shareable && !def.deleted) def.field.id,
+        };
+      }
       groups.add(
         SyncConflictGroup(
           kind: kind,
           recordId: recordId,
-          localBody: await storage.read((kind: kind, recordId: recordId)),
+          localBody: body == null
+              ? null
+              : projectShareableRecordBody(
+                  kind,
+                  body,
+                  settingsKey: kind == SyncRecordKind.setting ? recordId : null,
+                  allowedCustomFieldIds: shareableFieldIds ?? const {},
+                ),
+          localUpdatedAt: body == null
+              ? null
+              : await storage.recordUpdatedAt(address),
           candidates: List.unmodifiable(items),
         ),
       );
