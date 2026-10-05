@@ -47,8 +47,9 @@ one and it is added with that move's default settings. Typing `sw` and pressing
 Enter, for example, gives you a swing.
 
 Anything the app cannot recognise is still kept — it becomes a **custom figure**,
-holding your text exactly as you typed it. Nothing you type is ever thrown away
-because the app did not understand it.
+holding your text. Nothing you type is ever thrown away because the app did not
+understand it; the only change is that role words are saved as role terms and
+shown in your own dialect (see below).
 
 *The dance editor while entering figures, with recognized rows and the running
 beat total visible below the list.*

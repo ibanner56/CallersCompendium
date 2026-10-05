@@ -155,14 +155,15 @@ so the whole app re-renders in the selected language live. The Language & region
 settings section (`app/lib/src/screens/settings/regional_section.dart`) is the
 UI for all three.
 
-Every settings-backed preference, including the three locale and regional-format
-scopes above (`Locale?`, `DateFormatSetting` and `FirstDayOfWeekPref`), is a
-`PreferenceNotifier<T>` (`app/lib/src/data/persisted_preference.dart`), each
+The settings-backed preferences, including the three locale and regional-format
+scopes above (`Locale?`, `DateFormatSetting` and `FirstDayOfWeekPref`), are
+`PreferenceNotifier<T>`s (`app/lib/src/data/persisted_preference.dart`), each
 owning its settings key, default, decoder and encoder. They are listed once, in
 `_preferences` in `app/lib/main.dart`, which both the reset and the load
-iterate; a scope still
-receives its notifier as a plain `ValueNotifier<T>`, so the scope API above is
-unchanged.
+iterate; a scope still receives its notifier as a plain `ValueNotifier<T>`, so
+the scope API above is unchanged. The one exception is the active dialect: it is
+persisted by `DialectLibraryController` (`kActiveDialectRefKey`), not by a
+`PreferenceNotifier`, and `_resetAppPreferenceNotifiers` resets it by hand.
 
 ### Security: validate every persisted value (OWASP)
 
