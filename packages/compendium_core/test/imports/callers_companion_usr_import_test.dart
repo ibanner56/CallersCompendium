@@ -388,6 +388,36 @@ void main() {
     });
   });
 
+  group('commit (progress)', () {
+    test('forwards onProgress to the dance commit', () async {
+      // The review screen's determinate "n / total" depends on this
+      // forwarding: dropping `onProgress` here leaves the screen on its seed.
+      final adapter = FakeSourceAdapter([
+        {'id': '4', 'title': 'Simplicity Swing'},
+        {'id': '7', 'title': 'Petronella'},
+      ]);
+      final planned = await pipeline.plan(adapter, const ImportRequest());
+      final archive = CcUsrArchive(
+        dances: const [],
+        sets: const [],
+        warnings: const [],
+      );
+      final events = <(int, int)>[];
+
+      await importer.commit(
+        planned,
+        archive,
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        onProgress: (done, total) => events.add((done, total)),
+      );
+
+      // One report per record, then the closing (total, total).
+      expect(events, [(1, 2), (2, 2), (2, 2)]);
+    });
+  });
+
   group('commit (FK map robustness)', () {
     test('a dance skipped mid-batch does not misalign the FK map', () async {
       // Three dances planned in order; the MIDDLE one (id '7') is skipped at
