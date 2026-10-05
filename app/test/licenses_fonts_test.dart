@@ -36,6 +36,28 @@ void main() {
     expect(licenseFiles, isNotEmpty);
   });
 
+  test('every bundled font file has a licence file', () {
+    // Start from the fonts, not the licence files: a font added without its
+    // licence leaves `licenseFiles` unchanged and would pass every other test
+    // here. The licence is `<Family>-OFL.txt`, the family being the filename
+    // up to the first `-`; a font subsetted from another family's source
+    // names that family explicitly.
+    const licenceFamilyAlias = {'ProgramMatrixMarkers': 'NotoSansSymbols2'};
+    final fonts = Directory('assets/fonts')
+        .listSync()
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.ttf'))
+        .map((f) => f.uri.pathSegments.last)
+        .toList();
+    expect(fonts, isNotEmpty);
+    final licences = licenseFiles.map((f) => f.uri.pathSegments.last).toSet();
+    for (final font in fonts) {
+      final family = font.split('-').first;
+      final licence = '${licenceFamilyAlias[family] ?? family}-OFL.txt';
+      expect(licences, contains(licence), reason: '$font has no licence file');
+    }
+  });
+
   test('every font licence file is declared in pubspec.yaml', () {
     final declared = File('pubspec.yaml')
         .readAsLinesSync()
