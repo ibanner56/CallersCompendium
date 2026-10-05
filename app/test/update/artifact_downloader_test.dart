@@ -720,7 +720,10 @@ void main() {
           onTimeout: () => fail('cancel hung behind a stuck flush'),
         );
         expect(outcome.kind, DownloadResultKind.cancelled);
-        expect(sink.closeCalls, 1);
+        // A real IOSink cannot be closed while its flush is outstanding, so
+        // the close waits for a flush that never settles (see the real-IOSink
+        // tests below); the file is still deleted.
+        expect(sink.closeCalls, 0);
         expect(dest.existsSync(), isFalse);
       },
     );

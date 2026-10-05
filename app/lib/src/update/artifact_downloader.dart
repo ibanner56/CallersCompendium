@@ -268,6 +268,10 @@ Future<DownloadOutcome> downloadArtifact(
     // Bytes handed to the sink since the last flush; see the backpressure note
     // in the listener below.
     var unflushed = 0;
+    // The backpressure flush still in progress, if any. dart:io refuses to
+    // close a sink mid-flush (it throws synchronously), so a failed or
+    // cancelled download closes only after this settles.
+    Future<void>? inFlightFlush;
 
     void bumpIdle() {
       idle?.cancel();
@@ -340,14 +344,18 @@ Future<DownloadOutcome> downloadArtifact(
           }
 
           sub.pause();
-          sink.flush().then(
+          final flushing = sink.flush();
+          inFlightFlush = flushing;
+          flushing.then(
             (_) {
+              inFlightFlush = null;
               stopGuards();
               if (done.isCompleted) return;
               bumpIdle();
               sub.resume();
             },
             onError: (Object e) {
+              inFlightFlush = null;
               stopGuards();
               // diagnostics: silent — returns DownloadOutcome to the
               // update-layer caller, not UI.
@@ -394,18 +402,39 @@ Future<DownloadOutcome> downloadArtifact(
     // preserved even if the close also fails.)
     //
     // A non-success outcome (cancel, stall, over-budget) discards the file, so
-    // there is nothing to flush: close without awaiting. Awaiting here would
-    // re-block on the very flush a cancel or write watchdog just gave up on.
+    // there is nothing to flush and nothing to wait for: return at once.
+    // Awaiting here would re-block on the very flush a cancel or write
+    // watchdog just gave up on, and dart:io throws if a sink is closed while a
+    // flush is outstanding. So close once any in-flight flush settles, then
+    // delete: the `finally` delete below runs first and fails on Windows while
+    // the handle is still open, so this second delete is what removes the
+    // partial file there.
     if (!outcome.isSuccess) {
       sinkClosed = true;
-      unawaited(
-        sink.close().then<void>(
-          (_) {},
+      final openSink = sink;
+      final pendingFlush = inFlightFlush;
+      unawaited(() async {
+        if (pendingFlush != null) {
+          try {
+            await pendingFlush;
+          } on Object {
+            // diagnostics: silent — the outcome is already determined; the
+            // flush failure only matters for when the handle can close.
+          }
+        }
+        try {
+          await openSink.close();
+        } on Object {
           // diagnostics: silent — the outcome is already determined; the file
           // is discarded.
-          onError: (Object _) {},
-        ),
-      );
+        }
+        // The sink exists only after this call created [destination].
+        try {
+          if (await destination.exists()) await destination.delete();
+        } on Object {
+          // diagnostics: silent — best-effort cleanup of a discarded file.
+        }
+      }());
       return outcome;
     }
     try {
