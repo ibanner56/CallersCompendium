@@ -1502,10 +1502,6 @@
   "@commonSystemDefault": {
     "description": "Generic option meaning 'follow the device/platform setting'. Shared by the date-format and app-language controls."
   },
-  "commonComingSoon": "Coming soon",
-  "@commonComingSoon": {
-    "description": "Trailing badge on a settings control whose feature is not available yet."
-  },
   "settingsLanguageRegionTitle": "Language & region",
   "@settingsLanguageRegionTitle": {
     "description": "Label of the Settings section that groups app-language and regional-format preferences."
@@ -2427,18 +2423,6 @@
   "settingsDefaultsStartingProgramPickerTitle": "Add a dance",
   "@settingsDefaultsStartingProgramPickerTitle": {
     "description": "Title for the dance picker used by the starting program template."
-  },
-  "settingsDefaultsStartingProgramAddDance": "Dance",
-  "@settingsDefaultsStartingProgramAddDance": {
-    "description": "Button to add a dance to the starting program template."
-  },
-  "settingsDefaultsStartingProgramAddText": "Note",
-  "@settingsDefaultsStartingProgramAddText": {
-    "description": "Button to add a text note to the starting program template."
-  },
-  "settingsDefaultsStartingProgramAddBreak": "Add break",
-  "@settingsDefaultsStartingProgramAddBreak": {
-    "description": "Tooltip for adding a break to the starting program template."
   },
   "settingsDefaultsStartingProgramTextLabel": "Note text",
   "@settingsDefaultsStartingProgramTextLabel": {
@@ -4087,10 +4071,6 @@
   "@collectionSearchFieldHint": {
     "description": "Hint text of the local collection search field, listing what is searched."
   },
-  "collectionPickerSearchFieldHint": "Search titles, figures, notes…",
-  "@collectionPickerSearchFieldHint": {
-    "description": "Hint text of the collection picker search field, listing what is searched."
-  },
   "collectionPickerOnlineSearchFieldHint": "Search online dances by title…",
   "@collectionPickerOnlineSearchFieldHint": {
     "description": "Hint text of the collection picker when its online search is limited to titles."
@@ -4770,10 +4750,6 @@
   "collectionCreateTagButton": "Create tag",
   "@collectionCreateTagButton": {
     "description": "Tooltip for the button that creates the typed tag in the batch add-tags dialog."
-  },
-  "collectionCreateTagError": "Could not create tag. Try again.",
-  "@collectionCreateTagError": {
-    "description": "Snackbar shown when creating a tag fails."
   },
   "collectionBatchApplyError": "Could not apply batch changes. Try again.",
   "@collectionBatchApplyError": {
@@ -5998,34 +5974,6 @@
   "@programsMatrixHidePhrasesSemantic": {
     "description": "Accessible label/tooltip for the matrix control that restores comparable cell presence glyphs in the transient on-screen view."
   },
-  "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Alternate dance: {title}, first half} second{Alternate dance: {title}, second half} other{Alternate dance: {title}}}} other{{half, select, first{Dance: {title}, first half} second{Dance: {title}, second half} other{Dance: {title}}}}}",
-  "@programsMatrixRowHeaderSemantic": {
-    "description": "Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.",
-    "placeholders": {
-      "title": {
-        "type": "String",
-        "example": "Chorus Jig"
-      },
-      "alt": {
-        "type": "String",
-        "example": "yes"
-      },
-      "half": {
-        "type": "String",
-        "example": "first"
-      }
-    }
-  },
-  "programsMatrixHalfShort": "{half, select, first{1st} other{2nd}}",
-  "@programsMatrixHalfShort": {
-    "description": "Short program-half badge label (1st or 2nd half).",
-    "placeholders": {
-      "half": {
-        "type": "String",
-        "example": "first"
-      }
-    }
-  },
   "programsMatrixSectionShort": "{sectionKey, select, s1{1st} s2{2nd} s3{3rd} s4{4th} s5{5th} s6{6th} s7{7th} s8{8th} s9{9th} other{{sectionNumber}}}",
   "@programsMatrixSectionShort": {
     "description": "Short localized ordinal label for a numbered program section (for example, 1st, 2nd, or 3rd). sectionKey selects listed ordinals; sectionNumber is the raw number used above the listed ordinals.",
@@ -6125,24 +6073,6 @@
       "first": {
         "type": "String",
         "example": "no"
-      }
-    }
-  },
-  "programsMatrixChipQualifiedTitle": "{alt, select, yes{{half, select, first{{title} (alternate dance, first half)} second{{title} (alternate dance, second half)} other{{title} (alternate dance)}}} other{{half, select, first{{title} (first half)} second{{title} (second half)} other{{title}}}}}",
-  "@programsMatrixChipQualifiedTitle": {
-    "description": "Dance name with its alternate-dance and program-half qualifiers, used by the compact matrix dance chip's screen-reader label.",
-    "placeholders": {
-      "title": {
-        "type": "String",
-        "example": "Chorus Jig"
-      },
-      "alt": {
-        "type": "String",
-        "example": "no"
-      },
-      "half": {
-        "type": "String",
-        "example": "first"
       }
     }
   },
@@ -7115,10 +7045,6 @@
         "example": "Caller's Box"
       }
     }
-  },
-  "onlineSearchFieldHint": "Search online dances by title or author…",
-  "@onlineSearchFieldHint": {
-    "description": "Hint text for the online search field."
   },
   "collectionOnlineSearchFieldHint": "Search online dances by title, author, or figure…",
   "@collectionOnlineSearchFieldHint": {
@@ -10740,15 +10666,6 @@
       }
     }
   },
-  "customFieldsDeleteInUseUnknown": "Can't delete \"{label}\": still used by some dances. Remove the value from all dances first.",
-  "@customFieldsDeleteInUseUnknown": {
-    "description": "Snackbar when deleting a custom field still set on dances but the exact count is unknown. The raw exception is logged (debugPrint), never shown (CWE-209). {label} is plain text.",
-    "placeholders": {
-      "label": {
-        "type": "String"
-      }
-    }
-  },
   "customFieldsTitle": "Custom fields",
   "@customFieldsTitle": {
     "description": "App-bar title for the custom-fields manager."
@@ -10971,19 +10888,6 @@
   "@dialectEditorPlural": {
     "description": "Label for the plural form of a role term."
   },
-  "dialectEditorMoveSubsAdd": "Add move substitutions",
-  "@dialectEditorMoveSubsAdd": {
-    "description": "Collapsed header/empty state for the move-substitutions section."
-  },
-  "dialectEditorMoveSubsCount": "{count, plural, =1{1 move substitution} other{{count} move substitutions}}",
-  "@dialectEditorMoveSubsCount": {
-    "description": "Header showing how many move substitutions are defined.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "dialectEditorMoveSubHint": "substitution (use %S for handedness)",
   "@dialectEditorMoveSubHint": {
     "description": "Hint for a move-substitution input; %S is a literal handedness token the user types."
@@ -10991,19 +10895,6 @@
   "dialectEditorAddMove": "Add a move…",
   "@dialectEditorAddMove": {
     "description": "Placeholder for the dropdown that adds a move to substitute."
-  },
-  "dialectEditorDancerSubsAdd": "Add dancer substitutions",
-  "@dialectEditorDancerSubsAdd": {
-    "description": "Collapsed header/empty state for the dancer-substitutions section."
-  },
-  "dialectEditorDancerSubsCount": "{count, plural, =1{1 dancer substitution} other{{count} dancer substitutions}}",
-  "@dialectEditorDancerSubsCount": {
-    "description": "Header showing how many dancer substitutions are defined.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
   },
   "dialectEditorDancerSubHint": "substitution",
   "@dialectEditorDancerSubHint": {
@@ -11577,20 +11468,6 @@
   "dialectEditorMoveWordingBranchSingleFile": "Single file",
   "@dialectEditorMoveWordingBranchSingleFile": {
     "description": "Label for the single-file branch."
-  },
-  "dialectEditorMoveWordingsAdd": "Add move wording templates",
-  "@dialectEditorMoveWordingsAdd": {
-    "description": "Collapsed header/empty state for the move wording template section."
-  },
-  "dialectEditorMoveWordingsCount": "{count, plural, =1{1 move wording template} other{{count} move wording templates}}",
-  "@dialectEditorMoveWordingsCount": {
-    "description": "Header showing how many move wording templates are defined.",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    }
   },
   "dialectEditorAddMoveWording": "Add a move wording template…",
   "@dialectEditorAddMoveWording": {

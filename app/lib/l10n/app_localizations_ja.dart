@@ -1169,9 +1169,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonSystemDefault => 'システムのデフォルト';
 
   @override
-  String get commonComingSoon => '近日公開';
-
-  @override
   String get settingsLanguageRegionTitle => '言語と地域';
 
   @override
@@ -1855,15 +1852,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDefaultsStartingProgramPickerTitle => 'ダンスを追加';
-
-  @override
-  String get settingsDefaultsStartingProgramAddDance => 'ダンス';
-
-  @override
-  String get settingsDefaultsStartingProgramAddText => 'メモ';
-
-  @override
-  String get settingsDefaultsStartingProgramAddBreak => '休憩を追加';
 
   @override
   String get settingsDefaultsStartingProgramTextLabel => 'メモのテキスト';
@@ -3123,9 +3111,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionSearchFieldHint => 'タイトル、作者、フィギュア、ノートを検索…';
 
   @override
-  String get collectionPickerSearchFieldHint => 'タイトル、フィギュア、ノートを検索…';
-
-  @override
   String get collectionPickerOnlineSearchFieldHint => 'タイトルでオンラインのダンスを検索…';
 
   @override
@@ -3616,9 +3601,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionCreateTagButton => 'タグを作成';
-
-  @override
-  String get collectionCreateTagError => 'タグを作成できませんでした。もう一度お試しください。';
 
   @override
   String get collectionBatchApplyError => '一括変更を適用できませんでした。もう一度お試しください。';
@@ -4461,35 +4443,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsMatrixHidePhrasesSemantic => '存在グリフを表示';
 
   @override
-  String programsMatrixRowHeaderSemantic(
-    String title,
-    String alt,
-    String half,
-  ) {
-    String _temp0 = intl.Intl.selectLogic(half, {
-      'first': '代替ダンス: $title、前半',
-      'second': '代替ダンス: $title、後半',
-      'other': '代替ダンス: $title',
-    });
-    String _temp1 = intl.Intl.selectLogic(half, {
-      'first': 'ダンス: $title、前半',
-      'second': 'ダンス: $title、後半',
-      'other': 'ダンス: $title',
-    });
-    String _temp2 = intl.Intl.selectLogic(alt, {
-      'yes': '$_temp0',
-      'other': '$_temp1',
-    });
-    return '$_temp2';
-  }
-
-  @override
-  String programsMatrixHalfShort(String half) {
-    String _temp0 = intl.Intl.selectLogic(half, {'first': '前半', 'other': '後半'});
-    return '$_temp0';
-  }
-
-  @override
   String programsMatrixSectionShort(String sectionKey, String sectionNumber) {
     String _temp0 = intl.Intl.selectLogic(sectionKey, {
       's1': '1',
@@ -4588,29 +4541,6 @@ class AppLocalizationsJa extends AppLocalizations {
       'other': '、フレーズ：$phrases',
     });
     return '$dance、$move：$_temp3$_temp4';
-  }
-
-  @override
-  String programsMatrixChipQualifiedTitle(
-    String title,
-    String alt,
-    String half,
-  ) {
-    String _temp0 = intl.Intl.selectLogic(half, {
-      'first': '$title（代替ダンス、前半）',
-      'second': '$title（代替ダンス、後半）',
-      'other': '$title（代替ダンス）',
-    });
-    String _temp1 = intl.Intl.selectLogic(half, {
-      'first': '$title（前半）',
-      'second': '$title（後半）',
-      'other': '$title',
-    });
-    String _temp2 = intl.Intl.selectLogic(alt, {
-      'yes': '$_temp0',
-      'other': '$_temp1',
-    });
-    return '$_temp2';
   }
 
   @override
@@ -5295,9 +5225,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String onlineSearchFieldLabel(String source) {
     return '$sourceを検索';
   }
-
-  @override
-  String get onlineSearchFieldHint => 'タイトルまたは作者でオンラインのダンスを検索…';
 
   @override
   String get collectionOnlineSearchFieldHint =>
@@ -7955,11 +7882,6 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String customFieldsDeleteInUseUnknown(String label) {
-    return '「$label」を削除できません: まだいくつかのダンスで使用されています。すべてのダンスから値を削除してから実行してください。';
-  }
-
-  @override
   String get customFieldsTitle => 'カスタムフィールド';
 
   @override
@@ -8123,36 +8045,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get dialectEditorPlural => '複数形';
 
   @override
-  String get dialectEditorMoveSubsAdd => 'ムーブの置き換えを追加';
-
-  @override
-  String dialectEditorMoveSubsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count件のムーブの置き換え',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get dialectEditorMoveSubHint => '置き換え（左右の指定には%Sを使用）';
 
   @override
   String get dialectEditorAddMove => 'ムーブを追加…';
-
-  @override
-  String get dialectEditorDancerSubsAdd => 'ダンサーの置き換えを追加';
-
-  @override
-  String dialectEditorDancerSubsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count件のダンサーの置き換え',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get dialectEditorDancerSubHint => '置き換え';
@@ -8545,19 +8441,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingBranchSingleFile => '一列';
-
-  @override
-  String get dialectEditorMoveWordingsAdd => '動作の文言テンプレートを追加';
-
-  @override
-  String dialectEditorMoveWordingsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count 個の動作の文言テンプレート',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get dialectEditorAddMoveWording => '動作の文言テンプレートを追加…';

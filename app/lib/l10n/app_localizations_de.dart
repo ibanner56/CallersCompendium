@@ -1237,9 +1237,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get commonSystemDefault => 'Systemstandard';
 
   @override
-  String get commonComingSoon => 'Demnächst verfügbar';
-
-  @override
   String get settingsLanguageRegionTitle => 'Sprache & Region';
 
   @override
@@ -1968,15 +1965,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsStartingProgramPickerTitle => 'Tanz hinzufügen';
-
-  @override
-  String get settingsDefaultsStartingProgramAddDance => 'Tanz';
-
-  @override
-  String get settingsDefaultsStartingProgramAddText => 'Notiz';
-
-  @override
-  String get settingsDefaultsStartingProgramAddBreak => 'Pause hinzufügen';
 
   @override
   String get settingsDefaultsStartingProgramTextLabel => 'Notiztext';
@@ -3311,10 +3299,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Titel, Autoren, Figuren, Notizen suchen…';
 
   @override
-  String get collectionPickerSearchFieldHint =>
-      'Titel, Figuren, Notizen suchen…';
-
-  @override
   String get collectionPickerOnlineSearchFieldHint =>
       'Online-Tänze nach Titel suchen…';
 
@@ -3825,10 +3809,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get collectionCreateTagButton => 'Tag erstellen';
-
-  @override
-  String get collectionCreateTagError =>
-      'Tag konnte nicht erstellt werden. Versuchen Sie es erneut.';
 
   @override
   String get collectionBatchApplyError =>
@@ -4706,35 +4686,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsMatrixHidePhrasesSemantic => 'Präsenzsymbole anzeigen';
 
   @override
-  String programsMatrixRowHeaderSemantic(
-    String title,
-    String alt,
-    String half,
-  ) {
-    String _temp0 = intl.Intl.selectLogic(half, {
-      'first': 'Alternativer Tanz: $title, erste Hälfte',
-      'second': 'Alternativer Tanz: $title, zweite Hälfte',
-      'other': 'Alternativer Tanz: $title',
-    });
-    String _temp1 = intl.Intl.selectLogic(half, {
-      'first': 'Tanz: $title, erste Hälfte',
-      'second': 'Tanz: $title, zweite Hälfte',
-      'other': 'Tanz: $title',
-    });
-    String _temp2 = intl.Intl.selectLogic(alt, {
-      'yes': '$_temp0',
-      'other': '$_temp1',
-    });
-    return '$_temp2';
-  }
-
-  @override
-  String programsMatrixHalfShort(String half) {
-    String _temp0 = intl.Intl.selectLogic(half, {'first': '1.', 'other': '2.'});
-    return '$_temp0';
-  }
-
-  @override
   String programsMatrixSectionShort(String sectionKey, String sectionNumber) {
     String _temp0 = intl.Intl.selectLogic(sectionKey, {
       's1': '1.',
@@ -4834,29 +4785,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'other': ', Phrase(n): $phrases',
     });
     return '$dance, $move: $_temp3$_temp4';
-  }
-
-  @override
-  String programsMatrixChipQualifiedTitle(
-    String title,
-    String alt,
-    String half,
-  ) {
-    String _temp0 = intl.Intl.selectLogic(half, {
-      'first': '$title (Alternativer Tanz, erste Hälfte)',
-      'second': '$title (Alternativer Tanz, zweite Hälfte)',
-      'other': '$title (Alternativer Tanz)',
-    });
-    String _temp1 = intl.Intl.selectLogic(half, {
-      'first': '$title (erste Hälfte)',
-      'second': '$title (zweite Hälfte)',
-      'other': '$title',
-    });
-    String _temp2 = intl.Intl.selectLogic(alt, {
-      'yes': '$_temp0',
-      'other': '$_temp1',
-    });
-    return '$_temp2';
   }
 
   @override
@@ -5570,10 +5498,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String onlineSearchFieldLabel(String source) {
     return '$source durchsuchen';
   }
-
-  @override
-  String get onlineSearchFieldHint =>
-      'Online-Tänze nach Titel oder Autor suchen…';
 
   @override
   String get collectionOnlineSearchFieldHint =>
@@ -8367,11 +8291,6 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String customFieldsDeleteInUseUnknown(String label) {
-    return '„$label“ kann nicht gelöscht werden: noch von einigen Tänzen verwendet. Entfernen Sie zuerst den Wert aus allen Tänzen.';
-  }
-
-  @override
   String get customFieldsTitle => 'Benutzerdefinierte Felder';
 
   @override
@@ -8545,39 +8464,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get dialectEditorPlural => 'Plural';
 
   @override
-  String get dialectEditorMoveSubsAdd => 'Bewegungsersetzungen hinzufügen';
-
-  @override
-  String dialectEditorMoveSubsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Bewegungsersetzungen',
-      one: '1 Bewegungsersetzung',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get dialectEditorMoveSubHint =>
       'Ersetzung (verwenden Sie %S für die Händigkeit)';
 
   @override
   String get dialectEditorAddMove => 'Bewegung hinzufügen…';
-
-  @override
-  String get dialectEditorDancerSubsAdd => 'Tänzerersetzungen hinzufügen';
-
-  @override
-  String dialectEditorDancerSubsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Tänzerersetzungen',
-      one: '1 Tänzerersetzung',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get dialectEditorDancerSubHint => 'Ersetzung';
@@ -8989,21 +8880,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingBranchSingleFile => 'Einzelne Reihe';
-
-  @override
-  String get dialectEditorMoveWordingsAdd =>
-      'Vorlagen für Bewegungsformulierungen hinzufügen';
-
-  @override
-  String dialectEditorMoveWordingsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Vorlagen für Bewegungsformulierungen',
-      one: '1 Vorlage für Bewegungsformulierungen',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get dialectEditorAddMoveWording =>

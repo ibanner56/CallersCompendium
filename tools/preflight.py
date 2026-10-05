@@ -236,6 +236,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "l10n-unused",
+        "every ARB key is referenced by app code",
+        (
+            py("tools/ci/test_check_l10n_unused.py"),
+            py("tools/ci/check_l10n_unused.py"),
+        ),
+    ),
+    Step(
         "stale-comment-refs",
         "comment citations resolve to code (count ceiling)",
         (
