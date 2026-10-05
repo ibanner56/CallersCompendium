@@ -1,0 +1,9 @@
+{
+  "id": "1660-sync-trigger-table-set",
+  "user_visible": false,
+  "core": {
+    "added": [
+      "Add `syncBookkeepingTables`, the set of Device Sync bookkeeping tables derived from the privacy field registry."
+    ]
+  }
+}
