@@ -144,6 +144,11 @@ class AdvisoryFileLock implements InstanceLockPrimitive {
 class _RandomAccessFileLockHandle implements InstanceLockHandle {
   _RandomAccessFileLockHandle(this._raf);
 
+  // Holding this reference is what keeps the lock: an unreachable
+  // RandomAccessFile is finalized, which closes its fd and releases the OS
+  // lock. Production never calls [release], so a release (AOT) build would
+  // otherwise tree-shake the field as write-only (see [DesktopSingleInstance]).
+  @pragma('vm:entry-point')
   final RandomAccessFile _raf;
   bool _released = false;
 
@@ -375,6 +380,14 @@ class DesktopSingleInstance {
   /// Process-wide holder for the acquired lock, so the handle is never garbage
   /// collected and the lock stays held until the process exits (the OS then
   /// releases it).
+  ///
+  /// Only [releaseHeld] reads this, and only tests call that, so without the
+  /// pragma a release (AOT) build removes the field as write-only. The handle
+  /// is then collected about half a second after launch, its file is closed,
+  /// the lock is released, and a second launch runs on the same database.
+  /// `flutter test` (JIT) keeps the field, so only a release build shows it;
+  /// `single_instance_guard_test.dart` pins the pragma here and on `_raf`.
+  @pragma('vm:entry-point')
   static InstanceLockHandle? _held;
 
   /// Whether the current platform gets the desktop single-instance guard.
