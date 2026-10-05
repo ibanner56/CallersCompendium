@@ -109,8 +109,12 @@ Clear the search bar to return to your whole collection.
 
 Use **Search in** to choose where your words are looked for: **All fields**,
 **Title**, **Author**, or **Figure**. **All fields** looks at titles, authors,
-sources, custom field values, hooks, notes and figures, and finds your words
-exactly as they were typed.
+sources, custom field values, hooks and notes, and finds your words exactly as
+they were typed; it also looks at figures, which are matched by meaning, so a
+role word finds the figure however the role was worded when the dance was
+entered. (Custom figure text saved before role words were rewritten may not
+match a role word until you save the dance again; see
+[Write & edit dances](./authoring.md).)
 
 The same search bar can also search The Caller's Box or ContraDB directly: turn
 on **Online search** in the **Advanced** panel, and **Search in** offers

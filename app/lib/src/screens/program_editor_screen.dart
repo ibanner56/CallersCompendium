@@ -3038,7 +3038,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // `onLayout` callback can run after further internal awaits (font loading)
     // or more than once, so a BuildContext read inside it can observe a
     // different value than at tap time, or a disposed element. Mirrors
-    // dance_detail_screen.dart._exportDancePdf and
+    // DanceExportActions.exportPdf and
     // program_export_menu.dart._exportPdf (issue #1434).
     final messenger = ScaffoldMessenger.of(context);
     final localizations = MaterialLocalizations.of(context);

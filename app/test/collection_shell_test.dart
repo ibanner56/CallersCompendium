@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
+
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -263,7 +265,7 @@ void main() {
       await _pumpShell(tester, repos, size: const Size(1400, 900));
       await tester.pumpAndSettle();
 
-      const bodyText = 'Choose a dance from the list to view its details.';
+      final bodyText = AppLocalizationsEn().collectionSplitEmptySubtitle;
       final finder = find.text(bodyText);
       expect(finder, findsOneWidget);
 

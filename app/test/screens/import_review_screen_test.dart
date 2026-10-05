@@ -32,15 +32,30 @@ import '../support/l10n_harness.dart';
 class _CommitGate extends drift.QueryInterceptor {
   Completer<void>? _gate;
 
-  /// Arms the interceptor so the next data write awaits [gate] before running.
-  void arm(Completer<void> gate) => _gate = gate;
+  int? _danceInsertsToLetThrough;
 
-  Future<void> _maybeBlock() async {
+  /// Arms the interceptor so the next data write awaits [gate] before running.
+  /// With [afterDanceInserts], that many dance-row inserts run first and the
+  /// gate holds the next one instead, so the commit stops part-way through its
+  /// batch with the earlier records fully handled.
+  void arm(Completer<void> gate, {int? afterDanceInserts}) {
+    _gate = gate;
+    _danceInsertsToLetThrough = afterDanceInserts;
+  }
+
+  Future<void> _maybeBlock(String? statement) async {
     final gate = _gate;
-    if (gate != null && !gate.isCompleted) {
-      _gate = null; // Block only the first write of the armed commit.
-      await gate.future;
+    if (gate == null || gate.isCompleted) return;
+    final letThrough = _danceInsertsToLetThrough;
+    if (letThrough != null) {
+      if (statement == null || !statement.contains('INTO "dances"')) return;
+      if (letThrough > 0) {
+        _danceInsertsToLetThrough = letThrough - 1;
+        return;
+      }
     }
+    _gate = null; // Block only the first write of the armed commit.
+    await gate.future;
   }
 
   @override
@@ -49,7 +64,7 @@ class _CommitGate extends drift.QueryInterceptor {
     String statement,
     List<Object?> args,
   ) async {
-    await _maybeBlock();
+    await _maybeBlock(statement);
     return executor.runInsert(statement, args);
   }
 
@@ -58,7 +73,7 @@ class _CommitGate extends drift.QueryInterceptor {
     drift.QueryExecutor executor,
     drift.BatchedStatements statements,
   ) async {
-    await _maybeBlock();
+    await _maybeBlock(null);
     return executor.runBatched(statements);
   }
 }
@@ -244,6 +259,97 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  /// Presses Import with the commit held at the second dance's insert, then
+  /// expects the committing view to read "1 / 3": one record handled.
+  Future<void> expectCommitCountAdvances(
+    WidgetTester tester,
+    _CommitGate gate,
+  ) async {
+    final l10n = lookupAppLocalizations(const Locale('en'));
+    final commitGate = Completer<void>();
+    gate.arm(commitGate, afterDanceInserts: 1);
+    await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+    await tester.pump();
+    await tester.pump();
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('import-commit-progress')))
+          .data,
+      l10n.importReviewCommitProgress(1, 3),
+    );
+    commitGate.complete();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('import-result-dialog')), findsOneWidget);
+  }
+
+  CompendiumRepositories gatedRepos(_CommitGate gate) => CompendiumRepositories(
+    openWidgetTestDatabase(
+      executor: NativeDatabase.memory().interceptWith(gate),
+    ),
+    contraTaxonomy,
+  );
+
+  testWidgets('a generic-JSON commit count advances as records are written', (
+    tester,
+  ) async {
+    // Each of the screen's three commit calls must forward its progress; this
+    // one covers the generic pipeline path.
+    final gate = _CommitGate();
+    await _pump(
+      tester,
+      gatedRepos(gate),
+      payload: _archivePayload([
+        _dance('d1', 'First Reel'),
+        _dance('d2', 'Second Reel'),
+        _dance('d3', 'Third Reel'),
+      ]),
+    );
+    await _toReview(tester);
+    await expectCommitCountAdvances(tester, gate);
+  });
+
+  testWidgets('a published-collection commit count advances as records are '
+      'written', (tester) async {
+    final gate = _CommitGate();
+    const metadata = PublishedCollectionMetadata(
+      collectionId: 'published',
+      collectionVersion: '1.0.0',
+      archiveDigest: 'digest',
+      permission: 'author-granted',
+      license: 'CC0',
+    );
+    await tester.binding.setSurfaceSize(const Size(1000, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: RepositoriesScope(
+          repositories: gatedRepos(gate),
+          child: ImportReviewScreen(
+            sources: [
+              ImportSource(
+                kind: ImportSourceKind.publishedCollection,
+                adapterFactory: () => PublishedCollectionAdapter(metadata),
+                preselected: true,
+              ),
+            ],
+            publishedCollection: PublishedCollectionSeed(
+              json: _archivePayload([
+                _dance('d1', 'First Reel'),
+                _dance('d2', 'Second Reel'),
+                _dance('d3', 'Third Reel'),
+              ]),
+              metadata: metadata,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectCommitCountAdvances(tester, gate);
   });
 
   testWidgets('standalone published seed cannot fall back to editable input', (
@@ -2147,6 +2253,52 @@ void main() {
       );
     });
 
+    testWidgets('the commit count advances as records are written', (
+      tester,
+    ) async {
+      // The test above only sees the pre-commit seed, which is shown whether
+      // or not the screen listens to the commit's progress. Holding the second
+      // dance's insert means exactly one record has been handled, so the screen
+      // can only read "1 / 3" if every commit path forwards its progress.
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final gate = _CommitGate();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(gate),
+        ),
+        contraTaxonomy,
+      );
+      final bytes = ccUsrBytes(thirdDance: true);
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => bytes),
+        bytePicker: () async => bytes,
+      );
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+
+      final commitGate = Completer<void>();
+      gate.arm(commitGate, afterDanceInserts: 1);
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pump();
+      await tester.pump();
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('import-commit-progress')))
+            .data,
+        l10n.importReviewCommitProgress(1, 3),
+      );
+
+      commitGate.complete();
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('import-result-dialog')),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('the file is released once planning succeeds, kept when it '
         'fails', (tester) async {
       // A `.USR` of tens of thousands of dances is ~250 MB. Once planned, its
@@ -2951,6 +3103,76 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('open-review')));
       await tester.pumpAndSettle();
     }
+
+    // Rewrites the bundle's `schemaVersion` to one this build has not seen,
+    // as a bundle exported by a newer app would carry.
+    SharedBundleImport newerBundleFor(CompendiumArchive archive) {
+      final json = jsonDecode(encodeArchive(archive)) as Map<String, Object?>;
+      json['schemaVersion'] = archiveSchemaVersion + 1;
+      final text = jsonEncode(json);
+      return SharedBundleImport(
+        json: text,
+        archive: archive,
+        entityCount: compendiumArchiveEntityCount(archive),
+      );
+    }
+
+    // The same update-first banner the pasted-file path shows (IMP-10): once,
+    // for the whole bundle, with no per-row decoding note beside it.
+    void expectNewerVersionBannerOnly(AppLocalizations l10n) {
+      expect(
+        find.byKey(const ValueKey('import-batch-warnings')),
+        findsOneWidget,
+      );
+      expect(find.text(l10n.importIssueArchiveNewerSchema), findsOneWidget);
+      expect(find.text(l10n.importIssueArchiveReadWarning), findsNothing);
+    }
+
+    testWidgets('a dance + program bundle from a newer version shows the '
+        'update-first banner once', (tester) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final repos = openTestRepositories();
+
+      await pumpShared(
+        tester,
+        repos,
+        newerBundleFor(danceProgramVenueArchive()),
+      );
+
+      expect(find.byKey(const ValueKey('import-row-0')), findsOneWidget);
+      expectNewerVersionBannerOnly(l10n);
+    });
+
+    testWidgets('a programs-only bundle from a newer version shows the '
+        'update-first banner', (tester) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final repos = openTestRepositories();
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        programs: [
+          Program(
+            id: 'p1',
+            title: 'Announcements Only',
+            slots: [ProgramSlot(id: 's1', position: 0, text: 'Welcome')],
+            createdAt: DateTime.utc(2026, 4, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+          ),
+        ],
+      );
+
+      await pumpShared(tester, repos, newerBundleFor(archive));
+
+      expect(find.byKey(const ValueKey('import-row-0')), findsNothing);
+      expectNewerVersionBannerOnly(l10n);
+    });
+
+    testWidgets('a bundle from this version shows no banner', (tester) async {
+      final repos = openTestRepositories();
+
+      await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+
+      expect(find.byKey(const ValueKey('import-batch-warnings')), findsNothing);
+    });
 
     testWidgets(
       'lands directly on the review list and commits NOTHING until Import',

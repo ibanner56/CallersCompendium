@@ -34,7 +34,7 @@ import 'program_pdf.dart';
 /// the dialect rendering of the notes, walkthrough and tunes happen once, in
 /// core's [DanceCardContent], which this builder only lays out — the same
 /// object [danceToPlainText] serialises and [buildProgramPdf]'s figure-appendix
-/// cards lay out. [pageFormat] defaults to A4. Defaults to
+/// cards lay out. Defaults to
 /// [DanceShareField.allExceptTunes], matching every block this builder
 /// rendered before the picker existed. [pageFormat] defaults to A4.
 Future<Uint8List> buildDancePdf(

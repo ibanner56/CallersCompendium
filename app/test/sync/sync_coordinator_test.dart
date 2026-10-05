@@ -532,6 +532,13 @@ void main() {
     // One load per normalisation call, however many addresses it resolves:
     // a per-item load would grow with the library.
     expect(many, few);
+    // Independence from N cannot see a helper that loads twice per call, which
+    // is still a constant. The count for this pass is exactly one load per
+    // `_normalize*` / `_resolveReferenceAliases` call it makes (14 on an empty
+    // peer manifest). A pass that gains or loses a normalisation step changes
+    // it deliberately; update the number with the step, never to absorb an
+    // extra load inside a helper.
+    expect(few, 14);
   });
 
   group('SyncAliasMap resolves as the repository does', () {

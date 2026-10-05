@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show SystemChannels, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -33,6 +34,7 @@ import 'package:compendium_app/src/data/soft_delete_retention.dart'
     show kSoftDeleteRetentionKey;
 import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
 import 'package:compendium_app/src/data/locale_scope.dart';
+import 'package:compendium_app/src/data/migration_error_labels.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
@@ -1973,6 +1975,41 @@ void main() {
       expect(find.byIcon(Icons.disc_full), findsNothing);
     },
   );
+
+  for (final reason in DatabaseRelocationFailure.values) {
+    testWidgets('a blocked database relocation (${reason.name}) routes to a '
+        'non-retryable terminal screen with its own message', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          migrationPreflight: (_) async =>
+              throw DatabaseRelocationBlocked(reason),
+          integrityCheck: () async => true,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(Scaffold).first),
+      );
+      // The message for *this* reason, not the generic bootstrap error
+      // screen's text; terminal, so no Retry (a retry would only open an
+      // empty database beside the real library).
+      expect(
+        find.text(databaseRelocationMessage(l10n, reason)),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.folder_off_outlined), findsOneWidget);
+      expect(find.byType(AppShell), findsNothing);
+      expect(find.text(l10n.commonRetry), findsNothing);
+      expect(find.text('Retry'), findsNothing);
+    });
+  }
 
   testWidgets(
     'a wrong-typed theme_mode preference does not brick startup (issue #609)',
