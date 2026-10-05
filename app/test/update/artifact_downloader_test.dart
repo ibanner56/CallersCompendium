@@ -766,6 +766,41 @@ void main() {
       expect(consumer.closeCalls, 1, reason: 'handle released after flush');
     });
 
+    test('the deferred cleanup never deletes a file that replaced the '
+        'cancelled one at the same path', () async {
+      final consumer = _GatedConsumer();
+      final body = StreamController<List<int>>();
+      final token = DownloadCancelToken();
+      const total = half * 4;
+
+      final result = downloadArtifact(
+        _artifact(size: total),
+        destination: _SinkFile(dest, IOSink(consumer)),
+        client: bodyClient(body, total),
+        cancelToken: token,
+      );
+      await listening(body);
+      body.add(bytes(half));
+      body.add(bytes(half));
+      await pump();
+      expect(body.isPaused, isTrue, reason: 'flush outstanding');
+
+      token.cancel();
+      expect((await result).kind, DownloadResultKind.cancelled);
+      expect(dest.existsSync(), isFalse);
+
+      // A new Save As download now owns the same path.
+      dest.writeAsStringSync('replacement');
+      consumer.gate.complete();
+      for (var i = 0; i < 20 && !consumer.closed; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(consumer.closed, isTrue);
+      expect(dest.existsSync(), isTrue, reason: 'replacement was deleted');
+      expect(dest.readAsStringSync(), 'replacement');
+    });
+
     test('a cancelled download deletes its file only after the sink has '
         'closed (an open handle blocks the delete on Windows)', () async {
       final consumer = _GatedConsumer()..gate.complete();
