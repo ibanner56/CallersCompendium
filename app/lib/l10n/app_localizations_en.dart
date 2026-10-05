@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -398,8 +399,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'Another device is using a newer version of the app. Update the app on this device to receive $count items.',
-      one:
-          'Another device is using a newer version of the app. Update the app on this device to receive 1 item.',
+      one: 'Another device is using a newer version of the app. Update the app on this device to receive 1 item.',
     );
     return '$_temp0';
   }
@@ -5001,6 +5001,10 @@ class AppLocalizationsEn extends AppLocalizations {
     String walkthroughComplete,
     String over,
     String paused,
+    String manual,
+    String actual,
+    String direction,
+    String delta,
   ) {
     String _temp0 = intl.Intl.pluralLogic(
       planned,
@@ -5012,19 +5016,28 @@ class AppLocalizationsEn extends AppLocalizations {
       'yes': ', planned $_temp0: $walkthrough walkthrough and $dance dance',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(walkthroughComplete, {
+    String _temp2 = intl.Intl.selectLogic(direction, {
+      'over': ', $delta over plan',
+      'under': ', $delta under plan',
+      'other': ', on plan',
+    });
+    String _temp3 = intl.Intl.selectLogic(manual, {
+      'yes': ', walkthrough ended at $actual$_temp2',
+      'other': '',
+    });
+    String _temp4 = intl.Intl.selectLogic(walkthroughComplete, {
       'yes': ', walkthrough complete',
       'other': '',
     });
-    String _temp3 = intl.Intl.selectLogic(over, {
+    String _temp5 = intl.Intl.selectLogic(over, {
       'yes': ', over planned',
       'other': '',
     });
-    String _temp4 = intl.Intl.selectLogic(paused, {
+    String _temp6 = intl.Intl.selectLogic(paused, {
       'yes': ', paused',
       'other': '',
     });
-    return 'Program time $programTime, slot time $slotTime$_temp1$_temp2$_temp3$_temp4';
+    return 'Program time $programTime, slot time $slotTime$_temp1$_temp3$_temp4$_temp5$_temp6';
   }
 
   @override
@@ -5039,6 +5052,26 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String performPlannedSplit(int planned, int walkthrough, int dance) {
     return 'planned $planned min ($walkthrough:$dance)';
+  }
+
+  @override
+  String get performDanceStartUnused => 'Walkthrough done — start the dance';
+
+  @override
+  String get performDanceStartUsed => 'Dance started — tap to undo';
+
+  @override
+  String performWalkthroughActual(
+    String actual,
+    String direction,
+    String delta,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(direction, {
+      'over': ' (+$delta)',
+      'under': ' (−$delta)',
+      'other': ' (on plan)',
+    });
+    return 'walkthrough $actual$_temp0';
   }
 
   @override
@@ -5395,8 +5428,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count free-text slots (breaks, notes) omitted — the matrix shows dances only.',
-      one:
-          '1 free-text slot (breaks, notes) omitted — the matrix shows dances only.',
+      one: '1 free-text slot (breaks, notes) omitted — the matrix shows dances only.',
     );
     return '$_temp0';
   }
@@ -6573,8 +6605,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'This import contains $count items — more than expected for a normal share.',
-      one:
-          'This import contains 1 item — more than expected for a normal share.',
+      one: 'This import contains 1 item — more than expected for a normal share.',
     );
     return '$_temp0';
   }
@@ -8037,8 +8068,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count contrast pairs below WCAG AA. You can still save, but some text may be hard to read.',
-      one:
-          '1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.',
+      one: '1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.',
     );
     return '$_temp0';
   }

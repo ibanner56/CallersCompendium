@@ -60,6 +60,7 @@ class PerformResumeState {
     required this.elapsedSeconds,
     required this.slotStartSeconds,
     required this.paused,
+    this.walkthroughEndedAtSlotSeconds,
   });
 
   /// Navigable group index that was on screen.
@@ -75,17 +76,28 @@ class PerformResumeState {
   /// Whether the timers were paused when the view was left.
   final bool paused;
 
+  /// Slot-elapsed second at which the caller marked the current slot's
+  /// walkthrough as ended (issue #1659), or `null` when unmarked. Session-only,
+  /// like the rest of this snapshot: never written to the domain model.
+  final int? walkthroughEndedAtSlotSeconds;
+
   @override
   bool operator ==(Object other) =>
       other is PerformResumeState &&
       other.groupIndex == groupIndex &&
       other.elapsedSeconds == elapsedSeconds &&
       other.slotStartSeconds == slotStartSeconds &&
-      other.paused == paused;
+      other.paused == paused &&
+      other.walkthroughEndedAtSlotSeconds == walkthroughEndedAtSlotSeconds;
 
   @override
-  int get hashCode =>
-      Object.hash(groupIndex, elapsedSeconds, slotStartSeconds, paused);
+  int get hashCode => Object.hash(
+    groupIndex,
+    elapsedSeconds,
+    slotStartSeconds,
+    paused,
+    walkthroughEndedAtSlotSeconds,
+  );
 }
 
 class PerformProgramScreen extends StatefulWidget {
@@ -101,6 +113,7 @@ class PerformProgramScreen extends StatefulWidget {
     this.initialElapsedSeconds = 0,
     this.initialSlotStartSeconds = 0,
     this.initialPaused = false,
+    this.initialWalkthroughEndedAtSlotSeconds,
     this.onExit,
     this.onProgramChanged,
   });
@@ -130,6 +143,10 @@ class PerformProgramScreen extends StatefulWidget {
 
   /// Whether the timers open paused (preserved across a re-entry).
   final bool initialPaused;
+
+  /// Slot-elapsed second of the manual "walkthrough ended" mark on the
+  /// [initialGroup] slot, preserved across a re-entry (issue #1659).
+  final int? initialWalkthroughEndedAtSlotSeconds;
 
   /// Called as the view is torn down — via the guarded close control, a system
   /// back, or any other pop — with the live position + clock (issue #434). The
@@ -277,6 +294,12 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   late int _slotStartSeconds = widget.initialSlotStartSeconds;
   late bool _paused = widget.initialPaused;
 
+  /// Slot-elapsed second at which the caller tapped the dance-start button
+  /// (issue #1659), or `null` while unmarked. Session-only UI state (ADR-001):
+  /// never persisted, handed back through [PerformResumeState]. Follows the
+  /// per-slot timer exactly — [_resetSlotTimer] clears it.
+  late int? _walkthroughEndedAt = widget.initialWalkthroughEndedAtSlotSeconds;
+
   /// Dark-stage high-contrast theme, on by default (`docs/design/ux.md` §5).
   /// Persisted across sessions (issue #449) and restored on entry.
   bool _stageMode = true;
@@ -311,6 +334,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         elapsedSeconds: _elapsed.value,
         slotStartSeconds: _slotStartSeconds,
         paused: _paused,
+        walkthroughEndedAtSlotSeconds: _walkthroughEndedAt,
       ),
     );
     _timer?.cancel();
@@ -393,7 +417,19 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   }
 
   /// Marks the current group as freshly entered, zeroing the per-slot elapsed.
-  void _resetSlotTimer() => _slotStartSeconds = _elapsed.value;
+  void _resetSlotTimer() {
+    _slotStartSeconds = _elapsed.value;
+    _walkthroughEndedAt = null;
+  }
+
+  /// Marks the walkthrough as ended (dance started) at the current slot-elapsed
+  /// second, or clears the mark (issue #1659). While paused the clock is frozen,
+  /// so the mark records the frozen value.
+  void _toggleDanceStart() => setState(() {
+    _walkthroughEndedAt = _walkthroughEndedAt == null
+        ? _slotElapsedFrom(_elapsed.value)
+        : null;
+  });
 
   void _togglePause() => setState(() => _paused = !_paused);
 
@@ -531,9 +567,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     if (!mounted) return;
     SemanticsService.sendAnnouncement(
       View.of(context),
-      AppLocalizations.of(
-        context,
-      ).performSlotPosition(_groupIndex + 1, _groups.length),
+      AppLocalizations.of(context)
+          .performSlotPosition(_groupIndex + 1, _groups.length),
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
@@ -1090,9 +1125,9 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
             bottomNavigationBar: BottomAppBar(
               // Grow with the system text size (A11Y-01): the fixed 80 px bar
               // cannot hold the position + timing lines at large scales.
-              height: MediaQuery.textScalerOf(
-                context,
-              ).scale(80).clamp(80.0, 200.0),
+              height: MediaQuery.textScalerOf(context)
+                  .scale(80)
+                  .clamp(80.0, 200.0),
               child: Row(
                 children: [
                   _buildPauseButton(),
@@ -1113,7 +1148,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                         builder: (context) {
                           final textTheme = Theme.of(context).textTheme;
                           // Fallback for scales beyond the clamped bar height.
-                          return FittedBox(
+                          final readout = FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -1130,6 +1165,20 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                                 _buildTimingLine(slot, textTheme),
                               ],
                             ),
+                          );
+                          if (!_hasSeparateWalkthrough(slot)) return readout;
+                          // The dance-start toggle sits *outside* both
+                          // [FittedBox]es (this one and the one inside
+                          // [_buildTimingLine]) so the readout's narrow-phone
+                          // scale-down (issue #433) can never shrink it below
+                          // its 44px tap target (issue #1659).
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(child: readout),
+                              const SizedBox(width: 4),
+                              _buildDanceStartButton(context),
+                            ],
                           );
                         },
                       ),
@@ -1173,6 +1222,48 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     );
   }
 
+  /// Whether [slot] has a separate walkthrough duration, which is what offers
+  /// the dance-start toggle (issue #1659). Zero minutes is "no walkthrough",
+  /// matching the automatic walkthrough-complete cue's own gate.
+  static bool _hasSeparateWalkthrough(ProgramSlot slot) =>
+      (slot.walkthroughMinutes ?? 0) > 0;
+
+  /// Icon-only, 44px round toggle that marks the walkthrough as ended and the
+  /// dance as started (issue #1659). Pressed state is never colour-only: the
+  /// glyph goes outlined → filled, the tooltip/label flips, and the state is
+  /// exposed as toggled — same single-node pattern as [_buildPauseButton].
+  /// [context] must sit below the stage theme so the colours follow it.
+  Widget _buildDanceStartButton(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final marked = _walkthroughEndedAt != null;
+    return MergeSemantics(
+      child: Semantics(
+        toggled: marked,
+        child: IconButton(
+          key: const ValueKey('perform-dance-start'),
+          tooltip: marked
+              ? l10n.performDanceStartUsed
+              : l10n.performDanceStartUnused,
+          isSelected: marked,
+          icon: const Icon(Icons.music_note_outlined),
+          selectedIcon: const Icon(Icons.music_note),
+          style: IconButton.styleFrom(
+            fixedSize: const Size(44, 44),
+            minimumSize: const Size(44, 44),
+            padding: EdgeInsets.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: const CircleBorder(),
+            foregroundColor: marked ? scheme.onTertiary : scheme.onSurface,
+            backgroundColor: marked ? scheme.tertiary : Colors.transparent,
+            side: marked ? null : BorderSide(color: scheme.outline),
+          ),
+          onPressed: _toggleDanceStart,
+        ),
+      ),
+    );
+  }
+
   /// The running program clock, per-slot elapsed, and (when present) the
   /// split planned slot timing with walkthrough-transition and over-run cues.
   ///
@@ -1196,14 +1287,31 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       valueListenable: _elapsed,
       builder: (context, elapsed, _) {
         final slotElapsed = _slotElapsedFrom(elapsed);
+        // A manual dance-start mark (issue #1659) replaces the clock-derived
+        // thresholds for this slot only: "walkthrough complete" follows the
+        // mark and "over" is measured from the mark plus the dance minutes.
+        // Unmarked slots keep exactly the elapsed-time rules.
+        final mark = _walkthroughEndedAt;
         final isOver =
             danceMinutes != null &&
-            slotElapsed > ((walkthroughMinutes ?? 0) + danceMinutes) * 60;
+            (mark == null
+                ? slotElapsed > ((walkthroughMinutes ?? 0) + danceMinutes) * 60
+                : slotElapsed > mark + danceMinutes * 60);
         final walkthroughComplete =
             !isOver &&
-            walkthroughMinutes != null &&
-            walkthroughMinutes > 0 &&
-            slotElapsed > walkthroughMinutes * 60;
+            (mark != null ||
+                (walkthroughMinutes != null &&
+                    walkthroughMinutes > 0 &&
+                    slotElapsed > walkthroughMinutes * 60));
+        // Expected-vs-actual: the slot time the walkthrough ended at against
+        // its planned minutes.
+        final plannedWalkthroughSeconds = (walkthroughMinutes ?? 0) * 60;
+        final markDelta = mark == null ? 0 : mark - plannedWalkthroughSeconds;
+        final markDirection = markDelta > 0
+            ? 'over'
+            : markDelta < 0
+            ? 'under'
+            : 'on';
 
         final label = l10n.performTimingSemantic(
           _formatDuration(elapsed),
@@ -1215,6 +1323,10 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           walkthroughComplete ? 'yes' : 'no',
           isOver ? 'yes' : 'no',
           _paused ? 'yes' : 'no',
+          mark != null ? 'yes' : 'no',
+          _formatDuration(mark ?? 0),
+          markDirection,
+          _formatDuration(markDelta.abs()),
         );
 
         return Semantics(
@@ -1253,6 +1365,18 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                       key: const ValueKey('perform-planned'),
                       style: style,
                     ),
+                    if (mark != null) ...[
+                      Text('  ·  ', style: style),
+                      Text(
+                        l10n.performWalkthroughActual(
+                          _formatDuration(mark),
+                          markDirection,
+                          _formatDuration(markDelta.abs()),
+                        ),
+                        key: const ValueKey('perform-walkthrough-actual'),
+                        style: style,
+                      ),
+                    ],
                     if (walkthroughComplete) ...[
                       const SizedBox(width: 4),
                       const Icon(Icons.directions_run, size: 16),

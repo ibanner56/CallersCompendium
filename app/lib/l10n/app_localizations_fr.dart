@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -410,8 +411,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir $count éléments.',
-      one:
-          'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir 1 élément.',
+      one: 'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir 1 élément.',
     );
     return '$_temp0';
   }
@@ -465,8 +465,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'download':
           'Interrompu pendant le téléchargement depuis vos autres appareils.',
       'upload': 'Interrompu pendant l’envoi des modifications de cet appareil.',
-      'publish':
-          'Interrompu pendant la publication des modifications de cet appareil.',
+      'publish': 'Interrompu pendant la publication des modifications de cet appareil.',
       'createStore': 'Interrompu pendant la création de l’espace.',
       'other': 'Interrompu en cours de route.',
     });
@@ -5101,6 +5100,10 @@ class AppLocalizationsFr extends AppLocalizations {
     String walkthroughComplete,
     String over,
     String paused,
+    String manual,
+    String actual,
+    String direction,
+    String delta,
   ) {
     String _temp0 = intl.Intl.pluralLogic(
       planned,
@@ -5113,19 +5116,28 @@ class AppLocalizationsFr extends AppLocalizations {
           ', prévu $_temp0 : $walkthrough minutes de déroulé et $dance minutes de danse',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(walkthroughComplete, {
+    String _temp2 = intl.Intl.selectLogic(direction, {
+      'over': ', $delta de plus que prévu',
+      'under': ', $delta de moins que prévu',
+      'other': ', comme prévu',
+    });
+    String _temp3 = intl.Intl.selectLogic(manual, {
+      'yes': ', déroulé terminé à $actual$_temp2',
+      'other': '',
+    });
+    String _temp4 = intl.Intl.selectLogic(walkthroughComplete, {
       'yes': ', déroulé terminé',
       'other': '',
     });
-    String _temp3 = intl.Intl.selectLogic(over, {
+    String _temp5 = intl.Intl.selectLogic(over, {
       'yes': ', dépassement du temps prévu',
       'other': '',
     });
-    String _temp4 = intl.Intl.selectLogic(paused, {
+    String _temp6 = intl.Intl.selectLogic(paused, {
       'yes': ', en pause',
       'other': '',
     });
-    return 'Temps du programme $programTime, temps du créneau $slotTime$_temp1$_temp2$_temp3$_temp4';
+    return 'Temps du programme $programTime, temps du créneau $slotTime$_temp1$_temp3$_temp4$_temp5$_temp6';
   }
 
   @override
@@ -5140,6 +5152,26 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String performPlannedSplit(int planned, int walkthrough, int dance) {
     return 'prévu $planned min ($walkthrough:$dance)';
+  }
+
+  @override
+  String get performDanceStartUnused => 'Déroulé terminé — lancer la danse';
+
+  @override
+  String get performDanceStartUsed => 'Danse lancée — touchez pour annuler';
+
+  @override
+  String performWalkthroughActual(
+    String actual,
+    String direction,
+    String delta,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(direction, {
+      'over': ' (+$delta)',
+      'under': ' (−$delta)',
+      'other': ' (comme prévu)',
+    });
+    return 'déroulé $actual$_temp0';
   }
 
   @override
@@ -6694,8 +6726,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           'Cet import contient $count éléments — plus que prévu pour un partage normal.',
-      one:
-          'Cet import contient 1 élément — plus que prévu pour un partage normal.',
+      one: 'Cet import contient 1 élément — plus que prévu pour un partage normal.',
     );
     return '$_temp0';
   }
@@ -7453,8 +7484,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count figures ajoutées. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
-      one:
-          '1 figure ajoutée. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
+      one: '1 figure ajoutée. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
     );
     return '$_temp0';
   }
@@ -8184,8 +8214,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count paires de contraste inférieures au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
-      one:
-          '1 paire de contraste inférieure au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
+      one: '1 paire de contraste inférieure au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
     );
     return '$_temp0';
   }

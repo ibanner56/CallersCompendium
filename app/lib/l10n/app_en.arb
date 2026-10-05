@@ -6478,9 +6478,9 @@
   "@performPauseTimers": {
     "description": "Tooltip for the button that pauses the running performance timers."
   },
-  "performTimingSemantic": "Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}: {walkthrough} walkthrough and {dance} dance} other{}}{walkthroughComplete, select, yes{, walkthrough complete} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}",
+  "performTimingSemantic": "Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}: {walkthrough} walkthrough and {dance} dance} other{}}{manual, select, yes{, walkthrough ended at {actual}{direction, select, over{, {delta} over plan} under{, {delta} under plan} other{, on plan}}} other{}}{walkthroughComplete, select, yes{, walkthrough complete} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}",
   "@performTimingSemantic": {
-    "description": "Screen-reader label for the perform-mode timing line: elapsed program and slot times, optional split timing, walkthrough-transition and over-plan cues, and paused state.",
+    "description": "Screen-reader label for the perform-mode timing line: elapsed program and slot times, optional split timing, manual walkthrough-end mark (with how far it ran from plan), walkthrough-transition and over-plan cues, and paused state.",
     "placeholders": {
       "programTime": {
         "type": "String",
@@ -6517,6 +6517,22 @@
       "paused": {
         "type": "String",
         "example": "no"
+      },
+      "manual": {
+        "type": "String",
+        "example": "no"
+      },
+      "actual": {
+        "type": "String",
+        "example": "4:10"
+      },
+      "direction": {
+        "type": "String",
+        "example": "over"
+      },
+      "delta": {
+        "type": "String",
+        "example": "1:10"
       }
     }
   },
@@ -6549,6 +6565,32 @@
       "dance": {
         "type": "int",
         "example": "5"
+      }
+    }
+  },
+  "performDanceStartUnused": "Walkthrough done — start the dance",
+  "@performDanceStartUnused": {
+    "description": "Tooltip and screen-reader label of the icon-only dance-start toggle in program Perform while the walkthrough has not been marked as ended."
+  },
+  "performDanceStartUsed": "Dance started — tap to undo",
+  "@performDanceStartUsed": {
+    "description": "Tooltip and screen-reader label of the icon-only dance-start toggle once the caller has marked the walkthrough as ended; tapping again clears the mark."
+  },
+  "performWalkthroughActual": "walkthrough {actual}{direction, select, over{ (+{delta})} under{ (−{delta})} other{ (on plan)}}",
+  "@performWalkthroughActual": {
+    "description": "Visible readout shown after a manual walkthrough-end mark: the slot time at which the walkthrough ended, and in parentheses how far that ran over or under the planned walkthrough minutes.",
+    "placeholders": {
+      "actual": {
+        "type": "String",
+        "example": "4:10"
+      },
+      "direction": {
+        "type": "String",
+        "example": "over"
+      },
+      "delta": {
+        "type": "String",
+        "example": "1:10"
       }
     }
   },

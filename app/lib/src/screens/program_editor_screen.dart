@@ -1816,6 +1816,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           initialElapsedSeconds: _performResume?.elapsedSeconds ?? 0,
           initialSlotStartSeconds: _performResume?.slotStartSeconds ?? 0,
           initialPaused: _performResume?.paused ?? false,
+          initialWalkthroughEndedAtSlotSeconds:
+              _performResume?.walkthroughEndedAtSlotSeconds,
           onExit: (state) => _performResume = state,
           // In-event adjustments (`docs/design/ux.md` §5) fold back into the
           // builder's working slots. For an already-saved program this is the

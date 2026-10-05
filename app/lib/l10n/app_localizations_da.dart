@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -404,8 +405,7 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage $count elementer.',
-      one:
-          'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage 1 element.',
+      one: 'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage 1 element.',
     );
     return '$_temp0';
   }
@@ -5029,6 +5029,10 @@ class AppLocalizationsDa extends AppLocalizations {
     String walkthroughComplete,
     String over,
     String paused,
+    String manual,
+    String actual,
+    String direction,
+    String delta,
   ) {
     String _temp0 = intl.Intl.pluralLogic(
       planned,
@@ -5041,19 +5045,28 @@ class AppLocalizationsDa extends AppLocalizations {
           ', planlagt $_temp0: $walkthrough minutters gennemgang og $dance minutters dans',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(walkthroughComplete, {
+    String _temp2 = intl.Intl.selectLogic(direction, {
+      'over': ', $delta over planen',
+      'under': ', $delta under planen',
+      'other': ', som planlagt',
+    });
+    String _temp3 = intl.Intl.selectLogic(manual, {
+      'yes': ', gennemgang sluttede ved $actual$_temp2',
+      'other': '',
+    });
+    String _temp4 = intl.Intl.selectLogic(walkthroughComplete, {
       'yes': ', gennemgang fuldført',
       'other': '',
     });
-    String _temp3 = intl.Intl.selectLogic(over, {
+    String _temp5 = intl.Intl.selectLogic(over, {
       'yes': ', over planlagt tid',
       'other': '',
     });
-    String _temp4 = intl.Intl.selectLogic(paused, {
+    String _temp6 = intl.Intl.selectLogic(paused, {
       'yes': ', sat på pause',
       'other': '',
     });
-    return 'Programtid $programTime, slottid $slotTime$_temp1$_temp2$_temp3$_temp4';
+    return 'Programtid $programTime, slottid $slotTime$_temp1$_temp3$_temp4$_temp5$_temp6';
   }
 
   @override
@@ -5068,6 +5081,26 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String performPlannedSplit(int planned, int walkthrough, int dance) {
     return 'planlagt $planned min. ($walkthrough:$dance)';
+  }
+
+  @override
+  String get performDanceStartUnused => 'Gennemgang færdig — start dansen';
+
+  @override
+  String get performDanceStartUsed => 'Dans startet — tryk for at fortryde';
+
+  @override
+  String performWalkthroughActual(
+    String actual,
+    String direction,
+    String delta,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(direction, {
+      'over': ' (+$delta)',
+      'under': ' (−$delta)',
+      'other': ' (som planlagt)',
+    });
+    return 'gennemgang $actual$_temp0';
   }
 
   @override
@@ -6600,8 +6633,7 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'Denne import indeholder $count elementer – mere end forventet for en normal deling.',
-      one:
-          'Denne import indeholder 1 element – mere end forventet for en normal deling.',
+      one: 'Denne import indeholder 1 element – mere end forventet for en normal deling.',
     );
     return '$_temp0';
   }
@@ -7347,8 +7379,7 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'Tilføjede $count figurer. Skriv en anden, eller tryk Escape for at afslutte.',
-      one:
-          'Tilføjede 1 figur. Skriv en anden, eller tryk Escape for at afslutte.',
+      one: 'Tilføjede 1 figur. Skriv en anden, eller tryk Escape for at afslutte.',
     );
     return '$_temp0';
   }
@@ -8068,8 +8099,7 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           '$count kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
-      one:
-          '1 kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
+      one: '1 kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
     );
     return '$_temp0';
   }
