@@ -2144,6 +2144,18 @@ void main() {
     final afterUndo = await repos.programs.getById('p1');
     expect(afterUndo!.slots.single.performedAt, isNull);
     expect(afterUndo.dialectName, 'Leads/Follows');
+
+    // Undo merges the live program back into the editor (`_existing`), and the
+    // next Save rebuilds from it, so the merge must carry the field too.
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Renamed after undo',
+    );
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.title, 'Renamed after undo');
+    expect(saved.dialectName, 'Leads/Follows');
   });
 
   testWidgets('bulk Undo reserves its timestamp from a manual re-mark', (
