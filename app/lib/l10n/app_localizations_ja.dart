@@ -557,14 +557,123 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncConflictDecideLater => '後で決める';
 
   @override
-  String syncConflictDiffersIn(int count) {
+  String get syncConflictShowDifferences => '違いを表示';
+
+  @override
+  String syncConflictChangedAt(String when) {
+    return '$whenに変更';
+  }
+
+  @override
+  String get syncConflictOnlyHereHeader => 'このデバイスにのみあるもの';
+
+  @override
+  String get syncConflictOnlyThereHeader => '別のデバイスにのみあるもの';
+
+  @override
+  String get syncConflictDifferentHeader => 'デバイスごとに異なるもの';
+
+  @override
+  String syncConflictSameCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count件の項目が異なります',
+      other: 'ほか$count件は両方で同じです',
     );
     return '$_temp0';
   }
+
+  @override
+  String syncConflictSummaryOnlyHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'このデバイスのみ$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictSummaryOnlyThere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '別のデバイスのみ$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictSummaryChanged(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件が異なる',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictDiffersInFields(String fields) {
+    return '違い：$fields';
+  }
+
+  @override
+  String syncConflictComparedWith(String version) {
+    return '$versionとの比較';
+  }
+
+  @override
+  String get syncConflictNothingToShow => 'これらのバージョンの違いは、ここに表示されない詳細のみです。';
+
+  @override
+  String get syncConflictFiguresUnreadable => 'ここではフィギュアを比較できません。';
+
+  @override
+  String get syncConflictSlotsReordered => '同じダンスで、順序が異なります。';
+
+  @override
+  String get syncConflictSlotsDetailsDiffer => '同じダンスで、時間や代替などの詳細が異なります。';
+
+  @override
+  String get syncConflictUnknownItem => 'このデバイスにはありません';
+
+  @override
+  String syncConflictVersionLine(String device, String value) {
+    return '$device：$value';
+  }
+
+  @override
+  String syncConflictFieldValue(String field, String value) {
+    return '$field：$value';
+  }
+
+  @override
+  String get syncConflictFieldName => '名前';
+
+  @override
+  String get syncConflictFieldColour => '色';
+
+  @override
+  String get syncConflictThemeBrightness => 'ライトまたはダーク';
+
+  @override
+  String syncConflictFigureWalkthrough(String text) {
+    return 'ウォークスルー：$text';
+  }
+
+  @override
+  String syncConflictFigureWording(String text) {
+    return '言い回し：$text';
+  }
+
+  @override
+  String syncConflictFigureDetailsDiffer(String figure) {
+    return '$figure（その他の詳細が異なります）';
+  }
+
+  @override
+  String get syncConflictLinkInGroup => '関連ダンスのグループ内';
 
   @override
   String get syncConflictValueNotSet => '未設定';

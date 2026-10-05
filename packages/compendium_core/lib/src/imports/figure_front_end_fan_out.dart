@@ -58,9 +58,9 @@ enum _AttemptTier {
   /// may indicate absorbed `;`-compound or simultaneity source syntax.
   noteBearing,
 
-  /// Not a usable structured win: either custom/empty, OR (free-text entry
-  /// only, `demoteNoteTails`) a note-bearing parse whose every note is only
-  /// another move name, `and back` or a bare number — see [_noteIsLeftover];
+  /// Not a usable structured win: either custom/empty, OR (only when the caller
+  /// opts in with `demoteNoteTails`: free-text entry and the re-parse upgrade)
+  /// a note-bearing parse whose every note is only another move name, `and back` or a bare number — see [_noteIsLeftover];
   /// such a note would otherwise structure the line with the wrong beats and
   /// hide the rest of it, so the line stays custom instead — OR a structured
   /// parse from a **non-TCB** front-end (ContraDB, CallersCompanion) whose
@@ -110,8 +110,9 @@ bool _noteSwallowedCompound(String? note) =>
 /// `;`, so a top-level `;`/`||` in their note still means the front-end absorbed
 /// compound/simultaneity source syntax it must not represent as one figure.
 ///
-/// With [demoteNoteTails] (free-text entry only), a note-bearing result whose
-/// every note passes [_noteIsLeftover] is also [_AttemptTier.none].
+/// With [demoteNoteTails] (free-text entry and the re-parse upgrade), a
+/// note-bearing result whose every note passes [_noteIsLeftover] is also
+/// [_AttemptTier.none].
 _AttemptTier _classify(
   List<Figure> result, {
   required FigureFrontEnd frontEnd,
@@ -442,7 +443,12 @@ Figure? parseFigureLineFanOut(
 /// [figureFanOutFrontEnds] — see [parseFigureLineFanOut] for the rationale — so
 /// an empty set never silently turns a real line into "nothing to insert".
 ///
-/// [demoteNoteTails] is OPT-IN and meant for the free-text entry path only. When
+/// [demoteNoteTails] is OPT-IN. Free-text entry and the "Re-parse custom
+/// figures" upgrade (`reparse_custom_figures.dart`) pass it; imports keep
+/// `false`. The re-parse upgrade passes it deliberately: a custom that
+/// free-text entry demoted carries the same `CustomOrigin.importGap` as an
+/// import-gap custom, so the upgrade cannot tell them apart and must apply the
+/// same rule, or it would undo the demotion. When
 /// true, a note-bearing attempt whose every note is just another move name,
 /// `and back` or a bare number is treated as a miss (see [_classify]) and the
 /// line falls to the custom fallback, instead of becoming a structured figure

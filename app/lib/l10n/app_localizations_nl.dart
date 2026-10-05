@@ -584,15 +584,131 @@ class AppLocalizationsNl extends AppLocalizations {
   String get syncConflictDecideLater => 'Later beslissen';
 
   @override
-  String syncConflictDiffersIn(int count) {
+  String get syncConflictShowDifferences => 'Verschillen tonen';
+
+  @override
+  String syncConflictChangedAt(String when) {
+    return 'Gewijzigd op $when';
+  }
+
+  @override
+  String get syncConflictOnlyHereHeader => 'Alleen op dit apparaat';
+
+  @override
+  String get syncConflictOnlyThereHeader => 'Alleen op het andere apparaat';
+
+  @override
+  String get syncConflictDifferentHeader => 'Verschillend op elk apparaat';
+
+  @override
+  String syncConflictSameCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Verschilt in $count details',
-      one: 'Verschilt in 1 detail',
+      other: 'Nog $count zijn op beide gelijk',
+      one: 'Nog 1 is op beide gelijk',
     );
     return '$_temp0';
   }
+
+  @override
+  String syncConflictSummaryOnlyHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count alleen op dit apparaat',
+      one: '1 alleen op dit apparaat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictSummaryOnlyThere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count alleen op het andere apparaat',
+      one: '1 alleen op het andere apparaat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictSummaryChanged(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count verschillend',
+      one: '1 verschillend',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictDiffersInFields(String fields) {
+    return 'Verschilt in: $fields';
+  }
+
+  @override
+  String syncConflictComparedWith(String version) {
+    return 'Vergeleken met $version';
+  }
+
+  @override
+  String get syncConflictNothingToShow =>
+      'Deze versies verschillen alleen in details die hier niet worden getoond.';
+
+  @override
+  String get syncConflictFiguresUnreadable =>
+      'De figuren kunnen hier niet worden vergeleken.';
+
+  @override
+  String get syncConflictSlotsReordered =>
+      'Dezelfde dansen, in een andere volgorde.';
+
+  @override
+  String get syncConflictSlotsDetailsDiffer =>
+      'Dezelfde dansen, met andere details zoals tijden of alternatieven.';
+
+  @override
+  String get syncConflictUnknownItem => 'Niet op dit apparaat';
+
+  @override
+  String syncConflictVersionLine(String device, String value) {
+    return '$device: $value';
+  }
+
+  @override
+  String syncConflictFieldValue(String field, String value) {
+    return '$field: $value';
+  }
+
+  @override
+  String get syncConflictFieldName => 'Naam';
+
+  @override
+  String get syncConflictFieldColour => 'Kleur';
+
+  @override
+  String get syncConflictThemeBrightness => 'Licht of donker';
+
+  @override
+  String syncConflictFigureWalkthrough(String text) {
+    return 'doorloop: $text';
+  }
+
+  @override
+  String syncConflictFigureWording(String text) {
+    return 'formulering: $text';
+  }
+
+  @override
+  String syncConflictFigureDetailsDiffer(String figure) {
+    return '$figure (andere details verschillen)';
+  }
+
+  @override
+  String get syncConflictLinkInGroup => 'in de groep verwante dansen';
 
   @override
   String get syncConflictValueNotSet => 'Niet ingesteld';

@@ -1400,6 +1400,52 @@ final class CompendiumSyncStorage
   Future<T> transaction<T>(Future<T> Function() action) =>
       repositories.transaction(action);
 
+  /// When this device last changed the record at [address], or null when it
+  /// holds no row for it. For display only — the conflict choice shows when
+  /// each version was last changed.
+  Future<DateTime?> recordUpdatedAt(SyncRecordAddress address) async {
+    final id = address.recordId;
+    switch (address.kind) {
+      case SyncRecordKind.dance:
+        return (await (_db.select(
+          _db.dances,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.program:
+        return (await (_db.select(
+          _db.programs,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.choreographer:
+        return (await (_db.select(
+          _db.choreographers,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.tag:
+        return (await (_db.select(
+          _db.tags,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.publishedSource:
+        return (await (_db.select(
+          _db.publishedSources,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.customFieldDef:
+        return (await (_db.select(
+          _db.customFieldDefs,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.difficultyLevel:
+        return (await (_db.select(
+          _db.difficultyLevels,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.venue:
+        return (await (_db.select(
+          _db.venues,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.setting:
+        return (await (_db.select(_db.settings)
+                  ..where((t) => t.key.equals(id) & t.deletedAt.isNull()))
+                .getSingleOrNull())
+            ?.updatedAt;
+    }
+  }
+
   /// Brings the queued conflict choices in line with one pass's merge
   /// (sync-spec §6.3, §6.6).
   ///

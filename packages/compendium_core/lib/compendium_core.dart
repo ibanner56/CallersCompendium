@@ -122,6 +122,7 @@ export 'src/sync/sync_report.dart';
 export 'src/sync/sync_apply.dart';
 export 'src/sync/sync_admission.dart';
 export 'src/sync/sync_review.dart';
+export 'src/sync/sync_conflict_compare.dart';
 export 'src/sync/sync_review_resolver.dart';
 export 'src/sync/sync_storage.dart';
 export 'src/sync/server/sync_id_server.dart';

@@ -10,12 +10,14 @@ import 'package:compendium_app/src/data/backup_document.dart'
         runBackupCodecOnIsolate;
 import 'package:compendium_app/src/data/backup_reminder.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
+import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/full_app_harness.dart';
+import 'support/test_repositories.dart';
 
 const _bannerKey = ValueKey('backup-reminder-banner');
 
@@ -55,6 +57,35 @@ Future<void> _pump(
 }
 
 typedef BackupSaverFn = Future<bool> Function(String json, String name);
+
+/// A settings repository whose reads of [failingKeys] throw.
+class _FlakySettings extends SettingsRepository {
+  _FlakySettings(super.db, this.failingKeys);
+
+  final Set<String> failingKeys;
+
+  @override
+  Future<Object?> get(String key) async {
+    if (failingKeys.contains(key)) {
+      throw StateError('injected read failure: $key');
+    }
+    return super.get(key);
+  }
+}
+
+class _FlakySettingsAppData extends AppData {
+  _FlakySettingsAppData(super.db, Set<String> failingKeys)
+    : _repositories = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: _FlakySettings(db, failingKeys),
+      );
+
+  final CompendiumRepositories _repositories;
+
+  @override
+  CompendiumRepositories get repositories => _repositories;
+}
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -175,6 +206,23 @@ void main() {
 
     await _pump(tester, appData);
 
+    expect(find.byKey(_bannerKey), findsNothing);
+  });
+
+  testWidgets('a settings read failure shows nothing and still opens the app', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final appData = _FlakySettingsAppData(
+      openWidgetTestDatabase(closeOnTearDown: false),
+      {kBackupReminderCadenceKey},
+    );
+    addTearDown(appData.close);
+
+    await _pump(tester, appData);
+
+    expect(find.byType(AppShell), findsOneWidget);
     expect(find.byKey(_bannerKey), findsNothing);
   });
 

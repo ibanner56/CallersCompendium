@@ -161,6 +161,43 @@ void main() {
     });
   });
 
+  group('SyncReviewQueueResolver.listConflicts', () {
+    test("gives this device's copy only the fields that travel, with when it "
+        "was last changed", () async {
+      // ignore: unused_result
+      await repositories.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Local name', email: 'private@x.test'),
+        at: tie,
+      );
+      const address = (kind: SyncRecordKind.choreographer, recordId: 'c1');
+      final local = await localCandidate(address);
+      await mergeAndQueue(address, [
+        peerVersion(local, {...local.blob.body, 'name': 'Remote name'}),
+      ]);
+
+      final group = (await SyncReviewQueueResolver(
+        storage,
+      ).listConflicts()).single;
+
+      expect(group.localBody!['name'], 'Local name');
+      expect(
+        group.localBody!.containsKey('email'),
+        isFalse,
+        reason:
+            'a field that never syncs is not part of the choice and must not '
+            'read as a difference',
+      );
+      expect(group.localUpdatedAt!.toUtc(), tie);
+      expect(
+        syncDifferingFields(
+          group.localBody,
+          group.candidates.single.candidate!.body,
+        ),
+        ['name'],
+      );
+    });
+  });
+
   group('resolveConflicts', () {
     Future<({Object? value, DateTime updatedAt})> themeRow() async {
       final row = await (db.select(
