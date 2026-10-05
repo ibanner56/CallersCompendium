@@ -2912,9 +2912,13 @@ whole-collection setting with exactly two versions on offer, the user may
 combine them instead of keeping one: every entry either version holds, in this
 device's order and then the other's, matched as each library identifies its
 entries (a dialect by name, a theme by id, a shorthand by its normalized token,
-a snippet by its figure signature). Where both hold an entry with different
-contents, the user chooses that entry's version; none is preselected. The
-combined value is written exactly as a kept version is. A combination holding
+a snippet by its figure signature). Snippet libraries are first read as the
+library loads them, so a version saved under an older signature scheme is
+migrated to the current one before matching, and the combination is written at
+the current scheme; the alternatives either library retained for a signature
+are all kept. Where both hold an entry with different contents, the user
+chooses that entry's version; none is preselected. The combined value is
+written exactly as a kept version is. A combination holding
 more entries than its library keeps (128 dialects, 500 shorthands, 2000
 snippets) MUST be refused rather than written, because loading it would drop
 entries without a word.

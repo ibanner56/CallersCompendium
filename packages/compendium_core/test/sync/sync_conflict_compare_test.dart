@@ -77,21 +77,21 @@ void main() {
       final diff = compareSyncCollection(
         'walkthrough_snippets',
         {
-          'version': 1,
+          'version': 2,
           'snippets': {'swing(who=partner)': 'Swing your partner'},
         },
         {
-          'version': 1,
+          'version': 2,
           'snippets': {
             'swing(who=partner)': 'Partner swing',
-            'circle(dir=left)': 'Circle left',
+            'circle(where=left)': 'Circle left',
           },
         },
       )!;
 
       expect(diff.changed.single.local.value, 'Swing your partner');
       expect(diff.changed.single.other.value, 'Partner swing');
-      expect(diff.onlyOther.single.key, 'circle(dir=left)');
+      expect(diff.onlyOther.single.key, 'circle(where=left)');
       expect(diff.onlyOther.single.label, isNull);
     });
 
@@ -167,6 +167,71 @@ void main() {
       });
       expect(combined.count, 3);
       expect(combined.overLimit, isFalse);
+    });
+
+    test('snippets saved under an older signature scheme match, and combine, '
+        'under the current one', () {
+      final mine = {
+        'version': 2,
+        'snippets': {'circle(where=left)': 'Circle left, mine'},
+      };
+      final theirs = {
+        'version': 1,
+        'snippets': {
+          'circle(dir=left)': 'Circle left, theirs',
+          'swing(who=partner)': 'Swing your partner',
+        },
+      };
+
+      final diff = compareSyncCollection('walkthrough_snippets', mine, theirs)!;
+      expect(diff.changed.single.local.key, 'circle(where=left)');
+      expect(diff.onlyOther.single.key, 'swing(who=partner)');
+
+      final combined = combineSyncCollection(
+        'walkthrough_snippets',
+        mine,
+        theirs,
+        takeOtherFor: {'circle(where=left)'},
+      )!;
+      expect(combined.value, {
+        'version': kFigureSnippetSignatureVersion,
+        'snippets': {
+          'circle(where=left)': 'Circle left, theirs',
+          'swing(who=partner)': 'Swing your partner',
+        },
+      });
+      // Read back as the library loads it, every snippet is still reachable.
+      final library = WalkthroughSnippetLibrary.fromJson(
+        combined.value! as Map<String, Object?>,
+      );
+      expect(library.snippets.keys, {
+        'circle(where=left)',
+        'swing(who=partner)',
+      });
+    });
+
+    test('keeps the alternatives both libraries retained for a signature', () {
+      final combined = combineSyncCollection(
+        'walkthrough_snippets',
+        {
+          'version': 2,
+          'snippets': {'swing(who=partner)': 'A'},
+          'conflicts': {
+            'swing(who=partner)': ['A', 'B'],
+          },
+        },
+        {
+          'version': 2,
+          'snippets': {'swing(who=partner)': 'A'},
+          'conflicts': {
+            'swing(who=partner)': ['A', 'C'],
+          },
+        },
+      )!;
+
+      expect((combined.value! as Map)['conflicts'], {
+        'swing(who=partner)': ['A', 'B', 'C'],
+      });
     });
 
     test("reports a combination over the library's limit", () {

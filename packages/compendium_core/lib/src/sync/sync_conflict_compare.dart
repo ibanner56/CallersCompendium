@@ -1,6 +1,7 @@
 import '../imports/shorthand_mappings.dart'
     show maxShorthandMappings, normalizeShorthandToken;
-import '../snippet/snippet_library.dart' show kMaxSnippetLibraryEntries;
+import '../snippet/snippet_library.dart'
+    show WalkthroughSnippetLibrary, kMaxSnippetLibraryEntries;
 import 'canonical_json.dart';
 
 /// One entry of a whole-collection setting, identified the way the user's own
@@ -89,16 +90,11 @@ List<SyncCollectionEntry>? syncCollectionEntries(String key, Object? value) {
             ),
       ];
     case 'walkthrough_snippets':
-      final snippets = value is Map ? value['snippets'] : null;
-      if (snippets is! Map) return value == null ? const [] : null;
+      final library = _snippetLibrary(value);
+      if (library == null) return value == null ? const [] : null;
       return [
-        for (final entry in snippets.entries)
-          if (entry.key is String)
-            SyncCollectionEntry(
-              key: entry.key as String,
-              label: null,
-              value: entry.value,
-            ),
+        for (final entry in library.snippets.entries)
+          SyncCollectionEntry(key: entry.key, label: null, value: entry.value),
       ];
   }
   return null;
@@ -170,6 +166,15 @@ List<String> syncDifferingFields(
   ];
 }
 
+/// A walkthrough-snippet setting read exactly as the library loads it: keys
+/// written under an older signature scheme are migrated to the current one,
+/// so two devices' libraries are matched by the same signatures whatever
+/// version each was saved at. Null when [value] is not a snippet library.
+WalkthroughSnippetLibrary? _snippetLibrary(Object? value) {
+  if (value is! Map || value['snippets'] is! Map) return null;
+  return WalkthroughSnippetLibrary.fromJson(value.cast<String, Object?>());
+}
+
 /// The most custom dialects a library keeps. Mirrors the app's backup limit
 /// (`kMaxCustomDialects`); `sync_whole_collection_keys_test.dart` holds the
 /// two together.
@@ -239,17 +244,18 @@ SyncCollectionCombination? combineSyncCollection(
   ]);
   final Object? value;
   if (key == 'walkthrough_snippets') {
-    final localMap = local is Map ? local : const <String, Object?>{};
-    final otherMap = other is Map ? other : const <String, Object?>{};
-    final conflicts = <String, Object?>{
-      ...?(otherMap['conflicts'] as Map?)?.cast<String, Object?>(),
-      ...?(localMap['conflicts'] as Map?)?.cast<String, Object?>(),
-    };
-    value = {
-      'version': localMap['version'] ?? otherMap['version'],
-      'snippets': {for (final entry in combined) entry.key: entry.value},
-      if (conflicts.isNotEmpty) 'conflicts': conflicts,
-    };
+    // Both libraries' retained alternatives are kept, signature by
+    // signature; the library dedupes, sorts and caps them, and writes the
+    // current signature version, since every key here is already current.
+    final conflicts = <String, List<String>>{};
+    for (final library in [_snippetLibrary(local), _snippetLibrary(other)]) {
+      for (final entry in (library?.conflicts ?? const {}).entries) {
+        conflicts.putIfAbsent(entry.key, () => []).addAll(entry.value);
+      }
+    }
+    value = WalkthroughSnippetLibrary({
+      for (final entry in combined) entry.key: entry.value as String,
+    }, conflicts: conflicts).toJson();
   } else {
     value = [for (final entry in combined) entry.value];
   }
