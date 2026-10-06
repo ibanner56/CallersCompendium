@@ -198,6 +198,15 @@ jobs:
       - name: Build
         working-directory: app
         run: flutter build ${{ matrix.build_args }}
+      # The Kotlin JVM unit tests in app/android/app/src/test (the incoming
+      # share size cap, copy cleanup and cold-start vs warm routing). Neither
+      # `flutter build` nor `flutter test` compiles them. It runs after the
+      # build because that is what writes the Gradle wrapper (gitignored) and
+      # local.properties. tools/ci/check_android_unit_tests.py guards this step.
+      - name: Android unit tests
+        if: matrix.target == 'android'
+        working-directory: app/android
+        run: ./gradlew :app:testDebugUnitTest
 
   # PR-only single-source gate: a schemaVersion bump in compendium_core's
   # database.dart must ship a migration test/fixture in the same PR. Needs full
