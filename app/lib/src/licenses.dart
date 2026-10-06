@@ -85,23 +85,51 @@ const List<_BundledLicense> _bundledCodeLicenses = [
   ),
 ];
 
+/// The pdfium the `printing` plugin bundles into the Linux and Windows builds:
+/// a prebuilt binary from `bblanchon/pdfium-binaries`, pinned and
+/// hash-checked by `packaging/pdfium/pdfium.cmake`. Not a Dart package, so
+/// Flutter's own package licences never list it. The asset is the `LICENSE`
+/// from that release's archive: PDFium's BSD-3-Clause and Apache-2.0 texts
+/// followed by the notices of the libraries built into it (FreeType,
+/// libjpeg-turbo, lcms, OpenJPEG, zlib, libpng, ICU and others).
+/// `tools/release/test_pdfium_pin.py` checks the asset against the pinned
+/// release.
+///
+/// Registered only where pdfium ships: on Android, iOS and macOS the plugin
+/// prints through the platform's own PDF support, so listing pdfium there
+/// would credit a component those builds do not contain.
+const _BundledLicense _pdfiumLicense = _BundledLicense(
+  packages: ['PDFium (BSD-3-Clause, with bundled third-party notices)'],
+  assetPath: 'assets/licenses/pdfium-LICENSE.txt',
+);
+
+/// Whether the running build ships pdfium (see [_pdfiumLicense]).
+bool get _shipsPdfium =>
+    defaultTargetPlatform == TargetPlatform.linux ||
+    defaultTargetPlatform == TargetPlatform.windows;
+
 /// Guards [registerBundledLicenses] so the license stream is added to the
 /// global [LicenseRegistry] at most once, even if called from both `main` and a
 /// test in the same isolate.
 bool _registered = false;
 
-/// Registers the bundled font and ported-code license texts with
-/// [LicenseRegistry] so they are listed by Flutter's `showLicensePage`. Call once during app bootstrap (and
-/// in any test that exercises the license page). Idempotent.
+/// Registers the bundled font, ported-code and native-library license texts
+/// with [LicenseRegistry] so they are listed by Flutter's `showLicensePage`.
+/// Call once during app bootstrap (and in any test that exercises the license
+/// page). Idempotent.
 ///
 /// The texts are loaded lazily from bundled assets when the license page first
 /// enumerates licenses, keeping the assets as the single source of truth rather
-/// than duplicating ~90 lines of license text into Dart source.
+/// than duplicating license text into Dart source.
 void registerBundledLicenses() {
   if (_registered) return;
   _registered = true;
   LicenseRegistry.addLicense(() async* {
-    for (final license in [..._bundledFontLicenses, ..._bundledCodeLicenses]) {
+    for (final license in [
+      ..._bundledFontLicenses,
+      ..._bundledCodeLicenses,
+      if (_shipsPdfium) _pdfiumLicense,
+    ]) {
       final text = await rootBundle.loadString(license.assetPath);
       yield LicenseEntryWithLineBreaks(license.packages, text);
     }

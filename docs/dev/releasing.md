@@ -26,7 +26,7 @@ This is the operator runbook for cutting a desktop release. It documents the
 > per-platform signing table.
 
 <!-- section-index -->
-> **Section index.** This document is ~71 KB — read the section you
+> **Section index.** This document is ~79 KB — read the section you
 > need rather than the whole file. Line counts indicate size, not position;
 > follow the anchor. Keep this index current when you add or retitle a
 > section.
@@ -35,7 +35,7 @@ This is the operator runbook for cutting a desktop release. It documents the
 - [Safety model](#safety-model) — 15 lines
 - [Cutting a release](#cutting-a-release) — 202 lines
 - [CHANGELOG-driven release notes](#changelog-driven-release-notes) — 48 lines
-- [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 74 lines
+- [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 93 lines
 - [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages) — 124 lines
 - [Signing the update manifest (Ed25519, issue #431)](#signing-the-update-manifest-ed25519-issue-431) — 96 lines
 - [Landing page and user guides (GitHub Pages)](#landing-page-and-user-guides-github-pages) — 74 lines
@@ -43,7 +43,8 @@ This is the operator runbook for cutting a desktop release. It documents the
 - [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized) — 85 lines
 - [Android (signed APK)](#android-signed-apk) — 143 lines
 - [iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api) — 125 lines
-- [Packaging tooling notes](#packaging-tooling-notes) — 24 lines
+- [Packaging tooling notes](#packaging-tooling-notes) — 42 lines
+- [Pinned native dependencies](#pinned-native-dependencies) — 81 lines
 <!-- /section-index -->
 
 ## What the pipeline produces
@@ -403,11 +404,29 @@ supply chain with signed provenance.
   recorded in `metadata.properties`. First-party workspace packages and the
   Flutter SDK packages themselves are not listed as components (the SDK is pinned
   via `.fvmrc` and captured by the build provenance).
+- **Native components.** The pub graph cannot see binaries that the builds
+  fetch or copy outside pub, so the SBOM adds them itself:
+  - **pdfium**, one component per shipped build (`linux-x64`, `win-x64`), with
+    the pinned version, the SHA-256 and URL of the release archive, and the
+    SHA-256 of the library that lands in the bundle. Read from
+    `packaging/pdfium/pdfium.cmake`, the same pin the build verifies (see
+    [Pinned native dependencies](#pinned-native-dependencies)).
+  - the **MSVC runtime DLLs** the Windows build ships app-local
+    (`vcruntime140.dll`, `vcruntime140_1.dll`, `msvcp140.dll`). Their version
+    is whatever the runner's Visual Studio carries, so the Windows job writes
+    each staged DLL's file version and SHA-256 to `msvc-runtime.json`
+    (workflow artifact `native-components-windows`, not a release asset), and
+    `publish_draft` passes it to `gen_sbom.py --msvc-runtime`.
+
+  Not yet listed: the AppImage runtime and `appimagetool` (pinned and
+  checksum-verified in the Linux packaging step), the Inno Setup installer
+  stub, and the native SQLite library the `sqlite3` package bundles.
 - **How it's produced.** In the `publish_draft` job, `flutter pub get
   --enforce-lockfile` resolves the single root `pubspec.lock`, `dart pub deps
   --json` dumps the resolved graph, and `tools/release/gen_sbom.py` turns it into
-  the SBOM. Output is deterministic (components sorted by purl; only
-  `metadata.timestamp` varies), so re-runs against the same lockfile diff cleanly.
+  the SBOM, adding the native components above. Output is deterministic
+  (components sorted by purl; only `metadata.timestamp` varies), so re-runs
+  against the same lockfile and MSVC manifest diff cleanly.
 - **Where it lands.** It's uploaded as a release asset, its checksum is included
   in `SHA256SUMS`, and it is **cryptographically attested** with
   `actions/attest-sbom` (keyless GitHub OIDC — same trust model as the build
@@ -420,12 +439,13 @@ flutter pub get --enforce-lockfile
 dart pub deps --json > /tmp/deps.json
 python3 tools/release/gen_sbom.py \
   --deps /tmp/deps.json --version 0.1.0 --output /tmp/sbom-0.1.0.cdx.json
+# (add --msvc-runtime <msvc-runtime.json> to list the MSVC runtime too)
 python3 tools/release/test_gen_sbom.py            # assert-based unit tests
 ```
 
 > **CI runs these too.** The release supply-chain suites
-> (`test_gen_sbom.py`, `test_gen_release_metadata.py`, `test_gen_release_notes.py`,
-> and `test_publish_pages_manifest.py`) also run on **every PR** via
+> (`test_gen_sbom.py`, `test_pdfium_pin.py`, `test_gen_release_metadata.py`,
+> `test_gen_release_notes.py`, and `test_publish_pages_manifest.py`) also run on **every PR** via
 > `.github/workflows/_checks.yml`, so a regression in SBOM / `SHA256SUMS` /
 > update-manifest / `.sig`-preservation output fails the PR gate — not just the
 > release path.
@@ -1313,8 +1333,14 @@ runners:
   folder is read from Visual Studio, not hard-coded. The step fails if
   `dumpbin /dependents` shows any bundled binary importing a runtime DLL outside
   that list. A later step fails the job unless each DLL is in the zip, is
-  installed by the installer, and is removed by its uninstaller.
+  installed by the installer, and is removed by its uninstaller. The staging
+  step also writes each DLL's file version and SHA-256 to `msvc-runtime.json`
+  for the [SBOM](#software-bill-of-materials-sbom).
   `tools/release/test_release_windows_crt.py` pins this structure.
+- **pdfium (Linux and Windows)** — fetched by the `printing` plugin while CMake
+  configures the build, pinned and hash-checked by
+  `packaging/pdfium/pdfium.cmake`; see
+  [Pinned native dependencies](#pinned-native-dependencies).
 - **Windows zip** — PowerShell `Compress-Archive`.
 - **Windows installer** — Inno Setup (`ISCC.exe`, preinstalled on the runner)
   driving `packaging/windows/CallersCompendium.iss`.
@@ -1325,3 +1351,84 @@ runners:
   Not staged into `dist/` (store-delivered, not a download).
 
 All GitHub Actions are pinned to full commit SHAs (repo convention).
+
+## Pinned native dependencies
+
+Binaries that ship inside the product but do not come through pub, and how
+each is pinned:
+
+| Component | Ships in | Pinned by | Verified by |
+| --- | --- | --- | --- |
+| pdfium (`bblanchon/pdfium-binaries` `chromium/5200`, PDFium 106.0.5200.0) | Linux and Windows builds | `packaging/pdfium/pdfium.cmake` | SHA-256 of the archive (fetched by us before the plugin runs) and of the plugin's copy and the bundled library, at CMake configure time; see the residual risk below |
+| MSVC runtime (`vcruntime140.dll`, `vcruntime140_1.dll`, `msvcp140.dll`) | Windows zip and installer | not pinned: the runner's Visual Studio redistributable (Microsoft-signed) | `dumpbin` import check and ship check in `release.yml`; versions and hashes recorded in the SBOM |
+
+**pdfium.** The `printing` plugin (5.15.1) downloads
+`pdfium-<os>-<arch>.tgz` from `bblanchon/pdfium-binaries` while CMake adds it,
+through `download_project` with no `URL_HASH`. Its only option is the
+`PDFIUM_VERSION` cache variable, which also accepts `latest`. We do not patch
+the pub cache or fork the plugin. Instead `app/linux/CMakeLists.txt` and
+`app/windows/CMakeLists.txt`:
+
+1. include `packaging/pdfium/pdfium.cmake` and call
+   `compendium_pin_pdfium(linux|win)` before
+   `include(flutter/generated_plugins.cmake)`. This forces `PDFIUM_VERSION` and
+   `PDFIUM_ARCH` into the cache, so the plugin's own default and any
+   `-DPDFIUM_VERSION=latest` are ignored. It then downloads the same release
+   asset itself (`file(DOWNLOAD … EXPECTED_HASH SHA256=… TLS_VERIFY ON)` into
+   `<build>/pdfium-preverify/`) and stops the configure step unless it matches
+   the pin. This matters because the plugin extracts its archive and
+   `include()`s the `PDFiumConfig.cmake` inside it at configure time: a check
+   only afterwards would let a swapped archive run its CMake first. A copy
+   that already matches is reused, so a reconfigure does not fetch again. The
+   function also sets `CMAKE_TLS_VERIFY` in the environment so the plugin's
+   own download (a child CMake process) verifies TLS on CMake 3.30 and later;
+2. call `compendium_verify_pdfium(linux|win)` straight after. It hashes the
+   archive the plugin downloaded and the library it is about to bundle
+   (`lib/libpdfium.so`, `bin/pdfium.dll`), and stops the configure step on a
+   version, hash or missing-file mismatch, before anything is compiled or
+   installed.
+
+**Residual risk.** The plugin still downloads its own copy, with no hash, and
+`include()`s that copy's `PDFiumConfig.cmake` before step 2 runs. That copy is a
+second request for the same asset, seconds after ours matched the pin. A server
+that returns different bytes to the second request could still run CMake at
+configure time (on the release runner, before signing) before step 2 fails the
+build. Closing that completely needs a patched or vendored `printing` plugin,
+which we have not done.
+
+The pin keeps `chromium/5200`, the release printing 5.15.1 asks for by default,
+so it changes nothing the app does. pdfium-binaries publishes no checksums for
+that release, so the hashes were computed from the downloaded release assets
+(the comment in the pin file has the date and method). The Linux and Windows
+x64 and arm64 targets are pinned; any other architecture fails the build until
+it is added.
+
+`tools/release/test_pdfium_pin.py` (in `release-tooling` and the PR checks)
+fails if the pin, a hash, or the CMake wiring is missing, if `pubspec.lock`
+moves `printing` off the version the pin was written for, or if the
+pre-download or the verifier accepts a fake archive (it runs both under
+`cmake -P`, the pre-download against a `file://` copy of the release layout). It also checks that the bundled licence
+(`app/assets/licenses/pdfium-LICENSE.txt`) is the pinned release's `LICENSE`.
+
+To move pdfium or upgrade `printing`:
+
+```sh
+v=5200   # the chromium/<n> release
+for t in linux-x64 linux-arm64 win-x64 win-arm64; do
+  curl -fsSLO "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/$v/pdfium-$t.tgz"
+  sha256sum "pdfium-$t.tgz"
+done
+tar -xzf pdfium-linux-x64.tgz -O lib/libpdfium.so | sha256sum   # likewise
+tar -xzf pdfium-linux-arm64.tgz -O lib/libpdfium.so | sha256sum # for each
+tar -xzf pdfium-win-x64.tgz -O bin/pdfium.dll | sha256sum       # target
+tar -xzf pdfium-win-arm64.tgz -O bin/pdfium.dll | sha256sum
+tar -xzf pdfium-linux-x64.tgz LICENSE && sha256sum LICENSE
+```
+
+Then update the values in `packaging/pdfium/pdfium.cmake`, replace the bundled
+licence with that `LICENSE` (re-encoded as UTF-8 if it is not already; see
+`license_bytes_for_bundle` in `tools/release/pdfium_pin.py`), re-read the new
+plugin's `linux/` and `windows/CMakeLists.txt` (the verifier depends on where
+`download_project` leaves the archive), and build on Windows before
+releasing. A newer pdfium release also needs checking against the `printing`
+plugin's C++, which is written against this release's API.
