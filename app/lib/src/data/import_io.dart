@@ -300,6 +300,12 @@ enum UrlFetchFailureReason {
   callersBoxMissingId,
   callersBoxEmptySearch,
   callersBoxUnreachable,
+
+  /// A fetch for The Caller's Box timed out. The shared fetcher throws the
+  /// generic [timeout]; `attributeFetchFailure` re-labels it with this reason
+  /// so the message names the source rather than "the URL". Carries
+  /// [UrlFetchException.timeoutSeconds].
+  callersBoxTimeout,
   callersBoxHttpStatus,
   callersBoxEmptyPage,
   callersBoxNoImportableDance,
@@ -317,6 +323,10 @@ enum UrlFetchFailureReason {
   contraDbInvalidProgramLink,
   contraDbUnsupportedHost,
   contraDbUnreachable,
+
+  /// A fetch for ContraDB timed out; the ContraDB twin of [callersBoxTimeout].
+  /// Carries [UrlFetchException.timeoutSeconds].
+  contraDbTimeout,
   contraDbHttpStatus,
   contraDbEmptyResponse,
   contraDbNoImportableDance,
@@ -345,7 +355,9 @@ class UrlFetchException implements Exception {
       assert(
         // A timeout reason must carry the elapsed seconds it describes.
         !(reason == UrlFetchFailureReason.timeout ||
-                reason == UrlFetchFailureReason.searchTimeout) ||
+                reason == UrlFetchFailureReason.searchTimeout ||
+                reason == UrlFetchFailureReason.callersBoxTimeout ||
+                reason == UrlFetchFailureReason.contraDbTimeout) ||
             timeoutSeconds != null,
         'timeoutSeconds is required for a timeout reason',
       );
@@ -359,7 +371,9 @@ class UrlFetchException implements Exception {
   final int? statusCode;
 
   /// The elapsed timeout in whole seconds, for [UrlFetchFailureReason.timeout] /
-  /// [UrlFetchFailureReason.searchTimeout]; `null` otherwise.
+  /// [UrlFetchFailureReason.searchTimeout] /
+  /// [UrlFetchFailureReason.callersBoxTimeout] /
+  /// [UrlFetchFailureReason.contraDbTimeout]; `null` otherwise.
   final int? timeoutSeconds;
 
   /// Debug-only, non-prose form (safe for logs — no user prose, no URL/path).

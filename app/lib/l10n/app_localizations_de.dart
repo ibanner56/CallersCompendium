@@ -6198,6 +6198,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'The Caller\'s Box konnte nicht erreicht werden. Überprüfen Sie Ihre Verbindung, dann versuchen Sie es erneut.';
 
   @override
+  String importErrorCallersBoxTimeout(int seconds) {
+    return 'The Caller\'s Box hat nicht innerhalb von $seconds s geantwortet. Überprüfen Sie Ihre Verbindung, dann versuchen Sie es erneut.';
+  }
+
+  @override
   String importErrorCallersBoxHttpStatus(int status) {
     return 'The Caller\'s Box hat eine unerwartete Antwort gesendet (Code $status). Versuchen Sie es in einer Minute erneut.';
   }
@@ -6212,7 +6217,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxEmptyPage =>
-      'The Caller\'s Box gab eine leere Seite zurück.';
+      'The Caller\'s Box gab eine leere Seite zurück. Versuchen Sie es in einer Minute erneut.';
 
   @override
   String get importErrorCallersBoxNoDance =>
@@ -6267,6 +6272,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'ContraDB konnte nicht erreicht werden. Überprüfen Sie Ihre Verbindung, dann versuchen Sie es erneut.';
 
   @override
+  String importErrorContraDbTimeout(int seconds) {
+    return 'ContraDB hat nicht innerhalb von $seconds s geantwortet. Überprüfen Sie Ihre Verbindung, dann versuchen Sie es erneut.';
+  }
+
+  @override
   String importErrorContraDbHttpStatus(int status) {
     return 'ContraDB hat eine unerwartete Antwort gesendet (Code $status). Versuchen Sie es in einer Minute erneut.';
   }
@@ -6281,7 +6291,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importErrorContraDbEmptyResponse =>
-      'ContraDB gab eine leere Antwort zurück.';
+      'ContraDB gab eine leere Antwort zurück. Versuchen Sie es in einer Minute erneut.';
 
   @override
   String get importErrorContraDbNoDance =>

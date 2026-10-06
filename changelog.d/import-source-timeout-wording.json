@@ -1,0 +1,9 @@
+{
+  "id": "import-source-timeout-wording",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Importing from The Caller's Box or ContraDB by id or link no longer says \"Check the URL\" when the service is slow or sends back nothing: the message names the service and says what to do next."
+    ]
+  }
+}

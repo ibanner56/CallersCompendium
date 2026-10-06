@@ -6126,6 +6126,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Kunne ikke nå The Caller\'s Box. Kontrollér din forbindelse, og prøv igen.';
 
   @override
+  String importErrorCallersBoxTimeout(int seconds) {
+    return 'The Caller\'s Box svarede ikke inden for ${seconds}s. Kontrollér din forbindelse, og prøv igen.';
+  }
+
+  @override
   String importErrorCallersBoxHttpStatus(int status) {
     return 'The Caller\'s Box sendte et uventet svar (kode $status). Prøv igen om et øjeblik.';
   }
@@ -6140,7 +6145,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxEmptyPage =>
-      'The Caller\'s Box returnerede en tom side.';
+      'The Caller\'s Box returnerede en tom side. Prøv igen om et øjeblik.';
 
   @override
   String get importErrorCallersBoxNoDance =>
@@ -6195,6 +6200,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Kunne ikke nå ContraDB. Kontrollér din forbindelse, og prøv igen.';
 
   @override
+  String importErrorContraDbTimeout(int seconds) {
+    return 'ContraDB svarede ikke inden for ${seconds}s. Kontrollér din forbindelse, og prøv igen.';
+  }
+
+  @override
   String importErrorContraDbHttpStatus(int status) {
     return 'ContraDB sendte et uventet svar (kode $status). Prøv igen om et øjeblik.';
   }
@@ -6209,7 +6219,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importErrorContraDbEmptyResponse =>
-      'ContraDB returnerede et tomt svar.';
+      'ContraDB returnerede et tomt svar. Prøv igen om et øjeblik.';
 
   @override
   String get importErrorContraDbNoDance =>

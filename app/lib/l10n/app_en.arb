@@ -7913,6 +7913,16 @@
   "@importErrorCallersBoxUnreachable": {
     "description": "Error shown when The Caller's Box could not be reached."
   },
+  "importErrorCallersBoxTimeout": "The Caller's Box didn't respond within {seconds}s. Check your connection, then try again.",
+  "@importErrorCallersBoxTimeout": {
+    "description": "Error shown when fetching a dance from The Caller's Box (by id or link) timed out. Names the service, never the URL. {seconds} is how long the app waited, in whole seconds; keep the 's' unit abbreviation or use your language's equivalent.",
+    "placeholders": {
+      "seconds": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
   "importErrorCallersBoxHttpStatus": "The Caller's Box sent an unexpected response (code {status}). Try again in a minute.",
   "@importErrorCallersBoxHttpStatus": {
     "description": "Error shown when The Caller's Box returned a non-success HTTP status.",
@@ -7931,9 +7941,9 @@
   "@importErrorCallersBoxHttpBusy": {
     "description": "Error shown when The Caller's Box returned HTTP 429 or a 5xx status. Deliberately omits the status code; retrying is the next step."
   },
-  "importErrorCallersBoxEmptyPage": "The Caller's Box returned an empty page.",
+  "importErrorCallersBoxEmptyPage": "The Caller's Box returned an empty page. Try again in a minute.",
   "@importErrorCallersBoxEmptyPage": {
-    "description": "Error shown when a Caller's Box search returned no page content."
+    "description": "Error shown when The Caller's Box returned no page content, for a search or for a dance fetched by id or link. The next step is to wait briefly and retry."
   },
   "importErrorCallersBoxNoDance": "The Caller's Box returned no importable dance. Check the id or link, then try again.",
   "@importErrorCallersBoxNoDance": {
@@ -7987,6 +7997,16 @@
   "@importErrorContraDbUnreachable": {
     "description": "Error shown when ContraDB could not be reached."
   },
+  "importErrorContraDbTimeout": "ContraDB didn't respond within {seconds}s. Check your connection, then try again.",
+  "@importErrorContraDbTimeout": {
+    "description": "Error shown when fetching a dance from ContraDB (by id or link) timed out. Names the service, never the URL. {seconds} is how long the app waited, in whole seconds; keep the 's' unit abbreviation or use your language's equivalent.",
+    "placeholders": {
+      "seconds": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
   "importErrorContraDbHttpStatus": "ContraDB sent an unexpected response (code {status}). Try again in a minute.",
   "@importErrorContraDbHttpStatus": {
     "description": "Error shown when ContraDB returned a non-success HTTP status.",
@@ -8005,9 +8025,9 @@
   "@importErrorContraDbHttpBusy": {
     "description": "Error shown when ContraDB returned HTTP 429 or a 5xx status. Deliberately omits the status code; retrying is the next step."
   },
-  "importErrorContraDbEmptyResponse": "ContraDB returned an empty response.",
+  "importErrorContraDbEmptyResponse": "ContraDB returned an empty response. Try again in a minute.",
   "@importErrorContraDbEmptyResponse": {
-    "description": "Error shown when ContraDB returned an empty body."
+    "description": "Error shown when ContraDB returned an empty body, for a search or for a dance fetched by id or link. The next step is to wait briefly and retry."
   },
   "importErrorContraDbNoDance": "ContraDB returned no importable dance. Check the id or link, then try again.",
   "@importErrorContraDbNoDance": {
