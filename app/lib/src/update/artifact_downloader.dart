@@ -182,6 +182,10 @@ Future<DownloadOutcome> downloadArtifact(
   // below), so a symlink an attacker pre-planted at a predictable path is
   // never touched, let alone followed.
   var createdDestination = false;
+  // Completed by the `finally` cleanup of a failed download: true when the
+  // partial file is gone (deleted, or already absent). The deferred cleanup
+  // below deletes only when this is false.
+  final finallyRemovedFile = Completer<bool>();
 
   try {
     if (cancelToken != null && cancelToken.isCancelled) {
@@ -268,6 +272,10 @@ Future<DownloadOutcome> downloadArtifact(
     // Bytes handed to the sink since the last flush; see the backpressure note
     // in the listener below.
     var unflushed = 0;
+    // The backpressure flush still in progress, if any. dart:io refuses to
+    // close a sink mid-flush (it throws synchronously), so a failed or
+    // cancelled download closes only after this settles.
+    Future<void>? inFlightFlush;
 
     void bumpIdle() {
       idle?.cancel();
@@ -340,14 +348,18 @@ Future<DownloadOutcome> downloadArtifact(
           }
 
           sub.pause();
-          sink.flush().then(
+          final flushing = sink.flush();
+          inFlightFlush = flushing;
+          flushing.then(
             (_) {
+              inFlightFlush = null;
               stopGuards();
               if (done.isCompleted) return;
               bumpIdle();
               sub.resume();
             },
             onError: (Object e) {
+              inFlightFlush = null;
               stopGuards();
               // diagnostics: silent — returns DownloadOutcome to the
               // update-layer caller, not UI.
@@ -394,18 +406,43 @@ Future<DownloadOutcome> downloadArtifact(
     // preserved even if the close also fails.)
     //
     // A non-success outcome (cancel, stall, over-budget) discards the file, so
-    // there is nothing to flush: close without awaiting. Awaiting here would
-    // re-block on the very flush a cancel or write watchdog just gave up on.
+    // there is nothing to flush and nothing to wait for: return at once.
+    // Awaiting here would re-block on the very flush a cancel or write
+    // watchdog just gave up on, and dart:io throws if a sink is closed while a
+    // flush is outstanding. So close once any in-flight flush settles, then
+    // delete, but only if the `finally` delete below could not: it fails on
+    // Windows while the handle is open, and then the file still exists, so a
+    // new download cannot have created a replacement at this path (the
+    // exclusive create refuses). Where that delete succeeded, the path may
+    // already belong to a new download and must not be touched.
     if (!outcome.isSuccess) {
       sinkClosed = true;
-      unawaited(
-        sink.close().then<void>(
-          (_) {},
+      final openSink = sink;
+      final pendingFlush = inFlightFlush;
+      unawaited(() async {
+        if (pendingFlush != null) {
+          try {
+            await pendingFlush;
+          } on Object {
+            // diagnostics: silent — the outcome is already determined; the
+            // flush failure only matters for when the handle can close.
+          }
+        }
+        try {
+          await openSink.close();
+        } on Object {
           // diagnostics: silent — the outcome is already determined; the file
           // is discarded.
-          onError: (Object _) {},
-        ),
-      );
+        }
+        if (await finallyRemovedFile.future) return;
+        // The sink exists only after this call created [destination], and the
+        // file has stayed in place since, so it is still this call's file.
+        try {
+          if (await destination.exists()) await destination.delete();
+        } on Object {
+          // diagnostics: silent — best-effort cleanup of a discarded file.
+        }
+      }());
       return outcome;
     }
     try {
@@ -445,12 +482,15 @@ Future<DownloadOutcome> downloadArtifact(
       }
     }
     if (!succeeded && createdDestination) {
+      var removed = false;
       try {
         if (await destination.exists()) await destination.delete();
+        removed = true;
       } on Object {
         // diagnostics: silent — best-effort cleanup; never mask the real
-        // outcome with a delete error.
+        // outcome with a delete error. A deferred retry runs after the close.
       }
+      finallyRemovedFile.complete(removed);
     }
     if (ownClient) effectiveClient.close();
   }

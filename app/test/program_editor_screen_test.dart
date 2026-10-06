@@ -573,6 +573,26 @@ void main() {
     expect(updated!.hideAlternates, isTrue);
   });
 
+  testWidgets('saving keeps a dialectName the editor does not edit '
+      '(issue #1554)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(id: 'p1', title: 'Night').copyWith(dialectName: 'Leads/Follows'),
+    );
+    await _pump(tester, repos, programId: 'p1', onSaved: (_) {});
+
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Renamed',
+    );
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.title, 'Renamed');
+    expect(saved.dialectName, 'Leads/Follows');
+  });
+
   testWidgets('expanded Tier 2 metadata persists on save', (tester) async {
     final repos = openTestRepositories();
     await repos.programs.create(_program(id: 'p1', title: 'Night'));
@@ -3102,6 +3122,56 @@ void main() {
       expect(saved.slots.single.performedAt, isNull);
     },
   );
+
+  testWidgets('persisted Undo carries a remote dialectName through the merge '
+      '(issue #1554)', (tester) async {
+    // Same scenario as 'persisted Undo merges remote program fields with a
+    // local edit during live read': a remote write lands during the live
+    // read and the user edits locally, so Undo takes `_mergeUndoProgram`.
+    // The editor cannot edit dialectName, so the live value must win.
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    delayed.programs.holdNextRead();
+    await tester.tap(find.byType(SnackBarAction));
+    await delayed.programs.readStarted;
+    await tester.pump();
+
+    final remote = await delayed.repos.programs.getById('p1');
+    await delayed.repos.programs.update(
+      remote!.copyWith(
+        dialectName: 'Leads/Follows',
+        updatedAt: DateTime.now().toUtc(),
+      ),
+    );
+    final slotEditor = tester.widget<ProgramSlotListEditor>(
+      find.byType(ProgramSlotListEditor),
+    );
+    slotEditor.onSlotChanged(0, slotEditor.slots.single.copyWith(isAlt: true));
+    await tester.pump();
+    delayed.programs.releaseRead();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.slots.single.isAlt, isTrue);
+    expect(saved.dialectName, 'Leads/Follows');
+  });
 
   testWidgets('failed persisted Undo keeps edits made during live recovery', (
     tester,

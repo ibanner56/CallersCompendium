@@ -1440,6 +1440,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     hideAlternates: local.hideAlternates == atReadStart.hideAlternates
         ? live.hideAlternates
         : local.hideAlternates,
+    // The editor does not edit it yet, so the live value always wins.
+    dialectName: live.dialectName,
     slots: slots,
     createdAt: live.createdAt,
     updatedAt: live.updatedAt,
@@ -1818,6 +1820,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           initialElapsedSeconds: _performResume?.elapsedSeconds ?? 0,
           initialSlotStartSeconds: _performResume?.slotStartSeconds ?? 0,
           initialPaused: _performResume?.paused ?? false,
+          initialWalkthroughEndedAtSlotSeconds:
+              _performResume?.walkthroughEndedAtSlotSeconds,
+          initialWalkthroughEndedSlotId: _performResume?.walkthroughEndedSlotId,
           onExit: (state) => _performResume = state,
           // In-event adjustments (`docs/design/ux.md` §5) fold back into the
           // builder's working slots. For an already-saved program this is the
@@ -2411,6 +2416,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       notes: draft.notes,
       status: draft.status,
       hideAlternates: draft.hideAlternates,
+      // Not editable here yet: `draft` is `_existing.copyWith(...)`, so this
+      // carries the stored value (set by import, restore or sync) instead of
+      // rebuilding the program with it cleared.
+      dialectName: draft.dialectName,
       slots: draft.slots,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,

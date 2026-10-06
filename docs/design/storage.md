@@ -514,6 +514,17 @@ can still fire.
 - v36: adds nullable `review_queue.local_hash`, the queue-time wire hash of
   the affected local record. Actionable review resolution rejects a row whose
   local record changed after enqueue; v35 rows retain NULL and fail closed.
+- v37 (issue #1554): adds nullable `programs.dialect_name`, the name of the
+  dialect Perform uses for that program; NULL (every existing row) means Perform
+  follows the application dialect. A soft reference by name, deliberately not
+  validated at write time and never cascaded on dialect rename or delete: a name
+  that does not resolve falls back to the application dialect when Perform
+  resolves it. Written NFC-normalised like every shareable string: the dialect
+  library's own names are NFC-normalised on their way to storage
+  (`custom_dialects` is a shareable setting), and Device Sync rejects a program
+  body that is not already canonical. Not length-limited, because the library
+  imposes no name cap. Additive `addColumn`; no back-fill and no derived
+  rebuild.
 
 ## The delete model
 

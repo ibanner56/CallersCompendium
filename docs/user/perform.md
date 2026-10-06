@@ -157,7 +157,35 @@ For a program, the status area additionally shows:
 - once the walkthrough and dance minutes together have passed, the word
   **over**, with a timer icon; and
 - a **Pause timers** button (**Resume timers** while paused) that freezes both
-  clocks for interruptions.
+  clocks for interruptions; and
+- when the slot has a walkthrough length, a round **dance-start** button (a
+  music note) at the end of the readout.
+
+### Mark when the walkthrough really ended
+
+Walkthroughs rarely run to the clock. When a slot has a walkthrough length, tap
+the dance-start button the moment the dancers actually start dancing. Its tooltip
+reads "Walkthrough done — start the dance"; once marked it becomes a filled
+circle and reads "Dance started — tap to undo". Tap it again to undo a
+mis-tap. You can press it early or late, while paused, or after **over** is
+already showing.
+
+While a slot is marked:
+
+- **walkthrough complete** follows your mark instead of the clock;
+- **over** is counted from your mark plus the dance minutes, not from the start
+  of the slot; and
+- the readout adds how long the walkthrough actually took against its plan, for
+  example **walkthrough 4:10 (+1:10)** (ran over), **(−0:50)** (finished early)
+  or **(on plan)**.
+
+If you never tap the button, nothing changes: the cues follow the clock exactly
+as described above. The mark belongs to the slot you are on, so it clears when
+you move to another slot, swap in an alternate or jump to a slot (the same
+moments the per-slot timer restarts), and it survives reordering or inserting
+slots around the one you are reading. It is session-only: it is kept when you
+leave and re-enter Perform within the same session, but it is never saved to
+your program or your dances.
 
 Timing is display-only — it helps you keep an eye on the clock but never changes
 your program or your dances. The single-dance timer is on by default; to hide

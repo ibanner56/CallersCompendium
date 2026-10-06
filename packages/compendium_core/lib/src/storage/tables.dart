@@ -275,6 +275,16 @@ class Programs extends Table {
       text().map(const EnumNameConverter(ProgramStatus.values))();
   BoolColumn get hideAlternates =>
       boolean().withDefault(const Constant(false))();
+
+  /// Name of the dialect Perform uses for this program (schema v37). `null`
+  /// (the default, and every program before v37) means Perform follows the
+  /// application dialect. A soft reference by **name** — dialects are
+  /// identified only by name (`Dialect.resolveByName`) — and deliberately not
+  /// validated at write time: a name that no longer resolves (the dialect was
+  /// renamed or deleted, or has not synced to this device yet) falls back to
+  /// the application dialect when Perform resolves it, so dialect rename and
+  /// delete never write to programs.
+  TextColumn get dialectName => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();

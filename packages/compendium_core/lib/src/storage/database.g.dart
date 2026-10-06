@@ -3356,6 +3356,17 @@ class $ProgramsTable extends Programs
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _dialectNameMeta = const VerificationMeta(
+    'dialectName',
+  );
+  @override
+  late final GeneratedColumn<String> dialectName = GeneratedColumn<String>(
+    'dialect_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -3413,6 +3424,7 @@ class $ProgramsTable extends Programs
     notes,
     status,
     hideAlternates,
+    dialectName,
     createdAt,
     updatedAt,
     deletedAt,
@@ -3494,6 +3506,15 @@ class $ProgramsTable extends Programs
         hideAlternates.isAcceptableOrUnknown(
           data['hide_alternates']!,
           _hideAlternatesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dialect_name')) {
+      context.handle(
+        _dialectNameMeta,
+        dialectName.isAcceptableOrUnknown(
+          data['dialect_name']!,
+          _dialectNameMeta,
         ),
       );
     }
@@ -3583,6 +3604,10 @@ class $ProgramsTable extends Programs
         DriftSqlType.bool,
         data['${effectivePrefix}hide_alternates'],
       )!,
+      dialectName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dialect_name'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -3647,6 +3672,16 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   final String notes;
   final ProgramStatus status;
   final bool hideAlternates;
+
+  /// Name of the dialect Perform uses for this program (schema v37). `null`
+  /// (the default, and every program before v37) means Perform follows the
+  /// application dialect. A soft reference by **name** — dialects are
+  /// identified only by name (`Dialect.resolveByName`) — and deliberately not
+  /// validated at write time: a name that no longer resolves (the dialect was
+  /// renamed or deleted, or has not synced to this device yet) falls back to
+  /// the application dialect when Perform resolves it, so dialect rename and
+  /// delete never write to programs.
+  final String? dialectName;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -3667,6 +3702,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     required this.notes,
     required this.status,
     required this.hideAlternates,
+    this.dialectName,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -3702,6 +3738,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       );
     }
     map['hide_alternates'] = Variable<bool>(hideAlternates);
+    if (!nullToAbsent || dialectName != null) {
+      map['dialect_name'] = Variable<String>(dialectName);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
@@ -3736,6 +3775,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       notes: Value(notes),
       status: Value(status),
       hideAlternates: Value(hideAlternates),
+      dialectName: dialectName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dialectName),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
@@ -3766,6 +3808,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
         serializer.fromJson<String>(json['status']),
       ),
       hideAlternates: serializer.fromJson<bool>(json['hideAlternates']),
+      dialectName: serializer.fromJson<String?>(json['dialectName']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
@@ -3789,6 +3832,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
         $ProgramsTable.$converterstatus.toJson(status),
       ),
       'hideAlternates': serializer.toJson<bool>(hideAlternates),
+      'dialectName': serializer.toJson<String?>(dialectName),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
@@ -3808,6 +3852,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     String? notes,
     ProgramStatus? status,
     bool? hideAlternates,
+    Value<String?> dialectName = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
@@ -3824,6 +3869,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     notes: notes ?? this.notes,
     status: status ?? this.status,
     hideAlternates: hideAlternates ?? this.hideAlternates,
+    dialectName: dialectName.present ? dialectName.value : this.dialectName,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -3846,6 +3892,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       hideAlternates: data.hideAlternates.present
           ? data.hideAlternates.value
           : this.hideAlternates,
+      dialectName: data.dialectName.present
+          ? data.dialectName.value
+          : this.dialectName,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
@@ -3869,6 +3918,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           ..write('notes: $notes, ')
           ..write('status: $status, ')
           ..write('hideAlternates: $hideAlternates, ')
+          ..write('dialectName: $dialectName, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -3890,6 +3940,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     notes,
     status,
     hideAlternates,
+    dialectName,
     createdAt,
     updatedAt,
     deletedAt,
@@ -3910,6 +3961,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           other.notes == this.notes &&
           other.status == this.status &&
           other.hideAlternates == this.hideAlternates &&
+          other.dialectName == this.dialectName &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
@@ -3928,6 +3980,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
   final Value<String> notes;
   final Value<ProgramStatus> status;
   final Value<bool> hideAlternates;
+  final Value<String?> dialectName;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
@@ -3945,6 +3998,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.notes = const Value.absent(),
     this.status = const Value.absent(),
     this.hideAlternates = const Value.absent(),
+    this.dialectName = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -3963,6 +4017,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.notes = const Value.absent(),
     required ProgramStatus status,
     this.hideAlternates = const Value.absent(),
+    this.dialectName = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
@@ -3985,6 +4040,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Expression<String>? notes,
     Expression<String>? status,
     Expression<bool>? hideAlternates,
+    Expression<String>? dialectName,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
@@ -4003,6 +4059,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       if (notes != null) 'notes': notes,
       if (status != null) 'status': status,
       if (hideAlternates != null) 'hide_alternates': hideAlternates,
+      if (dialectName != null) 'dialect_name': dialectName,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
@@ -4023,6 +4080,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Value<String>? notes,
     Value<ProgramStatus>? status,
     Value<bool>? hideAlternates,
+    Value<String?>? dialectName,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
@@ -4041,6 +4099,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       notes: notes ?? this.notes,
       status: status ?? this.status,
       hideAlternates: hideAlternates ?? this.hideAlternates,
+      dialectName: dialectName ?? this.dialectName,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
@@ -4087,6 +4146,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     if (hideAlternates.present) {
       map['hide_alternates'] = Variable<bool>(hideAlternates.value);
     }
+    if (dialectName.present) {
+      map['dialect_name'] = Variable<String>(dialectName.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -4119,6 +4181,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
           ..write('notes: $notes, ')
           ..write('status: $status, ')
           ..write('hideAlternates: $hideAlternates, ')
+          ..write('dialectName: $dialectName, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -17021,6 +17084,7 @@ typedef $$ProgramsTableCreateCompanionBuilder =
       Value<String> notes,
       required ProgramStatus status,
       Value<bool> hideAlternates,
+      Value<String?> dialectName,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<DateTime?> deletedAt,
@@ -17040,6 +17104,7 @@ typedef $$ProgramsTableUpdateCompanionBuilder =
       Value<String> notes,
       Value<ProgramStatus> status,
       Value<bool> hideAlternates,
+      Value<String?> dialectName,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
@@ -17157,6 +17222,11 @@ class $$ProgramsTableFilterComposer
 
   ColumnFilters<bool> get hideAlternates => $composableBuilder(
     column: $table.hideAlternates,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dialectName => $composableBuilder(
+    column: $table.dialectName,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17295,6 +17365,11 @@ class $$ProgramsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get dialectName => $composableBuilder(
+    column: $table.dialectName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -17359,6 +17434,11 @@ class $$ProgramsTableAnnotationComposer
 
   GeneratedColumn<bool> get hideAlternates => $composableBuilder(
     column: $table.hideAlternates,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get dialectName => $composableBuilder(
+    column: $table.dialectName,
     builder: (column) => column,
   );
 
@@ -17470,6 +17550,7 @@ class $$ProgramsTableTableManager
                 Value<String> notes = const Value.absent(),
                 Value<ProgramStatus> status = const Value.absent(),
                 Value<bool> hideAlternates = const Value.absent(),
+                Value<String?> dialectName = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -17487,6 +17568,7 @@ class $$ProgramsTableTableManager
                 notes: notes,
                 status: status,
                 hideAlternates: hideAlternates,
+                dialectName: dialectName,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
@@ -17506,6 +17588,7 @@ class $$ProgramsTableTableManager
                 Value<String> notes = const Value.absent(),
                 required ProgramStatus status,
                 Value<bool> hideAlternates = const Value.absent(),
+                Value<String?> dialectName = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -17523,6 +17606,7 @@ class $$ProgramsTableTableManager
                 notes: notes,
                 status: status,
                 hideAlternates: hideAlternates,
+                dialectName: dialectName,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,

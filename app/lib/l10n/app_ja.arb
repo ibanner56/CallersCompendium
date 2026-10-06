@@ -344,6 +344,10 @@
   "@settingsSyncStatusFailed": {
     "x-sourceSha256": "53fa99d78ec8627b66d1f608b171626f6d73f1d7d70a1c3eab42afa83106af14"
   },
+  "settingsSyncStatusSettingsUnreadable": "デバイス同期の設定を読み込めなかったため、ここに表示されている設定が最新でない可能性があり、オンにしていてもデバイス同期がオフになっている可能性があります。アプリを再起動してもう一度お試しください。",
+  "@settingsSyncStatusSettingsUnreadable": {
+    "x-sourceSha256": "ca37e41b6ed2d11c6b10cc81f386b054608b46b292f35d4b47ef8a395e84576b"
+  },
   "settingsSyncFailureUnreachable": "同期サーバーに接続できませんでした。",
   "@settingsSyncFailureUnreachable": {
     "x-sourceSha256": "1fec844573d970b89ddae666fddb4c01cf8065fb587bcb5fa4de0e8f4fcce1c7"
@@ -5152,9 +5156,9 @@
   "@performPauseTimers": {
     "x-sourceSha256": "18b85c0574b83bcd592f1959021cfd910c460a5bfccd2c80a7280d81fb4fe196"
   },
-  "performTimingSemantic": "プログラム経過時間 {programTime}、スロット経過時間 {slotTime}{hasPlanned, select, yes{、予定 {planned, plural, other{{planned}分}}: ウォークスルー {walkthrough}分、ダンス {dance}分} other{}}{walkthroughComplete, select, yes{、ウォークスルー完了} other{}}{over, select, yes{、予定超過} other{}}{paused, select, yes{、一時停止中} other{}}",
+  "performTimingSemantic": "プログラム経過時間 {programTime}、スロット経過時間 {slotTime}{hasPlanned, select, yes{、予定 {planned, plural, other{{planned}分}}: ウォークスルー {walkthrough}分、ダンス {dance}分} other{}}{manual, select, yes{、ウォークスルーは{actual}で終了{direction, select, over{、予定より{delta}超過} under{、予定より{delta}短縮} other{、予定どおり}}} other{}}{walkthroughComplete, select, yes{、ウォークスルー完了} other{}}{over, select, yes{、予定超過} other{}}{paused, select, yes{、一時停止中} other{}}",
   "@performTimingSemantic": {
-    "x-sourceSha256": "b481989b8c0ed66ecd58941fca432d33516d0823d5f434b055030c5479c96682"
+    "x-sourceSha256": "01bd1a6f6039355065cf9bfeda8e220c463f9738472835c5838843737801f3dc"
   },
   "performIndividualTimingSemantic": "経過時間 {elapsedTime}{paused, select, yes{、一時停止中} other{}}",
   "@performIndividualTimingSemantic": {
@@ -5163,6 +5167,18 @@
   "performPlannedSplit": "予定 {planned}分（{walkthrough}:{dance}）",
   "@performPlannedSplit": {
     "x-sourceSha256": "f00ce488a307637ede1d33c0e91658a79b9b0b960eb86ac8aa541367cd79684b"
+  },
+  "performDanceStartUnused": "ウォークスルー終了 — ダンスを開始",
+  "@performDanceStartUnused": {
+    "x-sourceSha256": "e92edca90964e4b477d200ef6be8b84b06caf7bc6a0d2051de249ec49663623c"
+  },
+  "performDanceStartUsed": "ダンス開始済み — タップで取り消し",
+  "@performDanceStartUsed": {
+    "x-sourceSha256": "df3731aa1e3f5c58ae6888723a837fcd8e88af4f6475c48b3ce532aa30605d37"
+  },
+  "performWalkthroughActual": "ウォークスルー {actual}{direction, select, over{ (+{delta})} under{ (−{delta})} other{（予定どおり）}}",
+  "@performWalkthroughActual": {
+    "x-sourceSha256": "4d138a6ae37bcfc37f09fe98c77ece2550ab866dceefb42b44815fb7a1c40aab"
   },
   "performWalkthroughCompleteSuffix": " ウォークスルー完了",
   "@performWalkthroughCompleteSuffix": {

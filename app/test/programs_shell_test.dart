@@ -467,6 +467,62 @@ void main() {
   );
 
   testWidgets(
+    'the summary Perform launcher keeps the dance-start mark on re-entry '
+    '(#1659)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: ProgramStatus.draft,
+          slots: [
+            ProgramSlot(
+              id: 's0',
+              position: 0,
+              danceId: 'd1',
+              walkthroughMinutes: 2,
+              danceMinutes: 3,
+            ),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      await _pumpWide(tester, repos);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+
+      await tester.pump(const Duration(seconds: 10));
+      await tester.tap(find.byKey(const ValueKey('perform-dance-start')));
+      await tester.pump();
+      final before = _perfText(tester, 'perform-walkthrough-actual');
+
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byKey(const ValueKey('perform-dance-start')),
+            )
+            .isSelected,
+        isTrue,
+      );
+      expect(_perfText(tester, 'perform-walkthrough-actual'), before);
+    },
+  );
+
+  testWidgets(
     'the "Perform this program" action is disabled for a program with no slots',
     (tester) async {
       final repos = openTestRepositories();

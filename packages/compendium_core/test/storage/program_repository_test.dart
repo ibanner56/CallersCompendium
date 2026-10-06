@@ -284,6 +284,36 @@ void main() {
       expect(loaded, program);
     });
 
+    test('round-trips dialectName, and clears it', () async {
+      const name = 'Leads/Follows';
+      final program = sampleProgram().copyWith(dialectName: name);
+      await repo.create(program);
+      final loaded = await repo.getById(program.id);
+      expect(loaded!.dialectName, name);
+      expect(loaded, program);
+
+      await repo.update(loaded.copyWith(clearDialectName: true));
+      expect((await repo.getById(program.id))!.dialectName, isNull);
+    });
+
+    test('dialectName defaults to null when unset', () async {
+      final program = sampleProgram();
+      await repo.create(program);
+      expect((await repo.getById(program.id))!.dialectName, isNull);
+    });
+
+    test('duplicate keeps dialectName', () async {
+      final program = sampleProgram().copyWith(dialectName: 'Leads/Follows');
+      await repo.create(program);
+      final copy = await repo.duplicate(
+        id: program.id,
+        newId: 'dup',
+        newSlotId: () => 'dup-slot',
+        now: DateTime.utc(2026, 2, 1),
+      );
+      expect(copy.dialectName, 'Leads/Follows');
+    });
+
     test('hideAlternates defaults to false when unset', () async {
       final program = sampleProgram();
       await repo.create(program);

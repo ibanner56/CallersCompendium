@@ -1049,6 +1049,7 @@ class _Fixture {
     notes: _str('programs.notes'),
     status: ProgramStatus.values.byName(_str('programs.status')),
     hideAlternates: _flag('programs.hide_alternates'),
+    dialectName: _str('programs.dialect_name'),
     slots: [
       ProgramSlot(
         id: _str('program_slots.id'),

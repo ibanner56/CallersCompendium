@@ -125,7 +125,7 @@ const MethodChannel _applicationTerminationChannel = MethodChannel(
 const String _requestApplicationShutdownMethod = 'requestApplicationShutdown';
 
 Future<ResetResult> _resetDatabaseFile(File dbFile) =>
-    performReset(dbFile: dbFile, keepPath: true);
+    performReset(dbFile: dbFile);
 
 Future<void> main() async {
   // Install the local, offline crash log and global error-capture stack (issue
@@ -236,6 +236,13 @@ Future<void> main() async {
   }, crashReporter);
 }
 
+/// Test seam: the scope widget types [CompendiumApp] mounts above the
+/// navigator, outermost first, as the real wrapper list builds them.
+@visibleForTesting
+abstract interface class AppScopeTypesSource {
+  List<Type> get appScopeTypes;
+}
+
 /// Root widget. The on-device database is initially opened in [main] and
 /// injected; the reset flow can replace it with a fresh instance. This widget's
 /// bootstrap future ([_startupSequence]) then, in order: restores the desktop
@@ -246,7 +253,10 @@ Future<void> main() async {
 /// dances AND programs past the configured retention window
 /// ([DanceRepository.purgeDeleted] / [ProgramRepository.purgeDeleted]); the
 /// window is user-configurable (30 / 90 days / never — ROADMAP G.4), defaulting
-/// to 30 days, and the sweep is skipped entirely when set to never. The app
+/// to 30 days, and the sweep is skipped entirely when set to never. A failed
+/// read of the retention setting also skips that launch's sweep (it does not
+/// fall back to the 30-day default, which would purge what a "never" user meant
+/// to keep). The app
 /// then hands the repositories facade down to the Collection screen via
 /// [RepositoriesScope]. The once-per-launch `PRAGMA quick_check` integrity probe
 /// ([CompendiumDatabase.quickCheck]) is not part of that gated sequence: it runs
@@ -436,7 +446,8 @@ class CompendiumApp extends StatefulWidget {
   State<CompendiumApp> createState() => _CompendiumAppState();
 }
 
-class _CompendiumAppState extends State<CompendiumApp> {
+class _CompendiumAppState extends State<CompendiumApp>
+    implements AppScopeTypesSource {
   late AppData _appData;
   late WindowService _windowService;
   late Future<void> _bootstrap;
@@ -819,6 +830,12 @@ class _CompendiumAppState extends State<CompendiumApp> {
   void _replaceDatabaseBackedServices() {
     // Controllers retain their SettingsRepository, so they must be recreated
     // with the replacement database rather than reusing closed repositories.
+    //
+    // Every preference notifier is reset to its default synchronously here,
+    // before the replacement bootstrap has read the stored values back, so on
+    // Retry or Reset the recovery screen can briefly re-theme to the system
+    // theme and English until the bootstrap applies them. Accepted: the screen
+    // is transient and nothing is lost, only shown in defaults for that moment.
     _resetAppPreferenceNotifiers();
     _windowService.dispose();
     _customThemes.dispose();
@@ -2178,9 +2195,19 @@ class _CompendiumAppState extends State<CompendiumApp> {
     }
   }
 
+  /// The widget types of [_appScopeWrappers], outermost first, read from the
+  /// real list so `test/app_scopes_test.dart` checks what is actually mounted
+  /// rather than a copy of it.
+  @override
+  List<Type> get appScopeTypes => [
+    for (final wrap in _appScopeWrappers())
+      wrap(const SizedBox.shrink()).runtimeType,
+  ];
+
   /// The preference/controller scopes mounted above the navigator, outermost
   /// first. `build` folds them (reversed) onto the `MaterialApp.builder` child.
-  /// New scopes are added here and to `test/app_scopes_test.dart`.
+  /// New scopes are added here and to the expected list in
+  /// `test/app_scopes_test.dart`.
   List<Widget Function(Widget child)> _appScopeWrappers() => [
     (child) =>
         RepositoriesScope(repositories: _appData.repositories, child: child),
