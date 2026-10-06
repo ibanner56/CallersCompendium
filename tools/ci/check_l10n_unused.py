@@ -62,7 +62,8 @@ def strip_comments(src: str) -> str:
 
     A small state machine rather than a regex so that ``'http://x'`` is not
     truncated at ``//`` and ``/* */`` nests as Dart's do. Newlines inside
-    comments are kept so line structure survives.
+    comments are kept so line structure survives, and a block comment leaves
+    one space so adjacent tokens are not joined.
     """
     out: list[str] = []
     i, n = 0, len(src)
@@ -109,6 +110,7 @@ def strip_comments(src: str) -> str:
                     if src[j] == "\n":
                         out.append("\n")
                     j += 1
+            out.append(" ")  # a comment separates tokens: `a/* x */b` is `a b`
             i = j
             continue
         if top is not None:  # inside ``${ ... }``

@@ -91,6 +91,12 @@ def test_comment_only_mention_is_unused() -> None:
     )
 
 
+def test_block_comment_separates_tokens() -> None:
+    src = "final b = l10n.fooTitle/* why */is String;\n"
+    got = fixture(["fooTitle"], {"a.dart": src})
+    check("block comment does not join adjacent tokens", got == [], str(got))
+
+
 def test_comment_markers_in_strings() -> None:
     src = "final u = 'http://x'; final s = l10n.fooTitle;\n"
     got = fixture(["fooTitle"], {"a.dart": src})
@@ -137,6 +143,7 @@ def main() -> int:
     test_used_key_passes()
     test_unused_key_is_reported()
     test_comment_only_mention_is_unused()
+    test_block_comment_separates_tokens()
     test_comment_markers_in_strings()
     test_generated_dir_is_ignored()
     test_metadata_skipped()
