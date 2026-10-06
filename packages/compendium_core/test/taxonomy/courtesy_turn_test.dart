@@ -184,7 +184,8 @@ void main() {
         'Shadow courtesy turn': 'shadows',
         'Twos courtesy turn': 'twos',
         // Mixer partner-series: spot-checks that courtesy_turn routes through
-        // the same _dancerWords map as swing/allemande/promenade. P0–P5 are
+        // the same dancerWords map (taxonomy/dance_vocabulary.dart) as
+        // swing/allemande/promenade. P0–P5 are
         // exhaustively asserted via that map in figure_parser_test.dart;
         // only a representative subset is needed here.
         'P1 partner courtesy turn': 'partners',
