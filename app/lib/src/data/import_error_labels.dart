@@ -58,6 +58,10 @@ String importErrorMessage(AppLocalizations l10n, UrlFetchException error) {
           : l10n.importErrorSearchTimeout(error.timeoutSeconds!),
     UrlFetchFailureReason.callersBoxUnreachable =>
       l10n.importErrorCallersBoxUnreachable,
+    UrlFetchFailureReason.callersBoxTimeout =>
+      error.timeoutSeconds == null
+          ? l10n.importErrorCallersBoxUnreachable
+          : l10n.importErrorCallersBoxTimeout(error.timeoutSeconds!),
     UrlFetchFailureReason.callersBoxHttpStatus => switch (_statusClass(
       error.statusCode,
     )) {
@@ -98,6 +102,10 @@ String importErrorMessage(AppLocalizations l10n, UrlFetchException error) {
       l10n.importErrorContraDbUnsupportedHost,
     UrlFetchFailureReason.contraDbUnreachable =>
       l10n.importErrorContraDbUnreachable,
+    UrlFetchFailureReason.contraDbTimeout =>
+      error.timeoutSeconds == null
+          ? l10n.importErrorContraDbUnreachable
+          : l10n.importErrorContraDbTimeout(error.timeoutSeconds!),
     UrlFetchFailureReason.contraDbHttpStatus => switch (_statusClass(
       error.statusCode,
     )) {
@@ -134,35 +142,53 @@ _HttpStatusClass? _statusClass(int? status) => switch (status) {
 /// import source the user selected, so the message names that source instead of
 /// "that URL".
 ///
-/// The generic fetcher can only say [UrlFetchFailureReason.httpStatus] or
-/// [UrlFetchFailureReason.unreachable]; the source-specific reasons are thrown
-/// only by the search fetchers. When the selected [kind] is The Caller's Box or
-/// ContraDB those two are re-labelled with the source's own reason (keeping the
-/// typed status code); every other reason, and every other source, is returned
-/// unchanged.
+/// The generic fetcher says [UrlFetchFailureReason.httpStatus],
+/// [UrlFetchFailureReason.unreachable], [UrlFetchFailureReason.timeout] or
+/// [UrlFetchFailureReason.emptyResponse] for a failed request, and the generic
+/// messages for those speak of "the URL". When the selected [kind] is The
+/// Caller's Box or ContraDB, those four are re-labelled with the source's own
+/// reason, keeping the typed status code or timeout seconds, so an id or a
+/// link for that source is never told to "check the URL" (CS-21). Every other
+/// reason, and every other source, is returned unchanged.
 UrlFetchException attributeFetchFailure(
   UrlFetchException error,
   ImportSourceKind kind,
 ) {
-  final (UrlFetchFailureReason status, UrlFetchFailureReason unreachable)?
+  final ({
+    UrlFetchFailureReason status,
+    UrlFetchFailureReason unreachable,
+    UrlFetchFailureReason timeout,
+    UrlFetchFailureReason empty,
+  })?
   reasons = switch (kind) {
     ImportSourceKind.callersBox => (
-      UrlFetchFailureReason.callersBoxHttpStatus,
-      UrlFetchFailureReason.callersBoxUnreachable,
+      status: UrlFetchFailureReason.callersBoxHttpStatus,
+      unreachable: UrlFetchFailureReason.callersBoxUnreachable,
+      timeout: UrlFetchFailureReason.callersBoxTimeout,
+      empty: UrlFetchFailureReason.callersBoxEmptyPage,
     ),
     ImportSourceKind.contraDb => (
-      UrlFetchFailureReason.contraDbHttpStatus,
-      UrlFetchFailureReason.contraDbUnreachable,
+      status: UrlFetchFailureReason.contraDbHttpStatus,
+      unreachable: UrlFetchFailureReason.contraDbUnreachable,
+      timeout: UrlFetchFailureReason.contraDbTimeout,
+      empty: UrlFetchFailureReason.contraDbEmptyResponse,
     ),
     _ => null,
   };
   if (reasons == null) return error;
   return switch (error.reason) {
     UrlFetchFailureReason.httpStatus => UrlFetchException(
-      reasons.$1,
+      reasons.status,
       statusCode: error.statusCode,
     ),
-    UrlFetchFailureReason.unreachable => UrlFetchException(reasons.$2),
+    UrlFetchFailureReason.unreachable => UrlFetchException(reasons.unreachable),
+    // A timeout always carries its seconds (the constructor asserts it); one
+    // without is worded as the source being unreachable, like the generic one.
+    UrlFetchFailureReason.timeout => UrlFetchException(
+      error.timeoutSeconds == null ? reasons.unreachable : reasons.timeout,
+      timeoutSeconds: error.timeoutSeconds,
+    ),
+    UrlFetchFailureReason.emptyResponse => UrlFetchException(reasons.empty),
     _ => error,
   };
 }

@@ -5880,6 +5880,11 @@ class AppLocalizationsJa extends AppLocalizations {
       'The Caller\'s Boxに到達できませんでした。接続を確認して、もう一度お試しください。';
 
   @override
+  String importErrorCallersBoxTimeout(int seconds) {
+    return 'The Caller\'s Boxから$seconds秒以内に応答がありませんでした。接続を確認して、もう一度お試しください。';
+  }
+
+  @override
   String importErrorCallersBoxHttpStatus(int status) {
     return 'The Caller\'s Boxから予期しない応答がありました（コード$status）。1分ほど待ってから、もう一度お試しください。';
   }
@@ -5893,7 +5898,8 @@ class AppLocalizationsJa extends AppLocalizations {
       'The Caller\'s Boxは現在混み合っています。1分ほど待ってから、もう一度お試しください。';
 
   @override
-  String get importErrorCallersBoxEmptyPage => 'The Caller\'s Boxが空のページを返しました。';
+  String get importErrorCallersBoxEmptyPage =>
+      'The Caller\'s Boxが空のページを返しました。1分ほど待ってから、もう一度お試しください。';
 
   @override
   String get importErrorCallersBoxNoDance =>
@@ -5948,6 +5954,11 @@ class AppLocalizationsJa extends AppLocalizations {
       'ContraDBに到達できませんでした。接続を確認して、もう一度お試しください。';
 
   @override
+  String importErrorContraDbTimeout(int seconds) {
+    return 'ContraDBから$seconds秒以内に応答がありませんでした。接続を確認して、もう一度お試しください。';
+  }
+
+  @override
   String importErrorContraDbHttpStatus(int status) {
     return 'ContraDBから予期しない応答がありました（コード$status）。1分ほど待ってから、もう一度お試しください。';
   }
@@ -5961,7 +5972,8 @@ class AppLocalizationsJa extends AppLocalizations {
       'ContraDBは現在混み合っています。1分ほど待ってから、もう一度お試しください。';
 
   @override
-  String get importErrorContraDbEmptyResponse => 'ContraDBが空のレスポンスを返しました。';
+  String get importErrorContraDbEmptyResponse =>
+      'ContraDBが空のレスポンスを返しました。1分ほど待ってから、もう一度お試しください。';
 
   @override
   String get importErrorContraDbNoDance =>

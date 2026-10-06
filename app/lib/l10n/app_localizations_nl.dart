@@ -6168,6 +6168,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'The Caller\'s Box kon niet worden bereikt. Controleer je verbinding en probeer het opnieuw.';
 
   @override
+  String importErrorCallersBoxTimeout(int seconds) {
+    return 'The Caller\'s Box reageerde niet binnen ${seconds}s. Controleer je verbinding en probeer het opnieuw.';
+  }
+
+  @override
   String importErrorCallersBoxHttpStatus(int status) {
     return 'The Caller\'s Box stuurde een onverwacht antwoord (code $status). Probeer het over een minuut opnieuw.';
   }
@@ -6182,7 +6187,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxEmptyPage =>
-      'The Caller\'s Box heeft een lege pagina geretourneerd.';
+      'The Caller\'s Box heeft een lege pagina geretourneerd. Probeer het over een minuut opnieuw.';
 
   @override
   String get importErrorCallersBoxNoDance =>
@@ -6237,6 +6242,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'ContraDB kon niet worden bereikt. Controleer je verbinding en probeer het opnieuw.';
 
   @override
+  String importErrorContraDbTimeout(int seconds) {
+    return 'ContraDB reageerde niet binnen ${seconds}s. Controleer je verbinding en probeer het opnieuw.';
+  }
+
+  @override
   String importErrorContraDbHttpStatus(int status) {
     return 'ContraDB stuurde een onverwacht antwoord (code $status). Probeer het over een minuut opnieuw.';
   }
@@ -6251,7 +6261,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importErrorContraDbEmptyResponse =>
-      'ContraDB heeft een lege response geretourneerd.';
+      'ContraDB heeft een lege response geretourneerd. Probeer het over een minuut opnieuw.';
 
   @override
   String get importErrorContraDbNoDance =>

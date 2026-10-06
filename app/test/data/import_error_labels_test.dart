@@ -13,6 +13,8 @@ const _statusReasons = {
 const _timeoutReasons = {
   UrlFetchFailureReason.timeout,
   UrlFetchFailureReason.searchTimeout,
+  UrlFetchFailureReason.callersBoxTimeout,
+  UrlFetchFailureReason.contraDbTimeout,
 };
 
 /// The opaque failures that wrap a lower-layer/server message we must never
@@ -363,7 +365,7 @@ void main() {
         timeout30,
         ImportSourceKind.callersBox,
       );
-      expect(mapped.reason.name, 'callersBoxTimeout');
+      expect(mapped.reason, UrlFetchFailureReason.callersBoxTimeout);
       expect(mapped.timeoutSeconds, 30);
       final message = importErrorMessage(l10n, mapped);
       expect(
@@ -379,7 +381,7 @@ void main() {
         timeout30,
         ImportSourceKind.contraDb,
       );
-      expect(mapped.reason.name, 'contraDbTimeout');
+      expect(mapped.reason, UrlFetchFailureReason.contraDbTimeout);
       expect(mapped.timeoutSeconds, 30);
       final message = importErrorMessage(l10n, mapped);
       expect(

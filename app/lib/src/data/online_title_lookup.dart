@@ -51,7 +51,8 @@ enum OnlineTitleLookupFailure {
 /// something being wrong with one title or one page.
 ///
 /// Connection-class [UrlFetchFailureReason]s, always: [callersBoxUnreachable],
-/// [contraDbUnreachable], [unreachable], [searchTimeout] and [timeout]. With
+/// [contraDbUnreachable], [unreachable], [searchTimeout], [timeout],
+/// [callersBoxTimeout] and [contraDbTimeout]. With
 /// [includeHttpStatus] also the search-endpoint status reasons
 /// ([callersBoxHttpStatus], [contraDbHttpStatus]): a search page that answers
 /// 5xx/403 fails every title alike, whereas the per-dance preview fetch
@@ -65,7 +66,9 @@ bool isConnectionFailure(Object error, {bool includeHttpStatus = false}) {
     UrlFetchFailureReason.contraDbUnreachable ||
     UrlFetchFailureReason.unreachable ||
     UrlFetchFailureReason.searchTimeout ||
-    UrlFetchFailureReason.timeout => true,
+    UrlFetchFailureReason.timeout ||
+    UrlFetchFailureReason.callersBoxTimeout ||
+    UrlFetchFailureReason.contraDbTimeout => true,
     UrlFetchFailureReason.callersBoxHttpStatus ||
     UrlFetchFailureReason.contraDbHttpStatus => includeHttpStatus,
     _ => false,
