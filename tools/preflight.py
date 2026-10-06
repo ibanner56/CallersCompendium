@@ -292,6 +292,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "preference-encode",
+        "live-preference handlers persist exactly their descriptor's encode",
+        (
+            py("tools/ci/test_check_preference_encode.py"),
+            py("tools/ci/check_preference_encode.py"),
+        ),
+    ),
+    Step(
         "join-columns",
         "repository joins onto dances carry useColumns or a marker",
         (

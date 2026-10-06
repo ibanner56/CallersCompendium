@@ -74,6 +74,12 @@ class PreferenceNotifier<T> extends ValueNotifier<T> {
 /// of the callers; a failed write leaves the live value changed for this
 /// session and is diagnosable in the log, rather than an unhandled async error.
 ///
+/// For a live preference's key, [value] must be spelled exactly as that
+/// preference's [PreferenceNotifier.encode] applied to the value just assigned
+/// to its notifier: the descriptor's [PreferenceNotifier.decode] is what reads
+/// it back at startup and on restore. `tools/ci/check_preference_encode.py`
+/// (preflight step `preference-encode`) fails the build otherwise (prefs-1).
+///
 /// [source] defaults to `settings.persist.<key>`.
 Future<void> persistSetting(
   SettingsRepository settings,

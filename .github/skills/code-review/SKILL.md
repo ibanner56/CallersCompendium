@@ -163,6 +163,8 @@ The gates below (`python3 tools/preflight.py --list`) encode findings that are
 mechanical; a diff that violates one is a hard fail, not an opinion:
 
 - **settings-reads** — raw settings reads must filter `deleted_at IS NULL`.
+- **preference-encode** — a live preference's settings handler must persist
+  exactly its `PreferenceNotifier` descriptor's `encode` of the value it assigned.
 - **debug-print** — no unguarded `debugPrint` reaches a release build.
 - **stale-comment-refs** — a comment's `[Type.member]` reference or backticked
   identifier must name a symbol that exists; the unresolved count may not rise
