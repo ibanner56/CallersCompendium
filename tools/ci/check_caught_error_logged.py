@@ -429,6 +429,11 @@ def _lookback_start(masked: str, pos: int) -> int:
 _ON_PREFIX_RE = re.compile(r"\bon\s+[A-Za-z_][\w.]*(?:\s*<[^{;()]*>)?\s*$")
 
 
+# `try` as a whole token ending the text before a block's `{` (so the block is
+# the try body); a type such as `Retry` or `Entry` must not match.
+_TRY_BEFORE_OPENER_RE = re.compile(r"\btry\s*$")
+
+
 def _clause_lookback_start(text: str, masked: str, clause_start: int) -> int:
     """Start offset for the marker search of a catch/`on` clause.
 
@@ -451,10 +456,7 @@ def _clause_lookback_start(text: str, masked: str, clause_start: int) -> int:
         return _lookback_start(masked, clause_start)
     line_start = text.rfind("\n", 0, j) + 1
     opener = _match_open_backward(masked, j)
-    k = (opener if opener is not None else 0) - 1
-    while k >= 0 and masked[k] in " \t\r\n":
-        k -= 1
-    if not masked[max(0, k - 2) : k + 1] == "try":
+    if not _TRY_BEFORE_OPENER_RE.search(masked, 0, opener or 0):
         # The `}` closes an earlier clause: a comment at the end of that
         # clause's body belongs to it, not to this one.
         return line_start
