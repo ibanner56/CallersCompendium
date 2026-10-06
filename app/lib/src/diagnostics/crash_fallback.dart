@@ -31,8 +31,8 @@ class _CrashFallbackState extends State<CrashFallback> {
   ///
   /// The message is left out, not term-redacted: it can carry user content
   /// (drift echoes a failed statement's bound parameters), and a term redactor
-  /// needs `SensitiveTerms`, read from the database, which this widget must not
-  /// touch. Without terms the redactor still collapses absolute paths and
+  /// needs the terms `collectSensitiveTerms` reads from the database, which
+  /// this widget must not touch. Without terms the redactor still collapses absolute paths and
   /// strips email addresses and phone numbers from the stack.
   String get _detailsText {
     final stack = widget.details.stack;
