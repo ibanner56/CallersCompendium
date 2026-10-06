@@ -8923,6 +8923,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Bedingte Bewegungsvorlagen werden anhand der Parameter der Figur ausgewählt. Fülle alle aufgeführten Platzhalter aus; unvollständige bedingte Vorlagen werden ignoriert.';
 
   @override
+  String dialectEditorMoveWordingsForceHelp(String example) {
+    return 'Manche Platzhalter entfallen, wenn sie nichts beitragen, etwa die Hand bei einer Kette, wenn die Rolle sie bereits vorgibt. Setze ein ! vor einen Platzhalter, wie $example, um ihn immer anzuzeigen.';
+  }
+
+  @override
   String dialectEditorMoveWordingsConditionalLabel(String move) {
     return '$move (bedingt)';
   }

@@ -932,6 +932,14 @@ class _MoveWordingsEditor extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              l10n.dialectEditorMoveWordingsForceHelp('{!hand}'),
+              key: const ValueKey('dialect-wording-force-help'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
           if (available.isNotEmpty)
             DropdownButton<String>(
               key: const ValueKey('dialect-add-move-wording'),
@@ -976,7 +984,7 @@ class _MoveWordingsEditor extends StatelessWidget {
     final text = controller.text;
     final known = _renderer.moveWordingSlots(id);
     final used = RegExp(
-      r'\{(\w+)\}',
+      r'\{!?(\w+)\}',
     ).allMatches(text).map((match) => match[1]!).toSet();
     final unknown = used.difference(known).toList()..sort();
     final valid = FigureRenderer.isValidMoveWordingTemplate(text);

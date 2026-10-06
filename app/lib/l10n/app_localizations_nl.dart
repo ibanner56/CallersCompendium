@@ -8877,6 +8877,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'Voorwaardelijke bewegingssjablonen worden gekozen op basis van de parameters van de figuur. Vul elke vermelde invulplaats in; onvolledige voorwaardelijke sjablonen worden genegeerd.';
 
   @override
+  String dialectEditorMoveWordingsForceHelp(String example) {
+    return 'Sommige velden worden weggelaten als ze niets toevoegen, zoals de hand bij een chain wanneer de rol die al aangeeft. Zet een ! voor een veld, zoals $example, om het altijd te tonen.';
+  }
+
+  @override
   String dialectEditorMoveWordingsConditionalLabel(String move) {
     return '$move (voorwaardelijk)';
   }

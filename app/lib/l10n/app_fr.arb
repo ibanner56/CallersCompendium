@@ -8818,6 +8818,10 @@
   "@dialectEditorMoveWordingsConditionalHelp": {
     "x-sourceSha256": "ba57af9dcdc3deb6400d85b49bb8995e8400dff7fbb53c64b7b94c3ab35808ff"
   },
+  "dialectEditorMoveWordingsForceHelp": "Certains champs sont omis lorsqu'ils n'apportent rien, comme la main d'une chaîne quand le rôle l'implique déjà. Place un ! devant un champ, comme {example}, pour qu'il s'affiche toujours.",
+  "@dialectEditorMoveWordingsForceHelp": {
+    "x-sourceSha256": "7ff86d75ca24413a4ac82dc32947404c1154e041d46c204040701f21d4770ec1"
+  },
   "dialectEditorMoveWordingsConditionalLabel": "{move} (conditionnel)",
   "@dialectEditorMoveWordingsConditionalLabel": {
     "x-sourceSha256": "e1b698fe9873272c260a19c673da431f630c0196f34b94835cbddc7793855c37"

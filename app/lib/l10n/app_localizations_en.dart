@@ -8773,6 +8773,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Conditional move templates are selected by the figure\'s parameters. Complete every listed slot; unfinished conditional templates are ignored.';
 
   @override
+  String dialectEditorMoveWordingsForceHelp(String example) {
+    return 'Some slots are left out when they add nothing, such as a chain\'s hand when the role already implies it. Put a ! in front of a slot, like $example, to always show it.';
+  }
+
+  @override
   String dialectEditorMoveWordingsConditionalLabel(String move) {
     return '$move (conditional)';
   }

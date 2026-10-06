@@ -141,6 +141,11 @@ preview. A template can be up to 512 characters.
 
 - If a template leaves out one of its available slots, the editor asks you to
   confirm before saving, because that detail won't appear on the dance.
+- Some slots hide themselves when they add nothing. For example, a chain's
+  `{hand}` is left out when the role already implies it (a robins chain is
+  right-hand). Put a `!` in front of the slot, as in `{!hand}`, and it always
+  shows. A `!` slot can't show a detail the figure doesn't have, and a few
+  move-specific slots (such as `{subject}` or `{balance}`) ignore the `!`.
 - If a template can't be read — a slot left unclosed, for example — the editor
   says so, and you need to fix it before you can save the dialect.
 

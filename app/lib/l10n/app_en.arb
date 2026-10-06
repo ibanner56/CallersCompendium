@@ -11524,6 +11524,16 @@
   "@dialectEditorMoveWordingsConditionalHelp": {
     "description": "Helper text explaining branch-specific move wording templates and their required slots."
   },
+  "dialectEditorMoveWordingsForceHelp": "Some slots are left out when they add nothing, such as a chain's hand when the role already implies it. Put a ! in front of a slot, like {example}, to always show it.",
+  "@dialectEditorMoveWordingsForceHelp": {
+    "description": "Helper text explaining that a leading ! forces a move wording slot to display. The example placeholder is a sample slot such as {!hand}.",
+    "placeholders": {
+      "example": {
+        "type": "String",
+        "example": "{!hand}"
+      }
+    }
+  },
   "dialectEditorMoveWordingsConditionalLabel": "{move} (conditional)",
   "@dialectEditorMoveWordingsConditionalLabel": {
     "description": "Header for a move's parameter-dependent wording templates.",

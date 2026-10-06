@@ -61,6 +61,10 @@ built figure.
   templates**. Templates use the computed slots for that move (for example
   `{who}` and `{move}`); unknown slots are empty, nested bracketed groups are
   omitted when their slots are empty, and substituted values are not rescanned.
+  A `{!name}` slot forces that slot to display even where the normal render hides
+  it (the stored `chain.hand` the role already implies, or an alias-pinned
+  param); slots owned by a display base renderer have no forced form and read as
+  the plain slot. Display-only: canonical text is unaffected.
   Malformed or empty templates fall back to the normal renderer. The editor
   warns when a template omits available slots and requires confirmation before
   saving it. Imported templates are sanitized, capped at 512 UTF-16 code units
