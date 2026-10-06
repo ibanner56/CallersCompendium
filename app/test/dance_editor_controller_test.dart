@@ -795,7 +795,7 @@ void main() {
     expect(figuresOf(dance).last.note, 'role2s chain to neighbor');
   });
 
-  // parser-1 / #715: role words that are also move words are kept as typed
+  // parser-1 / #715: role words that are also move words are not rewritten
   // in figure notes and custom text — the move name "mad robin" in every
   // dialect, and the verbs "lead"/"follow" under Leads/Follows — while the
   // same words used as roles are still canonicalised.
@@ -1036,19 +1036,18 @@ void main() {
       // identical imported one.
       //
       // The import side is the real import scrub (`scrubFigureText`), not the
-      // editor's own expected bytes. It agrees for role words, but not for an
-      // all-caps "MAD ROBIN": the editor keeps the move name as typed while
-      // the import scrub lowercases it, so that line does NOT dedupe with its
-      // imported twin. Pinned here so a change to either side is visible;
-      // reconciling them is outside parser-2 (no behaviour change).
+      // editor's own expected bytes. It agrees for role words and for the
+      // move name "mad robin", which both sides store in lowercase
+      // (maintainer choice B, 2026-10-06), so an all-caps "MAD ROBIN" line
+      // dedupes with its imported twin too.
       for (final (typed, stored, shown, matchesImport) in [
         ('Larks chain wide', 'role1s chain wide', 'larks chain wide', true),
         ('LADIES chain', 'role2s chain', 'robins chain', true),
         (
           'MAD ROBIN, LADIES IN',
-          'MAD ROBIN, role2s IN',
-          'MAD ROBIN, robins IN',
-          false,
+          'mad robin, role2s IN',
+          'mad robin, robins IN',
+          true,
         ),
       ]) {
         test('typed "$typed" stores role words lowercase (parser-2)', () async {
@@ -1086,10 +1085,11 @@ void main() {
         });
       }
 
-      // "mad robin" is a move name, not the role: the import scrub already
-      // protects it from role canonicalization (figure_text_scrub.dart), so
-      // saving the same custom text from the editor must not rewrite it to
-      // "mad role2" (which reads "mad follow" under Leads/Follows).
+      // "mad robin" is a move name, not the role, so saving custom text must
+      // not rewrite it to "mad role2" (which reads "mad follow" under
+      // Leads/Follows). It is stored in lowercase, as the import scrub stores
+      // it, so typed and imported text deduplicate (maintainer choice B,
+      // 2026-10-06; this reverses #1678's "kept as typed").
       for (final dialect in [Dialect.larksRobins, Dialect.leadsFollows]) {
         test(
           'the move name "mad robin" survives a save in ${dialect.name}',
@@ -1111,7 +1111,7 @@ void main() {
             final saved = figuresOf(
               controller.buildDance(),
             ).last.params['text'];
-            expect(saved, 'Mad robin twice, then MAD ROBINS');
+            expect(saved, 'mad robin twice, then mad robins');
             // And it stays put on the next load and save.
             final again = DanceEditorController(
               repositories: openTestRepositories(),

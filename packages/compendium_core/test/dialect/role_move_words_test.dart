@@ -3,8 +3,9 @@
 // The canonicalisation chokepoint maps the active dialect's role terms back to
 // `role1`/`role2`. Some of those words are also move words: "robin" in the move
 // name "mad robin", and — under Leads/Follows — the verbs "lead" and "follow"
-// ("Ones lead down the hall"). Those must be kept as typed, while the same
-// words used as roles are still canonicalised.
+// ("Ones lead down the hall"). Those must not become role tokens: a verb is
+// kept as typed, and the move name is written in lowercase, as the import
+// scrub writes it. The same words used as roles are still canonicalised.
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/taxonomy/dance_vocabulary.dart';
 import 'package:test/test.dart';
@@ -27,11 +28,13 @@ void main() {
     (lf, 'The larks lead out.', 'The role1s lead out.'),
     (lf, 'Leads lead down the hall', 'role1s lead down the hall'),
     (lf, 'Follows follow the leads', 'role2s follow the role1s'),
-    // The move name "mad robin(s)", in every dialect, as typed.
+    // The move name "mad robin(s)", in every dialect, written in lowercase
+    // as the import scrub writes it (maintainer choice B, 2026-10-06).
     for (final d in [canonical, lr, lf]) ...[
-      (d, 'Mad robin twice', null),
+      (d, 'Mad robin twice', 'mad robin twice'),
       (d, 'mad robins, larks in front', 'mad robins, role1s in front'),
-      (d, 'MAD ROBIN, LADIES IN', 'MAD ROBIN, role2s IN'),
+      (d, 'MAD ROBIN, LADIES IN', 'mad robin, role2s IN'),
+      (d, 'then Mad  Robins', 'then mad robins'),
       (d, 'then mad robin', null),
     ],
   ];
@@ -59,7 +62,7 @@ void main() {
     (lr, 'Ladies chain', 'role2s chain'),
   ];
 
-  group('move words are kept as typed', () {
+  group('move words are not rewritten to roles', () {
     for (final (dialect, typed, stored) in kept) {
       test('"$typed" in ${dialect.name}', () {
         expect(canonicalizeText(typed, dialect), stored ?? typed);
