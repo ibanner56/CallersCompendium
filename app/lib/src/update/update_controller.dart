@@ -9,6 +9,11 @@
 /// [UpdateService]. Honors the ADR-002 §5 privacy contract: auto-check is
 /// opt-in (default off), the banner is gated by a stored dismissed version, and
 /// every failure is a silent no-op.
+///
+/// It also keeps the running build's announced end-of-life date
+/// ([retirementNotice]): found by whichever check runs (manual, or the opt-in
+/// auto-check), cached on the device so it survives restarts and offline
+/// launches, and cleared once an authenticated manifest stops announcing it.
 library;
 
 import 'dart:async';
@@ -115,6 +120,20 @@ enum UpdateDownloadFailure {
   installFailed,
 }
 
+/// An announced end of support for the running build (ADR-002 §2
+/// `retirements`).
+class RetirementNotice {
+  const RetirementNotice({required this.endOfLife, required this.isPast});
+
+  /// The announced end-of-life day — a UTC-midnight calendar date; display it
+  /// as a date, never convert it as an instant.
+  final DateTime endOfLife;
+
+  /// Whether that day has arrived on the device's local calendar. The notice
+  /// is worded as a deadline before it and as a lapse from it on.
+  final bool isPast;
+}
+
 /// Owns update prefs + the latest check result.
 class UpdateController extends ChangeNotifier {
   UpdateController(
@@ -129,7 +148,9 @@ class UpdateController extends ChangeNotifier {
     ArtifactDestinationPicker? macosDestinationPicker,
     Future<Directory> Function()? temporaryDirectoryProvider,
     this.onMacosShutdown,
-  }) : _service = service ?? UpdateService(),
+    DateTime Function()? clock,
+  }) : _clock = clock ?? DateTime.now,
+       _service = service ?? UpdateService(),
        currentVersion =
            currentVersion ??
            (SemVer.tryParse(kUpdaterVersion) ??
@@ -155,6 +176,7 @@ class UpdateController extends ChangeNotifier {
   final ArtifactDestinationPicker _macosDestinationPicker;
   final Future<Directory> Function() _temporaryDirectoryProvider;
   final Future<void> Function()? onMacosShutdown;
+  final DateTime Function() _clock;
 
   /// The running release identity (parsed from [kUpdaterVersion]) that manifest
   /// versions are compared against.
@@ -168,6 +190,8 @@ class UpdateController extends ChangeNotifier {
   SemVer? _dismissedVersion;
   UpdateAvailable? _available;
   UpdateCheckStatus _status = UpdateCheckStatus.idle;
+  DateTime? _endOfLife;
+  bool _retirementHidden = false;
 
   AssistedDownloadStatus _downloadStatus = AssistedDownloadStatus.idle;
   DownloadProgress? _downloadProgress;
@@ -208,6 +232,34 @@ class UpdateController extends ChangeNotifier {
     final dismissed = _dismissedVersion;
     if (dismissed != null && !found.version.isNewerThan(dismissed)) return null;
     return found;
+  }
+
+  /// The end of support announced for the running build, or `null` when none
+  /// is known. Not affected by [hideRetirementBanner] — Settings always shows
+  /// it.
+  RetirementNotice? get retirementNotice {
+    final endOfLife = _endOfLife;
+    if (endOfLife == null) return null;
+    final now = _clock();
+    final today = DateTime.utc(now.year, now.month, now.day);
+    return RetirementNotice(
+      endOfLife: endOfLife,
+      isPast: !today.isBefore(endOfLife),
+    );
+  }
+
+  /// The notice the app-wide retirement banner should show, or `null` once the
+  /// user has hidden it. Hiding lasts for this session only: unlike an update,
+  /// an end of support is not something the user can opt out of hearing about,
+  /// so it returns on the next launch.
+  RetirementNotice? get retirementBanner =>
+      _retirementHidden ? null : retirementNotice;
+
+  /// Hides the retirement banner until the app is next launched.
+  void hideRetirementBanner() {
+    if (_retirementHidden) return;
+    _retirementHidden = true;
+    notifyListeners();
   }
 
   /// The status of the desktop assisted-download flow.
@@ -626,8 +678,69 @@ class UpdateController extends ChangeNotifier {
         ); // diagnostics: silent — dismissed-version pref read failed; falls back to null.
     _dismissedVersion = dismissed is String ? SemVer.tryParse(dismissed) : null;
 
+    final retirement = await _settings
+        .get(kUpdateRetirementNoticeKey)
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — cached retirement read failed; the next check re-finds it.
+    _endOfLife = _cachedEndOfLife(retirement);
+    if (retirement != null && _endOfLife == null) {
+      // A notice cached by a build the user has since updated away from (or a
+      // malformed one): nothing will ever read it again, so drop it.
+      await _settings
+          .remove(kUpdateRetirementNoticeKey, permanent: true)
+          .catchError(
+            (_) {},
+          ); // diagnostics: silent — best-effort cleanup of an ignored cache row.
+    }
+
     notifyListeners();
   }
+
+  /// The end-of-life date in a cached notice, or `null` when [stored] is not a
+  /// well-formed notice **for the running build**. A notice cached by an older
+  /// build is ignored rather than trusted: the user has since updated, and the
+  /// new build learns its own date from its next check.
+  DateTime? _cachedEndOfLife(Object? stored) {
+    if (stored is! Map) return null;
+    final build = stored['build'];
+    final date = stored['endOfLife'];
+    if (build is! String || date is! String) return null;
+    if (SemVer.tryParse(build) != currentVersion) return null;
+    return UpdateRetirement.parseDate(date);
+  }
+
+  /// Records the end-of-life date an authenticated manifest announced for the
+  /// running build — or, when it announced none, forgets any cached one (the
+  /// maintainer withdrew or postponed it).
+  Future<void> _applyEndOfLife(DateTime? endOfLife) async {
+    if (endOfLife == _endOfLife) return;
+    _endOfLife = endOfLife;
+    notifyListeners();
+    try {
+      if (endOfLife == null) {
+        await _settings.remove(kUpdateRetirementNoticeKey, permanent: true);
+      } else {
+        await _settings.set(kUpdateRetirementNoticeKey, {
+          'build': currentVersion.toString(),
+          'endOfLife': _isoDate(endOfLife),
+        });
+      }
+    } on Object catch (error, stackTrace) {
+      // The in-memory notice is already right for this session; only the
+      // offline carry-over to the next launch is lost.
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'update_controller.applyEndOfLife',
+      );
+    }
+  }
+
+  static String _isoDate(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
 
   /// Runs a check now (the manual "Check for updates" action, always
   /// available). Concurrent presses are ignored while one is in flight. Never
@@ -638,12 +751,19 @@ class UpdateController extends ChangeNotifier {
     notifyListeners();
 
     final requestedChannel = channel;
-    final result = await _service.check(
+    final checked = await _service.checkManifest(
       channel: requestedChannel,
       currentVersion: currentVersion,
       platform: _platform,
       arch: _arch,
     );
+
+    // An end of life belongs to the running build, not to a channel, so an
+    // authenticated answer applies even if the channel changed mid-flight. A
+    // failed check (null) leaves the cached notice alone: being offline is
+    // not evidence that the announcement was withdrawn.
+    if (checked != null) await _applyEndOfLife(checked.endOfLife);
+    final result = checked?.update;
 
     // The user switched channels while this check was in flight — the result
     // belongs to the old channel, so drop it (setBetaChannel already reset the

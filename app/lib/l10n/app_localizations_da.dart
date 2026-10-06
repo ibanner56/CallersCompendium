@@ -7829,6 +7829,25 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String retirementNoticeUpcoming(String appName, String version, String date) {
+    return 'Supporten for denne version af $appName ($version) ophører den $date. Opdater til en nyere version inden da.';
+  }
+
+  @override
+  String retirementNoticePast(String appName, String version, String date) {
+    return 'Supporten for denne version af $appName ($version) ophørte den $date. Opdater til en nyere version nu.';
+  }
+
+  @override
+  String get retirementBannerGetUpdate => 'Hent opdatering';
+
+  @override
+  String get retirementBannerLater => 'Senere';
+
+  @override
+  String get settingsUpdatesRetirementTitle => 'Ophør af support';
+
+  @override
   String get updateBannerViewRelease => 'Se udgivelse';
 
   @override

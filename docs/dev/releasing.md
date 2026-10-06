@@ -526,6 +526,41 @@ guard as `publish`, so forks, PRs, and build-only manual runs can never publish
 the site. An explicit existing-tag recovery is a release operation and does
 refresh the selected channel.
 
+### Announcing an end of life for older builds
+
+To tell users of older builds that they must update by a date, add an entry to
+`tools/release/retirements.json` and commit it **before tagging** the release
+that should carry it: the `publish_draft` job reads the file from the release's
+source commit and copies it into every manifest that release refreshes.
+
+```json
+[
+  {"through": "0.7.0", "endOfLife": "2027-01-31"}
+]
+```
+
+Every build at or below `through` (SemVer precedence, so `0.7.0-beta` is
+covered too) shows a banner warning that support ends on `endOfLife`, and
+after that day that it has ended. Field rules are in ADR-002 §2.
+
+- **Only checks deliver it.** Clients learn of the notice from a manual or
+  opt-in automatic update check (ADR-002 §5); there is no separate request.
+  Builds up to and including 0.6.0-beta cannot show it at all.
+- **It travels with a release.** No workflow re-signs a manifest outside a
+  release. A stable release refreshes `stable.json` and `beta.json`; a beta
+  release refreshes only `beta.json`, so a notice added just before a beta
+  release does not reach stable-channel users until the next stable release.
+- **Keep entries until they no longer matter.** Each release copies the whole
+  current file, and a client clears its stored notice when an authenticated
+  manifest no longer covers it. Deleting an entry therefore withdraws the
+  notice, and moving a date postpones it, on the next release.
+- **A release cannot retire itself.** `gen_release_metadata.py` fails the run
+  for an entry whose `through` is not strictly older than the version being
+  released, and for any entry the client would refuse (unknown key, a
+  `v`-prefixed or otherwise malformed version, an impossible date). The
+  `tools/release/test_gen_release_metadata.py` suite also validates the
+  checked-in file, so a malformed entry fails CI before it reaches a release.
+
 ### One-time maintainer step: enable GitHub Pages
 
 The workflow is safe to ship **before** Pages is enabled — until then the fixed

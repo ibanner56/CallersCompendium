@@ -1658,6 +1658,13 @@ jobs:
           if grep -Fq -- "--codename" <<<"$metadata_help"; then
             metadata_args+=(--codename "$RELEASE_CODENAME")
           fi
+          # End-of-life announcements (ADR-002 §2 `retirements`), read from the
+          # tag's checkout and copied into every refreshed manifest. Guarded
+          # like --codename so a recovery run of a tag that predates the option
+          # still generates its manifests.
+          if grep -Fq -- "--retirements" <<<"$metadata_help"; then
+            metadata_args+=(--retirements tools/release/retirements.json)
+          fi
           metadata_args+=(
             --extra-file
             "dist/sbom-${{ needs.meta.outputs.version }}.cdx.json"

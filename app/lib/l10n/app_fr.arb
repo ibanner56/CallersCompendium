@@ -7838,6 +7838,26 @@
   "@updateBannerAvailable": {
     "x-sourceSha256": "b2629b4df990988fe59d8935dcfcbd5f764d98a3d395cf45c050d82fa94e6e6f"
   },
+  "retirementNoticeUpcoming": "La prise en charge de cette version de {appName} ({version}) prend fin le {date}. Passez à une version plus récente d'ici là.",
+  "@retirementNoticeUpcoming": {
+    "x-sourceSha256": "c08b3ac0d966569ef11bd96fd47a308b00bda2dc665908230695887e35fa2b56"
+  },
+  "retirementNoticePast": "La prise en charge de cette version de {appName} ({version}) a pris fin le {date}. Passez dès maintenant à une version plus récente.",
+  "@retirementNoticePast": {
+    "x-sourceSha256": "1904acfb650816a52f384d1fdf81a2766a83131ab7af142c98d208796ba2a398"
+  },
+  "retirementBannerGetUpdate": "Obtenir la mise à jour",
+  "@retirementBannerGetUpdate": {
+    "x-sourceSha256": "d164c847efdf4db63556a6e0a99523b7b66f83db21bda3716547563a27965dab"
+  },
+  "retirementBannerLater": "Plus tard",
+  "@retirementBannerLater": {
+    "x-sourceSha256": "73b6e48a1b552d112502d37a7b7870436efc5ea1de0bca58ccf12d6ae15d3a0c"
+  },
+  "settingsUpdatesRetirementTitle": "Fin de la prise en charge",
+  "@settingsUpdatesRetirementTitle": {
+    "x-sourceSha256": "8cca4b298b63a46fc1125f8904e43f49ef8510fb1811accac8fa2771e20bb360"
+  },
   "updateBannerViewRelease": "Voir la version",
   "@updateBannerViewRelease": {
     "x-sourceSha256": "db51f7282b31d5478e45521844eda7e7c3abf4a8df87a94495424d31b3495135"

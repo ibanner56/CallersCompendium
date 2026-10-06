@@ -12,6 +12,7 @@ import 'dance_reimport_flow.dart';
 import '../screens/dance_detail_screen.dart';
 import '../screens/program_summary_screen.dart';
 import '../theme/app_spacing.dart';
+import '../update/retirement_banner.dart';
 import '../update/update_banner.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/command_palette.dart';
@@ -224,12 +225,14 @@ class AppShellState extends State<AppShell> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= AppShell.railBreakpoint;
-        // The app-wide update banner sits above the active tab's content so a
-        // newer version surfaces on any destination (Collection, Programs,
-        // Settings, Guide). It renders nothing unless an update is available
-        // and not dismissed, so it adds no chrome in the common case.
+        // The app-wide update banners sit above the active tab's content so a
+        // newer version — or an announced end of support for this one —
+        // surfaces on any destination (Collection, Programs, Settings, Guide).
+        // Each renders nothing unless it has something to say, so they add no
+        // chrome in the common case.
         final body = Column(
           children: [
+            const RetirementBanner(),
             const UpdateBanner(),
             Expanded(
               child: IndexedStack(index: _index, children: _buildPages()),

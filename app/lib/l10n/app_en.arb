@@ -10217,6 +10217,48 @@
       }
     }
   },
+  "retirementNoticeUpcoming": "Support for this version of {appName} ({version}) ends on {date}. Update to a later version before then.",
+  "@retirementNoticeUpcoming": {
+    "description": "End-of-support notice (banner and Settings ▸ Updates) before the announced end-of-life date. {date} is already formatted per the user's date-format setting.",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "retirementNoticePast": "Support for this version of {appName} ({version}) ended on {date}. Update to a later version now.",
+  "@retirementNoticePast": {
+    "description": "End-of-support notice (banner and Settings ▸ Updates) on or after the announced end-of-life date. {date} is already formatted per the user's date-format setting.",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "retirementBannerGetUpdate": "Get update",
+  "@retirementBannerGetUpdate": {
+    "description": "End-of-support banner action that opens the page for the newer release (or the list of releases)."
+  },
+  "retirementBannerLater": "Later",
+  "@retirementBannerLater": {
+    "description": "End-of-support banner action that hides the banner until the app is next launched."
+  },
+  "settingsUpdatesRetirementTitle": "End of support",
+  "@settingsUpdatesRetirementTitle": {
+    "description": "Settings ▸ Updates tile title shown when this version has an announced end-of-life date."
+  },
   "updateBannerViewRelease": "View release",
   "@updateBannerViewRelease": {
     "description": "Update banner action that opens the release notes web page."

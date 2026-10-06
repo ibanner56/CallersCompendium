@@ -7888,6 +7888,25 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String retirementNoticeUpcoming(String appName, String version, String date) {
+    return 'De ondersteuning voor deze versie van $appName ($version) stopt op $date. Werk vóór die datum bij naar een nieuwere versie.';
+  }
+
+  @override
+  String retirementNoticePast(String appName, String version, String date) {
+    return 'De ondersteuning voor deze versie van $appName ($version) is gestopt op $date. Werk nu bij naar een nieuwere versie.';
+  }
+
+  @override
+  String get retirementBannerGetUpdate => 'Update ophalen';
+
+  @override
+  String get retirementBannerLater => 'Later';
+
+  @override
+  String get settingsUpdatesRetirementTitle => 'Einde van ondersteuning';
+
+  @override
   String get updateBannerViewRelease => 'Release bekijken';
 
   @override

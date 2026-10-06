@@ -1,3 +1,4 @@
+import 'package:compendium_app/src/update/semver.dart';
 import 'package:compendium_app/src/update/update_manifest.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -295,5 +296,72 @@ void main() {
         isNull,
       );
     });
+  });
+
+  group('UpdateManifest.parse — retirements', () {
+    String withRetirements(String json) => _validStable.replaceFirst(
+      '"artifacts": [',
+      '"retirements": $json,\n  "artifacts": [',
+    );
+
+    UpdateManifest parse(String source) =>
+        UpdateManifest.parse(source, expectedChannel: UpdateChannel.stable);
+
+    SemVer v(String s) => SemVer.tryParse(s)!;
+
+    test('is optional: a manifest without it retires nothing', () {
+      final m = parse(_validStable);
+      expect(m.retirements, isEmpty);
+      expect(m.endOfLifeFor(v('0.1.0')), isNull);
+    });
+
+    test('covers every build at or below `through`, pre-releases included', () {
+      final m = parse(
+        withRetirements('[{"through": "0.7.0", "endOfLife": "2027-01-31"}]'),
+      );
+      final date = DateTime.utc(2027, 1, 31);
+      expect(m.endOfLifeFor(v('0.7.0')), date);
+      expect(m.endOfLifeFor(v('0.7.0-beta')), date);
+      expect(m.endOfLifeFor(v('0.6.0')), date);
+      expect(m.endOfLifeFor(v('0.7.1-beta')), isNull);
+      expect(m.endOfLifeFor(v('0.7.1')), isNull);
+    });
+
+    test('the earliest date among the entries that cover a build wins', () {
+      final m = parse(
+        withRetirements(
+          '[{"through": "0.8.0", "endOfLife": "2027-06-30"},'
+          ' {"through": "0.6.0", "endOfLife": "2027-01-31"}]',
+        ),
+      );
+      expect(m.endOfLifeFor(v('0.6.0')), DateTime.utc(2027, 1, 31));
+      expect(m.endOfLifeFor(v('0.7.0')), DateTime.utc(2027, 6, 30));
+    });
+
+    for (final (label, json) in [
+      ('a non-list', '{"through": "0.7.0", "endOfLife": "2027-01-31"}'),
+      ('a non-object entry', '["0.7.0"]'),
+      ('a missing through', '[{"endOfLife": "2027-01-31"}]'),
+      (
+        'a non-SemVer through',
+        '[{"through": "0.7", "endOfLife": "2027-01-31"}]',
+      ),
+      ('a missing endOfLife', '[{"through": "0.7.0"}]'),
+      (
+        'an endOfLife with a time',
+        '[{"through": "0.7.0", "endOfLife": "2027-01-31T00:00:00Z"}]',
+      ),
+      (
+        'an impossible endOfLife',
+        '[{"through": "0.7.0", "endOfLife": "2027-02-30"}]',
+      ),
+    ]) {
+      test('refuses the whole manifest for $label', () {
+        expect(
+          () => parse(withRetirements(json)),
+          throwsA(isA<UpdateManifestFormatException>()),
+        );
+      });
+    }
   });
 }
