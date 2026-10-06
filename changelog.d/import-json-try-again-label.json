@@ -1,0 +1,9 @@
+{
+  "id": "import-json-try-again-label",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "When a Caller's Compendium import can't be read, the button now says \"Try again\" for pasted text or a URL and \"Try another file\" only when you chose a file."
+    ]
+  }
+}
