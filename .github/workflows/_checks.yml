@@ -303,6 +303,7 @@ jobs:
           python3 tools/release/test_gen_recovery_provenance.py
           python3 tools/release/test_release_workflow_recovery.py
           python3 tools/release/test_release_windows_crt.py
+          python3 tools/release/test_linux_desktop_integration.py
           python3 tools/release/test_resolve_release_codename.py
           python3 tools/release/test_publish_pages_manifest.py
           python3 tools/release/test_publish_pages_site.py

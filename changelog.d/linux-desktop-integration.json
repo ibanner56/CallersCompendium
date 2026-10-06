@@ -1,0 +1,10 @@
+{
+  "id": "linux-desktop-integration",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Linux: the app window now shows the Caller's Compendium icon, and desktops that group windows under their launcher (such as GNOME) no longer show the running app as a separate entry with a generic icon.",
+      "Linux: the tar.gz download now includes a desktop launcher file and the app icon, so you can add the app to your applications menu. See Installation in the User Guide."
+    ]
+  }
+}
