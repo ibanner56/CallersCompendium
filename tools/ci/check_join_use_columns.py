@@ -15,8 +15,9 @@ Rule
 ----
 Under `packages/compendium_core/lib/src/storage/repositories/`, every
 `innerJoin(` / `leftOuterJoin(` whose first argument mentions `_db.dances`
-(the table itself, `_db.dances.createAlias(...)`, `alias(_db.dances, ...)`)
-must either
+(the table itself, `_db.dances.createAlias(...)`, `alias(_db.dances, ...)`),
+or is a name the same file binds to such an expression
+(`final d = _db.dances.createAlias('d');`), must either
 
   * carry `useColumns:` in the same call, or
   * carry the marker `// join-columns: needed — <reason>` on the line(s)
@@ -46,6 +47,12 @@ REPOSITORIES_DIR = (
 
 _JOIN_RE = re.compile(r"\b(?:innerJoin|leftOuterJoin)\s*\(")
 _DANCES_RE = re.compile(r"\b_db\s*\.\s*dances\b")
+# `name = <expression mentioning _db.dances>;` -- a local or field alias. Not
+# scope-aware: a name bound this way anywhere in the file counts, which can
+# only add findings, never hide one.
+_DANCES_ALIAS_RE = re.compile(
+    r"\b([A-Za-z_$][A-Za-z0-9_$]*)\s*=(?![=>])[^;=]*\b_db\s*\.\s*dances\b"
+)
 _USE_COLUMNS_RE = re.compile(r"\buseColumns\s*:")
 _MARKER_RE = re.compile(r"join-columns:\s*needed\s*[—–-]+\s*(\S.*)")
 _MARKER_WORD_RE = re.compile(r"join-columns:")
@@ -166,12 +173,20 @@ def check_text(text: str, path: str) -> list[Violation]:
     def lineno(off: int) -> int:
         return text.count("\n", 0, off) + 1
 
+    aliases = {m.group(1) for m in _DANCES_ALIAS_RE.finditer(code)}
+    alias_re = (
+        re.compile(r"(?<![\w$.])(?:" + "|".join(map(re.escape, sorted(aliases))) + r")(?![\w$])")
+        if aliases
+        else None
+    )
+
     violations: list[Violation] = []
     prev_join_end = -1
     for m in _JOIN_RE.finditer(code):
         start = m.start()
         end = _call_end(code, code.index("(", start))
-        if not _DANCES_RE.search(code[m.end() : _first_argument_end(code, m.end())]):
+        first = code[m.end() : _first_argument_end(code, m.end())]
+        if not (_DANCES_RE.search(first) or (alias_re and alias_re.search(first))):
             continue
         line = lineno(start)
         span = code[start : end + 1]

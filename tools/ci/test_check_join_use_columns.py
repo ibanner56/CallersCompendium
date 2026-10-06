@@ -200,6 +200,24 @@ def test_flags_aliased_dances_in_first_argument() -> None:
         assert [v.kind for v in check_text(_body(join), "a.dart")] == [MISSING], join
 
 
+def test_flags_local_alias_of_dances() -> None:
+    # guards-6: a name bound to `_db.dances` (or an alias of it) is the same join.
+    for decl in (
+        "final d = _db.dances.createAlias('d');",
+        "final d = alias(_db.dances, 'd');",
+        "late final \$DancesTable d = _db.dances;",
+    ):
+        src = f"""
+Future<void> f() async {{
+  {decl}
+  final rows = await (_db.select(_db.danceTags).join([
+    innerJoin(d, d.id.equalsExp(x)),
+  ])).get();
+}}
+"""
+        assert [v.kind for v in check_text(src, "a.dart")] == [MISSING], decl
+
+
 def test_dances_only_in_second_argument_is_not_a_dances_join() -> None:
     src = _body("innerJoin(_db.tags, _db.tags.id.equalsExp(_db.dances.id),)")
     assert check_text(src, "a.dart") == []
