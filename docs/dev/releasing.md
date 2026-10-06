@@ -1296,11 +1296,27 @@ Packaging is hand-rolled per platform for byte-exact control over the name
 contract and `SHA256SUMS`, using only free tooling available on GitHub-hosted
 runners:
 
-- **Linux tar.gz** — `tar` over the release bundle.
+- **Linux tar.gz** — `tar` over the release bundle, plus the launcher
+  `org.callerscompendium.compendiumApp.desktop` and its icon
+  (`compendium_app.png`) at the top of the extracted folder. The step fails if
+  either, or the bundle's own `data/compendium_app.png`, is missing from the
+  archive.
 - **Linux AppImage** — `appimagetool` (pinned to `1.9.1`, checksum-verified)
   with a pinned runtime (`type2-runtime` `20251108`) over the committed AppDir
-  recipe in `packaging/linux/` (`AppRun`, `compendium_app.desktop`, `icon.png`).
-  Runs with `--appimage-extract-and-run` so no FUSE is required on CI.
+  recipe in `packaging/linux/` (`AppRun`,
+  `org.callerscompendium.compendiumApp.desktop`, `icon.png`). Runs with
+  `--appimage-extract-and-run` so no FUSE is required on CI.
+- **Linux launcher and window identity** — the `.desktop` file is named after
+  the GtkApplication id (`APPLICATION_ID` in `app/linux/CMakeLists.txt`) and
+  repeats it as `StartupWMClass`, because a desktop shell pairs the running
+  window with its launcher by that id (the Wayland `app_id`, or the X11
+  `WM_CLASS`). Changing the id means renaming the `.desktop` file and its
+  `StartupWMClass` with it. The window icon is `packaging/linux/icon.png`,
+  installed into the bundle as `data/compendium_app.png` by the CMake build and
+  loaded by `app/linux/runner/my_application.cc`.
+  `tools/release/test_linux_desktop_integration.py` checks that these agree.
+  The launcher declares no file types (`MimeType=`) and its `Exec=` takes no
+  files: the running app has no way to receive a file from a second launch.
 - **macOS zip/dmg** — `ditto` and the built-in `hdiutil` (zero extra deps). When
   the Apple signing secrets are configured the same step also Developer
   ID-signs (hardened runtime), notarizes, and staples the artifacts — see

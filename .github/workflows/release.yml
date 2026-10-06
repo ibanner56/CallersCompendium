@@ -486,10 +486,24 @@ jobs:
           bundle="app/build/linux/x64/release/bundle"
           mkdir -p dist
 
-          # Portable tar.gz: extraction yields a single named directory.
+          # Portable tar.gz: extraction yields a single named directory. The
+          # launcher and its icon sit at the top for a user who installs them;
+          # the bundle already holds data/compendium_app.png, the window icon.
+          # The launcher is named after the GtkApplication id (APPLICATION_ID in
+          # app/linux/CMakeLists.txt) and carries it as StartupWMClass, so a
+          # desktop shell pairs the running window with it (platform-8).
           stage="CallersCompendium-${VERSION}-linux-x64"
           rm -rf "$stage" && cp -r "$bundle" "$stage"
+          cp packaging/linux/org.callerscompendium.compendiumApp.desktop "$stage/org.callerscompendium.compendiumApp.desktop"
+          cp packaging/linux/icon.png "$stage/compendium_app.png"
           tar -czf "dist/${stage}.tar.gz" "$stage"
+          members="$(tar -tzf "dist/${stage}.tar.gz")"
+          for member in org.callerscompendium.compendiumApp.desktop compendium_app.png data/compendium_app.png; do
+            if ! grep -qxF "${stage}/${member}" <<<"$members"; then
+              echo "::error::${stage}.tar.gz is missing ${member}"
+              exit 1
+            fi
+          done
 
           # AppImage: build an AppDir from the committed recipe, then pack with a
           # pinned + checksummed appimagetool and a pinned runtime (no network
@@ -504,7 +518,7 @@ jobs:
           rm -rf "$appdir" && mkdir -p "$appdir/usr/bin"
           cp -r "$bundle"/. "$appdir/usr/bin/"
           install -m 0755 packaging/linux/AppRun "$appdir/AppRun"
-          cp packaging/linux/compendium_app.desktop "$appdir/compendium_app.desktop"
+          cp packaging/linux/org.callerscompendium.compendiumApp.desktop "$appdir/org.callerscompendium.compendiumApp.desktop"
           cp packaging/linux/icon.png "$appdir/compendium_app.png"
 
           # APPIMAGE_EXTRACT_AND_RUN lets appimagetool (itself an AppImage) run

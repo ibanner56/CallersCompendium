@@ -6,6 +6,7 @@ GenericName=Dance Organizer
 Comment=Your dances, your dialect — in the hall or on the road.
 Exec=compendium_app
 Icon=compendium_app
+StartupWMClass=org.callerscompendium.compendiumApp
 Terminal=false
 Categories=AudioVideo;Audio;Utility;
 Keywords=contra;dance;caller;choreography;program;

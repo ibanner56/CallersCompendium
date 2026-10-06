@@ -74,6 +74,12 @@ the app won't start and a terminal shows a message that a `GLIBC_` version was
 - **Archive** (`...-linux-x64.tar.gz`) — no setup needed.
   1. Extract the archive to a folder you like.
   2. Open `compendium_app` inside that folder.
+  3. Optional: to add the app to your applications menu, copy
+     `org.callerscompendium.compendiumApp.desktop` from that folder into
+     `~/.local/share/applications/`, and `compendium_app.png` into
+     `~/.local/share/icons/hicolor/512x512/apps/`. Then edit the copied
+     `.desktop` file so its `Exec=` line gives the full path to
+     `compendium_app` in the folder where you extracted it.
 
 > **AppImage won't open?** The AppImage needs a `fusermount` (or `fusermount3`)
 > program, which some recent distributions don't install by default. If you see

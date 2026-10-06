@@ -19,6 +19,25 @@ static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
 }
 
+// Sets the window icon from data/compendium_app.png beside the executable, the
+// file app/linux/CMakeLists.txt installs into the bundle. X11 window managers
+// and task switchers read it from the window (_NET_WM_ICON); shells that match
+// the window to its launcher by application id use the launcher's icon instead.
+// A missing or unreadable file leaves the default icon and logs a warning.
+static void set_window_icon(GtkWindow* window) {
+  g_autofree gchar* executable = g_file_read_link("/proc/self/exe", nullptr);
+  if (executable == nullptr) {
+    return;
+  }
+  g_autofree gchar* directory = g_path_get_dirname(executable);
+  g_autofree gchar* path =
+      g_build_filename(directory, "data", "compendium_app.png", nullptr);
+  g_autoptr(GError) error = nullptr;
+  if (!gtk_window_set_icon_from_file(window, path, &error)) {
+    g_warning("Failed to load the window icon %s: %s", path, error->message);
+  }
+}
+
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
@@ -53,6 +72,7 @@ static void my_application_activate(GApplication* application) {
   }
 
   gtk_window_set_default_size(window, 1280, 720);
+  set_window_icon(window);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(
