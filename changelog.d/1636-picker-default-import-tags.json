@@ -1,9 +1,0 @@
-{
-  "id": "1636-picker-default-import-tags",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "A dance you import from an online search in the program editor's dance picker now gets your \"Tags for imported dances\"."
-    ]
-  }
-}

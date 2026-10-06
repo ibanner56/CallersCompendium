@@ -1,9 +1,0 @@
-{
-  "id": "1547-linux-share-files-save-as",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "Linux: sharing a program or dance file, or a JSON export, now saves the file through the system dialog instead of failing with 'Couldn't share'."
-    ]
-  }
-}

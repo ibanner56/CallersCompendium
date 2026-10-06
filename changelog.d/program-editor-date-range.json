@@ -1,9 +1,0 @@
-{
-  "id": "program-editor-date-range",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "You can now set a program's event date up to 10 years in the past in the program editor, instead of 5, so you can record older events."
-    ]
-  }
-}

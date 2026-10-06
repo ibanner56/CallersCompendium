@@ -1,9 +1,0 @@
-{
-  "id": "db-relocation-exclusive",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "The one-time move of your library out of Documents now waits if another copy of the app is already moving it, and no longer moves it while another program (such as an older version of the app left running) still has it open; it stops and leaves the old copy untouched instead."
-    ]
-  }
-}

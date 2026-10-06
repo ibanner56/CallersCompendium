@@ -1,9 +1,0 @@
-{
-  "id": "custom-figure-canonical",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "Custom figure text typed in the editor is now saved in the neutral role form and shown in your active dialect, and role searches find it. Existing custom text updates the next time the dance is saved with the same dialect active."
-    ]
-  }
-}

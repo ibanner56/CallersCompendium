@@ -1,9 +1,0 @@
-{
-  "id": "linux-build-glibc-floor",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "Linux: the installation guide now states the minimum system: glibc 2.35 or newer with GTK 3 (Ubuntu 22.04, Debian 12, Fedora 36 and later). Linux releases are now built on Ubuntu 22.04, so that minimum no longer moves up when the build machines are upgraded to a newer Ubuntu."
-    ]
-  }
-}
