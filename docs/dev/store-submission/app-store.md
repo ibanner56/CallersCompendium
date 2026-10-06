@@ -156,6 +156,16 @@ Internal testing (≤100 teammates, instant) is already live. "Open beta" is
   prompts**. Confirm none are triggered; if a plugin adds one, add the matching
   `Info.plist` purpose string or the build is rejected.
 - [x] **Support URL / privacy URL must resolve** — dead links are an easy reject.
+- [x] **Missing privacy manifest (ITMS-91053)** — App Store Connect refuses a
+  build whose own code uses a *required-reason API* without declaring it. Both
+  shipped targets carry one: `app/ios/Runner/PrivacyInfo.xcprivacy` (UserDefaults
+  `1C8F.1` for the App Group suite, file timestamps `C617.1` for the share queue
+  in the App Group container, and the Device Sync data type below) and
+  `app/ios/ShareExtension/PrivacyInfo.xcprivacy` (file timestamps `C617.1`).
+  `tools/ci/check_ios_privacy_manifest.py` fails CI when either target's Swift
+  starts using a category its manifest does not declare, or when a manifest
+  drops out of its target's Resources phase. Plugins declare their own use in
+  their own manifests; this one covers only the app's code.
 
 ## 5. Path to the public App Store (after beta) — [later]
 
@@ -179,7 +189,10 @@ Open beta does not require full App Review; the public store does. When ready:
 - [ ] Keep builds fresh (90-day TestFlight expiry).
 - [ ] Keep the privacy policy URL and support URL alive.
 - [ ] When you bump the app version, re-check the App Privacy answers still hold
-  and continue to describe the features actually available in that build.
+  and continue to describe the features actually available in that build. The
+  collected-data entry in `app/ios/Runner/PrivacyInfo.xcprivacy`
+  (`NSPrivacyCollectedDataTypeOtherUserContent`, not linked, not tracking, App
+  Functionality) mirrors those answers; change both together.
 
 ---
 
