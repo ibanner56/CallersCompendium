@@ -67,11 +67,10 @@ String _assembleDisplayTemplate(_DisplayTemplate displayTemplate) {
   // slots owned by a display base renderer).
   String valueOf(String key) => slots[key] ?? slots[_slotBase(key)] ?? '';
 
-  String substitute(String source) =>
-      source.replaceAllMapped(
-        _wordingPlaceholder,
-        (match) => valueOf(match[1]!),
-      );
+  String substitute(String source) => source.replaceAllMapped(
+    _wordingPlaceholder,
+    (match) => valueOf(match[1]!),
+  );
 
   _AssembledTemplate parse({required bool stopAtClose}) {
     final output = StringBuffer();
@@ -526,8 +525,8 @@ class FigureRenderer {
                   verbose,
                   decimals,
                 ).slots,
-              }, wording!)
-            : _displayTemplate(wordingSlots, wording!);
+              }, wording)
+            : _displayTemplate(wordingSlots, wording);
         final line = _assembleDisplayTemplate((
           slots: displayTemplate.slots,
           template: wording,

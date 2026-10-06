@@ -3462,9 +3462,8 @@ void main() {
 
   group('global move wording templates', () {
     group('forced slots ({!name})', () {
-      Dialect wording(String template) => Dialect.larksRobins.copyWith(
-        moveWordings: {'chain': template},
-      );
+      Dialect wording(String template) =>
+          Dialect.larksRobins.copyWith(moveWordings: {'chain': template});
       Figure chain(String hand) =>
           testFigure(move: 'chain', params: {'who': 'role2s', 'hand': hand});
 
@@ -3486,19 +3485,22 @@ void main() {
         );
       });
 
-      test('{!hand} still shows a contradicting hand and skips unspecified', () {
-        expect(
-          renderer.render(chain('left'), wording('{who} {!hand} {move}')),
-          'robins left-hand chain',
-        );
-        expect(
-          renderer.render(
-            testFigure(move: 'chain', params: {'who': 'role2s'}),
-            wording('{who} {!hand} {move}'),
-          ),
-          'robins chain',
-        );
-      });
+      test(
+        '{!hand} still shows a contradicting hand and skips unspecified',
+        () {
+          expect(
+            renderer.render(chain('left'), wording('{who} {!hand} {move}')),
+            'robins left-hand chain',
+          );
+          expect(
+            renderer.render(
+              testFigure(move: 'chain', params: {'who': 'role2s'}),
+              wording('{who} {!hand} {move}'),
+            ),
+            'robins chain',
+          );
+        },
+      );
 
       test('canonical text is unchanged', () {
         expect(
