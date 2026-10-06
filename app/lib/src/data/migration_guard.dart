@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart'
@@ -7,6 +8,8 @@ import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sql;
 
 import 'app_database.dart';
+import 'single_instance_guard.dart'
+    show AdvisoryFileLock, InstanceLockHandle, InstanceLockPrimitive;
 
 /// Directory name (under the database's own directory) holding automatic
 /// pre-migration snapshots.
@@ -353,12 +356,15 @@ enum DatabaseRelocationFailure {
   /// exactly as found for the user to choose.
   multipleLegacy,
 
-  /// The WAL could not be checkpointed (another connection holds the database),
-  /// or copying, verifying or removing the legacy files failed (disk full,
-  /// unwritable directory, a file locked by another process). Anything the
-  /// attempt wrote at the new location is removed and any legacy file it had
-  /// already deleted is restored from the verified copy, so the next launch
-  /// starts again from the original state.
+  /// Another process has the legacy database open (the WAL could not be
+  /// checkpointed, or it could not be taken out of WAL mode), another process
+  /// held the relocation lock past the timeout, the lock could not be taken at
+  /// all, or copying, verifying or removing the legacy files failed (disk
+  /// full, unwritable directory, a file locked by another process). Anything
+  /// the attempt wrote at the new location is removed and any legacy file it
+  /// had already deleted is restored from the verified copy, so the next
+  /// launch starts again from the original state, with one exception: if the
+  /// legacy database file is no longer there, the new copy is kept.
   moveFailed,
 }
 
@@ -381,6 +387,10 @@ class DatabaseRelocationBlocked implements Exception {
 }
 
 const String _relocatingSuffix = '.relocating';
+
+/// File name of the advisory lock [relocateLegacyDatabase] holds, in the
+/// target's directory, for the whole move.
+const String kRelocationLockFileName = '.relocation.lock';
 const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 
 /// Moves a database left in a legacy location (Documents, or an earlier
@@ -396,6 +406,14 @@ const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 /// empty.
 ///
 /// Rules, in the order they bite:
+/// - **One mover at a time.** The whole move runs under an exclusive advisory
+///   lock on [kRelocationLockFileName] in the target's directory (the same
+///   [AdvisoryFileLock] the single-instance guard uses), plus an in-process
+///   queue because POSIX record locks never contend within one process. Every
+///   precondition below is checked only once the lock is held, so a second
+///   process that waited sees the finished move (no legacy database) and does
+///   nothing. If the lock is still held after [lockTimeout], or cannot be
+///   taken at all, nothing is touched ([DatabaseRelocationFailure.moveFailed]).
 /// - **Never overwrite.** If the target database (or a sidecar) exists, or more
 ///   than one legacy database exists, throw [DatabaseRelocationBlocked]
 ///   ([DatabaseRelocationFailure.bothExist]) and touch nothing.
@@ -403,6 +421,29 @@ const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 ///   snapshot does), and require it to report not busy: a busy result means
 ///   another connection holds the WAL, so the main file is not yet a complete
 ///   database and nothing is copied ([DatabaseRelocationFailure.moveFailed]).
+/// - **Never move a database someone has open, and keep everyone out until it
+///   is gone.** A not-busy checkpoint only proves no other connection is
+///   *reading*; an idle one (an older build left running) would lose whatever
+///   it writes after the copy. The checking connection stays open with an
+///   exclusive SQLite lock from the check until the main file is deleted
+///   (`_LegacyHold`): a WAL database must leave WAL mode first, which SQLite
+///   refuses while any other connection has the file open
+///   ([DatabaseRelocationFailure.moveFailed]); after that every other reader
+///   or writer, in any process, gets SQLITE_BUSY. The database is copied in
+///   rollback-journal mode; drift's setup puts it back in WAL mode on open,
+///   and a move that gives up restores WAL mode on the old file. Limits:
+///   - A database still in rollback-journal mode (written by a build before
+///     WAL) cannot be probed for an *idle* connection, which holds no lock; it
+///     is locked out from the check on, but on POSIX a write it makes after the
+///     unlink goes to the deleted file.
+///   - Windows cannot delete an open file, so the lock is released just before
+///     the main file is deleted. A process opening it in that gap keeps it
+///     open (SQLite does not share delete access), so the delete fails and the
+///     move rolls back; one that opens, writes and closes inside the gap is not
+///     caught.
+///   - On Windows SQLite's lock bytes sit at the 1 GiB offset, so copying a
+///     database larger than 1 GiB through a second handle fails
+///     ([DatabaseRelocationFailure.moveFailed], nothing deleted).
 /// - **Copy, fsync, verify size, then rename into place**: every file is copied
 ///   to `<name>.relocating` beside its destination, flushed to disk and its
 ///   length compared with the source; only when all of them verify are they
@@ -412,8 +453,9 @@ const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 ///   file last. Any failure before or during this step is rolled back: legacy
 ///   files already deleted are restored from the verified copy and what this
 ///   attempt wrote at the target is removed, so the legacy files are exactly as
-///   found. Only if that restore itself fails is the target copy kept (data is
-///   never left in fewer places than before).
+///   found. The target copy is kept instead if that restore fails, or if the
+///   legacy database file is no longer there when the attempt gives up (data
+///   is never left in fewer places than before).
 ///
 /// A *crash* (not a reported failure) between the rename and the last delete
 /// leaves both copies; the next launch reports
@@ -421,19 +463,110 @@ const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 /// (not the app) decides which to delete, see `docs/user/faq.md`.
 ///
 /// [deleter] is injectable so tests can fail the source cleanup part-way; the
-/// production default deletes via [File].
+/// production default deletes via [File]. [lockPrimitive] (default
+/// [AdvisoryFileLock]), [lockTimeout] and [afterRename] (called after each
+/// file is renamed into place) are test seams.
 Future<bool> relocateLegacyDatabase({
   required File target,
   required List<File> legacy,
   Future<void> Function(File file)? deleter,
+  @visibleForTesting InstanceLockPrimitive? lockPrimitive,
+  @visibleForTesting Duration lockTimeout = const Duration(seconds: 30),
+  @visibleForTesting Future<void> Function(File renamed)? afterRename,
 }) async {
-  final delete = deleter ?? (file) => file.delete();
-  final sources = <File>[
-    for (final file in legacy)
-      if (p.canonicalize(file.path) != p.canonicalize(target.path) &&
-          file.existsSync())
-        file,
-  ];
+  // Every launch after the first ends here, without creating anything.
+  if (_existingLegacy(target, legacy).isEmpty) return false;
+  return _whileHoldingRelocationLock(
+    target.parent,
+    lockPrimitive ?? const AdvisoryFileLock(),
+    lockTimeout,
+    () => _relocateWhileLocked(
+      target: target,
+      legacy: legacy,
+      delete: deleter ?? (file) => file.delete(),
+      afterRename: afterRename,
+    ),
+  );
+}
+
+List<File> _existingLegacy(File target, List<File> legacy) => [
+  for (final file in legacy)
+    if (p.canonicalize(file.path) != p.canonicalize(target.path) &&
+        file.existsSync())
+      file,
+];
+
+/// The relocation running in this process, if any; see
+/// [_whileHoldingRelocationLock].
+Future<void>? _relocationInProgress;
+
+/// Runs [body] holding the relocation lock in [dir]: first this process's own
+/// queue (an OS advisory lock is per-process on POSIX, so it would not keep two
+/// attempts in one process apart), then the OS lock, polled until [timeout].
+/// Any failure to take the lock is [DatabaseRelocationFailure.moveFailed]
+/// before anything is touched.
+Future<bool> _whileHoldingRelocationLock(
+  Directory dir,
+  InstanceLockPrimitive primitive,
+  Duration timeout,
+  Future<bool> Function() body,
+) async {
+  while (_relocationInProgress != null) {
+    await _relocationInProgress;
+  }
+  final done = Completer<void>();
+  _relocationInProgress = done.future;
+  try {
+    final InstanceLockHandle handle;
+    try {
+      handle = await _acquireRelocationLock(dir, primitive, timeout);
+    } on Object catch (error) {
+      // diagnostics: silent — fail-closed; the typed error carries the cause.
+      throw DatabaseRelocationBlocked(
+        DatabaseRelocationFailure.moveFailed,
+        error: error,
+      );
+    }
+    try {
+      return await body();
+    } finally {
+      await handle.release();
+    }
+  } finally {
+    _relocationInProgress = null;
+    done.complete();
+  }
+}
+
+Future<InstanceLockHandle> _acquireRelocationLock(
+  Directory dir,
+  InstanceLockPrimitive primitive,
+  Duration timeout,
+) async {
+  final lockFile = File(p.join(dir.path, kRelocationLockFileName));
+  final waited = Stopwatch()..start();
+  while (true) {
+    final handle = await primitive.tryAcquire(lockFile);
+    if (handle != null) return handle;
+    if (waited.elapsed >= timeout) {
+      throw FileSystemException(
+        'relocation lock is held by another process',
+        lockFile.path,
+      );
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+  }
+}
+
+Future<bool> _relocateWhileLocked({
+  required File target,
+  required List<File> legacy,
+  required Future<void> Function(File file) delete,
+  required Future<void> Function(File renamed)? afterRename,
+}) async {
+  // Re-checked under the lock: another process may have finished (or begun
+  // and failed) the move while this one waited.
+  final sources = _existingLegacy(target, legacy);
   if (sources.isEmpty) return false;
 
   final targetOccupied = [
@@ -453,8 +586,38 @@ Future<bool> relocateLegacyDatabase({
   final moves = <(File, File)>[];
   final temps = <File>[];
   final finals = <File>[];
+  _LegacyHold? hold;
   try {
-    _checkpointOrThrowIfBusy(source.path);
+    return await _moveWhileHolding(
+      source: source,
+      target: target,
+      moves: moves,
+      temps: temps,
+      finals: finals,
+      delete: delete,
+      afterRename: afterRename,
+      onHold: (held) => hold = held,
+    );
+  } finally {
+    // Idempotent: on Windows the hold was already released before the delete.
+    await hold?.release();
+  }
+}
+
+Future<bool> _moveWhileHolding({
+  required File source,
+  required File target,
+  required List<(File, File)> moves,
+  required List<File> temps,
+  required List<File> finals,
+  required Future<void> Function(File file) delete,
+  required Future<void> Function(File renamed)? afterRename,
+  required void Function(_LegacyHold hold) onHold,
+}) async {
+  final _LegacyHold hold;
+  try {
+    hold = await _LegacyHold.acquire(source);
+    onHold(hold);
     moves.add((source, target));
     for (final suffix in _sidecarSuffixes) {
       final sidecar = File('${source.path}$suffix');
@@ -493,7 +656,14 @@ Future<bool> relocateLegacyDatabase({
     for (final (from, to) in moves) {
       final temp = File('${to.path}$_relocatingSuffix');
       temps.add(temp);
-      await from.copy(temp.path);
+      // The database file is copied through the hold's own handle: on POSIX,
+      // closing *any* descriptor this process has on the file would drop the
+      // SQLite lock that keeps other processes out.
+      if (from.path == source.path) {
+        await hold.copyTo(temp);
+      } else {
+        await from.copy(temp.path);
+      }
       final handle = await temp.open(mode: FileMode.append);
       try {
         await handle.flush();
@@ -507,6 +677,7 @@ Future<bool> relocateLegacyDatabase({
     for (final (index, (_, to)) in moves.indexed) {
       await temps[index].rename(to.path);
       finals.add(to);
+      await afterRename?.call(to);
     }
   } on DatabaseRelocationBlocked {
     // diagnostics: silent — typed fail-closed outcome, thrown before anything
@@ -514,7 +685,10 @@ Future<bool> relocateLegacyDatabase({
     rethrow;
   } on Object catch (error) {
     // diagnostics: silent — fail-closed; the typed error carries the cause.
-    await _discard([...temps, ...finals]);
+    await _discard(temps);
+    // The renamed copy goes only while the legacy database is still there:
+    // if something else removed it, the copy may be the only one left.
+    if (source.existsSync()) await _discard(finals);
     throw DatabaseRelocationBlocked(
       DatabaseRelocationFailure.moveFailed,
       error: error,
@@ -525,6 +699,13 @@ Future<bool> relocateLegacyDatabase({
   try {
     // Main database file last: until it is gone the legacy library is intact.
     for (final move in moves.reversed) {
+      // Windows cannot delete a file this process still has open; release the
+      // lock just before. Another process opening it in that gap keeps it open
+      // (SQLite never shares delete access), so the delete fails and is rolled
+      // back below; on POSIX the file is unlinked while still locked.
+      if (move.$1.path == source.path && Platform.isWindows) {
+        await hold.release();
+      }
       await delete(move.$1);
       deleted.add(move);
     }
@@ -540,8 +721,10 @@ Future<bool> relocateLegacyDatabase({
       }
     }
     // Only a fully restored legacy library lets the target copy go: otherwise
-    // keep it, so the data is never left in fewer places than before.
-    if (restored) await _discard(finals);
+    // (a restore failed, or the legacy database file is gone, deleted by
+    // something other than this attempt) keep it, so the data is never left
+    // in fewer places than before.
+    if (restored && source.existsSync()) await _discard(finals);
     throw DatabaseRelocationBlocked(
       DatabaseRelocationFailure.moveFailed,
       error: error,
@@ -673,23 +856,118 @@ void _checkpoint(String path) {
   }
 }
 
-/// Like [_checkpoint], but also reads the result row: `wal_checkpoint(TRUNCATE)`
-/// reports a blocked checkpoint (another connection holds the WAL) as `busy = 1`
-/// rather than by throwing, and a copy taken then would miss committed data.
-void _checkpointOrThrowIfBusy(String path) {
-  final db = sql.sqlite3.open(path);
-  try {
-    final row = db.select('PRAGMA wal_checkpoint(TRUNCATE)').first;
-    if (row.values.first != 0) {
-      throw FileSystemException(
-        'WAL checkpoint is blocked (database busy)',
-        path,
-      );
+/// An exclusive SQLite lock on the legacy database, held from the in-use
+/// check until it is deleted (or the move gives up), so no other connection,
+/// in this process or another, can read or write it in between.
+///
+/// [acquire] checkpoints the WAL and requires it not busy (a reader pins it),
+/// sets `locking_mode = EXCLUSIVE`, takes a WAL database out of WAL mode
+/// (`journal_mode = DELETE`, which SQLite refuses while any other connection,
+/// even an idle one, has the file open), then opens `BEGIN EXCLUSIVE`. From
+/// then on every other connection gets SQLITE_BUSY. A rollback-journal
+/// database (from a build before WAL) is not probed for idle connections: one
+/// holds no lock, so it cannot be seen; it is still locked out from here on.
+///
+/// The copy goes through [_raf], opened after the lock and closed only after
+/// the connection: POSIX record locks are per process, and closing any other
+/// descriptor on the file would release SQLite's.
+class _LegacyHold {
+  _LegacyHold._(this._file, this._db, this._wasWal, this._raf);
+
+  final File _file;
+  final bool _wasWal;
+  sql.Database? _db;
+  RandomAccessFile? _raf;
+
+  static Future<_LegacyHold> acquire(File file) async {
+    final db = sql.sqlite3.open(file.path);
+    final bool wasWal;
+    try {
+      final row = db.select('PRAGMA wal_checkpoint(TRUNCATE)').first;
+      if (row.values.first != 0) {
+        throw FileSystemException(
+          'WAL checkpoint is blocked (database busy)',
+          file.path,
+        );
+      }
+      wasWal = _journalMode(db) == 'wal';
+      db.execute('PRAGMA locking_mode = EXCLUSIVE');
+      if (wasWal) {
+        db.execute('PRAGMA journal_mode = DELETE');
+        if (_journalMode(db) != 'delete') {
+          throw FileSystemException(
+            'database is open in another connection (cannot leave WAL mode)',
+            file.path,
+          );
+        }
+      }
+      db.execute('BEGIN EXCLUSIVE');
+    } on Object {
+      // diagnostics: silent — rethrown; the caller reports moveFailed.
+      db.close();
+      rethrow;
     }
-  } finally {
-    db.close();
+    final RandomAccessFile raf;
+    try {
+      raf = await file.open();
+    } on Object {
+      // diagnostics: silent — rethrown; the caller reports moveFailed.
+      db
+        ..execute('ROLLBACK')
+        ..close();
+      rethrow;
+    }
+    return _LegacyHold._(file, db, wasWal, raf);
+  }
+
+  /// Copies the held database file to [to] through the held handle.
+  Future<void> copyTo(File to) async {
+    final from = _raf!;
+    await from.setPosition(0);
+    final out = await to.open(mode: FileMode.write);
+    try {
+      final buffer = Uint8List(1 << 20);
+      while (true) {
+        final read = await from.readInto(buffer);
+        if (read == 0) break;
+        await out.writeFrom(buffer, 0, read);
+      }
+    } finally {
+      await out.close();
+    }
+  }
+
+  /// Ends the transaction and closes the connection, then the copy handle.
+  /// If the file is still there (the move gave up) it is put back in WAL mode
+  /// when it was found in it. Idempotent; never throws.
+  Future<void> release() async {
+    final db = _db;
+    final raf = _raf;
+    _db = null;
+    _raf = null;
+    if (db != null) {
+      try {
+        db.execute('ROLLBACK');
+        if (_wasWal && _file.existsSync()) {
+          db.execute('PRAGMA journal_mode = WAL');
+        }
+      } on Object {
+        // diagnostics: silent — best effort; drift's setup re-enables WAL on
+        // the next open.
+      } finally {
+        db.close();
+      }
+    }
+    try {
+      await raf?.close();
+    } on Object {
+      // diagnostics: silent — a read-only handle; nothing to flush.
+    }
   }
 }
+
+String _journalMode(sql.Database db) =>
+    '${db.select('PRAGMA journal_mode').single.values.single}'.toLowerCase();
 
 /// Filename-safe, lexicographically-sortable UTC timestamp with microsecond
 /// resolution (`YYYYMMDDTHHMMSSmmmuuuZ`).

@@ -22,7 +22,26 @@ lives in the core package; all access through repositories.*
   (`relocateLegacyDatabase`): copy, fsync, verify size, rename into place, then
   delete the source; it never overwrites a destination, and if a database exists
   at both the old and new location, or the move fails, nothing is deleted and
-  startup stops on a non-retryable screen (`DatabaseRelocationBlocked`). Pre-migration snapshots go in `db_backups/` beside
+  startup stops on a non-retryable screen (`DatabaseRelocationBlocked`). The
+  whole move runs under an exclusive advisory lock on `.relocation.lock` in the
+  database directory (the single-instance guard's `AdvisoryFileLock`, plus an
+  in-process queue), and its preconditions are checked only once that lock is
+  held, so a second process that waited finds nothing left to move. It refuses
+  to move a database another connection has open, and keeps every other
+  connection out until the old file is deleted: the checking connection stays
+  open from the check to the delete with `locking_mode = EXCLUSIVE` and
+  `BEGIN EXCLUSIVE`, after taking a WAL database out of WAL mode (which SQLite
+  refuses while any other connection, even an idle one, has the file). The
+  main file is copied through a handle kept open until after that connection
+  closes, because closing any other descriptor would release POSIX record
+  locks. Limits: a pre-WAL rollback-journal file gives no signal for an idle
+  connection; on Windows the lock is released just before the delete (an open
+  file cannot be deleted there, so an opener in that gap makes the delete fail
+  and the move roll back), and a database over 1 GiB cannot be copied while
+  locked (the move fails, nothing deleted). The Windows behaviour is reasoned
+  from SQLite's and Dart's sources; CI does not run tests on Windows.
+  A rollback never removes the new copy unless the old database file is still
+  there. Pre-migration snapshots go in `db_backups/` beside
   the file. User-triggered backup/restore = timestamped JSON export/import (6.6), not
   file copying.
 - **Hybrid figure storage** (fixing ContraDB's unqueryable JSON blob):
