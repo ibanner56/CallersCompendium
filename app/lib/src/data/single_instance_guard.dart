@@ -339,9 +339,10 @@ enum SingleInstanceResult {
 /// the lock, a second launch is refused so two processes can't race the
 /// migration / derived-rebuild marker and trip `database is locked`.
 ///
-/// The first instance also listens on a loopback socket
+/// On Linux and Windows the first instance also listens on a loopback socket
 /// ([InstanceRaiseChannel]) so a refused second launch can ask it to bring its
-/// window forward instead of exiting silently ([handleSecondLaunch]).
+/// window forward instead of exiting silently ([handleSecondLaunch]); see
+/// [listensForRaise] for why macOS does not.
 ///
 /// This is intentionally desktop-only: [isSupportedPlatform] gates it to
 /// Linux/macOS/Windows, so mobile (the OS already owns single-instance) and web
@@ -455,9 +456,10 @@ enum SecondLaunchOutcome {
 /// Runs before `AppData` exists, so a refused launch never opens the database.
 /// - `alreadyRunning`: asks the running instance to raise its window, writes
 ///   one line to [err] naming the outcome, returns [SecondLaunchOutcome.exitNow].
-/// - `acquired`: starts the raise listener (calling [onRaise] on a request) and
-///   returns [SecondLaunchOutcome.proceed]. A listener failure is logged and
-///   non-fatal: the app just won't be raisable.
+/// - `acquired`: when [DesktopSingleInstance.listensForRaise] is set (Linux and
+///   Windows by default), starts the raise listener (calling [onRaise] on a
+///   request); either way returns [SecondLaunchOutcome.proceed]. A listener
+///   failure is logged and non-fatal: the app just won't be raisable.
 /// - `unavailable`: returns [SecondLaunchOutcome.proceed] (fail-open).
 Future<SecondLaunchOutcome> handleSecondLaunch(
   DesktopSingleInstance guard, {
