@@ -1,9 +1,0 @@
-{
-  "id": "1605-database-app-data-dir",
-  "user_visible": true,
-  "app": {
-    "data_migrations": [
-      "On Windows and Linux your library now lives in the app's own data folder instead of Documents, so OneDrive folder backup no longer syncs a live database and Linux no longer leaves it loose in your home folder. The first launch after updating moves it (and the automatic safety copies in its db_backups folder) once, deleting the old copy only after the new one is verified; if anything looks wrong the app stops and leaves both copies untouched. After the move, going back to an older version (0.5.4 or earlier on Windows, 0.5.3 or earlier on Linux) stops on its startup error screen: your data is still in the new folder."
-    ]
-  }
-}

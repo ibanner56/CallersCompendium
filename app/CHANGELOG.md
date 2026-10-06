@@ -36,7 +36,98 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
-_Nothing yet._
+## [0.6.0] - 2026-10-06
+
+### Added
+
+- You can record what you are paid for a program (an amount and a currency) under More details in the program editor. Pay syncs between your devices and is included in your archive exports; it is not printed in the shared program text or PDF.
+- You can set a dialect on a program, under Perform dialect in its details, and Perform uses it for that program without you switching your active dialect first. The editor, summary and exports keep your active dialect. Switching dialect inside Perform then affects only that time in Perform, and if you rename or delete the dialect the program quietly goes back to your active dialect.
+- Perform now has a dance-start button on slots with a walkthrough length: tap it when the walkthrough really ends. "Walkthrough complete" and "over" then follow your mark for that slot, and the timing line shows how far the walkthrough ran from its plan. Tap again to undo. Slots you never mark behave exactly as before.
+- A progress bar while a backup is exported or restored.
+- When your chosen backup reminder is overdue, the app now shows a reminder with an Export backup button on the main screen once per launch, not only inside Settings.
+- In a move wording template, put a ! in front of a slot, like {!hand}, to always show it. A chain's hand, for example, is normally left out when the role implies it, but {who} {!hand} {move} still reads "robins right-hand chain".
+- Free-text entry recognises more everyday phrasings: a hey with a starting pair and shoulder ("half hey, ladies start by the right"), "N" and "neighbours" for neighbors, and "allemande left 1 1/2 with neighbor".
+- Import review: set every matched dance to Re-import or Skip in one tap, and skip all possible matches at once.
+- On Linux and Windows, Settings ▸ About ▸ View licenses now lists PDFium, the PDF library the app uses there to print and preview, with the notices of the libraries built into it.
+- When both devices changed your dialects, custom themes, figure shorthands or walkthrough snippets, you can now choose Combine both to keep everything from both devices, picking a version only of items both changed.
+- After you save sync choices, Undo reopens them with the versions you chose between, so you can choose again. Nothing changes until you do.
+- When Device Sync asks you to choose between versions, it now shows exactly what's different: which dialects, themes, shorthands or snippets are only on one device or differ, what differs inside a dialect or theme, which details of a dance, program, tag or venue differ (with figures compared line by line, and links and published sources shown in full), and which dances a program's versions don't share. With several items, choose Show differences on one to see its comparison. Each version also says when it was last changed.
+
+### Changed
+
+- The app opens faster on large libraries: the database integrity check now runs after the first screen appears instead of before it. A problem still shows the same warning banner.
+- Import review: the row button is now 'Import and edit', and it asks before replacing a matched dance; the guide explains that it imports immediately and is not covered by the batch Undo.
+- Choosing a backup file shows a summary (date, dances, programs, size) instead of pasting the whole file into the text box.
+- Turning a figure's balance option on now adds 4 beats to its timing, and turning it off takes 4 beats away, even if you had set the beats yourself.
+- When part of the app shows "Something went wrong here", Copy details now copies the error's type and its stack trace with folder names, email addresses and phone numbers removed, and leaves out the error's message, which could contain your own content. The full error is still saved to the on-device diagnostics log.
+- Importing a large batch now shows how many dances have been written so far instead of a spinner.
+- Linux: the installation guide now states the minimum system: glibc 2.35 or newer with GTK 3 (Ubuntu 22.04, Debian 12, Fedora 36 and later). Linux releases are now built on Ubuntu 22.04, so that minimum no longer moves up when the build machines are upgraded to a newer Ubuntu.
+- You can now set a program's event date up to 10 years in the past in the program editor, instead of 5, so you can record older events.
+
+### Fixed
+
+- The difficulty-level editor now explains in plain language why a level can't be deleted, renamed or left blank, in your language.
+- Search with the default title sort, and undoing a very large import, no longer fail on libraries with more than ~32,000 dances.
+- Restoring a backup no longer briefly switches the app to the default theme and language before applying yours.
+- A setting that can't be read at startup now falls back to its default instead of blocking the app on the error screen, and a restore that can't read one part of your saved data no longer leaves it half-applied.
+- Exporting or restoring a backup no longer freezes the app while the file is encoded or read.
+- The app no longer writes a backup larger than it can restore; export stops with a message instead.
+- Linux: sharing a program or dance file, or a JSON export, now saves the file through the system dialog instead of failing with 'Couldn't share'.
+- Setting a level, rating or tunes on many selected dances at once is much faster on large libraries.
+- Linux: after using Perform and switching windows, the screen can sleep and lock again as soon as you exit.
+- Search: a person's full name (for example 'Robin Hayden'), a source, a custom field value or a note is now found even when it contains a word the app treats as a dancer role.
+- Perform: Undo on 'Program adjusted' now works even after you have left Perform.
+- Perform: the clock and position line at the bottom fit at large system text sizes.
+- Importing a pasted title list while offline now stops after the first connection failure and says so once, instead of trying every title.
+- If copying a dance from the Export menu fails, you now see an error message instead of nothing happening.
+- Settings › Defaults no longer reloads your whole collection on every redraw after a failed load, and opens faster on large libraries.
+- Settings rows with a dropdown (Language, Date format, Defaults, Backup reminder, Venue call count and others) no longer clip or hide their label at larger text sizes on phones.
+- Sync no longer deletes a difficulty level that a dance in Recently Deleted still uses, so restoring that dance never leaves it un-editable.
+- A dance you import from an online search in the program editor's dance picker now gets your "Tags for imported dances".
+- On Linux, the third button in the JSON export dialog now says "Save as…" instead of "Share", because it saves the file through the system dialog.
+- Perform now shows the author line for a program dance that is in Recently deleted even when its choreographer was deleted too.
+- Linux AppImage: the app no longer looks for its system libraries in the folder you launched it from, so a library file saved next to the AppImage (for example in Downloads) can't be loaded into the app.
+- The 'too large' backup messages are now translated.
+- A dance's calling history shows the day you called it in your own time zone. An evening dance in the Americas was listed under the next day.
+- Saving a program or marking a dance performed no longer reloads your whole collection on large libraries, so the Collection and Perform screens stay responsive.
+- ContraDB pages imported from HTML now read corner, same-role, centre and single-dancer subjects the same way the JSON import does, so the two no longer look like different dances.
+- Custom figure text typed in the editor is now saved in the neutral role form and shown in your active dialect, and role searches find it. Existing custom text updates the next time the dance is saved with the same dialect active.
+- After moving your library out of Documents, the app leaves a folder with a note in its old place, so opening an older version shows an error instead of starting a new, empty library there.
+- If your library has not been moved yet and the Documents folder can't be found (for example a disconnected network folder or drive letter), the app now stops and says so instead of starting an empty library.
+- When saved data is found in more than one place, the startup screen now lists each copy's size and when it last changed, so you can tell which one is your library.
+- The one-time move of your library out of Documents now waits if another copy of the app is already moving it, and no longer moves it while another program (such as an older version of the app left running) still has it open; it stops and leaves the old copy untouched instead.
+- Large imports no longer freeze the app while matching incoming dances against your collection.
+- Free-text figure entry understands the role words of your active dialect, e.g. "Follows chain" under Leads/Follows.
+- Free-text entry no longer turns a line like "ladies chain over and back" or "neighbors swing 16" into a figure with the wrong beats and the rest hidden in a note: a leftover that is only another move, "and back" or a bare number is now marked unparsed. "give and take" still needs a giver and a target.
+- When a Caller's Compendium import can't be read, the button now says "Try again" for pasted text or a URL and "Try another file" only when you chose a file.
+- Importing from The Caller's Box or ContraDB by id or link no longer says "Check the URL" when the service is slow or sends back nothing: the message names the service and says what to do next.
+- Linux: the app window now shows the Caller's Compendium icon, and desktops that group windows under their launcher (such as GNOME) no longer show the running app as a separate entry with a generic icon.
+- Linux: the tar.gz download now includes a desktop launcher file and the app icon, so you can add the app to your applications menu. See Installation in the User Guide.
+- Importing a previewed online dance now always goes through the source the preview came from, even if you switched between The Caller's Box and ContraDB while the preview was open.
+- Section headers, text buttons and error text are now readable on every gallery theme.
+- "counter clockwise", "counter-clockwise", "anti-clockwise" and "ccw" are now understood for gates, facing stars and poussettes when you import or type a figure, and clockwise/counterclockwise are understood for circles (clockwise is a circle left, counterclockwise a circle right).
+- Perform timers no longer lose time while the app is in the background or the device is asleep, for example after switching to your music app on iPhone or iPad. Pause timers still stops them.
+- Perform opens even if a deleted dance in the program can't be read; that slot then shows as unavailable instead of Perform not opening.
+- Perform: tapping Undo on 'Program adjusted' after leaving Perform no longer overwrites changes made to the program since. If the program has changed, the undo is refused with a message instead.
+- If turning on screen keep-awake failed unexpectedly when Perform opened, the screen could stay awake after leaving Perform.
+- Changing the paper size in the print dialog for a program PDF no longer fails once the export menu has closed.
+- Figure notes and custom figure text keep the move name "mad robin" instead of saving it as a role (it read "mad follow" under Leads and Follows). It is saved in lower case, the same as imported text, so a typed "Mad Robin" comes back as "mad robin".
+- Under Leads and Follows, "lead" and "follow" used as verbs in figure notes and custom figure text ("Ones lead down the hall", "follow your partner") are kept as you typed them instead of being saved as roles. Text saved by an earlier version is not repaired automatically.
+- Searching for "mad robin" finds dances with a mad robin figure.
+- Ctrl-K (Cmd-K on macOS) now opens search from a dance's detail page and from the editors, not only from the main tabs. It stays off while you are performing a program or a single dance.
+- On Linux and Windows, launching the app while it is already running now brings the existing window to the front. Before, installed builds started a second copy on the same library: the check that prevents this stopped working about half a second after launch.
+- On macOS, saving an update over an earlier download and choosing Replace now works. It used to fail with a message blaming your connection. If a folder or a symbolic link already has that name, the app now asks you to choose another name or folder.
+- On Android, a web page can no longer ask the app to open a file. Opening a bundle with "Open with" from a file manager, or sending it from another app's Share menu, works as before.
+- When you choose which version of your dialects, custom themes, figure shorthands or walkthrough snippets to keep, the device where you chose no longer asks again, even before your other device syncs or when an old copy of this device is still listed under Other devices. Another device that also changed that set asks you once more, unless you kept its set.
+- If the app cannot read its saved Device Sync settings at startup, Settings now says so instead of leaving Device Sync silently off.
+- Theme names, theme descriptions and the custom-theme editor are now translated: Settings › Appearance and the colour-role, group and contrast labels in the theme editor follow the app language instead of staying in English.
+- Cancelling an update download while the disk is slow to write no longer reports that the install failed, and the partial download is removed on Windows too.
+- The Windows app now starts on PCs that don't have the Microsoft Visual C++ Redistributable installed. The installer and the portable zip now include the runtime files the app needs, instead of failing with "VCRUNTIME140_1.dll was not found".
+
+### Data / Migrations
+
+- Programs gain optional pay fields (schema 36 -> 38); existing programs are unchanged.
+- On Windows and Linux your library now lives in the app's own data folder instead of Documents, so OneDrive folder backup no longer syncs a live database and Linux no longer leaves it loose in your home folder. The first launch after updating moves it (and the automatic safety copies in its db_backups folder) once, deleting the old copy only after the new one is verified; if anything looks wrong the app stops and leaves both copies untouched. After the move, going back to an older version (0.5.4 or earlier on Windows, 0.5.3 or earlier on Linux) stops on its startup error screen: your data is still in the new folder.
 
 ## [0.5.4] - 2026-10-02
 

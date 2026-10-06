@@ -1,9 +1,0 @@
-{
-  "id": "security-6-android-view-not-browsable",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "On Android, a web page can no longer ask the app to open a file. Opening a bundle with \"Open with\" from a file manager, or sending it from another app's Share menu, works as before."
-    ]
-  }
-}

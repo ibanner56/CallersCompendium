@@ -1,9 +1,0 @@
-{
-  "id": "1552-perform-wakelock-idempotent",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "Linux: after using Perform and switching windows, the screen can sleep and lock again as soon as you exit."
-    ]
-  }
-}

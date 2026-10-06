@@ -1,9 +1,0 @@
-{
-  "id": "1554-program-dialect-storage",
-  "user_visible": false,
-  "core": {
-    "added": [
-      "Add an optional `Program.dialectName` (schema v37, nullable `programs.dialect_name`): the name of the dialect Perform should use for that program, carried through the repository, Device Sync, archives, backups and imports. Nothing reads it yet; a name that no longer resolves is meant to fall back to the application dialect, so rename and delete never write to programs."
-    ]
-  }
-}

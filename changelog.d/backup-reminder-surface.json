@@ -1,9 +1,0 @@
-{
-  "id": "backup-reminder-surface",
-  "user_visible": true,
-  "app": {
-    "added": [
-      "When your chosen backup reminder is overdue, the app now shows a reminder with an Export backup button on the main screen once per launch, not only inside Settings."
-    ]
-  }
-}

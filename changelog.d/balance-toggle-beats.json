@@ -1,9 +1,0 @@
-{
-  "id": "balance-toggle-beats",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "Turning a figure's balance option on now adds 4 beats to its timing, and turning it off takes 4 beats away, even if you had set the beats yourself."
-    ]
-  }
-}

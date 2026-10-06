@@ -1,9 +1,0 @@
-{
-  "id": "crash-fallback-redacted-copy",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "When part of the app shows \"Something went wrong here\", Copy details now copies the error's type and its stack trace with folder names, email addresses and phone numbers removed, and leaves out the error's message, which could contain your own content. The full error is still saved to the on-device diagnostics log."
-    ]
-  }
-}

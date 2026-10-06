@@ -21,7 +21,46 @@ core version. They are left that way deliberately — do not renumber them.
 
 ## [Unreleased]
 
-_Nothing yet._
+## [0.7.0] - 2026-10-06
+
+### Added
+
+- Add optional `Program.payMinorUnits` and `Program.payCurrency` (schema v38, nullable `programs.pay_minor_units` and `programs.pay_currency`): the caller's pay as integer minor units plus an ISO 4217 code, set together or not at all, carried through the repository, Device Sync, archives and imports, with `parsePayMinorUnits` and `formatPayMinorUnits` helpers.
+- Add typed `DifficultyLevelLabelEmpty`, `DifficultyLevelLabelDuplicate` and `DifficultyLevelInUse` errors and `DifficultyLevelRepository.referenceCount`.
+- Add an optional `Program.dialectName` (schema v37, nullable `programs.dialect_name`): the name of the dialect Perform should use for that program, carried through the repository, Device Sync, archives, backups and imports. Nothing reads it yet; a name that no longer resolves is meant to fall back to the application dialect, so rename and delete never write to programs.
+- Add `syncBookkeepingTables`, the set of Device Sync bookkeeping tables derived from the privacy field registry.
+- `ArchiveRestorer.restore` takes an optional `onProgress(done, total)` callback that reports `(0, total)` first and then one call per restored entity, ending at `(total, total)`.
+- DanceCardContent, the pre-gated, dialect-rendered content of a dance card that danceToPlainText and the PDF builders share; programHeaderLines, programSlotLine and isoDate are now public program_text helpers.
+- Move wording templates accept `{!name}` slots, which force the slot to display even when it would otherwise be hidden (implied chain hand, alias-pinned params).
+- The shared figure parser recognises `N`, `neighbour` and `neighbours` as neighbors, a hey with a starting pair and shoulder (`half hey, ladies start by the right`), and `allemande ... with <dancer>`.
+- `parseFigureLineFanOut` and `parseFigureLinesFanOut` take an opt-in `demoteNoteTails` flag: a note-bearing parse whose notes are only another move name, `and back` or a bare number falls to the import-gap custom. Free-text entry and the custom-figure reparse upgrade turn it on; imports keep the default (off).
+- `ImportPipeline.commit`, `CallersCompanionUsrImporter.commit` and `PublishedCollectionImporter.commit` take an optional `onProgress(done, total)`, called once per record and once more with `(total, total)` when the commit loop ends.
+- Add `ProgramRepository.updateAndReadBack` and `ProgramRepository.replaceIfUnchanged`, an atomic compare-and-replace that writes only while the stored program still equals an expected stored form.
+- Add `RoleCanonicalizer`, `RoleSpanDecision`, `RoleSpanKind`, `MoveWordLexicon`, `legacyRoleSynonyms` and `subjectBearingMovePhrases`.
+- combineSyncCollection and syncCollectionLimit; SyncConflictDecision.combineTakingOther; CompendiumSyncStorage.reconsiderConflicts with SyncConflictReconsideration / SyncConflictRechoice; syncConflictGroupFor; SyncReviewFailureCode.combineUnavailable and combineOverLimit.
+- syncCollectionEntries, compareSyncCollection and syncDifferingFields compare two versions of a conflicted record; SyncConflictGroup carries this device's copy projected to shareable fields and its last-changed time (CompendiumSyncStorage.recordUpdatedAt).
+
+### Changed
+
+- DanceRepository's batch edits (level, rating, tunes, custom field) read the selected dances in chunks instead of one at a time, and the level, rating and tunes batches no longer rewrite the search index.
+- A sync record blob now encodes its canonical bytes once at construction and reuses them for every wire hash, and the sync snapshot reads dance and program timestamps with a four-column query instead of re-reading whole rows. Wire bytes and hashes are unchanged.
+- Sync now holds a difficulty-level deletion pending while a dance in Recently Deleted still uses the level, matching the local Delete level guard, and counts those dances with one query instead of one lookup per dance.
+- Add an opt-in includeDeletedAuthors flag to DanceRepository.getById that keeps soft-deleted choreographers in a dance's authorIds. The default read is unchanged.
+- `DedupeIndex.fuzzyMatches` looks up exact normalized titles through a map and skips pairs whose title lengths make the threshold unreachable, with identical results; `ImportPipeline.plan` now yields to the event loop between records while deduping, as it already did while parsing.
+- `parseFreeTextFigureEntry` accepts an optional `dialect`; when the line as typed parses to custom figures only, it retries with the line canonicalised against that dialect.
+- CustomFieldDefRepository.delete throws CustomFieldInUseException (carrying the live dance count) instead of StateError; the choreographer, tag, published-source and custom-field delete guards count citations with a scalar COUNT instead of fetching every joined dance row.
+- `canonicalize`, `canonicalizeText` and `roleSpans` no longer rewrite role terms that are move words to role tokens: the move name "mad robin" is written in lowercase and the verbs "lead"/"follow" are kept as typed.
+- `Substitutor.apply` takes an optional `where` predicate.
+- `scrubFigureText` no longer rewrites "madrobin" inside another word ("madrobins.com").
+- CompendiumSyncStorage.resolveConflicts and SyncReviewQueueResolver.resolveConflicts now return a SyncConflictResolution (kinds written plus how to reconsider each choice) instead of a set of kinds.
+
+### Fixed
+
+- Chunk the id lists in DanceRepository's article-ignoring title sort and hardDelete so they stay under SQLite's bound-variable limit.
+- Omni full-text search (and the relevance query) now also matches the query as typed over title, authors, sources, custom values, hook and notes, so a role word such as 'Robin' or 'ladies' in a name or prose is found verbatim; `figures_text` stays canonical-only.
+- The ContraDB HTML figure dialect and the JSON adapter share one dancer-set vocabulary table; "first/second corners", "same roles", "centers" and "first/second gentlespoon/ladle" subjects structure from rendered HTML.
+- Figure parser reads every spin direction through one reader, accepting hyphenated and spaced counter-clockwise forms; circles map spin words to left/right and leave contradictory lines custom.
+- A whole-collection setting conflict choice now records the versions it chose against in review_queue, and the merge stops counting them as changes, so the deciding device no longer re-raises the conflict while a peer or a leftover manifest still publishes one of them.
 
 ## [0.6.3] - 2026-10-02
 
