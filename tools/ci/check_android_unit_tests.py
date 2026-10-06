@@ -10,10 +10,17 @@ would never run anywhere (post-audit finding platform-7).
 This reads ``.github/workflows/ci.yml``'s ``build`` job and checks that its
 step list holds, after the step that runs ``flutter build``, a step that:
 
-- runs ``./gradlew :app:testDebugUnitTest``;
-- is conditioned on the Android leg (``matrix.target == 'android'``);
+- has a ``run`` script line that *is* the Gradle invocation: after any
+  trailing ``# comment`` is dropped, the line starts with ``./gradlew`` (or
+  ``cd app/android && ./gradlew``) and names ``:app:testDebugUnitTest``. A
+  line that only mentions the command (``echo ./gradlew ...``, a comment) does
+  not count;
+- has an ``if`` that is exactly ``matrix.target == 'android'`` (whitespace,
+  quote style and a ``${{ }}`` wrapper may vary). A compound condition that
+  merely contains the comparison (``false && ...``, ``... || true``) can run
+  the step nowhere or everywhere, so it does not count;
 - runs in ``app/android`` (where Flutter writes the Gradle wrapper during the
-  build).
+  build), via ``working-directory`` or a ``cd app/android &&`` prefix.
 
 It also checks that the matrix still has an ``android`` leg, so the condition
 cannot be satisfied by a leg that never runs.
@@ -40,7 +47,13 @@ GRADLE_COMMAND = "./gradlew :app:testDebugUnitTest"
 WORKING_DIRECTORY = "app/android"
 
 _JOB_RE = re.compile(r"^  (?P<job>[\w-]+):\s*(?:#.*)?$")
-_ANDROID_IF_RE = re.compile(r"""matrix\.target\s*==\s*['"]android['"]""")
+_ANDROID_IF_RE = re.compile(r"""matrix\.target\s*==\s*(['"])android\1""")
+_EXPRESSION_RE = re.compile(r"^\$\{\{(?P<inner>.*)\}\}$")
+_TRAILING_COMMENT_RE = re.compile(r"(?:^|\s)#.*$")
+_GRADLE_LINE_RE = re.compile(
+    r"^(?P<cd>cd\s+" + re.escape("app/android") + r"/?\s*&&\s*)?\./gradlew(?:\s|$)"
+)
+TASK = ":app:testDebugUnitTest"
 _ANDROID_LEG_RE = re.compile(r"""^\s*-\s+target:\s*['"]?android['"]?\s*$""")
 
 
@@ -107,6 +120,29 @@ def steps(body: list[str]) -> list[dict[str, str]]:
     return result
 
 
+def is_android_condition(condition: str) -> bool:
+    """True only for exactly ``matrix.target == 'android'``, allowing
+    surrounding whitespace, either quote, and one ``${{ }}`` wrapper."""
+    text = condition.strip()
+    wrapped = _EXPRESSION_RE.match(text)
+    if wrapped:
+        text = wrapped.group("inner").strip()
+    return _ANDROID_IF_RE.fullmatch(text) is not None
+
+
+def gradle_invocation(run: str) -> str | None:
+    """For a ``run`` script that runs the unit-test task, ``"cd"`` when the
+    invoking line changes into ``app/android`` itself and ``""`` when it
+    relies on the step's working-directory; ``None`` when no line of the
+    script runs it."""
+    for line in run.splitlines():
+        command = _TRAILING_COMMENT_RE.sub("", line).strip()
+        match = _GRADLE_LINE_RE.match(command)
+        if match and TASK in command.split():
+            return "cd" if match.group("cd") else ""
+    return None
+
+
 def check(root: Path = REPO_ROOT) -> list[str]:
     path = root / WORKFLOW
     if not path.is_file():
@@ -126,7 +162,9 @@ def check(root: Path = REPO_ROOT) -> list[str]:
     if build_index is None:
         errors.append(f"{WORKFLOW}: no step in '{JOB}' runs 'flutter build'.")
     gradle = [
-        (i, s) for i, s in enumerate(job_steps) if GRADLE_COMMAND in s.get("run", "")
+        (i, s, form)
+        for i, s in enumerate(job_steps)
+        if (form := gradle_invocation(s.get("run", ""))) is not None
     ]
     if not gradle:
         errors.append(
@@ -134,14 +172,18 @@ def check(root: Path = REPO_ROOT) -> list[str]:
             "Android JVM unit tests in app/android/app/src/test never run in CI."
         )
         return errors
-    for i, step in gradle:
+    for i, step, form in gradle:
         name = step.get("name", f"step {i + 1}")
-        if not _ANDROID_IF_RE.search(step.get("if", "")):
+        if not is_android_condition(step.get("if", "")):
             errors.append(
-                f"{WORKFLOW}: '{name}' is not conditioned on "
-                "matrix.target == 'android'."
+                f"{WORKFLOW}: '{name}' is not conditioned on exactly "
+                "matrix.target == 'android' (got "
+                f"'{step.get('if', '')}')."
             )
-        if step.get("working-directory", "").strip("'\"") != WORKING_DIRECTORY:
+        if (
+            form != "cd"
+            and step.get("working-directory", "").strip("'\"") != WORKING_DIRECTORY
+        ):
             errors.append(
                 f"{WORKFLOW}: '{name}' does not run in '{WORKING_DIRECTORY}'."
             )
