@@ -24,14 +24,34 @@ lives in the core package; all access through repositories.*
   at both the old and new location, or the move fails, nothing is deleted and
   startup stops on a non-retryable screen (`DatabaseRelocationBlocked`) that
   lists each conflicting copy's location, size and last change (never a path).
-  While no database exists at the new location, a Documents path that does not
+  The whole move runs under an exclusive advisory lock on `.relocation.lock` in the
+  database directory (the single-instance guard's `AdvisoryFileLock`, plus an
+  in-process queue), and its preconditions are checked only once that lock is
+  held, so a second process that waited finds nothing left to move. It refuses
+  to move a database another connection has open, and keeps every other
+  connection out until the old file is deleted: the checking connection stays
+  open from the check to the delete with `locking_mode = EXCLUSIVE` and
+  `BEGIN EXCLUSIVE`, after taking a WAL database out of WAL mode (which SQLite
+  refuses while any other connection, even an idle one, has the file). The
+  main file is copied through a handle kept open until after that connection
+  closes, because closing any other descriptor would release POSIX record
+  locks. Limits: a pre-WAL rollback-journal file gives no signal for an idle
+  connection; on Windows the lock is released just before the delete (an open
+  file cannot be deleted there, so an opener in that gap makes the delete fail
+  and the move roll back), and a database over 1 GiB cannot be copied while
+  locked (the move fails, nothing deleted). The Windows behaviour is reasoned
+  from SQLite's and Dart's sources; CI does not run tests on Windows.
+  A rollback never removes the new copy unless the old database file is still
+  there. While no database exists at the new location, a Documents path that does not
   exist (a redirected folder on a disconnected share or drive letter), or a
   Documents folder Windows cannot resolve, also stops startup
   (`legacyUnreachable`) instead of reading as "no library". Only a missing path
   is detected: an unmounted volume that leaves an empty mount-point folder
   behind reads as an empty Documents. After a move, a breadcrumb *folder*
   named `compendium.sqlite` (holding a `README.txt` that names the new
-  location) is at the old path: it is made inside the delete step, so a move
+  location) is at the old path: it is made inside the delete step, right after
+  the main file is deleted (on Windows, after the lock was released for that
+  delete), so a move
   that cannot make it rolls back (only a crash in the instant between the
   delete and the breadcrumb leaves the path free, unrepaired), and it is added
   best-effort at each other old path whose folder exists. Every

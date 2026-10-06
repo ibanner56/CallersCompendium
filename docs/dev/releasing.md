@@ -54,7 +54,7 @@ ADR-002 deterministic name contract
 
 | Platform | Runner | Artifacts |
 |----------|--------|-----------|
-| Linux (x64) | `ubuntu-latest` | `…-linux-x64.AppImage`, `…-linux-x64.tar.gz` |
+| Linux (x64) | `ubuntu-22.04` (pinned: sets the glibc 2.35 floor; `tools/ci/check_linux_build_runner.py`) | `…-linux-x64.AppImage`, `…-linux-x64.tar.gz` |
 | macOS (universal) | `macos-latest` | `…-macos-universal.dmg`, `…-macos-universal.zip` |
 | Windows (x64) | `windows-latest` | `…-windows-x64.exe` (Inno Setup installer), `…-windows-x64.zip` |
 

@@ -1,7 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/app_database.dart' show kDatabaseName;
+import 'package:compendium_app/src/data/single_instance_guard.dart'
+    show InstanceLockHandle, InstanceLockPrimitive;
 import 'package:compendium_core/compendium_core.dart'
     show
         CompendiumDatabase,
@@ -30,6 +34,36 @@ void _createFixture(
   } finally {
     db.close();
   }
+}
+
+/// A relocation lock some other process holds for as long as the test runs.
+class _HeldElsewhere implements InstanceLockPrimitive {
+  int attempts = 0;
+
+  @override
+  Future<InstanceLockHandle?> tryAcquire(File lockFile) async {
+    attempts++;
+    return null;
+  }
+}
+
+/// Grants the relocation lock, after running [whileWaiting]: what another
+/// process did while this one waited for the lock.
+class _GrantedAfter implements InstanceLockPrimitive {
+  _GrantedAfter(this.whileWaiting);
+
+  final void Function() whileWaiting;
+
+  @override
+  Future<InstanceLockHandle?> tryAcquire(File lockFile) async {
+    whileWaiting();
+    return _NoopHandle();
+  }
+}
+
+class _NoopHandle implements InstanceLockHandle {
+  @override
+  Future<void> release() async {}
 }
 
 void main() {
@@ -594,31 +628,329 @@ void main() {
       expect(seeded(target), 'my library');
     });
 
-    test('moves the sidecars that survive the checkpoint', () async {
+    test('refuses to move a database another connection holds open, even an '
+        'idle one (dbloc-2)', () async {
       _createFixture(legacy.path, userVersion: 7, seedValue: 'first');
-      // A connection left open keeps the -wal/-shm in place through the move.
+      // An older build left running on the legacy file: open, WAL, idle (no
+      // read transaction), so the checkpoint alone does not report busy.
       final live = sql.sqlite3.open(legacy.path)
         ..execute('PRAGMA journal_mode = WAL')
         ..execute("INSERT INTO t (v) VALUES ('second')");
       addTearDown(live.close);
-      expect(File('${legacy.path}-wal').existsSync(), isTrue);
-      expect(File('${legacy.path}-shm').existsSync(), isTrue);
 
-      await relocateLegacyDatabase(target: target, legacy: [legacy]);
+      await expectLater(
+        relocateLegacyDatabase(target: target, legacy: [legacy]),
+        throwsA(
+          isA<DatabaseRelocationBlocked>().having(
+            (e) => e.reason,
+            'reason',
+            DatabaseRelocationFailure.moveFailed,
+          ),
+        ),
+      );
 
-      // The checkpoint folded the WAL into the main file before the copy.
-      expect(File('${target.path}-wal').existsSync(), isTrue);
-      expect(File('${target.path}-wal').lengthSync(), 0);
-      expect(File('${target.path}-shm').existsSync(), isTrue);
-      expect(File('${legacy.path}-wal').existsSync(), isFalse);
-      expect(File('${legacy.path}-shm').existsSync(), isFalse);
-      expect(legacy.existsSync(), isFalse);
-      final db = sql.sqlite3.open(target.path);
-      expect(db.select('SELECT v FROM t ORDER BY id').map((r) => r['v']), [
+      expect(legacy.existsSync(), isTrue);
+      expect(target.existsSync(), isFalse);
+      // The other connection still works on the file it had open.
+      live.execute("INSERT INTO t (v) VALUES ('third')");
+      expect(live.select('SELECT v FROM t ORDER BY id').map((r) => r['v']), [
         'first',
         'second',
+        'third',
       ]);
-      db.close();
+      expect(live.select('PRAGMA journal_mode').single.values.single, 'wal');
+    });
+
+    test('a connection opened after the in-use check cannot write to the old '
+        'file while it is copied and deleted (dbloc-2)', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'library');
+      sql.sqlite3.open(legacy.path)
+        ..execute('PRAGMA journal_mode = WAL')
+        ..close();
+      final attempts = <String>[];
+
+      final moved = await relocateLegacyDatabase(
+        target: target,
+        legacy: [legacy],
+        afterRename: (renamed) async {
+          if (renamed.path != target.path) return;
+          // An older build opening the old file after the probe, mid-move.
+          final late = sql.sqlite3.open(legacy.path);
+          try {
+            late.execute("INSERT INTO t (v) VALUES ('lost?')");
+            attempts.add('wrote');
+          } on sql.SqliteException {
+            attempts.add('refused');
+          } finally {
+            late.close();
+          }
+        },
+      );
+
+      expect(moved, isTrue);
+      expect(attempts, ['refused']);
+      final db = sql.sqlite3.open(target.path);
+      addTearDown(db.close);
+      expect(db.select('SELECT v FROM t').map((r) => r['v']), ['library']);
+    });
+
+    test(
+      'another process cannot write to the old file while it is copied and '
+      'deleted (dbloc-2)',
+      () async {
+        _createFixture(legacy.path, userVersion: 7, seedValue: 'library');
+        sql.sqlite3.open(legacy.path)
+          ..execute('PRAGMA journal_mode = WAL')
+          ..close();
+        final outcomes = <String>[];
+        Future<void> tryWrite() async {
+          final result = await Process.run('python3', [
+            '-c',
+            'import sqlite3, sys\n'
+                'c = sqlite3.connect(sys.argv[1], timeout=0)\n'
+                'try:\n'
+                '    c.execute("INSERT INTO t (v) VALUES (\'lost?\')")\n'
+                '    c.commit()\n'
+                '    print("wrote")\n'
+                'except sqlite3.OperationalError:\n'
+                '    print("refused")\n',
+            legacy.path,
+          ]);
+          outcomes.add('${result.stdout}'.trim());
+        }
+
+        final moved = await relocateLegacyDatabase(
+          target: target,
+          legacy: [legacy],
+          // Mid-copy is covered by the same lock; after the rename the main
+          // file has been read and copied through this process's own handle,
+          // so this also proves closing that handle did not drop the lock.
+          afterRename: (renamed) async {
+            if (renamed.path == target.path) await tryWrite();
+          },
+        );
+
+        expect(moved, isTrue);
+        expect(outcomes, ['refused']);
+        final db = sql.sqlite3.open(target.path);
+        addTearDown(db.close);
+        expect(db.select('SELECT v FROM t').map((r) => r['v']), ['library']);
+      },
+      // python3's sqlite3 takes POSIX fcntl locks like this process's SQLite.
+      skip: Platform.isWindows,
+    );
+
+    test('a move that gives up leaves the old file in WAL mode; a moved copy '
+        'is put back in WAL mode by the app\'s own setup', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'x');
+      sql.sqlite3.open(legacy.path)
+        ..execute('PRAGMA journal_mode = WAL')
+        ..close();
+      String mode(File file) {
+        final db = sql.sqlite3.open(file.path);
+        try {
+          return '${db.select('PRAGMA journal_mode').single.values.single}';
+        } finally {
+          db.close();
+        }
+      }
+
+      await expectLater(
+        relocateLegacyDatabase(
+          target: target,
+          legacy: [legacy],
+          deleter: (file) async => throw const FileSystemException('locked'),
+        ),
+        throwsA(isA<DatabaseRelocationBlocked>()),
+      );
+      expect(mode(legacy), 'wal');
+      expect(target.existsSync(), isFalse);
+
+      expect(
+        await relocateLegacyDatabase(target: target, legacy: [legacy]),
+        isTrue,
+      );
+      // Moved while held in rollback-journal mode; drift's setup (as every
+      // open in the app runs it) switches it back.
+      final db = sql.sqlite3.open(target.path);
+      addTearDown(db.close);
+      applyCompendiumSqliteSetup(db);
+      expect(db.select('PRAGMA journal_mode').single.values.single, 'wal');
+      expect(seeded(target), 'x');
+    });
+
+    test('a second relocation started while the first is mid-move waits for '
+        'it instead of interleaving (dbloc-1)', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'my library');
+      final firstRenamed = Completer<void>();
+      final letFirstFinish = Completer<void>();
+      final order = <String>[];
+
+      final first = relocateLegacyDatabase(
+        target: target,
+        legacy: [legacy],
+        afterRename: (renamed) async {
+          if (renamed.path != target.path) return;
+          // Paused after its rename and before deleting the legacy file: the
+          // window in which both copies exist.
+          firstRenamed.complete();
+          await letFirstFinish.future;
+        },
+      ).whenComplete(() => order.add('first'));
+      await firstRenamed.future;
+
+      final second = relocateLegacyDatabase(
+        target: target,
+        legacy: [legacy],
+      ).whenComplete(() => order.add('second'));
+      final secondOutcome = second.then<Object?>(
+        (moved) => moved,
+        onError: (Object error) => error,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      expect(order, isEmpty, reason: 'the second attempt must wait');
+
+      letFirstFinish.complete();
+      expect(await first, isTrue);
+      // It re-checks once it holds the lock: the first already moved it.
+      expect(await secondOutcome, isFalse);
+      expect(order, ['first', 'second']);
+      expect(legacy.existsSync(), isFalse);
+      expect(seeded(target), 'my library');
+    });
+
+    test('fails closed, touching nothing, while another process holds the '
+        'relocation lock', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'keep me');
+      final lock = _HeldElsewhere();
+
+      await expectLater(
+        relocateLegacyDatabase(
+          target: target,
+          legacy: [legacy],
+          lockPrimitive: lock,
+          lockTimeout: const Duration(milliseconds: 300),
+        ),
+        throwsA(
+          isA<DatabaseRelocationBlocked>().having(
+            (e) => e.reason,
+            'reason',
+            DatabaseRelocationFailure.moveFailed,
+          ),
+        ),
+      );
+
+      expect(lock.attempts, greaterThan(1), reason: 'it retries until timeout');
+      expect(seeded(legacy), 'keep me');
+      expect(target.existsSync(), isFalse);
+    });
+
+    test('re-checks the preconditions once the lock is held', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'moved by B');
+
+      final moved = await relocateLegacyDatabase(
+        target: target,
+        legacy: [legacy],
+        // Another process finished the whole move while this one waited.
+        lockPrimitive: _GrantedAfter(() {
+          target.parent.createSync(recursive: true);
+          legacy.renameSync(target.path);
+        }),
+      );
+
+      expect(moved, isFalse);
+      expect(legacy.existsSync(), isFalse);
+      expect(seeded(target), 'moved by B');
+    });
+
+    test(
+      'waits on the real OS lock held by another process',
+      () async {
+        _createFixture(legacy.path, userVersion: 7, seedValue: 'keep me');
+        target.parent.createSync(recursive: true);
+        final lockPath = p.join(target.parent.path, kRelocationLockFileName);
+        final holder = await Process.start('python3', [
+          '-c',
+          'import fcntl, sys\n'
+              'f = open(sys.argv[1], "w")\n'
+              'fcntl.lockf(f, fcntl.LOCK_EX)\n'
+              'print("locked", flush=True)\n'
+              'sys.stdin.readline()\n',
+          lockPath,
+        ]);
+        addTearDown(holder.kill);
+        final lines = holder.stdout
+            .transform(utf8.decoder)
+            .transform(const LineSplitter());
+        expect(await lines.first, 'locked');
+
+        await expectLater(
+          relocateLegacyDatabase(
+            target: target,
+            legacy: [legacy],
+            lockTimeout: const Duration(milliseconds: 500),
+          ),
+          throwsA(isA<DatabaseRelocationBlocked>()),
+        );
+        expect(seeded(legacy), 'keep me');
+        expect(target.existsSync(), isFalse);
+
+        holder.stdin.writeln();
+        await holder.exitCode;
+        expect(
+          await relocateLegacyDatabase(target: target, legacy: [legacy]),
+          isTrue,
+        );
+      },
+      // A POSIX fcntl lock taken by a python3 child; Windows LockFileEx is not
+      // reachable from python's stdlib the same way.
+      skip: Platform.isWindows,
+    );
+
+    test('a delete failure never discards the new copy once the legacy '
+        'database is gone (dbloc-1)', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'only copy');
+
+      await expectLater(
+        relocateLegacyDatabase(
+          target: target,
+          legacy: [legacy],
+          // Something else removed the legacy database, then our delete fails.
+          deleter: (file) async {
+            if (file.path == legacy.path) {
+              await file.delete();
+              throw const FileSystemException('already gone');
+            }
+            await file.delete();
+          },
+        ),
+        throwsA(isA<DatabaseRelocationBlocked>()),
+      );
+
+      expect(legacy.existsSync(), isFalse);
+      expect(target.existsSync(), isTrue);
+      expect(seeded(target), 'only copy');
+    });
+
+    test('a failure after the rename never discards the new copy once the '
+        'legacy database is gone (dbloc-1)', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'only copy');
+
+      await expectLater(
+        relocateLegacyDatabase(
+          target: target,
+          legacy: [legacy],
+          afterRename: (renamed) async {
+            legacy.deleteSync();
+            throw const FileSystemException('later rename failed');
+          },
+        ),
+        throwsA(isA<DatabaseRelocationBlocked>()),
+      );
+
+      expect(legacy.existsSync(), isFalse);
+      expect(target.existsSync(), isTrue);
+      expect(seeded(target), 'only copy');
     });
 
     test('fails closed without copying or deleting when a reader holds the '
@@ -650,8 +982,10 @@ void main() {
 
       expect(legacy.existsSync(), isTrue);
       expect(File('${legacy.path}-wal').lengthSync(), walLength);
-      expect(target.existsSync(), isFalse);
-      expect(target.parent.existsSync(), isFalse);
+      // Only the relocation lock file was created at the new location.
+      expect(target.parent.listSync().map((e) => p.basename(e.path)), [
+        kRelocationLockFileName,
+      ]);
     });
 
     test('reports a distinct reason when only legacy locations conflict, and '

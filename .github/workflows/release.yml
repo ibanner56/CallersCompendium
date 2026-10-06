@@ -277,9 +277,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Pinned, not ubuntu-latest: the shipped binaries need the glibc of
+          # the machine that built them, so this image sets the minimum Linux
+          # (glibc 2.35, Ubuntu 22.04) that docs/user/installation.md states.
+          # tools/ci/check_linux_build_runner.py enforces it. GitHub retires
+          # this image on 2027-04-17; see that script for the way forward.
           - platform: linux
             arch: x64
-            os: ubuntu-latest
+            os: ubuntu-22.04
           - platform: macos
             arch: universal
             os: macos-latest

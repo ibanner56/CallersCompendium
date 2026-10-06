@@ -211,6 +211,10 @@ jobs:
         run: python3 tools/ci/test_check_changelog_structure.py
       - name: Test the app release-version guard
         run: python3 tools/ci/test_check_app_version.py
+      # The Linux build legs pin the runner whose glibc is the documented
+      # minimum (docs/user/installation.md); ubuntu-latest would move it.
+      - name: Guard the Linux build runner (glibc floor)
+        run: python3 tools/ci/test_check_linux_build_runner.py
       - name: Test the Android release versionCode encoder
         run: python3 tools/release/test_android_version_code.py
       - name: Test the Flutter-free core guard
