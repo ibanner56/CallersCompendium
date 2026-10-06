@@ -11798,7 +11798,7 @@ abstract class AppLocalizations {
   /// **'Could not choose a place to download the update.'**
   String get updateDownloadFailureDestination;
 
-  /// macOS assisted-download error shown when the place chosen in the Save panel holds a folder, a link (alias), or a file that could not be removed, so the update was not saved there. The user can start the download again and pick another name or folder. "View release" must match the translation of updateBannerViewRelease.
+  /// macOS assisted-download error shown when the place chosen in the Save panel holds a folder, a symbolic link, or a file that could not be removed, so the update was not saved there. The user can start the download again and pick another name or folder. "View release" must match the translation of updateBannerViewRelease.
   ///
   /// In en, this message translates to:
   /// **'Something is already at that location. Choose another name or folder, or use \"View release\".'**

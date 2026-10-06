@@ -36,7 +36,7 @@ const _macosUpdateTypeGroup = XTypeGroup(
 /// The caller writes the artifact directly to this path using its existing
 /// exclusive-create guard. The panel has already asked the user to confirm
 /// replacing an existing file, so the caller first deletes a regular file at
-/// the path; a link or folder there is refused (security-5). Returning `null`
+/// the path; a symbolic link or folder there is refused (security-5). Returning `null`
 /// means the user cancelled and no download should begin.
 Future<File?> pickMacosArtifactDestination(
   UpdateArtifact artifact, {

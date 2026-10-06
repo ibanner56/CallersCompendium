@@ -10126,7 +10126,7 @@
   },
   "updateDownloadFailureDestinationOccupied": "Something is already at that location. Choose another name or folder, or use \"View release\".",
   "@updateDownloadFailureDestinationOccupied": {
-    "description": "macOS assisted-download error shown when the place chosen in the Save panel holds a folder, a link (alias), or a file that could not be removed, so the update was not saved there. The user can start the download again and pick another name or folder. \"View release\" must match the translation of updateBannerViewRelease."
+    "description": "macOS assisted-download error shown when the place chosen in the Save panel holds a folder, a symbolic link, or a file that could not be removed, so the update was not saved there. The user can start the download again and pick another name or folder. \"View release\" must match the translation of updateBannerViewRelease."
   },
   "updateDownloadFailureIncomplete": "The download was incomplete and was deleted. Please try again, or use \"View release\".",
   "@updateDownloadFailureIncomplete": {

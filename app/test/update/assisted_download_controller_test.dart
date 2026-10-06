@@ -759,6 +759,35 @@ void main() {
       expect(await chosen.readAsString(), body);
     });
 
+    test('macOS: cancelling while the Save panel is open never deletes the '
+        'file it then returns', () async {
+      final repos = openTestRepositories();
+      final chosen = File('${tempDir.path}/CallersCompendium.dmg')
+        ..writeAsStringSync('last month\'s image');
+      final picked = Completer<File?>();
+      var downloaderCalled = false;
+      final c = controller(
+        repos,
+        manifestBody: _manifest(host: allowedHost),
+        macosDestinationPicker: (artifact) => picked.future,
+        downloader: realDownloader(
+          before: (_) async => downloaderCalled = true,
+        ),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      final run = c.startAssistedDownload();
+      c.cancelDownload();
+      picked.complete(chosen);
+      await run;
+
+      expect(c.downloadStatus, AssistedDownloadStatus.cancelled);
+      expect(downloaderCalled, isFalse);
+      expect(chosen.readAsStringSync(), 'last month\'s image');
+    });
+
     test('macOS: a symlink at the chosen path is refused as occupied; the '
         'link and its target are untouched', () async {
       final repos = openTestRepositories();

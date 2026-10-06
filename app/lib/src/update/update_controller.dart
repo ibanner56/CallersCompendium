@@ -92,7 +92,8 @@ enum UpdateDownloadFailure {
   destinationUnavailable,
 
   /// macOS only: the path chosen in the Save panel holds something the app
-  /// will not replace — a folder, a link, or a file it could not delete.
+  /// will not replace — a folder, a symbolic link, or a file it could not
+  /// delete. A Finder alias is a regular file and is replaced like one.
   destinationOccupied,
 
   /// The file's size did not match the manifest; it was deleted.
@@ -287,7 +288,10 @@ class UpdateController extends ChangeNotifier {
         // hard quarantine flag ("created without user consent"), which prevents
         // Gatekeeper from launching the installed application.
         final selected = await _macosDestinationPicker(artifact);
-        if (selected == null) {
+        // A cancel pressed while the panel was open wins: return before the
+        // chosen path is touched, so a file the user just confirmed replacing
+        // is not deleted for a download that will never run.
+        if (selected == null || token.isCancelled) {
           _cancelDownloadState(null);
           return;
         }
