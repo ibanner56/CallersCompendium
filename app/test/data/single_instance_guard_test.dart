@@ -442,13 +442,15 @@ void main() {
       final port = await server.listen(dir, () => raised++);
       final socket = await Socket.connect(InternetAddress.loopbackIPv4, port);
       final closed = Completer<void>();
-      socket.listen(
-        (_) {},
-        onDone: closed.complete,
-        onError: (_) {
-          if (!closed.isCompleted) closed.complete();
-        },
-      );
+      void markClosed() {
+        if (!closed.isCompleted) closed.complete();
+      }
+
+      // The server's cut can arrive as an error (ECONNRESET) followed by done,
+      // or as done alone, depending on the host; either ends the wait once.
+      // Writes after the reset report their error on `done`, so drain it too.
+      socket.listen((_) {}, onDone: markClosed, onError: (_) => markClosed());
+      unawaited(socket.done.catchError((_) {}));
       final sw = Stopwatch()..start();
       final trickle = Timer.periodic(const Duration(milliseconds: 100), (_) {
         try {
