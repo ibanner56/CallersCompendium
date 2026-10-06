@@ -228,6 +228,14 @@ jobs:
       # it they could stop compiling unnoticed. The suite also checks ci.yml.
       - name: Guard the native Swift test steps (RunnerTests in ci.yml)
         run: python3 tools/ci/test_check_apple_native_tests.py
+      # Each shipped iOS target (Runner, ShareExtension) must copy a
+      # PrivacyInfo.xcprivacy that declares every required-reason API category
+      # its own sources use; App Store Connect rejects an undeclared one
+      # (ITMS-91053). Post-audit finding platform-6.
+      - name: Test the iOS privacy-manifest guard
+        run: python3 tools/ci/test_check_ios_privacy_manifest.py
+      - name: Guard iOS privacy manifests (required-reason APIs)
+        run: python3 tools/ci/check_ios_privacy_manifest.py
       # A web page must not be able to launch the app on a file:/content: URI
       # (security-6); the suite also checks the real manifest.
       - name: Guard the Android intent filters (no BROWSABLE local-file VIEW)
