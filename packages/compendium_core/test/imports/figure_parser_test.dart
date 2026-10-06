@@ -635,8 +635,9 @@ void main() {
       // either must not be silently mapped onto a nearer partner — it stays
       // custom.
       //
-      // To falsify, add the code to BOTH _dancerWords AND _pSeriesCodes.
-      // Adding it to _dancerWords alone leaves this test green: the pair
+      // To falsify, add the code to BOTH dancerWords (taxonomy/
+      // dance_vocabulary.dart) AND _pSeriesCodes. Adding it to dancerWords
+      // alone leaves this test green: the pair
       // absorption in _takeDancer/_takeLeadingDancer is gated on
       // _pSeriesCodes, which excludes out-of-range codes, so the trailing
       // "partner" survives as a leftover token, _swing returns null, and the
@@ -1112,7 +1113,7 @@ void main() {
       // TCB writes "Pn partner <verb>" — the Pn code identifies the dancer set
       // and the trailing "partner" qualifier is dropped (mirrors "N2 neighbor").
       // Falsify these tests by removing the corresponding p→token entry from
-      // _dancerWords.
+      // dancerWords (taxonomy/dance_vocabulary.dart).
       'P1 partner swing': (move: 'swing', params: {'who': 'partners'}),
       'P0 partner swing': (move: 'swing', params: {'who': 'prevPartners'}),
       'P2 partner swing': (move: 'swing', params: {'who': 'nextPartners'}),

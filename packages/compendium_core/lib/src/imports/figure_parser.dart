@@ -1,5 +1,6 @@
 import '../model/figure.dart';
 import '../taxonomy/contra_taxonomy.dart';
+import '../taxonomy/dance_vocabulary.dart';
 import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
@@ -325,7 +326,7 @@ class _Match {
 /// Exposed for front-ends that must read a dancer out of source text the shared
 /// grammar never sees — the CallersBox gate annotation (`(ones forward)`) is
 /// stripped before `_normalize`, so its pre-recognizer resolves the dancer here
-/// instead of duplicating [_dancerWords].
+/// instead of duplicating [dancerWords].
 ///
 /// Runs on POST-SCRUB text, so gendered terms have already become `role1`/
 /// `role2` tokens. Never throws.
@@ -503,64 +504,14 @@ List<String>? splitTopLevelOnWord(String t, RegExp word) {
 
 // --- Shared token vocabularies ----------------------------------------------
 
-/// Single words → canonical dancer-set token. Post-scrub, gendered terms are
-/// already `role1`/`role2`; this maps relationship words + those tokens.
-const Map<String, String> _dancerWords = {
-  'neighbor': 'neighbors',
-  'neighbors': 'neighbors',
-  // Free-text shorthand ("N swing") and the British spelling. Distinct tokens
-  // from the TCB `n0..n4` codes below, which keep their own entries.
-  'n': 'neighbors',
-  'neighbour': 'neighbors',
-  'neighbours': 'neighbors',
-  'partner': 'partners',
-  'partners': 'partners',
-  'role1': 'role1s',
-  'role1s': 'role1s',
-  'role2': 'role2s',
-  'role2s': 'role2s',
-  'everyone': 'everyone',
-  'ones': 'ones',
-  'twos': 'twos',
-  // Tier B: TCB writes "Shadow allemande"; taxonomy supports `shadows`.
-  'shadow': 'shadows',
-  'shadows': 'shadows',
-  // Tier B: TCB N-prefix relationship shorthand ("N2 neighbor", "N1", …).
-  // Ni maps to the taxonomy's pair dancer-set convention.
-  'n0': 'prevNeighbors',
-  'n1': 'neighbors',
-  'n2': 'nextNeighbors',
-  'n3': 'thirdNeighbors',
-  'n4': 'fourthNeighbors',
-  // Tier B: TCB P-prefix partner-series shorthand ("P1 partner", "P2 partner",
-  // …). P/P1 = current partner; P0 = previous; P2–P5 = successive next
-  // partners (taxonomy v24, issue #732). P6+ and P-n have no taxonomy token
-  // and are absent from this map so they decline the whole line to custom.
-  'p': 'partners',
-  'p1': 'partners',
-  'p0': 'prevPartners',
-  'p2': 'nextPartners',
-  'p3': 'thirdPartners',
-  'p4': 'fourthPartners',
-  'p5': 'fifthPartners',
-  // TCB explicit-dancer codes map to the single-dancer identities: M/W are the
-  // roles, 1 = the active couple (ones), 2 = the inactive couple (twos). So
-  // M1 = active role1 (onesRole1), W1 = active role2 (onesRole2), M2 = inactive
-  // role1 (twosRole1), W2 = inactive role2 (twosRole2). Bare codes only —
-  // line-order annotations like "(M1-W2-M2-W1)" are stripped before recognition.
-  'm1': 'onesRole1',
-  'w1': 'onesRole2',
-  'm2': 'twosRole1',
-  'w2': 'twosRole2',
-};
-
-/// Filler words that carry no structural meaning and may be dropped anywhere.
-const Set<String> _filler = {'your', 'the', 'a', 'an'};
+// The dancer and filler vocabularies ([dancerWords], [fillerWords]) live in
+// `taxonomy/dance_vocabulary.dart`, outside this layer, so other code can read
+// a line with the same words.
 
 // --- Small word-list helpers ------------------------------------------------
 
-/// Removes all leading/embedded [_filler] words in place.
-void _dropFiller(List<String> w) => w.removeWhere(_filler.contains);
+/// Removes all leading/embedded [fillerWords] in place.
+void _dropFiller(List<String> w) => w.removeWhere(fillerWords.contains);
 
 /// Removes the first occurrence of the consecutive [phrase] found anywhere in
 /// [w] and returns true; returns false (leaving [w] untouched) if absent.
@@ -584,7 +535,7 @@ bool _consumePhrase(List<String> w, List<String> phrase) {
 /// Removes and returns the first dancer-set word found, or null.
 String? _takeDancer(List<String> w) {
   for (var i = 0; i < w.length; i++) {
-    final token = _dancerWords[w[i]];
+    final token = dancerWords[w[i]];
     if (token != null) {
       final raw = w.removeAt(i);
       // TCB pairs the N-prefix with a redundant "neighbor(s)" word
@@ -616,7 +567,7 @@ String? _takeDancer(List<String> w) {
 /// is NOT structured — it falls through to custom instead.
 String? _takeLeadingDancer(List<String> w) {
   if (w.isEmpty) return null;
-  final token = _dancerWords[w[0]];
+  final token = dancerWords[w[0]];
   if (token == null) return null;
   final raw = w.removeAt(0);
   // Mirror _takeDancer's "N2 neighbor" pair absorption for the leading slot.
@@ -652,10 +603,10 @@ String? _takeSide(List<String> w) {
 const Set<String> _neighborNumbers = {'n0', 'n1', 'n2', 'n3', 'n4'};
 
 /// TCB P-prefix partner tags that have taxonomy tokens (`P`/`P0`–`P5`; taxonomy
-/// v24, issue #732). Used to identify the subset of [_dancerWords] keys whose
+/// v24, issue #732). Used to identify the subset of [dancerWords] keys whose
 /// "P2 partner" pair absorption should fire — membership is a taxonomy fact, not
 /// a spelling heuristic. `partner` and `partners` also start with `p` in
-/// [_dancerWords] but must NOT trigger the absorption.
+/// [dancerWords] but must NOT trigger the absorption.
 const Set<String> _pSeriesCodes = {'p', 'p0', 'p1', 'p2', 'p3', 'p4', 'p5'};
 
 /// Removes the first [_neighborNumbers] token from [w] and returns it, or null.
@@ -679,7 +630,7 @@ String? _takeRelationship(List<String> w) {
         _neighborNumbers.contains(w[i + 1])) {
       final tag = w[i + 1];
       w.removeRange(i, i + 2);
-      return _dancerWords[tag];
+      return dancerWords[tag];
     }
   }
   return _takeDancer(w);
@@ -1314,7 +1265,7 @@ _Match? _chain(List<String> w) {
   final toIdx = w.indexOf('to');
   if (toIdx != -1 &&
       toIdx + 1 < w.length &&
-      _dancerWords.containsKey(w[toIdx + 1])) {
+      dancerWords.containsKey(w[toIdx + 1])) {
     // Absorb an optional trailing N-tag ("chain to neighbor N2") into the note
     // so the numeric qualifier does not survive as leftover → custom.
     var end = toIdx + 2;
@@ -1510,7 +1461,7 @@ String? _takeFacingDancer(List<String> w, {required int after}) {
   // hit this exists to remove.)
   final i = w.indexOf('face', after);
   if (i == -1 || i + 1 >= w.length) return null;
-  final token = _dancerWords[w[i + 1]];
+  final token = dancerWords[w[i + 1]];
   if (token == null) return null;
   // Absorb TCB's redundant "N2 neighbor" pairing, mirroring `_takeDancer`.
   var end = i + 2;
@@ -1609,7 +1560,7 @@ _Match? _walkForwardTo(List<String> w) {
     return null;
   }
   final dest = w[3];
-  if (!_dancerWords.containsKey(dest)) return null;
+  if (!dancerWords.containsKey(dest)) return null;
   var end = 4;
   var note = 'to $dest';
   // Absorb an optional trailing N-tag ("to neighbor N2") exactly as `_chain`
@@ -2340,7 +2291,7 @@ _Match? _downTheHall(List<String> w) {
   final who = _takeDancer(w);
   // "Ones lead down" (the actives lead down the center) — TCB's shorthand for
   // a hall figure whose `moving` set is the center couple.
-  final lead = _consumePhrase(w, ['lead']);
+  final lead = _consumePhrase(w, [leadVerb]);
   _consumePhrase(w, ['go']);
   final hall =
       _consumePhrase(w, ['down', 'the', 'hall']) ||
@@ -2375,7 +2326,7 @@ _Match? _downTheHall(List<String> w) {
 _Match? _upTheHall(List<String> w) {
   _consumeLineOfFour(w);
   final who = _takeDancer(w);
-  final lead = _consumePhrase(w, ['lead']);
+  final lead = _consumePhrase(w, [leadVerb]);
   _consumePhrase(w, ['go']);
   final hall =
       _consumePhrase(w, ['up', 'the', 'hall']) ||
