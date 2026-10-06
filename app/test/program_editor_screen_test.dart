@@ -9,6 +9,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_scope.dart';
@@ -3776,6 +3777,121 @@ void main() {
     expect(saved!.title, 'Updated metadata');
     expect(saved.slots.single.performedAt, isNotNull);
   });
+
+  testWidgets(
+    'Undo of a Perform adjustment after leaving Perform is refused once the '
+    'builder has a later slot edit, and the edit is kept (flows-1)',
+    (tester) async {
+      installFakeWakelock();
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's1', position: 1, text: 'Break'),
+          ],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        size: const Size(800, 1600),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsNothing);
+
+      // A slot edit in the builder after leaving Perform.
+      await tester.tap(find.byKey(const ValueKey('slot-1-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit slot'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('slot-edit-note')),
+        'Long break',
+      );
+      await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
+      await tester.pumpAndSettle();
+      expect(find.text('Long break'), findsOneWidget);
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(ProgramEditorScreen)),
+      );
+      await tester.tap(find.text(l10n.commonUndo));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Long break'), findsOneWidget);
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.slots.first.performedAt, isNotNull);
+      expect(find.text(l10n.performUndoNoLongerAvailable), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Undo of a Perform adjustment after leaving Perform restores it when the '
+    'builder has no later edit',
+    (tester) async {
+      installFakeWakelock();
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        size: const Size(800, 1600),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      expect(
+        (await repos.programs.getById('p1'))!.slots.single.performedAt,
+        isNotNull,
+      );
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(ProgramEditorScreen)),
+      );
+      await tester.tap(find.text(l10n.commonUndo));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.slots.single.performedAt, isNull);
+    },
+  );
 
   testWidgets('blocks clearing a free-text slot to empty', (tester) async {
     final repos = openTestRepositories();

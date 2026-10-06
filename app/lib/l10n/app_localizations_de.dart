@@ -4999,6 +4999,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get performAdjustmentUndone => 'Anpassung rückgängig gemacht';
 
   @override
+  String get performUndoNoLongerAvailable =>
+      'Rückgängig nicht möglich: Das Programm wurde inzwischen geändert.';
+
+  @override
   String get performProgramAdjustedSnack => 'Programm angepasst.';
 
   @override

@@ -6398,6 +6398,10 @@
   "@performAdjustmentUndone": {
     "description": "Screen-reader announcement after undoing a live program adjustment."
   },
+  "performUndoNoLongerAvailable": "Can't undo: the program has changed since.",
+  "@performUndoNoLongerAvailable": {
+    "description": "Snackbar shown when the user taps Undo on a live program adjustment after leaving Perform, but the program was edited in the meantime, so the undo is refused to keep that later edit."
+  },
   "performProgramAdjustedSnack": "Program adjusted.",
   "@performProgramAdjustedSnack": {
     "description": "Snackbar message shown after applying a live program adjustment."

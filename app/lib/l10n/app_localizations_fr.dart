@@ -5009,6 +5009,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get performAdjustmentUndone => 'Ajustement annulé';
 
   @override
+  String get performUndoNoLongerAvailable =>
+      'Annulation impossible : le programme a été modifié depuis.';
+
+  @override
   String get performProgramAdjustedSnack => 'Programme ajusté.';
 
   @override

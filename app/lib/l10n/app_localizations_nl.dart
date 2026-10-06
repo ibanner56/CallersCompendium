@@ -4977,6 +4977,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get performAdjustmentUndone => 'Aanpassing ongedaan gemaakt';
 
   @override
+  String get performUndoNoLongerAvailable =>
+      'Kan niet ongedaan maken: het programma is sindsdien gewijzigd.';
+
+  @override
   String get performProgramAdjustedSnack => 'Programma aangepast.';
 
   @override
