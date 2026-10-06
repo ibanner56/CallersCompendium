@@ -454,5 +454,43 @@ void main() {
       expect(venue.containsKey('address1'), isFalse);
       expect(venue.containsKey('city'), isFalse);
     });
+
+    // The opt-in is the one route by which a deviceLocal column reaches
+    // another person, which the class's own definition does not allow. The
+    // exception is recorded in each released column's registry note rather
+    // than as a new egress class (flows-9), so a column an opt-in can release
+    // must say so there — including one a future opt-in adds.
+    test('every column the consent dialog can release records the '
+        'exception in its registry note', () {
+      final json = _export(
+        includeVenueContact: VenueContactField.values.toSet(),
+      );
+      final released = <String>[];
+      _probes.forEach((column, probe) {
+        for (final entity in _entities(json, probe.entityList)) {
+          if (probe.leaked(entity)) released.add(column);
+        }
+      });
+      released.sort();
+
+      expect(released, hasLength(VenueContactField.values.length));
+      final unrecorded = [
+        for (final column in released)
+          if (!(fieldClassifications[column]?.note ?? '').contains(
+            'explicit consent',
+          ))
+            column,
+      ];
+      expect(
+        unrecorded,
+        isEmpty,
+        reason:
+            'These non-shareable columns can leave in a share to another '
+            'person when the user opts them in, but their registry note '
+            '(packages/compendium_core/lib/src/privacy/field_registry.dart) '
+            'does not record that "explicit consent" exception:\n  '
+            '${unrecorded.join('\n  ')}',
+      );
+    });
   });
 }
