@@ -22,7 +22,18 @@ lives in the core package; all access through repositories.*
   (`relocateLegacyDatabase`): copy, fsync, verify size, rename into place, then
   delete the source; it never overwrites a destination, and if a database exists
   at both the old and new location, or the move fails, nothing is deleted and
-  startup stops on a non-retryable screen (`DatabaseRelocationBlocked`). Pre-migration snapshots go in `db_backups/` beside
+  startup stops on a non-retryable screen (`DatabaseRelocationBlocked`) that
+  lists each conflicting copy's location, size and last change (never a path).
+  While no database exists at the new location, an unreachable Documents folder
+  (an offline share or unmounted drive) also stops startup
+  (`legacyUnreachable`) instead of reading as "no library". After a move, a
+  breadcrumb *folder* named `compendium.sqlite` (holding a `README.txt` that
+  names the new location) is left at each old path whose folder exists. Every
+  earlier build (v0.1.0 to v0.5.4, all on drift_flutter 0.3.1) skips its
+  preflight because `File.exists()` is false for a folder, then fails to open
+  the path (SQLite cannot open a folder) and shows its startup error screen
+  instead of creating an empty library; the relocation ignores it for the same
+  reason. Pre-migration snapshots go in `db_backups/` beside
   the file. User-triggered backup/restore = timestamped JSON export/import (6.6), not
   file copying.
 - **Hybrid figure storage** (fixing ContraDB's unqueryable JSON blob):

@@ -130,7 +130,8 @@ class AppBootstrap extends StatelessWidget {
             );
           }
           // The one-time move of the database out of Documents could not be
-          // completed safely. Terminal, no Retry: nothing was deleted, and
+          // completed safely, or could not be ruled out (Documents
+          // unreachable). Terminal, no Retry: nothing was deleted, and
           // opening a database now would create an empty one beside the real
           // library.
           if (error is DatabaseRelocationBlocked) {

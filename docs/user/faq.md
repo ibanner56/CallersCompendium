@@ -42,18 +42,29 @@ the app after updating, it moves your library (and the automatic safety copies
 in its `db_backups` folder) to the location above and deletes the old copy only
 after the new one is verified.
 
-After that move, going back to an older version (0.5.4 or earlier on Windows,
-0.5.3 or earlier on Linux) shows an empty library, because those versions do not
-look in the new location. Your data is not lost: it is still in the location
-above. The older version starts a new, empty library in `Documents`, so when you
-update again the app reports data in both places; move the copy in `Documents`
-out of the way, as described below.
+After the move, the app leaves a *folder* named `compendium.sqlite` where the
+old file was, with a `README.txt` inside that says where your library went. An
+older version (0.5.4 or earlier on Windows, 0.5.3 or earlier on Linux) does not
+look in the new location and cannot open that folder as a library, so going back
+to one stops on its startup error screen instead of opening. Your data is not
+lost: it is still in the location above. Keep the folder while you might open an
+older version. If you delete it, an older version starts a new, empty library in
+`Documents`, and when you update again the app reports data in both places; move
+the copy in `Documents` out of the way, as described below.
 
 If the app finds data files in the new location *and* in an old one, or in more than
 one old location (for example both `Documents` and the Roaming folder), or it
 cannot finish the move (the disk is full, the folder is not writable, or another
 program is using the file), it stops without changing anything and tells you.
+When there is more than one copy, the screen lists each one's size and when it
+last changed; the larger, more recently changed copy is usually your library.
 Keep the copy you want, move the others out of the way, and reopen the app.
+
+If there is no library in the new location yet and your `Documents` folder
+can't be reached (for example it is on a network folder or a drive that isn't
+connected), the app also stops without creating anything, rather than starting
+an empty library while yours may still be in `Documents`. Reconnect it and
+reopen the app; if you have no `Documents` folder at all, create an empty one.
 
 Safety copies the app makes before updating the database go in a `db_backups`
 folder beside it.
