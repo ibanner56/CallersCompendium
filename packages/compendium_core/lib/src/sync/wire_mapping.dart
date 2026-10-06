@@ -80,6 +80,7 @@ const _programFields = [
   SyncWireField('notes', ['programs.notes']),
   SyncWireField('status', ['programs.status']),
   SyncWireField('hideAlternates', ['programs.hide_alternates']),
+  SyncWireField('dialectName', ['programs.dialect_name']),
   SyncWireField('slots', []),
   SyncWireField('slots.id', ['program_slots.id']),
   SyncWireField('slots.position', ['program_slots.position']),

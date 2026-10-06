@@ -1440,6 +1440,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     hideAlternates: local.hideAlternates == atReadStart.hideAlternates
         ? live.hideAlternates
         : local.hideAlternates,
+    // The editor does not edit it yet, so the live value always wins.
+    dialectName: live.dialectName,
     slots: slots,
     createdAt: live.createdAt,
     updatedAt: live.updatedAt,
@@ -2414,6 +2416,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       notes: draft.notes,
       status: draft.status,
       hideAlternates: draft.hideAlternates,
+      // Not editable here yet: `draft` is `_existing.copyWith(...)`, so this
+      // carries the stored value (set by import, restore or sync) instead of
+      // rebuilding the program with it cleared.
+      dialectName: draft.dialectName,
       slots: draft.slots,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,

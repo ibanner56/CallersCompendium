@@ -891,6 +891,10 @@ Program _programFromJson(Map<String, Object?> m) => Program(
     'status',
   ),
   hideAlternates: _boolOr(m, 'hideAlternates', false),
+  // Not clamped: the dialect library imposes no name cap, so truncating would
+  // rewrite a valid reference into a different name (and could split a
+  // surrogate pair, which canonical sync JSON rejects).
+  dialectName: _strOrNull(m, 'dialectName'),
   slots: _programSlotsFromJson(m['slots']),
   provenance: m['provenance'] == null
       ? null

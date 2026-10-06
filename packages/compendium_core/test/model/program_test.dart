@@ -298,6 +298,46 @@ void main() {
       );
     });
 
+    test('Program.copyWith sets and clears dialectName via its flag', () {
+      final p = Program(
+        id: 'p1',
+        title: 'T',
+        dialectName: 'Leads/Follows',
+        createdAt: now,
+        updatedAt: now,
+      );
+      expect(p.copyWith(title: 'U').dialectName, 'Leads/Follows');
+      expect(
+        p.copyWith(dialectName: 'Larks/Robins').dialectName,
+        'Larks/Robins',
+      );
+      expect(p.copyWith(clearDialectName: true).dialectName, isNull);
+      // A set clear flag wins over a passed value.
+      expect(
+        p.copyWith(dialectName: 'X', clearDialectName: true).dialectName,
+        isNull,
+      );
+      // `==` distinguishes programs that differ only by dialectName.
+      expect(p == p.copyWith(clearDialectName: true), isFalse);
+      expect(p == p.copyWith(), isTrue);
+    });
+
+    test('duplicate carries dialectName through', () {
+      final original = Program(
+        id: 'p1',
+        title: 'Night',
+        dialectName: 'Leads/Follows',
+        createdAt: now,
+        updatedAt: now,
+      );
+      final copy = original.duplicate(
+        newId: 'p2',
+        newSlotId: () => 'ns1',
+        now: now,
+      );
+      expect(copy.dialectName, 'Leads/Follows');
+    });
+
     test('duplicate carries the new fields through', () {
       final original = Program(
         id: 'p1',

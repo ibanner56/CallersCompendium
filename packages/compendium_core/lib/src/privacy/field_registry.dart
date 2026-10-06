@@ -356,6 +356,18 @@ final Map<String, DataClassification> fieldClassifications = {
   'programs.notes': _programNote,
   'programs.status': _choreography,
   'programs.hide_alternates': _choreography,
+  'programs.dialect_name': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'Name of a dialect from the caller\'s own library (user-authored '
+        'text, like custom_dialects and active_dialect_ref, which are '
+        'classified the same way). It names the caller\'s wording choice, '
+        'not a venue contact or choreographer, so the subject is the app '
+        'user. A soft by-name reference: a name that does not resolve on '
+        'another device silently falls back to that device\'s app dialect.',
+  ),
   'programs.created_at': _recordStamp,
   'programs.updated_at': _recordStamp,
   'programs.deleted_at': const DataClassification(

@@ -486,6 +486,18 @@ class ProgramRepository {
               notes: Value(normalizeShareableText(program.notes)),
               status: program.status,
               hideAlternates: Value(program.hideAlternates),
+              // Normalized like every shareable string, and it must be: the
+              // dialect library's own names reach storage through
+              // SettingsRepository.set, which NFC-normalizes the shareable
+              // `custom_dialects` JSON, and Device Sync rejects a body that
+              // differs from its normalized form (`nonCanonicalWireBody`). A
+              // reference stored un-normalized would stop matching the
+              // reloaded library name and get the whole program rejected.
+              dialectName: Value(
+                program.dialectName == null
+                    ? null
+                    : normalizeShareableText(program.dialectName!),
+              ),
               createdAt: program.createdAt,
               updatedAt: program.updatedAt,
               deletedAt: Value(program.deletedAt),
@@ -1373,6 +1385,7 @@ class ProgramRepository {
     notes: row.notes,
     status: row.status,
     hideAlternates: row.hideAlternates,
+    dialectName: row.dialectName,
     slots: slots,
     createdAt: asUtc(row.createdAt),
     updatedAt: asUtc(row.updatedAt),

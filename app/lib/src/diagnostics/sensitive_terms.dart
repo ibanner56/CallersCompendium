@@ -127,6 +127,7 @@ Future<Set<String>> collectSensitiveTerms(
     add(program.caller);
     add(program.venue);
     add(program.dancerLevel);
+    add(program.dialectName);
     for (final slot in program.slots) {
       add(slot.text);
       add(slot.guestCaller);
