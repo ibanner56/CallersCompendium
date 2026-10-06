@@ -56,7 +56,12 @@ def expect(name: str, condition: bool, detail: str = "") -> None:
 # --------------------------------------------------------------------------
 
 
-def pbxproj(app_resources: str = "", ext_resources: str = "") -> str:
+def pbxproj(
+    app_resources: str = "",
+    ext_resources: str = "",
+    app_sources_extra: str = "",
+    extra_objects: str = "",
+) -> str:
     return f"""// !$*UTF8*$!
 {{
 	archiveVersion = 1;
@@ -80,7 +85,7 @@ def pbxproj(app_resources: str = "", ext_resources: str = "") -> str:
 		G003 /* Ext */ = {{isa = PBXGroup; children = (F003, F005); name = Ext; path = Ext; sourceTree = SOURCE_ROOT; }};
 		G004 /* Tests */ = {{isa = PBXGroup; children = (F006); path = Tests; sourceTree = "<group>"; }};
 		G005 /* Products */ = {{isa = PBXGroup; children = (P001); name = Products; sourceTree = "<group>"; }};
-		S001 /* Sources */ = {{isa = PBXSourcesBuildPhase; files = (B001, B002, ); }};
+		S001 /* Sources */ = {{isa = PBXSourcesBuildPhase; files = (B001, B002, {app_sources_extra}); }};
 		R001 /* Resources */ = {{isa = PBXResourcesBuildPhase; files = ({app_resources}); }};
 		S002 /* Sources */ = {{isa = PBXSourcesBuildPhase; files = (B003, ); }};
 		R002 /* Resources */ = {{isa = PBXResourcesBuildPhase; files = ({ext_resources}); }};
@@ -88,6 +93,7 @@ def pbxproj(app_resources: str = "", ext_resources: str = "") -> str:
 		T001 /* App */ = {{isa = PBXNativeTarget; buildPhases = (S001, R001, ); name = App; productType = "com.apple.product-type.application"; }};
 		T002 /* Ext */ = {{isa = PBXNativeTarget; buildPhases = (S002, R002, ); name = Ext; productType = "com.apple.product-type.app-extension"; }};
 		T003 /* Tests */ = {{isa = PBXNativeTarget; buildPhases = (S003, ); name = Tests; productType = "com.apple.product-type.bundle.unit-test"; }};
+{extra_objects}
 		X001 /* Project object */ = {{isa = PBXProject; mainGroup = G000; targets = (T001, T002, T003, ); }};
 	}};
 	rootObject = X001;
@@ -122,6 +128,9 @@ def run(
     app_manifest: bytes | None = None,
     ext_manifest: bytes | None = None,
     helper_src: str = HELPER_SRC,
+    app_sources_extra: str = "",
+    extra_objects: str = "",
+    extra_files: dict[str, str] | None = None,
 ) -> list[str]:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -130,6 +139,7 @@ def run(
             ("Shared/Helper.swift", helper_src),
             ("Ext/ExtMain.swift", EXT_SRC),
             ("Tests/Tests.swift", "let up = ProcessInfo.processInfo.systemUptime\n"),
+            *(extra_files or {}).items(),
         ):
             (root / rel).parent.mkdir(parents=True, exist_ok=True)
             (root / rel).write_text(text, encoding="utf-8")
@@ -140,7 +150,10 @@ def run(
             ext_manifest if ext_manifest is not None else manifest({})
         )
         proj = root / "project.pbxproj"
-        proj.write_text(pbxproj(app_resources, ext_resources), encoding="utf-8")
+        proj.write_text(
+            pbxproj(app_resources, ext_resources, app_sources_extra, extra_objects),
+            encoding="utf-8",
+        )
         return check(root, proj)
 
 
@@ -161,6 +174,34 @@ def test_symbols() -> None:
         "[.volumeAvailableCapacityForImportantUsageKey]": DISK,
         "statvfs(path, &buf)": DISK,
         "UITextInputMode.activeInputModes": KEYBOARDS,
+        "[UITextInputMode activeInputModes]": KEYBOARDS,
+        # Every spelling of each documented API (Apple's NSPrivacyAccessedAPIType
+        # reference): Swift key, URLResourceValues property, Objective-C
+        # constant, and NSDictionary file-attribute accessor.
+        "values.contentModificationDate": FILE_TS,
+        "[attrs fileCreationDate]": FILE_TS,
+        "[attrs fileModificationDate]": FILE_TS,
+        "doc.fileModificationDate": FILE_TS,
+        "NSURLCreationDateKey": FILE_TS,
+        "NSURLContentModificationDateKey": FILE_TS,
+        "attrs[NSFileModificationDate]": FILE_TS,
+        "fstatat(fd, p, &st, 0)": FILE_TS,
+        "getattrlistbulk(fd, &a, b, n, 0)": FILE_TS,
+        "NSProcessInfo.processInfo.systemUptime": BOOT,
+        "values.volumeAvailableCapacity": DISK,
+        "values.volumeAvailableCapacityForImportantUsage": DISK,
+        "values.volumeAvailableCapacityForOpportunisticUsage": DISK,
+        "values.volumeTotalCapacity": DISK,
+        "[.volumeTotalCapacityKey]": DISK,
+        "NSURLVolumeAvailableCapacityKey": DISK,
+        "NSURLVolumeAvailableCapacityForImportantUsageKey": DISK,
+        "NSURLVolumeAvailableCapacityForOpportunisticUsageKey": DISK,
+        "NSURLVolumeTotalCapacityKey": DISK,
+        "attrs[.systemFreeSize]": DISK,
+        "attrs[NSFileSystemSize]": DISK,
+        "[attrs fileSystemFreeSize]": DISK,
+        "[attrs fileSystemSize]": DISK,
+        "fstatfs(fd, &buf)": DISK,
     }
     for src, key in cases.items():
         expect(f"{src!r} -> {key.removeprefix('NSPrivacyAccessedAPICategory')}",
@@ -264,6 +305,40 @@ def test_check() -> None:
     failures = run(ext_manifest=manifest({DEFAULTS: ["1C8F.1"]}))
     expect("a use mentioned only in a comment does not justify a declaration",
            any("target Ext" in f and "declares " + DEFAULTS in f for f in failures), str(failures))
+
+    print("build files outside the group tree:")
+    loose = (
+        '\t\tB007 /* Loose.swift in Sources */ = {isa = PBXBuildFile; fileRef = F007 /* Loose.swift */; };\n'
+        '\t\tF007 /* Loose.swift */ = {isa = PBXFileReference; path = Loose/Loose.swift; sourceTree = SOURCE_ROOT; };'
+    )
+    failures = run(
+        app_sources_extra="B007, ",
+        extra_objects=loose,
+        extra_files={"Loose/Loose.swift": "let t = mach_absolute_time()\n"},
+    )
+    expect("a SOURCE_ROOT file in no group is still scanned",
+           any("uses " + BOOT in f and "Loose/Loose.swift:1" in f for f in failures),
+           str(failures))
+    orphan = (
+        '\t\tB008 /* Orphan.swift in Sources */ = {isa = PBXBuildFile; fileRef = F008 /* Orphan.swift */; };\n'
+        '\t\tF008 /* Orphan.swift */ = {isa = PBXFileReference; path = Orphan.swift; sourceTree = "<group>"; };'
+    )
+    failures = run(app_sources_extra="B008, ", extra_objects=orphan)
+    expect("a group-relative file in no group fails closed",
+           any("target App" in f and "cannot resolve" in f and "Orphan.swift" in f for f in failures),
+           str(failures))
+    built = (
+        '\t\tB009 /* Gen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F009 /* Gen.swift */; };\n'
+        '\t\tF009 /* Gen.swift */ = {isa = PBXFileReference; path = Gen.swift; sourceTree = BUILT_PRODUCTS_DIR; };'
+    )
+    failures = run(app_sources_extra="B009, ", extra_objects=built)
+    expect("a build-products source fails closed",
+           any("target App" in f and "cannot resolve" in f and "Gen.swift" in f for f in failures),
+           str(failures))
+    failures = run(app_sources_extra="B999, ")
+    expect("a build file id with no object fails closed",
+           any("target App" in f and "cannot resolve" in f and "B999" in f for f in failures),
+           str(failures))
 
     expect("the unit-test target is not checked",
            not any("Tests" in f for f in run(app_resources="")), "")

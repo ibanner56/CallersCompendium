@@ -24,7 +24,9 @@ For each target in ``app/ios/Runner.xcodeproj`` whose product ships to users
 
 Which files belong to a target is read from the project file, not from the
 directory layout, so a source added to a target from another folder is still
-scanned. Plugins are not scanned: each ships in its own bundle and is
+scanned. A build file whose reference sits in no group is located from its own
+path when its sourceTree allows (``SOURCE_ROOT`` or absolute); one that still
+cannot be located fails the target rather than being skipped. Plugins are not scanned: each ships in its own bundle and is
 responsible for its own manifest.
 
 The symbol and reason lists come from Apple's "Describing use of required
@@ -82,19 +84,32 @@ def _calls(*names: str) -> tuple[str, ...]:
 
 _GETATTRLIST = _calls("getattrlist", "getattrlistbulk", "fgetattrlist", "getattrlistat")
 
+# Each list covers every API Apple names for the category (the
+# NSPrivacyAccessedAPIType reference) in each spelling code can reach it by:
+# the Swift `FileAttributeKey` / `URLResourceKey` constant, the
+# `URLResourceValues` property, the Objective-C `NSFile…` / `NSURL…Key`
+# constant, and the `NSDictionary` file-attribute accessor
+# (`-fileCreationDate`, `-fileSystemSize`, …). `creationDate` and
+# `modificationDate` also match the URLResourceValues properties and the
+# NSDictionary accessors' Swift spellings.
 CATEGORIES: tuple[Category, ...] = (
     Category(
         "NSPrivacyAccessedAPICategoryFileTimestamp",
         _words(
+            # FileAttributeKey.creationDate / .modificationDate
             "creationDate",
             "modificationDate",
-            "fileModificationDate",
-            "contentModificationDateKey",
-            "creationDateKey",
             "NSFileCreationDate",
             "NSFileModificationDate",
-            "NSURLCreationDateKey",
+            "fileCreationDate",
+            # UIDocument.fileModificationDate; NSDictionary -fileModificationDate
+            "fileModificationDate",
+            # URLResourceKey.contentModificationDateKey / .creationDateKey
+            "contentModificationDateKey",
+            "contentModificationDate",
+            "creationDateKey",
             "NSURLContentModificationDateKey",
+            "NSURLCreationDateKey",
         )
         + _GETATTRLIST
         + _calls("stat", "fstat", "fstatat", "lstat"),
@@ -102,22 +117,35 @@ CATEGORIES: tuple[Category, ...] = (
     ),
     Category(
         "NSPrivacyAccessedAPICategorySystemBootTime",
+        # ProcessInfo.systemUptime (the same name in Objective-C)
         _words("systemUptime") + _calls("mach_absolute_time"),
         frozenset({"35F9.1", "8FFB.1", "3D61.1"}),
     ),
     Category(
         "NSPrivacyAccessedAPICategoryDiskSpace",
         _words(
+            # URLResourceKey.volumeAvailableCapacity{,ForImportantUsage,
+            # ForOpportunisticUsage}Key and .volumeTotalCapacityKey, with
+            # their URLResourceValues properties (the same names without Key)
             "volumeAvailableCapacityKey",
+            "volumeAvailableCapacity",
             "volumeAvailableCapacityForImportantUsageKey",
+            "volumeAvailableCapacityForImportantUsage",
             "volumeAvailableCapacityForOpportunisticUsageKey",
+            "volumeAvailableCapacityForOpportunisticUsage",
             "volumeTotalCapacityKey",
+            "volumeTotalCapacity",
+            "NSURLVolumeAvailableCapacityKey",
+            "NSURLVolumeAvailableCapacityForImportantUsageKey",
+            "NSURLVolumeAvailableCapacityForOpportunisticUsageKey",
+            "NSURLVolumeTotalCapacityKey",
+            # FileAttributeKey.systemFreeSize / .systemSize
             "systemFreeSize",
             "systemSize",
             "NSFileSystemFreeSize",
             "NSFileSystemSize",
-            "NSURLVolumeAvailableCapacityKey",
-            "NSURLVolumeTotalCapacityKey",
+            "fileSystemFreeSize",
+            "fileSystemSize",
         )
         + _calls("statfs", "statvfs", "fstatfs", "fstatvfs")
         + _GETATTRLIST,
@@ -125,6 +153,7 @@ CATEGORIES: tuple[Category, ...] = (
     ),
     Category(
         "NSPrivacyAccessedAPICategoryActiveKeyboards",
+        # UITextInputMode.activeInputModes (the same name in Objective-C)
         _words("activeInputModes"),
         frozenset({"3EC4.1", "54BD.1"}),
     ),
@@ -247,11 +276,31 @@ class Target:
     product_type: str
     sources: list[Path]  # relative to the iOS project directory
     resources: list[Path]
+    # Build files in the Sources or Resources phase whose file cannot be
+    # located, as human-readable descriptions. check() fails a shipped target
+    # that has any: an unlocated source could be using an undeclared API.
+    unresolved: list[str]
+
+
+def _direct_path(obj: dict) -> Path | None:
+    """The path of a file reference that does not need its group to locate it:
+    one relative to the project directory, or absolute."""
+    own = obj.get("path")
+    if not own:
+        return None
+    tree = obj.get("sourceTree", "<group>")
+    if tree == "SOURCE_ROOT":
+        return Path(own)
+    if tree == "<absolute>":
+        return Path(own)
+    return None
 
 
 def _file_paths(objects: dict) -> dict[str, Path]:
     """Maps every PBXFileReference / PBXVariantGroup id to its path relative to
-    the project directory, by walking the group tree from the main group."""
+    the project directory, by walking the group tree from the main group.
+    A reference that is in no group is still mapped when its sourceTree makes
+    its path self-contained (see _direct_path)."""
     root = next(o for o in objects.values() if o.get("isa") == "PBXProject")
     paths: dict[str, Path] = {}
 
@@ -265,7 +314,9 @@ def _file_paths(objects: dict) -> dict[str, Path]:
             base = Path(".")
         elif tree == "<group>":
             base = parent
-        else:  # BUILT_PRODUCTS_DIR, SDKROOT, …: not a source file in the tree
+        elif tree == "<absolute>":
+            base = Path("/")
+        else:  # BUILT_PRODUCTS_DIR, SDKROOT, …: not a file in the tree
             return
         here = base / own if own else base
         isa = obj.get("isa")
@@ -276,6 +327,11 @@ def _file_paths(objects: dict) -> dict[str, Path]:
             paths[obj_id] = here
 
     walk(root["mainGroup"], Path("."))
+    for obj_id, obj in objects.items():
+        if obj_id not in paths and isinstance(obj, dict):
+            direct = _direct_path(obj)
+            if direct is not None:
+                paths[obj_id] = direct
     return paths
 
 
@@ -288,6 +344,7 @@ def read_targets(pbxproj_text: str) -> list[Target]:
             continue
         sources: list[Path] = []
         resources: list[Path] = []
+        unresolved: list[str] = []
         for phase_id in obj.get("buildPhases", []):
             phase = objects.get(phase_id, {})
             bucket = {
@@ -296,16 +353,31 @@ def read_targets(pbxproj_text: str) -> list[Target]:
             }.get(phase.get("isa"))
             if bucket is None:
                 continue
+            phase_name = phase["isa"].removeprefix("PBX").removesuffix("BuildPhase")
             for build_file_id in phase.get("files", []):
-                ref = objects.get(build_file_id, {}).get("fileRef")
+                build_file = objects.get(build_file_id)
+                ref = build_file.get("fileRef") if isinstance(build_file, dict) else None
                 if ref in paths:
                     bucket.append(paths[ref])
+                    continue
+                file_ref = objects.get(ref) if ref else None
+                if isinstance(file_ref, dict):
+                    tree = file_ref.get("sourceTree", "<group>")
+                    name = file_ref.get("path") or file_ref.get("name") or ref
+                    where = " and in no group" if tree == "<group>" else ""
+                    what = f"{name} (sourceTree {tree}{where})"
+                elif build_file is None:
+                    what = f"build file {build_file_id} (no such object)"
+                else:
+                    what = f"build file {build_file_id} (fileRef {ref or 'missing'} not found)"
+                unresolved.append(f"{phase_name} phase: {what}")
         targets.append(
             Target(
                 name=obj.get("name", "?"),
                 product_type=obj.get("productType", ""),
                 sources=sources,
                 resources=resources,
+                unresolved=unresolved,
             )
         )
     return targets
@@ -410,6 +482,11 @@ def check(ios_dir: Path, pbxproj: Path) -> list[str]:
         return [f"{pbxproj}: no application or app-extension target found"]
     for target in shipped:
         prefix = f"target {target.name}"
+        for what in target.unresolved:
+            failures.append(
+                f"{prefix}: cannot resolve a file in its {what} — the check cannot "
+                f"scan or locate it, so it fails rather than skip it"
+            )
         manifests = [p for p in target.resources if p.name == MANIFEST_NAME]
         used: dict[str, list[str]] = {}
         for rel in target.sources:
