@@ -818,7 +818,8 @@ Candidates beyond the six-item per-title cap are not fetched. A per-title
 `on Exception` boundary means one unreachable dance becomes one `fetchError` row
 rather than an aborted batch — except a *connection-class* failure
 (`isConnectionFailure` in `online_title_lookup.dart`: `callersBoxUnreachable`,
-`contraDbUnreachable`, `unreachable`, `searchTimeout`, `timeout`, plus the
+`contraDbUnreachable`, `unreachable`, `searchTimeout`, `timeout`, the
+source-attributed `callersBoxTimeout`/`contraDbTimeout`, plus the
 search-endpoint `callersBoxHttpStatus`/`contraDbHttpStatus`; the per-dance
 preview's `httpStatus` is not, since a 404 there is about that dance). The first
 such failure stops the batch (IMP-07): the title and every title not yet looked
