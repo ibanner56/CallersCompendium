@@ -1,0 +1,9 @@
+{
+  "id": "program-editor-date-range",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The program editor's date picker now goes back 10 years instead of 5, so older dances can be dated."
+    ]
+  }
+}
