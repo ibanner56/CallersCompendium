@@ -913,6 +913,7 @@ void main() {
         find.byKey(const ValueKey('import-paste-field')),
         'hello',
       );
+      await tester.pump();
       await tester.tap(find.byKey(const ValueKey('import-continue')));
       await tester.pumpAndSettle();
 
@@ -949,6 +950,7 @@ void main() {
         find.byKey(const ValueKey('import-paste-field')),
         'hello',
       );
+      await tester.pump();
       await tester.tap(find.byKey(const ValueKey('import-continue')));
       await tester.pumpAndSettle();
       final l10n = lookupAppLocalizations(const Locale('en'));
@@ -974,6 +976,7 @@ void main() {
         find.byKey(const ValueKey('import-paste-field')),
         'hello',
       );
+      await tester.pump();
       await tester.tap(find.byKey(const ValueKey('import-continue')));
       await tester.pumpAndSettle();
 
