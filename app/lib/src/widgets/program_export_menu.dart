@@ -511,6 +511,9 @@ class ProgramExportMenu extends StatelessWidget {
     // closure captured for later — mirrors the existing eager `labels`/
     // `danceLabels` resolution just above.
     final shareFields = DanceShareFieldsScope.of(context);
+    final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     final resolvedAuthorNamesFor = shareFields.contains(DanceShareField.authors)
         ? _authorNamesFor
         : null;
@@ -539,9 +542,7 @@ class ProgramExportMenu extends StatelessWidget {
         danceLabels: includeFigures ? danceExportLabels(l10n) : null,
         dialect: dialect,
         renderer: renderer,
-        canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
-          context,
-        ),
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         authorNamesFor: resolvedAuthorNamesFor,
         cardLabelsFor: appendDances == null
             ? null
