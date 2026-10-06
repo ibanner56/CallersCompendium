@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -100,6 +101,37 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get migrationRelocationFailed =>
       'Caller’s Compendium didn’t start because it couldn’t finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.';
+
+  @override
+  String get migrationRelocationLegacyUnreachable =>
+      'Caller’s Compendium didn’t start because it couldn’t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry “Where is my data stored?” has more.';
+
+  @override
+  String get migrationRelocationCopiesHeading =>
+      'Each copy’s size and when it last changed (the larger, more recently changed copy is usually your library):';
+
+  @override
+  String get migrationRelocationCopyNewLocation => 'New location';
+
+  @override
+  String get migrationRelocationCopyDocuments => 'Documents folder';
+
+  @override
+  String get migrationRelocationCopyEarlierAppFolder =>
+      'Earlier app data folder';
+
+  @override
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  ) {
+    final intl.NumberFormat kilobytesNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
+
+    return '$location: $kilobytesString KB, last changed $date';
+  }
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
@@ -402,8 +434,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'Another device is using a newer version of the app. Update the app on this device to receive $count items.',
-      one:
-          'Another device is using a newer version of the app. Update the app on this device to receive 1 item.',
+      one: 'Another device is using a newer version of the app. Update the app on this device to receive 1 item.',
     );
     return '$_temp0';
   }
@@ -5373,8 +5404,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count free-text slots (breaks, notes) omitted — the matrix shows dances only.',
-      one:
-          '1 free-text slot (breaks, notes) omitted — the matrix shows dances only.',
+      one: '1 free-text slot (breaks, notes) omitted — the matrix shows dances only.',
     );
     return '$_temp0';
   }
@@ -6547,8 +6577,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           'This import contains $count items — more than expected for a normal share.',
-      one:
-          'This import contains 1 item — more than expected for a normal share.',
+      one: 'This import contains 1 item — more than expected for a normal share.',
     );
     return '$_temp0';
   }
@@ -8011,8 +8040,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other:
           '$count contrast pairs below WCAG AA. You can still save, but some text may be hard to read.',
-      one:
-          '1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.',
+      one: '1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.',
     );
     return '$_temp0';
   }

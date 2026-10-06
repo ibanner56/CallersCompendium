@@ -360,6 +360,46 @@ enum DatabaseRelocationFailure {
   /// already deleted is restored from the verified copy, so the next launch
   /// starts again from the original state.
   moveFailed,
+
+  /// No database exists at the new location yet, and the Documents folder
+  /// earlier builds used cannot be reached (an offline network share, an
+  /// unmounted drive, a deleted folder). Whether a library is waiting there
+  /// cannot be known, so nothing is created that would start an empty library
+  /// beside it.
+  legacyUnreachable,
+}
+
+/// Which folder a [DatabaseCopy] is in, as a typed discriminator the
+/// presentation layer localizes (the screen never shows a path).
+enum DatabaseCopyLocation {
+  /// The current database directory.
+  newLocation,
+
+  /// The Documents folder earlier builds used.
+  documents,
+
+  /// Another folder an earlier build used (on Windows, the Roaming app data
+  /// fallback directory).
+  earlierAppFolder,
+}
+
+/// Size and age of one database copy found by [relocateLegacyDatabase], shown
+/// on the terminal screen so the user can tell which copy is their library.
+@immutable
+class DatabaseCopy {
+  const DatabaseCopy({
+    required this.location,
+    required this.bytes,
+    required this.modified,
+  });
+
+  final DatabaseCopyLocation location;
+
+  /// Combined size of the database file and its `-wal`/`-shm` sidecars.
+  final int bytes;
+
+  /// The most recent modification time among those files.
+  final DateTime modified;
 }
 
 /// Thrown by [relocateLegacyDatabase] when it cannot safely complete the move.
@@ -368,9 +408,18 @@ enum DatabaseRelocationFailure {
 /// a terminal screen and no database is opened, so no second, empty database is
 /// created beside the real one. Nothing is deleted on the way out.
 class DatabaseRelocationBlocked implements Exception {
-  const DatabaseRelocationBlocked(this.reason, {this.error});
+  const DatabaseRelocationBlocked(
+    this.reason, {
+    this.error,
+    this.copies = const [],
+  });
 
   final DatabaseRelocationFailure reason;
+
+  /// For [DatabaseRelocationFailure.bothExist] and
+  /// [DatabaseRelocationFailure.multipleLegacy]: each conflicting copy's
+  /// location, size and modification time. Empty when they could not be read.
+  final List<DatabaseCopy> copies;
 
   /// The underlying error for [DatabaseRelocationFailure.moveFailed], for
   /// diagnostics only: it can embed absolute paths and is never rendered.
@@ -381,6 +430,10 @@ class DatabaseRelocationBlocked implements Exception {
 }
 
 const String _relocatingSuffix = '.relocating';
+
+/// Name of the note [relocateLegacyDatabase] leaves inside the breadcrumb
+/// folder at each earlier location after a successful move.
+const String kRelocationBreadcrumbNoteName = 'README.txt';
 const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 
 /// Moves a database left in a legacy location (Documents, or an earlier
@@ -426,6 +479,7 @@ Future<bool> relocateLegacyDatabase({
   required File target,
   required List<File> legacy,
   Future<void> Function(File file)? deleter,
+  Directory? documentsDirectory,
 }) async {
   final delete = deleter ?? (file) => file.delete();
   final sources = <File>[

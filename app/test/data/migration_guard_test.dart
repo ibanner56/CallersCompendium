@@ -1,8 +1,14 @@
 import 'dart:io';
 
 import 'package:compendium_app/src/data/migration_guard.dart';
+import 'package:compendium_app/src/data/app_database.dart' show kDatabaseName;
 import 'package:compendium_core/compendium_core.dart'
-    show kCompendiumSchemaVersion, kMinSupportedSchemaVersion;
+    show
+        CompendiumDatabase,
+        applyCompendiumSqliteSetup,
+        kCompendiumSchemaVersion,
+        kMinSupportedSchemaVersion;
+import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sql;
@@ -728,6 +734,185 @@ void main() {
             : <FileSystemEntity>[],
         isEmpty,
       );
+    });
+
+    test('leaves a breadcrumb at the old path that an older build cannot '
+        'open as a new, empty library (dbloc-4)', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'my library');
+
+      expect(
+        await relocateLegacyDatabase(target: target, legacy: [legacy]),
+        isTrue,
+      );
+
+      // A folder now holds the old file name, with a note for the user.
+      expect(
+        FileSystemEntity.typeSync(legacy.path),
+        FileSystemEntityType.directory,
+      );
+      final note = File(p.join(legacy.path, kRelocationBreadcrumbNoteName));
+      expect(note.readAsStringSync(), contains(target.parent.path));
+
+      // Every shipped build (v0.1.0 to v0.5.4) runs its preflight only when
+      // `File(path).exists()`, which is false for a folder...
+      expect(await File(legacy.path).exists(), isFalse);
+      // ...then opens the path through drift_flutter 0.3.1, the version every
+      // release pinned, exactly as their `openAppDatabase` does. SQLite cannot
+      // open a folder, so the first query fails instead of creating a library.
+      final older = CompendiumDatabase(
+        driftDatabase(
+          name: kDatabaseName,
+          native: DriftNativeOptions(
+            databasePath: () async => legacy.path,
+            setup: applyCompendiumSqliteSetup,
+            tempDirectoryPath: () async => dir.path,
+          ),
+        ),
+      );
+      await expectLater(
+        older.customSelect('SELECT 1').get(),
+        throwsA(anything),
+      );
+      try {
+        await older.close();
+      } on Object {
+        // The connection never opened.
+      }
+      expect(
+        FileSystemEntity.typeSync(legacy.path),
+        FileSystemEntityType.directory,
+      );
+      expect(
+        legacy.parent.listSync().map((e) => p.basename(e.path)),
+        isNot(contains(startsWith('compendium.sqlite-'))),
+      );
+      expect(seeded(target), 'my library');
+    });
+
+    test('leaves a breadcrumb at every earlier location whose folder exists, '
+        'and none where the folder is missing', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'x');
+      final roaming = File(p.join(dir.path, 'Roaming', 'compendium.sqlite'))
+        ..parent.createSync();
+      final absent = File(p.join(dir.path, 'Missing', 'compendium.sqlite'));
+
+      await relocateLegacyDatabase(
+        target: target,
+        legacy: [legacy, roaming, absent],
+      );
+
+      expect(
+        FileSystemEntity.typeSync(roaming.path),
+        FileSystemEntityType.directory,
+      );
+      expect(absent.parent.existsSync(), isFalse);
+    });
+
+    test('a breadcrumb is not a legacy database on the next launch', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'x');
+      await relocateLegacyDatabase(target: target, legacy: [legacy]);
+
+      expect(
+        await relocateLegacyDatabase(
+          target: target,
+          legacy: [legacy],
+          documentsDirectory: legacy.parent,
+        ),
+        isFalse,
+      );
+      expect(seeded(target), 'x');
+    });
+
+    test('refuses to go on as if there were no library while Documents is '
+        'unreachable and the new location is empty (dbloc-5)', () async {
+      final offline = Directory(p.join(dir.path, 'OfflineShare'));
+      final unreachable = File(p.join(offline.path, 'compendium.sqlite'));
+
+      await expectLater(
+        relocateLegacyDatabase(
+          target: target,
+          legacy: [unreachable],
+          documentsDirectory: offline,
+        ),
+        throwsA(
+          isA<DatabaseRelocationBlocked>().having(
+            (e) => e.reason,
+            'reason',
+            DatabaseRelocationFailure.legacyUnreachable,
+          ),
+        ),
+      );
+      expect(target.parent.existsSync(), isFalse);
+    });
+
+    test('an unreachable Documents does not block once the new location holds '
+        'the library', () async {
+      target.parent.createSync(recursive: true);
+      _createFixture(target.path, userVersion: 7, seedValue: 'here');
+      final offline = Directory(p.join(dir.path, 'OfflineShare'));
+
+      expect(
+        await relocateLegacyDatabase(
+          target: target,
+          legacy: [File(p.join(offline.path, 'compendium.sqlite'))],
+          documentsDirectory: offline,
+        ),
+        isFalse,
+      );
+      expect(seeded(target), 'here');
+    });
+
+    test('reports each conflicting copy with its location, size and last '
+        'change (dbloc-6)', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'documents');
+      target.parent.createSync(recursive: true);
+      _createFixture(target.path, userVersion: 7, seedValue: 'new');
+      File('${target.path}-wal').writeAsBytesSync(List.filled(100, 0));
+      final older = DateTime(2026, 3, 1, 9, 30);
+      final newer = DateTime(2026, 9, 1, 18);
+      legacy.setLastModifiedSync(newer);
+      target.setLastModifiedSync(older);
+      File('${target.path}-wal').setLastModifiedSync(older);
+
+      final blocked = await relocateLegacyDatabase(
+        target: target,
+        legacy: [legacy],
+        documentsDirectory: legacy.parent,
+      ).then<DatabaseRelocationBlocked?>((_) => null,
+          onError: (Object e) => e as DatabaseRelocationBlocked);
+
+      expect(blocked?.reason, DatabaseRelocationFailure.bothExist);
+      expect(
+        blocked!.copies
+            .map((c) => (c.location, c.bytes, c.modified.toLocal()))
+            .toList(),
+        [
+          (
+            DatabaseCopyLocation.newLocation,
+            target.lengthSync() + 100,
+            older,
+          ),
+          (DatabaseCopyLocation.documents, legacy.lengthSync(), newer),
+        ],
+      );
+
+      // Two earlier locations and nothing new: both are described.
+      target.deleteSync();
+      File('${target.path}-wal').deleteSync();
+      final roaming = File(p.join(dir.path, 'Roaming', 'compendium.sqlite'))
+        ..parent.createSync();
+      _createFixture(roaming.path, userVersion: 7, seedValue: 'roaming');
+      final multiple = await relocateLegacyDatabase(
+        target: target,
+        legacy: [legacy, roaming],
+        documentsDirectory: legacy.parent,
+      ).then<DatabaseRelocationBlocked?>((_) => null,
+          onError: (Object e) => e as DatabaseRelocationBlocked);
+      expect(multiple?.reason, DatabaseRelocationFailure.multipleLegacy);
+      expect(multiple!.copies.map((c) => (c.location, c.bytes)), [
+        (DatabaseCopyLocation.documents, legacy.lengthSync()),
+        (DatabaseCopyLocation.earlierAppFolder, roaming.lengthSync()),
+      ]);
     });
 
     test('removes the emptied legacy db_backups folder', () async {

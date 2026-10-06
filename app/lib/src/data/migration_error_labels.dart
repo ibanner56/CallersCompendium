@@ -71,4 +71,6 @@ String databaseRelocationMessage(
   DatabaseRelocationFailure.multipleLegacy =>
     l10n.migrationRelocationMultipleLegacy,
   DatabaseRelocationFailure.moveFailed => l10n.migrationRelocationFailed,
+  DatabaseRelocationFailure.legacyUnreachable =>
+    l10n.migrationRelocationLegacyUnreachable,
 };

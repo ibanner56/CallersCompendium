@@ -2011,6 +2011,58 @@ void main() {
     });
   }
 
+  testWidgets('the both-copies screen lists each copy with its size and last '
+      'change, in the semantics (dbloc-6)', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final semantics = tester.ensureSemantics();
+    addTearDown(semantics.dispose);
+
+    final appData = openTestAppData();
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: NoopWindowService(appData.repositories.settings),
+        migrationPreflight: (_) async => throw DatabaseRelocationBlocked(
+          DatabaseRelocationFailure.bothExist,
+          copies: [
+            DatabaseCopy(
+              location: DatabaseCopyLocation.newLocation,
+              bytes: 98304,
+              modified: DateTime(2026, 10, 6, 9, 5),
+            ),
+            DatabaseCopy(
+              location: DatabaseCopyLocation.documents,
+              bytes: 4415488,
+              modified: DateTime(2026, 9, 30, 21, 40),
+            ),
+          ],
+        ),
+        integrityCheck: () async => true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(Scaffold).first),
+    );
+    expect(find.text(l10n.migrationRelocationCopiesHeading), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(
+        RegExp(r'^New location: 96 KB, last changed Oct 6, 2026 9:05\sAM$'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(
+        RegExp(
+          r'^Documents folder: 4,312 KB, last changed Sep 30, 2026 9:40\sPM$',
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets(
     'a wrong-typed theme_mode preference does not brick startup (issue #609)',
     (tester) async {

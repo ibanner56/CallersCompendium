@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -100,6 +101,37 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get migrationRelocationFailed =>
       'Caller’s Compendium wurde nicht gestartet, weil das Verschieben deiner gespeicherten Daten an den neuen Speicherort nicht abgeschlossen werden konnte. Es wurde nichts gelöscht. Schaffe Speicherplatz, schließe andere Programme, die die Daten möglicherweise verwenden, oder prüfe die Ordnerberechtigungen und öffne die App dann erneut, um es noch einmal zu versuchen.';
+
+  @override
+  String get migrationRelocationLegacyUnreachable =>
+      'Caller’s Compendium didn’t start because it couldn’t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry “Where is my data stored?” has more.';
+
+  @override
+  String get migrationRelocationCopiesHeading =>
+      'Each copy’s size and when it last changed (the larger, more recently changed copy is usually your library):';
+
+  @override
+  String get migrationRelocationCopyNewLocation => 'New location';
+
+  @override
+  String get migrationRelocationCopyDocuments => 'Documents folder';
+
+  @override
+  String get migrationRelocationCopyEarlierAppFolder =>
+      'Earlier app data folder';
+
+  @override
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  ) {
+    final intl.NumberFormat kilobytesNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
+
+    return '$location: $kilobytesString KB, last changed $date';
+  }
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
@@ -409,8 +441,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um $count Elemente zu erhalten.',
-      one:
-          'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um 1 Element zu erhalten.',
+      one: 'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um 1 Element zu erhalten.',
     );
     return '$_temp0';
   }
@@ -828,8 +859,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Einträge wurden auf zwei Geräten geändert und warten auf deine Wahl.',
-      one:
-          '1 Eintrag wurde auf zwei Geräten geändert und wartet auf deine Wahl.',
+      one: '1 Eintrag wurde auf zwei Geräten geändert und wartet auf deine Wahl.',
     );
     return '$_temp0';
   }
@@ -6659,8 +6689,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Dieser Import enthält $count Elemente — mehr als für eine normale Freigabe erwartet.',
-      one:
-          'Dieser Import enthält 1 Element — mehr als für eine normale Freigabe erwartet.',
+      one: 'Dieser Import enthält 1 Element — mehr als für eine normale Freigabe erwartet.',
     );
     return '$_temp0';
   }
@@ -7415,8 +7444,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Figuren hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
-      one:
-          '1 Figur hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
+      one: '1 Figur hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
     );
     return '$_temp0';
   }
@@ -8145,8 +8173,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Kontrastpaare unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
-      one:
-          '1 Kontrastpaar unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
+      one: '1 Kontrastpaar unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
     );
     return '$_temp0';
   }

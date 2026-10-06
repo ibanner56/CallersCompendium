@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -97,6 +98,37 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get migrationRelocationFailed =>
       '保存データを新しい場所へ移す処理を完了できなかったため、Caller’s Compendium を起動できませんでした。削除されたデータはありません。空き容量を確保するか、データを使用している可能性のある他のプログラムを閉じるか、フォルダーのアクセス権を確認してから、アプリをもう一度開いて再試行してください。';
+
+  @override
+  String get migrationRelocationLegacyUnreachable =>
+      'Caller’s Compendium didn’t start because it couldn’t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry “Where is my data stored?” has more.';
+
+  @override
+  String get migrationRelocationCopiesHeading =>
+      'Each copy’s size and when it last changed (the larger, more recently changed copy is usually your library):';
+
+  @override
+  String get migrationRelocationCopyNewLocation => 'New location';
+
+  @override
+  String get migrationRelocationCopyDocuments => 'Documents folder';
+
+  @override
+  String get migrationRelocationCopyEarlierAppFolder =>
+      'Earlier app data folder';
+
+  @override
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  ) {
+    final intl.NumberFormat kilobytesNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
+
+    return '$location: $kilobytesString KB, last changed $date';
+  }
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {

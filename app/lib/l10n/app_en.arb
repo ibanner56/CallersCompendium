@@ -122,6 +122,45 @@
   "@migrationRelocationFailed": {
     "description": "Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Retry is offered."
   },
+  "migrationRelocationLegacyUnreachable": "Caller’s Compendium didn’t start because it couldn’t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry “Where is my data stored?” has more.",
+  "@migrationRelocationLegacyUnreachable": {
+    "description": "Terminal startup-screen message shown when there is no database in the new location yet and the Documents folder (where earlier versions kept the database) cannot be reached, so the app cannot tell whether a library is waiting there. Nothing is created. No Retry is offered."
+  },
+  "migrationRelocationCopiesHeading": "Each copy’s size and when it last changed (the larger, more recently changed copy is usually your library):",
+  "@migrationRelocationCopiesHeading": {
+    "description": "Heading above the list of database copies on the terminal startup screen shown when saved data was found in more than one place. Each line below it names a folder, the copy's size and its last-changed date and time."
+  },
+  "migrationRelocationCopyNewLocation": "New location",
+  "@migrationRelocationCopyNewLocation": {
+    "description": "Name of the folder a database copy is in, on the terminal startup screen listing conflicting copies: the app's current data folder. Used as {location} in migrationRelocationCopyDetails."
+  },
+  "migrationRelocationCopyDocuments": "Documents folder",
+  "@migrationRelocationCopyDocuments": {
+    "description": "Name of the folder a database copy is in, on the terminal startup screen listing conflicting copies: the user's Documents folder, which earlier versions used. Used as {location} in migrationRelocationCopyDetails."
+  },
+  "migrationRelocationCopyEarlierAppFolder": "Earlier app data folder",
+  "@migrationRelocationCopyEarlierAppFolder": {
+    "description": "Name of the folder a database copy is in, on the terminal startup screen listing conflicting copies: another app data folder an earlier version used (on Windows, the Roaming folder). Used as {location} in migrationRelocationCopyDetails."
+  },
+  "migrationRelocationCopyDetails": "{location}: {kilobytes} KB, last changed {date}",
+  "@migrationRelocationCopyDetails": {
+    "description": "One line per database copy on the terminal startup screen shown when saved data was found in more than one place, so the user can tell which copy is their library. {location} is the folder name (for example 'Documents folder'), {kilobytes} the copy's size in kilobytes, {date} its last-changed date and time. 'KB' is the kilobyte unit.",
+    "placeholders": {
+      "location": {
+        "type": "String",
+        "example": "Documents folder"
+      },
+      "kilobytes": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "4312"
+      },
+      "date": {
+        "type": "String",
+        "example": "Oct 6, 2026 3:14 PM"
+      }
+    }
+  },
   "migrationSnapshotAbortedMessage": "Caller’s Compendium didn’t start because it couldn’t create an automatic backup before upgrading your saved data. {cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.",
   "@migrationSnapshotAbortedMessage": {
     "description": "Terminal startup-screen message shown when a pre-migration backup could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.",

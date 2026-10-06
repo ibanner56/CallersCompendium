@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -102,6 +103,37 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get migrationRelocationFailed =>
       'Caller’s Compendium is niet gestart, omdat het verplaatsen van je opgeslagen gegevens naar de nieuwe locatie niet kon worden voltooid. Er is niets verwijderd. Maak ruimte vrij, sluit andere programma’s die de gegevens mogelijk gebruiken of controleer de maprechten en open de app daarna opnieuw om het opnieuw te proberen.';
+
+  @override
+  String get migrationRelocationLegacyUnreachable =>
+      'Caller’s Compendium didn’t start because it couldn’t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry “Where is my data stored?” has more.';
+
+  @override
+  String get migrationRelocationCopiesHeading =>
+      'Each copy’s size and when it last changed (the larger, more recently changed copy is usually your library):';
+
+  @override
+  String get migrationRelocationCopyNewLocation => 'New location';
+
+  @override
+  String get migrationRelocationCopyDocuments => 'Documents folder';
+
+  @override
+  String get migrationRelocationCopyEarlierAppFolder =>
+      'Earlier app data folder';
+
+  @override
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  ) {
+    final intl.NumberFormat kilobytesNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
+
+    return '$location: $kilobytesString KB, last changed $date';
+  }
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
@@ -409,8 +441,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om $count items te ontvangen.',
-      one:
-          'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om 1 item te ontvangen.',
+      one: 'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om 1 item te ontvangen.',
     );
     return '$_temp0';
   }
@@ -7382,8 +7413,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count figuren toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
-      one:
-          '1 figuur toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
+      one: '1 figuur toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
     );
     return '$_temp0';
   }
@@ -8107,8 +8137,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count contrastparen onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
-      one:
-          '1 contrastpaar onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
+      one: '1 contrastpaar onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
     );
     return '$_temp0';
   }

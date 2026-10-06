@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -101,6 +102,37 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get migrationRelocationFailed =>
       'Caller’s Compendium blev ikke startet, fordi det ikke kunne færdiggøre flytningen af dine gemte data til deres nye placering. Intet blev slettet. Frigør plads, luk andre programmer, der muligvis bruger dem, eller kontrollér mappens tilladelser, og åbn derefter appen igen for at prøve igen.';
+
+  @override
+  String get migrationRelocationLegacyUnreachable =>
+      'Caller’s Compendium didn’t start because it couldn’t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry “Where is my data stored?” has more.';
+
+  @override
+  String get migrationRelocationCopiesHeading =>
+      'Each copy’s size and when it last changed (the larger, more recently changed copy is usually your library):';
+
+  @override
+  String get migrationRelocationCopyNewLocation => 'New location';
+
+  @override
+  String get migrationRelocationCopyDocuments => 'Documents folder';
+
+  @override
+  String get migrationRelocationCopyEarlierAppFolder =>
+      'Earlier app data folder';
+
+  @override
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  ) {
+    final intl.NumberFormat kilobytesNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
+
+    return '$location: $kilobytesString KB, last changed $date';
+  }
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
@@ -408,8 +440,7 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage $count elementer.',
-      one:
-          'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage 1 element.',
+      one: 'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage 1 element.',
     );
     return '$_temp0';
   }
@@ -6578,8 +6609,7 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'Denne import indeholder $count elementer – mere end forventet for en normal deling.',
-      one:
-          'Denne import indeholder 1 element – mere end forventet for en normal deling.',
+      one: 'Denne import indeholder 1 element – mere end forventet for en normal deling.',
     );
     return '$_temp0';
   }
@@ -7325,8 +7355,7 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'Tilføjede $count figurer. Skriv en anden, eller tryk Escape for at afslutte.',
-      one:
-          'Tilføjede 1 figur. Skriv en anden, eller tryk Escape for at afslutte.',
+      one: 'Tilføjede 1 figur. Skriv en anden, eller tryk Escape for at afslutte.',
     );
     return '$_temp0';
   }
@@ -8046,8 +8075,7 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           '$count kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
-      one:
-          '1 kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
+      one: '1 kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
     );
     return '$_temp0';
   }

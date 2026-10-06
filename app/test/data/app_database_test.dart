@@ -176,4 +176,43 @@ void main() {
       }
     });
   }
+
+  for (final (os, primary) in [
+    ('linux', () => support),
+    ('windows', () => cache),
+  ]) {
+    test('the startup preflight does not start an empty $os library while '
+        'Documents is unreachable (dbloc-5)', () async {
+      // Documents resolves to a path that is not there (offline share,
+      // unmounted drive): a library may be waiting in it.
+      expect(Directory(documents).existsSync(), isFalse);
+
+      await expectLater(
+        runMigrationPreflightForApp(
+          runningSchemaVersion: kCompendiumSchemaVersion,
+          operatingSystem: os,
+        ),
+        throwsA(
+          isA<DatabaseRelocationBlocked>().having(
+            (e) => e.reason,
+            'reason',
+            DatabaseRelocationFailure.legacyUnreachable,
+          ),
+        ),
+      );
+      expect(File(p.join(primary(), name)).existsSync(), isFalse);
+    });
+  }
+
+  test('Linux without any Documents folder configured is not blocked', () async {
+    PathProviderPlatform.instance = _FakePathProvider(
+      documents: null,
+      support: support,
+      cache: cache,
+    );
+    await runMigrationPreflightForApp(
+      runningSchemaVersion: kCompendiumSchemaVersion,
+      operatingSystem: 'linux',
+    );
+  });
 }
