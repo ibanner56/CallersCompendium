@@ -47,6 +47,23 @@ void main() {
     expect(resolveProgramDialect('Ours', library), isNull);
   });
 
+  test('with both spellings of a name in the library, each name resolves to '
+      'its own dialect (exact match first)', () async {
+    // The library enforces uniqueness by raw string equality, so canonically
+    // equal spellings can coexist in memory until it reloads.
+    final nfc = Dialect.larksRobins.copyWith(name: 'Caf\u00e9 Calls');
+    final nfd = Dialect.leadsFollows.copyWith(name: 'Cafe\u0301 Calls');
+    await library.upsert(nfc);
+    await library.upsert(nfd);
+
+    expect(
+      resolveProgramDialect('Cafe\u0301 Calls', library)?.roles,
+      nfd.roles,
+      reason: 'picking the second spelling must not render the first',
+    );
+    expect(resolveProgramDialect('Caf\u00e9 Calls', library)?.roles, nfc.roles);
+  });
+
   test('matches across NFC and NFD spellings of the same name', () async {
     await library.upsert(Dialect.leadsFollows.copyWith(name: 'Café Calls'));
 

@@ -1347,7 +1347,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _linkedVenue = null;
         _status = draft.status;
         _hideAlternates = draft.hideAlternates;
-        _dialectName = draft.dialectName;
+        // A draft from before the field existed never captured it: keep the
+        // program's current dialect instead of reading the absence as a clear.
+        _dialectName = draft.hasDialectName
+            ? draft.dialectName
+            : _existing?.dialectName;
         _slots = _renumber(draft.slots);
         _dirty = true;
       });

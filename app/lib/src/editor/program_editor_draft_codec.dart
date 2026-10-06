@@ -48,6 +48,7 @@ class ProgramEditorDraft {
     required this.status,
     required this.hideAlternates,
     this.dialectName,
+    this.hasDialectName = true,
     required this.slots,
   });
 
@@ -82,9 +83,16 @@ class ProgramEditorDraft {
   final bool hideAlternates;
 
   /// The stored dialect name Perform uses for the program; `null` follows the
-  /// application dialect. Absent from drafts written before issue #1554, which
-  /// decode as `null` (no draft version bump needed).
+  /// application dialect. Only meaningful when [hasDialectName] is true.
   final String? dialectName;
+
+  /// Whether this draft recorded the dialect at all. Drafts written before
+  /// issue #1554 carry no `dialectName` key, which must read as "this draft
+  /// never captured the field" (restoring it keeps the program's current
+  /// dialect), not as "the user cleared it". Drafts written now always carry
+  /// the key, with `null` meaning an explicit clear. Decoded from the key's
+  /// presence, so it needs no draft version bump.
+  final bool hasDialectName;
 
   /// The in-progress slot list (position-ordered).
   final List<ProgramSlot> slots;
@@ -107,6 +115,7 @@ class ProgramEditorDraft {
 ///   "notes": "...",
 ///   "status": "draft",
 ///   "hideAlternates": false,
+///   "dialectName": null,    // key always written; null = explicitly "use app dialect"
 ///   "slots": [
 ///     {"id":"...", "position":0, "danceId":"...", "isAlt":false},
 ///     {"id":"...", "position":1, "text":"Break", "isPurgedDance":false, "isAlt":false}
@@ -130,7 +139,7 @@ String encodeProgramDraft(ProgramEditorDraft draft) {
     'notes': draft.notes,
     'status': draft.status.name,
     'hideAlternates': draft.hideAlternates,
-    if (draft.dialectName != null) 'dialectName': draft.dialectName,
+    if (draft.hasDialectName) 'dialectName': draft.dialectName,
     'slots': [for (final s in draft.slots) _slotToJson(s)],
   });
 }
@@ -201,6 +210,7 @@ ProgramEditorDraft decodeProgramDraft(Object? value) {
     status: _parseEnum(ProgramStatus.values, _str(json, 'status')),
     hideAlternates: _bool(json, 'hideAlternates'),
     dialectName: _strOrNull(json, 'dialectName'),
+    hasDialectName: json.containsKey('dialectName'),
     slots: _parseSlots(json['slots']),
   );
 }

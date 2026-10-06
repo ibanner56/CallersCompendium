@@ -19,10 +19,20 @@ import 'dialect_library_controller.dart';
 /// Custom dialects are tried before the shipped presets, matching
 /// [Dialect.resolveByName], so a custom dialect wins over a preset of the same
 /// name.
+///
+/// An exact name match is taken before a normalized one. The library enforces
+/// name uniqueness by raw string equality, so canonically-equal spellings
+/// (NFC and NFD of the same name) can coexist in memory until the library is
+/// reloaded; a name that came from picking one of them must resolve to that
+/// dialect, not to whichever spelling comes first.
 Dialect? resolveProgramDialect(String? name, DialectLibraryController library) {
   if (name == null) return null;
+  final candidates = [...library.customDialects, ...Dialect.presets];
+  for (final dialect in candidates) {
+    if (dialect.name == name) return dialect;
+  }
   final key = normalizeShareableText(name);
-  for (final dialect in [...library.customDialects, ...Dialect.presets]) {
+  for (final dialect in candidates) {
     if (normalizeShareableText(dialect.name) == key) return dialect;
   }
   return null;
