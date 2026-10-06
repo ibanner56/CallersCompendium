@@ -240,6 +240,10 @@ jobs:
       # (security-6); the suite also checks the real manifest.
       - name: Guard the Android intent filters (no BROWSABLE local-file VIEW)
         run: python3 tools/ci/test_check_android_intent_filters.py
+      # The Android JVM unit tests (app/android/app/src/test) run only from a
+      # Gradle step in ci.yml's build job; nothing else compiles them.
+      - name: Guard the Android unit-test step in the build job
+        run: python3 tools/ci/test_check_android_unit_tests.py
       - name: Test the Android release versionCode encoder
         run: python3 tools/release/test_android_version_code.py
       - name: Test the Flutter-free core guard

@@ -338,6 +338,17 @@ symlink you can point your editor/PATH at — see the FVM docs.)
      CODE_SIGNING_ALLOWED=NO
    ```
 
+   The Kotlin JVM unit tests for the Android share intake
+   (`app/android/app/src/test/`) are not run by preflight or `flutter test`:
+   they need the Android SDK and run in CI's Android build leg, after the
+   build. To run them by hand, build once (which writes the Gradle wrapper),
+   then:
+
+   ```sh
+   (cd app && fvm flutter build apk --debug)
+   (cd app/android && ./gradlew :app:testDebugUnitTest)
+   ```
+
 4. Open a PR; it must pass CI (build, tests, lint, formatting) before review.
    Before merging, run the merge-readiness gates:
 

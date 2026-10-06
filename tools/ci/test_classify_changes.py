@@ -89,6 +89,26 @@ def test_non_markdown_paths_route_to_their_suites() -> None:
         app_tests_changed=True,
         builds_changed=True,
     )
+    # The Android leg of `build` is the only place the Kotlin JVM unit tests
+    # run (./gradlew :app:testDebugUnitTest), so a native-only Android change
+    # -- test or source -- must reach the build matrix (platform-7).
+    expect(
+        "native Android test alone",
+        (
+            b"app/android/app/src/test/kotlin/org/callerscompendium/"
+            b"compendiumApp/IncomingFileStagerTest.kt",
+        ),
+        validation_changed=True,
+        app_tests_changed=True,
+        builds_changed=True,
+    )
+    expect(
+        "native Android Gradle script alone",
+        (b"app/android/app/build.gradle.kts",),
+        validation_changed=True,
+        app_tests_changed=True,
+        builds_changed=True,
+    )
     # server/ path-depends on compendium_core (server/pubspec.yaml) and every
     # server library imports the core barrel, so a core change reaches the
     # server suite. Compile breaks were already caught by validate's
