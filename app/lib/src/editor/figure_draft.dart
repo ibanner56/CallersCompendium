@@ -351,22 +351,27 @@ String? _trimOptionalOverride(String? value) {
 /// the same phrase from role canonicalization. Without this, saving "Mad robin
 /// twice" stored "Mad role2 twice", shown as "mad follow" under Leads/Follows.
 /// Each occurrence is swapped for a token with no role word in it and restored
-/// verbatim afterwards.
+/// verbatim afterwards. The token is lengthened until the text does not
+/// already contain it, so typed text shaped like a token is left alone.
 String _canonicalizeKeepingMadRobin(
   String text,
   String Function(String) canonicalizeNote,
 ) {
+  if (!_madRobinTerm.hasMatch(text)) return canonicalizeNote(text);
+  final lower = text.toLowerCase();
+  var token = 'xmadrobinx';
+  while (lower.contains(token)) {
+    token = 'x$token';
+  }
   final kept = <String>[];
   final shielded = text.replaceAllMapped(_madRobinTerm, (m) {
     kept.add(m[0]!);
-    return '$_madRobinToken${kept.length - 1}x';
+    return '$token${kept.length - 1}x';
   });
-  if (kept.isEmpty) return canonicalizeNote(text);
-  return canonicalizeNote(
-    shielded,
-  ).replaceAllMapped(_madRobinTokenTerm, (m) => kept[int.parse(m[1]!)]);
+  return canonicalizeNote(shielded).replaceAllMapped(
+    RegExp('$token(\\d+)x', caseSensitive: false),
+    (m) => kept[int.parse(m[1]!)],
+  );
 }
 
-const String _madRobinToken = 'xmadrobinx';
 final RegExp _madRobinTerm = RegExp(r'\bmad robins?\b', caseSensitive: false);
-final RegExp _madRobinTokenTerm = RegExp('$_madRobinToken(\\d+)x');

@@ -1001,6 +1001,22 @@ void main() {
         );
       }
 
+      // The shield swaps each "mad robin" for a placeholder and swaps it
+      // back afterwards; text that already contains placeholder-shaped
+      // words must come through untouched rather than be rewritten or crash.
+      test('placeholder-shaped text beside "mad robin" is kept', () async {
+        final controller = await newDanceController(openTestRepositories());
+        addTearDown(controller.dispose);
+        controller.addFigure();
+        final draft = controller.figureDrafts.last;
+        draft.move = customMove;
+        const text = 'xmadrobinx1x, mad robin, XMADROBINX0X';
+        draft.params['text'] = text;
+        controller.titleController.text = 'Some Dance';
+        controller.onTextEdited();
+        expect(figuresOf(controller.buildDance()).last.params['text'], text);
+      });
+
       test('role words beside "mad robin" are still canonicalized', () async {
         final controller = await newDanceController(openTestRepositories());
         addTearDown(controller.dispose);
