@@ -209,17 +209,23 @@ def test_verifier_accepts_matching_hashes() -> None:
 
 
 def test_verifier_rejects_a_different_archive() -> None:
-    # The real pinned hash against a fake archive: what a swapped release
-    # asset looks like.
+    # The real pinned archive hash against a fake archive: what a swapped
+    # release asset looks like. The library hash is made to match, so only the
+    # archive check can stop it (otherwise a disabled archive check would still
+    # fail on the library and pass this test).
     p = pin()
     for os_name in ("linux", "win"):
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td)
-            _fake_build(tmp, os_name, "x64", b"tampered")
+            _, lib = _fake_build(tmp, os_name, "x64", b"tampered")
             result = _run_verifier(
-                tmp, os_name, f'set(PDFIUM_VERSION "{p.version}")\nset(PDFIUM_ARCH "x64")'
+                tmp,
+                os_name,
+                f'set(PDFIUM_VERSION "{p.version}")\nset(PDFIUM_ARCH "x64")\n'
+                f'set(COMPENDIUM_PDFIUM_LIBRARY_SHA256_{os_name}_x64 "{lib}")',
             )
             _expect(result, False, "SHA-256 mismatch")
+            _expect(result, False, f"pdfium-{os_name}-x64.tgz")
 
 
 def test_verifier_rejects_a_different_library() -> None:
@@ -240,11 +246,18 @@ def test_verifier_rejects_an_unpinned_version_or_arch_or_missing_archive() -> No
     p = pin()
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
-        _fake_build(tmp, "linux", "x64", b"x")
+        archive, lib = _fake_build(tmp, "linux", "x64", b"x")
+        # Hashes made to match, so only the version check can refuse it.
         _expect(
-            _run_verifier(tmp, "linux", 'set(PDFIUM_VERSION "latest")\nset(PDFIUM_ARCH "x64")'),
+            _run_verifier(
+                tmp,
+                "linux",
+                'set(PDFIUM_VERSION "latest")\nset(PDFIUM_ARCH "x64")\n'
+                f'set(COMPENDIUM_PDFIUM_ARCHIVE_SHA256_linux_x64 "{archive}")\n'
+                f'set(COMPENDIUM_PDFIUM_LIBRARY_SHA256_linux_x64 "{lib}")',
+            ),
             False,
-            "PDFIUM_VERSION",
+            "PDFIUM_VERSION is 'latest'",
         )
         _expect(
             _run_verifier(
