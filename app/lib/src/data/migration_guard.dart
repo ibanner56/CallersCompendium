@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sql;
 
 import 'app_database.dart';
+import 'single_instance_guard.dart' show InstanceLockPrimitive;
 
 /// Directory name (under the database's own directory) holding automatic
 /// pre-migration snapshots.
@@ -381,6 +382,10 @@ class DatabaseRelocationBlocked implements Exception {
 }
 
 const String _relocatingSuffix = '.relocating';
+
+/// File name of the advisory lock [relocateLegacyDatabase] holds, in the
+/// target's directory, for the whole move.
+const String kRelocationLockFileName = '.relocation.lock';
 const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 
 /// Moves a database left in a legacy location (Documents, or an earlier
@@ -426,6 +431,9 @@ Future<bool> relocateLegacyDatabase({
   required File target,
   required List<File> legacy,
   Future<void> Function(File file)? deleter,
+  @visibleForTesting InstanceLockPrimitive? lockPrimitive,
+  @visibleForTesting Duration lockTimeout = const Duration(seconds: 30),
+  @visibleForTesting Future<void> Function(File renamed)? afterRename,
 }) async {
   final delete = deleter ?? (file) => file.delete();
   final sources = <File>[
@@ -507,6 +515,7 @@ Future<bool> relocateLegacyDatabase({
     for (final (index, (_, to)) in moves.indexed) {
       await temps[index].rename(to.path);
       finals.add(to);
+      await afterRename?.call(to);
     }
   } on DatabaseRelocationBlocked {
     // diagnostics: silent — typed fail-closed outcome, thrown before anything
