@@ -104,6 +104,30 @@
   "@migrationRelocationFailed": {
     "x-sourceSha256": "92053efe3d799c18cb1d651dfbde58bc0807ba270c55cbdc4f148ff0389c4dfa"
   },
+  "migrationRelocationLegacyUnreachable": "以前のバージョンが保存データを置いていた「書類」(Documents)フォルダーにアクセスできなかったため、Caller’s Compendium を起動できませんでした。変更や作成は行われていません。「書類」フォルダーが別のドライブやネットワークフォルダーにある場合は、接続し直してからアプリをもう一度開いてください。「書類」フォルダーがない場合は、空のフォルダーを作成してからアプリをもう一度開いてください。詳しくはFAQの「データはどこに保存されますか？」をご覧ください。",
+  "@migrationRelocationLegacyUnreachable": {
+    "x-sourceSha256": "acf7948e37ecea717a061da9e09b3b4b9b269e3d840cb3f5fba7970ca8faa69e"
+  },
+  "migrationRelocationCopiesHeading": "各コピーのサイズと最終更新日時（通常は、サイズが大きく最近更新されたほうがあなたのライブラリです）：",
+  "@migrationRelocationCopiesHeading": {
+    "x-sourceSha256": "c7cce717f97498558b82549a61e9a8c9cbfec71e6390273bfddf78eb8bd84267"
+  },
+  "migrationRelocationCopyNewLocation": "新しい保存場所",
+  "@migrationRelocationCopyNewLocation": {
+    "x-sourceSha256": "9a234df4269ae19523bf1a1cae73cbcc70fdf5734c051c078dfd0f2068930766"
+  },
+  "migrationRelocationCopyDocuments": "「書類」フォルダー",
+  "@migrationRelocationCopyDocuments": {
+    "x-sourceSha256": "151e70e0308240be28effaa269027e307b348b1296f012d3ed5e56fdd7e8ada8"
+  },
+  "migrationRelocationCopyEarlierAppFolder": "以前のアプリデータフォルダー",
+  "@migrationRelocationCopyEarlierAppFolder": {
+    "x-sourceSha256": "68abc7b4c9b0d2bab54acccb1d35e60e4fa2e50b72baf2aa0064fc77fc84231d"
+  },
+  "migrationRelocationCopyDetails": "{location}：{kilobytes} KB、最終更新 {date}",
+  "@migrationRelocationCopyDetails": {
+    "x-sourceSha256": "26e7cdb8f7afe2d471212d37420ffa8e966adf5a0462a26ad7f411bd473f9c18"
+  },
   "migrationSnapshotAbortedMessage": "保存データをアップグレードする前に自動バックアップを作成できなかったため、Caller’s Compendiumを起動できませんでした。{cause}空き容量を確保する（またはバックアップフォルダを修復する）か、アプリを再度開いてください。あるいは、再度開いてバックアップなしで続行することもできます。",
   "@migrationSnapshotAbortedMessage": {
     "x-sourceSha256": "8a37a47a06cea0588a1b29ca9e254a91a9159d14a11eafdcb86aae462a7cb3dc"

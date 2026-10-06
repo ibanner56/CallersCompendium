@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -106,21 +105,21 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get migrationRelocationLegacyUnreachable =>
-      'Caller’s Compendium didn’t start because it couldn’t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry “Where is my data stored?” has more.';
+      'Caller’s Compendium is niet gestart, omdat je map Documenten, waarin eerdere versies je opgeslagen gegevens bewaarden, niet bereikbaar was. Er is niets gewijzigd of aangemaakt. Staat Documenten op een ander station of in een netwerkmap, sluit die dan opnieuw aan en open de app daarna opnieuw. Heb je geen map Documenten, maak dan een lege aan en open de app daarna opnieuw. In het FAQ-onderdeel “Waar worden mijn gegevens opgeslagen?” lees je meer.';
 
   @override
   String get migrationRelocationCopiesHeading =>
-      'Each copy’s size and when it last changed (the larger, more recently changed copy is usually your library):';
+      'Grootte en laatste wijziging van elke kopie (de grootste, meest recent gewijzigde kopie is meestal je bibliotheek):';
 
   @override
-  String get migrationRelocationCopyNewLocation => 'New location';
+  String get migrationRelocationCopyNewLocation => 'Nieuwe locatie';
 
   @override
-  String get migrationRelocationCopyDocuments => 'Documents folder';
+  String get migrationRelocationCopyDocuments => 'Map Documenten';
 
   @override
   String get migrationRelocationCopyEarlierAppFolder =>
-      'Earlier app data folder';
+      'Eerdere app-gegevensmap';
 
   @override
   String migrationRelocationCopyDetails(
@@ -132,7 +131,7 @@ class AppLocalizationsNl extends AppLocalizations {
         intl.NumberFormat.decimalPattern(localeName);
     final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
 
-    return '$location: $kilobytesString KB, last changed $date';
+    return '$location: $kilobytesString KB, laatst gewijzigd $date';
   }
 
   @override
@@ -441,7 +440,8 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om $count items te ontvangen.',
-      one: 'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om 1 item te ontvangen.',
+      one:
+          'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om 1 item te ontvangen.',
     );
     return '$_temp0';
   }
@@ -7413,7 +7413,8 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count figuren toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
-      one: '1 figuur toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
+      one:
+          '1 figuur toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
     );
     return '$_temp0';
   }
@@ -8137,7 +8138,8 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count contrastparen onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
-      one: '1 contrastpaar onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
+      one:
+          '1 contrastpaar onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
     );
     return '$_temp0';
   }

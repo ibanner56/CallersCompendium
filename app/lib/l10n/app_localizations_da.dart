@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -105,21 +104,21 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get migrationRelocationLegacyUnreachable =>
-      'Caller’s Compendium didn’t start because it couldn’t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry “Where is my data stored?” has more.';
+      'Caller’s Compendium blev ikke startet, fordi appen ikke kunne få adgang til din Dokumenter-mappe, hvor tidligere versioner gemte dine data. Intet blev ændret eller oprettet. Hvis Dokumenter ligger på et andet drev eller i en netværksmappe, så tilslut den igen, og åbn derefter appen igen. Hvis du ikke har en Dokumenter-mappe, så opret en tom mappe, og åbn derefter appen igen. Spørgsmålet “Hvor er mine data gemt?” i FAQ’en fortæller mere.';
 
   @override
   String get migrationRelocationCopiesHeading =>
-      'Each copy’s size and when it last changed (the larger, more recently changed copy is usually your library):';
+      'Hver kopis størrelse og hvornår den sidst blev ændret (den største og senest ændrede kopi er som regel dit bibliotek):';
 
   @override
-  String get migrationRelocationCopyNewLocation => 'New location';
+  String get migrationRelocationCopyNewLocation => 'Ny placering';
 
   @override
-  String get migrationRelocationCopyDocuments => 'Documents folder';
+  String get migrationRelocationCopyDocuments => 'Dokumenter-mappen';
 
   @override
   String get migrationRelocationCopyEarlierAppFolder =>
-      'Earlier app data folder';
+      'Tidligere appdatamappe';
 
   @override
   String migrationRelocationCopyDetails(
@@ -131,7 +130,7 @@ class AppLocalizationsDa extends AppLocalizations {
         intl.NumberFormat.decimalPattern(localeName);
     final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
 
-    return '$location: $kilobytesString KB, last changed $date';
+    return '$location: $kilobytesString KB, sidst ændret $date';
   }
 
   @override
@@ -440,7 +439,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage $count elementer.',
-      one: 'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage 1 element.',
+      one:
+          'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage 1 element.',
     );
     return '$_temp0';
   }
@@ -6609,7 +6609,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'Denne import indeholder $count elementer – mere end forventet for en normal deling.',
-      one: 'Denne import indeholder 1 element – mere end forventet for en normal deling.',
+      one:
+          'Denne import indeholder 1 element – mere end forventet for en normal deling.',
     );
     return '$_temp0';
   }
@@ -7355,7 +7356,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'Tilføjede $count figurer. Skriv en anden, eller tryk Escape for at afslutte.',
-      one: 'Tilføjede 1 figur. Skriv en anden, eller tryk Escape for at afslutte.',
+      one:
+          'Tilføjede 1 figur. Skriv en anden, eller tryk Escape for at afslutte.',
     );
     return '$_temp0';
   }
@@ -8075,7 +8077,8 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           '$count kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
-      one: '1 kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
+      one:
+          '1 kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
     );
     return '$_temp0';
   }

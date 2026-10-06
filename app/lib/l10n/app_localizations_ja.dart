@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -101,21 +100,20 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get migrationRelocationLegacyUnreachable =>
-      'Caller’s Compendium didn’t start because it couldn’t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry “Where is my data stored?” has more.';
+      '以前のバージョンが保存データを置いていた「書類」(Documents)フォルダーにアクセスできなかったため、Caller’s Compendium を起動できませんでした。変更や作成は行われていません。「書類」フォルダーが別のドライブやネットワークフォルダーにある場合は、接続し直してからアプリをもう一度開いてください。「書類」フォルダーがない場合は、空のフォルダーを作成してからアプリをもう一度開いてください。詳しくはFAQの「データはどこに保存されますか？」をご覧ください。';
 
   @override
   String get migrationRelocationCopiesHeading =>
-      'Each copy’s size and when it last changed (the larger, more recently changed copy is usually your library):';
+      '各コピーのサイズと最終更新日時（通常は、サイズが大きく最近更新されたほうがあなたのライブラリです）：';
 
   @override
-  String get migrationRelocationCopyNewLocation => 'New location';
+  String get migrationRelocationCopyNewLocation => '新しい保存場所';
 
   @override
-  String get migrationRelocationCopyDocuments => 'Documents folder';
+  String get migrationRelocationCopyDocuments => '「書類」フォルダー';
 
   @override
-  String get migrationRelocationCopyEarlierAppFolder =>
-      'Earlier app data folder';
+  String get migrationRelocationCopyEarlierAppFolder => '以前のアプリデータフォルダー';
 
   @override
   String migrationRelocationCopyDetails(
@@ -127,7 +125,7 @@ class AppLocalizationsJa extends AppLocalizations {
         intl.NumberFormat.decimalPattern(localeName);
     final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
 
-    return '$location: $kilobytesString KB, last changed $date';
+    return '$location：$kilobytesString KB、最終更新 $date';
   }
 
   @override
