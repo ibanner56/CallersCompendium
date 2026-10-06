@@ -5040,6 +5040,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get performAdjustmentUndone => 'Ajustement annulé';
 
   @override
+  String get performUndoNoLongerAvailable =>
+      'Annulation impossible : le programme a été modifié depuis.';
+
+  @override
   String get performProgramAdjustedSnack => 'Programme ajusté.';
 
   @override
@@ -6237,6 +6241,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d’atteindre The Caller\'s Box. Vérifiez votre connexion, puis réessayez.';
 
   @override
+  String importErrorCallersBoxTimeout(int seconds) {
+    return 'The Caller\'s Box n’a pas répondu dans les $seconds s. Vérifiez votre connexion, puis réessayez.';
+  }
+
+  @override
   String importErrorCallersBoxHttpStatus(int status) {
     return 'The Caller\'s Box a envoyé une réponse inattendue (code $status). Réessayez dans une minute.';
   }
@@ -6251,7 +6260,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxEmptyPage =>
-      'The Caller\'s Box a renvoyé une page vide.';
+      'The Caller\'s Box a renvoyé une page vide. Réessayez dans une minute.';
 
   @override
   String get importErrorCallersBoxNoDance =>
@@ -6306,6 +6315,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d’atteindre ContraDB. Vérifiez votre connexion, puis réessayez.';
 
   @override
+  String importErrorContraDbTimeout(int seconds) {
+    return 'ContraDB n’a pas répondu dans les $seconds s. Vérifiez votre connexion, puis réessayez.';
+  }
+
+  @override
   String importErrorContraDbHttpStatus(int status) {
     return 'ContraDB a envoyé une réponse inattendue (code $status). Réessayez dans une minute.';
   }
@@ -6320,7 +6334,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importErrorContraDbEmptyResponse =>
-      'ContraDB a renvoyé une réponse vide.';
+      'ContraDB a renvoyé une réponse vide. Réessayez dans une minute.';
 
   @override
   String get importErrorContraDbNoDance =>

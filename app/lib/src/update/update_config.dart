@@ -13,16 +13,33 @@ import 'update_manifest.dart';
 const String kUpdateManifestBaseUrl =
     'https://ibanner56.github.io/CallersCompendium';
 
-/// The pinned Ed25519 **public key** (32 bytes, standard base64) the client
-/// verifies the update manifest's detached signature against (issue #431,
-/// ADR-002 §6). This is the root of trust for the *authenticity* of an update:
-/// a manifest whose signature does not verify against this key — or that has no
-/// signature at all — is refused as a silent no-op, never installed.
+/// The pinned Ed25519 **public keys** (each 32 bytes, standard base64) the
+/// client verifies the update manifest's detached signature against (issue
+/// #431, ADR-002 §6; key set: security-2). This is the root of trust for the
+/// *authenticity* of an update: a manifest whose signature verifies against
+/// **none** of these keys — or that has no signature at all — is refused as a
+/// silent no-op, never installed. An empty or malformed entry is skipped (never
+/// trusted); an empty list trusts nothing.
 ///
-/// Rotating the key requires publishing the new public key in an app update
-/// **before** switching the signing key, because older clients pin the old key.
-const String kUpdateManifestPublicKey =
-    '/39VzhfG58PnR5RlMzDB5ertil945PWRgA+usAj4qvw=';
+/// The list is a **set**, not a history: at most a *current* key (the one CI
+/// signs with today, via the `UPDATE_SIGNING_KEY` secret) and a *next* key
+/// (generated offline and pinned ahead of time so installs already trust it
+/// when CI switches to it). A rotation is: ship a release that adds the next
+/// key → once that release is widespread, switch `UPDATE_SIGNING_KEY` to the
+/// next private key → in a later release remove the old key (and add a new
+/// next one). Pinning only one key cannot rotate without stranding one cohort
+/// of installs. Removing a key does not revoke it for installs that already
+/// shipped with it. The full procedure is `docs/dev/releasing.md` → "Key
+/// rotation".
+///
+/// `tools/release/check_pages_signature_files.py` parses this declaration
+/// out of this file, so keep it a `const List<String>` literal of
+/// single-quoted entries.
+const List<String> kUpdateManifestPublicKeys = [
+  // Current: the key CI signs every manifest with today.
+  '/39VzhfG58PnR5RlMzDB5ertil945PWRgA+usAj4qvw=',
+  // Next: pinned by the maintainer ahead of the next rotation (not yet set).
+];
 
 /// The filename suffix of a channel manifest's detached signature, served next
 /// to `<channel>.json` on gh-pages (e.g. `stable.json` → `stable.json.sig`).

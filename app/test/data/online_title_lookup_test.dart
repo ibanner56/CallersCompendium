@@ -60,6 +60,16 @@ void main() {
         ),
         OnlineTitleLookupFailure.unreachable,
       );
+      // The source-attributed timeouts (CS-21) stay connection-class too.
+      for (final reason in [
+        UrlFetchFailureReason.callersBoxTimeout,
+        UrlFetchFailureReason.contraDbTimeout,
+      ]) {
+        expect(
+          await _failureFor(UrlFetchException(reason, timeoutSeconds: 30)),
+          OnlineTitleLookupFailure.unreachable,
+        );
+      }
       expect(
         await _failureFor(
           const UrlFetchException(

@@ -163,6 +163,13 @@ jobs:
         run: python3 tools/ci/test_check_settings_marker_reads.py
       - name: Guard raw settings reads (must filter deleted_at IS NULL)
         run: python3 tools/ci/check_settings_marker_reads.py
+      # A live preference's settings handler must persist exactly its
+      # PreferenceNotifier descriptor's encode, so the encoding has one
+      # spelling and startup/restore decode what the handler wrote (prefs-1).
+      - name: Test the preference-encode ratchet
+        run: python3 tools/ci/test_check_preference_encode.py
+      - name: Guard preference handler writes (descriptor encode)
+        run: python3 tools/ci/check_preference_encode.py
       # A repository join onto `dances` must say whether it reads the joined
       # columns; the tag facet read materialised every dances column (CS-14a).
       - name: Test the join useColumns ratchet
@@ -289,6 +296,7 @@ jobs:
           python3 tools/release/test_gen_release_notes.py
           python3 tools/release/test_gen_recovery_provenance.py
           python3 tools/release/test_release_workflow_recovery.py
+          python3 tools/release/test_release_windows_crt.py
           python3 tools/release/test_resolve_release_codename.py
           python3 tools/release/test_publish_pages_manifest.py
           python3 tools/release/test_publish_pages_site.py

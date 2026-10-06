@@ -1,0 +1,14 @@
+{
+  "id": "perform-undo-refuse-stale",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Perform: tapping Undo on 'Program adjusted' after leaving Perform no longer overwrites changes made to the program since. If the program has changed, the undo is refused with a message instead."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add `ProgramRepository.updateAndReadBack` and `ProgramRepository.replaceIfUnchanged`, an atomic compare-and-replace that writes only while the stored program still equals an expected stored form."
+    ]
+  }
+}

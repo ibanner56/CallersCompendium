@@ -297,6 +297,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "preference-encode",
+        "live-preference handlers persist exactly their descriptor's encode",
+        (
+            py("tools/ci/test_check_preference_encode.py"),
+            py("tools/ci/check_preference_encode.py"),
+        ),
+    ),
+    Step(
         "join-columns",
         "repository joins onto dances carry useColumns or a marker",
         (
@@ -384,6 +392,7 @@ STEPS: tuple[Step, ...] = (
             py("tools/release/test_gen_release_notes.py"),
             py("tools/release/test_gen_recovery_provenance.py"),
             py("tools/release/test_release_workflow_recovery.py"),
+            py("tools/release/test_release_windows_crt.py"),
             py("tools/release/test_resolve_release_codename.py"),
             py("tools/release/test_publish_pages_manifest.py"),
             py("tools/release/test_publish_pages_site.py"),

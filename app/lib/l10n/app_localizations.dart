@@ -7821,6 +7821,12 @@ abstract class AppLocalizations {
   /// **'Adjustment undone'**
   String get performAdjustmentUndone;
 
+  /// Snackbar shown when the user taps Undo on a live program adjustment after leaving Perform, but the program was edited in the meantime, so the undo is refused to keep that later edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t undo: the program has changed since.'**
+  String get performUndoNoLongerAvailable;
+
   /// Snackbar message shown after applying a live program adjustment.
   ///
   /// In en, this message translates to:
@@ -9449,6 +9455,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t reach The Caller\'s Box. Check your connection, then try again.'**
   String get importErrorCallersBoxUnreachable;
 
+  /// Error shown when fetching a dance from The Caller's Box (by id or link) timed out. Names the service, never the URL. {seconds} is how long the app waited, in whole seconds; keep the 's' unit abbreviation or use your language's equivalent.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box didn\'t respond within {seconds}s. Check your connection, then try again.'**
+  String importErrorCallersBoxTimeout(int seconds);
+
   /// Error shown when The Caller's Box returned a non-success HTTP status.
   ///
   /// In en, this message translates to:
@@ -9467,10 +9479,10 @@ abstract class AppLocalizations {
   /// **'The Caller\'s Box is busy right now. Try again in a minute.'**
   String get importErrorCallersBoxHttpBusy;
 
-  /// Error shown when a Caller's Box search returned no page content.
+  /// Error shown when The Caller's Box returned no page content, for a search or for a dance fetched by id or link. The next step is to wait briefly and retry.
   ///
   /// In en, this message translates to:
-  /// **'The Caller\'s Box returned an empty page.'**
+  /// **'The Caller\'s Box returned an empty page. Try again in a minute.'**
   String get importErrorCallersBoxEmptyPage;
 
   /// Error shown when a Caller's Box fetch parsed no importable dance. Generic by design; underlying parse detail is not shown.
@@ -9551,6 +9563,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t reach ContraDB. Check your connection, then try again.'**
   String get importErrorContraDbUnreachable;
 
+  /// Error shown when fetching a dance from ContraDB (by id or link) timed out. Names the service, never the URL. {seconds} is how long the app waited, in whole seconds; keep the 's' unit abbreviation or use your language's equivalent.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB didn\'t respond within {seconds}s. Check your connection, then try again.'**
+  String importErrorContraDbTimeout(int seconds);
+
   /// Error shown when ContraDB returned a non-success HTTP status.
   ///
   /// In en, this message translates to:
@@ -9569,10 +9587,10 @@ abstract class AppLocalizations {
   /// **'ContraDB is busy right now. Try again in a minute.'**
   String get importErrorContraDbHttpBusy;
 
-  /// Error shown when ContraDB returned an empty body.
+  /// Error shown when ContraDB returned an empty body, for a search or for a dance fetched by id or link. The next step is to wait briefly and retry.
   ///
   /// In en, this message translates to:
-  /// **'ContraDB returned an empty response.'**
+  /// **'ContraDB returned an empty response. Try again in a minute.'**
   String get importErrorContraDbEmptyResponse;
 
   /// Error shown when a ContraDB fetch parsed no importable dance. Generic by design; underlying parse detail is not shown.

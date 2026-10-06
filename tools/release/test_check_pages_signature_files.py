@@ -62,7 +62,7 @@ def _run_main(args: list[str]) -> tuple[int, str, str]:
     ignore exactly the alarm this gate exists to raise.
 
     ``SystemExit`` is caught and converted to its integer exit code so callers
-    always receive a plain ``(rc, out, err)`` tuple — ``parse_pinned_key``
+    always receive a plain ``(rc, out, err)`` tuple — ``parse_pinned_keys``
     calls ``sys.exit(2)`` on failure, which would otherwise propagate past the
     context managers and terminate the test process.
 
@@ -85,11 +85,19 @@ def _run_main(args: list[str]) -> tuple[int, str, str]:
     return rc, buf_out.getvalue(), buf_err.getvalue()
 
 
-def _make_key_source(td: Path, pub_b64: str) -> Path:
-    """Write a minimal synthetic update_config.dart containing *pub_b64*."""
+def _make_key_source(td: Path, *pub_b64s: str) -> Path:
+    """Write a minimal synthetic update_config.dart pinning *pub_b64s*.
+
+    Mirrors the real declaration's shape — a ``const List<String>`` with one
+    commented entry per line — so the parser is exercised against what the
+    maintainer actually edits.
+    """
     src = td / "update_config.dart"
+    entries = "".join(
+        f"  // pinned key {i}\n  '{k}',\n" for i, k in enumerate(pub_b64s)
+    )
     src.write_text(
-        f"const String kUpdateManifestPublicKey =\n    '{pub_b64}';\n",
+        f"const List<String> kUpdateManifestPublicKeys = [\n{entries}];\n",
         encoding="utf-8",
     )
     return src
@@ -359,13 +367,13 @@ def _cases() -> None:
     # ------------------------------------------------------------------
     # Case 11: key-source parse failure → exit 2
     #
-    # If kUpdateManifestPublicKey cannot be parsed from the Dart source,
+    # If kUpdateManifestPublicKeys cannot be parsed from the Dart source,
     # the gate must fail loudly (exit 2) rather than falling back to a
     # hardcoded constant. This tests the parse-fail path.
     # ------------------------------------------------------------------
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
-        # Write a key source that has no kUpdateManifestPublicKey declaration.
+        # Write a key source that has no kUpdateManifestPublicKeys declaration.
         bad_key_src = root / "no_key.dart"
         bad_key_src.write_text("// no key here\n", encoding="utf-8")
         stable_bytes = b'{"channel":"stable"}\n'
@@ -374,7 +382,7 @@ def _cases() -> None:
 
         rc, _, _ = _run_main([str(root), "--key-source", str(bad_key_src)])
         assert rc == 2, (
-            f"case 11 expected exit 2 on missing kUpdateManifestPublicKey, got: {rc}"
+            f"case 11 expected exit 2 on missing kUpdateManifestPublicKeys, got: {rc}"
         )
 
     # ------------------------------------------------------------------
@@ -505,7 +513,7 @@ def _cases() -> None:
     # Case 16 (RED RUN — contract): key with non-base64 chars → exit 2
     #
     # Python's lax base64.b64decode() silently discards non-alphabet
-    # characters rather than raising. A corrupted kUpdateManifestPublicKey
+    # characters rather than raising. A corrupted kUpdateManifestPublicKeys entry
     # that has junk chars injected (e.g. "!!!") decodes laxly to the same
     # 32-byte key (the junk is dropped), so the gate reports rc=0 —
     # green, as if the key string were intact.
@@ -537,6 +545,158 @@ def _cases() -> None:
         assert "not valid base64" in err, (
             f"case 16: expected 'not valid base64' in error output, got: {err!r}"
         )
+
+
+    # ------------------------------------------------------------------
+    # Key-set cases (security-2): the app pins a SET of keys (current +
+    # next) and accepts a manifest signed by ANY of them, so the gate must
+    # too — otherwise the first release after CI switches to the "next"
+    # key would be reported as broken although every install accepts it.
+    # ------------------------------------------------------------------
+    next_priv = Ed25519PrivateKey.generate()
+    next_b64 = base64.b64encode(next_priv.public_key().public_bytes_raw()).decode()
+
+    # Case 17 (RED RUN — key set): signature by the SECOND pinned key → exit 0
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        key_src = _make_key_source(root, pub_b64, next_b64)
+        stable_bytes = b'{"channel":"stable"}\n'
+        (root / "stable.json").write_bytes(stable_bytes)
+        (root / "stable.json.sig").write_text(
+            base64.b64encode(next_priv.sign(stable_bytes)).decode() + "\n",
+            encoding="utf-8",
+        )
+        rc, out, err = _run_main([str(root), "--key-source", str(key_src)])
+        assert rc == 0, (
+            f"case 17: expected exit 0 for a signature by the second pinned key, "
+            f"got rc={rc} out={out!r} err={err!r}"
+        )
+        # And by the first key of the same set.
+        (root / "stable.json.sig").write_text(sign(stable_bytes), encoding="utf-8")
+        rc, out, err = _run_main([str(root), "--key-source", str(key_src)])
+        assert rc == 0, (
+            f"case 17: expected exit 0 for a signature by the first pinned key, "
+            f"got rc={rc} out={out!r} err={err!r}"
+        )
+
+    # Case 18: signature by a key OUTSIDE a two-key set → exit 1
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        key_src = _make_key_source(root, pub_b64, next_b64)
+        stable_bytes = b'{"channel":"stable"}\n'
+        (root / "stable.json").write_bytes(stable_bytes)
+        (root / "stable.json.sig").write_text(sign_wrong(stable_bytes), encoding="utf-8")
+        rc, out, _ = _run_main([str(root), "--key-source", str(key_src)])
+        assert rc == 1, f"case 18: expected exit 1 for an outside-key sig, got: {rc}"
+        assert "does not verify" in out, f"case 18: got out={out!r}"
+
+    # Case 19: an EMPTY pinned set → exit 2 (never a vacuous pass)
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        key_src = _make_key_source(root)
+        stable_bytes = b'{"channel":"stable"}\n'
+        (root / "stable.json").write_bytes(stable_bytes)
+        (root / "stable.json.sig").write_text(sign(stable_bytes), encoding="utf-8")
+        rc, _, err = _run_main([str(root), "--key-source", str(key_src)])
+        assert rc == 2, f"case 19: expected exit 2 on an empty pinned set, got: {rc}"
+        assert "no pinned keys" in err, f"case 19: got err={err!r}"
+
+    # Case 20: a malformed SECOND entry → exit 2, even though the first entry
+    # verifies. The app skips a malformed entry (fail-closed per key), but the
+    # gate is where a typo in a newly added "next" key must surface — before
+    # CI is switched to sign with it.
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        key_src = _make_key_source(root, pub_b64, base64.b64encode(b"\0" * 31).decode())
+        stable_bytes = b'{"channel":"stable"}\n'
+        (root / "stable.json").write_bytes(stable_bytes)
+        (root / "stable.json.sig").write_text(sign(stable_bytes), encoding="utf-8")
+        rc, _, err = _run_main([str(root), "--key-source", str(key_src)])
+        assert rc == 2, f"case 20: expected exit 2 on a malformed pinned entry, got: {rc}"
+        assert "expected 32" in err, f"case 20: got err={err!r}"
+
+    # Case 22: comment handling in the key-set body. A pinned key whose base64
+    # contains "//" must parse whole (a naive split on "//" would truncate it
+    # and exit 2), and a commented-out entry must NOT be trusted.
+    slashy_priv = Ed25519PrivateKey.generate()
+    while "//" not in base64.b64encode(slashy_priv.public_key().public_bytes_raw()).decode():
+        slashy_priv = Ed25519PrivateKey.generate()
+    slashy_b64 = base64.b64encode(slashy_priv.public_key().public_bytes_raw()).decode()
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        key_src = root / "update_config.dart"
+        key_src.write_text(
+            "const List<String> kUpdateManifestPublicKeys = [\n"
+            f"  '{slashy_b64}', // current\n"
+            f"  // '{next_b64}',\n"
+            f"  /* '{next_b64}', */\n"
+            "  /*\n"
+            f"   '{next_b64}',\n"
+            "  */\n"
+            "];\n",
+            encoding="utf-8",
+        )
+        stable_bytes = b'{"channel":"stable"}\n'
+        (root / "stable.json").write_bytes(stable_bytes)
+        (root / "stable.json.sig").write_text(
+            base64.b64encode(slashy_priv.sign(stable_bytes)).decode(), encoding="utf-8"
+        )
+        rc, out, err = _run_main([str(root), "--key-source", str(key_src)])
+        assert rc == 0, f"case 22: key containing '//' must parse, got rc={rc} err={err!r}"
+        (root / "stable.json.sig").write_text(
+            base64.b64encode(next_priv.sign(stable_bytes)).decode(), encoding="utf-8"
+        )
+        rc, out, err = _run_main([str(root), "--key-source", str(key_src)])
+        assert rc == 1, (
+            f"case 22: a commented-out key (line or block comment) must not be "
+            f"trusted, got rc={rc} out={out!r}"
+        )
+
+    # Case 23: a commented-out DECLARATION before the live one (a dartdoc
+    # example, a disabled line, a block comment) must not be the one the gate
+    # reads. Each commented form pins only the outsider key; the live
+    # declaration pins pub_b64. A gate that reads the first textual match
+    # would trust the outsider and reject the real signature.
+    commented_forms = [
+        f"/// const List<String> kUpdateManifestPublicKeys = ['{next_b64}'];\n",
+        f"// const List<String> kUpdateManifestPublicKeys = ['{next_b64}'];\n",
+        f"/* const List<String> kUpdateManifestPublicKeys = ['{next_b64}']; */\n",
+        "/*\n * Example:\n *   const List<String> kUpdateManifestPublicKeys = [\n"
+        f" *     '{next_b64}',\n *   ];\n */\n",
+    ]
+    for form in commented_forms:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            key_src = root / "update_config.dart"
+            key_src.write_text(
+                form
+                + "const List<String> kUpdateManifestPublicKeys = [\n"
+                f"  '{pub_b64}',\n"
+                "];\n",
+                encoding="utf-8",
+            )
+            stable_bytes = b'{"channel":"stable"}\n'
+            (root / "stable.json").write_bytes(stable_bytes)
+            (root / "stable.json.sig").write_text(sign(stable_bytes), encoding="utf-8")
+            rc, out, err = _run_main([str(root), "--key-source", str(key_src)])
+            assert rc == 0, (
+                f"case 23: live key's signature must pass despite a preceding "
+                f"commented declaration {form!r}; got rc={rc} out={out!r} err={err!r}"
+            )
+            (root / "stable.json.sig").write_text(
+                base64.b64encode(next_priv.sign(stable_bytes)).decode(), encoding="utf-8"
+            )
+            rc, out, err = _run_main([str(root), "--key-source", str(key_src)])
+            assert rc == 1, (
+                f"case 23: key from a commented declaration {form!r} must not be "
+                f"trusted; got rc={rc} out={out!r}"
+            )
+
+    # Case 21: the REAL update_config.dart parses to a non-empty key set.
+    keys = check_pages_signature_files.parse_pinned_keys(
+        check_pages_signature_files._DEFAULT_KEY_SOURCE
+    )
+    assert keys and all(len(k) == 32 for k in keys), keys
 
 
 def main() -> int:

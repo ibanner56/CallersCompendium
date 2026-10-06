@@ -4940,6 +4940,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get performAdjustmentUndone => 'Adjustment undone';
 
   @override
+  String get performUndoNoLongerAvailable =>
+      'Can\'t undo: the program has changed since.';
+
+  @override
   String get performProgramAdjustedSnack => 'Program adjusted.';
 
   @override
@@ -6122,6 +6126,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t reach The Caller\'s Box. Check your connection, then try again.';
 
   @override
+  String importErrorCallersBoxTimeout(int seconds) {
+    return 'The Caller\'s Box didn\'t respond within ${seconds}s. Check your connection, then try again.';
+  }
+
+  @override
   String importErrorCallersBoxHttpStatus(int status) {
     return 'The Caller\'s Box sent an unexpected response (code $status). Try again in a minute.';
   }
@@ -6136,7 +6145,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxEmptyPage =>
-      'The Caller\'s Box returned an empty page.';
+      'The Caller\'s Box returned an empty page. Try again in a minute.';
 
   @override
   String get importErrorCallersBoxNoDance =>
@@ -6191,6 +6200,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t reach ContraDB. Check your connection, then try again.';
 
   @override
+  String importErrorContraDbTimeout(int seconds) {
+    return 'ContraDB didn\'t respond within ${seconds}s. Check your connection, then try again.';
+  }
+
+  @override
   String importErrorContraDbHttpStatus(int status) {
     return 'ContraDB sent an unexpected response (code $status). Try again in a minute.';
   }
@@ -6205,7 +6219,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importErrorContraDbEmptyResponse =>
-      'ContraDB returned an empty response.';
+      'ContraDB returned an empty response. Try again in a minute.';
 
   @override
   String get importErrorContraDbNoDance =>

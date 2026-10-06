@@ -143,7 +143,7 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] **`pages-sig-gate` is green (Gate — issues #759, #810).**
  The post-publish `Assert gh-pages signature invariant` step in the `pages` job
  reports this synchronously — a red step means the published `<channel>.json.sig` is
- missing **or does not verify** against the pinned key (`kUpdateManifestPublicKey`);
+ missing **or does not verify** against any pinned key (`kUpdateManifestPublicKeys`);
  either failure causes the updater to silently report "no update" to all users on this
  channel. A stale signature from a previous release alongside an updated manifest also
  fails (issue #810). The `gh-pages signature gate` workflow also runs daily (≤24h

@@ -586,20 +586,23 @@ gh workflow run pages-sig-gate.yml
 The check script is `tools/release/check_pages_signature_files.py` and its offline test
 suite is `tools/release/test_check_pages_signature_files.py`. The check verifies
 **presence** of `.sig` files (phase 1) and then validates each signature as a real
-Ed25519 signature over the exact bytes of the manifest against the public key pinned as
-`kUpdateManifestPublicKey` in `app/lib/src/update/update_config.dart` (phase 2). A
+Ed25519 signature over the exact bytes of the manifest against the public keys pinned as
+`kUpdateManifestPublicKeys` in `app/lib/src/update/update_config.dart` (phase 2); like
+the app, it accepts a signature that verifies under **any** pinned key. A
 stale `.sig` — e.g. from a previous release alongside an updated manifest — fails the
-same way a missing one does (issue #810). The key is parsed from the Dart source at
-runtime so a key rotation propagates automatically without touching the gate.
+same way a missing one does (issue #810). The keys are parsed from the Dart source at
+runtime so a key rotation propagates automatically without touching the gate; an
+empty set or a malformed entry exits 2, so a typo in a newly pinned key is caught
+before CI signs with it.
 
 ## Signing the update manifest (Ed25519, issue #431)
 
 The in-app update client verifies **integrity** with the per-artifact `sha256`
 in the manifest, but that only proves an artifact matches what the manifest
 claims — not that the manifest itself is authentic. To close that gap the client
-also verifies a **detached Ed25519 signature** over the manifest against an
-**in-app pinned public key**. A manifest with a missing, invalid, or malformed
-signature — or when no key is pinned — is **refused as a silent no-op** (never an
+also verifies a **detached Ed25519 signature** over the manifest against a small
+**in-app pinned set of public keys**. A manifest with a missing, invalid, or
+malformed signature — or one that verifies under no pinned key — is **refused as a silent no-op** (never an
 install). This is a fail-closed security gate (ADR-002 §6, OWASP A08).
 
 ### Signature format
@@ -611,10 +614,12 @@ install). This is a fail-closed security gate (ADR-002 §6, OWASP A08).
 - **File:** `<channel>.json.sig`, served next to `<channel>.json` on `gh-pages`
   (e.g. `stable.json.sig`). Its body is the **standard base64** of the raw
   **64-byte** Ed25519 signature (a trailing newline is tolerated).
-- **Pinned key:** `kUpdateManifestPublicKey` in
-  `app/lib/src/update/update_config.dart` — the standard base64 of the **32-byte**
-  Ed25519 public key (**now provisioned**). If it is empty or no key is pinned,
-  verification fails closed so the client never offers an update.
+- **Pinned keys:** `kUpdateManifestPublicKeys` in
+  `app/lib/src/update/update_config.dart` — a list of the standard base64 of each
+  **32-byte** Ed25519 public key: the *current* key CI signs with (**provisioned**)
+  and, ahead of a rotation, a *next* key. A signature is accepted if it verifies
+  under **any** entry; an empty or malformed entry is skipped, and an empty list
+  fails closed so the client never offers an update.
 
 Client verification lives in `app/lib/src/update/update_signature.dart` and is
 fully unit-tested with in-test keypairs.
@@ -657,12 +662,12 @@ provision — or later re-provision — the key:
    (repo/organization **Settings → Secrets and variables → Actions**). Paste the
    full PEM (`-----BEGIN PRIVATE KEY----- … -----END PRIVATE KEY-----`).
 
-3. **Pin the public key**: set `kUpdateManifestPublicKey` in
-   `app/lib/src/update/update_config.dart` to the base64 from step 1 (replacing
-   any previously pinned value), and **ship an app release** carrying it. Only
-   clients built with the pinned key
-   can verify — so the pinned key must reach users **before** the first signed
-   manifest is the only one they can use.
+3. **Pin the public key**: add the base64 from step 1 to
+   `kUpdateManifestPublicKeys` in `app/lib/src/update/update_config.dart` and
+   **ship an app release** carrying it. Only clients built with the key pinned
+   can verify — so the pinned key must reach users **before** the first
+   manifest signed with it is the only one they can use. To *replace* a key
+   that is already provisioned, follow [Key rotation](#key-rotation) instead.
 
 4. **Verify end-to-end** after the next release: confirm the `.sig` for
    whichever channel you just cut (e.g.
@@ -673,19 +678,49 @@ provision — or later re-provision — the key:
 
 ### Key rotation
 
-Because each client **pins** a public key, rotation must be staged so old
-clients are not stranded:
+Each client pins a **set** of public keys (`kUpdateManifestPublicKeys`) and
+accepts a manifest whose signature verifies under **any** of them, while CI
+signs with exactly one private key (`UPDATE_SIGNING_KEY`) and publishes one
+`.sig`. Rotation works by pinning the *next* key before CI uses it, so at every
+step every supported install trusts the key CI is signing with:
 
-1. Generate the new keypair and **pin the new public key in an app release**
-   first (clients now trust the new key).
-2. Give users time to update to that build.
-3. **Then** swap `UPDATE_SIGNING_KEY` to the new private key so subsequent
-   manifests are signed with it.
+1. **Generate the next keypair offline** (same commands as
+   [step 1 above](#maintainer-ops-enabling-signed-updates)). Store the private
+   key the way the current one is stored; do not put it in CI yet, and never
+   commit it.
+2. **Pin it as "next" in a release**: add its public key to
+   `kUpdateManifestPublicKeys` *after* the current key, and ship an app release.
+   CI keeps signing with the current key, so every install — old or new —
+   still verifies.
+3. **Wait until that release is widespread.** Installs that predate it trust
+   only the old key and will stop seeing updates at step 4 until they update
+   manually, so this is the window to keep long.
+4. **Switch the signer**: replace the `UPDATE_SIGNING_KEY` secret with the next
+   private key. From the next release on, manifests are signed with it; every
+   install from step 2 onwards already trusts it. The gh-pages gate accepts
+   either pinned key, so it stays green.
+5. **Retire the old key in a later release**: remove the old public key from
+   `kUpdateManifestPublicKeys` and add a freshly generated next key (step 1),
+   so the set is again *current + next*. The test
+   `app/test/update/update_signature_test.dart` pins the current key by value as
+   a tripwire against removing it early; update it in the same change.
 
-Never swap the CI signing key before the matching public key has shipped to
-clients — those clients would reject every new manifest (fail closed) until they
-update. If a private key is compromised, rotate immediately and treat any
-manifest signed by the old key as untrusted.
+Never switch `UPDATE_SIGNING_KEY` to a key that is not already pinned in a
+widely installed release — those installs would reject every new manifest
+(fail closed, silently "no update") until they update by hand.
+
+**Compromise.** Pinning has no revocation: an install keeps trusting every key
+it shipped with until it updates, so a leaked private key can sign manifests
+those installs accept. If a next key is already pinned, switching the signer to
+it (step 4) and shipping a release that drops the leaked key (step 5) keeps
+update delivery working for every install that **already has the next key** —
+it cannot remove trust in the leaked key from installs that have not yet taken
+the step-5 release. Installs that **predate** the release that pinned the next
+key trust only the leaked key: an immediate switch strands them (silent "no
+update" until they update by hand), and leaving the signer alone keeps them
+exposed. That trade-off is the maintainer's call at the time. Keeping a next key
+pinned at all times — so that cohort is as small as possible — is what makes
+the response available at all.
 
 ## Landing page and user guides (GitHub Pages)
 
@@ -811,7 +846,8 @@ repository variables, the Windows matrix leg authenticates through the federated
 Entra application/service principal using GitHub OIDC. It signs every `.exe` and
 `.dll` in the
 Flutter release bundle before creating the portable ZIP, then signs the generated
-Inno Setup installer. The signing endpoint is the WUS2 Azure Trusted Signing
+Inno Setup installer. The MSVC runtime DLLs are copied into the bundle after
+that signing step, so they keep Microsoft's own signatures. The signing endpoint is the WUS2 Azure Trusted Signing
 endpoint (`https://wus2.codesigning.azure.net/`).
 
 The variables must be paired with an Azure federated credential for the
@@ -1269,6 +1305,16 @@ runners:
   the Apple signing secrets are configured the same step also Developer
   ID-signs (hardened runtime), notarizes, and staples the artifacts — see
   [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized).
+- **Windows MSVC runtime** — the runner and plugin DLLs link the MSVC runtime
+  dynamically, so the job copies `vcruntime140.dll`, `vcruntime140_1.dll` and
+  `msvcp140.dll` (the `MSVC_RUNTIME_DLLS` job variable) from the runner's Visual
+  Studio redistributable folder into the Release folder, next to
+  `compendium_app.exe`, before the zip and installer are built. The version
+  folder is read from Visual Studio, not hard-coded. The step fails if
+  `dumpbin /dependents` shows any bundled binary importing a runtime DLL outside
+  that list. A later step fails the job unless each DLL is in the zip, is
+  installed by the installer, and is removed by its uninstaller.
+  `tools/release/test_release_windows_crt.py` pins this structure.
 - **Windows zip** — PowerShell `Compress-Archive`.
 - **Windows installer** — Inno Setup (`ISCC.exe`, preinstalled on the runner)
   driving `packaging/windows/CallersCompendium.iss`.

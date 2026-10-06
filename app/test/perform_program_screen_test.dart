@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show SemanticsNode;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -2114,6 +2115,8 @@ void main() {
       required CollectionData data,
       Size size = const Size(412, 800),
       double textScale = 1.0,
+      Future<bool> Function(Program previous, Program adjusted)?
+      restoreIfUnchanged,
     }) async {
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -2145,6 +2148,7 @@ void main() {
                       data: data,
                       renderer: _renderer,
                       onProgramChanged: (p) async => changed.add(p),
+                      restoreIfUnchanged: restoreIfUnchanged,
                     ),
                   ),
                 ),
@@ -2159,9 +2163,98 @@ void main() {
       return changed;
     }
 
+    /// Adjusts, leaves Perform, and taps the surviving "Program adjusted"
+    /// Undo; returns the localizations of the screen underneath.
+    Future<AppLocalizations> adjustLeaveAndUndo(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsNothing);
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byKey(const ValueKey('open-perform'))),
+      );
+      await tester.tap(find.text(l10n.commonUndo));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      return l10n;
+    }
+
+    /// Whether [finder]'s semantics node, or an ancestor, is a live region
+    /// (what makes a screen reader announce a SnackBar when it appears).
+    bool inLiveRegion(WidgetTester tester, Finder finder) {
+      SemanticsNode? node = tester.getSemantics(finder);
+      while (node != null) {
+        if (node.getSemanticsData().flagsCollection.isLiveRegion) return true;
+        node = node.parent;
+      }
+      return false;
+    }
+
     testWidgets(
-      'Undo on "Program adjusted" after leaving Perform persists the previous '
-      'program without throwing',
+      'Undo on "Program adjusted" after leaving Perform hands the owner the '
+      'previous and adjusted programs and shows nothing when it restores',
+      (tester) async {
+        final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+        final program = _program([_slot(id: 's1', position: 0, danceId: 'd1')]);
+        final asked = <(Program, Program)>[];
+        final changed = await pumpPushed(
+          tester,
+          program: program,
+          data: data,
+          size: const Size(1200, 2000),
+          restoreIfUnchanged: (previous, adjusted) async {
+            asked.add((previous, adjusted));
+            return true;
+          },
+        );
+
+        final l10n = await adjustLeaveAndUndo(tester);
+
+        // The restore is the owner's one atomic step; the screen does not
+        // also write the snapshot through onProgramChanged.
+        expect(changed, hasLength(1));
+        expect(changed.single, isNot(equals(program)));
+        expect(asked, hasLength(1));
+        expect(asked.single.$1, equals(program));
+        expect(asked.single.$2, same(changed.single));
+        expect(find.text(l10n.performUndoNoLongerAvailable), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'Undo on "Program adjusted" after leaving Perform is refused, with an '
+      'announced message, when the owner reports the program changed since',
+      (tester) async {
+        final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+        final program = _program([_slot(id: 's1', position: 0, danceId: 'd1')]);
+        final changed = await pumpPushed(
+          tester,
+          program: program,
+          data: data,
+          size: const Size(1200, 2000),
+          restoreIfUnchanged: (_, _) async => false,
+        );
+
+        final l10n = await adjustLeaveAndUndo(tester);
+
+        expect(changed, hasLength(1), reason: 'the snapshot is not written');
+        final message = find.text(l10n.performUndoNoLongerAvailable);
+        expect(message, findsOneWidget);
+        expect(inLiveRegion(tester, message), isTrue);
+      },
+    );
+
+    testWidgets(
+      'Undo on "Program adjusted" after leaving Perform is refused when the '
+      'owner cannot say whether the program changed',
       (tester) async {
         final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
         final program = _program([_slot(id: 's1', position: 0, danceId: 'd1')]);
@@ -2172,30 +2265,10 @@ void main() {
           size: const Size(1200, 2000),
         );
 
-        await tester.tap(find.byKey(const ValueKey('perform-adjust')));
-        await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
-        await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const ValueKey('adjust-done')));
-        await tester.pumpAndSettle();
+        final l10n = await adjustLeaveAndUndo(tester);
+
         expect(changed, hasLength(1));
-        expect(changed.last, isNot(equals(program)));
-
-        await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
-        await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
-        await tester.pumpAndSettle();
-        expect(find.byType(PerformProgramScreen), findsNothing);
-
-        final l10n = AppLocalizations.of(
-          tester.element(find.byKey(const ValueKey('open-perform'))),
-        );
-        await tester.tap(find.text(l10n.commonUndo));
-        await tester.pumpAndSettle();
-
-        expect(tester.takeException(), isNull);
-        expect(changed, hasLength(2));
-        expect(changed.last, equals(program));
+        expect(find.text(l10n.performUndoNoLongerAvailable), findsOneWidget);
       },
     );
 

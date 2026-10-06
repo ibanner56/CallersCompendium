@@ -896,6 +896,95 @@ void main() {
     expect(find.text(l10n.importReviewTryAnother), findsOneWidget);
   });
 
+  group('the back-to-input label follows the input method (CS-05)', () {
+    // The Compendium JSON source takes a file, a paste and a URL. The label
+    // names what the user can actually redo: a paste or a URL has no file to
+    // swap, so it reads "Try again"; only a picked file reads "Try another
+    // file" (backupimport-5).
+    Finder backLabel(String text) => find.descendant(
+      of: find.byKey(const ValueKey('import-back-to-input')),
+      matching: find.text(text),
+    );
+
+    testWidgets('pasted invalid text offers Try again', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, payload: 'unused');
+      await tester.enterText(
+        find.byKey(const ValueKey('import-paste-field')),
+        'hello',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      expect(find.text("Couldn't read the import"), findsOneWidget);
+      expect(backLabel(l10n.commonTryAgain), findsOneWidget);
+      expect(find.text(l10n.importReviewTryAnother), findsNothing);
+    });
+
+    testWidgets('an invalid URL body offers Try again', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        fetcher: (url) async => 'hello',
+      );
+      await _fetch(tester, 'https://example.com/bad.json');
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      expect(find.text("Couldn't read the import"), findsOneWidget);
+      expect(backLabel(l10n.commonTryAgain), findsOneWidget);
+      expect(find.text(l10n.importReviewTryAnother), findsNothing);
+    });
+
+    testWidgets('a bad file after a paste still offers Try another file', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, payload: 'not json at all');
+      await tester.enterText(
+        find.byKey(const ValueKey('import-paste-field')),
+        'hello',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      expect(backLabel(l10n.commonTryAgain), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('import-back-to-input')));
+      await tester.pumpAndSettle();
+      await _toReview(tester);
+
+      expect(find.text("Couldn't read the import"), findsOneWidget);
+      expect(backLabel(l10n.importReviewTryAnother), findsOneWidget);
+      expect(find.text(l10n.commonTryAgain), findsNothing);
+    });
+
+    testWidgets('a hand edit after a file pick counts as a paste', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, payload: 'not json at all');
+      await tester.tap(find.byKey(const ValueKey('import-choose-file')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('import-paste-field')),
+        'hello',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      expect(backLabel(l10n.commonTryAgain), findsOneWidget);
+    });
+  });
+
   group('figure-variation diff prompt (issue #686)', () {
     // A confident match (exact normalized title + an intersecting tokenized
     // author set — issue #685) whose figures genuinely differ (issue #686's

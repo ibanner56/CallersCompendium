@@ -165,6 +165,14 @@ the scope API above is unchanged. The one exception is the active dialect: it is
 persisted by `DialectLibraryController` (`kActiveDialectRefKey`), not by a
 `PreferenceNotifier`, and `_resetAppPreferenceNotifiers` resets it by hand.
 
+Handlers do not call `PreferenceNotifier.persist`; each writes through
+`persistSetting` itself. So that the encoding still has one owner, a handler's
+written value must be spelled exactly as the descriptor's `encode` applied to the
+value it just assigned to the notifier (`selection.name` for
+`encode: (v) => v.name`). `tools/ci/check_preference_encode.py` (preflight step
+`preference-encode`) fails the build otherwise; to change an encoding, change
+the descriptor and every handler the checker then names.
+
 ### Security: validate every persisted value (OWASP)
 
 Persisted settings are **untrusted input**. Everything read back on startup is

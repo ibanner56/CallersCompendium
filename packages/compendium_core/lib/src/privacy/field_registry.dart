@@ -676,18 +676,39 @@ const _contactPostal = DataClassification(
   subject: DataSubject.thirdParty,
   egress: EgressClass.deviceLocal,
 );
+
+/// Shared by the six `venues.contact*` columns: the one recorded exception to
+/// [EgressClass.deviceLocal], kept as a note rather than a new egress class
+/// (post-audit finding flows-9; the maintainer stated no preference, and the
+/// note was the sweep's call because it changes no behaviour).
+const _venueContactConsentNote =
+    'One exception to device-local: when the user exports or shares a program '
+    '(PDF, JSON or .ccshare) whose venue has contacts, a dialog lists each '
+    'populated contact field unticked, and only the fields ticked there go to '
+    'the recipient, with the user\'s explicit consent for that one export '
+    '(sanitizeVenueForShare). Nothing is remembered for the next export, and '
+    'the field still never reaches Device Sync or other project-operated '
+    'infrastructure. Allowed because a program handed to another organiser '
+    'is often unusable without the hall contact, and only the user knows '
+    'whether that person expects to be passed on. The tick is the user\'s '
+    'consent, not the contact\'s, which is why the subject stays third-party '
+    'and nothing is ticked by default.';
+
 const _contactName = DataClassification(
   term: DpvTerm.name,
   subject: DataSubject.thirdParty,
   egress: EgressClass.deviceLocal,
+  note: _venueContactConsentNote,
 );
 const _contactPhone = DataClassification(
   term: DpvTerm.telephoneNumber,
   subject: DataSubject.thirdParty,
   egress: EgressClass.deviceLocal,
+  note: _venueContactConsentNote,
 );
 const _contactEmail = DataClassification(
   term: DpvTerm.emailAddress,
   subject: DataSubject.thirdParty,
   egress: EgressClass.deviceLocal,
+  note: _venueContactConsentNote,
 );
