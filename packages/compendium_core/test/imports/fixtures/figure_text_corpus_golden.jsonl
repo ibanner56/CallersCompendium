@@ -6024,3 +6024,18 @@
 {"in":"user: Dave Morse","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"user: Dave Morse\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"verified 6","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"verified 6\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"6 users have called this transcription 7 users have called this transcription","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"6 users have called this transcription 7 users have called this transcription\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"users have called this transcription 7 users have called this transcription\",\"beats\":6},\"customOrigin\":\"importGap\"}]"}
+{"in":"Neighbour swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"neighbors\"}}]"}
+{"in":"Lark allemande left once","scrub":"role1 allemande left once","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"role1s\",\"hand\":\"left\",\"travel\":1.0}}]"}
+{"in":"Gent swing","scrub":"role1 swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"role1s\"}}]"}
+{"in":"Robin allemande right","scrub":"role2 allemande right","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"role2s\",\"hand\":\"right\"}}]"}
+{"in":"Lady swing","scrub":"role2 swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"role2s\"}}]"}
+{"in":"Everyone go down the hall","fanOut":"[{\"schemaVersion\":1,\"move\":\"down_the_hall\",\"params\":{\"who\":\"everyone\",\"ender\":\"none\"}}]"}
+{"in":"Rory O'More everyone","fanOut":"[{\"schemaVersion\":1,\"move\":\"rory_o_more\",\"params\":{\"who\":\"everyone\",\"balance\":false}}]"}
+{"in":"Shadows balance and swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"shadows\",\"prefix\":\"balance\"}}]"}
+{"in":"N4 swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"fourthNeighbors\"}}]"}
+{"in":"P swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"partners\"}}]"}
+{"in":"W1 figure eight up","fanOut":"[{\"schemaVersion\":1,\"move\":\"figure_8\",\"params\":{\"who\":\"onesRole2\",\"where\":\"above\"}}]"}
+{"in":"M2 figure eight up","fanOut":"[{\"schemaVersion\":1,\"move\":\"figure_8\",\"params\":{\"who\":\"twosRole1\",\"where\":\"above\"}}]"}
+{"in":"W2 figure eight up","fanOut":"[{\"schemaVersion\":1,\"move\":\"figure_8\",\"params\":{\"who\":\"twosRole2\",\"where\":\"above\"}}]"}
+{"in":"an allemande left with neighbors","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"neighbors\",\"hand\":\"left\"}}]"}
+{"in":"Swing an partner","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"partners\"}}]"}

@@ -11,7 +11,11 @@ import '../test_package_root.dart';
 ///
 /// [_corpusPath] is a frozen copy of every short string literal in
 /// `test/imports/**` plus the text of the import fixture files
-/// (`test/imports/support/**`, `tools/seed/fixtures/*.html`), one per line. For
+/// (`test/imports/support/**`, `tools/seed/fixtures/*.html`), one per line,
+/// followed by hand-written lines that make every entry of `dancerWords` and
+/// `fillerWords` (`taxonomy/dance_vocabulary.dart`) decide at least one
+/// record, so deleting any entry turns this test red. Lines may be appended;
+/// their expected records must be recorded from unchanged behaviour. For
 /// each line the golden records what the import scrub, the import fan-out
 /// parser and the editor's free-text entry produce. A refactor of the parser
 /// vocabulary or of the canonicalisation chokepoint must leave every record
