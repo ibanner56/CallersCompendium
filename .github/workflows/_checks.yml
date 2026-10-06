@@ -222,6 +222,14 @@ jobs:
       # minimum (docs/user/installation.md); ubuntu-latest would move it.
       - name: Guard the Linux build runner (glibc floor)
         run: python3 tools/ci/test_check_linux_build_runner.py
+      # Each shipped iOS target (Runner, ShareExtension) must copy a
+      # PrivacyInfo.xcprivacy that declares every required-reason API category
+      # its own sources use; App Store Connect rejects an undeclared one
+      # (ITMS-91053). Post-audit finding platform-6.
+      - name: Test the iOS privacy-manifest guard
+        run: python3 tools/ci/test_check_ios_privacy_manifest.py
+      - name: Guard iOS privacy manifests (required-reason APIs)
+        run: python3 tools/ci/check_ios_privacy_manifest.py
       - name: Test the Android release versionCode encoder
         run: python3 tools/release/test_android_version_code.py
       - name: Test the Flutter-free core guard
