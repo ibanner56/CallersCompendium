@@ -111,7 +111,9 @@ def test_app_cmake_pins_before_and_verifies_after_the_plugins() -> None:
             i for i, l in enumerate(lines)
             if l.startswith("include(") and "packaging/pdfium/pdfium.cmake" in l
         ]
-        pin_calls = [i for i, l in enumerate(lines) if l == "compendium_pin_pdfium()"]
+        pin_calls = [
+            i for i, l in enumerate(lines) if l == f"compendium_pin_pdfium({os_name})"
+        ]
         plugins = [
             i for i, l in enumerate(lines) if l == "include(flutter/generated_plugins.cmake)"
         ]
@@ -120,12 +122,43 @@ def test_app_cmake_pins_before_and_verifies_after_the_plugins() -> None:
         ]
         rel = path.relative_to(ROOT)
         assert len(include) == 1, f"{rel} must include packaging/pdfium/pdfium.cmake once"
-        assert len(pin_calls) == 1, f"{rel} must call compendium_pin_pdfium() once"
+        assert len(pin_calls) == 1, f"{rel} must call compendium_pin_pdfium({os_name}) once"
         assert len(plugins) == 1, f"{rel} must include generated_plugins.cmake once"
         assert len(verify) == 1, f"{rel} must call compendium_verify_pdfium({os_name}) once"
         assert include[0] < pin_calls[0] < plugins[0] < verify[0], (
             f"{rel}: pin before the plugins are added, verify straight after"
         )
+
+
+def _function_body(text: str, name: str) -> str:
+    """The body of `function(<name> ...)`, up to its matching endfunction().
+
+    Walks function()/endfunction() pairs rather than taking a fixed window.
+    """
+    start = re.search(rf"^function\({re.escape(name)}\b[^)]*\)\s*$", text, re.MULTILINE)
+    assert start is not None, f"no function({name} ...) in the pin file"
+    depth = 1
+    for match in re.finditer(r"^\s*(function|endfunction)\(", text[start.end():], re.MULTILINE):
+        depth += 1 if match.group(1) == "function" else -1
+        if depth == 0:
+            return text[start.end() : start.end() + match.start()]
+    raise AssertionError(f"function({name}) is never closed")
+
+
+def test_pin_downloads_and_checks_the_archive_before_the_plugin_does() -> None:
+    # The plugin extracts its archive and include()s the PDFiumConfig.cmake in
+    # it at configure time, so the hash check has to happen before the plugins
+    # are added (the wiring test pins the call order), inside the pin function.
+    body = _function_body(PIN_FILE.read_text(encoding="utf-8"), "compendium_pin_pdfium")
+    download = re.search(r"file\(DOWNLOAD\s[^)]*\)", body)
+    assert download is not None, "compendium_pin_pdfium must file(DOWNLOAD) the pinned archive"
+    call = download.group(0)
+    assert "EXPECTED_HASH SHA256=${expected}" in call, call
+    assert "TLS_VERIFY ON" in call, call
+    assert re.search(r'set\(PDFIUM_ARCH\s+"\$\{arch\}"\s+CACHE\s+STRING\s+"[^"]*"\s+FORCE\)', body), (
+        "force PDFIUM_ARCH so the plugin fetches the asset that was checked"
+    )
+    assert "FATAL_ERROR" in body[download.end():], "a failed download must stop the configure"
 
 
 def test_pin_macro_forces_the_cache_variable() -> None:
@@ -274,6 +307,81 @@ def test_verifier_rejects_an_unpinned_version_or_arch_or_missing_archive() -> No
             False,
             "not found",
         )
+
+
+# --- the pre-download, run under `cmake -P` against a file:// "release" ------
+
+
+def _serve(tmp: Path, target: str, payload: bytes) -> str:
+    """Lay out a fake release directory; return the archive's SHA-256."""
+    p = pin()
+    archive = tmp / "srv" / "chromium" / p.version / f"pdfium-{target}.tgz"
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    archive.write_bytes(payload)
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _run_pin(tmp: Path, os_name: str, platform: str, prelude: str = "") -> subprocess.CompletedProcess:
+    driver = tmp / "pin-driver.cmake"
+    driver.write_text(
+        f'set(COMPENDIUM_PDFIUM_URL_BASE "file://{(tmp / "srv").as_posix()}")\n'
+        f'include("{PIN_FILE.as_posix()}")\n'
+        f'set(COMPENDIUM_PDFIUM_BUILD_DIR "{(tmp / "build").as_posix()}")\n'
+        f'set(FLUTTER_TARGET_PLATFORM "{platform}")\n'
+        f"{prelude}\n"
+        f"compendium_pin_pdfium({os_name})\n"
+        'message(STATUS "pinned ${PDFIUM_VERSION} ${PDFIUM_ARCH}")\n',
+        encoding="utf-8",
+    )
+    return subprocess.run(["cmake", "-P", str(driver)], cwd=tmp, capture_output=True, text=True)
+
+
+def test_pin_refuses_an_archive_that_does_not_match() -> None:
+    # The real pinned hash against a fake asset at the release URL: what a
+    # swapped release asset looks like.
+    for os_name, platform in (("linux", "linux-x64"), ("win", "windows-x64")):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            _serve(tmp, f"{os_name}-x64", b"swapped")
+            result = _run_pin(tmp, os_name, platform)
+            _expect(result, False, "HASH mismatch")
+            assert "pre-verified" not in result.stdout + result.stderr
+            assert "pinned " not in result.stdout, "the configure must stop at the mismatch"
+
+
+def test_pin_accepts_a_matching_archive_and_does_not_fetch_it_twice() -> None:
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        digest = _serve(tmp, "linux-x64", b"the pinned bytes")
+        override = f'set(COMPENDIUM_PDFIUM_ARCHIVE_SHA256_linux_x64 "{digest}")'
+        result = _run_pin(tmp, "linux", "linux-x64", override)
+        _expect(result, True, "pre-verified")
+        assert f"pinned {pin().version} x64" in result.stdout, result.stdout
+        kept = tmp / "build" / "pdfium-preverify" / "pdfium-linux-x64.tgz"
+        assert kept.read_bytes() == b"the pinned bytes"
+        # A reconfigure reuses the verified copy: with the "server" gone it
+        # still passes, so it did not fetch again.
+        shutil.rmtree(tmp / "srv")
+        _expect(_run_pin(tmp, "linux", "linux-x64", override), True, "pre-verified")
+
+
+def test_pin_refuses_a_missing_asset_or_unpinned_arch() -> None:
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        (tmp / "srv").mkdir()
+        digest = hashlib.sha256(b"x").hexdigest()
+        result = _run_pin(
+            tmp, "linux", "linux-x64", f'set(COMPENDIUM_PDFIUM_ARCHIVE_SHA256_linux_x64 "{digest}")'
+        )
+        # CMake reports a failed download with EXPECTED_HASH itself ("cannot
+        # compute hash on failed download"); the STATUS branch covers versions
+        # that return the error instead.
+        out = result.stdout + result.stderr
+        assert result.returncode != 0, f"pin accepted a missing asset:\n{out}"
+        assert "failed download" in out or "download of" in out, out
+        assert "pre-verified" not in out
+        _expect(_run_pin(tmp, "linux", "linux-riscv64"), False, "no pinned SHA-256")
+        _expect(_run_pin(tmp, "win", "linux-x64"), False, "FLUTTER_TARGET_PLATFORM")
 
 
 # --- the licence text that ships in the app ---------------------------------

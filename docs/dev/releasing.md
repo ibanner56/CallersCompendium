@@ -26,7 +26,7 @@ This is the operator runbook for cutting a desktop release. It documents the
 > per-platform signing table.
 
 <!-- section-index -->
-> **Section index.** This document is ~78 KB — read the section you
+> **Section index.** This document is ~79 KB — read the section you
 > need rather than the whole file. Line counts indicate size, not position;
 > follow the anchor. Keep this index current when you add or retitle a
 > section.
@@ -44,7 +44,7 @@ This is the operator runbook for cutting a desktop release. It documents the
 - [Android (signed APK)](#android-signed-apk) — 143 lines
 - [iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api) — 125 lines
 - [Packaging tooling notes](#packaging-tooling-notes) — 42 lines
-- [Pinned native dependencies](#pinned-native-dependencies) — 63 lines
+- [Pinned native dependencies](#pinned-native-dependencies) — 81 lines
 <!-- /section-index -->
 
 ## What the pipeline produces
@@ -1359,7 +1359,7 @@ each is pinned:
 
 | Component | Ships in | Pinned by | Verified by |
 | --- | --- | --- | --- |
-| pdfium (`bblanchon/pdfium-binaries` `chromium/5200`, PDFium 106.0.5200.0) | Linux and Windows builds | `packaging/pdfium/pdfium.cmake` | SHA-256 of the archive and of the bundled library, at CMake configure time |
+| pdfium (`bblanchon/pdfium-binaries` `chromium/5200`, PDFium 106.0.5200.0) | Linux and Windows builds | `packaging/pdfium/pdfium.cmake` | SHA-256 of the archive (fetched by us before the plugin runs) and of the plugin's copy and the bundled library, at CMake configure time; see the residual risk below |
 | MSVC runtime (`vcruntime140.dll`, `vcruntime140_1.dll`, `msvcp140.dll`) | Windows zip and installer | not pinned: the runner's Visual Studio redistributable (Microsoft-signed) | `dumpbin` import check and ship check in `release.yml`; versions and hashes recorded in the SBOM |
 
 **pdfium.** The `printing` plugin (5.15.1) downloads
@@ -1369,15 +1369,32 @@ through `download_project` with no `URL_HASH`. Its only option is the
 the pub cache or fork the plugin. Instead `app/linux/CMakeLists.txt` and
 `app/windows/CMakeLists.txt`:
 
-1. include `packaging/pdfium/pdfium.cmake` and call `compendium_pin_pdfium()`
-   before `include(flutter/generated_plugins.cmake)`. This forces
-   `PDFIUM_VERSION` into the cache, so the plugin's own default and any
-   `-DPDFIUM_VERSION=latest` are ignored;
+1. include `packaging/pdfium/pdfium.cmake` and call
+   `compendium_pin_pdfium(linux|win)` before
+   `include(flutter/generated_plugins.cmake)`. This forces `PDFIUM_VERSION` and
+   `PDFIUM_ARCH` into the cache, so the plugin's own default and any
+   `-DPDFIUM_VERSION=latest` are ignored. It then downloads the same release
+   asset itself (`file(DOWNLOAD … EXPECTED_HASH SHA256=… TLS_VERIFY ON)` into
+   `<build>/pdfium-preverify/`) and stops the configure step unless it matches
+   the pin. This matters because the plugin extracts its archive and
+   `include()`s the `PDFiumConfig.cmake` inside it at configure time: a check
+   only afterwards would let a swapped archive run its CMake first. A copy
+   that already matches is reused, so a reconfigure does not fetch again. The
+   function also sets `CMAKE_TLS_VERIFY` in the environment so the plugin's
+   own download (a child CMake process) verifies TLS on CMake 3.30 and later;
 2. call `compendium_verify_pdfium(linux|win)` straight after. It hashes the
    archive the plugin downloaded and the library it is about to bundle
    (`lib/libpdfium.so`, `bin/pdfium.dll`), and stops the configure step on a
    version, hash or missing-file mismatch, before anything is compiled or
    installed.
+
+**Residual risk.** The plugin still downloads its own copy, with no hash, and
+`include()`s that copy's `PDFiumConfig.cmake` before step 2 runs. That copy is a
+second request for the same asset, seconds after ours matched the pin. A server
+that returns different bytes to the second request could still run CMake at
+configure time (on the release runner, before signing) before step 2 fails the
+build. Closing that completely needs a patched or vendored `printing` plugin,
+which we have not done.
 
 The pin keeps `chromium/5200`, the release printing 5.15.1 asks for by default,
 so it changes nothing the app does. pdfium-binaries publishes no checksums for
@@ -1388,8 +1405,9 @@ it is added.
 
 `tools/release/test_pdfium_pin.py` (in `release-tooling` and the PR checks)
 fails if the pin, a hash, or the CMake wiring is missing, if `pubspec.lock`
-moves `printing` off the version the pin was written for, or if the verifier
-accepts a fake archive. It also checks that the bundled licence
+moves `printing` off the version the pin was written for, or if the
+pre-download or the verifier accepts a fake archive (it runs both under
+`cmake -P`, the pre-download against a `file://` copy of the release layout). It also checks that the bundled licence
 (`app/assets/licenses/pdfium-LICENSE.txt`) is the pinned release's `LICENSE`.
 
 To move pdfium or upgrade `printing`:

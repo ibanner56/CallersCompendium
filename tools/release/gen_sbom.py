@@ -144,10 +144,12 @@ def _pdfium_component(pin: pdfium_pin.PdfiumPin, target: str, shipped: str) -> d
     if hashes is None:
         raise SystemExit(f"::error::no pinned pdfium hashes for {target}")
     url = pdfium_pin.release_url(pin.version, target)
+    # ECMA-427 (purl) 5.4 and Annex B: qualifier values are percent-encoded,
+    # with ':' left as is, so '/' becomes %2F.
     purl = (
         f"pkg:generic/pdfium@{pin.full_version}"
         f"?checksum=sha256:{hashes.archive_sha256}"
-        f"&download_url={quote(url, safe=':/')}"
+        f"&download_url={quote(url, safe=':')}"
     )
     return {
         "type": "library",

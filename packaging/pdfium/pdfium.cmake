@@ -7,13 +7,30 @@
 # accepts "latest". It has no option for a hash or a local archive, and we do
 # not fork or patch the plugin, so:
 #
-#   compendium_pin_pdfium()       runs BEFORE the plugins are added and forces
-#                                 PDFIUM_VERSION to the pinned release;
+#   compendium_pin_pdfium(os)     runs BEFORE the plugins are added. It forces
+#                                 PDFIUM_VERSION (and PDFIUM_ARCH) to the pinned
+#                                 release, then downloads that release's archive
+#                                 from the same URL itself with file(DOWNLOAD
+#                                 EXPECTED_HASH ... TLS_VERIFY ON), and stops the
+#                                 configure step unless it matches the pin. The
+#                                 plugin extracts its archive and include()s the
+#                                 PDFiumConfig.cmake inside it at configure time,
+#                                 so checking only afterwards would let a swapped
+#                                 archive run its CMake first.
 #   compendium_verify_pdfium(os)  runs straight AFTER and checks the SHA-256 of
 #                                 the archive the plugin downloaded and of the
 #                                 library it is about to bundle. A mismatch
 #                                 stops the configure step, so nothing is
 #                                 compiled, linked or installed from it.
+#
+# Residual risk, stated plainly: the plugin still downloads its OWN copy, with
+# no hash, and include()s that copy's PDFiumConfig.cmake before the post-check
+# runs. That copy is a second request for the same asset seconds after ours
+# matched the pin (and is made with TLS verification requested, see below), so
+# what remains is a server that returns different bytes to the second request:
+# it could still run CMake at configure time before compendium_verify_pdfium
+# fails the build. Closing that completely needs a patched or vendored plugin,
+# which we do not do.
 #
 # app/linux/CMakeLists.txt and app/windows/CMakeLists.txt call both. The
 # release tooling reads the set(...) lines below (tools/release/pdfium_pin.py)
@@ -67,12 +84,81 @@ set(COMPENDIUM_PDFIUM_LIBRARY_SHA256_win_arm64 "ee4827beb15312eeec4b71b91e0fe222
 # UTF-8 because the app decodes the asset strictly. Nothing else differs.
 set(COMPENDIUM_PDFIUM_LICENSE_SHA256 "0f00d0bb0e8a07d499439de08e1192a88eae06b055877db098b28dc3ca0892ce")
 
-macro(compendium_pin_pdfium)
-  # FORCE: the plugin's own set(PDFIUM_VERSION ... CACHE ...) then leaves this
-  # value alone, and a stray -DPDFIUM_VERSION=latest cannot unpin the build.
+# Where the release assets live. Only the tests point this elsewhere (a
+# file:// directory); the plugin's own URL is fixed to GitHub either way.
+if(NOT DEFINED COMPENDIUM_PDFIUM_URL_BASE)
+  set(COMPENDIUM_PDFIUM_URL_BASE
+    "https://github.com/bblanchon/pdfium-binaries/releases/download")
+endif()
+
+# os: "linux" or "win", as in the release asset names.
+function(compendium_pin_pdfium os)
+  if(NOT DEFINED COMPENDIUM_PDFIUM_BUILD_DIR)
+    # printing's download_project uses the top-level build directory.
+    set(COMPENDIUM_PDFIUM_BUILD_DIR "${CMAKE_BINARY_DIR}")
+  endif()
+
+  # FORCE: the plugin's own set(... CACHE ...) then leaves these values alone,
+  # and a stray -DPDFIUM_VERSION=latest cannot unpin the build. The arch is
+  # derived exactly as the plugin derives it, so both fetch the same asset.
   set(PDFIUM_VERSION "${COMPENDIUM_PDFIUM_VERSION}" CACHE STRING
     "pdfium-binaries release used by printing (pinned by packaging/pdfium/pdfium.cmake)" FORCE)
-endmacro()
+  if(os STREQUAL "win")
+    set(platform_prefix "windows-")
+  else()
+    set(platform_prefix "${os}-")
+  endif()
+  if(NOT FLUTTER_TARGET_PLATFORM MATCHES "^${platform_prefix}")
+    message(FATAL_ERROR
+      "pdfium: FLUTTER_TARGET_PLATFORM is '${FLUTTER_TARGET_PLATFORM}', expected ${platform_prefix}<arch>.")
+  endif()
+  string(REPLACE "${platform_prefix}" "" arch "${FLUTTER_TARGET_PLATFORM}")
+  set(PDFIUM_ARCH "${arch}" CACHE STRING
+    "pdfium architecture used by printing (pinned by packaging/pdfium/pdfium.cmake)" FORCE)
+
+  set(target "${os}-${arch}")
+  string(REPLACE "-" "_" key "${target}")
+  set(expected "${COMPENDIUM_PDFIUM_ARCHIVE_SHA256_${key}}")
+  if(expected STREQUAL "")
+    message(FATAL_ERROR
+      "pdfium: no pinned SHA-256 for pdfium-${target} in packaging/pdfium/pdfium.cmake.")
+  endif()
+
+  # Fetch and check the pinned asset BEFORE the plugin downloads and include()s
+  # anything from it. A copy that already matches is kept, so a reconfigure
+  # does not fetch again.
+  set(url "${COMPENDIUM_PDFIUM_URL_BASE}/chromium/${COMPENDIUM_PDFIUM_VERSION}/pdfium-${target}.tgz")
+  set(preverified "${COMPENDIUM_PDFIUM_BUILD_DIR}/pdfium-preverify/pdfium-${target}.tgz")
+  set(actual "")
+  if(EXISTS "${preverified}")
+    file(SHA256 "${preverified}" actual)
+  endif()
+  if(NOT actual STREQUAL expected)
+    # A hash mismatch is a fatal error inside file(DOWNLOAD) itself.
+    file(DOWNLOAD "${url}" "${preverified}"
+      EXPECTED_HASH SHA256=${expected}
+      TLS_VERIFY ON
+      STATUS status)
+    list(GET status 0 code)
+    if(NOT code EQUAL 0)
+      list(GET status 1 reason)
+      message(FATAL_ERROR "pdfium: download of ${url} failed (${code}: ${reason}).")
+    endif()
+    file(SHA256 "${preverified}" actual)
+    if(NOT actual STREQUAL expected)
+      message(FATAL_ERROR
+        "pdfium: SHA-256 mismatch for ${url}\n"
+        "  expected ${expected}\n"
+        "  actual   ${actual}")
+    endif()
+  endif()
+  message(STATUS "pdfium chromium/${COMPENDIUM_PDFIUM_VERSION} (${target}) pre-verified: ${actual}")
+
+  # Ask the plugin's own download (ExternalProject, run in a child CMake
+  # process) to verify TLS too. Honoured by CMake 3.30 and later; older
+  # versions ignore it.
+  set(ENV{CMAKE_TLS_VERIFY} 1)
+endfunction()
 
 # os: "linux" or "win", as in the release asset names.
 function(compendium_verify_pdfium os)
@@ -83,7 +169,7 @@ function(compendium_verify_pdfium os)
   if(NOT "${PDFIUM_VERSION}" STREQUAL "${COMPENDIUM_PDFIUM_VERSION}")
     message(FATAL_ERROR
       "pdfium: PDFIUM_VERSION is '${PDFIUM_VERSION}', but packaging/pdfium/pdfium.cmake "
-      "pins '${COMPENDIUM_PDFIUM_VERSION}'. Call compendium_pin_pdfium() before the "
+      "pins '${COMPENDIUM_PDFIUM_VERSION}'. Call compendium_pin_pdfium(<os>) before the "
       "plugins are added.")
   endif()
   set(target "${os}-${PDFIUM_ARCH}")

@@ -70,11 +70,12 @@ set_target_properties(${BINARY_NAME}
 )
 
 
-# The printing plugin downloads pdfium while it is added. Pin the release it
-# fetches before the plugins are added, and check the archive and library
-# hashes straight after, so a different pdfium stops the build here.
+# The printing plugin downloads pdfium, and runs the CMake file inside it, while
+# it is added. Pin the release and fetch and hash-check that archive ourselves
+# before the plugins are added; check the plugin's copy and the library straight
+# after. See packaging/pdfium/pdfium.cmake for the remaining gap.
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../packaging/pdfium/pdfium.cmake")
-compendium_pin_pdfium()
+compendium_pin_pdfium(linux)
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.

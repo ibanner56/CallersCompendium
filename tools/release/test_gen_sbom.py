@@ -344,6 +344,11 @@ def _native_cases() -> None:
         assert {"type": "distribution", "url": url} in comp["externalReferences"]
         assert comp["purl"].startswith(f"pkg:generic/pdfium@{pin.full_version}?")
         assert f"checksum=sha256:{entry.archive_sha256}" in comp["purl"]
+        # ECMA-427 (purl) 5.4 / Annex B: a download_url value is
+        # percent-encoded; ':' stays as is, '/' becomes %2F.
+        encoded = url.replace("/", "%2F")
+        assert comp["purl"].endswith(f"&download_url={encoded}"), comp["purl"]
+        assert comp["purl"].startswith("pkg:generic/pdfium@") and "https:%2F%2Fgithub.com" in comp["purl"]
         assert comp["bom-ref"] == comp["purl"]
         assert _prop(comp, "compendium:shipped-file:sha256") == entry.library_sha256
         assert _prop(comp, "pdfium-binaries:release") == f"chromium/{pin.version}"
