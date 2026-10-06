@@ -369,11 +369,18 @@ void main() {
       });
     }
 
-    test('"ladies chain, and back" is still demoted', () {
-      final fs = parseFreeTextFigureEntry('ladies chain, and back');
-      expect(fs.any((f) => f.note == 'and back'), isFalse);
-      expect(fs.single.isCustom, isTrue);
-    });
+    for (final line in [
+      'ladies chain, and back',
+      'ladies chain, over and back',
+      'ladies chain, then over and back',
+      'ladies chain, and over and back',
+    ]) {
+      test('"$line" is still demoted', () {
+        final fs = parseFreeTextFigureEntry(line);
+        expect(fs.any((f) => (f.note ?? '').endsWith('and back')), isFalse);
+        expect(fs.single.isCustom, isTrue);
+      });
+    }
 
     test('"neighbors swing 16" is 16 beats or custom, never 8 + note', () {
       final f = parseFreeTextFigureEntry('neighbors swing 16').single;
