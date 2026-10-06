@@ -233,6 +233,14 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_check_linux_build_runner.py"),),
     ),
     Step(
+        "apple-native-tests",
+        "CI's ios and macos build legs run the native Swift RunnerTests when Apple native code changes",
+        (
+            py("tools/ci/test_check_apple_native_tests.py"),
+            py("tools/ci/check_apple_native_tests.py"),
+        ),
+    ),
+    Step(
         "android-intents",
         "no BROWSABLE VIEW intent filter lets a web page open a file: or content: URI",
         (
