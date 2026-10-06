@@ -27,6 +27,25 @@ void main() {
       }
     });
 
+    test('rejects decimal-comma and malformed thousands grouping', () {
+      for (final bad in [
+        '250,50',
+        '1,,250.00',
+        '1,25',
+        ',250',
+        '1,2500',
+        '1250,000,0',
+        '1,250,',
+        '250.5,0',
+        '1.250,00',
+      ]) {
+        expect(parsePayMinorUnits(bad, 'USD'), isNull, reason: bad);
+      }
+      expect(parsePayMinorUnits('1,250.00', 'USD'), 125000);
+      expect(parsePayMinorUnits('12,345,678', 'USD'), 1234567800);
+      expect(parsePayMinorUnits('250', 'USD'), 25000);
+    });
+
     test('rejects an amount beyond exact integer range', () {
       expect(parsePayMinorUnits('99999999999999999999', 'USD'), isNull);
     });

@@ -757,6 +757,42 @@ void main() {
       );
     });
 
+    for (final (currency, units, mineText, theirsText) in [
+      ('USD', 25050, '250.50 USD', '300.00 USD'),
+      ('JPY', 5000, '5000 JPY', '6000 JPY'),
+    ]) {
+      testWidgets('a program pay in $currency is shown formatted, with its '
+          'currency code', (tester) async {
+        final repos = await _pump(tester);
+        await tester.runAsync(() async {
+          await repos.programs.create(
+            Program(
+              id: 'p1',
+              title: 'Friday dance',
+              payMinorUnits: units,
+              payCurrency: currency,
+              createdAt: _tie,
+              updatedAt: _tie,
+            ),
+          );
+          await _queueRecordTie(
+            repos,
+            SyncRecordKind.program,
+            'p1',
+            (body) => {
+              ...body,
+              'payMinorUnits': currency == 'JPY' ? 6000 : 30000,
+            },
+          );
+        });
+        await _open(tester);
+
+        expect(find.text('This device: $mineText'), findsOneWidget);
+        expect(find.text('Another device: $theirsText'), findsOneWidget);
+        expect(find.textContaining('25050'), findsNothing);
+      });
+    }
+
     testWidgets("a dialect shows the terms that differ, not just its name", (
       tester,
     ) async {

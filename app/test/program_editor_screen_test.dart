@@ -873,6 +873,187 @@ void main() {
       expect(saved.payMinorUnits, 1000);
     });
 
+    testWidgets('auto-commit never persists the fallback for an invalid '
+        'amount, and keeps the typed text recoverable', (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          payMinorUnits: 1000,
+          payCurrency: 'USD',
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+
+      await _expandMoreDetails(tester);
+      await tester.enterText(find.byKey(const ValueKey('program-pay')), 'lots');
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Renamed',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.title, 'Night', reason: 'nothing auto-committed');
+      expect(saved.payMinorUnits, 1000);
+      final draft = await repos.settings.get('program_editor_draft:p1');
+      expect(draft, isNotNull, reason: 'recovery draft must survive');
+      expect(draft, contains('lots'));
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const ValueKey('program-pay')))
+            .controller!
+            .text,
+        'lots',
+      );
+    });
+
+    testWidgets('Perform persisting slots retains an invalid pay draft and '
+        'the dirty state', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          payMinorUnits: 1000,
+          payCurrency: 'USD',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1');
+
+      await _expandMoreDetails(tester);
+      await tester.enterText(find.byKey(const ValueKey('program-pay')), 'lots');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      final perform = tester.widget<PerformProgramScreen>(
+        find.byType(PerformProgramScreen),
+      );
+      final stamp = DateTime.utc(2030, 1, 1);
+      final persisting = perform.onProgramChanged!(
+        perform.program.copyWith(
+          slots: [perform.program.slots.single.copyWith(performedAt: stamp)],
+        ),
+      );
+      await tester.pumpAndSettle();
+      await persisting;
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.slots.single.performedAt, stamp);
+      expect(saved.payMinorUnits, 1000);
+      final draft = await repos.settings.get('program_editor_draft:p1');
+      expect(draft, isNotNull, reason: 'raw pay draft must be retained');
+      expect(draft, contains('lots'));
+      Navigator.of(tester.element(find.byType(PerformProgramScreen))).pop();
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const ValueKey('program-pay')))
+            .controller!
+            .text,
+        'lots',
+      );
+      // Still dirty: leaving asks about unsaved changes rather than silently
+      // discarding the typed amount.
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Enter an amount like 250 or 250.50 in this currency.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('persisted bulk Undo keeps an intervening invalid pay', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          payMinorUnits: 1000,
+          payCurrency: 'USD',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await _expandMoreDetails(tester);
+      await tester.enterText(find.byKey(const ValueKey('program-pay')), 'lots');
+      await tester.pump();
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const ValueKey('program-pay')))
+            .controller!
+            .text,
+        'lots',
+      );
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.slots.single.performedAt, isNull);
+      expect(saved.payMinorUnits, 1000);
+    });
+
+    testWidgets('persisted bulk Undo keeps a pay edit made during the live '
+        'read', (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          payMinorUnits: 1000,
+          payCurrency: 'USD',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await _expandMoreDetails(tester);
+      delayed.programs.holdNextConditionalRollback();
+      await tester.tap(find.byType(SnackBarAction));
+      await delayed.programs.conditionalRollbackStarted;
+      delayed.programs.holdNextRead();
+      delayed.programs.releaseConditionalRollback();
+      await delayed.programs.readStarted;
+
+      await tester.enterText(find.byKey(const ValueKey('program-pay')), 'lots');
+      await tester.pump();
+      delayed.programs.releaseRead();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const ValueKey('program-pay')))
+            .controller!
+            .text,
+        'lots',
+      );
+      expect((await delayed.repos.programs.getById('p1'))!.payMinorUnits, 1000);
+    });
+
     testWidgets(
       'invalid amount in a collapsed drawer opens it with the error',
       (tester) async {

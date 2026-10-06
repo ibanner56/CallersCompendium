@@ -26,10 +26,23 @@ int payCurrencyExponent(String currency) =>
 ///
 /// Returns `null` for empty input, a negative or non-numeric value, more
 /// fraction digits than the currency has, or an amount too large to store
-/// exactly. Whitespace around the value and `,` thousands separators are
-/// ignored; `.` is the decimal separator. A bare `.5` is accepted.
+/// exactly. Whitespace around the value is ignored, as are `,` thousands
+/// separators when correctly placed (`1,250` but not `250,50` or `1,,250`); `.` is the decimal separator. A bare `.5` is accepted.
 int? parsePayMinorUnits(String input, String currency) {
-  final text = input.trim().replaceAll(',', '');
+  final trimmed = input.trim();
+  // `,` is only a thousands separator: groups of exactly three digits after a
+  // leading one to three. Anything else (`250,50`, `1,,250`) is rejected rather
+  // than silently read as a different amount.
+  final wholePart = trimmed.split('.').first;
+  if (wholePart.contains(',') &&
+      !RegExp(r'^\d{1,3}(,\d{3})+$').hasMatch(wholePart)) {
+    return null;
+  }
+  if (trimmed.contains('.') &&
+      trimmed.split('.').skip(1).any((part) => part.contains(','))) {
+    return null;
+  }
+  final text = trimmed.replaceAll(',', '');
   final match = RegExp(r'^(\d*)(?:\.(\d*))?$').firstMatch(text);
   if (match == null) return null;
   final whole = match.group(1)!;

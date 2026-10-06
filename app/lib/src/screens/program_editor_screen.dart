@@ -919,14 +919,34 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
   }
 
-  void _applyProgramToEditor(Program program) {
+  /// Whether the pay input differs from what [baseline] would display: typed
+  /// text (valid or not) or a chosen currency the program does not carry.
+  bool _payEditedSince(Program baseline) {
+    final units = baseline.payMinorUnits;
+    final currency = baseline.payCurrency;
+    final baselineText = units == null || currency == null
+        ? ''
+        : formatPayMinorUnits(units, currency);
+    final baselineCurrency = units == null ? null : currency;
+    return _payController.text.trim() != baselineText ||
+        _payCurrency != baselineCurrency;
+  }
+
+  /// Loads [program] into the editor. When [payBaseline] is given (an Undo
+  /// rebase of a live editor) and the person has changed the pay input since
+  /// that baseline, the raw pay text and currency are kept: [program] carries a
+  /// stored fallback for an unparseable amount, which must not overwrite what
+  /// was typed. Ordinary loads pass nothing and initialise the pay field.
+  void _applyProgramToEditor(Program program, {Program? payBaseline}) {
     _titleController.text = program.title;
     _venueController.text = program.venue ?? '';
     _bandController.text = program.band ?? '';
     _callerController.text = program.caller ?? '';
     _levelController.text = program.dancerLevel ?? '';
     _notesController.text = program.notes;
-    _setPayFrom(program);
+    if (payBaseline == null || !_payEditedSince(payBaseline)) {
+      _setPayFrom(program);
+    }
     _existing = program;
     _eventDate = program.eventDate;
     _venueId = program.venueId;
@@ -1167,6 +1187,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       }
       final draft = _draftProgram;
       if (draft == null) return _AutoCommitOutcome.notCommitted(generation);
+      // `_draftProgram` substitutes the stored pay for an unparseable amount;
+      // committing that would drop the typed text and clear its recovery
+      // draft. Leave it dirty (and autosaved) until the amount is valid.
+      if (_parsedPay().isInvalid) {
+        return _AutoCommitOutcome.notCommitted(generation);
+      }
       final wasNew = _existing == null;
       final oldDraftKey = _draftKey;
       final bulkUndoEditGeneration = _pendingBulkUndoEditGeneration;
@@ -1566,7 +1592,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         live: live.slots,
       ),
     );
-    setState(() => _applyProgramToEditor(merged));
+    setState(() => _applyProgramToEditor(merged, payBaseline: storedBaseline));
     await _refreshLinkedVenueForId(merged.venueId);
     return true;
   }
@@ -1637,7 +1663,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ),
       );
       setState(() {
-        _applyProgramToEditor(merged);
+        _applyProgramToEditor(merged, payBaseline: baseline);
         _dirty = true;
       });
       await _refreshLinkedVenueForId(merged.venueId);
@@ -1909,6 +1935,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               // auto-commit. Rebase the performed slots onto that working
               // snapshot and serialize the whole update with the same queue.
               final base = _draftProgram ?? existing;
+              // An unparseable pay was replaced by the stored one in `base`:
+              // persist the slots, but keep the typed text as unsaved work.
+              final payInvalid = _parsedPay().isInvalid;
               final persisted = base.copyWith(
                 slots: slots,
                 updatedAt: DateTime.now().toUtc(),
@@ -1919,7 +1948,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 final stored = await _repos.programs.updateAndReadBack(
                   persisted,
                 );
-                await _clearDraft(waitForCommits: false);
+                if (payInvalid) {
+                  await _saveDraft();
+                } else {
+                  await _clearDraft(waitForCommits: false);
+                }
                 return stored;
               });
               // Keep later commits usable if this live-gig write fails, while
@@ -1941,7 +1974,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 setState(() {
                   _existing = persisted;
                   _slots = slots;
-                  _dirty = false;
+                  _dirty = payInvalid;
                 });
                 _performAdjusted = updated;
                 _performAdjustedGeneration = _editGeneration;
@@ -2447,7 +2480,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   ),
                 )
               : live;
-          _applyProgramToEditor(restored);
+          _applyProgramToEditor(
+            restored,
+            payBaseline: _pendingBulkUndoBaseline ?? _existing!,
+          );
           await _refreshLinkedVenueForId(restored.venueId);
           if (!mounted) return;
           if (editedDuringRead || _editGeneration != undoEditGeneration) {
