@@ -66,9 +66,10 @@ except ImportError:
 #     // Current: ...
 #     '/39VzhfG58PnR5RlMzDB5ertil945PWRgA+usAj4qvw=',
 #   ];
-# and captures the bracketed body. Entries are the single-quoted literals in
-# that body once ``//`` line comments are removed (see _strip_line_comment —
-# a base64 key can itself contain ``//``).
+# and captures the bracketed body. It is applied to the source AFTER every
+# comment has been removed (see _strip_dart_comments), so a commented-out or
+# dartdoc example declaration can never be the one selected, and a key inside a
+# ``//`` or ``/* */`` comment within the list is never extracted.
 _KEY_SET_PATTERN = re.compile(
     r"kUpdateManifestPublicKeys\s*=\s*\[(.*?)\]\s*;",
     re.DOTALL,
@@ -80,19 +81,52 @@ _DEFAULT_KEY_SOURCE = (
 )
 
 
-def _strip_line_comment(line: str) -> str:
-    """Drop a trailing ``//`` comment that is not inside a single-quoted literal.
+def _strip_dart_comments(source: str) -> str:
+    """Return *source* with Dart ``//`` and (nested) ``/* */`` comments removed.
 
-    Standard base64 uses ``/``, so a pinned key can contain ``//``; a naive
-    ``line.split('//')`` would cut such a key in half.
+    Quote-aware: comment markers inside a string literal are kept, because
+    standard base64 uses ``/`` and a pinned key can contain ``//`` or ``/*``.
+    Handles ``'``/``"`` and triple-quoted literals, ``r``-prefixed raw literals
+    (no escapes) and backslash escapes elsewhere. Each comment is replaced by a
+    single space (a line comment keeps its newline) so tokens never fuse.
     """
-    in_quote = False
-    for i, ch in enumerate(line):
-        if ch == "'":
-            in_quote = not in_quote
-        elif not in_quote and line.startswith("//", i):
-            return line[:i]
-    return line
+    out: list[str] = []
+    i, n = 0, len(source)
+    while i < n:
+        if source.startswith("//", i):
+            j = source.find("\n", i)
+            i = n if j < 0 else j  # keep the newline itself
+            out.append(" ")
+            continue
+        if source.startswith("/*", i):
+            depth, i = 1, i + 2
+            while i < n and depth:
+                if source.startswith("/*", i):
+                    depth, i = depth + 1, i + 2
+                elif source.startswith("*/", i):
+                    depth, i = depth - 1, i + 2
+                else:
+                    i += 1
+            out.append(" ")
+            continue
+        ch = source[i]
+        if ch in "'\"":
+            raw = i > 0 and source[i - 1] in "rR"
+            quote = source[i : i + 3] if source.startswith(ch * 3, i) else ch
+            j = i + len(quote)
+            while j < n and not source.startswith(quote, j):
+                if not raw and source[j] == "\\":
+                    j += 1
+                elif len(quote) == 1 and source[j] == "\n":
+                    break  # unterminated single-line literal; stop at EOL
+                j += 1
+            j = min(n, j + len(quote))
+            out.append(source[i:j])
+            i = j
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
 
 
 def parse_pinned_keys(source: Path) -> list[bytes]:
@@ -109,7 +143,7 @@ def parse_pinned_keys(source: Path) -> list[bytes]:
         print(f"::error::cannot read key source {source}: {exc}", file=sys.stderr)
         sys.exit(2)
 
-    m = _KEY_SET_PATTERN.search(text)
+    m = _KEY_SET_PATTERN.search(_strip_dart_comments(text))
     if not m:
         print(
             f"::error::could not parse kUpdateManifestPublicKeys from {source} — "
@@ -118,8 +152,7 @@ def parse_pinned_keys(source: Path) -> list[bytes]:
         )
         sys.exit(2)
 
-    body = "\n".join(_strip_line_comment(line) for line in m.group(1).splitlines())
-    entries = _ENTRY_PATTERN.findall(body)
+    entries = _ENTRY_PATTERN.findall(m.group(1))
     if not entries:
         print(
             f"::error::kUpdateManifestPublicKeys in {source} has no pinned keys; "

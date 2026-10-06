@@ -711,11 +711,16 @@ widely installed release — those installs would reject every new manifest
 
 **Compromise.** Pinning has no revocation: an install keeps trusting every key
 it shipped with until it updates, so a leaked private key can sign manifests
-those installs accept. Switching the signer to the pinned next key (step 4) and
-shipping a release that drops the leaked key (step 5) limits the exposure to
-installs that have not yet taken that release; it cannot remove trust from
-them. Keeping a next key pinned at all times is what makes that response
-possible without stranding anyone.
+those installs accept. If a next key is already pinned, switching the signer to
+it (step 4) and shipping a release that drops the leaked key (step 5) keeps
+update delivery working for every install that **already has the next key** —
+it cannot remove trust in the leaked key from installs that have not yet taken
+the step-5 release. Installs that **predate** the release that pinned the next
+key trust only the leaked key: an immediate switch strands them (silent "no
+update" until they update by hand), and leaving the signer alone keeps them
+exposed. That trade-off is the maintainer's call at the time. Keeping a next key
+pinned at all times — so that cohort is as small as possible — is what makes
+the response available at all.
 
 ## Landing page and user guides (GitHub Pages)
 
