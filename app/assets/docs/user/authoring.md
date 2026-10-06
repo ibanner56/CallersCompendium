@@ -136,6 +136,8 @@ when you save, as described next.
 
 Role words you type here (such as "Larks" or "Leads") are saved in a neutral
 form, shown in your own [dialect](./dialects.md), and found by role searches.
+They come back in lower case: "Larks chain wide" shows as "larks chain wide",
+and "LADIES chain" shows as "robins chain" under Larks and Robins.
 Custom text saved before this change updates the next time you save the dance
 while the same dialect is active; text typed in a different dialect may need a
 manual edit. The same rewriting applies to the everyday words "man", "men",
