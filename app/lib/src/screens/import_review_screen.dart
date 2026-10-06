@@ -468,6 +468,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// User-presentable message from the last failed URL fetch, or `null`.
   String? _fetchError;
 
+  /// Whether the text payload came from a file (a pick, or a file shared into
+  /// the app) rather than a paste or a URL fetch. Set by [_chooseFile] and the
+  /// share-target seed; cleared by a successful fetch and by any hand edit of
+  /// the paste field. It only chooses the back-to-input label in
+  /// [_tryAgainLabel], so it is never persisted.
+  bool _payloadFromFile = false;
+
   _Phase _phase = _Phase.input;
 
   ImportBatchResult? _batch;
@@ -589,6 +596,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // _plan decodes the new text and _effectiveSharedBundle follows it.
         _pasteController.text = bundle.json;
         _sourceUri = null;
+        _payloadFromFile = true;
         _plan();
       } else if (widget.programAmbiguousImport != null) {
         // Program-import fallback ambiguity (issue #943): skip the manual
@@ -620,6 +628,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       // provenance so this import is recorded as file/paste (uri == null).
       // The shared-bundle decision is made once, later, by _plan.
       _sourceUri = null;
+      _payloadFromFile = true;
     } on ImportFileTooLargeException catch (e, stackTrace) {
       // Untrusted input rejected before it was read into memory — tell the user
       // plainly (accessible SnackBar) and leave the input untouched.
@@ -703,6 +712,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // Provenance is the URL actually fetched (the resolved endpoint), not
         // the human URL/id the user typed.
         _sourceUri = target;
+        _payloadFromFile = false;
       });
     } on UrlFetchException catch (e, stackTrace) {
       if (!mounted) return;
@@ -2443,6 +2453,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               // Editing the payload by hand drops any URL provenance so the
               // import is recorded as a paste (uri == null).
               _sourceUri = null;
+              _payloadFromFile = false;
               setState(() {});
             },
             decoration: InputDecoration(
@@ -3505,6 +3516,21 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  /// The back-to-input label, chosen by how the payload arrived rather than by
+  /// source kind (CS-05): a paste or a URL fetch has no file to swap, so it
+  /// reads "Try again"; a picked or shared file reads "Try another file". The
+  /// Compendium JSON source takes all three, so its kind alone cannot decide.
+  String _tryAgainLabel(AppLocalizations l10n) {
+    // A `.USR` is only ever a picked file; a published collection keeps the
+    // label it had before CS-05.
+    if (_isByteSource || _isPublishedImport) {
+      return l10n.importReviewTryAnother;
+    }
+    // The title list is typed or pasted, never picked.
+    if (_isPastedTextSource) return l10n.commonTryAgain;
+    return _payloadFromFile ? l10n.importReviewTryAnother : l10n.commonTryAgain;
+  }
+
   Widget _buildMessage(
     BuildContext context, {
     required IconData icon,
@@ -3536,16 +3562,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               child: Text(
                 _isStandalonePublishedSeed
                     ? l10n.commonBack
-                    : switch (_selected.kind) {
-                        // URL / paste / online sources have no file to swap.
-                        ImportSourceKind.callersBox ||
-                        ImportSourceKind.contraDb ||
-                        ImportSourceKind.titleList => l10n.commonTryAgain,
-                        ImportSourceKind.genericJson ||
-                        ImportSourceKind.callersCompanionUsr ||
-                        ImportSourceKind.publishedCollection =>
-                          l10n.importReviewTryAnother,
-                      },
+                    : _tryAgainLabel(l10n),
               ),
             ),
           ],
