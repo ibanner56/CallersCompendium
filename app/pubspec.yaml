@@ -125,6 +125,11 @@ flutter:
     # follows. Both loaded the same way, via licenses.dart.
     - assets/licenses/eff-wordlist-NOTICE.txt
     - assets/licenses/contradb-NOTICE.txt
+    # pdfium's LICENSE (PDFium plus the notices of the libraries built into
+    # it), from the pdfium-binaries release pinned in
+    # packaging/pdfium/pdfium.cmake. The printing plugin ships that pdfium in
+    # the Linux and Windows builds; licenses.dart lists it there.
+    - assets/licenses/pdfium-LICENSE.txt
     # In-app User Guide: the offline copy of the user documentation, mirrored
     # from /docs/user by tools/ci/sync_user_docs.py and kept in sync by a CI
     # drift-check. Rendered from these bundled assets so the guide works fully

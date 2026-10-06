@@ -53,9 +53,17 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 add_subdirectory("runner")
 
 
+# The printing plugin downloads pdfium while it is added. Pin the release it
+# fetches before the plugins are added, and check the archive and library
+# hashes straight after, so a different pdfium stops the build here.
+include("${CMAKE_CURRENT_SOURCE_DIR}/../../packaging/pdfium/pdfium.cmake")
+compendium_pin_pdfium()
+
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
 include(flutter/generated_plugins.cmake)
+
+compendium_verify_pdfium(win)
 
 
 # === Installation ===

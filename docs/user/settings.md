@@ -906,8 +906,10 @@ The **About** section tells you what you're running and where it comes from.
   (CC BY-NC).
 - **View licenses** — the full license texts, including the bundled fonts,
   `fmptools` (MIT), the project the Caller's Companion importer is ported from,
-  the EFF long wordlist (CC BY 3.0 US) that generated sync IDs are drawn from, and
-  ContraDB (AGPL-3.0), whose figure wording the dance-text renderer follows.
+  the EFF long wordlist (CC BY 3.0 US) that generated sync IDs are drawn from,
+  ContraDB (AGPL-3.0), whose figure wording the dance-text renderer follows, and,
+  on Linux and Windows, PDFium (BSD-3-Clause, with the notices of the libraries
+  built into it), which the app uses there to print and preview PDFs.
 
 ## Where to go next
 

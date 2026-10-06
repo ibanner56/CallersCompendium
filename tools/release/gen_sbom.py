@@ -27,6 +27,22 @@ Output is a CycloneDX 1.5 JSON document:
   ``bom-ref`` (the purl), and a ``pub:dependency:type`` property classifying it
   as ``direct`` / ``dev`` / ``transitive``.
 
+* ``components[]`` also lists the native binaries the desktop releases ship
+  that the pub graph cannot see (audit finding platform-5):
+
+  - **pdfium**, which the ``printing`` plugin bundles into the Linux and
+    Windows builds: one component per shipped build (``linux-x64``,
+    ``win-x64``) with the pinned version, the SHA-256 of the exact release
+    archive, its download URL, and the SHA-256 of the library file that lands
+    in the bundle. Read from ``packaging/pdfium/pdfium.cmake`` (the same pin
+    the CMake build verifies), via ``pdfium_pin.py``.
+  - the **MSVC runtime DLLs** the Windows build ships app-local
+    (``vcruntime140.dll``, ``vcruntime140_1.dll``, ``msvcp140.dll``, from
+    Visual Studio's redistributable folder). Their version depends on the
+    runner image, so the Windows release job records each staged DLL's file
+    version and SHA-256 in a small JSON manifest, passed here with
+    ``--msvc-runtime``.
+
 First-party workspace roots (the app + local path packages) and SDK-sourced
 packages (``flutter``/``sky_engine``/... , which carry meaningless ``0.0.0``
 versions and no pub purl) are intentionally excluded from ``components[]``; the
@@ -54,13 +70,19 @@ from __future__ import annotations
 import argparse
 import datetime as _dt
 import json
+import re
 import sys
 import uuid
 from pathlib import Path
+from urllib.parse import quote
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import pdfium_pin  # noqa: E402
 
 # Identifies this generator in the SBOM's ``metadata.tools`` block.
 _TOOL_NAME = "gen_sbom.py"
-_TOOL_VERSION = "1.0.0"
+_TOOL_VERSION = "1.1.0"
 _TOOL_VENDOR = "Caller's Compendium"
 
 # Default primary component (the released app) — the workspace member that is
@@ -69,6 +91,18 @@ _DEFAULT_APP_NAME = "compendium_app"
 
 # The pub-classification property recorded on each component.
 _DEP_TYPE_PROP = "pub:dependency:type"
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_DEFAULT_PDFIUM_PIN = _REPO_ROOT / "packaging" / "pdfium" / "pdfium.cmake"
+
+# The pdfium builds the desktop releases ship (release.yml builds Linux and
+# Windows for x64 only), and where each lands in the bundle.
+_PDFIUM_RELEASE_TARGETS = {
+    "linux-x64": "lib/libpdfium.so",
+    "win-x64": "pdfium.dll",
+}
+
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
 def _default_timestamp() -> str:
@@ -103,6 +137,106 @@ def _serial_number(
         ]
     )
     return f"urn:uuid:{uuid.uuid5(uuid.NAMESPACE_URL, canonical)}"
+
+
+def _pdfium_component(pin: pdfium_pin.PdfiumPin, target: str, shipped: str) -> dict:
+    hashes = pin.targets.get(target)
+    if hashes is None:
+        raise SystemExit(f"::error::no pinned pdfium hashes for {target}")
+    url = pdfium_pin.release_url(pin.version, target)
+    purl = (
+        f"pkg:generic/pdfium@{pin.full_version}"
+        f"?checksum=sha256:{hashes.archive_sha256}"
+        f"&download_url={quote(url, safe=':/')}"
+    )
+    return {
+        "type": "library",
+        "bom-ref": purl,
+        "supplier": {"name": "bblanchon/pdfium-binaries"},
+        "name": "pdfium",
+        "version": pin.full_version,
+        "purl": purl,
+        "hashes": [{"alg": "SHA-256", "content": hashes.archive_sha256}],
+        # PDFium's own LICENSE carries BSD-3-Clause and Apache-2.0 texts; the
+        # same file then reproduces the notices of the libraries built into it.
+        "licenses": [
+            {"license": {"id": "BSD-3-Clause"}},
+            {"license": {"id": "Apache-2.0"}},
+            {"license": {"name": "Bundled third-party notices (LICENSE in the release archive)"}},
+        ],
+        "externalReferences": [{"type": "distribution", "url": url}],
+        "properties": [
+            {"name": "compendium:platform", "value": target},
+            {"name": "compendium:shipped-file", "value": shipped},
+            {"name": "compendium:shipped-file:sha256", "value": hashes.library_sha256},
+            {"name": "pdfium-binaries:release", "value": f"chromium/{pin.version}"},
+        ],
+    }
+
+
+def _msvc_components(manifest: dict) -> list[dict]:
+    redist = manifest.get("redist_version")
+    crt_folder = manifest.get("crt_folder")
+    dlls = manifest.get("dlls")
+    if not isinstance(redist, str) or not redist:
+        raise SystemExit("::error::MSVC runtime manifest has no redist_version")
+    if not isinstance(crt_folder, str) or not crt_folder:
+        raise SystemExit("::error::MSVC runtime manifest has no crt_folder")
+    if not isinstance(dlls, list) or not dlls:
+        raise SystemExit("::error::MSVC runtime manifest lists no DLLs")
+    components: list[dict] = []
+    seen: set[str] = set()
+    for entry in dlls:
+        name = str(entry.get("name", "")).lower()
+        version = entry.get("file_version")
+        sha256 = str(entry.get("sha256", "")).lower()
+        if not name.endswith(".dll") or name in seen:
+            raise SystemExit(f"::error::MSVC runtime manifest: bad or repeated DLL {name!r}")
+        if not isinstance(version, str) or not version:
+            raise SystemExit(f"::error::MSVC runtime manifest: no file_version for {name}")
+        if not _SHA256.match(sha256):
+            raise SystemExit(f"::error::MSVC runtime manifest: bad sha256 for {name}")
+        seen.add(name)
+        purl = f"pkg:generic/microsoft/{name}@{version}"
+        components.append(
+            {
+                "type": "library",
+                "bom-ref": purl,
+                "supplier": {"name": "Microsoft Corporation"},
+                "name": name,
+                "version": version,
+                "purl": purl,
+                "hashes": [{"alg": "SHA-256", "content": sha256}],
+                "licenses": [
+                    {"license": {"name": "Microsoft Visual Studio redistributable (Distributable Code)"}}
+                ],
+                "properties": [
+                    {"name": "compendium:platform", "value": "win-x64"},
+                    {"name": "compendium:shipped-file", "value": name},
+                    {"name": "msvc:redist-version", "value": redist},
+                    {"name": "msvc:crt-folder", "value": crt_folder},
+                ],
+            }
+        )
+    return components
+
+
+def native_components(
+    pin: pdfium_pin.PdfiumPin, *, msvc_runtime: dict | None = None
+) -> list[dict]:
+    """Components for the native binaries the desktop releases ship.
+
+    pdfium comes from the in-repo pin. The MSVC runtime comes from the manifest
+    the Windows release job writes; without one it is left out (a local run),
+    and ``release.yml`` always passes it.
+    """
+    components = [
+        _pdfium_component(pin, target, shipped)
+        for target, shipped in _PDFIUM_RELEASE_TARGETS.items()
+    ]
+    if msvc_runtime is not None:
+        components.extend(_msvc_components(msvc_runtime))
+    return components
 
 
 def classify_dependencies(packages: list[dict]) -> dict[str, str]:
@@ -147,8 +281,13 @@ def build_sbom(
     version: str,
     app_name: str = _DEFAULT_APP_NAME,
     timestamp: str | None = None,
+    native: list[dict] | None = None,
 ) -> dict:
-    """Build the CycloneDX 1.5 SBOM dict from a ``dart pub deps --json`` dict."""
+    """Build the CycloneDX 1.5 SBOM dict from a ``dart pub deps --json`` dict.
+
+    ``native`` (from :func:`native_components`) is appended to the pub
+    packages before sorting.
+    """
     packages: list[dict] = deps.get("packages", [])
     classification = classify_dependencies(packages)
 
@@ -176,6 +315,8 @@ def build_sbom(
                 ],
             }
         )
+
+    components.extend(native or [])
 
     # Deterministic ordering so re-runs against the same lockfile diff cleanly.
     components.sort(key=lambda c: c["purl"])
@@ -273,14 +414,37 @@ def main(argv: list[str] | None = None) -> int:
         help="RFC3339 UTC metadata.timestamp; default now (set for reproducible "
         "output)",
     )
+    ap.add_argument(
+        "--pdfium-pin",
+        type=Path,
+        default=_DEFAULT_PDFIUM_PIN,
+        help="the pdfium pin to list (default: packaging/pdfium/pdfium.cmake)",
+    )
+    ap.add_argument(
+        "--msvc-runtime",
+        type=Path,
+        default=None,
+        help="JSON manifest of the MSVC runtime DLLs the Windows build staged "
+        "(written by release.yml); omit to leave them out",
+    )
     args = ap.parse_args(argv)
 
     deps = _read_deps(args.deps)
+    msvc = None
+    if args.msvc_runtime is not None:
+        if not args.msvc_runtime.is_file():
+            raise SystemExit(f"::error::MSVC runtime manifest not found: {args.msvc_runtime}")
+        try:
+            msvc = json.loads(args.msvc_runtime.read_text(encoding="utf-8-sig"))
+        except json.JSONDecodeError as exc:
+            raise SystemExit(f"::error::invalid MSVC runtime manifest: {exc}") from exc
+    native = native_components(pdfium_pin.read(args.pdfium_pin), msvc_runtime=msvc)
     sbom = build_sbom(
         deps,
         version=args.version,
         app_name=args.app_name,
         timestamp=args.timestamp,
+        native=native,
     )
 
     args.output.write_text(

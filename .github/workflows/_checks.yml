@@ -292,6 +292,7 @@ jobs:
           python3 tools/release/test_apprun.py
           python3 tools/release/test_check_beta_prerelease_history.py
           python3 tools/release/test_gen_sbom.py
+          python3 tools/release/test_pdfium_pin.py
           python3 tools/release/test_gen_release_metadata.py
           python3 tools/release/test_gen_release_notes.py
           python3 tools/release/test_gen_recovery_provenance.py

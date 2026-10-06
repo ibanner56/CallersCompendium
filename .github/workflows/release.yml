@@ -1328,6 +1328,36 @@ jobs:
             Write-Host "staged $dll"
           }
 
+          # Record what was staged for the SBOM (platform-5). The SBOM is built
+          # on Linux in publish_draft, which cannot see this runner's Visual
+          # Studio, so it reads each DLL's file version and SHA-256 from here.
+          $entries = foreach ($dll in $required) {
+            $staged = Get-Item (Join-Path $release $dll)
+            $info = $staged.VersionInfo
+            [ordered]@{
+              name = $dll.ToLowerInvariant()
+              file_version = '{0}.{1}.{2}.{3}' -f $info.FileMajorPart, $info.FileMinorPart, $info.FileBuildPart, $info.FilePrivatePart
+              sha256 = (Get-FileHash -Algorithm SHA256 -Path $staged.FullName).Hash.ToLowerInvariant()
+            }
+          }
+          New-Item -ItemType Directory -Force -Path native-components | Out-Null
+          [ordered]@{
+            redist_version = $redistVersion
+            crt_folder = $crtDirs[0].Name
+            dlls = @($entries)
+          } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8NoBOM -Path native-components/msvc-runtime.json
+          Get-Content native-components/msvc-runtime.json
+
+      # Not a dist-* artifact: it feeds the SBOM in publish_draft and must not
+      # be merged into the release assets.
+      - name: Upload the MSVC runtime manifest for the SBOM
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: native-components-windows
+          path: native-components/msvc-runtime.json
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Package Windows (zip + installer)
         shell: pwsh
         run: |
@@ -1524,12 +1554,21 @@ jobs:
 
       - run: flutter pub get --enforce-lockfile
 
+      # The MSVC runtime manifest build_windows wrote; gen_sbom.py lists those
+      # DLLs. pdfium comes from packaging/pdfium/pdfium.cmake in the checkout.
+      - name: Download the MSVC runtime manifest
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: native-components-windows
+          path: ${{ runner.temp }}/native-components
+
       - name: Generate CycloneDX SBOM
         run: |
           set -euo pipefail
           dart pub deps --json > "$RUNNER_TEMP/deps.json"
           python3 tools/release/gen_sbom.py \
             --deps "$RUNNER_TEMP/deps.json" \
+            --msvc-runtime "$RUNNER_TEMP/native-components/msvc-runtime.json" \
             --version "${{ needs.meta.outputs.version }}" \
             --output "dist/sbom-${{ needs.meta.outputs.version }}.cdx.json"
 
