@@ -1174,6 +1174,11 @@ jobs:
     env:
       VERSION: ${{ needs.meta.outputs.version }}
       CODENAME: ${{ needs.meta.outputs.codename }}
+      # The MSVC runtime DLLs the x64 bundle imports (platform-4). Shipped
+      # app-local, next to compendium_app.exe, so the app starts on a PC that
+      # has no Visual C++ Redistributable. The staging step below fails the job
+      # if any bundled binary imports a runtime DLL missing from this list.
+      MSVC_RUNTIME_DLLS: vcruntime140.dll vcruntime140_1.dll msvcp140.dll
     environment: release-signing
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1248,6 +1253,80 @@ jobs:
           certificate-profile-name: ${{ vars.AZURE_CERT_PROFILE_NAME }}
           files-folder: ${{ github.workspace }}\app\build\windows\x64\runner\Release
           files-folder-filter: exe,dll
+
+      # The runner and plugin DLLs link the MSVC runtime dynamically (/MD, the
+      # CMake default), and Flutter's Release folder does not include it. Copy
+      # the redistributable DLLs from this runner's Visual Studio install into
+      # the Release folder so both the zip and the installer (whose [Files]
+      # copies that folder, and whose uninstaller removes what it installed)
+      # carry them. This runs AFTER the bundle-signing step on purpose: the
+      # DLLs are already Microsoft-signed and must not be re-signed as ours.
+      # These files are on Microsoft's Visual Studio redistributable list.
+      - name: Stage the MSVC runtime beside the app
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $release = "app/build/windows/x64/runner/Release"
+          $required = @($env:MSVC_RUNTIME_DLLS -split '\s+' | Where-Object { $_ })
+          if ($required.Count -eq 0) { throw "MSVC_RUNTIME_DLLS is empty" }
+
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path $vswhere)) { throw "vswhere.exe not found at $vswhere" }
+          $vs = @(& $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $vs.Count -ne 1 -or -not $vs[0]) {
+            throw "expected one Visual Studio install with the x64 C++ tools, vswhere returned: $($vs -join '; ')"
+          }
+          $vs = $vs[0]
+
+          # Read the redistributable version Visual Studio itself records; never
+          # hard-code a version folder, the runner image moves it.
+          $redistVersionFile = Join-Path $vs 'VC\Auxiliary\Build\Microsoft.VCRedistVersion.default.txt'
+          if (-not (Test-Path $redistVersionFile)) { throw "$redistVersionFile not found" }
+          $redistVersion = (Get-Content -Raw $redistVersionFile).Trim()
+          $redistRoot = Join-Path $vs "VC\Redist\MSVC\$redistVersion\x64"
+          $crtDirs = @(Get-ChildItem -Directory -Path $redistRoot -Filter 'Microsoft.VC14*.CRT' -ErrorAction SilentlyContinue)
+          if ($crtDirs.Count -ne 1) {
+            throw "expected exactly one Microsoft.VC14*.CRT folder under $redistRoot, found $($crtDirs.Count): $($crtDirs.Name -join ', ')"
+          }
+          $crt = $crtDirs[0].FullName
+          Write-Host "MSVC runtime source: $crt"
+
+          # Check what the bundle actually imports, so a binary that needs a
+          # runtime DLL outside the list fails here rather than on a user's PC.
+          $toolsVersionFile = Join-Path $vs 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt'
+          if (-not (Test-Path $toolsVersionFile)) { throw "$toolsVersionFile not found" }
+          $toolsVersion = (Get-Content -Raw $toolsVersionFile).Trim()
+          $dumpbin = Join-Path $vs "VC\Tools\MSVC\$toolsVersion\bin\Hostx64\x64\dumpbin.exe"
+          if (-not (Test-Path $dumpbin)) { throw "dumpbin.exe not found at $dumpbin" }
+          $runtimePattern = '^(vcruntime|msvcp|concrt|vccorlib)140(_[a-z0-9_]+)?\.dll$'
+          $imported = @{}
+          foreach ($bin in Get-ChildItem -Path $release -Recurse -File -Include *.exe, *.dll) {
+            $out = & $dumpbin /nologo /dependents $bin.FullName
+            if ($LASTEXITCODE -ne 0) { throw "dumpbin failed on $($bin.FullName)" }
+            foreach ($line in $out) {
+              $name = $line.Trim().ToLowerInvariant()
+              if ($name -match $runtimePattern) {
+                $imported[$name] = $true
+                Write-Host "$($bin.Name) imports $name"
+              }
+            }
+          }
+          $notShipped = @($imported.Keys | Where-Object { $required -notcontains $_ } | Sort-Object)
+          if ($notShipped.Count -gt 0) {
+            throw "the bundle imports MSVC runtime DLLs that are not shipped app-local: $($notShipped -join ', '). Add them to MSVC_RUNTIME_DLLS."
+          }
+          $unused = @($required | Where-Object { -not $imported.ContainsKey($_.ToLowerInvariant()) })
+          if ($unused.Count -gt 0) {
+            Write-Host "::warning::no bundled binary imports $($unused -join ', '); consider dropping it from MSVC_RUNTIME_DLLS."
+          }
+
+          foreach ($dll in $required) {
+            $source = Join-Path $crt $dll
+            if (-not (Test-Path $source)) { throw "$dll not found in $crt" }
+            Copy-Item -Path $source -Destination $release -Force
+            if (-not (Test-Path (Join-Path $release $dll))) { throw "$dll was not staged into $release" }
+            Write-Host "staged $dll"
+          }
 
       - name: Package Windows (zip + installer)
         shell: pwsh
@@ -1330,6 +1409,63 @@ jobs:
           signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME }}
           certificate-profile-name: ${{ vars.AZURE_CERT_PROFILE_NAME }}
           files: ${{ github.workspace }}\dist\CallersCompendium-${{ needs.meta.outputs.version }}-windows-x64.exe
+
+      # The proof for the app-local MSVC runtime (platform-4): every required
+      # DLL must be in the staged folder, inside the portable zip, and in the
+      # tree the (signed) installer actually installs, and the uninstaller must
+      # remove it again. No `if:` -- this runs on every release, signed or not.
+      - name: Verify the MSVC runtime ships in the zip and the installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $required = @($env:MSVC_RUNTIME_DLLS -split '\s+' | Where-Object { $_ })
+          if ($required.Count -eq 0) { throw "MSVC_RUNTIME_DLLS is empty" }
+          $base = "CallersCompendium-$env:VERSION-windows-x64"
+
+          foreach ($dll in $required) {
+            if (-not (Test-Path (Join-Path $base $dll))) { throw "$dll is missing from the staged folder $base" }
+          }
+
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path "dist/$base.zip").Path)
+          try {
+            $entries = @($zip.Entries | ForEach-Object { $_.FullName.Replace('\', '/').ToLowerInvariant() })
+          } finally {
+            $zip.Dispose()
+          }
+          foreach ($dll in $required) {
+            if ($entries -notcontains "$base/$dll".ToLowerInvariant()) { throw "$dll is missing from dist/$base.zip" }
+          }
+          Write-Host "zip carries: $($required -join ', ')"
+
+          $installDir = Join-Path $env:RUNNER_TEMP 'msvc-runtime-install-check'
+          $log = Join-Path $env:RUNNER_TEMP 'msvc-runtime-install-check.log'
+          $setup = (Resolve-Path "dist/$base.exe").Path
+          $install = Start-Process -FilePath $setup -Wait -PassThru -ArgumentList @(
+            '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=`"$installDir`"", "/LOG=`"$log`"")
+          if ($install.ExitCode -ne 0) {
+            Get-Content $log -ErrorAction SilentlyContinue
+            throw "installer exited with $($install.ExitCode)"
+          }
+          foreach ($file in @('compendium_app.exe') + $required) {
+            if (-not (Test-Path (Join-Path $installDir $file))) { throw "the installer did not install $file" }
+          }
+          Write-Host "installer installs: $($required -join ', ')"
+
+          $uninstaller = Join-Path $installDir 'unins000.exe'
+          if (-not (Test-Path $uninstaller)) { throw "unins000.exe not found in $installDir" }
+          $uninstall = Start-Process -FilePath $uninstaller -Wait -PassThru -ArgumentList @(
+            '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART')
+          if ($uninstall.ExitCode -ne 0) { throw "uninstaller exited with $($uninstall.ExitCode)" }
+          # The uninstaller hands off to a temporary copy of itself, so poll.
+          $deadline = (Get-Date).AddSeconds(120)
+          do {
+            $left = @($required | Where-Object { Test-Path (Join-Path $installDir $_) })
+            if ($left.Count -eq 0) { break }
+            Start-Sleep -Seconds 2
+          } while ((Get-Date) -lt $deadline)
+          if ($left.Count -gt 0) { throw "the uninstaller left $($left -join ', ') in $installDir" }
+          Write-Host "uninstaller removes: $($required -join ', ')"
 
       - name: List packaged artifacts
         shell: bash

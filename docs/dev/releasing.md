@@ -811,7 +811,8 @@ repository variables, the Windows matrix leg authenticates through the federated
 Entra application/service principal using GitHub OIDC. It signs every `.exe` and
 `.dll` in the
 Flutter release bundle before creating the portable ZIP, then signs the generated
-Inno Setup installer. The signing endpoint is the WUS2 Azure Trusted Signing
+Inno Setup installer. The MSVC runtime DLLs are copied into the bundle after
+that signing step, so they keep Microsoft's own signatures. The signing endpoint is the WUS2 Azure Trusted Signing
 endpoint (`https://wus2.codesigning.azure.net/`).
 
 The variables must be paired with an Azure federated credential for the
@@ -1269,6 +1270,16 @@ runners:
   the Apple signing secrets are configured the same step also Developer
   ID-signs (hardened runtime), notarizes, and staples the artifacts — see
   [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized).
+- **Windows MSVC runtime** — the runner and plugin DLLs link the MSVC runtime
+  dynamically, so the job copies `vcruntime140.dll`, `vcruntime140_1.dll` and
+  `msvcp140.dll` (the `MSVC_RUNTIME_DLLS` job variable) from the runner's Visual
+  Studio redistributable folder into the Release folder, next to
+  `compendium_app.exe`, before the zip and installer are built. The version
+  folder is read from Visual Studio, not hard-coded. The step fails if
+  `dumpbin /dependents` shows any bundled binary importing a runtime DLL outside
+  that list. A later step fails the job unless each DLL is in the zip, is
+  installed by the installer, and is removed by its uninstaller.
+  `tools/release/test_release_windows_crt.py` pins this structure.
 - **Windows zip** — PowerShell `Compress-Archive`.
 - **Windows installer** — Inno Setup (`ISCC.exe`, preinstalled on the runner)
   driving `packaging/windows/CallersCompendium.iss`.
