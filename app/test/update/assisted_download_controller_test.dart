@@ -14,6 +14,7 @@ import 'package:compendium_app/src/update/update_service.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import '../support/test_repositories.dart';
 
@@ -22,6 +23,7 @@ String _manifest({
   String platform = 'macos',
   String arch = 'universal',
   String version = '0.2.0',
+  String host = 'example.com',
 }) =>
     '''
 {
@@ -34,7 +36,7 @@ String _manifest({
     {
       "platform": "$platform",
       "arch": "$arch",
-      "url": "https://example.com/CallersCompendium-$version-$platform-$arch.dmg",
+      "url": "https://$host/CallersCompendium-$version-$platform-$arch.dmg",
       "sha256": "abcd",
       "size": 1000
     }
@@ -701,6 +703,89 @@ void main() {
 
       expect(c.downloadStatus, AssistedDownloadStatus.idle);
       expect(c.downloadFailure, isNull);
+    });
+  });
+
+  group('an existing entity at the download path (security-5)', () {
+    // These run the REAL downloader (with a fake HTTP client), so its #626
+    // "refuse anything already at the destination" guard is what decides.
+    const allowedHost = 'release-assets.githubusercontent.com';
+    final body = 'n' * 1000; // the manifest's declared size
+
+    ArtifactDownloader realDownloader({
+      Future<void> Function(File destination)? before,
+      void Function(DownloadOutcome outcome)? onOutcome,
+    }) =>
+        (
+          artifact, {
+          required destination,
+          client,
+          onProgress,
+          cancelToken,
+        }) async {
+          if (before != null) await before(destination);
+          final outcome = await downloadArtifact(
+            artifact,
+            destination: destination,
+            client: MockClient((request) async => http.Response(body, 200)),
+            onProgress: onProgress,
+            cancelToken: cancelToken,
+          );
+          onOutcome?.call(outcome);
+          return outcome;
+        };
+
+    test('macOS: a regular file the user chose to Replace in the Save panel '
+        'is replaced, not reported as a network error', () async {
+      final repos = openTestRepositories();
+      final chosen = File('${tempDir.path}/CallersCompendium.dmg')
+        ..writeAsStringSync('last month\'s image');
+      final c = controller(
+        repos,
+        manifestBody: _manifest(host: allowedHost),
+        macosDestinationPicker: (artifact) async => chosen,
+        downloader: realDownloader(),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(c.downloadFailure, isNull);
+      expect(c.downloadStatus, AssistedDownloadStatus.awaitingMacosInstall);
+      expect(await chosen.readAsString(), body);
+    });
+
+    test('off macOS the temp-dir guard is unchanged: an entity planted at the '
+        'download path is refused, never deleted first', () async {
+      final repos = openTestRepositories();
+      DownloadOutcome? seen;
+      final c = controller(
+        repos,
+        manifestBody: _manifest(
+          platform: 'linux',
+          arch: 'x64',
+          host: allowedHost,
+        ),
+        platform: UpdatePlatform.linux,
+        arch: UpdateArch.x64,
+        downloader: realDownloader(
+          // A local attacker winning the race into the random temp dir.
+          before: (destination) => destination.writeAsString('planted'),
+          onOutcome: (outcome) => seen = outcome,
+        ),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(seen?.kind, DownloadResultKind.networkError);
+      expect(seen?.message, contains('already exists'));
+      expect(c.downloadStatus, AssistedDownloadStatus.failed);
+      expect(c.downloadFailure, UpdateDownloadFailure.unreachable);
     });
   });
 }
