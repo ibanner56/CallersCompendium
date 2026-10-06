@@ -233,6 +233,14 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_check_linux_build_runner.py"),),
     ),
     Step(
+        "apple-native-tests",
+        "CI's ios and macos build legs run the native Swift RunnerTests when Apple native code changes",
+        (
+            py("tools/ci/test_check_apple_native_tests.py"),
+            py("tools/ci/check_apple_native_tests.py"),
+        ),
+    ),
+    Step(
         "android-unit-tests",
         "ci.yml's Android build leg runs the Kotlin JVM unit tests after the build",
         (py("tools/ci/test_check_android_unit_tests.py"),),

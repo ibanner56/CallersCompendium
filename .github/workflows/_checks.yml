@@ -223,6 +223,11 @@ jobs:
       # minimum (docs/user/installation.md); ubuntu-latest would move it.
       - name: Guard the Linux build runner (glibc floor)
         run: python3 tools/ci/test_check_linux_build_runner.py
+      # The ios and macos build legs in ci.yml run the native Swift RunnerTests
+      # (xcodebuild test) when Apple native code changes (platform-7); without
+      # it they could stop compiling unnoticed. The suite also checks ci.yml.
+      - name: Guard the native Swift test steps (RunnerTests in ci.yml)
+        run: python3 tools/ci/test_check_apple_native_tests.py
       # Each shipped iOS target (Runner, ShareExtension) must copy a
       # PrivacyInfo.xcprivacy that declares every required-reason API category
       # its own sources use; App Store Connect rejects an undeclared one
