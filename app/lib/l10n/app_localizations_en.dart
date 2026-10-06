@@ -7714,6 +7714,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not choose a place to download the update.';
 
   @override
+  String get updateDownloadFailureDestinationOccupied =>
+      'Something is already at that location. Choose another name or folder, or use \"View release\".';
+
+  @override
   String get updateDownloadFailureIncomplete =>
       'The download was incomplete and was deleted. Please try again, or use \"View release\".';
 

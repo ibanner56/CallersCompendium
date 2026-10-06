@@ -757,6 +757,65 @@ void main() {
       expect(await chosen.readAsString(), body);
     });
 
+    test('macOS: a symlink at the chosen path is refused as occupied; the '
+        'link and its target are untouched', () async {
+      final repos = openTestRepositories();
+      final target = File('${tempDir.path}/elsewhere/keep.txt')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('do-not-touch');
+      final chosen = File('${tempDir.path}/CallersCompendium.dmg');
+      Link(chosen.path).createSync(target.path);
+      var downloaderCalled = false;
+      final c = controller(
+        repos,
+        manifestBody: _manifest(host: allowedHost),
+        macosDestinationPicker: (artifact) async => chosen,
+        downloader: realDownloader(
+          before: (_) async => downloaderCalled = true,
+        ),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(c.downloadStatus, AssistedDownloadStatus.failed);
+      expect(c.downloadFailure, UpdateDownloadFailure.destinationOccupied);
+      expect(downloaderCalled, isFalse);
+      expect(
+        FileSystemEntity.typeSync(chosen.path, followLinks: false),
+        FileSystemEntityType.link,
+      );
+      expect(Link(chosen.path).targetSync(), target.path);
+      expect(target.readAsStringSync(), 'do-not-touch');
+    });
+
+    test('macOS: a directory at the chosen path is refused as occupied and '
+        'left with its contents', () async {
+      final repos = openTestRepositories();
+      final chosen = File('${tempDir.path}/CallersCompendium.dmg');
+      final inside = File('${chosen.path}/inside.txt')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('keep');
+      final c = controller(
+        repos,
+        manifestBody: _manifest(host: allowedHost),
+        macosDestinationPicker: (artifact) async => chosen,
+        downloader: realDownloader(),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(c.downloadStatus, AssistedDownloadStatus.failed);
+      expect(c.downloadFailure, UpdateDownloadFailure.destinationOccupied);
+      expect(Directory(chosen.path).existsSync(), isTrue);
+      expect(inside.readAsStringSync(), 'keep');
+    });
+
     test('off macOS the temp-dir guard is unchanged: an entity planted at the '
         'download path is refused, never deleted first', () async {
       final repos = openTestRepositories();
