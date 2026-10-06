@@ -748,7 +748,10 @@ void main() {
         target: target,
         legacy: [legacy],
         // Another process finished the whole move while this one waited.
-        lockPrimitive: _GrantedAfter(() => legacy.renameSync(target.path)),
+        lockPrimitive: _GrantedAfter(() {
+          target.parent.createSync(recursive: true);
+          legacy.renameSync(target.path);
+        }),
       );
 
       expect(moved, isFalse);
@@ -875,8 +878,10 @@ void main() {
 
       expect(legacy.existsSync(), isTrue);
       expect(File('${legacy.path}-wal').lengthSync(), walLength);
-      expect(target.existsSync(), isFalse);
-      expect(target.parent.existsSync(), isFalse);
+      // Only the relocation lock file was created at the new location.
+      expect(target.parent.listSync().map((e) => p.basename(e.path)), [
+        kRelocationLockFileName,
+      ]);
     });
 
     test('reports a distinct reason when only legacy locations conflict, and '
