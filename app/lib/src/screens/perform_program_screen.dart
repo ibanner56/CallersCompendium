@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
+import '../diagnostics/error_log.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/dialect_library_scope.dart';
@@ -1519,24 +1520,35 @@ class DeletedSlotDances {
 /// so a deleted dance's deleted author would lose their credit line. Ids
 /// already in [data] are not duplicated, and purged ids are absent from the
 /// result. Authors already named by [data] are left to it.
+///
+/// Never throws: Perform opened without this lookup before CS-06, and a caller
+/// mid-gig must still reach it. A failed dance read gives no overrides (the
+/// pre-CS-06 behaviour); a failed author read keeps the dances without the
+/// extra names. Either failure is logged.
 Future<DeletedSlotDances> resolveDeletedSlotDances(
   DanceRepository dances,
   ChoreographerRepository choreographers,
   Program program,
   CollectionData data,
 ) async {
+  const source = 'perform_program_screen.resolveDeletedSlotDances';
   final resolved = <String, Dance>{};
   final attempted = <String>{};
-  for (final slot in program.slots) {
-    final id = slot.danceId;
-    if (id == null || data.dancesById.containsKey(id)) continue;
-    if (!attempted.add(id)) continue;
-    final dance = await dances.getById(
-      id,
-      includeDeleted: true,
-      includeDeletedAuthors: true,
-    );
-    if (dance != null) resolved[id] = dance;
+  try {
+    for (final slot in program.slots) {
+      final id = slot.danceId;
+      if (id == null || data.dancesById.containsKey(id)) continue;
+      if (!attempted.add(id)) continue;
+      final dance = await dances.getById(
+        id,
+        includeDeleted: true,
+        includeDeletedAuthors: true,
+      );
+      if (dance != null) resolved[id] = dance;
+    }
+  } on Object catch (e, st) {
+    logCaughtError(e, st, source: source);
+    return const DeletedSlotDances(dances: {}, authorNames: {});
   }
   final authorNames = <String, String>{};
   final missingAuthors = {
@@ -1545,8 +1557,13 @@ Future<DeletedSlotDances> resolveDeletedSlotDances(
         if (!data.choreographerNames.containsKey(id)) id,
   };
   if (missingAuthors.isNotEmpty) {
-    for (final c in await choreographers.listAll(includeDeleted: true)) {
-      if (missingAuthors.contains(c.id)) authorNames[c.id] = c.name;
+    try {
+      for (final c in await choreographers.listAll(includeDeleted: true)) {
+        if (missingAuthors.contains(c.id)) authorNames[c.id] = c.name;
+      }
+    } on Object catch (e, st) {
+      logCaughtError(e, st, source: source);
+      authorNames.clear();
     }
   }
   return DeletedSlotDances(dances: resolved, authorNames: authorNames);
