@@ -174,27 +174,33 @@ void main() {
   // rotation never strands an install. A manifest is accepted when its
   // signature verifies against ANY pinned key; everything else fails closed.
   group('verifyManifestSignatureWith — pinned key set', () {
-    test('accepts a signature made by the SECOND key of a two-key set', () async {
-      final current = await _sign('{"manifestSchemaVersion":1}');
-      final next = await _sign('{"manifestSchemaVersion":1}');
-      final ok = await verifyManifestSignatureWith(
-        next.message,
-        next.signatureBase64,
-        publicKeysBase64: [current.publicKeyBase64, next.publicKeyBase64],
-      );
-      expect(ok, isTrue);
-    });
+    test(
+      'accepts a signature made by the SECOND key of a two-key set',
+      () async {
+        final current = await _sign('{"manifestSchemaVersion":1}');
+        final next = await _sign('{"manifestSchemaVersion":1}');
+        final ok = await verifyManifestSignatureWith(
+          next.message,
+          next.signatureBase64,
+          publicKeysBase64: [current.publicKeyBase64, next.publicKeyBase64],
+        );
+        expect(ok, isTrue);
+      },
+    );
 
-    test('accepts a signature made by the FIRST key of a two-key set', () async {
-      final current = await _sign('payload');
-      final next = await _sign('payload');
-      final ok = await verifyManifestSignatureWith(
-        current.message,
-        current.signatureBase64,
-        publicKeysBase64: [current.publicKeyBase64, next.publicKeyBase64],
-      );
-      expect(ok, isTrue);
-    });
+    test(
+      'accepts a signature made by the FIRST key of a two-key set',
+      () async {
+        final current = await _sign('payload');
+        final next = await _sign('payload');
+        final ok = await verifyManifestSignatureWith(
+          current.message,
+          current.signatureBase64,
+          publicKeysBase64: [current.publicKeyBase64, next.publicKeyBase64],
+        );
+        expect(ok, isTrue);
+      },
+    );
 
     test('rejects a signature made by a key outside the set', () async {
       final current = await _sign('payload');
@@ -208,39 +214,36 @@ void main() {
       expect(ok, isFalse);
     });
 
-    test(
-      'an invalid entry in the set does not break verification against a '
-      'valid one',
-      () async {
-        final f = await _sign('payload');
-        for (final bad in <String>[
-          '',
-          '   ',
-          'not*valid*base64!!',
-          base64.encode(List<int>.filled(31, 0)),
-          base64.encode(List<int>.filled(33, 0)),
-        ]) {
-          expect(
-            await verifyManifestSignatureWith(
-              f.message,
-              f.signatureBase64,
-              publicKeysBase64: [bad, f.publicKeyBase64],
-            ),
-            isTrue,
-            reason: 'invalid entry ${jsonEncode(bad)} before the valid key',
-          );
-          expect(
-            await verifyManifestSignatureWith(
-              f.message,
-              f.signatureBase64,
-              publicKeysBase64: [f.publicKeyBase64, bad],
-            ),
-            isTrue,
-            reason: 'invalid entry ${jsonEncode(bad)} after the valid key',
-          );
-        }
-      },
-    );
+    test('an invalid entry in the set does not break verification against a '
+        'valid one', () async {
+      final f = await _sign('payload');
+      for (final bad in <String>[
+        '',
+        '   ',
+        'not*valid*base64!!',
+        base64.encode(List<int>.filled(31, 0)),
+        base64.encode(List<int>.filled(33, 0)),
+      ]) {
+        expect(
+          await verifyManifestSignatureWith(
+            f.message,
+            f.signatureBase64,
+            publicKeysBase64: [bad, f.publicKeyBase64],
+          ),
+          isTrue,
+          reason: 'invalid entry ${jsonEncode(bad)} before the valid key',
+        );
+        expect(
+          await verifyManifestSignatureWith(
+            f.message,
+            f.signatureBase64,
+            publicKeysBase64: [f.publicKeyBase64, bad],
+          ),
+          isTrue,
+          reason: 'invalid entry ${jsonEncode(bad)} after the valid key',
+        );
+      }
+    });
 
     test('a set of only invalid entries fails closed', () async {
       final f = await _sign('payload');

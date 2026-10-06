@@ -65,10 +65,10 @@ void main() {
   /// silently. Mirrors the allowlist precedent in
   /// `test/l10n/no_hardcoded_ui_strings_test.dart`.
   const notSettingsKeys = <String>{
-    // The Ed25519 public key that update manifests are verified against — the
-    // root of trust for update authenticity (ADR-002 §6), not a preference.
-    'kUpdateManifestPublicKey',
-    // This is a trust anchor, not a persisted user setting.
+    // The Ed25519 public key that published-collection manifests are verified
+    // against — a trust anchor, not a persisted user setting. (The update
+    // manifest's keys are a `const List<String> kUpdateManifestPublicKeys`
+    // since security-2, a shape [declaration] does not match.)
     'kPublishedCollectionPublicKey',
   };
 

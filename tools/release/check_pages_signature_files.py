@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Assert the published gh-pages invariant: every ``*.json`` at the site root
 has a sibling ``*.json.sig`` that is a **valid Ed25519 signature** over the
-exact bytes of that manifest, verified against the public key pinned in
-``app/lib/src/update/update_config.dart`` (``kUpdateManifestPublicKey``).
+exact bytes of that manifest, verified against the public keys pinned in
+``app/lib/src/update/update_config.dart`` (``kUpdateManifestPublicKeys``). A
+signature is valid when it verifies under **any** pinned key — the same rule
+the app applies — so a signing-key rotation (current + next key pinned,
+security-2) does not turn the gate red.
 
 This delivers the full invariant from #759: the original title was *"every
 ``*.json`` has a valid sibling ``*.json.sig``"* and the issue body explicitly
@@ -11,11 +14,14 @@ script closes the gap (issue #810). A stale ``.sig`` (e.g. from a previous
 release beside an updated manifest) causes the in-app update client to fail
 closed and silently report "no update" just like a missing one does (issue #714).
 
-The pinned key is read from ``kUpdateManifestPublicKey`` in
+The pinned keys are read from ``kUpdateManifestPublicKeys`` in
 ``app/lib/src/update/update_config.dart`` at runtime so a key rotation updates
-the gate automatically. The gate must never hold its own copy of the key; if
+the gate automatically. The gate must never hold its own copy of a key; if
 the parse fails, the gate exits with code 2 rather than falling back to a
-hardcoded constant.
+hardcoded constant. The gate is stricter than the app about the set itself:
+the app skips a malformed entry, but here an empty set or any entry that is not
+a 32-byte base64 key exits 2, so a typo in a newly pinned "next" key is caught
+before CI starts signing with it.
 
 Requires the ``cryptography`` package::
 
@@ -33,7 +39,8 @@ Exit codes:
   0   All ``*.json`` files have a valid ``*.json.sig`` (invariant holds).
   1   One or more ``*.json`` files are missing or have an invalid ``.sig``
       (invariant violated).
-  2   Usage error (wrong arguments, directory not found, key parse failure).
+  2   Usage error (wrong arguments, directory not found, key parse failure,
+      empty or malformed pinned key set).
 """
 
 from __future__ import annotations
@@ -54,27 +61,47 @@ except ImportError:
     )
     sys.exit(2)
 
-# Matches the (possibly two-line) Dart constant declaration, e.g.:
-#   const String kUpdateManifestPublicKey =
-#       '/39VzhfG58PnR5RlMzDB5ertil945PWRgA+usAj4qvw=';
-# \s* covers the newline + indent between = and the opening quote.
-# re.DOTALL is not needed for \s*, but is kept defensively.
-_KEY_PATTERN = re.compile(
-    r"kUpdateManifestPublicKey\s*=\s*'([^']*)'",
+# Matches the Dart key-set declaration, e.g.:
+#   const List<String> kUpdateManifestPublicKeys = [
+#     // Current: ...
+#     '/39VzhfG58PnR5RlMzDB5ertil945PWRgA+usAj4qvw=',
+#   ];
+# and captures the bracketed body. Entries are the single-quoted literals in
+# that body once ``//`` line comments are removed (see _strip_line_comment —
+# a base64 key can itself contain ``//``).
+_KEY_SET_PATTERN = re.compile(
+    r"kUpdateManifestPublicKeys\s*=\s*\[(.*?)\]\s*;",
     re.DOTALL,
 )
+_ENTRY_PATTERN = re.compile(r"'([^']*)'")
 
 _DEFAULT_KEY_SOURCE = (
     Path(__file__).resolve().parents[2] / "app/lib/src/update/update_config.dart"
 )
 
 
-def parse_pinned_key(source: Path) -> bytes:
-    """Parse ``kUpdateManifestPublicKey`` from *source* (a Dart source file).
+def _strip_line_comment(line: str) -> str:
+    """Drop a trailing ``//`` comment that is not inside a single-quoted literal.
 
-    Returns the raw 32 key bytes.  Prints a ``::error::`` annotation and exits
-    with code 2 if the key cannot be read, found, or decoded — never falls back
-    to a hardcoded constant.
+    Standard base64 uses ``/``, so a pinned key can contain ``//``; a naive
+    ``line.split('//')`` would cut such a key in half.
+    """
+    in_quote = False
+    for i, ch in enumerate(line):
+        if ch == "'":
+            in_quote = not in_quote
+        elif not in_quote and line.startswith("//", i):
+            return line[:i]
+    return line
+
+
+def parse_pinned_keys(source: Path) -> list[bytes]:
+    """Parse ``kUpdateManifestPublicKeys`` from *source* (a Dart source file).
+
+    Returns the raw 32-byte keys, in declaration order.  Prints a ``::error::``
+    annotation and exits with code 2 if the set cannot be read or found, is
+    empty, or holds any entry that is not a strict-base64 32-byte key — never
+    falls back to a hardcoded constant.
     """
     try:
         text = source.read_text(encoding="utf-8")
@@ -82,33 +109,45 @@ def parse_pinned_key(source: Path) -> bytes:
         print(f"::error::cannot read key source {source}: {exc}", file=sys.stderr)
         sys.exit(2)
 
-    m = _KEY_PATTERN.search(text)
+    m = _KEY_SET_PATTERN.search(text)
     if not m:
         print(
-            f"::error::could not parse kUpdateManifestPublicKey from {source} — "
-            "key rotation or file moved?",
+            f"::error::could not parse kUpdateManifestPublicKeys from {source} — "
+            "declaration renamed or file moved?",
             file=sys.stderr,
         )
         sys.exit(2)
 
-    try:
-        raw = base64.b64decode(m.group(1).strip(), validate=True)
-    except Exception as exc:
+    body = "\n".join(_strip_line_comment(line) for line in m.group(1).splitlines())
+    entries = _ENTRY_PATTERN.findall(body)
+    if not entries:
         print(
-            f"::error::kUpdateManifestPublicKey in {source} is not valid base64: {exc}",
+            f"::error::kUpdateManifestPublicKeys in {source} has no pinned keys; "
+            "every manifest would fail closed in the app",
             file=sys.stderr,
         )
         sys.exit(2)
 
-    if len(raw) != 32:
-        print(
-            f"::error::kUpdateManifestPublicKey in {source} decoded to {len(raw)} bytes; "
-            "expected 32 (Ed25519 public key is always 32 bytes)",
-            file=sys.stderr,
-        )
-        sys.exit(2)
-
-    return raw
+    keys: list[bytes] = []
+    for index, entry in enumerate(entries):
+        try:
+            raw = base64.b64decode(entry.strip(), validate=True)
+        except Exception as exc:
+            print(
+                f"::error::kUpdateManifestPublicKeys[{index}] in {source} is not "
+                f"valid base64: {exc}",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+        if len(raw) != 32:
+            print(
+                f"::error::kUpdateManifestPublicKeys[{index}] in {source} decoded to "
+                f"{len(raw)} bytes; expected 32 (Ed25519 public key is always 32 bytes)",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+        keys.append(raw)
+    return keys
 
 
 def check(root: Path) -> list[str]:
@@ -126,16 +165,16 @@ def check(root: Path) -> list[str]:
     return missing
 
 
-def verify_signatures(root: Path, pubkey_raw: bytes) -> list[tuple[str, str]]:
+def verify_signatures(root: Path, pubkeys_raw: list[bytes]) -> list[tuple[str, str]]:
     """Verify Ed25519 signatures for ``*.json`` files that have a ``*.json.sig``.
 
     Only checks files whose ``.sig`` is present; missing-sig cases are handled
     separately by :func:`check`.  Returns a list of ``(json_filename, reason)``
     for files whose signature fails verification — either the ``.sig`` body is
-    not valid base64, is the wrong length, or does not verify against the
+    not valid base64, is the wrong length, or does not verify against **any**
     pinned key.
     """
-    pub_key = Ed25519PublicKey.from_public_bytes(pubkey_raw)
+    pub_keys = [Ed25519PublicKey.from_public_bytes(k) for k in pubkeys_raw]
     failed: list[tuple[str, str]] = []
 
     for json_file in sorted(f for f in root.glob("*.json") if f.is_file()):
@@ -168,15 +207,22 @@ def verify_signatures(root: Path, pubkey_raw: bytes) -> list[tuple[str, str]]:
             )
             continue
 
-        try:
-            pub_key.verify(sig_bytes, manifest_bytes)
-        except InvalidSignature:
+        if not any(_verifies(k, sig_bytes, manifest_bytes) for k in pub_keys):
             failed.append(
                 (json_file.name,
-                 "signature does not verify against the pinned key (kUpdateManifestPublicKey)")
+                 f"signature does not verify against any of the {len(pub_keys)} "
+                 "pinned key(s) (kUpdateManifestPublicKeys)")
             )
 
     return failed
+
+
+def _verifies(key: Ed25519PublicKey, sig: bytes, message: bytes) -> bool:
+    try:
+        key.verify(sig, message)
+    except InvalidSignature:
+        return False
+    return True
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -215,7 +261,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     key_source = Path(key_source_str) if key_source_str is not None else _DEFAULT_KEY_SOURCE
-    pubkey_raw = parse_pinned_key(key_source)  # exits with code 2 on failure
+    pubkeys_raw = parse_pinned_keys(key_source)  # exits with code 2 on failure
 
     # Phase 1: presence check.
     missing = check(root)
@@ -234,7 +280,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     # Phase 2: validity check.
-    invalid = verify_signatures(root, pubkey_raw)
+    invalid = verify_signatures(root, pubkeys_raw)
     if invalid:
         for name, reason in invalid:
             print(

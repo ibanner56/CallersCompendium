@@ -62,7 +62,7 @@ def _run_main(args: list[str]) -> tuple[int, str, str]:
     ignore exactly the alarm this gate exists to raise.
 
     ``SystemExit`` is caught and converted to its integer exit code so callers
-    always receive a plain ``(rc, out, err)`` tuple — ``parse_pinned_key``
+    always receive a plain ``(rc, out, err)`` tuple — ``parse_pinned_keys``
     calls ``sys.exit(2)`` on failure, which would otherwise propagate past the
     context managers and terminate the test process.
 
@@ -614,6 +614,38 @@ def _cases() -> None:
         rc, _, err = _run_main([str(root), "--key-source", str(key_src)])
         assert rc == 2, f"case 20: expected exit 2 on a malformed pinned entry, got: {rc}"
         assert "expected 32" in err, f"case 20: got err={err!r}"
+
+    # Case 22: comment handling in the key-set body. A pinned key whose base64
+    # contains "//" must parse whole (a naive split on "//" would truncate it
+    # and exit 2), and a commented-out entry must NOT be trusted.
+    slashy_priv = Ed25519PrivateKey.generate()
+    while "//" not in base64.b64encode(slashy_priv.public_key().public_bytes_raw()).decode():
+        slashy_priv = Ed25519PrivateKey.generate()
+    slashy_b64 = base64.b64encode(slashy_priv.public_key().public_bytes_raw()).decode()
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        key_src = root / "update_config.dart"
+        key_src.write_text(
+            "const List<String> kUpdateManifestPublicKeys = [\n"
+            f"  '{slashy_b64}', // current\n"
+            f"  // '{next_b64}',\n"
+            "];\n",
+            encoding="utf-8",
+        )
+        stable_bytes = b'{"channel":"stable"}\n'
+        (root / "stable.json").write_bytes(stable_bytes)
+        (root / "stable.json.sig").write_text(
+            base64.b64encode(slashy_priv.sign(stable_bytes)).decode(), encoding="utf-8"
+        )
+        rc, out, err = _run_main([str(root), "--key-source", str(key_src)])
+        assert rc == 0, f"case 22: key containing '//' must parse, got rc={rc} err={err!r}"
+        (root / "stable.json.sig").write_text(
+            base64.b64encode(next_priv.sign(stable_bytes)).decode(), encoding="utf-8"
+        )
+        rc, out, err = _run_main([str(root), "--key-source", str(key_src)])
+        assert rc == 1, (
+            f"case 22: a commented-out key must not be trusted, got rc={rc} out={out!r}"
+        )
 
     # Case 21: the REAL update_config.dart parses to a non-empty key set.
     keys = check_pages_signature_files.parse_pinned_keys(
