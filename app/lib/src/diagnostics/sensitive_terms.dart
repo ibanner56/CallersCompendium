@@ -72,8 +72,10 @@ Future<Set<String>> collectSensitiveTerms(
 
   void addFigureContent(Figure figure) {
     add(figure.note);
-    // A custom (free-text) figure keeps the caller's verbatim text in
-    // params['text'] (taxonomy `customMove`), not in `note`.
+    // A custom (free-text) figure keeps its text in params['text'] (taxonomy
+    // `customMove`), not in `note`. This is the stored form: the editor saves
+    // it through the dialect chokepoint, so role words are canonical here.
+    // The text as typed may still differ (for example in an autosave draft).
     add(figure.params['text']);
     for (final child in figure.subFigures) {
       addFigureContent(child);

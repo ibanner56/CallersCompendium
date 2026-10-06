@@ -38,10 +38,18 @@ Earlier versions kept the file in your `Documents` folder on Windows and Linux
 (on Linux without a Documents folder configured, that is your home folder). A
 few Windows installs instead have it in the Roaming folder,
 `%APPDATA%\org.callerscompendium\Caller's Compendium`. The first time you open
-the app after updating, it moves your library (and the `db_backups` folder) to
-the location above and deletes the old copy only after the new one is verified.
+the app after updating, it moves your library (and the automatic safety copies
+in its `db_backups` folder) to the location above and deletes the old copy only
+after the new one is verified.
 
-If it finds data files in the new location *and* in an old one, or in more than
+After that move, going back to an older version (0.5.4 or earlier on Windows,
+0.5.3 or earlier on Linux) shows an empty library, because those versions do not
+look in the new location. Your data is not lost: it is still in the location
+above. The older version starts a new, empty library in `Documents`, so when you
+update again the app reports data in both places; move the copy in `Documents`
+out of the way, as described below.
+
+If the app finds data files in the new location *and* in an old one, or in more than
 one old location (for example both `Documents` and the Roaming folder), or it
 cannot finish the move (the disk is full, the folder is not writable, or another
 program is using the file), it stops without changing anything and tells you.

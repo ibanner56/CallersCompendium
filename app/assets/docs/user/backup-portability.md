@@ -35,7 +35,8 @@ A few good moments to export a backup:
 3. Choose **Export** beside **Export a backup**.
 
 While the backup is prepared, a progress bar shows that the app is
-working. It disappears when the share or save sheet is ready.
+working. On a computer it closes once you have finished with the save
+sheet; on a phone or tablet it closes as soon as the share sheet opens.
 
 The app creates a single dated file — something like
 `callers-compendium-backup-2026-07-15.json` — and hands it to your

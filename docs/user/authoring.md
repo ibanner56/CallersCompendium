@@ -130,8 +130,9 @@ for both:
 
 As you type, the app styles what it recognises: move names get a dotted
 underline, role terms are underlined, and
-[discouraged terms](./dialects.md) are struck through. It is a hint, not a
-correction — nothing is changed for you.
+[discouraged terms](./dialects.md) are struck through. The styling is only a
+hint: it does not change your text while you type. Role words are rewritten
+when you save, as described next.
 
 Role words you type here (such as "Larks" or "Leads") are saved in a neutral
 form, shown in your own [dialect](./dialects.md), and found by role searches.
@@ -140,6 +141,7 @@ while the same dialect is active; text typed in a different dialect may need a
 manual edit. The same rewriting applies to the everyday words "man", "men",
 "lady" and "ladies" inside custom figure text (for example, "the man and lady
 swing"), which are saved as role terms and shown in your dialect's words.
+The move name "mad robin" is the exception: it is kept exactly as you typed it.
 
 ### Reorder, cut, and duplicate
 

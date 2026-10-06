@@ -64,8 +64,8 @@ class DanceListTile extends StatelessWidget {
   /// widget is a [Checkbox] and the trailing chevron is hidden.
   final bool selectionMode;
 
-  /// Whether to show the normal drill-in chevron. Defaults to true so callers
-  /// that supply their own [onTap] retain the existing affordance unless they opt out.
+  /// Whether to show the normal drill-in chevron. Defaults to true, so callers
+  /// keep the drill-in affordance unless they opt out.
   final bool showChevron;
 
   /// Whether this row is currently checked in batch multi-select mode.
