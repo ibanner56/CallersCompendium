@@ -17,6 +17,8 @@ sys.path.insert(0, str(HERE))
 from check_preference_encode import (  # noqa: E402
     DescriptorError,
     descriptors_in,
+    missing_handler_problems,
+    resolve_scopes,
     scan,
     violations_in,
 )
@@ -50,7 +52,19 @@ class _AppState {
     decode: (Object? v) => null,
     encode: localeToTag,
   );
+  final _date = DateNotifier();
   late final List<PreferenceNotifier<Object?>> _preferences = [_theme, _flag];
+  late final _wrappers = [
+    (child) => AppThemeScope(notifier: _theme, child: child),
+    (child) => FlagScope(notifier: _flag, child: child),
+    (child) =>
+        TilesScope(
+          notifier: _tiles,
+          child: child,
+        ),
+    (child) => LocaleScope(notifier: _locale, child: child),
+    (child) => DateFormatScope(notifier: _date, child: child),
+  ];
   void _reset() { for (final p in _preferences) p.reset(); }
 }
 
@@ -74,8 +88,9 @@ def check(name: str, condition: bool, detail: str = "") -> None:
     print(f"  FAIL {name}{': ' + detail if detail else ''}")
 
 
-def descriptors():
-    return {d.key: d for d in descriptors_in(DESCRIPTORS_SRC, "main.dart")}
+def descriptors(main: str = DESCRIPTORS_SRC):
+    found = {d.key: d for d in descriptors_in(main, "main.dart")}
+    return resolve_scopes(found, main, "main.dart")
 
 
 def bad(handler: str) -> list[str]:
@@ -147,6 +162,7 @@ def test_compliant_handlers() -> None:
         "closure handler, set comprehension, trailing comma",
         not bad(
             "Future<void> toggle(Field field, bool on) async {\n"
+            "  final notifier = TilesScope.notifierOf(context);\n"
             "  final updated = Set.of(notifier.value);\n"
             "  notifier.value = updated;\n"
             "  await persistSetting(settings, kTilesKey, "
@@ -157,7 +173,7 @@ def test_compliant_handlers() -> None:
         "assignment inside an if block",
         not bad(
             "Future<void> f(bool value) async {\n"
-            "  if (scoped != null) { Scope.notifierOf(context).value = value; }\n"
+            "  if (scoped != null) { FlagScope.notifierOf(context).value = value; }\n"
             "  await persistSetting(repos.settings, kFlagKey, value);\n}\n"
         ),
     )
@@ -212,7 +228,7 @@ def test_violations() -> None:
         len(
             bad(
                 "Future<void> f(Set<Field> updated) async {\n"
-                "  notifier.value = updated;\n"
+                "  TilesScope.notifierOf(context).value = updated;\n"
                 "  await repos.settings.set(kTilesKey, "
                 "updated.map((f) => f.name).toList());\n}\n"
             )
@@ -241,6 +257,97 @@ def test_violations() -> None:
     )
 
 
+def test_review_findings() -> None:
+    print("review findings (#1692):")
+    ds = descriptors()
+    spaced = ds["kAppThemeKey"].__class__(
+        "kSpacedKey", "(v) => 'a b'", "main.dart", 1, scope="AppThemeScope"
+    )
+    with_spaced = {**ds, "kSpacedKey": spaced}
+    check(
+        "whitespace inside a string literal is part of the value",
+        len(
+            [
+                d
+                for _, d in violations_in(
+                    "Future<void> f(bool value) async {\n"
+                    "  AppThemeScope.notifierOf(context).value = value;\n"
+                    "  await persistSetting(s, kSpacedKey, 'ab');\n}\n",
+                    "h.dart",
+                    with_spaced,
+                )
+            ]
+        )
+        == 1,
+    )
+    check(
+        "lexical whitespace and trailing commas are still ignored",
+        not violations_in(
+            "Future<void> f(bool value) async {\n"
+            "  AppThemeScope.notifierOf(context).value = value;\n"
+            "  await persistSetting(s, kSpacedKey,   'a b' ,);\n}\n",
+            "h.dart",
+            with_spaced,
+        ),
+    )
+    check(
+        "a lambda parameter's name inside a string literal is not substituted",
+        ds["kAppThemeKey"].__class__(
+            "k", "(v) => 'v:' + v", "m", 1
+        ).apply("x")
+        == "'v:' + x",
+    )
+    decoy = bad(
+        "Future<void> f(bool value) async {\n"
+        "  progress.value = value;\n"
+        "  await persistSetting(s, kFlagKey, value);\n}\n"
+    )
+    check(
+        "a decoy `.value =` on another notifier does not count",
+        len(decoy) == 1 and "FlagScope" in decoy[0],
+        str(decoy),
+    )
+    check(
+        "another preference's scope does not count",
+        len(
+            bad(
+                "Future<void> f(bool value) async {\n"
+                "  LocaleScope.notifierOf(context).value = value;\n"
+                "  await persistSetting(s, kFlagKey, value);\n}\n"
+            )
+        )
+        == 1,
+    )
+    check(
+        "a local not taken from the key's scope does not count",
+        len(
+            bad(
+                "Future<void> f(bool value) async {\n"
+                "  final notifier = LocaleScope.notifierOf(context);\n"
+                "  notifier.value = value;\n"
+                "  await persistSetting(s, kFlagKey, value);\n}\n"
+            )
+        )
+        == 1,
+    )
+    # Key substitution: a handler moved from kFlagKey to another key leaves
+    # kFlagKey with no handler at all; the total count can stay the same.
+    missing = missing_handler_problems(ds, set(ds) - {"kFlagKey"})
+    check(
+        "a descriptor key with no handler write is reported",
+        len(missing) == 1 and "kFlagKey" in missing[0],
+        str(missing),
+    )
+    check("every key handled reports nothing", missing_handler_problems(ds, set(ds)) == [])
+    try:
+        main = DESCRIPTORS_SRC.replace("FlagScope(notifier: _flag", "FlagScope(other: _flag")
+        descriptors(main)
+    except DescriptorError:
+        check("fails closed when a descriptor's scope cannot be found", True)
+    else:
+        check("fails closed when a descriptor's scope cannot be found", False)
+
+
 def test_repository() -> None:
     print("repository:")
     descriptors, checked, problems = scan()
@@ -257,6 +364,7 @@ def main() -> int:
     test_descriptors()
     test_compliant_handlers()
     test_violations()
+    test_review_findings()
     test_repository()
     if FAILURES:
         print(f"\n{len(FAILURES)} failure(s)")

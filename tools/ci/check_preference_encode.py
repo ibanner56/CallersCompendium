@@ -65,7 +65,7 @@ from __future__ import annotations
 
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -95,12 +95,51 @@ class DescriptorError(Exception):
     pass
 
 
+def _segments(expr: str) -> list[tuple[bool, str]]:
+    """[expr] split into (is_string_literal, text) runs.
+
+    Handles '...', "...", triple quotes and raw strings. A `${...}`
+    interpolation stays inside its literal, so it is compared verbatim (an
+    equivalent interpolation spelled differently fails, which is safe).
+    """
+    out: list[tuple[bool, str]] = []
+    i, n, start = 0, len(expr), 0
+    while i < n:
+        c = expr[i]
+        if c not in "'\"":
+            i += 1
+            continue
+        raw = i > 0 and expr[i - 1] in "rR" and (i < 2 or not (expr[i - 2].isalnum() or expr[i - 2] == "_"))
+        lit_start = i - 1 if raw else i
+        quote = expr[i : i + 3] if expr.startswith(("\'\'\'", '"""'), i) else c
+        j = i + len(quote)
+        while j < n and not expr.startswith(quote, j):
+            j += 2 if (expr[j] == "\\" and not raw) else 1
+        j = min(j + len(quote), n)
+        if lit_start > start:
+            out.append((False, expr[start:lit_start]))
+        out.append((True, expr[lit_start:j]))
+        start = i = j
+    if start < n:
+        out.append((False, expr[start:]))
+    return out
+
+
+def _map_code(expr: str, fn) -> str:
+    """[expr] with [fn] applied to its code runs only, never inside a string
+    literal."""
+    return "".join(text if is_str else fn(text) for is_str, text in _segments(expr))
+
+
 @dataclass(frozen=True)
 class Descriptor:
     key: str
     encode: str  # the `encode:` argument as written (comments stripped)
     path: str
     line: int
+    field: str | None = None  # the main.dart field holding it, once resolved
+    scope: str | None = None  # the scope its notifier is provided through
+    owner_class: str | None = None  # for a `super(...)` descriptor
 
     def apply(self, value: str) -> str:
         """The source text of `encode(value)`."""
@@ -109,9 +148,8 @@ class Descriptor:
         if lam:
             param = lam.group("param")
             arg = value if _IDENT.match(value) else f"({value})"
-            return re.sub(
-                rf"(?<![\w$.]){re.escape(param)}(?![\w$])", arg, lam.group("body")
-            )
+            pattern = re.compile(rf"(?<![\w$.]){re.escape(param)}(?![\w$])")
+            return _map_code(lam.group("body"), lambda code: pattern.sub(arg, code))
         if _TEAR_OFF.match(expr):
             return f"{expr}({value})"
         raise DescriptorError(
@@ -121,7 +159,10 @@ class Descriptor:
 
 
 def normalize(expr: str) -> str:
-    return re.sub(r",\s*([)\]}])", r"\1", re.sub(r"\s+", "", expr)).rstrip(",")
+    """[expr] without lexical whitespace or trailing commas. Whitespace inside
+    a string literal is part of the value and is kept."""
+    code = _map_code(expr.strip(), lambda c: re.sub(r"\s+", "", c))
+    return _map_code(code, lambda c: re.sub(r",([)\]}])", r"\1", c)).rstrip(",")
 
 
 def _line(text: str, offset: int) -> int:
@@ -214,8 +255,46 @@ def descriptors_in(source: str, path: str) -> list[Descriptor]:
             )
         if "encode" not in named:
             raise DescriptorError(f"{path}:{line}: PreferenceNotifier {key} has no encode")
-        found.append(Descriptor(key, named["encode"], path, line))
+        field = owner = None
+        if is_super:
+            cls = None
+            for cls in re.finditer(r"\bclass\s+(\w+)\s+extends\s+PreferenceNotifier\b", masked[: match.start()]):
+                pass
+            owner = cls.group(1) if cls else None
+        else:
+            decl = re.search(r"\b(_\w+)\s*=\s*$", masked[: match.start()])
+            field = decl.group(1) if decl else None
+        found.append(
+            Descriptor(key, named["encode"], path, line, field=field, owner_class=owner)
+        )
     return found
+
+
+_SCOPE_WIRING = re.compile(r"\b(\w+Scope)\s*\(\s*notifier\s*:\s*(_\w+)\b")
+
+
+def resolve_scopes(
+    descriptors: dict[str, Descriptor], main_source: str, main_path: str
+) -> dict[str, Descriptor]:
+    """Attach to each descriptor the `XScope` that provides its notifier, from
+    the `XScope(notifier: _field, ...)` wiring in main.dart, so a handler's
+    `.value =` can be checked to target that notifier and no other."""
+    _, masked = prepare(main_source)
+    scope_of = {m.group(2): m.group(1) for m in _SCOPE_WIRING.finditer(masked)}
+    out: dict[str, Descriptor] = {}
+    for key, d in descriptors.items():
+        field = d.field
+        if field is None and d.owner_class:
+            m = re.search(rf"\b(_\w+)\s*=\s*{re.escape(d.owner_class)}\s*\(", masked)
+            field = m.group(1) if m else None
+        scope = scope_of.get(field) if field else None
+        if scope is None:
+            raise DescriptorError(
+                f"{d.path}:{d.line}: cannot find the scope that provides {key}'s "
+                f"notifier (field {field!r}) in {main_path}"
+            )
+        out[key] = replace(d, field=field, scope=scope)
+    return out
 
 
 def load_descriptors(root: Path = REPO_ROOT) -> dict[str, Descriptor]:
@@ -230,7 +309,8 @@ def load_descriptors(root: Path = REPO_ROOT) -> dict[str, Descriptor]:
             out[d.key] = d
     if not out:
         raise DescriptorError("no PreferenceNotifier descriptors found")
-    return out
+    main = DESCRIPTOR_FILES[0]
+    return resolve_scopes(out, (root / main).read_text(encoding="utf-8"), main)
 
 
 _WRITE = re.compile(r"(?<![\w$])persistSetting\s*\(|\.set\s*\(")
@@ -271,18 +351,24 @@ def check_writes(
         written = text[slice(*args[key_index + 1])].strip()
         line = _line(text, match.start())
         body_at = _enclosing_open_brace(masked, match.start())
+        body = masked[body_at + 1 : match.start()]
         assigned = None
         for a in _ASSIGN.finditer(masked, body_at + 1, match.start()):
             end = masked.find(";", a.end(), match.start())
-            if end != -1:
+            if end == -1:
+                continue
+            stmt_at = max(masked.rfind(c, body_at, a.start()) for c in ";{}") + 1
+            target = text[stmt_at : a.start()].strip()
+            if _targets_scope(target, descriptor.scope, body):
                 assigned = text[a.end() : end].strip()
         if assigned is None:
             out.append(
                 (
                     line,
-                    f"writes {key} without first assigning the live notifier "
-                    f"(`.value = v;`), so the value cannot be checked against "
-                    f"the descriptor's encode",
+                    f"writes {key} without first assigning its live notifier "
+                    f"(`{descriptor.scope}.notifierOf(context).value = v;`, or a "
+                    f"local holding that notifier), so the value cannot be "
+                    f"checked against the descriptor's encode",
                 )
             )
             continue
@@ -297,6 +383,20 @@ def check_writes(
                 )
             )
     return seen, out
+
+
+def _targets_scope(target: str, scope: str | None, body: str) -> bool:
+    """Whether [target] (the left of `.value =`) is [scope]'s notifier: either
+    `Scope.notifierOf(...)` itself or a local initialised from it in [body]."""
+    if scope is None:
+        return False
+    notifier_of = rf"{re.escape(scope)}\s*\.\s*notifierOf\s*\("
+    if re.fullmatch(notifier_of + r".*\)", target, re.S):
+        return True
+    return bool(
+        _IDENT.match(target)
+        and re.search(rf"\b{re.escape(target)}\s*=\s*{notifier_of}", body)
+    )
 
 
 def source_files(root: Path) -> list[Path]:
@@ -317,17 +417,39 @@ def scan(root: Path = REPO_ROOT) -> tuple[dict[str, Descriptor], int, list[str]]
     """(descriptors, number of handler writes checked, violations)."""
     descriptors = load_descriptors(root)
     checked = 0
+    keys_seen: set[str] = set()
     problems: list[str] = []
     for path in source_files(root):
         rel = path.relative_to(root).as_posix()
         seen, bad = check_writes(path.read_text(encoding="utf-8"), rel, descriptors)
         checked += len(seen)
+        keys_seen.update(seen)
         problems += [f"{rel}:{line}: {detail}" for line, detail in bad]
     if checked == 0:
         # Every descriptor has a settings handler today; finding none means the
         # write pattern changed and this checker went blind.
         raise DescriptorError("found no handler write of any preference key")
+    problems += missing_handler_problems(descriptors, keys_seen)
     return descriptors, checked, problems
+
+
+# Descriptor keys that deliberately have no settings handler, with why. Empty
+# today: every live preference is changed from a settings control.
+NO_HANDLER: dict[str, str] = {}
+
+
+def missing_handler_problems(
+    descriptors: dict[str, Descriptor], keys_seen: set[str]
+) -> list[str]:
+    """A descriptor key with no handler write is unguarded: either its handler
+    moved to a shape this checker cannot see, or it writes another key."""
+    return [
+        f"{d.path}:{d.line}: no handler write of {key} was found, so nothing "
+        f"checks that it persists the descriptor's encode (add the handler, or "
+        f"list the key in NO_HANDLER with the reason)"
+        for key, d in sorted(descriptors.items())
+        if key not in keys_seen and key not in NO_HANDLER
+    ]
 
 
 def main() -> int:
