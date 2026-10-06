@@ -206,9 +206,13 @@ A program carries the details of its event:
 - **Event date**, **Venue**, and **Notes**;
 - program-level **Band**, **Caller**, and **Dancer level**;
 - a **Status** — **Draft**, **Finalized**, or **Performed** — shown on the
-  Programs list; and
+  Programs list;
 - **Hide alternates in set list**, which leaves alternates out of the summary,
-  the PDF, and exported set lists while the builder still shows every slot.
+  the PDF, and exported set lists while the builder still shows every slot; and
+- **Perform dialect**, the [dialect](./dialects.md#give-a-program-its-own-dialect)
+  [Perform mode](./glossary.md#perform-mode) uses for this program. Leave it on
+  **Use app dialect** to follow your active dialect. It affects Perform only: the
+  editor, the summary, the PDF, and exports keep your active dialect.
 
 The **venue** can be a simple free-text label, or — when you turn on **Use
 reusable venue records** in [Settings › Program › Venues](./settings.md#venues) —
