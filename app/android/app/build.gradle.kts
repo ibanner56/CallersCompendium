@@ -63,6 +63,17 @@ android {
         }
     }
 
+    testOptions {
+        unitTests.all {
+            // Name every JVM unit test in the CI log, so a green step shows
+            // which tests ran rather than only that the task succeeded.
+            it.testLogging {
+                events("passed", "skipped", "failed")
+                exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+            }
+        }
+    }
+
     buildTypes {
         release {
             // Use the release signing config when a keystore is configured via
