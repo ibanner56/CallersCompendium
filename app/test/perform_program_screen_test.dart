@@ -2792,6 +2792,38 @@ void main() {
       expect(controller.activeName, before);
     });
 
+    testWidgets('the jump list and the adjust sheet use the program dialect '
+        'too', (tester) async {
+      // A free-text slot is labelled through the dialect (discouraged terms
+      // become the dialect's roles). The dance slot comes first so the label
+      // only appears inside the two sheets, which read the dialect at two
+      // different places from the card.
+      final controller = await library();
+      final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'd1'),
+          _slot(id: 's2', position: 1, text: 'Gypsy with the gents'),
+        ]).copyWith(dialectName: 'Leads/Follows'),
+        activeDialect: Dialect.larksRobins,
+        dialectLibrary: controller,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('perform-jump')));
+      await tester.pumpAndSettle();
+      expect(find.text('Shoulder round with the leads'), findsOneWidget);
+      expect(find.text('Shoulder round with the larks'), findsNothing);
+      await tester.tapAt(const Offset(10, 10)); // dismiss the sheet
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      expect(find.text('Shoulder round with the leads'), findsOneWidget);
+      expect(find.text('Shoulder round with the larks'), findsNothing);
+    });
+
     testWidgets('a program with no dialect follows the app dialect', (
       tester,
     ) async {
