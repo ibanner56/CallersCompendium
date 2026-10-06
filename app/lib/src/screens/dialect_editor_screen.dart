@@ -976,7 +976,7 @@ class _MoveWordingsEditor extends StatelessWidget {
     final text = controller.text;
     final known = _renderer.moveWordingSlots(id);
     final used = RegExp(
-      r'\{(\w+)\}',
+      r'\{!?(\w+)\}',
     ).allMatches(text).map((match) => match[1]!).toSet();
     final unknown = used.difference(known).toList()..sort();
     final valid = FigureRenderer.isValidMoveWordingTemplate(text);

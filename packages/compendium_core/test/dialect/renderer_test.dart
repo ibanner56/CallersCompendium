@@ -3461,6 +3461,69 @@ void main() {
   });
 
   group('global move wording templates', () {
+    group('forced slots ({!name})', () {
+      Dialect wording(String template) => Dialect.larksRobins.copyWith(
+        moveWordings: {'chain': template},
+      );
+      Figure chain(String hand) =>
+          testFigure(move: 'chain', params: {'who': 'role2s', 'hand': hand});
+
+      test('plain {hand} hides the role-implied hand', () {
+        expect(
+          renderer.render(chain('right'), wording('{who} {hand} {move}')),
+          'robins chain',
+        );
+      });
+
+      test('{!hand} shows the role-implied hand', () {
+        expect(
+          renderer.render(chain('right'), wording('{who} {!hand} {move}')),
+          'robins right-hand chain',
+        );
+        expect(
+          renderer.render(chain('right'), wording('{who} [{!hand} ]{move}')),
+          'robins right-hand chain',
+        );
+      });
+
+      test('{!hand} still shows a contradicting hand and skips unspecified', () {
+        expect(
+          renderer.render(chain('left'), wording('{who} {!hand} {move}')),
+          'robins left-hand chain',
+        );
+        expect(
+          renderer.render(
+            testFigure(move: 'chain', params: {'who': 'role2s'}),
+            wording('{who} {!hand} {move}'),
+          ),
+          'robins chain',
+        );
+      });
+
+      test('canonical text is unchanged', () {
+        expect(
+          renderer.renderCanonical(chain('right')),
+          renderer.renderCanonical(
+            testFigure(move: 'chain', params: {'who': 'role2s'}),
+          ),
+        );
+      });
+
+      test('validator and slot analysis accept the bang form', () {
+        expect(
+          FigureRenderer.isValidMoveWordingTemplate('{who} {!hand} {move}'),
+          isTrue,
+        );
+        for (final bad in ['{!}', '{!!hand}', '{! hand}']) {
+          expect(FigureRenderer.isValidMoveWordingTemplate(bad), isFalse);
+        }
+        expect(
+          renderer.moveWordingMissingSlots('chain', '{who} {!hand} {move}'),
+          isNot(contains('hand')),
+        );
+      });
+    });
+
     test('persisted branch registry matches renderer contracts', () {
       for (final entry in kMoveWordingBranchKeys.entries) {
         expect(

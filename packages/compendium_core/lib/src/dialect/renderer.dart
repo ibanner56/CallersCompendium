@@ -11,6 +11,18 @@ import 'substitution.dart';
 const Set<String> roleTokens = {'role1', 'role2', 'role1s', 'role2s'};
 
 final RegExp _placeholder = RegExp(r'\{(\w+)\}');
+
+/// Placeholder syntax of a USER-authored wording template. A leading `!`
+/// (`{!hand}`) forces the slot to display even when it would otherwise be
+/// hidden; the captured key keeps the `!` so it is its own slot key.
+final RegExp _wordingPlaceholder = RegExp(r'\{(!?\w+)\}');
+
+String _slotBase(String key) => key.startsWith('!') ? key.substring(1) : key;
+
+Set<String> _wordingSlotNames(String wording) => _wordingPlaceholder
+    .allMatches(wording)
+    .map((match) => _slotBase(match[1]!))
+    .toSet();
 final RegExp _camelBoundary = RegExp(r'(?<=[a-z])(?=[A-Z])');
 
 /// Shape of the single-dancer identity tokens ([ParamVocab.singleDancers]) —
@@ -51,8 +63,15 @@ String _assembleDisplayTemplate(_DisplayTemplate displayTemplate) {
   final template = displayTemplate.template;
   var index = 0;
 
+  // A `!name` key falls back to the plain slot when nothing was forced (e.g.
+  // slots owned by a display base renderer).
+  String valueOf(String key) => slots[key] ?? slots[_slotBase(key)] ?? '';
+
   String substitute(String source) =>
-      source.replaceAllMapped(_placeholder, (match) => slots[match[1]!] ?? '');
+      source.replaceAllMapped(
+        _wordingPlaceholder,
+        (match) => valueOf(match[1]!),
+      );
 
   _AssembledTemplate parse({required bool stopAtClose}) {
     final output = StringBuffer();
@@ -67,7 +86,7 @@ String _assembleDisplayTemplate(_DisplayTemplate displayTemplate) {
         names.addAll(group.slots);
         final allEmpty =
             group.slots.isNotEmpty &&
-            group.slots.every((name) => (slots[name] ?? '').isEmpty);
+            group.slots.every((name) => valueOf(name).isEmpty);
         if (!allEmpty) output.write(group.text);
         continue;
       }
@@ -79,7 +98,9 @@ String _assembleDisplayTemplate(_DisplayTemplate displayTemplate) {
           : next.reduce((a, b) => a < b ? a : b);
       final literal = template.substring(index, end);
       output.write(substitute(literal));
-      names.addAll(_placeholder.allMatches(literal).map((match) => match[1]!));
+      names.addAll(
+        _wordingPlaceholder.allMatches(literal).map((match) => match[1]!),
+      );
       index = end;
     }
     return (slots: names, text: output.toString());
@@ -468,6 +489,32 @@ class FigureRenderer {
           forCanonical: false,
           includeSilencedDefaults: true,
         );
+        // `{!name}` slots: recompute with every hiding rule lifted and expose
+        // the result under the `!name` key. Slots owned by a display base
+        // renderer have no forced form and read as their plain slot.
+        final forcedNames = _wordingPlaceholder
+            .allMatches(wording!)
+            .map((match) => match[1]!)
+            .where((key) => key.startsWith('!'))
+            .map(_slotBase)
+            .toSet();
+        if (forcedNames.isNotEmpty) {
+          final forcedSlots = _renderTemplateSlots(
+            figure,
+            def,
+            params,
+            dialect,
+            verbose,
+            decimals,
+            forCanonical: false,
+            includeSilencedDefaults: true,
+            forceAll: true,
+          );
+          for (final name in forcedNames) {
+            final value = forcedSlots[name];
+            if (value != null) wordingSlots['!$name'] = value;
+          }
+        }
         final displayTemplate = displayBase != null
             ? _displayTemplate({
                 ...wordingSlots,
@@ -865,6 +912,7 @@ class FigureRenderer {
     bool decimals, {
     required bool forCanonical,
     bool includeSilencedDefaults = false,
+    bool forceAll = false,
   }) {
     final alias = taxonomy.aliases[figure.move];
     final displayName = alias?.displayName ?? def.displayName;
@@ -900,7 +948,7 @@ class FigureRenderer {
         );
         continue;
       }
-      if (pinned.containsKey(name)) {
+      if (!forceAll && pinned.containsKey(name)) {
         slots[name] = '';
         continue;
       }
@@ -922,7 +970,11 @@ class FigureRenderer {
         }
         final who = params['who'];
         final impliedHand = who is String ? chainHandForWho(who) : null;
-        slots[name] = rawHand == impliedHand ? '' : '$rawHand-hand';
+        // `forceAll` (a `{!hand}` slot in a custom wording) shows the stored
+        // hand even when the role already implies it.
+        slots[name] = !forceAll && rawHand == impliedHand
+            ? ''
+            : '$rawHand-hand';
         continue;
       }
       // Display-only omission of a param whose value equals its silenced
@@ -975,7 +1027,7 @@ class FigureRenderer {
         final close = trimmed.indexOf('}', i + 1);
         if (close < 0) return false;
         final name = trimmed.substring(i + 1, close);
-        if (!RegExp(r'^\w+$').hasMatch(name)) return false;
+        if (!RegExp(r'^!?\w+$').hasMatch(name)) return false;
         i = close;
       } else if (char == '}') {
         return false;
@@ -1034,10 +1086,7 @@ class FigureRenderer {
     if (!_isUsableMoveWording(wording)) return false;
     final required = _moveWordingBranchSlots[moveId]?[branch];
     if (required == null) return false;
-    final used = _placeholder
-        .allMatches(wording!)
-        .map((match) => match[1]!)
-        .toSet();
+    final used = _wordingSlotNames(wording!);
     return required.every(used.contains);
   }
 
@@ -1097,10 +1146,7 @@ class FigureRenderer {
     String branch,
     String wording,
   ) {
-    final used = _placeholder
-        .allMatches(wording)
-        .map((match) => match[1]!)
-        .toSet();
+    final used = _wordingSlotNames(wording);
     return moveWordingBranchSlots(moveId, branch).difference(used);
   }
 
@@ -1142,10 +1188,7 @@ class FigureRenderer {
 
   /// Returns the available slots omitted by a custom wording template.
   Set<String> moveWordingMissingSlots(String moveId, String wording) {
-    final used = _placeholder
-        .allMatches(wording)
-        .map((match) => match[1]!)
-        .toSet();
+    final used = _wordingSlotNames(wording);
     final missing = moveWordingSlots(moveId).difference(used);
     if (moveId == 'hey' &&
         (used.contains('shoulder') || used.contains('shoulder_clause'))) {
