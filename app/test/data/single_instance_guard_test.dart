@@ -406,6 +406,66 @@ void main() {
       expect(raised, 1);
     });
 
+    // Any local process (any user's) can connect to the loopback port, so a
+    // peer must not be able to hold connections open indefinitely or open
+    // without limit: each held connection is a file descriptor in the app.
+    test('a peer that trickles bytes is cut off at the deadline, not kept '
+        'alive by each byte', () async {
+      server = LoopbackRaiseChannel(timeout: const Duration(milliseconds: 300));
+      var raised = 0;
+      final port = await server.listen(dir, () => raised++);
+      final socket = await Socket.connect(InternetAddress.loopbackIPv4, port);
+      final closed = Completer<void>();
+      socket.listen(
+        (_) {},
+        onDone: closed.complete,
+        onError: (_) {
+          if (!closed.isCompleted) closed.complete();
+        },
+      );
+      final sw = Stopwatch()..start();
+      final trickle = Timer.periodic(const Duration(milliseconds: 100), (_) {
+        try {
+          socket.add([0x20]);
+        } catch (_) {}
+      });
+      await closed.future.timeout(
+        const Duration(seconds: 3),
+        onTimeout: () => fail('connection held open by a trickling peer'),
+      );
+      trickle.cancel();
+      socket.destroy();
+      expect(sw.elapsed, lessThan(const Duration(milliseconds: 900)));
+      expect(raised, 0);
+    });
+
+    test('connections beyond the cap are dropped at once', () async {
+      server = LoopbackRaiseChannel(timeout: const Duration(seconds: 5));
+      final port = await server.listen(dir, () {});
+      final held = [
+        for (var i = 0; i < kMaxRaiseConnections; i++)
+          await Socket.connect(InternetAddress.loopbackIPv4, port),
+      ];
+      // Let the listener accept the held ones before the extra arrives.
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      final extra = await Socket.connect(InternetAddress.loopbackIPv4, port);
+      final dropped = Completer<void>();
+      extra.listen(
+        (_) {},
+        onDone: dropped.complete,
+        onError: (_) {
+          if (!dropped.isCompleted) dropped.complete();
+        },
+      );
+      await dropped.future.timeout(
+        const Duration(seconds: 2),
+        onTimeout: () => fail('connection over the cap was kept open'),
+      );
+      for (final s in [...held, extra]) {
+        s.destroy();
+      }
+    });
+
     test('a stale port file does not block the new instance', () async {
       // Grab a port that nothing is listening on.
       final probe = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
