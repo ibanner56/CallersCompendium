@@ -56,18 +56,20 @@ void main() {
   });
 
   for (final platform in [TargetPlatform.linux, TargetPlatform.windows]) {
-    test('the pdfium licence is on the licence page on ${platform.name}',
-        () async {
-      final matching = _pdfium(await _entriesOn(platform));
-      expect(matching, hasLength(1));
-      final text = _collapse(
-        matching.single.paragraphs.map((p) => p.text).join(' '),
-      );
-      // The registered text is the whole asset, bundled notices included.
-      expect(text, equals(_collapse(File(_asset).readAsStringSync())));
-      expect(text, contains('Copyright 2014 PDFium Authors'));
-      expect(text, contains('The FreeType Project LICENSE'));
-    });
+    test(
+      'the pdfium licence is on the licence page on ${platform.name}',
+      () async {
+        final matching = _pdfium(await _entriesOn(platform));
+        expect(matching, hasLength(1));
+        final text = _collapse(
+          matching.single.paragraphs.map((p) => p.text).join(' '),
+        );
+        // The registered text is the whole asset, bundled notices included.
+        expect(text, equals(_collapse(File(_asset).readAsStringSync())));
+        expect(text, contains('Copyright 2014 PDFium Authors'));
+        expect(text, contains('The FreeType Project LICENSE'));
+      },
+    );
   }
 
   for (final platform in [
