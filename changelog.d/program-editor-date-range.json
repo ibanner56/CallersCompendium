@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "The program editor's date picker now goes back 10 years instead of 5, so older dances can be dated."
+      "You can now set a program's event date up to 10 years in the past in the program editor, instead of 5, so you can record older events."
     ]
   }
 }
