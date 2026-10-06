@@ -137,8 +137,21 @@ def test_icon_is_installed_into_the_bundle_and_set_on_the_window() -> None:
     )
 
     src = strip_cxx_comments(RUNNER.read_text(encoding="utf-8"))
-    assert re.search(r"\bgtk_window_set_icon(_from_file)?\s*\(\s*window\b", src), (
+    assert re.search(r"\bgtk_window_set_icon(_list|_from_file)?\s*\(\s*window\b", src), (
         "my_application.cc never sets the window icon"
+    )
+    # The PNG is 512 px. Handed to GTK 3 at that size, the window gets only the
+    # legacy WM_HINTS pixmap and no _NET_WM_ICON, which is what task switchers
+    # and docks read: observed under Xvfb + openbox with GTK 3.24.41, where the
+    # same image at 256, 128 or 64 px did get _NET_WM_ICON. So the runner must
+    # scale it rather than pass the file straight through.
+    assert not re.search(r"\bgtk_window_set_icon_from_file\s*\(", src), (
+        "my_application.cc passes the 512 px PNG to GTK unscaled; GTK 3 then sets no "
+        "_NET_WM_ICON. Load it and set scaled copies (256 px and below)"
+    )
+    sizes = [int(n) for n in re.findall(r"\b(\d+)\b", " ".join(re.findall(r"kIconSizes\[\][^;]*;", src)))]
+    assert sizes and max(sizes) <= 256, (
+        f"the runner's kIconSizes must list the scaled sizes, none above 256; got {sizes}"
     )
     assert f'"{installed_as}"' in src and '"data"' in src, (
         f"my_application.cc must load data/{installed_as}, the file CMake installs"
