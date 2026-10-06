@@ -133,6 +133,25 @@ def test_passed() -> None:
     check("is_export_file false", not is_export_file(mask_source("x = other;")))
 
 
+def test_shared_guard_is_in_scope() -> None:
+    # guards-4: the shared clause #1395 fixed lives in export_guard.dart, which
+    # names none of the export tokens itself; narrowing it must still fail.
+    print("shared export guard")
+    path = REPO_ROOT / "app/lib/src/widgets/export_guard.dart"
+    real = path.read_text(encoding="utf-8")
+    check("export_guard.dart is an export file", is_export_file(mask_source(real)))
+    check("real export_guard.dart is clean", lines(real) == [], str(lines(real)))
+    mutated = real.replace("} on Object catch (e, st) {", "} on Exception catch (e, st) {")
+    check("mutation applied", mutated != real)
+    check(
+        "narrowing guardExport to `on Exception` is flagged",
+        len(lines(mutated)) == 1,
+        str(lines(mutated)),
+    )
+    caller = "await guardExport(m, 'x', () async {});\n} on Exception catch (e) {\n"
+    check("a mere caller of guardExport is not swept in", lines(caller) == [], str(lines(caller)))
+
+
 def test_real_tree_is_clean() -> None:
     print("real tree")
     bad = []
@@ -146,6 +165,7 @@ def test_real_tree_is_clean() -> None:
 def main() -> int:
     test_flagged()
     test_passed()
+    test_shared_guard_is_in_scope()
     test_real_tree_is_clean()
     print()
     if FAILURES:

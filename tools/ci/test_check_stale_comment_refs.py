@@ -159,8 +159,10 @@ def test_ceiling_fails_when_exceeded() -> None:
     assert run_main(root, "--ceiling", "2")[0] == 0
     code, out = run_main(root, "--ceiling", "1")
     assert code == 1 and "exceeds the ceiling of 1" in out
+    # guards-7: slack under the ceiling fails too, so a cleanup that forgets
+    # to lower the ceiling cannot leave room for a new stale citation.
     code, out = run_main(root, "--ceiling", "3")
-    assert code == 0 and "lower" in out  # a ceiling above the count nags
+    assert code == 1 and "lower" in out, (code, out)
 
 
 def test_ceiling_file_is_read_and_valid() -> None:
@@ -180,9 +182,9 @@ def test_empty_tree_is_bad_input() -> None:
     assert run_main(root, "--ceiling", "0")[0] == 2
 
 
-def test_real_tree_is_at_or_under_the_ceiling() -> None:
+def test_real_tree_count_equals_the_ceiling() -> None:
     findings, _ = checker.scan(checker.REPO_ROOT)
-    assert len(findings) <= checker.read_ceiling(), len(findings)
+    assert len(findings) == checker.read_ceiling(), len(findings)
 
 
 def main() -> int:
