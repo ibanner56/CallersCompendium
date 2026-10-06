@@ -143,7 +143,11 @@ while the same dialect is active; text typed in a different dialect may need a
 manual edit. The same rewriting applies to the everyday words "man", "men",
 "lady" and "ladies" inside custom figure text (for example, "the man and lady
 swing"), which are saved as role terms and shown in your dialect's words.
-The move name "mad robin" is the exception: it is kept exactly as you typed it.
+Words that are also move words are kept exactly as you typed them, here and
+in figure notes: the move name "mad robin", and, if your dialect uses Leads and
+Follows, "lead" and "follow" used as verbs ("Ones lead down the hall", "follow
+your partner up the hall"). "Leads chain" and "the lead on the left" still use
+the role. Text saved by an earlier version is not repaired automatically.
 
 ### Reorder, cut, and duplicate
 

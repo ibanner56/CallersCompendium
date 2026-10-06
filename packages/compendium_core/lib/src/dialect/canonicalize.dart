@@ -2,6 +2,7 @@ import '../model/figure.dart' show customMoveId;
 import '../taxonomy/taxonomy.dart';
 import 'dialect.dart';
 import 'renderer.dart';
+import 'role_canonicalizer.dart';
 import 'substitution.dart';
 
 /// The result of canonicalizing free text: the rewritten [text] plus the
@@ -14,52 +15,59 @@ class CanonicalizationResult {
   final List<({String text, int start})> discouraged;
 }
 
-/// Legacy/synonym terms that always map back to canonical role tokens,
-/// independent of the active dialect, so older transcriptions and users
-/// still resolve. Keys are lowercased.
-const Map<String, String> _legacyRoleSynonyms = {
-  'gent': 'role1',
-  'gents': 'role1s',
-  'gentlespoon': 'role1',
-  'gentlespoons': 'role1s',
-  'lark': 'role1',
-  'larks': 'role1s',
-  'man': 'role1',
-  'men': 'role1s',
-  'lady': 'role2',
-  'ladies': 'role2s',
-  'ladle': 'role2',
-  'ladles': 'role2s',
-  'robin': 'role2',
-  'robins': 'role2s',
-  'woman': 'role2',
-  'women': 'role2s',
-};
-
-/// The substitutors [canonicalize] builds for [Dialect.canonical] with no extra
+/// The role rewriter [canonicalize] uses for [Dialect.canonical] with no extra
 /// synonyms — the only configuration the import path uses.
 ///
-/// Building a [Substitutor] sorts every key and compiles a Unicode-lookbehind
-/// pattern, which is a measurable share of a large import when repeated for
-/// every figure line. Both inputs are fixed for the process:
-/// [_legacyRoleSynonyms] is const and [Dialect.canonical] is an immutable
-/// singleton, so the result is a pure function of the text. (Per isolate: a
-/// static.) Any other dialect, or any [extraRoleSynonyms], is built per call as
-/// before. (Display rendering is
-/// separate: `FigureRenderer.renderFreeText*` caches its substitutors per
-/// [Dialect] value, in `renderer.dart`.)
-({Substitutor roles, Substitutor? discouraged})? _canonicalSubstitutors;
+/// Building a [RoleCanonicalizer] sorts every key and compiles
+/// Unicode-lookbehind patterns, which is a measurable share of a large import
+/// when repeated for every figure line. Both inputs are fixed for the process
+/// ([Dialect.canonical] is an immutable singleton), so the result is a pure
+/// function of the text. (Per isolate: a static.) Other dialects without extra
+/// synonyms are memoised by value in [_dialectRoles]; any [extraRoleSynonyms]
+/// (search only) is built per call. (Display rendering is separate:
+/// `FigureRenderer.renderFreeText*` caches its substitutors per [Dialect]
+/// value, in `renderer.dart`.)
+final RoleCanonicalizer _canonicalRoles = RoleCanonicalizer(Dialect.canonical);
 
-bool _usesCanonicalSubstitutors(
+/// The discouraged-term matcher for [Dialect.canonical], built once.
+final Substitutor? _canonicalDiscouraged = _discouragedFor(Dialect.canonical);
+
+/// Per-[Dialect] memo of role rewriters, cleared when it passes
+/// [_maxDialectRoles] so editing a custom dialect cannot grow it without bound.
+final Map<Dialect, RoleCanonicalizer> _dialectRoles = {};
+const int _maxDialectRoles = 16;
+
+RoleCanonicalizer _rolesFor(
   Dialect dialect,
   Map<String, String> extraRoleSynonyms,
-) => extraRoleSynonyms.isEmpty && identical(dialect, Dialect.canonical);
+) {
+  if (extraRoleSynonyms.isNotEmpty) {
+    return RoleCanonicalizer(dialect, extraRoleSynonyms: extraRoleSynonyms);
+  }
+  if (identical(dialect, Dialect.canonical)) return _canonicalRoles;
+  final cached = _dialectRoles[dialect];
+  if (cached != null) return cached;
+  if (_dialectRoles.length >= _maxDialectRoles) _dialectRoles.clear();
+  return _dialectRoles[dialect] = RoleCanonicalizer(dialect);
+}
+
+Substitutor? _discouragedFor(Dialect dialect) =>
+    dialect.discouragedTerms.isEmpty
+    ? null
+    : Substitutor({
+        for (final t in dialect.discouragedTerms) t: t,
+      }, caseInsensitive: true);
 
 /// The single canonicalization chokepoint (dialect design §"Canonicalization
 /// on input"). Inverse-maps the user's active dialect role terms — plus known
 /// legacy synonyms — back to canonical role tokens before persistence, so
 /// storage and search stay dialect-agnostic. Conservative: only exact,
 /// word-boundary term matches are rewritten; unknown prose is left as typed.
+///
+/// A role term that is also a move word is kept as typed: "robin" in the move
+/// name "mad robin", and — when the active dialect's terms are "lead" and
+/// "follow" — those words used as verbs ("Ones lead down the hall"). The rules
+/// are on [RoleCanonicalizer].
 ///
 /// [extraRoleSynonyms] is an optional, always-on reverse map (display term →
 /// canonical role token) used only by the *search* path to resolve role terms
@@ -72,60 +80,22 @@ CanonicalizationResult canonicalize(
   Dialect dialect, {
   Map<String, String> extraRoleSynonyms = const {},
 }) {
-  final cacheable = _usesCanonicalSubstitutors(dialect, extraRoleSynonyms);
-  final cached = cacheable ? _canonicalSubstitutors : null;
-  if (cached != null) {
-    return CanonicalizationResult(
-      cached.roles.apply(text),
-      cached.discouraged?.matches(text) ?? const <({String text, int start})>[],
-    );
-  }
-  final reverse = <String, String>{};
-  // Union enrichment first (lowest precedence); then legacy synonyms; then the
-  // active dialect — so legacy and the active dialect always win where they
-  // overlap, and the union only fills terms they leave unclaimed.
-  if (extraRoleSynonyms.isNotEmpty) {
-    reverse.addAll(extraRoleSynonyms);
-  }
-  reverse.addAll(_legacyRoleSynonyms);
-  for (final entry in dialect.roles.entries) {
-    reverse[entry.value.singular.toLowerCase()] = entry.key;
-    reverse[entry.value.plural.toLowerCase()] = '${entry.key}s';
-  }
-  final roles = Substitutor(reverse, caseInsensitive: true);
-  final discouragedSubstitutor = dialect.discouragedTerms.isEmpty
-      ? null
-      : Substitutor({
-          for (final t in dialect.discouragedTerms) t: t,
-        }, caseInsensitive: true);
-  if (cacheable) {
-    _canonicalSubstitutors = (
-      roles: roles,
-      discouraged: discouragedSubstitutor,
-    );
-  }
+  final discouraged = identical(dialect, Dialect.canonical)
+      ? _canonicalDiscouraged
+      : _discouragedFor(dialect);
   return CanonicalizationResult(
-    roles.apply(text),
-    discouragedSubstitutor?.matches(text) ??
-        const <({String text, int start})>[],
+    _rolesFor(dialect, extraRoleSynonyms).canonicalize(text),
+    discouraged?.matches(text) ?? const <({String text, int start})>[],
   );
 }
 
-/// Convenience: canonical text only (drops the discouraged-term spans).
-///
-/// Skips the discouraged-term scan entirely on the cached canonical path, which
-/// [canonicalize] runs and this discards.
+/// Convenience: canonical text only (drops the discouraged-term spans), and
+/// skips the discouraged-term scan.
 String canonicalizeText(
   String text,
   Dialect dialect, {
   Map<String, String> extraRoleSynonyms = const {},
-}) {
-  if (_usesCanonicalSubstitutors(dialect, extraRoleSynonyms)) {
-    final cached = _canonicalSubstitutors;
-    if (cached != null) return cached.roles.apply(text);
-  }
-  return canonicalize(text, dialect, extraRoleSynonyms: extraRoleSynonyms).text;
-}
+}) => _rolesFor(dialect, extraRoleSynonyms).canonicalize(text);
 
 /// Rewrites taxonomy move display names and legacy keywords to their canonical
 /// display names for full-text search. Unlike role canonicalization, this is
@@ -152,27 +122,30 @@ String canonicalizeMoveSearchText(String text, Taxonomy taxonomy) {
 /// Whether [token] is one of the canonical role tokens.
 bool isRoleToken(String token) => roleTokens.contains(token);
 
+/// Canonical role tokens typed directly (e.g. data loaded from storage).
+final Substitutor _roleTokenMatcher = Substitutor({
+  for (final t in roleTokens) t: t,
+}, caseInsensitive: true);
+
 /// Returns spans in [text] that are recognised as role terms, for the editor
 /// "lingo line" underline. Covers:
 ///  - the active [dialect]'s configured role display-terms,
 ///  - built-in legacy/synonym role terms (gent, lark, robin, lady, etc.),
 ///  - canonical role tokens typed directly (e.g. `role1`, `role2s`).
 ///
+/// A role term that [canonicalize] keeps as a move word ("robin" in "mad
+/// robin", a verb "lead" under Leads/Follows) is not a role span, so the
+/// underline agrees with what a save stores.
+///
 /// All returned spans hold positions in the original [text].
 List<({String text, int start})> roleSpans(String text, Dialect dialect) {
   if (text.isEmpty) return const [];
-  // Build the same reverse map as [canonicalize]: legacy synonyms first, then
-  // the dialect's own role terms (override legacy where they overlap).
-  final map = <String, String>{..._legacyRoleSynonyms};
-  for (final entry in dialect.roles.entries) {
-    map[entry.value.singular.toLowerCase()] = entry.key;
-    map[entry.value.plural.toLowerCase()] = '${entry.key}s';
-  }
-  // Include canonical tokens typed directly (e.g. data loaded from storage).
-  for (final token in roleTokens) {
-    map.putIfAbsent(token, () => token);
-  }
-  return Substitutor(map, caseInsensitive: true).matches(text);
+  final spans = <({String text, int start})>[
+    for (final d in _rolesFor(dialect, const {}).analyze(text))
+      if (d.kind == RoleSpanKind.role) (text: d.text, start: d.start),
+    ..._roleTokenMatcher.matches(text),
+  ]..sort((a, b) => a.start.compareTo(b.start));
+  return spans;
 }
 
 /// Returns spans in [text] that are recognised as taxonomy move keywords, for

@@ -6,6 +6,7 @@
 // ("Ones lead down the hall"). Those must be kept as typed, while the same
 // words used as roles are still canonicalised.
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/src/taxonomy/dance_vocabulary.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -83,7 +84,6 @@ void main() {
         if (identical(d, lf) || identical(d, lr))
           s ?? canonicalizeText(typed, d),
       'twos role2 swing',
-      'ones role1 down the hall',
       'role2s mad robin once',
       'role1s lead out',
     };
@@ -96,6 +96,20 @@ void main() {
         });
       }
     }
+  });
+
+  // Not repaired (maintainer decision D4, 2026-10-06): a note stored by the
+  // old canonicaliser as "Ones role1 down the hall" reads "Ones lead down the
+  // hall" under Leads/Follows, so the next save there keeps the verb. Under
+  // Larks/Robins it reads "Ones lark down the hall" and stays as stored.
+  test('legacy "Ones role1 down the hall" heals on a Leads/Follows save', () {
+    const legacy = 'Ones role1 down the hall';
+    final renderer = FigureRenderer(contraTaxonomy);
+    expect(
+      canonicalizeText(renderer.renderFreeText(legacy, lf), lf),
+      'Ones lead down the hall',
+    );
+    expect(canonicalizeText(renderer.renderFreeText(legacy, lr), lr), legacy);
   });
 
   group('the lingo line underlines roles only', () {
@@ -123,6 +137,53 @@ void main() {
         'mad robin, role1s in front',
       );
       expect(scrubFigureText('MAD ROBINS'), 'mad robins');
+    });
+  });
+
+  group('vocabulary ratchets', () {
+    test(
+      'every taxonomy move name that contains a role word is classified',
+      () {
+        final roleWords = {
+          ...legacyRoleSynonyms.keys,
+          for (final d in Dialect.presets)
+            for (final t in d.roles.values) ...[
+              t.singular.toLowerCase(),
+              t.plural.toLowerCase(),
+            ],
+        };
+        final roleBearing = {
+          for (final words in MoveWordLexicon.contra.phrases)
+            if (words.any(roleWords.contains)) words.join(' '),
+        };
+        expect(
+          roleBearing.difference(subjectBearingMovePhrases),
+          {'mad robin'},
+          reason:
+              'A taxonomy name or keyword contains a role word. If the word '
+              'names the move (like "mad robin"), add it here; if it names the '
+              'dancer (like a "ladies chain" keyword), add it to '
+              'subjectBearingMovePhrases so it is not shielded.',
+        );
+      },
+    );
+
+    test('the verb the hall grammar consumes is a role homograph', () {
+      expect(roleHomographVerbs.keys, contains(leadVerb));
+    });
+
+    test('analyze reports which rule decided each occurrence', () {
+      final decisions = RoleCanonicalizer(
+        lf,
+      ).analyze('Ones lead down, then mad robin; the lead swings');
+      expect(
+        [for (final d in decisions) (d.text, d.kind, d.rule, d.canonical)],
+        [
+          ('lead', RoleSpanKind.verb, '2d', null),
+          ('robin', RoleSpanKind.moveName, '1', null),
+          ('lead', RoleSpanKind.role, '2b', 'role1'),
+        ],
+      );
     });
   });
 }
