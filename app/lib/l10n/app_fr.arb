@@ -4564,6 +4564,32 @@
   "@programsHideAlternatesSubtitle": {
     "x-sourceSha256": "3a81a878fda6e77deb31302774e7d9b34c87a4f8f425caf5ceac7abf6eedaec3"
   },
+  "programsDialectFieldLabel": "Dialecte pour Perform",
+  "@programsDialectFieldLabel": {
+    "description": "Label of the program editor field that picks the dialect Perform uses for this program.",
+    "x-sourceSha256": "b1b99c1bf4dfe979032dc75d4dda29ceca9ed615be49cb0e9d2cbd36ae1df4b4"
+  },
+  "programsDialectUseApp": "Utiliser le dialecte de l'app",
+  "@programsDialectUseApp": {
+    "description": "Dropdown option that clears the program's dialect so Perform follows the app dialect.",
+    "x-sourceSha256": "3d4f7fe762f516964bc4604434b32ef0f03469e521b4fbc9393d22fff730f1f1"
+  },
+  "programsDialectUnavailable": "{name} (indisponible)",
+  "@programsDialectUnavailable": {
+    "description": "Dropdown entry for a stored dialect name that no longer matches any dialect in the library (renamed, deleted or not synced here yet). {name} is the stored dialect name.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Leads/Follows"
+      }
+    },
+    "x-sourceSha256": "da395d8f45efc28a2cf1da9c04d45e23d72965116f73d1eb8637e291a1a9bbe3"
+  },
+  "programsDialectHelper": "Utilisé uniquement dans la vue Perform de ce programme. L'éditeur, le résumé et les exports gardent le dialecte de l'app.",
+  "@programsDialectHelper": {
+    "description": "Helper text under the program dialect field: where the dialect applies.",
+    "x-sourceSha256": "053dc45b3b342b8f0263f73b3afd2df5a98b4ec74a5d6bb0c24eabf088484d14"
+  },
   "programsWarningCount": "{count, plural, =1{1 avertissement} other{{count} avertissements}}",
   "@programsWarningCount": {
     "x-sourceSha256": "7f05e54a2893e67cbc9b430e4241be22129ef91244315d13ad8a33a56cb1bb5a"

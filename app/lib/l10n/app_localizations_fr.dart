@@ -4390,6 +4390,21 @@ class AppLocalizationsFr extends AppLocalizations {
       'Omet les créneaux ALT du résumé, du PDF et de la liste de sets exportée. Le constructeur affiche toujours tous les créneaux.';
 
   @override
+  String get programsDialectFieldLabel => 'Dialecte pour Perform';
+
+  @override
+  String get programsDialectUseApp => 'Utiliser le dialecte de l\'app';
+
+  @override
+  String programsDialectUnavailable(String name) {
+    return '$name (indisponible)';
+  }
+
+  @override
+  String get programsDialectHelper =>
+      'Utilisé uniquement dans la vue Perform de ce programme. L\'éditeur, le résumé et les exports gardent le dialecte de l\'app.';
+
+  @override
   String programsWarningCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

@@ -4384,6 +4384,21 @@ class AppLocalizationsDe extends AppLocalizations {
       'Lässt ALT-Slots aus der Zusammenfassung, dem PDF und der exportierten Setliste aus. Der Builder zeigt weiterhin jeden Slot.';
 
   @override
+  String get programsDialectFieldLabel => 'Dialekt für Perform';
+
+  @override
+  String get programsDialectUseApp => 'App-Dialekt verwenden';
+
+  @override
+  String programsDialectUnavailable(String name) {
+    return '$name (nicht verfügbar)';
+  }
+
+  @override
+  String get programsDialectHelper =>
+      'Nur in der Perform-Ansicht dieses Programms. Editor, Zusammenfassung und Exporte verwenden weiterhin den App-Dialekt.';
+
+  @override
   String programsWarningCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

@@ -4364,6 +4364,21 @@ class AppLocalizationsNl extends AppLocalizations {
       'Laat ALT-slots weg uit de samenvatting, PDF en geëxporteerde setlijst. De opbouwer toont nog steeds elk slot.';
 
   @override
+  String get programsDialectFieldLabel => 'Dialect voor Uitvoeren';
+
+  @override
+  String get programsDialectUseApp => 'App-dialect gebruiken';
+
+  @override
+  String programsDialectUnavailable(String name) {
+    return '$name (niet beschikbaar)';
+  }
+
+  @override
+  String get programsDialectHelper =>
+      'Alleen in de Uitvoeren-weergave van dit programma. Editor, samenvatting en exports blijven het app-dialect gebruiken.';
+
+  @override
   String programsWarningCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

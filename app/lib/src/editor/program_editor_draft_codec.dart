@@ -47,6 +47,7 @@ class ProgramEditorDraft {
     required this.notes,
     required this.status,
     required this.hideAlternates,
+    this.dialectName,
     required this.slots,
   });
 
@@ -79,6 +80,11 @@ class ProgramEditorDraft {
 
   /// Whether alternates are hidden from output.
   final bool hideAlternates;
+
+  /// The stored dialect name Perform uses for the program; `null` follows the
+  /// application dialect. Absent from drafts written before issue #1554, which
+  /// decode as `null` (no draft version bump needed).
+  final String? dialectName;
 
   /// The in-progress slot list (position-ordered).
   final List<ProgramSlot> slots;
@@ -124,6 +130,7 @@ String encodeProgramDraft(ProgramEditorDraft draft) {
     'notes': draft.notes,
     'status': draft.status.name,
     'hideAlternates': draft.hideAlternates,
+    if (draft.dialectName != null) 'dialectName': draft.dialectName,
     'slots': [for (final s in draft.slots) _slotToJson(s)],
   });
 }
@@ -193,6 +200,7 @@ ProgramEditorDraft decodeProgramDraft(Object? value) {
     notes: _str(json, 'notes'),
     status: _parseEnum(ProgramStatus.values, _str(json, 'status')),
     hideAlternates: _bool(json, 'hideAlternates'),
+    dialectName: _strOrNull(json, 'dialectName'),
     slots: _parseSlots(json['slots']),
   );
 }

@@ -9,6 +9,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/perform_text_scale.dart';
+import '../data/program_dialect.dart';
 import '../data/repositories_scope.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/collection_data.dart';
@@ -216,6 +217,12 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// user's active dialect. Persisted across sessions (issue #449) and restored
   /// on entry.
   bool _canonicalView = false;
+
+  /// A dialect picked from the quick-switch **during this Perform session**,
+  /// while the program's own dialect is in force. Session-local on purpose: it
+  /// is never written to the program or to the application dialect, and it is
+  /// gone when this screen is (issue #1554).
+  String? _sessionDialectName;
 
   /// Whether the on-demand walkthrough overlay is currently shown for the active
   /// slot (issue #370). Session-scoped, default OFF, and NOT persisted across
@@ -651,7 +658,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         ? rawText
         : widget.renderer.renderFreeTextWithCanonicalDiscouragedTerms(
             rawText,
-            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            _effectiveDialect(context, strict: false),
           );
     if (text != null && text.isNotEmpty) return text;
     return l10n.performUntitledSlot;
@@ -820,7 +827,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         authorNameOverrides: widget.authorNameOverrides,
         dialect: _canonicalView
             ? Dialect.canonical
-            : ActiveDialectScope.of(context),
+            : _effectiveDialect(context),
         enrichment: enrichment,
       ),
     );
@@ -847,9 +854,37 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     );
   }
 
+  /// The program's own dialect, or `null` when it has none or its name no
+  /// longer resolves. A `null` means Perform follows the application dialect
+  /// and the quick-switch keeps its app-wide behaviour. Listens to the library,
+  /// so renaming or deleting the dialect while Perform is open takes effect
+  /// live.
+  Dialect? _programDialect(BuildContext context) {
+    final library = DialectLibraryScope.maybeOf(context);
+    if (library == null) return null;
+    return resolveProgramDialect(_program.dialectName, library);
+  }
+
+  /// The dialect Perform renders with, before the canonical-view toggle: the
+  /// session pick, else the program's dialect, else the application dialect.
+  /// [strict] keeps the existing `ActiveDialectScope.of` behaviour (throws
+  /// without the scope) for the call sites that had it.
+  Dialect _effectiveDialect(BuildContext context, {bool strict = true}) {
+    final programDialect = _programDialect(context);
+    if (programDialect != null) {
+      final library = DialectLibraryScope.maybeOf(context)!;
+      return resolveProgramDialect(_sessionDialectName, library) ??
+          programDialect;
+    }
+    return strict
+        ? ActiveDialectScope.of(context)
+        : ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+  }
+
   Widget _buildContent(BuildContext context, {required bool wide}) {
     final l10n = AppLocalizations.of(context);
-    final activeDialect = ActiveDialectScope.of(context);
+    final programDialect = _programDialect(context);
+    final activeDialect = _effectiveDialect(context);
     final isCanonicalDialect = activeDialect == Dialect.canonical;
     final dialect = _canonicalView ? Dialect.canonical : activeDialect;
     final canDecrease =
@@ -910,7 +945,13 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               // (and the per-gig dialect quick-switch) stay inline.
               actions: buildPerformAppBarActions(
                 wide: wide,
-                leadingPrimary: const DialectQuickSwitch(),
+                leadingPrimary: programDialect == null
+                    ? const DialectQuickSwitch()
+                    : DialectQuickSwitch(
+                        selectedName: activeDialect.name,
+                        onSelected: (name) =>
+                            setState(() => _sessionDialectName = name),
+                      ),
                 secondaryInline: [
                   IconButton(
                     key: const ValueKey('perform-adjust'),

@@ -4299,6 +4299,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'Omits ALT slots from the summary, PDF, and exported set list. The builder still shows every slot.';
 
   @override
+  String get programsDialectFieldLabel => 'Perform dialect';
+
+  @override
+  String get programsDialectUseApp => 'Use app dialect';
+
+  @override
+  String programsDialectUnavailable(String name) {
+    return '$name (unavailable)';
+  }
+
+  @override
+  String get programsDialectHelper =>
+      'Used only in this program\'s Perform view. The editor, summary and exports keep the app dialect.';
+
+  @override
   String programsWarningCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

@@ -4330,6 +4330,21 @@ class AppLocalizationsDa extends AppLocalizations {
       'Udelader ALT-slots fra oversigten, PDF og eksporteret sætliste. Byggeren viser stadig alt.';
 
   @override
+  String get programsDialectFieldLabel => 'Dialekt til Fremfør';
+
+  @override
+  String get programsDialectUseApp => 'Brug appens dialekt';
+
+  @override
+  String programsDialectUnavailable(String name) {
+    return '$name (ikke tilgængelig)';
+  }
+
+  @override
+  String get programsDialectHelper =>
+      'Bruges kun i dette programs Fremfør-visning. Editor, oversigt og eksport bruger stadig appens dialekt.';
+
+  @override
   String programsWarningCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

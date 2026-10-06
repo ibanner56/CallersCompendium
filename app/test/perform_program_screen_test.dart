@@ -2740,4 +2740,167 @@ void main() {
       expect(_textOf(tester, 'perform-walkthrough-actual'), before);
     });
   });
+
+  group('program dialect override (issue #1554)', () {
+    Future<DialectLibraryController> library() async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      final controller = DialectLibraryController(repos.settings);
+      await controller.load();
+      addTearDown(controller.dispose);
+      return controller;
+    }
+
+    Future<void> pumpWithProgramDialect(
+      WidgetTester tester,
+      DialectLibraryController controller, {
+      String? programDialect,
+    }) async {
+      final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'd1'),
+        ]).copyWith(dialectName: programDialect),
+        // The app dialect is Larks/Robins; the program asks for another.
+        activeDialect: Dialect.larksRobins,
+        dialectLibrary: controller,
+      );
+    }
+
+    Future<void> pickInQuickSwitch(WidgetTester tester, String name) async {
+      await tester.tap(find.byKey(const ValueKey('dialect-quick-switch')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey('dialect-quick-switch-$name')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('renders the program dialect, not the app dialect', (
+      tester,
+    ) async {
+      final controller = await library();
+      final before = controller.activeName;
+      await pumpWithProgramDialect(
+        tester,
+        controller,
+        programDialect: 'Leads/Follows',
+      );
+
+      expect(find.text('follows chain'), findsOneWidget);
+      expect(find.text('robins chain'), findsNothing);
+      expect(controller.activeName, before);
+    });
+
+    testWidgets('a program with no dialect follows the app dialect', (
+      tester,
+    ) async {
+      final controller = await library();
+      await pumpWithProgramDialect(tester, controller);
+
+      expect(find.text('robins chain'), findsOneWidget);
+      expect(find.text('follows chain'), findsNothing);
+    });
+
+    testWidgets('a name that resolves to no dialect silently follows the app '
+        'dialect, and the quick-switch stays app-wide', (tester) async {
+      final controller = await library();
+      await pumpWithProgramDialect(
+        tester,
+        controller,
+        programDialect: 'No Such Dialect',
+      );
+
+      expect(find.text('robins chain'), findsOneWidget);
+
+      await pickInQuickSwitch(tester, 'Leads/Follows');
+      expect(
+        controller.activeName,
+        'Leads/Follows',
+        reason: 'with no program dialect in force the switch is app-wide',
+      );
+    });
+
+    testWidgets('the quick-switch under an override is session-local and never '
+        'changes the app dialect', (tester) async {
+      final controller = await library();
+      final before = controller.activeName;
+      await pumpWithProgramDialect(
+        tester,
+        controller,
+        programDialect: 'Leads/Follows',
+      );
+
+      await pickInQuickSwitch(tester, 'Larks/Robins');
+
+      expect(find.text('robins chain'), findsOneWidget);
+      expect(find.text('follows chain'), findsNothing);
+      expect(
+        controller.activeName,
+        before,
+        reason: 'setActive must not run while a program dialect is in force',
+      );
+
+      // The menu now checks the effective (session) dialect.
+      await tester.tap(find.byKey(const ValueKey('dialect-quick-switch')));
+      await tester.pumpAndSettle();
+      final checked = tester.widget<CheckedPopupMenuItem<String>>(
+        find.byKey(const ValueKey('dialect-quick-switch-Larks/Robins')),
+      );
+      expect(checked.checked, isTrue);
+    });
+
+    testWidgets('re-entering Perform starts from the program dialect again', (
+      tester,
+    ) async {
+      final controller = await library();
+      await pumpWithProgramDialect(
+        tester,
+        controller,
+        programDialect: 'Leads/Follows',
+      );
+      await pickInQuickSwitch(tester, 'Larks/Robins');
+      expect(find.text('robins chain'), findsOneWidget);
+
+      // A fresh screen (a new State), as after leaving and re-entering.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await pumpWithProgramDialect(
+        tester,
+        controller,
+        programDialect: 'Leads/Follows',
+      );
+      expect(find.text('follows chain'), findsOneWidget);
+    });
+
+    testWidgets('deleting the dialect while Perform is open falls back to the '
+        'app dialect live', (tester) async {
+      final controller = await library();
+      await controller.upsert(Dialect.leadsFollows.copyWith(name: 'Mine'));
+      await pumpWithProgramDialect(tester, controller, programDialect: 'Mine');
+      expect(find.text('follows chain'), findsOneWidget);
+
+      await controller.delete('Mine');
+      await tester.pumpAndSettle();
+
+      expect(find.text('robins chain'), findsOneWidget);
+      expect(find.text('follows chain'), findsNothing);
+    });
+
+    testWidgets('matches a dialect whose in-memory name is not yet '
+        'NFC-normalized', (tester) async {
+      final controller = await library();
+      // The program stores the NFC name (the repository normalizes it); the
+      // in-memory library can still hold the decomposed spelling until reload.
+      await controller.upsert(
+        Dialect.leadsFollows.copyWith(name: 'Café Calls'),
+      );
+      await pumpWithProgramDialect(
+        tester,
+        controller,
+        programDialect: 'Café Calls',
+      );
+
+      expect(find.text('follows chain'), findsOneWidget);
+    });
+  });
 }
