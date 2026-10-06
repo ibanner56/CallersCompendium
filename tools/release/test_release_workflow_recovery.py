@@ -153,9 +153,9 @@ def _assert_verifier_rejects_tampered_manifest() -> None:
         root = Path(directory)
         key_source = root / "key.dart"
         key_source.write_text(
-            "const String kUpdateManifestPublicKey =\n    '"
+            "const List<String> kUpdateManifestPublicKeys = [\n  '"
             + base64.b64encode(raw_public).decode()
-            + "';\n",
+            + "',\n];\n",
             encoding="utf-8",
         )
         manifest = root / "manifest" / "stable.json"

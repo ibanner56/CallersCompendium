@@ -177,7 +177,7 @@ void main() {
         (bytes, sig) => verifyManifestSignatureWith(
           bytes,
           sig,
-          publicKeyBase64: pinnedKeyBase64,
+          publicKeysBase64: [pinnedKeyBase64],
         );
 
     Future<UpdateAvailable?> checkWith(String? body, String? signature) {
@@ -271,7 +271,7 @@ void main() {
         await verifyManifestSignatureWith(
           reencoded,
           sig,
-          publicKeyBase64: pinnedKeyBase64,
+          publicKeysBase64: [pinnedKeyBase64],
         ),
         isFalse,
       );
