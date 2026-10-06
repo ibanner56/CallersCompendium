@@ -11,6 +11,7 @@ export 'src/analysis/program_matrix.dart';
 export 'src/diagnostics/crash_log_record.dart';
 export 'src/diagnostics/crash_redactor.dart';
 export 'src/dialect/canonicalize.dart';
+export 'src/dialect/role_canonicalizer.dart';
 export 'src/dialect/dialect.dart';
 export 'src/dialect/renderer.dart';
 export 'src/dialect/substitution.dart' show Substitutor;
