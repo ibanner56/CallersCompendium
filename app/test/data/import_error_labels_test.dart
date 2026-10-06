@@ -289,6 +289,11 @@ void main() {
       statusCode: 404,
     );
     const offline = UrlFetchException(UrlFetchFailureReason.unreachable);
+    const timeout30 = UrlFetchException(
+      UrlFetchFailureReason.timeout,
+      timeoutSeconds: 30,
+    );
+    const empty = UrlFetchException(UrlFetchFailureReason.emptyResponse);
 
     test('Caller\'s Box: httpStatus and unreachable take its own reasons', () {
       final status = attributeFetchFailure(
@@ -324,19 +329,87 @@ void main() {
         }
         expect(attributeFetchFailure(status404, kind), same(status404));
         expect(attributeFetchFailure(offline, kind), same(offline));
+        expect(attributeFetchFailure(timeout30, kind), same(timeout30));
+        expect(attributeFetchFailure(empty, kind), same(empty));
       }
-      const timeout = UrlFetchException(
-        UrlFetchFailureReason.timeout,
-        timeoutSeconds: 30,
+      // Generic sources keep the generic wording.
+      expect(
+        importErrorMessage(
+          l10n,
+          attributeFetchFailure(timeout30, ImportSourceKind.genericJson),
+        ),
+        l10n.importErrorTimeout(30),
+      );
+      expect(
+        importErrorMessage(
+          l10n,
+          attributeFetchFailure(empty, ImportSourceKind.genericJson),
+        ),
+        l10n.importErrorEmptyResponse,
       );
       const blocked = UrlFetchException(UrlFetchFailureReason.blockedHost);
       for (final kind in [
         ImportSourceKind.callersBox,
         ImportSourceKind.contraDb,
       ]) {
-        expect(attributeFetchFailure(timeout, kind), same(timeout));
         expect(attributeFetchFailure(blocked, kind), same(blocked));
       }
+    });
+
+    // backupimport-2 (CS-21): an id or link for The Caller's Box / ContraDB
+    // that times out or comes back empty names the source, never "the URL".
+    test("Caller's Box: a timeout names the source and keeps the seconds", () {
+      final mapped = attributeFetchFailure(
+        timeout30,
+        ImportSourceKind.callersBox,
+      );
+      expect(mapped.reason.name, 'callersBoxTimeout');
+      expect(mapped.timeoutSeconds, 30);
+      final message = importErrorMessage(l10n, mapped);
+      expect(
+        message,
+        "The Caller's Box didn't respond within 30s. "
+        'Check your connection, then try again.',
+      );
+      expect(message, isNot(contains('URL')));
+    });
+
+    test('ContraDB: a timeout names the source and keeps the seconds', () {
+      final mapped = attributeFetchFailure(
+        timeout30,
+        ImportSourceKind.contraDb,
+      );
+      expect(mapped.reason.name, 'contraDbTimeout');
+      expect(mapped.timeoutSeconds, 30);
+      final message = importErrorMessage(l10n, mapped);
+      expect(
+        message,
+        "ContraDB didn't respond within 30s. "
+        'Check your connection, then try again.',
+      );
+      expect(message, isNot(contains('URL')));
+    });
+
+    test("Caller's Box: an empty response takes its empty-page reason", () {
+      final mapped = attributeFetchFailure(empty, ImportSourceKind.callersBox);
+      expect(mapped.reason, UrlFetchFailureReason.callersBoxEmptyPage);
+      final message = importErrorMessage(l10n, mapped);
+      expect(
+        message,
+        "The Caller's Box returned an empty page. Try again in a minute.",
+      );
+      expect(message, isNot(contains('URL')));
+    });
+
+    test('ContraDB: an empty response takes its empty-response reason', () {
+      final mapped = attributeFetchFailure(empty, ImportSourceKind.contraDb);
+      expect(mapped.reason, UrlFetchFailureReason.contraDbEmptyResponse);
+      final message = importErrorMessage(l10n, mapped);
+      expect(
+        message,
+        'ContraDB returned an empty response. Try again in a minute.',
+      );
+      expect(message, isNot(contains('URL')));
     });
   });
 
