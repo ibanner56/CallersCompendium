@@ -1,3 +1,4 @@
+import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -9,10 +10,10 @@ import '../../l10n/app_localizations.dart';
 /// It is intentionally self-contained — it provides its own [Directionality]
 /// and [Material] so it renders correctly even when the failure happens above
 /// the app's own theme/localization scopes — and offers a "Copy details" hook
-/// so a tester can grab the error text. The same error is already captured to
-/// the local crash log via `FlutterError.onError`, so this widget only needs to
-/// surface it; it deliberately does no I/O of its own to avoid a
-/// crash-during-crash loop.
+/// so a tester can grab the error's type and a redacted stack for a report.
+/// The same error, message included, is already captured to the local crash
+/// log via `FlutterError.onError`, so this widget only needs to surface it; it
+/// deliberately does no I/O of its own to avoid a crash-during-crash loop.
 class CrashFallback extends StatefulWidget {
   const CrashFallback({super.key, required this.details});
 
@@ -25,10 +26,20 @@ class CrashFallback extends StatefulWidget {
 class _CrashFallbackState extends State<CrashFallback> {
   bool _copied = false;
 
+  /// The error's runtime type and its stack scrubbed by [CrashRedactor] —
+  /// the same shape the scrubbed diagnostics export gives a record (#1469).
+  ///
+  /// The message is left out, not term-redacted: it can carry user content
+  /// (drift echoes a failed statement's bound parameters), and a term redactor
+  /// needs `SensitiveTerms`, read from the database, which this widget must not
+  /// touch. Without terms the redactor still collapses absolute paths and
+  /// strips email addresses and phone numbers from the stack.
   String get _detailsText {
     final stack = widget.details.stack;
-    final buffer = StringBuffer(widget.details.exceptionAsString());
-    if (stack != null) buffer.write('\n\n$stack');
+    final buffer = StringBuffer(widget.details.exception.runtimeType);
+    if (stack != null) {
+      buffer.write('\n\n${CrashRedactor().scrub(stack.toString())}');
+    }
     return buffer.toString();
   }
 
