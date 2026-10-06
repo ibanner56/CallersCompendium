@@ -229,8 +229,11 @@ STEPS: tuple[Step, ...] = (
     ),
     Step(
         "linux-runner",
-        "the Linux build legs run on the runner that sets the documented glibc floor",
-        (py("tools/ci/test_check_linux_build_runner.py"),),
+        "the Linux build legs run in the ubuntu:22.04 container that sets the documented glibc floor, and check the bundle against it",
+        (
+            py("tools/ci/test_check_linux_build_runner.py"),
+            py("tools/ci/test_check_linux_glibc_floor.py"),
+        ),
     ),
     Step(
         "apple-native-tests",

@@ -43,7 +43,7 @@ This is the operator runbook for cutting a desktop release. It documents the
 - [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized) — 85 lines
 - [Android (signed APK)](#android-signed-apk) — 143 lines
 - [iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api) — 125 lines
-- [Packaging tooling notes](#packaging-tooling-notes) — 42 lines
+- [Packaging tooling notes](#packaging-tooling-notes) — 43 lines
 - [Pinned native dependencies](#pinned-native-dependencies) — 81 lines
 <!-- /section-index -->
 
@@ -55,7 +55,7 @@ ADR-002 deterministic name contract
 
 | Platform | Runner | Artifacts |
 |----------|--------|-----------|
-| Linux (x64) | `ubuntu-22.04` (pinned: sets the glibc 2.35 floor; `tools/ci/check_linux_build_runner.py`) | `…-linux-x64.AppImage`, `…-linux-x64.tar.gz` |
+| Linux (x64) | `ubuntu-latest`, building inside an `ubuntu:22.04` container pinned by digest (the container's glibc 2.35 is the floor; `tools/ci/check_linux_build_runner.py`, and `tools/ci/check_linux_glibc_floor.py` checks the built bundle) | `…-linux-x64.AppImage`, `…-linux-x64.tar.gz` |
 | macOS (universal) | `macos-latest` | `…-macos-universal.dmg`, `…-macos-universal.zip` |
 | Windows (x64) | `windows-latest` | `…-windows-x64.exe` (Inno Setup installer), `…-windows-x64.zip` |
 
@@ -1325,7 +1325,8 @@ runners:
   with a pinned runtime (`type2-runtime` `20251108`) over the committed AppDir
   recipe in `packaging/linux/` (`AppRun`,
   `org.callerscompendium.compendiumApp.desktop`, `icon.png`). Runs with
-  `--appimage-extract-and-run` so no FUSE is required on CI.
+  `APPIMAGE_EXTRACT_AND_RUN=1` so no FUSE is required on CI; the build
+  container has none.
 - **Linux launcher and window identity** — the `.desktop` file is named after
   the GtkApplication id (`APPLICATION_ID` in `app/linux/CMakeLists.txt`) and
   repeats it as `StartupWMClass`, because a desktop shell pairs the running

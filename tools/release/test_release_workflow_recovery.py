@@ -342,7 +342,7 @@ def main() -> None:
     ios_gate = _section(
         text,
         "      - name: Determine iOS signing availability",
-        "      - name: Install Linux desktop dependencies",
+        "      - name: Set up JDK 21 (Temurin)",
     )
     assert 'if [ "$RECOVERY" = "true" ]; then' in ios_gate
     assert "signing=skipped-recovery" in ios_gate

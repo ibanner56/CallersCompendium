@@ -219,10 +219,13 @@ jobs:
         run: python3 tools/ci/test_check_changelog_structure.py
       - name: Test the app release-version guard
         run: python3 tools/ci/test_check_app_version.py
-      # The Linux build legs pin the runner whose glibc is the documented
-      # minimum (docs/user/installation.md); ubuntu-latest would move it.
-      - name: Guard the Linux build runner (glibc floor)
-        run: python3 tools/ci/test_check_linux_build_runner.py
+      # The Linux build legs run in the ubuntu:22.04 container whose glibc is
+      # the documented minimum (docs/user/installation.md), and check the
+      # built bundle against it; building on the runner itself would move it.
+      - name: Guard the Linux build container (glibc floor)
+        run: |
+          python3 tools/ci/test_check_linux_build_runner.py
+          python3 tools/ci/test_check_linux_glibc_floor.py
       # The ios and macos build legs in ci.yml run the native Swift RunnerTests
       # (xcodebuild test) when Apple native code changes (platform-7); without
       # it they could stop compiling unnoticed. The suite also checks ci.yml.
