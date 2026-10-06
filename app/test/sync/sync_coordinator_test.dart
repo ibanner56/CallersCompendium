@@ -4732,6 +4732,262 @@ void main() {
     expect(q(0, 800).nearlyFull, isTrue);
   });
 
+  // sync-1: a choice on a whole-collection setting must stop the deciding
+  // device asking, even though the other version is still published (by a
+  // peer that has not synced yet, or by a leftover manifest that never will).
+  // Another device that changed the set too is asked once more; that is the
+  // documented limit of a choice recorded only on this device (sync-spec §6.6).
+  group('a whole-collection conflict choice (spec §6.6)', () {
+    const dialects = (
+      kind: SyncRecordKind.setting,
+      recordId: 'custom_dialects',
+    );
+    final t0 = DateTime.utc(2026, 7, 15, 12);
+
+    Future<SyncMergeCandidate> current(CompendiumRepositories repos) async =>
+        (await CompendiumSyncStorage(repos).snapshot()).local[dialects]!;
+
+    /// The wire hash of each version this device is asking about.
+    Future<List<String>> choices(CompendiumRepositories repos) async => [
+      for (final row in await repos.syncLocal.listReviewQueue())
+        if (row.reason == syncConflictChoiceReason) row.candidateHash,
+    ];
+
+    /// One pass on [repos] (as `deviceId`) against [peers], each of which
+    /// publishes exactly the given copy of the dialects setting.
+    Future<void> pass(
+      CompendiumRepositories repos, {
+      required String deviceId,
+      required Map<String, SyncMergeCandidate> peers,
+    }) async {
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: deviceId,
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: _FakeTransport(
+          devices: [deviceId, ...peers.keys],
+          peerManifests: {
+            for (final entry in peers.entries)
+              entry.key: _manifest(
+                deviceId: entry.key,
+                records: {
+                  SyncRecordKind.setting: {
+                    dialects.recordId: entry.value.wireHash,
+                  },
+                },
+              ),
+          },
+          blobResponses: {
+            for (final peer in peers.values)
+              peer.wireHash: _FakeTransport.response(
+                200,
+                body: utf8.encode(encodeSyncRecordBlob(peer.blob)),
+              ),
+          },
+        ),
+      );
+      addTearDown(coordinator.dispose);
+      final result = await coordinator.syncNow();
+      expect(result.status, SyncPassStatus.completed);
+    }
+
+    /// A device attached to `epoch-1`, holding [value] set at [at], with
+    /// [agreed] (if any) as the last version every device carried.
+    Future<CompendiumRepositories> device(
+      Object value, {
+      required DateTime at,
+      SyncMergeCandidate? agreed,
+    }) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(dialects.recordId, value, at: at);
+      await repos.syncLocal.resetEpoch(
+        epoch: 'epoch-1',
+        entries: [
+          if (agreed != null)
+            SyncBaselineEntry(
+              kind: dialects.kind,
+              recordId: dialects.recordId,
+              wireHash: agreed.wireHash,
+            ),
+        ],
+      );
+      return repos;
+    }
+
+    Future<SyncMergeCandidate> agreedSet() async => current(
+      await device(const [
+        {'name': 'Agreed'},
+      ], at: t0),
+    );
+
+    test('the deciding device is not asked again while the other device '
+        'still publishes the version it chose against', () async {
+      final agreed = await agreedSet();
+      final a = await device(
+        const [
+          {'name': 'Mine'},
+        ],
+        at: t0.add(const Duration(seconds: 1)),
+        agreed: agreed,
+      );
+      final b = await device(
+        const [
+          {'name': 'Theirs'},
+        ],
+        at: t0.add(const Duration(seconds: 2)),
+        agreed: agreed,
+      );
+      final bVersion = await current(b);
+
+      await pass(a, deviceId: 'device-a', peers: {'device-b': bVersion});
+      expect(await choices(a), hasLength(1));
+
+      await CompendiumSyncStorage(a).resolveConflicts(const [
+        SyncConflictDecision(
+          kind: SyncRecordKind.setting,
+          recordId: 'custom_dialects',
+        ),
+      ]);
+      expect(await choices(a), isEmpty);
+
+      await pass(a, deviceId: 'device-a', peers: {'device-b': bVersion});
+      expect(
+        await choices(a),
+        isEmpty,
+        reason:
+            'device B has not synced since, so it still publishes the set '
+            'the user chose against; that must not raise the choice again',
+      );
+      expect(await a.settings.get(dialects.recordId), [
+        {'name': 'Mine'},
+      ]);
+    });
+
+    test('every copy of a version chosen against counts as chosen against, '
+        'not only the copy that was shown', () async {
+      // Two other devices hold the same set under different stamps, so two
+      // wire hashes. The choice shows that body once, as its newest copy; the
+      // older copy must not raise the choice again.
+      final agreed = await agreedSet();
+      final a = await device(
+        const [
+          {'name': 'Mine'},
+        ],
+        at: t0.add(const Duration(seconds: 1)),
+        agreed: agreed,
+      );
+      const theirs = [
+        {'name': 'Theirs'},
+      ];
+      final older = await current(
+        await device(theirs, at: t0.add(const Duration(seconds: 2))),
+      );
+      final newer = await current(
+        await device(theirs, at: t0.add(const Duration(seconds: 3))),
+      );
+      expect(older.wireHash, isNot(newer.wireHash));
+      final peers = {'device-b': older, 'device-c': newer};
+
+      await pass(a, deviceId: 'device-a', peers: peers);
+      expect(await choices(a), [newer.wireHash]);
+
+      await CompendiumSyncStorage(a).resolveConflicts(const [
+        SyncConflictDecision(
+          kind: SyncRecordKind.setting,
+          recordId: 'custom_dialects',
+        ),
+      ]);
+
+      await pass(a, deviceId: 'device-a', peers: peers);
+      expect(await choices(a), isEmpty);
+    });
+
+    test('a leftover manifest re-offering the version chosen against asks '
+        'nothing, on every later pass', () async {
+      // A detach and re-attach leaves the earlier attachment's manifest on
+      // the server. It never republishes, and with no baseline after the
+      // fresh attach its old set counts as changed.
+      final ghost = await current(
+        await device(const [
+          {'name': 'Before detach'},
+        ], at: t0),
+      );
+      final a = await device(const [
+        {'name': 'After re-attach'},
+      ], at: t0.add(const Duration(seconds: 1)));
+
+      await pass(a, deviceId: 'device-a', peers: {'device-a-old': ghost});
+      expect(await choices(a), hasLength(1));
+
+      await CompendiumSyncStorage(a).resolveConflicts(const [
+        SyncConflictDecision(
+          kind: SyncRecordKind.setting,
+          recordId: 'custom_dialects',
+        ),
+      ]);
+
+      for (var later = 0; later < 3; later++) {
+        await pass(a, deviceId: 'device-a', peers: {'device-a-old': ghost});
+        expect(await choices(a), isEmpty, reason: 'pass ${later + 1}');
+      }
+    });
+
+    test('another device that also changed the set is asked once more, and '
+        'taking the chosen version settles both', () async {
+      final agreed = await agreedSet();
+      final a = await device(
+        const [
+          {'name': 'Mine'},
+        ],
+        at: t0.add(const Duration(seconds: 1)),
+        agreed: agreed,
+      );
+      final b = await device(
+        const [
+          {'name': 'Theirs'},
+        ],
+        at: t0.add(const Duration(seconds: 2)),
+        agreed: agreed,
+      );
+      await pass(
+        a,
+        deviceId: 'device-a',
+        peers: {'device-b': await current(b)},
+      );
+      await CompendiumSyncStorage(a).resolveConflicts(const [
+        SyncConflictDecision(
+          kind: SyncRecordKind.setting,
+          recordId: 'custom_dialects',
+        ),
+      ]);
+      final decided = await current(a);
+
+      // The choice is recorded only on device A, so device B — whose own
+      // change the choice went against — cannot tell it from a concurrent
+      // edit, and asks (sync-spec §6.6, docs/user/settings.md).
+      await pass(b, deviceId: 'device-b', peers: {'device-a': decided});
+      final asked = await choices(b);
+      expect(asked, hasLength(1));
+      expect(asked.single, decided.wireHash);
+
+      await CompendiumSyncStorage(b).resolveConflicts([
+        SyncConflictDecision(
+          kind: SyncRecordKind.setting,
+          recordId: 'custom_dialects',
+          keepCandidateHash: decided.wireHash,
+        ),
+      ]);
+      final taken = await current(b);
+      await pass(b, deviceId: 'device-b', peers: {'device-a': decided});
+      await pass(a, deviceId: 'device-a', peers: {'device-b': taken});
+      expect(await choices(b), isEmpty);
+      expect(await choices(a), isEmpty);
+      expect(await b.settings.get(dialects.recordId), [
+        {'name': 'Mine'},
+      ]);
+    });
+  });
+
   group('a peer running a newer app version (spec §6.9)', () {
     SyncCoordinator coordinatorFor(_FakeTransport transport) => SyncCoordinator(
       syncId: 'configured',
@@ -4896,6 +5152,10 @@ final class _SnapshotInterleavingStore
   @override
   Future<Set<SyncRecordAddress>> queuedConflictAddresses() =>
       _delegate.queuedConflictAddresses();
+
+  @override
+  Future<Map<SyncRecordAddress, Set<String>>> decidedAgainstHashes() =>
+      _delegate.decidedAgainstHashes();
 
   @override
   Future<void> replaceBaseline({
@@ -5208,6 +5468,10 @@ final class _FakeStore implements SyncCoordinatorStore {
   @override
   Future<Set<SyncRecordAddress>> queuedConflictAddresses() async =>
       queuedConflicts;
+
+  @override
+  Future<Map<SyncRecordAddress, Set<String>>> decidedAgainstHashes() async =>
+      const {};
 
   @override
   Future<void> replaceBaseline({

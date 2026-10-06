@@ -42,12 +42,15 @@ final class SyncReviewQueueResolver {
 
   /// Every queued pair decision — merge or keep both. Conflict choices are
   /// listed by [listConflicts] instead, because they are decided on a
-  /// different surface with different actions.
+  /// different surface with different actions; versions already chosen
+  /// against are a record of a decision, not a question, and are not listed.
   Future<List<SyncReviewQueueItem>> list() async {
     final rows = await storage.repositories.syncLocal.listReviewQueue();
     return [
       for (final row in rows)
-        if (row.reason != syncConflictChoiceReason)
+        if (row.reason != syncConflictChoiceReason &&
+            row.reason != syncConflictChoiceCopyReason &&
+            row.reason != syncConflictDecidedAgainstReason)
           SyncReviewQueueItem.fromRow(row),
     ];
   }

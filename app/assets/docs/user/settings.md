@@ -827,7 +827,8 @@ at once, and you still confirm. **Decide later** closes the list and changes
 nothing.
 
 The version you keep becomes the newest edit, so your other devices take it
-the next time they sync and stop asking. If you choose on two devices before
+the next time they sync and stop asking — with one exception for the sets
+described next. If you choose on two devices before
 either has synced, the later choice wins — unless you made different choices
 in the same second, in which case you're asked again.
 
@@ -838,6 +839,17 @@ have the same item — the same dialect, say — but changed it differently, the
 app asks you which version of that item to keep before it saves. **Combine
 both** isn't offered when the combined list would be longer than the app keeps
 (128 dialects, 500 shorthands or 2,000 snippets); it says so instead.
+
+Once you choose for one of these sets, the device where you chose stops asking
+about it, even if the other device hasn't synced yet. The other device, if it
+also changed that set, asks you once more the next time it syncs, because it
+can't tell your choice apart from an ordinary change. That doesn't happen if you
+kept that device's set. When it asks:
+
+- keep the version you chose on the first device, and neither device asks
+  again;
+- keep that device's own set, and it saves that set as a new version, which
+  your first device hasn't chosen against, so the first device asks you again.
 
 **Changing your mind.** After you save your choices, a message offers **Undo**
 for a few seconds. It reopens the items you just decided with the versions you

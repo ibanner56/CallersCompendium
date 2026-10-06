@@ -1451,28 +1451,44 @@ final class CompendiumSyncStorage
   /// (sync-spec §6.3, §6.6).
   ///
   /// Queues one row per version the user may choose that is not this
-  /// device's own, and drops every queued choice the merge no longer raises —
-  /// typically because the user decided on another device and that decision,
-  /// stamped past the tie, arrived here as an ordinary newer edit. Addresses in
+  /// device's own, plus one [syncConflictChoiceCopyReason] row per copy on
+  /// offer that the choice does not show, and drops every queued choice the
+  /// merge no longer raises —
+  /// typically because the user decided an equal-`updatedAt` tie on another
+  /// device and that decision, stamped past the tie, arrived here as an
+  /// ordinary newer edit. (A whole-collection decision made elsewhere does not
+  /// clear the choice here when this device changed the set too: see
+  /// [resolveConflicts].) Addresses in
   /// [unevaluated] were skipped by the merge, so their rows are kept untouched:
   /// a peer that could not be read this pass is not evidence the conflict
-  /// ended. An unchanged row keeps its `queued_at`. Returns how many rows
-  /// this call added.
+  /// ended. An unchanged row keeps its `queued_at`. Returns how many choice
+  /// rows this call added; copy rows are not counted.
   Future<int> refreshConflictReviews(
     Iterable<SyncMergeDecision> reviews, {
     Set<SyncRecordAddress> unevaluated = const {},
   }) => repositories.transaction(() async {
     final expected =
-        <(SyncRecordKind, String, String), ({String blob, String? local})>{};
+        <
+          (SyncRecordKind, String, String),
+          ({String reason, String blob, String? local})
+        >{};
     for (final decision in reviews) {
       final conflict = decision.conflict;
       if (conflict == null) continue;
+      for (final hash in conflict.copies) {
+        expected[(decision.address.kind, decision.address.recordId, hash)] = (
+          reason: syncConflictChoiceCopyReason,
+          blob: '',
+          local: conflict.local?.wireHash,
+        );
+      }
       for (final candidate in conflict.candidates) {
         expected[(
           decision.address.kind,
           decision.address.recordId,
           candidate.wireHash,
         )] = (
+          reason: syncConflictChoiceReason,
           blob: encodeSyncRecordBlob(candidate.blob),
           local: conflict.local?.wireHash,
         );
@@ -1480,7 +1496,8 @@ final class CompendiumSyncStorage
     }
     final existing = {
       for (final row in await repositories.syncLocal.listReviewQueue())
-        if (row.reason == syncConflictChoiceReason)
+        if (row.reason == syncConflictChoiceReason ||
+            row.reason == syncConflictChoiceCopyReason)
           (row.kind, row.recordId, row.counterpartId): row,
     };
     for (final entry in existing.entries) {
@@ -1488,6 +1505,7 @@ final class CompendiumSyncStorage
       if (unevaluated.contains((kind: kind, recordId: recordId))) continue;
       final want = expected[entry.key];
       if (want != null &&
+          want.reason == entry.value.reason &&
           want.blob == entry.value.candidateBlob &&
           want.local == entry.value.localHash) {
         continue;
@@ -1503,6 +1521,7 @@ final class CompendiumSyncStorage
     for (final entry in expected.entries) {
       final current = existing[entry.key];
       if (current != null &&
+          current.reason == entry.value.reason &&
           current.candidateBlob == entry.value.blob &&
           current.localHash == entry.value.local) {
         continue;
@@ -1512,13 +1531,15 @@ final class CompendiumSyncStorage
         kind: kind,
         recordId: recordId,
         counterpartId: hash,
-        reason: syncConflictChoiceReason,
+        reason: entry.value.reason,
         candidateBlob: entry.value.blob,
         candidateHash: hash,
         localHash: entry.value.local,
         queuedAt: queuedAt,
       );
-      if (current == null) added++;
+      if (current == null && entry.value.reason == syncConflictChoiceReason) {
+        added++;
+      }
     }
     return added;
   });
@@ -1528,8 +1549,21 @@ final class CompendiumSyncStorage
   /// Each kept version — or, for a whole-collection setting, both versions
   /// combined — is written with `updatedAt` one tick past every version that
   /// was on offer (or the clock, if later), so it reaches every other device
-  /// as an ordinary newer edit and their queued choices clear on their next
-  /// pass. Keeping this device's own version re-stamps an unchanged body: the
+  /// as an ordinary newer edit. For an equal-`updatedAt` tie, their queued
+  /// choices clear on their next pass.
+  ///
+  /// A whole-collection setting's rule ignores `updatedAt`, so for one of
+  /// those keys every other version on offer (every copy, shown or not), and
+  /// this device's copy before
+  /// the choice, is also recorded as chosen against
+  /// ([syncConflictDecidedAgainstReason]). This device then stops asking, even
+  /// while a peer that has not synced, or a leftover manifest, still publishes
+  /// one of them. Another device that also changed the set is asked once more
+  /// (sync-spec §6.6), unless the version kept was its own. The record is
+  /// local, and nothing on the wire tells that device the new version was a
+  /// choice.
+  ///
+  /// Keeping this device's own version re-stamps an unchanged body: the
   /// one write I2 permits for that reason (§6.5). Existence is not touched — a
   /// content choice must not revive or delete.
   ///
@@ -1546,9 +1580,14 @@ final class CompendiumSyncStorage
     final clockNow = (now ?? DateTime.now)().toUtc();
     final snapshot = await this.snapshot();
     final local = {...snapshot.local, ...snapshot.pendingLive};
+    final queue = await repositories.syncLocal.listReviewQueue();
     final rows = [
-      for (final row in await repositories.syncLocal.listReviewQueue())
+      for (final row in queue)
         if (row.reason == syncConflictChoiceReason) row,
+    ];
+    final copyRows = [
+      for (final row in queue)
+        if (row.reason == syncConflictChoiceCopyReason) row,
     ];
     final plans = <_ConflictChoicePlan>[];
     for (final decision in decisions) {
@@ -1595,11 +1634,17 @@ final class CompendiumSyncStorage
           offered: offered,
           keepHash: decision.keepCandidateHash,
           combineTakingOther: decision.combineTakingOther,
+          copies: {
+            for (final row in copyRows)
+              if (row.kind == decision.kind &&
+                  row.recordId == decision.recordId)
+                row.counterpartId,
+          },
         ),
       );
     }
     final resolution = await _applyConflictChoices(plans, clockNow);
-    for (final row in rows) {
+    for (final row in [...rows, ...copyRows]) {
       if (plans.any(
         (plan) => plan.address == (kind: row.kind, recordId: row.recordId),
       )) {
@@ -1610,6 +1655,9 @@ final class CompendiumSyncStorage
         );
       }
     }
+    // After the queued choices are gone: a version chosen against is filed
+    // under the same key as the queued choice that offered it.
+    await _recordDecidedAgainst(plans, resolution, clockNow);
     return resolution;
   });
 
@@ -1650,7 +1698,9 @@ final class CompendiumSyncStorage
         ),
       );
     }
-    return _applyConflictChoices(plans, clockNow);
+    final resolution = await _applyConflictChoices(plans, clockNow);
+    await _recordDecidedAgainst(plans, resolution, clockNow);
+    return resolution;
   });
 
   Future<SyncConflictResolution> _applyConflictChoices(
@@ -1776,6 +1826,65 @@ final class CompendiumSyncStorage
           ),
       ],
     );
+  }
+
+  /// Records, for each whole-collection setting just decided, every version
+  /// that was on offer and is not what the choice wrote, so the merge stops
+  /// raising the conflict here (sync-spec §6.6; [syncConflictDecidedAgainstReason]).
+  ///
+  /// Every other kind is settled by last-writer-wins once the stamped choice
+  /// is the newest version, so only these four keys need it.
+  Future<void> _recordDecidedAgainst(
+    List<_ConflictChoicePlan> plans,
+    SyncConflictResolution resolution,
+    DateTime queuedAt,
+  ) async {
+    for (final plan in plans) {
+      final address = plan.address;
+      if (address.kind != SyncRecordKind.setting ||
+          !syncWholeCollectionSettingKeys.contains(address.recordId)) {
+        continue;
+      }
+      final kept = resolution.reconsiderations
+          .firstWhere(
+            (written) =>
+                written.kind == address.kind &&
+                written.recordId == address.recordId,
+          )
+          .writtenWireHash;
+      final against = <String>{
+        ?plan.current?.wireHash,
+        ...plan.copies,
+        for (final blob in [?plan.before, ...plan.offered])
+          sha256Hex(encodeSyncRecordBlobUtf8(blob)),
+      }..remove(kept);
+      for (final hash in against) {
+        await repositories.syncLocal.enqueueReview(
+          kind: address.kind,
+          recordId: address.recordId,
+          counterpartId: hash,
+          reason: syncConflictDecidedAgainstReason,
+          candidateBlob: '',
+          candidateHash: hash,
+          localHash: kept,
+          queuedAt: queuedAt,
+        );
+      }
+    }
+  }
+
+  /// The wire hashes of the versions the user chose against on this device,
+  /// per whole-collection setting, for [SyncMergeEngine.plan]'s
+  /// `decidedAgainst` (sync-spec §6.6).
+  Future<Map<SyncRecordAddress, Set<String>>> decidedAgainstHashes() async {
+    final result = <SyncRecordAddress, Set<String>>{};
+    for (final row in await repositories.syncLocal.listReviewQueue()) {
+      if (row.reason != syncConflictDecidedAgainstReason) continue;
+      result
+          .putIfAbsent((kind: row.kind, recordId: row.recordId), () => {})
+          .add(row.counterpartId);
+    }
+    return result;
   }
 
   /// Resolves persisted W8 choreography and W14 tombstone review decisions.
@@ -5989,6 +6098,7 @@ class _ConflictChoicePlan {
     required this.keepHash,
     required this.combineTakingOther,
     this.floor,
+    this.copies = const {},
   });
 
   final SyncRecordAddress address;
@@ -6001,4 +6111,8 @@ class _ConflictChoicePlan {
   /// A time the written version must also follow — the earlier choice's
   /// stamp, when reconsidering.
   final DateTime? floor;
+
+  /// Wire hashes of copies on offer the choice did not show
+  /// ([syncConflictChoiceCopyReason]); recorded as chosen against with it.
+  final Set<String> copies;
 }
