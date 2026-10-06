@@ -10,7 +10,8 @@ enum RoleSpanKind {
   /// A dancer role: rewritten to its canonical token.
   role,
 
-  /// Part of a move name such as "mad robin": kept as typed.
+  /// Part of a move name such as "mad robin": not a role; the move name is
+  /// written in lowercase.
   moveName,
 
   /// A calling verb that is also a role term ("Ones lead down"): kept as typed.
@@ -178,6 +179,7 @@ final Set<String> _verbComplements = {
 
 final RegExp _wordAtEnd = RegExp(r'[\p{L}\p{M}\p{N}\p{Pc}]+$', unicode: true);
 final RegExp _wordAtStart = RegExp(r'^[\p{L}\p{M}\p{N}\p{Pc}]+', unicode: true);
+final RegExp _whitespaceRun = RegExp(r'\s+');
 final RegExp _wordRe = RegExp(r'[\p{L}\p{M}\p{N}\p{Pc}]+', unicode: true);
 
 List<String> _words(String text) => [
@@ -195,7 +197,8 @@ bool _isGap(int c) => c == 0x20 || c == 0x09 || c == 0x0A || c == 0x0D;
 ///
 /// 1. Inside a multi-word move name from the [MoveWordLexicon] (or the
 ///    dialect's own move substitutions) — "mad robin(s)" — it is a
-///    [RoleSpanKind.moveName] and kept as typed.
+///    [RoleSpanKind.moveName]: not rewritten to a role, and the move name is
+///    written lowercase and single-spaced.
 /// 2. A form of a [roleHomographVerbs] entry ("lead"/"leads",
 ///    "follow"/"follows") is decided from its neighbours in the same clause:
 ///    - a. the plural form is a role ("Leads chain");
@@ -209,7 +212,9 @@ bool _isGap(int c) => c == 0x20 || c == 0x09 || c == 0x0A || c == 0x0D;
 /// 3. Anything else is a role, rewritten exactly as before.
 ///
 /// Rewritten roles are lowercase canonical tokens (`role1s`), whatever case
-/// they were typed in. Kept spans are left exactly as typed.
+/// they were typed in. A move name from rule 1 is written lowercase and
+/// single-spaced ("mad robin"), as the import scrub stores it (maintainer
+/// choice B, 2026-10-06). A verb from rule 2 is left exactly as typed.
 final class RoleCanonicalizer {
   RoleCanonicalizer(
     Dialect dialect, {
@@ -283,8 +288,20 @@ final class RoleCanonicalizer {
   final Map<String, bool> _verbForms = {};
 
   /// Rewrites [text]'s role terms to canonical tokens, keeping move words.
+  ///
+  /// A move name that contains a role word ("Mad  Robins") is written in its
+  /// canonical spelling — lowercase, single-spaced ("mad robins") — the same
+  /// bytes the import scrub stores, so typed and imported text deduplicate
+  /// (`figureCanonicalKey`).
   String canonicalize(String text) {
     if (text.isEmpty) return text;
+    final shielded = _shieldedPhrases;
+    if (shielded != null) {
+      text = text.replaceAllMapped(
+        shielded,
+        (m) => m[0]!.toLowerCase().split(_whitespaceRun).join(' '),
+      );
+    }
     List<RegExpMatch>? moveSpans;
     return _roles.apply(
       text,

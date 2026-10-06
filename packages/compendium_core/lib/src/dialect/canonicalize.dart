@@ -64,10 +64,11 @@ Substitutor? _discouragedFor(Dialect dialect) =>
 /// storage and search stay dialect-agnostic. Conservative: only exact,
 /// word-boundary term matches are rewritten; unknown prose is left as typed.
 ///
-/// A role term that is also a move word is kept as typed: "robin" in the move
-/// name "mad robin", and — when the active dialect's terms are "lead" and
-/// "follow" — those words used as verbs ("Ones lead down the hall"). The rules
-/// are on [RoleCanonicalizer].
+/// A role term that is also a move word is not rewritten to a role: "robin" in
+/// the move name "mad robin" (which is written in lowercase, "mad robin", as
+/// imports store it), and — when the active dialect's terms are "lead" and
+/// "follow" — those words used as verbs ("Ones lead down the hall"), which are
+/// kept as typed. The rules are on [RoleCanonicalizer].
 ///
 /// [extraRoleSynonyms] is an optional, always-on reverse map (display term →
 /// canonical role token) used only by the *search* path to resolve role terms

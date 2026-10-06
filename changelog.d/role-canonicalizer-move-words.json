@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Figure notes and custom figure text keep the move name \"mad robin\" as you typed it, instead of saving it as a role (it read \"mad follow\" under Leads and Follows).",
+      "Figure notes and custom figure text keep the move name \"mad robin\" instead of saving it as a role (it read \"mad follow\" under Leads and Follows). It is saved in lower case, the same as imported text, so a typed \"Mad Robin\" comes back as \"mad robin\".",
       "Under Leads and Follows, \"lead\" and \"follow\" used as verbs in figure notes and custom figure text (\"Ones lead down the hall\", \"follow your partner\") are kept as you typed them instead of being saved as roles. Text saved by an earlier version is not repaired automatically.",
       "Searching for \"mad robin\" finds dances with a mad robin figure."
     ]
@@ -13,7 +13,7 @@
       "Add `RoleCanonicalizer`, `RoleSpanDecision`, `RoleSpanKind`, `MoveWordLexicon`, `legacyRoleSynonyms` and `subjectBearingMovePhrases`."
     ],
     "changed": [
-      "`canonicalize`, `canonicalizeText` and `roleSpans` keep role terms that are move words (\"mad robin\", the verbs \"lead\"/\"follow\") as typed.",
+      "`canonicalize`, `canonicalizeText` and `roleSpans` no longer rewrite role terms that are move words to role tokens: the move name \"mad robin\" is written in lowercase and the verbs \"lead\"/\"follow\" are kept as typed.",
       "`Substitutor.apply` takes an optional `where` predicate.",
       "`scrubFigureText` no longer rewrites \"madrobin\" inside another word (\"madrobins.com\")."
     ]

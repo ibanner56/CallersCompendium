@@ -137,8 +137,12 @@ Each occurrence is classified first, from the figure grammar's own vocabulary
 (`taxonomy/dance_vocabulary.dart`) and the taxonomy's move names:
 
 1. A role word inside a multi-word move name or search keyword — today only
-   "mad robin(s)" — names the move and is kept as typed, in every dialect
-   (`robin` is a legacy synonym, so this applies under Larks/Robins too).
+   "mad robin(s)" — names the move, in every dialect (`robin` is a legacy
+   synonym, so this applies under Larks/Robins too). It is not rewritten to a
+   role; the move name is stored in lowercase and single-spaced ("Mad Robin"
+   is stored as `mad robin`), the same bytes the import scrub stores, so typed
+   and imported text deduplicate (maintainer choice B, 2026-10-06; this
+   reverses the earlier editor rule, #1678, that kept it as typed).
    A ratchet test fails if the taxonomy gains another role-bearing name until
    it is classified as a move name or as a name whose role word is the dancer.
 2. The calling verbs that are also role terms, "lead" and "follow"
@@ -191,20 +195,19 @@ Where the chokepoint IS wired:
   dance editor goes through the same active-dialect chokepoint as figure notes
   when the dance is saved (`FigureDraft._canonicalParams`, called from
   `buildDance`), and is rendered back via `renderFreeText`. Move words that
-  are also role terms ("mad robin", a verb "lead") are kept as typed, as
-  above; other role words are substituted and lose their capitalisation, so
+  are also role terms are not rewritten to roles, as above: a verb "lead" is
+  kept as typed and "mad robin" is stored in lowercase. Other role words are
+  substituted and lose their capitalisation, so
   "Larks chain wide" is stored as `role1s chain wide` and reads back as
   "larks chain wide".
   This is deliberate (maintainer decision, 2026-10-06, post-audit finding
   parser-2): imports already store role words lowercase, and preserving case
   (`Role1s`) would give the same words different canonical bytes and split
   the line-level dedupe identity (`figureCanonicalKey` in `figure_diff.dart`)
-  between a typed figure and the identical imported one. That identity holds
-  for role words only: the import scrub (`scrubFigureText`) writes the move
-  name "mad robin" in lowercase (maintainer decision D6, 2026-10-06) while
-  the editor keeps a move name exactly as typed, so an all-caps "MAD ROBIN,
-  LADIES IN" stores `MAD ROBIN, role2s IN` from the editor and
-  `mad robin, role2s IN` from an import, and the two do not dedupe.
+  between a typed figure and the identical imported one. The same identity
+  holds for the move name: an all-caps "MAD ROBIN, LADIES IN" stores
+  `mad robin, role2s IN` from the editor and from an import alike
+  (maintainer decisions D6 and B, 2026-10-06).
 - **Hand-typed dance prose** — `hook`, `callingNotes`, `walkthrough` — is
   stored **verbatim, exactly as typed**, in whatever dialect the caller uses.
   It is not canonicalized on save and not rewritten on load. Display sites
