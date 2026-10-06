@@ -424,11 +424,57 @@ def _lookback_start(masked: str, pos: int) -> int:
     return 0
 
 
+# `on SomeType` immediately before a `catch (`: skipped so a typed catch's
+# clause is found to start at `on`, where the preceding `}` sits.
+_ON_PREFIX_RE = re.compile(r"\bon\s+[A-Za-z_][\w.]*(?:\s*<[^{;()]*>)?\s*$")
+
+
+# `try` as a whole token ending the text before a block's `{` (so the block is
+# the try body); a type such as `Retry` or `Entry` must not match.
+_TRY_BEFORE_OPENER_RE = re.compile(r"\btry\s*$")
+
+
+def _clause_lookback_start(text: str, masked: str, clause_start: int) -> int:
+    """Start offset for the marker search of a catch/`on` clause.
+
+    A clause opens with the `}` that closes the `try` body or the previous
+    clause. [_lookback_start] would walk back over that balanced block to the
+    statement before `try`, so a `logCaughtError` in the try body, or the
+    marker of an *earlier sibling clause*, used to count for this clause too.
+    Each clause is its own handler, so the search starts at the line holding
+    that `}` and extends upward only over comment-only lines, and only when the
+    `}` closes the `try` body. That keeps the style of annotating the first
+    clause from the last lines of the try body; a comment at the end of an
+    earlier clause's body is that clause's own.
+    """
+    prefix = _ON_PREFIX_RE.search(masked, 0, clause_start)
+    start = prefix.start() if prefix and prefix.end() == clause_start else clause_start
+    j = start - 1
+    while j >= 0 and masked[j] in " \t\r\n":
+        j -= 1
+    if j < 0 or masked[j] != "}":
+        return _lookback_start(masked, clause_start)
+    line_start = text.rfind("\n", 0, j) + 1
+    opener = _match_open_backward(masked, j)
+    if not _TRY_BEFORE_OPENER_RE.search(masked, 0, opener or 0):
+        # The `}` closes an earlier clause: a comment at the end of that
+        # clause's body belongs to it, not to this one.
+        return line_start
+    while line_start > 0:
+        prev_start = text.rfind("\n", 0, line_start - 1) + 1
+        if text[prev_start : line_start - 1].strip().startswith("//"):
+            line_start = prev_start
+        else:
+            break
+    return line_start
+
+
 def find_unmarked(text: str) -> list[tuple[int, str, str]]:
     """`(line_no, kind, snippet)` for each catch/catchError/onError site in
     [text] that contains neither a `logCaughtError`/`logCaughtErrorTypeOnly`
     call nor a `diagnostics: silent` comment within its own body or on an
-    immediately preceding comment-only line (see [_lookback_start]).
+    immediately preceding comment-only line (see [_clause_lookback_start] for
+    catch/`on` clauses and [_lookback_start] for callback arguments).
     """
     masked = mask_source(text)
     n = len(masked)
@@ -454,7 +500,7 @@ def find_unmarked(text: str) -> list[tuple[int, str, str]]:
         close_brace = _match_brace(masked, i)
         if close_brace is None:
             continue
-        marker_start = _lookback_start(masked, m.start())
+        marker_start = _clause_lookback_start(text, masked, m.start())
         if not _has_marker(text, masked, marker_start, close_brace + 1):
             findings.append(
                 (m.start(), _line_of(text, m.start()), "catch", snippet(m.start()))
@@ -470,7 +516,7 @@ def find_unmarked(text: str) -> list[tuple[int, str, str]]:
         close_brace = _match_brace(masked, brace_pos)
         if close_brace is None:
             continue
-        marker_start = _lookback_start(masked, m.start())
+        marker_start = _clause_lookback_start(text, masked, m.start())
         if not _has_marker(text, masked, marker_start, close_brace + 1):
             findings.append(
                 (m.start(), _line_of(text, m.start()), "on-block", snippet(m.start()))
