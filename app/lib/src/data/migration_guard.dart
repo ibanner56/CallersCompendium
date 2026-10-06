@@ -363,10 +363,12 @@ enum DatabaseRelocationFailure {
   moveFailed,
 
   /// No database exists at the new location yet, and the Documents folder
-  /// earlier builds used cannot be reached (an offline network share, an
-  /// unmounted drive, a deleted folder). Whether a library is waiting there
-  /// cannot be known, so nothing is created that would start an empty library
-  /// beside it.
+  /// earlier builds used does not exist (for example a redirected folder on a
+  /// disconnected network share or drive letter), or on Windows could not be
+  /// resolved at all. Whether a library is waiting there cannot be known, so
+  /// nothing is created that would start an empty library beside it. Only a
+  /// missing path is detected: an unmounted volume whose empty mount-point
+  /// folder is still there looks like an empty Documents.
   legacyUnreachable,
 }
 
@@ -451,15 +453,18 @@ const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 ///
 /// Rules, in the order they bite:
 /// - **No library is not the same as an unreachable Documents.** When
-///   [documentsDirectory] is given, does not exist, and no database exists at
-///   [target] yet, throw [DatabaseRelocationFailure.legacyUnreachable] and
-///   create nothing: an offline share or unmounted drive would otherwise look
-///   like "no legacy database", and drift would start an empty library beside
-///   the real one. Once [target] holds a database this check is skipped (an
+///   no database exists at [target] yet and either [documentsDirectory] is
+///   given but does not exist, or [documentsUnresolvable] is set (Windows could
+///   not resolve Documents), throw
+///   [DatabaseRelocationFailure.legacyUnreachable] and create nothing: a
+///   missing Documents path (a redirected folder on a disconnected share or
+///   drive letter) would otherwise look like "no legacy database", and drift
+///   would start an empty library beside the real one. Only a missing path is
+///   detected; an unmounted volume that leaves an empty mount-point folder
+///   behind is not. Once [target] holds a database this check is skipped (an
 ///   empty library can no longer be started by mistake). A `null`
-///   [documentsDirectory] means Documents could not be resolved at all (Linux
-///   without `xdg-user-dirs`), where no earlier build could have kept a
-///   database.
+///   [documentsDirectory] without [documentsUnresolvable] means Linux without
+///   `xdg-user-dirs`, where no earlier build could have kept a database.
 /// - **Never overwrite.** If the target database (or a sidecar) exists, or more
 ///   than one legacy database exists, throw [DatabaseRelocationBlocked]
 ///   ([DatabaseRelocationFailure.bothExist] or
@@ -482,8 +487,12 @@ const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 ///   found. Only if that restore itself fails is the target copy kept (data is
 ///   never left in fewer places than before).
 ///
-/// After a successful move, a **breadcrumb** is left at every legacy path
-/// whose folder exists and that is now empty: a *folder* named
+/// The **breadcrumb** at the source path is made inside the delete step, right
+/// after the main file is deleted; if it cannot be made the move rolls back
+/// like any other delete failure. (A crash in the instant between that delete
+/// and the breadcrumb leaves the path free, and nothing repairs it later.)
+/// Breadcrumbs at the other legacy paths whose folder exists are best-effort.
+/// A breadcrumb is a *folder* named
 /// `compendium.sqlite` holding a [kRelocationBreadcrumbNoteName] that says
 /// where the library went. Every earlier build (v0.1.0 to v0.5.4) skips its
 /// preflight because `File.exists()` is false for a folder, then asks SQLite to

@@ -61,10 +61,13 @@ last changed; the larger, more recently changed copy is usually your library.
 Keep the copy you want, move the others out of the way, and reopen the app.
 
 If there is no library in the new location yet and your `Documents` folder
-can't be reached (for example it is on a network folder or a drive that isn't
-connected), the app also stops without creating anything, rather than starting
-an empty library while yours may still be in `Documents`. Reconnect it and
-reopen the app; if you have no `Documents` folder at all, create an empty one.
+can't be found (for example it is on a network folder or a drive letter that
+isn't connected), the app also stops without creating anything, rather than
+starting an empty library while yours may still be in `Documents`. Reconnect it
+and reopen the app; if you have no `Documents` folder at all, create an empty
+one. The app can only tell that the folder is missing: if `Documents` lives on
+a drive that is mounted into an empty folder (common on Linux), make sure that
+drive is connected before the first launch after updating.
 
 Safety copies the app makes before updating the database go in a `db_backups`
 folder beside it.

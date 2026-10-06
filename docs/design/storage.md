@@ -24,11 +24,17 @@ lives in the core package; all access through repositories.*
   at both the old and new location, or the move fails, nothing is deleted and
   startup stops on a non-retryable screen (`DatabaseRelocationBlocked`) that
   lists each conflicting copy's location, size and last change (never a path).
-  While no database exists at the new location, an unreachable Documents folder
-  (an offline share or unmounted drive) also stops startup
-  (`legacyUnreachable`) instead of reading as "no library". After a move, a
-  breadcrumb *folder* named `compendium.sqlite` (holding a `README.txt` that
-  names the new location) is left at each old path whose folder exists. Every
+  While no database exists at the new location, a Documents path that does not
+  exist (a redirected folder on a disconnected share or drive letter), or a
+  Documents folder Windows cannot resolve, also stops startup
+  (`legacyUnreachable`) instead of reading as "no library". Only a missing path
+  is detected: an unmounted volume that leaves an empty mount-point folder
+  behind reads as an empty Documents. After a move, a breadcrumb *folder*
+  named `compendium.sqlite` (holding a `README.txt` that names the new
+  location) is at the old path: it is made inside the delete step, so a move
+  that cannot make it rolls back (only a crash in the instant between the
+  delete and the breadcrumb leaves the path free, unrepaired), and it is added
+  best-effort at each other old path whose folder exists. Every
   earlier build (v0.1.0 to v0.5.4, all on drift_flutter 0.3.1) skips its
   preflight because `File.exists()` is false for a folder, then fails to open
   the path (SQLite cannot open a folder) and shows its startup error screen
