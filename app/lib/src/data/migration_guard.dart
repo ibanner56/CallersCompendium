@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sql;
 
+import '../diagnostics/error_log.dart';
 import 'app_database.dart';
 
 /// Directory name (under the database's own directory) holding automatic
@@ -449,9 +450,22 @@ const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 /// empty.
 ///
 /// Rules, in the order they bite:
+/// - **No library is not the same as an unreachable Documents.** When
+///   [documentsDirectory] is given, does not exist, and no database exists at
+///   [target] yet, throw [DatabaseRelocationFailure.legacyUnreachable] and
+///   create nothing: an offline share or unmounted drive would otherwise look
+///   like "no legacy database", and drift would start an empty library beside
+///   the real one. Once [target] holds a database this check is skipped (an
+///   empty library can no longer be started by mistake). A `null`
+///   [documentsDirectory] means Documents could not be resolved at all (Linux
+///   without `xdg-user-dirs`), where no earlier build could have kept a
+///   database.
 /// - **Never overwrite.** If the target database (or a sidecar) exists, or more
 ///   than one legacy database exists, throw [DatabaseRelocationBlocked]
-///   ([DatabaseRelocationFailure.bothExist]) and touch nothing.
+///   ([DatabaseRelocationFailure.bothExist] or
+///   [DatabaseRelocationFailure.multipleLegacy]) and touch nothing; the error
+///   carries each copy's location, size and age
+///   ([DatabaseRelocationBlocked.copies]) so the user can choose.
 /// - **Checkpoint first** (`wal_checkpoint(TRUNCATE)`, as the pre-migration
 ///   snapshot does), and require it to report not busy: a busy result means
 ///   another connection holds the WAL, so the main file is not yet a complete
@@ -468,13 +482,24 @@ const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 ///   found. Only if that restore itself fails is the target copy kept (data is
 ///   never left in fewer places than before).
 ///
+/// After a successful move, a **breadcrumb** is left at every legacy path
+/// whose folder exists and that is now empty: a *folder* named
+/// `compendium.sqlite` holding a [kRelocationBreadcrumbNoteName] that says
+/// where the library went. Every earlier build (v0.1.0 to v0.5.4) skips its
+/// preflight because `File.exists()` is false for a folder, then asks SQLite to
+/// open the path, which cannot open a folder; it shows its startup error
+/// screen instead of creating a new, empty library there. This function, for
+/// the same reason, never sees a breadcrumb as a legacy database.
+///
 /// A *crash* (not a reported failure) between the rename and the last delete
 /// leaves both copies; the next launch reports
 /// [DatabaseRelocationFailure.bothExist] rather than overwriting either: a user
 /// (not the app) decides which to delete, see `docs/user/faq.md`.
 ///
 /// [deleter] is injectable so tests can fail the source cleanup part-way; the
-/// production default deletes via [File].
+/// production default deletes via [File]. A legacy file in
+/// [documentsDirectory] is reported as [DatabaseCopyLocation.documents], any
+/// other as [DatabaseCopyLocation.earlierAppFolder].
 Future<bool> relocateLegacyDatabase({
   required File target,
   required List<File> legacy,
@@ -488,18 +513,40 @@ Future<bool> relocateLegacyDatabase({
           file.existsSync())
         file,
   ];
+  if (documentsDirectory != null &&
+      !target.existsSync() &&
+      !documentsDirectory.existsSync()) {
+    throw const DatabaseRelocationBlocked(
+      DatabaseRelocationFailure.legacyUnreachable,
+    );
+  }
   if (sources.isEmpty) return false;
 
+  DatabaseCopyLocation locationOf(File file) =>
+      documentsDirectory != null &&
+          p.canonicalize(file.parent.path) ==
+              p.canonicalize(documentsDirectory.path)
+      ? DatabaseCopyLocation.documents
+      : DatabaseCopyLocation.earlierAppFolder;
   final targetOccupied = [
     target,
     for (final suffix in _sidecarSuffixes) File('${target.path}$suffix'),
   ].any((file) => file.existsSync());
   if (targetOccupied) {
-    throw const DatabaseRelocationBlocked(DatabaseRelocationFailure.bothExist);
+    throw DatabaseRelocationBlocked(
+      DatabaseRelocationFailure.bothExist,
+      copies: _describeCopies([
+        (target, DatabaseCopyLocation.newLocation),
+        for (final source in sources) (source, locationOf(source)),
+      ]),
+    );
   }
   if (sources.length > 1) {
-    throw const DatabaseRelocationBlocked(
+    throw DatabaseRelocationBlocked(
       DatabaseRelocationFailure.multipleLegacy,
+      copies: _describeCopies([
+        for (final source in sources) (source, locationOf(source)),
+      ]),
     );
   }
   final source = sources.single;
@@ -612,7 +659,74 @@ Future<bool> relocateLegacyDatabase({
   } on FileSystemException {
     // diagnostics: silent — cosmetic cleanup of an empty folder.
   }
+  for (final file in legacy) {
+    await _leaveBreadcrumb(file, target);
+  }
   return true;
+}
+
+/// Size and age of each `(database file, location)` pair, counting its
+/// `-wal`/`-shm` sidecars. Empty if any of them cannot be read: the details
+/// help the user choose, and their absence must not hide the blocking message.
+List<DatabaseCopy> _describeCopies(List<(File, DatabaseCopyLocation)> found) {
+  try {
+    return [
+      for (final (file, location) in found)
+        () {
+          final present = [
+            file,
+            for (final suffix in _sidecarSuffixes) File('${file.path}$suffix'),
+          ].where((f) => f.existsSync()).toList();
+          return DatabaseCopy(
+            location: location,
+            bytes: present.fold(0, (sum, f) => sum + f.lengthSync()),
+            modified: present
+                .map((f) => f.lastModifiedSync())
+                .reduce((a, b) => a.isAfter(b) ? a : b),
+          );
+        }(),
+    ];
+  } on Object catch (error, stackTrace) {
+    logCaughtErrorTypeOnly(
+      error,
+      stackTrace,
+      source: 'migration_guard.describeCopies',
+    );
+    return const [];
+  }
+}
+
+/// Leaves a folder named like the database at [legacyFile]'s path, with a note
+/// inside, so an earlier build fails to open it rather than creating an empty
+/// library there (see [relocateLegacyDatabase]). Only where the path is free
+/// and its folder exists; best-effort, since the move itself has succeeded.
+Future<void> _leaveBreadcrumb(File legacyFile, File target) async {
+  if (p.canonicalize(legacyFile.path) == p.canonicalize(target.path)) return;
+  try {
+    if (!legacyFile.parent.existsSync()) return;
+    if (FileSystemEntity.typeSync(legacyFile.path, followLinks: false) !=
+        FileSystemEntityType.notFound) {
+      return;
+    }
+    final crumb = await Directory(legacyFile.path).create();
+    await File(p.join(crumb.path, kRelocationBreadcrumbNoteName)).writeAsString(
+      "Caller's Compendium moved your library out of this folder, to:\n"
+      '\n'
+      '    ${target.parent.path}\n'
+      '\n'
+      'This folder stays here so that an older version of the app, if you\n'
+      'open one, shows an error instead of starting a new, empty library.\n'
+      'Current versions ignore it. You can delete it if you will not open an\n'
+      'older version again.\n',
+      flush: true,
+    );
+  } on Object catch (error, stackTrace) {
+    logCaughtErrorTypeOnly(
+      error,
+      stackTrace,
+      source: 'migration_guard.leaveBreadcrumb',
+    );
+  }
 }
 
 /// Best-effort removal of files this relocation attempt itself created.
@@ -656,6 +770,7 @@ Future<void> runMigrationPreflightForApp({
     legacy: [
       for (final dir in locations.legacy) File(p.join(dir.path, fileName)),
     ],
+    documentsDirectory: locations.documents,
   );
   final snapshotDir = Directory(
     p.join(dbFile.parent.path, kDatabaseBackupsDirName),

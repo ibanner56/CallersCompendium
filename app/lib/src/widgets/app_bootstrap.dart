@@ -136,7 +136,7 @@ class AppBootstrap extends StatelessWidget {
           if (error is DatabaseRelocationBlocked) {
             return Scaffold(
               body: Center(
-                child: Padding(
+                child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -147,6 +147,22 @@ class AppBootstrap extends StatelessWidget {
                         databaseRelocationMessage(l10n, error.reason),
                         textAlign: TextAlign.center,
                       ),
+                      // Which copy is the library is the user's call: give
+                      // them each copy's size and last change to decide by.
+                      // Plain Text, so screen readers announce every value.
+                      if (error.copies.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          l10n.migrationRelocationCopiesHeading,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        for (final copy in error.copies)
+                          Text(
+                            databaseCopyDetails(l10n, copy),
+                            textAlign: TextAlign.center,
+                          ),
+                      ],
                     ],
                   ),
                 ),

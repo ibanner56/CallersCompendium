@@ -2016,7 +2016,6 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final semantics = tester.ensureSemantics();
-    addTearDown(semantics.dispose);
 
     final appData = openTestAppData();
     await tester.pumpWidget(
@@ -2061,6 +2060,7 @@ void main() {
       ),
       findsOneWidget,
     );
+    semantics.dispose();
   });
 
   testWidgets(

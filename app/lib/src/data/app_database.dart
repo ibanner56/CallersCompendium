@@ -16,7 +16,11 @@ const String kDatabaseName = 'compendium';
 /// Where the on-device database lives, and where earlier builds left it.
 @immutable
 class DatabaseLocations {
-  const DatabaseLocations({required this.primary, required this.legacy});
+  const DatabaseLocations({
+    required this.primary,
+    required this.legacy,
+    this.documents,
+  });
 
   /// The directory holding `compendium.sqlite` (and its `db_backups/`).
   final Directory primary;
@@ -25,6 +29,11 @@ class DatabaseLocations {
   /// [primary]. [relocateLegacyDatabase] moves such a database into [primary]
   /// during the migration preflight, before anything opens it.
   final List<Directory> legacy;
+
+  /// The Documents folder when it is one of [legacy] (Windows and Linux, when
+  /// it resolves). [relocateLegacyDatabase] requires it to be reachable before
+  /// concluding there is no library to move.
+  final Directory? documents;
 }
 
 /// Resolves the directory the database lives in on [operatingSystem] (the
@@ -51,6 +60,7 @@ Future<DatabaseLocations> resolveDatabaseLocations({
   switch (operatingSystem ?? Platform.operatingSystem) {
     case 'windows':
       final support = await getApplicationSupportDirectory();
+      final documents = await _tryDocumentsDirectory();
       Directory primary;
       try {
         primary = await getApplicationCacheDirectory();
@@ -64,16 +74,19 @@ Future<DatabaseLocations> resolveDatabaseLocations({
       }
       return DatabaseLocations(
         primary: primary,
+        documents: documents,
         legacy: [
-          ?await _tryDocumentsDirectory(),
+          ?documents,
           if (p.canonicalize(support.path) != p.canonicalize(primary.path))
             support,
         ],
       );
     case 'linux':
+      final documents = await _tryDocumentsDirectory();
       return DatabaseLocations(
         primary: await getApplicationSupportDirectory(),
-        legacy: [?await _tryDocumentsDirectory()],
+        documents: documents,
+        legacy: [?documents],
       );
     default:
       return DatabaseLocations(
