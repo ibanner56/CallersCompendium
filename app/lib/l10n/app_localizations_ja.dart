@@ -4133,6 +4133,21 @@ class AppLocalizationsJa extends AppLocalizations {
       '概要、PDF、エクスポートされたセットリストからALTスロットを省略します。ビルダーにはすべてのスロットが表示されます。';
 
   @override
+  String get programsDialectFieldLabel => 'パフォームのダイアレクト';
+
+  @override
+  String get programsDialectUseApp => 'アプリのダイアレクトを使用';
+
+  @override
+  String programsDialectUnavailable(String name) {
+    return '$name（利用不可）';
+  }
+
+  @override
+  String get programsDialectHelper =>
+      'このプログラムのパフォーム画面でのみ使用されます。エディター、概要、エクスポートではアプリのダイアレクトが使われます。';
+
+  @override
   String programsWarningCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

@@ -5514,6 +5514,28 @@
   "@programsHideAlternatesSubtitle": {
     "description": "Explanatory subtitle for the hide-alternates toggle in the program editor."
   },
+  "programsDialectFieldLabel": "Perform dialect",
+  "@programsDialectFieldLabel": {
+    "description": "Label of the program editor field that picks the dialect Perform uses for this program."
+  },
+  "programsDialectUseApp": "Use app dialect",
+  "@programsDialectUseApp": {
+    "description": "Dropdown option that clears the program's dialect so Perform follows the app dialect."
+  },
+  "programsDialectUnavailable": "{name} (unavailable)",
+  "@programsDialectUnavailable": {
+    "description": "Dropdown entry for a stored dialect name that no longer matches any dialect in the library (renamed, deleted or not synced here yet). {name} is the stored dialect name.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Leads/Follows"
+      }
+    }
+  },
+  "programsDialectHelper": "Used only in this program's Perform view. The editor, summary and exports keep the app dialect.",
+  "@programsDialectHelper": {
+    "description": "Helper text under the program dialect field: where the dialect applies."
+  },
   "programsWarningCount": "{count, plural, =1{1 warning} other{{count} warnings}}",
   "@programsWarningCount": {
     "description": "Count of non-blocking validation warnings shown on the program editor's warnings card.",

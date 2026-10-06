@@ -16,6 +16,7 @@ import '../data/editor_draft_shutdown_scope.dart';
 import '../data/matrix_collision_mode_scope.dart';
 import '../data/program_matrix_column_config_scope.dart';
 import '../data/program_auto_commit_scope.dart';
+import '../data/program_dialect.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
@@ -185,6 +186,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   DateTime? _eventDate;
   ProgramStatus _status = ProgramStatus.draft;
   bool _hideAlternates = false;
+
+  /// The stored dialect name Perform uses for this program; `null` follows the
+  /// application dialect. May name a dialect that no longer exists, which the
+  /// picker shows as unavailable instead of dropping (issue #1554).
+  String? _dialectName;
   List<ProgramSlot> _slotsBacking = const [];
 
   /// Live view of [_danceSlotCounts] for the modal picker sheet, which does not
@@ -866,6 +872,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _venueId = program?.venueId;
         _status = program?.status ?? ProgramStatus.draft;
         _hideAlternates = program?.hideAlternates ?? false;
+        _dialectName = program?.dialectName;
         _slots = program?.slots.toList() ?? newProgramSlots;
         _difficultyLevels = difficultyLevels;
         _loaded = true;
@@ -902,6 +909,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _venueId = program.venueId;
     _status = program.status;
     _hideAlternates = program.hideAlternates;
+    _dialectName = program.dialectName;
     _slots = program.slots.toList();
   }
 
@@ -1036,6 +1044,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       notes: _notesController.text,
       status: _status,
       hideAlternates: _hideAlternates,
+      dialectName: _dialectName,
       slots: List.unmodifiable(_renumber(_slots)),
     );
   }
@@ -1338,6 +1347,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _linkedVenue = null;
         _status = draft.status;
         _hideAlternates = draft.hideAlternates;
+        // A draft from before the field existed never captured it: keep the
+        // program's current dialect instead of reading the absence as a clear.
+        _dialectName = draft.hasDialectName
+            ? draft.dialectName
+            : _existing?.dialectName;
         _slots = _renumber(draft.slots);
         _dirty = true;
       });
@@ -1440,8 +1454,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     hideAlternates: local.hideAlternates == atReadStart.hideAlternates
         ? live.hideAlternates
         : local.hideAlternates,
-    // The editor does not edit it yet, so the live value always wins.
-    dialectName: live.dialectName,
+    dialectName: local.dialectName == atReadStart.dialectName
+        ? live.dialectName
+        : local.dialectName,
     slots: slots,
     createdAt: live.createdAt,
     updatedAt: live.updatedAt,
@@ -1767,6 +1782,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       return Program(
         id: _existing?.id ?? 'draft',
         title: l10n.programsFallbackTitle,
+        dialectName: _dialectName,
         slots: _renumber(_slots),
         createdAt: now,
         updatedAt: now,
@@ -2393,6 +2409,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         notes: _notesController.text,
         status: _status,
         hideAlternates: _hideAlternates,
+        dialectName: _dialectName,
+        clearDialectName: _dialectName == null,
         slots: _renumber(_slots),
       );
     } catch (_) {
@@ -2416,9 +2434,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       notes: draft.notes,
       status: draft.status,
       hideAlternates: draft.hideAlternates,
-      // Not editable here yet: `draft` is `_existing.copyWith(...)`, so this
-      // carries the stored value (set by import, restore or sync) instead of
-      // rebuilding the program with it cleared.
       dialectName: draft.dialectName,
       slots: draft.slots,
       createdAt: existing?.createdAt ?? now,
@@ -3695,6 +3710,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             }
           },
         ),
+        const SizedBox(height: AppSpacing.md),
+        _buildDialectField(l10n),
         const SizedBox(height: AppSpacing.xs),
         SwitchListTile(
           key: const ValueKey('program-hide-alternates'),
@@ -3710,6 +3727,60 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           },
         ),
       ],
+    );
+  }
+
+  /// The picker for [_dialectName]: "use app dialect" plus every dialect in
+  /// the library, nothing typed freehand. A stored name that no longer matches
+  /// a dialect (renamed, deleted, or not synced here yet) stays visible as
+  /// "unavailable" instead of silently reading as "use app dialect", which is
+  /// what Perform does with it (issue #1554).
+  Widget _buildDialectField(AppLocalizations l10n) {
+    final library = DialectLibraryScope.maybeOf(context);
+    final stored = _dialectName;
+    final resolved = library == null
+        ? null
+        : resolveProgramDialect(stored, library);
+    final unavailable = stored != null && resolved == null;
+    final value = unavailable ? stored : resolved?.name;
+    return KeyedSubtree(
+      // `initialValue` only seeds the field, so rebuild it when the value
+      // changes from outside the picker (draft restore, Undo merge).
+      key: ValueKey('program-dialect-field:${value ?? ''}'),
+      child: DropdownButtonFormField<String?>(
+        key: const ValueKey('program-dialect'),
+        initialValue: value,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: l10n.programsDialectFieldLabel,
+          helperText: l10n.programsDialectHelper,
+          helperMaxLines: 3,
+          border: const OutlineInputBorder(),
+        ),
+        items: [
+          DropdownMenuItem<String?>(
+            key: const ValueKey('program-dialect-use-app'),
+            value: null,
+            child: Text(l10n.programsDialectUseApp),
+          ),
+          for (final dialect in library?.all ?? const <Dialect>[])
+            DropdownMenuItem<String?>(
+              key: ValueKey('program-dialect-option:${dialect.name}'),
+              value: dialect.name,
+              child: Text(dialect.name),
+            ),
+          if (unavailable)
+            DropdownMenuItem<String?>(
+              key: const ValueKey('program-dialect-unavailable'),
+              value: stored,
+              child: Text(l10n.programsDialectUnavailable(stored)),
+            ),
+        ],
+        onChanged: (name) {
+          setState(() => _dialectName = name);
+          _markDirty();
+        },
+      ),
     );
   }
 

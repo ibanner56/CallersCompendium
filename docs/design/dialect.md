@@ -88,6 +88,15 @@ built figure.
   CC's binary "on the fly gendered↔gender-free switch". The active dialect
   (including a full custom one) is persisted as JSON.
 
+  A program may also name its own dialect (`Program.dialectName`, issue #1554),
+  which only that program's Perform view uses; the editor, summary and exports
+  keep the active dialect, and the active dialect is never changed by it. The
+  program stores only the dialect's **name**, resolved when Perform opens
+  (`resolveProgramDialect`, comparing names after `normalizeShareableText`): a
+  name that no longer resolves — renamed, deleted, or not yet synced to this
+  device — silently falls back to the active dialect. Rename and delete never
+  write to programs. Inside Perform the quick-switch is then session-local.
+
 ## Rendering pipeline (pure functions, golden-tested)
 
 ```

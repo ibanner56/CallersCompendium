@@ -6925,6 +6925,30 @@ abstract class AppLocalizations {
   /// **'Omits ALT slots from the summary, PDF, and exported set list. The builder still shows every slot.'**
   String get programsHideAlternatesSubtitle;
 
+  /// Label of the program editor field that picks the dialect Perform uses for this program.
+  ///
+  /// In en, this message translates to:
+  /// **'Perform dialect'**
+  String get programsDialectFieldLabel;
+
+  /// Dropdown option that clears the program's dialect so Perform follows the app dialect.
+  ///
+  /// In en, this message translates to:
+  /// **'Use app dialect'**
+  String get programsDialectUseApp;
+
+  /// Dropdown entry for a stored dialect name that no longer matches any dialect in the library (renamed, deleted or not synced here yet). {name} is the stored dialect name.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} (unavailable)'**
+  String programsDialectUnavailable(String name);
+
+  /// Helper text under the program dialect field: where the dialect applies.
+  ///
+  /// In en, this message translates to:
+  /// **'Used only in this program\'s Perform view. The editor, summary and exports keep the app dialect.'**
+  String get programsDialectHelper;
+
   /// Count of non-blocking validation warnings shown on the program editor's warnings card.
   ///
   /// In en, this message translates to:

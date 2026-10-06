@@ -44,8 +44,9 @@ progression happens is marked with an icon labelled *Progression*. Break and
 note slots in a program get a card of their own, with the text in the same
 large type.
 
-Your [dialect](./dialects.md) is applied, so the card speaks in your words (see
-**Show canonical terms** below for a quick look at the shared wording). Figure
+Your [dialect](./dialects.md) is applied — or the program's own dialect, if you
+gave it one (see [Programs](./programs.md)) — so the card speaks in your words
+(see **Show canonical terms** below for a quick look at the shared wording). Figure
 detail you recorded shows here too: when a swing ends facing somewhere other
 than the usual "in"/across — up or down the hall, or out of the set — the card
 notes that ending so you can cue it.
@@ -60,8 +61,10 @@ same thing, and every toggle says which state it is in rather than relying on
 how it looks.
 
 **Switch dialect.** Changes your active dialect for the whole app — handy when
-tonight's hall uses different role names. See
-[Dialect](./dialects.md#switch-dialect-on-the-fly).
+tonight's hall uses different role names. If the program has its own dialect,
+the switch changes the wording for this time in Perform only: your active
+dialect stays as it was, and the program's dialect is back the next time you open
+Perform. See [Dialect](./dialects.md#switch-dialect-on-the-fly).
 
 **Stage theme.** Perform opens on a **high-contrast dark-stage theme** by default,
 built for strong legibility (a contrast ratio of at least 7 to 1) under stage

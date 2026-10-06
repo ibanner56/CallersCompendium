@@ -1,0 +1,9 @@
+{
+  "id": "1554-program-dialect-perform",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can set a dialect on a program, under Perform dialect in its details, and Perform uses it for that program without you switching your active dialect first. The editor, summary and exports keep your active dialect. Switching dialect inside Perform then affects only that time in Perform, and if you rename or delete the dialect the program quietly goes back to your active dialect."
+    ]
+  }
+}
