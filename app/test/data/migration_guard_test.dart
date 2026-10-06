@@ -652,10 +652,7 @@ void main() {
         'second',
         'third',
       ]);
-      expect(
-        live.select('PRAGMA journal_mode').single.values.single,
-        'wal',
-      );
+      expect(live.select('PRAGMA journal_mode').single.values.single, 'wal');
     });
 
     test('the in-use probe leaves the journal mode as it found it', () async {
