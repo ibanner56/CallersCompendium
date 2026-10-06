@@ -584,6 +584,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       _resolvingPerform = false;
     }
     if (!mounted) return;
+    // Each Perform write, as stored: the token the post-exit Undo compares
+    // the stored program against (flows-1). Keyed by the adjusted program's
+    // identity, so a stale Undo cannot match a later adjustment's write.
+    final storedAfterWrite = Expando<Program>();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         // Ctrl-K is suppressed while this route is on top ([performRouteName]).
@@ -610,7 +614,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           // summary and the coexisting Programs list both re-render from their
           // own subscriptions, so neither needs telling.
           onProgramChanged: (updated) async {
-            await _repos.programs.update(updated);
+            storedAfterWrite[updated] = await _repos.programs.updateAndReadBack(
+              updated,
+            );
             if (!mounted) return;
             // The write itself is what reloads this pane and every other view
             // of these slots — the coexisting program list, the Collection's
@@ -619,15 +625,19 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             // adjustment (issue #340).
           },
           // The "Program adjusted" Undo after leaving Perform restores only
-          // while the stored program is still the one that adjustment wrote
-          // (flows-1). Every later write stamps a later `updatedAt`, compared
-          // at the store's one-second precision. Uses the repository rather
-          // than this pane, which may itself have closed by then.
-          programUnchangedSince: (adjusted) async {
-            final stored = await _repos.programs.getById(adjusted.id);
-            return stored != null &&
-                unixSeconds(stored.updatedAt) ==
-                    unixSeconds(adjusted.updatedAt);
+          // while the stored program still equals, field for field, what that
+          // adjustment's write stored; the compare and the restore are one
+          // transaction, so no edit or sync apply can slip between them
+          // (flows-1). Uses the repository rather than this pane, which may
+          // itself have closed by then.
+          restoreIfUnchanged: (previous, adjusted) async {
+            final expected = storedAfterWrite[adjusted];
+            if (expected == null) return false;
+            return _repos.programs.replaceIfUnchanged(
+              expected: expected,
+              replacement: previous,
+              updatedAt: DateTime.now().toUtc(),
+            );
           },
         ),
       ),

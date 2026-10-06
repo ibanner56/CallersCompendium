@@ -129,7 +129,7 @@ class PerformProgramScreen extends StatefulWidget {
     this.initialWalkthroughEndedSlotId,
     this.onExit,
     this.onProgramChanged,
-    this.programUnchangedSince,
+    this.restoreIfUnchanged,
   });
 
   final Program program;
@@ -182,19 +182,22 @@ class PerformProgramScreen extends StatefulWidget {
   /// view reflects the change regardless.
   final Future<void> Function(Program updated)? onProgramChanged;
 
-  /// Answers, for the "Program adjusted" Undo once this screen has closed,
-  /// whether the owner's copy of the program is still exactly what the
-  /// adjustment [adjusted] left behind.
+  /// Performs the "Program adjusted" Undo once this screen has closed:
+  /// restores [previous] only if the owner's program is still exactly what
+  /// the adjustment [adjusted] left, and returns whether it restored.
   ///
   /// That Undo restores a whole-program snapshot taken before the adjustment.
   /// The prompt can outlive this screen (indefinitely with accessible
   /// navigation), and by the time it is tapped the program may have been
-  /// edited elsewhere; restoring the snapshot would overwrite that edit. So
-  /// after exit the Undo is applied through [onProgramChanged] only when this
-  /// returns true, and is otherwise refused with a "no longer available"
-  /// message (flows-1). When null, or when it throws, the Undo is refused.
-  /// While this screen is open the Undo is applied directly, without asking.
-  final Future<bool> Function(Program adjusted)? programUnchangedSince;
+  /// edited elsewhere; restoring the snapshot would overwrite that edit. The
+  /// check and the restore must therefore be one atomic step on the owner's
+  /// side (for a stored program, [ProgramRepository.replaceIfUnchanged]), so
+  /// that no write can land between them (flows-1). When this returns false,
+  /// throws, or is null, the Undo is refused with a "no longer available"
+  /// message. While this screen is open the Undo is applied directly through
+  /// [onProgramChanged], without asking.
+  final Future<bool> Function(Program previous, Program adjusted)?
+  restoreIfUnchanged;
 
   @override
   State<PerformProgramScreen> createState() => _PerformProgramScreenState();
@@ -816,16 +819,14 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         // program may have been edited since, so leave `setState`/`context`
         // alone and restore only if nothing changed (flows-1).
         if (!mounted) {
-          final onChanged = widget.onProgramChanged;
-          if (onChanged == null) return;
+          if (widget.onProgramChanged == null) return;
           unawaited(
             _undoAfterExit(
               messenger: messenger,
               pendingPersist: _pendingPersist,
               previous: previous,
               adjusted: updated,
-              persist: onChanged,
-              unchangedSince: widget.programUnchangedSince,
+              restoreIfUnchanged: widget.restoreIfUnchanged,
               unavailableMessage: unavailableMessage,
             ),
           );
@@ -836,25 +837,27 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     );
   }
 
-  /// The "Program adjusted" Undo once Perform has closed: restores [previous]
-  /// through [persist] only if the owner confirms the program is still what
-  /// [adjusted] left; otherwise leaves the program alone and says the undo is
-  /// no longer available. Uses only values captured while mounted.
+  /// The "Program adjusted" Undo once Perform has closed: asks the owner to
+  /// restore [previous] atomically if the program is still what [adjusted]
+  /// left; otherwise leaves the program alone and says the undo is no longer
+  /// available. Uses only values captured while mounted.
   static Future<void> _undoAfterExit({
     required ScaffoldMessengerState messenger,
     required Future<void> pendingPersist,
     required Program previous,
     required Program adjusted,
-    required Future<void> Function(Program) persist,
-    required Future<bool> Function(Program adjusted)? unchangedSince,
+    required Future<bool> Function(Program previous, Program adjusted)?
+    restoreIfUnchanged,
     required String unavailableMessage,
   }) async {
-    var unchanged = false;
+    var restored = false;
     try {
       // The adjustment's own write must land before the stored copy is
       // compared with it.
       await pendingPersist;
-      unchanged = unchangedSince != null && await unchangedSince(adjusted);
+      restored =
+          restoreIfUnchanged != null &&
+          await restoreIfUnchanged(previous, adjusted);
     } catch (error, stackTrace) {
       logCaughtError(
         error,
@@ -862,10 +865,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         source: 'perform_program_screen._undoAfterExit',
       );
     }
-    if (unchanged) {
-      await persist(previous);
-      return;
-    }
+    if (restored) return;
     // Same idiom as the program screens' failed-undo message: replace the
     // spent prompt, then show the message on the next frame. A SnackBar is a
     // live region, so screen readers announce it.

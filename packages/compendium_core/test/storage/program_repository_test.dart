@@ -511,6 +511,107 @@ void main() {
     });
   });
 
+  group('updateAndReadBack / replaceIfUnchanged (flows-1)', () {
+    final adjustedAt = DateTime.utc(2026, 2, 1, 12, 0, 0, 100);
+
+    Future<(Program previous, Program stored)> adjust() async {
+      final previous = sampleProgram(
+        slots: [ProgramSlot(id: 's1', position: 0, text: 'Break')],
+      );
+      await repo.create(previous);
+      final stored = await repo.updateAndReadBack(
+        previous.copyWith(title: 'Adjusted', updatedAt: adjustedAt),
+      );
+      return (previous, stored);
+    }
+
+    test('updateAndReadBack returns the program as stored', () async {
+      final (_, stored) = await adjust();
+      expect(stored, await repo.getById('p1'));
+      expect(stored.updatedAt, DateTime.utc(2026, 2, 1, 12));
+    });
+
+    test('restores when nothing changed, with an advanced stamp', () async {
+      final (previous, stored) = await adjust();
+      final now = DateTime.utc(2026, 2, 1, 12, 5);
+      final restored = await repo.replaceIfUnchanged(
+        expected: stored,
+        replacement: previous,
+        updatedAt: now,
+      );
+      expect(restored, isTrue);
+      final live = (await repo.getById('p1'))!;
+      expect(live.title, previous.title);
+      expect(live.updatedAt, now);
+    });
+
+    test('a restore stamp never goes back past the stored one', () async {
+      final (previous, stored) = await adjust();
+      final restored = await repo.replaceIfUnchanged(
+        expected: stored,
+        replacement: previous,
+        updatedAt: DateTime.utc(2020),
+      );
+      expect(restored, isTrue);
+      final live = (await repo.getById('p1'))!;
+      expect(live.updatedAt.isAfter(stored.updatedAt), isTrue);
+    });
+
+    test(
+      'refuses an edit within the same stored second, and keeps it',
+      () async {
+        final (previous, stored) = await adjust();
+        await repo.update(
+          stored.copyWith(
+            title: 'Renamed',
+            updatedAt: DateTime.utc(2026, 2, 1, 12, 0, 0, 900),
+          ),
+        );
+        expect((await repo.getById('p1'))!.updatedAt, stored.updatedAt);
+
+        final restored = await repo.replaceIfUnchanged(
+          expected: stored,
+          replacement: previous,
+          updatedAt: DateTime.utc(2026, 2, 1, 12, 5),
+        );
+        expect(restored, isFalse);
+        expect((await repo.getById('p1'))!.title, 'Renamed');
+      },
+    );
+
+    test('refuses a slot-only change', () async {
+      final (previous, stored) = await adjust();
+      await repo.update(
+        stored.copyWith(
+          slots: [ProgramSlot(id: 's1', position: 0, text: 'Long break')],
+        ),
+      );
+      expect(
+        await repo.replaceIfUnchanged(
+          expected: stored,
+          replacement: previous,
+          updatedAt: DateTime.utc(2026, 2, 1, 12, 5),
+        ),
+        isFalse,
+      );
+      expect((await repo.getById('p1'))!.slots.single.text, 'Long break');
+    });
+
+    test('refuses a soft-deleted program', () async {
+      final (previous, stored) = await adjust();
+      await repo.softDelete('p1', at: DateTime.utc(2026, 2, 1, 12, 1));
+      expect(
+        await repo.replaceIfUnchanged(
+          expected: stored,
+          replacement: previous,
+          updatedAt: DateTime.utc(2026, 2, 1, 12, 5),
+        ),
+        isFalse,
+      );
+      expect(await repo.getById('p1'), isNull);
+    });
+  });
+
   group('listAll', () {
     test('orders by title and excludes soft-deleted by default', () async {
       await repo.create(sampleProgram(id: 'p2', title: 'Zesty Night'));

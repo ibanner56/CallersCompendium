@@ -234,6 +234,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// hold, i.e. no edit has been made here since (flows-1).
   Program? _performAdjusted;
   int? _performAdjustedGeneration;
+
+  /// [_performAdjusted] as the repository stored it (read back in the same
+  /// transaction as the write); null for an unsaved program. The post-exit
+  /// Undo restores only while the stored program still equals this.
+  Program? _performStored;
   int _collectionDataGeneration = 0;
 
   bool get _pickerImporting => _pickerImportOwners.isNotEmpty;
@@ -1875,8 +1880,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               _autoCommitTimer?.cancel();
               final generation = ++_editGeneration;
               final operation = _commitQueueTail.then((_) async {
-                await _repos.programs.update(persisted);
+                final stored = await _repos.programs.updateAndReadBack(
+                  persisted,
+                );
                 await _clearDraft(waitForCommits: false);
+                return stored;
               });
               // Keep later commits usable if this live-gig write fails, while
               // still surfacing the failure to this callback.
@@ -1892,7 +1900,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 },
               );
               try {
-                await operation;
+                final stored = await operation;
                 if (!mounted) return;
                 setState(() {
                   _existing = persisted;
@@ -1901,6 +1909,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 });
                 _performAdjusted = updated;
                 _performAdjustedGeneration = _editGeneration;
+                _performStored = stored;
                 // A mark-performed stamp changes the Collection's "called N
                 // times" badge and any mounted dance detail's calling history.
                 // Both watch `program_slots` directly now, so the write is the
@@ -1918,30 +1927,87 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             _markDirty();
             _performAdjusted = updated;
             _performAdjustedGeneration = _editGeneration;
+            _performStored = null;
           },
-          // The "Program adjusted" Undo after leaving Perform rebases the
-          // pre-adjustment slots onto this builder's working copy, so it may
-          // run only while that copy is still what the adjustment left: no
-          // edit here since, and (for a saved program) no write to the stored
-          // program from anywhere else (flows-1). A closed builder cannot
-          // vouch for either, so the Undo is refused.
-          programUnchangedSince: (adjusted) async {
-            bool untouched() =>
-                mounted &&
-                identical(_performAdjusted, adjusted) &&
-                _editGeneration == _performAdjustedGeneration;
-            if (!untouched()) return false;
-            final existing = _existing;
-            if (existing == null) return true;
-            final stored = await _repos.programs.getById(existing.id);
-            return untouched() &&
-                stored != null &&
-                unixSeconds(stored.updatedAt) ==
-                    unixSeconds(existing.updatedAt);
-          },
+          // The "Program adjusted" Undo after leaving Perform puts back the
+          // pre-adjustment slots. It may run only while this builder's working
+          // copy is still what the adjustment left (no edit here since; checked
+          // synchronously, so no local edit can slip in before the restore is
+          // queued) and, for a saved program, only while the stored program
+          // still equals what the adjustment stored: the repository compares
+          // and writes in one transaction, so no write from elsewhere can land
+          // in between (flows-1). A closed builder cannot vouch for its working
+          // copy, so the Undo is refused.
+          restoreIfUnchanged: (previous, adjusted) =>
+              _restorePerformSnapshot(previous, adjusted),
         ),
       ),
     );
+  }
+
+  Future<bool> _restorePerformSnapshot(
+    Program previous,
+    Program adjusted,
+  ) async {
+    if (!mounted ||
+        !identical(_performAdjusted, adjusted) ||
+        _editGeneration != _performAdjustedGeneration) {
+      return false;
+    }
+    _performAdjusted = null;
+    final slots = _renumber(previous.slots.toList());
+    final existing = _existing;
+    if (existing == null) {
+      // Unsaved: the adjustment only ever lived in the working slots.
+      setState(() => _slots = slots);
+      _markDirty();
+      return true;
+    }
+    final expected = _performStored;
+    if (expected == null) return false;
+    // No edit since the Perform write, which left `_existing` equal to the
+    // working copy, so restoring onto it keeps every other field.
+    final replacement = existing.copyWith(slots: slots);
+    _autoCommitTimer?.cancel();
+    final generation = ++_editGeneration;
+    final operation = _commitQueueTail.then(
+      (_) => _repos.programs.replaceIfUnchanged(
+        expected: expected,
+        replacement: replacement,
+        updatedAt: DateTime.now().toUtc(),
+      ),
+    );
+    _commitQueueTail = operation.then<_AutoCommitOutcome>(
+      (_) => _AutoCommitOutcome.committed(generation),
+      onError: (Object error, StackTrace stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'program_editor_screen._restorePerformSnapshot',
+        );
+        return _AutoCommitOutcome.failed(generation);
+      },
+    );
+    final bool restored;
+    try {
+      restored = await operation;
+    } on Object catch (_) {
+      // diagnostics: silent — logged by the commit queue above; the Undo is refused.
+      return false;
+    }
+    if (!restored || !mounted) return restored;
+    final live = await _repos.programs.getById(existing.id);
+    // An edit made while the restore was in flight keeps its working copy;
+    // saving it will write that edit (and the adjusted slots) over the restore.
+    if (!mounted || live == null || _editGeneration != generation) {
+      return restored;
+    }
+    setState(() {
+      _existing = live;
+      _slots = live.slots.toList();
+      _dirty = false;
+    });
+    return restored;
   }
 
   // --- Slot mutations -------------------------------------------------------

@@ -2115,7 +2115,8 @@ void main() {
       required CollectionData data,
       Size size = const Size(412, 800),
       double textScale = 1.0,
-      Future<bool> Function(Program adjusted)? programUnchangedSince,
+      Future<bool> Function(Program previous, Program adjusted)?
+      restoreIfUnchanged,
     }) async {
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -2147,7 +2148,7 @@ void main() {
                       data: data,
                       renderer: _renderer,
                       onProgramChanged: (p) async => changed.add(p),
-                      programUnchangedSince: programUnchangedSince,
+                      restoreIfUnchanged: restoreIfUnchanged,
                     ),
                   ),
                 ),
@@ -2198,30 +2199,32 @@ void main() {
     }
 
     testWidgets(
-      'Undo on "Program adjusted" after leaving Perform persists the previous '
-      'program when the owner reports it unchanged since',
+      'Undo on "Program adjusted" after leaving Perform hands the owner the '
+      'previous and adjusted programs and shows nothing when it restores',
       (tester) async {
         final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
         final program = _program([_slot(id: 's1', position: 0, danceId: 'd1')]);
-        final asked = <Program>[];
+        final asked = <(Program, Program)>[];
         final changed = await pumpPushed(
           tester,
           program: program,
           data: data,
           size: const Size(1200, 2000),
-          programUnchangedSince: (adjusted) async {
-            asked.add(adjusted);
+          restoreIfUnchanged: (previous, adjusted) async {
+            asked.add((previous, adjusted));
             return true;
           },
         );
 
         final l10n = await adjustLeaveAndUndo(tester);
 
-        expect(changed, hasLength(2));
-        expect(changed.first, isNot(equals(program)));
-        // The owner is asked about the adjusted program, not the snapshot.
-        expect(asked, [same(changed.first)]);
-        expect(changed.last, equals(program));
+        // The restore is the owner's one atomic step; the screen does not
+        // also write the snapshot through onProgramChanged.
+        expect(changed, hasLength(1));
+        expect(changed.single, isNot(equals(program)));
+        expect(asked, hasLength(1));
+        expect(asked.single.$1, equals(program));
+        expect(asked.single.$2, same(changed.single));
         expect(find.text(l10n.performUndoNoLongerAvailable), findsNothing);
       },
     );
@@ -2237,7 +2240,7 @@ void main() {
           program: program,
           data: data,
           size: const Size(1200, 2000),
-          programUnchangedSince: (_) async => false,
+          restoreIfUnchanged: (_, _) async => false,
         );
 
         final l10n = await adjustLeaveAndUndo(tester);
