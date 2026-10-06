@@ -19,10 +19,15 @@ static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
 }
 
+// Sizes the window icon is offered at. The bundled PNG is 512 px, and GTK 3
+// given an icon that large sets only the legacy WM_HINTS pixmap and no
+// _NET_WM_ICON, which is what task switchers and docks read (observed with
+// GTK 3.24.41; 256 px and below were set). So it is scaled to these instead.
+static const int kIconSizes[] = {256, 128, 64, 48, 32, 16};
+
 // Sets the window icon from data/compendium_app.png beside the executable, the
-// file app/linux/CMakeLists.txt installs into the bundle. X11 window managers
-// and task switchers read it from the window (_NET_WM_ICON); shells that match
-// the window to its launcher by application id use the launcher's icon instead.
+// file app/linux/CMakeLists.txt installs into the bundle. Shells that match the
+// window to its launcher by application id show the launcher's icon instead.
 // A missing or unreadable file leaves the default icon and logs a warning.
 static void set_window_icon(GtkWindow* window) {
   g_autofree gchar* executable = g_file_read_link("/proc/self/exe", nullptr);
@@ -33,9 +38,21 @@ static void set_window_icon(GtkWindow* window) {
   g_autofree gchar* path =
       g_build_filename(directory, "data", "compendium_app.png", nullptr);
   g_autoptr(GError) error = nullptr;
-  if (!gtk_window_set_icon_from_file(window, path, &error)) {
+  g_autoptr(GdkPixbuf) source = gdk_pixbuf_new_from_file(path, &error);
+  if (source == nullptr) {
     g_warning("Failed to load the window icon %s: %s", path, error->message);
+    return;
   }
+  GList* icons = nullptr;
+  for (int size : kIconSizes) {
+    GdkPixbuf* scaled =
+        gdk_pixbuf_scale_simple(source, size, size, GDK_INTERP_BILINEAR);
+    if (scaled != nullptr) {
+      icons = g_list_append(icons, scaled);
+    }
+  }
+  gtk_window_set_icon_list(window, icons);
+  g_list_free_full(icons, g_object_unref);
 }
 
 // Implements GApplication::activate.
