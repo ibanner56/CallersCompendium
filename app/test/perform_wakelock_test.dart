@@ -4,6 +4,8 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wakelock_plus/wakelock_plus.dart'
+    show wakelockPlusPlatformInstance;
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -321,4 +323,59 @@ void main() {
       expect(counting.outstanding, 0);
     },
   );
+
+  testWidgets(
+    'a Dart Error from the first enable does not stop the disable on exit',
+    (tester) async {
+      // flows-4: the wake-lock chain was `_wakelockOp.then(...)`, and only
+      // `Exception`s were caught. A plugin `Error` left `_wakelockOp` failed,
+      // so every later operation — including the disable on exit — was
+      // skipped and the lock stayed held after leaving Perform.
+      final throwing = _ThrowingFirstEnableWakelock();
+      final previous = wakelockPlusPlatformInstance;
+      wakelockPlusPlatformInstance = throwing;
+      addTearDown(() => wakelockPlusPlatformInstance = previous);
+
+      await _pushPerform(
+        tester,
+        PerformDanceScreen(dance: _dance(), renderer: _renderer),
+      );
+      expect(throwing.toggles, [true]);
+      // The Error is still surfaced, through `FlutterError.reportError` (the
+      // crash log in the app; `takeException` here), rather than swallowed.
+      expect(tester.takeException(), isA<StateError>());
+
+      await tester.tap(find.byKey(const ValueKey('exit-perform')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PerformDanceScreen), findsNothing);
+      expect(throwing.toggles, [
+        true,
+        false,
+      ], reason: 'leaving Perform must still issue the disable');
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'the Error is reported once, not once per later operation',
+      );
+    },
+  );
+}
+
+/// Throws a [StateError] (a Dart `Error`, not an `Exception`) from its first
+/// `toggle(enable: true)`, then behaves.
+class _ThrowingFirstEnableWakelock extends FakeWakelockPlus {
+  bool _thrown = false;
+
+  @override
+  Future<void> toggle({required bool enable}) async {
+    toggles.add(enable);
+    if (enable && !_thrown) {
+      _thrown = true;
+      throw StateError('wake-lock plugin bug');
+    }
+    isEnabled = enable;
+  }
 }
