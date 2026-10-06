@@ -254,8 +254,17 @@ jobs:
             -destination "id=$udid" \
             CODE_SIGNING_ALLOWED=NO \
             2>&1 | tee "$RUNNER_TEMP/xcodebuild-test.log"
-          grep -E '^[[:space:]]*Executed [0-9]+ tests?' "$RUNNER_TEMP/xcodebuild-test.log" \
-            | tail -n 1 >> "$GITHUB_STEP_SUMMARY" || true
+          # Report the count, and fail if xcodebuild "succeeded" without
+          # running a test (a testable unticked in the scheme, say). Xcode 26
+          # prints "Test case '...' passed"; older Xcode "Test Case".
+          log="$RUNNER_TEMP/xcodebuild-test.log"
+          passed="$(grep -cE "^[[:space:]]*Test [Cc]ase '.*' passed" "$log" || true)"
+          failed="$(grep -cE "^[[:space:]]*Test [Cc]ase '.*' failed" "$log" || true)"
+          echo "iOS RunnerTests: $passed passed, $failed failed" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$passed" -eq 0 ]; then
+            echo "::error::xcodebuild test reported no passing iOS RunnerTests."
+            exit 1
+          fi
       - name: Test native Swift code (macOS RunnerTests)
         if: >-
           matrix.target == 'macos' &&
@@ -275,8 +284,17 @@ jobs:
             -configuration Debug \
             -destination 'platform=macOS' \
             2>&1 | tee "$RUNNER_TEMP/xcodebuild-test.log"
-          grep -E '^[[:space:]]*Executed [0-9]+ tests?' "$RUNNER_TEMP/xcodebuild-test.log" \
-            | tail -n 1 >> "$GITHUB_STEP_SUMMARY" || true
+          # Report the count, and fail if xcodebuild "succeeded" without
+          # running a test (a testable unticked in the scheme, say). Xcode 26
+          # prints "Test case '...' passed"; older Xcode "Test Case".
+          log="$RUNNER_TEMP/xcodebuild-test.log"
+          passed="$(grep -cE "^[[:space:]]*Test [Cc]ase '.*' passed" "$log" || true)"
+          failed="$(grep -cE "^[[:space:]]*Test [Cc]ase '.*' failed" "$log" || true)"
+          echo "macOS RunnerTests: $passed passed, $failed failed" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$passed" -eq 0 ]; then
+            echo "::error::xcodebuild test reported no passing macOS RunnerTests."
+            exit 1
+          fi
 
   # PR-only single-source gate: a schemaVersion bump in compendium_core's
   # database.dart must ship a migration test/fixture in the same PR. Needs full
