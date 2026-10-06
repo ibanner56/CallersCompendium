@@ -590,11 +590,12 @@ INTERACTIVE_UPSERT_RE = re.compile(
     r"\.\s*\.?\s*_?upsert[A-Za-z0-9_$]*\b"
     r"|(?<![A-Za-z0-9_$.])_?upsert[A-Za-z0-9_$]*\s*(?:<[^>;()]*>\s*)?\("
 )
-# A deliberate exception: the line directly above the call carries
+# A deliberate exception: the line directly above the call is a comment line
 #   // sync-invariant-exclusion: upsert — <reason>
-# The reason is mandatory.
+# The reason is mandatory. Anchored to a line that *is* a comment, so a string
+# literal or a trailing comment on code that spells the marker does not count.
 UPSERT_EXCLUSION_RE = re.compile(
-    r"sync-invariant-exclusion:\s*upsert\s*[—–-]+\s*\S"
+    r"^\s*//+\s*sync-invariant-exclusion:\s*upsert\s*[—–-]+\s*\S"
 )
 WRITE_FROM_SYNC_DECL_RE = re.compile(r"\bwriteFromSync[A-Za-z0-9_]*\s*\(")
 

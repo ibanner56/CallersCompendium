@@ -419,6 +419,15 @@ def test_sync_write_path_rejects_every_upsert_shape() -> None:
         "await repositories.dances.upsert(d);\n"
     )
     assert _interactive_upsert_violations(distant_marker, SYNC_WRITE_PATH)
+    # Review of #1701: the marker must be a comment, not marker-shaped code.
+    for not_a_comment in (
+        "const reason = 'sync-invariant-exclusion: upsert — x';\n",
+        "final r = 1; // sync-invariant-exclusion: upsert — trailing on code\n",
+    ):
+        assert _interactive_upsert_violations(
+            not_a_comment + "await repositories.dances.upsert(d);\n",
+            SYNC_WRITE_PATH,
+        ), not_a_comment
     # Prose and strings that mention upsert are not calls.
     assert_no(
         _interactive_upsert_violations(

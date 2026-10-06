@@ -205,7 +205,7 @@ def test_flags_local_alias_of_dances() -> None:
     for decl in (
         "final d = _db.dances.createAlias('d');",
         "final d = alias(_db.dances, 'd');",
-        "late final \$DancesTable d = _db.dances;",
+        "late final $DancesTable d = _db.dances;",
     ):
         src = f"""
 Future<void> f() async {{
@@ -216,6 +216,50 @@ Future<void> f() async {{
 }}
 """
         assert [v.kind for v in check_text(src, "a.dart")] == [MISSING], decl
+
+
+def test_flags_generic_call_wrapping_dances() -> None:
+    # Review of #1701: a comma inside `<...>` type arguments must not end the
+    # first argument early.
+    for join in (
+        "innerJoin(alias<Table, Row>(_db.dances, 'd'), x,)",
+        "innerJoin(wrap<Map<String, int>, Row>(_db.dances), x,)",
+    ):
+        assert [v.kind for v in check_text(_body(join), "a.dart")] == [MISSING], join
+
+
+def test_comparison_in_first_argument_does_not_hide_dances() -> None:
+    # `a < b` is not a generic; unbalanced brackets fall back to the whole call.
+    join = "innerJoin(pick(a<b, _db.dances), x,)"
+    assert [v.kind for v in check_text(_body(join), "a.dart")] == [MISSING], join
+
+
+def test_flags_field_alias_used_through_this_or_bare() -> None:
+    # Review of #1701: a field alias used as `this.d` (or bare) is the same join.
+    for use in ("this.d", "d"):
+        src = f"""
+class R {{
+  late final d = _db.dances.createAlias('d');
+  Future<void> f() async {{
+    final rows = await (_db.select(_db.danceTags).join([
+      innerJoin({use}, x),
+    ])).get();
+  }}
+}}
+"""
+        assert [v.kind for v in check_text(src, "a.dart")] == [MISSING], use
+
+
+def test_other_member_with_alias_name_is_not_an_alias() -> None:
+    src = """
+final d = _db.dances.createAlias('d');
+Future<void> f() async {
+  final rows = await (_db.select(_db.danceTags).join([
+    innerJoin(other.d, x),
+  ])).get();
+}
+"""
+    assert check_text(src, "a.dart") == []
 
 
 def test_dances_only_in_second_argument_is_not_a_dances_join() -> None:

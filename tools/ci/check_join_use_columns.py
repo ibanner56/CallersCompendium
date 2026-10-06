@@ -149,21 +149,37 @@ def _call_end(code: str, open_paren: int) -> int:
     return len(code)
 
 
-def _first_argument_end(code: str, after_paren: int) -> int:
+_CLOSERS = {")": "(", "]": "[", "}": "{", ">": "<"}
+
+
+def _first_argument_end(code: str, after_paren: int, call_end: int) -> int:
     """Offset of the `,` or `)` that ends the call argument starting at
-    [after_paren], skipping nested brackets."""
-    depth = 0
-    for k in range(after_paren, len(code)):
+    [after_paren], skipping nested brackets and generic type arguments.
+
+    A `<` opens type arguments only when it directly follows an identifier
+    character (`alias<Table, Row>(`); `a < b` with spaces is a comparison. If
+    the brackets do not balance (`a<b` written without spaces, say), the
+    argument cannot be delimited safely, so [call_end] is returned and the
+    whole call is searched -- erring toward a finding, never away from one.
+    """
+    stack: list[str] = []
+    for k in range(after_paren, call_end):
         c = code[k]
         if c in "([{":
-            depth += 1
+            stack.append(c)
+        elif c == "<" and k > 0 and (code[k - 1].isalnum() or code[k - 1] in "_$"):
+            stack.append(c)
+        elif c == ">" and stack and stack[-1] == "<":
+            stack.pop()
         elif c in ")]}":
-            if depth == 0:
+            if not stack:
                 return k
-            depth -= 1
-        elif c == "," and depth == 0:
+            if stack[-1] != _CLOSERS[c]:
+                return call_end
+            stack.pop()
+        elif c == "," and not stack:
             return k
-    return len(code)
+    return call_end
 
 
 def check_text(text: str, path: str) -> list[Violation]:
@@ -175,7 +191,13 @@ def check_text(text: str, path: str) -> list[Violation]:
 
     aliases = {m.group(1) for m in _DANCES_ALIAS_RE.finditer(code)}
     alias_re = (
-        re.compile(r"(?<![\w$.])(?:" + "|".join(map(re.escape, sorted(aliases))) + r")(?![\w$])")
+        # Bare (`d`) or through `this.` (`this.d`); `other.d` is a different
+        # member that only shares the name.
+        re.compile(
+            r"(?:(?<![\w$.])|(?<![\w$])this\s*\.\s*)(?:"
+            + "|".join(map(re.escape, sorted(aliases)))
+            + r")(?![\w$])"
+        )
         if aliases
         else None
     )
@@ -185,7 +207,7 @@ def check_text(text: str, path: str) -> list[Violation]:
     for m in _JOIN_RE.finditer(code):
         start = m.start()
         end = _call_end(code, code.index("(", start))
-        first = code[m.end() : _first_argument_end(code, m.end())]
+        first = code[m.end() : _first_argument_end(code, m.end(), end)]
         if not (_DANCES_RE.search(first) or (alias_re and alias_re.search(first))):
             continue
         line = lineno(start)
