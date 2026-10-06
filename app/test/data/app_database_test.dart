@@ -204,6 +204,30 @@ void main() {
     });
   }
 
+  test('Windows with an unresolvable Documents folder does not start an empty '
+      'library', () async {
+    PathProviderPlatform.instance = _FakePathProvider(
+      documents: null,
+      support: support,
+      cache: cache,
+    );
+
+    await expectLater(
+      runMigrationPreflightForApp(
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        operatingSystem: 'windows',
+      ),
+      throwsA(
+        isA<DatabaseRelocationBlocked>().having(
+          (e) => e.reason,
+          'reason',
+          DatabaseRelocationFailure.legacyUnreachable,
+        ),
+      ),
+    );
+    expect(File(p.join(cache, name)).existsSync(), isFalse);
+  });
+
   test(
     'Linux without any Documents folder configured is not blocked',
     () async {

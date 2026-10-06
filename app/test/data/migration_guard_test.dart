@@ -808,6 +808,55 @@ void main() {
       expect(absent.parent.existsSync(), isFalse);
     });
 
+    test('the breadcrumb at the old path is part of the move: if it cannot be '
+        'made, the move rolls back', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'keep me');
+
+      await expectLater(
+        relocateLegacyDatabase(
+          target: target,
+          legacy: [legacy],
+          // Something takes the freed path before the breadcrumb is made.
+          deleter: (file) async {
+            await file.delete();
+            if (file.path == legacy.path) file.writeAsStringSync('squatter');
+          },
+        ),
+        throwsA(
+          isA<DatabaseRelocationBlocked>().having(
+            (e) => e.reason,
+            'reason',
+            DatabaseRelocationFailure.moveFailed,
+          ),
+        ),
+      );
+
+      expect(seeded(legacy), 'keep me');
+      expect(target.existsSync(), isFalse);
+    });
+
+    test('a stray sidecar at the new location is not listed as a library '
+        'copy', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'documents');
+      target.parent.createSync(recursive: true);
+      File('${target.path}-wal').writeAsBytesSync(const [1]);
+
+      final blocked =
+          await relocateLegacyDatabase(
+            target: target,
+            legacy: [legacy],
+            documentsDirectory: legacy.parent,
+          ).then<DatabaseRelocationBlocked?>(
+            (_) => null,
+            onError: (Object e) => e as DatabaseRelocationBlocked,
+          );
+
+      expect(blocked?.reason, DatabaseRelocationFailure.bothExist);
+      expect(blocked!.copies.map((c) => c.location), [
+        DatabaseCopyLocation.documents,
+      ]);
+    });
+
     test('a breadcrumb is not a legacy database on the next launch', () async {
       _createFixture(legacy.path, userVersion: 7, seedValue: 'x');
       await relocateLegacyDatabase(target: target, legacy: [legacy]);
