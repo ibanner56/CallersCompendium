@@ -441,12 +441,17 @@ class SyncMergeEngine {
   /// Calculates actions for every address named by local state, the baseline,
   /// or any peer. A missing peer entry is absence from that manifest, not a
   /// deletion.
+  ///
+  /// [decidedAgainst] holds, per whole-collection setting, the wire hashes of
+  /// the versions the user chose against on this device (sync-spec §6.6); see
+  /// [_wholeCollectionConflict].
   SyncMergePlan plan({
     required Map<SyncRecordAddress, SyncMergeCandidate?> local,
     required Map<SyncRecordAddress, SyncBaselineEntry> baseline,
     required Iterable<Map<SyncRecordAddress, SyncMergeCandidate?>> peers,
     bool freshAttach = false,
     Set<SyncRecordAddress> unresolved = const {},
+    Map<SyncRecordAddress, Set<String>> decidedAgainst = const {},
   }) {
     final peerMaps = peers.toList(growable: false);
     final addresses = <SyncRecordAddress>{
@@ -501,6 +506,7 @@ class SyncMergeEngine {
           remotes: remoteCandidates,
           baselineEntry: baselineEntry,
           freshAttach: freshAttach,
+          decidedAgainst: decidedAgainst[address] ?? const {},
         );
         if (resolution.conflict != null) {
           decisions.add(
@@ -536,6 +542,7 @@ class SyncMergeEngine {
         remotes: remoteCandidates,
         baselineEntry: baselineEntry,
         freshAttach: freshAttach,
+        decidedAgainst: decidedAgainst[address] ?? const {},
       );
       if (resolution.conflict != null) {
         decisions.add(
@@ -595,6 +602,7 @@ class SyncMergeEngine {
     required List<SyncMergeCandidate> remotes,
     required SyncBaselineEntry? baselineEntry,
     required bool freshAttach,
+    required Set<String> decidedAgainst,
   }) {
     final candidates = [?local, ...remotes];
     final maximumExistence = candidates
@@ -646,6 +654,7 @@ class SyncMergeEngine {
       contentCandidates: contentCandidates,
       baselineEntry: baselineEntry,
       deletedWins: deletedWins,
+      decidedAgainst: decidedAgainst,
     );
     if (wholeCollection != null) return _Resolution.review(wholeCollection);
     final maximumUpdated = contentCandidates
@@ -718,11 +727,20 @@ class SyncMergeEngine {
   /// agreed one, or held none, would otherwise have the newer set silently
   /// discard the other. A single changed version is an ordinary one-sided
   /// edit and syncs normally.
+  ///
+  /// A version whose wire hash is in [decidedAgainst] is not counted: the user
+  /// already chose against it on this device, and the choice — stamped past
+  /// every version on offer — wins last-writer-wins against it. Without this
+  /// the choice could not end the conflict, because the baseline advances only
+  /// once a peer carries the chosen version, and a peer that has not synced
+  /// since, or a leftover manifest that never will, still publishes the old
+  /// one. This device's own copy is never dropped.
   SyncMergeConflict? _wholeCollectionConflict({
     required SyncMergeCandidate? local,
     required List<SyncMergeCandidate> contentCandidates,
     required SyncBaselineEntry? baselineEntry,
     required bool deletedWins,
+    required Set<String> decidedAgainst,
   }) {
     if (deletedWins || contentCandidates.isEmpty) return null;
     final key = contentCandidates.first.blob;
@@ -734,7 +752,9 @@ class SyncMergeEngine {
       for (final candidate in contentCandidates)
         if (!candidate.isDeleted &&
             (baselineEntry == null ||
-                candidate.wireHash != baselineEntry.wireHash))
+                candidate.wireHash != baselineEntry.wireHash) &&
+            (identical(candidate, local) ||
+                !decidedAgainst.contains(candidate.wireHash)))
           candidate,
     ];
     if (changed.map((candidate) => candidate.bodyHash).toSet().length < 2) {

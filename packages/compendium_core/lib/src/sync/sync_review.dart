@@ -58,6 +58,23 @@ const Set<String> syncNaturalKeyRenameCollisionReasons = {
 const String syncConflictChoiceReason =
     'versions of one record differ and need the user to choose which to keep';
 
+/// The reason for a version of a whole-collection setting that the user
+/// chose against on this device (sync-spec §6.6, *Conflict choices*).
+///
+/// Not something to review: these rows are never listed. One row per version
+/// that was on offer when the choice was written — the other devices' and this
+/// device's own copy before the choice — keyed by that version's wire hash as
+/// `counterpart_id` (and `candidate_hash`), with an empty `candidate_blob`,
+/// since only the hash is needed. The merge drops a changed version whose hash
+/// is recorded here before deciding whether the setting is in conflict, so a
+/// device that has not synced since, or a leftover manifest that never will,
+/// cannot raise the choice again on this device. The record lives only here:
+/// another device cannot see it, so one that changed the set too is asked once
+/// more. Cleared with the rest of the queue when the store epoch resets or the
+/// device detaches.
+const String syncConflictDecidedAgainstReason =
+    'a version of a whole-collection setting the user chose against';
+
 /// One user choice in a conflict review: keep [keepCandidateHash]'s version
 /// of the record, or this device's own when it is null — or, when
 /// [combineTakingOther] is set, combine both versions of a whole-collection

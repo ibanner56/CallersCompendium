@@ -4747,11 +4747,11 @@ void main() {
     Future<SyncMergeCandidate> current(CompendiumRepositories repos) async =>
         (await CompendiumSyncStorage(repos).snapshot()).local[dialects]!;
 
-    Future<List<ReviewQueueRow>> choices(CompendiumRepositories repos) async =>
-        [
-          for (final row in await repos.syncLocal.listReviewQueue())
-            if (row.reason == syncConflictChoiceReason) row,
-        ];
+    /// The wire hash of each version this device is asking about.
+    Future<List<String>> choices(CompendiumRepositories repos) async => [
+      for (final row in await repos.syncLocal.listReviewQueue())
+        if (row.reason == syncConflictChoiceReason) row.candidateHash,
+    ];
 
     /// One pass on [repos] (as `deviceId`) against [peers], each of which
     /// publishes exactly the given copy of the dialects setting.
@@ -4814,10 +4814,11 @@ void main() {
       return repos;
     }
 
-    Future<SyncMergeCandidate> agreedSet() async =>
-        current(await device(const [
-          {'name': 'Agreed'},
-        ], at: t0));
+    Future<SyncMergeCandidate> agreedSet() async => current(
+      await device(const [
+        {'name': 'Agreed'},
+      ], at: t0),
+    );
 
     test('the deciding device is not asked again while the other device '
         'still publishes the version it chose against', () async {
@@ -4909,7 +4910,11 @@ void main() {
         at: t0.add(const Duration(seconds: 2)),
         agreed: agreed,
       );
-      await pass(a, deviceId: 'device-a', peers: {'device-b': await current(b)});
+      await pass(
+        a,
+        deviceId: 'device-a',
+        peers: {'device-b': await current(b)},
+      );
       await CompendiumSyncStorage(a).resolveConflicts(const [
         SyncConflictDecision(
           kind: SyncRecordKind.setting,
@@ -4924,7 +4929,7 @@ void main() {
       await pass(b, deviceId: 'device-b', peers: {'device-a': decided});
       final asked = await choices(b);
       expect(asked, hasLength(1));
-      expect(asked.single.candidateHash, decided.wireHash);
+      expect(asked.single, decided.wireHash);
 
       await CompendiumSyncStorage(b).resolveConflicts([
         SyncConflictDecision(
@@ -5108,6 +5113,10 @@ final class _SnapshotInterleavingStore
   @override
   Future<Set<SyncRecordAddress>> queuedConflictAddresses() =>
       _delegate.queuedConflictAddresses();
+
+  @override
+  Future<Map<SyncRecordAddress, Set<String>>> decidedAgainstHashes() =>
+      _delegate.decidedAgainstHashes();
 
   @override
   Future<void> replaceBaseline({
@@ -5420,6 +5429,10 @@ final class _FakeStore implements SyncCoordinatorStore {
   @override
   Future<Set<SyncRecordAddress>> queuedConflictAddresses() async =>
       queuedConflicts;
+
+  @override
+  Future<Map<SyncRecordAddress, Set<String>>> decidedAgainstHashes() async =>
+      const {};
 
   @override
   Future<void> replaceBaseline({

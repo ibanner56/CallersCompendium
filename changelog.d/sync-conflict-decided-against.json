@@ -1,0 +1,14 @@
+{
+  "id": "sync-conflict-decided-against",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "When you choose which version of your dialects, custom themes, figure shorthands or walkthrough snippets to keep, the device where you chose no longer asks again, even before your other device syncs or when an old copy of this device is still listed under Other devices. Another device that also changed that set asks you once more, unless you kept its set."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "A whole-collection setting conflict choice now records the versions it chose against in review_queue, and the merge stops counting them as changes, so the deciding device no longer re-raises the conflict while a peer or a leftover manifest still publishes one of them."
+    ]
+  }
+}

@@ -457,6 +457,38 @@ void main() {
       expect(await queued(), isEmpty);
     });
 
+    test('records every version chosen against, and lists none of them as '
+        'a review', () async {
+      await seedDialects(
+        [
+          {'name': 'Mine'},
+        ],
+        [
+          {'name': 'Theirs'},
+        ],
+      );
+      const address = (
+        kind: SyncRecordKind.setting,
+        recordId: 'custom_dialects',
+      );
+      final before = await localCandidate(address);
+      final offered = (await queued()).single.candidateHash;
+
+      await storage.resolveConflicts([
+        const SyncConflictDecision(
+          kind: SyncRecordKind.setting,
+          recordId: 'custom_dialects',
+          combineTakingOther: {},
+        ),
+      ], now: () => tie);
+
+      expect(await storage.decidedAgainstHashes(), {
+        address: {before.wireHash, offered},
+      });
+      expect(await SyncReviewQueueResolver(storage).list(), isEmpty);
+      expect(await SyncReviewQueueResolver(storage).conflictCount(), 0);
+    });
+
     test('is refused for a setting that is not a collection', () async {
       await seedTie();
 
