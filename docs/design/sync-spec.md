@@ -2883,7 +2883,12 @@ reason:
   primary key stays unique however many devices disagree;
 - `candidate_blob` holding that version, newest copy per distinct body;
 - `local_hash` holding this device's wire hash when the row was queued, null
-  when this device holds no live copy.
+  when this device holds no live copy;
+- one further row, under a reason of its own and never listed, for every other
+  copy on offer that is not shown: an older copy of a shown body, or another
+  device's copy of this device's body, each under its own wire hash. Two devices
+  holding one body at different stamps publish two hashes. Deciding goes against
+  both copies, so both have to be known when the choice is written (below).
 
 Every pass MUST bring the queue in line with that pass's merge: queue each
 conflict it raises, drop every queued choice it no longer raises, and leave
@@ -2901,11 +2906,41 @@ of decisions is all or none. A decision MUST be refused, writing nothing, when
 this device's copy has changed since the row was queued (its wire hash no
 longer matches `local_hash`), and when the stamp would fall outside the local
 clock window (§6.9). The written version reaches every other device as an
-ordinary newer edit, so their queued choices for that record clear on their
-next pass. If two devices decide before either syncs, the later decision wins,
+ordinary newer edit. For an equal-`updatedAt` tie that settles it: last-writer-wins
+takes the decision, so the other devices' queued choices for that record clear
+on their next pass. If two devices decide before either syncs, the later decision wins,
 by the same last-writer-wins — unless both decisions land in the same stored
 tick with different bodies, which is itself an equal-`updatedAt` tie and is
 queued again.
+
+**Whole-collection decisions** (amended 2026-10-06, @ibanner56's ruling).
+The whole-collection rule (§6.3) ignores `updatedAt`, so on its own the
+decision cannot end the conflict. The baseline advances only once a peer
+carries the decided version (§6.3 step 9). Until then, a peer that has not
+synced since still publishes the version the user chose against. A leftover
+manifest from an earlier attachment (§3.3) never stops publishing it. Both
+still count as changed. So when a choice is written for a whole-collection
+setting, the deciding device MUST record every version that was on offer and
+was not written: every copy of the other versions, shown or not, and its own
+pre-decision copy. It records
+them in `review_queue` under their own reason, one row per wire hash, with no
+candidate body, and never lists them for review. The whole-collection rule
+MUST then not count a changed version whose wire hash is recorded. This
+device's own copy always counts. Last-writer-wins settles what remains, and the
+decision wins it by construction. The deciding device therefore raises no
+conflict for that record on its next pass, or on any later pass, while the
+versions it chose against are still published. The record is local. It is
+cleared with the rest of `review_queue` whenever the baseline is (§3.2).
+
+The record is local by design, and that sets a limit. Another device that also
+changed the set sees the decision as an ordinary concurrent change and is asked
+once more, unless the user kept that device's version, which matches its own
+body. Taking the decided version there settles both, because every copy then
+has the same body. Keeping its own version instead writes a newer version, which
+the first device has not chosen against, so the first device is asked again. Stopping the other devices from asking would need a
+wire-visible marker on the written blob naming the versions it supersedes, or a
+last-writer-wins rule for blobs marked as decisions. Either is a wire change,
+deferred to the next one.
 
 **Combine both** (amended 2026-10-05, @ibanner56's ruling). For a
 whole-collection setting with exactly two versions on offer, the user may
@@ -2924,10 +2959,12 @@ snippets) MUST be refused rather than written, because loading it would drop
 entries without a word.
 
 **Undo** (amended 2026-10-05, @ibanner56's ruling). Once written, a choice is
-the newest version everywhere, so the record cannot be returned to undecided:
-the next pass on any device raises no conflict. Undo instead reconsiders the
-choice: it offers again the versions the choice was made between — held in
-memory by the client, never queued or stored — and writes nothing until the
+the newest version everywhere, so the record cannot be returned to undecided.
+The next pass on the deciding device raises no conflict for it. For a tie, that
+holds on every device; for a whole-collection setting, see above. Undo instead
+reconsiders the choice. It offers again the versions the choice was made
+between, held in memory by the client and never queued or stored; the
+decided-against record above keeps only their hashes. It writes nothing until the
 user chooses again. The new choice is written as any choice is, stamped one tick
 past the first choice too, so it supersedes it on every device. It MUST be
 refused, writing nothing, when this device's copy is no longer what the first
@@ -4508,7 +4545,12 @@ local; break it by taking remote; break it by any convergent rule). A
 whole-collection setting changed on both sides is queued even when one edit is
 newer (mutation: drop the whole-collection rule). A decision converges every
 device on the kept version (mutation: stamp the decision at the tie instead of
-one tick past it).
+one tick past it). After a whole-collection decision, the deciding device's
+next pass raises nothing. That holds while a peer still publishes the version
+chosen against, and while a leftover manifest re-offers it on every pass
+(mutation: stop dropping recorded versions in the whole-collection rule). A
+peer that also changed the set is asked exactly once (this pins the documented
+limit of a local record).
 ≥3-device convergence with interleaved edits. A record absent from the baseline
 and present on **both** sides converges — two devices independently setting the
 same shareable settings key, whose id is the key itself, is the cheapest fixture

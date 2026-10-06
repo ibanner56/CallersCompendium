@@ -341,6 +341,11 @@ abstract interface class SyncCoordinatorStore
   /// untouched because the merge skipped them.
   Future<Set<SyncRecordAddress>> queuedConflictAddresses();
 
+  /// The wire hashes of whole-collection versions the user chose against on
+  /// this device, which the merge does not count as a conflict again
+  /// (sync-spec §6.6).
+  Future<Map<SyncRecordAddress, Set<String>>> decidedAgainstHashes();
+
   Future<void> replaceBaseline({
     required String epoch,
     required Iterable<SyncBaselineEntry> entries,
@@ -462,6 +467,10 @@ final class CompendiumSyncCoordinatorStore
     Iterable<SyncMergeDecision> reviews, {
     Set<SyncRecordAddress> unevaluated = const {},
   }) => storage.refreshConflictReviews(reviews, unevaluated: unevaluated);
+
+  @override
+  Future<Map<SyncRecordAddress, Set<String>>> decidedAgainstHashes() =>
+      storage.decidedAgainstHashes();
 
   @override
   Future<Set<SyncRecordAddress>> queuedConflictAddresses() async => {
@@ -1634,6 +1643,7 @@ class SyncCoordinator {
       peers: mergePeers,
       freshAttach: freshAttach,
       unresolved: {...normalizedUnresolved, ...mergeQuarantined},
+      decidedAgainst: await store.decidedAgainstHashes(),
     );
     reports.addAll(plan.reports);
     final downloads = [

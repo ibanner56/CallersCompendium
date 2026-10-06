@@ -286,6 +286,76 @@ void main() {
       });
     }
 
+    test('a version chosen against on this device is not counted as a '
+        'change, so the choice ends the conflict', () {
+      final agreed = _setting('custom_dialects', 'agreed');
+      final decided = _setting('custom_dialects', 'chosen set', seconds: 3);
+      final against = _setting('custom_dialects', 'other set', seconds: 2);
+      final againstHash = SyncMergeCandidate.fromBlob(against).wireHash;
+      for (final baseline in [
+        {agreed.address: agreedOn(agreed)},
+        const <SyncRecordAddress, SyncBaselineEntry>{},
+      ]) {
+        final plan = engine.plan(
+          local: {decided.address: SyncMergeCandidate.fromBlob(decided)},
+          baseline: baseline,
+          peers: [
+            {against.address: SyncMergeCandidate.fromBlob(against)},
+          ],
+          decidedAgainst: {
+            decided.address: {againstHash},
+          },
+        );
+
+        expect(plan.decisions.single.action, SyncMergeAction.upload);
+      }
+    });
+
+    test('names every copy on offer that the choice does not show', () {
+      final agreed = _setting('custom_dialects', 'agreed');
+      final local = _setting('custom_dialects', 'local set', seconds: 1);
+      final ownCopy = _setting('custom_dialects', 'local set', seconds: 2);
+      final older = _setting('custom_dialects', 'remote set', seconds: 2);
+      final newer = _setting('custom_dialects', 'remote set', seconds: 3);
+      SyncMergeCandidate c(SyncRecordBlob blob) =>
+          SyncMergeCandidate.fromBlob(blob);
+      final plan = engine.plan(
+        local: {local.address: c(local)},
+        baseline: {agreed.address: agreedOn(agreed)},
+        peers: [
+          {older.address: c(older)},
+          {newer.address: c(newer)},
+          {ownCopy.address: c(ownCopy)},
+        ],
+      );
+
+      final conflict = plan.decisions.single.conflict!;
+      expect(conflict.candidates.map((x) => x.wireHash), [c(newer).wireHash]);
+      expect(conflict.copies, {c(older).wireHash, c(ownCopy).wireHash});
+    });
+
+    test('a decided-against hash never drops this device\'s own copy, nor '
+        'a version it was not chosen against', () {
+      final agreed = _setting('custom_dialects', 'agreed');
+      final local = _setting('custom_dialects', 'local set', seconds: 1);
+      final remote = _setting('custom_dialects', 'remote set', seconds: 2);
+      final plan = engine.plan(
+        local: {local.address: SyncMergeCandidate.fromBlob(local)},
+        baseline: {agreed.address: agreedOn(agreed)},
+        peers: [
+          {remote.address: SyncMergeCandidate.fromBlob(remote)},
+        ],
+        decidedAgainst: {
+          local.address: {
+            SyncMergeCandidate.fromBlob(local).wireHash,
+            SyncMergeCandidate.fromBlob(agreed).wireHash,
+          },
+        },
+      );
+
+      expect(plan.decisions.single.action, SyncMergeAction.review);
+    });
+
     test('two other devices that each changed the set go to review while '
         'this device still holds the agreed one', () {
       final agreed = _setting('custom_dialects', 'agreed');
