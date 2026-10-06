@@ -3460,7 +3460,7 @@ abstract class AppLocalizations {
   /// Explanatory subtitle for the aggressive-beats-update setting, explicitly warning that a manually entered beat count can be overwritten when the toggle is on (issue #689 guardrail).
   ///
   /// In en, this message translates to:
-  /// **'When on, changing a figure\'s move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you\'ve edited is never changed automatically.'**
+  /// **'When on, changing a figure\'s move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you\'ve edited is only changed automatically when you switch a balance option on or off, which adds or removes 4 beats.'**
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle;
 
   /// Title of the Defaults settings row that opens the figure-shorthand mappings editor (#420).

@@ -2187,7 +2187,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'Lorsque cette option est activée, la modification du mouvement d\'une figure ou d\'un paramètre affectant le tempo recalcule immédiatement son nombre de temps — même en écrasant un nombre de temps que vous avez saisi manuellement. Lorsqu\'elle est désactivée (par défaut), un nombre de temps que vous avez modifié n\'est jamais changé automatiquement.';
+      'Lorsque cette option est activée, la modification du mouvement d\'une figure ou d\'un paramètre affectant le tempo recalcule immédiatement son nombre de temps — même en écrasant un nombre de temps que vous avez saisi manuellement. Lorsqu\'elle est désactivée (par défaut), un nombre de temps que vous avez modifié n\'est changé automatiquement que lorsque vous activez ou désactivez une option d\'équilibre, ce qui ajoute ou retire 4 temps.';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'Abréviations de figures';

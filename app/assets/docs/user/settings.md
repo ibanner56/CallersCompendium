@@ -410,7 +410,8 @@ open this group. You can override any of them per dance, and
 - **Aggressively recompute figure beats** (off by default) — when on, changing a
   figure's move or a parameter that affects timing recalculates its beat count
   immediately, even overwriting a beat count you typed in by hand. When off, a
-  beat count you've edited is never changed automatically.
+  beat count you've edited is only changed automatically when you switch a
+  balance option on or off, which adds or removes 4 beats.
 
 ## Updates
 

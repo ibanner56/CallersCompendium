@@ -2228,9 +2228,9 @@
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
     "x-sourceSha256": "1d163c476d946d3bcc7fa0c001b99114d7f53588e73341294a86e20043e32357"
   },
-  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Lorsque cette option est activée, la modification du mouvement d'une figure ou d'un paramètre affectant le tempo recalcule immédiatement son nombre de temps — même en écrasant un nombre de temps que vous avez saisi manuellement. Lorsqu'elle est désactivée (par défaut), un nombre de temps que vous avez modifié n'est jamais changé automatiquement.",
+  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Lorsque cette option est activée, la modification du mouvement d'une figure ou d'un paramètre affectant le tempo recalcule immédiatement son nombre de temps — même en écrasant un nombre de temps que vous avez saisi manuellement. Lorsqu'elle est désactivée (par défaut), un nombre de temps que vous avez modifié n'est changé automatiquement que lorsque vous activez ou désactivez une option d'équilibre, ce qui ajoute ou retire 4 temps.",
   "@settingsDefaultsAggressiveBeatsUpdateSubtitle": {
-    "x-sourceSha256": "9eaa0c9c2894b5f582b38219c90c32010320c3f307f85dbc76359959e8c0d81d"
+    "x-sourceSha256": "7ee476b3ea2b7dd326088903cfc362916fb09b7f97f971fe513b538252ce2934"
   },
   "settingsDefaultsFigureShorthandsTitle": "Abréviations de figures",
   "@settingsDefaultsFigureShorthandsTitle": {

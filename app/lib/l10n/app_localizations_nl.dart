@@ -2166,7 +2166,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'Indien ingeschakeld, wordt het aantal tellen van een figuur direct herberekend zodra je de beweging of een parameter wijzigt die de timing beïnvloedt — zelfs als dat een handmatig ingevoerd aantal tellen overschrijft. Indien uitgeschakeld (standaard) wordt een aantal tellen dat je hebt aangepast nooit automatisch gewijzigd.';
+      'Indien ingeschakeld, wordt het aantal tellen van een figuur direct herberekend zodra je de beweging of een parameter wijzigt die de timing beïnvloedt — zelfs als dat een handmatig ingevoerd aantal tellen overschrijft. Indien uitgeschakeld (standaard) wordt een aantal tellen dat je hebt aangepast alleen automatisch gewijzigd wanneer je een balansoptie aan- of uitzet; dan worden er 4 tellen toegevoegd of verwijderd.';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'Figuurafkortingen';

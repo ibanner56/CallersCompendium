@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -1386,8 +1384,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   ///   changed.
   ///
   /// A `balance` *flag* toggle is the exception: it shifts `beats` by +4 (on)
-  /// or -4 (off) relative to the current count, including a manual override,
-  /// and returns before the canonical-default logic below.
+  /// or -4 (off) relative to the current count (clamped to 0..64), including a
+  /// manual override, and returns before the canonical-default logic below.
   ///
   /// A `beats` that is missing or non-int (older/partial data loaded without an
   /// explicit count) is still seeded to the canonical default, so an unowned
@@ -1445,7 +1443,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         final current = draft.params['beats'];
         final base = current is int ? current : oldDefault;
         if (base != null) {
-          draft.params['beats'] = math.max(0, base + (value ? 4 : -4));
+          draft.params['beats'] = (base + (value ? 4 : -4)).clamp(0, 64);
         }
       }
       return;

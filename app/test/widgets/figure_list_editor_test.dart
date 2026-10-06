@@ -735,6 +735,26 @@ void main() {
     expect(drafts.single.beatsTouched, isTrue);
   });
 
+  testWidgets('balance toggle keeps beats within 0..64', (tester) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'box the', 'box_the_gnat');
+    await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '64');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.beats, 64);
+
+    await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '2');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.beats, 0);
+  });
+
   testWidgets('a loaded figure preserves its beats through a non-beats edit', (
     tester,
   ) async {

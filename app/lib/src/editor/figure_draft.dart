@@ -76,7 +76,8 @@ class FigureDraft {
   /// field directly (or the draft is seeded from a loaded figure that already
   /// carries an explicit `beats` via [FigureDraft.fromFigure]), this becomes
   /// `true` and the editor stops auto-filling beats so a manual override is
-  /// never silently overwritten.
+  /// never silently overwritten. (Exception: toggling a `balance` flag shifts
+  /// the count by 4 either way; see `_applyNonBeatsParamChange`.)
   bool beatsTouched;
 
   /// Whether this figure's subject was ASSUMED by the import parser (the source
