@@ -186,6 +186,11 @@ abstract class InstanceRaiseChannel {
   Future<void> close();
 }
 
+/// Most raise connections the first instance serves at once; more are closed
+/// on accept. A loopback port is reachable by every local process (any user's),
+/// and each open connection holds a file descriptor in the app.
+const int kMaxRaiseConnections = 4;
+
 /// [InstanceRaiseChannel] over a loopback-only TCP socket (IPv4, ephemeral
 /// port). The port is written to `<lockDir>/single_instance.port`.
 ///
@@ -201,7 +206,9 @@ class LoopbackRaiseChannel implements InstanceRaiseChannel {
   final String portFileName;
 
   /// Bounds connect and read so a wedged peer can neither hang a second launch
-  /// nor hold a connection in the first instance open indefinitely.
+  /// nor hold a connection in the first instance open indefinitely. In the
+  /// first instance it is a deadline for the whole connection, not an idle
+  /// timeout, so trickling one byte at a time does not extend it.
   final Duration timeout;
 
   /// Longest request line accepted before the connection is dropped.
@@ -210,6 +217,7 @@ class LoopbackRaiseChannel implements InstanceRaiseChannel {
   ServerSocket? _server;
   File? _portFile;
   int? _port;
+  int _serving = 0;
 
   File _portFileIn(Directory dir) => File(p.join(dir.path, portFileName));
 
@@ -219,7 +227,14 @@ class LoopbackRaiseChannel implements InstanceRaiseChannel {
     final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
     _server = server;
     server.listen(
-      (socket) => unawaited(_serve(socket, onRaise)),
+      (socket) {
+        if (_serving >= kMaxRaiseConnections) {
+          socket.destroy();
+          return;
+        }
+        _serving++;
+        unawaited(_serve(socket, onRaise).whenComplete(() => _serving--));
+      },
       onError: (Object error, StackTrace stackTrace) {
         logCaughtErrorTypeOnly(
           error,
@@ -243,6 +258,8 @@ class LoopbackRaiseChannel implements InstanceRaiseChannel {
   }
 
   Future<void> _serve(Socket socket, void Function() onRaise) async {
+    // Destroying the socket ends the read loop below with no raise.
+    final deadline = Timer(timeout, socket.destroy);
     try {
       final bytes = <int>[];
       var raise = false;
@@ -262,6 +279,7 @@ class LoopbackRaiseChannel implements InstanceRaiseChannel {
       // diagnostics: silent — a malformed, slow or reset peer is ignored; the
       // channel only ever acts on a well-formed raise line.
     } finally {
+      deadline.cancel();
       socket.destroy();
     }
   }
@@ -344,9 +362,10 @@ enum SingleInstanceResult {
 /// the lock, a second launch is refused so two processes can't race the
 /// migration / derived-rebuild marker and trip `database is locked`.
 ///
-/// The first instance also listens on a loopback socket
+/// On Linux and Windows the first instance also listens on a loopback socket
 /// ([InstanceRaiseChannel]) so a refused second launch can ask it to bring its
-/// window forward instead of exiting silently ([handleSecondLaunch]).
+/// window forward instead of exiting silently ([handleSecondLaunch]); see
+/// [listensForRaise] for why macOS does not.
 ///
 /// This is intentionally desktop-only: [isSupportedPlatform] gates it to
 /// Linux/macOS/Windows, so mobile (the OS already owns single-instance) and web
@@ -361,7 +380,11 @@ class DesktopSingleInstance {
     this.primitive = const AdvisoryFileLock(),
     this.lockFileName = kSingleInstanceLockFileName,
     InstanceRaiseChannel? raiseChannel,
+    bool? listensForRaise,
   }) : raiseChannel = raiseChannel ?? _defaultRaiseChannel,
+       listensForRaise =
+           listensForRaise ??
+           (!kIsWeb && (Platform.isLinux || Platform.isWindows)),
        _lockDirectoryProvider =
            lockDirectoryProvider ?? getApplicationSupportDirectory;
 
@@ -371,6 +394,13 @@ class DesktopSingleInstance {
 
   /// How a second launch reaches the first instance, and how the first listens.
   final InstanceRaiseChannel raiseChannel;
+
+  /// Whether the first instance starts [raiseChannel]'s listener. Linux and
+  /// Windows only: on macOS LaunchServices already brings the running app
+  /// forward, and the sandboxed release build has no
+  /// `com.apple.security.network.server` entitlement, so binding the loopback
+  /// listener there would fail and log an error on every launch.
+  final bool listensForRaise;
 
   /// Shared by every guard built with the default, so the listener started in
   /// the first instance is the one [releaseHeld] closes.
@@ -457,9 +487,10 @@ enum SecondLaunchOutcome {
 /// Runs before `AppData` exists, so a refused launch never opens the database.
 /// - `alreadyRunning`: asks the running instance to raise its window, writes
 ///   one line to [err] naming the outcome, returns [SecondLaunchOutcome.exitNow].
-/// - `acquired`: starts the raise listener (calling [onRaise] on a request) and
-///   returns [SecondLaunchOutcome.proceed]. A listener failure is logged and
-///   non-fatal: the app just won't be raisable.
+/// - `acquired`: when [DesktopSingleInstance.listensForRaise] is set (Linux and
+///   Windows by default), starts the raise listener (calling [onRaise] on a
+///   request); either way returns [SecondLaunchOutcome.proceed]. A listener
+///   failure is logged and non-fatal: the app just won't be raisable.
 /// - `unavailable`: returns [SecondLaunchOutcome.proceed] (fail-open).
 Future<SecondLaunchOutcome> handleSecondLaunch(
   DesktopSingleInstance guard, {
@@ -492,6 +523,7 @@ Future<SecondLaunchOutcome> handleSecondLaunch(
       );
       return SecondLaunchOutcome.exitNow;
     case SingleInstanceResult.acquired:
+      if (!guard.listensForRaise) return SecondLaunchOutcome.proceed;
       try {
         await guard.raiseChannel.listen(await guard.lockDirectory(), onRaise);
       } catch (error, stackTrace) {

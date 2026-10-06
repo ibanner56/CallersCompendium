@@ -237,8 +237,10 @@ leave, and one thing asks you first.
   country, and postcode of a saved venue record are left out of everything you
   share, print, or copy — the `.ccshare` file, the JSON file, the PDF, and the
   text set list alike. There is no tick box for these: they are never sent. What
-  does travel is the venue's **name**, plus its website, time, schedule, price,
-  sponsor, event name, and notes, so a recipient still knows which hall you mean.
+  does travel is the venue's **name**, so a recipient still knows which hall you
+  mean; the `.ccshare` and JSON files also carry its website, time, schedule,
+  price, sponsor, event name, and notes, and the PDF prints all of those except
+  the notes.
 
   Your own copy is untouched — the address is still there in the venue record,
   and a [backup](./backup-portability.md) still contains it. This is only about
@@ -267,8 +269,10 @@ contacts, each with a name, phone, and email. **Every box starts unticked.**
 
 Whatever you leave unticked is genuinely absent from the file, not hidden inside
 it. The venue's other details — its name, website, time, schedule, price, sponsor,
-event name, and notes — are not personal contact details and are always
-included. Its street address is always left out; see **Never included** above.
+event name, and notes — are not personal contact details, so they are not part
+of this choice: the `.ccshare` and JSON files carry all of them, and the PDF
+prints all of them except the notes. Its street address is always left out; see
+**Never included** above.
 
 You will not see this dialog when there is nothing to ask about: a program with no
 linked venue, or a venue with no contact people recorded, exports straight away.

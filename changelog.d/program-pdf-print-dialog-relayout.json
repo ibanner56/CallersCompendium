@@ -1,0 +1,9 @@
+{
+  "id": "program-pdf-print-dialog-relayout",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Changing the paper size in the print dialog for a program PDF no longer fails once the export menu has closed."
+    ]
+  }
+}

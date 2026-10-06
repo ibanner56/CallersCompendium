@@ -1229,9 +1229,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get commonSystemDefault => 'Systemstandard';
 
   @override
-  String get commonComingSoon => 'Kommer snart';
-
-  @override
   String get settingsLanguageRegionTitle => 'Sprog og region';
 
   @override
@@ -1947,15 +1944,6 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsStartingProgramPickerTitle => 'Tilføj en dans';
-
-  @override
-  String get settingsDefaultsStartingProgramAddDance => 'Dans';
-
-  @override
-  String get settingsDefaultsStartingProgramAddText => 'Note';
-
-  @override
-  String get settingsDefaultsStartingProgramAddBreak => 'Tilføj pause';
 
   @override
   String get settingsDefaultsStartingProgramTextLabel => 'Notetekst';
@@ -3269,9 +3257,6 @@ class AppLocalizationsDa extends AppLocalizations {
       'Søg titler, forfattere, figurer, noter…';
 
   @override
-  String get collectionPickerSearchFieldHint => 'Søg titler, figurer, noter…';
-
-  @override
   String get collectionPickerOnlineSearchFieldHint =>
       'Søg online efter danse efter titel…';
 
@@ -3781,9 +3766,6 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get collectionCreateTagButton => 'Opret tag';
-
-  @override
-  String get collectionCreateTagError => 'Kunne ikke oprette tag. Prøv igen.';
 
   @override
   String get collectionBatchApplyError =>
@@ -4665,35 +4647,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsMatrixHidePhrasesSemantic => 'Vis tilstedeværelsesglyffer';
 
   @override
-  String programsMatrixRowHeaderSemantic(
-    String title,
-    String alt,
-    String half,
-  ) {
-    String _temp0 = intl.Intl.selectLogic(half, {
-      'first': 'Alternativ dans: $title, første halvdel',
-      'second': 'Alternativ dans: $title, anden halvdel',
-      'other': 'Alternativ dans: $title',
-    });
-    String _temp1 = intl.Intl.selectLogic(half, {
-      'first': 'Dans: $title, første halvdel',
-      'second': 'Dans: $title, anden halvdel',
-      'other': 'Dans: $title',
-    });
-    String _temp2 = intl.Intl.selectLogic(alt, {
-      'yes': '$_temp0',
-      'other': '$_temp1',
-    });
-    return '$_temp2';
-  }
-
-  @override
-  String programsMatrixHalfShort(String half) {
-    String _temp0 = intl.Intl.selectLogic(half, {'first': '1.', 'other': '2.'});
-    return '$_temp0';
-  }
-
-  @override
   String programsMatrixSectionShort(String sectionKey, String sectionNumber) {
     String _temp0 = intl.Intl.selectLogic(sectionKey, {
       's1': '1.',
@@ -4792,29 +4745,6 @@ class AppLocalizationsDa extends AppLocalizations {
       'other': ', frase(r): $phrases',
     });
     return '$dance, $move: $_temp3$_temp4';
-  }
-
-  @override
-  String programsMatrixChipQualifiedTitle(
-    String title,
-    String alt,
-    String half,
-  ) {
-    String _temp0 = intl.Intl.selectLogic(half, {
-      'first': '$title (alternativ dans, første halvdel)',
-      'second': '$title (alternativ dans, anden halvdel)',
-      'other': '$title (alternativ dans)',
-    });
-    String _temp1 = intl.Intl.selectLogic(half, {
-      'first': '$title (første halvdel)',
-      'second': '$title (anden halvdel)',
-      'other': '$title',
-    });
-    String _temp2 = intl.Intl.selectLogic(alt, {
-      'yes': '$_temp0',
-      'other': '$_temp1',
-    });
-    return '$_temp2';
   }
 
   @override
@@ -5517,10 +5447,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String onlineSearchFieldLabel(String source) {
     return 'Søg $source';
   }
-
-  @override
-  String get onlineSearchFieldHint =>
-      'Søg online efter danse efter titel eller forfatter…';
 
   @override
   String get collectionOnlineSearchFieldHint =>
@@ -8281,11 +8207,6 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String customFieldsDeleteInUseUnknown(String label) {
-    return 'Kan ikke slette „$label“: bruges stadig af nogle danse. Fjern værdien fra alle danse først.';
-  }
-
-  @override
   String get customFieldsTitle => 'Brugerdefinerede felter';
 
   @override
@@ -8455,38 +8376,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get dialectEditorPlural => 'Flertal';
 
   @override
-  String get dialectEditorMoveSubsAdd => 'Tilføj bevægelseserstatninger';
-
-  @override
-  String dialectEditorMoveSubsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count bevægelseserstatninger',
-      one: '1 bevægelseserstatning',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get dialectEditorMoveSubHint => 'erstatning (brug %S til håndretning)';
 
   @override
   String get dialectEditorAddMove => 'Tilføj en bevægelse…';
-
-  @override
-  String get dialectEditorDancerSubsAdd => 'Tilføj danser-erstatninger';
-
-  @override
-  String dialectEditorDancerSubsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count danser-erstatninger',
-      one: '1 danser-erstatning',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get dialectEditorDancerSubHint => 'erstatning';
@@ -8892,21 +8785,6 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingBranchSingleFile => 'Enkelt række';
-
-  @override
-  String get dialectEditorMoveWordingsAdd =>
-      'Tilføj skabeloner til bevægelsesformulering';
-
-  @override
-  String dialectEditorMoveWordingsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count skabeloner til bevægelsesformulering',
-      one: '1 skabelon til bevægelsesformulering',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get dialectEditorAddMoveWording =>

@@ -79,8 +79,8 @@ Future<List<int>?> fetchUpdateManifest(
     // privacy contract just below; never surfaced as an error.
     return null;
   } on Object {
-    // Any transport failure (offline, DNS, TLS) is a silent no-op per the
-    // privacy contract — never surfaced as an error. A malformed URL is caught
+    // diagnostics: silent — any transport failure (offline, DNS, TLS) is a
+    // silent no-op per the privacy contract, never surfaced as an error. A malformed URL is caught
     // earlier by the Uri.tryParse guard above.
     return null;
   } finally {

@@ -1,0 +1,9 @@
+{
+  "id": "perform-deleted-lookup-failure",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Perform opens even if a deleted dance in the program can't be read; that slot then shows as unavailable instead of Perform not opening."
+    ]
+  }
+}

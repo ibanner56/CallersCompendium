@@ -2285,6 +2285,66 @@ void main() {
       },
     );
 
+    testWidgets(
+      'PDF path: onLayout still lays out the PDF after the export menu has '
+      'unmounted',
+      (tester) async {
+        // Printing.layoutPdf may call onLayout again later (a page-format
+        // change in the print dialog) after the menu has unmounted. Every
+        // inherited value must be resolved before onLayout is built, as
+        // _exportMatrixPdf does (CS-11). Mutation this test catches: reading any
+        // `Scope.of(context)` inside the onLayout closure, which throws
+        // "Looking up a deactivated widget's ancestor is unsafe" here.
+        final prog = _program(
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        );
+        LayoutCallback? captured;
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: prog,
+                    titleFor: _titles,
+                    danceFor: _danceFor,
+                    shareInvoker: (params) async {},
+                    pdfLayouter: ({required name, required onLayout}) async {
+                      captured = onLayout;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Export / print PDF'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(
+            const ValueKey('program-figures-prompt-set-list-and-figures'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-confirm')),
+        );
+        await tester.pumpAndSettle();
+        expect(captured, isNotNull);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
+
+        final bytes = await captured!(PdfPageFormat.letter);
+        expect(bytes, isNotEmpty);
+      },
+    );
+
     testWidgets('PDF path: Cancel on figures prompt → pdf layouter NOT invoked', (
       tester,
     ) async {

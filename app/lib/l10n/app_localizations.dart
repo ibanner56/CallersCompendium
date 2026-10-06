@@ -1858,12 +1858,6 @@ abstract class AppLocalizations {
   /// **'System default'**
   String get commonSystemDefault;
 
-  /// Trailing badge on a settings control whose feature is not available yet.
-  ///
-  /// In en, this message translates to:
-  /// **'Coming soon'**
-  String get commonComingSoon;
-
   /// Label of the Settings section that groups app-language and regional-format preferences.
   ///
   /// In en, this message translates to:
@@ -3128,24 +3122,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add a dance'**
   String get settingsDefaultsStartingProgramPickerTitle;
-
-  /// Button to add a dance to the starting program template.
-  ///
-  /// In en, this message translates to:
-  /// **'Dance'**
-  String get settingsDefaultsStartingProgramAddDance;
-
-  /// Button to add a text note to the starting program template.
-  ///
-  /// In en, this message translates to:
-  /// **'Note'**
-  String get settingsDefaultsStartingProgramAddText;
-
-  /// Tooltip for adding a break to the starting program template.
-  ///
-  /// In en, this message translates to:
-  /// **'Add break'**
-  String get settingsDefaultsStartingProgramAddBreak;
 
   /// Input label for a new text note in the starting program template.
   ///
@@ -5349,12 +5325,6 @@ abstract class AppLocalizations {
   /// **'Search titles, authors, figures, notes…'**
   String get collectionSearchFieldHint;
 
-  /// Hint text of the collection picker search field, listing what is searched.
-  ///
-  /// In en, this message translates to:
-  /// **'Search titles, figures, notes…'**
-  String get collectionPickerSearchFieldHint;
-
   /// Hint text of the collection picker when its online search is limited to titles.
   ///
   /// In en, this message translates to:
@@ -6092,12 +6062,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create tag'**
   String get collectionCreateTagButton;
-
-  /// Snackbar shown when creating a tag fails.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not create tag. Try again.'**
-  String get collectionCreateTagError;
 
   /// Snackbar shown when applying a batch tag operation fails.
   ///
@@ -7453,18 +7417,6 @@ abstract class AppLocalizations {
   /// **'Show presence glyphs'**
   String get programsMatrixHidePhrasesSemantic;
 
-  /// Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.
-  ///
-  /// In en, this message translates to:
-  /// **'{alt, select, yes{{half, select, first{Alternate dance: {title}, first half} second{Alternate dance: {title}, second half} other{Alternate dance: {title}}}} other{{half, select, first{Dance: {title}, first half} second{Dance: {title}, second half} other{Dance: {title}}}}}'**
-  String programsMatrixRowHeaderSemantic(String title, String alt, String half);
-
-  /// Short program-half badge label (1st or 2nd half).
-  ///
-  /// In en, this message translates to:
-  /// **'{half, select, first{1st} other{2nd}}'**
-  String programsMatrixHalfShort(String half);
-
   /// Short localized ordinal label for a numbered program section (for example, 1st, 2nd, or 3rd). sectionKey selects listed ordinals; sectionNumber is the raw number used above the listed ordinals.
   ///
   /// In en, this message translates to:
@@ -7515,16 +7467,6 @@ abstract class AppLocalizations {
     String collision,
     String debut,
     String first,
-  );
-
-  /// Dance name with its alternate-dance and program-half qualifiers, used by the compact matrix dance chip's screen-reader label.
-  ///
-  /// In en, this message translates to:
-  /// **'{alt, select, yes{{half, select, first{{title} (alternate dance, first half)} second{{title} (alternate dance, second half)} other{{title} (alternate dance)}}} other{{half, select, first{{title} (first half)} second{{title} (second half)} other{{title}}}}}'**
-  String programsMatrixChipQualifiedTitle(
-    String title,
-    String alt,
-    String half,
   );
 
   /// Screen-reader label for a compact-matrix move header, stating how many of the program's dances use the move.
@@ -8614,12 +8556,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search {source}'**
   String onlineSearchFieldLabel(String source);
-
-  /// Hint text for the online search field.
-  ///
-  /// In en, this message translates to:
-  /// **'Search online dances by title or author…'**
-  String get onlineSearchFieldHint;
 
   /// Hint text for the Collection screen online search field; the CollectionPicker remains title-oriented.
   ///
@@ -12452,12 +12388,6 @@ abstract class AppLocalizations {
   /// **'A field with the key \"{key}\" already exists. The new field wasn\'t created.'**
   String customFieldsKeyDuplicateNew(String key);
 
-  /// Snackbar when deleting a custom field still set on dances but the exact count is unknown. The raw exception is logged (debugPrint), never shown (CWE-209). {label} is plain text.
-  ///
-  /// In en, this message translates to:
-  /// **'Can\'t delete \"{label}\": still used by some dances. Remove the value from all dances first.'**
-  String customFieldsDeleteInUseUnknown(String label);
-
   /// App-bar title for the custom-fields manager.
   ///
   /// In en, this message translates to:
@@ -12758,18 +12688,6 @@ abstract class AppLocalizations {
   /// **'Plural'**
   String get dialectEditorPlural;
 
-  /// Collapsed header/empty state for the move-substitutions section.
-  ///
-  /// In en, this message translates to:
-  /// **'Add move substitutions'**
-  String get dialectEditorMoveSubsAdd;
-
-  /// Header showing how many move substitutions are defined.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 move substitution} other{{count} move substitutions}}'**
-  String dialectEditorMoveSubsCount(int count);
-
   /// Hint for a move-substitution input; %S is a literal handedness token the user types.
   ///
   /// In en, this message translates to:
@@ -12781,18 +12699,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add a move…'**
   String get dialectEditorAddMove;
-
-  /// Collapsed header/empty state for the dancer-substitutions section.
-  ///
-  /// In en, this message translates to:
-  /// **'Add dancer substitutions'**
-  String get dialectEditorDancerSubsAdd;
-
-  /// Header showing how many dancer substitutions are defined.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 dancer substitution} other{{count} dancer substitutions}}'**
-  String dialectEditorDancerSubsCount(int count);
 
   /// Hint for a dancer-substitution input.
   ///
@@ -13465,18 +13371,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Single file'**
   String get dialectEditorMoveWordingBranchSingleFile;
-
-  /// Collapsed header/empty state for the move wording template section.
-  ///
-  /// In en, this message translates to:
-  /// **'Add move wording templates'**
-  String get dialectEditorMoveWordingsAdd;
-
-  /// Header showing how many move wording templates are defined.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 move wording template} other{{count} move wording templates}}'**
-  String dialectEditorMoveWordingsCount(int count);
 
   /// Placeholder for the dropdown that adds a move wording template.
   ///

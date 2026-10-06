@@ -232,8 +232,8 @@ enum AppThemeSelection { system, light, dark, highContrast }
   other data scopes.
 - Persist via `repos.settings.set(kAppThemeKey, …)`, load on boot — mirrors
   `kActiveDialectKey` + `_onDialectChanged`. Define a `const String kAppThemeKey =
-  'theme_mode';` next to `kActiveDialectKey` in `src/data/settings_keys.dart` rather than
-  a bare string literal.
+  'theme_mode';` in `src/data/settings_keys.dart` rather than a bare string
+  literal.
 - `main.dart` `MaterialApp`:
   ```dart
   theme: AppTheme.light,

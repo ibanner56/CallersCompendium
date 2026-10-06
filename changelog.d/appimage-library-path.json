@@ -1,0 +1,9 @@
+{
+  "id": "appimage-library-path",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Linux AppImage: the app no longer looks for its system libraries in the folder you launched it from, so a library file saved next to the AppImage (for example in Downloads) can't be loaded into the app."
+    ]
+  }
+}

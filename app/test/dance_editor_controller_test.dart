@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart' show testFigure;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
@@ -950,6 +951,84 @@ void main() {
         expect(
           figuresOf(controller.buildDance()).last.params['text'],
           'role1s chain wide',
+        );
+      });
+
+      // "mad robin" is a move name, not the role: the import scrub already
+      // protects it from role canonicalization (figure_text_scrub.dart), so
+      // saving the same custom text from the editor must not rewrite it to
+      // "mad role2" (which reads "mad follow" under Leads/Follows).
+      for (final dialect in [Dialect.larksRobins, Dialect.leadsFollows]) {
+        test(
+          'the move name "mad robin" survives a save in ${dialect.name}',
+          () async {
+            final controller = DanceEditorController(
+              repositories: openTestRepositories(),
+              danceId: null,
+              dialect: dialect,
+              debounce: testDebounce,
+            );
+            await controller.load(dance: null, fieldDefs: const []);
+            addTearDown(controller.dispose);
+            controller.addFigure();
+            final draft = controller.figureDrafts.last;
+            draft.move = customMove;
+            draft.params['text'] = 'Mad robin twice, then MAD ROBINS';
+            controller.titleController.text = 'Some Dance';
+            controller.onTextEdited();
+            final saved = figuresOf(
+              controller.buildDance(),
+            ).last.params['text'];
+            expect(saved, 'Mad robin twice, then MAD ROBINS');
+            // And it stays put on the next load and save.
+            final again = DanceEditorController(
+              repositories: openTestRepositories(),
+              danceId: 'd1',
+              dialect: dialect,
+            );
+            addTearDown(again.dispose);
+            await again.load(
+              dance: sampleDance(id: 'd1').copyWith(
+                figures: [
+                  testFigure(move: 'custom', params: {'text': saved}),
+                ],
+              ),
+              fieldDefs: const [],
+            );
+            expect(again.figureDrafts.first.params['text'], saved);
+            expect(figuresOf(again.buildDance()).first.params['text'], saved);
+          },
+        );
+      }
+
+      // The shield swaps each "mad robin" for a placeholder and swaps it
+      // back afterwards; text that already contains placeholder-shaped
+      // words must come through untouched rather than be rewritten or crash.
+      test('placeholder-shaped text beside "mad robin" is kept', () async {
+        final controller = await newDanceController(openTestRepositories());
+        addTearDown(controller.dispose);
+        controller.addFigure();
+        final draft = controller.figureDrafts.last;
+        draft.move = customMove;
+        const text = 'xmadrobinx1x, mad robin, XMADROBINX0X';
+        draft.params['text'] = text;
+        controller.titleController.text = 'Some Dance';
+        controller.onTextEdited();
+        expect(figuresOf(controller.buildDance()).last.params['text'], text);
+      });
+
+      test('role words beside "mad robin" are still canonicalized', () async {
+        final controller = await newDanceController(openTestRepositories());
+        addTearDown(controller.dispose);
+        controller.addFigure();
+        final draft = controller.figureDrafts.last;
+        draft.move = customMove;
+        draft.params['text'] = 'mad robin, larks in the middle';
+        controller.titleController.text = 'Some Dance';
+        controller.onTextEdited();
+        expect(
+          figuresOf(controller.buildDance()).last.params['text'],
+          'mad robin, role1s in the middle',
         );
       });
 

@@ -574,17 +574,25 @@ Future<void> _discard(List<File> files) async {
 }
 
 /// App-facing entry point: resolves the real database file + snapshot directory
-/// (via `path_provider`) and runs [runMigrationPreflight]. Wired into
+/// (via `path_provider`), moves a database an earlier build left in a legacy
+/// location into place ([relocateLegacyDatabase]), and runs
+/// [runMigrationPreflight]. Wired into
 /// `main.dart`'s startup sequence. [onSnapshotFailure] is the consent seam
 /// invoked only when the pre-migration snapshot fails (see
 /// [runMigrationPreflight]); `main.dart` supplies an implementation that
 /// surfaces a blocking dialog. Left `null` only by callers that intentionally
 /// opt out, in which case a snapshot failure fails closed.
+///
+/// [operatingSystem] overrides the running platform, as in
+/// [resolveDatabaseLocations], so tests can drive each platform's relocation.
 Future<void> runMigrationPreflightForApp({
   required int runningSchemaVersion,
   SnapshotFailureDecision? onSnapshotFailure,
+  String? operatingSystem,
 }) async {
-  final locations = await resolveDatabaseLocations();
+  final locations = await resolveDatabaseLocations(
+    operatingSystem: operatingSystem,
+  );
   const fileName = '$kDatabaseName.sqlite';
   final dbFile = File(p.join(locations.primary.path, fileName));
   // Before any open: drift would otherwise create a new, empty database beside

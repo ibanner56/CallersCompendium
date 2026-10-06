@@ -236,6 +236,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "l10n-unused",
+        "every ARB key is referenced by app code",
+        (
+            py("tools/ci/test_check_l10n_unused.py"),
+            py("tools/ci/check_l10n_unused.py"),
+        ),
+    ),
+    Step(
         "stale-comment-refs",
         "comment citations resolve to code (count ceiling)",
         (
@@ -363,6 +371,7 @@ STEPS: tuple[Step, ...] = (
         "release identity / SBOM / metadata / notes / Pages publishing",
         (
             py("tools/release/test_bash.py"),
+            py("tools/release/test_apprun.py"),
             py("tools/release/test_android_version_code.py"),
             py("tools/release/test_check_beta_prerelease_history.py"),
             py("tools/release/test_gen_sbom.py"),

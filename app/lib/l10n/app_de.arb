@@ -1168,10 +1168,6 @@
   "@commonSystemDefault": {
     "x-sourceSha256": "b0459211f9f76871059135050a2afd9a01e7e41dc32ea58006c51483b9ceab6d"
   },
-  "commonComingSoon": "Demnächst verfügbar",
-  "@commonComingSoon": {
-    "x-sourceSha256": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c"
-  },
   "settingsLanguageRegionTitle": "Sprache & Region",
   "@settingsLanguageRegionTitle": {
     "x-sourceSha256": "003e875495c3de8ac17859bfcc1d92440a8dda08b5fca30e41880def8b7d4b13"
@@ -2011,18 +2007,6 @@
   "settingsDefaultsStartingProgramPickerTitle": "Tanz hinzufügen",
   "@settingsDefaultsStartingProgramPickerTitle": {
     "x-sourceSha256": "162eb23854f7ecaf9a9fe6662f96f732bace7ea5999b540e4b6e4b189d0a01b1"
-  },
-  "settingsDefaultsStartingProgramAddDance": "Tanz",
-  "@settingsDefaultsStartingProgramAddDance": {
-    "x-sourceSha256": "23d2d73543f9d7d92ac704296e5ee744037f5f4c938e21abf2c17002c4e9ba71"
-  },
-  "settingsDefaultsStartingProgramAddText": "Notiz",
-  "@settingsDefaultsStartingProgramAddText": {
-    "x-sourceSha256": "d8da2c49df39d91df7ecd199b92da7bf264f026242ccc69b08daeadfe587c45b"
-  },
-  "settingsDefaultsStartingProgramAddBreak": "Pause hinzufügen",
-  "@settingsDefaultsStartingProgramAddBreak": {
-    "x-sourceSha256": "7d6ad44637b1bd724b5c7defdab64e78e25805878c2326c5ba4a81e1b48bb50c"
   },
   "settingsDefaultsStartingProgramTextLabel": "Notiztext",
   "@settingsDefaultsStartingProgramTextLabel": {
@@ -3492,10 +3476,6 @@
   "@collectionSearchFieldHint": {
     "x-sourceSha256": "3316ce957d763fd3d3fa139ab42e7736d82431aa9416c2a6195085f9d1222861"
   },
-  "collectionPickerSearchFieldHint": "Titel, Figuren, Notizen suchen…",
-  "@collectionPickerSearchFieldHint": {
-    "x-sourceSha256": "7d4dc44ffc70ef07a637b21c1ab753ce6dac7d81af0554a06e15232186a89985"
-  },
   "collectionPickerOnlineSearchFieldHint": "Online-Tänze nach Titel suchen…",
   "@collectionPickerOnlineSearchFieldHint": {
     "x-sourceSha256": "cd119080cf8c74b9df89c95993269772360109c079b3fab8b8e16b595ca4ba50"
@@ -3987,10 +3967,6 @@
   "collectionCreateTagButton": "Tag erstellen",
   "@collectionCreateTagButton": {
     "x-sourceSha256": "7af189a2b3f0301757248acea86d89ab39ef285715f6abdef3bd6e06f9e7b94d"
-  },
-  "collectionCreateTagError": "Tag konnte nicht erstellt werden. Versuchen Sie es erneut.",
-  "@collectionCreateTagError": {
-    "x-sourceSha256": "57b158c1d625d53d262633ec7332809ba4d0a058e1b1ea036a0fd874f3f5cd1e"
   },
   "collectionBatchApplyError": "Batchänderungen konnten nicht angewendet werden. Versuchen Sie es erneut.",
   "@collectionBatchApplyError": {
@@ -4902,14 +4878,6 @@
   "@programsMatrixHidePhrasesSemantic": {
     "x-sourceSha256": "dff330e2dd809cc55cb0196897e737da19254425109a4cf84064e31f6f7d2373"
   },
-  "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Alternativer Tanz: {title}, erste Hälfte} second{Alternativer Tanz: {title}, zweite Hälfte} other{Alternativer Tanz: {title}}}} other{{half, select, first{Tanz: {title}, erste Hälfte} second{Tanz: {title}, zweite Hälfte} other{Tanz: {title}}}}}",
-  "@programsMatrixRowHeaderSemantic": {
-    "x-sourceSha256": "1814b7ab4c9a33455160418f04c015f1d7e1368c467f15c39e2306bc6652f94b"
-  },
-  "programsMatrixHalfShort": "{half, select, first{1.} other{2.}}",
-  "@programsMatrixHalfShort": {
-    "x-sourceSha256": "1f792188e97d7a185052805c4a6815fbdbf3121dd93044ed7e2d6c6244d0e503"
-  },
   "programsMatrixSectionShort": "{sectionKey, select, s1{1.} s2{2.} s3{3.} s4{4.} s5{5.} s6{6.} s7{7.} s8{8.} s9{9.} other{{sectionNumber}}}",
   "@programsMatrixSectionShort": {
     "x-sourceSha256": "68a28048786bc047b332d33dedbfe0848b16beb883e24f7cad66b9ebec4a1ecb"
@@ -4933,10 +4901,6 @@
   "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{nicht vorhanden} other{vorhanden{collision, select, phrase{, wiederholt sich in derselben Phrase wie ein angrenzender Tanz} beats{, teilt Taktschläge mit einem angrenzenden Tanz} other{}}{debut, select, yes{, hier eingeführt} other{}}{first, select, yes{, erste Figur des Tanzes} other{}}}}{phrases, select, none{} other{, Phrase(n): {phrases}}}",
   "@programsMatrixCellSemantic": {
     "x-sourceSha256": "37e128f48a2b4849bf86f14831698b7ecce8014421f0819ff4c774f258a7f8ac"
-  },
-  "programsMatrixChipQualifiedTitle": "{alt, select, yes{{half, select, first{{title} (Alternativer Tanz, erste Hälfte)} second{{title} (Alternativer Tanz, zweite Hälfte)} other{{title} (Alternativer Tanz)}}} other{{half, select, first{{title} (erste Hälfte)} second{{title} (zweite Hälfte)} other{{title}}}}}",
-  "@programsMatrixChipQualifiedTitle": {
-    "x-sourceSha256": "cfb82f04f0f1ff5616528524973ec36d027016be2ac6248a06bd3243ec6ed74a"
   },
   "programsMatrixMoveUsedInSemantic": "Bewegung: {label}, verwendet in {count} von {total} Tänzen",
   "@programsMatrixMoveUsedInSemantic": {
@@ -5645,10 +5609,6 @@
   "onlineSearchFieldLabel": "{source} durchsuchen",
   "@onlineSearchFieldLabel": {
     "x-sourceSha256": "580102ecff085a6380121462762b7f671cd143e923d49db39788bad56e3ee95f"
-  },
-  "onlineSearchFieldHint": "Online-Tänze nach Titel oder Autor suchen…",
-  "@onlineSearchFieldHint": {
-    "x-sourceSha256": "c7c8810fd4064a5490bb0279304af15ab4b75ae47e39631b64db57ec7636bb2c"
   },
   "collectionOnlineSearchFieldHint": "Online-Tänze nach Titel, Autor oder Figur suchen…",
   "@collectionOnlineSearchFieldHint": {
@@ -8194,10 +8154,6 @@
   "@customFieldsKeyDuplicateNew": {
     "x-sourceSha256": "59837cf3c2001b2ebf5607e77a4fb242f4e7a045479f4f12d092bc4200c39b8d"
   },
-  "customFieldsDeleteInUseUnknown": "„{label}“ kann nicht gelöscht werden: noch von einigen Tänzen verwendet. Entfernen Sie zuerst den Wert aus allen Tänzen.",
-  "@customFieldsDeleteInUseUnknown": {
-    "x-sourceSha256": "b5852947f44cdcc466df2740301d27ddc3c651174d3ed1640872413fbd33e63f"
-  },
   "customFieldsTitle": "Benutzerdefinierte Felder",
   "@customFieldsTitle": {
     "x-sourceSha256": "5566db49faf3cfcec9576e3e90ce5f58b029ea5c7b48d8e4508eb56c951e3433"
@@ -8398,14 +8354,6 @@
   "@dialectEditorPlural": {
     "x-sourceSha256": "18fb6be3366c80c25a86199df82c9980ecc0b5730337647e8053f0f9bbac3287"
   },
-  "dialectEditorMoveSubsAdd": "Bewegungsersetzungen hinzufügen",
-  "@dialectEditorMoveSubsAdd": {
-    "x-sourceSha256": "700257bd34176119858001d4125f64f925ae77b753d26589fda2e842d89cd8d5"
-  },
-  "dialectEditorMoveSubsCount": "{count, plural, =1{1 Bewegungsersetzung} other{{count} Bewegungsersetzungen}}",
-  "@dialectEditorMoveSubsCount": {
-    "x-sourceSha256": "ce71b3589451f885debb19d2147c68a9eb5f8b5ef0f3f127238b3b2f43a53e5b"
-  },
   "dialectEditorMoveSubHint": "Ersetzung (verwenden Sie %S für die Händigkeit)",
   "@dialectEditorMoveSubHint": {
     "x-sourceSha256": "84b26f13f88b120ad27d8525d2bd777fc71b4d2d6f9c5895f1f89bafc1873c5b"
@@ -8413,14 +8361,6 @@
   "dialectEditorAddMove": "Bewegung hinzufügen…",
   "@dialectEditorAddMove": {
     "x-sourceSha256": "034659a0ae3822dd06fbac089d031cb06e4727f425229778c706d9ad57fad543"
-  },
-  "dialectEditorDancerSubsAdd": "Tänzerersetzungen hinzufügen",
-  "@dialectEditorDancerSubsAdd": {
-    "x-sourceSha256": "8b1b0674324596c072df831ffa02d57abea399d5779f573e79fdf8e614914f2b"
-  },
-  "dialectEditorDancerSubsCount": "{count, plural, =1{1 Tänzerersetzung} other{{count} Tänzerersetzungen}}",
-  "@dialectEditorDancerSubsCount": {
-    "x-sourceSha256": "6d722bf88ee91e5b4bf2baf7e607007fad3d77cba824bec6b3ef581ab9fb44f2"
   },
   "dialectEditorDancerSubHint": "Ersetzung",
   "@dialectEditorDancerSubHint": {
@@ -8865,14 +8805,6 @@
   "dialectEditorMoveWordingBranchSingleFile": "Einzelne Reihe",
   "@dialectEditorMoveWordingBranchSingleFile": {
     "x-sourceSha256": "c8bfd38b98637807f9121e7f44305b993c4d6119075b994d966654a79ed3d503"
-  },
-  "dialectEditorMoveWordingsAdd": "Vorlagen für Bewegungsformulierungen hinzufügen",
-  "@dialectEditorMoveWordingsAdd": {
-    "x-sourceSha256": "572c7331f1927051d65a5b8aad3901bbfca57eb16b7552303a562358bad7fa8f"
-  },
-  "dialectEditorMoveWordingsCount": "{count, plural, =1{1 Vorlage für Bewegungsformulierungen} other{{count} Vorlagen für Bewegungsformulierungen}}",
-  "@dialectEditorMoveWordingsCount": {
-    "x-sourceSha256": "485175faa3ea285d529c9c0bdacbb7ab13fed23c22e9db1a74119f9d8372c478"
   },
   "dialectEditorAddMoveWording": "Vorlage für eine Bewegungsformulierung hinzufügen…",
   "@dialectEditorAddMoveWording": {
