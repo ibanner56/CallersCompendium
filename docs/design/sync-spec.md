@@ -2981,8 +2981,10 @@ repository `upsert` path, which writes every column:
 
 In this implementation every kind has a `writeFromSync` entry point and the
 `sync-interactive-upsert` ratchet (`tools/ci/check_sync_invariants.py`) fails
-the build on a `repositories.<kind>.upsert(` call inside the inbound write
-path. The rule is structural rather than behavioural on purpose: `upsert`
+the build on any `upsert*` call or tear-off inside the inbound write path (the
+core `sync/` directory), whatever its receiver, outside a `writeFromSync*` body;
+a deliberate exception carries `// sync-invariant-exclusion: upsert — <reason>`
+on the line above. The rule is structural rather than behavioural on purpose: `upsert`
 carries behaviour that exists for a person editing a record and is wrong for a
 peer's — adopting a tombstoned row's identity, and keeping the local name when
 another row holds the incoming one, which stores an altered copy while still

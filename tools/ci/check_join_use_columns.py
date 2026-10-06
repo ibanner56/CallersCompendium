@@ -14,8 +14,10 @@ columns (CS-14a). A join that only filters or counts rows must say so with
 Rule
 ----
 Under `packages/compendium_core/lib/src/storage/repositories/`, every
-`innerJoin(` / `leftOuterJoin(` whose first argument is `_db.dances` must
-either
+`innerJoin(` / `leftOuterJoin(` whose first argument mentions `_db.dances`
+(the table itself, `_db.dances.createAlias(...)`, `alias(_db.dances, ...)`),
+or is a name the same file binds to such an expression
+(`final d = _db.dances.createAlias('d');`), must either
 
   * carry `useColumns:` in the same call, or
   * carry the marker `// join-columns: needed — <reason>` on the line(s)
@@ -43,8 +45,13 @@ REPOSITORIES_DIR = (
     REPO_ROOT / "packages/compendium_core/lib/src/storage/repositories"
 )
 
-_JOIN_ON_DANCES_RE = re.compile(
-    r"\b(?:innerJoin|leftOuterJoin)\s*\(\s*(?:this\.)?_db\.dances\s*[,)]"
+_JOIN_RE = re.compile(r"\b(?:innerJoin|leftOuterJoin)\s*\(")
+_DANCES_RE = re.compile(r"\b_db\s*\.\s*dances\b")
+# `name = <expression mentioning _db.dances>;` -- a local or field alias. Not
+# scope-aware: a name bound this way anywhere in the file counts, which can
+# only add findings, never hide one.
+_DANCES_ALIAS_RE = re.compile(
+    r"\b([A-Za-z_$][A-Za-z0-9_$]*)\s*=(?![=>])[^;=]*\b_db\s*\.\s*dances\b"
 )
 _USE_COLUMNS_RE = re.compile(r"\buseColumns\s*:")
 _MARKER_RE = re.compile(r"join-columns:\s*needed\s*[—–-]+\s*(\S.*)")
@@ -142,6 +149,39 @@ def _call_end(code: str, open_paren: int) -> int:
     return len(code)
 
 
+_CLOSERS = {")": "(", "]": "[", "}": "{", ">": "<"}
+
+
+def _first_argument_end(code: str, after_paren: int, call_end: int) -> int:
+    """Offset of the `,` or `)` that ends the call argument starting at
+    [after_paren], skipping nested brackets and generic type arguments.
+
+    A `<` opens type arguments only when it directly follows an identifier
+    character (`alias<Table, Row>(`); `a < b` with spaces is a comparison. If
+    the brackets do not balance (`a<b` written without spaces, say), the
+    argument cannot be delimited safely, so [call_end] is returned and the
+    whole call is searched -- erring toward a finding, never away from one.
+    """
+    stack: list[str] = []
+    for k in range(after_paren, call_end):
+        c = code[k]
+        if c in "([{":
+            stack.append(c)
+        elif c == "<" and k > 0 and (code[k - 1].isalnum() or code[k - 1] in "_$"):
+            stack.append(c)
+        elif c == ">" and stack and stack[-1] == "<":
+            stack.pop()
+        elif c in ")]}":
+            if not stack:
+                return k
+            if stack[-1] != _CLOSERS[c]:
+                return call_end
+            stack.pop()
+        elif c == "," and not stack:
+            return k
+    return call_end
+
+
 def check_text(text: str, path: str) -> list[Violation]:
     code, comments = split_code_and_comments(text)
     lines = text.splitlines()
@@ -149,11 +189,27 @@ def check_text(text: str, path: str) -> list[Violation]:
     def lineno(off: int) -> int:
         return text.count("\n", 0, off) + 1
 
+    aliases = {m.group(1) for m in _DANCES_ALIAS_RE.finditer(code)}
+    alias_re = (
+        # Bare (`d`) or through `this.` (`this.d`); `other.d` is a different
+        # member that only shares the name.
+        re.compile(
+            r"(?:(?<![\w$.])|(?<![\w$])this\s*\.\s*)(?:"
+            + "|".join(map(re.escape, sorted(aliases)))
+            + r")(?![\w$])"
+        )
+        if aliases
+        else None
+    )
+
     violations: list[Violation] = []
     prev_join_end = -1
-    for m in _JOIN_ON_DANCES_RE.finditer(code):
+    for m in _JOIN_RE.finditer(code):
         start = m.start()
         end = _call_end(code, code.index("(", start))
+        first = code[m.end() : _first_argument_end(code, m.end(), end)]
+        if not (_DANCES_RE.search(first) or (alias_re and alias_re.search(first))):
+            continue
         line = lineno(start)
         span = code[start : end + 1]
         floor, prev_join_end = prev_join_end, end

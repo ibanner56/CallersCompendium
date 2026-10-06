@@ -3555,6 +3555,8 @@ final class CompendiumSyncStorage
           hash: remappedHash,
         ));
       } else if (remappedHash != row.tombstoneHash) {
+        // A pending-deletion bookkeeping row, not a record kind's editor path.
+        // sync-invariant-exclusion: upsert — sync-local bookkeeping
         await repositories.syncLocal.upsertPendingDeletion(
           kind: row.kind,
           recordId: row.recordId,
@@ -4972,6 +4974,8 @@ final class CompendiumSyncStorage
           body: record.body,
         );
     final encoded = encodeSyncRecordBlob(blob);
+    // A pending-deletion bookkeeping row, not a record kind's editor path.
+    // sync-invariant-exclusion: upsert — sync-local bookkeeping
     await repositories.syncLocal.upsertPendingDeletion(
       kind: record.address.kind,
       recordId: record.address.recordId,
@@ -5971,8 +5975,9 @@ int syncIdentityVerifierDerivationCount = 0;
 /// identity as used lower it in `setUpAll` (and restore it in `tearDownAll`).
 /// Production code only reads it (the stored marker, the decode check and the
 /// derivation loop); nothing in this package assigns it outside tests, and a
-/// CI check (`tools/ci/check_kdf_override_unassigned.py`) fails if any file
-/// under `lib/` assigns it. A lowered value can never validate a production marker: the
+/// CI check (`tools/ci/check_kdf_override_unassigned.py`) fails if any
+/// production file (`app/lib`, `packages/*/lib`, `server/lib`, `server/bin`)
+/// assigns it. A lowered value can never validate a production marker: the
 /// marker records the count it was derived with, and
 /// [_decodeUsedIdentityVerifiers] skips entries whose `iterations` differ from
 /// the value in force, so a marker written at one count is ignored at another.

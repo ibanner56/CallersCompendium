@@ -7,10 +7,12 @@ a dead citation lands nowhere, and an agent "fixing" the cited code edits the
 wrong thing (AGENTS.md calls documentation drift the repository's most
 persistent defect class). The analyzer's ``comment_references`` lint is off
 (hundreds of unresolved references) and cannot see backtick citations at all,
-so this check does both, as a **count ceiling**: it fails only when the number
-of unresolved citations *rises above* ``stale_comment_refs_ceiling.json``. The
-backlog is cleaned up one directory per PR (each claim judged in its own
-context, never swept); lowering the ceiling is what makes a cleanup stick.
+so this check does both, as a **count ceiling**: it fails when the number of
+unresolved citations differs from ``stale_comment_refs_ceiling.json`` -- above
+it, a new dead citation; below it, a cleanup that did not lower the ceiling and
+so left slack for the next one. The backlog is cleaned up one directory per PR
+(each claim judged in its own context, never swept); lowering the ceiling in
+the same PR is what makes a cleanup stick.
 
 Scope. Comments (``///``, ``//``, ``/* */``) in ``app/lib``, ``app/test/support``
 and ``packages/compendium_core/lib``. Generated files (``*.g.dart``,
@@ -45,7 +47,7 @@ The counting rule is therefore: ``count`` = the number of unresolved
 (file, line, name) citations. ``--ceiling N`` overrides the checked-in
 ceiling (``tools/ci/stale_comment_refs_ceiling.json``).
 
-Exit codes: 0 = count at or under the ceiling, 1 = over it, 2 = bad input.
+Exit codes: 0 = count equals the ceiling, 1 = over or under it, 2 = bad input.
 """
 
 from __future__ import annotations
@@ -376,12 +378,16 @@ def run(root: Path, ceiling: int | None, quiet: bool = False) -> int:
             "longer exists in code); do not raise the ceiling."
         )
         return 1
-    note = ""
     if count < ceiling:
-        note = f" Ceiling is {ceiling}: lower {CEILING_PATH.name} to {count}."
+        print(
+            f"::error::{count} unresolved comment citation(s) is below the ceiling "
+            f"of {ceiling}. Lower {CEILING_PATH.name} to {count} in this change, "
+            "so the cleanup sticks and leaves no slack for a new stale citation."
+        )
+        return 1
     print(
         f"OK: {count} unresolved comment citation(s) across {file_count} file(s), "
-        f"ceiling {ceiling}.{note}"
+        f"ceiling {ceiling}."
     )
     return 0
 
