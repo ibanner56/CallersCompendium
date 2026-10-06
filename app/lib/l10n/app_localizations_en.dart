@@ -4909,6 +4909,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get performAdjustmentUndone => 'Adjustment undone';
 
   @override
+  String get performUndoNoLongerAvailable =>
+      'Can\'t undo: the program has changed since.';
+
+  @override
   String get performProgramAdjustedSnack => 'Program adjusted.';
 
   @override

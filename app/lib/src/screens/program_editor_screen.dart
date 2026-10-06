@@ -227,6 +227,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   int? _pendingBulkUndoEditGeneration;
   int _bulkUndoGeneration = 0;
   int _editGeneration = 0;
+
+  /// The last program Perform handed to its `onProgramChanged` and the
+  /// [_editGeneration] once this builder had applied it. The "Program
+  /// adjusted" Undo after leaving Perform restores only while both still
+  /// hold, i.e. no edit has been made here since (flows-1).
+  Program? _performAdjusted;
+  int? _performAdjustedGeneration;
   int _collectionDataGeneration = 0;
 
   bool get _pickerImporting => _pickerImportOwners.isNotEmpty;
@@ -1892,6 +1899,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   _slots = slots;
                   _dirty = false;
                 });
+                _performAdjusted = updated;
+                _performAdjustedGeneration = _editGeneration;
                 // A mark-performed stamp changes the Collection's "called N
                 // times" badge and any mounted dance detail's calling history.
                 // Both watch `program_slots` directly now, so the write is the
@@ -1907,6 +1916,28 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               _slots = slots;
             });
             _markDirty();
+            _performAdjusted = updated;
+            _performAdjustedGeneration = _editGeneration;
+          },
+          // The "Program adjusted" Undo after leaving Perform rebases the
+          // pre-adjustment slots onto this builder's working copy, so it may
+          // run only while that copy is still what the adjustment left: no
+          // edit here since, and (for a saved program) no write to the stored
+          // program from anywhere else (flows-1). A closed builder cannot
+          // vouch for either, so the Undo is refused.
+          programUnchangedSince: (adjusted) async {
+            bool untouched() =>
+                mounted &&
+                identical(_performAdjusted, adjusted) &&
+                _editGeneration == _performAdjustedGeneration;
+            if (!untouched()) return false;
+            final existing = _existing;
+            if (existing == null) return true;
+            final stored = await _repos.programs.getById(existing.id);
+            return untouched() &&
+                stored != null &&
+                unixSeconds(stored.updatedAt) ==
+                    unixSeconds(existing.updatedAt);
           },
         ),
       ),

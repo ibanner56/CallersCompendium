@@ -618,6 +618,17 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             // Calling `_load` here as well would load this pane twice for one
             // adjustment (issue #340).
           },
+          // The "Program adjusted" Undo after leaving Perform restores only
+          // while the stored program is still the one that adjustment wrote
+          // (flows-1). Every later write stamps a later `updatedAt`, compared
+          // at the store's one-second precision. Uses the repository rather
+          // than this pane, which may itself have closed by then.
+          programUnchangedSince: (adjusted) async {
+            final stored = await _repos.programs.getById(adjusted.id);
+            return stored != null &&
+                unixSeconds(stored.updatedAt) ==
+                    unixSeconds(adjusted.updatedAt);
+          },
         ),
       ),
     );

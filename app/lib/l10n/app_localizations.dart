@@ -7781,6 +7781,12 @@ abstract class AppLocalizations {
   /// **'Adjustment undone'**
   String get performAdjustmentUndone;
 
+  /// Snackbar shown when the user taps Undo on a live program adjustment after leaving Perform, but the program was edited in the meantime, so the undo is refused to keep that later edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t undo: the program has changed since.'**
+  String get performUndoNoLongerAvailable;
+
   /// Snackbar message shown after applying a live program adjustment.
   ///
   /// In en, this message translates to:

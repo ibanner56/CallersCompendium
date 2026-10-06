@@ -4941,6 +4941,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get performAdjustmentUndone => 'Justering fortrudt.';
 
   @override
+  String get performUndoNoLongerAvailable =>
+      'Kan ikke fortrydes: programmet er ændret siden.';
+
+  @override
   String get performProgramAdjustedSnack => 'Program justeret.';
 
   @override

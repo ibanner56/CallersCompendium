@@ -129,6 +129,7 @@ class PerformProgramScreen extends StatefulWidget {
     this.initialWalkthroughEndedSlotId,
     this.onExit,
     this.onProgramChanged,
+    this.programUnchangedSince,
   });
 
   final Program program;
@@ -181,6 +182,20 @@ class PerformProgramScreen extends StatefulWidget {
   /// view reflects the change regardless.
   final Future<void> Function(Program updated)? onProgramChanged;
 
+  /// Answers, for the "Program adjusted" Undo once this screen has closed,
+  /// whether the owner's copy of the program is still exactly what the
+  /// adjustment [adjusted] left behind.
+  ///
+  /// That Undo restores a whole-program snapshot taken before the adjustment.
+  /// The prompt can outlive this screen (indefinitely with accessible
+  /// navigation), and by the time it is tapped the program may have been
+  /// edited elsewhere; restoring the snapshot would overwrite that edit. So
+  /// after exit the Undo is applied through [onProgramChanged] only when this
+  /// returns true, and is otherwise refused with a "no longer available"
+  /// message (flows-1). When null, or when it throws, the Undo is refused.
+  /// While this screen is open the Undo is applied directly, without asking.
+  final Future<bool> Function(Program adjusted)? programUnchangedSince;
+
   @override
   State<PerformProgramScreen> createState() => _PerformProgramScreenState();
 }
@@ -191,6 +206,10 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// persist through [PerformProgramScreen.onProgramChanged]; navigation and
   /// grouping recompute from it so the reading view reflects edits immediately.
   late Program _program = widget.program;
+
+  /// The latest [PerformProgramScreen.onProgramChanged] write, so an Undo
+  /// after exit checks the stored program only once that write has landed.
+  Future<void> _pendingPersist = Future<void>.value();
 
   /// Cached navigable groups. [Program.grouped] walks the whole slot list and
   /// allocates a fresh unmodifiable list on every call, and the build/helpers
@@ -766,7 +785,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       );
     }
     final onChanged = widget.onProgramChanged;
-    if (onChanged != null) unawaited(onChanged(updated));
+    if (onChanged != null) {
+      final write = onChanged(updated);
+      _pendingPersist = write;
+      unawaited(write);
+    }
   }
 
   /// Applies [updated] and offers a one-tap SnackBar undo restoring the
@@ -780,23 +803,80 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     _applyProgram(updated, announce: announce);
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final unavailableMessage = l10n.performUndoNoLongerAvailable;
     showUndoSnackBar(
-      ScaffoldMessenger.of(context),
+      messenger,
       message: message,
       undoLabel: l10n.commonUndo,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () {
         // The snackbar lives on the app-root messenger, so it can outlive this
-        // screen (PRF-03). After unmount there is no view to update: persist
-        // the previous program directly and leave `setState`/`context` alone.
+        // screen (PRF-03). After unmount there is no view to update, and the
+        // program may have been edited since, so leave `setState`/`context`
+        // alone and restore only if nothing changed (flows-1).
         if (!mounted) {
           final onChanged = widget.onProgramChanged;
-          if (onChanged != null) unawaited(onChanged(previous));
+          if (onChanged == null) return;
+          unawaited(
+            _undoAfterExit(
+              messenger: messenger,
+              pendingPersist: _pendingPersist,
+              previous: previous,
+              adjusted: updated,
+              persist: onChanged,
+              unchangedSince: widget.programUnchangedSince,
+              unavailableMessage: unavailableMessage,
+            ),
+          );
           return;
         }
         _applyProgram(previous, announce: l10n.performAdjustmentUndone);
       },
     );
+  }
+
+  /// The "Program adjusted" Undo once Perform has closed: restores [previous]
+  /// through [persist] only if the owner confirms the program is still what
+  /// [adjusted] left; otherwise leaves the program alone and says the undo is
+  /// no longer available. Uses only values captured while mounted.
+  static Future<void> _undoAfterExit({
+    required ScaffoldMessengerState messenger,
+    required Future<void> pendingPersist,
+    required Program previous,
+    required Program adjusted,
+    required Future<void> Function(Program) persist,
+    required Future<bool> Function(Program adjusted)? unchangedSince,
+    required String unavailableMessage,
+  }) async {
+    var unchanged = false;
+    try {
+      // The adjustment's own write must land before the stored copy is
+      // compared with it.
+      await pendingPersist;
+      unchanged = unchangedSince != null && await unchangedSince(adjusted);
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'perform_program_screen._undoAfterExit',
+      );
+    }
+    if (unchanged) {
+      await persist(previous);
+      return;
+    }
+    // Same idiom as the program screens' failed-undo message: replace the
+    // spent prompt, then show the message on the next frame. A SnackBar is a
+    // live region, so screen readers announce it.
+    if (!messenger.mounted) return;
+    messenger
+      ..clearSnackBars()
+      ..removeCurrentSnackBar();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!messenger.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(unavailableMessage)));
+    });
   }
 
   /// Opens the non-destructive "adjust" sheet (`docs/design/ux.md` §5) over the

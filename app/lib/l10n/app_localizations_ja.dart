@@ -4749,6 +4749,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get performAdjustmentUndone => '調整を元に戻しました';
 
   @override
+  String get performUndoNoLongerAvailable => '元に戻せません。その後プログラムが変更されています。';
+
+  @override
   String get performProgramAdjustedSnack => 'プログラムを調整しました。';
 
   @override

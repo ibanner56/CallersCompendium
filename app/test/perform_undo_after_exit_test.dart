@@ -109,6 +109,10 @@ void main() {
     final stored = (await repos.programs.getById('p1'))!;
     expect(stored.title, 'Renamed Night');
     expect(stored.slots.single.performedAt, isNotNull);
+    expect(
+      find.text(l10nOf(tester).performUndoNoLongerAvailable),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Undo after leaving Perform still restores the program when '
@@ -127,5 +131,9 @@ void main() {
     final stored = (await repos.programs.getById('p1'))!;
     expect(stored.title, 'Barn Dance');
     expect(stored.slots.single.performedAt, isNull);
+    expect(
+      find.text(l10nOf(tester).performUndoNoLongerAvailable),
+      findsNothing,
+    );
   });
 }

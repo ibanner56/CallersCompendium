@@ -3839,6 +3839,7 @@ void main() {
       expect(find.text('Long break'), findsOneWidget);
       final saved = await repos.programs.getById('p1');
       expect(saved!.slots.first.performedAt, isNotNull);
+      expect(find.text(l10n.performUndoNoLongerAvailable), findsOneWidget);
     },
   );
 

@@ -5110,6 +5110,10 @@
   "@performAdjustmentUndone": {
     "x-sourceSha256": "794a3e536fe9589f43585a6f275f77458eb859e939b2b1da590c89ec7eabe623"
   },
+  "performUndoNoLongerAvailable": "元に戻せません。その後プログラムが変更されています。",
+  "@performUndoNoLongerAvailable": {
+    "x-sourceSha256": "b3e205dcae09a94dc4693a675f528a7f6aad490523457c362ed13b6d48e7f9c9"
+  },
   "performProgramAdjustedSnack": "プログラムを調整しました。",
   "@performProgramAdjustedSnack": {
     "x-sourceSha256": "958c4298dfa182469d54d3054459d95cab8783f62751368c716442af29839251"
