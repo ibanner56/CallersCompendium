@@ -88,7 +88,7 @@ know exists.
 | Value | Meaning |
 | --- | --- |
 | `shareable` | May travel by any route the user chooses, including project-operated infrastructure: file export, share sheet, device sync |
-| `deviceLocal` | Must never reach project-operated infrastructure. Leaves only by a transfer the user deliberately initiates between their own devices, or in a local backup file they control |
+| `deviceLocal` | Must never reach project-operated infrastructure. Leaves only by a transfer the user deliberately initiates between their own devices, or in a local backup file they control. One recorded exception: the venue contact columns (`venues.contact*`) go to another person in a program export or share when the user ticks them in the pre-share consent dialog for that one export — see those rows' notes below |
 | `deviceScoped` | Never transmitted **by any route at all**, because the value is meaningless or actively wrong on another device — a window position, a per-device marker, a per-installation key. Distinct from `deviceLocal`: that is withheld for what it *contains*, this for what it *means*. |
 | `protocolIdentifier` | May travel as opaque protocol metadata to the configured endpoint, but carries no user data and is never adopted from a peer — here, the per-attachment sync device ID |
 | `storeAddress` | Names *where* a shared store lives on the configured endpoint — in effect a path on the sync server. It travels only to that endpoint, is never serialised as record content, and is never recoverably retained, logged, or adopted by the server or a proxy — here, the sync ID. **Not a credential or a secret:** the user is expected to hand it to another person so the two can sync together |
