@@ -337,6 +337,25 @@ def test_unmarked_forms() -> None:
         )
         == [6],
     )
+    check(
+        "a handler for a type ending in `try` is not mistaken for the try body",
+        unmarked_lines(
+            "void f() {\n"
+            "  try {\n"
+            "    a();\n"
+            "  } on Retry {\n"
+            "    b();\n"
+            "    // diagnostics: silent — expected\n"
+            "  } on Object {\n"
+            "    c();\n"
+            "  }\n"
+            "}\n"
+        )
+        == [7],
+        "`try` must be a whole token: matching the suffix of `Retry` took the "
+        "earlier handler for the try body and let its trailing marker cover "
+        "the next clause",
+    )
 
     check(
         "typed catch with neither",
