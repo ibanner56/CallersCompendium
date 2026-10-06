@@ -116,12 +116,13 @@ class DanceDetailData {
   /// one per write: backpressure already collapses most of the burst before the
   /// window sees it.
   ///
-  /// The second row is the reason the first is not stated more strongly.
+  /// The third row is the reason the sequential rows are not stated more
+  /// strongly.
   /// Concurrent writes commit close enough together that drift dispatches them
   /// as one update, so there is nothing left for a window to collapse. A window
   /// cannot beat a burst the database has already merged.
   ///
-  /// `dance_detail_data_watch_test.dart` asserts the first row as a strict
+  /// `dance_detail_data_watch_test.dart` asserts the 40-write row as a strict
   /// inequality, so removing the transformer fails a test rather than quietly
   /// leaving these figures equal.
   ///
