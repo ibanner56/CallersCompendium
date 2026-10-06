@@ -203,11 +203,13 @@ jobs:
       # Native Swift tests (post-audit finding platform-7). `flutter build`
       # never compiles the RunnerTests targets, so these steps are the only
       # place the XCTest suites in app/ios/RunnerTests and
-      # app/macos/RunnerTests are built and run. They run only when Apple
-      # native code (or the pinned Flutter version) changes -- classify's
-      # apple_native_changed -- and on every push to main, where classify sets
-      # every output true. tools/ci/check_apple_native_tests.py guards their
-      # shape.
+      # app/macos/RunnerTests are built and run. On a PR they run only when
+      # classify's apple_native_changed is true: a path under app/ios/ or
+      # app/macos/, or .fvmrc, in a diff that is not Markdown-only (an
+      # all-Markdown diff skips validation and so the whole build job). On a
+      # push to main classify sets every output true, so they run on every
+      # push that gets past the '**.md' paths-ignore filter.
+      # tools/ci/check_apple_native_tests.py guards their shape.
       #
       # `--config-only --debug` writes the Debug Generated.xcconfig and the
       # Swift package / plugin wiring that xcodebuild needs, without a second
@@ -221,6 +223,8 @@ jobs:
         working-directory: app
         timeout-minutes: 30
         run: |
+          # GitHub runs an unspecified shell as `bash -e`, without pipefail.
+          set -o pipefail
           xcodebuild -version
           flutter build ios --config-only --debug --simulator
           cd ios
@@ -247,6 +251,9 @@ jobs:
           ')"
           # Simulator builds need no signing; CODE_SIGNING_ALLOWED=NO keeps
           # Xcode from looking for a development team the runner does not have.
+          # set +e so a failing run still reaches the summary below; its
+          # status is taken from PIPESTATUS, not from tee.
+          set +e
           xcodebuild test \
             -workspace Runner.xcworkspace \
             -scheme Runner \
@@ -254,13 +261,20 @@ jobs:
             -destination "id=$udid" \
             CODE_SIGNING_ALLOWED=NO \
             2>&1 | tee "$RUNNER_TEMP/xcodebuild-test.log"
-          # Report the count, and fail if xcodebuild "succeeded" without
-          # running a test (a testable unticked in the scheme, say). Xcode 26
-          # prints "Test case '...' passed"; older Xcode "Test Case".
+          status="${PIPESTATUS[0]}"
+          set -e
+          # Report the count whatever the outcome, then fail on xcodebuild's
+          # own status, or if it "succeeded" without running a test (a
+          # testable unticked in the scheme, say). Xcode 26 prints
+          # "Test case '...' passed"; older Xcode "Test Case".
           log="$RUNNER_TEMP/xcodebuild-test.log"
           passed="$(grep -cE "^[[:space:]]*Test [Cc]ase '.*' passed" "$log" || true)"
           failed="$(grep -cE "^[[:space:]]*Test [Cc]ase '.*' failed" "$log" || true)"
           echo "iOS RunnerTests: $passed passed, $failed failed" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$status" -ne 0 ]; then
+            echo "::error::xcodebuild test exited with status $status."
+            exit "$status"
+          fi
           if [ "$passed" -eq 0 ]; then
             echo "::error::xcodebuild test reported no passing iOS RunnerTests."
             exit 1
@@ -272,25 +286,37 @@ jobs:
         working-directory: app
         timeout-minutes: 30
         run: |
+          # GitHub runs an unspecified shell as `bash -e`, without pipefail.
+          set -o pipefail
           xcodebuild -version
           flutter build macos --config-only --debug
           cd macos
           # The project already signs ad hoc (CODE_SIGN_IDENTITY "-", no
           # team), which is what a hosted test bundle needs to load into the
           # app on Apple silicon; no override is required.
+          # set +e so a failing run still reaches the summary below; its
+          # status is taken from PIPESTATUS, not from tee.
+          set +e
           xcodebuild test \
             -workspace Runner.xcworkspace \
             -scheme Runner \
             -configuration Debug \
             -destination 'platform=macOS' \
             2>&1 | tee "$RUNNER_TEMP/xcodebuild-test.log"
-          # Report the count, and fail if xcodebuild "succeeded" without
-          # running a test (a testable unticked in the scheme, say). Xcode 26
-          # prints "Test case '...' passed"; older Xcode "Test Case".
+          status="${PIPESTATUS[0]}"
+          set -e
+          # Report the count whatever the outcome, then fail on xcodebuild's
+          # own status, or if it "succeeded" without running a test (a
+          # testable unticked in the scheme, say). Xcode 26 prints
+          # "Test case '...' passed"; older Xcode "Test Case".
           log="$RUNNER_TEMP/xcodebuild-test.log"
           passed="$(grep -cE "^[[:space:]]*Test [Cc]ase '.*' passed" "$log" || true)"
           failed="$(grep -cE "^[[:space:]]*Test [Cc]ase '.*' failed" "$log" || true)"
           echo "macOS RunnerTests: $passed passed, $failed failed" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$status" -ne 0 ]; then
+            echo "::error::xcodebuild test exited with status $status."
+            exit "$status"
+          fi
           if [ "$passed" -eq 0 ]; then
             echo "::error::xcodebuild test reported no passing macOS RunnerTests."
             exit 1

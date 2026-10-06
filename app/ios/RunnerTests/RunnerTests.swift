@@ -19,8 +19,9 @@ class RunnerTests: XCTestCase {
 /// These drive `SharedImportQueue` against a throwaway temp directory rather
 /// than the real App Group container (unavailable to unit tests), so they can
 /// run under `xcodebuild test`. CI's `Build (ios)` job runs them on a simulator
-/// when anything under `app/ios/` (or `.fvmrc`) changes, and on every push to
-/// main.
+/// when `tools/ci/classify_changes.py` sets `apple_native_changed` (a change
+/// under `app/ios/` or `app/macos/`, or to `.fvmrc`, in a diff that is not
+/// Markdown-only), and on every push to main that is not Markdown-only.
 final class SharedImportQueueTests: XCTestCase {
   private var queueDirectory: URL!
 

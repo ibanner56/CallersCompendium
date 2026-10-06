@@ -10,9 +10,10 @@ failing, unnoticed.
 
 ``ci.yml``'s ``build`` job now runs ``xcodebuild test`` for the ``Runner``
 scheme on its ``ios`` and ``macos`` legs, gated by ``classify``'s
-``apple_native_changed`` output so a Dart-only PR does not pay for it (pushes to
-main set every output true, so main stays proven). This guard fails when either
-half of that goes away:
+``apple_native_changed`` output so a Dart-only PR does not pay for it. On a push
+to main that is not Markdown-only (``ci.yml`` ignores ``**.md`` pushes),
+``classify`` sets every output true, so main stays proven. This guard fails when
+any part of that goes away:
 
 - each of the ``ios`` and ``macos`` legs has a step in the ``build`` job whose
   ``if:`` selects that leg and requires ``apple_native_changed``, whose
@@ -20,7 +21,11 @@ half of that goes away:
   ``-scheme Runner`` and a destination for that platform, and which is not
   ``continue-on-error`` (a test step whose failure cannot fail the job proves
   nothing);
+- if that ``xcodebuild test`` is piped (``| tee log``), its own status still
+  decides the step (see ``pipe_status_errors``);
+- the ``build`` matrix has a ``target: ios`` and a ``target: macos`` entry;
 - ``classify`` declares the ``apple_native_changed`` output, its push branch
+  (the ``if [ "$GITHUB_EVENT_NAME" != 'pull_request' ]; then ... fi`` block)
   sets it true, and ``classify_changes.py`` emits it and sets it for a change
   under ``app/ios/`` and ``app/macos/``.
 
@@ -140,6 +145,63 @@ def _is_xcodebuild_test(command: str) -> bool:
     return "xcodebuild" in words and "test" in words[words.index("xcodebuild") + 1 :]
 
 
+_SET_PIPEFAIL_RE = re.compile(r"^\s*set\s+(?:-[A-Za-z]+\s+)*-[A-Za-z]*o\s+pipefail\b")
+_UNSET_PIPEFAIL_RE = re.compile(r"^\s*set\s+(?:[+-][A-Za-z]+\s+)*\+[A-Za-z]*o\s+pipefail\b")
+
+
+def _joined_lines(run: str) -> list[str]:
+    """``run`` with comment lines dropped and backslash continuations joined,
+    one entry per logical shell line."""
+    kept = [line for line in run.splitlines() if not line.lstrip().startswith("#")]
+    return re.sub(r"\\\n\s*", " ", "\n".join(kept)).splitlines()
+
+
+def pipe_status_errors(step: list[str]) -> list[str]:
+    """Why a piped ``xcodebuild test`` in ``step`` could fail without failing
+    the step; ``[]`` when it cannot.
+
+    GitHub runs a ``run:`` with no ``shell:`` as ``bash -e {0}``, without
+    ``pipefail``, so ``xcodebuild test | tee log`` takes ``tee``'s status and a
+    run with a failing test goes green (Copilot review on #1710). A piped
+    invocation is accepted only when one of these holds:
+
+    - the step sets ``shell: bash`` (GitHub then adds ``-o pipefail``);
+    - a ``set -o pipefail`` (or ``-eo``/``-euo``) runs before it, with no
+      ``set +o pipefail`` in between;
+    - the next shell line reads ``PIPESTATUS`` (it is overwritten by the
+      command after the pipeline, so only the very next line can)."""
+    lines = _joined_lines(step_value(step, "run"))
+    errors: list[str] = []
+    for i, line in enumerate(lines):
+        segments = re.split(r"\|\||;|&&", line)
+        piped = [seg for seg in segments if "|" in seg and _is_xcodebuild_test(seg.split("|")[0])]
+        if not piped:
+            continue
+        if step_value(step, "shell").strip("'\"") == "bash":
+            continue
+        pipefail = False
+        for before in lines[:i]:
+            if _SET_PIPEFAIL_RE.match(before):
+                pipefail = True
+            elif _UNSET_PIPEFAIL_RE.match(before):
+                pipefail = False
+        following = next((after for after in lines[i + 1 :] if after.strip()), "")
+        if pipefail or "PIPESTATUS" in following:
+            continue
+        errors.append(
+            "its 'xcodebuild test' is piped with no pipefail and no PIPESTATUS check "
+            "on the next line, so a failing test run exits with the pipe's last "
+            "status and the step passes"
+        )
+    return errors
+
+
+def matrix_has_leg(build: list[str], leg: str) -> bool:
+    """True when the ``build`` job's matrix has an entry ``target: <leg>``."""
+    pattern = re.compile(rf"""^\s*(?:-\s+)?target:\s*['"]?{leg}['"]?\s*(?:#.*)?$""")
+    return any(pattern.match(line) for line in build)
+
+
 def _selects_leg(condition: str, leg: str) -> bool:
     return re.search(rf"""matrix\.target\s*==\s*['"]{leg}['"]""", condition) is not None
 
@@ -160,6 +222,9 @@ def leg_test_step_errors(text: str, leg: str) -> list[str]:
         return ["no 'build' job found."]
     candidates = [s for s in steps(build) if _selects_leg(step_value(s, "if"), leg)]
     reasons: list[str] = []
+    if not matrix_has_leg(build, leg):
+        # A step for a leg the matrix does not build never runs.
+        reasons.append(f"the build matrix has no 'target: {leg}' entry")
     for step in candidates:
         name = step_value(step, "name") or "(unnamed step)"
         commands = [
@@ -183,7 +248,8 @@ def leg_test_step_errors(text: str, leg: str) -> list[str]:
             problems.append(f"its if: does not require needs.classify.outputs.{OUTPUT}")
         if step_value(step, "continue-on-error").strip("'\"").lower() not in ("", "false"):
             problems.append("it is continue-on-error, so a failing test cannot fail the job")
-        if not problems:
+        problems += pipe_status_errors(step)
+        if not problems and matrix_has_leg(build, leg):
             return []
         reasons.append(f"step '{name}': " + "; ".join(problems))
     if not candidates:
@@ -205,12 +271,44 @@ def classify_wiring_errors(text: str) -> list[str]:
         re.MULTILINE,
     ):
         errors.append(f"the classify job does not declare the '{OUTPUT}' output.")
-    if not re.search(rf"echo\s+['\"]?{OUTPUT}=true", classify):
+    branch = push_branch(classify)
+    if branch is None:
+        errors.append(
+            "cannot find the classify job's push branch (an `if [ \"$GITHUB_EVENT_NAME\" "
+            "!= 'pull_request' ]; then ... fi` block), so cannot confirm pushes to main "
+            f"set {OUTPUT}=true."
+        )
+    elif not re.search(rf"echo\s+['\"]?{OUTPUT}=true", branch):
         errors.append(
             f"the classify job's push branch does not set {OUTPUT}=true, so pushes "
             "to main would skip the native tests."
         )
     return errors
+
+
+_PUSH_IF_RE = re.compile(
+    r"""^(?P<indent>\s*)if\s+\[\[?\s*"?\$\{?GITHUB_EVENT_NAME\}?"?\s*!=\s*"""
+    r"""['"]?pull_request['"]?\s*\]\]?\s*;\s*then\s*$"""
+)
+
+
+def push_branch(classify: str) -> str | None:
+    """The body of the classify job's ``if [ "$GITHUB_EVENT_NAME" !=
+    'pull_request' ]; then`` block: the lines up to the ``fi`` at that
+    ``if``'s own indentation. ``None`` when there is no such block."""
+    lines = classify.splitlines()
+    for i, line in enumerate(lines):
+        match = _PUSH_IF_RE.match(line)
+        if not match:
+            continue
+        indent = match.group("indent")
+        body: list[str] = []
+        for follow in lines[i + 1 :]:
+            if re.match(rf"^{re.escape(indent)}fi\s*(?:#.*)?$", follow):
+                return "\n".join(body)
+            body.append(follow)
+        return None
+    return None
 
 
 def classifier_errors() -> list[str]:

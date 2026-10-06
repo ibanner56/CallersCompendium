@@ -317,8 +317,15 @@ symlink you can point your editor/PATH at — see the FVM docs.)
 
    The native Swift tests (`app/ios/RunnerTests`, `app/macos/RunnerTests`)
    need a macOS host with Xcode and are not part of `preflight.py`. CI's
-   `Build (ios)` and `Build (macos)` jobs run them when a PR touches
-   `app/ios/`, `app/macos/` or `.fvmrc`, and on every push to `main`. To run
+   `Build (ios)` and `Build (macos)` jobs run both suites when
+   `tools/ci/classify_changes.py` sets `apple_native_changed`: the diff it
+   classifies changes a path under `app/ios/` or `app/macos/`, or `.fvmrc`,
+   **and** is not Markdown-only (it has at least one path that is not `.md`,
+   or one of the few Markdown files the classifier treats as code). An
+   all-Markdown change under `app/ios/` does not run them. For a PR update
+   after a green Merge gate, only the commits pushed since are classified.
+   They also run on every push to `main`, except a push whose files are all
+   Markdown, which `ci.yml`'s `paths-ignore: ['**.md']` filters out. To run
    them locally:
 
    ```sh
