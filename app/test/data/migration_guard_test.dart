@@ -874,12 +874,15 @@ void main() {
       target.setLastModifiedSync(older);
       File('${target.path}-wal').setLastModifiedSync(older);
 
-      final blocked = await relocateLegacyDatabase(
-        target: target,
-        legacy: [legacy],
-        documentsDirectory: legacy.parent,
-      ).then<DatabaseRelocationBlocked?>((_) => null,
-          onError: (Object e) => e as DatabaseRelocationBlocked);
+      final blocked =
+          await relocateLegacyDatabase(
+            target: target,
+            legacy: [legacy],
+            documentsDirectory: legacy.parent,
+          ).then<DatabaseRelocationBlocked?>(
+            (_) => null,
+            onError: (Object e) => e as DatabaseRelocationBlocked,
+          );
 
       expect(blocked?.reason, DatabaseRelocationFailure.bothExist);
       expect(
@@ -887,11 +890,7 @@ void main() {
             .map((c) => (c.location, c.bytes, c.modified.toLocal()))
             .toList(),
         [
-          (
-            DatabaseCopyLocation.newLocation,
-            target.lengthSync() + 100,
-            older,
-          ),
+          (DatabaseCopyLocation.newLocation, target.lengthSync() + 100, older),
           (DatabaseCopyLocation.documents, legacy.lengthSync(), newer),
         ],
       );
@@ -902,12 +901,15 @@ void main() {
       final roaming = File(p.join(dir.path, 'Roaming', 'compendium.sqlite'))
         ..parent.createSync();
       _createFixture(roaming.path, userVersion: 7, seedValue: 'roaming');
-      final multiple = await relocateLegacyDatabase(
-        target: target,
-        legacy: [legacy, roaming],
-        documentsDirectory: legacy.parent,
-      ).then<DatabaseRelocationBlocked?>((_) => null,
-          onError: (Object e) => e as DatabaseRelocationBlocked);
+      final multiple =
+          await relocateLegacyDatabase(
+            target: target,
+            legacy: [legacy, roaming],
+            documentsDirectory: legacy.parent,
+          ).then<DatabaseRelocationBlocked?>(
+            (_) => null,
+            onError: (Object e) => e as DatabaseRelocationBlocked,
+          );
       expect(multiple?.reason, DatabaseRelocationFailure.multipleLegacy);
       expect(multiple!.copies.map((c) => (c.location, c.bytes)), [
         (DatabaseCopyLocation.documents, legacy.lengthSync()),

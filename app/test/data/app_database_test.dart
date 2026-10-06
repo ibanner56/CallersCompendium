@@ -204,15 +204,18 @@ void main() {
     });
   }
 
-  test('Linux without any Documents folder configured is not blocked', () async {
-    PathProviderPlatform.instance = _FakePathProvider(
-      documents: null,
-      support: support,
-      cache: cache,
-    );
-    await runMigrationPreflightForApp(
-      runningSchemaVersion: kCompendiumSchemaVersion,
-      operatingSystem: 'linux',
-    );
-  });
+  test(
+    'Linux without any Documents folder configured is not blocked',
+    () async {
+      PathProviderPlatform.instance = _FakePathProvider(
+        documents: null,
+        support: support,
+        cache: cache,
+      );
+      await runMigrationPreflightForApp(
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        operatingSystem: 'linux',
+      );
+    },
+  );
 }
