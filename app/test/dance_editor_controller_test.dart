@@ -1,5 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:compendium_core/testing.dart' show contraTaxonomy, testFigure;
+import 'package:compendium_core/testing.dart' show testFigure;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
@@ -986,7 +986,7 @@ void main() {
           expect(
             figureCanonicalKey(saved, contraTaxonomy),
             figureCanonicalKey(
-              Figure(move: 'custom', params: {'text': stored}),
+              testFigure(move: 'custom', params: {'text': stored}),
               contraTaxonomy,
             ),
           );
