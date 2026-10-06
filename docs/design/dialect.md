@@ -170,7 +170,13 @@ Where the chokepoint IS wired:
   parser-2): imports already store role words lowercase, and preserving case
   (`Role1s`) would give the same words different canonical bytes and split
   the line-level dedupe identity (`figureCanonicalKey` in `figure_diff.dart`)
-  between a typed figure and the identical imported one.
+  between a typed figure and the identical imported one. That identity holds
+  for role words only: the import scrub (`scrubFigureText`) lowercases a
+  protected "MAD ROBIN" while the editor keeps it as typed, so an all-caps
+  "MAD ROBIN, LADIES IN" stores `MAD ROBIN, role2s IN` from the editor and
+  `mad robin, role2s IN` from an import, and the two do not dedupe. Left as
+  is; reconciling it belongs to the pending "mad robin" canonicaliser
+  decision, not to parser-2.
 - **Hand-typed dance prose** — `hook`, `callingNotes`, `walkthrough` — is
   stored **verbatim, exactly as typed**, in whatever dialect the caller uses.
   It is not canonicalized on save and not rewritten on load. Display sites

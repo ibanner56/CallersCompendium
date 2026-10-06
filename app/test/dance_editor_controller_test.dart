@@ -961,17 +961,24 @@ void main() {
       // words different canonical bytes, so `figureCanonicalKey` — the
       // line-level dedupe/diff identity — would split a typed figure from the
       // identical imported one.
-      for (final (typed, stored, shown) in [
-        ('Larks chain wide', 'role1s chain wide', 'larks chain wide'),
-        ('LADIES chain', 'role2s chain', 'robins chain'),
+      //
+      // The import side is the real import scrub (`scrubFigureText`), not the
+      // editor's own expected bytes. It agrees for role words, but not for an
+      // all-caps "MAD ROBIN": the editor keeps the move name as typed while
+      // the import scrub lowercases it, so that line does NOT dedupe with its
+      // imported twin. Pinned here so a change to either side is visible;
+      // reconciling them is outside parser-2 (no behaviour change).
+      for (final (typed, stored, shown, matchesImport) in [
+        ('Larks chain wide', 'role1s chain wide', 'larks chain wide', true),
+        ('LADIES chain', 'role2s chain', 'robins chain', true),
         (
           'MAD ROBIN, LADIES IN',
           'MAD ROBIN, role2s IN',
           'MAD ROBIN, robins IN',
+          false,
         ),
       ]) {
-        test('typed "$typed" stores role words lowercase, keyed like an '
-            'import (parser-2)', () async {
+        test('typed "$typed" stores role words lowercase (parser-2)', () async {
           final controller = await newDanceController(openTestRepositories());
           addTearDown(controller.dispose);
           controller.addFigure();
@@ -982,14 +989,15 @@ void main() {
           controller.onTextEdited();
           final saved = figuresOf(controller.buildDance()).last;
           expect(saved.params['text'], stored);
-          // Same dedupe identity as the canonical bytes an import stores.
-          expect(
-            figureCanonicalKey(saved, contraTaxonomy),
-            figureCanonicalKey(
-              testFigure(move: 'custom', params: {'text': stored}),
-              contraTaxonomy,
-            ),
+          // Dedupe identity against what an import of the same text stores.
+          final imported = testFigure(
+            move: 'custom',
+            params: {'text': scrubFigureText(typed)},
           );
+          final sameKey =
+              figureCanonicalKey(saved, contraTaxonomy) ==
+              figureCanonicalKey(imported, contraTaxonomy);
+          expect(sameKey, matchesImport);
           // Read back in the dialect: role words come back lowercase.
           final again = DanceEditorController(
             repositories: openTestRepositories(),
