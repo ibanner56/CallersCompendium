@@ -153,8 +153,9 @@ Where the chokepoint IS wired:
   dance editor goes through the same active-dialect chokepoint as figure notes
   when the dance is saved (`FigureDraft._canonicalParams`, called from
   `buildDance`), and is rendered back via `renderFreeText`. Unlike the import
-  scrub, it has no protection for move words that are also role terms, and the
-  substitution discards capitalisation.
+  scrub, it protects only one move name that is also a role term, "mad
+  robin(s)", which is kept as typed (`_canonicalizeKeepingMadRobin`); other
+  role words are substituted and lose their capitalisation.
 - **Hand-typed dance prose** — `hook`, `callingNotes`, `walkthrough` — is
   stored **verbatim, exactly as typed**, in whatever dialect the caller uses.
   It is not canonicalized on save and not rewritten on load. Display sites

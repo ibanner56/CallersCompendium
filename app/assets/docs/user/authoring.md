@@ -141,6 +141,7 @@ while the same dialect is active; text typed in a different dialect may need a
 manual edit. The same rewriting applies to the everyday words "man", "men",
 "lady" and "ladies" inside custom figure text (for example, "the man and lady
 swing"), which are saved as role terms and shown in your dialect's words.
+The move name "mad robin" is the exception: it is kept exactly as you typed it.
 
 ### Reorder, cut, and duplicate
 
