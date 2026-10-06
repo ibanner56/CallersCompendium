@@ -868,6 +868,44 @@ void main() {
     });
   });
 
+  // Copilot review of #1699: a custom dialect whose move substitution holds a
+  // role word ("robins chain") must not shield that word on a no-edit save,
+  // so the text still follows a later dialect switch.
+  test('a no-edit save under a custom move substitution keeps custom text '
+      'canonical across a dialect switch', () async {
+    final custom = Dialect.larksRobins.copyWith(
+      name: 'Custom',
+      moves: {'chain': 'robins chain'},
+    );
+    final stored = sampleDance(id: 'd1').copyWith(
+      figures: [
+        testFigure(move: 'custom', params: {'text': 'role2s chain wide'}),
+      ],
+    );
+    final controller = DanceEditorController(
+      repositories: openTestRepositories(),
+      danceId: 'd1',
+      dialect: custom,
+    );
+    addTearDown(controller.dispose);
+    await controller.load(dance: stored, fieldDefs: const []);
+    expect(controller.figureDrafts.first.params['text'], 'robins chain wide');
+    final saved = figuresOf(controller.buildDance()).first;
+    expect(saved.params['text'], 'role2s chain wide');
+
+    final again = DanceEditorController(
+      repositories: openTestRepositories(),
+      danceId: 'd1',
+      dialect: Dialect.leadsFollows,
+    );
+    addTearDown(again.dispose);
+    await again.load(
+      dance: sampleDance(id: 'd1').copyWith(figures: [saved]),
+      fieldDefs: const [],
+    );
+    expect(again.figureDrafts.first.params['text'], 'follows chain wide');
+  });
+
   test('a figure note round-trips canonical -> render -> canonicalize '
       'idempotently (#715)', () async {
     final repos = openTestRepositories();

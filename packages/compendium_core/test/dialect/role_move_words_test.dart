@@ -115,6 +115,58 @@ void main() {
     expect(canonicalizeText(renderer.renderFreeText(legacy, lr), lr), legacy);
   });
 
+  // Copilot review of #1699: possessive objects, Unicode spaces and the
+  // editor's inline markup (`*bold*`, `_underline_`) must not change how a
+  // neighbour word is read.
+  group('neighbour words across possessives, Unicode spaces and markup', () {
+    for (final (typed, stored) in [
+      ('Twos follow their partners up the hall', null),
+      ('Ones lead his partner down', null),
+      ('Twos follow her lead', 'Twos follow her role1'),
+      ('Ones lead our neighbors down', null),
+      ('Ones lead down the hall', null),
+      ('Ones lead down the hall', null),
+      ('Ones lead down the hall', null),
+      ('the lead down', 'the role1 down'),
+      ('Ones *lead* down the hall', null),
+      ('Ones lead *down* the hall', null),
+      ('*Ones lead down the hall*', null),
+      ('Ones lead _down the hall_', null),
+      ('the *lead down*', 'the *role1 down*'),
+      ('_the_ lead down', '_the_ role1 down'),
+      ('*Leads* chain', '*role1s* chain'),
+      ('*mad* Robin twice', '*mad* robin twice'),
+      ('*Mad Robin*, *robins* in', '*mad robin*, *role2s* in'),
+    ]) {
+      test('"$typed"', () {
+        expect(canonicalizeText(typed, lf), stored ?? typed);
+      });
+    }
+    test('the role underline agrees on a bolded verb', () {
+      expect(roleSpans('Ones *lead* down the hall', lf), isEmpty);
+      expect(roleSpans('the lead down', lf), [(text: 'lead', start: 4)]);
+    });
+  });
+
+  // A custom dialect's move substitution is display wording, not a move
+  // name: its role words come from the dialect's own expansion, so they must
+  // not be shielded. Otherwise a no-edit save of stored `role2s chain wide`
+  // (shown as "robins chain wide") would store the literal word "robins".
+  test('a no-edit save under a custom move substitution changes nothing', () {
+    final custom = lr.copyWith(
+      name: 'Custom',
+      moves: {'chain': 'robins chain'},
+    );
+    const stored = 'role2s chain wide';
+    final renderer = FigureRenderer(contraTaxonomy);
+    final shown = renderer.renderFreeText(stored, custom);
+    expect(shown, 'robins chain wide');
+    final saved = canonicalizeText(shown, custom);
+    expect(saved, stored);
+    // And after a switch to another dialect it reads in that dialect.
+    expect(renderer.renderFreeText(saved, lf), 'follows chain wide');
+  });
+
   group('the lingo line underlines roles only', () {
     test('a verb lead is not a role span', () {
       expect(roleSpans('Ones lead down the hall', lf), isEmpty);
