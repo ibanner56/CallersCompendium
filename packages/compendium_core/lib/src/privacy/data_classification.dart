@@ -151,6 +151,11 @@ enum EgressClass {
   /// Must never reach project-operated infrastructure. May leave only by a
   /// transfer the user deliberately initiates between their own devices, or in
   /// a local backup file they control.
+  ///
+  /// One recorded exception, kept in the entries' notes rather than as a class
+  /// of its own: the venue contact columns (`venues.contact*`) go to another
+  /// person when the user ticks them in the pre-share consent dialog for that
+  /// one export. See those entries in `field_registry.dart`.
   deviceLocal,
 
   /// Never transmitted by any route, because the value is meaningless or
