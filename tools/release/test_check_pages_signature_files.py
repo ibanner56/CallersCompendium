@@ -629,6 +629,10 @@ def _cases() -> None:
             "const List<String> kUpdateManifestPublicKeys = [\n"
             f"  '{slashy_b64}', // current\n"
             f"  // '{next_b64}',\n"
+            f"  /* '{next_b64}', */\n"
+            "  /*\n"
+            f"   '{next_b64}',\n"
+            "  */\n"
             "];\n",
             encoding="utf-8",
         )
@@ -644,8 +648,49 @@ def _cases() -> None:
         )
         rc, out, err = _run_main([str(root), "--key-source", str(key_src)])
         assert rc == 1, (
-            f"case 22: a commented-out key must not be trusted, got rc={rc} out={out!r}"
+            f"case 22: a commented-out key (line or block comment) must not be "
+            f"trusted, got rc={rc} out={out!r}"
         )
+
+    # Case 23: a commented-out DECLARATION before the live one (a dartdoc
+    # example, a disabled line, a block comment) must not be the one the gate
+    # reads. Each commented form pins only the outsider key; the live
+    # declaration pins pub_b64. A gate that reads the first textual match
+    # would trust the outsider and reject the real signature.
+    commented_forms = [
+        f"/// const List<String> kUpdateManifestPublicKeys = ['{next_b64}'];\n",
+        f"// const List<String> kUpdateManifestPublicKeys = ['{next_b64}'];\n",
+        f"/* const List<String> kUpdateManifestPublicKeys = ['{next_b64}']; */\n",
+        "/*\n * Example:\n *   const List<String> kUpdateManifestPublicKeys = [\n"
+        f" *     '{next_b64}',\n *   ];\n */\n",
+    ]
+    for form in commented_forms:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            key_src = root / "update_config.dart"
+            key_src.write_text(
+                form
+                + "const List<String> kUpdateManifestPublicKeys = [\n"
+                f"  '{pub_b64}',\n"
+                "];\n",
+                encoding="utf-8",
+            )
+            stable_bytes = b'{"channel":"stable"}\n'
+            (root / "stable.json").write_bytes(stable_bytes)
+            (root / "stable.json.sig").write_text(sign(stable_bytes), encoding="utf-8")
+            rc, out, err = _run_main([str(root), "--key-source", str(key_src)])
+            assert rc == 0, (
+                f"case 23: live key's signature must pass despite a preceding "
+                f"commented declaration {form!r}; got rc={rc} out={out!r} err={err!r}"
+            )
+            (root / "stable.json.sig").write_text(
+                base64.b64encode(next_priv.sign(stable_bytes)).decode(), encoding="utf-8"
+            )
+            rc, out, err = _run_main([str(root), "--key-source", str(key_src)])
+            assert rc == 1, (
+                f"case 23: key from a commented declaration {form!r} must not be "
+                f"trusted; got rc={rc} out={out!r}"
+            )
 
     # Case 21: the REAL update_config.dart parses to a non-empty key set.
     keys = check_pages_signature_files.parse_pinned_keys(
