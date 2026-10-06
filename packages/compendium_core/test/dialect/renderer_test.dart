@@ -3502,6 +3502,16 @@ void main() {
         },
       );
 
+      test(
+        '{!shoulder} shows an alias-pinned param that {shoulder} blanks',
+        () {
+          final dialect = Dialect.canonical.copyWith(
+            moveWordings: const {'do_si_do': '{shoulder}|{!shoulder}'},
+          );
+          expect(renderer.render(Figure(move: 'see_saw'), dialect), '|left');
+        },
+      );
+
       test('canonical text is unchanged', () {
         expect(
           renderer.renderCanonical(chain('right')),
