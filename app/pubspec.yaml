@@ -33,6 +33,13 @@ dependencies:
   # tests) so it needs no native plugin. The passphrase-encrypted backup
   # export this was originally added for (issue #461) was removed in #536.
   cryptography: ^2.9.0
+  # Time source for the Perform clocks (post-audit integrity-6): `clock.now()`
+  # is the system clock in the app and the `fake_async` clock under
+  # `tester.pump`, so elapsed time can be measured rather than counted from
+  # timer ticks and still be deterministic in tests. Already resolved
+  # transitively (flutter_test); promoted to direct because app/lib imports it.
+  # Pinned to the version already in the root lock.
+  clock: ^1.1.2
   drift: ^2.34.2
   drift_flutter: ^0.3.1
   path: ^1.9.0
