@@ -361,7 +361,8 @@ as:
   that move. These override the move's built-in defaults, and you can still change
   any parameter on the figure afterwards.
 - **Aggressively recompute figure beats** — off by default, so a beat count you
-  typed yourself is never changed for you. Turn it on and changing a figure's
+  typed yourself is left alone, except that switching a balance option on or off
+  adds or removes 4 beats. Turn it on and changing a figure's
   move, or an option that affects its timing, recalculates its beats straight
   away, even over a count you typed.
 

@@ -2228,9 +2228,9 @@
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
     "x-sourceSha256": "1d163c476d946d3bcc7fa0c001b99114d7f53588e73341294a86e20043e32357"
   },
-  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Wenn aktiviert, wird die Taktzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Taktzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von Ihnen bearbeitete Taktzahl nie automatisch geändert.",
+  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Wenn aktiviert, wird die Taktzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Taktzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von Ihnen bearbeitete Taktzahl nur automatisch geändert, wenn Sie eine Balance-Option ein- oder ausschalten; dabei werden 4 Takte hinzugefügt oder entfernt.",
   "@settingsDefaultsAggressiveBeatsUpdateSubtitle": {
-    "x-sourceSha256": "9eaa0c9c2894b5f582b38219c90c32010320c3f307f85dbc76359959e8c0d81d"
+    "x-sourceSha256": "7ee476b3ea2b7dd326088903cfc362916fb09b7f97f971fe513b538252ce2934"
   },
   "settingsDefaultsFigureShorthandsTitle": "Figur-Abkürzungen",
   "@settingsDefaultsFigureShorthandsTitle": {

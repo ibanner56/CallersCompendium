@@ -2176,7 +2176,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'Wenn aktiviert, wird die Taktzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Taktzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von Ihnen bearbeitete Taktzahl nie automatisch geändert.';
+      'Wenn aktiviert, wird die Taktzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Taktzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von Ihnen bearbeitete Taktzahl nur automatisch geändert, wenn Sie eine Balance-Option ein- oder ausschalten; dabei werden 4 Takte hinzugefügt oder entfernt.';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'Figur-Abkürzungen';

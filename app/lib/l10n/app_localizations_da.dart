@@ -2153,7 +2153,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'Når slået til, genberegner en ændring af en figurs bevægelse eller en parameter, der påvirker timing, straks dens taktantal — selv hvis det overskriver et taktantal, du selv har indtastet. Når slået fra (standard), ændres et taktantal, du har redigeret, aldrig automatisk.';
+      'Når slået til, genberegner en ændring af en figurs bevægelse eller en parameter, der påvirker timing, straks dens taktantal — selv hvis det overskriver et taktantal, du selv har indtastet. Når slået fra (standard), ændres et taktantal, du har redigeret, kun automatisk, når du slår en balance-indstilling til eller fra, hvilket tilføjer eller fjerner 4 takter.';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'Figurkortformer';

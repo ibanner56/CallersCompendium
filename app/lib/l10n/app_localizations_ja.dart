@@ -2053,7 +2053,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'オンにすると、フィギュアのムーブやタイミングに影響するパラメータを変更した際に、拍数が即座に再計算されます — 手動で入力した拍数も上書きされます。オフ(既定)の場合、編集した拍数が自動的に変更されることはありません。';
+      'オンにすると、フィギュアのムーブやタイミングに影響するパラメータを変更した際に、拍数が即座に再計算されます — 手動で入力した拍数も上書きされます。オフ(既定)の場合、編集した拍数が自動的に変更されるのは、バランスのオプションをオン/オフにしたときだけで、4拍が加算または減算されます。';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'フィギュアのショートハンド';

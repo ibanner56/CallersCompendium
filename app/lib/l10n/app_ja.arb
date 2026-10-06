@@ -2228,9 +2228,9 @@
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
     "x-sourceSha256": "1d163c476d946d3bcc7fa0c001b99114d7f53588e73341294a86e20043e32357"
   },
-  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "オンにすると、フィギュアのムーブやタイミングに影響するパラメータを変更した際に、拍数が即座に再計算されます — 手動で入力した拍数も上書きされます。オフ(既定)の場合、編集した拍数が自動的に変更されることはありません。",
+  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "オンにすると、フィギュアのムーブやタイミングに影響するパラメータを変更した際に、拍数が即座に再計算されます — 手動で入力した拍数も上書きされます。オフ(既定)の場合、編集した拍数が自動的に変更されるのは、バランスのオプションをオン/オフにしたときだけで、4拍が加算または減算されます。",
   "@settingsDefaultsAggressiveBeatsUpdateSubtitle": {
-    "x-sourceSha256": "9eaa0c9c2894b5f582b38219c90c32010320c3f307f85dbc76359959e8c0d81d"
+    "x-sourceSha256": "7ee476b3ea2b7dd326088903cfc362916fb09b7f97f971fe513b538252ce2934"
   },
   "settingsDefaultsFigureShorthandsTitle": "フィギュアのショートハンド",
   "@settingsDefaultsFigureShorthandsTitle": {

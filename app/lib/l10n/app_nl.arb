@@ -2228,9 +2228,9 @@
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
     "x-sourceSha256": "1d163c476d946d3bcc7fa0c001b99114d7f53588e73341294a86e20043e32357"
   },
-  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Indien ingeschakeld, wordt het aantal tellen van een figuur direct herberekend zodra je de beweging of een parameter wijzigt die de timing beïnvloedt — zelfs als dat een handmatig ingevoerd aantal tellen overschrijft. Indien uitgeschakeld (standaard) wordt een aantal tellen dat je hebt aangepast nooit automatisch gewijzigd.",
+  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Indien ingeschakeld, wordt het aantal tellen van een figuur direct herberekend zodra je de beweging of een parameter wijzigt die de timing beïnvloedt — zelfs als dat een handmatig ingevoerd aantal tellen overschrijft. Indien uitgeschakeld (standaard) wordt een aantal tellen dat je hebt aangepast alleen automatisch gewijzigd wanneer je een balansoptie aan- of uitzet; dan worden er 4 tellen toegevoegd of verwijderd.",
   "@settingsDefaultsAggressiveBeatsUpdateSubtitle": {
-    "x-sourceSha256": "9eaa0c9c2894b5f582b38219c90c32010320c3f307f85dbc76359959e8c0d81d"
+    "x-sourceSha256": "7ee476b3ea2b7dd326088903cfc362916fb09b7f97f971fe513b538252ce2934"
   },
   "settingsDefaultsFigureShorthandsTitle": "Figuurafkortingen",
   "@settingsDefaultsFigureShorthandsTitle": {
