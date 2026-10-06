@@ -182,18 +182,20 @@ void main() {
     // produces: batch tagging awaits each dance's write in turn.
     final windowed = await _burst(
       repos: openTestRepositories(),
-      writes: 10,
+      writes: 40,
       coalesce: DanceDetailData.coalesceWindow,
     );
     final unwindowed = await _burst(
       repos: openTestRepositories(),
-      writes: 10,
+      writes: 40,
       coalesce: _noCoalescing,
     );
 
-    // Measured repeatedly at 1 vs 2 on in-memory sqlite in a debug build — so
-    // the window's contribution is one re-read against two, not one against
-    // ten. `DanceDetailData.coalesceWindow` records both figures.
+    // 40 writes, not 10: at 10 the margin is a single re-read (1 vs 2 where
+    // the window was first measured) and on a slower host both sides came out
+    // at 2, failing on main with nothing changed. At 40 the same host measured
+    // 2 vs 5 on every run, and removing the window still gives 5 vs 5 (red).
+    // `DanceDetailData.coalesceWindow` records the figures.
     //
     // Strict, so removing the transformer fails this test rather than leaving
     // a constant nothing checks. If it ever becomes flaky the honest fix is to
