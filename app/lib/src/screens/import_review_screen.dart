@@ -324,8 +324,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   SharedBundleImport? _cachedPickedBundle;
 
   /// The text [_cachedPickedBundle] was computed from (null before the first
-  /// plan). Lets a re-plan of unchanged text (e.g. "Try another" without an
-  /// edit) skip the decode.
+  /// plan). Lets a re-plan of unchanged text (e.g. the error screen's back
+  /// button, "Try again" or "Try another file", without an edit) skip the
+  /// decode.
   String? _bundleMemoText;
 
   /// Returns [_cachedPickedBundle]: non-null only when the planned text is a
@@ -950,7 +951,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// immediately before this method moves the screen to [_Phase.review], and
   /// there is no route from a *successful* review back to [_Phase.input] — the
   /// only returns are the cap refusal and the cancel (which clears it), plus the
-  /// error screen's "try another", which is unreachable after a success. So no
+  /// error screen's back-to-input button, which is unreachable after a success. So no
   /// plan can currently start with a stale value. Coupling the two assignments
   /// is deliberate precisely because that argument is incidental: adding a
   /// back-to-input affordance to the grouped review — a plausible next change —
