@@ -368,6 +368,25 @@ final Map<String, DataClassification> fieldClassifications = {
         'user. A soft by-name reference: a name that does not resolve on '
         'another device silently falls back to that device\'s app dialect.',
   ),
+  'programs.pay_minor_units': const DataClassification(
+    term: DpvTerm.income,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'What the caller is paid for the program (DPV pd:Income). The '
+        'subject is the app user: it is their own earnings, not a fact about '
+        'the venue, band or any other third party. Shareable so it follows '
+        'the caller to their other devices and into their own archive '
+        'export; it is not part of the shared program text or PDF.',
+  ),
+  'programs.pay_currency': const DataClassification(
+    term: DpvTerm.income,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'ISO 4217 code that programs.pay_minor_units is denominated in; '
+        'meaningless without it, so it carries the same classification.',
+  ),
   'programs.created_at': _recordStamp,
   'programs.updated_at': _recordStamp,
   'programs.deleted_at': const DataClassification(

@@ -4333,6 +4333,19 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsNotesLabel => 'Noter';
 
   @override
+  String get programsPayLabel => 'Honorar';
+
+  @override
+  String get programsPayHint => 'f.eks. 250.00';
+
+  @override
+  String get programsPayCurrencyLabel => 'Valuta';
+
+  @override
+  String get programsPayInvalid =>
+      'Angiv et beløb som 250 eller 250.50 i denne valuta.';
+
+  @override
   String get programsStatusFieldLabel => 'Status';
 
   @override

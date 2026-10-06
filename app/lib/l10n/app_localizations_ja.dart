@@ -4153,6 +4153,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsNotesLabel => 'ノート';
 
   @override
+  String get programsPayLabel => '報酬';
+
+  @override
+  String get programsPayHint => '例: 250.00';
+
+  @override
+  String get programsPayCurrencyLabel => '通貨';
+
+  @override
+  String get programsPayInvalid => 'この通貨で 250 や 250.50 のような金額を入力してください。';
+
+  @override
   String get programsStatusFieldLabel => 'ステータス';
 
   @override

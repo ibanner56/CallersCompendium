@@ -81,6 +81,8 @@ const _programFields = [
   SyncWireField('status', ['programs.status']),
   SyncWireField('hideAlternates', ['programs.hide_alternates']),
   SyncWireField('dialectName', ['programs.dialect_name']),
+  SyncWireField('payMinorUnits', ['programs.pay_minor_units']),
+  SyncWireField('payCurrency', ['programs.pay_currency']),
   SyncWireField('slots', []),
   SyncWireField('slots.id', ['program_slots.id']),
   SyncWireField('slots.position', ['program_slots.position']),

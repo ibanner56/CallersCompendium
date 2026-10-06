@@ -29,6 +29,7 @@ import '../data/validation_issue_labels.dart';
 import '../data/venue_entity_mode_scope.dart';
 import '../diagnostics/error_log.dart';
 
+import '../editor/pay_currency.dart';
 import '../editor/program_editor_draft_codec.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_matrix_pdf.dart';
@@ -173,6 +174,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   final _callerController = TextEditingController();
   final _levelController = TextEditingController();
   final _notesController = TextEditingController();
+
+  /// The pay amount as typed (a plain decimal in [_payCurrency]); empty means
+  /// no pay is recorded (issue #1418).
+  final _payController = TextEditingController();
+
+  /// The ISO 4217 code chosen for the pay; `null` until the person or a loaded
+  /// program picks one, in which case the locale's default applies.
+  String? _payCurrency;
 
   bool _loaded = false;
   void Function()? _unregisterShutdownFlush;
@@ -600,6 +609,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         );
       }
     }
+    _defaultPayCurrency = defaultPayCurrency(Localizations.localeOf(context));
     // Read the active dialect if a scope is present; tolerate its absence
     // (e.g. narrow embedded tests) with a sensible default.
     final scope = context
@@ -909,13 +919,34 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
   }
 
-  void _applyProgramToEditor(Program program) {
+  /// Whether the pay input differs from what [baseline] would display: typed
+  /// text (valid or not) or a chosen currency the program does not carry.
+  bool _payEditedSince(Program baseline) {
+    final units = baseline.payMinorUnits;
+    final currency = baseline.payCurrency;
+    final baselineText = units == null || currency == null
+        ? ''
+        : formatPayMinorUnits(units, currency);
+    final baselineCurrency = units == null ? null : currency;
+    return _payController.text.trim() != baselineText ||
+        _payCurrency != baselineCurrency;
+  }
+
+  /// Loads [program] into the editor. When [payBaseline] is given (an Undo
+  /// rebase of a live editor) and the person has changed the pay input since
+  /// that baseline, the raw pay text and currency are kept: [program] carries a
+  /// stored fallback for an unparseable amount, which must not overwrite what
+  /// was typed. Ordinary loads pass nothing and initialise the pay field.
+  void _applyProgramToEditor(Program program, {Program? payBaseline}) {
     _titleController.text = program.title;
     _venueController.text = program.venue ?? '';
     _bandController.text = program.band ?? '';
     _callerController.text = program.caller ?? '';
     _levelController.text = program.dancerLevel ?? '';
     _notesController.text = program.notes;
+    if (payBaseline == null || !_payEditedSince(payBaseline)) {
+      _setPayFrom(program);
+    }
     _existing = program;
     _eventDate = program.eventDate;
     _venueId = program.venueId;
@@ -1010,6 +1041,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _callerController.dispose();
     _levelController.dispose();
     _notesController.dispose();
+    _payController.dispose();
     super.dispose();
   }
 
@@ -1057,6 +1089,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       status: _status,
       hideAlternates: _hideAlternates,
       dialectName: _dialectName,
+      payText: _payController.text.trim(),
+      payCurrency: _effectivePayCurrency,
       slots: List.unmodifiable(_renumber(_slots)),
     );
   }
@@ -1153,6 +1187,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       }
       final draft = _draftProgram;
       if (draft == null) return _AutoCommitOutcome.notCommitted(generation);
+      // `_draftProgram` substitutes the stored pay for an unparseable amount;
+      // committing that would drop the typed text and clear its recovery
+      // draft. Leave it dirty (and autosaved) until the amount is valid.
+      if (_parsedPay().isInvalid) {
+        return _AutoCommitOutcome.notCommitted(generation);
+      }
       final wasNew = _existing == null;
       final oldDraftKey = _draftKey;
       final bulkUndoEditGeneration = _pendingBulkUndoEditGeneration;
@@ -1353,6 +1393,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _callerController.text = draft.caller ?? '';
       _levelController.text = draft.dancerLevel ?? '';
       _notesController.text = draft.notes;
+      // A draft from before the field existed never captured it: keep the
+      // program's current pay instead of reading the absence as a clear.
+      if (draft.hasPay) {
+        _payController.text = draft.payText;
+        _payCurrency = draft.payCurrency;
+      } else if (_existing case final existing?) {
+        _setPayFrom(existing);
+      } else {
+        _payController.clear();
+        _payCurrency = null;
+      }
       setState(() {
         _eventDate = draft.eventDate;
         _venueId = draft.venueId;
@@ -1469,6 +1520,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     dialectName: local.dialectName == atReadStart.dialectName
         ? live.dialectName
         : local.dialectName,
+    // Amount and currency merge as one pair: half a pay is not a pay.
+    payMinorUnits:
+        local.payMinorUnits == atReadStart.payMinorUnits &&
+            local.payCurrency == atReadStart.payCurrency
+        ? live.payMinorUnits
+        : local.payMinorUnits,
+    payCurrency:
+        local.payMinorUnits == atReadStart.payMinorUnits &&
+            local.payCurrency == atReadStart.payCurrency
+        ? live.payCurrency
+        : local.payCurrency,
     slots: slots,
     createdAt: live.createdAt,
     updatedAt: live.updatedAt,
@@ -1530,7 +1592,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         live: live.slots,
       ),
     );
-    setState(() => _applyProgramToEditor(merged));
+    setState(() => _applyProgramToEditor(merged, payBaseline: storedBaseline));
     await _refreshLinkedVenueForId(merged.venueId);
     return true;
   }
@@ -1601,7 +1663,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ),
       );
       setState(() {
-        _applyProgramToEditor(merged);
+        _applyProgramToEditor(merged, payBaseline: baseline);
         _dirty = true;
       });
       await _refreshLinkedVenueForId(merged.venueId);
@@ -1873,6 +1935,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               // auto-commit. Rebase the performed slots onto that working
               // snapshot and serialize the whole update with the same queue.
               final base = _draftProgram ?? existing;
+              // An unparseable pay was replaced by the stored one in `base`:
+              // persist the slots, but keep the typed text as unsaved work.
+              final payInvalid = _parsedPay().isInvalid;
               final persisted = base.copyWith(
                 slots: slots,
                 updatedAt: DateTime.now().toUtc(),
@@ -1883,7 +1948,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 final stored = await _repos.programs.updateAndReadBack(
                   persisted,
                 );
-                await _clearDraft(waitForCommits: false);
+                if (payInvalid) {
+                  await _saveDraft();
+                } else {
+                  await _clearDraft(waitForCommits: false);
+                }
                 return stored;
               });
               // Keep later commits usable if this live-gig write fails, while
@@ -1905,7 +1974,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 setState(() {
                   _existing = persisted;
                   _slots = slots;
-                  _dirty = false;
+                  _dirty = payInvalid;
                 });
                 _performAdjusted = updated;
                 _performAdjustedGeneration = _editGeneration;
@@ -2411,7 +2480,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   ),
                 )
               : live;
-          _applyProgramToEditor(restored);
+          _applyProgramToEditor(
+            restored,
+            payBaseline: _pendingBulkUndoBaseline ?? _existing!,
+          );
           await _refreshLinkedVenueForId(restored.venueId);
           if (!mounted) return;
           if (editedDuringRead || _editGeneration != undoEditGeneration) {
@@ -2472,6 +2544,43 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   /// The live program assembled from the current form + slots, used to drive
   /// warning-level validation (`orphaned_alt`) and export (share/copy/PDF).
+  /// The currency in effect for the pay field: the chosen one, else the
+  /// locale's default.
+  String get _effectivePayCurrency => _payCurrency ?? _defaultPayCurrency;
+
+  /// The locale's default currency, cached from [didChangeDependencies] so the
+  /// draft capture never reads an inherited widget from a defunct element.
+  String _defaultPayCurrency = 'USD';
+
+  void _setPayFrom(Program program) {
+    final units = program.payMinorUnits;
+    final currency = program.payCurrency;
+    if (units == null || currency == null) {
+      _payController.clear();
+      _payCurrency = null;
+    } else {
+      _payController.text = formatPayMinorUnits(units, currency);
+      _payCurrency = currency;
+    }
+  }
+
+  /// The pay field's state: empty (no pay), invalid (unparseable text), or a
+  /// parsed amount in [_effectivePayCurrency].
+  ({int? units, String currency, bool isEmpty, bool isInvalid}) _parsedPay() {
+    final currency = _effectivePayCurrency;
+    final text = _payController.text.trim();
+    if (text.isEmpty) {
+      return (units: null, currency: currency, isEmpty: true, isInvalid: false);
+    }
+    final units = parsePayMinorUnits(text, currency);
+    return (
+      units: units,
+      currency: currency,
+      isEmpty: false,
+      isInvalid: units == null,
+    );
+  }
+
   Program? get _draftProgram {
     final title = _titleController.text.trim();
     if (title.isEmpty) return null;
@@ -2489,6 +2598,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // through untouched so flipping the toggle is lossless (see _save).
       final enriched = VenueEntityModeScope.of(context);
       final venueText = nn(_venueController);
+      // An unparseable amount leaves the base's pay untouched: saving is
+      // blocked separately (see _save), and an export should not flicker to
+      // "no pay" while the person is mid-typing.
+      final pay = _parsedPay();
       return base.copyWith(
         title: title,
         eventDate: _eventDate,
@@ -2508,6 +2621,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         hideAlternates: _hideAlternates,
         dialectName: _dialectName,
         clearDialectName: _dialectName == null,
+        payMinorUnits: pay.units,
+        payCurrency: pay.units == null ? null : pay.currency,
+        clearPay: pay.isEmpty,
         slots: _renumber(_slots),
       );
     } catch (_) {
@@ -2532,6 +2648,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       status: draft.status,
       hideAlternates: draft.hideAlternates,
       dialectName: draft.dialectName,
+      payMinorUnits: draft.payMinorUnits,
+      payCurrency: draft.payCurrency,
       slots: draft.slots,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
@@ -2548,6 +2666,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   Future<void> _save() async {
     if (_pickerImporting) return;
+    if (_parsedPay().isInvalid) {
+      // The pay field lives in the collapsed "More details" drawer, whose
+      // fields are not built (so not validated) while it is closed: open it and
+      // show the error there instead of silently saving without the value.
+      _moreDetailsController.expand();
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _formKey.currentState?.validate(),
+      );
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     final l10n = AppLocalizations.of(context);
     final restoreBulkUndoOnFailure = _bulkUndoSnackBar != null;
@@ -3774,6 +3902,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ),
         ),
         const SizedBox(height: AppSpacing.md),
+        _buildPayField(l10n),
+        const SizedBox(height: AppSpacing.md),
         DropdownButtonFormField<ProgramStatus>(
           key: const ValueKey('program-status'),
           initialValue: _status,
@@ -3822,6 +3952,66 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             });
             _markDirty();
           },
+        ),
+      ],
+    );
+  }
+
+  /// Pay amount plus currency selector (issue #1418). The amount is a plain
+  /// decimal in the selected currency; invalid text shows an error and blocks
+  /// saving (see [_save]).
+  Widget _buildPayField(AppLocalizations l10n) {
+    final current = _effectivePayCurrency;
+    final choices = payCurrencyChoices(current);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: TextFormField(
+            key: const ValueKey('program-pay'),
+            controller: _payController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.next,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            onChanged: (_) => _markDirty(),
+            validator: (value) =>
+                (value == null ||
+                    value.trim().isEmpty ||
+                    parsePayMinorUnits(value, _effectivePayCurrency) != null)
+                ? null
+                : l10n.programsPayInvalid,
+            decoration: InputDecoration(
+              labelText: l10n.programsPayLabel,
+              hintText: l10n.programsPayHint,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        SizedBox(
+          width: 120,
+          child: DropdownButtonFormField<String>(
+            key: ValueKey('program-pay-currency:$current'),
+            initialValue: current,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: l10n.programsPayCurrencyLabel,
+              border: const OutlineInputBorder(),
+            ),
+            items: [
+              for (final code in choices)
+                DropdownMenuItem(
+                  key: ValueKey('program-pay-currency-option:$code'),
+                  value: code,
+                  child: Text(code),
+                ),
+            ],
+            onChanged: (code) {
+              if (code == null) return;
+              setState(() => _payCurrency = code);
+              _markDirty();
+            },
+          ),
         ),
       ],
     );

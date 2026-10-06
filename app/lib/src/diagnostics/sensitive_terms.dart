@@ -130,6 +130,15 @@ Future<Set<String>> collectSensitiveTerms(
     add(program.venue);
     add(program.dancerLevel);
     add(program.dialectName);
+    // Pay is private bookkeeping. A failed statement echoes the stored minor
+    // units, while the editor shows the decimal form: redact both.
+    final pay = program.payMinorUnits;
+    final currency = program.payCurrency;
+    if (pay != null && currency != null) {
+      add(currency);
+      add('$pay');
+      add(formatPayMinorUnits(pay, currency));
+    }
     for (final slot in program.slots) {
       add(slot.text);
       add(slot.guestCaller);

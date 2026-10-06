@@ -285,6 +285,15 @@ class Programs extends Table {
   /// the application dialect when Perform resolves it, so dialect rename and
   /// delete never write to programs.
   TextColumn get dialectName => text().nullable()();
+
+  /// What the caller is paid for this program, in the currency's minor units
+  /// (schema v38). `null` (every program before v38) means no pay is recorded.
+  /// Set together with [payCurrency] or not at all; never negative.
+  IntColumn get payMinorUnits => integer().nullable()();
+
+  /// ISO 4217 code for [payMinorUnits] (three uppercase letters); `null`
+  /// exactly when [payMinorUnits] is.
+  TextColumn get payCurrency => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();

@@ -196,6 +196,7 @@ export 'src/taxonomy/taxonomy.dart';
 export 'src/util/argb.dart';
 export 'src/util/colour_name_seed.dart';
 export 'src/util/inline_emphasis.dart';
+export 'src/util/pay_format.dart';
 export 'src/util/text_sanitizer.dart';
 export 'src/util/uuid.dart';
 export 'src/validation/validation.dart';

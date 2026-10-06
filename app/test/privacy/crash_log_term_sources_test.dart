@@ -77,6 +77,9 @@ const Map<String, String> _sources = {
   // -- performer credits (thirdParty) --
   'programs.band': 'TERMSRC program band',
   'programs.caller': 'TERMSRC program caller',
+  // An ISO-shaped code ('XTS' is the reserved testing currency) because the
+  // Program constructor rejects anything else.
+  'programs.pay_currency': 'XTS',
   'program_slots.guest_caller': 'TERMSRC guest caller',
   // -- published sources (thirdParty) --
   'published_sources.author': 'TERMSRC source author',
@@ -242,6 +245,8 @@ Future<void> _populate(CompendiumRepositories repos) async {
       title: 'Fixture Program',
       band: _v('programs.band'),
       caller: _v('programs.caller'),
+      payMinorUnits: 12345,
+      payCurrency: _v('programs.pay_currency'),
       slots: [
         ProgramSlot(
           id: 'ps1',

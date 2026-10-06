@@ -133,6 +133,8 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'slots': l10n.programsSlotsLabel,
         'hideAlternates': l10n.programsHideAlternatesTitle,
         'dialectName': l10n.programsDialectFieldLabel,
+        'payMinorUnits': l10n.programsPayLabel,
+        'payCurrency': l10n.programsPayCurrencyLabel,
       },
       SyncRecordKind.choreographer => {
         'name': l10n.syncConflictFieldName,
@@ -801,6 +803,15 @@ class SyncConflictComparison extends StatelessWidget {
           return DateFormat.yMMMd(
             Localizations.localeOf(context).toString(),
           ).format(syncConflictCalendarDate(value as String));
+        case 'payMinorUnits':
+          // The amount alone is ambiguous: show it with that version's own
+          // currency, formatted by the currency's exponent.
+          final currency = body?['payCurrency'];
+          final code = currency is String && currency.isNotEmpty
+              ? currency
+              : null;
+          final amount = formatPayMinorUnits(value as int, code ?? 'USD');
+          return code == null ? amount : '$amount $code';
         case 'color':
           return syncConflictColourText(value as int);
       }

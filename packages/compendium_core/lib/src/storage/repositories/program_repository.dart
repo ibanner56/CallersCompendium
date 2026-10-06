@@ -555,6 +555,8 @@ class ProgramRepository {
                     ? null
                     : normalizeShareableText(program.dialectName!),
               ),
+              payMinorUnits: Value(program.payMinorUnits),
+              payCurrency: Value(program.payCurrency),
               createdAt: program.createdAt,
               updatedAt: program.updatedAt,
               deletedAt: Value(program.deletedAt),
@@ -1443,6 +1445,8 @@ class ProgramRepository {
     status: row.status,
     hideAlternates: row.hideAlternates,
     dialectName: row.dialectName,
+    payMinorUnits: row.payMinorUnits,
+    payCurrency: row.payCurrency,
     slots: slots,
     createdAt: asUtc(row.createdAt),
     updatedAt: asUtc(row.updatedAt),

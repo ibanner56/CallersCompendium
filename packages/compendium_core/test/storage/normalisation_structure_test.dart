@@ -25,6 +25,7 @@ const _normalisationExemptions = <String, String>{
   'program_provenance.source': 'enum value',
   'venue_provenance.source': 'enum value',
   'programs.status': 'enum value',
+  'programs.pay_currency': 'validated ISO 4217 code (three uppercase letters)',
   'custom_field_defs.type': 'enum value',
   'custom_field_defs.choices_json':
       'choice strings are normalized before JSON encoding',

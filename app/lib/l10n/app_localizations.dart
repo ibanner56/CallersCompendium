@@ -6947,6 +6947,30 @@ abstract class AppLocalizations {
   /// **'Notes'**
   String get programsNotesLabel;
 
+  /// Field label for the amount the caller is paid for the program, in the program editor's More details section.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay'**
+  String get programsPayLabel;
+
+  /// Hint text for the program pay amount field: an example amount.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 250.00'**
+  String get programsPayHint;
+
+  /// Label of the currency selector next to the program pay amount field.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get programsPayCurrencyLabel;
+
+  /// Validation error shown under the program pay amount field when the text is not a valid amount for the selected currency.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an amount like 250 or 250.50 in this currency.'**
+  String get programsPayInvalid;
+
   /// Field label for the program status dropdown in the editor.
   ///
   /// In en, this message translates to:

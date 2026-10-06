@@ -469,7 +469,7 @@ Future<void> clearNormalisationSkipAt(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 37;
+const int kCompendiumSchemaVersion = 38;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -507,6 +507,11 @@ const int kMinSupportedSchemaVersion = 20;
 ///   taxonomy source JSON is rewritten recursively, including nested
 ///   `meanwhile` figures; derived figure/search rows are rebuilt after the
 ///   rewrite.
+///
+/// - v38 (issue #1418): adds the nullable `programs.pay_minor_units` (integer,
+///   the caller's pay in the currency's minor units) and `programs.pay_currency`
+///   (ISO 4217 code). Both NULL (every existing row) means no pay recorded.
+///   Purely additive: two `addColumn`s, no back-fill, no derived rebuild.
 ///
 /// - v37 (issue #1554): adds the nullable `programs.dialect_name`, the name of
 ///   the dialect Perform uses for that program. `null` (every existing row)
@@ -1175,6 +1180,23 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           );
           if (!hasDialectName) {
             await m.addColumn(programs, programs.dialectName);
+          }
+        }
+        if (from < 38) {
+          // Issue #1418. As in v37, no earlier step recreates `programs` from
+          // the current Dart definition, so the columns are normally absent;
+          // the live-schema check only keeps the step idempotent.
+          final programColumns = await customSelect(
+            "SELECT name FROM pragma_table_info('${programs.actualTableName}')",
+          ).get();
+          final present = {
+            for (final row in programColumns) row.read<String>('name'),
+          };
+          if (!present.contains(programs.payMinorUnits.name)) {
+            await m.addColumn(programs, programs.payMinorUnits);
+          }
+          if (!present.contains(programs.payCurrency.name)) {
+            await m.addColumn(programs, programs.payCurrency);
           }
         }
 

@@ -799,6 +799,8 @@ const _valuePairs = <String, List<Object?>>{
   'programs.event_date': _earlier,
   'programs.status': ['draft', 'performed'],
   'programs.hide_alternates': [false, true],
+  'programs.pay_minor_units': [25000, 25001],
+  'programs.pay_currency': ['USD', 'EUR'],
   'programs.created_at': _earlier,
   'programs.updated_at': _earlier,
   'programs.deleted_at': _earlier,
@@ -1050,6 +1052,8 @@ class _Fixture {
     status: ProgramStatus.values.byName(_str('programs.status')),
     hideAlternates: _flag('programs.hide_alternates'),
     dialectName: _str('programs.dialect_name'),
+    payMinorUnits: _int('programs.pay_minor_units'),
+    payCurrency: _str('programs.pay_currency'),
     slots: [
       ProgramSlot(
         id: _str('program_slots.id'),

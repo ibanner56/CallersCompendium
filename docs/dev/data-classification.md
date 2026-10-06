@@ -215,7 +215,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**220 columns**: 148 shareable, 21 device-local, 26 device-scoped, 25 derived. 26 personal data by category.
+**222 columns**: 150 shareable, 21 device-local, 26 device-scoped, 25 derived. 28 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -365,6 +365,8 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `programs` | `hide_alternates` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `programs` | `notes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Freeform text attached to an event plan, not to a person, place or source, so it does not take _freeformNote's third-party subject. Classified by intent (running order, choreography), not by what a user might type — see "Freeform fields are classified by intent, not by content" in docs/dev/data-classification.md. Names on a program belong in programs.caller, programs.band and program_slots.guest_caller, which are third-party performer credits. Maintainer decision (2026 audit). |
+| `programs` | `pay_currency` | `pd:Income` | Financial → Transactional → Income | app user | shareable | ISO 4217 code that programs.pay_minor_units is denominated in; meaningless without it, so it carries the same classification. |
+| `programs` | `pay_minor_units` | `pd:Income` | Financial → Transactional → Income | app user | shareable | What the caller is paid for the program (DPV pd:Income). The subject is the app user: it is their own earnings, not a fact about the venue, band or any other third party. Shareable so it follows the caller to their other devices and into their own archive export; it is not part of the shared program text or PDF. |
 | `programs` | `status` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `title` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
