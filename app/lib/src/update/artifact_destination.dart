@@ -34,8 +34,10 @@ const _macosUpdateTypeGroup = XTypeGroup(
 /// Opens the macOS native Save As panel and returns the selected destination.
 ///
 /// The caller writes the artifact directly to this path using its existing
-/// exclusive-create guard. Returning `null` means the user cancelled and no
-/// download should begin.
+/// exclusive-create guard. The panel has already asked the user to confirm
+/// replacing an existing file, so the caller first deletes a regular file at
+/// the path; a link or folder there is refused (security-5). Returning `null`
+/// means the user cancelled and no download should begin.
 Future<File?> pickMacosArtifactDestination(
   UpdateArtifact artifact, {
   SaveLocationPicker saveLocationPicker = _showMacosSaveLocation,

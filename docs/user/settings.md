@@ -436,7 +436,10 @@ can read what's new before deciding.
 On **desktop**, once an update is found you can **Download & install update**: the
 app downloads it, verifies it hasn't been tampered with, then hands it to your
 system's installer to finish — it never replaces itself in place. On **macOS**,
-you first choose where to save the disk image. After it is verified, choose
+you first choose where to save the disk image. If you pick an existing file and
+confirm **Replace**, the new download replaces it; if a folder or an alias already
+has that name, the app asks you to choose another name or folder. After it is
+verified, choose
 **Update now** to open the image and close the app; you can then replace the app
 in **Applications**. Choose **Not now** to keep working and use **Update and
 restart** from the banner or Updates section later. On **Windows**, clicking

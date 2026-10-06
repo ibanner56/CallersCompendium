@@ -251,10 +251,12 @@ Future<DownloadOutcome> downloadArtifact(
     // (TOCTOU), instead of writing through it. That defeats a local symlink
     // attack (CWE-59) where an attacker pre-plants a symlink at a predictable
     // path to redirect the write at a target of their choosing: `openWrite()`
-    // alone would happily follow it. Callers additionally pair this with an
-    // unpredictable destination path (see
+    // alone would happily follow it. On Windows and Linux the caller also
+    // pairs this with an unpredictable destination path (see
     // `UpdateController.startAssistedDownload`), so neither guard here is the
-    // sole line of defense.
+    // sole line of defense. On macOS the path is the one the user chose in the
+    // Save panel; the caller removes a regular file the user confirmed
+    // replacing, and refuses anything else, before calling here.
     try {
       await destination.create(exclusive: true);
       createdDestination = true;

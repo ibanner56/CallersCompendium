@@ -71,6 +71,7 @@ void main() {
     ArtifactHandoff? handoff,
     ArtifactDestinationPicker? macosDestinationPicker,
     Future<void> Function()? onMacosShutdown,
+    Future<Directory> Function()? temporaryDirectoryProvider,
     UpdatePlatform platform = UpdatePlatform.macos,
     UpdateArch arch = UpdateArch.universal,
   }) {
@@ -103,7 +104,8 @@ void main() {
           macosDestinationPicker ??
           (artifact) async =>
               File('${tempDir.path}/macos-${downloadFileName(artifact.url)}'),
-      temporaryDirectoryProvider: () async => tempDir,
+      temporaryDirectoryProvider:
+          temporaryDirectoryProvider ?? () async => tempDir,
       onMacosShutdown: onMacosShutdown,
     );
   }
@@ -829,11 +831,13 @@ void main() {
         ),
         platform: UpdatePlatform.linux,
         arch: UpdateArch.x64,
-        downloader: realDownloader(
-          // A local attacker winning the race into the random temp dir.
-          before: (destination) => destination.writeAsString('planted'),
-          onOutcome: (outcome) => seen = outcome,
-        ),
+        // A local attacker who wins the race into the random temp dir: the
+        // file is already there when the controller computes the path, so a
+        // controller that cleared the path on every platform would delete it
+        // and the download would succeed.
+        temporaryDirectoryProvider: () async =>
+            _PlantingTempDir(tempDir, 'CallersCompendium-0.2.0-linux-x64.dmg'),
+        downloader: realDownloader(onOutcome: (outcome) => seen = outcome),
       );
       addTearDown(c.dispose);
       await c.load();
@@ -847,4 +851,26 @@ void main() {
       expect(c.downloadFailure, UpdateDownloadFailure.unreachable);
     });
   });
+}
+
+/// A temp root whose [createTemp] plants a regular file at [plantedName] in
+/// each new subdirectory, as an attacker racing the download would.
+class _PlantingTempDir implements Directory {
+  _PlantingTempDir(this._inner, this.plantedName);
+
+  final Directory _inner;
+  final String plantedName;
+
+  @override
+  String get path => _inner.path;
+
+  @override
+  Future<Directory> createTemp([String? prefix]) async {
+    final dir = await _inner.createTemp(prefix);
+    File('${dir.path}/$plantedName').writeAsStringSync('planted');
+    return dir;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
