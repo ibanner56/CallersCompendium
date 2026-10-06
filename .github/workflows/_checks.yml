@@ -116,18 +116,19 @@ jobs:
       # backticked identifiers) must resolve to a symbol in app/lib,
       # app/test/support or compendium_core/lib, or to an ARB key. A count
       # ceiling, not a clean baseline: tools/ci/stale_comment_refs_ceiling.json
-      # holds the unresolved backlog, which may only shrink.
+      # holds the unresolved backlog, which may only shrink -- and must be
+      # lowered in the same change that shrinks it (a count under it fails).
       - name: Test the stale comment citation ceiling
         run: python3 tools/ci/test_check_stale_comment_refs.py
       - name: Guard comment citations (count ceiling)
         run: python3 tools/ci/check_stale_comment_refs.py
       # Ratchet: `syncIdentityKdfIterations` is a @visibleForTesting mutable
       # global in lib/ that lowers the sync identity PBKDF2 cost for tests. No
-      # production file may assign it, and its default must stay the private
+      # production file (app, packages, or server lib/ and bin/) may assign it, and its default must stay the private
       # 600,000-iteration constant (decided Q-E9, 2026-10-01).
       - name: Test the sync KDF override ratchet
         run: python3 tools/ci/test_check_kdf_override_unassigned.py
-      - name: Guard the sync KDF iteration override (never assigned in lib/)
+      - name: Guard the sync KDF iteration override (never assigned in production)
         run: python3 tools/ci/check_kdf_override_unassigned.py
       # Ratchet: every caught, user-facing error must reach the on-device
       # diagnostic log (or explicitly say why not). Before issue #963, the
@@ -230,6 +231,10 @@ jobs:
         run: python3 tools/ci/test_check_ios_privacy_manifest.py
       - name: Guard iOS privacy manifests (required-reason APIs)
         run: python3 tools/ci/check_ios_privacy_manifest.py
+      # A web page must not be able to launch the app on a file:/content: URI
+      # (security-6); the suite also checks the real manifest.
+      - name: Guard the Android intent filters (no BROWSABLE local-file VIEW)
+        run: python3 tools/ci/test_check_android_intent_filters.py
       - name: Test the Android release versionCode encoder
         run: python3 tools/release/test_android_version_code.py
       - name: Test the Flutter-free core guard
@@ -300,11 +305,13 @@ jobs:
           python3 tools/release/test_apprun.py
           python3 tools/release/test_check_beta_prerelease_history.py
           python3 tools/release/test_gen_sbom.py
+          python3 tools/release/test_pdfium_pin.py
           python3 tools/release/test_gen_release_metadata.py
           python3 tools/release/test_gen_release_notes.py
           python3 tools/release/test_gen_recovery_provenance.py
           python3 tools/release/test_release_workflow_recovery.py
           python3 tools/release/test_release_windows_crt.py
+          python3 tools/release/test_linux_desktop_integration.py
           python3 tools/release/test_resolve_release_codename.py
           python3 tools/release/test_publish_pages_manifest.py
           python3 tools/release/test_publish_pages_site.py

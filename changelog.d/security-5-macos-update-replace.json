@@ -1,0 +1,9 @@
+{
+  "id": "security-5-macos-update-replace",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "On macOS, saving an update over an earlier download and choosing Replace now works. It used to fail with a message blaming your connection. If a folder or a symbolic link already has that name, the app now asks you to choose another name or folder."
+    ]
+  }
+}

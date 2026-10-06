@@ -131,6 +131,24 @@ def test_declaration() -> None:
     check("no declaration is visible to the caller", scan("void f() {}\n")[0] == [])
 
 
+def test_server_is_production() -> None:
+    # guards-3: `server/` depends on compendium_core, so an assignment in its
+    # lib/ or bin/ is a production assignment too. Its tests stay out of scope.
+    print("server scope:")
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        for rel in ("server/lib/src/a.dart", "server/bin/b.dart", "server/test/c.dart"):
+            path = root / rel
+            path.parent.mkdir(parents=True)
+            path.write_text("void f() { syncIdentityKdfIterations = 1; }\n")
+        found = {p.relative_to(root).as_posix() for p in dart_library_files(root)}
+    check("server/lib is walked", "server/lib/src/a.dart" in found, str(found))
+    check("server/bin is walked", "server/bin/b.dart" in found, str(found))
+    check("server/test is not walked", "server/test/c.dart" not in found, str(found))
+
+
 def test_real_tree() -> None:
     print("real tree:")
     root = HERE.parents[1]
@@ -153,6 +171,7 @@ def main() -> int:
     test_accepted()
     test_rejected()
     test_declaration()
+    test_server_is_production()
     test_real_tree()
     print()
     if FAILURES:

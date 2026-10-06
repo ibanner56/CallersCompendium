@@ -167,8 +167,9 @@ mechanical; a diff that violates one is a hard fail, not an opinion:
   exactly its `PreferenceNotifier` descriptor's `encode` of the value it assigned.
 - **debug-print** — no unguarded `debugPrint` reaches a release build.
 - **stale-comment-refs** — a comment's `[Type.member]` reference or backticked
-  identifier must name a symbol that exists; the unresolved count may not rise
-  above `tools/ci/stale_comment_refs_ceiling.json`.
+  identifier must name a symbol that exists; the unresolved count must equal
+  `tools/ci/stale_comment_refs_ceiling.json` (above it fails; below it fails
+  until the ceiling is lowered in the same change).
 - **caught-errors** — every caught user-facing error must reach the diagnostic
   log. (Note the redactor preserves `https` URLs, so logging an exception that
   embeds a URL can leak it into exported diagnostics.)

@@ -241,6 +241,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "android-intents",
+        "no BROWSABLE VIEW intent filter lets a web page open a file: or content: URI",
+        (
+            py("tools/ci/test_check_android_intent_filters.py"),
+            py("tools/ci/check_android_intent_filters.py"),
+        ),
+    ),
+    Step(
         "debug-print",
         "no unguarded debugPrint reaches a release build",
         (
@@ -396,11 +404,13 @@ STEPS: tuple[Step, ...] = (
             py("tools/release/test_android_version_code.py"),
             py("tools/release/test_check_beta_prerelease_history.py"),
             py("tools/release/test_gen_sbom.py"),
+            py("tools/release/test_pdfium_pin.py"),
             py("tools/release/test_gen_release_metadata.py"),
             py("tools/release/test_gen_release_notes.py"),
             py("tools/release/test_gen_recovery_provenance.py"),
             py("tools/release/test_release_workflow_recovery.py"),
             py("tools/release/test_release_windows_crt.py"),
+            py("tools/release/test_linux_desktop_integration.py"),
             py("tools/release/test_resolve_release_codename.py"),
             py("tools/release/test_publish_pages_manifest.py"),
             py("tools/release/test_publish_pages_site.py"),

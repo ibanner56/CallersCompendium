@@ -7844,6 +7844,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Es konnte kein Speicherort für den Download des Updates ausgewählt werden.';
 
   @override
+  String get updateDownloadFailureDestinationOccupied =>
+      'An diesem Ort befindet sich bereits etwas. Wählen Sie einen anderen Namen oder Ordner oder verwenden Sie „Release ansehen“.';
+
+  @override
   String get updateDownloadFailureIncomplete =>
       'Der Download war unvollständig und wurde gelöscht. Bitte versuchen Sie es erneut oder verwenden Sie „Release ansehen“.';
 

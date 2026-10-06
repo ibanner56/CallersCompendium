@@ -7748,6 +7748,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Der kunne ikke vælges et sted at hente opdateringen til.';
 
   @override
+  String get updateDownloadFailureDestinationOccupied =>
+      'Der ligger allerede noget på den placering. Vælg et andet navn eller en anden mappe, eller brug „Se udgivelse“.';
+
+  @override
   String get updateDownloadFailureIncomplete =>
       'Overførslen var ufuldstændig og blev slettet. Prøv igen, eller brug „Se udgivelse“.';
 

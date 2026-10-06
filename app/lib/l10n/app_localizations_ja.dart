@@ -7455,6 +7455,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get updateDownloadFailureDestination => 'アップデートのダウンロード先を選択できませんでした。';
 
   @override
+  String get updateDownloadFailureDestinationOccupied =>
+      'その場所にはすでに何かがあります。別の名前またはフォルダを選択するか、「リリースを見る」をご利用ください。';
+
+  @override
   String get updateDownloadFailureIncomplete =>
       'ダウンロードが不完全だったため、削除されました。もう一度お試しいただくか、「リリースを見る」をご利用ください。';
 

@@ -100,8 +100,9 @@ _BeatSplit _splitInlineBeats(String line) {
 /// the always-on legacy synonym set the parser's scrub applies, so they miss
 /// raw but parse once [canonicalizeText] maps them back to `role1`/`role2`.
 /// Raw goes first because a dialect term can also be a MOVE word — `lead` in
-/// `ones lead down the hall` — and canonicalising first would rewrite it into
-/// a role token and break a line that parses fine as typed. When the retry
+/// `ones lead down the hall`. The canonicaliser keeps such a verb when its
+/// neighbours show it is one (`RoleCanonicalizer`), but a line that parses as
+/// typed should never depend on that judgement. When the retry
 /// also misses, the raw result is returned, so the custom is not
 /// dialect-canonicalised here. It is not verbatim either: the parser's import
 /// scrub (`scrubFigureText`) has already run over it, and the editor

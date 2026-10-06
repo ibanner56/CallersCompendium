@@ -2731,4 +2731,57 @@ FROM seq
       );
     });
   });
+
+  // parser-6: the query "mad robin" was canonicalised to "mad role2", which
+  // never matches a structured mad robin (canonical text "role2s mad robin
+  // once"). And a verb "lead" typed under Leads/Follows was canonicalised to
+  // "role1", so "lead down" missed the stored custom text that keeps it.
+  group('move words that are also role words', () {
+    for (final dialect in [null, Dialect.larksRobins, Dialect.leadsFollows]) {
+      for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+        test('"mad robin" finds a structured mad robin '
+            '(${dialect?.name ?? 'no dialect'}, ${scope.name})', () async {
+          await dances.create(
+            _dance(
+              id: 'a',
+              title: 'Robinless',
+              figures: [Figure(move: 'mad_robin')],
+            ),
+          );
+          await dances.create(_dance(id: 'b', title: 'Other'));
+          expect(
+            await dances.search(
+              FullTextFilter('mad robin', scope: scope),
+              dialect: dialect,
+            ),
+            ['a'],
+          );
+        });
+      }
+    }
+
+    test('"lead down" finds custom text with the verb lead '
+        '(Leads/Follows)', () async {
+      await dances.create(
+        _dance(
+          id: 'a',
+          title: 'Hall',
+          figures: [
+            Figure(
+              move: 'custom',
+              params: const {'text': 'Ones lead down the hall four abreast'},
+            ),
+          ],
+        ),
+      );
+      await dances.create(_dance(id: 'b', title: 'Other'));
+      expect(
+        await dances.search(
+          const FullTextFilter('lead down', scope: FullTextScope.figure),
+          dialect: Dialect.leadsFollows,
+        ),
+        ['a'],
+      );
+    });
+  });
 }

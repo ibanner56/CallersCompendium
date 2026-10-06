@@ -9,7 +9,8 @@ mutable global in ``lib/``, so the safety argument is that nothing in
 production ever assigns it: its default is the private production constant, and
 a marker written at any other count is skipped on decode.
 
-This fails if any file under ``app/lib`` or ``packages/*/lib``
+This fails if any file under ``app/lib``, ``packages/*/lib``, ``server/lib``
+or ``server/bin``
 
 * assigns it (``=``, ``+=``, ``-=``, ``*=``, ``/=``, ``~/=``, ``??=``, ``++``,
   ``--``) other than at its single declaration, or
@@ -17,7 +18,9 @@ This fails if any file under ``app/lib`` or ``packages/*/lib``
 * no longer declares it exactly once (the check would otherwise pass vacuously).
 
 Comments and string literals are masked first, so prose that mentions an
-assignment does not trip it. Tests, tools and examples are out of scope.
+assignment does not trip it. The server counts as production: it depends on
+``compendium_core``, so an assignment there lowers the same global. Tests,
+tools and examples are out of scope.
 
 Exit codes: 0 = clean, 1 = violation, 2 = bad input.
 """
@@ -159,11 +162,13 @@ def scan(text: str) -> tuple[list[int], list[tuple[int, str]]]:
 
 
 def dart_library_files(root: Path) -> list[Path]:
-    """Every production `.dart` file: `app/lib/**` and `packages/*/lib/**`."""
+    """Every production `.dart` file: `app/lib/**`, `packages/*/lib/**`,
+    `server/lib/**` and `server/bin/**`."""
     files: list[Path] = []
-    app_lib = root / "app" / "lib"
-    if app_lib.is_dir():
-        files.extend(sorted(app_lib.rglob("*.dart")))
+    for production in (("app", "lib"), ("server", "lib"), ("server", "bin")):
+        directory = root.joinpath(*production)
+        if directory.is_dir():
+            files.extend(sorted(directory.rglob("*.dart")))
     packages = root / "packages"
     if packages.is_dir():
         for pkg in sorted(p for p in packages.iterdir() if p.is_dir()):

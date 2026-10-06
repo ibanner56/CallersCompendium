@@ -190,6 +190,10 @@ slots around the one you are reading. It is session-only: it is kept when you
 leave and re-enter Perform within the same session, but it is never saved to
 your program or your dances.
 
+While Perform is open, the timers keep counting when you switch to another
+app, such as your music player, or when the device sleeps: coming back shows
+the full time that passed. Only **Pause timers** stops them.
+
 Timing is display-only — it helps you keep an eye on the clock but never changes
 your program or your dances. The single-dance timer is on by default; to hide
 it, turn off **Show timer for individual Perform** in

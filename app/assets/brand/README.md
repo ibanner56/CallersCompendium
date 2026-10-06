@@ -89,7 +89,9 @@ Outputs:
 - **macOS** `app/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_*.png`
   — rounded tile with the standard ~10% transparent squircle margin
 - **Windows** `app/windows/runner/resources/app_icon.ico` — 16/24/32/48/64/128/256
-- **Linux packaging** `packaging/linux/icon.png` — 512px Soft Dark tile
+- **Linux packaging** `packaging/linux/icon.png` — 512px Soft Dark tile. The
+  AppImage, the tar.gz and the window itself use it; the CMake build installs it
+  into the bundle as `data/compendium_app.png`
 
 The `site/` marketing assets (`logo.svg`, `favicon.svg`, `social-card.svg`) embed
 the same small mark and are maintained by hand from these sources.

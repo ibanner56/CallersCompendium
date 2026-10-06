@@ -436,9 +436,11 @@ can read what's new before deciding.
 On **desktop**, once an update is found you can **Download & install update**: the
 app downloads it, verifies it hasn't been tampered with, then hands it to your
 system's installer to finish — it never replaces itself in place. On **macOS**,
-you first choose where to save the disk image. After it is verified, choose
-**Update now** to open the image and close the app; you can then replace the app
-in **Applications**. Choose **Not now** to keep working and use **Update and
+you first choose where to save the disk image. If you pick an existing file and
+confirm **Replace**, the new download replaces it; if a folder or a symbolic link
+already has that name, the app asks you to choose another name or folder. After
+it is verified, choose **Update now** to open the image and close the app; you
+can then replace the app in **Applications**. Choose **Not now** to keep working and use **Update and
 restart** from the banner or Updates section later. On **Windows**, clicking
 **Download & install update** authorizes the verified installer to run; it handles
 closing and replacing the existing installation. On **Linux**, the verified
@@ -906,8 +908,10 @@ The **About** section tells you what you're running and where it comes from.
   (CC BY-NC).
 - **View licenses** — the full license texts, including the bundled fonts,
   `fmptools` (MIT), the project the Caller's Companion importer is ported from,
-  the EFF long wordlist (CC BY 3.0 US) that generated sync IDs are drawn from, and
-  ContraDB (AGPL-3.0), whose figure wording the dance-text renderer follows.
+  the EFF long wordlist (CC BY 3.0 US) that generated sync IDs are drawn from,
+  ContraDB (AGPL-3.0), whose figure wording the dance-text renderer follows, and,
+  on Linux and Windows, PDFium (BSD-3-Clause, with the notices of the libraries
+  built into it), which the app uses there to print and preview PDFs.
 
 ## Where to go next
 
