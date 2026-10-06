@@ -373,8 +373,6 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
   }
 }
 
-/// One program in the dance's calling history: its title, the date it was
-/// called (or scheduled) and its venue, tappable to open the program.
 /// The calendar day a calling-history row shows for [record].
 ///
 /// Programs appear as soon as they include the dance, so `performedAt` is often
@@ -386,11 +384,22 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
 /// is shown as stored (converting it would move it back a day west of UTC).
 /// Ordering still uses the UTC `effectiveDate`.
 @visibleForTesting
-DateTime callingHistoryDisplayDate(DanceCallingRecord record) =>
-    record.performedAt?.toLocal() ??
-    record.eventDate ??
-    record.programUpdatedAt.toLocal();
+DateTime callingHistoryDisplayDate(DanceCallingRecord record) {
+  final performedAt = record.performedAt;
+  if (performedAt != null) return callingHistoryToLocal(performedAt);
+  return record.eventDate ?? callingHistoryToLocal(record.programUpdatedAt);
+}
 
+/// How [callingHistoryDisplayDate] converts a stored UTC instant to local time.
+/// A seam so a test can stand in for a host west of UTC: test hosts usually run
+/// in UTC, where `toLocal` keeps the day and cannot tell the two apart.
+@visibleForTesting
+DateTime Function(DateTime instant) callingHistoryToLocal = _toLocal;
+
+DateTime _toLocal(DateTime instant) => instant.toLocal();
+
+/// One program in the dance's calling history: its title, the date it was
+/// called (or scheduled) and its venue, tappable to open the program.
 class CallingHistoryRow extends StatelessWidget {
   const CallingHistoryRow({
     super.key,

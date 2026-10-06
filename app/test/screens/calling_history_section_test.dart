@@ -563,11 +563,18 @@ void main() {
   // performedAt and programUpdatedAt are instants stored in UTC; eventDate is
   // a calendar date stored as UTC midnight. A row must show the local day of
   // an instant, or a dance called at 22:30 in New York (02:30Z) reads as the
-  // next day. The test host usually runs in UTC, where the two agree; run
-  // with TZ=America/New_York to see this one discriminate.
+  // next day. The test host usually runs in UTC, where the two agree, so the
+  // conversion is swapped for New York's (UTC-4 in October) to make the row
+  // discriminate on any host.
   testWidgets('a row shows the local day it was performed, not the UTC day', (
     tester,
   ) async {
+    final previous = callingHistoryToLocal;
+    callingHistoryToLocal = (instant) {
+      final ny = instant.subtract(const Duration(hours: 4));
+      return DateTime(ny.year, ny.month, ny.day, ny.hour, ny.minute);
+    };
+    addTearDown(() => callingHistoryToLocal = previous);
     final instant = DateTime.utc(2026, 10, 4, 2, 30);
     await tester.pumpWidget(
       MaterialApp(
@@ -590,8 +597,16 @@ void main() {
       tester.element(find.byType(CallingHistoryRow)),
     );
     expect(
-      find.textContaining(localizations.formatMediumDate(instant.toLocal())),
+      find.textContaining(
+        localizations.formatMediumDate(DateTime(2026, 10, 3)),
+      ),
       findsOneWidget,
+    );
+    expect(
+      find.textContaining(
+        localizations.formatMediumDate(DateTime(2026, 10, 4)),
+      ),
+      findsNothing,
     );
   });
 
