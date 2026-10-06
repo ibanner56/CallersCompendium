@@ -421,14 +421,29 @@ const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 ///   snapshot does), and require it to report not busy: a busy result means
 ///   another connection holds the WAL, so the main file is not yet a complete
 ///   database and nothing is copied ([DatabaseRelocationFailure.moveFailed]).
-/// - **Never move a database someone has open.** A not-busy checkpoint only
-///   proves no other connection is *reading*; an idle one (an older build left
-///   running) would lose whatever it writes after the copy. A WAL database is
-///   briefly switched to `journal_mode = DELETE` and straight back: SQLite
-///   refuses that while any other connection has the file open, which is
-///   reported as [DatabaseRelocationFailure.moveFailed]. A database still in
-///   rollback-journal mode (written by a build before WAL) gives no such
-///   signal: an idle connection to it holds no lock.
+/// - **Never move a database someone has open, and keep everyone out until it
+///   is gone.** A not-busy checkpoint only proves no other connection is
+///   *reading*; an idle one (an older build left running) would lose whatever
+///   it writes after the copy. The checking connection stays open with an
+///   exclusive SQLite lock from the check until the main file is deleted
+///   (`_LegacyHold`): a WAL database must leave WAL mode first, which SQLite
+///   refuses while any other connection has the file open
+///   ([DatabaseRelocationFailure.moveFailed]); after that every other reader
+///   or writer, in any process, gets SQLITE_BUSY. The database is copied in
+///   rollback-journal mode; drift's setup puts it back in WAL mode on open,
+///   and a move that gives up restores WAL mode on the old file. Limits:
+///   - A database still in rollback-journal mode (written by a build before
+///     WAL) cannot be probed for an *idle* connection, which holds no lock; it
+///     is locked out from the check on, but on POSIX a write it makes after the
+///     unlink goes to the deleted file.
+///   - Windows cannot delete an open file, so the lock is released just before
+///     the main file is deleted. A process opening it in that gap keeps it
+///     open (SQLite does not share delete access), so the delete fails and the
+///     move rolls back; one that opens, writes and closes inside the gap is not
+///     caught.
+///   - On Windows SQLite's lock bytes sit at the 1 GiB offset, so copying a
+///     database larger than 1 GiB through a second handle fails
+///     ([DatabaseRelocationFailure.moveFailed], nothing deleted).
 /// - **Copy, fsync, verify size, then rename into place**: every file is copied
 ///   to `<name>.relocating` beside its destination, flushed to disk and its
 ///   length compared with the source; only when all of them verify are they
