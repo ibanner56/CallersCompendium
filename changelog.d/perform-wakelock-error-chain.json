@@ -1,0 +1,9 @@
+{
+  "id": "perform-wakelock-error-chain",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "If turning on screen keep-awake failed unexpectedly when Perform opened, the screen could stay awake after leaving Perform."
+    ]
+  }
+}

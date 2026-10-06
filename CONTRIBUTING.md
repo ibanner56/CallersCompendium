@@ -315,6 +315,40 @@ symlink you can point your editor/PATH at — see the FVM docs.)
    (cd app && fvm flutter test)                        # app / widget tests
    ```
 
+   The native Swift tests (`app/ios/RunnerTests`, `app/macos/RunnerTests`)
+   need a macOS host with Xcode and are not part of `preflight.py`. CI's
+   `Build (ios)` and `Build (macos)` jobs run both suites when
+   `tools/ci/classify_changes.py` sets `apple_native_changed`: the diff it
+   classifies changes a path under `app/ios/` or `app/macos/`, or `.fvmrc`,
+   **and** is not Markdown-only (it has at least one path that is not `.md`,
+   or one of the few Markdown files the classifier treats as code). An
+   all-Markdown change under `app/ios/` does not run them. For a PR update
+   after a green Merge gate, only the commits pushed since are classified.
+   They also run on every push to `main`, except a push whose files are all
+   Markdown, which `ci.yml`'s `paths-ignore: ['**.md']` filters out. To run
+   them locally:
+
+   ```sh
+   (cd app && fvm flutter build macos --config-only --debug)
+   xcodebuild test -workspace app/macos/Runner.xcworkspace -scheme Runner \
+     -destination 'platform=macOS'
+   (cd app && fvm flutter build ios --config-only --debug --simulator)
+   xcodebuild test -workspace app/ios/Runner.xcworkspace -scheme Runner \
+     -destination 'platform=iOS Simulator,name=<an installed iPhone>' \
+     CODE_SIGNING_ALLOWED=NO
+   ```
+
+   The Kotlin JVM unit tests for the Android share intake
+   (`app/android/app/src/test/`) are not run by preflight or `flutter test`:
+   they need the Android SDK and run in CI's Android build leg, after the
+   build. To run them by hand, build once (which writes the Gradle wrapper),
+   then:
+
+   ```sh
+   (cd app && fvm flutter build apk --debug)
+   (cd app/android && ./gradlew :app:testDebugUnitTest)
+   ```
+
 4. Open a PR; it must pass CI (build, tests, lint, formatting) before review.
    Before merging, run the merge-readiness gates:
 

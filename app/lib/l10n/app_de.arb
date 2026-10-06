@@ -2228,9 +2228,9 @@
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
     "x-sourceSha256": "1d163c476d946d3bcc7fa0c001b99114d7f53588e73341294a86e20043e32357"
   },
-  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Wenn aktiviert, wird die Taktzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Taktzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von Ihnen bearbeitete Taktzahl nie automatisch geändert.",
+  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Wenn aktiviert, wird die Taktzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Taktzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von Ihnen bearbeitete Taktzahl nur automatisch geändert, wenn Sie eine Balance-Option ein- oder ausschalten; dabei werden 4 Takte hinzugefügt oder entfernt.",
   "@settingsDefaultsAggressiveBeatsUpdateSubtitle": {
-    "x-sourceSha256": "9eaa0c9c2894b5f582b38219c90c32010320c3f307f85dbc76359959e8c0d81d"
+    "x-sourceSha256": "7ee476b3ea2b7dd326088903cfc362916fb09b7f97f971fe513b538252ce2934"
   },
   "settingsDefaultsFigureShorthandsTitle": "Figur-Abkürzungen",
   "@settingsDefaultsFigureShorthandsTitle": {
@@ -7774,6 +7774,10 @@
   "@updateDownloadFailureDestination": {
     "x-sourceSha256": "623af0043c02285ccf6b203be680ed0926d08b1223e7edd0d02c7fd15ee31c82"
   },
+  "updateDownloadFailureDestinationOccupied": "An diesem Ort befindet sich bereits etwas. Wählen Sie einen anderen Namen oder Ordner oder verwenden Sie „Release ansehen“.",
+  "@updateDownloadFailureDestinationOccupied": {
+    "x-sourceSha256": "6e229e0b5a454738aa5ed4b7c9be061458a5b9cc33a75efcd7151e50c8c8c82e"
+  },
   "updateDownloadFailureIncomplete": "Der Download war unvollständig und wurde gelöscht. Bitte versuchen Sie es erneut oder verwenden Sie „Release ansehen“.",
   "@updateDownloadFailureIncomplete": {
     "x-sourceSha256": "0cd1b8b90a1aa7b567458a9eaaf5edcea68b720fdae43c7d57e5820c64a9c1b7"
@@ -8829,6 +8833,10 @@
   "dialectEditorMoveWordingsConditionalHelp": "Bedingte Bewegungsvorlagen werden anhand der Parameter der Figur ausgewählt. Fülle alle aufgeführten Platzhalter aus; unvollständige bedingte Vorlagen werden ignoriert.",
   "@dialectEditorMoveWordingsConditionalHelp": {
     "x-sourceSha256": "ba57af9dcdc3deb6400d85b49bb8995e8400dff7fbb53c64b7b94c3ab35808ff"
+  },
+  "dialectEditorMoveWordingsForceHelp": "Manche Platzhalter entfallen, wenn sie nichts beitragen, etwa die Hand bei einer Kette, wenn die Rolle sie bereits vorgibt. Setze ein ! vor einen Platzhalter, wie {example}, um ihn immer anzuzeigen.",
+  "@dialectEditorMoveWordingsForceHelp": {
+    "x-sourceSha256": "7ff86d75ca24413a4ac82dc32947404c1154e041d46c204040701f21d4770ec1"
   },
   "dialectEditorMoveWordingsConditionalLabel": "{move} (bedingt)",
   "@dialectEditorMoveWordingsConditionalLabel": {

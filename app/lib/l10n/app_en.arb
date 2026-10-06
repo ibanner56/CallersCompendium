@@ -2677,7 +2677,7 @@
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
     "description": "Title of the opt-in setting that makes the figure editor always recompute a figure's beat count from its move/params, even overriding a manually entered value (issue #689)."
   },
-  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "When on, changing a figure's move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you've edited is never changed automatically.",
+  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "When on, changing a figure's move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you've edited is only changed automatically when you switch a balance option on or off, which adds or removes 4 beats.",
   "@settingsDefaultsAggressiveBeatsUpdateSubtitle": {
     "description": "Explanatory subtitle for the aggressive-beats-update setting, explicitly warning that a manually entered beat count can be overwritten when the toggle is on (issue #689 guardrail)."
   },
@@ -10140,6 +10140,10 @@
   "@updateDownloadFailureDestination": {
     "description": "Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file."
   },
+  "updateDownloadFailureDestinationOccupied": "Something is already at that location. Choose another name or folder, or use \"View release\".",
+  "@updateDownloadFailureDestinationOccupied": {
+    "description": "macOS assisted-download error shown when the place chosen in the Save panel holds a folder, a symbolic link, or a file that could not be removed, so the update was not saved there. The user can start the download again and pick another name or folder. \"View release\" must match the translation of updateBannerViewRelease."
+  },
   "updateDownloadFailureIncomplete": "The download was incomplete and was deleted. Please try again, or use \"View release\".",
   "@updateDownloadFailureIncomplete": {
     "description": "Assisted-download error shown when the downloaded file's size did not match the update manifest, so it was deleted. \"View release\" must match the translation of updateBannerViewRelease, the button that opens the release page for a manual download."
@@ -11535,6 +11539,16 @@
   "dialectEditorMoveWordingsConditionalHelp": "Conditional move templates are selected by the figure's parameters. Complete every listed slot; unfinished conditional templates are ignored.",
   "@dialectEditorMoveWordingsConditionalHelp": {
     "description": "Helper text explaining branch-specific move wording templates and their required slots."
+  },
+  "dialectEditorMoveWordingsForceHelp": "Some slots are left out when they add nothing, such as a chain's hand when the role already implies it. Put a ! in front of a slot, like {example}, to always show it.",
+  "@dialectEditorMoveWordingsForceHelp": {
+    "description": "Helper text explaining that a leading ! forces a move wording slot to display. The example placeholder is a sample slot such as {!hand}.",
+    "placeholders": {
+      "example": {
+        "type": "String",
+        "example": "{!hand}"
+      }
+    }
   },
   "dialectEditorMoveWordingsConditionalLabel": "{move} (conditional)",
   "@dialectEditorMoveWordingsConditionalLabel": {

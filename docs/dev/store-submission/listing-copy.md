@@ -144,6 +144,9 @@ GitHub. Tell us your device, the version, and what you were doing.
 Set in App Store Connect → App Privacy. Device Sync can transfer content, so
 **"Data Not Collected" is not the right answer** for a Sync-capable build.
 Expected result: **Data collected, not linked to you, not used for tracking.**
+The same answer is declared in the app's privacy manifest,
+`app/ios/Runner/PrivacyInfo.xcprivacy` (`NSPrivacyCollectedDataTypes`); keep the
+two in step.
 
 - [ ] **"Do you or your third-party partners collect data from this app?"** →
   **Yes.**

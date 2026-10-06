@@ -21,6 +21,7 @@ import '../widgets/tap_tempo_metronome.dart';
 import 'perform_a11y_prefs.dart';
 import 'perform_adjust_sheet.dart';
 import 'perform_card.dart';
+import 'perform_elapsed_clock.dart';
 import 'perform_wakelock.dart';
 import 'perform_walkthrough_overlay.dart';
 import 'settings_screen.dart'
@@ -318,22 +319,40 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// display-only aid for the caller during an event: never persisted and never
   /// written back to the program (that is 5.3 territory).
   ///
-  /// A single [Timer.periodic] (1s) drives both the running program clock and
-  /// the per-slot elapsed. We accumulate whole seconds in [_elapsed] rather than
-  /// diffing wall-clock time so the readouts advance deterministically under
-  /// `tester.pump(Duration(...))`. The timer is independent of
-  /// [PerformWakelockMixin] (which only toggles the wake-lock in initState/
-  /// dispose, releases it on `paused` and re-asserts it on resume), so the two
-  /// do not interfere.
+  /// The running program clock and the per-slot elapsed both derive from
+  /// [_clock], which measures elapsed time rather than counting timer ticks
+  /// (post-audit integrity-6), so time the app spends suspended in the
+  /// background or asleep, or ticks lost to jank, still count. [_timer] only
+  /// refreshes [_elapsed] from [_clock] about once a second, and
+  /// [didChangeAppLifecycleState] refreshes it as soon as the app resumes.
+  /// `package:clock` is what keeps this deterministic under
+  /// `tester.pump(Duration(...))`: `fake_async` controls it in tests.
   ///
   /// Elapsed lives in a [ValueNotifier] rather than plain state so the per-second
-  /// tick rebuilds only the timing line (via a [ValueListenableBuilder] in
+  /// refresh rebuilds only the timing line (via a [ValueListenableBuilder] in
   /// [_buildTimingLine]) — not the whole card/figures, which would otherwise
   /// re-run `deriveSections`/`renderSummary` for every figure each second.
+  late final PerformElapsedClock _clock = PerformElapsedClock(
+    initialSeconds: widget.initialElapsedSeconds,
+    paused: widget.initialPaused,
+  );
   Timer? _timer;
   late final ValueNotifier<int> _elapsed = ValueNotifier<int>(
     widget.initialElapsedSeconds,
   );
+
+  /// Re-reads [_clock] into [_elapsed] and schedules the next refresh for when
+  /// the displayed second turns over. No timer is kept while paused.
+  void _refreshElapsed() {
+    _timer?.cancel();
+    _timer = null;
+    _elapsed.value = _clock.seconds;
+    if (_clock.isRunning) {
+      _timer = Timer(_clock.untilNextSecond, () {
+        if (mounted) _refreshElapsed();
+      });
+    }
+  }
 
   /// Value of [_elapsed] when the current group was entered; the per-slot
   /// elapsed is the difference. Reset to "now" on every navigation.
@@ -370,12 +389,17 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_paused || !mounted) return;
-      // Bump the notifier only — the [ValueListenableBuilder] in the timing
-      // line rebuilds the clock text without rebuilding the card/figures.
-      _elapsed.value++;
-    });
+    // Sets the notifier only — the [ValueListenableBuilder] in the timing
+    // line rebuilds the clock text without rebuilding the card/figures.
+    _refreshElapsed();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Timers may not have fired while the app was away; show the full
+    // interval now rather than at the next refresh.
+    if (state == AppLifecycleState.resumed && mounted) _refreshElapsed();
   }
 
   @override
@@ -387,7 +411,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     widget.onExit?.call(
       PerformResumeState(
         groupIndex: _groupIndex,
-        elapsedSeconds: _elapsed.value,
+        elapsedSeconds: _clock.seconds,
         slotStartSeconds: _slotStartSeconds,
         paused: _paused,
         walkthroughEndedAtSlotSeconds: _walkthroughEndedAt,
@@ -477,6 +501,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   /// Marks the current group as freshly entered, zeroing the per-slot elapsed.
   void _resetSlotTimer() {
+    _refreshElapsed();
     _slotStartSeconds = _elapsed.value;
     _walkthroughEndedAt = null;
   }
@@ -485,12 +510,17 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// second, or clears the mark (issue #1659). While paused the clock is frozen,
   /// so the mark records the frozen value.
   void _toggleDanceStart() => setState(() {
+    _refreshElapsed();
     _walkthroughEndedAt = _walkthroughEndedAt == null
         ? _slotElapsedFrom(_elapsed.value)
         : null;
   });
 
-  void _togglePause() => setState(() => _paused = !_paused);
+  void _togglePause() => setState(() {
+    _paused = !_paused;
+    _paused ? _clock.pause() : _clock.resume();
+    _refreshElapsed();
+  });
 
   // Re-entrancy guard (issue #666, parity with #612): true while the exit
   // confirmation dialog is showing.
@@ -1419,7 +1449,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// The running program clock, per-slot elapsed, and (when present) the
   /// split planned slot timing with walkthrough-transition and over-run cues.
   ///
-  /// Only this line rebuilds on each 1s tick: a [ValueListenableBuilder] listens
+  /// Only this line rebuilds on each per-second refresh: a [ValueListenableBuilder] listens
   /// to [_elapsed] so the clock/elapsed text updates without rebuilding the
   /// card/figures (which would re-run `deriveSections`/`renderSummary` per
   /// figure every second).

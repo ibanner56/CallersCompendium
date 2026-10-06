@@ -156,6 +156,44 @@ def test_verify_step_checks_zip_and_installer() -> None:
     assert script.count("throw") >= 3, "each check must fail the job"
 
 
+NATIVE_ARTIFACT = "native-components-windows"
+UPLOAD_NATIVE_STEP = "Upload the MSVC runtime manifest for the SBOM"
+SBOM_STEP = "Generate CycloneDX SBOM"
+
+
+def test_stage_step_records_what_it_shipped_for_the_sbom() -> None:
+    # platform-5: the SBOM lists the MSVC runtime, but it is generated on
+    # Linux in publish_draft, so the Windows job records the staged DLLs.
+    script = run_script(windows_job(), STAGE_STEP)
+    assert "msvc-runtime.json" in script, "write the MSVC runtime manifest"
+    assert "Get-FileHash" in script and "SHA256" in script, "hash each staged DLL"
+    assert "FileMajorPart" in script, "record each DLL's file version"
+    assert "$redistVersion" in script.split("msvc-runtime.json")[0], (
+        "record the redistributable version the DLLs came from"
+    )
+
+
+def test_manifest_is_uploaded_outside_the_dist_namespace() -> None:
+    job = windows_job()
+    step = step_body(job, UPLOAD_NATIVE_STEP)
+    assert "actions/upload-artifact@" in step
+    assert f"name: {NATIVE_ARTIFACT}" in step, (
+        "not a dist-* artifact: it must not be merged into the release assets"
+    )
+    assert "if-no-files-found: error" in step
+    assert step_index(job, STAGE_STEP) < step_index(job, UPLOAD_NATIVE_STEP)
+
+
+def test_publish_draft_feeds_the_manifest_to_the_sbom() -> None:
+    job = job_section(WORKFLOW.read_text(encoding="utf-8"), "publish_draft")
+    assert f"name: {NATIVE_ARTIFACT}" in job, "publish_draft must download the manifest"
+    download = job.index(f"name: {NATIVE_ARTIFACT}")
+    sbom = run_script(job, SBOM_STEP)
+    assert "--msvc-runtime" in sbom, "gen_sbom.py must be given the MSVC runtime manifest"
+    assert "msvc-runtime.json" in sbom
+    assert download < step_index(job, SBOM_STEP)
+
+
 def main() -> int:
     tests = [(name, fn) for name, fn in globals().items() if name.startswith("test_")]
     failures = 0

@@ -63,6 +63,17 @@ android {
         }
     }
 
+    testOptions {
+        unitTests.all {
+            // Name every JVM unit test in the CI log, so a green step shows
+            // which tests ran rather than only that the task succeeded.
+            it.testLogging {
+                events("passed", "skipped", "failed")
+                exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+            }
+        }
+    }
+
     buildTypes {
         release {
             // Use the release signing config when a keystore is configured via
@@ -129,4 +140,12 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // JVM unit tests for the share-intake logic in IncomingFileStager.kt
+    // (src/test, run in CI by `./gradlew :app:testDebugUnitTest`). JUnit 4
+    // because AGP's unit-test task runs it with no further configuration;
+    // JUnit 5 would also need the platform launcher and useJUnitPlatform().
+    testImplementation("junit:junit:4.13.2")
 }

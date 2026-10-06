@@ -65,3 +65,16 @@ const Set<String> fillerWords = {'your', 'the', 'a', 'an'};
 /// role term, which is why free-text entry parses a line raw before it
 /// canonicalises it.
 const String leadVerb = 'lead';
+
+/// Calling verbs that are also role terms (base form → third-person/plural
+/// form). Under Leads/Follows "lead" and "follow" are the role words, yet
+/// "Ones lead down the hall" and "Twos follow the ones" use them as verbs, so
+/// the role canonicaliser decides each occurrence from its neighbours instead
+/// of always rewriting it (`dialect/role_canonicalizer.dart`).
+///
+/// [leadVerb] is here because the hall grammar consumes it; "follow" is not in
+/// the grammar but is ordinary calling ("follow your partner up the hall").
+const Map<String, String> roleHomographVerbs = {
+  leadVerb: 'leads',
+  'follow': 'follows',
+};

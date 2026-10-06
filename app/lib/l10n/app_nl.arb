@@ -2228,9 +2228,9 @@
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
     "x-sourceSha256": "1d163c476d946d3bcc7fa0c001b99114d7f53588e73341294a86e20043e32357"
   },
-  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Indien ingeschakeld, wordt het aantal tellen van een figuur direct herberekend zodra je de beweging of een parameter wijzigt die de timing beïnvloedt — zelfs als dat een handmatig ingevoerd aantal tellen overschrijft. Indien uitgeschakeld (standaard) wordt een aantal tellen dat je hebt aangepast nooit automatisch gewijzigd.",
+  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Indien ingeschakeld, wordt het aantal tellen van een figuur direct herberekend zodra je de beweging of een parameter wijzigt die de timing beïnvloedt — zelfs als dat een handmatig ingevoerd aantal tellen overschrijft. Indien uitgeschakeld (standaard) wordt een aantal tellen dat je hebt aangepast alleen automatisch gewijzigd wanneer je een balansoptie aan- of uitzet; dan worden er 4 tellen toegevoegd of verwijderd.",
   "@settingsDefaultsAggressiveBeatsUpdateSubtitle": {
-    "x-sourceSha256": "9eaa0c9c2894b5f582b38219c90c32010320c3f307f85dbc76359959e8c0d81d"
+    "x-sourceSha256": "7ee476b3ea2b7dd326088903cfc362916fb09b7f97f971fe513b538252ce2934"
   },
   "settingsDefaultsFigureShorthandsTitle": "Figuurafkortingen",
   "@settingsDefaultsFigureShorthandsTitle": {
@@ -7774,6 +7774,10 @@
   "@updateDownloadFailureDestination": {
     "x-sourceSha256": "623af0043c02285ccf6b203be680ed0926d08b1223e7edd0d02c7fd15ee31c82"
   },
+  "updateDownloadFailureDestinationOccupied": "Er staat al iets op die locatie. Kies een andere naam of map, of gebruik „Release bekijken”.",
+  "@updateDownloadFailureDestinationOccupied": {
+    "x-sourceSha256": "6e229e0b5a454738aa5ed4b7c9be061458a5b9cc33a75efcd7151e50c8c8c82e"
+  },
   "updateDownloadFailureIncomplete": "De download was onvolledig en is verwijderd. Probeer het opnieuw of gebruik „Release bekijken”.",
   "@updateDownloadFailureIncomplete": {
     "x-sourceSha256": "0cd1b8b90a1aa7b567458a9eaaf5edcea68b720fdae43c7d57e5820c64a9c1b7"
@@ -8829,6 +8833,10 @@
   "dialectEditorMoveWordingsConditionalHelp": "Voorwaardelijke bewegingssjablonen worden gekozen op basis van de parameters van de figuur. Vul elke vermelde invulplaats in; onvolledige voorwaardelijke sjablonen worden genegeerd.",
   "@dialectEditorMoveWordingsConditionalHelp": {
     "x-sourceSha256": "ba57af9dcdc3deb6400d85b49bb8995e8400dff7fbb53c64b7b94c3ab35808ff"
+  },
+  "dialectEditorMoveWordingsForceHelp": "Sommige velden worden weggelaten als ze niets toevoegen, zoals de hand bij een chain wanneer de rol die al aangeeft. Zet een ! voor een veld, zoals {example}, om het altijd te tonen.",
+  "@dialectEditorMoveWordingsForceHelp": {
+    "x-sourceSha256": "7ff86d75ca24413a4ac82dc32947404c1154e041d46c204040701f21d4770ec1"
   },
   "dialectEditorMoveWordingsConditionalLabel": "{move} (voorwaardelijk)",
   "@dialectEditorMoveWordingsConditionalLabel": {

@@ -1,0 +1,9 @@
+{
+  "id": "pdfium-pinned-and-noticed",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "On Linux and Windows, Settings ▸ About ▸ View licenses now lists PDFium, the PDF library the app uses there to print and preview, with the notices of the libraries built into it."
+    ]
+  }
+}

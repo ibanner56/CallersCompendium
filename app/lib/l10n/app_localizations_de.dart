@@ -2176,7 +2176,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'Wenn aktiviert, wird die Taktzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Taktzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von Ihnen bearbeitete Taktzahl nie automatisch geändert.';
+      'Wenn aktiviert, wird die Taktzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Taktzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von Ihnen bearbeitete Taktzahl nur automatisch geändert, wenn Sie eine Balance-Option ein- oder ausschalten; dabei werden 4 Takte hinzugefügt oder entfernt.';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'Figur-Abkürzungen';
@@ -7857,6 +7857,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Es konnte kein Speicherort für den Download des Updates ausgewählt werden.';
 
   @override
+  String get updateDownloadFailureDestinationOccupied =>
+      'An diesem Ort befindet sich bereits etwas. Wählen Sie einen anderen Namen oder Ordner oder verwenden Sie „Release ansehen“.';
+
+  @override
   String get updateDownloadFailureIncomplete =>
       'Der Download war unvollständig und wurde gelöscht. Bitte versuchen Sie es erneut oder verwenden Sie „Release ansehen“.';
 
@@ -8930,6 +8934,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get dialectEditorMoveWordingsConditionalHelp =>
       'Bedingte Bewegungsvorlagen werden anhand der Parameter der Figur ausgewählt. Fülle alle aufgeführten Platzhalter aus; unvollständige bedingte Vorlagen werden ignoriert.';
+
+  @override
+  String dialectEditorMoveWordingsForceHelp(String example) {
+    return 'Manche Platzhalter entfallen, wenn sie nichts beitragen, etwa die Hand bei einer Kette, wenn die Rolle sie bereits vorgibt. Setze ein ! vor einen Platzhalter, wie $example, um ihn immer anzuzeigen.';
+  }
 
   @override
   String dialectEditorMoveWordingsConditionalLabel(String move) {

@@ -61,6 +61,10 @@ built figure.
   templates**. Templates use the computed slots for that move (for example
   `{who}` and `{move}`); unknown slots are empty, nested bracketed groups are
   omitted when their slots are empty, and substituted values are not rescanned.
+  A `{!name}` slot forces that slot to display even where the normal render hides
+  it (the stored `chain.hand` the role already implies, or an alias-pinned
+  param); slots owned by a display base renderer have no forced form and read as
+  the plain slot. Display-only: canonical text is unaffected.
   Malformed or empty templates fall back to the normal renderer. The editor
   warns when a template omits available slots and requires confirmation before
   saving it. Imported templates are sanitized, capped at 512 UTF-16 code units
@@ -131,6 +135,43 @@ Free-text figure entry parses the typed line as written first and canonicalises
 against the active dialect only on a parse miss, so a dialect term that is also
 a move word (`lead` in "ones lead down the hall") keeps parsing as the move.
 
+**Role words that are also move words.** The chokepoint does not rewrite every
+role term it finds (`RoleCanonicalizer`, `dialect/role_canonicalizer.dart`).
+Each occurrence is classified first, from the figure grammar's own vocabulary
+(`taxonomy/dance_vocabulary.dart`) and the taxonomy's move names:
+
+1. A role word inside a multi-word move name or search keyword — today only
+   "mad robin(s)" — names the move, in every dialect (`robin` is a legacy
+   synonym, so this applies under Larks/Robins too). It is not rewritten to a
+   role; the move name is stored in lowercase and single-spaced ("Mad Robin"
+   is stored as `mad robin`), the same bytes the import scrub stores, so typed
+   and imported text deduplicate (maintainer choice B, 2026-10-06; this
+   reverses the earlier editor rule, #1678, that kept it as typed).
+   A ratchet test fails if the taxonomy gains another role-bearing name until
+   it is classified as a move name or as a name whose role word is the dancer.
+   A custom dialect's own move substitutions are display wording, not move
+   names, and are not shielded: a role word in one ("robins chain") comes from
+   the dialect's expansion, so a no-edit save keeps the stored role token.
+2. The calling verbs that are also role terms, "lead" and "follow"
+   (`roleHomographVerbs`), are decided from their neighbours in the same
+   clause. The plural ("Leads chain") and a form after a determiner ("the
+   lead", "second follow") are roles. A form after an auxiliary ("to lead"),
+   or followed by a direction, object or dancer word ("lead down", "follow
+   your partner"), is a verb and kept. Anything else is a role. A dancer word
+   in front is not verb evidence, because the renderer itself writes the
+   `twosRole2` dancer as "twos follow". Neighbours are read across any Unicode
+   whitespace and the editor's `*bold*` and `_underline_` markers.
+3. Every other role term is rewritten as before.
+
+This applies wherever the chokepoint runs: figure notes, custom figure text,
+the import scrub, free-text entry's retry, search queries and the editor's
+lingo underline. Notes stored by earlier versions are not repaired
+(maintainer decision, 2026-10-06): a note stored as `mad role2` still reads
+"mad follow" under Leads/Follows until it is edited, and one stored as
+`Ones role1 down the hall` is corrected the next time it is saved under
+Leads/Follows. The chokepoint is an input-side transform only; Device Sync
+admission never re-runs it, so changing it needs no sync wire-version bump.
+
 The chokepoint is deliberately **not** applied to long-form hand-typed prose.
 `canonicalize` is a word-boundary substitution over an always-on synonym set
 that includes ordinary English words and proper nouns — `man`, `men`, `woman`,
@@ -161,22 +202,20 @@ Where the chokepoint IS wired:
 - **Custom figure text** (`params['text']` of a `custom` figure) typed in the
   dance editor goes through the same active-dialect chokepoint as figure notes
   when the dance is saved (`FigureDraft._canonicalParams`, called from
-  `buildDance`), and is rendered back via `renderFreeText`. Unlike the import
-  scrub, it protects only one move name that is also a role term, "mad
-  robin(s)", which is kept as typed (`_canonicalizeKeepingMadRobin`); other
-  role words are substituted and lose their capitalisation, so "Larks chain
-  wide" is stored as `role1s chain wide` and reads back as "larks chain wide".
+  `buildDance`), and is rendered back via `renderFreeText`. Move words that
+  are also role terms are not rewritten to roles, as above: a verb "lead" is
+  kept as typed and "mad robin" is stored in lowercase. Other role words are
+  substituted and lose their capitalisation, so
+  "Larks chain wide" is stored as `role1s chain wide` and reads back as
+  "larks chain wide".
   This is deliberate (maintainer decision, 2026-10-06, post-audit finding
   parser-2): imports already store role words lowercase, and preserving case
   (`Role1s`) would give the same words different canonical bytes and split
   the line-level dedupe identity (`figureCanonicalKey` in `figure_diff.dart`)
-  between a typed figure and the identical imported one. That identity holds
-  for role words only: the import scrub (`scrubFigureText`) lowercases a
-  protected "MAD ROBIN" while the editor keeps it as typed, so an all-caps
-  "MAD ROBIN, LADIES IN" stores `MAD ROBIN, role2s IN` from the editor and
-  `mad robin, role2s IN` from an import, and the two do not dedupe. Left as
-  is; reconciling it belongs to the pending "mad robin" canonicaliser
-  decision, not to parser-2.
+  between a typed figure and the identical imported one. The same identity
+  holds for the move name: an all-caps "MAD ROBIN, LADIES IN" stores
+  `mad robin, role2s IN` from the editor and from an import alike
+  (maintainer decisions D6 and B, 2026-10-06).
 - **Hand-typed dance prose** — `hook`, `callingNotes`, `walkthrough` — is
   stored **verbatim, exactly as typed**, in whatever dialect the caller uses.
   It is not canonicalized on save and not rewritten on load. Display sites

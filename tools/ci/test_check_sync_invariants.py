@@ -366,6 +366,77 @@ def test_sync_write_path_rejects_the_interactive_upsert() -> None:
     )
 
 
+def test_sync_write_path_rejects_every_upsert_shape() -> None:
+    # guards-5: the receiver-shaped pattern let a local alias, a cascade and
+    # `upsertInTransaction` through. Under the core sync/ directory any upsert
+    # call or tear-off is flagged, outside a `writeFromSync*` body.
+    moved = "packages/compendium_core/lib/src/sync/sync_apply.dart"
+    for name, source in [
+        ("local alias", "final dances = repositories.dances;\nawait dances.upsert(d);\n"),
+        ("cascade", "repositories.dances..upsert(d);\n"),
+        ("upsertInTransaction", "await repositories.dances.upsertInTransaction(tx, d);\n"),
+        ("any receiver, any upsert*", "await store.upsertPendingDeletion(kind: k);\n"),
+        ("bare call", "await upsertInTransaction(tx, d);\n"),
+        ("tear-off", "final write = repositories.dances.upsert;\nawait write(d);\n"),
+        ("generic call", "await repo.upsert<Dance>(d);\n"),
+        ("call split across lines", "await repositories.dances\n    .upsert(d);\n"),
+    ]:
+        for path in (SYNC_WRITE_PATH, moved):
+            found = [
+                v for v in _interactive_upsert_violations(source, path)
+                if v.kind == "sync-interactive-upsert"
+            ]
+            assert len(found) == 1, (name, path, found)
+    # Inside a writeFromSync* body the upsert is the sync writer's own business.
+    inside = (
+        "Future<void> writeFromSyncParent(\n"
+        "  Dance d,\n"
+        ") async {\n"
+        "  await _upsertInTransaction(tx, d);\n"
+        "}\n"
+        "Future<void> other() async {\n"
+        "  await repositories.dances.upsert(d);\n"
+        "}\n"
+    )
+    found = _interactive_upsert_violations(inside, SYNC_WRITE_PATH)
+    assert [v.line for v in found] == [7], found
+    # A deliberate exception carries the marker, with a reason, on the line
+    # above -- the same `sync-invariant-exclusion:` convention as the I1/I2
+    # write checks.
+    marked = (
+        "// sync-invariant-exclusion: upsert — pending-deletion bookkeeping\n"
+        "await repositories.syncLocal.upsertPendingDeletion(kind: k);\n"
+    )
+    assert_no(_interactive_upsert_violations(marked, SYNC_WRITE_PATH))
+    bare_marker = (
+        "// sync-invariant-exclusion: upsert\n"
+        "await repositories.syncLocal.upsertPendingDeletion(kind: k);\n"
+    )
+    assert _interactive_upsert_violations(bare_marker, SYNC_WRITE_PATH)
+    distant_marker = (
+        "// sync-invariant-exclusion: upsert — not adjacent\n"
+        "final x = 1;\n"
+        "await repositories.dances.upsert(d);\n"
+    )
+    assert _interactive_upsert_violations(distant_marker, SYNC_WRITE_PATH)
+    # Review of #1701: the marker must be a comment, not marker-shaped code.
+    for not_a_comment in (
+        "const reason = 'sync-invariant-exclusion: upsert — x';\n",
+        "final r = 1; // sync-invariant-exclusion: upsert — trailing on code\n",
+    ):
+        assert _interactive_upsert_violations(
+            not_a_comment + "await repositories.dances.upsert(d);\n",
+            SYNC_WRITE_PATH,
+        ), not_a_comment
+    # Prose and strings that mention upsert are not calls.
+    assert_no(
+        _interactive_upsert_violations(
+            "// see `ProgramRepository._upsert`\nfinal s = 'upsert(x)';\n",
+            SYNC_WRITE_PATH,
+        )
+    )
+
+
 def test_certificate_scan_catches_each_concrete_escape_hatch() -> None:
     source = """
       client.badCertificateCallback = (_, __, ___) => true;

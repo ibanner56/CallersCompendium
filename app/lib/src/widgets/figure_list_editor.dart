@@ -1383,6 +1383,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   ///   user-entered value isn't snapped back when nothing about the duration
   ///   changed.
   ///
+  /// A `balance` *flag* toggle is the exception: it shifts `beats` by +4 (on)
+  /// or -4 (off) relative to the current count (clamped to 0..64), including a
+  /// manual override, and returns before the canonical-default logic below.
+  ///
   /// A `beats` that is missing or non-int (older/partial data loaded without an
   /// explicit count) is still seeded to the canonical default, so an unowned
   /// figure never gets stuck at 0. A manual override
@@ -1429,6 +1433,21 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // ContraDB's `chainChange` (figure.js:256-263) — an explicit hand set for
     // the OLD role must not silently survive onto the new one.
     final oldDefault = _canonicalBeats(draft.params);
+    // A `balance` flag toggle is worth a fixed 4 beats: on adds 4, off removes
+    // 4, relative to the current count (manual overrides included). Compared on
+    // the *effective* value so a spec default of `true` counts as "on".
+    if (key == 'balance' && value is bool && _isBalanceFlag(draft.move)) {
+      final wasOn = _effectiveBalance(draft.params);
+      draft.params[key] = value;
+      if (wasOn != value) {
+        final current = draft.params['beats'];
+        final base = current is int ? current : oldDefault;
+        if (base != null) {
+          draft.params['beats'] = (base + (value ? 4 : -4)).clamp(0, 64);
+        }
+      }
+      return;
+    }
     draft.params[key] = value;
     if (draft.move == 'chain' && key == 'who') {
       _seedChainHand('chain', draft.params);
@@ -1451,6 +1470,24 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     if (currentBeats is! int || newDefault != oldDefault) {
       draft.params['beats'] = newDefault;
     }
+  }
+
+  /// Whether [move] declares `balance` as a boolean flag (as opposed to swing's
+  /// `prefix` choice, which has its own 8→16 timing).
+  bool _isBalanceFlag(String? move) {
+    if (move == null) return false;
+    return widget.taxonomy.resolve(move)?.params['balance']?.kind ==
+        ParamKind.flag;
+  }
+
+  /// The effective `balance` flag for [params], falling back to the spec default.
+  bool _effectiveBalance(Map<String, Object?> params) {
+    final move = widget.draft.move;
+    if (move == null) return false;
+    final effective = widget.taxonomy.effectiveParams(
+      Figure(move: move, params: Map<String, Object?>.of(params)),
+    )['balance'];
+    return effective == true;
   }
 
   /// The move's canonical `beats` default for [params], ignoring any explicit

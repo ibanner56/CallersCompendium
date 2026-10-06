@@ -2132,7 +2132,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'When on, changing a figure\'s move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you\'ve edited is never changed automatically.';
+      'When on, changing a figure\'s move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you\'ve edited is only changed automatically when you switch a balance option on or off, which adds or removes 4 beats.';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'Figure shorthands';
@@ -7727,6 +7727,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not choose a place to download the update.';
 
   @override
+  String get updateDownloadFailureDestinationOccupied =>
+      'Something is already at that location. Choose another name or folder, or use \"View release\".';
+
+  @override
   String get updateDownloadFailureIncomplete =>
       'The download was incomplete and was deleted. Please try again, or use \"View release\".';
 
@@ -8780,6 +8784,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get dialectEditorMoveWordingsConditionalHelp =>
       'Conditional move templates are selected by the figure\'s parameters. Complete every listed slot; unfinished conditional templates are ignored.';
+
+  @override
+  String dialectEditorMoveWordingsForceHelp(String example) {
+    return 'Some slots are left out when they add nothing, such as a chain\'s hand when the role already implies it. Put a ! in front of a slot, like $example, to always show it.';
+  }
 
   @override
   String dialectEditorMoveWordingsConditionalLabel(String move) {

@@ -2187,7 +2187,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'Lorsque cette option est activée, la modification du mouvement d\'une figure ou d\'un paramètre affectant le tempo recalcule immédiatement son nombre de temps — même en écrasant un nombre de temps que vous avez saisi manuellement. Lorsqu\'elle est désactivée (par défaut), un nombre de temps que vous avez modifié n\'est jamais changé automatiquement.';
+      'Lorsque cette option est activée, la modification du mouvement d\'une figure ou d\'un paramètre affectant le tempo recalcule immédiatement son nombre de temps — même en écrasant un nombre de temps que vous avez saisi manuellement. Lorsqu\'elle est désactivée (par défaut), un nombre de temps que vous avez modifié n\'est changé automatiquement que lorsque vous activez ou désactivez une option d\'équilibre, ce qui ajoute ou retire 4 temps.';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'Abréviations de figures';
@@ -7871,6 +7871,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible de choisir un emplacement pour télécharger la mise à jour.';
 
   @override
+  String get updateDownloadFailureDestinationOccupied =>
+      'Un élément se trouve déjà à cet emplacement. Choisissez un autre nom ou un autre dossier, ou utilisez « Voir la version ».';
+
+  @override
   String get updateDownloadFailureIncomplete =>
       'Le téléchargement était incomplet et a été supprimé. Veuillez réessayer ou utiliser « Voir la version ».';
 
@@ -8938,6 +8942,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get dialectEditorMoveWordingsConditionalHelp =>
       'Les modèles conditionnels d’un mouvement sont choisis selon les paramètres de la figure. Complétez chaque emplacement indiqué ; les modèles conditionnels incomplets sont ignorés.';
+
+  @override
+  String dialectEditorMoveWordingsForceHelp(String example) {
+    return 'Certains champs sont omis lorsqu\'ils n\'apportent rien, comme la main d\'une chaîne quand le rôle l\'implique déjà. Place un ! devant un champ, comme $example, pour qu\'il s\'affiche toujours.';
+  }
 
   @override
   String dialectEditorMoveWordingsConditionalLabel(String move) {

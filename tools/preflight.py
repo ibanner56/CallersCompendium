@@ -233,6 +233,35 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_check_linux_build_runner.py"),),
     ),
     Step(
+        "apple-native-tests",
+        "CI's ios and macos build legs run the native Swift RunnerTests when Apple native code changes",
+        (
+            py("tools/ci/test_check_apple_native_tests.py"),
+            py("tools/ci/check_apple_native_tests.py"),
+        ),
+    ),
+    Step(
+        "android-unit-tests",
+        "ci.yml's Android build leg runs the Kotlin JVM unit tests after the build",
+        (py("tools/ci/test_check_android_unit_tests.py"),),
+    ),
+    Step(
+        "ios-privacy-manifest",
+        "each shipped iOS target's privacy manifest declares the required-reason APIs its code uses",
+        (
+            py("tools/ci/test_check_ios_privacy_manifest.py"),
+            py("tools/ci/check_ios_privacy_manifest.py"),
+        ),
+    ),
+    Step(
+        "android-intents",
+        "no BROWSABLE VIEW intent filter lets a web page open a file: or content: URI",
+        (
+            py("tools/ci/test_check_android_intent_filters.py"),
+            py("tools/ci/check_android_intent_filters.py"),
+        ),
+    ),
+    Step(
         "debug-print",
         "no unguarded debugPrint reaches a release build",
         (
@@ -388,11 +417,13 @@ STEPS: tuple[Step, ...] = (
             py("tools/release/test_android_version_code.py"),
             py("tools/release/test_check_beta_prerelease_history.py"),
             py("tools/release/test_gen_sbom.py"),
+            py("tools/release/test_pdfium_pin.py"),
             py("tools/release/test_gen_release_metadata.py"),
             py("tools/release/test_gen_release_notes.py"),
             py("tools/release/test_gen_recovery_provenance.py"),
             py("tools/release/test_release_workflow_recovery.py"),
             py("tools/release/test_release_windows_crt.py"),
+            py("tools/release/test_linux_desktop_integration.py"),
             py("tools/release/test_resolve_release_codename.py"),
             py("tools/release/test_publish_pages_manifest.py"),
             py("tools/release/test_publish_pages_site.py"),

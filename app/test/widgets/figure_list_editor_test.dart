@@ -698,6 +698,63 @@ void main() {
     expect(drafts.single.beats, 16);
   });
 
+  testWidgets('toggling balance on a flag move adds then removes 4 beats', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'box the', 'box_the_gnat');
+    expect(drafts.single.beats, 4);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.params['balance'], true);
+    expect(drafts.single.beats, 8);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.params['balance'], false);
+    expect(drafts.single.beats, 4);
+  });
+
+  testWidgets('balance toggle shifts a manually-set beats value by 4', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'box the', 'box_the_gnat');
+    await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '6');
+    await tester.pumpAndSettle();
+    expect(drafts.single.beatsTouched, isTrue);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.beats, 10);
+    expect(drafts.single.beatsTouched, isTrue);
+  });
+
+  testWidgets('balance toggle keeps beats within 0..64', (tester) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'box the', 'box_the_gnat');
+    await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '64');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.beats, 64);
+
+    await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '2');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.beats, 0);
+  });
+
   testWidgets('a loaded figure preserves its beats through a non-beats edit', (
     tester,
   ) async {

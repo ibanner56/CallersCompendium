@@ -29,6 +29,7 @@ ALL_FALSE = {
     "app_tests_changed": False,
     "server_tests_changed": False,
     "builds_changed": False,
+    "apple_native_changed": False,
     "docs_bundle_changed": False,
     "changelog_changed": False,
 }
@@ -88,6 +89,26 @@ def test_non_markdown_paths_route_to_their_suites() -> None:
         app_tests_changed=True,
         builds_changed=True,
     )
+    # The Android leg of `build` is the only place the Kotlin JVM unit tests
+    # run (./gradlew :app:testDebugUnitTest), so a native-only Android change
+    # -- test or source -- must reach the build matrix (platform-7).
+    expect(
+        "native Android test alone",
+        (
+            b"app/android/app/src/test/kotlin/org/callerscompendium/"
+            b"compendiumApp/IncomingFileStagerTest.kt",
+        ),
+        validation_changed=True,
+        app_tests_changed=True,
+        builds_changed=True,
+    )
+    expect(
+        "native Android Gradle script alone",
+        (b"app/android/app/build.gradle.kts",),
+        validation_changed=True,
+        app_tests_changed=True,
+        builds_changed=True,
+    )
     # server/ path-depends on compendium_core (server/pubspec.yaml) and every
     # server library imports the core barrel, so a core change reaches the
     # server suite. Compile breaks were already caught by validate's
@@ -118,6 +139,8 @@ def test_non_markdown_paths_route_to_their_suites() -> None:
         app_tests_changed=True,
         server_tests_changed=True,
         builds_changed=True,
+        # The Flutter version decides the engine framework the Swift tests link.
+        apple_native_changed=True,
     )
     expect(
         "core test driver path reaches only core",
@@ -212,6 +235,44 @@ def test_packaging_paths_trigger_builds_independently() -> None:
     )
 
 
+def test_apple_native_paths_run_the_swift_tests() -> None:
+    print("Apple native paths run the Swift RunnerTests, other app paths do not:")
+    for path in (
+        b"app/ios/Runner/IncomingFilesPlugin.swift",
+        b"app/ios/RunnerTests/RunnerTests.swift",
+        b"app/ios/Runner.xcodeproj/project.pbxproj",
+        b"app/ios/ShareExtension/ShareViewController.swift",
+        b"app/macos/Runner/MainFlutterWindow.swift",
+        b"app/macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme",
+    ):
+        expect(
+            path.decode(),
+            (path,),
+            validation_changed=True,
+            app_tests_changed=True,
+            builds_changed=True,
+            apple_native_changed=True,
+        )
+    # Dart-only, Android-only and other-desktop changes build but must not pay
+    # for two macOS xcodebuild test runs.
+    for path in (
+        b"app/lib/main.dart",
+        b"app/android/app/src/main/kotlin/MainActivity.kt",
+        b"app/windows/runner/main.cpp",
+        b"packages/compendium_core/lib/src/privacy/field_registry.dart",
+        b"packaging/linux/AppRun",
+    ):
+        outcome = classify((path,))
+        check(
+            f"{path.decode()} does not run the Swift tests",
+            outcome["builds_changed"] and not outcome["apple_native_changed"],
+            str(outcome),
+        )
+    # A Markdown note inside app/ios is not validated, so no build job runs to
+    # hold the test step: apple_native_changed must imply builds_changed.
+    expect("an all-Markdown app/ios diff", (b"app/ios/README.md",))
+
+
 def test_docs_bundle_and_changelog_gates_run_on_markdown_only_diffs() -> None:
     print("docs-bundle and changelog gates are not gated on validation_changed:")
     expect(
@@ -283,6 +344,7 @@ def main() -> int:
     test_non_markdown_paths_route_to_their_suites()
     test_test_input_paths_reach_the_suite_that_reads_them()
     test_packaging_paths_trigger_builds_independently()
+    test_apple_native_paths_run_the_swift_tests()
     test_docs_bundle_and_changelog_gates_run_on_markdown_only_diffs()
 
     if FAILURES:

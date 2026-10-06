@@ -18,9 +18,10 @@ class RunnerTests: XCTestCase {
 ///
 /// These drive `SharedImportQueue` against a throwaway temp directory rather
 /// than the real App Group container (unavailable to unit tests), so they can
-/// run under `xcodebuild test`. NOTE: CI's `Build (ios)` job only *builds* the
-/// Runner app (`flutter build ios --no-codesign`); it does not compile or run
-/// `RunnerTests`. These are validated locally via Xcode / `xcodebuild test`.
+/// run under `xcodebuild test`. CI's `Build (ios)` job runs them on a simulator
+/// when `tools/ci/classify_changes.py` sets `apple_native_changed` (a change
+/// under `app/ios/` or `app/macos/`, or to `.fvmrc`, in a diff that is not
+/// Markdown-only), and on every push to main that is not Markdown-only.
 final class SharedImportQueueTests: XCTestCase {
   private var queueDirectory: URL!
 

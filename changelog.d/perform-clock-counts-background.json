@@ -1,0 +1,9 @@
+{
+  "id": "perform-clock-counts-background",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Perform timers no longer lose time while the app is in the background or the device is asleep, for example after switching to your music app on iPhone or iPad. Pause timers still stops them."
+    ]
+  }
+}

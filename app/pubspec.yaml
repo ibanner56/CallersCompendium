@@ -33,6 +33,13 @@ dependencies:
   # tests) so it needs no native plugin. The passphrase-encrypted backup
   # export this was originally added for (issue #461) was removed in #536.
   cryptography: ^2.9.0
+  # Time source for the Perform clocks (post-audit integrity-6): `clock.now()`
+  # is the system clock in the app and the `fake_async` clock under
+  # `tester.pump`, so elapsed time can be measured rather than counted from
+  # timer ticks and still be deterministic in tests. Already resolved
+  # transitively (flutter_test); promoted to direct because app/lib imports it.
+  # Pinned to the version already in the root lock.
+  clock: ^1.1.2
   drift: ^2.34.2
   drift_flutter: ^0.3.1
   path: ^1.9.0
@@ -125,6 +132,11 @@ flutter:
     # follows. Both loaded the same way, via licenses.dart.
     - assets/licenses/eff-wordlist-NOTICE.txt
     - assets/licenses/contradb-NOTICE.txt
+    # pdfium's LICENSE (PDFium plus the notices of the libraries built into
+    # it), from the pdfium-binaries release pinned in
+    # packaging/pdfium/pdfium.cmake. The printing plugin ships that pdfium in
+    # the Linux and Windows builds; licenses.dart lists it there.
+    - assets/licenses/pdfium-LICENSE.txt
     # In-app User Guide: the offline copy of the user documentation, mirrored
     # from /docs/user by tools/ci/sync_user_docs.py and kept in sync by a CI
     # drift-check. Rendered from these bundled assets so the guide works fully

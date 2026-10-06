@@ -2153,7 +2153,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'Når slået til, genberegner en ændring af en figurs bevægelse eller en parameter, der påvirker timing, straks dens taktantal — selv hvis det overskriver et taktantal, du selv har indtastet. Når slået fra (standard), ændres et taktantal, du har redigeret, aldrig automatisk.';
+      'Når slået til, genberegner en ændring af en figurs bevægelse eller en parameter, der påvirker timing, straks dens taktantal — selv hvis det overskriver et taktantal, du selv har indtastet. Når slået fra (standard), ændres et taktantal, du har redigeret, kun automatisk, når du slår en balance-indstilling til eller fra, hvilket tilføjer eller fjerner 4 takter.';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'Figurkortformer';
@@ -7761,6 +7761,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Der kunne ikke vælges et sted at hente opdateringen til.';
 
   @override
+  String get updateDownloadFailureDestinationOccupied =>
+      'Der ligger allerede noget på den placering. Vælg et andet navn eller en anden mappe, eller brug „Se udgivelse“.';
+
+  @override
   String get updateDownloadFailureIncomplete =>
       'Overførslen var ufuldstændig og blev slettet. Prøv igen, eller brug „Se udgivelse“.';
 
@@ -8820,6 +8824,11 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get dialectEditorMoveWordingsConditionalHelp =>
       'Betingede bevægelsesskabeloner vælges ud fra figurens parametre. Udfyld alle viste pladsholdere; ufærdige betingede skabeloner ignoreres.';
+
+  @override
+  String dialectEditorMoveWordingsForceHelp(String example) {
+    return 'Nogle felter udelades, når de ikke tilføjer noget, f.eks. en kædes hånd, når rollen allerede angiver den. Sæt et ! foran et felt, som $example, for altid at vise det.';
+  }
 
   @override
   String dialectEditorMoveWordingsConditionalLabel(String move) {

@@ -76,7 +76,8 @@ class FigureDraft {
   /// field directly (or the draft is seeded from a loaded figure that already
   /// carries an explicit `beats` via [FigureDraft.fromFigure]), this becomes
   /// `true` and the editor stops auto-filling beats so a manual override is
-  /// never silently overwritten.
+  /// never silently overwritten. (Exception: toggling a `balance` flag shifts
+  /// the count by 4 either way; see `_applyNonBeatsParamChange`.)
   bool beatsTouched;
 
   /// Whether this figure's subject was ASSUMED by the import parser (the source
@@ -229,7 +230,7 @@ class FigureDraft {
     if (moveId == customMove && copy['text'] is String) {
       final text = copy['text']! as String;
       if (text.isNotEmpty) {
-        copy['text'] = _canonicalizeKeepingMadRobin(text, canonicalizeNote);
+        copy['text'] = canonicalizeNote(text);
       }
     }
     return copy;
@@ -345,33 +346,3 @@ String? _trimOptionalOverride(String? value) {
   final trimmed = value?.trim();
   return trimmed == null || trimmed.isEmpty ? null : trimmed;
 }
-
-/// "mad robin(s)" is a move name, not the role, so custom text keeps it as
-/// typed, matching the import scrub (`figure_text_scrub.dart`), which shields
-/// the same phrase from role canonicalization. Without this, saving "Mad robin
-/// twice" stored "Mad role2 twice", shown as "mad follow" under Leads/Follows.
-/// Each occurrence is swapped for a token with no role word in it and restored
-/// verbatim afterwards. The token is lengthened until the text does not
-/// already contain it, so typed text shaped like a token is left alone.
-String _canonicalizeKeepingMadRobin(
-  String text,
-  String Function(String) canonicalizeNote,
-) {
-  if (!_madRobinTerm.hasMatch(text)) return canonicalizeNote(text);
-  final lower = text.toLowerCase();
-  var token = 'xmadrobinx';
-  while (lower.contains(token)) {
-    token = 'x$token';
-  }
-  final kept = <String>[];
-  final shielded = text.replaceAllMapped(_madRobinTerm, (m) {
-    kept.add(m[0]!);
-    return '$token${kept.length - 1}x';
-  });
-  return canonicalizeNote(shielded).replaceAllMapped(
-    RegExp('$token(\\d+)x', caseSensitive: false),
-    (m) => kept[int.parse(m[1]!)],
-  );
-}
-
-final RegExp _madRobinTerm = RegExp(r'\bmad robins?\b', caseSensitive: false);

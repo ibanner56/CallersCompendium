@@ -583,9 +583,42 @@ def _write_violations(source: str, path: str) -> list[Violation]:
 
 SYNC_WRITE_PATH = "packages/compendium_core/lib/src/sync/sync_storage.dart"
 SYNC_WRITE_DIR = "packages/compendium_core/lib/src/sync/"
+# Any `upsert*` member reached through `.` or `..` (call or tear-off), on any
+# receiver -- `repositories.x`, a local alias, a cascade -- or a bare
+# `upsert*(` / `_upsert*(` call.
 INTERACTIVE_UPSERT_RE = re.compile(
-    r"\brepositories\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\.\s*upsert\s*\("
+    r"\.\s*\.?\s*_?upsert[A-Za-z0-9_$]*\b"
+    r"|(?<![A-Za-z0-9_$.])_?upsert[A-Za-z0-9_$]*\s*(?:<[^>;()]*>\s*)?\("
 )
+# A deliberate exception: the line directly above the call is a comment line
+#   // sync-invariant-exclusion: upsert — <reason>
+# The reason is mandatory. Anchored to a line that *is* a comment, so a string
+# literal or a trailing comment on code that spells the marker does not count.
+UPSERT_EXCLUSION_RE = re.compile(
+    r"^\s*//+\s*sync-invariant-exclusion:\s*upsert\s*[—–-]+\s*\S"
+)
+WRITE_FROM_SYNC_DECL_RE = re.compile(r"\bwriteFromSync[A-Za-z0-9_]*\s*\(")
+
+
+def _write_from_sync_bodies(masked: str) -> list[tuple[int, int]]:
+    """`(start, end)` of every `writeFromSync*` function body in [masked]."""
+
+    spans: list[tuple[int, int]] = []
+    for match in WRITE_FROM_SYNC_DECL_RE.finditer(masked):
+        close = _balanced_call_end(masked, match.end() - 1)
+        if close is None:
+            continue
+        rest = masked[close + 1 :]
+        body = re.match(r"\s*(?:async\*?|sync\*)?\s*(\{|=>)", rest)
+        if body is None:
+            continue  # a call, not a declaration
+        open_at = close + 1 + body.start(1)
+        if body.group(1) == "=>":
+            end = masked.find(";", open_at)
+        else:
+            end = _balanced_block_end(masked, open_at)
+        spans.append((open_at, len(masked) if end is None or end < 0 else end))
+    return spans
 
 
 def _interactive_upsert_violations(source: str, path: str) -> list[Violation]:
@@ -606,21 +639,38 @@ def _interactive_upsert_violations(source: str, path: str) -> list[Violation]:
     `server/`), not only `SYNC_WRITE_PATH`, so moving write-path code out of
     `sync_storage.dart` cannot exempt it. The app-side `app/lib/src/sync/` is
     not the inbound write path and is not scanned.
+
+    It flags *any* `upsert*` call or tear-off there, on any receiver (a local
+    alias, a cascade, `upsertInTransaction`), not only
+    `repositories.<kind>.upsert(`, so the rule cannot be stepped around by
+    spelling. A `writeFromSync*` body declared there is exempt; any other
+    deliberate use carries `// sync-invariant-exclusion: upsert — <reason>` on
+    the line directly above.
     """
 
     if not path.startswith(SYNC_WRITE_DIR):
         return []
     masked = "\n".join(mask_source(source))
-    return [
-        Violation(
-            "sync-interactive-upsert",
-            path,
-            _line_number(source, match.start()),
-            "inbound sync write must use writeFromSync, not the interactive "
-            "upsert path (sync-spec.md §6.7)",
+    exempt = _write_from_sync_bodies(masked)
+    violations: list[Violation] = []
+    for match in INTERACTIVE_UPSERT_RE.finditer(masked):
+        if any(start <= match.start() < end for start, end in exempt):
+            continue
+        name_at = match.start() + masked[match.start() : match.end()].find("upsert")
+        line = _line_number(source, name_at)
+        if _exception_on_line(source, line, UPSERT_EXCLUSION_RE):
+            continue
+        violations.append(
+            Violation(
+                "sync-interactive-upsert",
+                path,
+                line,
+                "inbound sync write must use writeFromSync, not the interactive "
+                "upsert path (sync-spec.md §6.7); mark a deliberate exception "
+                "`// sync-invariant-exclusion: upsert — <reason>` on the line above",
+            )
         )
-        for match in INTERACTIVE_UPSERT_RE.finditer(masked)
-    ]
+    return violations
 
 
 def _drift_write_violations(source: str, path: str) -> list[Violation]:

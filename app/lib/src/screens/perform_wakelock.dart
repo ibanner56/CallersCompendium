@@ -40,15 +40,22 @@ import '../diagnostics/error_log.dart';
 /// reading view — but, unlike the previous implementation, failures are **not
 /// swallowed silently**: they are logged via [debugPrint] (a developer-facing
 /// sink; deliberately not a user toast, which would be noise on a stage) so a
-/// wake-lock that never engages is diagnosable. Only [Exception]s are caught —
-/// a Dart [Error] (a programming mistake) is left to surface.
+/// wake-lock that never engages is diagnosable. A Dart [Error] (a programming
+/// mistake in the plugin or here) is not treated as a best-effort failure: it
+/// is reported through [FlutterError.reportError], which reaches the crash log
+/// as an uncaught error does. Either way the operation chain carries on, so a
+/// failure cannot stop a later disable — including the one in [dispose] — from
+/// running.
 ///
 /// The [T] type parameter is required so the `on State<T>` constraint binds to
 /// each concrete `State<ConcreteScreen>`; dropping it (`on State`) resolves to
 /// `State<StatefulWidget>`, which the concrete states do not implement.
 mixin PerformWakelockMixin<T extends StatefulWidget>
     on State<T>, WidgetsBindingObserver {
-  bool _wakelockHeld = false;
+  /// Whether this view holds the lock; `null` when an operation failed with an
+  /// [Error] and the platform state is unknown, so the next operation in
+  /// either direction is issued rather than skipped.
+  bool? _wakelockHeld = false;
   Future<void> _wakelockOp = Future<void>.value();
 
   @override
@@ -82,8 +89,10 @@ mixin PerformWakelockMixin<T extends StatefulWidget>
 
   /// Queues [enable] behind any operation in flight. The held check runs when
   /// the operation's turn comes, so two rapid resumes, or a resume racing
-  /// [dispose], cannot interleave. Never throws; the returned future is
-  /// deliberately not awaited by callers ([dispose] cannot await).
+  /// [dispose], cannot interleave. Never throws, and [_wakelockOp] never
+  /// completes with an error: [_applyWakelock] catches everything, so one
+  /// failed operation cannot skip the ones queued after it. Callers do not
+  /// await it ([dispose] cannot await).
   void _setWakelock(bool enable) {
     _wakelockOp = _wakelockOp.then((_) => _applyWakelock(enable));
   }
@@ -97,7 +106,7 @@ mixin PerformWakelockMixin<T extends StatefulWidget>
       // Best-effort only: never let a plugin/platform *exception* crash the
       // Perform view. Log (don't swallow) so a wake-lock that never engages is
       // diagnosable; a user-facing toast would be noise on a stage. Dart
-      // `Error`s are intentionally not caught.
+      // `Error`s are handled separately below.
       if (kDebugMode) {
         debugPrint(
           'PerformWakelockMixin: failed to '
@@ -108,6 +117,26 @@ mixin PerformWakelockMixin<T extends StatefulWidget>
         error,
         stackTrace,
         source: 'perform_wakelock._setWakelock',
+      );
+    } catch (error, stackTrace) {
+      // diagnostics: silent — a Dart `Error` is a programming mistake, not a
+      // best-effort platform failure, so it goes to `FlutterError.reportError`
+      // (which the crash reporter's `FlutterError.onError` records) instead of
+      // `logCaughtError`; logging it here as well would record it twice. It is
+      // caught at all only so it cannot fail `_wakelockOp` and skip every
+      // later operation, including the disable on exit (flows-4). Whether the
+      // platform changed state is unknown, so the next operation is issued
+      // whichever way it goes.
+      _wakelockHeld = null;
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'perform_wakelock',
+          context: ErrorDescription(
+            'while trying to ${enable ? 'enable' : 'disable'} the wake-lock',
+          ),
+        ),
       );
     }
   }

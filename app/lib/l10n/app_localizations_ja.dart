@@ -2053,7 +2053,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'オンにすると、フィギュアのムーブやタイミングに影響するパラメータを変更した際に、拍数が即座に再計算されます — 手動で入力した拍数も上書きされます。オフ(既定)の場合、編集した拍数が自動的に変更されることはありません。';
+      'オンにすると、フィギュアのムーブやタイミングに影響するパラメータを変更した際に、拍数が即座に再計算されます — 手動で入力した拍数も上書きされます。オフ(既定)の場合、編集した拍数が自動的に変更されるのは、バランスのオプションをオン/オフにしたときだけで、4拍が加算または減算されます。';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'フィギュアのショートハンド';
@@ -7467,6 +7467,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get updateDownloadFailureDestination => 'アップデートのダウンロード先を選択できませんでした。';
 
   @override
+  String get updateDownloadFailureDestinationOccupied =>
+      'その場所にはすでに何かがあります。別の名前またはフォルダを選択するか、「リリースを見る」をご利用ください。';
+
+  @override
   String get updateDownloadFailureIncomplete =>
       'ダウンロードが不完全だったため、削除されました。もう一度お試しいただくか、「リリースを見る」をご利用ください。';
 
@@ -8490,6 +8494,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get dialectEditorMoveWordingsConditionalHelp =>
       '条件付き動作テンプレートは図形のパラメーターで選択されます。表示されたすべてのスロットを入力してください。不完全な条件付きテンプレートは無視されます。';
+
+  @override
+  String dialectEditorMoveWordingsForceHelp(String example) {
+    return '役割からすでに分かる場合など、内容を追加しないスロットは省略されます（たとえばチェーンの手）。スロットの前に ! を付けて $example のようにすると、常に表示されます。';
+  }
 
   @override
   String dialectEditorMoveWordingsConditionalLabel(String move) {

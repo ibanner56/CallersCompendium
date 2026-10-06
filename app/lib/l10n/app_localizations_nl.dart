@@ -2166,7 +2166,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'Indien ingeschakeld, wordt het aantal tellen van een figuur direct herberekend zodra je de beweging of een parameter wijzigt die de timing beïnvloedt — zelfs als dat een handmatig ingevoerd aantal tellen overschrijft. Indien uitgeschakeld (standaard) wordt een aantal tellen dat je hebt aangepast nooit automatisch gewijzigd.';
+      'Indien ingeschakeld, wordt het aantal tellen van een figuur direct herberekend zodra je de beweging of een parameter wijzigt die de timing beïnvloedt — zelfs als dat een handmatig ingevoerd aantal tellen overschrijft. Indien uitgeschakeld (standaard) wordt een aantal tellen dat je hebt aangepast alleen automatisch gewijzigd wanneer je een balansoptie aan- of uitzet; dan worden er 4 tellen toegevoegd of verwijderd.';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'Figuurafkortingen';
@@ -7820,6 +7820,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Er kon geen locatie worden gekozen om de update naartoe te downloaden.';
 
   @override
+  String get updateDownloadFailureDestinationOccupied =>
+      'Er staat al iets op die locatie. Kies een andere naam of map, of gebruik „Release bekijken”.';
+
+  @override
   String get updateDownloadFailureIncomplete =>
       'De download was onvolledig en is verwijderd. Probeer het opnieuw of gebruik „Release bekijken”.';
 
@@ -8884,6 +8888,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get dialectEditorMoveWordingsConditionalHelp =>
       'Voorwaardelijke bewegingssjablonen worden gekozen op basis van de parameters van de figuur. Vul elke vermelde invulplaats in; onvolledige voorwaardelijke sjablonen worden genegeerd.';
+
+  @override
+  String dialectEditorMoveWordingsForceHelp(String example) {
+    return 'Sommige velden worden weggelaten als ze niets toevoegen, zoals de hand bij een chain wanneer de rol die al aangeeft. Zet een ! voor een veld, zoals $example, om het altijd te tonen.';
+  }
 
   @override
   String dialectEditorMoveWordingsConditionalLabel(String move) {

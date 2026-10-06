@@ -70,9 +70,18 @@ set_target_properties(${BINARY_NAME}
 )
 
 
+# The printing plugin downloads pdfium, and runs the CMake file inside it, while
+# it is added. Pin the release and fetch and hash-check that archive ourselves
+# before the plugins are added; check the plugin's copy and the library straight
+# after. See packaging/pdfium/pdfium.cmake for the remaining gap.
+include("${CMAKE_CURRENT_SOURCE_DIR}/../../packaging/pdfium/pdfium.cmake")
+compendium_pin_pdfium(linux)
+
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
 include(flutter/generated_plugins.cmake)
+
+compendium_verify_pdfium(linux)
 
 
 # === Installation ===
@@ -95,6 +104,14 @@ install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
 
 install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
+  COMPONENT Runtime)
+
+# The window icon. my_application.cc loads it from data/ next to the executable;
+# the name matches the launcher's Icon= key in
+# packaging/linux/org.callerscompendium.compendiumApp.desktop. The PNG is the
+# one tools/brand/generate_icons.py writes for Linux packaging (platform-8).
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../../packaging/linux/icon.png"
+  DESTINATION "${INSTALL_BUNDLE_DATA_DIR}" RENAME "compendium_app.png"
   COMPONENT Runtime)
 
 install(FILES "${FLUTTER_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"

@@ -3460,7 +3460,7 @@ abstract class AppLocalizations {
   /// Explanatory subtitle for the aggressive-beats-update setting, explicitly warning that a manually entered beat count can be overwritten when the toggle is on (issue #689 guardrail).
   ///
   /// In en, this message translates to:
-  /// **'When on, changing a figure\'s move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you\'ve edited is never changed automatically.'**
+  /// **'When on, changing a figure\'s move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you\'ve edited is only changed automatically when you switch a balance option on or off, which adds or removes 4 beats.'**
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle;
 
   /// Title of the Defaults settings row that opens the figure-shorthand mappings editor (#420).
@@ -11822,6 +11822,12 @@ abstract class AppLocalizations {
   /// **'Could not choose a place to download the update.'**
   String get updateDownloadFailureDestination;
 
+  /// macOS assisted-download error shown when the place chosen in the Save panel holds a folder, a symbolic link, or a file that could not be removed, so the update was not saved there. The user can start the download again and pick another name or folder. "View release" must match the translation of updateBannerViewRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'Something is already at that location. Choose another name or folder, or use \"View release\".'**
+  String get updateDownloadFailureDestinationOccupied;
+
   /// Assisted-download error shown when the downloaded file's size did not match the update manifest, so it was deleted. "View release" must match the translation of updateBannerViewRelease, the button that opens the release page for a manual download.
   ///
   /// In en, this message translates to:
@@ -13411,6 +13417,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Conditional move templates are selected by the figure\'s parameters. Complete every listed slot; unfinished conditional templates are ignored.'**
   String get dialectEditorMoveWordingsConditionalHelp;
+
+  /// Helper text explaining that a leading ! forces a move wording slot to display. The example placeholder is a sample slot such as {!hand}.
+  ///
+  /// In en, this message translates to:
+  /// **'Some slots are left out when they add nothing, such as a chain\'s hand when the role already implies it. Put a ! in front of a slot, like {example}, to always show it.'**
+  String dialectEditorMoveWordingsForceHelp(String example);
 
   /// Header for a move's parameter-dependent wording templates.
   ///
