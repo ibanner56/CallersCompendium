@@ -351,11 +351,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(PerformDanceScreen), findsNothing);
-      expect(
-        throwing.toggles,
-        [true, false],
-        reason: 'leaving Perform must still issue the disable',
-      );
+      expect(throwing.toggles, [
+        true,
+        false,
+      ], reason: 'leaving Perform must still issue the disable');
       expect(
         tester.takeException(),
         isNull,
