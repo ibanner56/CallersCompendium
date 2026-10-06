@@ -233,6 +233,14 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_check_linux_build_runner.py"),),
     ),
     Step(
+        "ios-privacy-manifest",
+        "each shipped iOS target's privacy manifest declares the required-reason APIs its code uses",
+        (
+            py("tools/ci/test_check_ios_privacy_manifest.py"),
+            py("tools/ci/check_ios_privacy_manifest.py"),
+        ),
+    ),
+    Step(
         "android-intents",
         "no BROWSABLE VIEW intent filter lets a web page open a file: or content: URI",
         (
