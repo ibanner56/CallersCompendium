@@ -3,17 +3,23 @@
 
 The Linux tar.gz and AppImage are not self-contained: glibc, GTK 3 and the
 rest of the desktop stack come from the user's system, and every binary
-compiled in CI (the runner executable and the plugin ``.so`` files) requires
-the glibc version of the machine that built it. Building on ``ubuntu-24.04``
-(glibc 2.39) produced binaries that need ``GLIBC_2.38`` and refuse to start on
-Ubuntu 22.04, Debian 12 or RHEL 9 (post-audit finding platform-3).
+compiled in CI (the runner executable and the plugin ``.so`` files) may require
+any glibc up to the one on the machine that built it. Which one it needs moves
+with the code and the toolchain headers: a trivial ``strtol`` call compiled on
+``ubuntu-24.04`` (glibc 2.39) already needs ``GLIBC_2.38``. Only the build
+image bounds it (post-audit finding platform-3).
 
 So the release workflow's Linux leg is pinned to ``ubuntu-22.04`` (glibc
 2.35), and that is the minimum the user guide states
 (``docs/user/installation.md``). ``ubuntu-latest`` would silently move the
-floor up the next time GitHub repoints it. ``ci.yml``'s Linux build leg is
+floor up the next time GitHub repoints it (to 26.04, from November 2026). ``ci.yml``'s Linux build leg is
 pinned to the same image so main's push build proves the release toolchain
 still builds before a tag does.
+
+GitHub has begun deprecating the ``ubuntu-22.04`` image (fully unsupported
+from 2027-04-17, actions/runner-images#14254). Keeping the same floor after
+that means running the leg in an ``ubuntu:22.04`` container on a newer runner;
+this guard then needs to read the job's ``container`` instead.
 
 This walks each workflow's build matrix: it finds the ``include`` entry for
 the Linux leg and reads that entry's own ``os`` key, stopping at the next

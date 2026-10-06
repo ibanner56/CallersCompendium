@@ -57,7 +57,14 @@ double-check a file — and three files that you can ignore: `beta.json` and
 
 There are two downloads for Linux (x64); either works.
 
-- **AppImage** (`...-linux-x64.AppImage`) — a single self-contained file.
+**What you need:** a 64-bit Linux with glibc 2.35 or newer and the GTK 3
+desktop libraries. Ubuntu 22.04, Debian 12, Fedora 36 and later releases of
+each meet this, as do distributions based on them (such as Linux Mint 21). If
+the app won't start and a terminal shows a message that a `GLIBC_` version was
+"not found", your system is older than this.
+
+- **AppImage** (`...-linux-x64.AppImage`) — a single file. It uses the system
+  libraries above rather than carrying its own.
   1. Download the AppImage.
   2. Mark it as runnable. In your file manager, open the file's
      **Properties**, find the permissions, and allow it to run as a program. If

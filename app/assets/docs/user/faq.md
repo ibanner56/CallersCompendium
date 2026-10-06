@@ -71,7 +71,8 @@ license, and a link to the source under **Settings › About**.
 
 ### Which devices does it run on?
 
-Desktop (Linux, macOS, Windows) and mobile (Android, iOS/iPadOS). Desktop and
+Desktop (Linux, macOS, Windows) and mobile (Android, iOS/iPadOS). On Linux it
+needs glibc 2.35 or newer (Ubuntu 22.04, Debian 12, Fedora 36 or later). Desktop and
 Android builds are on the [Releases page](https://github.com/ibanner56/CallersCompendium/releases),
 and Android is also available through a Google Play closed test. iPhone and iPad
 builds are delivered through TestFlight, and it's an open beta — join straight

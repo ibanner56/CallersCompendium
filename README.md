@@ -24,7 +24,7 @@ available today, and new releases ship regularly.
 
 | Platform | How to get it |
 |---|---|
-| Linux (x64) | AppImage or `.tar.gz` from the [Releases page](https://github.com/ibanner56/CallersCompendium/releases) |
+| Linux (x64; glibc 2.35 or newer, such as Ubuntu 22.04 or later) | AppImage or `.tar.gz` from the [Releases page](https://github.com/ibanner56/CallersCompendium/releases) |
 | macOS (Intel and Apple silicon) | Signed and notarized `.dmg` or `.zip` from the Releases page |
 | Windows (x64) | Code-signed installer or portable `.zip` from the Releases page |
 | Android | Google Play closed test, or a signed `.apk` from the Releases page |
