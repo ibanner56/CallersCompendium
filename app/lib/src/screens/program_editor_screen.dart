@@ -3892,7 +3892,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
-      firstDate: DateTime(now.year - 5),
+      firstDate: DateTime(now.year - 10),
       lastDate: DateTime(now.year + 10),
     );
     if (picked != null) {
