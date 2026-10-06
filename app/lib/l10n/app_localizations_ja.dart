@@ -99,6 +99,36 @@ class AppLocalizationsJa extends AppLocalizations {
       '保存データを新しい場所へ移す処理を完了できなかったため、Caller’s Compendium を起動できませんでした。削除されたデータはありません。空き容量を確保するか、データを使用している可能性のある他のプログラムを閉じるか、フォルダーのアクセス権を確認してから、アプリをもう一度開いて再試行してください。';
 
   @override
+  String get migrationRelocationLegacyUnreachable =>
+      '以前のバージョンが保存データを置いていた「書類」(Documents)フォルダーにアクセスできなかったため、Caller’s Compendium を起動できませんでした。変更や作成は行われていません。「書類」フォルダーが別のドライブやネットワークフォルダーにある場合は、接続し直してからアプリをもう一度開いてください。「書類」フォルダーがない場合は、空のフォルダーを作成してからアプリをもう一度開いてください。詳しくはFAQの「データはどこに保存されますか？」をご覧ください。';
+
+  @override
+  String get migrationRelocationCopiesHeading =>
+      '各コピーのサイズと最終更新日時（通常は、サイズが大きく最近更新されたほうがあなたのライブラリです）：';
+
+  @override
+  String get migrationRelocationCopyNewLocation => '新しい保存場所';
+
+  @override
+  String get migrationRelocationCopyDocuments => '「書類」フォルダー';
+
+  @override
+  String get migrationRelocationCopyEarlierAppFolder => '以前のアプリデータフォルダー';
+
+  @override
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  ) {
+    final intl.NumberFormat kilobytesNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
+
+    return '$location：$kilobytesString KB、最終更新 $date';
+  }
+
+  @override
   String migrationSnapshotAbortedMessage(String cause) {
     return '保存データをアップグレードする前に自動バックアップを作成できなかったため、Caller’s Compendiumを起動できませんでした。$cause空き容量を確保する（またはバックアップフォルダを修復する）か、アプリを再度開いてください。あるいは、再度開いてバックアップなしで続行することもできます。';
   }

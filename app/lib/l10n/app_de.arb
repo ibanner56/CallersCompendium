@@ -104,6 +104,30 @@
   "@migrationRelocationFailed": {
     "x-sourceSha256": "92053efe3d799c18cb1d651dfbde58bc0807ba270c55cbdc4f148ff0389c4dfa"
   },
+  "migrationRelocationLegacyUnreachable": "Caller’s Compendium wurde nicht gestartet, weil dein Dokumente-Ordner nicht erreichbar war, in dem frühere Versionen deine gespeicherten Daten abgelegt haben. Es wurde nichts geändert oder angelegt. Liegt der Dokumente-Ordner auf einem anderen Laufwerk oder in einem Netzwerkordner, verbinde ihn erneut und öffne die App dann noch einmal. Hast du keinen Dokumente-Ordner, lege einen leeren an und öffne die App dann noch einmal. Der FAQ-Eintrag „Wo werden meine Daten gespeichert?“ erklärt mehr.",
+  "@migrationRelocationLegacyUnreachable": {
+    "x-sourceSha256": "acf7948e37ecea717a061da9e09b3b4b9b269e3d840cb3f5fba7970ca8faa69e"
+  },
+  "migrationRelocationCopiesHeading": "Größe und letzte Änderung jeder Kopie (die größere, zuletzt geänderte Kopie ist meist deine Bibliothek):",
+  "@migrationRelocationCopiesHeading": {
+    "x-sourceSha256": "c7cce717f97498558b82549a61e9a8c9cbfec71e6390273bfddf78eb8bd84267"
+  },
+  "migrationRelocationCopyNewLocation": "Neuer Speicherort",
+  "@migrationRelocationCopyNewLocation": {
+    "x-sourceSha256": "9a234df4269ae19523bf1a1cae73cbcc70fdf5734c051c078dfd0f2068930766"
+  },
+  "migrationRelocationCopyDocuments": "Dokumente-Ordner",
+  "@migrationRelocationCopyDocuments": {
+    "x-sourceSha256": "151e70e0308240be28effaa269027e307b348b1296f012d3ed5e56fdd7e8ada8"
+  },
+  "migrationRelocationCopyEarlierAppFolder": "Früherer App-Datenordner",
+  "@migrationRelocationCopyEarlierAppFolder": {
+    "x-sourceSha256": "68abc7b4c9b0d2bab54acccb1d35e60e4fa2e50b72baf2aa0064fc77fc84231d"
+  },
+  "migrationRelocationCopyDetails": "{location}: {kilobytes} KB, zuletzt geändert {date}",
+  "@migrationRelocationCopyDetails": {
+    "x-sourceSha256": "26e7cdb8f7afe2d471212d37420ffa8e966adf5a0462a26ad7f411bd473f9c18"
+  },
   "migrationSnapshotAbortedMessage": "Caller’s Compendium wurde nicht gestartet, weil vor der Aktualisierung deiner gespeicherten Daten keine automatische Sicherung erstellt werden konnte. {cause}Schaffe Speicherplatz (oder repariere den Sicherungsordner) und öffne die App dann erneut – oder öffne sie erneut und fahre ohne Sicherung fort.",
   "@migrationSnapshotAbortedMessage": {
     "x-sourceSha256": "8a37a47a06cea0588a1b29ca9e254a91a9159d14a11eafdcb86aae462a7cb3dc"

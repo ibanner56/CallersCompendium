@@ -22,8 +22,9 @@ lives in the core package; all access through repositories.*
   (`relocateLegacyDatabase`): copy, fsync, verify size, rename into place, then
   delete the source; it never overwrites a destination, and if a database exists
   at both the old and new location, or the move fails, nothing is deleted and
-  startup stops on a non-retryable screen (`DatabaseRelocationBlocked`). The
-  whole move runs under an exclusive advisory lock on `.relocation.lock` in the
+  startup stops on a non-retryable screen (`DatabaseRelocationBlocked`) that
+  lists each conflicting copy's location, size and last change (never a path).
+  The whole move runs under an exclusive advisory lock on `.relocation.lock` in the
   database directory (the single-instance guard's `AdvisoryFileLock`, plus an
   in-process queue), and its preconditions are checked only once that lock is
   held, so a second process that waited finds nothing left to move. It refuses
@@ -41,7 +42,24 @@ lives in the core package; all access through repositories.*
   locked (the move fails, nothing deleted). The Windows behaviour is reasoned
   from SQLite's and Dart's sources; CI does not run tests on Windows.
   A rollback never removes the new copy unless the old database file is still
-  there. Pre-migration snapshots go in `db_backups/` beside
+  there. While no database exists at the new location, a Documents path that does not
+  exist (a redirected folder on a disconnected share or drive letter), or a
+  Documents folder Windows cannot resolve, also stops startup
+  (`legacyUnreachable`) instead of reading as "no library". Only a missing path
+  is detected: an unmounted volume that leaves an empty mount-point folder
+  behind reads as an empty Documents. After a move, a breadcrumb *folder*
+  named `compendium.sqlite` (holding a `README.txt` that names the new
+  location) is at the old path: it is made inside the delete step, right after
+  the main file is deleted (on Windows, after the lock was released for that
+  delete), so a move
+  that cannot make it rolls back (only a crash in the instant between the
+  delete and the breadcrumb leaves the path free, unrepaired), and it is added
+  best-effort at each other old path whose folder exists. Every
+  earlier build (v0.1.0 to v0.5.4, all on drift_flutter 0.3.1) skips its
+  preflight because `File.exists()` is false for a folder, then fails to open
+  the path (SQLite cannot open a folder) and shows its startup error screen
+  instead of creating an empty library; the relocation ignores it for the same
+  reason. Pre-migration snapshots go in `db_backups/` beside
   the file. User-triggered backup/restore = timestamped JSON export/import (6.6), not
   file copying.
 - **Hybrid figure storage** (fixing ContraDB's unqueryable JSON blob):

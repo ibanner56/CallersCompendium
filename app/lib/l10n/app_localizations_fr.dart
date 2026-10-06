@@ -105,6 +105,37 @@ class AppLocalizationsFr extends AppLocalizations {
       'Caller’s Compendium ne s’est pas lancé, car il n’a pas pu terminer le déplacement de vos données enregistrées vers leur nouvel emplacement. Rien n’a été supprimé. Libérez de l’espace, fermez les autres programmes qui les utilisent peut-être, ou vérifiez les autorisations du dossier, puis rouvrez l’application pour réessayer.';
 
   @override
+  String get migrationRelocationLegacyUnreachable =>
+      'Caller’s Compendium ne s’est pas lancé, car votre dossier Documents, où les versions précédentes conservaient vos données enregistrées, est inaccessible. Rien n’a été modifié ni créé. Si Documents se trouve sur un autre disque ou dans un dossier réseau, reconnectez-le, puis rouvrez l’application. Si vous n’avez pas de dossier Documents, créez-en un vide, puis rouvrez l’application. L’entrée « Où sont stockées mes données ? » de la FAQ en dit plus.';
+
+  @override
+  String get migrationRelocationCopiesHeading =>
+      'Taille et dernière modification de chaque copie (la copie la plus grande et la plus récemment modifiée est généralement votre bibliothèque) :';
+
+  @override
+  String get migrationRelocationCopyNewLocation => 'Nouvel emplacement';
+
+  @override
+  String get migrationRelocationCopyDocuments => 'Dossier Documents';
+
+  @override
+  String get migrationRelocationCopyEarlierAppFolder =>
+      'Ancien dossier de données de l’application';
+
+  @override
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  ) {
+    final intl.NumberFormat kilobytesNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
+
+    return '$location : $kilobytesString Ko, modifiée le $date';
+  }
+
+  @override
   String migrationSnapshotAbortedMessage(String cause) {
     return 'Caller’s Compendium n\'a pas démarré car une sauvegarde automatique n\'a pas pu être créée avant la mise à niveau de vos données enregistrées. ${cause}Libérez de l\'espace (ou réparez le dossier de sauvegardes), puis rouvrez l\'application — ou rouvrez-la et choisissez de continuer sans sauvegarde.';
   }

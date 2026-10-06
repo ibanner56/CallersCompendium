@@ -104,6 +104,30 @@
   "@migrationRelocationFailed": {
     "x-sourceSha256": "92053efe3d799c18cb1d651dfbde58bc0807ba270c55cbdc4f148ff0389c4dfa"
   },
+  "migrationRelocationLegacyUnreachable": "Caller’s Compendium blev ikke startet, fordi appen ikke kunne få adgang til din Dokumenter-mappe, hvor tidligere versioner gemte dine data. Intet blev ændret eller oprettet. Hvis Dokumenter ligger på et andet drev eller i en netværksmappe, så tilslut den igen, og åbn derefter appen igen. Hvis du ikke har en Dokumenter-mappe, så opret en tom mappe, og åbn derefter appen igen. Spørgsmålet “Hvor er mine data gemt?” i FAQ’en fortæller mere.",
+  "@migrationRelocationLegacyUnreachable": {
+    "x-sourceSha256": "acf7948e37ecea717a061da9e09b3b4b9b269e3d840cb3f5fba7970ca8faa69e"
+  },
+  "migrationRelocationCopiesHeading": "Hver kopis størrelse og hvornår den sidst blev ændret (den største og senest ændrede kopi er som regel dit bibliotek):",
+  "@migrationRelocationCopiesHeading": {
+    "x-sourceSha256": "c7cce717f97498558b82549a61e9a8c9cbfec71e6390273bfddf78eb8bd84267"
+  },
+  "migrationRelocationCopyNewLocation": "Ny placering",
+  "@migrationRelocationCopyNewLocation": {
+    "x-sourceSha256": "9a234df4269ae19523bf1a1cae73cbcc70fdf5734c051c078dfd0f2068930766"
+  },
+  "migrationRelocationCopyDocuments": "Dokumenter-mappen",
+  "@migrationRelocationCopyDocuments": {
+    "x-sourceSha256": "151e70e0308240be28effaa269027e307b348b1296f012d3ed5e56fdd7e8ada8"
+  },
+  "migrationRelocationCopyEarlierAppFolder": "Tidligere appdatamappe",
+  "@migrationRelocationCopyEarlierAppFolder": {
+    "x-sourceSha256": "68abc7b4c9b0d2bab54acccb1d35e60e4fa2e50b72baf2aa0064fc77fc84231d"
+  },
+  "migrationRelocationCopyDetails": "{location}: {kilobytes} KB, sidst ændret {date}",
+  "@migrationRelocationCopyDetails": {
+    "x-sourceSha256": "26e7cdb8f7afe2d471212d37420ffa8e966adf5a0462a26ad7f411bd473f9c18"
+  },
   "migrationSnapshotAbortedMessage": "Caller’s Compendium startede ikke, fordi der ikke kunne oprettes en automatisk sikkerhedskopi, før dine gemte data blev opgraderet. {cause}Frigør plads (eller reparer sikkerhedskopimappen), og åbn derefter appen igen — eller åbn igen og vælg at fortsætte uden en sikkerhedskopi.",
   "@migrationSnapshotAbortedMessage": {
     "x-sourceSha256": "8a37a47a06cea0588a1b29ca9e254a91a9159d14a11eafdcb86aae462a7cb3dc"

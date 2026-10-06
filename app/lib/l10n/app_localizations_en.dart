@@ -102,6 +102,37 @@ class AppLocalizationsEn extends AppLocalizations {
       'Caller’s Compendium didn’t start because it couldn’t finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.';
 
   @override
+  String get migrationRelocationLegacyUnreachable =>
+      'Caller’s Compendium didn’t start because it couldn’t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry “Where is my data stored?” has more.';
+
+  @override
+  String get migrationRelocationCopiesHeading =>
+      'Each copy’s size and when it last changed (the larger, more recently changed copy is usually your library):';
+
+  @override
+  String get migrationRelocationCopyNewLocation => 'New location';
+
+  @override
+  String get migrationRelocationCopyDocuments => 'Documents folder';
+
+  @override
+  String get migrationRelocationCopyEarlierAppFolder =>
+      'Earlier app data folder';
+
+  @override
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  ) {
+    final intl.NumberFormat kilobytesNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
+
+    return '$location: $kilobytesString KB, last changed $date';
+  }
+
+  @override
   String migrationSnapshotAbortedMessage(String cause) {
     return 'Caller’s Compendium didn’t start because it couldn’t create an automatic backup before upgrading your saved data. ${cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.';
   }

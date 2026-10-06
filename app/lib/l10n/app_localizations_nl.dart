@@ -104,6 +104,37 @@ class AppLocalizationsNl extends AppLocalizations {
       'Caller’s Compendium is niet gestart, omdat het verplaatsen van je opgeslagen gegevens naar de nieuwe locatie niet kon worden voltooid. Er is niets verwijderd. Maak ruimte vrij, sluit andere programma’s die de gegevens mogelijk gebruiken of controleer de maprechten en open de app daarna opnieuw om het opnieuw te proberen.';
 
   @override
+  String get migrationRelocationLegacyUnreachable =>
+      'Caller’s Compendium is niet gestart, omdat je map Documenten, waarin eerdere versies je opgeslagen gegevens bewaarden, niet bereikbaar was. Er is niets gewijzigd of aangemaakt. Staat Documenten op een ander station of in een netwerkmap, sluit die dan opnieuw aan en open de app daarna opnieuw. Heb je geen map Documenten, maak dan een lege aan en open de app daarna opnieuw. In het FAQ-onderdeel “Waar worden mijn gegevens opgeslagen?” lees je meer.';
+
+  @override
+  String get migrationRelocationCopiesHeading =>
+      'Grootte en laatste wijziging van elke kopie (de grootste, meest recent gewijzigde kopie is meestal je bibliotheek):';
+
+  @override
+  String get migrationRelocationCopyNewLocation => 'Nieuwe locatie';
+
+  @override
+  String get migrationRelocationCopyDocuments => 'Map Documenten';
+
+  @override
+  String get migrationRelocationCopyEarlierAppFolder =>
+      'Eerdere app-gegevensmap';
+
+  @override
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  ) {
+    final intl.NumberFormat kilobytesNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
+
+    return '$location: $kilobytesString KB, laatst gewijzigd $date';
+  }
+
+  @override
   String migrationSnapshotAbortedMessage(String cause) {
     return 'Caller’s Compendium is niet gestart omdat er geen automatische back-up kon worden gemaakt voordat je opgeslagen gegevens werden bijgewerkt. ${cause}Maak ruimte vrij (of herstel de back-upmap) en open de app dan opnieuw — of open opnieuw en kies om zonder back-up door te gaan.';
   }

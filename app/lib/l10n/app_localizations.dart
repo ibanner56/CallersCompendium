@@ -262,6 +262,46 @@ abstract class AppLocalizations {
   /// **'Caller’s Compendium didn’t start because it couldn’t finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.'**
   String get migrationRelocationFailed;
 
+  /// Terminal startup-screen message shown when there is no database in the new location yet and the Documents folder (where earlier versions kept the database) cannot be reached, so the app cannot tell whether a library is waiting there. Nothing is created. No Retry is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller’s Compendium didn’t start because it couldn’t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry “Where is my data stored?” has more.'**
+  String get migrationRelocationLegacyUnreachable;
+
+  /// Heading above the list of database copies on the terminal startup screen shown when saved data was found in more than one place. Each line below it names a folder, the copy's size and its last-changed date and time.
+  ///
+  /// In en, this message translates to:
+  /// **'Each copy’s size and when it last changed (the larger, more recently changed copy is usually your library):'**
+  String get migrationRelocationCopiesHeading;
+
+  /// Name of the folder a database copy is in, on the terminal startup screen listing conflicting copies: the app's current data folder. Used as {location} in migrationRelocationCopyDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'New location'**
+  String get migrationRelocationCopyNewLocation;
+
+  /// Name of the folder a database copy is in, on the terminal startup screen listing conflicting copies: the user's Documents folder, which earlier versions used. Used as {location} in migrationRelocationCopyDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Documents folder'**
+  String get migrationRelocationCopyDocuments;
+
+  /// Name of the folder a database copy is in, on the terminal startup screen listing conflicting copies: another app data folder an earlier version used (on Windows, the Roaming folder). Used as {location} in migrationRelocationCopyDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier app data folder'**
+  String get migrationRelocationCopyEarlierAppFolder;
+
+  /// One line per database copy on the terminal startup screen shown when saved data was found in more than one place, so the user can tell which copy is their library. {location} is the folder name (for example 'Documents folder'), {kilobytes} the copy's size in kilobytes, {date} its last-changed date and time. 'KB' is the kilobyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'{location}: {kilobytes} KB, last changed {date}'**
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  );
+
   /// Terminal startup-screen message shown when a pre-migration backup could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.
   ///
   /// In en, this message translates to:

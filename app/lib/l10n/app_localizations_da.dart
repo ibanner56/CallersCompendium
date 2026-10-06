@@ -103,6 +103,37 @@ class AppLocalizationsDa extends AppLocalizations {
       'Caller’s Compendium blev ikke startet, fordi det ikke kunne færdiggøre flytningen af dine gemte data til deres nye placering. Intet blev slettet. Frigør plads, luk andre programmer, der muligvis bruger dem, eller kontrollér mappens tilladelser, og åbn derefter appen igen for at prøve igen.';
 
   @override
+  String get migrationRelocationLegacyUnreachable =>
+      'Caller’s Compendium blev ikke startet, fordi appen ikke kunne få adgang til din Dokumenter-mappe, hvor tidligere versioner gemte dine data. Intet blev ændret eller oprettet. Hvis Dokumenter ligger på et andet drev eller i en netværksmappe, så tilslut den igen, og åbn derefter appen igen. Hvis du ikke har en Dokumenter-mappe, så opret en tom mappe, og åbn derefter appen igen. Spørgsmålet “Hvor er mine data gemt?” i FAQ’en fortæller mere.';
+
+  @override
+  String get migrationRelocationCopiesHeading =>
+      'Hver kopis størrelse og hvornår den sidst blev ændret (den største og senest ændrede kopi er som regel dit bibliotek):';
+
+  @override
+  String get migrationRelocationCopyNewLocation => 'Ny placering';
+
+  @override
+  String get migrationRelocationCopyDocuments => 'Dokumenter-mappen';
+
+  @override
+  String get migrationRelocationCopyEarlierAppFolder =>
+      'Tidligere appdatamappe';
+
+  @override
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  ) {
+    final intl.NumberFormat kilobytesNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
+
+    return '$location: $kilobytesString KB, sidst ændret $date';
+  }
+
+  @override
   String migrationSnapshotAbortedMessage(String cause) {
     return 'Caller’s Compendium startede ikke, fordi der ikke kunne oprettes en automatisk sikkerhedskopi, før dine gemte data blev opgraderet. ${cause}Frigør plads (eller reparer sikkerhedskopimappen), og åbn derefter appen igen — eller åbn igen og vælg at fortsætte uden en sikkerhedskopi.';
   }

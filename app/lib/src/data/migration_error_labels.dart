@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 import '../../l10n/app_localizations.dart';
 import 'migration_guard.dart';
 
@@ -71,4 +73,30 @@ String databaseRelocationMessage(
   DatabaseRelocationFailure.multipleLegacy =>
     l10n.migrationRelocationMultipleLegacy,
   DatabaseRelocationFailure.moveFailed => l10n.migrationRelocationFailed,
+  DatabaseRelocationFailure.legacyUnreachable =>
+    l10n.migrationRelocationLegacyUnreachable,
 };
+
+/// Folder name for a [DatabaseCopy] on the relocation terminal screen.
+String databaseCopyLocationLabel(
+  AppLocalizations l10n,
+  DatabaseCopyLocation location,
+) => switch (location) {
+  DatabaseCopyLocation.newLocation => l10n.migrationRelocationCopyNewLocation,
+  DatabaseCopyLocation.documents => l10n.migrationRelocationCopyDocuments,
+  DatabaseCopyLocation.earlierAppFolder =>
+    l10n.migrationRelocationCopyEarlierAppFolder,
+};
+
+/// One line describing a conflicting [DatabaseCopy]: its folder name, its size
+/// in kilobytes (rounded up, so a non-empty file never reads as 0 KB) and its
+/// last-changed date and time in the app's locale. Path-free, like the rest of
+/// this file.
+String databaseCopyDetails(AppLocalizations l10n, DatabaseCopy copy) =>
+    l10n.migrationRelocationCopyDetails(
+      databaseCopyLocationLabel(l10n, copy.location),
+      (copy.bytes / 1024).ceil(),
+      DateFormat.yMMMd(
+        l10n.localeName,
+      ).add_jm().format(copy.modified.toLocal()),
+    );

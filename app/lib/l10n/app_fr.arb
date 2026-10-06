@@ -104,6 +104,30 @@
   "@migrationRelocationFailed": {
     "x-sourceSha256": "92053efe3d799c18cb1d651dfbde58bc0807ba270c55cbdc4f148ff0389c4dfa"
   },
+  "migrationRelocationLegacyUnreachable": "Caller’s Compendium ne s’est pas lancé, car votre dossier Documents, où les versions précédentes conservaient vos données enregistrées, est inaccessible. Rien n’a été modifié ni créé. Si Documents se trouve sur un autre disque ou dans un dossier réseau, reconnectez-le, puis rouvrez l’application. Si vous n’avez pas de dossier Documents, créez-en un vide, puis rouvrez l’application. L’entrée « Où sont stockées mes données ? » de la FAQ en dit plus.",
+  "@migrationRelocationLegacyUnreachable": {
+    "x-sourceSha256": "acf7948e37ecea717a061da9e09b3b4b9b269e3d840cb3f5fba7970ca8faa69e"
+  },
+  "migrationRelocationCopiesHeading": "Taille et dernière modification de chaque copie (la copie la plus grande et la plus récemment modifiée est généralement votre bibliothèque) :",
+  "@migrationRelocationCopiesHeading": {
+    "x-sourceSha256": "c7cce717f97498558b82549a61e9a8c9cbfec71e6390273bfddf78eb8bd84267"
+  },
+  "migrationRelocationCopyNewLocation": "Nouvel emplacement",
+  "@migrationRelocationCopyNewLocation": {
+    "x-sourceSha256": "9a234df4269ae19523bf1a1cae73cbcc70fdf5734c051c078dfd0f2068930766"
+  },
+  "migrationRelocationCopyDocuments": "Dossier Documents",
+  "@migrationRelocationCopyDocuments": {
+    "x-sourceSha256": "151e70e0308240be28effaa269027e307b348b1296f012d3ed5e56fdd7e8ada8"
+  },
+  "migrationRelocationCopyEarlierAppFolder": "Ancien dossier de données de l’application",
+  "@migrationRelocationCopyEarlierAppFolder": {
+    "x-sourceSha256": "68abc7b4c9b0d2bab54acccb1d35e60e4fa2e50b72baf2aa0064fc77fc84231d"
+  },
+  "migrationRelocationCopyDetails": "{location} : {kilobytes} Ko, modifiée le {date}",
+  "@migrationRelocationCopyDetails": {
+    "x-sourceSha256": "26e7cdb8f7afe2d471212d37420ffa8e966adf5a0462a26ad7f411bd473f9c18"
+  },
   "migrationSnapshotAbortedMessage": "Caller’s Compendium n'a pas démarré car une sauvegarde automatique n'a pas pu être créée avant la mise à niveau de vos données enregistrées. {cause}Libérez de l'espace (ou réparez le dossier de sauvegardes), puis rouvrez l'application — ou rouvrez-la et choisissez de continuer sans sauvegarde.",
   "@migrationSnapshotAbortedMessage": {
     "x-sourceSha256": "8a37a47a06cea0588a1b29ca9e254a91a9159d14a11eafdcb86aae462a7cb3dc"

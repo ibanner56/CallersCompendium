@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sql;
 
+import '../diagnostics/error_log.dart';
 import 'app_database.dart';
 import 'single_instance_guard.dart'
     show AdvisoryFileLock, InstanceLockHandle, InstanceLockPrimitive;
@@ -366,6 +367,48 @@ enum DatabaseRelocationFailure {
   /// launch starts again from the original state, with one exception: if the
   /// legacy database file is no longer there, the new copy is kept.
   moveFailed,
+
+  /// No database exists at the new location yet, and the Documents folder
+  /// earlier builds used does not exist (for example a redirected folder on a
+  /// disconnected network share or drive letter), or on Windows could not be
+  /// resolved at all. Whether a library is waiting there cannot be known, so
+  /// nothing is created that would start an empty library beside it. Only a
+  /// missing path is detected: an unmounted volume whose empty mount-point
+  /// folder is still there looks like an empty Documents.
+  legacyUnreachable,
+}
+
+/// Which folder a [DatabaseCopy] is in, as a typed discriminator the
+/// presentation layer localizes (the screen never shows a path).
+enum DatabaseCopyLocation {
+  /// The current database directory.
+  newLocation,
+
+  /// The Documents folder earlier builds used.
+  documents,
+
+  /// Another folder an earlier build used (on Windows, the Roaming app data
+  /// fallback directory).
+  earlierAppFolder,
+}
+
+/// Size and age of one database copy found by [relocateLegacyDatabase], shown
+/// on the terminal screen so the user can tell which copy is their library.
+@immutable
+class DatabaseCopy {
+  const DatabaseCopy({
+    required this.location,
+    required this.bytes,
+    required this.modified,
+  });
+
+  final DatabaseCopyLocation location;
+
+  /// Combined size of the database file and its `-wal`/`-shm` sidecars.
+  final int bytes;
+
+  /// The most recent modification time among those files.
+  final DateTime modified;
 }
 
 /// Thrown by [relocateLegacyDatabase] when it cannot safely complete the move.
@@ -374,9 +417,18 @@ enum DatabaseRelocationFailure {
 /// a terminal screen and no database is opened, so no second, empty database is
 /// created beside the real one. Nothing is deleted on the way out.
 class DatabaseRelocationBlocked implements Exception {
-  const DatabaseRelocationBlocked(this.reason, {this.error});
+  const DatabaseRelocationBlocked(
+    this.reason, {
+    this.error,
+    this.copies = const [],
+  });
 
   final DatabaseRelocationFailure reason;
+
+  /// For [DatabaseRelocationFailure.bothExist] and
+  /// [DatabaseRelocationFailure.multipleLegacy]: each conflicting copy's
+  /// location, size and modification time. Empty when they could not be read.
+  final List<DatabaseCopy> copies;
 
   /// The underlying error for [DatabaseRelocationFailure.moveFailed], for
   /// diagnostics only: it can embed absolute paths and is never rendered.
@@ -391,6 +443,10 @@ const String _relocatingSuffix = '.relocating';
 /// File name of the advisory lock [relocateLegacyDatabase] holds, in the
 /// target's directory, for the whole move.
 const String kRelocationLockFileName = '.relocation.lock';
+
+/// Name of the note [relocateLegacyDatabase] leaves inside the breadcrumb
+/// folder at each earlier location after a successful move.
+const String kRelocationBreadcrumbNoteName = 'README.txt';
 const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 
 /// Moves a database left in a legacy location (Documents, or an earlier
@@ -406,6 +462,19 @@ const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 /// empty.
 ///
 /// Rules, in the order they bite:
+/// - **No library is not the same as an unreachable Documents.** When
+///   no database exists at [target] yet and either [documentsDirectory] is
+///   given but does not exist, or [documentsUnresolvable] is set (Windows could
+///   not resolve Documents), throw
+///   [DatabaseRelocationFailure.legacyUnreachable] and create nothing: a
+///   missing Documents path (a redirected folder on a disconnected share or
+///   drive letter) would otherwise look like "no legacy database", and drift
+///   would start an empty library beside the real one. Only a missing path is
+///   detected; an unmounted volume that leaves an empty mount-point folder
+///   behind is not. Once [target] holds a database this check is skipped (an
+///   empty library can no longer be started by mistake). A `null`
+///   [documentsDirectory] without [documentsUnresolvable] means Linux without
+///   `xdg-user-dirs`, where no earlier build could have kept a database.
 /// - **One mover at a time.** The whole move runs under an exclusive advisory
 ///   lock on [kRelocationLockFileName] in the target's directory (the same
 ///   [AdvisoryFileLock] the single-instance guard uses), plus an in-process
@@ -416,7 +485,10 @@ const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 ///   taken at all, nothing is touched ([DatabaseRelocationFailure.moveFailed]).
 /// - **Never overwrite.** If the target database (or a sidecar) exists, or more
 ///   than one legacy database exists, throw [DatabaseRelocationBlocked]
-///   ([DatabaseRelocationFailure.bothExist]) and touch nothing.
+///   ([DatabaseRelocationFailure.bothExist] or
+///   [DatabaseRelocationFailure.multipleLegacy]) and touch nothing; the error
+///   carries each copy's location, size and age
+///   ([DatabaseRelocationBlocked.copies]) so the user can choose.
 /// - **Checkpoint first** (`wal_checkpoint(TRUNCATE)`, as the pre-migration
 ///   snapshot does), and require it to report not busy: a busy result means
 ///   another connection holds the WAL, so the main file is not yet a complete
@@ -457,23 +529,51 @@ const List<String> _sidecarSuffixes = ['-wal', '-shm'];
 ///   legacy database file is no longer there when the attempt gives up (data
 ///   is never left in fewer places than before).
 ///
+/// The **breadcrumb** at the source path is made inside the delete step, right
+/// after the main file is deleted (on Windows, after the exclusive hold was
+/// released for that delete; on POSIX, while it is still held); if it cannot
+/// be made the move rolls back like any other delete failure. (A crash in the instant between that delete
+/// and the breadcrumb leaves the path free, and nothing repairs it later.)
+/// Breadcrumbs at the other legacy paths whose folder exists are best-effort.
+/// A breadcrumb is a *folder* named
+/// `compendium.sqlite` holding a [kRelocationBreadcrumbNoteName] that says
+/// where the library went. Every earlier build (v0.1.0 to v0.5.4) skips its
+/// preflight because `File.exists()` is false for a folder, then asks SQLite to
+/// open the path, which cannot open a folder; it shows its startup error
+/// screen instead of creating a new, empty library there. This function, for
+/// the same reason, never sees a breadcrumb as a legacy database.
+///
 /// A *crash* (not a reported failure) between the rename and the last delete
 /// leaves both copies; the next launch reports
 /// [DatabaseRelocationFailure.bothExist] rather than overwriting either: a user
 /// (not the app) decides which to delete, see `docs/user/faq.md`.
 ///
 /// [deleter] is injectable so tests can fail the source cleanup part-way; the
-/// production default deletes via [File]. [lockPrimitive] (default
+/// production default deletes via [File]. A legacy file in
+/// [documentsDirectory] is reported as [DatabaseCopyLocation.documents], any
+/// other as [DatabaseCopyLocation.earlierAppFolder]. [lockPrimitive] (default
 /// [AdvisoryFileLock]), [lockTimeout] and [afterRename] (called after each
 /// file is renamed into place) are test seams.
 Future<bool> relocateLegacyDatabase({
   required File target,
   required List<File> legacy,
   Future<void> Function(File file)? deleter,
+  Directory? documentsDirectory,
+  bool documentsUnresolvable = false,
   @visibleForTesting InstanceLockPrimitive? lockPrimitive,
   @visibleForTesting Duration lockTimeout = const Duration(seconds: 30),
   @visibleForTesting Future<void> Function(File renamed)? afterRename,
 }) async {
+  // Checked before the lock, because it must also bite when no legacy
+  // database is visible: that is exactly what an unreachable Documents looks
+  // like.
+  if (!target.existsSync() &&
+      (documentsUnresolvable ||
+          (documentsDirectory != null && !documentsDirectory.existsSync()))) {
+    throw const DatabaseRelocationBlocked(
+      DatabaseRelocationFailure.legacyUnreachable,
+    );
+  }
   // Every launch after the first ends here, without creating anything.
   if (_existingLegacy(target, legacy).isEmpty) return false;
   return _whileHoldingRelocationLock(
@@ -485,6 +585,7 @@ Future<bool> relocateLegacyDatabase({
       legacy: legacy,
       delete: deleter ?? (file) => file.delete(),
       afterRename: afterRename,
+      documentsDirectory: documentsDirectory,
     ),
   );
 }
@@ -563,22 +664,39 @@ Future<bool> _relocateWhileLocked({
   required List<File> legacy,
   required Future<void> Function(File file) delete,
   required Future<void> Function(File renamed)? afterRename,
+  required Directory? documentsDirectory,
 }) async {
   // Re-checked under the lock: another process may have finished (or begun
   // and failed) the move while this one waited.
   final sources = _existingLegacy(target, legacy);
   if (sources.isEmpty) return false;
 
+  DatabaseCopyLocation locationOf(File file) =>
+      documentsDirectory != null &&
+          p.canonicalize(file.parent.path) ==
+              p.canonicalize(documentsDirectory.path)
+      ? DatabaseCopyLocation.documents
+      : DatabaseCopyLocation.earlierAppFolder;
   final targetOccupied = [
     target,
     for (final suffix in _sidecarSuffixes) File('${target.path}$suffix'),
   ].any((file) => file.existsSync());
   if (targetOccupied) {
-    throw const DatabaseRelocationBlocked(DatabaseRelocationFailure.bothExist);
+    throw DatabaseRelocationBlocked(
+      DatabaseRelocationFailure.bothExist,
+      copies: _describeCopies([
+        // Only a database file is a copy to choose; stray sidecars are not.
+        if (target.existsSync()) (target, DatabaseCopyLocation.newLocation),
+        for (final source in sources) (source, locationOf(source)),
+      ]),
+    );
   }
   if (sources.length > 1) {
-    throw const DatabaseRelocationBlocked(
+    throw DatabaseRelocationBlocked(
       DatabaseRelocationFailure.multipleLegacy,
+      copies: _describeCopies([
+        for (final source in sources) (source, locationOf(source)),
+      ]),
     );
   }
   final source = sources.single;
@@ -588,7 +706,7 @@ Future<bool> _relocateWhileLocked({
   final finals = <File>[];
   _LegacyHold? hold;
   try {
-    return await _moveWhileHolding(
+    await _moveWhileHolding(
       source: source,
       target: target,
       moves: moves,
@@ -602,6 +720,12 @@ Future<bool> _relocateWhileLocked({
     // Idempotent: on Windows the hold was already released before the delete.
     await hold?.release();
   }
+  // The source path's breadcrumb was made inside the move; the others (and
+  // every crumb's note) are best-effort.
+  for (final file in legacy) {
+    await _leaveBreadcrumb(file, target);
+  }
+  return true;
 }
 
 Future<bool> _moveWhileHolding({
@@ -709,6 +833,14 @@ Future<bool> _moveWhileHolding({
       await delete(move.$1);
       deleted.add(move);
     }
+    // The breadcrumb at the old path is part of the move: if it cannot be
+    // made (something took the freed path), the move rolls back below rather
+    // than leave the path for an older build to start an empty library in.
+    await Directory(source.path).create();
+    if (FileSystemEntity.typeSync(source.path, followLinks: false) !=
+        FileSystemEntityType.directory) {
+      throw FileSystemException('breadcrumb could not be made', source.path);
+    }
   } on Object catch (error) {
     // diagnostics: silent — rolled back below; the typed error carries the cause.
     var restored = true;
@@ -742,6 +874,75 @@ Future<bool> _moveWhileHolding({
     // diagnostics: silent — cosmetic cleanup of an empty folder.
   }
   return true;
+}
+
+/// Size and age of each `(database file, location)` pair, counting its
+/// `-wal`/`-shm` sidecars. Empty if any of them cannot be read: the details
+/// help the user choose, and their absence must not hide the blocking message.
+List<DatabaseCopy> _describeCopies(List<(File, DatabaseCopyLocation)> found) {
+  try {
+    return [
+      for (final (file, location) in found)
+        () {
+          final present = [
+            file,
+            for (final suffix in _sidecarSuffixes) File('${file.path}$suffix'),
+          ].where((f) => f.existsSync()).toList();
+          return DatabaseCopy(
+            location: location,
+            bytes: present.fold(0, (sum, f) => sum + f.lengthSync()),
+            modified: present
+                .map((f) => f.lastModifiedSync())
+                .reduce((a, b) => a.isAfter(b) ? a : b),
+          );
+        }(),
+    ];
+  } on Object catch (error, stackTrace) {
+    logCaughtErrorTypeOnly(
+      error,
+      stackTrace,
+      source: 'migration_guard.describeCopies',
+    );
+    return const [];
+  }
+}
+
+/// Leaves a folder named like the database at [legacyFile]'s path, with a note
+/// inside, so an earlier build fails to open it rather than creating an empty
+/// library there (see [relocateLegacyDatabase]). Only where the path is free
+/// and its folder exists; best-effort, since the move itself has succeeded.
+Future<void> _leaveBreadcrumb(File legacyFile, File target) async {
+  if (p.canonicalize(legacyFile.path) == p.canonicalize(target.path)) return;
+  try {
+    if (!legacyFile.parent.existsSync()) return;
+    final type = FileSystemEntity.typeSync(legacyFile.path, followLinks: false);
+    // A file or link there is someone else's; a folder is already a crumb
+    // (the moved database's own, made as part of the move).
+    if (type != FileSystemEntityType.notFound &&
+        type != FileSystemEntityType.directory) {
+      return;
+    }
+    final crumb = await Directory(legacyFile.path).create();
+    final note = File(p.join(crumb.path, kRelocationBreadcrumbNoteName));
+    if (note.existsSync()) return;
+    await note.writeAsString(
+      "Caller's Compendium moved your library out of this folder, to:\n"
+      '\n'
+      '    ${target.parent.path}\n'
+      '\n'
+      'This folder stays here so that an older version of the app, if you\n'
+      'open one, shows an error instead of starting a new, empty library.\n'
+      'Current versions ignore it. You can delete it if you will not open an\n'
+      'older version again.\n',
+      flush: true,
+    );
+  } on Object catch (error, stackTrace) {
+    logCaughtErrorTypeOnly(
+      error,
+      stackTrace,
+      source: 'migration_guard.leaveBreadcrumb',
+    );
+  }
 }
 
 /// Best-effort removal of files this relocation attempt itself created.
@@ -785,6 +986,8 @@ Future<void> runMigrationPreflightForApp({
     legacy: [
       for (final dir in locations.legacy) File(p.join(dir.path, fileName)),
     ],
+    documentsDirectory: locations.documents,
+    documentsUnresolvable: locations.documentsUnresolvable,
   );
   final snapshotDir = Directory(
     p.join(dbFile.parent.path, kDatabaseBackupsDirName),

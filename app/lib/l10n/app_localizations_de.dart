@@ -102,6 +102,37 @@ class AppLocalizationsDe extends AppLocalizations {
       'Caller’s Compendium wurde nicht gestartet, weil das Verschieben deiner gespeicherten Daten an den neuen Speicherort nicht abgeschlossen werden konnte. Es wurde nichts gelöscht. Schaffe Speicherplatz, schließe andere Programme, die die Daten möglicherweise verwenden, oder prüfe die Ordnerberechtigungen und öffne die App dann erneut, um es noch einmal zu versuchen.';
 
   @override
+  String get migrationRelocationLegacyUnreachable =>
+      'Caller’s Compendium wurde nicht gestartet, weil dein Dokumente-Ordner nicht erreichbar war, in dem frühere Versionen deine gespeicherten Daten abgelegt haben. Es wurde nichts geändert oder angelegt. Liegt der Dokumente-Ordner auf einem anderen Laufwerk oder in einem Netzwerkordner, verbinde ihn erneut und öffne die App dann noch einmal. Hast du keinen Dokumente-Ordner, lege einen leeren an und öffne die App dann noch einmal. Der FAQ-Eintrag „Wo werden meine Daten gespeichert?“ erklärt mehr.';
+
+  @override
+  String get migrationRelocationCopiesHeading =>
+      'Größe und letzte Änderung jeder Kopie (die größere, zuletzt geänderte Kopie ist meist deine Bibliothek):';
+
+  @override
+  String get migrationRelocationCopyNewLocation => 'Neuer Speicherort';
+
+  @override
+  String get migrationRelocationCopyDocuments => 'Dokumente-Ordner';
+
+  @override
+  String get migrationRelocationCopyEarlierAppFolder =>
+      'Früherer App-Datenordner';
+
+  @override
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  ) {
+    final intl.NumberFormat kilobytesNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
+
+    return '$location: $kilobytesString KB, zuletzt geändert $date';
+  }
+
+  @override
   String migrationSnapshotAbortedMessage(String cause) {
     return 'Caller’s Compendium wurde nicht gestartet, weil vor der Aktualisierung deiner gespeicherten Daten keine automatische Sicherung erstellt werden konnte. ${cause}Schaffe Speicherplatz (oder repariere den Sicherungsordner) und öffne die App dann erneut – oder öffne sie erneut und fahre ohne Sicherung fort.';
   }
