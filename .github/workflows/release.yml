@@ -277,14 +277,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Pinned, not ubuntu-latest: the shipped binaries need the glibc of
-          # the machine that built them, so this image sets the minimum Linux
-          # (glibc 2.35, Ubuntu 22.04) that docs/user/installation.md states.
-          # tools/ci/check_linux_build_runner.py enforces it. GitHub retires
-          # this image on 2027-04-17; see that script for the way forward.
+          # Built inside an ubuntu:22.04 container: the shipped binaries need
+          # the glibc of the system that built them, so this image sets the
+          # minimum Linux (glibc 2.35, Ubuntu 22.04) that
+          # docs/user/installation.md states. The glibc comes from the
+          # container, not the runner, so the runner can move with
+          # ubuntu-latest. Pinned by digest (bump it in ci.yml too);
+          # tools/ci/check_linux_build_runner.py enforces all of this.
           - platform: linux
             arch: x64
-            os: ubuntu-22.04
+            os: ubuntu-latest
+            container: ubuntu:22.04@sha256:5ec03bb3441e8b0bf3b4f9cd4629a1ae763010dc3035bb8da3ae6cf026486401
           - platform: macos
             arch: universal
             os: macos-latest
@@ -311,6 +314,9 @@ jobs:
             arch: universal
             os: macos-latest
     runs-on: ${{ matrix.os }}
+    # Only the Linux leg sets matrix.container. For the others it evaluates to
+    # an empty string, which the runner treats as no container at all.
+    container: ${{ matrix.container }}
     permissions:
       contents: read
     env:
@@ -318,6 +324,38 @@ jobs:
       ANDROID_VERSION_CODE: ${{ needs.meta.outputs.android_version_code }}
       CODENAME: ${{ needs.meta.outputs.codename }}
     steps:
+      # The container starts with only the base system and runs as root (no
+      # sudo). This runs before checkout because actions/checkout needs git
+      # 2.18 or later, or it downloads a tarball with no .git instead.
+      # Keep the package list the same as ci.yml's.
+      - name: Install Linux build dependencies (ubuntu:22.04 container)
+        if: matrix.platform == 'linux'
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          # git, curl, jq, unzip, xz-utils, zip: actions/checkout,
+          #   subosito/flutter-action and the Flutter tool.
+          # clang, cmake, ninja-build, pkg-config, libgtk-3-dev: Flutter's
+          #   Linux toolchain.
+          # libstdc++-12-dev: clang builds against the newest GCC installation
+          #   it finds. On its own it pulls in GCC 11; this makes it GCC 12,
+          #   as on the runner images these legs used to build on, so the C++
+          #   runtime the binaries need is unchanged.
+          # No JDK, deliberately. The jni plugin (pulled in by
+          #   path_provider_android) builds lib/libdartjni.so only when CMake
+          #   finds one. Builds on the runner images did, and shipped a file
+          #   no Linux code loads and that cannot load anyway: it needs
+          #   libjvm.so through a RUNPATH into the build machine's JDK.
+          # binutils, python3: tools/ci/check_linux_glibc_floor.py.
+          # file: appimagetool refuses to run without it.
+          # desktop-file-utils: appimagetool validates the .desktop file with it.
+          apt-get install -y --no-install-recommends \
+            ca-certificates git curl jq unzip xz-utils zip \
+            clang cmake ninja-build pkg-config libgtk-3-dev libstdc++-12-dev \
+            binutils python3 \
+            file desktop-file-utils
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.meta.outputs.source_sha }}
@@ -426,12 +464,6 @@ jobs:
           echo "signing=$signing" >> "$GITHUB_OUTPUT"
           printf '%s\n' "$signing" > ios-testflight-status/signing
 
-      - name: Install Linux desktop dependencies
-        if: matrix.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build libgtk-3-dev
-
       # subosito/flutter-action does NOT install a JDK, and an Android Gradle
       # build needs one. We pin JDK 21 (not 17) specifically because the release
       # leg runs Android Lint's release-only `lintVitalAnalyzeRelease` task: AGP
@@ -459,6 +491,17 @@ jobs:
           channel: stable
           cache: true
 
+      # Two git repositories here belong to a user other than the
+      # container's root: the workspace (created by the runner's user) and
+      # the Flutter SDK (extracted by root, keeping the archive's own uid).
+      # git refuses to work in either ("detected dubious ownership"), and the
+      # flutter tool runs git in its SDK on every invocation.
+      - name: Trust the workspace and Flutter SDK repositories (container)
+        if: matrix.platform == 'linux'
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$FLUTTER_ROOT"
+
       - run: flutter pub get --enforce-lockfile
 
       # --- Linux: tar.gz (portable) + AppImage -----------------------------
@@ -473,6 +516,13 @@ jobs:
           flutter build linux --release \
             --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
             "${codename_define[@]}"
+
+      # The binaries need at most the glibc of the container that built them;
+      # this reads what they actually need and fails above the floor, before
+      # anything is packaged.
+      - name: Check the Linux bundle's glibc floor
+        if: matrix.platform == 'linux'
+        run: python3 tools/ci/check_linux_glibc_floor.py app/build/linux/x64/release/bundle
 
       - name: Package Linux (tar.gz + AppImage)
         if: matrix.platform == 'linux'
