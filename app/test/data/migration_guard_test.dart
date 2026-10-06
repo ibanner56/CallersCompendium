@@ -655,6 +655,85 @@ void main() {
       expect(live.select('PRAGMA journal_mode').single.values.single, 'wal');
     });
 
+    test('a connection opened after the in-use check cannot write to the old '
+        'file while it is copied and deleted (dbloc-2)', () async {
+      _createFixture(legacy.path, userVersion: 7, seedValue: 'library');
+      sql.sqlite3.open(legacy.path)
+        ..execute('PRAGMA journal_mode = WAL')
+        ..close();
+      final attempts = <String>[];
+
+      final moved = await relocateLegacyDatabase(
+        target: target,
+        legacy: [legacy],
+        afterRename: (renamed) async {
+          if (renamed.path != target.path) return;
+          // An older build opening the old file after the probe, mid-move.
+          final late = sql.sqlite3.open(legacy.path);
+          try {
+            late.execute("INSERT INTO t (v) VALUES ('lost?')");
+            attempts.add('wrote');
+          } on sql.SqliteException {
+            attempts.add('refused');
+          } finally {
+            late.close();
+          }
+        },
+      );
+
+      expect(moved, isTrue);
+      expect(attempts, ['refused']);
+      final db = sql.sqlite3.open(target.path);
+      addTearDown(db.close);
+      expect(db.select('SELECT v FROM t').map((r) => r['v']), ['library']);
+    });
+
+    test(
+      'another process cannot write to the old file while it is copied and '
+      'deleted (dbloc-2)',
+      () async {
+        _createFixture(legacy.path, userVersion: 7, seedValue: 'library');
+        sql.sqlite3.open(legacy.path)
+          ..execute('PRAGMA journal_mode = WAL')
+          ..close();
+        final outcomes = <String>[];
+        Future<void> tryWrite() async {
+          final result = await Process.run('python3', [
+            '-c',
+            'import sqlite3, sys\n'
+                'c = sqlite3.connect(sys.argv[1], timeout=0)\n'
+                'try:\n'
+                '    c.execute("INSERT INTO t (v) VALUES (\'lost?\')")\n'
+                '    c.commit()\n'
+                '    print("wrote")\n'
+                'except sqlite3.OperationalError:\n'
+                '    print("refused")\n',
+            legacy.path,
+          ]);
+          outcomes.add('${result.stdout}'.trim());
+        }
+
+        final moved = await relocateLegacyDatabase(
+          target: target,
+          legacy: [legacy],
+          // Mid-copy is covered by the same lock; after the rename the main
+          // file has been read and copied through this process's own handle,
+          // so this also proves closing that handle did not drop the lock.
+          afterRename: (renamed) async {
+            if (renamed.path == target.path) await tryWrite();
+          },
+        );
+
+        expect(moved, isTrue);
+        expect(outcomes, ['refused']);
+        final db = sql.sqlite3.open(target.path);
+        addTearDown(db.close);
+        expect(db.select('SELECT v FROM t').map((r) => r['v']), ['library']);
+      },
+      // python3's sqlite3 takes POSIX fcntl locks like this process's SQLite.
+      skip: Platform.isWindows,
+    );
+
     test('the in-use probe leaves the journal mode as it found it', () async {
       _createFixture(legacy.path, userVersion: 7, seedValue: 'x');
       sql.sqlite3.open(legacy.path)
