@@ -335,7 +335,9 @@ void main() {
 
     test('canonicalization also discards the caller\'s capitalisation', () {
       // `Substitutor` supports `preserveCase`, but `canonicalize` does not
-      // enable it, so both upper and title case are flattened.
+      // enable it, so both upper and title case are flattened. Deliberate
+      // (parser-2): imports store `role1s`, and preserving case would change
+      // canonical bytes and the `figureCanonicalKey` dedupe identity.
       expect(
         canonicalizeText('LARKS and Robins balance the ring.', larks),
         'role1s and role2s balance the ring.',
