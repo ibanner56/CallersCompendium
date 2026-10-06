@@ -133,6 +133,8 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'slots': l10n.programsSlotsLabel,
         'hideAlternates': l10n.programsHideAlternatesTitle,
         'dialectName': l10n.programsDialectFieldLabel,
+        'payMinorUnits': l10n.programsPayLabel,
+        'payCurrency': l10n.programsPayCurrencyLabel,
       },
       SyncRecordKind.choreographer => {
         'name': l10n.syncConflictFieldName,

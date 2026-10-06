@@ -84,6 +84,11 @@ enum DpvTerm {
   /// a person.
   unclassifiedPersonal('dpv:PersonalData', ['PersonalData']),
 
+  /// Information about financial income. DPV: `Financial → Transactional →
+  /// Income` (`pd:Income`, "Information about financial income e.g. for
+  /// individual or household or family"; verified in DPV v2.3 `pd`).
+  income('pd:Income', ['Financial', 'Transactional', 'Income']),
+
   /// Data that is not about an identifiable person: dance choreography,
   /// structural fields, app configuration.
   nonPersonal('dpv:NonPersonalData', ['NonPersonalData']),

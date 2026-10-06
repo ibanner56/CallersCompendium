@@ -895,6 +895,8 @@ Program _programFromJson(Map<String, Object?> m) => Program(
   // rewrite a valid reference into a different name (and could split a
   // surrogate pair, which canonical sync JSON rejects).
   dialectName: _strOrNull(m, 'dialectName'),
+  payMinorUnits: _payMinorUnitsOrNull(m),
+  payCurrency: _payCurrencyOrNull(m),
   slots: _programSlotsFromJson(m['slots']),
   provenance: m['provenance'] == null
       ? null
@@ -1017,6 +1019,32 @@ String _clampLength(String value, int max) =>
 int _int(Map<String, Object?> m, String key) {
   final v = m[key];
   if (v is! int) throw FormatException('missing or non-integer "$key"');
+  return v;
+}
+
+/// `payMinorUnits`, which must be a non-negative integer and present only
+/// together with `payCurrency` (the [Program] invariant), so a body that breaks
+/// it is rejected as malformed rather than reaching the constructor.
+int? _payMinorUnitsOrNull(Map<String, Object?> m) {
+  final v = _intOrNull(m, 'payMinorUnits');
+  if (v != null && v < 0) {
+    throw const FormatException('"payMinorUnits" must not be negative');
+  }
+  if ((v == null) != (m['payCurrency'] == null)) {
+    throw const FormatException(
+      '"payMinorUnits" and "payCurrency" must appear together',
+    );
+  }
+  return v;
+}
+
+String? _payCurrencyOrNull(Map<String, Object?> m) {
+  final v = _strOrNull(m, 'payCurrency');
+  if (v != null && !Program.isValidPayCurrency(v)) {
+    throw const FormatException(
+      '"payCurrency" must be three uppercase letters (ISO 4217)',
+    );
+  }
   return v;
 }
 

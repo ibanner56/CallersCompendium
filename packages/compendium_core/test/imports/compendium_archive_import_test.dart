@@ -1098,6 +1098,52 @@ void main() {
     expect((await programs.listAll()).single.dialectName, isNull);
   });
 
+  test('imports carry program pay on both the fresh and the re-import '
+      'path (issue #1418)', () async {
+    final d1 = _dance('orig-d1', 'Simplicity Swing');
+    Program variant({int? minor, String? currency}) => Program(
+      id: 'orig-pay',
+      title: 'Spring Fling',
+      payMinorUnits: minor,
+      payCurrency: currency,
+      status: ProgramStatus.draft,
+      slots: [ProgramSlot(id: 'sl-1', position: 0, danceId: 'orig-d1')],
+      createdAt: DateTime.utc(2026, 4, 1),
+      updatedAt: DateTime.utc(2026, 4, 1),
+    );
+    Future<CompendiumArchiveImportResult> run(Program p, String tag, int day) {
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15 + day),
+        dances: [d1],
+        programs: [p],
+      );
+      return importer.import(
+        encodeArchive(archive),
+        archive,
+        now: now.add(Duration(days: day)),
+        newId: sequentialIds(tag),
+        newSlotId: sequentialIds('$tag-slot'),
+      );
+    }
+
+    await run(variant(minor: 25050, currency: 'USD'), 'first', 0);
+    var loaded = (await programs.listAll()).single;
+    expect(loaded.payMinorUnits, 25050);
+    expect(loaded.payCurrency, 'USD');
+
+    await run(variant(minor: 9000, currency: 'JPY'), 'second', 1);
+    loaded = (await programs.listAll()).single;
+    expect(loaded.payMinorUnits, 9000);
+    expect(loaded.payCurrency, 'JPY');
+
+    // Like dialectName, the archive's value replaces the local one, so an
+    // archive without pay clears it.
+    await run(variant(), 'third', 2);
+    loaded = (await programs.listAll()).single;
+    expect(loaded.payMinorUnits, isNull);
+    expect(loaded.payCurrency, isNull);
+  });
+
   test('unresolved dance placeholder preserves any existing note', () async {
     final program = Program(
       id: 'orig-p1',

@@ -354,6 +354,8 @@ Program _program({
   String? caller,
   String notes = '',
   ProgramStatus status = ProgramStatus.draft,
+  int? payMinorUnits,
+  String? payCurrency,
   List<ProgramSlot> slots = const [],
 }) => Program(
   id: id,
@@ -365,6 +367,8 @@ Program _program({
   caller: caller,
   notes: notes,
   status: status,
+  payMinorUnits: payMinorUnits,
+  payCurrency: payCurrency,
   slots: slots,
   createdAt: _now,
   updatedAt: _now,
@@ -747,6 +751,152 @@ void main() {
     expect(saved.notes, 'Doors at seven.');
     expect(saved.status, ProgramStatus.finalized);
     expect(saved.hideAlternates, isTrue);
+  });
+
+  group('pay (issue #1418)', () {
+    Future<void> saveAndRead(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('amount and currency save as minor units and reload', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p1', title: 'Night'));
+      await _pump(tester, repos, programId: 'p1', onSaved: (_) {});
+
+      await _expandMoreDetails(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('program-pay')),
+        '250.5',
+      );
+      await tester.tap(find.byKey(const ValueKey('program-pay-currency:USD')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('EUR').last);
+      await tester.pumpAndSettle();
+      await saveAndRead(tester);
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.payMinorUnits, 25050);
+      expect(saved.payCurrency, 'EUR');
+
+      // Reopen: the stored value is shown back in decimal form.
+      await tester.pumpWidget(const SizedBox());
+      await _pump(tester, repos, programId: 'p1', onSaved: (_) {});
+      await _expandMoreDetails(tester);
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const ValueKey('program-pay')))
+            .controller!
+            .text,
+        '250.50',
+      );
+      expect(
+        find.byKey(const ValueKey('program-pay-currency:EUR')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('clearing the amount clears the stored pay', (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          payMinorUnits: 30000,
+          payCurrency: 'USD',
+        ),
+      );
+      await _pump(tester, repos, programId: 'p1', onSaved: (_) {});
+
+      await _expandMoreDetails(tester);
+      await tester.enterText(find.byKey(const ValueKey('program-pay')), '');
+      await saveAndRead(tester);
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.payMinorUnits, isNull);
+      expect(saved.payCurrency, isNull);
+    });
+
+    testWidgets('an untouched pay survives an unrelated save', (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          payMinorUnits: 5000,
+          payCurrency: 'JPY',
+        ),
+      );
+      await _pump(tester, repos, programId: 'p1', onSaved: (_) {});
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Renamed',
+      );
+      await saveAndRead(tester);
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.title, 'Renamed');
+      expect(saved.payMinorUnits, 5000);
+      expect(saved.payCurrency, 'JPY');
+    });
+
+    testWidgets('invalid amount shows an error and blocks the save', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          payMinorUnits: 1000,
+          payCurrency: 'USD',
+        ),
+      );
+      await _pump(tester, repos, programId: 'p1', onSaved: (_) {});
+
+      await _expandMoreDetails(tester);
+      await tester.enterText(find.byKey(const ValueKey('program-pay')), 'lots');
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Renamed',
+      );
+      await saveAndRead(tester);
+
+      expect(
+        find.text('Enter an amount like 250 or 250.50 in this currency.'),
+        findsOneWidget,
+      );
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.title, 'Night', reason: 'nothing saved');
+      expect(saved.payMinorUnits, 1000);
+    });
+
+    testWidgets(
+      'invalid amount in a collapsed drawer opens it with the error',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.programs.create(_program(id: 'p1', title: 'Night'));
+        await _pump(tester, repos, programId: 'p1', onSaved: (_) {});
+        await _expandMoreDetails(tester);
+        await tester.enterText(
+          find.byKey(const ValueKey('program-pay')),
+          '1.234',
+        );
+        // Collapse the drawer again, then save.
+        await tester.tap(find.text('More details'));
+        await tester.pumpAndSettle();
+        await saveAndRead(tester);
+
+        expect(find.byKey(const ValueKey('program-pay')), findsOneWidget);
+        expect(
+          find.text('Enter an amount like 250 or 250.50 in this currency.'),
+          findsOneWidget,
+        );
+        expect((await repos.programs.getById('p1'))!.payMinorUnits, isNull);
+      },
+    );
   });
 
   testWidgets('clearing venue and event date persists as null', (tester) async {

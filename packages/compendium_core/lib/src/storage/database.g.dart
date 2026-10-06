@@ -3367,6 +3367,28 @@ class $ProgramsTable extends Programs
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _payMinorUnitsMeta = const VerificationMeta(
+    'payMinorUnits',
+  );
+  @override
+  late final GeneratedColumn<int> payMinorUnits = GeneratedColumn<int>(
+    'pay_minor_units',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payCurrencyMeta = const VerificationMeta(
+    'payCurrency',
+  );
+  @override
+  late final GeneratedColumn<String> payCurrency = GeneratedColumn<String>(
+    'pay_currency',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -3425,6 +3447,8 @@ class $ProgramsTable extends Programs
     status,
     hideAlternates,
     dialectName,
+    payMinorUnits,
+    payCurrency,
     createdAt,
     updatedAt,
     deletedAt,
@@ -3518,6 +3542,24 @@ class $ProgramsTable extends Programs
         ),
       );
     }
+    if (data.containsKey('pay_minor_units')) {
+      context.handle(
+        _payMinorUnitsMeta,
+        payMinorUnits.isAcceptableOrUnknown(
+          data['pay_minor_units']!,
+          _payMinorUnitsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('pay_currency')) {
+      context.handle(
+        _payCurrencyMeta,
+        payCurrency.isAcceptableOrUnknown(
+          data['pay_currency']!,
+          _payCurrencyMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -3608,6 +3650,14 @@ class $ProgramsTable extends Programs
         DriftSqlType.string,
         data['${effectivePrefix}dialect_name'],
       ),
+      payMinorUnits: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}pay_minor_units'],
+      ),
+      payCurrency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pay_currency'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -3682,6 +3732,15 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   /// the application dialect when Perform resolves it, so dialect rename and
   /// delete never write to programs.
   final String? dialectName;
+
+  /// What the caller is paid for this program, in the currency's minor units
+  /// (schema v38). `null` (every program before v38) means no pay is recorded.
+  /// Set together with [payCurrency] or not at all; never negative.
+  final int? payMinorUnits;
+
+  /// ISO 4217 code for [payMinorUnits] (three uppercase letters); `null`
+  /// exactly when [payMinorUnits] is.
+  final String? payCurrency;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -3703,6 +3762,8 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     required this.status,
     required this.hideAlternates,
     this.dialectName,
+    this.payMinorUnits,
+    this.payCurrency,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -3741,6 +3802,12 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     if (!nullToAbsent || dialectName != null) {
       map['dialect_name'] = Variable<String>(dialectName);
     }
+    if (!nullToAbsent || payMinorUnits != null) {
+      map['pay_minor_units'] = Variable<int>(payMinorUnits);
+    }
+    if (!nullToAbsent || payCurrency != null) {
+      map['pay_currency'] = Variable<String>(payCurrency);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
@@ -3778,6 +3845,12 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       dialectName: dialectName == null && nullToAbsent
           ? const Value.absent()
           : Value(dialectName),
+      payMinorUnits: payMinorUnits == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payMinorUnits),
+      payCurrency: payCurrency == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payCurrency),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
@@ -3809,6 +3882,8 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       ),
       hideAlternates: serializer.fromJson<bool>(json['hideAlternates']),
       dialectName: serializer.fromJson<String?>(json['dialectName']),
+      payMinorUnits: serializer.fromJson<int?>(json['payMinorUnits']),
+      payCurrency: serializer.fromJson<String?>(json['payCurrency']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
@@ -3833,6 +3908,8 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       ),
       'hideAlternates': serializer.toJson<bool>(hideAlternates),
       'dialectName': serializer.toJson<String?>(dialectName),
+      'payMinorUnits': serializer.toJson<int?>(payMinorUnits),
+      'payCurrency': serializer.toJson<String?>(payCurrency),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
@@ -3853,6 +3930,8 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     ProgramStatus? status,
     bool? hideAlternates,
     Value<String?> dialectName = const Value.absent(),
+    Value<int?> payMinorUnits = const Value.absent(),
+    Value<String?> payCurrency = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
@@ -3870,6 +3949,10 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     status: status ?? this.status,
     hideAlternates: hideAlternates ?? this.hideAlternates,
     dialectName: dialectName.present ? dialectName.value : this.dialectName,
+    payMinorUnits: payMinorUnits.present
+        ? payMinorUnits.value
+        : this.payMinorUnits,
+    payCurrency: payCurrency.present ? payCurrency.value : this.payCurrency,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -3895,6 +3978,12 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       dialectName: data.dialectName.present
           ? data.dialectName.value
           : this.dialectName,
+      payMinorUnits: data.payMinorUnits.present
+          ? data.payMinorUnits.value
+          : this.payMinorUnits,
+      payCurrency: data.payCurrency.present
+          ? data.payCurrency.value
+          : this.payCurrency,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
@@ -3919,6 +4008,8 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           ..write('status: $status, ')
           ..write('hideAlternates: $hideAlternates, ')
           ..write('dialectName: $dialectName, ')
+          ..write('payMinorUnits: $payMinorUnits, ')
+          ..write('payCurrency: $payCurrency, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -3941,6 +4032,8 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     status,
     hideAlternates,
     dialectName,
+    payMinorUnits,
+    payCurrency,
     createdAt,
     updatedAt,
     deletedAt,
@@ -3962,6 +4055,8 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           other.status == this.status &&
           other.hideAlternates == this.hideAlternates &&
           other.dialectName == this.dialectName &&
+          other.payMinorUnits == this.payMinorUnits &&
+          other.payCurrency == this.payCurrency &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
@@ -3981,6 +4076,8 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
   final Value<ProgramStatus> status;
   final Value<bool> hideAlternates;
   final Value<String?> dialectName;
+  final Value<int?> payMinorUnits;
+  final Value<String?> payCurrency;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
@@ -3999,6 +4096,8 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.status = const Value.absent(),
     this.hideAlternates = const Value.absent(),
     this.dialectName = const Value.absent(),
+    this.payMinorUnits = const Value.absent(),
+    this.payCurrency = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -4018,6 +4117,8 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     required ProgramStatus status,
     this.hideAlternates = const Value.absent(),
     this.dialectName = const Value.absent(),
+    this.payMinorUnits = const Value.absent(),
+    this.payCurrency = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
@@ -4041,6 +4142,8 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Expression<String>? status,
     Expression<bool>? hideAlternates,
     Expression<String>? dialectName,
+    Expression<int>? payMinorUnits,
+    Expression<String>? payCurrency,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
@@ -4060,6 +4163,8 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       if (status != null) 'status': status,
       if (hideAlternates != null) 'hide_alternates': hideAlternates,
       if (dialectName != null) 'dialect_name': dialectName,
+      if (payMinorUnits != null) 'pay_minor_units': payMinorUnits,
+      if (payCurrency != null) 'pay_currency': payCurrency,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
@@ -4081,6 +4186,8 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Value<ProgramStatus>? status,
     Value<bool>? hideAlternates,
     Value<String?>? dialectName,
+    Value<int?>? payMinorUnits,
+    Value<String?>? payCurrency,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
@@ -4100,6 +4207,8 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       status: status ?? this.status,
       hideAlternates: hideAlternates ?? this.hideAlternates,
       dialectName: dialectName ?? this.dialectName,
+      payMinorUnits: payMinorUnits ?? this.payMinorUnits,
+      payCurrency: payCurrency ?? this.payCurrency,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
@@ -4149,6 +4258,12 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     if (dialectName.present) {
       map['dialect_name'] = Variable<String>(dialectName.value);
     }
+    if (payMinorUnits.present) {
+      map['pay_minor_units'] = Variable<int>(payMinorUnits.value);
+    }
+    if (payCurrency.present) {
+      map['pay_currency'] = Variable<String>(payCurrency.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -4182,6 +4297,8 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
           ..write('status: $status, ')
           ..write('hideAlternates: $hideAlternates, ')
           ..write('dialectName: $dialectName, ')
+          ..write('payMinorUnits: $payMinorUnits, ')
+          ..write('payCurrency: $payCurrency, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -17085,6 +17202,8 @@ typedef $$ProgramsTableCreateCompanionBuilder =
       required ProgramStatus status,
       Value<bool> hideAlternates,
       Value<String?> dialectName,
+      Value<int?> payMinorUnits,
+      Value<String?> payCurrency,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<DateTime?> deletedAt,
@@ -17105,6 +17224,8 @@ typedef $$ProgramsTableUpdateCompanionBuilder =
       Value<ProgramStatus> status,
       Value<bool> hideAlternates,
       Value<String?> dialectName,
+      Value<int?> payMinorUnits,
+      Value<String?> payCurrency,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
@@ -17227,6 +17348,16 @@ class $$ProgramsTableFilterComposer
 
   ColumnFilters<String> get dialectName => $composableBuilder(
     column: $table.dialectName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get payMinorUnits => $composableBuilder(
+    column: $table.payMinorUnits,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payCurrency => $composableBuilder(
+    column: $table.payCurrency,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17370,6 +17501,16 @@ class $$ProgramsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get payMinorUnits => $composableBuilder(
+    column: $table.payMinorUnits,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payCurrency => $composableBuilder(
+    column: $table.payCurrency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -17439,6 +17580,16 @@ class $$ProgramsTableAnnotationComposer
 
   GeneratedColumn<String> get dialectName => $composableBuilder(
     column: $table.dialectName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get payMinorUnits => $composableBuilder(
+    column: $table.payMinorUnits,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get payCurrency => $composableBuilder(
+    column: $table.payCurrency,
     builder: (column) => column,
   );
 
@@ -17551,6 +17702,8 @@ class $$ProgramsTableTableManager
                 Value<ProgramStatus> status = const Value.absent(),
                 Value<bool> hideAlternates = const Value.absent(),
                 Value<String?> dialectName = const Value.absent(),
+                Value<int?> payMinorUnits = const Value.absent(),
+                Value<String?> payCurrency = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -17569,6 +17722,8 @@ class $$ProgramsTableTableManager
                 status: status,
                 hideAlternates: hideAlternates,
                 dialectName: dialectName,
+                payMinorUnits: payMinorUnits,
+                payCurrency: payCurrency,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
@@ -17589,6 +17744,8 @@ class $$ProgramsTableTableManager
                 required ProgramStatus status,
                 Value<bool> hideAlternates = const Value.absent(),
                 Value<String?> dialectName = const Value.absent(),
+                Value<int?> payMinorUnits = const Value.absent(),
+                Value<String?> payCurrency = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -17607,6 +17764,8 @@ class $$ProgramsTableTableManager
                 status: status,
                 hideAlternates: hideAlternates,
                 dialectName: dialectName,
+                payMinorUnits: payMinorUnits,
+                payCurrency: payCurrency,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,

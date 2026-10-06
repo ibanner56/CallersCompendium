@@ -562,6 +562,14 @@ can still fire.
   body that is not already canonical. Not length-limited, because the library
   imposes no name cap. Additive `addColumn`; no back-fill and no derived
   rebuild.
+- v38 (issue #1418): adds nullable `programs.pay_minor_units` (integer) and
+  `programs.pay_currency` (ISO 4217 code): what the caller is paid for the
+  program, as integer minor units so no floating point is stored. The two are
+  set together or not at all and the amount is never negative (enforced by
+  `Program` and by archive decode); NULL in both (every existing row) means no
+  pay recorded. Shareable, so it syncs and is exported in archives, but it is
+  not part of the shared program text or PDF and `Program.duplicate` does not
+  copy it. Additive `addColumn`s; no back-fill and no derived rebuild.
 
 ## The delete model
 

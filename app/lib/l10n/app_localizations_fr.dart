@@ -4391,6 +4391,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programsNotesLabel => 'Notes';
 
   @override
+  String get programsPayLabel => 'Cachet';
+
+  @override
+  String get programsPayHint => 'p. ex. 250.00';
+
+  @override
+  String get programsPayCurrencyLabel => 'Devise';
+
+  @override
+  String get programsPayInvalid =>
+      'Saisissez un montant comme 250 ou 250.50 dans cette devise.';
+
+  @override
   String get programsStatusFieldLabel => 'Statut';
 
   @override

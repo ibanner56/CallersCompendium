@@ -174,6 +174,8 @@ CompendiumArchive _sampleArchive() {
     status: ProgramStatus.performed,
     hideAlternates: true,
     dialectName: 'Leads/Follows',
+    payMinorUnits: 25050,
+    payCurrency: 'USD',
     provenance: Provenance(
       source: ProvenanceSource.callersCompanion,
       externalId: 'usr-9921',
@@ -345,6 +347,8 @@ void main() {
       final p1 = result.archive.programs.firstWhere((p) => p.id == 'p1');
       expect(p1.hideAlternates, isTrue);
       expect(p1.dialectName, 'Leads/Follows');
+      expect(p1.payMinorUnits, 25050);
+      expect(p1.payCurrency, 'USD');
       expect(p1.slots, hasLength(3));
       expect(p1.slots[0].walkthroughMinutes, 3);
       expect(p1.slots[0].danceMinutes, 9);
@@ -1118,6 +1122,67 @@ void main() {
         archiveProgramToJson(set, includeOptionalFields: true)['dialectName'],
         'Leads/Follows',
       );
+    });
+  });
+
+  group('program pay (issue #1418)', () {
+    Map<String, Object?> encodedP1() {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final programs = (map['programs'] as List).cast<Map<String, Object?>>();
+      return programs.firstWhere((p) => p['id'] == 'p1');
+    }
+
+    ArchiveReadResult decode(Map<String, Object?> program) {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final programs = (map['programs'] as List).cast<Map<String, Object?>>();
+      programs[programs.indexWhere((p) => p['id'] == 'p1')] = program;
+      return decodeArchive(jsonEncode(map));
+    }
+
+    test('both keys absent decodes as no pay (archives from before v38)', () {
+      final p = encodedP1()
+        ..remove('payMinorUnits')
+        ..remove('payCurrency');
+      final result = decode(p);
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      final decoded = result.archive.programs.firstWhere((x) => x.id == 'p1');
+      expect(decoded.payMinorUnits, isNull);
+      expect(decoded.payCurrency, isNull);
+    });
+
+    test('malformed pay is rejected per-entity', () {
+      final bad = <Map<String, Object?>>[
+        encodedP1()..['payMinorUnits'] = -1,
+        encodedP1()..['payMinorUnits'] = 'ten',
+        encodedP1()..['payCurrency'] = 'usd',
+        encodedP1()..remove('payCurrency'),
+        encodedP1()..remove('payMinorUnits'),
+      ];
+      for (final p in bad) {
+        final result = decode(p);
+        expect(result.hasErrors, isTrue, reason: '$p');
+        expect(result.errors.single.entityType, 'program');
+      }
+    });
+
+    test('the JSON keys are omitted when null, in every mode', () {
+      final bare = Program(
+        id: 'p',
+        title: 'T',
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      );
+      for (final mode in [false, true]) {
+        final json = archiveProgramToJson(bare, includeOptionalFields: mode);
+        expect(json, isNot(contains('payMinorUnits')));
+        expect(json, isNot(contains('payCurrency')));
+      }
+      final set = bare.copyWith(payMinorUnits: 500, payCurrency: 'JPY');
+      final json = archiveProgramToJson(set, includeOptionalFields: true);
+      expect(json['payMinorUnits'], 500);
+      expect(json['payCurrency'], 'JPY');
     });
   });
 

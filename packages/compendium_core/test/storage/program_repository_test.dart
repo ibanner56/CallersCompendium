@@ -296,6 +296,35 @@ void main() {
       expect((await repo.getById(program.id))!.dialectName, isNull);
     });
 
+    test('round-trips pay, and clears it (issue #1418)', () async {
+      final program = sampleProgram().copyWith(
+        payMinorUnits: 25050,
+        payCurrency: 'USD',
+      );
+      await repo.create(program);
+      final loaded = await repo.getById(program.id);
+      expect(loaded!.payMinorUnits, 25050);
+      expect(loaded.payCurrency, 'USD');
+      expect(loaded, program);
+
+      await repo.update(loaded.copyWith(payMinorUnits: 0, payCurrency: 'JPY'));
+      final zero = (await repo.getById(program.id))!;
+      expect(zero.payMinorUnits, 0);
+      expect(zero.payCurrency, 'JPY');
+
+      await repo.update(zero.copyWith(clearPay: true));
+      final cleared = (await repo.getById(program.id))!;
+      expect(cleared.payMinorUnits, isNull);
+      expect(cleared.payCurrency, isNull);
+    });
+
+    test('pay defaults to null when unset', () async {
+      await repo.create(sampleProgram());
+      final loaded = (await repo.getById('p1'))!;
+      expect(loaded.payMinorUnits, isNull);
+      expect(loaded.payCurrency, isNull);
+    });
+
     test('dialectName defaults to null when unset', () async {
       final program = sampleProgram();
       await repo.create(program);

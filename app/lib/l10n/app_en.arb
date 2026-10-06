@@ -5541,6 +5541,22 @@
   "@programsNotesLabel": {
     "description": "Field label for the program's free-form notes in the editor."
   },
+  "programsPayLabel": "Pay",
+  "@programsPayLabel": {
+    "description": "Field label for the amount the caller is paid for the program, in the program editor's More details section."
+  },
+  "programsPayHint": "e.g. 250.00",
+  "@programsPayHint": {
+    "description": "Hint text for the program pay amount field: an example amount."
+  },
+  "programsPayCurrencyLabel": "Currency",
+  "@programsPayCurrencyLabel": {
+    "description": "Label of the currency selector next to the program pay amount field."
+  },
+  "programsPayInvalid": "Enter an amount like 250 or 250.50 in this currency.",
+  "@programsPayInvalid": {
+    "description": "Validation error shown under the program pay amount field when the text is not a valid amount for the selected currency."
+  },
   "programsStatusFieldLabel": "Status",
   "@programsStatusFieldLabel": {
     "description": "Field label for the program status dropdown in the editor."

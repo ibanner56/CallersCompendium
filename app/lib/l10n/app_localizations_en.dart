@@ -4301,6 +4301,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsNotesLabel => 'Notes';
 
   @override
+  String get programsPayLabel => 'Pay';
+
+  @override
+  String get programsPayHint => 'e.g. 250.00';
+
+  @override
+  String get programsPayCurrencyLabel => 'Currency';
+
+  @override
+  String get programsPayInvalid =>
+      'Enter an amount like 250 or 250.50 in this currency.';
+
+  @override
   String get programsStatusFieldLabel => 'Status';
 
   @override

@@ -64,6 +64,8 @@ const Map<SyncRecordKind, Set<String>> generatedShareableWirePaths = {
     'hideAlternates',
     'id',
     'notes',
+    'payCurrency',
+    'payMinorUnits',
     'provenance',
     'provenance.externalId',
     'provenance.importedAt',

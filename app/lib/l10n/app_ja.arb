@@ -4552,6 +4552,22 @@
   "@programsNotesLabel": {
     "x-sourceSha256": "8a7525b1492fb84833f5c4a69b30f4bfbb134f9b666b61a2c1872d63d234c085"
   },
+  "programsPayLabel": "報酬",
+  "@programsPayLabel": {
+    "x-sourceSha256": "723afa394daeea97f5db0ca8be09fd8e43e1c22fcc209057b89d2a1fd12114f6"
+  },
+  "programsPayHint": "例: 250.00",
+  "@programsPayHint": {
+    "x-sourceSha256": "9dac3fb83261e1b192b908e299d52cdb9ac19ad163546d4b1cb3516a7a715285"
+  },
+  "programsPayCurrencyLabel": "通貨",
+  "@programsPayCurrencyLabel": {
+    "x-sourceSha256": "3ac1a9ec4fa7a9fa612a30803f3d88fa479a45431f644190ebcc18d3eaafdb3a"
+  },
+  "programsPayInvalid": "この通貨で 250 や 250.50 のような金額を入力してください。",
+  "@programsPayInvalid": {
+    "x-sourceSha256": "f7e744867967bec656bbfe43ffe944c899acdeb54bd5a0ed819baddafc1cb0bf"
+  },
   "programsStatusFieldLabel": "ステータス",
   "@programsStatusFieldLabel": {
     "x-sourceSha256": "920e413c7d411b61ef3e8c63b1cb6ad058d5f95f8b481dbafe60248387d8c355"
