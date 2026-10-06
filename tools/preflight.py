@@ -233,6 +233,14 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_check_linux_build_runner.py"),),
     ),
     Step(
+        "android-intents",
+        "no BROWSABLE VIEW intent filter lets a web page open a file: or content: URI",
+        (
+            py("tools/ci/test_check_android_intent_filters.py"),
+            py("tools/ci/check_android_intent_filters.py"),
+        ),
+    ),
+    Step(
         "debug-print",
         "no unguarded debugPrint reaches a release build",
         (
