@@ -43,6 +43,28 @@ def _cases() -> None:
 """
     assert check.linux_leg_runners(missing, "platform") == [""]
 
+    # The job-level runs-on of the job holding the Linux entry.
+    job = (
+        "jobs:\n"
+        "  build:\n"
+        "    strategy:\n"
+        "      matrix:\n"
+        "        include:\n"
+        "          - platform: linux\n"
+        "            os: ubuntu-22.04\n"
+        "    runs-on: {runs_on}\n"
+        "    steps:\n"
+        "      - runs-on: decoy\n"
+        "  other:\n"
+        "    runs-on: windows-latest\n"
+    )
+    assert check.linux_leg_job_runs_on(
+        job.format(runs_on="${{ matrix.os }}"), "platform"
+    ) == ["${{ matrix.os }}"]
+    assert check.linux_leg_job_runs_on(
+        job.format(runs_on="ubuntu-latest"), "platform"
+    ) == ["ubuntu-latest"]
+
     # Quoted values are read the same as bare ones.
     quoted = """\
           - target: 'linux'

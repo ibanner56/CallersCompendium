@@ -24,6 +24,8 @@ this guard then needs to read the job's ``container`` instead.
 This walks each workflow's build matrix: it finds the ``include`` entry for
 the Linux leg and reads that entry's own ``os`` key, stopping at the next
 entry, so an ``os`` belonging to a neighbouring leg is never read as Linux's.
+It then checks that the job holding that matrix has ``runs-on: ${{ matrix.os
+}}``; a fixed label there would make the pinned ``os`` decorative.
 
 Usage: ``check_linux_build_runner.py`` (no arguments). Exit 0 when every leg
 matches, 1 otherwise.
@@ -81,6 +83,50 @@ def linux_leg_runners(text: str, key: str) -> list[str]:
     return runners
 
 
+_JOB_RE = re.compile(r"^  (?P<job>[\w-]+):\s*(?:#.*)?$")
+_RUNS_ON_RE = re.compile(r"^    runs-on:\s*(?P<value>.+?)\s*$")
+
+# The only `runs-on` that puts a job on its matrix entry's `os`.
+MATRIX_RUNS_ON = "${{ matrix.os }}"
+
+
+def linux_leg_job_runs_on(text: str, key: str) -> list[str]:
+    """Returns, for every ``key: linux`` matrix entry, the job-level
+    ``runs-on`` of the job that holds it (``""`` when the job has none).
+
+    The job is the nearest line above the entry at the two-space indentation
+    of a key under ``jobs:``; its body runs until the next line at that
+    indentation or shallower. Only a ``runs-on`` at the job's own level (four
+    spaces) counts, so one inside a step or a nested map is never read."""
+    lines = text.splitlines()
+    result: list[str] = []
+    for i, line in enumerate(lines):
+        entry = _ENTRY_RE.match(line)
+        if not entry or entry.group("key") != key:
+            continue
+        if entry.group("value").strip("'\"") != "linux":
+            continue
+        start = None
+        for j in range(i - 1, -1, -1):
+            if _JOB_RE.match(lines[j]):
+                start = j
+                break
+        found = ""
+        if start is not None:
+            for follow in lines[start + 1 :]:
+                stripped = follow.strip()
+                if not stripped or stripped.startswith("#"):
+                    continue
+                if len(follow) - len(follow.lstrip()) <= 2:
+                    break
+                runs_on = _RUNS_ON_RE.match(follow)
+                if runs_on:
+                    found = runs_on.group("value").strip("'\"")
+                    break
+        result.append(found)
+    return result
+
+
 def check(root: Path = REPO_ROOT) -> list[str]:
     errors: list[str] = []
     for rel, key in LEGS:
@@ -98,6 +144,13 @@ def check(root: Path = REPO_ROOT) -> list[str]:
                     f"expected '{LINUX_BUILD_RUNNER}'. Its glibc is the minimum "
                     "the shipped Linux binaries need; see "
                     "docs/user/installation.md before changing it."
+                )
+        for runs_on in linux_leg_job_runs_on(path.read_text(encoding="utf-8"), key):
+            if runs_on != MATRIX_RUNS_ON:
+                errors.append(
+                    f"{rel}: the job holding the Linux build leg has "
+                    f"runs-on '{runs_on or '(none)'}', not '{MATRIX_RUNS_ON}', "
+                    "so the pinned matrix os does not decide where it builds."
                 )
     return errors
 
