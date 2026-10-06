@@ -3502,15 +3502,17 @@ void main() {
         },
       );
 
-      test(
-        '{!shoulder} shows an alias-pinned param that {shoulder} blanks',
-        () {
-          final dialect = Dialect.canonical.copyWith(
-            moveWordings: const {'do_si_do': '{shoulder}|{!shoulder}'},
-          );
-          expect(renderer.render(Figure(move: 'see_saw'), dialect), '|left');
-        },
-      );
+      test('{!prefix} shows an alias-pinned param', () {
+        // The alias bakes `prefix: meltdown` into its name, so the generic
+        // slot pass blanks it; only the forced pass may surface it.
+        final dialect = Dialect.canonical.copyWith(
+          moveWordings: const {'swing': '{!prefix}'},
+        );
+        expect(
+          renderer.render(Figure(move: 'meltdown_swing'), dialect),
+          'meltdown',
+        );
+      });
 
       test('canonical text is unchanged', () {
         expect(
