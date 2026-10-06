@@ -5,12 +5,14 @@ A ``try { ... } on Exception catch (e)`` around a share sheet, a PDF layout or a
 backup save/pick lets an ``Error`` (``StateError``, ``RangeError``, a platform
 channel ``AssertionError``) skip the user-facing message entirely, so the button
 appears to do nothing. Issue #1395 fixed this for the dance export guard
-(``export_guard.dart``); this ratchet keeps the same class out of every file that
-drives an export.
+(``export_guard.dart``); this ratchet keeps the same class out of that shared
+clause and every file that drives an export.
 
 Rule: in any ``app/lib/**/*.dart`` file whose code (comments and string literals
 masked) mentions ``Printing.layoutPdf``, ``SharePlus.instance.share(``,
-``saveBackupToFile`` or ``pickBackupFile``, an ``on Exception catch`` /
+``saveBackupToFile`` or ``pickBackupFile``, or declares ``guardExport`` (the
+shared clause, which receives its export as a callback and so names none of the
+tokens), an ``on Exception catch`` /
 ``on Exception {`` clause is rejected unless a comment inside the clause carries
 
     // export-guard: exempt — <reason>
@@ -24,7 +26,8 @@ a nested ``on Exception`` clause belongs to that nested clause only.
 The detectors match the *token*, not only a call: the screens take these as
 injectable seams (``widget.backupSaver ?? saveBackupToFile``,
 ``pdfLayouter ?? Printing.layoutPdf``), so the real function is torn off rather
-than called. Dartdoc references (``[saveBackupToFile]``) live in comments and are
+than called. A file that merely *calls* ``guardExport`` is not swept in by that
+call: the declaration, not a use, puts ``export_guard.dart`` in scope. Dartdoc references (``[saveBackupToFile]``) live in comments and are
 masked away, so they never count.
 
 The marker's presence is checked, not its prose; the reason is a review concern.
@@ -55,6 +58,9 @@ _EXPORT_TOKEN_RE = re.compile(
     r"|\bSharePlus\.instance\.share\s*\("
     r"|\bsaveBackupToFile\b"
     r"|\bpickBackupFile\b"
+    # The declaration of the shared guard (`Future<void> guardExport(`), not a
+    # call to it.
+    r"|\bFuture\s*<\s*void\s*>\s+guardExport\s*\("
 )
 _ON_EXCEPTION_RE = re.compile(r"\bon\s+Exception\b(?=\s*(?:catch\b|\{))")
 _EXEMPT_RE = re.compile(r"export-guard:\s*exempt\b")

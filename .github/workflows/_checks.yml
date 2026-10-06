@@ -116,18 +116,19 @@ jobs:
       # backticked identifiers) must resolve to a symbol in app/lib,
       # app/test/support or compendium_core/lib, or to an ARB key. A count
       # ceiling, not a clean baseline: tools/ci/stale_comment_refs_ceiling.json
-      # holds the unresolved backlog, which may only shrink.
+      # holds the unresolved backlog, which may only shrink -- and must be
+      # lowered in the same change that shrinks it (a count under it fails).
       - name: Test the stale comment citation ceiling
         run: python3 tools/ci/test_check_stale_comment_refs.py
       - name: Guard comment citations (count ceiling)
         run: python3 tools/ci/check_stale_comment_refs.py
       # Ratchet: `syncIdentityKdfIterations` is a @visibleForTesting mutable
       # global in lib/ that lowers the sync identity PBKDF2 cost for tests. No
-      # production file may assign it, and its default must stay the private
+      # production file (app, packages, or server lib/ and bin/) may assign it, and its default must stay the private
       # 600,000-iteration constant (decided Q-E9, 2026-10-01).
       - name: Test the sync KDF override ratchet
         run: python3 tools/ci/test_check_kdf_override_unassigned.py
-      - name: Guard the sync KDF iteration override (never assigned in lib/)
+      - name: Guard the sync KDF iteration override (never assigned in production)
         run: python3 tools/ci/check_kdf_override_unassigned.py
       # Ratchet: every caught, user-facing error must reach the on-device
       # diagnostic log (or explicitly say why not). Before issue #963, the

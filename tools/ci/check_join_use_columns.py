@@ -14,8 +14,9 @@ columns (CS-14a). A join that only filters or counts rows must say so with
 Rule
 ----
 Under `packages/compendium_core/lib/src/storage/repositories/`, every
-`innerJoin(` / `leftOuterJoin(` whose first argument is `_db.dances` must
-either
+`innerJoin(` / `leftOuterJoin(` whose first argument mentions `_db.dances`
+(the table itself, `_db.dances.createAlias(...)`, `alias(_db.dances, ...)`)
+must either
 
   * carry `useColumns:` in the same call, or
   * carry the marker `// join-columns: needed — <reason>` on the line(s)
@@ -43,9 +44,8 @@ REPOSITORIES_DIR = (
     REPO_ROOT / "packages/compendium_core/lib/src/storage/repositories"
 )
 
-_JOIN_ON_DANCES_RE = re.compile(
-    r"\b(?:innerJoin|leftOuterJoin)\s*\(\s*(?:this\.)?_db\.dances\s*[,)]"
-)
+_JOIN_RE = re.compile(r"\b(?:innerJoin|leftOuterJoin)\s*\(")
+_DANCES_RE = re.compile(r"\b_db\s*\.\s*dances\b")
 _USE_COLUMNS_RE = re.compile(r"\buseColumns\s*:")
 _MARKER_RE = re.compile(r"join-columns:\s*needed\s*[—–-]+\s*(\S.*)")
 _MARKER_WORD_RE = re.compile(r"join-columns:")
@@ -142,6 +142,23 @@ def _call_end(code: str, open_paren: int) -> int:
     return len(code)
 
 
+def _first_argument_end(code: str, after_paren: int) -> int:
+    """Offset of the `,` or `)` that ends the call argument starting at
+    [after_paren], skipping nested brackets."""
+    depth = 0
+    for k in range(after_paren, len(code)):
+        c = code[k]
+        if c in "([{":
+            depth += 1
+        elif c in ")]}":
+            if depth == 0:
+                return k
+            depth -= 1
+        elif c == "," and depth == 0:
+            return k
+    return len(code)
+
+
 def check_text(text: str, path: str) -> list[Violation]:
     code, comments = split_code_and_comments(text)
     lines = text.splitlines()
@@ -151,9 +168,11 @@ def check_text(text: str, path: str) -> list[Violation]:
 
     violations: list[Violation] = []
     prev_join_end = -1
-    for m in _JOIN_ON_DANCES_RE.finditer(code):
+    for m in _JOIN_RE.finditer(code):
         start = m.start()
         end = _call_end(code, code.index("(", start))
+        if not _DANCES_RE.search(code[m.end() : _first_argument_end(code, m.end())]):
+            continue
         line = lineno(start)
         span = code[start : end + 1]
         floor, prev_join_end = prev_join_end, end

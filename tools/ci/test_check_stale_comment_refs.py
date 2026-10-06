@@ -162,7 +162,7 @@ def test_ceiling_fails_when_exceeded() -> None:
     # guards-7: slack under the ceiling fails too, so a cleanup that forgets
     # to lower the ceiling cannot leave room for a new stale citation.
     code, out = run_main(root, "--ceiling", "3")
-    assert code == 1 and "lower" in out, (code, out)
+    assert code == 1 and "below the ceiling of 3" in out, (code, out)
 
 
 def test_ceiling_file_is_read_and_valid() -> None:
