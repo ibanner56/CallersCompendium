@@ -559,6 +559,84 @@ void main() {
           'rebuild rather than one emit behind it',
     );
   });
+
+  // performedAt and programUpdatedAt are instants stored in UTC; eventDate is
+  // a calendar date stored as UTC midnight. A row must show the local day of
+  // an instant, or a dance called at 22:30 in New York (02:30Z) reads as the
+  // next day. The test host usually runs in UTC, where the two agree, so the
+  // conversion is swapped for New York's (UTC-4 in October) to make the row
+  // discriminate on any host.
+  testWidgets('a row shows the local day it was performed, not the UTC day', (
+    tester,
+  ) async {
+    final previous = callingHistoryToLocal;
+    callingHistoryToLocal = (instant) {
+      final ny = instant.subtract(const Duration(hours: 4));
+      return DateTime(ny.year, ny.month, ny.day, ny.hour, ny.minute);
+    };
+    addTearDown(() => callingHistoryToLocal = previous);
+    final instant = DateTime.utc(2026, 10, 4, 2, 30);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: CallingHistoryRow(
+            record: DanceCallingRecord(
+              slotId: 's1',
+              programId: 'p1',
+              programTitle: 'Autumn Ball',
+              programUpdatedAt: instant,
+              performedAt: instant,
+            ),
+          ),
+        ),
+      ),
+    );
+    final localizations = MaterialLocalizations.of(
+      tester.element(find.byType(CallingHistoryRow)),
+    );
+    expect(
+      find.textContaining(
+        localizations.formatMediumDate(DateTime(2026, 10, 3)),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(
+        localizations.formatMediumDate(DateTime(2026, 10, 4)),
+      ),
+      findsNothing,
+    );
+  });
+
+  group('callingHistoryDisplayDate', () {
+    final instant = DateTime.utc(2026, 10, 4, 2, 30);
+    DanceCallingRecord record({DateTime? performedAt, DateTime? eventDate}) =>
+        DanceCallingRecord(
+          slotId: 's1',
+          programId: 'p1',
+          programTitle: 'Autumn Ball',
+          programUpdatedAt: instant,
+          performedAt: performedAt,
+          eventDate: eventDate,
+        );
+
+    test('shows a performed or last-updated instant in local time', () {
+      for (final r in [record(performedAt: instant), record()]) {
+        final shown = callingHistoryDisplayDate(r);
+        expect(shown.isUtc, isFalse);
+        expect(shown, instant.toLocal());
+      }
+    });
+
+    test('shows a calendar event date as stored', () {
+      final day = DateTime.utc(2026, 10, 4);
+      final shown = callingHistoryDisplayDate(record(eventDate: day));
+      expect(shown, day);
+      expect(shown.isUtc, isTrue);
+    });
+  });
 }
 
 /// Counts reads of the venue catalogue, so a test can assert the section pays
