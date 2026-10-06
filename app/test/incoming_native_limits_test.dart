@@ -21,10 +21,10 @@ void main() {
   }
 
   group('incoming archive byte cap', () {
-    test('Android MainActivity matches kMaxIncomingArchiveBytes', () {
+    test('Android IncomingFileStager matches kMaxIncomingArchiveBytes', () {
       final source = read(
         'android/app/src/main/kotlin/org/callerscompendium/compendiumApp/'
-        'MainActivity.kt',
+        'IncomingFileStager.kt',
       );
       expect(literal(source, 'MAX_INCOMING_BYTES'), kMaxIncomingArchiveBytes);
     });

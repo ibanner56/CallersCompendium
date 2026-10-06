@@ -130,3 +130,11 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // JVM unit tests for the share-intake logic in IncomingFileStager.kt
+    // (src/test, run in CI by `./gradlew :app:testDebugUnitTest`). JUnit 4
+    // because AGP's unit-test task runs it with no further configuration;
+    // JUnit 5 would also need the platform launcher and useJUnitPlatform().
+    testImplementation("junit:junit:4.13.2")
+}
