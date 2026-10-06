@@ -64,10 +64,11 @@ indistinguishable from a guess.
 
 ## Do not narrow a ratchet to silence a false positive
 
-The settings ratchet flags `kUpdateManifestPublicKey`, which is the Ed25519 root
-of trust for update authenticity rather than a preference. It is excluded **by
-name, with a reason**, so the next non-settings `…Key` constant still fails
-loudly. A cleverer detection pattern would have dropped both silently.
+The settings ratchet flags `kPublishedCollectionPublicKey`, which is the Ed25519
+root of trust for the published-collection feed rather than a preference. It is
+excluded **by name, with a reason**, so the next non-settings `…Key` constant
+still fails loudly. A cleverer detection pattern would have dropped both
+silently.
 
 ## Before pushing
 

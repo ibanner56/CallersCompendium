@@ -52,14 +52,14 @@ class UpdateService {
   final ManifestSignatureVerifier _signatureVerifier;
 
   /// Fetches [channel]'s manifest, **authenticates it against the pinned
-  /// Ed25519 public key**, validates it, and returns an [UpdateAvailable] when
+  /// Ed25519 public keys** (any one of them), validates it, and returns an [UpdateAvailable] when
   /// its version is strictly newer than [currentVersion]; otherwise
   /// (up-to-date, unreachable, unsigned, tampered, malformed, or unsupported)
   /// returns `null`.
   ///
   /// The signature is verified over the **exact fetched bytes before any
   /// manifest field is parsed or trusted** (issue #431, ADR-002 §6): a missing,
-  /// invalid, or malformed signature — or an unset pinned key — is refused as a
+  /// invalid, or malformed signature — or one no pinned key verifies — is refused as a
   /// silent no-op, indistinguishable from "no update" by design, never an
   /// install. This preserves the existing "missing/unreachable manifest =
   /// silent no-op" behavior while adding authenticity.
@@ -78,8 +78,8 @@ class UpdateService {
     if (manifestBytes == null) return null; // offline / 404 / timeout / empty
 
     // Authenticate BEFORE trusting the body: fetch the detached signature and
-    // verify it over the EXACT wire bytes against the pinned key. Any failure
-    // (absent/invalid/malformed signature, unset pinned key) is a fail-closed
+    // verify it over the EXACT wire bytes against the pinned key set. Any failure
+    // (absent/invalid/malformed signature, no pinned key verifies) is a fail-closed
     // silent no-op. Verifying over the raw bytes — never a re-encoded decoded
     // String — is what makes this match the bytes CI actually signed.
     final signature = await _signatureFetcher(channel, client: client);

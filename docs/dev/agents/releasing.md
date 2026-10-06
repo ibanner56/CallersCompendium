@@ -43,6 +43,11 @@ step-by-step does not prevent on its own.
   that the channel manifest *and* its detached signature are both live and that
   the signature verifies. A manifest without its signature makes the in-app
   updater fail closed and stop offering updates silently.
+- **Rotating the manifest signing key** is staged through the pinned key set
+  (`kUpdateManifestPublicKeys`: current + next). Never switch
+  `UPDATE_SIGNING_KEY` to a key that is not already pinned in a widely
+  installed release; the procedure is
+  [releasing.md → Key rotation](../releasing.md#key-rotation).
 - **Release identity is deliberately narrow.** Record beta status and `X.Y.Z`;
   only `vX.Y.Z-beta` and `vX.Y.Z` are valid. A beta establishes the shared
   section, and stable refreshes both signed update channels while beta refreshes
