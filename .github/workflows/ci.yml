@@ -158,8 +158,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Same image as release.yml's Linux leg (the glibc floor), so main's
+          # push build proves the release toolchain still builds before a tag.
           - target: linux
-            os: ubuntu-latest
+            os: ubuntu-22.04
             build_args: linux --release
           - target: android
             os: ubuntu-latest

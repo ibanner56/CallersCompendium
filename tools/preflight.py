@@ -228,6 +228,11 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "linux-runner",
+        "the Linux build legs run on the runner that sets the documented glibc floor",
+        (py("tools/ci/test_check_linux_build_runner.py"),),
+    ),
+    Step(
         "debug-print",
         "no unguarded debugPrint reaches a release build",
         (
