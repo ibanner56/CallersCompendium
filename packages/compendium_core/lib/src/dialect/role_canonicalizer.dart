@@ -134,6 +134,16 @@ final Set<String> _determiners = {
   'that',
   'next',
   'opposite',
+  'its',
+  'another',
+  'any',
+  'no',
+  'either',
+  'neither',
+  'which',
+  'whose',
+  'these',
+  'those',
 };
 
 /// Words that, directly before the base form, make it a verb ("to lead",
@@ -171,6 +181,18 @@ final Set<String> _verbComplements = {
   'to',
   'them',
   ...fillerWords,
+  // Possessive and quantifying objects: "follow their partners", "lead both
+  // couples".
+  'their',
+  'his',
+  'her',
+  'our',
+  'my',
+  'its',
+  'both',
+  'all',
+  'each',
+  'every',
   // The parser's dancer words, minus the role tokens and the one- and
   // two-letter Caller's Box codes (`n`, `p1`, `m2`, …).
   for (final e in dancerWords.entries)
@@ -186,7 +208,33 @@ List<String> _words(String text) => [
   for (final m in _wordRe.allMatches(text.toLowerCase())) m[0]!,
 ];
 
-bool _isGap(int c) => c == 0x20 || c == 0x09 || c == 0x0A || c == 0x0D;
+/// Any Unicode whitespace (`\s`, as [_whitespaceRun] uses).
+final RegExp _whitespaceChar = RegExp(r'\s');
+
+/// What may separate two words of one clause: whitespace, and the editor's
+/// bold marker `*` (`figure_list_editor.dart`'s emphasis toolbar), which is
+/// display markup, not punctuation.
+bool _isGap(String ch) => ch == '*' || _whitespaceChar.hasMatch(ch);
+
+/// The separator allowed between the words of a shielded move name.
+const String _phraseGap = r'[\s*]+';
+
+/// [word] without the editor's underline marker (an underscore,
+/// `util/inline_emphasis.dart`) at its edges. The underscore is a word
+/// character to the boundary patterns, so an underlined "down" is read as
+/// "down".
+String? _unmarked(String? word) {
+  if (word == null) return null;
+  var a = 0;
+  var b = word.length;
+  while (a < b && word.codeUnitAt(a) == 0x5F) {
+    a++;
+  }
+  while (b > a && word.codeUnitAt(b - 1) == 0x5F) {
+    b--;
+  }
+  return a == b ? null : word.substring(a, b);
+}
 
 /// The canonicalisation chokepoint's role rewriter, aware of words that are
 /// both role terms and move words.
@@ -195,12 +243,14 @@ bool _isGap(int c) => c == 0x20 || c == 0x09 || c == 0x0A || c == 0x0D;
 /// [legacyRoleSynonyms], and any `extraRoleSynonyms`) is classified before it
 /// is rewritten:
 ///
-/// 1. Inside a multi-word move name from the [MoveWordLexicon] (or the
-///    dialect's own move substitutions) — "mad robin(s)" — it is a
+/// 1. Inside a multi-word move name from the [MoveWordLexicon] — "mad
+///    robin(s)" — it is a
 ///    [RoleSpanKind.moveName]: not rewritten to a role, and the move name is
 ///    written lowercase and single-spaced.
 /// 2. A form of a [roleHomographVerbs] entry ("lead"/"leads",
-///    "follow"/"follows") is decided from its neighbours in the same clause:
+///    "follow"/"follows") is decided from its neighbours in the same clause
+///    (Unicode whitespace and the editor's bold and underline markers,
+///    `util/inline_emphasis.dart`, do not separate words):
 ///    - a. the plural form is a role ("Leads chain");
 ///    - b. after a determiner it is a role ("the lead", "second follow");
 ///    - c. after an auxiliary it is a verb ("to lead", "not follow");
@@ -235,11 +285,11 @@ final class RoleCanonicalizer {
     _reverse = reverse;
     _roles = Substitutor(reverse, caseInsensitive: true);
 
-    final phrases = <List<String>>[
-      ...(lexicon ?? MoveWordLexicon.contra).phrases,
-      for (final display in dialect.moves.values)
-        if (!display.contains('%S')) _words(display),
-    ];
+    // Only genuine move names. A dialect's own move substitutions are display
+    // wording: a role word in one ("robins chain") comes from the dialect's
+    // expansion, and shielding it would store the literal word on a no-edit
+    // save of `role2s chain …`.
+    final phrases = (lexicon ?? MoveWordLexicon.contra).phrases;
     final shielded = <String>{};
     final suspect = <String>{};
     for (final words in phrases) {
@@ -249,11 +299,11 @@ final class RoleCanonicalizer {
       final roleWords = words.where(reverse.containsKey).toList();
       if (roleWords.isEmpty) continue;
       suspect.addAll(roleWords);
-      shielded.add(words.map(RegExp.escape).join(r'\s+'));
+      shielded.add(words.map(RegExp.escape).join(_phraseGap));
       // The plural of the head noun: "mad robins".
       final plural = [...words.take(words.length - 1), '${words.last}s'];
       if (reverse.containsKey(plural.last)) suspect.add(plural.last);
-      shielded.add(plural.map(RegExp.escape).join(r'\s+'));
+      shielded.add(plural.map(RegExp.escape).join(_phraseGap));
     }
     _shieldedPhrases = shielded.isEmpty
         ? null
@@ -374,33 +424,35 @@ final class RoleCanonicalizer {
   }
 
   /// The lowercase word directly before [start] in the same clause: only
-  /// whitespace may separate them.
+  /// whitespace and bold markers may separate them. Underline markers at the
+  /// word's edges are dropped.
   static String? _previousWord(String text, int start) {
     var i = start;
-    while (i > 0 && _isGap(text.codeUnitAt(i - 1))) {
+    while (i > 0 && _isGap(text[i - 1])) {
       i--;
     }
     if (i == start && i > 0) return null; // punctuation or no gap: no word
     final from = i < 64 ? 0 : i - 64;
     final m = _wordAtEnd.firstMatch(text.substring(from, i));
-    return m?[0]!.toLowerCase();
+    return _unmarked(m?[0]!.toLowerCase());
   }
 
-  /// The lowercase word directly after [end] in the same clause: whitespace or
-  /// a hyphen ("follow-up") may separate them; any other character — a
-  /// comma, a possessive apostrophe — means there is none.
+  /// The lowercase word directly after [end] in the same clause: whitespace,
+  /// bold markers or a hyphen ("follow-up") may separate them; any other
+  /// character — a comma, a possessive apostrophe — means there is none.
+  /// Underline markers at the word's edges are dropped.
   static String? _nextWord(String text, int end) {
     var i = end;
     if (i < text.length && text.codeUnitAt(i) == 0x2D) {
       i++;
     } else {
-      while (i < text.length && _isGap(text.codeUnitAt(i))) {
+      while (i < text.length && _isGap(text[i])) {
         i++;
       }
       if (i == end) return null;
     }
     final to = i + 64 > text.length ? text.length : i + 64;
     final m = _wordAtStart.firstMatch(text.substring(i, to));
-    return m?[0]!.toLowerCase();
+    return _unmarked(m?[0]!.toLowerCase());
   }
 }

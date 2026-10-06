@@ -122,7 +122,7 @@ void main() {
     for (final (typed, stored) in [
       ('Twos follow their partners up the hall', null),
       ('Ones lead his partner down', null),
-      ('Twos follow her lead', 'Twos follow her role1'),
+      ('Twos follow her partner up', null),
       ('Ones lead our neighbors down', null),
       ('Ones lead down the hall', null),
       ('Ones lead down the hall', null),

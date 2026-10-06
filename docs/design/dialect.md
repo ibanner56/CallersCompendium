@@ -145,6 +145,9 @@ Each occurrence is classified first, from the figure grammar's own vocabulary
    reverses the earlier editor rule, #1678, that kept it as typed).
    A ratchet test fails if the taxonomy gains another role-bearing name until
    it is classified as a move name or as a name whose role word is the dancer.
+   A custom dialect's own move substitutions are display wording, not move
+   names, and are not shielded: a role word in one ("robins chain") comes from
+   the dialect's expansion, so a no-edit save keeps the stored role token.
 2. The calling verbs that are also role terms, "lead" and "follow"
    (`roleHomographVerbs`), are decided from their neighbours in the same
    clause. The plural ("Leads chain") and a form after a determiner ("the
@@ -152,7 +155,8 @@ Each occurrence is classified first, from the figure grammar's own vocabulary
    or followed by a direction, object or dancer word ("lead down", "follow
    your partner"), is a verb and kept. Anything else is a role. A dancer word
    in front is not verb evidence, because the renderer itself writes the
-   `twosRole2` dancer as "twos follow".
+   `twosRole2` dancer as "twos follow". Neighbours are read across any Unicode
+   whitespace and the editor's `*bold*` and `_underline_` markers.
 3. Every other role term is rewritten as before.
 
 This applies wherever the chokepoint runs: figure notes, custom figure text,
