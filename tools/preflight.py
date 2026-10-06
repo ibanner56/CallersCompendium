@@ -233,6 +233,11 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_check_linux_build_runner.py"),),
     ),
     Step(
+        "android-unit-tests",
+        "ci.yml's Android build leg runs the Kotlin JVM unit tests after the build",
+        (py("tools/ci/test_check_android_unit_tests.py"),),
+    ),
+    Step(
         "android-intents",
         "no BROWSABLE VIEW intent filter lets a web page open a file: or content: URI",
         (

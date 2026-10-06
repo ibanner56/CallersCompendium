@@ -71,7 +71,10 @@ class IncomingPayloadRouterTest {
     }
 
     @Test
-    fun `a staged file after a too-large rejection clears the rejection`() {
+    fun `a staged file after a too-large rejection wins the pull, once`() {
+        // MainActivity also clears the held rejection when a file is staged;
+        // the pull consumes both anyway, so that reset is not observable here
+        // and no assertion pins it.
         router.onFileStaged(StagedCopy.TooLarge)
         router.onFileStaged(StagedCopy.Copied("/c/a.json"))
 
