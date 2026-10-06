@@ -505,6 +505,7 @@ Future<bool> relocateLegacyDatabase({
   required List<File> legacy,
   Future<void> Function(File file)? deleter,
   Directory? documentsDirectory,
+  bool documentsUnresolvable = false,
 }) async {
   final delete = deleter ?? (file) => file.delete();
   final sources = <File>[
@@ -513,9 +514,9 @@ Future<bool> relocateLegacyDatabase({
           file.existsSync())
         file,
   ];
-  if (documentsDirectory != null &&
-      !target.existsSync() &&
-      !documentsDirectory.existsSync()) {
+  if (!target.existsSync() &&
+      (documentsUnresolvable ||
+          (documentsDirectory != null && !documentsDirectory.existsSync()))) {
     throw const DatabaseRelocationBlocked(
       DatabaseRelocationFailure.legacyUnreachable,
     );
@@ -536,7 +537,8 @@ Future<bool> relocateLegacyDatabase({
     throw DatabaseRelocationBlocked(
       DatabaseRelocationFailure.bothExist,
       copies: _describeCopies([
-        (target, DatabaseCopyLocation.newLocation),
+        // Only a database file is a copy to choose; stray sidecars are not.
+        if (target.existsSync()) (target, DatabaseCopyLocation.newLocation),
         for (final source in sources) (source, locationOf(source)),
       ]),
     );
@@ -629,6 +631,14 @@ Future<bool> relocateLegacyDatabase({
       await delete(move.$1);
       deleted.add(move);
     }
+    // The breadcrumb at the old path is part of the move: if it cannot be
+    // made (something took the freed path), the move rolls back below rather
+    // than leave the path for an older build to start an empty library in.
+    await Directory(source.path).create();
+    if (FileSystemEntity.typeSync(source.path, followLinks: false) !=
+        FileSystemEntityType.directory) {
+      throw FileSystemException('breadcrumb could not be made', source.path);
+    }
   } on Object catch (error) {
     // diagnostics: silent — rolled back below; the typed error carries the cause.
     var restored = true;
@@ -704,12 +714,17 @@ Future<void> _leaveBreadcrumb(File legacyFile, File target) async {
   if (p.canonicalize(legacyFile.path) == p.canonicalize(target.path)) return;
   try {
     if (!legacyFile.parent.existsSync()) return;
-    if (FileSystemEntity.typeSync(legacyFile.path, followLinks: false) !=
-        FileSystemEntityType.notFound) {
+    final type = FileSystemEntity.typeSync(legacyFile.path, followLinks: false);
+    // A file or link there is someone else's; a folder is already a crumb
+    // (the moved database's own, made as part of the move).
+    if (type != FileSystemEntityType.notFound &&
+        type != FileSystemEntityType.directory) {
       return;
     }
     final crumb = await Directory(legacyFile.path).create();
-    await File(p.join(crumb.path, kRelocationBreadcrumbNoteName)).writeAsString(
+    final note = File(p.join(crumb.path, kRelocationBreadcrumbNoteName));
+    if (note.existsSync()) return;
+    await note.writeAsString(
       "Caller's Compendium moved your library out of this folder, to:\n"
       '\n'
       '    ${target.parent.path}\n'
@@ -771,6 +786,7 @@ Future<void> runMigrationPreflightForApp({
       for (final dir in locations.legacy) File(p.join(dir.path, fileName)),
     ],
     documentsDirectory: locations.documents,
+    documentsUnresolvable: locations.documentsUnresolvable,
   );
   final snapshotDir = Directory(
     p.join(dbFile.parent.path, kDatabaseBackupsDirName),

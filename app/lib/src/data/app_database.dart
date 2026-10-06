@@ -20,6 +20,7 @@ class DatabaseLocations {
     required this.primary,
     required this.legacy,
     this.documents,
+    this.documentsUnresolvable = false,
   });
 
   /// The directory holding `compendium.sqlite` (and its `db_backups/`).
@@ -34,6 +35,12 @@ class DatabaseLocations {
   /// it resolves). [relocateLegacyDatabase] requires it to be reachable before
   /// concluding there is no library to move.
   final Directory? documents;
+
+  /// Windows only: Documents could not be resolved. Unlike Linux without
+  /// `xdg-user-dirs` (where no earlier build could have kept a library in
+  /// Documents), an earlier Windows build may have, so [relocateLegacyDatabase]
+  /// treats this as unreachable rather than as "no library".
+  final bool documentsUnresolvable;
 }
 
 /// Resolves the directory the database lives in on [operatingSystem] (the
@@ -75,6 +82,7 @@ Future<DatabaseLocations> resolveDatabaseLocations({
       return DatabaseLocations(
         primary: primary,
         documents: documents,
+        documentsUnresolvable: documents == null,
         legacy: [
           ?documents,
           if (p.canonicalize(support.path) != p.canonicalize(primary.path))
