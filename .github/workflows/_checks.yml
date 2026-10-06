@@ -271,6 +271,7 @@ jobs:
       - name: Test release supply-chain tooling (SBOM / metadata / notes / pages publish)
         run: |
           python3 tools/release/test_bash.py
+          python3 tools/release/test_apprun.py
           python3 tools/release/test_check_beta_prerelease_history.py
           python3 tools/release/test_gen_sbom.py
           python3 tools/release/test_gen_release_metadata.py
