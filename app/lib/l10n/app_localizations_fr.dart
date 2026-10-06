@@ -8927,6 +8927,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les modèles conditionnels d’un mouvement sont choisis selon les paramètres de la figure. Complétez chaque emplacement indiqué ; les modèles conditionnels incomplets sont ignorés.';
 
   @override
+  String dialectEditorMoveWordingsForceHelp(String example) {
+    return 'Certains champs sont omis lorsqu\'ils n\'apportent rien, comme la main d\'une chaîne quand le rôle l\'implique déjà. Place un ! devant un champ, comme $example, pour qu\'il s\'affiche toujours.';
+  }
+
+  @override
   String dialectEditorMoveWordingsConditionalLabel(String move) {
     return '$move (conditionnel)';
   }

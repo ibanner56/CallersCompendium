@@ -932,6 +932,14 @@ class _MoveWordingsEditor extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              l10n.dialectEditorMoveWordingsForceHelp('{!hand}'),
+              key: const ValueKey('dialect-wording-force-help'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
           if (available.isNotEmpty)
             DropdownButton<String>(
               key: const ValueKey('dialect-add-move-wording'),

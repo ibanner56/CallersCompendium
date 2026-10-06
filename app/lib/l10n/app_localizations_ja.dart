@@ -8480,6 +8480,11 @@ class AppLocalizationsJa extends AppLocalizations {
       '条件付き動作テンプレートは図形のパラメーターで選択されます。表示されたすべてのスロットを入力してください。不完全な条件付きテンプレートは無視されます。';
 
   @override
+  String dialectEditorMoveWordingsForceHelp(String example) {
+    return '役割からすでに分かる場合など、内容を追加しないスロットは省略されます（たとえばチェーンの手）。スロットの前に ! を付けて $example のようにすると、常に表示されます。';
+  }
+
+  @override
   String dialectEditorMoveWordingsConditionalLabel(String move) {
     return '$move（条件付き）';
   }

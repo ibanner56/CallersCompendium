@@ -13388,6 +13388,12 @@ abstract class AppLocalizations {
   /// **'Conditional move templates are selected by the figure\'s parameters. Complete every listed slot; unfinished conditional templates are ignored.'**
   String get dialectEditorMoveWordingsConditionalHelp;
 
+  /// Helper text explaining that a leading ! forces a move wording slot to display. The example placeholder is a sample slot such as {!hand}.
+  ///
+  /// In en, this message translates to:
+  /// **'Some slots are left out when they add nothing, such as a chain\'s hand when the role already implies it. Put a ! in front of a slot, like {example}, to always show it.'**
+  String dialectEditorMoveWordingsForceHelp(String example);
+
   /// Header for a move's parameter-dependent wording templates.
   ///
   /// In en, this message translates to:

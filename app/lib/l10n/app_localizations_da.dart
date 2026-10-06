@@ -8809,6 +8809,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Betingede bevægelsesskabeloner vælges ud fra figurens parametre. Udfyld alle viste pladsholdere; ufærdige betingede skabeloner ignoreres.';
 
   @override
+  String dialectEditorMoveWordingsForceHelp(String example) {
+    return 'Nogle felter udelades, når de ikke tilføjer noget, f.eks. en kædes hånd, når rollen allerede angiver den. Sæt et ! foran et felt, som $example, for altid at vise det.';
+  }
+
+  @override
   String dialectEditorMoveWordingsConditionalLabel(String move) {
     return '$move (betinget)';
   }

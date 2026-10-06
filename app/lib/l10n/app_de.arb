@@ -8814,6 +8814,10 @@
   "@dialectEditorMoveWordingsConditionalHelp": {
     "x-sourceSha256": "ba57af9dcdc3deb6400d85b49bb8995e8400dff7fbb53c64b7b94c3ab35808ff"
   },
+  "dialectEditorMoveWordingsForceHelp": "Manche Platzhalter entfallen, wenn sie nichts beitragen, etwa die Hand bei einer Kette, wenn die Rolle sie bereits vorgibt. Setze ein ! vor einen Platzhalter, wie {example}, um ihn immer anzuzeigen.",
+  "@dialectEditorMoveWordingsForceHelp": {
+    "x-sourceSha256": "7ff86d75ca24413a4ac82dc32947404c1154e041d46c204040701f21d4770ec1"
+  },
   "dialectEditorMoveWordingsConditionalLabel": "{move} (bedingt)",
   "@dialectEditorMoveWordingsConditionalLabel": {
     "x-sourceSha256": "e1b698fe9873272c260a19c673da431f630c0196f34b94835cbddc7793855c37"
