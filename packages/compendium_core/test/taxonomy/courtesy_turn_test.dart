@@ -73,7 +73,9 @@ void main() {
       // planned slot timing. Schema 36 adds the sync review local-version
       // guard; none of them changes the taxonomy. Schema 37 (#1554) adds the
       // nullable programs.dialect_name, likewise leaving the taxonomy alone.
-      expect(kCompendiumSchemaVersion, 37);
+      // Schema 38 (#1418) adds the nullable programs pay columns, also
+      // leaving the taxonomy alone.
+      expect(kCompendiumSchemaVersion, 38);
     });
 
     test('registers with the maintainer-ruled param set', () {

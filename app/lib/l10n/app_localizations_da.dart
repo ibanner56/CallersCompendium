@@ -4336,7 +4336,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsPayLabel => 'Honorar';
 
   @override
-  String get programsPayHint => 'f.eks. 250,00';
+  String get programsPayHint => 'f.eks. 250.00';
 
   @override
   String get programsPayCurrencyLabel => 'Valuta';

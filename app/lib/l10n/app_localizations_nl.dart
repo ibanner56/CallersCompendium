@@ -4374,7 +4374,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsPayInvalid =>
-      'Voer een bedrag in zoals 250 of 250.50 in deze valuta.';
+      'Voer een bedrag in zoals 250 of 250.50 in deze valuta in.';
 
   @override
   String get programsStatusFieldLabel => 'Status';
