@@ -35,6 +35,7 @@ ProgramEditorDraft _draft({
   String notes = '',
   ProgramStatus status = ProgramStatus.draft,
   bool hideAlternates = false,
+  String? dialectName,
   List<ProgramSlot> slots = const [],
 }) => ProgramEditorDraft(
   title: title,
@@ -47,6 +48,7 @@ ProgramEditorDraft _draft({
   notes: notes,
   status: status,
   hideAlternates: hideAlternates,
+  dialectName: dialectName,
   slots: slots,
 );
 
@@ -147,6 +149,7 @@ void main() {
         notes: 'Doors at 7',
         status: ProgramStatus.finalized,
         hideAlternates: true,
+        dialectName: 'Leads/Follows',
         slots: [
           _danceSlot('s1', 0, 'dance-a'),
           _textSlot('s2', 1, 'Waltz interlude'),
@@ -176,6 +179,7 @@ void main() {
       expect(decoded.notes, 'Doors at 7');
       expect(decoded.status, ProgramStatus.finalized);
       expect(decoded.hideAlternates, isTrue);
+      expect(decoded.dialectName, 'Leads/Follows');
       expect(decoded.slots, hasLength(4));
       expect(decoded.slots[0].danceId, 'dance-a');
       expect(decoded.slots[1].text, 'Waltz interlude');

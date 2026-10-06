@@ -10,6 +10,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/dialect_library_controller.dart';
+import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
@@ -316,6 +318,7 @@ Future<void> _pump(
   void Function(String)? onSaved,
   VoidCallback? onDeleted,
   void Function(String)? onNavigateTo,
+  DialectLibraryController? dialectLibrary,
 }) async {
   await tester.binding.setSurfaceSize(const Size(800, 1400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -323,8 +326,12 @@ Future<void> _pump(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      builder: (context, child) =>
-          RepositoriesScope(repositories: repos, child: child!),
+      builder: (context, child) => RepositoriesScope(
+        repositories: repos,
+        child: dialectLibrary == null
+            ? child!
+            : DialectLibraryScope(controller: dialectLibrary, child: child!),
+      ),
       home: ProgramEditorScreen(
         programId: programId,
         onSaved: onSaved,
@@ -591,6 +598,110 @@ void main() {
     final saved = await repos.programs.getById('p1');
     expect(saved!.title, 'Renamed');
     expect(saved.dialectName, 'Leads/Follows');
+  });
+
+  group('program dialect picker (issue #1554)', () {
+    Future<DialectLibraryController> library(
+      CompendiumRepositories repos,
+    ) async {
+      await repos.ensureMigrated();
+      final controller = DialectLibraryController(repos.settings);
+      await controller.load();
+      await controller.upsert(Dialect.leadsFollows.copyWith(name: 'Mine'));
+      addTearDown(controller.dispose);
+      return controller;
+    }
+
+    Future<void> openPicker(WidgetTester tester) async {
+      await _expandMoreDetails(tester);
+      final field = find.byKey(const ValueKey('program-dialect'));
+      await tester.ensureVisible(field);
+      await tester.pumpAndSettle();
+      await tester.tap(field);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('offers "use app dialect" plus every library dialect, saves a '
+        'choice and clears it again', (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p1', title: 'Night'));
+      await _pump(
+        tester,
+        repos,
+        programId: 'p1',
+        onSaved: (_) {},
+        dialectLibrary: await library(repos),
+      );
+
+      await openPicker(tester);
+      // Nothing typed freehand: the options are the app-dialect entry and the
+      // library (presets + the custom 'Mine').
+      expect(
+        find.byKey(const ValueKey('program-dialect-use-app')),
+        findsWidgets,
+      );
+      for (final name in [for (final d in Dialect.presets) d.name, 'Mine']) {
+        expect(
+          find.byKey(ValueKey('program-dialect-option:$name')),
+          findsWidgets,
+          reason: name,
+        );
+      }
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('program-dialect')),
+          matching: find.byType(EditableText),
+        ),
+        findsNothing,
+        reason: 'the picker offers valid input only; no free text',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('program-dialect-option:Mine')).last,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      expect((await repos.programs.getById('p1'))!.dialectName, 'Mine');
+
+      await openPicker(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('program-dialect-use-app')).last,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      expect((await repos.programs.getById('p1'))!.dialectName, isNull);
+    });
+
+    testWidgets('a stored name that matches no dialect shows as unavailable '
+        'and is kept on save', (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(
+        _program(id: 'p1', title: 'Night').copyWith(dialectName: 'Gone'),
+      );
+      await _pump(
+        tester,
+        repos,
+        programId: 'p1',
+        onSaved: (_) {},
+        dialectLibrary: await library(repos),
+      );
+
+      await _expandMoreDetails(tester);
+      await tester.ensureVisible(find.byKey(const ValueKey('program-dialect')));
+      await tester.pumpAndSettle();
+      expect(find.text('Gone (unavailable)'), findsOneWidget);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Renamed',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.title, 'Renamed');
+      expect(saved.dialectName, 'Gone', reason: 'not cleared by a save');
+    });
   });
 
   testWidgets('expanded Tier 2 metadata persists on save', (tester) async {

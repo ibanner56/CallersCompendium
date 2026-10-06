@@ -141,4 +141,50 @@ void main() {
       expect(find.byIcon(Icons.translate), findsNothing);
     },
   );
+
+  testWidgets('session-local mode reports the choice and leaves the active '
+      'dialect alone (issue #1554)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.ensureMigrated();
+    final controller = DialectLibraryController(repos.settings);
+    await controller.load();
+    await controller.setActive(Dialect.larksRobins.name);
+    addTearDown(controller.dispose);
+
+    String? picked;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectLibraryScope(
+          controller: controller,
+          child: Scaffold(
+            body: DialectQuickSwitch(
+              selectedName: Dialect.leadsFollows.name,
+              onSelected: (name) => picked = name,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('dialect-quick-switch')));
+    await tester.pumpAndSettle();
+    // The check follows selectedName, not the app's active dialect.
+    expect(
+      tester
+          .widget<CheckedPopupMenuItem<String>>(
+            find.byKey(const ValueKey('dialect-quick-switch-Leads/Follows')),
+          )
+          .checked,
+      isTrue,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('dialect-quick-switch-Canonical')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(picked, Dialect.canonical.name);
+    expect(controller.activeName, Dialect.larksRobins.name);
+  });
 }
