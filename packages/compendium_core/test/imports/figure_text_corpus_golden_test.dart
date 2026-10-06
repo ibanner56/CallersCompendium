@@ -39,10 +39,9 @@ Map<String, Object?> _record(String line) {
 void main() {
   test('import scrub and parsers match the recorded golden', () async {
     final root = await packageRootPath();
-    final corpus = File(p.join(root, _corpusPath))
-        .readAsLinesSync()
-        .where((l) => l.isNotEmpty)
-        .toList();
+    final corpus = File(
+      p.join(root, _corpusPath),
+    ).readAsLinesSync().where((l) => l.isNotEmpty).toList();
     expect(corpus.length, greaterThan(5000), reason: 'corpus went missing');
     final actual = [for (final line in corpus) jsonEncode(_record(line))];
 
