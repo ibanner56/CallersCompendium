@@ -22,7 +22,17 @@ lives in the core package; all access through repositories.*
   (`relocateLegacyDatabase`): copy, fsync, verify size, rename into place, then
   delete the source; it never overwrites a destination, and if a database exists
   at both the old and new location, or the move fails, nothing is deleted and
-  startup stops on a non-retryable screen (`DatabaseRelocationBlocked`). Pre-migration snapshots go in `db_backups/` beside
+  startup stops on a non-retryable screen (`DatabaseRelocationBlocked`). The
+  whole move runs under an exclusive advisory lock on `.relocation.lock` in the
+  database directory (the single-instance guard's `AdvisoryFileLock`, plus an
+  in-process queue), and its preconditions are checked only once that lock is
+  held, so a second process that waited finds nothing left to move. It refuses
+  to move a database another connection has open: beyond a not-busy
+  checkpoint, a WAL database must accept `journal_mode = DELETE` (switched
+  straight back), which SQLite refuses while any other connection, even an
+  idle one, has the file; a pre-WAL rollback-journal file gives no such signal.
+  A rollback never removes the new copy unless the old database file is still
+  there. Pre-migration snapshots go in `db_backups/` beside
   the file. User-triggered backup/restore = timestamped JSON export/import (6.6), not
   file copying.
 - **Hybrid figure storage** (fixing ContraDB's unqueryable JSON blob):
