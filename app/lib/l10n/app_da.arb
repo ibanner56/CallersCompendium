@@ -7758,6 +7758,10 @@
   "@updateDownloadFailureDestination": {
     "x-sourceSha256": "623af0043c02285ccf6b203be680ed0926d08b1223e7edd0d02c7fd15ee31c82"
   },
+  "updateDownloadFailureDestinationOccupied": "Der ligger allerede noget på den placering. Vælg et andet navn eller en anden mappe, eller brug „Se udgivelse“.",
+  "@updateDownloadFailureDestinationOccupied": {
+    "x-sourceSha256": "6e229e0b5a454738aa5ed4b7c9be061458a5b9cc33a75efcd7151e50c8c8c82e"
+  },
   "updateDownloadFailureIncomplete": "Overførslen var ufuldstændig og blev slettet. Prøv igen, eller brug „Se udgivelse“.",
   "@updateDownloadFailureIncomplete": {
     "x-sourceSha256": "0cd1b8b90a1aa7b567458a9eaaf5edcea68b720fdae43c7d57e5820c64a9c1b7"

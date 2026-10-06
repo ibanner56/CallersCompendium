@@ -7807,6 +7807,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Er kon geen locatie worden gekozen om de update naartoe te downloaden.';
 
   @override
+  String get updateDownloadFailureDestinationOccupied =>
+      'Er staat al iets op die locatie. Kies een andere naam of map, of gebruik „Release bekijken”.';
+
+  @override
   String get updateDownloadFailureIncomplete =>
       'De download was onvolledig en is verwijderd. Probeer het opnieuw of gebruik „Release bekijken”.';
 

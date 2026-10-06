@@ -7858,6 +7858,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible de choisir un emplacement pour télécharger la mise à jour.';
 
   @override
+  String get updateDownloadFailureDestinationOccupied =>
+      'Un élément se trouve déjà à cet emplacement. Choisissez un autre nom ou un autre dossier, ou utilisez « Voir la version ».';
+
+  @override
   String get updateDownloadFailureIncomplete =>
       'Le téléchargement était incomplet et a été supprimé. Veuillez réessayer ou utiliser « Voir la version ».';
 

@@ -91,6 +91,11 @@ enum UpdateDownloadFailure {
   /// No folder could be prepared to receive the file.
   destinationUnavailable,
 
+  /// macOS only: the path chosen in the Save panel holds something the app
+  /// will not replace — a folder, a symbolic link, or a file it could not
+  /// delete. A Finder alias is a regular file and is replaced like one.
+  destinationOccupied,
+
   /// The file's size did not match the manifest; it was deleted.
   incomplete,
 
@@ -283,8 +288,19 @@ class UpdateController extends ChangeNotifier {
         // hard quarantine flag ("created without user consent"), which prevents
         // Gatekeeper from launching the installed application.
         final selected = await _macosDestinationPicker(artifact);
-        if (selected == null) {
+        // A cancel pressed while the panel was open wins: return before the
+        // chosen path is touched, so a file the user just confirmed replacing
+        // is not deleted for a download that will never run.
+        if (selected == null || token.isCancelled) {
           _cancelDownloadState(null);
+          return;
+        }
+        // The downloader refuses anything already at its destination (#626).
+        // The Save panel has already asked the user to confirm "Replace", so
+        // a regular file here is removed first; anything else is reported as
+        // occupied rather than written through or blamed on the network.
+        if (!_clearMacosDestination(selected)) {
+          _failDownload(UpdateDownloadFailure.destinationOccupied);
           return;
         }
         destination = selected;
@@ -513,6 +529,34 @@ class UpdateController extends ChangeNotifier {
       case DownloadResultKind.success:
       case DownloadResultKind.cancelled:
         return UpdateDownloadFailure.unreachable;
+    }
+  }
+
+  /// Makes [path], which the user picked and confirmed in the macOS Save
+  /// panel, free for the downloader. Deletes it only when it is a **regular
+  /// file**, checked without following links, so a symlink is never followed
+  /// to its target and a directory is never removed. Returns `false` when
+  /// something else is there or the delete fails; the path is then untouched
+  /// by this method. Never used for the Windows/Linux temp-dir path, where
+  /// anything already present is refused outright.
+  ///
+  /// Synchronous on purpose: one `lstat` and at most one `unlink` on a path
+  /// the user just chose. Doing it with async I/O would add an event-loop
+  /// round trip that widget tests under fake async never complete.
+  bool _clearMacosDestination(File path) {
+    try {
+      final type = FileSystemEntity.typeSync(path.path, followLinks: false);
+      if (type == FileSystemEntityType.notFound) return true;
+      if (type != FileSystemEntityType.file) return false;
+      path.deleteSync();
+      return true;
+    } on Object catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'update_controller.clearMacosDestination',
+      );
+      return false;
     }
   }
 

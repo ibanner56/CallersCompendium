@@ -10124,6 +10124,10 @@
   "@updateDownloadFailureDestination": {
     "description": "Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file."
   },
+  "updateDownloadFailureDestinationOccupied": "Something is already at that location. Choose another name or folder, or use \"View release\".",
+  "@updateDownloadFailureDestinationOccupied": {
+    "description": "macOS assisted-download error shown when the place chosen in the Save panel holds a folder, a symbolic link, or a file that could not be removed, so the update was not saved there. The user can start the download again and pick another name or folder. \"View release\" must match the translation of updateBannerViewRelease."
+  },
   "updateDownloadFailureIncomplete": "The download was incomplete and was deleted. Please try again, or use \"View release\".",
   "@updateDownloadFailureIncomplete": {
     "description": "Assisted-download error shown when the downloaded file's size did not match the update manifest, so it was deleted. \"View release\" must match the translation of updateBannerViewRelease, the button that opens the release page for a manual download."
