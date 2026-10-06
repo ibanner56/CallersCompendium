@@ -1,0 +1,9 @@
+{
+  "id": "windows-msvc-runtime-app-local",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "The Windows app now starts on PCs that don't have the Microsoft Visual C++ Redistributable installed. The installer and the portable zip now include the runtime files the app needs, instead of failing with \"VCRUNTIME140_1.dll was not found\"."
+    ]
+  }
+}
