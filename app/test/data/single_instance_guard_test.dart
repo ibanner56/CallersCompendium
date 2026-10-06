@@ -94,10 +94,12 @@ void main() {
   DesktopSingleInstance guardWith({
     InstanceLockPrimitive primitive = const AdvisoryFileLock(),
     InstanceRaiseChannel? raiseChannel,
+    bool listensForRaise = true,
   }) => DesktopSingleInstance(
     lockDirectoryProvider: () async => dir,
     primitive: primitive,
     raiseChannel: raiseChannel,
+    listensForRaise: listensForRaise,
   );
 
   File lockFile() => File(p.join(dir.path, kSingleInstanceLockFileName));
@@ -290,6 +292,30 @@ void main() {
         expect(err.buffer.toString(), contains('bring its window forward'));
       },
     );
+
+    test('a platform without the raise listener (macOS) acquires and proceeds '
+        'without binding a socket', () async {
+      final channel = _FakeRaiseChannel();
+
+      final outcome = await handleSecondLaunch(
+        guardWith(
+          primitive: _FakePrimitive.acquired(),
+          raiseChannel: channel,
+          listensForRaise: false,
+        ),
+        onRaise: () {},
+      );
+
+      expect(outcome, SecondLaunchOutcome.proceed);
+      expect(channel.listens, isEmpty);
+    });
+
+    test('the raise listener is on for Linux and Windows only', () {
+      expect(
+        DesktopSingleInstance().listensForRaise,
+        Platform.isLinux || Platform.isWindows,
+      );
+    });
 
     test('still exits and says so when the raise request fails', () async {
       final channel = _FakeRaiseChannel(raiseResult: false);

@@ -362,9 +362,10 @@ enum SingleInstanceResult {
 /// the lock, a second launch is refused so two processes can't race the
 /// migration / derived-rebuild marker and trip `database is locked`.
 ///
-/// The first instance also listens on a loopback socket
+/// On Linux and Windows the first instance also listens on a loopback socket
 /// ([InstanceRaiseChannel]) so a refused second launch can ask it to bring its
-/// window forward instead of exiting silently ([handleSecondLaunch]).
+/// window forward instead of exiting silently ([handleSecondLaunch]); see
+/// [listensForRaise] for why macOS does not.
 ///
 /// This is intentionally desktop-only: [isSupportedPlatform] gates it to
 /// Linux/macOS/Windows, so mobile (the OS already owns single-instance) and web
@@ -379,7 +380,11 @@ class DesktopSingleInstance {
     this.primitive = const AdvisoryFileLock(),
     this.lockFileName = kSingleInstanceLockFileName,
     InstanceRaiseChannel? raiseChannel,
+    bool? listensForRaise,
   }) : raiseChannel = raiseChannel ?? _defaultRaiseChannel,
+       listensForRaise =
+           listensForRaise ??
+           (!kIsWeb && (Platform.isLinux || Platform.isWindows)),
        _lockDirectoryProvider =
            lockDirectoryProvider ?? getApplicationSupportDirectory;
 
@@ -389,6 +394,13 @@ class DesktopSingleInstance {
 
   /// How a second launch reaches the first instance, and how the first listens.
   final InstanceRaiseChannel raiseChannel;
+
+  /// Whether the first instance starts [raiseChannel]'s listener. Linux and
+  /// Windows only: on macOS LaunchServices already brings the running app
+  /// forward, and the sandboxed release build has no
+  /// `com.apple.security.network.server` entitlement, so binding the loopback
+  /// listener there would fail and log an error on every launch.
+  final bool listensForRaise;
 
   /// Shared by every guard built with the default, so the listener started in
   /// the first instance is the one [releaseHeld] closes.
@@ -475,9 +487,10 @@ enum SecondLaunchOutcome {
 /// Runs before `AppData` exists, so a refused launch never opens the database.
 /// - `alreadyRunning`: asks the running instance to raise its window, writes
 ///   one line to [err] naming the outcome, returns [SecondLaunchOutcome.exitNow].
-/// - `acquired`: starts the raise listener (calling [onRaise] on a request) and
-///   returns [SecondLaunchOutcome.proceed]. A listener failure is logged and
-///   non-fatal: the app just won't be raisable.
+/// - `acquired`: when [DesktopSingleInstance.listensForRaise] is set (Linux and
+///   Windows by default), starts the raise listener (calling [onRaise] on a
+///   request); either way returns [SecondLaunchOutcome.proceed]. A listener
+///   failure is logged and non-fatal: the app just won't be raisable.
 /// - `unavailable`: returns [SecondLaunchOutcome.proceed] (fail-open).
 Future<SecondLaunchOutcome> handleSecondLaunch(
   DesktopSingleInstance guard, {
@@ -510,6 +523,7 @@ Future<SecondLaunchOutcome> handleSecondLaunch(
       );
       return SecondLaunchOutcome.exitNow;
     case SingleInstanceResult.acquired:
+      if (!guard.listensForRaise) return SecondLaunchOutcome.proceed;
       try {
         await guard.raiseChannel.listen(await guard.lockDirectory(), onRaise);
       } catch (error, stackTrace) {
