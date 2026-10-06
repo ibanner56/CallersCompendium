@@ -20,11 +20,14 @@ final _now = DateTime.utc(2026, 1, 1);
 /// the program changed after the adjustment, restoring that snapshot would
 /// overwrite the later change, so the undo must be refused instead.
 void main() {
-  Future<CompendiumRepositories> pumpSummary(WidgetTester tester) async {
+  Future<CompendiumRepositories> pumpSummary(
+    WidgetTester tester, {
+    CompendiumRepositories? using,
+  }) async {
     installFakeWakelock();
     await tester.binding.setSurfaceSize(const Size(1000, 1600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    final repos = openTestRepositories();
+    final repos = using ?? openTestRepositories();
     await repos.dances.create(
       Dance(
         id: 'd1',
@@ -134,6 +137,63 @@ void main() {
     expect(
       find.text(l10nOf(tester).performUndoNoLongerAvailable),
       findsNothing,
+    );
+  });
+
+  testWidgets('Undo after leaving Perform is refused when the program was '
+      'changed within the same second as the adjustment', (tester) async {
+    final repos = await pumpSummary(tester);
+    await adjustAndLeave(tester);
+
+    final adjusted = (await repos.programs.getById('p1'))!;
+    // Same stored second as the adjustment: a stamp comparison at the store's
+    // one-second precision cannot see this edit.
+    await repos.programs.update(
+      adjusted.copyWith(title: 'Renamed Night', updatedAt: adjusted.updatedAt),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(l10nOf(tester).commonUndo));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final stored = (await repos.programs.getById('p1'))!;
+    expect(stored.title, 'Renamed Night');
+    expect(stored.slots.single.performedAt, isNotNull);
+    expect(
+      find.text(l10nOf(tester).performUndoNoLongerAvailable),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a write that lands while the Undo after leaving Perform is in '
+      'flight is not overwritten', (tester) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    final repos = await pumpSummary(tester, using: delayed.repos);
+    await adjustAndLeave(tester);
+    final adjusted = (await repos.programs.getById('p1'))!;
+
+    // Hold the Undo's write, land another edit, then let the Undo finish.
+    delayed.programs.holdNextWrite();
+    await tester.tap(find.text(l10nOf(tester).commonUndo));
+    await tester.pump();
+    await delayed.programs.writeStarted;
+    await repos.programs.update(
+      adjusted.copyWith(
+        title: 'Renamed Night',
+        updatedAt: adjusted.updatedAt.add(const Duration(minutes: 1)),
+      ),
+    );
+    delayed.programs.releaseWrite();
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final stored = (await repos.programs.getById('p1'))!;
+    expect(stored.title, 'Renamed Night');
+    expect(stored.slots.single.performedAt, isNotNull);
+    expect(
+      find.text(l10nOf(tester).performUndoNoLongerAvailable),
+      findsOneWidget,
     );
   });
 }
