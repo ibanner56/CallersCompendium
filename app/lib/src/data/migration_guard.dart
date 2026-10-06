@@ -586,7 +586,7 @@ Future<void> _discard(List<File> files) async {
 Future<void> runMigrationPreflightForApp({
   required int runningSchemaVersion,
   SnapshotFailureDecision? onSnapshotFailure,
-  @visibleForTesting String? operatingSystem,
+  String? operatingSystem,
 }) async {
   final locations = await resolveDatabaseLocations(
     operatingSystem: operatingSystem,
