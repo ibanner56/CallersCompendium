@@ -311,6 +311,29 @@ void main() {
       }
     });
 
+    test('names every copy on offer that the choice does not show', () {
+      final agreed = _setting('custom_dialects', 'agreed');
+      final local = _setting('custom_dialects', 'local set', seconds: 1);
+      final ownCopy = _setting('custom_dialects', 'local set', seconds: 2);
+      final older = _setting('custom_dialects', 'remote set', seconds: 2);
+      final newer = _setting('custom_dialects', 'remote set', seconds: 3);
+      SyncMergeCandidate c(SyncRecordBlob blob) =>
+          SyncMergeCandidate.fromBlob(blob);
+      final plan = engine.plan(
+        local: {local.address: c(local)},
+        baseline: {agreed.address: agreedOn(agreed)},
+        peers: [
+          {older.address: c(older)},
+          {newer.address: c(newer)},
+          {ownCopy.address: c(ownCopy)},
+        ],
+      );
+
+      final conflict = plan.decisions.single.conflict!;
+      expect(conflict.candidates.map((x) => x.wireHash), [c(newer).wireHash]);
+      expect(conflict.copies, {c(older).wireHash, c(ownCopy).wireHash});
+    });
+
     test('a decided-against hash never drops this device\'s own copy, nor '
         'a version it was not chosen against', () {
       final agreed = _setting('custom_dialects', 'agreed');

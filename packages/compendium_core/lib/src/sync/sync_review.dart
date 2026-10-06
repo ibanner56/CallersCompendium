@@ -58,12 +58,27 @@ const Set<String> syncNaturalKeyRenameCollisionReasons = {
 const String syncConflictChoiceReason =
     'versions of one record differ and need the user to choose which to keep';
 
+/// The reason for a copy of a version on offer in a conflict choice that the
+/// choice does not show: an older copy of a shown body, or another device's
+/// copy of this device's body, under its own wire hash
+/// ([SyncMergeConflict.copies]).
+///
+/// Not something to review: these rows are never listed. One row per such
+/// copy, keyed by its wire hash as `counterpart_id` (and `candidate_hash`),
+/// with an empty `candidate_blob` and `local_hash` as on the choice's own
+/// rows. They are kept in line with each pass's merge exactly as the choice's
+/// rows are, and exist so that deciding the choice records every copy it went
+/// against ([syncConflictDecidedAgainstReason]), not only the copies shown.
+const String syncConflictChoiceCopyReason =
+    'another copy of a version on offer in a conflict choice';
+
 /// The reason for a version of a whole-collection setting that the user
 /// chose against on this device (sync-spec §6.6, *Conflict choices*).
 ///
 /// Not something to review: these rows are never listed. One row per version
-/// that was on offer when the choice was written — the other devices' and this
-/// device's own copy before the choice — keyed by that version's wire hash as
+/// that was on offer when the choice was written — the other devices' (every
+/// copy, including those the choice did not show) and this device's own copy
+/// before the choice — keyed by that version's wire hash as
 /// `counterpart_id` (and `candidate_hash`), with an empty `candidate_blob`,
 /// since only the hash is needed. The merge drops a changed version whose hash
 /// is recorded here before deciding whether the setting is in conflict, so a

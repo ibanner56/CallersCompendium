@@ -1451,7 +1451,9 @@ final class CompendiumSyncStorage
   /// (sync-spec §6.3, §6.6).
   ///
   /// Queues one row per version the user may choose that is not this
-  /// device's own, and drops every queued choice the merge no longer raises —
+  /// device's own, plus one [syncConflictChoiceCopyReason] row per copy on
+  /// offer that the choice does not show, and drops every queued choice the
+  /// merge no longer raises —
   /// typically because the user decided an equal-`updatedAt` tie on another
   /// device and that decision, stamped past the tie, arrived here as an
   /// ordinary newer edit. (A whole-collection decision made elsewhere does not
@@ -1459,23 +1461,34 @@ final class CompendiumSyncStorage
   /// [resolveConflicts].) Addresses in
   /// [unevaluated] were skipped by the merge, so their rows are kept untouched:
   /// a peer that could not be read this pass is not evidence the conflict
-  /// ended. An unchanged row keeps its `queued_at`. Returns how many rows
-  /// this call added.
+  /// ended. An unchanged row keeps its `queued_at`. Returns how many choice
+  /// rows this call added; copy rows are not counted.
   Future<int> refreshConflictReviews(
     Iterable<SyncMergeDecision> reviews, {
     Set<SyncRecordAddress> unevaluated = const {},
   }) => repositories.transaction(() async {
     final expected =
-        <(SyncRecordKind, String, String), ({String blob, String? local})>{};
+        <
+          (SyncRecordKind, String, String),
+          ({String reason, String blob, String? local})
+        >{};
     for (final decision in reviews) {
       final conflict = decision.conflict;
       if (conflict == null) continue;
+      for (final hash in conflict.copies) {
+        expected[(decision.address.kind, decision.address.recordId, hash)] = (
+          reason: syncConflictChoiceCopyReason,
+          blob: '',
+          local: conflict.local?.wireHash,
+        );
+      }
       for (final candidate in conflict.candidates) {
         expected[(
           decision.address.kind,
           decision.address.recordId,
           candidate.wireHash,
         )] = (
+          reason: syncConflictChoiceReason,
           blob: encodeSyncRecordBlob(candidate.blob),
           local: conflict.local?.wireHash,
         );
@@ -1483,7 +1496,8 @@ final class CompendiumSyncStorage
     }
     final existing = {
       for (final row in await repositories.syncLocal.listReviewQueue())
-        if (row.reason == syncConflictChoiceReason)
+        if (row.reason == syncConflictChoiceReason ||
+            row.reason == syncConflictChoiceCopyReason)
           (row.kind, row.recordId, row.counterpartId): row,
     };
     for (final entry in existing.entries) {
@@ -1491,6 +1505,7 @@ final class CompendiumSyncStorage
       if (unevaluated.contains((kind: kind, recordId: recordId))) continue;
       final want = expected[entry.key];
       if (want != null &&
+          want.reason == entry.value.reason &&
           want.blob == entry.value.candidateBlob &&
           want.local == entry.value.localHash) {
         continue;
@@ -1506,6 +1521,7 @@ final class CompendiumSyncStorage
     for (final entry in expected.entries) {
       final current = existing[entry.key];
       if (current != null &&
+          current.reason == entry.value.reason &&
           current.candidateBlob == entry.value.blob &&
           current.localHash == entry.value.local) {
         continue;
@@ -1515,13 +1531,15 @@ final class CompendiumSyncStorage
         kind: kind,
         recordId: recordId,
         counterpartId: hash,
-        reason: syncConflictChoiceReason,
+        reason: entry.value.reason,
         candidateBlob: entry.value.blob,
         candidateHash: hash,
         localHash: entry.value.local,
         queuedAt: queuedAt,
       );
-      if (current == null) added++;
+      if (current == null && entry.value.reason == syncConflictChoiceReason) {
+        added++;
+      }
     }
     return added;
   });
@@ -1535,7 +1553,8 @@ final class CompendiumSyncStorage
   /// choices clear on their next pass.
   ///
   /// A whole-collection setting's rule ignores `updatedAt`, so for one of
-  /// those keys every other version on offer, and this device's copy before
+  /// those keys every other version on offer (every copy, shown or not), and
+  /// this device's copy before
   /// the choice, is also recorded as chosen against
   /// ([syncConflictDecidedAgainstReason]). This device then stops asking, even
   /// while a peer that has not synced, or a leftover manifest, still publishes
@@ -1561,9 +1580,14 @@ final class CompendiumSyncStorage
     final clockNow = (now ?? DateTime.now)().toUtc();
     final snapshot = await this.snapshot();
     final local = {...snapshot.local, ...snapshot.pendingLive};
+    final queue = await repositories.syncLocal.listReviewQueue();
     final rows = [
-      for (final row in await repositories.syncLocal.listReviewQueue())
+      for (final row in queue)
         if (row.reason == syncConflictChoiceReason) row,
+    ];
+    final copyRows = [
+      for (final row in queue)
+        if (row.reason == syncConflictChoiceCopyReason) row,
     ];
     final plans = <_ConflictChoicePlan>[];
     for (final decision in decisions) {
@@ -1610,11 +1634,17 @@ final class CompendiumSyncStorage
           offered: offered,
           keepHash: decision.keepCandidateHash,
           combineTakingOther: decision.combineTakingOther,
+          copies: {
+            for (final row in copyRows)
+              if (row.kind == decision.kind &&
+                  row.recordId == decision.recordId)
+                row.counterpartId,
+          },
         ),
       );
     }
     final resolution = await _applyConflictChoices(plans, clockNow);
-    for (final row in rows) {
+    for (final row in [...rows, ...copyRows]) {
       if (plans.any(
         (plan) => plan.address == (kind: row.kind, recordId: row.recordId),
       )) {
@@ -1824,6 +1854,7 @@ final class CompendiumSyncStorage
           .writtenWireHash;
       final against = <String>{
         ?plan.current?.wireHash,
+        ...plan.copies,
         for (final blob in [?plan.before, ...plan.offered])
           sha256Hex(encodeSyncRecordBlobUtf8(blob)),
       }..remove(kept);
@@ -6067,6 +6098,7 @@ class _ConflictChoicePlan {
     required this.keepHash,
     required this.combineTakingOther,
     this.floor,
+    this.copies = const {},
   });
 
   final SyncRecordAddress address;
@@ -6079,4 +6111,8 @@ class _ConflictChoicePlan {
   /// A time the written version must also follow — the earlier choice's
   /// stamp, when reconsidering.
   final DateTime? floor;
+
+  /// Wire hashes of copies on offer the choice did not show
+  /// ([syncConflictChoiceCopyReason]); recorded as chosen against with it.
+  final Set<String> copies;
 }

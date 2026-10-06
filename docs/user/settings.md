@@ -844,8 +844,12 @@ Once you choose for one of these sets, the device where you chose stops asking
 about it, even if the other device hasn't synced yet. The other device, if it
 also changed that set, asks you once more the next time it syncs, because it
 can't tell your choice apart from an ordinary change. That doesn't happen if you
-kept that device's set. Choose on that device too, and neither device asks
-again.
+kept that device's set. When it asks:
+
+- keep the version you chose on the first device, and neither device asks
+  again;
+- keep that device's own set, and it saves that set as a new version, which
+  your first device hasn't chosen against, so the first device asks you again.
 
 **Changing your mind.** After you save your choices, a message offers **Undo**
 for a few seconds. It reopens the items you just decided with the versions you

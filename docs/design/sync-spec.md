@@ -2883,7 +2883,12 @@ reason:
   primary key stays unique however many devices disagree;
 - `candidate_blob` holding that version, newest copy per distinct body;
 - `local_hash` holding this device's wire hash when the row was queued, null
-  when this device holds no live copy.
+  when this device holds no live copy;
+- one further row, under a reason of its own and never listed, for every other
+  copy on offer that is not shown: an older copy of a shown body, or another
+  device's copy of this device's body, each under its own wire hash. Two devices
+  holding one body at different stamps publish two hashes. Deciding goes against
+  both copies, so both have to be known when the choice is written (below).
 
 Every pass MUST bring the queue in line with that pass's merge: queue each
 conflict it raises, drop every queued choice it no longer raises, and leave
@@ -2916,7 +2921,8 @@ synced since still publishes the version the user chose against. A leftover
 manifest from an earlier attachment (§3.3) never stops publishing it. Both
 still count as changed. So when a choice is written for a whole-collection
 setting, the deciding device MUST record every version that was on offer and
-was not written: the other versions and its own pre-decision copy. It records
+was not written: every copy of the other versions, shown or not, and its own
+pre-decision copy. It records
 them in `review_queue` under their own reason, one row per wire hash, with no
 candidate body, and never lists them for review. The whole-collection rule
 MUST then not count a changed version whose wire hash is recorded. This

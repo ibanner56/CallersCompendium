@@ -83,10 +83,21 @@ const Set<String> syncWholeCollectionSettingKeys = {
 /// other versions, one per distinct body, each the newest copy of that body.
 /// Neither is applied; storage queues them for review (sync-spec §6.6).
 class SyncMergeConflict {
-  const SyncMergeConflict({required this.local, required this.candidates});
+  const SyncMergeConflict({
+    required this.local,
+    required this.candidates,
+    this.copies = const {},
+  });
 
   final SyncMergeCandidate? local;
   final List<SyncMergeCandidate> candidates;
+
+  /// The wire hashes of every other copy on offer that is not shown: an older
+  /// copy of a body in [candidates], or another device's copy of [local]'s
+  /// body. Never [local]'s own hash or a shown candidate's. A choice goes
+  /// against these too, so they are recorded with it; recording only the
+  /// shown copies would let a hidden one raise the choice again.
+  final Set<String> copies;
 }
 
 /// One result of the total baseline merge table.
@@ -768,7 +779,8 @@ class SyncMergeEngine {
 
   /// Builds the user's choice: this device's live copy, plus one candidate
   /// per distinct non-local body. Each is the newest copy of its body, ties
-  /// broken by wire hash, so every pass queues the same rows.
+  /// broken by wire hash, so every pass queues the same rows. The copies not
+  /// shown are named in [SyncMergeConflict.copies].
   SyncMergeConflict _conflict({
     required SyncMergeCandidate? local,
     required List<SyncMergeCandidate> offered,
@@ -787,9 +799,14 @@ class SyncMergeEngine {
     }
     final candidates = byBody.values.toList()
       ..sort((left, right) => left.wireHash.compareTo(right.wireHash));
+    final shown = {?local?.wireHash, for (final c in candidates) c.wireHash};
     return SyncMergeConflict(
       local: local,
       candidates: List.unmodifiable(candidates),
+      copies: Set.unmodifiable({
+        for (final candidate in offered)
+          if (!shown.contains(candidate.wireHash)) candidate.wireHash,
+      }),
     );
   }
 

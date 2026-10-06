@@ -49,6 +49,7 @@ final class SyncReviewQueueResolver {
     return [
       for (final row in rows)
         if (row.reason != syncConflictChoiceReason &&
+            row.reason != syncConflictChoiceCopyReason &&
             row.reason != syncConflictDecidedAgainstReason)
           SyncReviewQueueItem.fromRow(row),
     ];
