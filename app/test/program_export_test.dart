@@ -2286,13 +2286,13 @@ void main() {
     );
 
     testWidgets(
-      'PDF path: onLayout reads no BuildContext, so it still runs after the '
-      'menu is gone',
+      'PDF path: onLayout still lays out the PDF after the export menu has '
+      'unmounted',
       (tester) async {
         // Printing.layoutPdf may call onLayout again later (a page-format
         // change in the print dialog) after the menu has unmounted. Every
         // inherited value must be resolved before onLayout is built, as
-        // _exportMatrixPdf does (CS-11). Mutation this catches: reading any
+        // _exportMatrixPdf does (CS-11). Mutation this test catches: reading any
         // `Scope.of(context)` inside the onLayout closure, which throws
         // "Looking up a deactivated widget's ancestor is unsafe" here.
         final prog = _program(
