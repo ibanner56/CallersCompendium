@@ -12,6 +12,7 @@ import '../widgets/dialect_quick_switch.dart';
 import '../widgets/tap_tempo_metronome.dart';
 import 'perform_a11y_prefs.dart';
 import 'perform_card.dart';
+import 'perform_elapsed_clock.dart';
 import 'perform_wakelock.dart';
 import 'perform_walkthrough_overlay.dart';
 import 'settings_screen.dart'
@@ -87,7 +88,14 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   /// Individual Perform timing is display-only and starts only after the
   /// persisted visibility preference has resolved. `null` is the loading state.
+  ///
+  /// The readout derives from [_clock], which measures elapsed time rather
+  /// than counting timer ticks (post-audit integrity-6), so time spent
+  /// suspended in the background or asleep still counts. [_timer] only
+  /// refreshes [_elapsed] about once a second, and [didChangeAppLifecycleState]
+  /// refreshes it as soon as the app resumes.
   bool? _showIndividualPerformTimer;
+  PerformElapsedClock? _clock;
   Timer? _timer;
   ValueNotifier<int>? _elapsed;
   bool _paused = false;
@@ -166,12 +174,34 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   }
 
   void _startIndividualTimer() {
-    if (_timer != null) return;
-    final elapsed = _elapsed = ValueNotifier<int>(0);
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || _paused) return;
-      elapsed.value++;
-    });
+    if (_clock != null) return;
+    _clock = PerformElapsedClock(paused: _paused);
+    _elapsed = ValueNotifier<int>(0);
+    _refreshElapsed();
+  }
+
+  /// Re-reads [_clock] into [_elapsed] and schedules the next refresh for when
+  /// the displayed second turns over. No timer is kept while paused.
+  void _refreshElapsed() {
+    final clock = _clock;
+    final elapsed = _elapsed;
+    if (clock == null || elapsed == null) return;
+    _timer?.cancel();
+    _timer = null;
+    elapsed.value = clock.seconds;
+    if (clock.isRunning) {
+      _timer = Timer(clock.untilNextSecond, () {
+        if (mounted) _refreshElapsed();
+      });
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Timers may not have fired while the app was away; show the full
+    // interval now rather than at the next refresh.
+    if (state == AppLifecycleState.resumed && mounted) _refreshElapsed();
   }
 
   @override
@@ -205,7 +235,11 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
         ); // diagnostics: silent — canonical-view persist failed; best-effort.
   }
 
-  void _toggleIndividualTimerPause() => setState(() => _paused = !_paused);
+  void _toggleIndividualTimerPause() => setState(() {
+    _paused = !_paused;
+    _paused ? _clock?.pause() : _clock?.resume();
+    _refreshElapsed();
+  });
 
   void _decreaseTextSize() {
     setState(() {
