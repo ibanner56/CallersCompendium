@@ -100,18 +100,21 @@ class DanceDetailData {
   /// the pause into a single re-run on resume. So backpressure supplies a bound
   /// of its own, before this constant does anything.
   ///
-  /// The figures below describe a 10-write burst on in-memory sqlite in a
-  /// debug build, stated as numbers so deleting this window is a decision about
-  /// a known cost rather than about a description:
+  /// The figures below describe bursts on in-memory sqlite in a debug build,
+  /// stated as numbers so deleting this window is a decision about a known cost
+  /// rather than about a description:
   ///
   /// | burst shape | window | no window |
   /// |---|---|---|
-  /// | writes awaited one at a time | **1** | **2** |
-  /// | writes issued together (`Future.wait`) | 1 | 1 |
+  /// | 10 writes awaited one at a time | **1** | **2** |
+  /// | 40 writes awaited one at a time | **2** | **5** |
+  /// | 10 writes issued together (`Future.wait`) | 1 | 1 |
   ///
-  /// So what this constant buys on a sequential burst is the difference between
-  /// one re-read and two — not between one and ten. Backpressure already
-  /// collapses the burst to two before the window sees it.
+  /// The 10-write row was measured where this window was introduced; on a
+  /// slower host the same burst gave 2 and 2, which is why the test uses 40.
+  /// So what this constant buys on a sequential burst is a few re-reads, not
+  /// one per write: backpressure already collapses most of the burst before the
+  /// window sees it.
   ///
   /// The second row is the reason the first is not stated more strongly.
   /// Concurrent writes commit close enough together that drift dispatches them

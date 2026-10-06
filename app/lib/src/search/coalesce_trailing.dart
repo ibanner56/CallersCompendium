@@ -57,7 +57,7 @@ StreamTransformerBase<T, T> debugCoalesceTrailing<T>(Duration window) =>
 ///
 /// The two figures that justify
 /// the detail screen's window were re-measured under both implementations and
-/// are identical (`1 vs 2` for a burst written one transaction at a time,
+/// are identical (`1 vs 2` for a 10-write burst written one transaction at a time,
 /// `1 vs 1` for one issued all at once), so this changes no conclusion already
 /// drawn from them — those bursts have real time between their events, which is
 /// why they never exercised the same-turn case above.
