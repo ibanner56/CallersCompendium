@@ -795,6 +795,79 @@ void main() {
     expect(figuresOf(dance).last.note, 'role2s chain to neighbor');
   });
 
+  // parser-1 / #715: role words that are also move words are kept as typed
+  // in figure notes and custom text — the move name "mad robin" in every
+  // dialect, and the verbs "lead"/"follow" under Leads/Follows — while the
+  // same words used as roles are still canonicalised.
+  group('move words in notes and custom text survive a save (parser-1)', () {
+    Future<DanceEditorController> controllerIn(Dialect dialect) async {
+      final controller = DanceEditorController(
+        repositories: openTestRepositories(),
+        danceId: null,
+        dialect: dialect,
+        debounce: testDebounce,
+      );
+      await controller.load(dance: null, fieldDefs: const []);
+      return controller;
+    }
+
+    for (final (dialect, typed, stored) in [
+      (Dialect.larksRobins, 'then mad robin twice', 'then mad robin twice'),
+      (Dialect.leadsFollows, 'then mad robin twice', 'then mad robin twice'),
+      (
+        Dialect.leadsFollows,
+        'Ones lead down the hall, leads turn alone',
+        'Ones lead down the hall, role1s turn alone',
+      ),
+      (
+        Dialect.leadsFollows,
+        'Twos follow the ones down',
+        'Twos follow the ones down',
+      ),
+    ]) {
+      test('note "$typed" in ${dialect.name}', () async {
+        final controller = await controllerIn(dialect);
+        addTearDown(controller.dispose);
+        controller.addFigure();
+        final draft = controller.figureDrafts.last;
+        draft.move = 'allemande';
+        draft.note = typed;
+        controller.titleController.text = 'Some Dance';
+        controller.onTextEdited();
+        expect(figuresOf(controller.buildDance()).last.note, stored);
+      });
+    }
+
+    test('custom "Ones lead down the hall" keeps the verb under '
+        'Leads/Follows and reads the same under Larks/Robins', () async {
+      final controller = await controllerIn(Dialect.leadsFollows);
+      addTearDown(controller.dispose);
+      controller.addFigure();
+      final draft = controller.figureDrafts.last;
+      draft.move = customMove;
+      draft.params['text'] = 'Ones lead down the hall four abreast';
+      controller.titleController.text = 'Some Dance';
+      controller.onTextEdited();
+      final saved = figuresOf(controller.buildDance()).last;
+      expect(saved.params['text'], 'Ones lead down the hall four abreast');
+
+      final again = DanceEditorController(
+        repositories: openTestRepositories(),
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+      );
+      addTearDown(again.dispose);
+      await again.load(
+        dance: sampleDance(id: 'd1').copyWith(figures: [saved]),
+        fieldDefs: const [],
+      );
+      expect(
+        again.figureDrafts.first.params['text'],
+        'Ones lead down the hall four abreast',
+      );
+    });
+  });
+
   test('a figure note round-trips canonical -> render -> canonicalize '
       'idempotently (#715)', () async {
     final repos = openTestRepositories();
