@@ -571,8 +571,38 @@ Future<bool> _relocateWhileLocked({
   final moves = <(File, File)>[];
   final temps = <File>[];
   final finals = <File>[];
+  _LegacyHold? hold;
   try {
-    _checkpointOrThrowIfInUse(source.path);
+    return await _moveWhileHolding(
+      source: source,
+      target: target,
+      moves: moves,
+      temps: temps,
+      finals: finals,
+      delete: delete,
+      afterRename: afterRename,
+      onHold: (held) => hold = held,
+    );
+  } finally {
+    // Idempotent: on Windows the hold was already released before the delete.
+    await hold?.release();
+  }
+}
+
+Future<bool> _moveWhileHolding({
+  required File source,
+  required File target,
+  required List<(File, File)> moves,
+  required List<File> temps,
+  required List<File> finals,
+  required Future<void> Function(File file) delete,
+  required Future<void> Function(File renamed)? afterRename,
+  required void Function(_LegacyHold hold) onHold,
+}) async {
+  final _LegacyHold hold;
+  try {
+    hold = await _LegacyHold.acquire(source);
+    onHold(hold);
     moves.add((source, target));
     for (final suffix in _sidecarSuffixes) {
       final sidecar = File('${source.path}$suffix');
@@ -611,7 +641,14 @@ Future<bool> _relocateWhileLocked({
     for (final (from, to) in moves) {
       final temp = File('${to.path}$_relocatingSuffix');
       temps.add(temp);
-      await from.copy(temp.path);
+      // The database file is copied through the hold's own handle: on POSIX,
+      // closing *any* descriptor this process has on the file would drop the
+      // SQLite lock that keeps other processes out.
+      if (from.path == source.path) {
+        await hold.copyTo(temp);
+      } else {
+        await from.copy(temp.path);
+      }
       final handle = await temp.open(mode: FileMode.append);
       try {
         await handle.flush();
@@ -647,6 +684,13 @@ Future<bool> _relocateWhileLocked({
   try {
     // Main database file last: until it is gone the legacy library is intact.
     for (final move in moves.reversed) {
+      // Windows cannot delete a file this process still has open; release the
+      // lock just before. Another process opening it in that gap keeps it open
+      // (SQLite never shares delete access), so the delete fails and is rolled
+      // back below; on POSIX the file is unlinked while still locked.
+      if (move.$1.path == source.path && Platform.isWindows) {
+        await hold.release();
+      }
       await delete(move.$1);
       deleted.add(move);
     }
@@ -797,37 +841,113 @@ void _checkpoint(String path) {
   }
 }
 
-/// Like [_checkpoint], but throws if another connection has the database open.
+/// An exclusive SQLite lock on the legacy database, held from the in-use
+/// check until it is deleted (or the move gives up), so no other connection,
+/// in this process or another, can read or write it in between.
 ///
-/// `wal_checkpoint(TRUNCATE)` reports a blocked checkpoint (another connection
-/// is reading the WAL) as `busy = 1` rather than by throwing, and a copy taken
-/// then would miss committed data. An *idle* connection does not block it, so a
-/// WAL database is then switched to `journal_mode = DELETE` and back: SQLite
-/// refuses to leave WAL mode (SQLITE_BUSY, thrown) while any other connection
-/// has the file open. Switching straight back leaves the journal mode as found.
-/// A rollback-journal database (from a build before WAL) is not probed: an idle
-/// connection to it holds no lock, so there is nothing to detect.
-void _checkpointOrThrowIfInUse(String path) {
-  final db = sql.sqlite3.open(path);
-  try {
-    final row = db.select('PRAGMA wal_checkpoint(TRUNCATE)').first;
-    if (row.values.first != 0) {
-      throw FileSystemException(
-        'WAL checkpoint is blocked (database busy)',
-        path,
-      );
+/// [acquire] checkpoints the WAL and requires it not busy (a reader pins it),
+/// sets `locking_mode = EXCLUSIVE`, takes a WAL database out of WAL mode
+/// (`journal_mode = DELETE`, which SQLite refuses while any other connection,
+/// even an idle one, has the file open), then opens `BEGIN EXCLUSIVE`. From
+/// then on every other connection gets SQLITE_BUSY. A rollback-journal
+/// database (from a build before WAL) is not probed for idle connections: one
+/// holds no lock, so it cannot be seen; it is still locked out from here on.
+///
+/// The copy goes through [_raf], opened after the lock and closed only after
+/// the connection: POSIX record locks are per process, and closing any other
+/// descriptor on the file would release SQLite's.
+class _LegacyHold {
+  _LegacyHold._(this._file, this._db, this._wasWal, this._raf);
+
+  final File _file;
+  final bool _wasWal;
+  sql.Database? _db;
+  RandomAccessFile? _raf;
+
+  static Future<_LegacyHold> acquire(File file) async {
+    final db = sql.sqlite3.open(file.path);
+    final bool wasWal;
+    try {
+      final row = db.select('PRAGMA wal_checkpoint(TRUNCATE)').first;
+      if (row.values.first != 0) {
+        throw FileSystemException(
+          'WAL checkpoint is blocked (database busy)',
+          file.path,
+        );
+      }
+      wasWal = _journalMode(db) == 'wal';
+      db.execute('PRAGMA locking_mode = EXCLUSIVE');
+      if (wasWal) {
+        db.execute('PRAGMA journal_mode = DELETE');
+        if (_journalMode(db) != 'delete') {
+          throw FileSystemException(
+            'database is open in another connection (cannot leave WAL mode)',
+            file.path,
+          );
+        }
+      }
+      db.execute('BEGIN EXCLUSIVE');
+    } on Object {
+      // diagnostics: silent — rethrown; the caller reports moveFailed.
+      db.close();
+      rethrow;
     }
-    if (_journalMode(db) != 'wal') return;
-    db.execute('PRAGMA journal_mode = DELETE');
-    if (_journalMode(db) != 'delete') {
-      throw FileSystemException(
-        'database is open in another connection (cannot leave WAL mode)',
-        path,
-      );
+    final RandomAccessFile raf;
+    try {
+      raf = await file.open();
+    } on Object {
+      // diagnostics: silent — rethrown; the caller reports moveFailed.
+      db
+        ..execute('ROLLBACK')
+        ..close();
+      rethrow;
     }
-    db.execute('PRAGMA journal_mode = WAL');
-  } finally {
-    db.close();
+    return _LegacyHold._(file, db, wasWal, raf);
+  }
+
+  /// Copies the held database file to [to] through the held handle.
+  Future<void> copyTo(File to) async {
+    final from = _raf!;
+    await from.setPosition(0);
+    final out = await to.open(mode: FileMode.write);
+    try {
+      final buffer = Uint8List(1 << 20);
+      while (true) {
+        final read = await from.readInto(buffer);
+        if (read == 0) break;
+        await out.writeFrom(buffer, 0, read);
+      }
+    } finally {
+      await out.close();
+    }
+  }
+
+  /// Ends the transaction and closes the connection, then the copy handle.
+  /// If the file is still there (the move gave up) it is put back in WAL mode
+  /// when it was found in it. Idempotent; never throws.
+  Future<void> release() async {
+    final db = _db;
+    final raf = _raf;
+    _db = null;
+    _raf = null;
+    if (db != null) {
+      try {
+        db.execute('ROLLBACK');
+        if (_wasWal && _file.existsSync()) {
+          db.execute('PRAGMA journal_mode = WAL');
+        }
+      } on Object {
+        // diagnostics: silent — best effort; drift's setup re-enables WAL on
+        // the next open.
+      } finally {
+        db.close();
+      }
+    }
+    try {
+      await raf?.close();
+    } on Object {
+      // diagnostics: silent — a read-only handle; nothing to flush.
+    }
   }
 }
 

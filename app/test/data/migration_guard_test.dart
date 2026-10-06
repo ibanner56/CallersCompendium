@@ -6,7 +6,10 @@ import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/single_instance_guard.dart'
     show InstanceLockHandle, InstanceLockPrimitive;
 import 'package:compendium_core/compendium_core.dart'
-    show kCompendiumSchemaVersion, kMinSupportedSchemaVersion;
+    show
+        applyCompendiumSqliteSetup,
+        kCompendiumSchemaVersion,
+        kMinSupportedSchemaVersion;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sql;
@@ -734,19 +737,41 @@ void main() {
       skip: Platform.isWindows,
     );
 
-    test('the in-use probe leaves the journal mode as it found it', () async {
+    test('a move that gives up leaves the old file in WAL mode; a moved copy '
+        'is put back in WAL mode by the app\'s own setup', () async {
       _createFixture(legacy.path, userVersion: 7, seedValue: 'x');
       sql.sqlite3.open(legacy.path)
         ..execute('PRAGMA journal_mode = WAL')
         ..close();
+      String mode(File file) {
+        final db = sql.sqlite3.open(file.path);
+        try {
+          return '${db.select('PRAGMA journal_mode').single.values.single}';
+        } finally {
+          db.close();
+        }
+      }
+
+      await expectLater(
+        relocateLegacyDatabase(
+          target: target,
+          legacy: [legacy],
+          deleter: (file) async => throw const FileSystemException('locked'),
+        ),
+        throwsA(isA<DatabaseRelocationBlocked>()),
+      );
+      expect(mode(legacy), 'wal');
+      expect(target.existsSync(), isFalse);
 
       expect(
         await relocateLegacyDatabase(target: target, legacy: [legacy]),
         isTrue,
       );
-
+      // Moved while held in rollback-journal mode; drift's setup (as every
+      // open in the app runs it) switches it back.
       final db = sql.sqlite3.open(target.path);
       addTearDown(db.close);
+      applyCompendiumSqliteSetup(db);
       expect(db.select('PRAGMA journal_mode').single.values.single, 'wal');
       expect(seeded(target), 'x');
     });
