@@ -120,9 +120,24 @@ def step_value(step: list[str], key: str) -> str:
 
 
 def _shell_commands(run: str) -> list[str]:
-    """``run`` with comments dropped and backslash continuations joined."""
+    """``run``'s simple commands: comments dropped, backslash continuations
+    joined, and each line split at ``|``, ``;``, ``&&`` and ``||`` so that a
+    word in a pipeline's other half (``tee xcodebuild-test.log``) is never read
+    as an argument of ``xcodebuild``."""
     kept = [line for line in run.splitlines() if not line.lstrip().startswith("#")]
-    return re.sub(r"\\\n\s*", " ", "\n".join(kept)).splitlines()
+    joined = re.sub(r"\\\n\s*", " ", "\n".join(kept))
+    return [
+        part.strip()
+        for line in joined.splitlines()
+        for part in re.split(r"\|\|?|;|&&", line)
+        if part.strip()
+    ]
+
+
+def _is_xcodebuild_test(command: str) -> bool:
+    """True for an ``xcodebuild`` invocation whose action words include ``test``."""
+    words = command.split()
+    return "xcodebuild" in words and "test" in words[words.index("xcodebuild") + 1 :]
 
 
 def _selects_leg(condition: str, leg: str) -> bool:
@@ -149,7 +164,7 @@ def leg_test_step_errors(text: str, leg: str) -> list[str]:
         name = step_value(step, "name") or "(unnamed step)"
         commands = [
             c for c in _shell_commands(step_value(step, "run"))
-            if re.search(r"\bxcodebuild\b.*\btest\b", c)
+            if _is_xcodebuild_test(c)
         ]
         problems: list[str] = []
         if not commands:

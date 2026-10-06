@@ -315,6 +315,22 @@ symlink you can point your editor/PATH at — see the FVM docs.)
    (cd app && fvm flutter test)                        # app / widget tests
    ```
 
+   The native Swift tests (`app/ios/RunnerTests`, `app/macos/RunnerTests`)
+   need a macOS host with Xcode and are not part of `preflight.py`. CI's
+   `Build (ios)` and `Build (macos)` jobs run them when a PR touches
+   `app/ios/`, `app/macos/` or `.fvmrc`, and on every push to `main`. To run
+   them locally:
+
+   ```sh
+   (cd app && fvm flutter build macos --config-only --debug)
+   xcodebuild test -workspace app/macos/Runner.xcworkspace -scheme Runner \
+     -destination 'platform=macOS'
+   (cd app && fvm flutter build ios --config-only --debug --simulator)
+   xcodebuild test -workspace app/ios/Runner.xcworkspace -scheme Runner \
+     -destination 'platform=iOS Simulator,name=<an installed iPhone>' \
+     CODE_SIGNING_ALLOWED=NO
+   ```
+
 4. Open a PR; it must pass CI (build, tests, lint, formatting) before review.
    Before merging, run the merge-readiness gates:
 

@@ -18,9 +18,9 @@ class RunnerTests: XCTestCase {
 ///
 /// These drive `SharedImportQueue` against a throwaway temp directory rather
 /// than the real App Group container (unavailable to unit tests), so they can
-/// run under `xcodebuild test`. NOTE: CI's `Build (ios)` job only *builds* the
-/// Runner app (`flutter build ios --no-codesign`); it does not compile or run
-/// `RunnerTests`. These are validated locally via Xcode / `xcodebuild test`.
+/// run under `xcodebuild test`. CI's `Build (ios)` job runs them on a simulator
+/// when anything under `app/ios/` (or `.fvmrc`) changes, and on every push to
+/// main.
 final class SharedImportQueueTests: XCTestCase {
   private var queueDirectory: URL!
 
