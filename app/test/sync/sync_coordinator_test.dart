@@ -4863,6 +4863,45 @@ void main() {
       ]);
     });
 
+    test('every copy of a version chosen against counts as chosen against, '
+        'not only the copy that was shown', () async {
+      // Two other devices hold the same set under different stamps, so two
+      // wire hashes. The choice shows that body once, as its newest copy; the
+      // older copy must not raise the choice again.
+      final agreed = await agreedSet();
+      final a = await device(
+        const [
+          {'name': 'Mine'},
+        ],
+        at: t0.add(const Duration(seconds: 1)),
+        agreed: agreed,
+      );
+      const theirs = [
+        {'name': 'Theirs'},
+      ];
+      final older = await current(
+        await device(theirs, at: t0.add(const Duration(seconds: 2))),
+      );
+      final newer = await current(
+        await device(theirs, at: t0.add(const Duration(seconds: 3))),
+      );
+      expect(older.wireHash, isNot(newer.wireHash));
+      final peers = {'device-b': older, 'device-c': newer};
+
+      await pass(a, deviceId: 'device-a', peers: peers);
+      expect(await choices(a), [newer.wireHash]);
+
+      await CompendiumSyncStorage(a).resolveConflicts(const [
+        SyncConflictDecision(
+          kind: SyncRecordKind.setting,
+          recordId: 'custom_dialects',
+        ),
+      ]);
+
+      await pass(a, deviceId: 'device-a', peers: peers);
+      expect(await choices(a), isEmpty);
+    });
+
     test('a leftover manifest re-offering the version chosen against asks '
         'nothing, on every later pass', () async {
       // A detach and re-attach leaves the earlier attachment's manifest on
