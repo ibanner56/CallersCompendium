@@ -1,5 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:compendium_core/testing.dart' show testFigure;
+import 'package:compendium_core/testing.dart' show contraTaxonomy, testFigure;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
@@ -953,6 +953,57 @@ void main() {
           'role1s chain wide',
         );
       });
+
+      // Role words in typed custom text are stored lowercase, whatever case
+      // they were typed in. This is the accepted behaviour (parser-2,
+      // maintainer decision 2026-10-06): imports already store `role1s`, and
+      // preserving the caller's case (`Role1s`, `ROLE2S`) would give the same
+      // words different canonical bytes, so `figureCanonicalKey` — the
+      // line-level dedupe/diff identity — would split a typed figure from the
+      // identical imported one.
+      for (final (typed, stored, shown) in [
+        ('Larks chain wide', 'role1s chain wide', 'larks chain wide'),
+        ('LADIES chain', 'role2s chain', 'robins chain'),
+        (
+          'MAD ROBIN, LADIES IN',
+          'MAD ROBIN, role2s IN',
+          'MAD ROBIN, robins IN',
+        ),
+      ]) {
+        test('typed "$typed" stores role words lowercase, keyed like an '
+            'import (parser-2)', () async {
+          final controller = await newDanceController(openTestRepositories());
+          addTearDown(controller.dispose);
+          controller.addFigure();
+          final draft = controller.figureDrafts.last;
+          draft.move = customMove;
+          draft.params['text'] = typed;
+          controller.titleController.text = 'Some Dance';
+          controller.onTextEdited();
+          final saved = figuresOf(controller.buildDance()).last;
+          expect(saved.params['text'], stored);
+          // Same dedupe identity as the canonical bytes an import stores.
+          expect(
+            figureCanonicalKey(saved, contraTaxonomy),
+            figureCanonicalKey(
+              Figure(move: 'custom', params: {'text': stored}),
+              contraTaxonomy,
+            ),
+          );
+          // Read back in the dialect: role words come back lowercase.
+          final again = DanceEditorController(
+            repositories: openTestRepositories(),
+            danceId: 'd1',
+            dialect: Dialect.larksRobins,
+          );
+          addTearDown(again.dispose);
+          await again.load(
+            dance: sampleDance(id: 'd1').copyWith(figures: [saved]),
+            fieldDefs: const [],
+          );
+          expect(again.figureDrafts.first.params['text'], shown);
+        });
+      }
 
       // "mad robin" is a move name, not the role: the import scrub already
       // protects it from role canonicalization (figure_text_scrub.dart), so
