@@ -288,6 +288,10 @@ def main() -> None:
 
     build_job = _job_section(text, "build")
     assert "      CODENAME: ${{ needs.meta.outputs.codename }}" in build_job
+    # The whole build matrix waits on the release-signing approval gate.
+    assert "\n    environment: release-signing\n" in build_job, (
+        "the build matrix must declare environment: release-signing"
+    )
 
     # Every source checkout must pin the resolved commit, not the mutable tag
     # ref, so a tag moved mid-run cannot make assurance validate one commit while

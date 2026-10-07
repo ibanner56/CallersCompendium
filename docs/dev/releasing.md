@@ -106,7 +106,11 @@ and produces no Android artifact.
 
 ## Safety model
 
-- Global workflow token is **read-only**. Only the `publish_draft` job elevates
+- Global workflow token is **read-only**. The `build` matrix runs in the
+  approval-gated `release-signing` environment, so no platform builds until a
+  maintainer approves, and it holds `id-token: write` job-wide (Azure Trusted
+  Signing authenticates over GitHub OIDC for the Windows leg; the other legs do
+  not use it) with `contents: read` only. The `publish_draft` job elevates
   to `contents: write` (plus `id-token`/`attestations: write` for the provenance
   and SBOM attestations); the approval-gated `publish_mobile` job remains
   read-only; the `verify` job is read-only (`attestations: read` to query the

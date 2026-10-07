@@ -1464,7 +1464,8 @@ jobs:
       # The proof for the app-local MSVC runtime (platform-4): every required
       # DLL must be in the staged folder, inside the portable zip, and in the
       # tree the (signed) installer actually installs, and the uninstaller must
-      # remove it again. No `if:` -- this runs on every release, signed or not.
+      # remove it again. Windows-only, but deliberately not conditioned on signing
+      # availability: it runs for signed and unsigned Windows releases alike.
       - name: Verify the MSVC runtime ships in the zip and the installer
         if: matrix.platform == 'windows'
         shell: pwsh
