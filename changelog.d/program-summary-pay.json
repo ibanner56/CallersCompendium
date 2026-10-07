@@ -1,0 +1,9 @@
+{
+  "id": "1418-program-summary-pay",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A program's pay now shows in its summary, alongside the band, caller and level."
+    ]
+  }
+}
