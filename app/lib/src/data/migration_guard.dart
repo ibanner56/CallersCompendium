@@ -66,12 +66,15 @@ class DatabaseBelowFloorError implements Exception {
 /// raise.
 /// **[bridgeTag]** — the release tag of the newest release that predates the
 /// raise and can therefore still open *and* migrate any database below the new
-/// floor up to a supported version. Specifically, it is the tag whose schema
-/// version is the highest version still below [floor] after the raise.
+/// floor up to a supported version. Specifically, it is the newest release that
+/// still carries the `onUpgrade` steps for the newly retired version band and
+/// whose own schema version is at or above [floor] — so it lands the file on a
+/// supported version in one hop. (A release whose schema is *below* [floor]
+/// cannot qualify: it would leave the file still refused.)
 ///
 /// When [kMinSupportedSchemaVersion] is next raised, add one entry here:
-/// the new floor value and the tag of the release whose schema is the last one
-/// below it. That is part of the floor-raise checklist.
+/// the new floor value and the tag of that release. That is part of the
+/// floor-raise checklist.
 ///
 /// Uses [int] floors and [String] tags so the list is encodable without
 /// importing the database package.
@@ -85,6 +88,12 @@ const List<({int floor, String bridgeTag})> kBelowFloorBridgeTags = [
   // still the newest release that can open a v11–v19 database and migrate it
   // through the now-retired steps, landing at v25 — comfortably above v20.
   (floor: 20, bridgeTag: 'v0.1.0-beta.7'),
+  // Floor raised to 35 once every release before v0.4.0-beta ("Allemande
+  // Left") was retired. v0.6.0-beta (schema v38) is the newest release that
+  // predates this raise, so it still carries the steps that migrate a v20–v34
+  // database to head — landing at v38, comfortably above v35. (v0.3.1-beta,
+  // the last release below the floor, would NOT do: it tops out at v32.)
+  (floor: 35, bridgeTag: 'v0.6.0-beta'),
 ];
 
 /// Returns the [bridgeTag] for a database at [fileVersion] — the release tag

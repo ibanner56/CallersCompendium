@@ -167,7 +167,8 @@ No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
 ## Migrations
 
 - drift schema versions with stepwise migrations; every migration ships with
-  a test that opens a fixture DB from the previous version.
+  a test that instantiates the previous version from its generated schema
+  snapshot (`GeneratedHelper`) and seeds the rows it asserts on.
 - A **schema floor** (`kMinSupportedSchemaVersion`): versions below it are
   retired — their migration steps, fixtures and `drift_schemas/generated/`
   dumps are
@@ -189,7 +190,9 @@ Retiring versions below a new floor means deleting, together:
 - the `if (from < N)` steps that can no longer fire (note the off-by-one:
   retiring versions up to and including vX kills steps through `if (from < X+1)`,
   because that step only ever applies to a vX-or-below database),
-- the fixtures and generators under `test/storage/fixtures/`,
+- the fixtures and generators under `test/storage/fixtures/` (the floor
+  version itself has no fixture any more: tests that need a floor-version file
+  build one from its `drift_schemas/generated/` snapshot via `GeneratedHelper`),
 - the dumps under `drift_schemas/generated/` and their generated classes, and
 - the corresponding `migration_test.dart` groups.
 
@@ -221,13 +224,13 @@ rides a PATCH release — stays there, next to the constant it governs.
 `tools/ci/check_version_history.py` fails a PR that moves the constant without
 adding the matching entry.
 
-### Retired (v1–v19): history only
+### Retired (v1–v34): history only
 
-**v1–v19 are RETIRED** (#837, floor raised past v19 once every tester was
-confirmed on `v0.1.0-beta.6`): they predate `v0.1.0-beta.6`, the oldest
-supported release, so their migration steps, fixtures and schema dumps have
-been deleted and [kMinSupportedSchemaVersion] refuses a database stamped
-below v20. Their entries are kept below as history — they explain why later
+**v1–v34 are RETIRED** (#837, then floor raises since, the latest to v35 once
+every release before `v0.4.0-beta` was retired): they predate `v0.4.0-beta`,
+the oldest supported release, so their migration steps, fixtures and schema
+dumps have been deleted and [kMinSupportedSchemaVersion] refuses a database
+stamped below v35. Their entries are kept below as history — they explain why later
 columns exist and are still referenced by the steps that survive — but there
 is no longer any code path that migrates from them.
 
@@ -399,11 +402,6 @@ is no longer any code path that migrates from them.
   long-hop upgrade from ≤ v11 therefore lands on `form_a_short_wave` at v12
   and is renamed here at v19.
 
-### Supported (v20 and later)
-
-These are the versions a database can still be stamped at, and the steps that
-can still fire.
-
 - v20 (gate merge): duplicate-move retirement + figure rewrite. `gate` and
   `rotation_gate` — which both rendered the display name "gate" and showed
   as two identical picker rows — are MERGED into one `gate` move (taxonomy
@@ -541,6 +539,12 @@ can still fire.
   discarded. The foreign key and repository write guard reject dangling IDs;
   repository deletion is transactional and refuses a level used by any dance,
   including a tombstoned dance that could be restored later.
+### Supported (v35 and later)
+
+These are the versions a database can still be stamped at. v35 is the floor:
+its own migration step is retired along with the older ones, because a floor
+database already carries it. The steps that can still fire are v36 onward.
+
 - v35 (issues #1104 and #1233): rewrites persisted figure parameter keys and
   consolidates the legacy `pull_by_dancers`/`pull_by_direction` move IDs to
   the v35 taxonomy representation, and replaces nullable
