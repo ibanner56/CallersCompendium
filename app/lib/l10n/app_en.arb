@@ -5707,6 +5707,16 @@
       }
     }
   },
+  "programsSummaryPay": "Pay: {amount}",
+  "@programsSummaryPay": {
+    "description": "Summary row showing what the caller is paid for the program: the amount followed by its ISO 4217 currency code.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "250.00 USD"
+      }
+    }
+  },
   "programsSetListHeader": "Set list ({count})",
   "@programsSetListHeader": {
     "description": "Heading of the program's set list, with the number of slots.",

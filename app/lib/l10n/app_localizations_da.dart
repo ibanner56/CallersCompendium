@@ -4458,6 +4458,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String programsSummaryPay(String amount) {
+    return 'Honorar: $amount';
+  }
+
+  @override
   String programsSetListHeader(int count) {
     return 'Sætliste ($count)';
   }

@@ -205,6 +205,8 @@ A program carries the details of its event:
 
 - **Event date**, **Venue**, and **Notes**;
 - program-level **Band**, **Caller**, and **Dancer level**;
+- **Pay**, an amount and currency under **More details**, shown on the
+  program's summary but never in the shared program text or PDF;
 - a **Status** — **Draft**, **Finalized**, or **Performed** — shown on the
   Programs list;
 - **Hide alternates in set list**, which leaves alternates out of the summary,

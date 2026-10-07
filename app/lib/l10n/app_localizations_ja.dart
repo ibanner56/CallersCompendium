@@ -4274,6 +4274,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String programsSummaryPay(String amount) {
+    return '報酬: $amount';
+  }
+
+  @override
   String programsSetListHeader(int count) {
     return 'セットリスト ($count)';
   }

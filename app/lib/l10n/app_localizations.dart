@@ -7133,6 +7133,12 @@ abstract class AppLocalizations {
   /// **'Level: {level}'**
   String programsSummaryLevel(String level);
 
+  /// Summary row showing what the caller is paid for the program: the amount followed by its ISO 4217 currency code.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay: {amount}'**
+  String programsSummaryPay(String amount);
+
   /// Heading of the program's set list, with the number of slots.
   ///
   /// In en, this message translates to:

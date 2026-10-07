@@ -4491,6 +4491,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String programsSummaryPay(String amount) {
+    return 'Gage: $amount';
+  }
+
+  @override
   String programsSetListHeader(int count) {
     return 'Setlijst ($count)';
   }

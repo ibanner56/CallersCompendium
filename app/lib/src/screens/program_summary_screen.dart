@@ -759,6 +759,16 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             Icons.signal_cellular_alt_outlined,
             l10n.programsSummaryLevel(_displayProse(program.dancerLevel!)),
           ),
+        if ((program.payMinorUnits, program.payCurrency) case (
+          final pay?,
+          final currency?,
+        ))
+          _summaryRow(
+            Icons.payments_outlined,
+            l10n.programsSummaryPay(
+              '${formatPayMinorUnits(pay, currency)} $currency',
+            ),
+          ),
         if (program.notes.trim().isNotEmpty) ...[
           const SizedBox(height: 16),
           Text(l10n.programsNotesLabel, style: theme.textTheme.titleSmall),

@@ -4517,6 +4517,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String programsSummaryPay(String amount) {
+    return 'Cachet : $amount';
+  }
+
+  @override
   String programsSetListHeader(int count) {
     return 'Liste de sets ($count)';
   }
