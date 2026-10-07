@@ -1213,7 +1213,7 @@ has to be judged in its own context.
   of these figures.
   **Out (→ custom
   for now, tracked on #295):** cast off,
-  two-hand turn & other ECD figures, promenade
+  ECD figures outside the contra taxonomy, promenade
   CW/CCW around the major set when the line cannot be recognized, non-duple
   formations, and
   anything with leftover prose. Coverage improves iteratively — measured against

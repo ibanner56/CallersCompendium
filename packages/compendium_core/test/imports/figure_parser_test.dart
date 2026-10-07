@@ -1705,4 +1705,123 @@ void main() {
       });
     }
   });
+
+  // Every wording of a two-hand turn unifies onto `two_hand_turn`: hyphen or
+  // space, subject before or after the move. TCB's usual spelling is the
+  // hyphenated one, which used to fall to custom.
+  group('parseFigureLine — two-hand turn wordings', () {
+    for (final (line, who, travel, note) in <(String, String, double?, String?)>[
+      ('Partner two hand turn', 'partners', null, null),
+      ('Partner two-hand turn', 'partners', null, null),
+      ('Two-hand turn partner', 'partners', null, null),
+      ('Two hand turn partner', 'partners', null, null),
+      ('Neighbor two-hand turn 1 & 1/2', 'neighbors', 1.5, null),
+      ('N2 neighbor two-hand turn 1 & 1/2', 'nextNeighbors', 1.5, null),
+      ('Ones two-hand turn 1/2', 'ones', 0.5, null),
+      // No direction param: the spin words survive, verbatim, as the note.
+      ('Neighbor two-hand turn cw', 'neighbors', null, 'cw'),
+      ('Partner two-hand turn ccw', 'partners', null, 'ccw'),
+      ('Neighbor two-hand turn clockwise 2', 'neighbors', 2.0, 'clockwise'),
+      (
+        'Partner two-hand turn counter clockwise 1',
+        'partners',
+        1.0,
+        'counter clockwise',
+      ),
+      ('Partner two-hand turn reverse', 'partners', null, 'reverse'),
+      // A trailing facing statement is kept as the note `; face …` gets.
+      (
+        'Two-hand turn partner and face across',
+        'partners',
+        null,
+        'face across',
+      ),
+      // An annotation combines with the direction note rather than replacing it.
+      (
+        'Partner two-hand turn clockwise 1 (in center)',
+        'partners',
+        1.0,
+        'clockwise; in center',
+      ),
+    ]) {
+      test('"$line" → two_hand_turn', () {
+        final f = _parseLine(line);
+        expect(f, isNotNull, reason: line);
+        expect(f!.isCustom, isFalse, reason: line);
+        expect(f.move, 'two_hand_turn', reason: line);
+        expect(f.params['who'], who, reason: line);
+        expect(f.params['travel'], travel, reason: line);
+        expect(f.note, note, reason: line);
+        expect(f.assumedSubject, isFalse, reason: line);
+      });
+    }
+
+    test('a facing target never becomes the subject', () {
+      final f = _parseLine('Two-hand turn and face partner')!;
+      expect(f.move, 'two_hand_turn');
+      expect(f.note, 'face partner');
+      // `who` is the move's default, flagged as assumed — not read from the
+      // facing target.
+      expect(f.assumedSubject, isTrue);
+    });
+
+    // A subject outside the dancer vocabulary is not guessed, and a bare
+    // `and face` names nothing to face: both stay custom with their text.
+    for (final line in [
+      'Two-hand turn next individual 1 & 1/2',
+      'Partner two-hand turn and face',
+      'Partner two-hand turn widdershins',
+    ]) {
+      test('"$line" stays custom', () {
+        final f = _parseLine(line)!;
+        expect(f.isCustom, isTrue, reason: line);
+        expect(f.params['text'], line, reason: line);
+      });
+    }
+  });
+
+  // `<pair> arch, <other pair> dive` → `arch_and_dive`, whose `who` is the
+  // ARCHING pair (the ContraDB reading the move was ported from).
+  group('parseFigureLine — arch and dive', () {
+    for (final (line, who, note) in <(String, String, String?)>[
+      ('Twos arch, ones dive', 'twos', null),
+      ('Ones arch, twos dive', 'ones', null),
+      ('Ones arch, twos dive (all backwards)', 'ones', 'all backwards'),
+      ('Twos arch, ones dive [with N1]', 'twos', 'with neighbors'),
+    ]) {
+      test('"$line" → arch_and_dive who=$who', () {
+        final f = _parseLine(line, beats: 4)!;
+        expect(f.isCustom, isFalse, reason: line);
+        expect(f.move, 'arch_and_dive', reason: line);
+        expect(f.params['who'], who, reason: line);
+        expect(f.note, note, reason: line);
+        expect(f.beats, 4, reason: line);
+        expect(f.assumedSubject, isFalse, reason: line);
+      });
+    }
+
+    test('a `;` compound of two arch-and-dives splits into both', () {
+      final fs = _parseLines(
+        'Twos arch, ones dive; ones arch, twos dive',
+        beats: 8,
+      );
+      expect(fs.map((f) => f.move), ['arch_and_dive', 'arch_and_dive']);
+      expect(fs.map((f) => f.params['who']), ['twos', 'ones']);
+    });
+
+    // The move has no slot for the divers, so only the complementary
+    // ones/twos pairing (where the divers follow from `who`) structures.
+    for (final line in [
+      'Ones arch, threes dive',
+      'Ones arch, woman two dive',
+      'Ones arch, ones dive',
+      'Keeping hands joined, twos arch, ones dive',
+      'Twos arch',
+    ]) {
+      test('"$line" stays custom', () {
+        final f = _parseLine(line)!;
+        expect(f.isCustom, isTrue, reason: line);
+      });
+    }
+  });
 }

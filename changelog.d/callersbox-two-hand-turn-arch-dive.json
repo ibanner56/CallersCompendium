@@ -1,0 +1,14 @@
+{
+  "id": "callersbox-two-hand-turn-arch-dive",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Dances imported from The Caller's Box now recognize \"two-hand turn\" however it is written (hyphenated or not, partner before or after) and \"Ones arch, twos dive\", instead of keeping those lines as unrecognized text. A stated turn direction, which a two-hand turn has no setting for, is kept as a note."
+    ]
+  },
+  "core": {
+    "added": [
+      "The shared figure recognizer reads `two-hand turn` (hyphenated, subject before or after, spin words and a trailing `and face …` kept as the note) as `two_hand_turn`, and `<ones|twos> arch, <twos|ones> dive` as `arch_and_dive` with the arching pair as `who`."
+    ]
+  }
+}
