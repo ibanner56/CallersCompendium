@@ -1132,12 +1132,14 @@ void main() {
       test(
         'a bare balance (assumed subject) does NOT fold into a swing',
         () async {
-          // `Balance` states no subject; the recognizer assumed one. Folding
-          // would render `partners balance & swing` — a partner balance the
-          // source never stated.
+          // `Balance` states no subject; the recognizer assumed one
+          // (neighbors). Folding would render `neighbors balance & swing` — a
+          // neighbor balance the source never stated. The assumed subject
+          // coincides with the swing's here on purpose: a who comparison alone
+          // would fold this pair.
           final figures = await figuresFor([
             '(4) Balance',
-            '(12) Partner swing',
+            '(12) Neighbor swing',
           ]);
           expect(figures, hasLength(2));
           expect(figures[0].move, 'balance');
