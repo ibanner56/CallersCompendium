@@ -110,7 +110,33 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _decodeSideRunAnnotation,
   ],
   recognitionNormalize: _tcbRecognitionNormalize,
-  declineToCustom: _declineSingleFileCircle,
+  declineToCustom: _tcbDeclineToCustom,
+);
+
+/// The TCB front-end's veto: every line one of these rejects goes straight to
+/// the custom fallback (see [FigureFrontEnd.declineToCustom]).
+bool _tcbDeclineToCustom(String scrubbed) =>
+    _declineSingleFileCircle(scrubbed) || _declineRoleSplitAmount(scrubbed);
+
+/// Vetoes a line that states a DIFFERENT turn amount per role in a
+/// parenthetical: `Same-role neighbor allemande left (M 1 & 1/2, W 2)`.
+///
+/// No move models a per-role amount, the shape rule in [_proseAnnotation]
+/// drops the all-uppercase body, and the move's `travel` then falls back to its
+/// taxonomy default (`1`) — so the structured figure would render an amount
+/// neither role dances and lose the one each does. Custom keeps the line.
+///
+/// Scoped to the bare-role form (`M <amount>, W <amount>`). The couple-coded
+/// form (`M1+W2 1 & 1/4, W1+M2 3/4`) is listed as correctly skipped by
+/// [_proseAnnotation]'s shape-rule measurement and still structures; this
+/// veto does not change that.
+bool _declineRoleSplitAmount(String scrubbed) =>
+    _parenAnnotations(scrubbed).any(_roleSplitAmountRe.hasMatch);
+
+/// `M <amount>, W <amount>` (either order). An amount is a whole number, a
+/// fraction, or `<whole> & <fraction>`. Anchored, no unbounded nesting.
+final RegExp _roleSplitAmountRe = RegExp(
+  r'^[MW]\s+(?:\d+\s*&\s*)?\d+(?:/\d+)?\s*,\s*[MW]\s+(?:\d+\s*&\s*)?\d+(?:/\d+)?$',
 );
 
 /// Parses a compound figure line, splitting it on TOP-LEVEL `;` separators and
@@ -2780,7 +2806,10 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   them declines the run (see the bucket list above for what declining costs
 ///   per decoder — custom for some, still-structures for others).
 /// - `N5`+, `N-1`, `N-2`, `S3`+, `S-n` — beyond the modelled neighbor/shadow
-///   depth.
+///   depth. A line's SUBJECT reads `S-1 shadow` as the bare shadow, by
+///   maintainer ruling (`dancerWords` in `taxonomy/dance_vocabulary.dart`).
+///   This map was not extended to match: pass codes like `S-1R` (about ten
+///   corpus dances) still decline the run, as they did before that ruling.
 /// - `Ph*` (phantoms), `TB*` (trail buddy), `SR*` (same-role), and bare `R`/`L`
 ///   (states a hand but no dancer at all).
 /// - `O` — the glossary's *"opposite"* (`docs/research/callersbox.md`), the

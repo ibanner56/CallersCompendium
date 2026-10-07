@@ -535,6 +535,13 @@ bool _consumePhrase(List<String> w, List<String> phrase) {
 /// Removes and returns the first dancer-set word found, or null.
 String? _takeDancer(List<String> w) {
   for (var i = 0; i < w.length; i++) {
+    // "Same-role neighbor" is ONE dancer set (`sameRoles`). Read the pair
+    // before the plain lookup, which would otherwise take "neighbor" alone and
+    // misreport the pairing as `neighbors`.
+    if (_isSameRolePair(w, i)) {
+      w.removeRange(i, i + 2);
+      return 'sameRoles';
+    }
     final token = dancerWords[w[i]];
     if (token != null) {
       final raw = w.removeAt(i);
@@ -554,11 +561,25 @@ String? _takeDancer(List<String> w) {
           (w[i] == 'partner' || w[i] == 'partners')) {
         w.removeAt(i);
       }
+      // TCB pairs the S-prefix with a redundant "shadow(s)" word
+      // ("S2 shadow swing"); drop it for the same reason.
+      if (_sSeriesCodes.contains(raw) &&
+          i < w.length &&
+          (w[i] == 'shadow' || w[i] == 'shadows')) {
+        w.removeAt(i);
+      }
       return token;
     }
   }
   return null;
 }
+
+/// Whether `w[i]`, `w[i + 1]` is a [sameRoleQualifiers] word followed by
+/// `neighbor`/`neighbors` — the two-word name of the `sameRoles` set.
+bool _isSameRolePair(List<String> w, int i) =>
+    i + 1 < w.length &&
+    sameRoleQualifiers.contains(w[i]) &&
+    (w[i + 1] == 'neighbor' || w[i + 1] == 'neighbors');
 
 /// Like [_takeDancer] but ONLY matches a dancer set at the FRONT of [w].
 /// Recognizers whose grammar requires a *leading* dancer ("Ones turn contra
@@ -567,6 +588,11 @@ String? _takeDancer(List<String> w) {
 /// is NOT structured — it falls through to custom instead.
 String? _takeLeadingDancer(List<String> w) {
   if (w.isEmpty) return null;
+  // Mirror _takeDancer's "same-role neighbor" pair.
+  if (_isSameRolePair(w, 0)) {
+    w.removeRange(0, 2);
+    return 'sameRoles';
+  }
   final token = dancerWords[w[0]];
   if (token == null) return null;
   final raw = w.removeAt(0);
@@ -581,6 +607,12 @@ String? _takeLeadingDancer(List<String> w) {
   if (_pSeriesCodes.contains(raw) &&
       w.isNotEmpty &&
       (w[0] == 'partner' || w[0] == 'partners')) {
+    w.removeAt(0);
+  }
+  // Mirror _takeDancer's "S2 shadow" pair absorption for the leading slot.
+  if (_sSeriesCodes.contains(raw) &&
+      w.isNotEmpty &&
+      (w[0] == 'shadow' || w[0] == 'shadows')) {
     w.removeAt(0);
   }
   return token;
@@ -608,6 +640,12 @@ const Set<String> _neighborNumbers = {'n0', 'n1', 'n2', 'n3', 'n4'};
 /// a spelling heuristic. `partner` and `partners` also start with `p` in
 /// [dancerWords] but must NOT trigger the absorption.
 const Set<String> _pSeriesCodes = {'p', 'p0', 'p1', 'p2', 'p3', 'p4', 'p5'};
+
+/// TCB S-prefix shadow tags that have a [dancerWords] entry (`S1`, `S-1`,
+/// `S2`), whose "S2 shadow" pair absorption mirrors the N- and P-prefix ones.
+/// `shadow` and `shadows` are [dancerWords] keys too but must NOT absorb a
+/// following word.
+const Set<String> _sSeriesCodes = {'s1', 's-1', 's2'};
 
 /// Removes the first [_neighborNumbers] token from [w] and returns it, or null.
 String? _takeNeighborNumber(List<String> w) {

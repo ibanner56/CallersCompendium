@@ -1,0 +1,14 @@
+{
+  "id": "callersbox-balance-wave-fold-annotation",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A Caller's Box \"Balance wave of four\" line whose hand notation could not be read, such as \"(C2R,WL)\", is no longer merged into the preceding wave and lost; it stays as free text."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The Caller's Box trailing balance-wave fold declines when the balance line's annotation does not decode, instead of dropping the annotation."
+    ]
+  }
+}

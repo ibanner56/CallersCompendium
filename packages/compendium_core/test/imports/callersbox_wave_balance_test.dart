@@ -284,6 +284,25 @@ void main() {
       });
     }
 
+    // A balance line whose annotation does not decode would lose it in the
+    // fold: only decoded params and notes carry over. It stays custom instead.
+    for (final pair in const [
+      ['(4) Pass the ocean', '(4) Balance wave of four (C2R,WL)'],
+      [
+        '(8) Same-role neighbor do-si-do 1 & 1/4; form wave of four',
+        '(4) Balance wave of four (SRNR,1CL)',
+      ],
+    ]) {
+      test('"${pair[1]}" after "${pair[0]}" does not fold away its '
+          'undecodable annotation', () async {
+        final figures = await _figuresFor(pair);
+        final balance = figures.last;
+        expect(balance.isCustom, isTrue);
+        expect(balance.params['text'], contains(pair[1].substring(4)));
+        expect(figures.any((f) => f.params['balance'] == true), isFalse);
+      });
+    }
+
     test(
       'an ordinary balance wave still folds (the guard is narrow)',
       () async {

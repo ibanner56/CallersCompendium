@@ -1130,6 +1130,13 @@ class CallersBoxAdapter implements SourceAdapter {
     }
     final beats = _sumBeats(wave, balance);
     final decoded = _balanceWaveAsFormMove(balance);
+    // A custom balance line whose annotation does not decode (`Balance wave of
+    // four (SRNR,1CL)` — `SRN` and `1C` are not modelled codes) would lose
+    // that annotation in the fold: only decoded params and a decoded note are
+    // carried over. Refuse, so the line stays custom with its text intact.
+    if (decoded == null && balance.isCustom && _hasAnnotation(balance)) {
+      return null;
+    }
     final extra = decoded == null
         ? const <String, Object?>{}
         : _compatibleFormParams(wave.move, decoded);
@@ -1144,6 +1151,12 @@ class CallersBoxAdapter implements SourceAdapter {
       },
       note: combineFigureNotes(wave.note, balanceNote),
     );
+  }
+
+  /// Whether a custom figure's text carries a `()` or `[]` annotation.
+  static bool _hasAnnotation(Figure f) {
+    final text = f.params['text'];
+    return text is String && (text.contains('(') || text.contains('['));
   }
 
   /// The params of a decoded balance-wave line that mean the same thing on
