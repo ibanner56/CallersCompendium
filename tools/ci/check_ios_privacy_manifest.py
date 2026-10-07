@@ -43,7 +43,7 @@ import plistlib
 import re
 import sys
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 IOS_DIR = Path("app/ios")
@@ -274,15 +274,17 @@ def parse_pbxproj(text: str) -> dict:
 class Target:
     name: str
     product_type: str
-    sources: list[Path]  # relative to the iOS project directory
-    resources: list[Path]
+    # Xcode project paths are POSIX on every host, so they print the same in
+    # findings on Windows as on macOS.
+    sources: list[PurePosixPath]  # relative to the iOS project directory
+    resources: list[PurePosixPath]
     # Build files in the Sources or Resources phase whose file cannot be
     # located, as human-readable descriptions. check() fails a shipped target
     # that has any: an unlocated source could be using an undeclared API.
     unresolved: list[str]
 
 
-def _direct_path(obj: dict) -> Path | None:
+def _direct_path(obj: dict) -> PurePosixPath | None:
     """The path of a file reference that does not need its group to locate it:
     one relative to the project directory, or absolute."""
     own = obj.get("path")
@@ -290,32 +292,32 @@ def _direct_path(obj: dict) -> Path | None:
         return None
     tree = obj.get("sourceTree", "<group>")
     if tree == "SOURCE_ROOT":
-        return Path(own)
+        return PurePosixPath(own)
     if tree == "<absolute>":
-        return Path(own)
+        return PurePosixPath(own)
     return None
 
 
-def _file_paths(objects: dict) -> dict[str, Path]:
+def _file_paths(objects: dict) -> dict[str, PurePosixPath]:
     """Maps every PBXFileReference / PBXVariantGroup id to its path relative to
     the project directory, by walking the group tree from the main group.
     A reference that is in no group is still mapped when its sourceTree makes
     its path self-contained (see _direct_path)."""
     root = next(o for o in objects.values() if o.get("isa") == "PBXProject")
-    paths: dict[str, Path] = {}
+    paths: dict[str, PurePosixPath] = {}
 
-    def walk(obj_id: str, parent: Path) -> None:
+    def walk(obj_id: str, parent: PurePosixPath) -> None:
         obj = objects.get(obj_id)
         if obj is None:
             return
         tree = obj.get("sourceTree", "<group>")
         own = obj.get("path")
         if tree == "SOURCE_ROOT":
-            base = Path(".")
+            base = PurePosixPath(".")
         elif tree == "<group>":
             base = parent
         elif tree == "<absolute>":
-            base = Path("/")
+            base = PurePosixPath("/")
         else:  # BUILT_PRODUCTS_DIR, SDKROOT, …: not a file in the tree
             return
         here = base / own if own else base
@@ -326,7 +328,7 @@ def _file_paths(objects: dict) -> dict[str, Path]:
         else:
             paths[obj_id] = here
 
-    walk(root["mainGroup"], Path("."))
+    walk(root["mainGroup"], PurePosixPath("."))
     for obj_id, obj in objects.items():
         if obj_id not in paths and isinstance(obj, dict):
             direct = _direct_path(obj)
@@ -342,8 +344,8 @@ def read_targets(pbxproj_text: str) -> list[Target]:
     for obj in objects.values():
         if obj.get("isa") != "PBXNativeTarget":
             continue
-        sources: list[Path] = []
-        resources: list[Path] = []
+        sources: list[PurePosixPath] = []
+        resources: list[PurePosixPath] = []
         unresolved: list[str] = []
         for phase_id in obj.get("buildPhases", []):
             phase = objects.get(phase_id, {})

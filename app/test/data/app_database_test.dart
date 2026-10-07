@@ -127,15 +127,20 @@ void main() {
     final selected = await resolveDatabaseFile(operatingSystem: 'linux');
     selected.createSync(recursive: true);
     expect(await performReset(dbFile: selected), isA<ResetComplete>());
-    final legacy = File(p.join(documents, name))
-      ..createSync(recursive: true)
-      ..writeAsBytesSync(const [1]);
+    // A real database: the relocation opens it with SQLite to hold it, and on
+    // Windows SQLite rejects a non-database file there.
+    final legacy = File(p.join(documents, name));
+    legacy.parent.createSync(recursive: true);
+    sql.sqlite3.open(legacy.path)
+      ..execute('CREATE TABLE t (v TEXT)')
+      ..close();
+    final original = legacy.readAsBytesSync();
 
     expect(
       await relocateLegacyDatabase(target: selected, legacy: [legacy]),
       isTrue,
     );
-    expect(selected.readAsBytesSync(), const [1]);
+    expect(selected.readAsBytesSync(), original);
   });
 
   // The startup preflight is the only caller of relocateLegacyDatabase. Every
