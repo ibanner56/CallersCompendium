@@ -758,12 +758,45 @@ void main() {
       expect(outcome.kind, DownloadResultKind.cancelled);
       expect(dest.existsSync(), isFalse);
       expect(consumer.closeCalls, 0, reason: 'cannot close mid-flush');
+      expect(
+        outcome.released,
+        isNotNull,
+        reason: 'returned with the file still open',
+      );
 
       consumer.gate.complete();
-      for (var i = 0; i < 20 && !consumer.closed; i++) {
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-      }
+      await outcome.released!.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => fail('released never completed'),
+      );
       expect(consumer.closeCalls, 1, reason: 'handle released after flush');
+      expect(consumer.closed, isTrue);
+    });
+
+    test('a cancelled download whose file closed before returning has no '
+        'pending release', () async {
+      final consumer = _GatedConsumer()..gate.complete();
+      final body = StreamController<List<int>>();
+      final token = DownloadCancelToken();
+      const total = half * 4;
+
+      final result = downloadArtifact(
+        _artifact(size: total),
+        destination: _WindowsLikeFile(dest, IOSink(consumer), consumer),
+        client: bodyClient(body, total),
+        cancelToken: token,
+      );
+      await listening(body);
+      body.add(bytes(half ~/ 2));
+      await pump();
+      token.cancel();
+      body.add(bytes(half ~/ 2)); // onData observes the cancel
+
+      final outcome = await result;
+      expect(outcome.kind, DownloadResultKind.cancelled);
+      expect(outcome.released, isNull);
+      expect(consumer.closed, isTrue, reason: 'closed before returning');
+      expect(dest.existsSync(), isFalse, reason: 'deleted before returning');
     });
 
     test('the deferred cleanup never deletes a file that replaced the '

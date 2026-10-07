@@ -341,12 +341,16 @@ class UpdateController extends ChangeNotifier {
 
       if (token.isCancelled || outcome.kind == DownloadResultKind.cancelled) {
         _cancelDownloadState(outcome.file);
-        if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
+        if (usesTemporaryDirectory) {
+          await _deleteDownloadDir(downloadDir!, outcome);
+        }
         return;
       }
       if (!outcome.isSuccess || outcome.file == null) {
         _failDownload(_downloadFailureFor(outcome.kind));
-        if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
+        if (usesTemporaryDirectory) {
+          await _deleteDownloadDir(downloadDir!, outcome);
+        }
         return;
       }
       final file = outcome.file!;
@@ -567,6 +571,22 @@ class UpdateController extends ChangeNotifier {
       // diagnostics: silent — best-effort cleanup; the caller's own failure
       // (already logged/surfaced) is what matters, not a delete error on top
       // of it.
+    }
+  }
+
+  /// Removes the per-attempt temp directory after a failed or cancelled
+  /// download, and again once [DownloadOutcome.released] completes when the
+  /// downloader returned with its partial file still open: on Windows that
+  /// open file blocks the first removal. Each attempt's directory is unique,
+  /// so the late removal cannot touch a newer download's files.
+  Future<void> _deleteDownloadDir(
+    Directory dir,
+    DownloadOutcome outcome,
+  ) async {
+    await _deleteDirQuietly(dir);
+    final released = outcome.released;
+    if (released != null) {
+      unawaited(released.then((_) => _deleteDirQuietly(dir)));
     }
   }
 

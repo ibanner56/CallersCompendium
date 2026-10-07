@@ -83,7 +83,7 @@ enum DownloadResultKind {
 /// file has been deleted) and [message] carries a short, non-user-facing reason
 /// for tests/logging.
 class DownloadOutcome {
-  const DownloadOutcome._(this.kind, {this.file, this.message});
+  const DownloadOutcome._(this.kind, {this.file, this.message, this.released});
 
   factory DownloadOutcome.success(File file) =>
       DownloadOutcome._(DownloadResultKind.success, file: file);
@@ -104,7 +104,20 @@ class DownloadOutcome {
   final File? file;
   final String? message;
 
+  /// Non-null only when a failed download returned while its partial file was
+  /// still open: a cancel or write watchdog gave up on a flush that had not
+  /// settled, or closing the file outlasted [kUpdateDownloadTimeout]. Completes (never with an error) once that file has been closed
+  /// and its deletion attempted. Until then the file blocks removal of its
+  /// directory on Windows, so a caller that owns the directory retries removing
+  /// it when this completes. It may never complete if the flush never settles.
+  final Future<void>? released;
+
   bool get isSuccess => kind == DownloadResultKind.success;
+
+  /// This outcome with [released] set; used by [downloadArtifact] and by test
+  /// fakes of [ArtifactDownloader].
+  DownloadOutcome withReleased(Future<void> released) =>
+      DownloadOutcome._(kind, file: file, message: message, released: released);
 }
 
 /// The injectable download seam. The [UpdateController] depends on this typedef
@@ -422,7 +435,10 @@ Future<DownloadOutcome> downloadArtifact(
     // [kUpdateDownloadTimeout]) before returning, so the `finally` delete runs
     // against a released handle and the file is gone when the caller sees the
     // outcome on Windows too — the caller removes the download directory next,
-    // which fails on Windows while the file is still there.
+    // which fails on Windows while the file is still there. When the file may
+    // still be open on return (a flush in flight, or a close that outlasted
+    // that bound), the outcome carries [DownloadOutcome.released] so the
+    // caller can remove the directory once the deferred cleanup has run.
     if (!outcome.isSuccess) {
       sinkClosed = true;
       final openSink = sink;
@@ -443,7 +459,7 @@ Future<DownloadOutcome> downloadArtifact(
           // is discarded.
         }
       }();
-      unawaited(() async {
+      final released = () async {
         await closing;
         if (await finallyRemovedFile.future) return;
         // The sink exists only after this call created [destination], and the
@@ -453,16 +469,17 @@ Future<DownloadOutcome> downloadArtifact(
         } on Object {
           // diagnostics: silent — best-effort cleanup of a discarded file.
         }
-      }());
+      }();
       if (pendingFlush == null) {
         try {
           await closing.timeout(kUpdateDownloadTimeout);
+          return outcome;
         } on TimeoutException {
           // diagnostics: silent — the outcome is already determined; the
           // deferred cleanup above deletes the file once the close completes.
         }
       }
-      return outcome;
+      return outcome.withReleased(released);
     }
     try {
       await sink.flush();
