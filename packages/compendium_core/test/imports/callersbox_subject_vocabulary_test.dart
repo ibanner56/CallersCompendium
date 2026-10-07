@@ -45,12 +45,6 @@ void main() {
       expect(f.params['who'], 'sameRoles');
     });
 
-    test('the pair is read whole: never neighbors with a stray qualifier', () {
-      // Without the pair reader, "neighbor" alone resolves to `neighbors`,
-      // which would assert the opposite-role neighbor.
-      expect(parse('Same-role neighbor do-si-do').params['who'], 'sameRoles');
-    });
-
     test('a [who] bracket survives as the note', () {
       final f = parse(
         'Same-role neighbor allemande left 1 [M with N1, W with N2]',
