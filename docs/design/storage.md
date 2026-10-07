@@ -167,7 +167,8 @@ No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
 ## Migrations
 
 - drift schema versions with stepwise migrations; every migration ships with
-  a test that opens a fixture DB from the previous version.
+  a test that instantiates the previous version from its generated schema
+  snapshot (`GeneratedHelper`) and seeds the rows it asserts on.
 - A **schema floor** (`kMinSupportedSchemaVersion`): versions below it are
   retired — their migration steps, fixtures and `drift_schemas/generated/`
   dumps are
