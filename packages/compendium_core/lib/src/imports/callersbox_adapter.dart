@@ -655,7 +655,11 @@ class CallersBoxAdapter implements SourceAdapter {
   ///  - a balance LINE immediately preceding a swing / petronella /
   ///    rory_o_more / box_the_gnat / swat_the_flea / box_circulate /
   ///    square_through folds into that move (swing → `prefix: 'balance'`;
-  ///    the others → `balance: true`, upgrading rory's neutral `false`);
+  ///    the others → `balance: true`, upgrading rory's neutral `false`) —
+  ///    but only when the merged figure balances the same dancers in the same
+  ///    formation the balance line did ([_balanceMatchesMove]): a stated
+  ///    subject must equal the move's, a ring balance folds only into
+  ///    petronella, and a balance-WAVE line only into a wave move;
   ///  - a bend-the-line LINE immediately following a structured down/up the hall
   ///    folds in as `ender: 'bendTheLine'` (upgrading the neutral `'none'`).
   ///  - a balance-WAVE LINE immediately following a `pass_the_ocean` /
@@ -683,8 +687,8 @@ class CallersBoxAdapter implements SourceAdapter {
   /// ([parseFigureLines]) now puts source prose on structured figures, that is
   /// reachable: `Balance the ring; face up` structures to
   /// `balance_the_ring` + the note `face up`, is still a balance LINE, and folds
-  /// into a following swing. Losing the note there would make structuring cost
-  /// information the custom fallback kept. Folds 2/3/4 consume only CUSTOM
+  /// into a following petronella. Losing the note there would make structuring
+  /// cost information the custom fallback kept. Folds 2/3/4 consume only CUSTOM
   /// lines, which carry no note, so the propagation is defence in depth there.
   static List<Figure> _mergeCrossLineFigures(List<Figure> figures) {
     final merged = <Figure>[];
@@ -891,24 +895,74 @@ class CallersBoxAdapter implements SourceAdapter {
   static bool _isHall(Figure f) =>
       f.move == 'down_the_hall' || f.move == 'up_the_hall';
 
+  /// Fold-1 targets whose balance is a balance of a RING (petronella) or of a
+  /// WAVE (Rory O'More, box circulate). Every other target in
+  /// [_balanceMergeMoves] (swing, box the gnat, swat the flea, square through)
+  /// is a SUBJECT move: its folded figure renders `<who> balance & <move>`
+  /// (swing via `prefix`, the rest via `balance: true`), so it claims the
+  /// balance was danced by the move's `who`.
+  static const _ringBalanceMoves = {'petronella'};
+  static const _waveBalanceMoves = {'rory_o_more', 'box_circulate'};
+
+  /// Whether folding [balance] into [move] keeps WHO and WHAT is balanced, so
+  /// the merged figure claims no balance the source did not describe. [move]
+  /// is already known to be in [_balanceMergeMoves].
+  ///
+  ///  * A dancer balance with a STATED subject (`Partner balance`,
+  ///    `Neighbor balance (RH)`, `Ones balance`) folds only into a move whose
+  ///    effective `who` (explicit, else the taxonomy default) is the SAME set.
+  ///    `Neighbor balance` / `Partner swing` stay two figures, and so does
+  ///    `Partner balance` / `Petronella` — petronella has no subject; its
+  ///    balance is the whole ring's.
+  ///  * A bare `Balance` (the recognizer ASSUMED its subject —
+  ///    [Figure.assumedSubject]) folds only into a ring or wave move, whose
+  ///    render names no balancing subject. Folded into a swing it would render
+  ///    `partners balance & swing`: a partner balance the source never stated.
+  ///  * `Balance ring` / `Balance the ring` folds only into petronella, whose
+  ///    balance IS the ring's. Folded into a swing it would turn the whole
+  ///    ring's balance into the swing pair's.
+  ///  * A custom balance line naming a WAVE (`Balance wave of four (NR,WL)`,
+  ///    `Balance long wave (NR, women face in)`) folds only into a wave move.
+  ///    Folded into a swing it would erase the wave's sides, centre and hands,
+  ///    claim the swing pair's balance, and — for `Balance wave of four` /
+  ///    `Ones swing` — lose the twos' balance outright. It stays its own figure
+  ///    instead, which [_promoteBalanceWaveLines] maps onto the wave-formation
+  ///    move with `balance: true` when it can decode the line.
+  ///  * Any other custom balance line (`Balance diamond`) folds only into
+  ///    petronella, as before; never into a subject move, which would assert a
+  ///    subject the line did not state.
+  static bool _balanceMatchesMove(Figure balance, Figure move) {
+    final target = move.move;
+    final ringOrWave =
+        _ringBalanceMoves.contains(target) ||
+        _waveBalanceMoves.contains(target);
+    if (balance.move == 'balance') {
+      if (balance.assumedSubject) return ringOrWave;
+      final balanceWho = balance.params['who'];
+      final moveWho = _effectiveWho(move);
+      return balanceWho != null && moveWho != null && balanceWho == moveWho;
+    }
+    if (balance.move == 'balance_the_ring') {
+      return _ringBalanceMoves.contains(target);
+    }
+    if (!balance.isCustom) return false;
+    final namesWave = _figureWords(
+      balance,
+    ).map(_stripEdgePunctuation).any((w) => w == 'wave' || w == 'waves');
+    return namesWave
+        ? _waveBalanceMoves.contains(target)
+        : _ringBalanceMoves.contains(target);
+  }
+
   /// Returns [move] with the preceding [balance] folded in, or `null` when
   /// [move] is not a mergeable target (leaving both as separate figures) or
   /// already carries the balance (guarding against a double-fold of a
   /// single-line "balance and swing" / meltdown swing / already-balanced move).
   static Figure? _foldBalanceIntoMove(Figure balance, Figure move) {
     if (!_balanceMergeMoves.contains(move.move)) return null;
-    // Mismatched-who guard: a structured balance line carries its own `who`
-    // (e.g. "Neighbor balance" → who: neighbors). Only fold when the dancers
-    // agree — if BOTH the balance and the move name an explicit, DIFFERING
-    // `who`, they are distinct figures ("Neighbor balance" then "Partner
-    // swing"), so merging would silently drop the balance's choreography.
-    // Either side without a `who` (custom balance forms, balance_the_ring,
-    // petronella) still merges.
-    final balanceWho = balance.params['who'];
-    final moveWho = move.params['who'];
-    if (balanceWho != null && moveWho != null && balanceWho != moveWho) {
-      return null;
-    }
+    // Subject/formation guard (see [_balanceMatchesMove]): fold only when the
+    // merged figure balances exactly who and what the balance line did.
+    if (!_balanceMatchesMove(balance, move)) return null;
 
     final beats = _sumBeats(balance, move);
     final note = combineFigureNotes(move.note, balance.note);
@@ -1146,9 +1200,12 @@ class CallersBoxAdapter implements SourceAdapter {
   // emitted.
   //
   // Runs AFTER the fold walk, over leftovers only, so:
-  //  * a balance that belongs to a FOLLOWING action (`Balance wave of four` then
-  //    `Neighbor swing` / petronella / rory / box the gnat / box circulate) has
-  //    already been consumed by Fold 1 and is never seen here; and
+  //  * a balance that belongs to a FOLLOWING wave action (`Balance wave of
+  //    four` then a Rory O'More or box circulate) has already been consumed by
+  //    Fold 1 and is never seen here. A balance wave before a swing / box the
+  //    gnat / swat the flea / petronella is NOT consumed — Fold 1 refuses it
+  //    ([_balanceMatchesMove]), because folding would erase the wave and hand
+  //    its balance to the move's pair — so it reaches this promotion; and
   //  * a balance that follows an explicitly-formed wave has already been folded
   //    into that figure by Fold 4, so exactly one form figure results.
   //

@@ -1030,14 +1030,30 @@ void main() {
       });
 
       test('balance → box_circulate sets the balance flag (v11)', () async {
+        // The balance's stated subject (women) is the circulate's crossing
+        // role (`who` defaults to role2s), so the fold keeps who balances.
         final figures = await figuresFor([
-          '(4) Partner balance',
+          '(4) Women balance',
           '(4) Box circulate',
         ]);
         expect(figures, hasLength(1));
         expect(figures.single.move, 'box_circulate');
         expect(figures.single.params['balance'], isTrue);
         expect(figures.single.params['beats'], 8); // 4 + 4
+      });
+
+      test('a partner balance does not fold into a box circulate', () async {
+        // box_circulate's subject is the crossing role (role2s by default),
+        // not partners, so the stated partner balance stays its own figure.
+        final figures = await figuresFor([
+          '(4) Partner balance',
+          '(4) Box circulate',
+        ]);
+        expect(figures, hasLength(2));
+        expect(figures[0].move, 'balance');
+        expect(figures[0].params['who'], 'partners');
+        expect(figures[1].move, 'box_circulate');
+        expect(figures[1].params.containsKey('balance'), isFalse);
       });
 
       test(
@@ -1057,28 +1073,94 @@ void main() {
       );
 
       test(
-        'a varied custom balance form (long wave) folds into a swing',
+        'a varied custom balance form (long wave) does NOT fold into a swing',
         () async {
+          // Folding would render `partners balance & swing` and erase the
+          // wave: the whole wave balanced, not just the swing pair.
           final figures = await figuresFor([
             '(4) Balance the long wave',
             '(12) Partner swing',
           ]);
-          expect(figures, hasLength(1));
-          expect(figures.single.move, 'swing');
-          expect(figures.single.params['prefix'], 'balance');
-          expect(figures.single.params['beats'], 16);
+          expect(figures, hasLength(2));
+          expect(figures[0].isCustom, isTrue);
+          expect(_text(figures[0]), 'Balance the long wave');
+          expect(figures[1].move, 'swing');
+          expect(figures[1].params['prefix'], isNull);
+          expect(figures[1].params['beats'], 12);
         },
       );
 
-      test('a "wave of four" custom balance folds into a swing', () async {
+      test(
+        'a "wave of four" custom balance does NOT fold into a swing',
+        () async {
+          final figures = await figuresFor([
+            '(4) Balance the wave of four',
+            '(12) Neighbor swing',
+          ]);
+          expect(figures, hasLength(2));
+          expect(figures[0].isCustom, isTrue);
+          expect(figures[1].move, 'swing');
+          expect(figures[1].params['prefix'], isNull);
+        },
+      );
+
+      test('a balance ring does NOT fold into a swing', () async {
+        // The ring's balance is all four dancers'; `partners balance & swing`
+        // would make it the swing pair's.
         final figures = await figuresFor([
-          '(4) Balance the wave of four',
-          '(12) Neighbor swing',
+          '(4) Balance ring',
+          '(12) Partner swing',
+        ]);
+        expect(figures, hasLength(2));
+        expect(figures[0].move, 'balance_the_ring');
+        expect(figures[1].move, 'swing');
+        expect(figures[1].params['prefix'], isNull);
+        expect(figures[1].params['beats'], 12);
+      });
+
+      test('a balance ring still folds into a petronella', () async {
+        final figures = await figuresFor([
+          '(4) Balance ring',
+          '(4) Petronella turn',
         ]);
         expect(figures, hasLength(1));
-        expect(figures.single.move, 'swing');
-        expect(figures.single.params['prefix'], 'balance');
+        expect(figures.single.move, 'petronella');
+        expect(figures.single.params['balance'], isTrue);
+        expect(figures.single.params['beats'], 8);
       });
+
+      test(
+        'a bare balance (assumed subject) does NOT fold into a swing',
+        () async {
+          // `Balance` states no subject; the recognizer assumed one. Folding
+          // would render `partners balance & swing` — a partner balance the
+          // source never stated.
+          final figures = await figuresFor([
+            '(4) Balance',
+            '(12) Partner swing',
+          ]);
+          expect(figures, hasLength(2));
+          expect(figures[0].move, 'balance');
+          expect(figures[0].assumedSubject, isTrue);
+          expect(figures[1].move, 'swing');
+          expect(figures[1].params['prefix'], isNull);
+        },
+      );
+
+      test(
+        'a stated balance subject does NOT fold into a petronella',
+        () async {
+          // Petronella has no subject: its balance is the whole ring's.
+          final figures = await figuresFor([
+            '(4) Partner balance',
+            '(4) Petronella',
+          ]);
+          expect(figures, hasLength(2));
+          expect(figures[0].move, 'balance');
+          expect(figures[1].move, 'petronella');
+          expect(figures[1].params.containsKey('balance'), isFalse);
+        },
+      );
 
       test('bend the line → down_the_hall upgrades the ender', () async {
         final figures = await figuresFor([
@@ -1318,16 +1400,21 @@ void main() {
       );
 
       test(
-        'balance-wave bracket note survives a leading balance fold',
+        'balance-wave bracket note survives when it does not fold into a swing',
         () async {
+          // The balance wave no longer folds into the swing (it would erase
+          // the wave); it is promoted to its own wave-formation figure, and
+          // the bracket note survives on that figure instead.
           final figures = await figuresFor([
             '(4) Balance wave of four (PR,WL) [with N2]',
             '(12) Neighbor swing',
           ]);
-          expect(figures, hasLength(1));
-          expect(figures.single.move, 'swing');
-          expect(figures.single.params['prefix'], 'balance');
-          expect(figures.single.note, 'with nextNeighbors');
+          expect(figures, hasLength(2));
+          expect(figures[0].move, 'form_short_waves');
+          expect(figures[0].params['balance'], isTrue);
+          expect(figures[0].note, 'with nextNeighbors');
+          expect(figures[1].move, 'swing');
+          expect(figures[1].params['prefix'], isNull);
         },
       );
 
