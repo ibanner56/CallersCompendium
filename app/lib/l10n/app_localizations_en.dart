@@ -4426,6 +4426,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String programsSummaryPay(String amount) {
+    return 'Pay: $amount';
+  }
+
+  @override
   String programsSetListHeader(int count) {
     return 'Set list ($count)';
   }
