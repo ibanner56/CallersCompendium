@@ -502,10 +502,11 @@ void main() {
       'follows the live redirect ibanner56.github.io → callerscompendium.com '
       'and returns the body',
       () async {
-        // This is the real redirect chain every installed client takes:
-        // kUpdateManifestBaseUrl (ibanner56.github.io) 301s to the custom
-        // Pages domain (callerscompendium.com). Both hosts are in
-        // kAllowedArtifactHosts; the redirect must be followed.
+        // This is the redirect chain clients built before
+        // kUpdateManifestBaseUrl moved to the custom domain still take:
+        // ibanner56.github.io 301s to the custom Pages domain
+        // (callerscompendium.com). Both hosts are in kAllowedArtifactHosts;
+        // the redirect must be followed.
         final manifestBytes = utf8.encode(_manifest());
         final client = makeRedirectingClient(
           redirectTarget:
@@ -520,6 +521,43 @@ void main() {
           client: client,
         );
         expect(body, manifestBytes);
+      },
+    );
+
+    test(
+      'the manifest and signature URLs are https on an allowed host, so a '
+      'fetch needs no redirect (an http Pages redirect cannot hide updates)',
+      () async {
+        for (final channel in UpdateChannel.values) {
+          for (final url in [
+            manifestUrlForChannel(channel),
+            signatureUrlForChannel(channel),
+          ]) {
+            expect(isAllowedArtifactHost(Uri.parse(url)), isTrue, reason: url);
+          }
+        }
+        expect(
+          manifestUrlForChannel(UpdateChannel.beta),
+          'https://callerscompendium.com/beta.json',
+        );
+        final manifestBytes = utf8.encode(_manifest());
+        var requests = 0;
+        final client = MockClient.streaming((request, _) async {
+          requests++;
+          // Models the real server: the custom domain answers directly, while a
+          // request to the old origin would 301 to http:// (refused → null).
+          expect(request.url.host, 'callerscompendium.com');
+          return http.StreamedResponse(
+            Stream<List<int>>.value(manifestBytes),
+            200,
+          );
+        });
+        final body = await fetchUpdateManifest(
+          UpdateChannel.stable,
+          client: client,
+        );
+        expect(body, manifestBytes);
+        expect(requests, 1);
       },
     );
 

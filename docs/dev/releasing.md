@@ -490,9 +490,14 @@ per-channel URL, hard-coded as `kUpdateManifestBaseUrl` in
 `app/lib/src/update/update_config.dart`:
 
 ```
-https://ibanner56.github.io/CallersCompendium/stable.json
-https://ibanner56.github.io/CallersCompendium/beta.json
+https://callerscompendium.com/stable.json
+https://callerscompendium.com/beta.json
 ```
+
+Builds before 0.6.0-beta request `https://ibanner56.github.io/CallersCompendium/…`
+instead, which only works while Pages "Enforce HTTPS" is on: with it off, Pages
+301s to `http://callerscompendium.com/…` and those clients refuse the non-https
+hop and silently report no update.
 
 On every real tagged release the `pages` job publishes the selected manifests
 to those URLs. The channel advances only after verification and public release (it is not

@@ -10,8 +10,14 @@ import 'update_manifest.dart';
 /// (ADR-002 §1); the `beta.json` manifest is served from the `gh-pages` branch.
 /// A 404/unreachable manifest is still a silent no-op, never an error (see the
 /// fetcher and ADR-002 §5).
-const String kUpdateManifestBaseUrl =
-    'https://ibanner56.github.io/CallersCompendium';
+///
+/// This is the Pages **custom domain**, requested directly. The project-site
+/// origin (`ibanner56.github.io/CallersCompendium`) 301-redirects to
+/// `http://callerscompendium.com/…` whenever the Pages site's "Enforce HTTPS"
+/// is off, and the fetcher refuses any non-https hop — so clients built
+/// against that origin saw "no update" with no error. Builds before this
+/// change still use the old origin and depend on that setting.
+const String kUpdateManifestBaseUrl = 'https://callerscompendium.com';
 
 /// The pinned Ed25519 **public keys** (each 32 bytes, standard base64) the
 /// client verifies the update manifest's detached signature against (issue
@@ -80,11 +86,11 @@ const Set<String> kAllowedArtifactHosts = {
   'objects.githubusercontent.com',
   // The gh-pages origin that serves the manifests (and could serve artifacts).
   'ibanner56.github.io',
-  // The GitHub Pages custom domain for this project. The compiled-in
-  // `kUpdateManifestBaseUrl` points at the gh-pages origin above, which the
-  // Pages CDN 301-redirects to this host. Every installed client therefore
-  // takes this redirect on every update check, so it must be allowed or
-  // updates are silently broken for all users.
+  // The GitHub Pages custom domain for this project, and the host
+  // `kUpdateManifestBaseUrl` now points at directly. Clients built before that
+  // change request the gh-pages origin above, which the Pages CDN
+  // 301-redirects to this host, so it must stay allowed or updates are
+  // silently broken for those installs.
   'callerscompendium.com',
 };
 

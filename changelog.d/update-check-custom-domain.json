@@ -1,0 +1,9 @@
+{
+  "id": "update-check-custom-domain",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Checking for updates now reaches the update server directly over HTTPS, so new releases are offered instead of the check quietly finding nothing."
+    ]
+  }
+}
