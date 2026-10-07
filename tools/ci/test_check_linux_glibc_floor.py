@@ -179,6 +179,10 @@ def _live() -> None:
         print("SKIP live objdump check: objdump is not installed")
         return
     exe = Path(sys.executable).resolve()
+    # macOS ships an LLVM objdump, but its python is Mach-O: no ELF, no glibc.
+    if not floor._is_elf(exe):
+        print(f"SKIP live objdump check: {exe} is not an ELF binary")
+        return
     reqs = floor.read_glibc_requirements(exe)
     assert reqs, f"objdump -p {exe} yielded no GLIBC_ version references"
 

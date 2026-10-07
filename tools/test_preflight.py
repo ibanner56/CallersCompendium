@@ -416,6 +416,20 @@ def test_release_tooling_probes_the_ed25519_submodule() -> None:
     assert step.needs_import == "cryptography.hazmat.primitives.asymmetric.ed25519"
 
 
+def test_pdfium_pin_tests_are_split_across_two_steps() -> None:
+    """The cmake -P half must SKIP without cmake, not crash release-tooling,
+    and the two halves together must still run the whole file."""
+    steps = {step.name: step for step in preflight.STEPS}
+    pin = "tools/release/test_pdfium_pin.py"
+
+    def flags(name: str) -> list[tuple[str, ...]]:
+        return [c[c.index(pin) + 1 :] for c in steps[name].commands if pin in c]
+
+    assert flags("release-tooling") == [("--without-cmake",)]
+    assert flags("pdfium-verifier") == [("--cmake-only",)]
+    assert steps["pdfium-verifier"].needs_binary == "cmake"
+
+
 def test_core_tests_step_passes_preflight_jobs() -> None:
     (step,) = [step for step in preflight.STEPS if step.name == "core-tests"]
     (command,) = step.commands
