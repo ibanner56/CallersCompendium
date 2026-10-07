@@ -88,7 +88,10 @@ B2: (8) Ladies chain to neighbor / (8) Star left 1
   `" "` spoken vs `' '` literal-from-source.
 - Rotation amounts: allemandes in quarters (`allemande left 1 & 1/2`), circles/
   stars in full turns (`Circle left 3/4`), heys in fractions with pass lists
-  (`Hey 1/2 (WR;PL;MR;N2L~)`).
+  (`Hey 1/2 (WR;PL;MR;N2L~)`). Thirds and eighths also occur (`Star left 7/8`,
+  `Ones allemande right 1 & 2/3`); the importer rounds these to the nearest
+  quarter and keeps the source amount as the figure's note
+  (`docs/design/imports.md`).
 - Formation vocabulary (controlled, complete list on the search form): Duple Minor
   {Improper, Becket, Proper, Indecent, Reverse-progression improper, Progressed
   improper, Cross, Other}, Triple Minor, Three/Four Facing, Solo/Singlet/Doublet/

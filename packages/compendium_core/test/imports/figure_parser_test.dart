@@ -1632,17 +1632,24 @@ void main() {
       );
     });
 
-    // An eighth-turn ("1 & 1/8") has no integer place, so the amount is NOT
-    // recognized and the line stays custom — never rounded to a nearby place.
-    test('"Star left 1 & 1/8" (eighth-turn) → custom', () {
+    // An eighth-turn ("1 & 1/8") has no integer place of its own. Maintainer
+    // ruling: round it to the nearest quarter place (ties half up: 1 & 1/8 →
+    // 1 & 1/4 = 5 places), keeping the source amount as the note so the figure
+    // never silently claims the rounded count.
+    test('"Star left 1 & 1/8" (eighth-turn) rounds to 5 places', () {
       final f = _parseLine('Star left 1 & 1/8');
-      expect(f!.isCustom, isTrue);
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'star');
+      expect(f.params['places'], 5);
+      expect(f.note, '1 & 1/8');
     });
 
-    // A bare eighth fraction is likewise never mapped to a place.
-    test('"Star right 5/8" (eighth-turn) → custom', () {
+    // A bare eighth fraction likewise rounds (5/8 → 3/4 = 3 places).
+    test('"Star right 5/8" (eighth-turn) rounds to 3 places', () {
       final f = _parseLine('Star right 5/8');
-      expect(f!.isCustom, isTrue);
+      expect(f!.isCustom, isFalse);
+      expect(f.params['places'], 3);
+      expect(f.note, '5/8');
     });
 
     // 3 & 1/2 = 14 places, past the 1..10 range: the amount is left unconsumed
@@ -1690,13 +1697,29 @@ void main() {
       });
     }
 
-    // 2¾ is beyond the 2.5 rotation cap and 2¼ is not a rotation the parser's
-    // vocabulary admits (its decimal table stops at 2.5 with no 2.25 either):
-    // honest custom, not a half-read "2".
+    // 2¼ is inside the rotation domain (quarter steps up to 2.5), and callers
+    // do write it (10 full-permission Caller's Box lines). It used to be
+    // declined as "not a rotation a caller writes"; once `2 & 1/8` rounds to
+    // 2.25 (non-quarter rounding), declining the exact spelling of the same
+    // amount would be incoherent, so it structures too.
     for (final line in [
       'Neighbor allemande left 2 1/4',
+      'Neighbor allemande left 2 & 1/4',
+    ]) {
+      test('"$line" structures as a 2.25 turn', () {
+        final f = _parseLine(line);
+        expect(f!.isCustom, isFalse, reason: line);
+        expect(f.params['travel'], 2.25, reason: line);
+        expect(f.note, isNull, reason: line); // exact: nothing was rounded
+      });
+    }
+
+    // 2¾ is beyond the 2.5 rotation cap, and so is 2⅞ once rounded to 3:
+    // honest custom, not a half-read "2".
+    for (final line in [
       'Neighbor allemande left 2 3/4',
       'Neighbor allemande left 2 & 3/4',
+      'Neighbor allemande left 2 & 7/8',
     ]) {
       test('"$line" stays custom (outside the rotation vocabulary)', () {
         final f = _parseLine(line);
@@ -1823,5 +1846,128 @@ void main() {
         expect(f.isCustom, isTrue, reason: line);
       });
     }
+  });
+
+  group('parseFigureLine — non-quarter amounts round to the nearest quarter', () {
+    // Maintainer ruling: a non-quarter rotation (⅓ ⅔ ⅛ ⅜ ⅝ ⅞) rounds to the
+    // nearest quarter instead of declining the line to custom. Ties (every
+    // eighth) round half up. The source amount survives as the note, so a
+    // figure never silently claims 1¾ where the source said 1⅔.
+    final rotations = <String, ({double travel, String note})>{
+      'Ones allemande right 1 & 2/3': (travel: 1.75, note: '1 & 2/3'),
+      'N2 neighbor allemande right 1 & 2/3': (travel: 1.75, note: '1 & 2/3'),
+      'role2s allemande left 2/3': (travel: 0.75, note: '2/3'),
+      'role2s allemande left 1/3': (travel: 0.25, note: '1/3'),
+      'Ones allemande right 1 & 5/8': (travel: 1.75, note: '1 & 5/8'),
+      'Neighbor allemande left 1/8': (travel: 0.25, note: '1/8'),
+      'Neighbor allemande left 3/8': (travel: 0.5, note: '3/8'),
+      'Neighbor allemande left 7/8': (travel: 1.0, note: '7/8'),
+      'Neighbor allemande left 2 & 1/8': (travel: 2.25, note: '2 & 1/8'),
+      'Neighbor allemande left 2 3/8': (travel: 2.5, note: '2 3/8'),
+      'Partner do si do 1 & 1/3': (travel: 1.25, note: '1 & 1/3'),
+      'Neighbor allemande left 9/16': (travel: 0.5, note: '9/16'),
+    };
+    rotations.forEach((line, expected) {
+      test('"$line" → travel ${expected.travel}, note "${expected.note}"', () {
+        final f = _parseLine(line);
+        expect(f!.isCustom, isFalse, reason: line);
+        expect(f.params['travel'], expected.travel, reason: line);
+        expect(f.note, expected.note, reason: line);
+      });
+    });
+
+    final places = <String, ({String move, int places, String note})>{
+      'Star left 7/8': (move: 'star', places: 4, note: '7/8'),
+      'Circle left 3/8': (move: 'circle', places: 2, note: '3/8'),
+      'Circle left 2/3': (move: 'circle', places: 3, note: '2/3'),
+      'Hands-across star right 1 & 1/3': (
+        move: 'star',
+        places: 5,
+        note: '1 & 1/3',
+      ),
+      'Star right 1 & 7/8': (move: 'star', places: 8, note: '1 & 7/8'),
+      // Below an eighth still rounds UP: a stated nonzero amount never becomes 0.
+      'Circle left 1/16': (move: 'circle', places: 1, note: '1/16'),
+    };
+    places.forEach((line, expected) {
+      test('"$line" → ${expected.places} places, note "${expected.note}"', () {
+        final f = _parseLine(line);
+        expect(f!.isCustom, isFalse, reason: line);
+        expect(f.move, expected.move, reason: line);
+        expect(f.params['places'], expected.places, reason: line);
+        expect(f.note, expected.note, reason: line);
+      });
+    });
+
+    // The rounded amount and an annotation both survive, the amount first.
+    test('a rounded amount joins a bracket annotation in the note', () {
+      final f = _parseLine('Star left 1 & 1/8 [with N2]');
+      expect(f!.isCustom, isFalse);
+      expect(f.params['places'], 5);
+      expect(f.note, '1 & 1/8; with nextNeighbors');
+    });
+
+    // Rounding can push a compound past the 1..10 places range: still custom.
+    test('"Circle left 2 & 7/8" (rounds past 10 places) → custom', () {
+      expect(_parseLine('Circle left 2 & 7/8')!.isCustom, isTrue);
+    });
+
+    // An improper or unbounded fraction is not an amount to round.
+    for (final line in ['Circle left 5/3', 'Neighbor allemande left 1/32']) {
+      test('"$line" stays custom', () {
+        expect(_parseLine(line)!.isCustom, isTrue, reason: line);
+      });
+    }
+
+    // The canonical (ContraDB-aligned) front-end shares the decoder, so it
+    // rounds the same way.
+    test('the canonical front-end rounds through the same decoder', () {
+      final f = parseFigureLine('allemande right 1 & 2/3');
+      expect(f!.isCustom, isFalse);
+      expect(f.params['travel'], 1.75);
+      expect(f.note, '1 & 2/3');
+    });
+  });
+
+  group('roundFractionToQuarters', () {
+    test('rounds to the nearest quarter, ties half up, never to zero', () {
+      final cases = <(int, int), int>{
+        (1, 8): 1, // tie → up
+        (3, 8): 2, // tie → up
+        (5, 8): 3, // tie → up
+        (7, 8): 4, // tie → up
+        (1, 3): 1,
+        (2, 3): 3,
+        (1, 6): 1,
+        (5, 6): 3,
+        (9, 16): 2,
+        (1, 16): 1, // would round to 0: floored at one quarter
+      };
+      cases.forEach((fraction, quarters) {
+        expect(
+          roundFractionToQuarters(fraction.$1, fraction.$2),
+          quarters,
+          reason: '${fraction.$1}/${fraction.$2}',
+        );
+      });
+    });
+
+    test(
+      'declines exact quarters, improper fractions and large denominators',
+      () {
+        for (final (n, d) in [
+          (1, 4),
+          (2, 4),
+          (3, 4),
+          (2, 8),
+          (5, 3),
+          (3, 3),
+          (1, 32),
+          (0, 8),
+        ]) {
+          expect(roundFractionToQuarters(n, d), isNull, reason: '$n/$d');
+        }
+      },
+    );
   });
 }
