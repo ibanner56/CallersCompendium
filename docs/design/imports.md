@@ -1044,7 +1044,14 @@ has to be judged in its own context.
   through (variant kept as a note), weave-the-line `with <dancer>`, relationship
   N-suffix (`with/to neighbor N2`, in either word order), explicit dancer codes
   (M1/W1/M2/W2 →
-  ones/twos single-dancer identities), and `(A-B)` beat ranges. **Mad robin &
+  ones/twos single-dancer identities), same-role neighbor subjects
+  (`Same-role neighbor swing` → `who: sameRoles`; maintainer ruling that
+  same-sex = same-role; `N2 same-role neighbor` has no ordinal token and stays
+  custom), S-prefix shadow subjects (`S1`/`S-1 shadow` → `shadows`, `S-1` by
+  maintainer ruling; `S2 shadow` → `secondShadows`; `S3`+ and `S-2`… stay
+  custom), and `(A-B)` beat ranges. A line stating a different turn amount per
+  role — `allemande left (M 1 & 1/2, W 2)` — stays custom: no move models it,
+  and structuring would render the move's default amount. **Mad robin &
   butterfly whirl (#295, taxonomy v20):** both moves gained the params TCB
   states — `mad robin` a rotation `direction` plus the "around `<whom>`" target,
   `butterfly whirl` a `who` plus the same `direction` — so "Mad robin clockwise
