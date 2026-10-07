@@ -1038,7 +1038,9 @@ has to be judged in its own context.
   (→ structured turn plus a preserved note), pass the ocean +
   trailing balance wave (→ `pass_the_ocean` / `form_short_waves` /
   `form_a_long_wave` / `form_long_waves` with `balance: true`, beats summed;
-  #577), diagonal chain /
+  #577; a balance line whose annotation does not decode — `(C2R,WL)`,
+  `(SRNR,1CL)` — is not folded and stays custom, since the fold carries only
+  decoded params), diagonal chain /
   hey
   / right-&-left-through (→ `dir: left/rightDiagonal`), same-role right & left
   through (variant kept as a note), weave-the-line `with <dancer>`, relationship
