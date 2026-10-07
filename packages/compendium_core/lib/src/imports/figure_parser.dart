@@ -639,8 +639,9 @@ String? _takeRelationship(List<String> w) {
 /// Removes a rotation-direction word from anywhere in [w] and returns the
 /// canonical `clockwise`/`counterclockwise` token, or null when the line states
 /// none. The one spin-direction reader: every recognizer that reads a spin word
-/// goes through it (directly or via [_takeGateDirection]) so they all accept the
-/// same spellings.
+/// goes through it (directly, via [_takeGateDirection], or via
+/// [_takeSpinDirectionPhrase], which shares its spelling table) so they all
+/// accept the same spellings.
 ///
 /// The counter-forms are tested FIRST: `_consumePhrase(['clockwise'])` would
 /// otherwise match the second half of a two-token "counter clockwise" and leave
@@ -651,18 +652,29 @@ String? _takeRelationship(List<String> w) {
 /// `counter-clockwise`, `anticlockwise`, `anti-clockwise`, `anti clockwise`,
 /// `ccw`; clockwise forms: `clockwise`, `cw`. [_takeGateDirection] wraps this
 /// reader and additionally admits TCB's gate-only `mirror` value.
-String? _takeSpinDirection(List<String> w) {
-  if (_consumePhrase(w, ['counterclockwise']) ||
-      _consumePhrase(w, ['counter', 'clockwise']) ||
-      _consumePhrase(w, ['counter-clockwise']) ||
-      _consumePhrase(w, ['anticlockwise']) ||
-      _consumePhrase(w, ['anti-clockwise']) ||
-      _consumePhrase(w, ['anti', 'clockwise']) ||
-      _consumePhrase(w, ['ccw'])) {
-    return 'counterclockwise';
-  }
-  if (_consumePhrase(w, ['clockwise']) || _consumePhrase(w, ['cw'])) {
-    return 'clockwise';
+String? _takeSpinDirection(List<String> w) => _takeSpinDirectionPhrase(w)?.$1;
+
+/// The spellings [_takeSpinDirection] accepts, in the order it tries them
+/// (counter-forms first — see there), each with its canonical token.
+const List<(List<String>, String)> _spinDirectionPhrases = [
+  (['counterclockwise'], 'counterclockwise'),
+  (['counter', 'clockwise'], 'counterclockwise'),
+  (['counter-clockwise'], 'counterclockwise'),
+  (['anticlockwise'], 'counterclockwise'),
+  (['anti-clockwise'], 'counterclockwise'),
+  (['anti', 'clockwise'], 'counterclockwise'),
+  (['ccw'], 'counterclockwise'),
+  (['clockwise'], 'clockwise'),
+  (['cw'], 'clockwise'),
+];
+
+/// [_takeSpinDirection], also returning the words the line actually wrote
+/// (`cw`, `counter clockwise`, …) as the record's second field. A move with no
+/// direction param (`two_hand_turn`) keeps those source words as its note, so
+/// the line's own spelling survives rather than a canonical rewrite of it.
+(String, String)? _takeSpinDirectionPhrase(List<String> w) {
+  for (final (phrase, canonical) in _spinDirectionPhrases) {
+    if (_consumePhrase(w, phrase)) return (canonical, phrase.join(' '));
   }
   return null;
 }
@@ -931,6 +943,9 @@ final List<_Recognizer> _recognizers = [
   // parsed here and never derived (see gate_facing.dart).
   _gate,
   _californiaTwirl,
+  // Anchors on the exact four-word `<pair> arch <other pair> dive` shape, which
+  // no other recognizer consumes.
+  _archAndDive,
   _weaveTheLine,
   _squareThrough,
   _pullBy,
@@ -1034,17 +1049,49 @@ _Match? _allemande(List<String> w) {
   );
 }
 
+/// `two_hand_turn`: `[who] two hand turn [who] [direction] [rotation]
+/// [and face …]`.
+///
+/// - Both `two hand turn` and the hyphenated `two-hand turn` (TCB's usual
+///   spelling) anchor, with the subject before or after the move.
+/// - `two_hand_turn` has no direction param, so a stated spin word (`cw`,
+///   `clockwise`, `counterclockwise`, …) or `reverse` is kept VERBATIM as the
+///   note — never dropped, and never asserted as a param the move lacks.
+/// - A trailing `and face <…>` is kept as the note `face <…>`: the same note the
+///   TCB front-end gives a `; face <…>` clause, whose `face …` allowlist entry is
+///   a measured, maintainer-ruled reading of facing statements as commentary.
+///   It is split off BEFORE the subject is read, so `… and face partner` cannot
+///   lend the facing target to `who`.
+/// - A subject outside the dancer vocabulary (`next individual`) is not
+///   guessed: its words are leftover, and the line declines to custom, as for
+///   every other recognizer here.
 _Match? _twoHandTurn(List<String> w) {
+  final anchor = _phraseIndex(w, ['two', 'hand', 'turn']) != -1
+      ? ['two', 'hand', 'turn']
+      : ['two-hand', 'turn'];
+  final anchorAt = _phraseIndex(w, anchor);
+  if (anchorAt == -1) return null;
+  String? faceNote;
+  final faceAt = _phraseIndex(w, ['and', 'face']);
+  if (faceAt > anchorAt) {
+    // `face` plus at least one word of what is faced.
+    if (faceAt + 2 >= w.length) return null;
+    faceNote = w.sublist(faceAt + 1).join(' ');
+    w.removeRange(faceAt, w.length);
+  }
   final who = _takeDancer(w);
-  if (!_consumePhrase(w, ['two', 'hand', 'turn'])) return null;
+  if (!_consumePhrase(w, anchor)) return null;
   final who2 = who ?? _takeDancer(w);
+  final direction =
+      _takeSpinDirectionPhrase(w)?.$2 ??
+      (_consumePhrase(w, ['reverse']) ? 'reverse' : null);
   final turn = _takeRotation(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match(
     'two_hand_turn',
     {'who': who2 ?? 'partners', 'travel': ?turn},
-    null,
+    combineFigureNotes(direction, faceNote),
     who2 == null,
   );
 }
@@ -1923,6 +1970,27 @@ _Match? _californiaTwirl(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('california_twirl', {'who': ?who2});
+}
+
+/// `arch_and_dive`: TCB's `<ones|twos> arch, <twos|ones> dive` (the comma is
+/// stripped by `_normalize`).
+///
+/// `who` is the ARCHING pair. That is the ContraDB reading the taxonomy move was
+/// ported from — its words are `<who> arch <other> dive`, and
+/// `contradb_figure_dialect.dart`'s `_archAndDive` stores the archers as `who`
+/// — so `Twos arch, ones dive` is `who: twos`.
+///
+/// The move has no slot for the divers: they are implied as "the other pair".
+/// So only the complementary `ones`/`twos` pairing structures, where the divers
+/// follow from `who` and nothing the line said is lost. Any other diver
+/// (`Ones arch, threes dive`, `Ones arch, role2 two dive`), the same pair on
+/// both sides, or any further word declines to custom.
+_Match? _archAndDive(List<String> w) {
+  if (w.length != 4 || w[1] != 'arch' || w[3] != 'dive') return null;
+  const other = {'ones': 'twos', 'twos': 'ones'};
+  final archers = w[0];
+  if (other[archers] != w[2]) return null;
+  return _Match('arch_and_dive', {'who': archers});
 }
 
 // "Weave the line" is a caller synonym for the existing (ContraDB-sourced)
