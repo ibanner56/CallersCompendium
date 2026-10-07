@@ -15,6 +15,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:path/path.dart' as p;
 
 import '../support/test_repositories.dart';
 
@@ -818,7 +819,9 @@ void main() {
         FileSystemEntity.typeSync(chosen.path, followLinks: false),
         FileSystemEntityType.link,
       );
-      expect(Link(chosen.path).targetSync(), target.path);
+      // Windows stores the target with its own separators, so compare paths,
+      // not strings.
+      expect(p.equals(Link(chosen.path).targetSync(), target.path), isTrue);
       expect(target.readAsStringSync(), 'do-not-touch');
     });
 

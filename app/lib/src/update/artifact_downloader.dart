@@ -408,20 +408,26 @@ Future<DownloadOutcome> downloadArtifact(
     // preserved even if the close also fails.)
     //
     // A non-success outcome (cancel, stall, over-budget) discards the file, so
-    // there is nothing to flush and nothing to wait for: return at once.
-    // Awaiting here would re-block on the very flush a cancel or write
-    // watchdog just gave up on, and dart:io throws if a sink is closed while a
-    // flush is outstanding. So close once any in-flight flush settles, then
-    // delete, but only if the `finally` delete below could not: it fails on
-    // Windows while the handle is open, and then the file still exists, so a
-    // new download cannot have created a replacement at this path (the
-    // exclusive create refuses). Where that delete succeeded, the path may
-    // already belong to a new download and must not be touched.
+    // there is nothing to flush. Awaiting an in-flight flush here would
+    // re-block on the very flush a cancel or write watchdog just gave up on,
+    // and dart:io throws if a sink is closed while a flush is outstanding. So
+    // close once any in-flight flush settles, then delete, but only if the
+    // `finally` delete below could not: it fails on Windows while the handle
+    // is open, and then the file still exists, so a new download cannot have
+    // created a replacement at this path (the exclusive create refuses). Where
+    // that delete succeeded, the path may already belong to a new download and
+    // must not be touched.
+    //
+    // With no flush in flight, wait for the close (bounded like a flush, by
+    // [kUpdateDownloadTimeout]) before returning, so the `finally` delete runs
+    // against a released handle and the file is gone when the caller sees the
+    // outcome on Windows too — the caller removes the download directory next,
+    // which fails on Windows while the file is still there.
     if (!outcome.isSuccess) {
       sinkClosed = true;
       final openSink = sink;
       final pendingFlush = inFlightFlush;
-      unawaited(() async {
+      final closing = () async {
         if (pendingFlush != null) {
           try {
             await pendingFlush;
@@ -436,6 +442,9 @@ Future<DownloadOutcome> downloadArtifact(
           // diagnostics: silent — the outcome is already determined; the file
           // is discarded.
         }
+      }();
+      unawaited(() async {
+        await closing;
         if (await finallyRemovedFile.future) return;
         // The sink exists only after this call created [destination], and the
         // file has stayed in place since, so it is still this call's file.
@@ -445,6 +454,14 @@ Future<DownloadOutcome> downloadArtifact(
           // diagnostics: silent — best-effort cleanup of a discarded file.
         }
       }());
+      if (pendingFlush == null) {
+        try {
+          await closing.timeout(kUpdateDownloadTimeout);
+        } on TimeoutException {
+          // diagnostics: silent — the outcome is already determined; the
+          // deferred cleanup above deletes the file once the close completes.
+        }
+      }
       return outcome;
     }
     try {
