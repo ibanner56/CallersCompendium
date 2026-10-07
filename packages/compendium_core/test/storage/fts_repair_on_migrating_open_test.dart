@@ -7,7 +7,7 @@
 // grounds that it would otherwise "schedule a duplicate rebuild marker while
 // … still traversing the old schema" — which is not the order drift runs
 // things in, and the presence check makes a duplicate marker impossible
-// anyway. The cost of the early return: a v28+ file missing an FTS table
+// anyway. The cost of the early return: a v35+ file missing an FTS table
 // migrated, failed once in the post-open sweeps, and healed on the *next*
 // launch.
 //
@@ -26,12 +26,11 @@ void main() {
     final raw = sqlite3.sqlite3.openInMemory();
     addTearDown(raw.close);
 
-    // v30 is the oldest snapshot whose migration path to head creates no FTS
-    // table of its own (the v28 step does, for `from < 28`), so a table
-    // missing here is missing when `beforeOpen` runs.
+    // v35 is the floor snapshot. No surviving `onUpgrade` step creates an FTS
+    // table, so a table missing here is missing when `beforeOpen` runs.
     final historical = GeneratedHelper().databaseForVersion(
       NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-      30,
+      kMinSupportedSchemaVersion,
     );
     await historical.customSelect('SELECT 1').get();
     await historical.customStatement('DROP TABLE dance_substring_fts');

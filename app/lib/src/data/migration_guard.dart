@@ -85,6 +85,12 @@ const List<({int floor, String bridgeTag})> kBelowFloorBridgeTags = [
   // still the newest release that can open a v11–v19 database and migrate it
   // through the now-retired steps, landing at v25 — comfortably above v20.
   (floor: 20, bridgeTag: 'v0.1.0-beta.7'),
+  // Floor raised to 35 once every release before v0.4.0-beta ("Allemande
+  // Left") was retired. v0.6.0-beta (schema v38) is the newest release that
+  // predates this raise, so it still carries the steps that migrate a v20–v34
+  // database to head — landing at v38, comfortably above v35. (v0.3.1-beta,
+  // the last release below the floor, would NOT do: it tops out at v32.)
+  (floor: 35, bridgeTag: 'v0.6.0-beta'),
 ];
 
 /// Returns the [bridgeTag] for a database at [fileVersion] — the release tag
