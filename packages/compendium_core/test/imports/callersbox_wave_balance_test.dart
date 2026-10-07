@@ -299,12 +299,10 @@ void main() {
   });
 
   group('the existing forward balance-merge keeps its balances', () {
+    // Only a WAVE move claims a preceding balance-wave line: its balance is the
+    // wave's. Subject and ring moves do not — see the group below.
     const forwardCases = <String, String>{
-      '(12) Neighbor swing': 'swing',
-      '(4) Petronella': 'petronella',
       '(4) Rory O\'More right': 'rory_o_more',
-      '(4) Neighbor box the gnat': 'box_the_gnat',
-      '(4) Neighbor swat the flea': 'swat_the_flea',
       '(4) Circulate: women cross, men loop right': 'box_circulate',
     };
     forwardCases.forEach((line, move) {
@@ -353,16 +351,57 @@ void main() {
       expect(figure.params['balance'], isTrue);
       expect(figure.params['beats'], 8);
     });
+  });
 
-    test('a long-wave balance also folds forward', () async {
+  group('a balance wave never folds into a subject or ring move', () {
+    // Folding `(4) Balance wave of four (NR,WL)` into a following swing /
+    // box the gnat / swat the flea would render `<who> balance & <move>`: the
+    // wave's sides, centre and hands are lost and the balance is claimed by
+    // the move's pair alone (for `Ones swing`, the twos' balance vanishes).
+    // Into a petronella it would turn the wave into a ring. The wave line
+    // stays its own figure — promoted to the balanced wave formation — and
+    // the following move is untouched.
+    const separateCases = <String, String>{
+      '(12) Neighbor swing': 'swing',
+      '(12) Ones swing': 'swing',
+      '(12) Partner swing': 'swing',
+      '(4) Petronella': 'petronella',
+      '(4) Neighbor box the gnat': 'box_the_gnat',
+      '(4) Neighbor swat the flea': 'swat_the_flea',
+    };
+    separateCases.forEach((line, move) {
+      test('a balance wave before "$line" stays its own figure', () async {
+        final figures = await _figuresFor([
+          '(4) Balance wave of four (NR,WL)',
+          line,
+        ]);
+        expect(figures, hasLength(2));
+        final wave = figures[0];
+        expect(wave.move, 'form_short_waves');
+        expect(wave.params['balance'], isTrue);
+        expect(wave.params['sides'], 'neighbors');
+        expect(wave.params['center'], 'role2s');
+        expect(wave.params['centerHand'], 'left');
+        expect(wave.beats, 4);
+        expect(figures[1].move, move);
+        expect(figures[1].params['prefix'], isNull);
+        expect(figures[1].params.containsKey('balance'), isFalse);
+      });
+    });
+
+    test('a long-wave balance stays its own figure before a swing', () async {
       final figures = await _figuresFor([
         '(4) Balance long wave (NR, women face in)',
         '(12) Partner swing',
       ]);
-      expect(figures, hasLength(1));
-      expect(figures.single.move, 'swing');
-      expect(figures.single.params['prefix'], 'balance');
-      expect(figures.single.params['beats'], 16);
+      expect(figures, hasLength(2));
+      expect(figures[0].move, 'form_long_waves');
+      expect(figures[0].params['balance'], isTrue);
+      expect(figures[0].params['whom'], 'neighbors');
+      expect(figures[0].params['who'], 'role2s');
+      expect(figures[1].move, 'swing');
+      expect(figures[1].params['prefix'], isNull);
+      expect(figures[1].params['beats'], 12);
     });
   });
 

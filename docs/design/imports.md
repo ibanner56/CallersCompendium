@@ -645,8 +645,9 @@ the `hey` pass-list decoder — same `tcbPassPeople` map) reads the codes:
   balance as a separate line, never inline on a square-through line, so a
   standalone `Square through n (…)` carries none. This mirrors `rory_o_more`,
   which forces `balance: false` for the same reason. (The decoder does not itself
-  fold a preceding balance line in; a `<who> balance` line stays its own figure,
-  matching TCB's two-line source.)
+  fold a preceding balance line in. The adapter's cross-line Fold 1 does, but
+  only a `<who> balance` whose stated subject equals the square through's
+  effective `who`; a ring or wave balance stays its own figure.)
 
 **Whole-line strictness / prefer-custom.** The text outside the pass list must be
 exactly `square through <n>` (modulo filler), `n` in 2..10; the cell count must
@@ -1280,9 +1281,24 @@ form figure is ever emitted.
 (`_promoteBalanceWaveLines`), so by construction it only ever sees leftovers:
 
 1. **Fold 1 (forward)** — a balance line immediately BEFORE a swing /
-   petronella / rory o'more / box the gnat / swat the flea / box circulate folds
-   into that move (`prefix: balance` / `balance: true`). ~44% of balance-wave
-   lines have such a successor and are claimed here, exactly as before.
+   petronella / rory o'more / box the gnat / swat the flea / box circulate /
+   square through folds into that move (`prefix: balance` / `balance: true`),
+   but only when the merged figure balances the same dancers in the same
+   formation as the source line (`_balanceMatchesMove`). A balance-WAVE line
+   folds only into a WAVE move (box circulate, Rory O'More): folded into a
+   swing, box the gnat, swat the flea, square through or petronella it would
+   render `<who> balance & <move>`, erasing the wave's sides, centre and hands
+   and handing the whole wave's balance to the move's pair (`Balance wave of
+   four` / `Ones swing` lost the twos' balance outright). Those lines fall
+   through to the promotion below instead. The same rule keeps `Balance ring`
+   out of a swing (it folds only into petronella), keeps a bare `Balance` —
+   whose subject the recognizer assumed — out of every subject move, and folds
+   a stated subject (`Partner balance`) only into a move with the SAME
+   effective `who`. Measured over the 11,499 full-permission dances: of the
+   3,773 balance-wave lines that reach the merge, Fold 1 claims **211** (all
+   before a box circulate); it claimed 353 before this rule, the other 142
+   being swings (124), box the gnats (14), swat the fleas (2) and square
+   throughs (2).
 2. **Fold 4 (backward, #577)** — a balance-wave line immediately AFTER a
    structured `pass_the_ocean` / `form_short_waves` / `form_a_long_wave` /
    `form_long_waves` folds into that figure with the beats summed, so an

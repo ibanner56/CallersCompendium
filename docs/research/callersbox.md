@@ -482,9 +482,12 @@ centre/sides model ContraDB's ocean wave already uses. Long waves use
 `(<relationship-code><Hand>, <role> face in)`: 858 `women face in`, 568 `men face
 in`, 64 `twos face in`, 13 `ones face in`.
 
-Adjacency (why the mapping is safe): ~44% of these lines are followed by a move
-the existing forward balance-merge already claims (swing, petronella, rory,
-box the gnat, box circulate, slide); 1,091 are preceded by a wave-forming clause
+Adjacency (why the mapping is safe): ~44% of these lines are followed by a swing,
+petronella, rory, box the gnat, box circulate or slide. Of those, the forward
+balance-merge claims only the wave moves (box circulate, and slide via the
+Rory O'More fold); a balance wave before a swing / box the gnat / petronella is
+left to the promotion, because folding it would hand the wave's balance to the
+move's pair (see design/imports.md, "Fold 1"); 1,091 are preceded by a wave-forming clause
 (`Pass the ocean` ×395, `form wave of four …` ×~480, `form long wave …` ×~130);
 the remainder is the implicit case, dominated by allemandes.
 
