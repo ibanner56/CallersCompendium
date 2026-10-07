@@ -280,6 +280,14 @@ def main() -> None:
     assert 'gen_release_metadata.py "${metadata_args[@]}"' in metadata_step
     assert '--codename "$RELEASE_CODENAME"' in metadata_step
     assert '--codename "${{ needs.meta.outputs.codename }}"' not in metadata_step
+    # End-of-life announcements: guarded like --codename so a recovery run of
+    # a tag that predates the option still generates its manifests, and fed
+    # from the checked-in file that test_gen_release_metadata.py validates.
+    assert 'grep -Fq -- "--retirements" <<<"$metadata_help"' in metadata_step
+    assert (
+        "metadata_args+=(--retirements tools/release/retirements.json)"
+        in metadata_step
+    )
 
     codename_define = (
         '--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME"'
@@ -288,8 +296,10 @@ def main() -> None:
 
     build_job = _job_section(text, "build")
     assert "      CODENAME: ${{ needs.meta.outputs.codename }}" in build_job
-    build_windows_job = _job_section(text, "build_windows")
-    assert "      CODENAME: ${{ needs.meta.outputs.codename }}" in build_windows_job
+    # The whole build matrix waits on the release-signing approval gate.
+    assert "\n    environment: release-signing\n" in build_job, (
+        "the build matrix must declare environment: release-signing"
+    )
 
     # Every source checkout must pin the resolved commit, not the mutable tag
     # ref, so a tag moved mid-run cannot make assurance validate one commit while
@@ -297,9 +307,9 @@ def main() -> None:
     # is required (e.g. the recovery provenance predicate), never as a checkout.
     # Match the checkout step's own indentation so the checks job's
     # `checkout_ref:` pass-through (which also ends in "ref:") is not counted.
-    assert text.count("\n          ref: ${{ needs.meta.outputs.source_sha }}") == 4, (
-        "build, Windows, publish, and Pages jobs must all check out the resolved "
-        "source SHA"
+    assert text.count("\n          ref: ${{ needs.meta.outputs.source_sha }}") == 3, (
+        "build (every platform, Windows included), publish, and Pages jobs must "
+        "all check out the resolved source SHA"
     )
     assert text.count("\n          ref: ${{ needs.meta.outputs.release_ref }}") == 0, (
         "no job may check out the mutable release_ref; the tag name is passed via "

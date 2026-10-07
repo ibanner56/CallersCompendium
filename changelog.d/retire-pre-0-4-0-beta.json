@@ -1,0 +1,14 @@
+{
+  "id": "retire-pre-0-4-0-beta",
+  "user_visible": true,
+  "app": {
+    "removed": [
+      "Support for collections last opened by v0.3.1-beta or earlier. Caller's Compendium will no longer open a collection file that old; it stops rather than upgrading it halfway, which would leave the file quietly incomplete. Every tester is on v0.4.0-beta (\"Allemande Left\") or later, so in practice no collection is affected. If you do still have an older file, open it once with v0.6.0-beta and it will be upgraded normally, after which this release can open it."
+    ]
+  },
+  "core": {
+    "removed": [
+      "Raise `kMinSupportedSchemaVersion` from v20 to v35, the schema shipped by v0.4.0-beta. The `onUpgrade` steps for v21–v35, their fixtures, generators, schema dumps and generated schema classes are deleted; a database stamped below v35 is refused."
+    ]
+  }
+}

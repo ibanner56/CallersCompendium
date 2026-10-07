@@ -7539,6 +7539,25 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String retirementNoticeUpcoming(String appName, String version, String date) {
+    return 'このバージョンの$appName（$version）のサポートは$dateに終了します。それまでに新しいバージョンに更新してください。';
+  }
+
+  @override
+  String retirementNoticePast(String appName, String version, String date) {
+    return 'このバージョンの$appName（$version）のサポートは$dateに終了しました。今すぐ新しいバージョンに更新してください。';
+  }
+
+  @override
+  String get retirementBannerGetUpdate => 'アップデートを入手';
+
+  @override
+  String get retirementBannerLater => '後で';
+
+  @override
+  String get settingsUpdatesRetirementTitle => 'サポート終了';
+
+  @override
   String get updateBannerViewRelease => 'リリースを見る';
 
   @override

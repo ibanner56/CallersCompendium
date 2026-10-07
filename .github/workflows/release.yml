@@ -313,16 +313,30 @@ jobs:
           - platform: ios
             arch: universal
             os: macos-latest
+          # Windows signs with Azure Trusted Signing over GitHub OIDC (see the
+          # release-signing environment and `id-token: write` below).
+          - platform: windows
+            arch: x64
+            os: windows-latest
     runs-on: ${{ matrix.os }}
     # Only the Linux leg sets matrix.container. For the others it evaluates to
     # an empty string, which the runner treats as no container at all.
     container: ${{ matrix.container }}
+    # Every leg of the matrix waits on the release-signing approval gate, not
+    # just the ones that sign, so nothing is built until it is approved.
+    environment: release-signing
     permissions:
       contents: read
+      id-token: write  # Windows: Azure Trusted Signing uses GitHub OIDC
     env:
       VERSION: ${{ needs.meta.outputs.version }}
       ANDROID_VERSION_CODE: ${{ needs.meta.outputs.android_version_code }}
       CODENAME: ${{ needs.meta.outputs.codename }}
+      # The MSVC runtime DLLs the x64 Windows bundle imports (platform-4). Shipped
+      # app-local, next to compendium_app.exe, so the app starts on a PC that
+      # has no Visual C++ Redistributable. The Windows staging step fails the
+      # job if any bundled binary imports a runtime DLL missing from this list.
+      MSVC_RUNTIME_DLLS: vcruntime140.dll vcruntime140_1.dll msvcp140.dll
     steps:
       # The container starts with only the base system and runs as root (no
       # sudo). This runs before checkout because actions/checkout needs git
@@ -1195,60 +1209,6 @@ jobs:
           cp "$aab" "aab/CallersCompendium-${VERSION}.aab"
           ls -l aab
 
-      - name: List packaged artifacts
-        run: ls -l dist
-
-      - name: Upload packaged artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: dist-${{ matrix.platform }}
-          path: dist/
-          # Desktop legs must always stage binaries (error on empty). The android
-          # leg is a no-op when signing secrets are absent, and the ios leg never
-          # stages into dist/ (its signed .ipa is store-delivered to TestFlight
-          # and uploaded as the separate `ios-ipa` artifact), so both tolerate an
-          # empty dist/ (no dist-android/dist-ios artifact is uploaded, step still
-          # passes).
-          if-no-files-found: ${{ (matrix.platform == 'android' || matrix.platform == 'ios') && 'ignore' || 'error' }}
-          retention-days: 7
-
-      # Keep the signed .aab as its own workflow artifact for the Play upload.
-      # Like the iOS `ios-ipa` artifact, it is deliberately NOT staged into dist/,
-      # so it never enters SHA256SUMS, the channel manifest, the SLSA subject
-      # glob, or the GitHub Release. Download it from the run and upload it to the
-      # Play Console (see docs/dev/store-submission/google-play.md).
-      - name: Upload Android .aab artifact
-        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: android-aab
-          path: aab/CallersCompendium-*.aab
-          if-no-files-found: error
-          retention-days: 7
-
-  # Windows uses Azure Trusted Signing via GitHub OIDC, so keep it in its own job
-  # and grant `id-token: write` only here.
-  build_windows:
-    name: Build + package (windows)
-    needs: [meta, checks]
-    runs-on: windows-latest
-    permissions:
-      contents: read
-      id-token: write  # Azure Trusted Signing uses GitHub OIDC
-    env:
-      VERSION: ${{ needs.meta.outputs.version }}
-      CODENAME: ${{ needs.meta.outputs.codename }}
-      # The MSVC runtime DLLs the x64 bundle imports (platform-4). Shipped
-      # app-local, next to compendium_app.exe, so the app starts on a PC that
-      # has no Visual C++ Redistributable. The staging step below fails the job
-      # if any bundled binary imports a runtime DLL missing from this list.
-      MSVC_RUNTIME_DLLS: vcruntime140.dll vcruntime140_1.dll msvcp140.dll
-    environment: release-signing
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ needs.meta.outputs.source_sha }}
-
       # Windows signing gate, mirroring the Android/macOS/iOS gates above. Read the
       # Azure configuration variables via `env:` here and export a plain step output
       # (`signing=configured|missing`) that the Windows build/package steps below
@@ -1257,6 +1217,7 @@ jobs:
       # and still succeeds. `mkdir -p dist` keeps the shared "List/Upload" steps
       # happy on that skip path.
       - name: Determine Windows signing availability
+        if: matrix.platform == 'windows'
         id: windows_signing
         shell: bash
         env:
@@ -1280,16 +1241,9 @@ jobs:
             echo "::notice::Windows Azure Trusted Signing not configured; producing UNSIGNED Windows artifacts (unchanged from today)."
           fi
 
-      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
-        with:
-          flutter-version-file: .fvmrc
-          channel: stable
-          cache: true
-
-      - run: flutter pub get --enforce-lockfile
-
       # --- Windows: zip (portable) + Inno Setup installer ------------------
       - name: Build Windows release bundle
+        if: matrix.platform == 'windows'
         working-directory: app
         run: |
           codename_define=()
@@ -1301,7 +1255,7 @@ jobs:
             "${codename_define[@]}"
 
       - name: Azure Login
-        if: steps.windows_signing.outputs.signing == 'configured'
+        if: matrix.platform == 'windows' && steps.windows_signing.outputs.signing == 'configured'
         uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
@@ -1309,7 +1263,7 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Sign Windows bundle binaries with Azure Artifact Signing
-        if: steps.windows_signing.outputs.signing == 'configured'
+        if: matrix.platform == 'windows' && steps.windows_signing.outputs.signing == 'configured'
         uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
         with:
           endpoint: https://wus2.codesigning.azure.net/
@@ -1327,6 +1281,7 @@ jobs:
       # DLLs are already Microsoft-signed and must not be re-signed as ours.
       # These files are on Microsoft's Visual Studio redistributable list.
       - name: Stage the MSVC runtime beside the app
+        if: matrix.platform == 'windows'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -1415,6 +1370,7 @@ jobs:
       # Not a dist-* artifact: it feeds the SBOM in publish_draft and must not
       # be merged into the release assets.
       - name: Upload the MSVC runtime manifest for the SBOM
+        if: matrix.platform == 'windows'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: native-components-windows
@@ -1423,6 +1379,7 @@ jobs:
           retention-days: 7
 
       - name: Package Windows (zip + installer)
+        if: matrix.platform == 'windows'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -1496,7 +1453,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed ($LASTEXITCODE)" }
 
       - name: Sign Windows installer with Azure Artifact Signing
-        if: steps.windows_signing.outputs.signing == 'configured'
+        if: matrix.platform == 'windows' && steps.windows_signing.outputs.signing == 'configured'
         uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
         with:
           endpoint: https://wus2.codesigning.azure.net/
@@ -1507,8 +1464,10 @@ jobs:
       # The proof for the app-local MSVC runtime (platform-4): every required
       # DLL must be in the staged folder, inside the portable zip, and in the
       # tree the (signed) installer actually installs, and the uninstaller must
-      # remove it again. No `if:` -- this runs on every release, signed or not.
+      # remove it again. Windows-only, but deliberately not conditioned on signing
+      # availability: it runs for signed and unsigned Windows releases alike.
       - name: Verify the MSVC runtime ships in the zip and the installer
+        if: matrix.platform == 'windows'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -1562,14 +1521,33 @@ jobs:
           Write-Host "uninstaller removes: $($required -join ', ')"
 
       - name: List packaged artifacts
-        shell: bash
         run: ls -l dist
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: dist-windows
+          name: dist-${{ matrix.platform }}
           path: dist/
+          # Desktop legs must always stage binaries (error on empty). The android
+          # leg is a no-op when signing secrets are absent, and the ios leg never
+          # stages into dist/ (its signed .ipa is store-delivered to TestFlight
+          # and uploaded as the separate `ios-ipa` artifact), so both tolerate an
+          # empty dist/ (no dist-android/dist-ios artifact is uploaded, step still
+          # passes).
+          if-no-files-found: ${{ (matrix.platform == 'android' || matrix.platform == 'ios') && 'ignore' || 'error' }}
+          retention-days: 7
+
+      # Keep the signed .aab as its own workflow artifact for the Play upload.
+      # Like the iOS `ios-ipa` artifact, it is deliberately NOT staged into dist/,
+      # so it never enters SHA256SUMS, the channel manifest, the SLSA subject
+      # glob, or the GitHub Release. Download it from the run and upload it to the
+      # Play Console (see docs/dev/store-submission/google-play.md).
+      - name: Upload Android .aab artifact
+        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-aab
+          path: aab/CallersCompendium-*.aab
           if-no-files-found: error
           retention-days: 7
 
@@ -1577,7 +1555,7 @@ jobs:
   # tag push or an explicit existing-tag recovery, never a dispatch dry run.
   publish_draft:
     name: Create draft release
-    needs: [meta, build, build_windows]
+    needs: [meta, build]
     if: >-
       github.repository == 'ibanner56/CallersCompendium' &&
       needs.meta.outputs.is_release == 'true'
@@ -1618,7 +1596,7 @@ jobs:
 
       - run: flutter pub get --enforce-lockfile
 
-      # The MSVC runtime manifest build_windows wrote; gen_sbom.py lists those
+      # The MSVC runtime manifest the Windows build leg wrote; gen_sbom.py lists those
       # DLLs. pdfium comes from packaging/pdfium/pdfium.cmake in the checkout.
       - name: Download the MSVC runtime manifest
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -1657,6 +1635,13 @@ jobs:
           fi
           if grep -Fq -- "--codename" <<<"$metadata_help"; then
             metadata_args+=(--codename "$RELEASE_CODENAME")
+          fi
+          # End-of-life announcements (ADR-002 §2 `retirements`), read from the
+          # tag's checkout and copied into every refreshed manifest. Guarded
+          # like --codename so a recovery run of a tag that predates the option
+          # still generates its manifests.
+          if grep -Fq -- "--retirements" <<<"$metadata_help"; then
+            metadata_args+=(--retirements tools/release/retirements.json)
           fi
           metadata_args+=(
             --extra-file

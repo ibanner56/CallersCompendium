@@ -57,7 +57,7 @@ def job_section(text: str, job: str) -> str:
 
 def step_index(job: str, step_name: str) -> int:
     marker = f"      - name: {step_name}\n"
-    assert marker in job, f"build_windows has no step named {step_name!r}"
+    assert marker in job, f"build job has no step named {step_name!r}"
     return job.index(marker)
 
 
@@ -77,12 +77,12 @@ def run_script(job: str, step_name: str) -> str:
 
 
 def windows_job() -> str:
-    return job_section(WORKFLOW.read_text(encoding="utf-8"), "build_windows")
+    return job_section(WORKFLOW.read_text(encoding="utf-8"), "build")
 
 
 def dll_list_env(job: str) -> set[str]:
     match = re.search(r"^      MSVC_RUNTIME_DLLS: (.+)$", job, re.MULTILINE)
-    assert match is not None, "build_windows must declare env MSVC_RUNTIME_DLLS"
+    assert match is not None, "build job must declare env MSVC_RUNTIME_DLLS"
     return {name.lower() for name in match.group(1).split()}
 
 
@@ -147,7 +147,10 @@ def test_verify_step_checks_zip_and_installer() -> None:
         < step_index(job, UPLOAD_STEP)
     ), "verify the shipped (signed) installer and zip before uploading them"
     step = step_body(job, VERIFY_STEP)
-    assert "        if:" not in step, "the runtime check must run on every release"
+    assert "        if: matrix.platform == 'windows'\n" in step
+    assert "signing" not in step.split("        run:", 1)[0], (
+        "the runtime check must run on every Windows release, signed or not"
+    )
     script = run_script(job, VERIFY_STEP)
     assert "$env:MSVC_RUNTIME_DLLS" in script
     assert "ZipFile" in script, "open the zip and look for each DLL"

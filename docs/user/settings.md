@@ -434,6 +434,17 @@ without you choosing to.
 When an update is available, a dismissible banner points you to the release so you
 can read what's new before deciding.
 
+Occasionally a version of the app reaches the end of its support, for example
+when a later release changes something older versions can't keep up with. If an
+update check finds that your version has an end-of-support date, a banner tells
+you the date you need to update by. On that date and afterward it says that
+support has ended. **Get update** opens the newer release. **Later** hides the banner until you
+next open the app. It comes back after that, because you can't skip an end of
+support the way you can skip one update. The notice is also shown at the top of
+the **Updates** section. The app remembers it, so it still appears when you're
+offline. Once you've updated, the notice goes away. Versions up to and including
+0.6.0-beta were released before these notices existed and can't show them.
+
 On **desktop**, once an update is found you can **Download & install update**: the
 app downloads it, verifies it hasn't been tampered with, then hands it to your
 system's installer to finish — it never replaces itself in place. On **macOS**,

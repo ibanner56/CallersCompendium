@@ -1,0 +1,9 @@
+{
+  "id": "update-download-windows-cleanup",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "On Windows, a cancelled or failed update download no longer leaves an empty download folder behind in the temp directory."
+    ]
+  }
+}

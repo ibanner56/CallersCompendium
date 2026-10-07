@@ -7944,6 +7944,25 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String retirementNoticeUpcoming(String appName, String version, String date) {
+    return 'La prise en charge de cette version de $appName ($version) prend fin le $date. Passez à une version plus récente d\'ici là.';
+  }
+
+  @override
+  String retirementNoticePast(String appName, String version, String date) {
+    return 'La prise en charge de cette version de $appName ($version) a pris fin le $date. Passez dès maintenant à une version plus récente.';
+  }
+
+  @override
+  String get retirementBannerGetUpdate => 'Obtenir la mise à jour';
+
+  @override
+  String get retirementBannerLater => 'Plus tard';
+
+  @override
+  String get settingsUpdatesRetirementTitle => 'Fin de la prise en charge';
+
+  @override
   String get updateBannerViewRelease => 'Voir la version';
 
   @override

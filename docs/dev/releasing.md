@@ -106,7 +106,11 @@ and produces no Android artifact.
 
 ## Safety model
 
-- Global workflow token is **read-only**. Only the `publish_draft` job elevates
+- Global workflow token is **read-only**. The `build` matrix runs in the
+  approval-gated `release-signing` environment, so no platform builds until a
+  maintainer approves, and it holds `id-token: write` job-wide (Azure Trusted
+  Signing authenticates over GitHub OIDC for the Windows leg; the other legs do
+  not use it) with `contents: read` only. The `publish_draft` job elevates
   to `contents: write` (plus `id-token`/`attestations: write` for the provenance
   and SBOM attestations); the approval-gated `publish_mobile` job remains
   read-only; the `verify` job is read-only (`attestations: read` to query the
@@ -490,9 +494,14 @@ per-channel URL, hard-coded as `kUpdateManifestBaseUrl` in
 `app/lib/src/update/update_config.dart`:
 
 ```
-https://ibanner56.github.io/CallersCompendium/stable.json
-https://ibanner56.github.io/CallersCompendium/beta.json
+https://callerscompendium.com/stable.json
+https://callerscompendium.com/beta.json
 ```
+
+Builds before 0.6.0-beta request `https://ibanner56.github.io/CallersCompendium/…`
+instead, which only works while Pages "Enforce HTTPS" is on: with it off, Pages
+301s to `http://callerscompendium.com/…` and those clients refuse the non-https
+hop and silently report no update.
 
 On every real tagged release the `pages` job publishes the selected manifests
 to those URLs. The channel advances only after verification and public release (it is not
@@ -525,6 +534,41 @@ by `tools/release/test_publish_pages_manifest.py`.
 guard as `publish`, so forks, PRs, and build-only manual runs can never publish
 the site. An explicit existing-tag recovery is a release operation and does
 refresh the selected channel.
+
+### Announcing an end of life for older builds
+
+To tell users of older builds that they must update by a date, add an entry to
+`tools/release/retirements.json` and commit it **before tagging** the release
+that should carry it: the `publish_draft` job reads the file from the release's
+source commit and copies it into every manifest that release refreshes.
+
+```json
+[
+  {"through": "0.7.0", "endOfLife": "2027-01-31"}
+]
+```
+
+Every build at or below `through` (SemVer precedence, so `0.7.0-beta` is
+covered too) shows a banner warning that support ends on `endOfLife`, and
+from that day on that it has ended (`endOfLife` is the first unsupported day). Field rules are in ADR-002 §2.
+
+- **Only checks deliver it.** Clients learn of the notice from a manual or
+  opt-in automatic update check (ADR-002 §5); there is no separate request.
+  Builds up to and including 0.6.0-beta cannot show it at all.
+- **It travels with a release.** No workflow re-signs a manifest outside a
+  release. A stable release refreshes `stable.json` and `beta.json`; a beta
+  release refreshes only `beta.json`, so a notice added just before a beta
+  release does not reach stable-channel users until the next stable release.
+- **Keep entries until they no longer matter.** Each release copies the whole
+  current file, and a client clears its stored notice when an authenticated
+  manifest no longer covers it. Deleting an entry therefore withdraws the
+  notice, and moving a date postpones it, on the next release.
+- **A release cannot retire itself.** `gen_release_metadata.py` fails the run
+  for an entry whose `through` is not strictly older than the version being
+  released, and for any entry the client would refuse (unknown key, a
+  `v`-prefixed or otherwise malformed version, an impossible date). The
+  `tools/release/test_gen_release_metadata.py` suite also validates the
+  checked-in file, so a malformed entry fails CI before it reaches a release.
 
 ### One-time maintainer step: enable GitHub Pages
 

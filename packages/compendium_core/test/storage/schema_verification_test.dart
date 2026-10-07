@@ -49,7 +49,7 @@
 // indices. They are maintained by hand in two places (`onCreate` and an
 // upgrade step), which makes them the *likeliest* to diverge, yet a schema
 // dumped from Dart source would not contain them at all. Taking the dumps from
-// the committed fixture databases keeps them in scope, and the comparison
+// real database files keeps them in scope, and the comparison
 // below treats them exactly like any other entity.
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart';

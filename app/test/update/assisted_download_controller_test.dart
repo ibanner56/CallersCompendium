@@ -15,6 +15,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:path/path.dart' as p;
 
 import '../support/test_repositories.dart';
 
@@ -201,6 +202,45 @@ void main() {
     expect(c.downloadStatus, AssistedDownloadStatus.failed);
     expect(c.downloadFailure, UpdateDownloadFailure.unreachable);
     expect(handoffs, isEmpty);
+  });
+
+  test('a download dir left behind by a still-open file is removed once the '
+      'downloader releases it', () async {
+    final repos = openTestRepositories();
+    final released = Completer<void>();
+    File? captured;
+    final c = controller(
+      repos,
+      manifestBody: _manifest(platform: 'windows', arch: 'x64'),
+      platform: UpdatePlatform.windows,
+      arch: UpdateArch.x64,
+      downloader:
+          (
+            artifact, {
+            required destination,
+            client,
+            onProgress,
+            cancelToken,
+          }) async {
+            captured = destination;
+            return DownloadOutcome.cancelled().withReleased(released.future);
+          },
+    );
+    addTearDown(c.dispose);
+    await c.load();
+    await c.checkNow();
+
+    await c.startAssistedDownload();
+    expect(c.downloadStatus, AssistedDownloadStatus.cancelled);
+
+    // On Windows the first removal fails while the downloader still has the
+    // file open; stand in for what it leaves behind.
+    final dir = captured!.parent..createSync(recursive: true);
+    released.complete();
+    for (var i = 0; i < 20 && dir.existsSync(); i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    expect(dir.existsSync(), isFalse, reason: 'download dir left behind');
   });
 
   test('a Linux reveal handoff completes and reports revealed', () async {
@@ -818,7 +858,9 @@ void main() {
         FileSystemEntity.typeSync(chosen.path, followLinks: false),
         FileSystemEntityType.link,
       );
-      expect(Link(chosen.path).targetSync(), target.path);
+      // Windows stores the target with its own separators, so compare paths,
+      // not strings.
+      expect(p.equals(Link(chosen.path).targetSync(), target.path), isTrue);
       expect(target.readAsStringSync(), 'do-not-touch');
     });
 

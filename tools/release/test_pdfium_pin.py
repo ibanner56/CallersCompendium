@@ -25,7 +25,9 @@ cannot fail is caught as well as a missing pin.
 from __future__ import annotations
 
 import argparse
+import functools
 import hashlib
+import os
 import re
 import shutil
 import subprocess
@@ -177,8 +179,39 @@ def test_pin_macro_forces_the_cache_variable() -> None:
 # --- the verifier itself, run under `cmake -P` ------------------------------
 
 
+@functools.cache
+def _cmake() -> str | None:
+    """cmake on PATH, else (on Windows) the copy Visual Studio bundles, which
+    is where Flutter's Windows build finds it and is often not on PATH."""
+    found = shutil.which("cmake")
+    if found or sys.platform != "win32":
+        return found
+    vswhere = (
+        Path(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"))
+        / "Microsoft Visual Studio"
+        / "Installer"
+        / "vswhere.exe"
+    )
+    if not vswhere.is_file():
+        return None
+    result = subprocess.run(
+        [
+            str(vswhere),
+            "-latest",
+            "-products",
+            "*",
+            "-find",
+            r"Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    hits = result.stdout.splitlines()
+    return hits[0] if hits else None
+
+
 def _have_cmake() -> bool:
-    return shutil.which("cmake") is not None
+    return _cmake() is not None
 
 
 def needs_cmake(fn):
@@ -217,7 +250,7 @@ def _run_verifier(tmp: Path, os_name: str, prelude: str) -> subprocess.Completed
         encoding="utf-8",
     )
     return subprocess.run(
-        ["cmake", "-P", str(driver)], cwd=tmp, capture_output=True, text=True
+        [_cmake() or "cmake", "-P", str(driver)], cwd=tmp, capture_output=True, text=True
     )
 
 
@@ -345,7 +378,9 @@ def _run_pin(tmp: Path, os_name: str, platform: str, prelude: str = "") -> subpr
         'message(STATUS "pinned ${PDFIUM_VERSION} ${PDFIUM_ARCH}")\n',
         encoding="utf-8",
     )
-    return subprocess.run(["cmake", "-P", str(driver)], cwd=tmp, capture_output=True, text=True)
+    return subprocess.run(
+        [_cmake() or "cmake", "-P", str(driver)], cwd=tmp, capture_output=True, text=True
+    )
 
 
 @needs_cmake
