@@ -1035,7 +1035,10 @@ has to be judged in its own context.
   (→ `ender: turnAlone` when dancer subjects agree), shoulder round + swing
   (→ meltdown swing with adjacent source beats), balance wave + slide
   (→ balanced Rory O'More), and directed promenade around the major set
-  (→ structured turn plus a preserved note), pass the ocean +
+  (→ structured turn plus a preserved note; a `to <dancer>` tail or
+  `(to <dancer>)` annotation also fills `destination`, and its words stay in
+  the note because the v30 render gate hides the clause at the `across`
+  default), pass the ocean +
   trailing balance wave (→ `pass_the_ocean` / `form_short_waves` /
   `form_a_long_wave` / `form_long_waves` with `balance: true`, beats summed;
   #577), diagonal chain /
