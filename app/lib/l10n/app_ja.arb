@@ -4686,6 +4686,10 @@
   "@programsSummaryLevel": {
     "x-sourceSha256": "98fa630e4ed7099e8afcf92e5db97e571879e0b08920ba1ef64b412786028210"
   },
+  "programsSummaryPay": "報酬: {amount}",
+  "@programsSummaryPay": {
+    "x-sourceSha256": "edb750f88d3e102e12c717b828d27067d77e472f20bd2854687d637c09d4df1d"
+  },
   "programsSetListHeader": "セットリスト ({count})",
   "@programsSetListHeader": {
     "x-sourceSha256": "454f8099ebe3e022a0dca4d7cfa7950af044b0756f6c41a4adda530de848b750"
