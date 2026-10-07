@@ -89,8 +89,10 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     // overlaps (`promenade`), but this fires on the FULL phrase including
     // "single file" prefix, so it does not claim plain promenade lines.
     //
-    // Non-decodable places fractions are handled by [_declineSingleFileCircle]
-    // BEFORE this recognizer fires, so they never reach _promenadeAnnotation.
+    // Places amounts that are not fractions at all (an improper `5/3`, a
+    // denominator past 16) are handled by [_declineSingleFileCircle] BEFORE
+    // this recognizer fires, so they never reach _promenadeAnnotation.
+    // Non-quarter fractions (⅔, 5/8) are rounded, not declined.
     _singleFileCircleRecognizer,
     // Per-role choreography annotations (#744): synthesise before the general
     // prose pass so `W roll R, M side-step L` becomes canonical role tokens
@@ -1529,9 +1531,14 @@ final RegExp _promenadeAnchor = RegExp(
 /// - Slash fractions (N/4 or N/2 notation): `3/4` → 3, `1/2` → 2, `1/4` → 1
 /// - Glyph fractions: `¾` → 3, `½` → 2, `¼` → 1
 /// - Mixed-number glyphs: `1½` → 6, `1¼` → 5, `1¾` → 7
+/// - Non-quarter fractions (`5/8`, `2/3`, `⅔`, `1⅛`), ROUNDED to the nearest
+///   quarter place by [roundFractionToQuarters] (maintainer ruling; ties
+///   round half up, so `5/8` → 3). The source amount leads the note (`5/8`),
+///   so the figure never silently claims ¾ where the source said ⅝.
 /// Anything else the decoder can't resolve is left in the note as source text.
-/// Non-decodable fractions (⅓, 1/3, etc.) decline to custom rather than
-/// landing in the note — see [_declineSingleFileCircle].
+/// An amount that matches [_placesRe] but is not a decodable fraction at all
+/// (`5/3`, `1/32`) declines to custom rather than landing in the note — see
+/// [_declineSingleFileCircle].
 /// The regex places slash/glyph alternatives before the bare-integer
 /// alternative so that `3/4` is never mis-parsed as `3` with `/4` orphaned.
 ///
@@ -1556,9 +1563,11 @@ final RegExp _promenadeAnchor = RegExp(
 /// [_declineStarPromenade] in `contradb_figure_dialect.dart`.
 ///
 /// Only fires when `_placesRe` matches a token that `_parsePlaces` cannot
-/// decode — i.e. a non-quarter fraction (⅓ ⅔ ⅛ ⅜ ⅝ ⅞) or an unmapped slash
-/// denominator (e.g. 1/3). Decodable fractions (¼ ½ ¾ 1¼ 1½ 1¾, 1/4 3/4
-/// etc.) and plain integers pass through and are structured normally.
+/// decode — i.e. a slash amount that is neither a quarter nor a proper
+/// fraction [roundFractionToQuarters] accepts (`5/3`, `1/32`). Quarter
+/// fractions (¼ ½ ¾ 1¼ 1½ 1¾, 1/4 3/4 etc.), non-quarter fractions (⅓ ⅔ ⅛ ⅜
+/// ⅝ ⅞, 1/3, 5/8 — rounded to the nearest quarter, with the source amount
+/// kept in the note) and plain integers pass through and are structured.
 bool _declineSingleFileCircle(String scrubbed) {
   final lower = scrubbed.toLowerCase().trim();
   const prefix = 'single file promenade ';
@@ -1611,11 +1620,20 @@ FigureMatch? _singleFileCircleRecognizer(String scrubbed) {
   // fires, so the null branch here is unreachable in production — but it is
   // kept as a defensive guard in case the veto and the recognizer ever drift
   // (e.g. one is widened without updating the other's prefix/direction logic).
+  // A rounded amount's source spelling (`5/8`) leads the note, so the figure
+  // never silently claims the rounded quarter count.
+  String? roundedAmount;
   final placesMatch = _placesRe.firstMatch(tail);
   if (placesMatch != null) {
     final p = _parsePlaces(placesMatch.group(0)!);
     if (p != null) {
-      params['places'] = p;
+      params['places'] = p.places;
+      if (p.rounded) {
+        roundedAmount = placesMatch
+            .group(0)!
+            .replaceAll(_placesTailRe, '')
+            .trim();
+      }
       tail = tail.substring(placesMatch.end).trimLeft();
     }
     // p == null: veto should have caught this; fall through with no places
@@ -1635,7 +1653,7 @@ FigureMatch? _singleFileCircleRecognizer(String scrubbed) {
   return FigureMatch(
     'circle',
     params: params,
-    note: note.isEmpty ? null : note,
+    note: combineFigureNotes(roundedAmount, note),
   );
 }
 
@@ -1645,35 +1663,75 @@ FigureMatch? _singleFileCircleRecognizer(String scrubbed) {
 // alternative so that `3/4` matches as a unit rather than alt-1 claiming `3`
 // and leaving `/4` as an orphan in the note.
 // The slash arm is general (`N/M`) so any denominator matches as a unit;
-// _parsePlaces decides which fractions it knows.
+// _parsePlaces decides which fractions it knows (quarters exactly, other
+// proper fractions rounded to the nearest quarter).
 // Used by both _declineSingleFileCircle and _singleFileCircleRecognizer.
 final RegExp _placesRe = RegExp(
-  r'^(?:[0-9]+\s*/\s*[0-9]+|[½¾¼⅓⅔⅛⅜⅝⅞]|[0-9]+\s*[½¾¼]|[0-9]+)\s*(?:places?)?',
+  r'^(?:[0-9]+\s*/\s*[0-9]+|[½¾¼⅓⅔⅛⅜⅝⅞]|[0-9]+\s*[½¾¼⅓⅔⅛⅜⅝⅞]|[0-9]+)\s*(?:places?)?',
   caseSensitive: false,
 );
 
-int? _parsePlaces(String raw) {
+/// Decodes a [_placesRe] match to a quarter-place count, flagging whether a
+/// non-quarter fraction was [rounded] to get there (the caller then keeps the
+/// source amount in the note). Returns `null` for an amount that is not a
+/// decodable fraction at all.
+({int places, bool rounded})? _parsePlaces(String raw) {
   final trimmed = raw
       .replaceAll(_placesTailRe, '')
       .replaceAll(_wsRe, '')
       .trim();
-  // Slash fractions: N/4 and N/2 only (quarter-place resolution).
+  // Slash fractions: N/4 and N/2 exactly (quarter-place resolution).
   const slashMap = {'1/4': 1, '2/4': 2, '3/4': 3, '4/4': 4, '1/2': 2};
   final slash = slashMap[trimmed];
-  if (slash != null) return slash;
+  if (slash != null) return (places: slash, rounded: false);
   // Whole integer only. Decimals are not present in the TCB corpus (verified
   // across 396 "Single file promenade" lines) so the decimal alternative was
   // dropped from _placesRe; double.tryParse is therefore unreachable here.
   final n = int.tryParse(trimmed);
-  if (n != null) return n;
-  // Fraction glyphs and mixed-number glyphs — quarters only, per owner ruling
-  // (2026-08-11): non-quarter fractions (⅓ ⅔ ⅛ ⅜ ⅝ ⅞) have no integer place
-  // count and decline to custom, matching figure_parser.dart's _takePlaces rule:
-  // "Only quarter fractions land on a whole place; eighth-turns have no integer
-  // place and are left for the custom fallback — the place count is never
-  // rounded or fabricated."
-  return const {'½': 2, '¾': 3, '¼': 1, '1½': 6, '1¼': 5, '1¾': 7}[trimmed];
+  if (n != null) return (places: n, rounded: false);
+  // Quarter glyphs and mixed-number quarter glyphs decode exactly.
+  final quarterGlyph = const {
+    '½': 2,
+    '¾': 3,
+    '¼': 1,
+    '1½': 6,
+    '1¼': 5,
+    '1¾': 7,
+  }[trimmed];
+  if (quarterGlyph != null) return (places: quarterGlyph, rounded: false);
+  // Non-quarter fractions (slash or glyph, optionally after a whole number)
+  // round to the nearest quarter place — maintainer ruling, superseding the
+  // 2026-08-11 decline-to-custom rule; same rounding as figure_parser.dart's
+  // _takePlaces, via the shared [roundFractionToQuarters].
+  final m = _nonQuarterPlacesRe.firstMatch(trimmed);
+  if (m == null) return null;
+  final glyph = m[2];
+  final whole = glyph == null || m[1]!.isEmpty ? 0 : int.parse(m[1]!);
+  final fraction = glyph != null
+      ? _nonQuarterGlyphs[glyph]!
+      : (int.parse(m[3]!), int.parse(m[4]!));
+  final quarters = roundFractionToQuarters(fraction.$1, fraction.$2);
+  if (quarters == null) return null;
+  final places = whole * 4 + quarters;
+  if (places < 1 || places > 10) return null;
+  return (places: places, rounded: true);
 }
+
+/// The whitespace-stripped non-quarter shapes [_placesRe] admits: an optional
+/// whole number then a non-quarter glyph (`⅝`, `1⅔`), or a bare slash
+/// fraction (`5/8`).
+final RegExp _nonQuarterPlacesRe = RegExp(
+  r'^(?:([0-9]*)([⅓⅔⅛⅜⅝⅞])|([0-9]{1,2})/([0-9]{1,2}))$',
+);
+
+const Map<String, (int, int)> _nonQuarterGlyphs = {
+  '⅓': (1, 3),
+  '⅔': (2, 3),
+  '⅛': (1, 8),
+  '⅜': (3, 8),
+  '⅝': (5, 8),
+  '⅞': (7, 8),
+};
 
 // --- Balance role-hand pair annotation (#744) ---------------------------------
 

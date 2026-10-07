@@ -1022,6 +1022,18 @@ has to be judged in its own context.
   out of sync. Both the structured and custom paths therefore store clean text
   only. (This intentionally drops the previous CallersBox/ContraDB phrase-label
   prefix on custom figures.)
+- **Non-quarter amounts round to the nearest quarter** (maintainer ruling).
+  Rotation (`travel`) and places counts are quarter-granular, so a stated
+  `2/3`, `7/8` or `1 & 1/8` used to decline the line to custom. The shared
+  decoders (`_takeRotation`/`_takePlaces`, and the CallersBox single-file
+  circle's `_parsePlaces`) now round it via `roundFractionToQuarters`: ties
+  (every eighth) round half up, and nothing nonzero rounds to zero. The
+  source amount is kept as the figure's note (`1 & 2/3`), ahead of any
+  annotation note, so a structured figure never silently claims 1¾ where the
+  source said 1⅔. Every free-text source routed through `parseFigureLine`
+  shares these decoders; ContraDB's own structured `_rotationStrings` table is
+  separate and unchanged. A rounded total outside the param's domain (past
+  2½ turns, past 10 places) still declines.
 - **First-cut coverage (in):** swing (+balance/meltdown prefix), balance,
   balance the ring, do si do / see saw, shoulder round (+gypsy), box the gnat /
   swat the flea, allemande, circle, star, chain, long lines, right left

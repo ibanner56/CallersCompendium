@@ -357,7 +357,7 @@ FigureMatch? recognizeSharedFigureLine(
   final words = _normalize(scrubbed, recognitionNormalize);
   if (words.isEmpty) return null;
   for (final recognizer in _recognizers) {
-    final match = recognizer(List<String>.of(words));
+    final match = _runRecognizer(recognizer, words);
     if (match != null) {
       return FigureMatch(
         match.moveId,
@@ -398,10 +398,93 @@ _Match? _recognize(String scrubbed, FigureFrontEnd frontEnd) {
   if (words.isEmpty) return null;
 
   for (final recognizer in _recognizers) {
-    final match = recognizer(List<String>.of(words));
+    final match = _runRecognizer(recognizer, words);
     if (match != null) return match;
   }
   return null;
+}
+
+/// Source spellings of the non-quarter amounts [_takeRotation]/[_takePlaces]
+/// rounded during the CURRENT recognizer run, or `null` outside one.
+///
+/// Rounding changes the stated amount, so the source fraction must survive
+/// (`prefer-custom`: a figure must not silently claim 1¾ where the source said
+/// 1⅔). The takers return a bare number, so the spelling travels on this
+/// side channel and [_runRecognizer] appends it to the match's note. When no
+/// run is collecting, the takers do not round at all: an amount they could not
+/// record is an amount they must not change.
+List<String>? _roundedAmounts;
+
+/// Runs [recognizer] on a copy of [words], collecting any amount it rounded
+/// and folding the source spelling into the match's note (after the
+/// recognizer's own note, per [combineFigureNotes]). Saves and restores the
+/// collector so a nested parse cannot leak its amounts into this match.
+_Match? _runRecognizer(_Recognizer recognizer, List<String> words) {
+  final outer = _roundedAmounts;
+  final rounded = <String>[];
+  _roundedAmounts = rounded;
+  try {
+    final match = recognizer(List<String>.of(words));
+    if (match == null || rounded.isEmpty) return match;
+    return _Match(
+      match.moveId,
+      match.params,
+      combineFigureNotes(match.note, rounded.join('; ')),
+      match.assumedSubject,
+      match.forceCustom,
+    );
+  } finally {
+    _roundedAmounts = outer;
+  }
+}
+
+/// Rounds the proper fraction [numerator]/[denominator] to whole quarter
+/// turns, or returns `null` when it is already an exact quarter (the caller's
+/// exact tables own those) or is not a proper fraction with a denominator in
+/// 2..16.
+///
+/// Maintainer ruling: non-quarter rotations (⅓ ⅔ ⅛ ⅜ ⅝ ⅞, and the rarer ⅙/
+/// 9/16) round to the NEAREST quarter rather than declining to custom.
+/// Ties — every eighth sits exactly between two quarters — round HALF UP
+/// (⅛→¼, ⅜→½, ⅝→¾, ⅞→1): one direction for every tie, and the direction in
+/// which a stated nonzero amount can never become zero. For the same reason a
+/// fraction below ⅛ (1/16, 1/9) rounds up to ¼ rather than down to nothing.
+/// The result is 1..4 quarters; the caller records the source spelling so the
+/// rounding is never silent. The denominator cap bounds untrusted import text
+/// to amounts a caller actually writes (the corpus tops out at 16).
+int? roundFractionToQuarters(int numerator, int denominator) {
+  if (denominator < 2 || denominator > 16) return null;
+  if (numerator < 1 || numerator >= denominator) return null;
+  final scaled = numerator * 4;
+  final remainder = scaled % denominator;
+  if (remainder == 0) return null; // exact quarter: not a rounding
+  var quarters = scaled ~/ denominator;
+  if (remainder * 2 >= denominator) quarters++; // half up
+  return quarters < 1 ? 1 : quarters;
+}
+
+final RegExp _slashFractionRe = RegExp(r'^([0-9]{1,2})/([0-9]{1,2})$');
+
+/// [roundFractionToQuarters] for a single normalized `n/d` word, or `null`
+/// when [token] is not a non-quarter fraction OR no recognizer run is
+/// collecting rounded amounts (see [_roundedAmounts]).
+int? _roundedQuarters(String token) {
+  if (_roundedAmounts == null) return null;
+  final m = _slashFractionRe.firstMatch(token);
+  if (m == null) return null;
+  return roundFractionToQuarters(int.parse(m[1]!), int.parse(m[2]!));
+}
+
+/// Records the source spelling of a rounded amount: `7/8`, or `1 & 2/3` for a
+/// compound ([bridged] when the source joined them with `&`/`and`, which
+/// `_normalize` has already folded to "and").
+void _recordRounded(String fraction, {String? whole, bool bridged = false}) {
+  final spelled = whole == null
+      ? fraction
+      : bridged
+      ? '$whole & $fraction'
+      : '$whole $fraction';
+  _roundedAmounts?.add(spelled);
 }
 
 /// Lowercases, applies the front-end's optional recognition-only normalization
@@ -710,6 +793,10 @@ String? _takeDiagonal(List<String> w) {
 
 /// Recognises a rotation amount (allemande/do si do/shoulder round `turn`).
 /// Consumes the token(s) and returns turns in 0.25..2.5, or null if none.
+///
+/// A non-quarter fraction (`2/3`, `7/8`, `1 & 5/8`) is rounded to the nearest
+/// quarter by [roundFractionToQuarters] and its source spelling is recorded
+/// via [_recordRounded], so it reaches the figure's note.
 double? _takeRotation(List<String> w) {
   const single = {
     'once': 1.0,
@@ -728,22 +815,28 @@ double? _takeRotation(List<String> w) {
   };
   for (var i = 0; i < w.length; i++) {
     // Two-token compound forms: "1 1/2" / "1 1/4" / "1 3/4" and "2 1/2"
-    // (`_normalize` folds `½` to " 1/2 ", so "2½" arrives here the same way).
-    // The vocabulary stops at 2½, exactly as the decimal table above does
-    // (`2.25` is absent too): 2¾ is beyond the 2.5 domain cap and 2¼ is not a
-    // rotation a caller writes. Those decline the whole rotation rather than
-    // read "2" and leave the fraction as unexplained leftover — the line falls
-    // to custom either way, but without a half-consumed amount.
+    // (`_normalize` folds `½` to " 1/2 ", so "2½" arrives here the same way),
+    // plus rounded non-quarter fractions ("1 & 2/3" → 1.75, "2 & 1/8" → 2.25).
+    // A total beyond the 2.5 domain cap (2¾, or 2⅞ rounding to 3) declines the
+    // whole rotation rather than read "2" and leave the fraction as unexplained
+    // leftover — the line falls to custom either way, but without a
+    // half-consumed amount.
     if (i + 1 < w.length && (w[i] == '1' || w[i] == '2')) {
       const fraction = {'1/4': 0.25, '1/2': 0.5, '3/4': 0.75};
       final whole = w[i] == '1' ? 1.0 : 2.0;
       // Three-token "1 and 1/2" form: TCB writes "1 & 1/2" and `_normalize`
       // maps `&`→"and", so bridge the intervening "and".
       var j = i + 1;
-      if (w[j] == 'and' && j + 1 < w.length) j++;
-      final frac = fraction[w[j]];
+      final bridged = w[j] == 'and' && j + 1 < w.length;
+      if (bridged) j++;
+      final exact = fraction[w[j]];
+      final rounded = exact == null ? _roundedQuarters(w[j]) : null;
+      final frac = exact ?? (rounded == null ? null : rounded / 4);
       if (frac != null) {
-        if (whole == 2.0 && frac != 0.5) return null;
+        if (whole + frac > 2.5) return null;
+        if (rounded != null) {
+          _recordRounded(w[j], whole: w[i], bridged: bridged);
+        }
         w.removeRange(i, j + 1);
         return whole + frac;
       }
@@ -753,12 +846,20 @@ double? _takeRotation(List<String> w) {
       w.removeAt(i);
       return v;
     }
+    final rounded = _roundedQuarters(w[i]);
+    if (rounded != null) {
+      _recordRounded(w[i]);
+      w.removeAt(i);
+      return rounded / 4;
+    }
   }
   return null;
 }
 
 /// Recognises circle/star travel and returns a `places` count (1..10), or null.
-/// Handles `N places`, quarter fractions, and "once"/"all the way"/"halfway".
+/// Handles `N places`, quarter fractions (non-quarter ones rounded to the
+/// nearest quarter, see [roundFractionToQuarters]), and
+/// "once"/"all the way"/"halfway".
 int? _takePlaces(List<String> w) {
   // "N places" (or "N place").
   for (var i = 0; i + 1 < w.length; i++) {
@@ -772,20 +873,27 @@ int? _takePlaces(List<String> w) {
   }
   // Compound "N & 1/4|1/2|3/4" turn amount (TCB writes "1 & 1/2"; `_normalize`
   // maps `&`→"and"). `places` is an integer quarter-count (a full turn is 4),
-  // so places = N*4 + fractionPlaces. Only quarter fractions land on a whole
-  // place; eighth-turns ("1 & 1/8", "7/8") have no integer place and are left
-  // for the custom fallback — the place count is never rounded or fabricated.
+  // so places = N*4 + fractionPlaces. A non-quarter fraction ("1 & 1/8",
+  // "1 & 2/3") has no integer place of its own: per the maintainer's ruling it
+  // is rounded to the nearest quarter by [roundFractionToQuarters], and the
+  // source spelling is recorded via [_recordRounded] so it reaches the note.
   const quarterPlaces = {'1/4': 1, '2/4': 2, '1/2': 2, '3/4': 3};
   for (var i = 0; i + 1 < w.length; i++) {
     final whole = int.tryParse(w[i]);
     if (whole == null || whole < 1) continue;
     // Bridge the "and" that `_normalize` leaves between whole and fraction.
-    final fracIdx = w[i + 1] == 'and' ? i + 2 : i + 1;
+    final bridged = w[i + 1] == 'and';
+    final fracIdx = bridged ? i + 2 : i + 1;
     if (fracIdx >= w.length) continue;
-    final frac = quarterPlaces[w[fracIdx]];
+    final exact = quarterPlaces[w[fracIdx]];
+    final rounded = exact == null ? _roundedQuarters(w[fracIdx]) : null;
+    final frac = exact ?? rounded;
     if (frac == null) continue;
     final places = whole * 4 + frac;
     if (places < 1 || places > 10) continue;
+    if (rounded != null) {
+      _recordRounded(w[fracIdx], whole: w[i], bridged: bridged);
+    }
     var end = fracIdx + 1;
     if (end < w.length && (w[end] == 'places' || w[end] == 'place')) end++;
     w.removeRange(i, end);
@@ -812,6 +920,13 @@ int? _takePlaces(List<String> w) {
     if (v != null) {
       w.removeAt(i);
       return v;
+    }
+    // A bare non-quarter fraction ("7/8" → 4, "2/3" → 3), rounded as above.
+    final rounded = _roundedQuarters(w[i]);
+    if (rounded != null) {
+      _recordRounded(w[i]);
+      w.removeAt(i);
+      return rounded;
     }
   }
   // "all the way" / "all the way around" / bare "all around".
