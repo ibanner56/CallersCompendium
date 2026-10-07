@@ -195,9 +195,9 @@ class UpdateRetirement {
     return date;
   }
 
-  /// The exact key set of an entry. Anything else — a typo such as
-  /// `endofLife` beside `endOfLife` included — is malformed, matching the
-  /// producer (`gen_release_metadata.py`), which refuses unknown keys.
+  /// The exact key set of an entry. Anything else — a misspelled date key
+  /// beside the real one included — is malformed, matching the producer
+  /// (`gen_release_metadata.py`), which refuses unknown keys.
   static const Set<String> _keys = {'through', 'endOfLife'};
 
   static UpdateRetirement _fromJson(Object? node) {
