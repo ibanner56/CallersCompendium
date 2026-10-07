@@ -758,17 +758,18 @@ class UpdateController extends ChangeNotifier {
       arch: _arch,
     );
 
-    // An end of life belongs to the running build, not to a channel, so an
-    // authenticated answer applies even if the channel changed mid-flight. A
-    // failed check (null) leaves the cached notice alone: being offline is
+    // The user switched channels while this check was in flight — the result
+    // belongs to the old channel, so drop all of it (setBetaChannel already
+    // reset the state for the new channel). That includes its end-of-life
+    // date: a beta release refreshes only beta.json, so the two channels can
+    // carry different retirement lists, and a late answer from the old one
+    // could resurrect a withdrawn date over the channel the user now reads.
+    if (requestedChannel != channel) return;
+
+    // A failed check (null) leaves the cached notice alone: being offline is
     // not evidence that the announcement was withdrawn.
     if (checked != null) await _applyEndOfLife(checked.endOfLife);
     final result = checked?.update;
-
-    // The user switched channels while this check was in flight — the result
-    // belongs to the old channel, so drop it (setBetaChannel already reset the
-    // state for the new channel) to avoid a stale cross-channel banner.
-    if (requestedChannel != channel) return;
 
     _available = result;
     _resetDownloadForNewResult();

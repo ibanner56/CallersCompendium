@@ -5,5 +5,10 @@
     "added": [
       "When an update check finds that your version of the app has an announced end-of-support date, a banner tells you the date you need to update by. The notice also appears in Settings ▸ Updates and stays visible offline. Choosing \"Later\" hides the banner until you next open the app. Versions up to and including 0.6.0-beta cannot show these notices."
     ]
+  },
+  "core": {
+    "added": [
+      "Classify the `update_retirement_notice` setting as device-scoped installation state, so it never syncs and is never backed up."
+    ]
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:compendium_app/src/update/retirement_banner.dart';
@@ -157,6 +158,36 @@ void main() {
       expect(controller.foundUpdate, isNull);
       expect(controller.status, UpdateCheckStatus.noUpdate);
       expect(controller.retirementNotice?.endOfLife, DateTime.utc(2027, 1, 31));
+    });
+
+    test('a late answer from the channel the user left does not apply its '
+        'end-of-life date', () async {
+      final repos = openTestRepositories();
+      final gate = Completer<List<int>?>();
+      final controller = UpdateController(
+        repos.settings,
+        service: UpdateService(
+          fetcher: (channel, {http.Client? client}) => gate.future,
+          signatureFetcher: (channel, {http.Client? client}) async => 'sig',
+          signatureVerifier: (bytes, sig) async => true,
+        ),
+        currentVersion: SemVer.tryParse('0.7.0'),
+        platform: UpdatePlatform.linux,
+        arch: UpdateArch.x64,
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      final pending = controller.checkNow();
+      await controller.setBetaChannel(true);
+      gate.complete(utf8.encode(_manifest('0.8.0', retirements: _retire070)));
+      await pending;
+
+      expect(controller.retirementNotice, isNull);
+      expect(
+        await repos.settings.contains(kUpdateRetirementNoticeKey),
+        isFalse,
+      );
     });
 
     test('a newer build is not warned', () async {

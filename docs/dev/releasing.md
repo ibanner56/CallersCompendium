@@ -541,7 +541,7 @@ source commit and copies it into every manifest that release refreshes.
 
 Every build at or below `through` (SemVer precedence, so `0.7.0-beta` is
 covered too) shows a banner warning that support ends on `endOfLife`, and
-after that day that it has ended. Field rules are in ADR-002 §2.
+from that day on that it has ended (`endOfLife` is the first unsupported day). Field rules are in ADR-002 §2.
 
 - **Only checks deliver it.** Clients learn of the notice from a manual or
   opt-in automatic update check (ADR-002 §5); there is no separate request.

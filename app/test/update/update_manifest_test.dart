@@ -340,6 +340,12 @@ void main() {
 
     for (final (label, json) in [
       ('a non-list', '{"through": "0.7.0", "endOfLife": "2027-01-31"}'),
+      ('an explicit null', 'null'),
+      (
+        'an entry with an unknown key',
+        '[{"through": "0.7.0", "endOfLife": "2027-01-31",'
+            ' "endofLife": "2027-06-30"}]',
+      ),
       ('a non-object entry', '["0.7.0"]'),
       ('a missing through', '[{"endOfLife": "2027-01-31"}]'),
       (

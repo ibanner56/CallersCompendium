@@ -195,9 +195,20 @@ class UpdateRetirement {
     return date;
   }
 
+  /// The exact key set of an entry. Anything else — a typo such as
+  /// `endofLife` beside `endOfLife` included — is malformed, matching the
+  /// producer (`gen_release_metadata.py`), which refuses unknown keys.
+  static const Set<String> _keys = {'through', 'endOfLife'};
+
   static UpdateRetirement _fromJson(Object? node) {
     if (node is! Map<String, Object?>) {
       throw const UpdateManifestFormatException('retirement is not an object');
+    }
+    final unknown = node.keys.where((k) => !_keys.contains(k));
+    if (unknown.isNotEmpty) {
+      throw UpdateManifestFormatException(
+        'retirement has unknown keys ${unknown.toList()}',
+      );
     }
     final throughStr = _requireString(node, 'through');
     final through = SemVer.tryParse(throughStr);
@@ -317,11 +328,15 @@ class UpdateManifest {
         .map(UpdateArtifact._fromJson)
         .toList(growable: false);
 
-    final rawRetirements = decoded['retirements'];
-    if (rawRetirements != null && rawRetirements is! List) {
+    // Absent means "none"; present means a list. An explicit `null` is not
+    // something the producer writes, so it is malformed rather than absent.
+    final rawRetirements = decoded.containsKey('retirements')
+        ? decoded['retirements']
+        : const <Object?>[];
+    if (rawRetirements is! List) {
       throw const UpdateManifestFormatException('retirements must be a list');
     }
-    final retirements = (rawRetirements as List? ?? const <Object?>[])
+    final retirements = rawRetirements
         .map(UpdateRetirement._fromJson)
         .toList(growable: false);
 
