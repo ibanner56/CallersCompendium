@@ -62,6 +62,7 @@ void main() {
     expect(exactDeviceScopedKeys, {
       'window_frame',
       'last_backup_at',
+      'update_retirement_notice',
       derivedRebuildRequiredKey,
       purgeCorruptionRepairDoneKey,
       sectionRuleVersionKey,

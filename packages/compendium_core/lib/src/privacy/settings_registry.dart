@@ -285,6 +285,13 @@ final Map<String, DataClassification> settingsClassifications = {
   'update_auto_check': _backupLocalState,
   'update_beta_channel': _backupLocalState,
   'update_dismissed_version': _backupLocalState,
+  // The end-of-life date the update manifest announced for *this build*. It
+  // describes the binary installed here, so on another install (or after a
+  // restore onto a different build) it would warn about a version that is not
+  // running — device-scoped, and denylisted from backups. The value is a
+  // release version and a date from the project's own manifest: nothing
+  // personal.
+  'update_retirement_notice': _installState,
   // A user preference (off / weekly / monthly), not backup bookkeeping: the
   // reminder itself fires from `last_backup_at`, which is what must stay
   // local. The backup denylist refused this key from G.5 (#167) until the 2026

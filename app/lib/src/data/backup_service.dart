@@ -12,6 +12,7 @@ import 'backup_settings_schema.dart';
 import 'custom_theme.dart';
 import 'custom_themes_controller.dart';
 import 'dialect_library_controller.dart';
+import '../update/update_config.dart' show kUpdateRetirementNoticeKey;
 import 'settings_keys.dart'
     show
         kSyncDeviceIdKey,
@@ -95,6 +96,8 @@ const String kNormalisationDerivedIndexRepairDoneKey =
 ///   new duplicates are added. All fifteen are `_installState` in
 ///   `settings_registry.dart`: a marker says a pass has run over *this*
 ///   database's rows, which is false on any other install.
+///   [kUpdateRetirementNoticeKey] is installation state of the same kind: the
+///   end-of-life date announced for the build installed *here*.
 /// - **sync attachment state** — the store address this device is attached to,
 ///   its per-attachment routing identifier, and the markers derived from
 ///   addresses it has used. A backup restored onto another device must not
@@ -114,6 +117,7 @@ const Set<String> kBackupSettingsDenylist = {
   kActiveCustomThemeKey,
   kWindowFrameKey,
   kLastBackupAtKey,
+  kUpdateRetirementNoticeKey,
   kTaxonomyV33CanonicalRebuildDoneKey,
   kTaxonomyV34CanonicalRebuildDoneKey,
   kModifierContainerCanonicalRebuildDoneKey,

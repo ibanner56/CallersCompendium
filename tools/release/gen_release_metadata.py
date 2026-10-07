@@ -24,6 +24,13 @@ being treated as platform binaries: they are checksummed and listed in
 subjected to the ``<platform>-<arch>.<ext>`` name contract. With no
 ``--extra-file`` the output is byte-identical to before.
 
+End-of-life announcements (ADR-002 §2 ``retirements``) are read from the
+checked-in ``--retirements`` file — ``tools/release/retirements.json`` in the
+release workflow — validated here, and copied into every manifest this release
+writes. Builds after 0.6.0-beta warn their users when a manifest they fetch
+names an end-of-life date for them. An empty list adds no field, so the
+manifest is byte-identical to one generated without the option.
+
 This module is intentionally pure-stdlib and side-effect-free apart from the two
 output files, so it stays reviewable and unit-testable.
 """
@@ -34,6 +41,7 @@ import argparse
 import datetime as _dt
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -72,6 +80,94 @@ def _parse_asset(name: str, version: str) -> tuple[str, str, str] | None:
     return platform, arch, ext
 
 
+# SemVer 2.0.0 (https://semver.org), the grammar the client's SemVer.tryParse
+# accepts minus its leniency about a leading "v": retirements are authored by
+# hand, so a tag-style "v0.7.0" is more likely a slip than a convention.
+_SEMVER = re.compile(
+    r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+    r"(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)"
+    r"(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?"
+    r"(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$"
+)
+_ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_RETIREMENT_KEYS = {"through", "endOfLife"}
+
+
+def _semver_key(version: str) -> tuple:
+    """A sort key giving ``version`` its SemVer §11 precedence.
+
+    Raises ``ValueError`` when ``version`` is not SemVer. A release (no
+    pre-release) sorts after every pre-release of the same core; numeric
+    identifiers sort before alphanumeric ones and compare numerically; a longer
+    pre-release series sorts after a prefix of it. Build metadata is ignored.
+    """
+    match = _SEMVER.match(version)
+    if match is None:
+        raise ValueError(f"not a SemVer version: {version!r}")
+    major, minor, patch, pre, _build = match.groups()
+    core = (int(major), int(minor), int(patch))
+    if pre is None:
+        return core + ((1,),)
+    idents = tuple(
+        (0, int(p), "") if p.isdigit() else (1, 0, p) for p in pre.split(".")
+    )
+    return core + ((0, idents),)
+
+
+def load_retirements(path: Path, *, release_version: str) -> list[dict]:
+    """Read and validate the retirements file at ``path``.
+
+    The file is a JSON list of ``{"through": <SemVer>, "endOfLife":
+    "YYYY-MM-DD"}`` objects: every build at or below ``through`` stops being
+    supported on ``endOfLife``. Anything the client would refuse — and with it
+    the whole manifest — fails the release here instead: a non-list, an unknown
+    or missing key, a malformed version, or an impossible date. So does an entry
+    whose ``through`` is not strictly older than ``release_version``, which
+    would tell the build being released that it is already retired.
+    """
+    try:
+        entries = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise SystemExit(f"::error::cannot read retirements file {path}: {exc}")
+    if not isinstance(entries, list):
+        raise SystemExit(f"::error::{path}: retirements must be a JSON list")
+
+    release_key = _semver_key(release_version)
+    validated: list[dict] = []
+    for index, entry in enumerate(entries):
+        where = f"{path}: retirements[{index}]"
+        if not isinstance(entry, dict):
+            raise SystemExit(f"::error::{where} is not an object")
+        if set(entry) != _RETIREMENT_KEYS:
+            raise SystemExit(
+                f"::error::{where} must have exactly the keys "
+                f"{sorted(_RETIREMENT_KEYS)}, got {sorted(entry)}"
+            )
+        through, end_of_life = entry["through"], entry["endOfLife"]
+        if not isinstance(through, str) or not _SEMVER.match(through):
+            raise SystemExit(
+                f"::error::{where}.through is not a SemVer version: {through!r}"
+            )
+        if not isinstance(end_of_life, str) or not _ISO_DATE.match(end_of_life):
+            raise SystemExit(
+                f"::error::{where}.endOfLife is not YYYY-MM-DD: {end_of_life!r}"
+            )
+        try:
+            _dt.date.fromisoformat(end_of_life)
+        except ValueError:
+            raise SystemExit(
+                f"::error::{where}.endOfLife is not a real date: {end_of_life!r}"
+            )
+        if _semver_key(through) >= release_key:
+            raise SystemExit(
+                f"::error::{where}.through ({through}) is not older than the "
+                f"version being released ({release_version}); a release cannot "
+                f"retire itself"
+            )
+        validated.append({"through": through, "endOfLife": end_of_life})
+    return validated
+
+
 def _primary_rank(platform: str, ext: str) -> int:
     order = _EXT_PRIORITY.get(platform, [])
     return order.index(ext) if ext in order else len(order)
@@ -87,8 +183,12 @@ def build_metadata(
     pub_date: str,
     codename: str | None = None,
     extra_files: list[Path] | None = None,
+    retirements: list[dict] | None = None,
 ) -> tuple[str, dict]:
     """Compute the SHA256SUMS text and the manifest dict for ``dist``.
+
+    ``retirements`` (already validated by :func:`load_retirements`) is copied
+    into the manifest's ``retirements`` field when non-empty.
 
     ``extra_files`` are additional (non-binary) assets to include in
     ``SHA256SUMS`` only — they are checksummed and listed alongside the binaries
@@ -169,6 +269,8 @@ def build_metadata(
     normalized_codename = codename.strip() if codename else ""
     if normalized_codename and normalized_codename != tag:
         manifest["codename"] = normalized_codename
+    if retirements:
+        manifest["retirements"] = retirements
 
     sums_text = "\n".join(sorted(sums_lines)) + "\n"
     return sums_text, manifest
@@ -184,6 +286,7 @@ def build_channel_manifests(
     pub_date: str,
     codename: str | None = None,
     extra_files: list[Path] | None = None,
+    retirements: list[dict] | None = None,
     metadata: dict | None = None,
 ) -> dict[str, dict]:
     """Build all manifests refreshed by a selected release channel.
@@ -202,6 +305,7 @@ def build_channel_manifests(
             pub_date=pub_date,
             codename=codename,
             extra_files=extra_files,
+            retirements=retirements,
         )
     return {
         manifest_channel: {**metadata, "channel": manifest_channel}
@@ -235,6 +339,14 @@ def main(argv: list[str] | None = None) -> int:
         help="additional asset to include in SHA256SUMS only (repeatable); not "
         "added to the channel manifest and exempt from the name contract",
     )
+    ap.add_argument(
+        "--retirements",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="JSON list of end-of-life announcements to copy into every "
+        "manifest (tools/release/retirements.json)",
+    )
     args = ap.parse_args(argv)
 
     dist: Path = args.dist
@@ -245,6 +357,11 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"::error::bad channel: {args.channel}")
 
     pub_date = args.pub_date or _default_pub_date()
+    retirements = (
+        load_retirements(args.retirements, release_version=args.version)
+        if args.retirements is not None
+        else None
+    )
     sums_text, manifest = build_metadata(
         version=args.version,
         tag=args.tag,
@@ -254,6 +371,7 @@ def main(argv: list[str] | None = None) -> int:
         pub_date=pub_date,
         codename=args.codename,
         extra_files=args.extra_file,
+        retirements=retirements,
     )
     manifests = build_channel_manifests(
         version=args.version,

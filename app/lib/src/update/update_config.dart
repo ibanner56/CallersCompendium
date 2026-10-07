@@ -188,3 +188,15 @@ const String kUpdateAutoCheckKey = 'update_auto_check';
 /// update banner (ADR-002 §5). Stored as a SemVer string; once version X is
 /// dismissed the banner stays hidden until a strictly-newer version appears.
 const String kUpdateDismissedVersionKey = 'update_dismissed_version';
+
+/// Persisted-settings key for the end-of-life notice most recently announced
+/// for this build by an authenticated manifest (ADR-002 §2 `retirements`).
+/// Stored as `{"build": "<SemVer>", "endOfLife": "YYYY-MM-DD"}` so the warning
+/// keeps showing on every launch — offline included — without a new check.
+///
+/// `build` is the release identity the notice was found for: a stored notice
+/// whose `build` is not the running version is ignored on load, so updating
+/// the app retires the notice with it. Installation state, never backed up
+/// (`kBackupSettingsDenylist`): restored onto another install it would describe
+/// a build that is not running there.
+const String kUpdateRetirementNoticeKey = 'update_retirement_notice';

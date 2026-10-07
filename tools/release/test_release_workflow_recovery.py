@@ -280,6 +280,14 @@ def main() -> None:
     assert 'gen_release_metadata.py "${metadata_args[@]}"' in metadata_step
     assert '--codename "$RELEASE_CODENAME"' in metadata_step
     assert '--codename "${{ needs.meta.outputs.codename }}"' not in metadata_step
+    # End-of-life announcements: guarded like --codename so a recovery run of
+    # a tag that predates the option still generates its manifests, and fed
+    # from the checked-in file that test_gen_release_metadata.py validates.
+    assert 'grep -Fq -- "--retirements" <<<"$metadata_help"' in metadata_step
+    assert (
+        "metadata_args+=(--retirements tools/release/retirements.json)"
+        in metadata_step
+    )
 
     codename_define = (
         '--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME"'

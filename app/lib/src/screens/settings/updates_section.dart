@@ -6,6 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../update/artifact_handoff.dart';
 import '../../update/macos_update_prompt.dart';
+import '../../update/retirement_banner.dart';
 import '../../update/update_controller.dart';
 import '../../update/update_failure_labels.dart';
 import '../../update/update_scope.dart';
@@ -33,10 +34,27 @@ class UpdatesSection extends StatelessWidget {
     final controller = UpdateScope.of(context);
     final status = controller.status;
     final checking = status == UpdateCheckStatus.checking;
+    final retirement = controller.retirementNotice;
 
     return ListView(
       children: [
         SectionHeader(title: l10n.settingsUpdatesHeader),
+        // Shown even after the banner's "Later": Settings is where the user
+        // comes back to find out what the warning said.
+        if (retirement != null)
+          ListTile(
+            key: const ValueKey('updates-retirement'),
+            leading: Icon(
+              Icons.event_busy_outlined,
+              color: retirement.isPast ? theme.colorScheme.error : null,
+            ),
+            title: Text(l10n.settingsUpdatesRetirementTitle),
+            subtitle: Text(
+              retirementNoticeMessage(context, controller, retirement),
+            ),
+            trailing: const Icon(Icons.open_in_new),
+            onTap: () => openRetirementUpdatePage(context, controller),
+          ),
         ListTile(
           key: const ValueKey('updates-check-now'),
           leading: const Icon(Icons.system_update_alt),

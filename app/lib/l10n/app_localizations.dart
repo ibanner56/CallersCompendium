@@ -11924,6 +11924,36 @@ abstract class AppLocalizations {
   /// **'A newer version of {appName} ({version}) is available.'**
   String updateBannerAvailable(String appName, String version);
 
+  /// End-of-support notice (banner and Settings ▸ Updates) before the announced end-of-life date. {date} is already formatted per the user's date-format setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Support for this version of {appName} ({version}) ends on {date}. Update to a later version before then.'**
+  String retirementNoticeUpcoming(String appName, String version, String date);
+
+  /// End-of-support notice (banner and Settings ▸ Updates) on or after the announced end-of-life date. {date} is already formatted per the user's date-format setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Support for this version of {appName} ({version}) ended on {date}. Update to a later version now.'**
+  String retirementNoticePast(String appName, String version, String date);
+
+  /// End-of-support banner action that opens the page for the newer release (or the list of releases).
+  ///
+  /// In en, this message translates to:
+  /// **'Get update'**
+  String get retirementBannerGetUpdate;
+
+  /// End-of-support banner action that hides the banner until the app is next launched.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get retirementBannerLater;
+
+  /// Settings ▸ Updates tile title shown when this version has an announced end-of-life date.
+  ///
+  /// In en, this message translates to:
+  /// **'End of support'**
+  String get settingsUpdatesRetirementTitle;
+
   /// Update banner action that opens the release notes web page.
   ///
   /// In en, this message translates to:
