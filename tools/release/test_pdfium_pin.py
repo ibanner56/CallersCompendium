@@ -24,6 +24,7 @@ cannot fail is caught as well as a missing pin.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import re
 import shutil
@@ -180,6 +181,13 @@ def _have_cmake() -> bool:
     return shutil.which("cmake") is not None
 
 
+def needs_cmake(fn):
+    """Mark a test that runs ``cmake -P``, so ``--without-cmake`` can leave it
+    to preflight's ``pdfium-verifier`` step, which SKIPs when cmake is absent."""
+    fn.needs_cmake = True
+    return fn
+
+
 def _fake_build(tmp: Path, os_name: str, arch: str, payload: bytes) -> tuple[str, str]:
     """Lay out what printing's download_project leaves in the build dir."""
     src = tmp / "pdfium-download" / "pdfium-download-prefix" / "src"
@@ -222,6 +230,7 @@ def _expect(result: subprocess.CompletedProcess, ok: bool, needle: str) -> None:
     assert needle in out, f"expected {needle!r} in verifier output:\n{out}"
 
 
+@needs_cmake
 def test_verifier_accepts_matching_hashes() -> None:
     if not _have_cmake():
         raise AssertionError("cmake is required to run the pdfium verifier tests")
@@ -241,6 +250,7 @@ def test_verifier_accepts_matching_hashes() -> None:
             _expect(result, True, "verified")
 
 
+@needs_cmake
 def test_verifier_rejects_a_different_archive() -> None:
     # The real pinned archive hash against a fake archive: what a swapped
     # release asset looks like. The library hash is made to match, so only the
@@ -261,6 +271,7 @@ def test_verifier_rejects_a_different_archive() -> None:
             _expect(result, False, f"pdfium-{os_name}-x64.tgz")
 
 
+@needs_cmake
 def test_verifier_rejects_a_different_library() -> None:
     p = pin()
     with tempfile.TemporaryDirectory() as td:
@@ -275,6 +286,7 @@ def test_verifier_rejects_a_different_library() -> None:
         _expect(result, False, "libpdfium.so")
 
 
+@needs_cmake
 def test_verifier_rejects_an_unpinned_version_or_arch_or_missing_archive() -> None:
     p = pin()
     with tempfile.TemporaryDirectory() as td:
@@ -336,6 +348,7 @@ def _run_pin(tmp: Path, os_name: str, platform: str, prelude: str = "") -> subpr
     return subprocess.run(["cmake", "-P", str(driver)], cwd=tmp, capture_output=True, text=True)
 
 
+@needs_cmake
 def test_pin_refuses_an_archive_that_does_not_match() -> None:
     # The real pinned hash against a fake asset at the release URL: what a
     # swapped release asset looks like.
@@ -349,6 +362,7 @@ def test_pin_refuses_an_archive_that_does_not_match() -> None:
             assert "pinned " not in result.stdout, "the configure must stop at the mismatch"
 
 
+@needs_cmake
 def test_pin_accepts_a_matching_archive_and_does_not_fetch_it_twice() -> None:
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
@@ -365,6 +379,7 @@ def test_pin_accepts_a_matching_archive_and_does_not_fetch_it_twice() -> None:
         _expect(_run_pin(tmp, "linux", "linux-x64", override), True, "pre-verified")
 
 
+@needs_cmake
 def test_pin_refuses_a_missing_asset_or_unpinned_arch() -> None:
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
@@ -408,8 +423,21 @@ def test_bundled_licence_is_the_pinned_release_licence() -> None:
         assert heading in text, f"bundled pdfium licence lacks {heading!r}"
 
 
-def main() -> int:
-    tests = [(name, fn) for name, fn in globals().items() if name.startswith("test_")]
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="pdfium pin tests (default: all)")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--without-cmake", action="store_true", help="only the tests that do not run cmake"
+    )
+    group.add_argument("--cmake-only", action="store_true", help="only the cmake -P tests")
+    args = parser.parse_args(argv)
+    tests = [
+        (name, fn)
+        for name, fn in globals().items()
+        if name.startswith("test_")
+        and not (args.without_cmake and getattr(fn, "needs_cmake", False))
+        and not (args.cmake_only and not getattr(fn, "needs_cmake", False))
+    ]
     failures = 0
     for name, fn in tests:
         try:

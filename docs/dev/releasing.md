@@ -1420,7 +1420,9 @@ that release, so the hashes were computed from the downloaded release assets
 x64 and arm64 targets are pinned; any other architecture fails the build until
 it is added.
 
-`tools/release/test_pdfium_pin.py` (in `release-tooling` and the PR checks)
+`tools/release/test_pdfium_pin.py` (in the PR checks; locally, preflight's
+`release-tooling` step runs the tests that need no CMake and `pdfium-verifier`
+runs the `cmake -P` ones, skipping visibly when `cmake` is not installed)
 fails if the pin, a hash, or the CMake wiring is missing, if `pubspec.lock`
 moves `printing` off the version the pin was written for, or if the
 pre-download or the verifier accepts a fake archive (it runs both under

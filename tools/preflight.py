@@ -420,7 +420,8 @@ STEPS: tuple[Step, ...] = (
             py("tools/release/test_android_version_code.py"),
             py("tools/release/test_check_beta_prerelease_history.py"),
             py("tools/release/test_gen_sbom.py"),
-            py("tools/release/test_pdfium_pin.py"),
+            # Its cmake -P tests are the pdfium-verifier step, which SKIPs without cmake.
+            py("tools/release/test_pdfium_pin.py", "--without-cmake"),
             py("tools/release/test_gen_release_metadata.py"),
             py("tools/release/test_gen_release_notes.py"),
             py("tools/release/test_gen_recovery_provenance.py"),
@@ -433,6 +434,12 @@ STEPS: tuple[Step, ...] = (
             py("tools/release/test_check_pages_signature_files.py"),
         ),
         needs_import="cryptography.hazmat.primitives.asymmetric.ed25519",
+    ),
+    Step(
+        "pdfium-verifier",
+        "the pdfium pre-download and hash verifier, run under cmake -P",
+        (py("tools/release/test_pdfium_pin.py", "--cmake-only"),),
+        needs_binary="cmake",
     ),
     Step(
         "core-flutter-free-tests",
