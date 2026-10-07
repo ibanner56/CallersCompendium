@@ -1369,27 +1369,112 @@ FigureMatch? _chainAnnotation(String scrubbed) {
 }
 
 /// See [_chainAnnotation]. `promenade` has no note of its own (no collision),
-/// but shares the same mechanism for consistency.
+/// but shares the same mechanism for consistency — plus two TCB whole-set
+/// idioms the shared recognizer cannot read:
+///
+/// * **`around the major set`**, anywhere on the line — at the end, before an
+///   annotation (`… around the major set (backwards)`), or before a
+///   destination (`… around the major set to N2`). It is kept as the note
+///   `around the major set`. Before this, the phrase was only recognised at
+///   the very END of the line; anywhere else, this pre-recognizer declined and
+///   the normal path's [_tcbRecognitionNormalize] stripped the phrase AND
+///   every annotation for recognition, so the line structured with no note at
+///   all — `Neighbor promenade clockwise around the major set (backwards)`
+///   silently became a bare `neighbors promenade clockwise`.
+/// * **A destination** — a bare `to <dancer>` tail
+///   (`… around the major set to N2`, `… to partner`) or a whole-annotation
+///   `(to <dancer>)`. A tail that
+///   names exactly one dancer set ([resolveDancerSetPhrase]) fills
+///   `promenade.destination` (taxonomy v29); a tail that does not (`to next`,
+///   `to place`, `to shadow S4`) is left as leftover words, so the shared
+///   recognizer rejects the line and it stays custom.
+///
+/// **The destination's words are ALSO kept in the note** unless the line states
+/// a `where` other than `across`. The renderer shows the destination clause
+/// only when the effective `where != 'across'` (the v30 gate, see
+/// `promenade.destination` in `contra_taxonomy.dart`), and TCB's whole-set
+/// lines never state a `where`, so the effective `where` is the `across`
+/// default and the structured destination does not render. Dropping the words
+/// from the note would make the destination invisible on every such line. The
+/// param still earns its place: it is the filterable fact, the same one the
+/// ContraDB dialect fills. On a line that DOES state `along`, the clause
+/// renders, so the words are consumed rather than printed twice.
+///
+/// Counter-rotating single-file lines (`Single file promenade around the major
+/// set to N3 (role1s cw in center, …)`) are untouched: the shared recognizer
+/// does not read `single file`, so they never resolve to `promenade` here.
 FigureMatch? _promenadeAnnotation(String scrubbed) {
-  final wholeSet = _aroundMajorSetRe.hasMatch(scrubbed);
-  final normalized = scrubbed.replaceFirst(_aroundMajorSetRe, '');
-  final annotated = _annotatedMatch(normalized, _promenadeAnchor, 'promenade');
-  final match =
-      annotated?.match ??
-      (wholeSet
-          ? recognizeSharedFigureLine(
-              normalized,
-              recognitionNormalize: _stripAnnotations,
-            )
-          : null);
+  if (!_promenadeAnchor.hasMatch(scrubbed)) return null;
+  final annotations = _annotations(scrubbed);
+  var bare = scrubbed.replaceAll(_parenRe, ' ').replaceAll(_bracketRe, ' ');
+  final wholeSet = _aroundMajorSetRe.hasMatch(bare);
+  bare = bare.replaceFirst(_aroundMajorSetRe, ' ').trim();
+
+  String? destination;
+  String? destinationNote;
+  final tail = _promenadeDestinationTailRe.firstMatch(bare);
+  if (tail != null) {
+    destination = resolveDancerSetPhrase(tail.group(1)!);
+    // An unresolvable tail is left in place: the shared recognizer then
+    // rejects the leftover words and the line stays custom.
+    if (destination != null) {
+      destinationNote = tail.group(0)!.trim();
+      bare = bare.substring(0, tail.start);
+    }
+  }
+  // `(to N2)`: an annotation that is ENTIRELY a destination. A bare tail, when
+  // present, wins, and this annotation is then kept as an ordinary one.
+  int? destinationAnnotation;
+  if (destination == null) {
+    for (var i = 0; i < annotations.length; i++) {
+      final m = _promenadeDestinationAnnotationRe.firstMatch(annotations[i]);
+      final d = m == null ? null : resolveDancerSetPhrase(m.group(1)!);
+      if (d != null) {
+        destination = d;
+        destinationAnnotation = i;
+        break;
+      }
+    }
+  }
+
+  final match = recognizeSharedFigureLine(
+    bare,
+    recognitionNormalize: _stripAnnotations,
+  );
   if (match == null || match.moveId != 'promenade') return null;
-  final annotationNote = annotated == null
-      ? null
-      : _joinAnnotations(annotated.annotations);
-  final notes = [?annotationNote, if (wholeSet) 'around the major set'];
-  if (notes.isEmpty) return null;
-  return _withAnnotationNote(match, notes.join('; '));
+  // Only when the line itself states a `where` other than `across` does the
+  // renderer show the destination clause; then the param carries the words and
+  // repeating them in the note would print them twice.
+  final where = match.params['where'];
+  final destinationRenders = where != null && where != 'across';
+  final notes = [
+    ?_joinAnnotations([
+      for (var i = 0; i < annotations.length; i++)
+        if (!(destinationRenders && i == destinationAnnotation)) annotations[i],
+    ]),
+    if (wholeSet) 'around the major set',
+    if (!destinationRenders) ?destinationNote,
+  ];
+  if (notes.isEmpty && destination == null) return null;
+  return _withAnnotationNote(
+    match,
+    notes.isEmpty ? null : notes.join('; '),
+    extraParams: destination == null ? const {} : {'destination': destination},
+  );
 }
+
+/// A trailing `to <dancer>` destination on a promenade line, after annotations
+/// and `around the major set` are removed. `{1,40}` bounds the dancer phrase.
+final RegExp _promenadeDestinationTailRe = RegExp(
+  r'\s+to\s+(\S.{0,39}?)\s*$',
+  caseSensitive: false,
+);
+
+/// An annotation body that is entirely a destination: `to N2`.
+final RegExp _promenadeDestinationAnnotationRe = RegExp(
+  r'^to\s+(\S.{0,39}?)$',
+  caseSensitive: false,
+);
 
 /// See [_chainAnnotation]. The anchor accepts both `right and left through`
 /// and `right left through`, matching the `and` being optional in the shared
@@ -3333,7 +3418,7 @@ final RegExp _wsRe = RegExp(r'\s+');
 final RegExp _parenRe = RegExp(r'\([^)]*\)');
 final RegExp _bracketRe = RegExp(r'\[[^\]]*\]');
 final RegExp _aroundMajorSetRe = RegExp(
-  r'\s+around\s+(?:the\s+)?major\s+set\s*$',
+  r'\s+around\s+(?:the\s+)?major\s+set\b',
   caseSensitive: false,
 );
 final RegExp _placesTailRe = RegExp(r'\s*places?\s*$', caseSensitive: false);
