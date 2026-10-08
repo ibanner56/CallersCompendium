@@ -402,8 +402,8 @@ jobs:
       # via `env:` and export a plain `signing=configured|missing` output that
       # the macOS sign/package steps below gate on. `signing=configured` ONLY
       # when the full Developer ID cert set AND all three notarytool credentials
-      # are present; otherwise `signing=missing` and the macOS leg builds exactly
-      # as today (UNSIGNED zip + dmg, no failure) until the maintainer adds the
+      # are present; otherwise `signing=missing` and the macOS leg builds the
+      # UNSIGNED zip + dmg (no failure) until the maintainer adds the
       # Apple secrets. Names are never interpolated into a `run:` line.
       - name: Determine macOS signing availability
         if: matrix.platform == 'macos'
@@ -607,8 +607,22 @@ jobs:
             --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
             "${codename_define[@]}"
 
-      # UNSIGNED path (secrets absent): byte-for-byte identical to the previous
-      # behaviour — a ditto zip + an hdiutil drag-to-Applications dmg, no deps.
+      # The installer disk image is laid out by dmgbuild (branded background,
+      # arrow + instructions, fixed icon positions, volume icon) via
+      # packaging/macos/build_dmg.sh. It is installed hash-pinned into a
+      # virtualenv, so the runner's externally-managed Python is untouched.
+      # Build-time only: nothing from it ships inside the app.
+      - name: Install DMG layout tool (dmgbuild, hash-pinned)
+        if: matrix.platform == 'macos'
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/dmgbuild-venv"
+          "$RUNNER_TEMP/dmgbuild-venv/bin/python" -m pip install --quiet \
+            --require-hashes -r packaging/macos/requirements-dmg.txt
+          echo "DMGBUILD_PYTHON=$RUNNER_TEMP/dmgbuild-venv/bin/python" >> "$GITHUB_ENV"
+
+      # UNSIGNED path (secrets absent): a ditto zip + the laid-out
+      # drag-to-Applications dmg, neither signed.
       - name: Package macOS (zip + dmg)
         if: matrix.platform == 'macos' && steps.macos_signing.outputs.signing == 'missing'
         run: |
@@ -623,13 +637,9 @@ jobs:
           ditto -c -k --keepParent "$app_path" \
             "dist/CallersCompendium-${VERSION}-macos-universal.zip"
 
-          # Drag-to-Applications style .dmg via the built-in hdiutil (no deps).
-          stage="dmg_stage"
-          rm -rf "$stage" && mkdir -p "$stage"
-          cp -R "$app_path" "$stage/"
-          ln -s /Applications "$stage/Applications"
-          hdiutil create -volname "Caller's Compendium" -srcfolder "$stage" \
-            -ov -format UDZO "dist/CallersCompendium-${VERSION}-macos-universal.dmg"
+          # Drag-to-Applications .dmg with the guided installer window.
+          packaging/macos/build_dmg.sh "$app_path" \
+            "dist/CallersCompendium-${VERSION}-macos-universal.dmg"
 
       # SIGNED path (secrets present): deep-codesign the .app with the hardened
       # runtime, build + sign the .dmg, notarize with notarytool, staple the
@@ -718,13 +728,10 @@ jobs:
           codesign --force --options runtime --timestamp \
             --entitlements "$entitlements" --sign "$identity" "$app_path"
 
-          # ---- 3. Build the .dmg (same hdiutil recipe) and sign it ----------
-          stage="dmg_stage"
-          rm -rf "$stage" && mkdir -p "$stage"
-          cp -R "$app_path" "$stage/"
-          ln -s /Applications "$stage/Applications"
-          hdiutil create -volname "Caller's Compendium" -srcfolder "$stage" \
-            -ov -format UDZO "$dmg"
+          # ---- 3. Build the .dmg (same recipe as unsigned) and sign it -----
+          # build_dmg.sh copies the signed .app with ditto and checks the copy
+          # matches it file for file.
+          packaging/macos/build_dmg.sh "$app_path" "$dmg"
           codesign --force --timestamp --sign "$identity" "$dmg"
 
           # ---- 4. Notarize the .dmg (registers the nested .app cdhash too) --
