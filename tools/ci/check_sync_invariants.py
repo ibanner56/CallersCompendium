@@ -191,6 +191,20 @@ EXPORT_RE = re.compile(
 )
 
 
+# Title helpers allowed to exist beside `normalizeTitle`, by file and by name.
+# Each must say why it is not an identity key. Naming the functions (not just
+# the file) keeps a third normalizer added to an exempt file a violation.
+ALTERNATE_TITLE_EXEMPTIONS: dict[str, frozenset[str]] = {
+    # Online-source query text and exact-title matching (`lookupUniqueExactTitle`).
+    # They fold only typographic punctuation and keep articles and ASCII
+    # punctuation, so an unattended program import never treats `Archive` as
+    # `The Archive`. Neither is a sync or dedupe key; those use `normalizeTitle`.
+    "packages/compendium_core/lib/src/imports/title_punctuation.dart": frozenset(
+        {"foldTitlePunctuation", "titleMatchKey"}
+    ),
+}
+
+
 @dataclass(frozen=True)
 class Violation:
     kind: str
@@ -799,14 +813,16 @@ def _function_body(source: str, match: re.Match[str]) -> str:
     return masked[body_at:] if end is None else masked[body_at : end + 1]
 
 
-def _alternate_title_definitions(source: str) -> list[int]:
+def _alternate_title_definitions(
+    source: str, exempt: frozenset[str] = frozenset()
+) -> list[int]:
     """Find functions that implement title normalization under another name."""
 
     masked = "\n".join(mask_source(source))
     definitions: list[int] = []
     for match in FUNCTION_DEF_RE.finditer(masked):
         name = match.group("name")
-        if name == "normalizeTitle":
+        if name == "normalizeTitle" or name in exempt:
             continue
         signature = match.group("parameters")
         title_relevant = "title" in name.lower() or re.search(
@@ -991,7 +1007,9 @@ def scan(root: Path = REPO_ROOT) -> ScanResult:
         title_definitions += len(title_matches)
         if title_matches:
             title_definition_paths.extend([path] * len(title_matches))
-        for offset in _alternate_title_definitions(source):
+        for offset in _alternate_title_definitions(
+            source, ALTERNATE_TITLE_EXEMPTIONS.get(relative, frozenset())
+        ):
             violations.append(
                 Violation(
                     "normalizeTitle",
