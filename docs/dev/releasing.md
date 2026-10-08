@@ -43,7 +43,7 @@ This is the operator runbook for cutting a desktop release. It documents the
 - [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized) — 85 lines
 - [Android (signed APK)](#android-signed-apk) — 143 lines
 - [iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api) — 125 lines
-- [Packaging tooling notes](#packaging-tooling-notes) — 92 lines
+- [Packaging tooling notes](#packaging-tooling-notes) — 100 lines
 - [Pinned native dependencies](#pinned-native-dependencies) — 81 lines
 <!-- /section-index -->
 
@@ -1420,13 +1420,21 @@ All GitHub Actions are pinned to full commit SHAs (repo convention).
 Opening the `.dmg` shows a fixed installer window rather than a bare Finder
 folder: the app on the left and an `Applications` shortcut on the right, over
 a background with a heading, an arrow from one to the other, and a line on
-opening the app afterwards. The app's own icon is the mounted volume's icon.
+opening the app afterwards. The arrow is pressed into the background, with
+the brand's small mark raised inside it, and both icons sit on a soft hovering
+shadow. The app's own icon is the mounted volume's icon.
+
+Finder draws the icons on top of the background, so their shadows are painted
+into the art at the icons' fixed positions, shaped to each icon's visible
+outline. The app outline is measured from its icon; the folder's is an
+approximation of the system folder icon (constants in the generator), so
+check that shadow on a Mac after changing it.
 
 | File | Role |
 | --- | --- |
 | `packaging/macos/dmg_settings.py` | Window size, icon size and positions, contents, format (`UDZO`, HFS+). Read by `dmgbuild`. |
 | `packaging/macos/dmg-background.png`, `…@2x.png` | Background art (1x and Retina). Combined into one multi-resolution TIFF by `dmgbuild` via `tiffutil`. |
-| `tools/brand/generate_dmg_background.py` | Draws the art from the geometry in `dmg_settings.py`, using the app's palette and bundled fonts. Local-only (Pillow); its outputs are committed. |
+| `tools/brand/generate_dmg_background.py` | Draws the art from the geometry in `dmg_settings.py`, using the app's palette, bundled fonts and `app/assets/brand/mark-small.svg`. Local-only (Pillow and cairosvg); its outputs are committed. |
 | `packaging/macos/build_dmg.sh` | Runs `dmgbuild`, then mounts the image read-only and fails unless the app copy matches the source bundle file for file and the shortcut, layout, background and volume icon are all present (`dmgbuild` does not fail when one of its copy or attribute steps does). |
 | `packaging/macos/requirements-dmg.txt` | `dmgbuild` and its two dependencies, exact versions with SHA-256 hashes. Build-time only. |
 
@@ -1438,8 +1446,8 @@ signed packaging steps call `build_dmg.sh`; the signed step then signs,
 notarizes and staples the result as before.
 
 **Changing the layout.** Edit the geometry constants in `dmg_settings.py`, then
-re-run `python3 tools/brand/generate_dmg_background.py` so the arrow and image
-size follow. `tools/release/test_macos_dmg.py` (a PR gate) runs the settings
+re-run `python3 tools/brand/generate_dmg_background.py` so the arrow, the icon
+shadows and the image size follow. `tools/release/test_macos_dmg.py` (a PR gate) runs the settings
 file the way `dmgbuild` does and fails when the art's size no longer matches
 the window, an icon or its label falls outside it, the requirements lose a
 pin or hash, or a packaging step stops using `build_dmg.sh`. It cannot build

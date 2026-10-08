@@ -97,7 +97,8 @@ The `site/` marketing assets (`logo.svg`, `favicon.svg`, `social-card.svg`) embe
 the same small mark and are maintained by hand from these sources.
 
 The macOS installer disk image's background (`packaging/macos/dmg-background.png`
-and `@2x`) is drawn separately by `tools/brand/generate_dmg_background.py` (Pillow
-only, using the light-scheme palette and the bundled Fraunces / Atkinson
-Hyperlegible fonts); see
+and `@2x`) is drawn separately by `tools/brand/generate_dmg_background.py` (Pillow and
+cairosvg, using the light-scheme palette, the bundled Fraunces / Atkinson
+Hyperlegible fonts, and `mark-small.svg` for the mark raised inside the arrow);
+see
 [releasing.md → macOS installer disk image](../../../docs/dev/releasing.md#macos-installer-disk-image).
