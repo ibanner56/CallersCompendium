@@ -1118,6 +1118,20 @@ void main() {
         expect(figures[1].params['beats'], 12);
       });
 
+      test(
+        'an unidentified custom balance does NOT fold into a petronella',
+        () async {
+          final figures = await figuresFor([
+            '(4) Balance diamond',
+            '(4) Petronella turn',
+          ]);
+          expect(figures, hasLength(2));
+          expect(figures[0].isCustom, isTrue);
+          expect(figures[1].move, 'petronella');
+          expect(figures[1].params['balance'], isNot(true));
+        },
+      );
+
       test('a balance ring still folds into a petronella', () async {
         final figures = await figuresFor([
           '(4) Balance ring',

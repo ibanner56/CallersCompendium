@@ -928,9 +928,10 @@ class CallersBoxAdapter implements SourceAdapter {
   ///    `Ones swing` — lose the twos' balance outright. It stays its own figure
   ///    instead, which [_promoteBalanceWaveLines] maps onto the wave-formation
   ///    move with `balance: true` when it can decode the line.
-  ///  * Any other custom balance line (`Balance diamond`) folds only into
-  ///    petronella, as before; never into a subject move, which would assert a
-  ///    subject the line did not state.
+  ///  * A custom balance line naming the ring folds only into petronella.
+  ///  * Any other custom balance line (`Balance diamond`) names a formation we
+  ///    do not identify, so it never folds: merging would drop the formation
+  ///    word and assert a balance of a different set.
   static bool _balanceMatchesMove(Figure balance, Figure move) {
     final target = move.move;
     final ringOrWave =
@@ -946,12 +947,14 @@ class CallersBoxAdapter implements SourceAdapter {
       return _ringBalanceMoves.contains(target);
     }
     if (!balance.isCustom) return false;
-    final namesWave = _figureWords(
-      balance,
-    ).map(_stripEdgePunctuation).any((w) => w == 'wave' || w == 'waves');
-    return namesWave
-        ? _waveBalanceMoves.contains(target)
-        : _ringBalanceMoves.contains(target);
+    final words = _figureWords(balance).map(_stripEdgePunctuation).toSet();
+    if (words.contains('wave') || words.contains('waves')) {
+      return _waveBalanceMoves.contains(target);
+    }
+    // Fold only a formation we positively identify; an unknown one
+    // (`Balance diamond`) stays its own figure.
+    if (words.contains('ring')) return _ringBalanceMoves.contains(target);
+    return false;
   }
 
   /// Returns [move] with the preceding [balance] folded in, or `null` when
