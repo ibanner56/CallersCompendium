@@ -71,7 +71,9 @@ keep.
    [Collection & search guide](./collection.md#search-across-your-dances)
    explains how each option matches. Curly and straight apostrophes and quotes
    (`’` and `'`, `“”` and `"`) and the different dashes count as the same, so
-   type them however your keyboard does.
+   type them however your keyboard does. Accented letters must still be typed
+   with their accents (`Déjà vu`, not `Deja vu`), but upper or lower case
+   doesn't matter.
 5. Select a result to open a **preview** of that dance.
 6. If it is the one you want, choose **Import** to add it to your collection.
 
