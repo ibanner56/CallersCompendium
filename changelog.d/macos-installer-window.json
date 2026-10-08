@@ -1,0 +1,9 @@
+{
+  "id": "macos-installer-window",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Opening the macOS disk image now shows a laid-out installer window: the app and your Applications folder side by side, an arrow between them, and short instructions on what to drag and how to open the app afterwards."
+    ]
+  }
+}
