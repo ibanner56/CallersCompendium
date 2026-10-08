@@ -144,16 +144,51 @@ void main() {
 
   group('ContraDbOnline.search', () {
     test('fetches and parses the JSON results', () async {
-      final online = ContraDbOnline(searchFetcher: (_) async => _searchJson());
+      final requests = <ContraDbSearchRequest>[];
+      final online = ContraDbOnline(
+        searchFetcher: (request) async {
+          requests.add(request);
+          return _searchJson();
+        },
+      );
       final results = await online.search(
         const OnlineSearchQuery(title: 'rendezvous'),
       );
+      expect(requests.map((r) => r.query), ['rendezvous']);
       expect(results, hasLength(1));
       expect(results.single.source, OnlineSource.contraDb);
       expect(results.single.id, '1');
       expect(results.single.name, 'The Rendezvous');
       expect(results.single.author, 'Adina Gordon');
       expect(results.single.formation, 'improper');
+    });
+
+    test('searches an apostrophe in both spellings and merges by id', () async {
+      // ContraDB stores both `'` and `’` and matches punctuation exactly.
+      final byQuery = {
+        "anna's": _searchJson(id: '7', title: "Anna's Reel"),
+        'anna’s': jsonEncode({
+          'numberSearched': 2415,
+          'numberMatching': 2,
+          'dances': [
+            {'id': 3, 'title': 'Anna’s Ramble'},
+            {'id': 7, 'title': "Anna's Reel"},
+          ],
+        }),
+      };
+      final requests = <ContraDbSearchRequest>[];
+      final online = ContraDbOnline(
+        searchFetcher: (request) async {
+          requests.add(request);
+          return byQuery[request.query]!;
+        },
+      );
+      final results = await online.search(
+        const OnlineSearchQuery(title: 'anna’s'),
+      );
+      expect(requests.map((r) => r.query), ["anna's", 'anna’s']);
+      expect(requests.map((r) => r.filter).toSet(), {'title'});
+      expect(results.map((r) => r.id), ['3', '7']);
     });
 
     test(

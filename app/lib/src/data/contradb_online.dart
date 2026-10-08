@@ -46,7 +46,10 @@ class ContraDbOnline implements OnlineSearchService {
   /// Searches ContraDB by the selected title, author, or exact canonical figure
   /// criterion and returns the parsed result rows. Figure input accepts
   /// case/whitespace variants and is resolved to ContraDB's source spelling
-  /// before the request. Throws a typed [UrlFetchException] on any fetch
+  /// before the request. Title and author text containing an apostrophe or
+  /// double quote is searched in both its ASCII and its curly spelling
+  /// ([contraDbTitleQueryVariants]) — two requests — and the rows are merged
+  /// by id. Throws a typed [UrlFetchException] on any fetch
   /// failure, unsupported Figure input, or when there is nothing to search.
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
@@ -82,19 +85,37 @@ class ContraDbOnline implements OnlineSearchService {
         : author.isNotEmpty
         ? 'choreographer'
         : 'figure';
-    final body = await _searchFetcher(
-      ContraDbSearchRequest(query: queryText, filter: filter),
-    );
-    return [
-      for (final r in parseContraDbSearchResults(body))
-        OnlineSearchResultRow(
-          source: OnlineSource.contraDb,
-          id: r.id,
-          name: r.name,
-          author: r.author,
-          formation: r.formation,
-        ),
+    // ContraDB matches punctuation exactly and stores both `'` and `’` (and
+    // both `"` and `“”`), so free text is sent in each spelling and the
+    // results merged. A figure is already its canonical source spelling.
+    final variants = filter == 'figure'
+        ? [queryText]
+        : contraDbTitleQueryVariants(queryText);
+    final bodies = await Future.wait([
+      for (final variant in variants)
+        _searchFetcher(ContraDbSearchRequest(query: variant, filter: filter)),
+    ]);
+    final seenIds = <String>{};
+    final rows = [
+      for (final body in bodies)
+        for (final r in parseContraDbSearchResults(body))
+          if (seenIds.add(r.id))
+            OnlineSearchResultRow(
+              source: OnlineSource.contraDb,
+              id: r.id,
+              name: r.name,
+              author: r.author,
+              formation: r.formation,
+            ),
     ];
+    // Each response is already title-sorted; re-sort only a merged set, by
+    // titleMatchKey so `’` and `'` titles interleave rather than group.
+    if (bodies.length > 1) {
+      rows.sort(
+        (a, b) => titleMatchKey(a.name).compareTo(titleMatchKey(b.name)),
+      );
+    }
+    return rows;
   }
 
   /// Fetches the per-dance HTML for [result], parses it with

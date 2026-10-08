@@ -969,6 +969,11 @@ typedef CallersBoxSearchFetcher = Future<String> Function(String url);
 /// stated total rather than requesting it unconditionally — see
 /// [parseCallersBoxMatchCount] and `CallersBoxOnline.search`.
 ///
+/// Title, author and every figure line pass through [foldTitlePunctuation]
+/// first: TCB stores only ASCII apostrophes, quotes and hyphens and matches
+/// them exactly, so a `’` typed by a phone keyboard would otherwise make a
+/// correct title match nothing.
+///
 /// Throws a [UrlFetchException] (message safe to show) when there is nothing to
 /// search — empty title and author values with no effective [phrases].
 String buildCallersBoxSearchUrl(
@@ -978,9 +983,11 @@ String buildCallersBoxSearchUrl(
   String host = callersBoxHost,
   bool showAll = false,
 }) {
-  final trimmed = title.trim();
-  final trimmedAuthor = author.trim();
+  final trimmed = foldTitlePunctuation(title).trim();
+  final trimmedAuthor = foldTitlePunctuation(author).trim();
   final hasPhrases = phrases != null && !phrases.isEmpty;
+  String joinLines(List<String> lines) =>
+      lines.map(foldTitlePunctuation).join('\n');
   if (trimmed.isNotEmpty && trimmedAuthor.isNotEmpty) {
     throw ArgumentError('title and author cannot both be specified');
   }
@@ -994,21 +1001,21 @@ String buildCallersBoxSearchUrl(
   if (showAll) params['show_all'] = '';
   if (hasPhrases) {
     if (phrases.globalPos.isNotEmpty) {
-      params['pos_lines'] = phrases.globalPos.join('\n');
+      params['pos_lines'] = joinLines(phrases.globalPos);
       params['pos_mode'] = _tcbPosMode;
     }
     if (phrases.globalNeg.isNotEmpty) {
-      params['neg_lines'] = phrases.globalNeg.join('\n');
+      params['neg_lines'] = joinLines(phrases.globalNeg);
       params['neg_mode'] = _tcbNegMode;
     }
     phrases.phrasePos.forEach((slot, lines) {
       if (lines.isEmpty) return;
-      params['phr${slot}_pos_lines'] = lines.join('\n');
+      params['phr${slot}_pos_lines'] = joinLines(lines);
       params['phr${slot}_pos_mode'] = _tcbPosMode;
     });
     phrases.phraseNeg.forEach((slot, lines) {
       if (lines.isEmpty) return;
-      params['phr${slot}_neg_lines'] = lines.join('\n');
+      params['phr${slot}_neg_lines'] = joinLines(lines);
       params['phr${slot}_neg_mode'] = _tcbNegMode;
     });
   }

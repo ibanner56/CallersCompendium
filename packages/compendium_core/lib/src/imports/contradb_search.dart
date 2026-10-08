@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:meta/meta.dart';
 
+import 'title_punctuation.dart';
+
 /// One row of a **ContraDB** online title-, choreographer-, or figure-search
 /// result.
 ///
@@ -125,10 +127,12 @@ const Map<String, String> _contraDbFigureNames = {
   'zig zag': 'zig zag',
 };
 
-String _normalizeContraDbFigureQuery(String query) =>
-    query.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+String _normalizeContraDbFigureQuery(String query) => titleMatchKey(query);
 
 /// Resolves user-entered Figure text to ContraDB's exact source spelling.
+///
+/// Case, whitespace and typographic punctuation are folded first (see
+/// [titleMatchKey]), so `Rory O’More` resolves like `rory o'more`.
 ///
 /// Returns `null` for partial, unknown, or empty text. The endpoint would
 /// return an error for those values, so callers must reject them before making

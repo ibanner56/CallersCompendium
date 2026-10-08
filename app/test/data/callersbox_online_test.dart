@@ -169,6 +169,23 @@ void main() {
       );
     });
 
+    test('folds typographic punctuation to the ASCII TCB stores', () {
+      final params = Uri.parse(
+        buildCallersBoxSearchUrl(
+          'Rory O’More – “Reel”',
+          phrases: const CallersBoxPhraseQuery(globalPos: ['rory o’more']),
+        ),
+      ).queryParameters;
+      expect(params['title'], 'Rory O\'More - "Reel"');
+      expect(params['pos_lines'], "rory o'more");
+      expect(
+        Uri.parse(
+          buildCallersBoxSearchUrl('', author: 'Tom O’Brien'),
+        ).queryParameters['author'],
+        "Tom O'Brien",
+      );
+    });
+
     test('sends a trimmed author criterion', () {
       final params = Uri.parse(
         buildCallersBoxSearchUrl('', author: '  Alice Smith  '),

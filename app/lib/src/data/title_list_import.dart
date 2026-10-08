@@ -41,7 +41,7 @@ const int kMaxTitleListChars = 64 * 1024;
 ///
 /// 100 is deliberately far above real use (an evening's program is ~12-15
 /// dances, a season well under 100) and far below anything that would hammer The
-/// Caller's Box. Counted **after** blank-dropping and case-insensitive
+/// Caller's Box. Counted **after** blank-dropping and case- and punctuation-insensitive
 /// de-duplication, so repeating one title 500 times is one title, not a refusal.
 const int kMaxTitleListTitles = 100;
 
@@ -275,8 +275,8 @@ class TitleListLine {
 /// In order, it: rejects the whole paste over [kMaxTitleListChars]; splits on
 /// newlines; trims; drops blank lines; flags lines over [kMaxTitleLength] as
 /// [TitleListNotFoundReason.lineTooLong] (kept in place so they still appear in
-/// the review, but never searched); folds case-insensitive duplicates onto their
-/// first occurrence; and rejects the paste over [kMaxTitleListTitles] distinct
+/// the review, but never searched); folds duplicates that share a `titleMatchKey`
+/// (case and punctuation style ignored) onto their first occurrence; and rejects the paste over [kMaxTitleListTitles] distinct
 /// titles.
 TitleListPreflight preflightTitleList(String text) {
   if (text.length > kMaxTitleListChars) {
@@ -294,7 +294,8 @@ TitleListPreflight preflightTitleList(String text) {
   for (final raw in text.split('\n')) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) continue;
-    // Case-insensitive, first-occurrence-wins, and applied to **every** line
+    // Case- and punctuation-insensitive ([titleMatchKey], so `O'More` and
+    // `O’More` are one title), first-occurrence-wins, and applied to **every** line
     // before any other judgement is passed on it. A program may legitimately
     // call the same dance twice, which is why `parsePlaintextProgram` keeps
     // duplicates and this de-duplication lives out here instead: importing the
@@ -306,7 +307,7 @@ TitleListPreflight preflightTitleList(String text) {
     // occurrence in a review whose stated premise is that repeats were folded,
     // and uncounted by [duplicateLines], which is the number telling the user
     // that folding happened at all.
-    if (!seen.add(trimmed.toLowerCase())) {
+    if (!seen.add(titleMatchKey(trimmed))) {
       duplicates++;
       continue;
     }

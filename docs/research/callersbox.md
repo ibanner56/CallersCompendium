@@ -386,6 +386,20 @@ Substring search on title/author; controlled formation + progression filters;
 positive/negative figure-line matching with any/all modes; **per-phrase (A1..B2)
 figure search** (2023). Matches our roadmap search requirements almost 1:1.
 
+### Title punctuation and query encoding (verified live 2026-10-08)
+
+Title search matches punctuation exactly, and the catalogue stores only ASCII
+`'` and `"`: `?title='` matches 2,713 dances and `?title="` 38, while `’` `‘`
+`“` `”` `–` `—` `…` `` ` `` and `´` each match **0**, whether sent as UTF-8
+or as their windows-1252 bytes. Ellipses are spelled `...` (13 matches).
+`buildCallersBoxSearchUrl` therefore folds typographic punctuation to ASCII
+(`foldTitlePunctuation`) before sending, so `Rory O’More` finds `Rory O'More`.
+
+Accented letters are matched as **windows-1252** bytes: `?title=%E9` matches
+5 dances (`Déjà vu`, `PokéCon`, …) and the UTF-8 `%C3%A9` matches 0. The app
+sends query text as UTF-8 (`Uri.https`), so an accented title currently finds
+nothing on TCB; that is a separate fix from the punctuation fold.
+
 ### Results-page markers and paging (verified live 2026-08-06, issue #845)
 
 The HTML results table carries three leading icon `<td>`s per row, whose legend
