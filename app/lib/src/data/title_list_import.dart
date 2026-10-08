@@ -41,8 +41,9 @@ const int kMaxTitleListChars = 64 * 1024;
 ///
 /// 100 is deliberately far above real use (an evening's program is ~12-15
 /// dances, a season well under 100) and far below anything that would hammer The
-/// Caller's Box. Counted **after** blank-dropping and case- and punctuation-insensitive
-/// de-duplication, so repeating one title 500 times is one title, not a refusal.
+/// Caller's Box. Counted **after** blank-dropping and case- and
+/// punctuation-insensitive de-duplication, so repeating one title 500 times is
+/// one title, not a refusal.
 const int kMaxTitleListTitles = 100;
 
 /// Hard cap on the length of a single pasted line, in UTF-16 code units.
@@ -275,9 +276,9 @@ class TitleListLine {
 /// In order, it: rejects the whole paste over [kMaxTitleListChars]; splits on
 /// newlines; trims; drops blank lines; flags lines over [kMaxTitleLength] as
 /// [TitleListNotFoundReason.lineTooLong] (kept in place so they still appear in
-/// the review, but never searched); folds duplicates that share a `titleMatchKey`
-/// (case and punctuation style ignored) onto their first occurrence; and rejects the paste over [kMaxTitleListTitles] distinct
-/// titles.
+/// the review, but never searched); folds duplicates that share a
+/// `titleMatchKey` (case and punctuation style ignored) onto their first
+/// occurrence; and rejects the paste over [kMaxTitleListTitles] distinct titles.
 TitleListPreflight preflightTitleList(String text) {
   if (text.length > kMaxTitleListChars) {
     return TitleListPreflight._(
@@ -295,12 +296,12 @@ TitleListPreflight preflightTitleList(String text) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) continue;
     // Case- and punctuation-insensitive ([titleMatchKey], so `O'More` and
-    // `O’More` are one title), first-occurrence-wins, and applied to **every** line
-    // before any other judgement is passed on it. A program may legitimately
-    // call the same dance twice, which is why `parsePlaintextProgram` keeps
-    // duplicates and this de-duplication lives out here instead: importing the
-    // same dance twice is never useful, and searching for it twice is pure
-    // waste against someone else's server.
+    // `O’More` are one title), first-occurrence-wins, and applied to **every**
+    // line before any other judgement is passed on it. A program may
+    // legitimately call the same dance twice, which is why
+    // `parsePlaintextProgram` keeps duplicates and this de-duplication lives
+    // out here instead: importing the same dance twice is never useful, and
+    // searching for it twice is pure waste against someone else's server.
     //
     // Ordering matters. Folding only the lines that survive the length check
     // would let a repeated over-long line through repeatedly — listed once per

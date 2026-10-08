@@ -13,8 +13,9 @@ import 'plaintext_program_import.dart';
 /// [_resolveLineAcrossSources]) is asked to [OnlineSearchService.search] by the
 /// line's title. A line is only auto-linked on a **confident match** — a
 /// UNIQUE exact-title hit: exactly one result whose
-/// [OnlineSearchResultRow.name] equals the line text under
-/// `titleMatchKey` (case, whitespace and quote/dash style folded) — from whichever source produces one first. On such a hit
+/// [OnlineSearchResultRow.name] equals the line text under `titleMatchKey`
+/// (case, whitespace and quote/dash style folded) — from whichever source
+/// produces one first. On such a hit
 /// the dance is imported via [OnlineSearchService.loadPreview] +
 /// [OnlineSearchService.import] and the returned dance id is linked into the
 /// slot (a fresh [PlaintextLineResolution.matched] line with

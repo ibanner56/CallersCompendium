@@ -49,7 +49,8 @@ class ContraDbOnline implements OnlineSearchService {
   /// before the request. Title and author text containing an apostrophe or
   /// double quote is searched in both its ASCII and its curly spelling
   /// ([contraDbTitleQueryVariants]) — two requests — and the rows are merged
-  /// by id. Throws a typed [UrlFetchException] on any fetch
+  /// by id; a failure of the curly request alone is ignored. Throws a typed
+  /// [UrlFetchException] on any other fetch
   /// failure, unsupported Figure input, or when there is nothing to search.
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
@@ -91,13 +92,27 @@ class ContraDbOnline implements OnlineSearchService {
     final variants = filter == 'figure'
         ? [queryText]
         : contraDbTitleQueryVariants(queryText);
-    final bodies = await Future.wait([
-      for (final variant in variants)
-        _searchFetcher(ContraDbSearchRequest(query: variant, filter: filter)),
+    Future<String> fetch(String variant) =>
+        _searchFetcher(ContraDbSearchRequest(query: variant, filter: filter));
+    // Only the first (ASCII) spelling decides whether the search failed. The
+    // curly spelling is a widening: if it alone fails, the search returns what
+    // it would have returned before that spelling was sent at all.
+    Future<String?> widen(String variant) async {
+      try {
+        return await fetch(variant);
+      } on Exception {
+        // diagnostics: silent — optional widening request; the primary request's own failure still surfaces to the caller
+        return null;
+      }
+    }
+
+    final bodies = await Future.wait<String?>([
+      fetch(variants.first),
+      for (final variant in variants.skip(1)) widen(variant),
     ]);
     final seenIds = <String>{};
     final rows = [
-      for (final body in bodies)
+      for (final body in bodies.nonNulls)
         for (final r in parseContraDbSearchResults(body))
           if (seenIds.add(r.id))
             OnlineSearchResultRow(
@@ -109,11 +124,13 @@ class ContraDbOnline implements OnlineSearchService {
             ),
     ];
     // Each response is already title-sorted; re-sort only a merged set, by
-    // titleMatchKey so `’` and `'` titles interleave rather than group.
-    if (bodies.length > 1) {
-      rows.sort(
-        (a, b) => titleMatchKey(a.name).compareTo(titleMatchKey(b.name)),
-      );
+    // titleMatchKey so `’` and `'` titles interleave rather than group. The
+    // id tie-break makes equal titles deterministic (List.sort is unstable).
+    if (bodies.nonNulls.length > 1) {
+      rows.sort((a, b) {
+        final byTitle = titleMatchKey(a.name).compareTo(titleMatchKey(b.name));
+        return byTitle != 0 ? byTitle : a.id.compareTo(b.id);
+      });
     }
     return rows;
   }

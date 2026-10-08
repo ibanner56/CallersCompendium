@@ -1,9 +1,10 @@
 /// Punctuation folding for text sent to, and compared against, the online
 /// dance sources' title search.
 ///
-/// Both sources match a title query as a case-insensitive **substring with
-/// exact punctuation**, so a title that is otherwise correct misses when the
-/// user's keyboard typed a different apostrophe, quote or dash than the source
+/// Both sources match a title query as a **substring with exact punctuation**
+/// (case-insensitive for ASCII letters; The Caller's Box is case-sensitive for
+/// accented ones), so a title that is otherwise correct misses when the user's
+/// keyboard typed a different apostrophe, quote or dash than the source
 /// stored. What each source stores was measured live (2026-10-08):
 ///
 /// - **The Caller's Box** stores only ASCII `'` and `"`. Over its ~16,900

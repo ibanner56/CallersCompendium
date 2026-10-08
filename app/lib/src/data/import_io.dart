@@ -1040,9 +1040,9 @@ String buildCallersBoxSearchUrl(
 /// **windows-1252**, the way a browser submits TCB's own search form.
 ///
 /// A character windows-1252 cannot represent is sent as the numeric character
-/// reference `&#N;`, again as a browser does for that form; TCB stores no such
-/// characters in its titles, so it simply matches nothing rather than matching
-/// a wrong dance.
+/// reference `&#N;`, again as a browser does for that form. No TCB title
+/// contains `&#` (`?title=%26%23` matches 0, 2026-10-08), so such a query
+/// matches nothing rather than a wrong dance.
 String _encodeTcbQuery(Map<String, String> params) {
   final out = StringBuffer();
   void writeByte(int b) =>
@@ -1051,7 +1051,7 @@ String _encodeTcbQuery(Map<String, String> params) {
     for (final rune in text.runes) {
       if (rune == 0x20) {
         out.write('+');
-      } else if (_formSafe.hasMatch(String.fromCharCode(rune))) {
+      } else if (_isFormSafe(rune)) {
         out.writeCharCode(rune);
       } else if (rune < 0x80 || (rune >= 0xA0 && rune <= 0xFF)) {
         writeByte(rune);
@@ -1074,8 +1074,15 @@ String _encodeTcbQuery(Map<String, String> params) {
   return out.toString();
 }
 
-/// Characters a form submission sends unescaped.
-final RegExp _formSafe = RegExp(r'^[A-Za-z0-9*\-._]$');
+/// Whether a form submission sends [rune] unescaped: `A-Z a-z 0-9 * - . _`.
+bool _isFormSafe(int rune) =>
+    (rune >= 0x30 && rune <= 0x39) ||
+    (rune >= 0x41 && rune <= 0x5A) ||
+    (rune >= 0x61 && rune <= 0x7A) ||
+    rune == 0x2A ||
+    rune == 0x2D ||
+    rune == 0x2E ||
+    rune == 0x5F;
 
 /// TCB positive figure-match mode: "all of these lines, in any order" — the
 /// dance must contain EVERY selected figure (order irrelevant). Confirmed

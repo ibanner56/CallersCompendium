@@ -191,6 +191,61 @@ void main() {
       expect(results.map((r) => r.id), ['3', '7']);
     });
 
+    test('a failed curly request alone keeps the ASCII results', () async {
+      final online = ContraDbOnline(
+        searchFetcher: (request) async {
+          if (request.query.contains('’')) {
+            throw const UrlFetchException(
+              UrlFetchFailureReason.contraDbHttpStatus,
+              statusCode: 500,
+            );
+          }
+          return _searchJson(id: '7', title: "Anna's Reel");
+        },
+      );
+      final results = await online.search(
+        const OnlineSearchQuery(title: "anna's"),
+      );
+      expect(results.map((r) => r.id), ['7']);
+    });
+
+    test('a failed ASCII request still fails the search', () async {
+      final online = ContraDbOnline(
+        searchFetcher: (request) async {
+          if (!request.query.contains('’')) {
+            throw const UrlFetchException(
+              UrlFetchFailureReason.contraDbUnreachable,
+            );
+          }
+          return _searchJson(id: '3', title: 'Anna’s Ramble');
+        },
+      );
+      expect(
+        () => online.search(const OnlineSearchQuery(title: "anna's")),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.contraDbUnreachable,
+          ),
+        ),
+      );
+    });
+
+    test('merged rows with the same title are ordered by id', () async {
+      // The ASCII row arrives first; only the id tie-break ("10" < "2") puts
+      // the curly row ahead of it.
+      final online = ContraDbOnline(
+        searchFetcher: (request) async => request.query.contains('’')
+            ? _searchJson(id: '10', title: 'Anna’s Reel')
+            : _searchJson(id: '2', title: "Anna's Reel"),
+      );
+      final results = await online.search(
+        const OnlineSearchQuery(title: "anna's reel"),
+      );
+      expect(results.map((r) => r.id), ['10', '2']);
+    });
+
     test(
       'passes the selected author filter through the injected seam',
       () async {

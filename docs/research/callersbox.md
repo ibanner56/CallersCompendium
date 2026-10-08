@@ -397,10 +397,13 @@ or as their windows-1252 bytes. Ellipses are spelled `...` (13 matches).
 
 Accented letters are matched as **windows-1252** bytes: `?title=%E9` matches
 5 dances (`Déjà vu`, `PokéCon`, …) and the UTF-8 `%C3%A9` matches 0. Case-folding
-is ASCII-only: `d%E9j%E0` finds `Déjà vu` but `D%C9J%C0` finds nothing. Every
-accented letter TCB stores is lower-case. Probing each windows-1252 letter
-found ~30 titles using only `à á ä æ è é î ñ ö ø ü ß`, and authors only `é ö`;
-no upper-case accented letter matches anything in either field. So
+is ASCII-only: `d%E9j%E0` finds `Déjà vu` but `D%C9J%C0` finds nothing (ASCII
+title, author and figure-line matching ignore case: `GENE HUBERT` and
+`gene hubert` both match 178, `SWING` and `swing` both 14,657). Every accented
+letter TCB stores is lower-case: probing all 34 accented capitals and 35
+accented small letters of windows-1252 as `title=` and `author=` matched no
+capital at all; titles use `à á ä æ è é î ñ ö ø ü ß` (33 matches) and authors
+only `é ö` (7). So
 `buildCallersBoxSearchUrl` lower-cases title, author and figure lines and
 form-encodes them in windows-1252, the page's charset, rather than the UTF-8
 `Uri.https` would produce. A character windows-1252 lacks is sent as `&#N;`,
