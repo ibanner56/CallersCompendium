@@ -1,0 +1,15 @@
+{
+  "id": "callersbox-promenade-major-set-destination",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Caller's Box promenades written \"around the major set\" followed by a note in parentheses or brackets, such as \"(backwards)\", now keep that note and the \"around the major set\" wording instead of dropping both.",
+      "Caller's Box promenades that end at a named dancer, such as \"Partner promenade clockwise around the major set to N2\", now import as promenades with their destination instead of as custom text."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The Caller's Box figure dialect keeps `around the major set` and any annotation on a promenade line as the note wherever the phrase appears, and fills `promenade.destination` from a `to <dancer>` tail or `(to <dancer>)` annotation."
+    ]
+  }
+}

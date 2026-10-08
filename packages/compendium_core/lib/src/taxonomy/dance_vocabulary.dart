@@ -46,6 +46,16 @@ const Map<String, String> dancerWords = {
   'p3': 'thirdPartners',
   'p4': 'fourthPartners',
   'p5': 'fifthPartners',
+  // Tier B: TCB S-prefix shadow shorthand ("S1 shadow allemande left 1", "S2
+  // shadow swing"). Glossary: S1 is the first shadow, S2 the next hands-four
+  // beyond it (the same mapping the hey pass-list decoder's `tcbPassPeople`
+  // uses). `S-1` is read as the bare shadow — a maintainer ruling recorded in
+  // the PR that added it, not a glossary fact. `S3`+ and every other `S-n`
+  // have no taxonomy token and are absent from this map, so a line using one
+  // as its subject is left with an unconsumed word and stays custom.
+  's1': 'shadows',
+  's-1': 'shadows',
+  's2': 'secondShadows',
   // TCB explicit-dancer codes map to the single-dancer identities: M/W are the
   // roles, 1 = the active couple (ones), 2 = the inactive couple (twos). So
   // M1 = active role1 (onesRole1), W1 = active role2 (onesRole2), M2 = inactive
@@ -56,6 +66,18 @@ const Map<String, String> dancerWords = {
   'm2': 'twosRole1',
   'w2': 'twosRole2',
 };
+
+/// Qualifiers that, followed by `neighbor`/`neighbors`, name the `sameRoles`
+/// dancer set ("Same-role neighbor do-si-do" → `do_si_do(who: sameRoles)`).
+///
+/// They are not [dancerWords] entries because the qualifier alone is not a
+/// dancer: "Same-role right and left through" and "trade with same-role
+/// person" name no dancer set, and only the two-word pairing is read. The
+/// parser checks the pair before it looks a word up in [dancerWords], so the
+/// pairing never reads as plain `neighbors` with a stray qualifier.
+/// `same-role` is The Caller's Box spelling; `same-sex` is the older term, which
+/// the maintainer ruled names the same pairing.
+const Set<String> sameRoleQualifiers = {'same-role', 'same-sex'};
 
 /// Filler words that carry no structural meaning and may be dropped anywhere.
 const Set<String> fillerWords = {'your', 'the', 'a', 'an'};

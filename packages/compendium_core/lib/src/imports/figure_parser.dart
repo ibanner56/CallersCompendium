@@ -357,7 +357,7 @@ FigureMatch? recognizeSharedFigureLine(
   final words = _normalize(scrubbed, recognitionNormalize);
   if (words.isEmpty) return null;
   for (final recognizer in _recognizers) {
-    final match = recognizer(List<String>.of(words));
+    final match = _runRecognizer(recognizer, words);
     if (match != null) {
       return FigureMatch(
         match.moveId,
@@ -398,10 +398,93 @@ _Match? _recognize(String scrubbed, FigureFrontEnd frontEnd) {
   if (words.isEmpty) return null;
 
   for (final recognizer in _recognizers) {
-    final match = recognizer(List<String>.of(words));
+    final match = _runRecognizer(recognizer, words);
     if (match != null) return match;
   }
   return null;
+}
+
+/// Source spellings of the non-quarter amounts [_takeRotation]/[_takePlaces]
+/// rounded during the CURRENT recognizer run, or `null` outside one.
+///
+/// Rounding changes the stated amount, so the source fraction must survive
+/// (`prefer-custom`: a figure must not silently claim 1¾ where the source said
+/// 1⅔). The takers return a bare number, so the spelling travels on this
+/// side channel and [_runRecognizer] appends it to the match's note. When no
+/// run is collecting, the takers do not round at all: an amount they could not
+/// record is an amount they must not change.
+List<String>? _roundedAmounts;
+
+/// Runs [recognizer] on a copy of [words], collecting any amount it rounded
+/// and folding the source spelling into the match's note (after the
+/// recognizer's own note, per [combineFigureNotes]). Saves and restores the
+/// collector so a nested parse cannot leak its amounts into this match.
+_Match? _runRecognizer(_Recognizer recognizer, List<String> words) {
+  final outer = _roundedAmounts;
+  final rounded = <String>[];
+  _roundedAmounts = rounded;
+  try {
+    final match = recognizer(List<String>.of(words));
+    if (match == null || rounded.isEmpty) return match;
+    return _Match(
+      match.moveId,
+      match.params,
+      combineFigureNotes(match.note, rounded.join('; ')),
+      match.assumedSubject,
+      match.forceCustom,
+    );
+  } finally {
+    _roundedAmounts = outer;
+  }
+}
+
+/// Rounds the proper fraction [numerator]/[denominator] to whole quarter
+/// turns, or returns `null` when it is already an exact quarter (the caller's
+/// exact tables own those) or is not a proper fraction with a denominator in
+/// 2..16.
+///
+/// Maintainer ruling: non-quarter rotations (⅓ ⅔ ⅛ ⅜ ⅝ ⅞, and the rarer ⅙/
+/// 9/16) round to the NEAREST quarter rather than declining to custom.
+/// Ties — every eighth sits exactly between two quarters — round HALF UP
+/// (⅛→¼, ⅜→½, ⅝→¾, ⅞→1): one direction for every tie, and the direction in
+/// which a stated nonzero amount can never become zero. For the same reason a
+/// fraction below ⅛ (1/16, 1/9) rounds up to ¼ rather than down to nothing.
+/// The result is 1..4 quarters; the caller records the source spelling so the
+/// rounding is never silent. The denominator cap bounds untrusted import text
+/// to amounts a caller actually writes (the corpus tops out at 16).
+int? roundFractionToQuarters(int numerator, int denominator) {
+  if (denominator < 2 || denominator > 16) return null;
+  if (numerator < 1 || numerator >= denominator) return null;
+  final scaled = numerator * 4;
+  final remainder = scaled % denominator;
+  if (remainder == 0) return null; // exact quarter: not a rounding
+  var quarters = scaled ~/ denominator;
+  if (remainder * 2 >= denominator) quarters++; // half up
+  return quarters < 1 ? 1 : quarters;
+}
+
+final RegExp _slashFractionRe = RegExp(r'^([0-9]{1,2})/([0-9]{1,2})$');
+
+/// [roundFractionToQuarters] for a single normalized `n/d` word, or `null`
+/// when [token] is not a non-quarter fraction OR no recognizer run is
+/// collecting rounded amounts (see [_roundedAmounts]).
+int? _roundedQuarters(String token) {
+  if (_roundedAmounts == null) return null;
+  final m = _slashFractionRe.firstMatch(token);
+  if (m == null) return null;
+  return roundFractionToQuarters(int.parse(m[1]!), int.parse(m[2]!));
+}
+
+/// Records the source spelling of a rounded amount: `7/8`, or `1 & 2/3` for a
+/// compound ([bridged] when the source joined them with `&`/`and`, which
+/// `_normalize` has already folded to "and").
+void _recordRounded(String fraction, {String? whole, bool bridged = false}) {
+  final spelled = whole == null
+      ? fraction
+      : bridged
+      ? '$whole & $fraction'
+      : '$whole $fraction';
+  _roundedAmounts?.add(spelled);
 }
 
 /// Lowercases, applies the front-end's optional recognition-only normalization
@@ -535,6 +618,13 @@ bool _consumePhrase(List<String> w, List<String> phrase) {
 /// Removes and returns the first dancer-set word found, or null.
 String? _takeDancer(List<String> w) {
   for (var i = 0; i < w.length; i++) {
+    // "Same-role neighbor" is ONE dancer set (`sameRoles`). Read the pair
+    // before the plain lookup, which would otherwise take "neighbor" alone and
+    // misreport the pairing as `neighbors`.
+    if (_isSameRolePair(w, i)) {
+      w.removeRange(i, i + 2);
+      return 'sameRoles';
+    }
     final token = dancerWords[w[i]];
     if (token != null) {
       final raw = w.removeAt(i);
@@ -554,11 +644,25 @@ String? _takeDancer(List<String> w) {
           (w[i] == 'partner' || w[i] == 'partners')) {
         w.removeAt(i);
       }
+      // TCB pairs the S-prefix with a redundant "shadow(s)" word
+      // ("S2 shadow swing"); drop it for the same reason.
+      if (_sSeriesCodes.contains(raw) &&
+          i < w.length &&
+          (w[i] == 'shadow' || w[i] == 'shadows')) {
+        w.removeAt(i);
+      }
       return token;
     }
   }
   return null;
 }
+
+/// Whether `w[i]`, `w[i + 1]` is a [sameRoleQualifiers] word followed by
+/// `neighbor`/`neighbors` — the two-word name of the `sameRoles` set.
+bool _isSameRolePair(List<String> w, int i) =>
+    i + 1 < w.length &&
+    sameRoleQualifiers.contains(w[i]) &&
+    (w[i + 1] == 'neighbor' || w[i + 1] == 'neighbors');
 
 /// Like [_takeDancer] but ONLY matches a dancer set at the FRONT of [w].
 /// Recognizers whose grammar requires a *leading* dancer ("Ones turn contra
@@ -567,6 +671,11 @@ String? _takeDancer(List<String> w) {
 /// is NOT structured — it falls through to custom instead.
 String? _takeLeadingDancer(List<String> w) {
   if (w.isEmpty) return null;
+  // Mirror _takeDancer's "same-role neighbor" pair.
+  if (_isSameRolePair(w, 0)) {
+    w.removeRange(0, 2);
+    return 'sameRoles';
+  }
   final token = dancerWords[w[0]];
   if (token == null) return null;
   final raw = w.removeAt(0);
@@ -581,6 +690,12 @@ String? _takeLeadingDancer(List<String> w) {
   if (_pSeriesCodes.contains(raw) &&
       w.isNotEmpty &&
       (w[0] == 'partner' || w[0] == 'partners')) {
+    w.removeAt(0);
+  }
+  // Mirror _takeDancer's "S2 shadow" pair absorption for the leading slot.
+  if (_sSeriesCodes.contains(raw) &&
+      w.isNotEmpty &&
+      (w[0] == 'shadow' || w[0] == 'shadows')) {
     w.removeAt(0);
   }
   return token;
@@ -608,6 +723,12 @@ const Set<String> _neighborNumbers = {'n0', 'n1', 'n2', 'n3', 'n4'};
 /// a spelling heuristic. `partner` and `partners` also start with `p` in
 /// [dancerWords] but must NOT trigger the absorption.
 const Set<String> _pSeriesCodes = {'p', 'p0', 'p1', 'p2', 'p3', 'p4', 'p5'};
+
+/// TCB S-prefix shadow tags that have a [dancerWords] entry (`S1`, `S-1`,
+/// `S2`), whose "S2 shadow" pair absorption mirrors the N- and P-prefix ones.
+/// `shadow` and `shadows` are [dancerWords] keys too but must NOT absorb a
+/// following word.
+const Set<String> _sSeriesCodes = {'s1', 's-1', 's2'};
 
 /// Removes the first [_neighborNumbers] token from [w] and returns it, or null.
 String? _takeNeighborNumber(List<String> w) {
@@ -639,8 +760,9 @@ String? _takeRelationship(List<String> w) {
 /// Removes a rotation-direction word from anywhere in [w] and returns the
 /// canonical `clockwise`/`counterclockwise` token, or null when the line states
 /// none. The one spin-direction reader: every recognizer that reads a spin word
-/// goes through it (directly or via [_takeGateDirection]) so they all accept the
-/// same spellings.
+/// goes through it (directly, via [_takeGateDirection], or via
+/// [_takeSpinDirectionPhrase], which shares its spelling table) so they all
+/// accept the same spellings.
 ///
 /// The counter-forms are tested FIRST: `_consumePhrase(['clockwise'])` would
 /// otherwise match the second half of a two-token "counter clockwise" and leave
@@ -651,18 +773,29 @@ String? _takeRelationship(List<String> w) {
 /// `counter-clockwise`, `anticlockwise`, `anti-clockwise`, `anti clockwise`,
 /// `ccw`; clockwise forms: `clockwise`, `cw`. [_takeGateDirection] wraps this
 /// reader and additionally admits TCB's gate-only `mirror` value.
-String? _takeSpinDirection(List<String> w) {
-  if (_consumePhrase(w, ['counterclockwise']) ||
-      _consumePhrase(w, ['counter', 'clockwise']) ||
-      _consumePhrase(w, ['counter-clockwise']) ||
-      _consumePhrase(w, ['anticlockwise']) ||
-      _consumePhrase(w, ['anti-clockwise']) ||
-      _consumePhrase(w, ['anti', 'clockwise']) ||
-      _consumePhrase(w, ['ccw'])) {
-    return 'counterclockwise';
-  }
-  if (_consumePhrase(w, ['clockwise']) || _consumePhrase(w, ['cw'])) {
-    return 'clockwise';
+String? _takeSpinDirection(List<String> w) => _takeSpinDirectionPhrase(w)?.$1;
+
+/// The spellings [_takeSpinDirection] accepts, in the order it tries them
+/// (counter-forms first — see there), each with its canonical token.
+const List<(List<String>, String)> _spinDirectionPhrases = [
+  (['counterclockwise'], 'counterclockwise'),
+  (['counter', 'clockwise'], 'counterclockwise'),
+  (['counter-clockwise'], 'counterclockwise'),
+  (['anticlockwise'], 'counterclockwise'),
+  (['anti-clockwise'], 'counterclockwise'),
+  (['anti', 'clockwise'], 'counterclockwise'),
+  (['ccw'], 'counterclockwise'),
+  (['clockwise'], 'clockwise'),
+  (['cw'], 'clockwise'),
+];
+
+/// [_takeSpinDirection], also returning the words the line actually wrote
+/// (`cw`, `counter clockwise`, …) as the record's second field. A move with no
+/// direction param (`two_hand_turn`) keeps those source words as its note, so
+/// the line's own spelling survives rather than a canonical rewrite of it.
+(String, String)? _takeSpinDirectionPhrase(List<String> w) {
+  for (final (phrase, canonical) in _spinDirectionPhrases) {
+    if (_consumePhrase(w, phrase)) return (canonical, phrase.join(' '));
   }
   return null;
 }
@@ -710,6 +843,10 @@ String? _takeDiagonal(List<String> w) {
 
 /// Recognises a rotation amount (allemande/do si do/shoulder round `turn`).
 /// Consumes the token(s) and returns turns in 0.25..2.5, or null if none.
+///
+/// A non-quarter fraction (`2/3`, `7/8`, `1 & 5/8`) is rounded to the nearest
+/// quarter by [roundFractionToQuarters] and its source spelling is recorded
+/// via [_recordRounded], so it reaches the figure's note.
 double? _takeRotation(List<String> w) {
   const single = {
     'once': 1.0,
@@ -728,22 +865,28 @@ double? _takeRotation(List<String> w) {
   };
   for (var i = 0; i < w.length; i++) {
     // Two-token compound forms: "1 1/2" / "1 1/4" / "1 3/4" and "2 1/2"
-    // (`_normalize` folds `½` to " 1/2 ", so "2½" arrives here the same way).
-    // The vocabulary stops at 2½, exactly as the decimal table above does
-    // (`2.25` is absent too): 2¾ is beyond the 2.5 domain cap and 2¼ is not a
-    // rotation a caller writes. Those decline the whole rotation rather than
-    // read "2" and leave the fraction as unexplained leftover — the line falls
-    // to custom either way, but without a half-consumed amount.
+    // (`_normalize` folds `½` to " 1/2 ", so "2½" arrives here the same way),
+    // plus rounded non-quarter fractions ("1 & 2/3" → 1.75, "2 & 1/8" → 2.25).
+    // A total beyond the 2.5 domain cap (2¾, or 2⅞ rounding to 3) declines the
+    // whole rotation rather than read "2" and leave the fraction as unexplained
+    // leftover — the line falls to custom either way, but without a
+    // half-consumed amount.
     if (i + 1 < w.length && (w[i] == '1' || w[i] == '2')) {
       const fraction = {'1/4': 0.25, '1/2': 0.5, '3/4': 0.75};
       final whole = w[i] == '1' ? 1.0 : 2.0;
       // Three-token "1 and 1/2" form: TCB writes "1 & 1/2" and `_normalize`
       // maps `&`→"and", so bridge the intervening "and".
       var j = i + 1;
-      if (w[j] == 'and' && j + 1 < w.length) j++;
-      final frac = fraction[w[j]];
+      final bridged = w[j] == 'and' && j + 1 < w.length;
+      if (bridged) j++;
+      final exact = fraction[w[j]];
+      final rounded = exact == null ? _roundedQuarters(w[j]) : null;
+      final frac = exact ?? (rounded == null ? null : rounded / 4);
       if (frac != null) {
-        if (whole == 2.0 && frac != 0.5) return null;
+        if (whole + frac > 2.5) return null;
+        if (rounded != null) {
+          _recordRounded(w[j], whole: w[i], bridged: bridged);
+        }
         w.removeRange(i, j + 1);
         return whole + frac;
       }
@@ -753,12 +896,20 @@ double? _takeRotation(List<String> w) {
       w.removeAt(i);
       return v;
     }
+    final rounded = _roundedQuarters(w[i]);
+    if (rounded != null) {
+      _recordRounded(w[i]);
+      w.removeAt(i);
+      return rounded / 4;
+    }
   }
   return null;
 }
 
 /// Recognises circle/star travel and returns a `places` count (1..10), or null.
-/// Handles `N places`, quarter fractions, and "once"/"all the way"/"halfway".
+/// Handles `N places`, quarter fractions (non-quarter ones rounded to the
+/// nearest quarter, see [roundFractionToQuarters]), and
+/// "once"/"all the way"/"halfway".
 int? _takePlaces(List<String> w) {
   // "N places" (or "N place").
   for (var i = 0; i + 1 < w.length; i++) {
@@ -772,20 +923,27 @@ int? _takePlaces(List<String> w) {
   }
   // Compound "N & 1/4|1/2|3/4" turn amount (TCB writes "1 & 1/2"; `_normalize`
   // maps `&`→"and"). `places` is an integer quarter-count (a full turn is 4),
-  // so places = N*4 + fractionPlaces. Only quarter fractions land on a whole
-  // place; eighth-turns ("1 & 1/8", "7/8") have no integer place and are left
-  // for the custom fallback — the place count is never rounded or fabricated.
+  // so places = N*4 + fractionPlaces. A non-quarter fraction ("1 & 1/8",
+  // "1 & 2/3") has no integer place of its own: per the maintainer's ruling it
+  // is rounded to the nearest quarter by [roundFractionToQuarters], and the
+  // source spelling is recorded via [_recordRounded] so it reaches the note.
   const quarterPlaces = {'1/4': 1, '2/4': 2, '1/2': 2, '3/4': 3};
   for (var i = 0; i + 1 < w.length; i++) {
     final whole = int.tryParse(w[i]);
     if (whole == null || whole < 1) continue;
     // Bridge the "and" that `_normalize` leaves between whole and fraction.
-    final fracIdx = w[i + 1] == 'and' ? i + 2 : i + 1;
+    final bridged = w[i + 1] == 'and';
+    final fracIdx = bridged ? i + 2 : i + 1;
     if (fracIdx >= w.length) continue;
-    final frac = quarterPlaces[w[fracIdx]];
+    final exact = quarterPlaces[w[fracIdx]];
+    final rounded = exact == null ? _roundedQuarters(w[fracIdx]) : null;
+    final frac = exact ?? rounded;
     if (frac == null) continue;
     final places = whole * 4 + frac;
     if (places < 1 || places > 10) continue;
+    if (rounded != null) {
+      _recordRounded(w[fracIdx], whole: w[i], bridged: bridged);
+    }
     var end = fracIdx + 1;
     if (end < w.length && (w[end] == 'places' || w[end] == 'place')) end++;
     w.removeRange(i, end);
@@ -812,6 +970,13 @@ int? _takePlaces(List<String> w) {
     if (v != null) {
       w.removeAt(i);
       return v;
+    }
+    // A bare non-quarter fraction ("7/8" → 4, "2/3" → 3), rounded as above.
+    final rounded = _roundedQuarters(w[i]);
+    if (rounded != null) {
+      _recordRounded(w[i]);
+      w.removeAt(i);
+      return rounded;
     }
   }
   // "all the way" / "all the way around" / bare "all around".
@@ -931,6 +1096,9 @@ final List<_Recognizer> _recognizers = [
   // parsed here and never derived (see gate_facing.dart).
   _gate,
   _californiaTwirl,
+  // Anchors on the exact four-word `<pair> arch <other pair> dive` shape, which
+  // no other recognizer consumes.
+  _archAndDive,
   _weaveTheLine,
   _squareThrough,
   _pullBy,
@@ -1034,17 +1202,49 @@ _Match? _allemande(List<String> w) {
   );
 }
 
+/// `two_hand_turn`: `[who] two hand turn [who] [direction] [rotation]
+/// [and face …]`.
+///
+/// - Both `two hand turn` and the hyphenated `two-hand turn` (TCB's usual
+///   spelling) anchor, with the subject before or after the move.
+/// - `two_hand_turn` has no direction param, so a stated spin word (`cw`,
+///   `clockwise`, `counterclockwise`, …) or `reverse` is kept VERBATIM as the
+///   note — never dropped, and never asserted as a param the move lacks.
+/// - A trailing `and face <…>` is kept as the note `face <…>`: the same note the
+///   TCB front-end gives a `; face <…>` clause, whose `face …` allowlist entry is
+///   a measured, maintainer-ruled reading of facing statements as commentary.
+///   It is split off BEFORE the subject is read, so `… and face partner` cannot
+///   lend the facing target to `who`.
+/// - A subject outside the dancer vocabulary (`next individual`) is not
+///   guessed: its words are leftover, and the line declines to custom, as for
+///   every other recognizer here.
 _Match? _twoHandTurn(List<String> w) {
+  final anchor = _phraseIndex(w, ['two', 'hand', 'turn']) != -1
+      ? ['two', 'hand', 'turn']
+      : ['two-hand', 'turn'];
+  final anchorAt = _phraseIndex(w, anchor);
+  if (anchorAt == -1) return null;
+  String? faceNote;
+  final faceAt = _phraseIndex(w, ['and', 'face']);
+  if (faceAt > anchorAt) {
+    // `face` plus at least one word of what is faced.
+    if (faceAt + 2 >= w.length) return null;
+    faceNote = w.sublist(faceAt + 1).join(' ');
+    w.removeRange(faceAt, w.length);
+  }
   final who = _takeDancer(w);
-  if (!_consumePhrase(w, ['two', 'hand', 'turn'])) return null;
+  if (!_consumePhrase(w, anchor)) return null;
   final who2 = who ?? _takeDancer(w);
+  final direction =
+      _takeSpinDirectionPhrase(w)?.$2 ??
+      (_consumePhrase(w, ['reverse']) ? 'reverse' : null);
   final turn = _takeRotation(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match(
     'two_hand_turn',
     {'who': who2 ?? 'partners', 'travel': ?turn},
-    null,
+    combineFigureNotes(direction, faceNote),
     who2 == null,
   );
 }
@@ -1923,6 +2123,27 @@ _Match? _californiaTwirl(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('california_twirl', {'who': ?who2});
+}
+
+/// `arch_and_dive`: TCB's `<ones|twos> arch, <twos|ones> dive` (the comma is
+/// stripped by `_normalize`).
+///
+/// `who` is the ARCHING pair. That is the ContraDB reading the taxonomy move was
+/// ported from — its words are `<who> arch <other> dive`, and
+/// `contradb_figure_dialect.dart`'s `_archAndDive` stores the archers as `who`
+/// — so `Twos arch, ones dive` is `who: twos`.
+///
+/// The move has no slot for the divers: they are implied as "the other pair".
+/// So only the complementary `ones`/`twos` pairing structures, where the divers
+/// follow from `who` and nothing the line said is lost. Any other diver
+/// (`Ones arch, threes dive`, `Ones arch, role2 two dive`), the same pair on
+/// both sides, or any further word declines to custom.
+_Match? _archAndDive(List<String> w) {
+  if (w.length != 4 || w[1] != 'arch' || w[3] != 'dive') return null;
+  const other = {'ones': 'twos', 'twos': 'ones'};
+  final archers = w[0];
+  if (other[archers] != w[2]) return null;
+  return _Match('arch_and_dive', {'who': archers});
 }
 
 // "Weave the line" is a caller synonym for the existing (ContraDB-sourced)
