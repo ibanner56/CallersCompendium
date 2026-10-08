@@ -8,8 +8,8 @@
 # scripting Finder, so the same layout comes out on a headless CI runner.
 #
 # The geometry constants below are also read (not executed) by
-# tools/brand/generate_dmg_background.py, which draws the arrow between the two
-# icon positions: re-run it after moving an icon or resizing the window.
+# tools/brand/generate_dmg_background.py, which places the arrow and the icon
+# shadows from them: re-run it after moving an icon or resizing the window.
 
 import os.path
 

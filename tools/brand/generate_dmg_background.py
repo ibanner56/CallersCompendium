@@ -31,7 +31,8 @@ multi-resolution TIFF with ``tiffutil`` at build time.
 
 Dependencies (local only — this script does **not** run in CI):
 ``Pillow`` and ``cairosvg`` (``pip install pillow cairosvg``; the latter
-rasterises ``app/assets/brand/mark-small.svg``). Fonts are the app's own
+rasterises ``app/assets/brand/mark-small.svg`` and needs the Cairo library,
+e.g. ``brew install cairo``). Fonts are the app's own
 bundled ``Fraunces`` (heading) and ``Atkinson Hyperlegible`` (body) from
 ``app/assets/fonts/``.
 

@@ -43,7 +43,7 @@ This is the operator runbook for cutting a desktop release. It documents the
 - [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized) — 85 lines
 - [Android (signed APK)](#android-signed-apk) — 143 lines
 - [iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api) — 125 lines
-- [Packaging tooling notes](#packaging-tooling-notes) — 100 lines
+- [Packaging tooling notes](#packaging-tooling-notes) — 101 lines
 - [Pinned native dependencies](#pinned-native-dependencies) — 81 lines
 <!-- /section-index -->
 
@@ -1434,7 +1434,7 @@ check that shadow on a Mac after changing it.
 | --- | --- |
 | `packaging/macos/dmg_settings.py` | Window size, icon size and positions, contents, format (`UDZO`, HFS+). Read by `dmgbuild`. |
 | `packaging/macos/dmg-background.png`, `…@2x.png` | Background art (1x and Retina). Combined into one multi-resolution TIFF by `dmgbuild` via `tiffutil`. |
-| `tools/brand/generate_dmg_background.py` | Draws the art from the geometry in `dmg_settings.py`, using the app's palette, bundled fonts and `app/assets/brand/mark-small.svg`. Local-only (Pillow and cairosvg); its outputs are committed. |
+| `tools/brand/generate_dmg_background.py` | Draws the art from the geometry in `dmg_settings.py`, using the app's palette, bundled fonts and `app/assets/brand/mark-small.svg`. Local-only (Pillow, and cairosvg with the Cairo library); its outputs are committed. |
 | `packaging/macos/build_dmg.sh` | Runs `dmgbuild`, then mounts the image read-only and fails unless the app copy matches the source bundle file for file and the shortcut, layout, background and volume icon are all present (`dmgbuild` does not fail when one of its copy or attribute steps does). |
 | `packaging/macos/requirements-dmg.txt` | `dmgbuild` and its two dependencies, exact versions with SHA-256 hashes. Build-time only. |
 
@@ -1447,10 +1447,11 @@ notarizes and staples the result as before.
 
 **Changing the layout.** Edit the geometry constants in `dmg_settings.py`, then
 re-run `python3 tools/brand/generate_dmg_background.py` so the arrow, the icon
-shadows and the image size follow. `tools/release/test_macos_dmg.py` (a PR gate) runs the settings
-file the way `dmgbuild` does and fails when the art's size no longer matches
-the window, an icon or its label falls outside it, the requirements lose a
-pin or hash, or a packaging step stops using `build_dmg.sh`. It cannot build
+shadows and the image size follow. `tools/release/test_macos_dmg.py` (a PR
+gate) runs the settings file the way `dmgbuild` does and fails when the art's
+size no longer matches the window, an icon or its label falls outside it, the
+requirements lose a pin or hash, or a packaging step stops using
+`build_dmg.sh`. It cannot build
 or look at the image: check the window on a Mac (light and dark appearance)
 after changing it. Bump the three requirements together, re-taking each hash
 from PyPI.
