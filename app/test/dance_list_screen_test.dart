@@ -949,7 +949,7 @@ void main() {
       await tester.tap(find.text('Author').last);
       await tester.pumpAndSettle();
       await _search(tester, ' Alice Smith ');
-      expect(Uri.parse(callersUrl!).queryParameters, {'author': 'Alice Smith'});
+      expect(Uri.parse(callersUrl!).queryParameters, {'author': 'alice smith'});
       final callersUrlBeforeClear = callersUrl;
       await tester.enterText(find.byType(TextField).first, '');
       await tester.pump(const Duration(milliseconds: 700));
