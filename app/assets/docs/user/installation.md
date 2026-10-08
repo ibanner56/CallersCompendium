@@ -94,8 +94,10 @@ the app won't start and a terminal shows a message that a `GLIBC_` version was
 macOS has one universal download that runs on both Intel and Apple Silicon Macs.
 
 - **Disk image** (`...-macos-universal.dmg`) — the usual way.
-  1. Open the downloaded `.dmg`.
-  2. Drag the Caller's Compendium app onto your **Applications** folder.
+  1. Open the downloaded `.dmg`. A window opens with the app on the left and
+     your **Applications** folder on the right.
+  2. Drag the Caller's Compendium app onto the **Applications** folder,
+     following the arrow.
   3. Open the app from **Applications**. Because the macOS build is signed and
      notarized, it opens normally — you may just see a single confirmation the
      first time.
