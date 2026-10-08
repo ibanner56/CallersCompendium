@@ -1,0 +1,20 @@
+{
+  "id": "callersbox-same-role-shadow-subjects",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Caller's Box imports now recognise same-role neighbor figures (\"Same-role neighbor swing\") and numbered shadows (\"S1 shadow allemande left 1\", \"S2 shadow swing\"), so about 200 more figure lines import as structured moves instead of free text."
+    ],
+    "fixed": [
+      "A Caller's Box figure that gives each role a different turn amount, such as \"allemande left (M 1 & 1/2, W 2)\", now stays as free text instead of importing with a turn amount neither role dances."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The figure parser reads \"same-role neighbor\" and \"same-sex neighbor\" as the `sameRoles` dancer set, and the TCB codes `S1`/`S-1` and `S2` as `shadows` and `secondShadows`."
+    ],
+    "fixed": [
+      "The Caller's Box front-end declines a line with a per-role turn-amount annotation `(M <amount>, W <amount>)` to custom."
+    ]
+  }
+}

@@ -88,7 +88,10 @@ B2: (8) Ladies chain to neighbor / (8) Star left 1
   `" "` spoken vs `' '` literal-from-source.
 - Rotation amounts: allemandes in quarters (`allemande left 1 & 1/2`), circles/
   stars in full turns (`Circle left 3/4`), heys in fractions with pass lists
-  (`Hey 1/2 (WR;PL;MR;N2L~)`).
+  (`Hey 1/2 (WR;PL;MR;N2L~)`). Thirds and eighths also occur (`Star left 7/8`,
+  `Ones allemande right 1 & 2/3`); the importer rounds these to the nearest
+  quarter and keeps the source amount as the figure's note
+  (`docs/design/imports.md`).
 - Formation vocabulary (controlled, complete list on the search form): Duple Minor
   {Improper, Becket, Proper, Indecent, Reverse-progression improper, Progressed
   improper, Cross, Other}, Triple Minor, Three/Four Facing, Solo/Singlet/Doublet/
@@ -482,9 +485,12 @@ centre/sides model ContraDB's ocean wave already uses. Long waves use
 `(<relationship-code><Hand>, <role> face in)`: 858 `women face in`, 568 `men face
 in`, 64 `twos face in`, 13 `ones face in`.
 
-Adjacency (why the mapping is safe): ~44% of these lines are followed by a move
-the existing forward balance-merge already claims (swing, petronella, rory,
-box the gnat, box circulate, slide); 1,091 are preceded by a wave-forming clause
+Adjacency (why the mapping is safe): ~44% of these lines are followed by a swing,
+petronella, rory, box the gnat, box circulate or slide. Of those, the forward
+balance-merge claims only the wave moves (box circulate, and slide via the
+Rory O'More fold); a balance wave before a swing / box the gnat / petronella is
+left to the promotion, because folding it would hand the wave's balance to the
+move's pair (see design/imports.md, "Fold 1"); 1,091 are preceded by a wave-forming clause
 (`Pass the ocean` ×395, `form wave of four …` ×~480, `form long wave …` ×~130);
 the remainder is the implicit case, dominated by allemandes.
 

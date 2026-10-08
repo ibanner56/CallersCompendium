@@ -1,0 +1,14 @@
+{
+  "id": "round-non-quarter-rotations",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Imported figures with a turn amount in thirds or eighths, such as \"Star left 7/8\" or \"allemande right 1 & 2/3\", now import as structured figures rounded to the nearest quarter, with the original amount kept in the figure's note."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Round non-quarter rotation and places amounts to the nearest quarter (ties half up) in the shared figure decoders, recording the source amount in the figure note; add roundFractionToQuarters. Exact 2 1/4 turns now structure as 2.25."
+    ]
+  }
+}

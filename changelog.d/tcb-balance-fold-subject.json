@@ -1,0 +1,14 @@
+{
+  "id": "tcb-balance-fold-subject",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Importing from The Caller's Box no longer turns a balance in a wave or a ring, followed by a swing, into a \"balance and swing\" for the swinging pair. The wave or ring balance now stays its own figure, so the dancers who balance and the hands they hold are kept."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "CallersBoxAdapter's cross-line balance fold only merges a balance line into a following move when it balances the same dancers in the same formation: a stated subject must match the move's, a ring balance folds only into petronella, a balance-wave line only into a wave move, and a bare Balance never into a subject move."
+    ]
+  }
+}

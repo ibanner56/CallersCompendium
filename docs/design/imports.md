@@ -645,8 +645,9 @@ the `hey` pass-list decoder — same `tcbPassPeople` map) reads the codes:
   balance as a separate line, never inline on a square-through line, so a
   standalone `Square through n (…)` carries none. This mirrors `rory_o_more`,
   which forces `balance: false` for the same reason. (The decoder does not itself
-  fold a preceding balance line in; a `<who> balance` line stays its own figure,
-  matching TCB's two-line source.)
+  fold a preceding balance line in. The adapter's cross-line Fold 1 does, but
+  only a `<who> balance` whose stated subject equals the square through's
+  effective `who`; a ring or wave balance stays its own figure.)
 
 **Whole-line strictness / prefer-custom.** The text outside the pass list must be
 exactly `square through <n>` (modulo filler), `n` in 2..10; the cell count must
@@ -1022,6 +1023,18 @@ has to be judged in its own context.
   out of sync. Both the structured and custom paths therefore store clean text
   only. (This intentionally drops the previous CallersBox/ContraDB phrase-label
   prefix on custom figures.)
+- **Non-quarter amounts round to the nearest quarter** (maintainer ruling).
+  Rotation (`travel`) and places counts are quarter-granular, so a stated
+  `2/3`, `7/8` or `1 & 1/8` used to decline the line to custom. The shared
+  decoders (`_takeRotation`/`_takePlaces`, and the CallersBox single-file
+  circle's `_parsePlaces`) now round it via `roundFractionToQuarters`: ties
+  (every eighth) round half up, and nothing nonzero rounds to zero. The
+  source amount is kept as the figure's note (`1 & 2/3`), ahead of any
+  annotation note, so a structured figure never silently claims 1¾ where the
+  source said 1⅔. Every free-text source routed through `parseFigureLine`
+  shares these decoders; ContraDB's own structured `_rotationStrings` table is
+  separate and unchanged. A rounded total outside the param's domain (past
+  2½ turns, past 10 places) still declines.
 - **First-cut coverage (in):** swing (+balance/meltdown prefix), balance,
   balance the ring, do si do / see saw, shoulder round (+gypsy), box the gnat /
   swat the flea, allemande, circle, star, chain, long lines, right left
@@ -1035,16 +1048,28 @@ has to be judged in its own context.
   (→ `ender: turnAlone` when dancer subjects agree), shoulder round + swing
   (→ meltdown swing with adjacent source beats), balance wave + slide
   (→ balanced Rory O'More), and directed promenade around the major set
-  (→ structured turn plus a preserved note), pass the ocean +
+  (→ structured turn plus a preserved note; a `to <dancer>` tail or
+  `(to <dancer>)` annotation also fills `destination`, and its words stay in
+  the note because the v30 render gate hides the clause at the `across`
+  default), pass the ocean +
   trailing balance wave (→ `pass_the_ocean` / `form_short_waves` /
   `form_a_long_wave` / `form_long_waves` with `balance: true`, beats summed;
-  #577), diagonal chain /
+  #577; a balance line whose annotation does not decode — `(C2R,WL)`,
+  `(SRNR,1CL)` — is not folded and stays custom, since the fold carries only
+  decoded params), diagonal chain /
   hey
   / right-&-left-through (→ `dir: left/rightDiagonal`), same-role right & left
   through (variant kept as a note), weave-the-line `with <dancer>`, relationship
   N-suffix (`with/to neighbor N2`, in either word order), explicit dancer codes
   (M1/W1/M2/W2 →
-  ones/twos single-dancer identities), and `(A-B)` beat ranges. **Mad robin &
+  ones/twos single-dancer identities), same-role neighbor subjects
+  (`Same-role neighbor swing` → `who: sameRoles`; maintainer ruling that
+  same-sex = same-role; `N2 same-role neighbor` has no ordinal token and stays
+  custom), S-prefix shadow subjects (`S1`/`S-1 shadow` → `shadows`, `S-1` by
+  maintainer ruling; `S2 shadow` → `secondShadows`; `S3`+ and `S-2`… stay
+  custom), and `(A-B)` beat ranges. A line stating a different turn amount per
+  role — `allemande left (M 1 & 1/2, W 2)` — stays custom: no move models it,
+  and structuring would render the move's default amount. **Mad robin &
   butterfly whirl (#295, taxonomy v20):** both moves gained the params TCB
   states — `mad robin` a rotation `direction` plus the "around `<whom>`" target,
   `butterfly whirl` a `who` plus the same `direction` — so "Mad robin clockwise
@@ -1210,7 +1235,7 @@ has to be judged in its own context.
   of these figures.
   **Out (→ custom
   for now, tracked on #295):** cast off,
-  two-hand turn & other ECD figures, promenade
+  ECD figures outside the contra taxonomy, promenade
   CW/CCW around the major set when the line cannot be recognized, non-duple
   formations, and
   anything with leftover prose. Coverage improves iteratively — measured against
@@ -1277,9 +1302,24 @@ form figure is ever emitted.
 (`_promoteBalanceWaveLines`), so by construction it only ever sees leftovers:
 
 1. **Fold 1 (forward)** — a balance line immediately BEFORE a swing /
-   petronella / rory o'more / box the gnat / swat the flea / box circulate folds
-   into that move (`prefix: balance` / `balance: true`). ~44% of balance-wave
-   lines have such a successor and are claimed here, exactly as before.
+   petronella / rory o'more / box the gnat / swat the flea / box circulate /
+   square through folds into that move (`prefix: balance` / `balance: true`),
+   but only when the merged figure balances the same dancers in the same
+   formation as the source line (`_balanceMatchesMove`). A balance-WAVE line
+   folds only into a WAVE move (box circulate, Rory O'More): folded into a
+   swing, box the gnat, swat the flea, square through or petronella it would
+   render `<who> balance & <move>`, erasing the wave's sides, centre and hands
+   and handing the whole wave's balance to the move's pair (`Balance wave of
+   four` / `Ones swing` lost the twos' balance outright). Those lines fall
+   through to the promotion below instead. The same rule keeps `Balance ring`
+   out of a swing (it folds only into petronella), keeps a bare `Balance` —
+   whose subject the recognizer assumed — out of every subject move, and folds
+   a stated subject (`Partner balance`) only into a move with the SAME
+   effective `who`. Measured over the 11,499 full-permission dances: of the
+   3,773 balance-wave lines that reach the merge, Fold 1 claims **211** (all
+   before a box circulate); it claimed 353 before this rule, the other 142
+   being swings (124), box the gnats (14), swat the fleas (2) and square
+   throughs (2).
 2. **Fold 4 (backward, #577)** — a balance-wave line immediately AFTER a
    structured `pass_the_ocean` / `form_short_waves` / `form_a_long_wave` /
    `form_long_waves` folds into that figure with the beats summed, so an

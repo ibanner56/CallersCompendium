@@ -3828,9 +3828,9 @@
 {"in":"Star right 1 & 3/4","fanOut":"[{\"schemaVersion\":1,\"move\":\"star\",\"params\":{\"hand\":\"right\",\"places\":7}}]"}
 {"in":"Circle left 2 & 1/2","fanOut":"[{\"schemaVersion\":1,\"move\":\"circle\",\"params\":{\"direction\":\"left\",\"places\":10}}]"}
 {"in":"\"Star left 1 & 1/8\" (eighth-turn) → custom","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"\\\"Star left 1 & 1/8\\\" (eighth-turn) → custom\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"Star left 1 & 1/8","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Star left 1 & 1/8\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Star left 1 & 1/8","fanOut":"[{\"schemaVersion\":1,\"move\":\"star\",\"params\":{\"hand\":\"left\",\"places\":5},\"note\":\"1 & 1/8\"}]"}
 {"in":"\"Star right 5/8\" (eighth-turn) → custom","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"\\\"Star right 5/8\\\" (eighth-turn) → custom\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"Star right 5/8","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Star right 5/8\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Star right 5/8","fanOut":"[{\"schemaVersion\":1,\"move\":\"star\",\"params\":{\"hand\":\"right\",\"places\":3},\"note\":\"5/8\"}]"}
 {"in":"\"Circle left 3 & 1/2\" (over-range) → custom","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"\\\"Circle left 3 & 1/2\\\" (over-range) → custom\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Circle left 3 & 1/2","fanOut":"[{\"schemaVersion\":1,\"move\":\"circle\",\"params\":{\"direction\":\"left\"},\"note\":\"3 & 1/2\"}]"}
 {"in":"\"Circle left 3/4\" (single fraction) → 3 places","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"\\\"Circle left 3/4\\\" (single fraction) → 3 places\"},\"customOrigin\":\"importGap\"}]"}
@@ -3841,7 +3841,7 @@
 {"in":"Neighbors allemande left 2 1/2","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"neighbors\",\"hand\":\"left\",\"travel\":2.5}}]"}
 {"in":"Neighbor allemande left 2 & 1/2","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"neighbors\",\"hand\":\"left\",\"travel\":2.5}}]"}
 {"in":"Neighbor allemande left 2½","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"neighbors\",\"hand\":\"left\",\"travel\":2.5}}]"}
-{"in":"Neighbor allemande left 2 1/4","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Neighbor allemande left 2 1/4\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Neighbor allemande left 2 1/4","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"neighbors\",\"hand\":\"left\",\"travel\":2.25}}]"}
 {"in":"Neighbor allemande left 2 3/4","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Neighbor allemande left 2 3/4\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Neighbor allemande left 2 & 3/4","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Neighbor allemande left 2 & 3/4\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"scrubFigureText normalizes the hyphenated do-si-do","scrub":"scrubFigureText normalizes the hyphenated do si do","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"scrubFigureText normalizes the hyphenated do si do\"},\"customOrigin\":\"importGap\"}]"}
