@@ -219,6 +219,12 @@ void main() {
       expect(pre.searchableTitles, ['Money Musk', 'Petronella']);
     });
 
+    test('folds duplicates differing only in quote style', () {
+      final pre = preflightTitleList("Rory O'More\nrory o’more\n");
+      expect(pre.searchableTitles, ["Rory O'More"]);
+      expect(pre.duplicateLines, 1);
+    });
+
     test('folds case-insensitive duplicates onto the first occurrence', () {
       final pre = preflightTitleList(
         'Money Musk\nMONEY MUSK\n money musk \nPetronella',

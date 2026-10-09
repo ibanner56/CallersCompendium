@@ -1,3 +1,5 @@
+import 'package:compendium_core/compendium_core.dart' show titleMatchKey;
+
 import 'import_io.dart' show UrlFetchException, UrlFetchFailureReason;
 import 'online_search.dart';
 
@@ -21,7 +23,8 @@ enum OnlineTitleLookupFailure {
   noResults,
 
   /// The search returned results, but none whose name equals the pasted title
-  /// (trimmed, case-insensitive) — only fuzzy/substring neighbours.
+  /// under [titleMatchKey] (case, whitespace and typographic punctuation
+  /// folded) — only fuzzy/substring neighbours.
   noExactMatch,
 
   /// More than one result has exactly this title, so which dance was meant is
@@ -106,8 +109,9 @@ final class OnlineTitleMiss extends OnlineTitleLookupResult {
 
 /// Searches [service] for [title] and returns the **unique exact-title hit** —
 /// exactly one result whose [OnlineSearchResultRow.name] equals [title] once
-/// both are trimmed and lower-cased — or an [OnlineTitleMiss] saying why there
-/// isn't one.
+/// both are reduced to their [titleMatchKey] (trimmed, lower-cased, whitespace
+/// collapsed, `’`/`“”`/`–` and the like folded to ASCII) — or an
+/// [OnlineTitleMiss] saying why there isn't one.
 ///
 /// This is the shared, **non-committing** title→result step. It performs a
 /// single search fetch and writes nothing; deciding what to *do* with a hit
@@ -149,7 +153,7 @@ Future<OnlineTitleLookupResult> lookupUniqueExactTitle(
   required OnlineSearchService service,
   bool requireFigures = true,
 }) async {
-  final wanted = title.trim().toLowerCase();
+  final wanted = titleMatchKey(title);
   final List<OnlineSearchResultRow> rows;
   try {
     rows = await service.search(
@@ -166,9 +170,7 @@ Future<OnlineTitleLookupResult> lookupUniqueExactTitle(
   if (rows.isEmpty) {
     return const OnlineTitleMiss(OnlineTitleLookupFailure.noResults);
   }
-  final exact = rows
-      .where((r) => r.name.trim().toLowerCase() == wanted)
-      .toList();
+  final exact = rows.where((r) => titleMatchKey(r.name) == wanted).toList();
   if (exact.isEmpty) {
     return const OnlineTitleMiss(OnlineTitleLookupFailure.noExactMatch);
   }

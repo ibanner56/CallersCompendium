@@ -386,6 +386,34 @@ Substring search on title/author; controlled formation + progression filters;
 positive/negative figure-line matching with any/all modes; **per-phrase (A1..B2)
 figure search** (2023). Matches our roadmap search requirements almost 1:1.
 
+### Title punctuation and query encoding (verified live 2026-10-08)
+
+Title search matches punctuation exactly, and the catalogue stores only ASCII
+`'` and `"`: `?title='` matches 2,713 dances and `?title="` 38, while `’` `‘`
+`“` `”` `–` `—` `…` `` ` `` and `´` each match **0**, whether sent as UTF-8
+or as their windows-1252 bytes. Ellipses are spelled `...` (13 matches).
+`buildCallersBoxSearchUrl` therefore folds typographic punctuation to ASCII
+(`foldTitlePunctuation`) before sending, so `Rory O’More` finds `Rory O'More`.
+
+Accented letters are matched as **windows-1252** bytes: `?title=%E9` matches
+5 dances (`Déjà vu`, `PokéCon`, …) and the UTF-8 `%C3%A9` matches 0. Case-folding
+is ASCII-only: `d%E9j%E0` finds `Déjà vu` but `D%C9J%C0` finds nothing (ASCII
+title, author and figure-line matching ignore case: `GENE HUBERT` and
+`gene hubert` both match 178, `SWING` and `swing` both 14,657). Every accented
+letter TCB stores is lower-case: probing all 34 accented capitals and 35
+accented small letters of windows-1252 as `title=` and `author=` matched no
+capital at all; titles use `à á ä æ è é î ñ ö ø ü ß` (33 matches) and authors
+only `é ö` (7). So
+`buildCallersBoxSearchUrl` lower-cases title, author and figure lines and
+form-encodes them in windows-1252, the page's charset, rather than the UTF-8
+`Uri.https` would produce. A character windows-1252 lacks is sent as `&#N;`,
+which is what a browser submits through TCB's own form.
+
+Neither TCB nor ContraDB folds accents: `Deja vu` does not find `Déjà vu`, and
+ContraDB's `malort` does not find `Rory Malört`. ContraDB does case-fold
+accented letters (`MALÖRT` finds it) and accepts UTF-8, so it needs no
+encoding change.
+
 ### Results-page markers and paging (verified live 2026-08-06, issue #845)
 
 The HTML results table carries three leading icon `<td>`s per row, whose legend

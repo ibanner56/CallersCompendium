@@ -159,21 +159,95 @@ void main() {
       final uri = Uri.parse(url);
       expect(uri.host, 'www.ibiblio.org');
       expect(uri.path, '/contradance/thecallersbox/index.php');
-      expect(uri.queryParameters['title'], 'Money Musk');
+      expect(uri.queryParameters['title'], 'money musk');
     });
 
     test('trims surrounding whitespace', () {
       expect(
         Uri.parse(buildCallersBoxSearchUrl('  Petronella ')).queryParameters,
-        {'title': 'Petronella'},
+        {'title': 'petronella'},
       );
+    });
+
+    test('folds typographic punctuation to the ASCII TCB stores', () {
+      final params = Uri.parse(
+        buildCallersBoxSearchUrl(
+          'Rory O’More – “Reel”',
+          phrases: const CallersBoxPhraseQuery(globalPos: ['rory o’more']),
+        ),
+      ).queryParameters;
+      expect(params['title'], 'rory o\'more - "reel"');
+      expect(params['pos_lines'], "rory o'more");
+      expect(
+        Uri.parse(
+          buildCallersBoxSearchUrl('', author: 'Tom O’Brien'),
+        ).queryParameters['author'],
+        "tom o'brien",
+      );
+    });
+
+    // TCB compares windows-1252 bytes, case-insensitively for ASCII only, and
+    // stores every accented letter lower-case: `?title=d%E9j%E0` finds
+    // "Déjà vu"; the UTF-8 `d%C3%A9j%C3%A0` and the upper-case `D%C9J%C0`
+    // find nothing (measured live 2026-10-08).
+    test('sends accented letters as lower-case windows-1252 bytes', () {
+      final query = Uri.parse(buildCallersBoxSearchUrl('DÉJÀ Vu')).query;
+      expect(query, 'title=d%E9j%E0+vu');
+      expect(
+        Uri.parse(buildCallersBoxSearchUrl('', author: 'Ström')).query,
+        'author=str%F6m',
+      );
+      expect(
+        Uri.parse(
+          buildCallersBoxSearchUrl(
+            '',
+            phrases: const CallersBoxPhraseQuery(globalPos: ['façade']),
+          ),
+        ).query,
+        'pos_lines=fa%E7ade&pos_mode=all_any',
+      );
+    });
+
+    test('uses the windows-1252 slots above 0x7F, not latin1', () {
+      // Œ (U+0152) is 0x8C in windows-1252 and has no latin1 byte at all.
+      expect(
+        Uri.parse(buildCallersBoxSearchUrl('Œuvre')).query,
+        'title=%9Cuvre',
+      );
+    });
+
+    test('a character windows-1252 lacks is sent as a browser would', () {
+      expect(
+        Uri.parse(buildCallersBoxSearchUrl('I ♥ Unicorns')).query,
+        'title=i+%26%239829%3B+unicorns',
+      );
+    });
+
+    test('reserved characters stay escaped', () {
+      final uri = Uri.parse(buildCallersBoxSearchUrl('A&B = 50/50 #2+?'));
+      expect(uri.query, 'title=a%26b+%3D+50%2F50+%232%2B%3F');
+      expect(uri.queryParameters, {'title': 'a&b = 50/50 #2+?'});
+    });
+
+    test('the hand-built query still passes the fetch guard', () async {
+      Uri? requested;
+      final client = MockClient((request) async {
+        requested = request.url;
+        return http.Response('<html><body>ok</body></html>', 200);
+      });
+      await fetchCallersBoxSearch(
+        buildCallersBoxSearchUrl('Déjà vu'),
+        client: client,
+      );
+      expect(requested!.host, 'www.ibiblio.org');
+      expect(requested!.query, 'title=d%E9j%E0+vu');
     });
 
     test('sends a trimmed author criterion', () {
       final params = Uri.parse(
         buildCallersBoxSearchUrl('', author: '  Alice Smith  '),
       ).queryParameters;
-      expect(params, containsPair('author', 'Alice Smith'));
+      expect(params, containsPair('author', 'alice smith'));
       expect(params.containsKey('title'), isFalse);
     });
 
@@ -274,7 +348,7 @@ void main() {
         ),
       );
       final params = Uri.parse(url).queryParameters;
-      expect(params['title'], 'Money Musk');
+      expect(params['title'], 'money musk');
       expect(params['phr2_pos_lines'], 'swing');
       expect(params['phr2_pos_mode'], 'all_any');
     });
@@ -289,7 +363,7 @@ void main() {
         buildCallersBoxSearchUrl('Money Musk', showAll: true),
       );
       expect(all.queryParameters.containsKey('show_all'), isTrue);
-      expect(all.queryParameters['title'], 'Money Musk');
+      expect(all.queryParameters['title'], 'money musk');
       // Verified live: TCB treats `show_all=` identically to the bare flag, so
       // this stays inside Uri.https rather than concatenating a query string.
       expect(all.queryParameters['show_all'], '');
@@ -299,7 +373,7 @@ void main() {
       final params = Uri.parse(
         buildCallersBoxSearchUrl('', author: 'Alice', showAll: true),
       ).queryParameters;
-      expect(params['author'], 'Alice');
+      expect(params['author'], 'alice');
       expect(params.containsKey('title'), isFalse);
       expect(params.containsKey('show_all'), isTrue);
     });
@@ -874,8 +948,8 @@ void main() {
       expect(r.urls, hasLength(2));
       final first = Uri.parse(r.urls.first).queryParameters;
       final second = {...Uri.parse(r.urls.last).queryParameters};
-      expect(first['author'], 'Alice');
-      expect(second['author'], 'Alice');
+      expect(first['author'], 'alice');
+      expect(second['author'], 'alice');
       expect(second['show_all'], '');
       expect(second..remove('show_all'), first);
     });

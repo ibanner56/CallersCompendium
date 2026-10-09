@@ -769,6 +769,10 @@ and written only on confirmation, where `_defaultChoice` already maps an
 What the two paths share is exactly one non-committing step,
 `lookupUniqueExactTitle` (`app/lib/src/data/online_title_lookup.dart`): search a
 title, return the unique exact-title hit or a typed reason there isn't one.
+"Exact" compares `titleMatchKey`s (case, whitespace and quote/dash style
+folded) because the sources disagree on `'` versus `’` (see
+`docs/research/contradb.md` and `docs/research/callersbox.md`); it does not
+drop punctuation or articles the way dedupe's `normalizeTitle` does.
 Collapsing more than that into the shared function would drag an unattended
 import into a flow that has a user watching; collapsing less would leave the two
 paths as parallel implementations of the same search rule.
@@ -807,8 +811,8 @@ than only by the widget — applies: `kMaxTitleListChars` (65,536 UTF-16 code
 units, not bytes) on the raw text;
 `kMaxTitleListTitles` (100) **distinct** titles, refused before any request and
 never silently truncated; `kMaxTitleLength` (200) per line, over which a line is
-reported rather than searched; blank-line drop; and case-insensitive
-de-duplication (first occurrence wins — unlike `parsePlaintextProgram`, which
+reported rather than searched; blank-line drop; and `titleMatchKey`
+de-duplication (case and quote/dash style ignored) (first occurrence wins — unlike `parsePlaintextProgram`, which
 must keep repeats because a program may legitimately call a dance twice).
 
 An accepted paste issues requests serially with progress and a cancel. A unique

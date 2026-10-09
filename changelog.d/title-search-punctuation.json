@@ -1,0 +1,18 @@
+{
+  "id": "title-search-punctuation",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Online search and title import now find a dance whose title you typed with a curly apostrophe or quote (’ “ ”) or a dash (– —) when the archive spells it with a straight one, and the other way round. Previously \"Rory O’More\" found nothing in The Caller's Box, and \"Eleanor's Reel\" found nothing in ContraDB.",
+      "A Caller's Box search for a title or author with accented letters, such as \"Déjà vu\", now finds it. Previously any accented letter made the search find nothing."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add foldTitlePunctuation, titleMatchKey and contraDbTitleQueryVariants for matching online-source titles regardless of apostrophe, quote and dash style."
+    ],
+    "fixed": [
+      "canonicalContraDbFigureQuery accepts typographic apostrophes, so \"Rory O’More\" resolves to the ContraDB figure."
+    ]
+  }
+}

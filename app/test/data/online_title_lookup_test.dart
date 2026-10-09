@@ -34,6 +34,25 @@ class _ThrowingService implements OnlineSearchService {
   }) => throw UnimplementedError();
 }
 
+/// Answers every search with one row per name in [names].
+class _RowsService extends _ThrowingService {
+  _RowsService(this.names) : super(StateError('unused'));
+
+  final List<String> names;
+
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async => [
+    for (final (i, name) in names.indexed)
+      OnlineSearchResultRow(
+        source: OnlineSource.callersBox,
+        id: '$i',
+        name: name,
+        author: '',
+        formation: '',
+      ),
+  ];
+}
+
 Future<OnlineTitleLookupFailure> _failureFor(Object error) async {
   final outcome = await lookupUniqueExactTitle(
     'Any Title',
@@ -96,6 +115,42 @@ void main() {
         );
       },
     );
+  });
+
+  group('lookupUniqueExactTitle title matching', () {
+    Future<OnlineTitleLookupResult> lookup(String title, List<String> names) =>
+        lookupUniqueExactTitle(title, service: _RowsService(names));
+
+    test('a curly apostrophe matches the straight one stored', () async {
+      final outcome = await lookup('Rory O’More', ["Rory O'More"]);
+      expect((outcome as OnlineTitleHit).row.name, "Rory O'More");
+    });
+
+    test('a straight quote matches curly quotes stored', () async {
+      final outcome = await lookup('"revolving  poussette"', [
+        '“Revolving Poussette”',
+      ]);
+      expect(outcome, isA<OnlineTitleHit>());
+    });
+
+    test('two rows differing only in quote style are ambiguous', () async {
+      final outcome = await lookup("Anna's Reel", [
+        "Anna's Reel",
+        'Anna’s Reel',
+      ]);
+      expect(
+        (outcome as OnlineTitleMiss).failure,
+        OnlineTitleLookupFailure.multipleExactMatches,
+      );
+    });
+
+    test('dropping the apostrophe is still not an exact match', () async {
+      final outcome = await lookup('Rory OMore', ["Rory O'More"]);
+      expect(
+        (outcome as OnlineTitleMiss).failure,
+        OnlineTitleLookupFailure.noExactMatch,
+      );
+    });
   });
 
   test('isConnectionFailure: HTTP-status reasons only when asked for', () {

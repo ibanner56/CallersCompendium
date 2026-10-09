@@ -9,7 +9,9 @@ import tempfile
 from pathlib import Path
 
 from check_sync_invariants import (
+    ALTERNATE_TITLE_EXEMPTIONS,
     SYNC_WRITE_PATH,
+    ScanResult,
     _certificate_violations,
     _drift_join_violations,
     _drift_write_violations,
@@ -534,6 +536,52 @@ def test_title_scan_rejects_alternate_implementation() -> None:
 
         result = scan(root)
         assert any(v.kind == "normalizeTitle" for v in result.violations)
+
+
+def _scan_exempt_title_helpers(relative: str, extra: str = "") -> ScanResult:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        title = root / "packages/core/lib/src/imports/dedupe.dart"
+        helpers = root / relative
+        title.parent.mkdir(parents=True)
+        helpers.parent.mkdir(parents=True, exist_ok=True)
+        title.write_text(
+            "String normalizeTitle(String value) => value.trim();\n",
+            encoding="utf-8",
+        )
+        helpers.write_text(
+            "String foldTitlePunctuation(String title) =>\n"
+            "    title.replaceAll('a', 'b').replaceAll('c', 'd');\n"
+            "String titleMatchKey(String title) =>\n"
+            "    foldTitlePunctuation(title).replaceAll('  ', ' ').toLowerCase();\n"
+            + extra,
+            encoding="utf-8",
+        )
+        return scan(root)
+
+
+def test_title_exemption_covers_only_its_named_helpers_in_its_file() -> None:
+    (exempt_path,) = ALTERNATE_TITLE_EXEMPTIONS
+    assert not any(
+        v.kind == "normalizeTitle"
+        for v in _scan_exempt_title_helpers(exempt_path).violations
+    )
+
+    elsewhere = _scan_exempt_title_helpers(
+        "packages/compendium_core/lib/src/imports/title_key.dart"
+    )
+    assert (
+        sum(v.kind == "normalizeTitle" for v in elsewhere.violations) == 2
+    ), elsewhere.violations
+
+    third = _scan_exempt_title_helpers(
+        exempt_path,
+        "String titleKey(String title) =>\n"
+        "    title.toLowerCase().replaceAll(' ', '');\n",
+    )
+    assert (
+        sum(v.kind == "normalizeTitle" for v in third.violations) == 1
+    ), third.violations
 
 
 def test_title_scan_requires_sync_call_sites_to_import_shared_definition() -> None:

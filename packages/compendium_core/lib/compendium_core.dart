@@ -59,6 +59,7 @@ export 'src/imports/shorthand_mappings.dart';
 export 'src/imports/share_metadata_import.dart';
 export 'src/imports/source_adapter.dart';
 export 'src/imports/structured_draft.dart';
+export 'src/imports/title_punctuation.dart';
 export 'src/imports/venue_dedupe.dart';
 export 'src/imports/while_container.dart';
 export 'src/model/choreographer.dart';
