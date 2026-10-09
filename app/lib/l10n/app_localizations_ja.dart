@@ -7555,6 +7555,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get retirementBannerLater => '後で';
 
   @override
+  String installLocationBannerMessage(String appName) {
+    return '$appNameはまだインストールされていません。ダウンロードしたディスクイメージまたはアーカイブから実行されています。アプリを終了し、「アプリケーション」フォルダにドラッグしてから、そこから開いてください。';
+  }
+
+  @override
+  String get installLocationBannerDismiss => '閉じる';
+
+  @override
   String get settingsUpdatesRetirementTitle => 'サポート終了';
 
   @override

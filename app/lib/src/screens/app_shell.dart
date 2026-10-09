@@ -8,6 +8,7 @@ import '../data/contradb_online.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/repositories_scope.dart';
+import '../install/install_location_banner.dart';
 import 'dance_reimport_flow.dart';
 import '../screens/dance_detail_screen.dart';
 import '../screens/program_summary_screen.dart';
@@ -228,10 +229,12 @@ class AppShellState extends State<AppShell> {
         // The app-wide update banners sit above the active tab's content so a
         // newer version — or an announced end of support for this one —
         // surfaces on any destination (Collection, Programs, Settings, Guide).
-        // Each renders nothing unless it has something to say, so they add no
+        // The macOS not-installed notice (issue #1725) sits with them. Each
+        // renders nothing unless it has something to say, so they add no
         // chrome in the common case.
         final body = Column(
           children: [
+            const InstallLocationBanner(),
             const RetirementBanner(),
             const UpdateBanner(),
             Expanded(

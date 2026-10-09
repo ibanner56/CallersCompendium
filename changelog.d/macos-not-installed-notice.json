@@ -1,0 +1,9 @@
+{
+  "id": "macos-not-installed-notice",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "On macOS, opening the app straight from the disk image (instead of dragging it to Applications first) now shows a notice explaining how to install it."
+    ]
+  }
+}
