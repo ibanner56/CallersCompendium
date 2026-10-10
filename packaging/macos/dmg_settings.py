@@ -32,7 +32,8 @@ symlinks = {"Applications": "/Applications"}
 icon = os.path.join(app, "Contents", "Resources", "AppIcon.icns")
 
 # Unchanged from the previous hdiutil recipe: zlib-compressed, HFS+, readable
-# on every macOS the app supports.
+# on every macOS the app supports. Must stay a read-only format: the app's
+# not-installed notice (#1725) detects the mounted image by its read-only volume.
 format = "UDZO"
 filesystem = "HFS+"
 

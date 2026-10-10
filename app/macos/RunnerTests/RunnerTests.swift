@@ -113,3 +113,36 @@ final class IncomingFileStagerTests: XCTestCase {
     XCTAssertEqual(IncomingFileStager.maxBytes, 25 * 1024 * 1024)
   }
 }
+
+/// Issue #1725: the not-installed notice keys off a read-only volume.
+final class InstallLocationTests: XCTestCase {
+  /// The answer for an installed app. `/Applications` is a firmlink into the
+  /// writable data volume; if it ever read as read-only, every installed user
+  /// would see a false notice.
+  func testApplicationsFolderIsNotFlagged() {
+    XCTAssertFalse(
+      InstallLocation.isUninstalled(
+        bundleURL: URL(fileURLWithPath: "/Applications", isDirectory: true)))
+  }
+
+  func testWritableTemporaryDirectoryIsNotFlagged() {
+    XCTAssertFalse(
+      InstallLocation.isUninstalled(bundleURL: FileManager.default.temporaryDirectory))
+  }
+
+  /// The signed system volume is read-only, standing in for a mounted `.dmg`
+  /// (which a unit test cannot mount).
+  func testReadOnlySystemVolumeIsFlagged() {
+    XCTAssertTrue(
+      InstallLocation.isUninstalled(
+        bundleURL: URL(
+          fileURLWithPath: "/System/Library/CoreServices/Finder.app", isDirectory: true)))
+  }
+
+  /// An unreadable location reports "not detected" rather than a false notice.
+  func testMissingPathIsNotFlagged() {
+    XCTAssertFalse(
+      InstallLocation.isUninstalled(
+        bundleURL: URL(fileURLWithPath: "/nonexistent-\(UUID().uuidString)/App.app")))
+  }
+}

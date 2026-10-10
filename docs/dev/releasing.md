@@ -1432,7 +1432,7 @@ check that shadow on a Mac after changing it.
 
 | File | Role |
 | --- | --- |
-| `packaging/macos/dmg_settings.py` | Window size, icon size and positions, contents, format (`UDZO`, HFS+). Read by `dmgbuild`. |
+| `packaging/macos/dmg_settings.py` | Window size, icon size and positions, contents, format (`UDZO`, HFS+). Read by `dmgbuild`. The format must stay read-only: the app's not-installed notice (`app/macos/Runner/InstallLocationBridge.swift`, #1725) fires on a read-only volume, so a writable format (`UDRW`) would silently disable it. |
 | `packaging/macos/dmg-background.png`, `…@2x.png` | Background art (1x and Retina). Combined into one multi-resolution TIFF by `dmgbuild` via `tiffutil`. |
 | `tools/brand/generate_dmg_background.py` | Draws the art from the geometry in `dmg_settings.py`, using the app's palette, bundled fonts and `app/assets/brand/mark-small.svg`. Local-only (Pillow, and cairosvg with the Cairo library); its outputs are committed. |
 | `packaging/macos/build_dmg.sh` | Runs `dmgbuild`, then mounts the image read-only and fails unless the app copy matches the source bundle file for file and the shortcut, layout, background and volume icon are all present (`dmgbuild` does not fail when one of its copy or attribute steps does). |
