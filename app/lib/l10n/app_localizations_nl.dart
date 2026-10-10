@@ -7909,6 +7909,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String get retirementBannerLater => 'Later';
 
   @override
+  String installLocationBannerMessage(String appName) {
+    return '$appName is nog niet geïnstalleerd: de app draait vanaf de gedownloade schijfkopie of het archief. Stop de app, sleep hem naar de map Apps en open hem daarna vanaf daar.';
+  }
+
+  @override
+  String get installLocationBannerDismiss => 'Sluiten';
+
+  @override
   String get settingsUpdatesRetirementTitle => 'Einde van ondersteuning';
 
   @override

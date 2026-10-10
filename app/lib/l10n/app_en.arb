@@ -10265,6 +10265,19 @@
   "@retirementBannerLater": {
     "description": "End-of-support banner action that hides the banner until the app is next launched."
   },
+  "installLocationBannerMessage": "{appName} isn't installed yet: it is running from the downloaded disk image or archive. Quit it, drag it to your Applications folder, then open it from there.",
+  "@installLocationBannerMessage": {
+    "description": "macOS-only app-wide banner shown when the app was opened from inside the mounted .dmg (or a quarantined, translocated copy) instead of from Applications. 'Applications' is the macOS folder name; use the localized Finder name.",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "installLocationBannerDismiss": "Dismiss",
+  "@installLocationBannerDismiss": {
+    "description": "Action on the not-installed banner that hides it until the app is next launched."
+  },
   "settingsUpdatesRetirementTitle": "End of support",
   "@settingsUpdatesRetirementTitle": {
     "description": "Settings ▸ Updates tile title shown when this version has an announced end-of-life date."

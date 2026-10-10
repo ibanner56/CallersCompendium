@@ -113,3 +113,54 @@ final class IncomingFileStagerTests: XCTestCase {
     XCTAssertEqual(IncomingFileStager.maxBytes, 25 * 1024 * 1024)
   }
 }
+
+/// Issue #1725: the not-installed notice keys off a read-only volume.
+final class InstallLocationTests: XCTestCase {
+  /// The answer for an installed app. `/Applications` is a firmlink into the
+  /// writable data volume; if it ever read as read-only, every installed user
+  /// would see a false notice.
+  func testApplicationsFolderIsNotFlagged() {
+    XCTAssertFalse(
+      InstallLocation.isUninstalled(
+        bundleURL: URL(fileURLWithPath: "/Applications", isDirectory: true)))
+  }
+
+  func testWritableTemporaryDirectoryIsNotFlagged() {
+    XCTAssertFalse(
+      InstallLocation.isUninstalled(bundleURL: FileManager.default.temporaryDirectory))
+  }
+
+  /// The signed system volume is read-only, standing in for a mounted `.dmg`
+  /// (which a unit test cannot mount). On failure the message reports what
+  /// the mount itself says, so a runner whose system volume is not mounted
+  /// read-only is told apart from a broken check.
+  func testReadOnlySystemVolumeIsFlagged() {
+    let url = URL(
+      fileURLWithPath: "/System/Library/CoreServices/Finder.app", isDirectory: true)
+    XCTAssertTrue(InstallLocation.isUninstalled(bundleURL: url), Self.mountReport(url))
+  }
+
+  private static func mountReport(_ url: URL) -> String {
+    var info = statfs()
+    let rc = statfs(url.path, &info)
+    let errorCode = rc == 0 ? 0 : errno
+    func text<T>(_ field: inout T) -> String {
+      withUnsafePointer(to: &field) {
+        $0.withMemoryRebound(to: CChar.self, capacity: MemoryLayout<T>.size) {
+          String(cString: $0)
+        }
+      }
+    }
+    let readOnlyKey = try? url.resourceValues(forKeys: [.volumeIsReadOnlyKey]).volumeIsReadOnly
+    return "statfs rc=\(rc) errno=\(errorCode) on=\(text(&info.f_mntonname)) "
+      + "from=\(text(&info.f_mntfromname)) flags=0x\(String(info.f_flags, radix: 16)) "
+      + "volumeIsReadOnly=\(String(describing: readOnlyKey))"
+  }
+
+  /// An unreadable location reports "not detected" rather than a false notice.
+  func testMissingPathIsNotFlagged() {
+    XCTAssertFalse(
+      InstallLocation.isUninstalled(
+        bundleURL: URL(fileURLWithPath: "/nonexistent-\(UUID().uuidString)/App.app")))
+  }
+}

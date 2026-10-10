@@ -7858,6 +7858,14 @@
   "@retirementBannerLater": {
     "x-sourceSha256": "73b6e48a1b552d112502d37a7b7870436efc5ea1de0bca58ccf12d6ae15d3a0c"
   },
+  "installLocationBannerMessage": "{appName} ist noch nicht installiert: Die App läuft aus dem heruntergeladenen Disk-Image oder Archiv. Beende sie, ziehe sie in den Ordner „Programme“ und öffne sie dann von dort.",
+  "@installLocationBannerMessage": {
+    "x-sourceSha256": "12c4548b3d19d088333888d7b32255d0bbea9beb23584cc08ffca881d395df8b"
+  },
+  "installLocationBannerDismiss": "Schließen",
+  "@installLocationBannerDismiss": {
+    "x-sourceSha256": "48845bff334a50a59aaecf499f28a7a24c3b4b891b8b18a9f1169ad8e8a6b261"
+  },
   "settingsUpdatesRetirementTitle": "Ende des Supports",
   "@settingsUpdatesRetirementTitle": {
     "x-sourceSha256": "8cca4b298b63a46fc1125f8904e43f49ef8510fb1811accac8fa2771e20bb360"

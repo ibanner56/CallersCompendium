@@ -7946,6 +7946,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get retirementBannerLater => 'Später';
 
   @override
+  String installLocationBannerMessage(String appName) {
+    return '$appName ist noch nicht installiert: Die App läuft aus dem heruntergeladenen Disk-Image oder Archiv. Beende sie, ziehe sie in den Ordner „Programme“ und öffne sie dann von dort.';
+  }
+
+  @override
+  String get installLocationBannerDismiss => 'Schließen';
+
+  @override
   String get settingsUpdatesRetirementTitle => 'Ende des Supports';
 
   @override

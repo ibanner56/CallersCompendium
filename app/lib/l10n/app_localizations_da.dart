@@ -7850,6 +7850,14 @@ class AppLocalizationsDa extends AppLocalizations {
   String get retirementBannerLater => 'Senere';
 
   @override
+  String installLocationBannerMessage(String appName) {
+    return '$appName er ikke installeret endnu: det kører fra det downloadede diskbillede eller arkiv. Afslut det, træk det til mappen Programmer, og åbn det derfra.';
+  }
+
+  @override
+  String get installLocationBannerDismiss => 'Afvis';
+
+  @override
   String get settingsUpdatesRetirementTitle => 'Ophør af support';
 
   @override

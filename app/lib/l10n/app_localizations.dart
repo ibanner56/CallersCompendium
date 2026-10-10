@@ -11948,6 +11948,18 @@ abstract class AppLocalizations {
   /// **'Later'**
   String get retirementBannerLater;
 
+  /// macOS-only app-wide banner shown when the app was opened from inside the mounted .dmg (or a quarantined, translocated copy) instead of from Applications. 'Applications' is the macOS folder name; use the localized Finder name.
+  ///
+  /// In en, this message translates to:
+  /// **'{appName} isn\'t installed yet: it is running from the downloaded disk image or archive. Quit it, drag it to your Applications folder, then open it from there.'**
+  String installLocationBannerMessage(String appName);
+
+  /// Action on the not-installed banner that hides it until the app is next launched.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get installLocationBannerDismiss;
+
   /// Settings ▸ Updates tile title shown when this version has an announced end-of-life date.
   ///
   /// In en, this message translates to:

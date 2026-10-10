@@ -7960,6 +7960,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get retirementBannerLater => 'Plus tard';
 
   @override
+  String installLocationBannerMessage(String appName) {
+    return '$appName n\'est pas encore installé : l\'app s\'exécute depuis l\'image disque ou l\'archive téléchargée. Quittez-la, faites-la glisser dans le dossier Applications, puis ouvrez-la depuis ce dossier.';
+  }
+
+  @override
+  String get installLocationBannerDismiss => 'Ignorer';
+
+  @override
   String get settingsUpdatesRetirementTitle => 'Fin de la prise en charge';
 
   @override
