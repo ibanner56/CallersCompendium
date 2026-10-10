@@ -37,25 +37,27 @@ final class InstallLocationBridge {
 /// `internal` (not `private`) so the `RunnerTests` target can exercise it via
 /// `@testable import Caller_s_Compendium`.
 enum InstallLocation {
-  /// Whether the bundle at `bundleURL` sits on a read-only volume.
+  /// Whether the bundle at `bundleURL` sits on a filesystem mounted read-only
+  /// (`statfs` reports `MNT_RDONLY`).
   ///
-  /// That one property covers both ways an uninstalled app runs: from the
-  /// mounted disk image itself (a read-only image), and from Gatekeeper's App
-  /// Translocation copy (a randomised read-only mount). An installed copy in
-  /// `/Applications` or `~/Applications` is on the writable data volume.
+  /// This is the test Firefox (`MacRunFromDmgUtils.mm`), Chromium
+  /// (`install_from_dmg.mm`) and Sparkle (`SUHost.isRunningOnReadOnlyVolume`)
+  /// use for an app run from its disk image; Firefox's comments note that a
+  /// translocated copy of a disk-image app is on a read-only mount too. An
+  /// installed copy in `/Applications` or `~/Applications` is on the writable
+  /// data volume.
   ///
   /// Removable or ejectable volumes are deliberately **not** treated as a
   /// signal: an app kept on an external drive is installed, and flagging it
   /// would be a false notice. `SecTranslocateIsTranslocatedURL` is not called
-  /// either: its header is not public, and the translocated mount is
-  /// read-only anyway.
+  /// either: its header is not public.
   static func isUninstalled(bundleURL: URL) -> Bool {
-    guard
-      let values = try? bundleURL.resourceValues(forKeys: [.volumeIsReadOnlyKey]),
-      let readOnly = values.volumeIsReadOnly
-    else {
-      return false
+    var info = statfs()
+    let ok = bundleURL.withUnsafeFileSystemRepresentation { path -> Bool in
+      guard let path else { return false }
+      return statfs(path, &info) == 0
     }
-    return readOnly
+    guard ok else { return false }
+    return info.f_flags & UInt32(MNT_RDONLY) != 0
   }
 }
