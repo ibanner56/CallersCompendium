@@ -463,6 +463,9 @@ class AthenaeumApp {
   }
 
   Future<Response> _blobRoute(Request request, List<String> segments) async {
+    if (segments.length == 3 && segments[2] == 'batch') {
+      return _blobBatchRoute(request);
+    }
     if (segments.length == 3 && segments[2] == 'missing') {
       if (request.method != 'POST') return _methodNotAllowed(const ['POST']);
       _requireContentType(request, 'application/json');
@@ -594,6 +597,129 @@ class AthenaeumApp {
       return Response(created ? 201 : 200);
     }
     return _methodNotAllowed(const ['GET', 'PUT']);
+  }
+
+  /// `POST /v1/blobs/batch` (spec §5.2): the blobs for up to
+  /// [syncBlobBatchMaxHashes] hashes in one response, so a device's first
+  /// download is not one request per record.
+  ///
+  /// The response is a frame per requested hash, in request order, streamed:
+  /// each blob is looked up and read only when the frame before it has been
+  /// handed on, so the response is never held whole.
+  Future<Response> _blobBatchRoute(Request request) async {
+    if (request.method != 'POST') return _methodNotAllowed(const ['POST']);
+    _requireContentType(request, 'application/json');
+    final auth = await _authenticate(request);
+    if (auth.response != null) return auth.response!;
+    final identity = auth.identity!;
+    final current = store.lookup(identity.idKey);
+    if (current == null) {
+      return _failedResolution(request, 404, 'store not found');
+    }
+    if (_declaredLengthExceeds(request, maxBlobBatchRequestBytes)) {
+      throw const _RequestFailure(413, 'request body exceeds limit');
+    }
+    final decoded = _decodeJson(
+      await _readBody(request, maxBlobBatchRequestBytes),
+    );
+    if (decoded is! Map || decoded['hashes'] is! List) {
+      throw const _RequestFailure(400, 'hashes must be an array');
+    }
+    final rawHashes = decoded['hashes'] as List;
+    if (rawHashes.length > syncBlobBatchMaxHashes) {
+      throw const _RequestFailure(413, 'too many hashes');
+    }
+    final hashes = <String>[];
+    final seen = <String>{};
+    for (final value in rawHashes) {
+      if (value is! String || !_validHash(value)) {
+        throw const _RequestFailure(400, 'invalid blob hash');
+      }
+      if (!seen.add(value)) {
+        throw const _RequestFailure(400, 'duplicate blob hash');
+      }
+      hashes.add(value);
+    }
+    final gzipped = _acceptsGzip(request.headers['accept-encoding']);
+    final frames = _blobBatchFrames(identity.idKey, current.epoch, hashes);
+    return Response(
+      200,
+      body: gzipped ? gzip.encoder.bind(frames) : frames,
+      headers: {
+        'content-type': syncBlobBatchMediaType,
+        'cache-control': 'no-store',
+        'vary': 'accept-encoding',
+        if (gzipped) 'content-encoding': 'gzip',
+      },
+    );
+  }
+
+  /// The frames answering [hashes], produced one blob at a time.
+  ///
+  /// A hash is `missing` when the store has no reference to it in [epoch], or
+  /// when its file is gone (§7.1), exactly the two cases a single-blob `GET`
+  /// answers `404`. Once the blobs already sent and the next one would
+  /// together pass [syncBlobBatchMaxBlobBytes], that hash and every later one
+  /// is `notSent`, and the client asks for them again.
+  Stream<List<int>> _blobBatchFrames(
+    String idKey,
+    String epoch,
+    List<String> hashes,
+  ) async* {
+    var sentBytes = 0;
+    var full = false;
+    for (final hash in hashes) {
+      if (!full) {
+        final reference = store.blobRef(idKey, epoch, hash);
+        if (reference != null &&
+            sentBytes + reference.size > syncBlobBatchMaxBlobBytes) {
+          full = true;
+        } else if (reference != null) {
+          Uint8List? body;
+          try {
+            body = store.blobFile(idKey, epoch, hash).readAsBytesSync();
+          } on FileSystemException {
+            body = null;
+          }
+          if (body != null) {
+            sentBytes += body.length;
+            yield encodeSyncBlobBatchFrameHead(
+              SyncBlobBatchFrameStatus.blob,
+              hash,
+              length: body.length,
+            );
+            yield body;
+            continue;
+          }
+        }
+      }
+      yield encodeSyncBlobBatchFrameHead(
+        full
+            ? SyncBlobBatchFrameStatus.notSent
+            : SyncBlobBatchFrameStatus.missing,
+        hash,
+      );
+    }
+  }
+
+  /// Whether an `Accept-Encoding` value admits gzip: listed, and not with
+  /// `q=0`.
+  static bool _acceptsGzip(String? header) {
+    if (header == null) return false;
+    for (final part in header.split(',')) {
+      final pieces = part.split(';');
+      if (pieces.first.trim().toLowerCase() != 'gzip') continue;
+      for (final parameter in pieces.skip(1)) {
+        final pair = parameter.split('=');
+        if (pair.length == 2 &&
+            pair.first.trim().toLowerCase() == 'q' &&
+            (double.tryParse(pair.last.trim()) ?? 1) == 0) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
   }
 
   Future<_AuthResult> _authenticate(Request request) async {
