@@ -264,6 +264,9 @@ final class SyncAliasMap {
 
   final Map<SyncRecordKind, Map<String, String>> _byKind;
 
+  /// Each kind's losing id to the id it was merged into, one link at a time.
+  Map<SyncRecordKind, Map<String, String>> get links => _byKind;
+
   SyncRecordAddress resolve(SyncRecordAddress address) {
     final links = _byKind[address.kind];
     if (links == null) return address;
@@ -1775,6 +1778,7 @@ class SyncCoordinator {
       freshAttach: freshAttach,
       unresolved: {...normalizedUnresolved, ...mergeQuarantined},
       decidedAgainst: await store.decidedAgainstHashes(),
+      aliases: (await store.aliasMap()).links,
     );
     reports.addAll(plan.reports);
     final downloads = [

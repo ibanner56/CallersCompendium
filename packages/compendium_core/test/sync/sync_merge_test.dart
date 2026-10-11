@@ -260,6 +260,378 @@ void main() {
     });
   });
 
+  group('an equal-updatedAt tie with nothing the user is shown differing', () {
+    SyncRecordBlob record(
+      SyncRecordKind kind,
+      String id,
+      Map<String, Object?> body,
+    ) => SyncRecordBlob(
+      kind: kind,
+      id: id,
+      updatedAt: _baseTime,
+      deletedAt: null,
+      existenceAt: _baseTime,
+      body: {'id': id, ...body},
+    );
+
+    SyncMergeDecision decide(
+      SyncRecordBlob mine,
+      SyncRecordBlob theirs, {
+      Map<SyncRecordKind, Map<String, String>> aliases = const {},
+    }) => engine
+        .plan(
+          local: {mine.address: SyncMergeCandidate.fromBlob(mine)},
+          baseline: const {},
+          // Filed under this device's address, as the coordinator files a
+          // copy whose id was merged away.
+          peers: [
+            {mine.address: SyncMergeCandidate.fromBlob(theirs, peerId: 'p')},
+          ],
+          aliases: aliases,
+        )
+        .decisions
+        .single;
+
+    const mergedAway = {
+      SyncRecordKind.choreographer: {'c2': 'c1'},
+    };
+
+    test('is not asked, and downloads nothing, when the copies differ only '
+        'in their own id', () {
+      // Several names, so the outcome cannot hang on how two hashes order:
+      // downloading the other copy would only store this one again, and the
+      // tie would return on every pass.
+      for (final name in [
+        'Seth Tepfer',
+        'David Smukler',
+        'Mary Devlin',
+        'Bob Isaacs',
+        'Cary Ravitz',
+        'Don Flaherty',
+        'Rick Mohr',
+        'Gene Hubert',
+      ]) {
+        final mine = record(SyncRecordKind.choreographer, 'c1', {'name': name});
+        final theirs = record(SyncRecordKind.choreographer, 'c2', {
+          'name': name,
+        });
+
+        final decision = decide(mine, theirs, aliases: mergedAway);
+
+        expect(decision.action, SyncMergeAction.upload, reason: name);
+        expect(
+          decision.winner!.wireHash,
+          SyncMergeCandidate.fromBlob(mine).wireHash,
+          reason: name,
+        );
+      }
+    });
+
+    test('is not asked when a reference differs only by a merged-away id, '
+        'and is asked without the alias', () {
+      final mine = record(SyncRecordKind.dance, 'd1', {
+        'title': 'Hey Day',
+        'authorIds': ['c1'],
+      });
+      final theirs = record(SyncRecordKind.dance, 'd1', {
+        'title': 'Hey Day',
+        'authorIds': ['c2'],
+      });
+
+      final decision = decide(mine, theirs, aliases: mergedAway);
+      // The same content: this device's copy stands and is published.
+      expect(decision.action, SyncMergeAction.upload);
+      expect(
+        decision.winner!.wireHash,
+        SyncMergeCandidate.fromBlob(mine).wireHash,
+      );
+      expect(decide(mine, theirs).action, SyncMergeAction.review);
+    });
+
+    test('is settled the same way on both devices when only a field the '
+        'user is not shown differs', () {
+      Map<String, Object?> provenance(String importedAt) => {
+        'source': 'contradb',
+        'externalId': '42',
+        'importedAt': importedAt,
+        'license': 'CC BY',
+      };
+      final address = _dance('d1', 'x').address;
+      final left = _SimulatedDevice(
+        'left',
+        SyncMergeCandidate.fromBlob(
+          record(SyncRecordKind.dance, 'd1', {
+            'title': 'Hey Day',
+            'provenance': provenance('2026-01-01T00:00:00.000Z'),
+          }),
+        ),
+      );
+      final right = _SimulatedDevice(
+        'right',
+        SyncMergeCandidate.fromBlob(
+          record(SyncRecordKind.dance, 'd1', {
+            'title': 'Hey Day',
+            'provenance': provenance('2026-02-01T00:00:00.000Z'),
+          }),
+        ),
+      );
+      final devices = [left, right];
+
+      for (var round = 0; round < 2; round++) {
+        for (final device in devices) {
+          final plan = const SyncMergeEngine().plan(
+            local: device.local,
+            baseline: device.baseline,
+            peers: [
+              for (final peer in devices)
+                if (peer != device) peer.manifest,
+            ],
+          );
+          expect(plan.reviews, isEmpty);
+          expect(plan.reports, isEmpty);
+          _runSimulatedPass(device, devices);
+        }
+      }
+
+      expect(
+        devices.map((device) => device.manifest[address]!.wireHash).toSet(),
+        hasLength(1),
+      );
+    });
+
+    test('is not asked when a merged-away reference and a field the user '
+        'is not shown both differ', () {
+      final mine = record(SyncRecordKind.dance, 'd1', {
+        'title': 'Hey Day',
+        'authorIds': ['c1'],
+        'provenance': {'source': 'contradb', 'importedAt': '2026-01-01'},
+      });
+      final theirs = record(SyncRecordKind.dance, 'd1', {
+        'title': 'Hey Day',
+        'authorIds': ['c2'],
+        'provenance': {'source': 'contradb', 'importedAt': '2026-02-01'},
+      });
+
+      final decision = decide(mine, theirs, aliases: mergedAway);
+      // Settled, one way or the other by content hash, with a winner that
+      // cites the surviving record.
+      expect(
+        decision.action,
+        anyOf(SyncMergeAction.upload, SyncMergeAction.download),
+      );
+      expect(decision.winner!.blob.body['authorIds'], ['c1']);
+    });
+
+    test('settles on the surviving id even where this device\'s copy still '
+        'names the merged-away one', () {
+      // This device's copy is filed under c1 but still names c2; another
+      // device's copy of the same content is already under c1.
+      final mine = record(SyncRecordKind.choreographer, 'c2', {
+        'name': 'Seth Tepfer',
+      });
+      final theirs = record(SyncRecordKind.choreographer, 'c1', {
+        'name': 'Seth Tepfer',
+      });
+      const address = (kind: SyncRecordKind.choreographer, recordId: 'c1');
+
+      final decision = engine
+          .plan(
+            local: {address: SyncMergeCandidate.fromBlob(mine)},
+            baseline: const {},
+            peers: [
+              {address: SyncMergeCandidate.fromBlob(theirs, peerId: 'p')},
+            ],
+            aliases: mergedAway,
+          )
+          .decisions
+          .single;
+
+      expect(decision.action, SyncMergeAction.download);
+      expect(decision.winner!.blob.id, 'c1');
+    });
+
+    test('is not asked when entries differ only in their own ids, or slots '
+        'only in how they are numbered', () {
+      Map<String, Object?> link(String id) => {
+        'id': id,
+        'kind': 'video',
+        'label': 'Walkthrough',
+        'url': 'https://example.test/v',
+        'targetDanceId': null,
+        'transitive': false,
+      };
+      expect(
+        decide(
+          record(SyncRecordKind.dance, 'd1', {
+            'title': 'Hey Day',
+            'links': [link('l1')],
+          }),
+          record(SyncRecordKind.dance, 'd1', {
+            'title': 'Hey Day',
+            'links': [link('l2')],
+          }),
+        ).action,
+        SyncMergeAction.upload,
+      );
+
+      Map<String, Object?> slot(String id, int position, String text) => {
+        'id': id,
+        'position': position,
+        'text': text,
+        'danceId': null,
+        'isAlt': false,
+      };
+      SyncRecordBlob program(List<Map<String, Object?>> slots) => record(
+        SyncRecordKind.program,
+        'p1',
+        {'title': 'Saturday', 'slots': slots},
+      );
+      final mine = program([slot('s1', 0, 'A'), slot('s2', 1, 'B')]);
+
+      expect(
+        decide(
+          mine,
+          // Listed in another order, ids and numbers different: the same
+          // program as the comparison shows it.
+          program([slot('t2', 5, 'B'), slot('t1', 3, 'A')]),
+        ).action,
+        SyncMergeAction.upload,
+      );
+      expect(
+        decide(mine, program([slot('s1', 1, 'A'), slot('s2', 0, 'B')])).action,
+        SyncMergeAction.review,
+        reason: 'the order of the slots is shown',
+      );
+      expect(
+        decide(
+          record(SyncRecordKind.dance, 'd1', {
+            'title': 'Hey Day',
+            'links': [link('l1')],
+          }),
+          record(SyncRecordKind.dance, 'd1', {
+            'title': 'Hey Day',
+            'links': [
+              {...link('l1'), 'url': 'https://example.test/w'},
+            ],
+          }),
+        ).action,
+        SyncMergeAction.review,
+        reason: "a link's destination is shown",
+      );
+    });
+
+    test("is not asked when a link's or a slot's dance differs only by a "
+        'merged-away dance id', () {
+      const deduped = {
+        SyncRecordKind.dance: {'d9': 'd2'},
+      };
+      Map<String, Object?> link(String target) => {
+        'id': 'l1',
+        'kind': 'link',
+        'label': null,
+        'url': null,
+        'targetDanceId': target,
+        'transitive': true,
+      };
+      final mine = record(SyncRecordKind.dance, 'd1', {
+        'title': 'Hey Day',
+        'links': [link('d2')],
+      });
+      final theirs = record(SyncRecordKind.dance, 'd1', {
+        'title': 'Hey Day',
+        'links': [link('d9')],
+      });
+      expect(
+        decide(mine, theirs, aliases: deduped).action,
+        SyncMergeAction.upload,
+      );
+      expect(decide(mine, theirs).action, SyncMergeAction.review);
+
+      Map<String, Object?> slot(String dance) => {
+        'id': 's1',
+        'position': 0,
+        'danceId': dance,
+        'text': null,
+      };
+      final myProgram = record(SyncRecordKind.program, 'p1', {
+        'title': 'Saturday',
+        'slots': [slot('d2')],
+      });
+      final theirProgram = record(SyncRecordKind.program, 'p1', {
+        'title': 'Saturday',
+        'slots': [slot('d9')],
+      });
+      expect(
+        decide(myProgram, theirProgram, aliases: deduped).action,
+        SyncMergeAction.upload,
+      );
+      expect(decide(myProgram, theirProgram).action, SyncMergeAction.review);
+    });
+
+    test('is still asked when a field the user is shown differs', () {
+      final mine = record(SyncRecordKind.choreographer, 'c1', {
+        'name': 'Seth Tepfer',
+        'notes': 'here',
+      });
+      final theirs = record(SyncRecordKind.choreographer, 'c2', {
+        'name': 'Seth Tepfer',
+        'notes': 'there',
+      });
+
+      expect(
+        decide(mine, theirs, aliases: mergedAway).action,
+        SyncMergeAction.review,
+      );
+    });
+
+    test("is still asked when a dance's import source differs, which its "
+        'page shows', () {
+      final mine = record(SyncRecordKind.dance, 'd1', {
+        'title': 'Hey Day',
+        'provenance': {'source': 'contradb'},
+      });
+      final theirs = record(SyncRecordKind.dance, 'd1', {
+        'title': 'Hey Day',
+        'provenance': {'source': 'callersbox'},
+      });
+
+      expect(decide(mine, theirs).action, SyncMergeAction.review);
+    });
+
+    test(
+      'offers only the versions that look different from this device\'s',
+      () {
+        final mine = record(SyncRecordKind.choreographer, 'c1', {
+          'name': 'Seth Tepfer',
+        });
+        final lookalike = record(SyncRecordKind.choreographer, 'c2', {
+          'name': 'Seth Tepfer',
+        });
+        final different = record(SyncRecordKind.choreographer, 'c1', {
+          'name': 'Seth Tepfer',
+          'notes': 'there',
+        });
+        final decision = engine
+            .plan(
+              local: {mine.address: SyncMergeCandidate.fromBlob(mine)},
+              baseline: const {},
+              peers: [
+                {mine.address: SyncMergeCandidate.fromBlob(lookalike)},
+                {mine.address: SyncMergeCandidate.fromBlob(different)},
+              ],
+              aliases: mergedAway,
+            )
+            .decisions
+            .single;
+
+        expect(decision.action, SyncMergeAction.review);
+        expect(decision.conflict!.candidates.map((c) => c.blob.body['notes']), [
+          'there',
+        ]);
+      },
+    );
+  });
+
   group('whole-collection settings (ADR-004, Consequences)', () {
     SyncBaselineEntry agreedOn(SyncRecordBlob blob) => SyncBaselineEntry(
       kind: blob.kind,

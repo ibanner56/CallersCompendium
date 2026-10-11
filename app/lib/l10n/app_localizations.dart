@@ -1178,6 +1178,12 @@ abstract class AppLocalizations {
   /// **'Something newer arrived after you chose, so nothing was changed.'**
   String get syncConflictUndoChanged;
 
+  /// Label in the sync conflict comparison for where a dance came from (its import source and licence), shown as the dance page's provenance line.
+  ///
+  /// In en, this message translates to:
+  /// **'Origin'**
+  String get syncConflictFieldProvenance;
+
   /// Label for a tag's colour in the conflict comparison.
   ///
   /// In en, this message translates to:
