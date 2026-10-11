@@ -857,6 +857,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Nach deiner Auswahl ist etwas Neueres eingetroffen, daher wurde nichts geändert.';
 
   @override
+  String get syncConflictFieldProvenance => 'Herkunft';
+
+  @override
   String get syncConflictFieldColour => 'Farbe';
 
   @override

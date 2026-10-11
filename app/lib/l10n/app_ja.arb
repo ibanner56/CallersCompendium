@@ -748,6 +748,10 @@
   "@syncConflictUndoChanged": {
     "x-sourceSha256": "f67b95c5117c22c183cf37f66d2a3fdfbf574157d9fa7efdbf60314b632db5eb"
   },
+  "syncConflictFieldProvenance": "出典",
+  "@syncConflictFieldProvenance": {
+    "x-sourceSha256": "d3e1c5f8a6e240fc97f057908e6f99feebc73acb865b641a38e28d6ae9b1264c"
+  },
   "syncConflictFieldColour": "色",
   "@syncConflictFieldColour": {
     "x-sourceSha256": "3a9dfa58df63e0dda962a147a6cea86cc5294a5e859d89ddfa8e74a977fedf5d"

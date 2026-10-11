@@ -1,8 +1,12 @@
+import 'package:collection/collection.dart' show mergeSort;
+
 import '../imports/shorthand_mappings.dart'
     show maxShorthandMappings, normalizeShorthandToken;
 import '../snippet/snippet_library.dart'
     show WalkthroughSnippetLibrary, kMaxSnippetLibraryEntries;
 import 'canonical_json.dart';
+import 'sync_reconciliation.dart' show rewriteSyncInboundReferences;
+import 'sync_record_kind.dart';
 
 /// One entry of a whole-collection setting, identified the way the user's own
 /// library identifies it, for comparing two versions of the collection.
@@ -152,7 +156,7 @@ SyncCollectionDiff? compareSyncCollection(
 List<String> syncDifferingFields(
   Map<String, Object?>? local,
   Map<String, Object?>? other, {
-  Set<String> ignore = const {'id', 'createdAt', 'updatedAt', 'deletedAt'},
+  Set<String> ignore = syncIdentityAndTimestampFields,
 }) {
   final keys = <String>[...?local?.keys];
   for (final key in other?.keys ?? const <String>[]) {
@@ -165,6 +169,265 @@ List<String> syncDifferingFields(
         key,
   ];
 }
+
+/// The fields of a [kind] record a person is shown when comparing two
+/// versions of it, or null when every field is shown but identity and
+/// timestamps (the fields [syncDifferingFields] ignores by default).
+///
+/// A nested path (`provenance.source`) marks its field as shown only in part:
+/// of that field, only the listed parts are compared. Every other synced
+/// field is in [syncUserHiddenFields], with the reason it is not shown;
+/// `test/sync/sync_user_visible_fields_test.dart` fails the build for a
+/// synced field in neither, so a new field cannot be left out of the
+/// comparison — and settled without asking — by omission.
+///
+/// The conflict comparison labels exactly the top-level fields here (an app
+/// test holds the two together), and the merge uses them to decide whether a
+/// tie needs a person at all ([syncUserVisibleContentHash]).
+Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
+  SyncRecordKind.dance => const {
+    'title',
+    'authorIds',
+    'form',
+    'formation',
+    'progression',
+    'phraseStructure',
+    'figures',
+    'hook',
+    'callingNotes',
+    'walkthrough',
+    'difficultyLevelId',
+    'mixedLevel',
+    'mixer',
+    'status',
+    'rating',
+    'tunes',
+    'tagIds',
+    'customFields',
+    // Each link as the comparison shows it; its own id is not shown.
+    'links',
+    'links.kind',
+    'links.label',
+    'links.url',
+    'links.targetDanceId',
+    'links.transitive',
+    'sourceCitations',
+    'composedOn',
+    'revisedOn',
+    // Shown as its page shows it: where it came from, and its licence.
+    'provenance',
+    'provenance.source',
+    'provenance.license',
+  },
+  // The linked venue and the free-text venue are shown as one row.
+  SyncRecordKind.program => const {
+    'title',
+    'eventDate',
+    'venue',
+    'venueId',
+    'band',
+    'caller',
+    'dancerLevel',
+    'status',
+    'notes',
+    // Each slot as the comparison shows it, in position order: what it holds
+    // and its details. Its own id and position number are not shown.
+    'slots',
+    'slots.danceId',
+    'slots.text',
+    'slots.isAlt',
+    'slots.isPurgedDance',
+    'slots.guestCaller',
+    'slots.walkthroughMinutes',
+    'slots.danceMinutes',
+    'slots.performedAt',
+    'hideAlternates',
+    'dialectName',
+    'payMinorUnits',
+    'payCurrency',
+  },
+  SyncRecordKind.choreographer => const {'name', 'website', 'notes'},
+  SyncRecordKind.tag => const {'name', 'color'},
+  SyncRecordKind.venue => const {
+    'name',
+    'eventName',
+    'sponsor',
+    'time',
+    'genericSchedule',
+    'price',
+    'website',
+    'notes',
+  },
+  SyncRecordKind.publishedSource ||
+  SyncRecordKind.customFieldDef ||
+  SyncRecordKind.difficultyLevel ||
+  SyncRecordKind.setting => null,
+};
+
+/// The synced fields of a [kind] record that a comparison does not show,
+/// each with the reason, by wire path: every synced field outside
+/// [syncUserVisibleFields] but identity and timestamps. A version that
+/// differs from another only here is settled without asking (sync-spec
+/// §6.3), so a field belongs here only when nothing in the app shows it.
+Map<String, String> syncUserHiddenFields(SyncRecordKind kind) => switch (kind) {
+  SyncRecordKind.dance => const {
+    'provenance.externalId':
+        'The source site\'s own id for the dance. Never displayed; online '
+        'search uses it (with the source) to mark a result as already in the '
+        'collection, a hint rather than a field. Hidden by choice in PR '
+        '#1729.',
+    'provenance.importedAt':
+        'When this copy was imported; nothing displays it for a dance.',
+    'provenance.permission':
+        'Import bookkeeping; the dance page shows the licence, not this.',
+    'provenance.sourceVersion':
+        'The source\'s format version, read only by import.',
+    'links.id':
+        'Each link\'s own id, generated where it was added; the comparison '
+        'shows a link by its kind, label, destination and group.',
+  },
+  SyncRecordKind.program => const {
+    'slots.id':
+        'Each slot\'s own id, generated where it was added; the comparison '
+        'matches slots by the dance or text they hold.',
+    'slots.position':
+        'The comparison shows slots in this order, which the projection '
+        'keeps, but not the numbers themselves: renumbering alone is no '
+        'difference.',
+    'provenance':
+        'Where an imported program came from. The program pages do not show '
+        'it; the ContraDB import screen uses its source and id to badge a '
+        'program as already imported, with the import date in the badge\'s '
+        'tooltip. A hint on another screen rather than a field of the '
+        'program: hidden by choice in PR #1729.',
+  },
+  SyncRecordKind.venue => const {
+    'provenance':
+        'Where an imported venue came from; nothing in the app displays it.',
+  },
+  SyncRecordKind.choreographer ||
+  SyncRecordKind.tag ||
+  SyncRecordKind.publishedSource ||
+  SyncRecordKind.customFieldDef ||
+  SyncRecordKind.difficultyLevel ||
+  SyncRecordKind.setting => const {},
+};
+
+/// What a person can see of a [kind] record's [body]: its
+/// [syncUserVisibleFields], with references to records merged away by
+/// natural-key reconciliation ([aliases], losing id to surviving id) read as
+/// the records they were merged into. Of a field shown only in part, only
+/// the listed parts are kept.
+Map<String, Object?> syncUserVisibleBody(
+  SyncRecordKind kind,
+  Map<String, Object?> body, {
+  Map<SyncRecordKind, Map<String, String>> aliases = const {},
+}) {
+  final resolved = syncResolveComparedReferences(body, aliases);
+  final visible = syncUserVisibleFields(kind);
+  Object? shown(String key, Object? value) {
+    final parts = {
+      for (final path in visible ?? const <String>{})
+        if (path.startsWith('$key.')) path.substring(key.length + 1),
+    };
+    if (parts.isEmpty) return value;
+    Object? keep(Object? entry) =>
+        entry is Map ? {for (final part in parts) part: entry[part]} : entry;
+    if (value is Map) return keep(value);
+    if (value is! List) return value;
+    final order = _shownInOrderOf[(kind, key)];
+    final entries = [...value];
+    if (order != null) {
+      num at(Object? entry) => entry is Map ? (entry[order] as num?) ?? 0 : 0;
+      mergeSort(entries, compare: (a, b) => at(a).compareTo(at(b)));
+    }
+    return [for (final entry in entries) keep(entry)];
+  }
+
+  return {
+    for (final entry in resolved.entries)
+      if (visible == null
+          ? !syncIdentityAndTimestampFields.contains(entry.key)
+          : visible.contains(entry.key))
+        entry.key: shown(entry.key, entry.value),
+  };
+}
+
+/// [body] with every reference to a record merged away by natural-key
+/// reconciliation or dance deduplication ([aliases], losing id to surviving
+/// id) read as the record it was merged into: what inbound apply rewrites
+/// ([rewriteSyncInboundReferences]), and also the dances a dance's links and
+/// a program's slots cite. For comparing versions and naming what they cite;
+/// it does not change what apply writes. Returns [body] itself when there are
+/// no aliases.
+Map<String, Object?> syncResolveComparedReferences(
+  Map<String, Object?> body,
+  Map<SyncRecordKind, Map<String, String>> aliases,
+) {
+  if (aliases.isEmpty) return body;
+  final resolved = rewriteSyncInboundReferences(body, aliases);
+  final dances = aliases[SyncRecordKind.dance];
+  if (dances == null) return resolved;
+  String? dance(Object? id) {
+    if (id is! String) return null;
+    var current = id;
+    final seen = {id};
+    for (var next = dances[current]; next != null; next = dances[current]) {
+      if (!seen.add(next)) break;
+      current = next;
+    }
+    return current;
+  }
+
+  for (final (key, part) in const [
+    ('links', 'targetDanceId'),
+    ('slots', 'danceId'),
+  ]) {
+    final entries = resolved[key];
+    if (entries is! List) continue;
+    resolved[key] = [
+      for (final entry in entries)
+        entry is Map ? _withResolved(entry, part, dance) : entry,
+    ];
+  }
+  return resolved;
+}
+
+Object? _withResolved(
+  Map<Object?, Object?> entry,
+  String part,
+  String? Function(Object?) resolve,
+) {
+  final id = resolve(entry[part]);
+  return id == null ? entry : {...entry, part: id};
+}
+
+/// List fields the comparison shows in the order of a part it does not show:
+/// the projection orders entries by that part before dropping it.
+const Map<(SyncRecordKind, String), String> _shownInOrderOf = {
+  (SyncRecordKind.program, 'slots'): 'position',
+};
+
+/// Hashes [syncUserVisibleBody]. Two versions with the same hash differ only
+/// in ways a person could not tell apart, so choosing between them is
+/// arbitrary and is never put to the user.
+String syncUserVisibleContentHash(
+  SyncRecordKind kind,
+  Map<String, Object?> body, {
+  Map<SyncRecordKind, Map<String, String>> aliases = const {},
+}) => contentHash(syncUserVisibleBody(kind, body, aliases: aliases));
+
+/// Identity and timestamps, never compared between versions: each copy
+/// names its own id, and its stamps decide a tie rather than being what it
+/// is decided between. `createdAt` does order the collection's "Recently
+/// added" sort, and is left out by choice (PR #1729): which of two creation
+/// times a record keeps is not a choice a person can weigh.
+const Set<String> syncIdentityAndTimestampFields = {
+  'id',
+  'createdAt',
+  'updatedAt',
+  'deletedAt',
+};
 
 /// A walkthrough-snippet setting read exactly as the library loads it: keys
 /// written under an older signature scheme are migrated to the current one,

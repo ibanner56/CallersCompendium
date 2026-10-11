@@ -10,6 +10,7 @@ import '../search/facet_labels.dart';
 import '../sync/sync_setting_labels.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/program_status_labels.dart';
+import '../widgets/provenance_labels.dart';
 
 /// Names for the records a conflicted record refers to by id — its authors,
 /// tags, level, custom fields, a program's dances and venue — so a comparison
@@ -91,8 +92,10 @@ String syncConflictWhen(BuildContext context, DateTime when) =>
     ).add_jm().format(when.toLocal());
 
 /// The fields of [kind] a comparison shows, in reading order, with their
-/// labels. Fields not listed — provenance, internal flags — are left out:
-/// they are never what a user is choosing between.
+/// labels: exactly core's [syncUserVisibleFields], which the merge also uses
+/// to decide whether a tie needs the user at all. Fields not listed —
+/// provenance details, internal flags — are left out: they are never what a
+/// user is choosing between.
 Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
     switch (kind) {
       SyncRecordKind.dance => {
@@ -118,6 +121,7 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'sourceCitations': l10n.danceEditorPublishedSourcesLabel,
         'composedOn': l10n.danceEditorComposedLabel,
         'revisedOn': l10n.danceEditorRevisedLabel,
+        'provenance': l10n.syncConflictFieldProvenance,
       },
       SyncRecordKind.program => {
         'title': l10n.programsTitleLabel,
@@ -160,14 +164,20 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
 
 /// The labelled fields that differ between [local] and [other], or every
 /// differing field when the kind has no labels (shown by their own names).
+/// Both are compared as [syncUserVisibleBody] reads them, with [aliases], so
+/// a reference to a merged-away record is not a difference.
 List<({String key, String label})> syncConflictDifferingFields(
   AppLocalizations l10n,
   SyncRecordKind kind,
   Map<String, Object?>? local,
-  Map<String, Object?>? other,
-) {
+  Map<String, Object?>? other, {
+  Map<SyncRecordKind, Map<String, String>> aliases = const {},
+}) {
   final labels = _fieldLabels(l10n, kind);
-  final differing = syncDifferingFields(local, other).toSet();
+  final differing = syncDifferingFields(
+    local == null ? null : syncUserVisibleBody(kind, local, aliases: aliases),
+    other == null ? null : syncUserVisibleBody(kind, other, aliases: aliases),
+  ).toSet();
   if (labels.isEmpty) {
     return [for (final key in differing) (key: key, label: key)];
   }
@@ -210,6 +220,7 @@ String? syncConflictSummary(
     group.kind,
     group.localBody,
     other,
+    aliases: group.aliases,
   );
   if (fields.isEmpty) return null;
   const shown = 3;
@@ -233,6 +244,13 @@ class SyncConflictComparison extends StatelessWidget {
   final SyncConflictGroup group;
   final SyncConflictLookups lookups;
 
+  /// A version as the comparison reads it: citing the records that
+  /// merged-away ones became, so each is named rather than shown as unknown.
+  Map<String, Object?>? _resolved(Map<String, Object?>? body) =>
+      body == null ? null : syncResolveComparedReferences(body, group.aliases);
+
+  Map<String, Object?>? get _local => _resolved(group.localBody);
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -251,7 +269,7 @@ class SyncConflictComparison extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleSmall,
               ),
             ),
-          ..._compare(context, l10n, item.candidate?.body),
+          ..._compare(context, l10n, _resolved(item.candidate?.body)),
         ],
       ],
     );
@@ -265,7 +283,7 @@ class SyncConflictComparison extends StatelessWidget {
     if (group.kind == SyncRecordKind.setting) {
       final diff = compareSyncCollection(
         group.recordId,
-        group.localBody?['value'],
+        _local?['value'],
         other?['value'],
       );
       if (diff != null) return _collection(context, l10n, diff);
@@ -274,7 +292,7 @@ class SyncConflictComparison extends StatelessWidget {
           context,
           l10n,
           label: null,
-          local: syncSettingValueText(l10n, group.localBody?['value']),
+          local: syncSettingValueText(l10n, _local?['value']),
           other: syncSettingValueText(l10n, other?['value']),
         ),
       ];
@@ -282,8 +300,9 @@ class SyncConflictComparison extends StatelessWidget {
     final fields = syncConflictDifferingFields(
       l10n,
       group.kind,
-      group.localBody,
+      _local,
       other,
+      aliases: group.aliases,
     );
     if (fields.isEmpty) {
       return [_note(context, l10n.syncConflictNothingToShow)];
@@ -299,7 +318,7 @@ class SyncConflictComparison extends StatelessWidget {
             context,
             l10n,
             label: field.label,
-            local: _value(context, l10n, field.key, group.localBody),
+            local: _value(context, l10n, field.key, _local),
             other: _value(context, l10n, field.key, other),
           ),
     ];
@@ -520,7 +539,7 @@ class SyncConflictComparison extends StatelessWidget {
     Map<String, Object?>? other,
   ) {
     final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
-    final mine = _sectionedLines(group.localBody, dialect);
+    final mine = _sectionedLines(_local, dialect);
     final theirs = _sectionedLines(other, dialect);
     if (mine == null || theirs == null) {
       return [_note(context, l10n.syncConflictFiguresUnreadable)];
@@ -669,7 +688,7 @@ class SyncConflictComparison extends StatelessWidget {
       return keyed;
     }
 
-    final mine = byOccurrence(ordered(group.localBody));
+    final mine = byOccurrence(ordered(_local));
     final theirs = byOccurrence(ordered(other));
     final onlyMine = [
       for (final e in mine.entries)
@@ -814,6 +833,18 @@ class SyncConflictComparison extends StatelessWidget {
           return code == null ? amount : '$amount $code';
         case 'color':
           return syncConflictColourText(value as int);
+        case 'provenance':
+          final map = value as Map;
+          final license = map['license'];
+          return [
+            l10n.danceProvenanceVia(
+              provenanceSourceLabel(
+                l10n,
+                ProvenanceSource.values.byName(map['source'] as String),
+              ),
+            ),
+            if (license is String && license.isNotEmpty) license,
+          ].join(' · ');
       }
     } on Object {
       // diagnostics: silent — a value this view cannot name falls through to

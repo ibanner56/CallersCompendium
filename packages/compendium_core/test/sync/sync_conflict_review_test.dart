@@ -49,12 +49,17 @@ void main() {
     List<SyncMergeCandidate> peers,
   ) async {
     final local = await localCandidate(address);
+    final aliases = <SyncRecordKind, Map<String, String>>{};
+    for (final row in await repositories.syncLocal.listAliases()) {
+      aliases.putIfAbsent(row.kind, () => {})[row.losingId] = row.survivingId;
+    }
     final plan = engine.plan(
       local: {address: local},
       baseline: const {},
       peers: [
         for (final peer in peers) {address: peer},
       ],
+      aliases: aliases,
     );
     await storage.refreshConflictReviews(plan.reviews);
     return plan;
@@ -195,6 +200,55 @@ void main() {
         ),
         ['name'],
       );
+    });
+  });
+
+  group('SyncReviewQueueResolver.listConflicts with this device\'s copy '
+      'deleted', () {
+    test('offers every version, none of them as this device\'s', () async {
+      const address = (kind: SyncRecordKind.choreographer, recordId: 'c1');
+      // ignore: unused_result
+      await repositories.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Seth Tepfer'),
+        at: tie,
+      );
+      final before = await localCandidate(address);
+      await repositories.choreographers.delete('c1', at: tie);
+      // Two devices revived it and tied; one of them looks exactly like the
+      // copy deleted here. The merge queued both, against no live copy.
+      SyncMergeCandidate revived(Map<String, Object?> body) =>
+          SyncMergeCandidate.fromBlob(
+            SyncRecordBlob(
+              kind: SyncRecordKind.choreographer,
+              id: 'c1',
+              updatedAt: tie.add(const Duration(seconds: 1)),
+              deletedAt: null,
+              existenceAt: tie.add(const Duration(seconds: 1)),
+              body: body,
+            ),
+          );
+      for (final peer in [
+        revived(before.blob.body),
+        revived({...before.blob.body, 'notes': 'there'}),
+      ]) {
+        await repositories.syncLocal.enqueueReview(
+          kind: SyncRecordKind.choreographer,
+          recordId: 'c1',
+          counterpartId: peer.wireHash,
+          reason: syncConflictChoiceReason,
+          candidateBlob: encodeSyncRecordBlob(peer.blob),
+          candidateHash: peer.wireHash,
+          queuedAt: tie,
+        );
+      }
+
+      final group = (await SyncReviewQueueResolver(
+        storage,
+      ).listConflicts()).single;
+
+      expect(group.localBody, isNull);
+      expect(group.localUpdatedAt, isNull);
+      expect(group.candidates, hasLength(2));
     });
   });
 
@@ -625,5 +679,188 @@ void main() {
       );
       expect(await repositories.settings.get('theme_mode'), 'system');
     });
+  });
+
+  group('a copy still filed under an id merged away', () {
+    // Two devices each created the same choreographer, and natural-key
+    // reconciliation kept this device's id: the other device still publishes
+    // its copy under its own id, which the coordinator files under the
+    // surviving one. Reconciliation stamps the survivor with that copy's
+    // `updatedAt`, so the two tie.
+    const address = (kind: SyncRecordKind.choreographer, recordId: 'c1');
+
+    Future<SyncMergeCandidate> mergedAwayCopy(
+      Map<String, Object?> Function(Map<String, Object?> body) edit,
+    ) async {
+      // ignore: unused_result
+      await repositories.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Seth Tepfer'),
+        at: tie,
+      );
+      await repositories.syncLocal.upsertAlias(
+        kind: SyncRecordKind.choreographer,
+        losingId: 'c2',
+        survivingId: 'c1',
+      );
+      final local = await localCandidate(address);
+      return SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.choreographer,
+          id: 'c2',
+          updatedAt: local.updatedAt,
+          deletedAt: null,
+          existenceAt: local.existenceAt,
+          body: edit({...local.blob.body, 'id': 'c2'}),
+        ),
+        peerId: 'peer',
+      );
+    }
+
+    test('is not a conflict when only the id differs', () async {
+      final peer = await mergedAwayCopy((body) => body);
+
+      final plan = await mergeAndQueue(address, [peer]);
+
+      expect(plan.reviews, isEmpty);
+      expect(await queued(), isEmpty);
+    });
+
+    test('kept in a tie in nothing the user is shown is stored under the '
+        'surviving id, not re-stamped, and the tie does not return', () async {
+      const dance = (kind: SyncRecordKind.dance, recordId: 'd1');
+      await repositories.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Hey Day',
+          createdAt: tie,
+          updatedAt: tie,
+          provenance: Provenance(
+            source: ProvenanceSource.contradb,
+            importedAt: tie,
+          ),
+        ),
+      );
+      await repositories.syncLocal.upsertAlias(
+        kind: SyncRecordKind.dance,
+        losingId: 'd2',
+        survivingId: 'd1',
+      );
+      const aliases = {
+        SyncRecordKind.dance: {'d2': 'd1'},
+      };
+      final local = await localCandidate(dance);
+      String contentOf(Map<String, Object?> body) =>
+          contentHash(Map<String, Object?>.from(body)..remove('id'));
+      // The other device's copy, under the merged-away id, differing only in
+      // when it was imported — picked so that it is the one kept.
+      late SyncMergeCandidate peer;
+      for (var day = 1; ; day++) {
+        final provenance = Map<String, Object?>.from(
+          local.blob.body['provenance']! as Map,
+        );
+        provenance['importedAt'] = (provenance['importedAt']! as String)
+            .replaceFirst('2026-09-30', '2026-08-${'$day'.padLeft(2, '0')}');
+        final body = {...local.blob.body, 'id': 'd2', 'provenance': provenance};
+        if (contentOf(body).compareTo(contentOf(local.blob.body)) < 0) {
+          peer = SyncMergeCandidate.fromBlob(
+            SyncRecordBlob(
+              kind: SyncRecordKind.dance,
+              id: 'd2',
+              updatedAt: local.updatedAt,
+              deletedAt: null,
+              existenceAt: local.existenceAt,
+              body: body,
+            ),
+            peerId: 'peer',
+          );
+          break;
+        }
+      }
+      SyncMergeDecision decide(SyncMergeCandidate mine) => engine
+          .plan(
+            local: {dance: mine},
+            baseline: const {},
+            peers: [
+              {dance: peer},
+            ],
+            aliases: aliases,
+          )
+          .decisions
+          .single;
+
+      final decision = decide(local);
+      expect(decision.action, SyncMergeAction.download);
+      expect(decision.winner!.blob.id, 'd1');
+      expect(decision.winner!.blob.body['id'], 'd1');
+
+      final result = await SyncApplyEngine(now: () => tie).apply(
+        candidates: [decision.winner!],
+        storage: storage,
+        expectedWireHashes: {dance: local.wireHash},
+      );
+
+      expect(result.applied, [dance]);
+      final stored = await localCandidate(dance);
+      expect(
+        stored.updatedAt,
+        local.updatedAt,
+        reason: 'settling a tie is not a new edit',
+      );
+      expect(
+        (stored.blob.body['provenance']! as Map)['importedAt'],
+        (peer.blob.body['provenance']! as Map)['importedAt'],
+      );
+      expect(await repositories.dances.getById('d2'), isNull);
+      expect(decide(stored).action, isNot(SyncMergeAction.download));
+      expect(decide(stored).action, isNot(SyncMergeAction.review));
+    });
+
+    test('queued before the merge stopped raising it, is not offered or '
+        'counted', () async {
+      // What an earlier version of the merge queued for exactly this case.
+      final peer = await mergedAwayCopy((body) => body);
+      await repositories.syncLocal.enqueueReview(
+        kind: SyncRecordKind.choreographer,
+        recordId: 'c1',
+        counterpartId: peer.wireHash,
+        reason: syncConflictChoiceReason,
+        candidateBlob: encodeSyncRecordBlob(peer.blob),
+        candidateHash: peer.wireHash,
+        localHash: (await localCandidate(address)).wireHash,
+        queuedAt: tie,
+      );
+      final resolver = SyncReviewQueueResolver(storage);
+
+      expect(await resolver.listConflicts(), isEmpty);
+      expect(await resolver.conflictCount(), 0);
+
+      // The next pass, which no longer raises it, drops the row.
+      await mergeAndQueue(address, [peer]);
+      expect(await queued(), isEmpty);
+    });
+
+    for (final keepOther in [false, true]) {
+      test('can be decided either way when its content differs '
+          '(keeping ${keepOther ? 'the other' : 'this'} device\'s)', () async {
+        final peer = await mergedAwayCopy(
+          (body) => {...body, 'notes': 'from the other device'},
+        );
+        await mergeAndQueue(address, [peer]);
+        final row = (await queued()).single;
+
+        await storage.resolveConflicts([
+          SyncConflictDecision(
+            kind: SyncRecordKind.choreographer,
+            recordId: 'c1',
+            keepCandidateHash: keepOther ? row.candidateHash : null,
+          ),
+        ]);
+
+        expect(await queued(), isEmpty);
+        final kept = await repositories.choreographers.getById('c1');
+        expect(kept?.notes, keepOther ? 'from the other device' : isNull);
+        expect(await repositories.choreographers.getById('c2'), isNull);
+      });
+    }
   });
 }
