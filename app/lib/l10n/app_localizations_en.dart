@@ -757,7 +757,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Something newer arrived after you chose, so nothing was changed.';
 
   @override
-  String get syncConflictFieldProvenance => 'Imported from';
+  String get syncConflictFieldProvenance => 'Origin';
 
   @override
   String get syncConflictFieldColour => 'Colour';

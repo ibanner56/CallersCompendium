@@ -832,7 +832,7 @@ comparison shows:
   both, its note, its own walkthrough or wording, or its beats show what
   differs. Links show where they go, what kind they are and whether they join
   the related-dance group; published sources show their page and number; and
-  **Imported from** shows where the dance came from and its licence;
+  **Origin** shows where the dance came from and its licence;
 - for a program: each detail that differs, then the dances only one version
   has (a dance is matched by which dance it is, not its title, and repeats are
   counted), whether the dances they share are in a different order, and
