@@ -296,21 +296,35 @@ void main() {
       SyncRecordKind.choreographer: {'c2': 'c1'},
     };
 
-    test('is not asked when the copies differ only in their own id', () {
-      final mine = record(SyncRecordKind.choreographer, 'c1', {
-        'name': 'Seth Tepfer',
-      });
-      final theirs = record(SyncRecordKind.choreographer, 'c2', {
-        'name': 'Seth Tepfer',
-      });
+    test('is not asked, and downloads nothing, when the copies differ only '
+        'in their own id', () {
+      // Several names, so the outcome cannot hang on how two hashes order:
+      // downloading the other copy would only store this one again, and the
+      // tie would return on every pass.
+      for (final name in [
+        'Seth Tepfer',
+        'David Smukler',
+        'Mary Devlin',
+        'Bob Isaacs',
+        'Cary Ravitz',
+        'Don Flaherty',
+        'Rick Mohr',
+        'Gene Hubert',
+      ]) {
+        final mine = record(SyncRecordKind.choreographer, 'c1', {'name': name});
+        final theirs = record(SyncRecordKind.choreographer, 'c2', {
+          'name': name,
+        });
 
-      final decision = decide(mine, theirs, aliases: mergedAway);
+        final decision = decide(mine, theirs, aliases: mergedAway);
 
-      expect(decision.action, SyncMergeAction.upload);
-      expect(
-        decision.winner!.wireHash,
-        SyncMergeCandidate.fromBlob(mine).wireHash,
-      );
+        expect(decision.action, SyncMergeAction.upload, reason: name);
+        expect(
+          decision.winner!.wireHash,
+          SyncMergeCandidate.fromBlob(mine).wireHash,
+          reason: name,
+        );
+      }
     });
 
     test('is not asked when a reference differs only by a merged-away id, '
