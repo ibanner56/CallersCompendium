@@ -537,13 +537,103 @@
   "@settingsSyncQuotaExcludeImports": {
     "description": "Button under settingsSyncQuotaNearlyFull. Turns on the setting titled settingsSyncExcludeImportsTitle, which stops this device uploading imported dances nothing else uses. Shown only while that setting is off."
   },
-  "settingsSyncNoticeNewerVersion": "{count, plural, =1{Another device is using a newer version of the app. Update the app on this device to receive 1 item.} other{Another device is using a newer version of the app. Update the app on this device to receive {count} items.}}",
-  "@settingsSyncNoticeNewerVersion": {
-    "description": "Device Sync notice when another device shared items in a newer format than this version of the app can read. {count} is how many items are waiting. The remedy is always updating the app on THIS device.",
+  "settingsSyncNoticeNewerVersionItems": "Another device is using a newer version of the app. Update the app on this device to receive {items}.",
+  "@settingsSyncNoticeNewerVersionItems": {
+    "description": "Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version does not know. {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example \"3 programs, 1 setting\". The remedy is always updating the app on THIS device.",
+    "placeholders": {
+      "items": {
+        "type": "String",
+        "example": "3 programs, 1 setting"
+      }
+    }
+  },
+  "settingsSyncNoticeCountDance": "{count, plural, =1{1 dance} other{{count} dances}}",
+  "@settingsSyncNoticeCountDance": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many dances are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
     "placeholders": {
       "count": {
         "type": "int",
-        "example": "4"
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountProgram": "{count, plural, =1{1 program} other{{count} programs}}",
+  "@settingsSyncNoticeCountProgram": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many programs are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountChoreographer": "{count, plural, =1{1 choreographer} other{{count} choreographers}}",
+  "@settingsSyncNoticeCountChoreographer": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many choreographers are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountTag": "{count, plural, =1{1 tag} other{{count} tags}}",
+  "@settingsSyncNoticeCountTag": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many tags are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountCustomField": "{count, plural, =1{1 custom field} other{{count} custom fields}}",
+  "@settingsSyncNoticeCountCustomField": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many custom fields are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountDifficulty": "{count, plural, =1{1 difficulty level} other{{count} difficulty levels}}",
+  "@settingsSyncNoticeCountDifficulty": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many difficulty levels are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountPublishedSource": "{count, plural, =1{1 published source} other{{count} published sources}}",
+  "@settingsSyncNoticeCountPublishedSource": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many published sources are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountVenue": "{count, plural, =1{1 venue} other{{count} venues}}",
+  "@settingsSyncNoticeCountVenue": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many venues are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountSetting": "{count, plural, =1{1 setting} other{{count} settings}}",
+  "@settingsSyncNoticeCountSetting": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many settings are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
       }
     }
   },

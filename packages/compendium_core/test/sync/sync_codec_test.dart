@@ -420,6 +420,125 @@ void main() {
       );
     });
 
+    group('a field this build does not know', () {
+      // What a newer build's added field looks like to an older one. It is
+      // still refused whole (§6.7) — only the exception type changes, so the
+      // download can tell the user to update rather than call it broken.
+      Map<String, Object?> withBody(
+        SyncRecordBlob blob,
+        Map<String, Object?> Function(Map<String, Object?> body) edit,
+      ) => {
+        ...blob.toJson(),
+        'body': edit(Map<String, Object?>.from(blob.body)),
+      };
+      Matcher unrecognised(SyncRecordKind kind, String path) => throwsA(
+        isA<SyncUnrecognisedFieldException>()
+            .having((e) => e.kind, 'kind', kind)
+            .having((e) => e.path, 'path', path),
+      );
+      final notUnrecognised = throwsA(
+        isA<FormatException>().having(
+          (e) => e is SyncUnrecognisedFieldException,
+          'is unrecognised',
+          isFalse,
+        ),
+      );
+      SyncRecordBlob programBlob() => syncRecordBlobForEntity(
+        SyncRecordKind.program,
+        _program(),
+        updatedAt: _stamp,
+        existenceAt: _stamp,
+      )!;
+
+      test('at the top level of a body', () {
+        expect(
+          () => SyncRecordBlob.fromJson(
+            withBody(programBlob(), (body) => body..['addedLater'] = 1),
+          ),
+          unrecognised(SyncRecordKind.program, 'addedLater'),
+        );
+      });
+
+      test('inside a known nested object', () {
+        expect(
+          () => SyncRecordBlob.fromJson(
+            withBody(programBlob(), (body) {
+              final slots = [
+                for (final slot in body['slots']! as List)
+                  {...(slot as Map<String, Object?>), 'addedLater': true},
+              ];
+              return body..['slots'] = slots;
+            }),
+          ),
+          unrecognised(SyncRecordKind.program, 'slots.addedLater'),
+        );
+      });
+
+      test('a setting key with no classification', () {
+        final blob = SyncSettingsRecord(
+          key: 'custom_dialects',
+          value: null,
+          updatedAt: _stamp,
+          deletedAt: null,
+          existenceAt: _stamp,
+        ).toBlob()!;
+        expect(
+          () => SyncRecordBlob.fromJson({
+            ...blob.toJson(),
+            'id': 'a_setting_added_later',
+          }),
+          unrecognised(SyncRecordKind.setting, 'value'),
+        );
+      });
+
+      test('is still a FormatException, refused whole', () {
+        expect(
+          () => SyncRecordBlob.fromJson(
+            withBody(programBlob(), (body) => body..['addedLater'] = 1),
+          ),
+          throwsFormatException,
+        );
+      });
+
+      test('a known field that is not shareable is malformed, not newer', () {
+        // A choreographer's email is a field every build knows and none
+        // shares: a sender putting it on the wire is a defect, and telling
+        // the user to update would hide it.
+        final choreographer = syncRecordBlobForEntity(
+          SyncRecordKind.choreographer,
+          _choreographer(),
+          updatedAt: _stamp,
+          existenceAt: _stamp,
+        )!;
+        expect(
+          () => SyncRecordBlob.fromJson(
+            withBody(
+              choreographer,
+              (body) => body..['email'] = 'private@example.com',
+            ),
+          ),
+          notUnrecognised,
+        );
+      });
+
+      test('a known setting key that is not shareable is malformed', () {
+        final privateKey = settingsClassifications.entries
+            .firstWhere((entry) => entry.value.egress != EgressClass.shareable)
+            .key;
+        final blob = SyncSettingsRecord(
+          key: 'custom_dialects',
+          value: null,
+          updatedAt: _stamp,
+          deletedAt: null,
+          existenceAt: _stamp,
+        ).toBlob()!;
+        expect(
+          () => SyncRecordBlob.fromJson({...blob.toJson(), 'id': privateKey}),
+          notUnrecognised,
+        );
+      });
+    });
+
     test('rejects malformed required record envelope fields', () {
       final valid = _danceBlob().toJson();
       final missingFields = [

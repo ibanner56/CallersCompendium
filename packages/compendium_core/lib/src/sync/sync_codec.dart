@@ -37,6 +37,29 @@ class SyncNewerWireVersionException extends FormatException {
   final int version;
 }
 
+/// A record blob whose body carries a field this build does not know at all:
+/// a path no kind's wire mapping names, or a settings key with no
+/// classification. The sender is almost certainly a newer build of the app
+/// that added the field, though the receiver cannot prove it (spec §6.9).
+///
+/// A [FormatException] subtype for the same reason as
+/// [SyncNewerWireVersionException]: the record is still refused whole (§6.7),
+/// and only the client's peer download distinguishes it, to report
+/// `SyncReportCode.newerRecordFields` rather than a malformed record. A field
+/// this build *does* know but does not classify `shareable` — a choreographer's
+/// email, say — is not this: it stays a plain [FormatException], because a
+/// sender putting a known private field on the wire is a defect, not a version
+/// difference.
+class SyncUnrecognisedFieldException extends FormatException {
+  const SyncUnrecognisedFieldException(this.kind, this.path)
+    : super('body contains unrecognised path $path');
+
+  final SyncRecordKind kind;
+
+  /// The first unrecognised wire path, dot-joined; `value` for a setting.
+  final String path;
+}
+
 /// A validated, versioned Device Sync record blob.
 class SyncRecordBlob {
   SyncRecordBlob({
@@ -514,10 +537,16 @@ void _validateBlobBody(
     body,
     settingsKey: kind == SyncRecordKind.setting ? id : null,
   );
-  if (!validation.isValid) {
-    throw FormatException(
-      'body contains non-shareable path ${validation.invalidPath}',
-    );
+  final invalidPath = validation.invalidPath;
+  if (invalidPath != null) {
+    if (!isKnownWirePath(
+      kind,
+      invalidPath,
+      settingsKey: kind == SyncRecordKind.setting ? id : null,
+    )) {
+      throw SyncUnrecognisedFieldException(kind, invalidPath);
+    }
+    throw FormatException('body contains non-shareable path $invalidPath');
   }
 }
 

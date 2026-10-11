@@ -265,6 +265,19 @@ bool isShareableWirePath(
   String? settingsKey,
 }) => _isShareableWireSegments(kind, path.split('.'), settingsKey: settingsKey);
 
+/// Whether this build knows [path] as a field of [kind] at all, shareable or
+/// not. For a setting's `value` what is known is the key: [settingsKey] has a
+/// classification, exact or by prefix.
+///
+/// An unknown path is what a newer build's added field looks like to an older
+/// one; a known but non-shareable path is not (spec §6.9).
+bool isKnownWirePath(SyncRecordKind kind, String path, {String? settingsKey}) {
+  if (kind == SyncRecordKind.setting && path == 'value') {
+    return settingsKey != null && classifySettingsKey(settingsKey) != null;
+  }
+  return syncWireFields[kind]!.any((field) => field.path == path);
+}
+
 /// Returns the registry fields represented by a wire path.
 List<String> sourceFieldsForWirePath(SyncRecordKind kind, String path) {
   for (final field in syncWireFields[kind]!) {

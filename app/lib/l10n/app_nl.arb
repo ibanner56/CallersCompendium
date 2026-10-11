@@ -444,9 +444,45 @@
   "@settingsSyncQuotaExcludeImports": {
     "x-sourceSha256": "57f9dc81543868c93b67c796229b979d9d5d2ed0e78ffacf318e6df67f043f0c"
   },
-  "settingsSyncNoticeNewerVersion": "{count, plural, =1{Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om 1 item te ontvangen.} other{Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om {count} items te ontvangen.}}",
-  "@settingsSyncNoticeNewerVersion": {
-    "x-sourceSha256": "eb7af9734a27d73e8a4ae6ad21b99db63b7a2e8ec2cb98047314bd10f7befde4"
+  "settingsSyncNoticeNewerVersionItems": "Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om {items} te ontvangen.",
+  "@settingsSyncNoticeNewerVersionItems": {
+    "x-sourceSha256": "c061cd9ea119307dd18d17b41b95b3b27ccb4d893770063dd44683589422d5bb"
+  },
+  "settingsSyncNoticeCountDance": "{count, plural, =1{1 dans} other{{count} dansen}}",
+  "@settingsSyncNoticeCountDance": {
+    "x-sourceSha256": "494f9853fc3774e0f786711a47fd9eadd58c8bb7368cc1b789ad71cb16de9db3"
+  },
+  "settingsSyncNoticeCountProgram": "{count, plural, =1{1 programma} other{{count} programma's}}",
+  "@settingsSyncNoticeCountProgram": {
+    "x-sourceSha256": "a7b7d768632c302855b92c62c230f4bec8af1fd58ced4388e2407d9ecfd42e06"
+  },
+  "settingsSyncNoticeCountChoreographer": "{count, plural, =1{1 choreograaf} other{{count} choreografen}}",
+  "@settingsSyncNoticeCountChoreographer": {
+    "x-sourceSha256": "d4018182e6a23e51891a0f4bb6a3265cb8a3c9119923e6f7cb62c47efb4f3e42"
+  },
+  "settingsSyncNoticeCountTag": "{count, plural, =1{1 tag} other{{count} tags}}",
+  "@settingsSyncNoticeCountTag": {
+    "x-sourceSha256": "bff87bc7807598d089f0add825fc26ceaf1a3466bc048283b66b1445a36e4f29"
+  },
+  "settingsSyncNoticeCountCustomField": "{count, plural, =1{1 aangepast veld} other{{count} aangepaste velden}}",
+  "@settingsSyncNoticeCountCustomField": {
+    "x-sourceSha256": "65fe8a7695ca928fc1d0a7fa5480f19f68d93ed5e594ec9a74a5fec649afa01b"
+  },
+  "settingsSyncNoticeCountDifficulty": "{count, plural, =1{1 moeilijkheidsgraad} other{{count} moeilijkheidsgraden}}",
+  "@settingsSyncNoticeCountDifficulty": {
+    "x-sourceSha256": "04d40f392386c4bca2cc6ca506866b734028e4bc16c2f5abbef99af999cd5658"
+  },
+  "settingsSyncNoticeCountPublishedSource": "{count, plural, =1{1 gepubliceerde bron} other{{count} gepubliceerde bronnen}}",
+  "@settingsSyncNoticeCountPublishedSource": {
+    "x-sourceSha256": "5fd35655aeb3a7d41d9d815865997b7d085898256ddd11194eea5263b2c393ba"
+  },
+  "settingsSyncNoticeCountVenue": "{count, plural, =1{1 locatie} other{{count} locaties}}",
+  "@settingsSyncNoticeCountVenue": {
+    "x-sourceSha256": "620c1fe04640cc57244f44a579d1c934cbf47edff3a59a7facc8cc3d9f5f877a"
+  },
+  "settingsSyncNoticeCountSetting": "{count, plural, =1{1 instelling} other{{count} instellingen}}",
+  "@settingsSyncNoticeCountSetting": {
+    "x-sourceSha256": "ff0a50b131bbe8edcf51dc54d23235e5089d53704d6a548605bf9b6f132da4c5"
   },
   "settingsSyncNoticeNewerVersionUncounted": "Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om de wijzigingen ervan te ontvangen.",
   "@settingsSyncNoticeNewerVersionUncounted": {

@@ -2997,7 +2997,9 @@ does.
 independently consult the registry to decide which absences mean *preserve*, and
 MUST **refuse the whole record** — one record skipped, batch intact, local state
 unchanged, reported as in §6.9 — if it carries any key not classified
-`shareable` for that kind and nesting context. For `kind: "setting"` the
+`shareable` for that kind and nesting context. A key the receiver does not know
+at all is reported differently from one it knows but does not classify
+`shareable`; the refusal is the same (§6.9). For `kind: "setting"` the
 receiver MUST additionally look the record id up in `settingsClassifications`
 and refuse anything not `shareable`.
 
@@ -3140,6 +3142,23 @@ what it lists. The status surface shows it as a needs-you notice naming how
 many items are waiting when the reports name any. A blob reaches an older
 client through any server (§7.2 accepts an unknown blob `v`); a newer manifest
 reaches it only once the server has been updated first.
+
+**A field this build does not know is reported the same way.** A blob whose
+envelope `v` is current but whose body carries a path no wire mapping of this
+build names for that kind — or, for a setting, a key with no classification —
+is still refused whole (§6.7), but reported with code `newerRecordFields`
+rather than `malformedRecord`. That is what a newer build's added field looks
+like to an older one (#1714 added a program's pay without a `v` bump), and its
+remedy is the same as a newer envelope's, so the status surface shows the two
+in one needs-you notice. The notice says how many records of each kind are
+waiting — "2 programs, 1 setting" rather than a bare item count — and lists
+only those records, apart from records skipped for any other reason. A path
+this build *does* know but does not classify `shareable` (a choreographer's
+`email`) stays `malformedRecord`: a sender putting a known private field on the
+wire is a defect, and telling the user to update would hide it. The receiver
+cannot prove an unknown path came from a newer build rather than a broken one;
+naming the likelier cause is a reporting choice and changes nothing that is
+stored.
 
 Rejecting both fields is what makes a poisoned value always **local**.
 

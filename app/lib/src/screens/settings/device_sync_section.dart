@@ -876,6 +876,7 @@ class _SyncNoticeTileState extends State<_SyncNoticeTile> {
         l10n,
         widget.group,
         recordCount: syncNoticeCountedRecords(widget.group, widget.reports),
+        records: _records,
         device: perDevice ? (tag: peerTag ?? '', count: total) : null,
       ),
     );

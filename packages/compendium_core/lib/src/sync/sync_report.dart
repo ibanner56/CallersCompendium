@@ -53,6 +53,20 @@ enum SyncReportCode {
   /// `kind` and `recordId`; a manifest's carries only `peerId`, because a
   /// manifest this build cannot read does not say what it lists.
   newerWireVersion,
+
+  /// A peer's record blob carried a field this build does not know at all
+  /// (`SyncUnrecognisedFieldException`), so it was refused whole (spec §6.7,
+  /// §6.9): almost always a newer version of the app that added the field.
+  ///
+  /// Its own code rather than [malformedRecord] for the reason
+  /// [newerWireVersion] has one: the remedy is updating the app on *this*
+  /// device, and the generic skipped-record notice cannot say so. It is shown
+  /// with [newerWireVersion], which has the same remedy. Always carries
+  /// `kind`, `recordId` and `peerId`.
+  ///
+  /// A field this build knows but does not classify `shareable` stays
+  /// [malformedRecord]: that is a sender defect, not a version difference.
+  newerRecordFields,
 }
 
 /// A structured, non-blocking diagnostic produced by a sync pass.
