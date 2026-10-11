@@ -194,9 +194,12 @@ Future<_Result> _run(
   return recorder.finish(clock.elapsed);
 }
 
-/// One device's first pass into an empty store: create, negotiate, upload
-/// every record, publish the manifest. The time per device is the figure a
-/// rate limit stretches, so it is recorded alongside the request latencies.
+/// One device's first pass into an empty store, in the order the app's sync
+/// coordinator sends it for a fresh attach: create, read the store, probe for
+/// missing blobs and upload them, then the continuation pass reads the store
+/// again, probes again before publishing, and publishes the manifest. The time
+/// per device is the figure a rate limit stretches, so it is recorded alongside
+/// the request latencies, and only when every request in the pass succeeded.
 Future<void> _firstSync(
   _Target target,
   _Recorder recorder, {
@@ -205,60 +208,74 @@ Future<void> _firstSync(
   required int blobBytes,
 }) async {
   final started = Stopwatch()..start();
-  final created = await recorder.time(
-    () => target.request('POST', '/v1/store', syncId),
-    expected: 201,
-  );
-  if (created == null) return;
-  final epoch =
-      (jsonDecode(created) as Map<String, Object?>)['epoch']! as String;
-  final blobs = <String, Uint8List>{};
-  for (var i = 0; i < recordCount; i++) {
-    final blob = _recordBlob('$syncId-$i', blobBytes);
-    blobs[sha256.convert(blob).toString()] = blob;
-  }
-  await recorder.time(
+  Future<String?> step(
+    String method,
+    String path, {
+    List<int>? body,
+    String? contentType,
+    int? expected,
+  }) => recorder.time(
     () => target.request(
-      'POST',
-      '/v1/blobs/missing',
+      method,
+      path,
       syncId,
-      body: utf8.encode(jsonEncode({'hashes': blobs.keys.toList()})),
-      contentType: 'application/json; charset=utf-8',
+      body: body,
+      contentType: contentType,
     ),
+    expected: expected,
   );
-  for (final MapEntry(key: hash, value: blob) in blobs.entries) {
-    await recorder.time(
-      () => target.request(
-        'PUT',
-        '/v1/blobs/$hash',
-        syncId,
-        body: blob,
-        contentType: 'application/octet-stream',
-      ),
+
+  if (await step('POST', '/v1/store', expected: 201) == null) return;
+  final store = await step('GET', '/v1/store', expected: 200);
+  if (store == null) return;
+  final epoch = (jsonDecode(store) as Map<String, Object?>)['epoch']! as String;
+  final records = <String, ({String id, Uint8List blob})>{};
+  for (var i = 0; i < recordCount; i++) {
+    final id = 'c$i';
+    final blob = _recordBlob(id, blobBytes);
+    records[sha256.convert(blob).toString()] = (id: id, blob: blob);
+  }
+  final probe = utf8.encode(jsonEncode({'hashes': records.keys.toList()}));
+  Future<String?> probeMissing() => step(
+    'POST',
+    '/v1/blobs/missing',
+    body: probe,
+    contentType: 'application/json; charset=utf-8',
+    expected: 200,
+  );
+
+  if (await probeMissing() == null) return;
+  for (final MapEntry(key: hash, value: record) in records.entries) {
+    final uploaded = await step(
+      'PUT',
+      '/v1/blobs/$hash',
+      body: record.blob,
+      contentType: 'application/octet-stream',
       expected: 201,
     );
+    if (uploaded == null) return;
   }
-  final ids = blobs.keys.toList();
+  if (await step('GET', '/v1/store', expected: 200) == null) return;
+  if (await probeMissing() == null) return;
   final manifest = SyncManifest(
     deviceId: 'device-one',
     epoch: epoch,
     writtenAt: DateTime.now().toUtc(),
     records: {
       SyncRecordKind.choreographer: {
-        for (var i = 0; i < ids.length; i++) 'c$i': ids[i],
+        for (final MapEntry(key: hash, value: record) in records.entries)
+          record.id: hash,
       },
     },
   );
-  await recorder.time(
-    () => target.request(
-      'PUT',
-      '/v1/manifests/device-one',
-      syncId,
-      body: encodeSyncManifestUtf8(manifest),
-      contentType: 'application/json; charset=utf-8',
-    ),
+  final published = await step(
+    'PUT',
+    '/v1/manifests/device-one',
+    body: encodeSyncManifestUtf8(manifest),
+    contentType: 'application/json; charset=utf-8',
     expected: 201,
   );
+  if (published == null) return;
   recorder.devices.add(started.elapsed);
 }
 
@@ -501,13 +518,24 @@ class _ServerHandle {
   final Isolate _isolate;
 
   static Future<_ServerHandle> start(String dataDirectory) async {
-    final ready = ReceivePort();
-    final isolate = await Isolate.spawn(_serve, (
-      ready.sendPort,
-      dataDirectory,
-    ));
-    final [port as int, control as SendPort] = await ready.first as List;
-    return _ServerHandle(port, control, isolate);
+    // Readiness, an uncaught error and exit all arrive on one port, so a server
+    // that dies before it is ready fails the run instead of hanging it.
+    final events = ReceivePort();
+    final isolate = await Isolate.spawn(
+      _serve,
+      (events.sendPort, dataDirectory),
+      onError: events.sendPort,
+      onExit: events.sendPort,
+    );
+    final first = await events.first;
+    if (first case [final int port, final SendPort control]) {
+      return _ServerHandle(port, control, isolate);
+    }
+    isolate.kill();
+    throw StateError(switch (first) {
+      [final error, final stack] => 'server failed to start: $error\n$stack',
+      _ => 'server exited before it was ready',
+    });
   }
 
   Future<void> stop() async {
