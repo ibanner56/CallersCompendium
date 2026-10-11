@@ -170,6 +170,11 @@ void main() {
         SyncReportCode.newerWireVersion,
         SyncReportCode.newerRecordFields,
       ]);
+      // A caller that logs the message is not told the record is broken
+      // either.
+      for (final report in result.reports) {
+        expect(report.message, isNot(contains('Malformed')));
+      }
     },
   );
 

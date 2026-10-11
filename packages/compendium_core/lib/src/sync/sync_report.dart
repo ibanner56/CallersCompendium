@@ -49,9 +49,11 @@ enum SyncReportCode {
   ///
   /// Deliberately not [malformedRecord], whose notice cannot say which side
   /// has to act. Here it is always this device: nothing is wrong with the
-  /// record, and updating the app is the whole remedy. A blob's report carries
-  /// `kind` and `recordId`; a manifest's carries only `peerId`, because a
-  /// manifest this build cannot read does not say what it lists.
+  /// record, and updating the app is the whole remedy. From the client's peer
+  /// download, a blob's report carries `kind` and `recordId`; a manifest's
+  /// carries only `peerId`, because a manifest this build cannot read does not
+  /// say what it lists. `SyncApplyEngine.applyJson` has neither a peer nor a
+  /// decoded envelope, so its report carries none of the three.
   newerWireVersion,
 
   /// A peer's record blob carried a field this build does not accept
@@ -63,8 +65,10 @@ enum SyncReportCode {
   /// Its own code rather than [malformedRecord] for the reason
   /// [newerWireVersion] has one: the remedy is updating the app on *this*
   /// device, and the generic skipped-record notice cannot say so. It is shown
-  /// with [newerWireVersion], which has the same remedy. Always carries
-  /// `kind`, `recordId` and `peerId`.
+  /// with [newerWireVersion], which has the same remedy. From the client's
+  /// peer download it always carries `kind`, `recordId` and `peerId`;
+  /// `SyncApplyEngine.applyJson` has no peer or decoded envelope, so its
+  /// report carries none of them.
   ///
   /// It does not distinguish a newer sender from a defective one that put a
   /// private field on the wire. Decided by Isaac (maintainer) in review of
