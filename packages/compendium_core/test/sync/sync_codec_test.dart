@@ -420,10 +420,13 @@ void main() {
       );
     });
 
-    group('a field this build does not know', () {
-      // What a newer build's added field looks like to an older one. It is
-      // still refused whole (§6.7) — only the exception type changes, so the
-      // download can tell the user to update rather than call it broken.
+    group('a field this build does not sync', () {
+      // What a newer build's added — or newly shared — field looks like to an
+      // older one. It is still refused whole (§6.7); only the exception type
+      // changes, so the download can tell the user to update rather than call
+      // the record broken. A known field this build keeps private is treated
+      // the same way (decided in review of #1728): a newer build may have
+      // reclassified it to travel.
       Map<String, Object?> withBody(
         SyncRecordBlob blob,
         Map<String, Object?> Function(Map<String, Object?> body) edit,
@@ -431,17 +434,10 @@ void main() {
         ...blob.toJson(),
         'body': edit(Map<String, Object?>.from(blob.body)),
       };
-      Matcher unrecognised(SyncRecordKind kind, String path) => throwsA(
-        isA<SyncUnrecognisedFieldException>()
+      Matcher newerField(SyncRecordKind kind, [String? path]) => throwsA(
+        isA<SyncNewerFieldException>()
             .having((e) => e.kind, 'kind', kind)
-            .having((e) => e.path, 'path', path),
-      );
-      final notUnrecognised = throwsA(
-        isA<FormatException>().having(
-          (e) => e is SyncUnrecognisedFieldException,
-          'is unrecognised',
-          isFalse,
-        ),
+            .having((e) => e.path, 'path', path ?? anything),
       );
       SyncRecordBlob programBlob() => syncRecordBlobForEntity(
         SyncRecordKind.program,
@@ -449,17 +445,33 @@ void main() {
         updatedAt: _stamp,
         existenceAt: _stamp,
       )!;
+      SyncRecordBlob choreographerBlob() => syncRecordBlobForEntity(
+        SyncRecordKind.choreographer,
+        _choreographer(),
+        updatedAt: _stamp,
+        existenceAt: _stamp,
+      )!;
+      SyncRecordBlob settingBlob(String key) => SyncRecordBlob.fromJson({
+        ...SyncSettingsRecord(
+          key: 'custom_dialects',
+          value: null,
+          updatedAt: _stamp,
+          deletedAt: null,
+          existenceAt: _stamp,
+        ).toBlob()!.toJson(),
+        'id': key,
+      });
 
-      test('at the top level of a body', () {
+      test('a field unknown at the top level of a body', () {
         expect(
           () => SyncRecordBlob.fromJson(
             withBody(programBlob(), (body) => body..['addedLater'] = 1),
           ),
-          unrecognised(SyncRecordKind.program, 'addedLater'),
+          newerField(SyncRecordKind.program, 'addedLater'),
         );
       });
 
-      test('inside a known nested object', () {
+      test('a field unknown inside a known nested object', () {
         expect(
           () => SyncRecordBlob.fromJson(
             withBody(programBlob(), (body) {
@@ -470,71 +482,81 @@ void main() {
               return body..['slots'] = slots;
             }),
           ),
-          unrecognised(SyncRecordKind.program, 'slots.addedLater'),
+          newerField(SyncRecordKind.program, 'slots.addedLater'),
         );
       });
 
-      test('a setting key with no classification', () {
-        final blob = SyncSettingsRecord(
-          key: 'custom_dialects',
-          value: null,
-          updatedAt: _stamp,
-          deletedAt: null,
-          existenceAt: _stamp,
-        ).toBlob()!;
-        expect(
-          () => SyncRecordBlob.fromJson({
-            ...blob.toJson(),
-            'id': 'a_setting_added_later',
-          }),
-          unrecognised(SyncRecordKind.setting, 'value'),
-        );
-      });
-
-      test('is still a FormatException, refused whole', () {
-        expect(
-          () => SyncRecordBlob.fromJson(
-            withBody(programBlob(), (body) => body..['addedLater'] = 1),
-          ),
-          throwsFormatException,
-        );
-      });
-
-      test('a known field that is not shareable is malformed, not newer', () {
-        // A choreographer's email is a field every build knows and none
-        // shares: a sender putting it on the wire is a defect, and telling
-        // the user to update would hide it.
-        final choreographer = syncRecordBlobForEntity(
-          SyncRecordKind.choreographer,
-          _choreographer(),
-          updatedAt: _stamp,
-          existenceAt: _stamp,
-        )!;
+      test('a known field this build keeps private', () {
+        // A newer build may have reclassified a choreographer's email to
+        // travel; this one still keeps it private.
         expect(
           () => SyncRecordBlob.fromJson(
             withBody(
-              choreographer,
+              choreographerBlob(),
               (body) => body..['email'] = 'private@example.com',
             ),
           ),
-          notUnrecognised,
+          newerField(SyncRecordKind.choreographer, 'email'),
         );
       });
 
-      test('a known setting key that is not shareable is malformed', () {
-        final privateKey = settingsClassifications.entries
+      test('a known private field and an unknown one, in either order', () {
+        // Bodies arrive in canonical (sorted) key order, so which invalid
+        // path is found first depends on the names. The report must not.
+        for (final keys in [
+          ['aaa', 'email'],
+          ['email', 'zzz'],
+        ]) {
+          expect(
+            () => SyncRecordBlob.fromJson(
+              withBody(choreographerBlob(), (body) {
+                for (final key in keys) {
+                  body[key] = 'x';
+                }
+                return body;
+              }),
+            ),
+            newerField(SyncRecordKind.choreographer),
+            reason: 'keys: $keys',
+          );
+        }
+      });
+
+      test('a setting key with no classification', () {
+        expect(
+          () => settingBlob('a_setting_added_later'),
+          newerField(SyncRecordKind.setting, 'value'),
+        );
+      });
+
+      test('a setting key this build keeps private, exactly or by prefix', () {
+        final exactPrivate = settingsClassifications.entries
             .firstWhere((entry) => entry.value.egress != EgressClass.shareable)
             .key;
-        final blob = SyncSettingsRecord(
-          key: 'custom_dialects',
-          value: null,
-          updatedAt: _stamp,
-          deletedAt: null,
-          existenceAt: _stamp,
-        ).toBlob()!;
+        final prefixPrivate =
+            '${settingsPrefixClassifications.entries.firstWhere((entry) => entry.value.egress != EgressClass.shareable).key}d1';
+        expect(classifySettingsKey(prefixPrivate), isNotNull);
+        for (final key in [exactPrivate, prefixPrivate]) {
+          expect(
+            () => settingBlob(key),
+            newerField(SyncRecordKind.setting, 'value'),
+            reason: key,
+          );
+        }
+      });
+
+      test('a structurally broken body is still malformed, not newer', () {
+        // A setting with no `value` is not a field a newer build added.
+        final blob = settingBlob('custom_dialects').toJson();
         expect(
-          () => SyncRecordBlob.fromJson({...blob.toJson(), 'id': privateKey}),
-          notUnrecognised,
+          () => SyncRecordBlob.fromJson({...blob, 'body': <String, Object?>{}}),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e is SyncNewerFieldException,
+              'is newer field',
+              isFalse,
+            ),
+          ),
         );
       });
     });

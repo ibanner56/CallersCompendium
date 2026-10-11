@@ -2403,7 +2403,8 @@ class SyncCoordinator {
           unresolved.add(address);
           reports.add(
             SyncReport(
-              code: failure,
+              // Never null without a blob: [_decodeBlob] pairs them.
+              code: failure!,
               kind: address.kind,
               recordId: address.recordId,
               peerId: peerId,
@@ -2411,7 +2412,7 @@ class SyncCoordinator {
                 SyncReportCode.newerWireVersion =>
                   'Blob uses a newer wire version.', // i18n-ignore: internal report
                 SyncReportCode.newerRecordFields =>
-                  'Blob carries a field this build does not know.', // i18n-ignore: internal report
+                  'Blob carries a field this build does not sync.', // i18n-ignore: internal report
                 _ =>
                   'Blob did not decode as a record.', // i18n-ignore: internal report
               },
@@ -2583,22 +2584,22 @@ class SyncCoordinator {
     return null;
   }
 
-  /// The peer blob in [body], or null with [failure] the code the caller
-  /// reports: whether it failed only because a newer build wrote it — in a
-  /// newer envelope, or with a field this build does not know — or is
-  /// malformed.
-  static ({SyncRecordBlob? blob, SyncReportCode failure}) _decodeBlob(
+  /// The peer blob in [body] with a null [failure], or a null blob with
+  /// [failure] the code the caller reports: whether it failed only because a
+  /// newer build wrote it — in a newer envelope, or with a field this build
+  /// does not sync — or is malformed.
+  static ({SyncRecordBlob? blob, SyncReportCode? failure}) _decodeBlob(
     List<int> body,
   ) {
     try {
       return (
         blob: decodeSyncRecordBlob(utf8.decode(body, allowMalformed: false)),
-        failure: SyncReportCode.malformedRecord,
+        failure: null,
       );
     } on SyncNewerWireVersionException {
       // diagnostics: silent — reported by the caller as newerWireVersion.
       return (blob: null, failure: SyncReportCode.newerWireVersion);
-    } on SyncUnrecognisedFieldException {
+    } on SyncNewerFieldException {
       // diagnostics: silent — reported by the caller as newerRecordFields.
       return (blob: null, failure: SyncReportCode.newerRecordFields);
     } on FormatException {

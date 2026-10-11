@@ -776,7 +776,7 @@ abstract class AppLocalizations {
   /// **'Stop syncing imported dances'**
   String get settingsSyncQuotaExcludeImports;
 
-  /// Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version does not know. {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example "3 programs, 1 setting". The remedy is always updating the app on THIS device.
+  /// Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version does not sync yet. {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example "3 programs, 1 setting". The remedy is always updating the app on THIS device.
   ///
   /// In en, this message translates to:
   /// **'Another device is using a newer version of the app. Update the app on this device to receive {items}.'**
@@ -836,7 +836,7 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 setting} other{{count} settings}}'**
   String settingsSyncNoticeCountSetting(int count);
 
-  /// Variant of settingsSyncNoticeNewerVersion used when this device cannot tell how many items are waiting, because the other device's list of what it shares is itself in the newer format.
+  /// Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting, because the other device's list of what it shares is itself in the newer format.
   ///
   /// In en, this message translates to:
   /// **'Another device is using a newer version of the app. Update the app on this device to receive its changes.'**
@@ -932,7 +932,7 @@ abstract class AppLocalizations {
   /// **'Affects: {records}'**
   String settingsSyncNoticeAffected(String records);
 
-  /// Separator between items in the settingsSyncNoticeAffected list. Include any spacing your language uses.
+  /// Separator between items in a Device Sync notice's lists: the records in settingsSyncNoticeAffected, and the counts by kind in settingsSyncNoticeNewerVersionItems (for example "3 programs, 1 setting"). Include any spacing your language uses.
   ///
   /// In en, this message translates to:
   /// **', '**

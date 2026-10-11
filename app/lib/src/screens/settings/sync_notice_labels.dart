@@ -20,7 +20,7 @@ import '../../../l10n/app_localizations.dart';
 /// conditions renders deterministically. [newerVersion] comes first: it needs the user, and its remedy is here.
 enum SyncNoticeGroup {
   /// Another device shared records this build cannot read: in an envelope
-  /// version newer than its own, or carrying a field it does not know. Needs
+  /// version newer than its own, or carrying a field it does not sync. Needs
   /// you: updating the app on this device is the only remedy, and nothing
   /// about the records themselves is wrong.
   newerVersion,
@@ -155,11 +155,11 @@ bool syncNoticeNeedsYou(SyncNoticeGroup group) => switch (group) {
   SyncNoticeGroup.deferredInbound => false,
 };
 
-/// The notice text for [group]. [recordCount] is [syncNoticeCountedRecords]
-/// and [records] is [syncNoticeRecords]; only [SyncNoticeGroup.newerVersion]
-/// uses them, saying how many records of each kind are waiting
-/// ([syncNoticeKindCountsText]), and falls back to an uncounted sentence at
-/// 0 — a newer manifest does not say what it lists.
+/// The notice text for [group]. [countedRecords] is
+/// [syncNoticeCountableRecords]; only [SyncNoticeGroup.newerVersion] uses it,
+/// saying how many records of each kind are waiting
+/// ([syncNoticeKindCountsText]), and falls back to an uncounted sentence when
+/// it is null or empty — a newer manifest does not say what it lists.
 ///
 /// [device] is required for a group [syncNoticeIsPerDevice] says is shown per
 /// device, and ignored otherwise: the device's tag, and how many records the
@@ -171,16 +171,16 @@ bool syncNoticeNeedsYou(SyncNoticeGroup group) => switch (group) {
 String syncNoticeText(
   AppLocalizations l10n,
   SyncNoticeGroup group, {
-  required int recordCount,
-  List<SyncNoticeRecord> records = const [],
+  List<SyncNoticeRecord>? countedRecords,
   ({String tag, int count})? device,
 }) => switch (group) {
-  SyncNoticeGroup.newerVersion =>
-    recordCount > 0 && records.isNotEmpty
-        ? l10n.settingsSyncNoticeNewerVersionItems(
-            syncNoticeKindCountsText(l10n, records),
-          )
-        : l10n.settingsSyncNoticeNewerVersionUncounted,
+  SyncNoticeGroup.newerVersion => switch (countedRecords) {
+    final records? when records.isNotEmpty =>
+      l10n.settingsSyncNoticeNewerVersionItems(
+        syncNoticeKindCountsText(l10n, records),
+      ),
+    _ => l10n.settingsSyncNoticeNewerVersionUncounted,
+  },
   SyncNoticeGroup.divergence => l10n.settingsSyncNoticeDivergence,
   SyncNoticeGroup.keptLocalCreation => l10n.settingsSyncNoticeKeptLocalCreation,
   SyncNoticeGroup.quarantinedLocal => l10n.settingsSyncNoticeQuarantinedLocal,
@@ -252,11 +252,11 @@ List<SyncNoticeRecord> syncNoticeRecords(
   ];
 }
 
-/// How many records [group]'s notice may claim it is about: the records
-/// [syncNoticeRecords] names, or 0 when any of the group's reports names no
-/// record. A newer manifest names none, yet stands for everything its peer
-/// shares, so a count beside it would understate what is waiting.
-int syncNoticeCountedRecords(
+/// The records [group]'s notice may count: the records [syncNoticeRecords]
+/// names, or null when any of the group's reports names no record. A newer
+/// manifest names none, yet stands for everything its peer shares, so a count
+/// beside it would understate what is waiting.
+List<SyncNoticeRecord>? syncNoticeCountableRecords(
   SyncNoticeGroup group,
   Iterable<SyncReport> reports,
 ) {
@@ -264,9 +264,16 @@ int syncNoticeCountedRecords(
     for (final report in reports)
       if (syncNoticeGroupFor(report) == group) report,
   ];
-  if (grouped.any((r) => r.kind == null || r.recordId == null)) return 0;
-  return syncNoticeRecords(group, grouped).length;
+  if (grouped.any((r) => r.kind == null || r.recordId == null)) return null;
+  return syncNoticeRecords(group, grouped);
 }
+
+/// How many records [group]'s notice may claim it is about: the length of
+/// [syncNoticeCountableRecords], or 0 when it cannot count them.
+int syncNoticeCountedRecords(
+  SyncNoticeGroup group,
+  Iterable<SyncReport> reports,
+) => syncNoticeCountableRecords(group, reports)?.length ?? 0;
 
 /// How many distinct other devices [group]'s reports in [reports] came from.
 int syncNoticePeerCount(SyncNoticeGroup group, Iterable<SyncReport> reports) =>

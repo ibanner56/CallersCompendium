@@ -875,8 +875,10 @@ class _SyncNoticeTileState extends State<_SyncNoticeTile> {
       syncNoticeText(
         l10n,
         widget.group,
-        recordCount: syncNoticeCountedRecords(widget.group, widget.reports),
-        records: _records,
+        countedRecords: syncNoticeCountableRecords(
+          widget.group,
+          widget.reports,
+        ),
         device: perDevice ? (tag: peerTag ?? '', count: total) : null,
       ),
     );

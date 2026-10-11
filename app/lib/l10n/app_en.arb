@@ -539,7 +539,7 @@
   },
   "settingsSyncNoticeNewerVersionItems": "Another device is using a newer version of the app. Update the app on this device to receive {items}.",
   "@settingsSyncNoticeNewerVersionItems": {
-    "description": "Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version does not know. {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example \"3 programs, 1 setting\". The remedy is always updating the app on THIS device.",
+    "description": "Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version does not sync yet. {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example \"3 programs, 1 setting\". The remedy is always updating the app on THIS device.",
     "placeholders": {
       "items": {
         "type": "String",
@@ -639,7 +639,7 @@
   },
   "settingsSyncNoticeNewerVersionUncounted": "Another device is using a newer version of the app. Update the app on this device to receive its changes.",
   "@settingsSyncNoticeNewerVersionUncounted": {
-    "description": "Variant of settingsSyncNoticeNewerVersion used when this device cannot tell how many items are waiting, because the other device's list of what it shares is itself in the newer format."
+    "description": "Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting, because the other device's list of what it shares is itself in the newer format."
   },
   "settingsSyncCopyDetails": "Copy details",
   "@settingsSyncCopyDetails": {
@@ -733,7 +733,7 @@
   },
   "settingsSyncNoticeListSeparator": ", ",
   "@settingsSyncNoticeListSeparator": {
-    "description": "Separator between items in the settingsSyncNoticeAffected list. Include any spacing your language uses."
+    "description": "Separator between items in a Device Sync notice's lists: the records in settingsSyncNoticeAffected, and the counts by kind in settingsSyncNoticeNewerVersionItems (for example \"3 programs, 1 setting\"). Include any spacing your language uses."
   },
   "settingsSyncNoticeRecordNamed": "{kind} “{name}”",
   "@settingsSyncNoticeRecordNamed": {

@@ -144,6 +144,35 @@ void main() {
     },
   );
 
+  test(
+    'applyJson reports a newer build\'s record as newer, not malformed',
+    () async {
+      // The same distinction the client's download draws, so a caller of
+      // applyJson is not told a newer peer's record is broken.
+      final storage = _MemoryApplyStorage({});
+      final newerEnvelope =
+          '{"v":${syncWireVersion + 1},"kind":"setting","id":"custom_dialects",'
+          '"updatedAt":"2026-07-15T12:00:00.000Z","deletedAt":null,'
+          '"existenceAt":"2026-07-15T12:00:00.000Z","body":{"value":null}}';
+      final newerField =
+          '{"v":1,"kind":"setting","id":"custom_dialects",'
+          '"updatedAt":"2026-07-15T12:00:00.000Z","deletedAt":null,'
+          '"existenceAt":"2026-07-15T12:00:00.000Z",'
+          '"body":{"value":null,"addedLater":1}}';
+
+      final result = await const SyncApplyEngine().applyJson(
+        blobs: [newerEnvelope, newerField],
+        storage: storage,
+      );
+
+      expect(result.applied, isEmpty);
+      expect(result.reports.map((report) => report.code), [
+        SyncReportCode.newerWireVersion,
+        SyncReportCode.newerRecordFields,
+      ]);
+    },
+  );
+
   test('does not adopt receive-only sync transport values', () async {
     final storage = _MemoryApplyStorage({
       (kind: SyncRecordKind.setting, recordId: 'sync_id'): {
@@ -184,12 +213,16 @@ void main() {
       'local-device',
     );
     expect(result.reports, hasLength(2));
+    // Neither key is classified `shareable`, so decode refuses both as fields
+    // this build does not sync (newerRecordFields); admission's receive-only
+    // check is the defence in depth behind that.
     expect(
       result.reports.map((report) => report.code),
       everyElement(
         anyOf(
           SyncReportCode.invalidClassification,
           SyncReportCode.malformedRecord,
+          SyncReportCode.newerRecordFields,
         ),
       ),
     );

@@ -54,9 +54,11 @@ enum SyncReportCode {
   /// manifest this build cannot read does not say what it lists.
   newerWireVersion,
 
-  /// A peer's record blob carried a field this build does not know at all
-  /// (`SyncUnrecognisedFieldException`), so it was refused whole (spec §6.7,
-  /// §6.9): almost always a newer version of the app that added the field.
+  /// A peer's record blob carried a field this build does not accept
+  /// (`SyncNewerFieldException`): one it does not know, or one it knows but
+  /// does not classify `shareable`. The record is refused whole (spec §6.7,
+  /// §6.9), and the report presumes a newer version of the app sent it — one
+  /// that added the field, or reclassified it to travel.
   ///
   /// Its own code rather than [malformedRecord] for the reason
   /// [newerWireVersion] has one: the remedy is updating the app on *this*
@@ -64,8 +66,10 @@ enum SyncReportCode {
   /// with [newerWireVersion], which has the same remedy. Always carries
   /// `kind`, `recordId` and `peerId`.
   ///
-  /// A field this build knows but does not classify `shareable` stays
-  /// [malformedRecord]: that is a sender defect, not a version difference.
+  /// It does not distinguish a newer sender from a defective one that put a
+  /// private field on the wire. Decided by Isaac (maintainer) in review of
+  /// #1728: the app's releases are under the maintainer's control, so a
+  /// version difference is the case worth naming (spec §6.9).
   newerRecordFields,
 }
 

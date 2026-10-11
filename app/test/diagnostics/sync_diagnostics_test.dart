@@ -111,6 +111,13 @@ void main() {
             peerId: _peer,
             message: _message,
           ),
+          SyncReport(
+            code: SyncReportCode.newerRecordFields,
+            kind: SyncRecordKind.program,
+            recordId: 'program-1',
+            peerId: _peer,
+            message: _message,
+          ),
         ],
       ),
     );
@@ -125,6 +132,9 @@ void main() {
     );
     expect(section, contains('Store usage: SYNC-QUOTA 90%'));
     expect(section, contains('newerWireVersion: 3 (dance ×1, tag ×1)'));
+    // A field a newer build added is told apart from a newer envelope here
+    // too, even though the user sees both in one notice.
+    expect(section, contains('newerRecordFields: 1 (program ×1)'));
   });
 
   test('never carries the phrase, the server, an identifier or a report '

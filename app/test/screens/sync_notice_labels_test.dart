@@ -144,11 +144,7 @@ void main() {
     // says the records came "from another device" and tells the user to check
     // that device's app version — false in both halves for a row stored here,
     // and the reuse a future simplification would reach for.
-    final text = syncNoticeText(
-      l10n,
-      SyncNoticeGroup.withheldUnreadableLocal,
-      recordCount: 0,
-    );
+    final text = syncNoticeText(l10n, SyncNoticeGroup.withheldUnreadableLocal);
 
     expect(text, isNotEmpty);
     expect(text, isNot(equals(l10n.settingsSyncNoticeSkippedRecord)));
@@ -171,8 +167,7 @@ void main() {
         syncNoticeText(
           l10n,
           SyncNoticeGroup.newerVersion,
-          recordCount: 4,
-          records: const [
+          countedRecords: const [
             (kind: SyncRecordKind.dance, recordId: 'd1'),
             (kind: SyncRecordKind.dance, recordId: 'd2'),
             (kind: SyncRecordKind.dance, recordId: 'd3'),
@@ -193,8 +188,7 @@ void main() {
         syncNoticeText(
           l10n,
           SyncNoticeGroup.newerVersion,
-          recordCount: 3,
-          records: const [
+          countedRecords: const [
             (kind: SyncRecordKind.setting, recordId: 'a_new_setting'),
             (kind: SyncRecordKind.program, recordId: 'p1'),
             (kind: SyncRecordKind.program, recordId: 'p2'),
@@ -218,7 +212,7 @@ void main() {
 
     test('says so without a count when no record could be named', () {
       expect(
-        syncNoticeText(l10n, SyncNoticeGroup.newerVersion, recordCount: 0),
+        syncNoticeText(l10n, SyncNoticeGroup.newerVersion),
         l10n.settingsSyncNoticeNewerVersionUncounted,
       );
     });
@@ -291,7 +285,6 @@ void main() {
     String text(SyncNoticeGroup group) => syncNoticeText(
       l10n,
       group,
-      recordCount: 0,
       device: syncNoticeIsPerDevice(group) ? (tag: 'k7mQ2x', count: 2) : null,
     );
     for (final code in SyncReportCode.values) {
@@ -344,7 +337,6 @@ void main() {
         syncNoticeText(
           l10n,
           SyncNoticeGroup.unreflectedPublication,
-          recordCount: 0,
           device: (tag: '7c02Lm', count: 4),
         ),
         "Device 7c02Lm is syncing but isn't taking 4 changes from this device. "

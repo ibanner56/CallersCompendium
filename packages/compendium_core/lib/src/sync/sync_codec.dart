@@ -37,26 +37,30 @@ class SyncNewerWireVersionException extends FormatException {
   final int version;
 }
 
-/// A record blob whose body carries a field this build does not know at all:
-/// a path no kind's wire mapping names, or a settings key with no
-/// classification. The sender is almost certainly a newer build of the app
-/// that added the field, though the receiver cannot prove it (spec §6.9).
+/// A record blob whose body carries a field this build does not accept from a
+/// peer: a path it does not know at all, a path it knows but does not classify
+/// `shareable` (a field a newer build reclassified), or a settings key that is
+/// unclassified or not `shareable` here. The record is refused whole (spec
+/// §6.7) and reported as coming from a newer version of the app (§6.9).
 ///
 /// A [FormatException] subtype for the same reason as
-/// [SyncNewerWireVersionException]: the record is still refused whole (§6.7),
-/// and only the client's peer download distinguishes it, to report
-/// `SyncReportCode.newerRecordFields` rather than a malformed record. A field
-/// this build *does* know but does not classify `shareable` — a choreographer's
-/// email, say — is not this: it stays a plain [FormatException], because a
-/// sender putting a known private field on the wire is a defect, not a version
-/// difference.
-class SyncUnrecognisedFieldException extends FormatException {
-  const SyncUnrecognisedFieldException(this.kind, this.path)
-    : super('body contains unrecognised path $path');
+/// [SyncNewerWireVersionException]: every caller that treats an undecodable
+/// blob as malformed keeps doing so, and only the client's peer download
+/// distinguishes it, to report `SyncReportCode.newerRecordFields` rather than
+/// a malformed record.
+///
+/// A body that is structurally wrong — a setting with no `value`, an id that
+/// does not match its envelope — is not this, and stays a plain
+/// [FormatException].
+class SyncNewerFieldException extends FormatException {
+  const SyncNewerFieldException(this.kind, this.path)
+    : super('body contains a field this build does not sync: $path');
 
   final SyncRecordKind kind;
 
-  /// The first unrecognised wire path, dot-joined; `value` for a setting.
+  /// The first such wire path, dot-joined; `value` for a setting. Which one is
+  /// first does not change the report: every such path is reported the same
+  /// way.
   final String path;
 }
 
@@ -537,16 +541,8 @@ void _validateBlobBody(
     body,
     settingsKey: kind == SyncRecordKind.setting ? id : null,
   );
-  final invalidPath = validation.invalidPath;
-  if (invalidPath != null) {
-    if (!isKnownWirePath(
-      kind,
-      invalidPath,
-      settingsKey: kind == SyncRecordKind.setting ? id : null,
-    )) {
-      throw SyncUnrecognisedFieldException(kind, invalidPath);
-    }
-    throw FormatException('body contains non-shareable path $invalidPath');
+  if (validation.invalidPath case final invalidPath?) {
+    throw SyncNewerFieldException(kind, invalidPath);
   }
 }
 

@@ -456,7 +456,7 @@
   "@settingsSyncNoticeCountProgram": {
     "x-sourceSha256": "a7b7d768632c302855b92c62c230f4bec8af1fd58ced4388e2407d9ecfd42e06"
   },
-  "settingsSyncNoticeCountChoreographer": "{count, plural, other{振付師{count}件}}",
+  "settingsSyncNoticeCountChoreographer": "{count, plural, other{振付師{count}名}}",
   "@settingsSyncNoticeCountChoreographer": {
     "x-sourceSha256": "d4018182e6a23e51891a0f4bb6a3265cb8a3c9119923e6f7cb62c47efb4f3e42"
   },

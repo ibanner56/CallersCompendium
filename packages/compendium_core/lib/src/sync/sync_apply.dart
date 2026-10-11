@@ -817,7 +817,12 @@ class SyncApplyEngine {
       } on FormatException catch (error) {
         reports.add(
           SyncReport(
-            code: SyncReportCode.malformedRecord,
+            code: switch (error) {
+              SyncNewerWireVersionException() =>
+                SyncReportCode.newerWireVersion,
+              SyncNewerFieldException() => SyncReportCode.newerRecordFields,
+              _ => SyncReportCode.malformedRecord,
+            },
             message: 'Malformed inbound record: ${error.message}.',
           ),
         );
