@@ -93,7 +93,11 @@ final class SyncReviewQueueResolver {
       final address = (kind: kind, recordId: recordId);
       final items = entry.value
         ..sort((a, b) => a.row.candidateHash.compareTo(b.row.candidateHash));
-      final body = await storage.read(address);
+      // The merge queued these against this device's live copy, or against
+      // none (its hash is null) when the copy here is deleted; `read` returns
+      // a deleted row's body too, so liveness is taken from the rows.
+      final live = items.any((item) => item.row.localHash != null);
+      final body = live ? await storage.read(address) : null;
       if (kind == SyncRecordKind.dance && shareableFieldIds == null) {
         shareableFieldIds = {
           for (final def

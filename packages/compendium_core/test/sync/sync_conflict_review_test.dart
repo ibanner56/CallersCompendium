@@ -203,6 +203,55 @@ void main() {
     });
   });
 
+  group('SyncReviewQueueResolver.listConflicts with this device\'s copy '
+      'deleted', () {
+    test('offers every version, none of them as this device\'s', () async {
+      const address = (kind: SyncRecordKind.choreographer, recordId: 'c1');
+      // ignore: unused_result
+      await repositories.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Seth Tepfer'),
+        at: tie,
+      );
+      final before = await localCandidate(address);
+      await repositories.choreographers.delete('c1', at: tie);
+      // Two devices revived it and tied; one of them looks exactly like the
+      // copy deleted here. The merge queued both, against no live copy.
+      SyncMergeCandidate revived(Map<String, Object?> body) =>
+          SyncMergeCandidate.fromBlob(
+            SyncRecordBlob(
+              kind: SyncRecordKind.choreographer,
+              id: 'c1',
+              updatedAt: tie.add(const Duration(seconds: 1)),
+              deletedAt: null,
+              existenceAt: tie.add(const Duration(seconds: 1)),
+              body: body,
+            ),
+          );
+      for (final peer in [
+        revived(before.blob.body),
+        revived({...before.blob.body, 'notes': 'there'}),
+      ]) {
+        await repositories.syncLocal.enqueueReview(
+          kind: SyncRecordKind.choreographer,
+          recordId: 'c1',
+          counterpartId: peer.wireHash,
+          reason: syncConflictChoiceReason,
+          candidateBlob: encodeSyncRecordBlob(peer.blob),
+          candidateHash: peer.wireHash,
+          queuedAt: tie,
+        );
+      }
+
+      final group = (await SyncReviewQueueResolver(
+        storage,
+      ).listConflicts()).single;
+
+      expect(group.localBody, isNull);
+      expect(group.localUpdatedAt, isNull);
+      expect(group.candidates, hasLength(2));
+    });
+  });
+
   group('resolveConflicts', () {
     Future<({Object? value, DateTime updatedAt})> themeRow() async {
       final row = await (db.select(
