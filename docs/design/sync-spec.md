@@ -2338,7 +2338,11 @@ republishes, which is an ordinary upload and needs no special path.
    `packages/compendium_core/lib/src/sync/sync_conflict_compare.dart`: the
    fields the conflict comparison shows, plus a dance's import source and
    licence, which its page shows) are equal but whose other content differs —
-   provenance details, say — are settled without the user: every device keeps
+   provenance details, say — are settled without the user. Every synced field
+   is either shown or listed in `syncUserHiddenFields` with the reason nothing
+   shows it, and `sync_user_visible_fields_test.dart` fails the build for a
+   synced field in neither, so a new field is never settled silently by
+   omission. Such a tie is settled the same way everywhere: every device keeps
    the version whose content hash is lowest, so all of them keep the same one.
    That is the convergent rule the ruling above forbids, applied only where
    choosing is arbitrary because nothing the user could weigh differs; the

@@ -12,7 +12,7 @@
   },
   "core": {
     "changed": [
-      "An equal-updatedAt tie is raised for the user only when the versions' user-visible fields (syncUserVisibleFields / syncUserVisibleBody) differ, with merged-away ids resolved; otherwise the version with the lowest content hash is kept on every device. SyncMergeEngine.plan takes the alias map."
+      "An equal-updatedAt tie is raised for the user only when the versions' user-visible fields (syncUserVisibleFields / syncUserVisibleBody) differ, with merged-away ids resolved; otherwise the version with the lowest content hash is kept on every device. SyncMergeEngine.plan takes the alias map. Every synced field must be in syncUserVisibleFields or syncUserHiddenFields (with a reason); a test enforces it."
     ],
     "fixed": [
       "resolveConflicts accepts an offered version filed under the id it was merged into."
