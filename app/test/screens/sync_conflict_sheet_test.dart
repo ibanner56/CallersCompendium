@@ -783,7 +783,9 @@ void main() {
         body: {
           'id': 'd1',
           'title': 'Hey Day',
-          'authorIds': ['c2', 'c3'],
+          'customFields': [
+            {'fieldId': 'f2', 'value': 'Becket'},
+          ],
         },
       );
       await tester.pumpWidget(
@@ -799,7 +801,9 @@ void main() {
                   localBody: {
                     'id': 'd1',
                     'title': 'Hey Day',
-                    'authorIds': ['c1'],
+                    'customFields': [
+                      {'fieldId': 'f1', 'value': 'Improper'},
+                    ],
                   },
                   candidates: syncConflictGroupFor(
                     SyncConflictReconsideration(
@@ -812,11 +816,11 @@ void main() {
                     ),
                   ).candidates,
                   aliases: const {
-                    SyncRecordKind.choreographer: {'c2': 'c1'},
+                    SyncRecordKind.customFieldDef: {'f2': 'f1'},
                   },
                 ),
                 lookups: const SyncConflictLookups(
-                  choreographers: {'c1': 'Seth Tepfer', 'c3': 'Bob Isaacs'},
+                  customFields: {'f1': 'Formation note'},
                 ),
               ),
             ),
@@ -825,9 +829,9 @@ void main() {
       );
 
       expect(
-        find.textContaining('Seth Tepfer, Bob Isaacs'),
+        find.textContaining('Formation note: Becket'),
         findsOneWidget,
-        reason: 'c2 was merged into c1',
+        reason: 'custom field f2 was merged into f1',
       );
       expect(find.textContaining('Not on this device'), findsNothing);
     });
