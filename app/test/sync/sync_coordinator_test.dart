@@ -5006,7 +5006,7 @@ void main() {
     Future<List<SyncMergeCandidate>> peerLibrary() async {
       final peer = openTestRepositories();
       for (var i = 0; i < 3; i++) {
-        await peer.tags.upsert(
+        final _ = await peer.tags.upsert(
           Tag(id: 'tag-$i', name: 'Tag $i'),
           at: at,
         );
@@ -5802,7 +5802,6 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     List<SyncHttpResponse>? createResponses,
     Map<String, List<SyncHttpResponse>>? manifestResponses,
     this.blobResponses = const {},
-    this.onBlob,
     List<List<String>>? missingResponses,
     this.putManifestStatus = 200,
     List<int>? putManifestStatuses,
@@ -5843,6 +5842,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
 
   /// Answers the [call]th blob request (1-based) for [hash] in place of
   /// [blobResponses] when it returns non-null; may throw, as a transport does.
+  /// Assigned after construction, so a test can lift a limit between passes.
   SyncHttpResponse? Function(int call, String hash)? onBlob;
   final List<List<String>> missingResponses;
   final int putManifestStatus;

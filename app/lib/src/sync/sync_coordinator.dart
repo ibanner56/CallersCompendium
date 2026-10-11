@@ -2541,13 +2541,20 @@ class SyncCoordinator {
         final SyncHttpResponse response;
         try {
           response = await transport.getBlob(recordEntry.value);
-        } on Object catch (error) {
+        } on Object catch (error, stack) {
           // A dropped connection or a timed-out request says nothing about
           // the record, so it is not fetched yet rather than skipped. Only
           // what `SyncController` would retry by itself is caught: anything
           // else still fails the pass as it did.
           final cause = syncFailureCauseForError(error);
           if (!cause.isTransient) rethrow;
+          // Logged as the throw it replaces was (`_watch`), type only: the
+          // text of a transport error can carry the request URI.
+          logCaughtErrorTypeOnly(
+            error,
+            stack,
+            source: 'sync_coordinator._downloadPeerRecords',
+          );
           progress.stop = SyncFailure(cause, step: SyncFailureStep.download);
           unresolved.add(address);
           continue;
