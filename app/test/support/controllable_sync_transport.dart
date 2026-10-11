@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
+import 'package:compendium_core/compendium_core.dart' show SyncBlobBatchFrame;
 
 /// A [SyncCoordinatorTransport] whose `getStore`/`createStore` results are set
 /// by the test and whose call counts are inspectable, for guarding the §6.14
@@ -62,6 +63,12 @@ final class ControllableSyncTransport implements SyncCoordinatorTransport {
   @override
   Future<SyncHttpResponse> getBlob(String hash) async =>
       throw StateError('unexpected sync transport call');
+
+  @override
+  Future<SyncHttpResponse> postBlobBatch(
+    List<String> hashes, {
+    required void Function(SyncBlobBatchFrame frame) onFrame,
+  }) async => throw StateError('unexpected sync transport call');
 
   @override
   Future<SyncHttpResponse> putBlob(String hash, List<int> body) async =>

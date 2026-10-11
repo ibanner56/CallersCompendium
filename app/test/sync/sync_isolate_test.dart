@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_failure.dart';
@@ -435,6 +436,248 @@ void main() {
       expect(report.httpStatus, 404);
     },
   );
+
+  test(
+    'batches cross a real isolate and loopback server: gzip frames, a 429 on '
+    'the second batch, and the next pass asks only for the rest',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'compendium-sync-isolate-batch-',
+      );
+      final databasePath = '${directory.path}/compendium.sqlite';
+      final database = CompendiumDatabase(NativeDatabase(File(databasePath)));
+      final repositories = CompendiumRepositories(database, contraTaxonomy);
+      await repositories.ensureMigrated();
+      await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
+
+      final at = DateTime.utc(2026, 7, 15, 12);
+      // Past one batch, so the second batch request is the one refused.
+      final blobs = <String, List<int>>{};
+      final tags = <String, String>{};
+      for (var i = 0; i < syncBlobBatchMaxHashes + 50; i++) {
+        final id = 'tag-${i.toString().padLeft(4, '0')}';
+        final bytes = encodeSyncRecordBlobUtf8(
+          SyncRecordBlob(
+            kind: SyncRecordKind.tag,
+            id: id,
+            updatedAt: at,
+            deletedAt: null,
+            existenceAt: at,
+            body: {'id': id, 'name': 'Tag $i', 'color': null},
+          ),
+        );
+        final hash = sha256Hex(bytes);
+        blobs[hash] = bytes;
+        tags[id] = hash;
+      }
+      final manifest = SyncManifest(
+        deviceId: 'peer',
+        epoch: 'epoch-1',
+        writtenAt: at,
+        records: {SyncRecordKind.tag: tags},
+      );
+
+      var pass = 1;
+      final batches = <List<String>>[];
+      final acceptEncodings = <String?>[];
+      var singleRequests = 0;
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        final path = request.uri.path;
+        final body = await utf8.decodeStream(request);
+        final response = request.response;
+        if (request.method == 'POST' && path == '/v1/blobs/batch') {
+          final hashes = [
+            for (final hash in (jsonDecode(body) as Map)['hashes'] as List)
+              hash as String,
+          ];
+          batches.add(hashes);
+          acceptEncodings.add(request.headers.value('accept-encoding'));
+          if (pass == 1 && batches.length == 2) {
+            response
+              ..statusCode = HttpStatus.tooManyRequests
+              ..headers.set('retry-after', '60')
+              ..headers.contentType = ContentType.json
+              ..write('{"error":"rate limited"}');
+          } else {
+            final frames = BytesBuilder(copy: false);
+            for (final hash in hashes) {
+              final bytes = blobs[hash]!;
+              frames
+                ..add(
+                  encodeSyncBlobBatchFrameHead(
+                    SyncBlobBatchFrameStatus.blob,
+                    hash,
+                    length: bytes.length,
+                  ),
+                )
+                ..add(bytes);
+            }
+            response.headers
+              ..set('content-type', syncBlobBatchMediaType)
+              ..set('content-encoding', 'gzip');
+            response.add(gzip.encode(frames.takeBytes()));
+          }
+        } else if (request.method == 'GET' && path.startsWith('/v1/blobs/')) {
+          singleRequests++;
+          response.statusCode = HttpStatus.notFound;
+        } else if (request.method == 'GET' && path == '/v1/store') {
+          response.headers.contentType = ContentType.json;
+          response.write(
+            jsonEncode({
+              'epoch': 'epoch-1',
+              'devices': ['peer'],
+            }),
+          );
+        } else if (request.method == 'GET' && path == '/v1/manifests/peer') {
+          response.headers.contentType = ContentType.json;
+          response.write(encodeSyncManifest(manifest));
+        } else if (request.method == 'POST' && path == '/v1/blobs/missing') {
+          response.headers.contentType = ContentType.json;
+          response.write(jsonEncode({'missing': <String>[]}));
+        } else if (request.method == 'PUT' &&
+            path == '/v1/manifests/device-a') {
+          response.headers.contentType = ContentType.json;
+          response.write('{}');
+        } else {
+          response.statusCode = HttpStatus.notFound;
+        }
+        await response.close();
+      });
+      addTearDown(() async {
+        await server.close(force: true);
+        await database.close();
+        await directory.delete(recursive: true);
+      });
+
+      final operation = IsolatedSyncPassOperation(
+        databasePath: databasePath,
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
+        syncId: 'alpha-beta-gamma-delta',
+        deviceId: 'device-a',
+        peerManifestCache: SyncPeerManifestCache(),
+      );
+
+      final first = await operation.call();
+
+      expect(first.status, SyncPassStatus.failed);
+      expect(first.failure?.cause, SyncFailureCause.rateLimited);
+      expect(first.failure?.retryAfter, const Duration(seconds: 60));
+      expect(first.failure?.progressed, isTrue);
+      expect(first.reports, isEmpty);
+      expect(batches, hasLength(2));
+      expect(batches.first, hasLength(syncBlobBatchMaxHashes));
+      expect(acceptEncodings.first, contains('gzip'));
+      expect(singleRequests, 0);
+      final ordered = tags.values.toList();
+      expect(batches.first, ordered.sublist(0, syncBlobBatchMaxHashes));
+      expect(await repositories.tags.getById('tag-0199'), isNotNull);
+      expect(await repositories.tags.getById('tag-0200'), isNull);
+
+      pass = 2;
+      batches.clear();
+      final second = await operation.call();
+
+      expect(second.status, SyncPassStatus.completed);
+      expect(second.reports, isEmpty);
+      expect(batches, [ordered.sublist(syncBlobBatchMaxHashes)]);
+      expect(await repositories.tags.getById('tag-0249'), isNotNull);
+    },
+  );
+
+  test('a server without the batch route is remembered across the isolate for '
+      'the rest of the session', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'compendium-sync-isolate-no-batch-',
+    );
+    final databasePath = '${directory.path}/compendium.sqlite';
+    final database = CompendiumDatabase(NativeDatabase(File(databasePath)));
+    final repositories = CompendiumRepositories(database, contraTaxonomy);
+    await repositories.ensureMigrated();
+    await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
+
+    final at = DateTime.utc(2026, 7, 15, 12);
+    final blob = encodeSyncRecordBlobUtf8(
+      SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: 'default_program_caller',
+        updatedAt: at,
+        deletedAt: null,
+        existenceAt: at,
+        body: {'value': 'Peer caller'},
+      ),
+    );
+    final hash = sha256Hex(blob);
+    final manifest = SyncManifest(
+      deviceId: 'peer',
+      epoch: 'epoch-1',
+      writtenAt: at,
+      records: {
+        SyncRecordKind.setting: {'default_program_caller': hash},
+      },
+    );
+    final requests = <String>[];
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      final path = request.uri.path;
+      await request.drain<void>();
+      requests.add('${request.method} $path');
+      final response = request.response;
+      response.headers.contentType = ContentType.json;
+      if (path == '/v1/blobs/batch') {
+        // What an Athenaeum from before the route answers: `batch` is not a
+        // hash.
+        response
+          ..statusCode = HttpStatus.badRequest
+          ..write('{"error":"invalid blob hash"}');
+      } else if (path == '/v1/blobs/$hash') {
+        response.headers.contentType = ContentType.binary;
+        response.add(blob);
+      } else if (path == '/v1/store') {
+        response.write(
+          jsonEncode({
+            'epoch': 'epoch-1',
+            'devices': ['peer'],
+          }),
+        );
+      } else if (path == '/v1/manifests/peer') {
+        response.write(encodeSyncManifest(manifest));
+      } else if (path == '/v1/blobs/missing') {
+        response.write(jsonEncode({'missing': <String>[]}));
+      } else {
+        response.write('{}');
+      }
+      await response.close();
+    });
+    addTearDown(() async {
+      await server.close(force: true);
+      await database.close();
+      await directory.delete(recursive: true);
+    });
+
+    final cache = SyncPeerManifestCache();
+    final operation = IsolatedSyncPassOperation(
+      databasePath: databasePath,
+      endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
+      syncId: 'alpha-beta-gamma-delta',
+      deviceId: 'device-a',
+      peerManifestCache: cache,
+    );
+
+    final first = await operation.call();
+
+    expect(first.status, SyncPassStatus.completed);
+    expect(first.reports, isEmpty);
+    expect(requests, contains('POST /v1/blobs/batch'));
+    expect(requests, contains('GET /v1/blobs/$hash'));
+    expect(cache.blobBatchUnsupported, isTrue);
+    expect(
+      SyncPeerManifestCache.fromMessage(cache.toMessage()).blobBatchUnsupported,
+      isTrue,
+    );
+    cache.clear();
+    expect(cache.blobBatchUnsupported, isFalse, reason: 'a new session');
+  });
 
   test('the session blob cache crosses the isolate and holds a byte cap', () {
     final cache = SyncPeerManifestCache();

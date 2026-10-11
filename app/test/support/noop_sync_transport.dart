@@ -1,5 +1,6 @@
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
+import 'package:compendium_core/compendium_core.dart' show SyncBlobBatchFrame;
 
 /// A transport for coordinator lifecycle tests whose pass operation never
 /// reaches the network-backed runner.
@@ -27,6 +28,12 @@ final class NoopSyncCoordinatorTransport implements SyncCoordinatorTransport {
   @override
   Future<SyncHttpResponse> getBlob(String hash) async =>
       throw StateError('unexpected sync transport call');
+
+  @override
+  Future<SyncHttpResponse> postBlobBatch(
+    List<String> hashes, {
+    required void Function(SyncBlobBatchFrame frame) onFrame,
+  }) async => throw StateError('unexpected sync transport call');
 
   @override
   Future<SyncHttpResponse> putBlob(String hash, List<int> body) async =>

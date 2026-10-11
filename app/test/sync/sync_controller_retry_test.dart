@@ -112,6 +112,12 @@ final class _QuotaTransport implements SyncCoordinatorTransport {
       throw StateError('no peers');
 
   @override
+  Future<SyncHttpResponse> postBlobBatch(
+    List<String> hashes, {
+    required void Function(SyncBlobBatchFrame frame) onFrame,
+  }) async => throw StateError('no peers');
+
+  @override
   Future<SyncHttpResponse> putBlob(String hash, List<int> body) async => _ok();
 }
 
