@@ -347,7 +347,7 @@ void main() {
       for (final kind in SyncRecordKind.values) {
         final visible = syncUserVisibleFields(kind);
         if (visible == null) continue;
-        for (final key in visible) {
+        for (final key in visible.where((path) => !path.contains('.'))) {
           final shown = syncConflictDifferingFields(
             l10n,
             kind,

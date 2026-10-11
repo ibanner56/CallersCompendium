@@ -154,7 +154,7 @@ SyncCollectionDiff? compareSyncCollection(
 List<String> syncDifferingFields(
   Map<String, Object?>? local,
   Map<String, Object?>? other, {
-  Set<String> ignore = _identityAndTimestampFields,
+  Set<String> ignore = syncIdentityAndTimestampFields,
 }) {
   final keys = <String>[...?local?.keys];
   for (final key in other?.keys ?? const <String>[]) {
@@ -172,8 +172,14 @@ List<String> syncDifferingFields(
 /// versions of it, or null when every field is shown but identity and
 /// timestamps (the fields [syncDifferingFields] ignores by default).
 ///
-/// Fields left out — provenance, internal flags — are never what a person is
-/// choosing between. The conflict comparison labels exactly these (an app
+/// A nested path (`provenance.source`) marks its field as shown only in part:
+/// of that field, only the listed parts are compared. Every other synced
+/// field is in [syncUserHiddenFields], with the reason it is not shown;
+/// `test/sync/sync_user_visible_fields_test.dart` fails the build for a
+/// synced field in neither, so a new field cannot be left out of the
+/// comparison — and settled without asking — by omission.
+///
+/// The conflict comparison labels exactly the top-level fields here (an app
 /// test holds the two together), and the merge uses them to decide whether a
 /// tie needs a person at all ([syncUserVisibleContentHash]).
 Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
@@ -200,8 +206,10 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
     'sourceCitations',
     'composedOn',
     'revisedOn',
-    // Only its source and licence; see [syncUserVisibleBody].
+    // Shown as its page shows it: where it came from, and its licence.
     'provenance',
+    'provenance.source',
+    'provenance.license',
   },
   // The linked venue and the free-text venue are shown as one row.
   SyncRecordKind.program => const {
@@ -238,11 +246,47 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
   SyncRecordKind.setting => null,
 };
 
+/// The synced fields of a [kind] record that a comparison does not show,
+/// each with the reason, by wire path: every synced field outside
+/// [syncUserVisibleFields] but identity and timestamps. A version that
+/// differs from another only here is settled without asking (sync-spec
+/// §6.3), so a field belongs here only when nothing in the app shows it.
+Map<String, String> syncUserHiddenFields(SyncRecordKind kind) => switch (kind) {
+  SyncRecordKind.dance => const {
+    'provenance.externalId':
+        'The source site\'s own id for the dance, used only to recognise a '
+        're-import; nothing displays it.',
+    'provenance.importedAt':
+        'When this copy was imported; nothing displays it for a dance.',
+    'provenance.permission':
+        'Import bookkeeping; the dance page shows the licence, not this.',
+    'provenance.sourceVersion':
+        'The source\'s format version, read only by import.',
+  },
+  SyncRecordKind.program => const {
+    'provenance':
+        'Where an imported program came from. The program pages do not show '
+        'it; the ContraDB import screen uses it only to badge a program as '
+        'already imported, with the import date in that badge\'s tooltip, '
+        'and either version earns the same badge.',
+  },
+  SyncRecordKind.venue => const {
+    'provenance':
+        'Where an imported venue came from; nothing in the app displays it.',
+  },
+  SyncRecordKind.choreographer ||
+  SyncRecordKind.tag ||
+  SyncRecordKind.publishedSource ||
+  SyncRecordKind.customFieldDef ||
+  SyncRecordKind.difficultyLevel ||
+  SyncRecordKind.setting => const {},
+};
+
 /// What a person can see of a [kind] record's [body]: its
 /// [syncUserVisibleFields], with references to records merged away by
 /// natural-key reconciliation ([aliases], losing id to surviving id) read as
-/// the records they were merged into. A dance's provenance is shown as where
-/// it came from and its licence, so only those two of its fields are kept.
+/// the records they were merged into. Of a field shown only in part, only
+/// the listed parts are kept.
 Map<String, Object?> syncUserVisibleBody(
   SyncRecordKind kind,
   Map<String, Object?> body, {
@@ -252,16 +296,21 @@ Map<String, Object?> syncUserVisibleBody(
       ? body
       : rewriteSyncInboundReferences(body, aliases);
   final visible = syncUserVisibleFields(kind);
+  Object? shown(String key, Object? value) {
+    final parts = {
+      for (final path in visible ?? const <String>{})
+        if (path.startsWith('$key.')) path.substring(key.length + 1),
+    };
+    if (parts.isEmpty || value is! Map) return value;
+    return {for (final part in parts) part: value[part]};
+  }
+
   return {
     for (final entry in resolved.entries)
       if (visible == null
-          ? !_identityAndTimestampFields.contains(entry.key)
+          ? !syncIdentityAndTimestampFields.contains(entry.key)
           : visible.contains(entry.key))
-        entry.key: switch ((kind, entry.key, entry.value)) {
-          (SyncRecordKind.dance, 'provenance', final Map<Object?, Object?> p) =>
-            {'source': p['source'], 'license': p['license']},
-          _ => entry.value,
-        },
+        entry.key: shown(entry.key, entry.value),
   };
 }
 
@@ -274,7 +323,8 @@ String syncUserVisibleContentHash(
   Map<SyncRecordKind, Map<String, String>> aliases = const {},
 }) => contentHash(syncUserVisibleBody(kind, body, aliases: aliases));
 
-const _identityAndTimestampFields = {
+/// Fields every version of a record carries its own of: never compared.
+const Set<String> syncIdentityAndTimestampFields = {
   'id',
   'createdAt',
   'updatedAt',
