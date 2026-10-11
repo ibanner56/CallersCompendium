@@ -738,9 +738,10 @@ class SyncMergeEngine {
     // record), else — a tie in nothing the user is shown — the content whose
     // hash is lowest, since every device holds the same versions whatever
     // ids it files them under. Of the copies holding that content, prefer
-    // this device's (nothing to write), then one already filed under this
-    // address, then the lowest wire hash, so the pick never depends on peer
-    // order.
+    // one already filed under this address — this device's first (nothing to
+    // write) — so that every device settles on the surviving id even where
+    // its own copy still names a merged-away one; then this device's; then
+    // the lowest wire hash, so the pick never depends on peer order.
     final keptBody = hashes.isEmpty ? null : (hashes.toList()..sort()).first;
     final keptBodies =
         updatedWinners
@@ -751,11 +752,8 @@ class SyncMergeEngine {
             .toList()
           ..sort((left, right) {
             int rank(SyncMergeCandidate candidate) =>
-                identical(candidate, local)
-                ? 0
-                : candidate.blob.id == address.recordId
-                ? 1
-                : 2;
+                (candidate.blob.id == address.recordId ? 0 : 2) +
+                (identical(candidate, local) ? 0 : 1);
             final byRank = rank(left).compareTo(rank(right));
             return byRank != 0
                 ? byRank

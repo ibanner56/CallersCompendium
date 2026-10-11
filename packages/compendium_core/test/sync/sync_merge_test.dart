@@ -422,6 +422,104 @@ void main() {
       expect(decision.winner!.blob.body['authorIds'], ['c1']);
     });
 
+    test('settles on the surviving id even where this device\'s copy still '
+        'names the merged-away one', () {
+      // This device's copy is filed under c1 but still names c2; another
+      // device's copy of the same content is already under c1.
+      final mine = record(SyncRecordKind.choreographer, 'c2', {
+        'name': 'Seth Tepfer',
+      });
+      final theirs = record(SyncRecordKind.choreographer, 'c1', {
+        'name': 'Seth Tepfer',
+      });
+      const address = (kind: SyncRecordKind.choreographer, recordId: 'c1');
+
+      final decision = engine
+          .plan(
+            local: {address: SyncMergeCandidate.fromBlob(mine)},
+            baseline: const {},
+            peers: [
+              {address: SyncMergeCandidate.fromBlob(theirs, peerId: 'p')},
+            ],
+            aliases: mergedAway,
+          )
+          .decisions
+          .single;
+
+      expect(decision.action, SyncMergeAction.download);
+      expect(decision.winner!.blob.id, 'c1');
+    });
+
+    test('is not asked when entries differ only in their own ids, or slots '
+        'only in how they are numbered', () {
+      Map<String, Object?> link(String id) => {
+        'id': id,
+        'kind': 'video',
+        'label': 'Walkthrough',
+        'url': 'https://example.test/v',
+        'targetDanceId': null,
+        'transitive': false,
+      };
+      expect(
+        decide(
+          record(SyncRecordKind.dance, 'd1', {
+            'title': 'Hey Day',
+            'links': [link('l1')],
+          }),
+          record(SyncRecordKind.dance, 'd1', {
+            'title': 'Hey Day',
+            'links': [link('l2')],
+          }),
+        ).action,
+        SyncMergeAction.upload,
+      );
+
+      Map<String, Object?> slot(String id, int position, String text) => {
+        'id': id,
+        'position': position,
+        'text': text,
+        'danceId': null,
+        'isAlt': false,
+      };
+      SyncRecordBlob program(List<Map<String, Object?>> slots) => record(
+        SyncRecordKind.program,
+        'p1',
+        {'title': 'Saturday', 'slots': slots},
+      );
+      final mine = program([slot('s1', 0, 'A'), slot('s2', 1, 'B')]);
+
+      expect(
+        decide(
+          mine,
+          // Listed in another order, ids and numbers different: the same
+          // program as the comparison shows it.
+          program([slot('t2', 5, 'B'), slot('t1', 3, 'A')]),
+        ).action,
+        SyncMergeAction.upload,
+      );
+      expect(
+        decide(mine, program([slot('s1', 1, 'A'), slot('s2', 0, 'B')])).action,
+        SyncMergeAction.review,
+        reason: 'the order of the slots is shown',
+      );
+      expect(
+        decide(
+          record(SyncRecordKind.dance, 'd1', {
+            'title': 'Hey Day',
+            'links': [link('l1')],
+          }),
+          record(SyncRecordKind.dance, 'd1', {
+            'title': 'Hey Day',
+            'links': [
+              {...link('l1'), 'url': 'https://example.test/w'},
+            ],
+          }),
+        ).action,
+        SyncMergeAction.review,
+        reason: "a link's destination is shown",
+      );
+    });
+
     test('is still asked when a field the user is shown differs', () {
       final mine = record(SyncRecordKind.choreographer, 'c1', {
         'name': 'Seth Tepfer',

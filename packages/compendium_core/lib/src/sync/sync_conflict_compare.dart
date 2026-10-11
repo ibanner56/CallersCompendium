@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart' show mergeSort;
+
 import '../imports/shorthand_mappings.dart'
     show maxShorthandMappings, normalizeShorthandToken;
 import '../snippet/snippet_library.dart'
@@ -202,7 +204,13 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
     'tunes',
     'tagIds',
     'customFields',
+    // Each link as the comparison shows it; its own id is not shown.
     'links',
+    'links.kind',
+    'links.label',
+    'links.url',
+    'links.targetDanceId',
+    'links.transitive',
     'sourceCitations',
     'composedOn',
     'revisedOn',
@@ -222,7 +230,17 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
     'dancerLevel',
     'status',
     'notes',
+    // Each slot as the comparison shows it, in position order: what it holds
+    // and its details. Its own id and position number are not shown.
     'slots',
+    'slots.danceId',
+    'slots.text',
+    'slots.isAlt',
+    'slots.isPurgedDance',
+    'slots.guestCaller',
+    'slots.walkthroughMinutes',
+    'slots.danceMinutes',
+    'slots.performedAt',
     'hideAlternates',
     'dialectName',
     'payMinorUnits',
@@ -264,8 +282,18 @@ Map<String, String> syncUserHiddenFields(SyncRecordKind kind) => switch (kind) {
         'Import bookkeeping; the dance page shows the licence, not this.',
     'provenance.sourceVersion':
         'The source\'s format version, read only by import.',
+    'links.id':
+        'Each link\'s own id, generated where it was added; the comparison '
+        'shows a link by its kind, label, destination and group.',
   },
   SyncRecordKind.program => const {
+    'slots.id':
+        'Each slot\'s own id, generated where it was added; the comparison '
+        'matches slots by the dance or text they hold.',
+    'slots.position':
+        'The comparison shows slots in this order, which the projection '
+        'keeps, but not the numbers themselves: renumbering alone is no '
+        'difference.',
     'provenance':
         'Where an imported program came from. The program pages do not show '
         'it; the ContraDB import screen uses its source and id to badge a '
@@ -304,8 +332,18 @@ Map<String, Object?> syncUserVisibleBody(
       for (final path in visible ?? const <String>{})
         if (path.startsWith('$key.')) path.substring(key.length + 1),
     };
-    if (parts.isEmpty || value is! Map) return value;
-    return {for (final part in parts) part: value[part]};
+    if (parts.isEmpty) return value;
+    Object? keep(Object? entry) =>
+        entry is Map ? {for (final part in parts) part: entry[part]} : entry;
+    if (value is Map) return keep(value);
+    if (value is! List) return value;
+    final order = _shownInOrderOf[(kind, key)];
+    final entries = [...value];
+    if (order != null) {
+      num at(Object? entry) => entry is Map ? (entry[order] as num?) ?? 0 : 0;
+      mergeSort(entries, compare: (a, b) => at(a).compareTo(at(b)));
+    }
+    return [for (final entry in entries) keep(entry)];
   }
 
   return {
@@ -316,6 +354,12 @@ Map<String, Object?> syncUserVisibleBody(
         entry.key: shown(entry.key, entry.value),
   };
 }
+
+/// List fields the comparison shows in the order of a part it does not show:
+/// the projection orders entries by that part before dropping it.
+const Map<(SyncRecordKind, String), String> _shownInOrderOf = {
+  (SyncRecordKind.program, 'slots'): 'position',
+};
 
 /// Hashes [syncUserVisibleBody]. Two versions with the same hash differ only
 /// in ways a person could not tell apart, so choosing between them is
