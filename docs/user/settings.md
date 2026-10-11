@@ -575,9 +575,12 @@ Sync is off and open while it is on.
   and you don't need to do anything: the app tries again by itself, waiting a
   little longer each time (from a minute up to half an hour, and never sooner
   than the server asked), and also tries when you come back to the app. The
-  server limits how quickly one device can fetch, so connecting a device to a
-  large library can take several of these tries — roughly a minute for every
-  sixty records. Each try keeps what it brought over, so while it is
+  server limits how quickly one device can fetch. The app fetches records in
+  batches, so connecting a device to a large library usually finishes in one
+  try, or a few for a very large one. A self-hosted server that hasn't been
+  updated for batched fetching gets one record at a time, and there it can
+  take several tries — roughly a minute for every sixty records. Each try
+  keeps what it brought over, so while it is
   still getting further the app tries again every minute rather than waiting
   longer, and nothing it hasn't fetched yet is reported as skipped. A small
   **Details** line still names the step that stopped and the HTTP status, if

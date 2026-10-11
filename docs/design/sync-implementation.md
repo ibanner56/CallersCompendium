@@ -1406,8 +1406,17 @@ the wire.
   for §8 — a deployment trusting the header unconditionally passes the
   two-honest-clients check and buys an attacker unlimited attempts against the
   ID's own strength, so testing only the first mutation gates the capacity
-  property and not the security one; and each of the four operational
-  prerequisites has been *exercised*, not merely written:
+  property and not the security one; **a fresh attach large enough to need
+  more than one `POST /v1/blobs/batch` completes in one pass through the
+  deployed proxy, and a burst of batches is refused `429` at the cost spec §5.4
+  sets for a batch**, which is the only check that the proxy passes the route
+  and its streamed, gzip-encoded response through — a proxy answering it `404`
+  or `405` still syncs, because the client falls back to one request per
+  record (spec §5.2), so nothing else would notice the attach taking sixteen
+  minutes instead of seconds — and that a limit enforced at the proxy, which
+  counts requests rather than batch cost, is not the one doing the bounding;
+  and each of the four operational prerequisites has been *exercised*, not
+  merely written:
   - **Alerting** — a synthetic quota exhaustion and a synthetic GC failure each
     raise an alert that reaches a human, demonstrated on the running deployment.
   - **Retention proof** — a store left untouched past the disuse TTL is shown to
@@ -1757,7 +1766,7 @@ buckets. Ownership is now explicit:
 | Quarantine and repair | W9 |
 | Deletion | W7 |
 | Attach and restore | W8 (attach, including post-confirmation replacement attach) + W9 (restore) |
-| Server | **W5** (the sync-ID bound, typed missing-store outcomes, no-auto-create client rule and the client half of `id_key` agreement) + **W10** (`ETag`/`If-None-Match`, `Content-Type`, the blob-namespacing and path-safety clauses, the `{deviceId}`/`{hash}` format clauses, the base64url decode and its `401`, the **endpoint-split clauses** — `GET` on an unknown store `404`s and creates nothing, `POST` mints a fresh epoch, `POST` against an existing store is `409` and mints nothing — the **budget-accounting clauses**, that all four failure outcomes increment the server-wide counter and successes do not, and the saturated-limit clause: a request resolving an existing store still succeeds while the counter is shedding) + **W12** (the `DELETE` grace-window clause and the no-logging clauses, including that no log line carries a raw `{deviceId}`) + **W16** (the plaintext-refusal clause, and the rate-limit clauses — the per-IP and server-wide failure limits and the separate store-creation cap — each checked against the running configuration rather than the code, because a limit present in the source and absent from the deployment is exactly what these clauses exist to catch — not because they carry §8's bound, which rests on entropy) |
+| Server | **W5** (the sync-ID bound, typed missing-store outcomes, no-auto-create client rule and the client half of `id_key` agreement) + **W10** (`ETag`/`If-None-Match`, `Content-Type`, the blob-namespacing and path-safety clauses, the `{deviceId}`/`{hash}` format clauses, the base64url decode and its `401`, the **endpoint-split clauses** — `GET` on an unknown store `404`s and creates nothing, `POST` mints a fresh epoch, `POST` against an existing store is `409` and mints nothing — the **budget-accounting clauses**, that all four failure outcomes increment the server-wide counter and successes do not, and the saturated-limit clause: a request resolving an existing store still succeeds while the counter is shedding) + **W12** (the `DELETE` grace-window clause and the no-logging clauses, including that no log line carries a raw `{deviceId}`) + **W16** (the plaintext-refusal clause, and the rate-limit clauses — the per-IP and server-wide failure limits, the separate store-creation cap and the cost of a `POST /v1/blobs/batch` — each checked against the running configuration rather than the code, because a limit present in the source and absent from the deployment is exactly what these clauses exist to catch — not because they carry §8's bound, which rests on entropy) |
 | User-visible sync obligations | **W13** (the `sync_exclude_imports` publish-set clauses, partial-venue hint, backup offer, create-or-connect choice, and missing-collection explanation and confirmation) |
 | Client isolate and robustness | W6 (isolate plus coalesced replacement-required pause) + W5 (redirect, certificate and loopback *behaviour*, client-side decompression abort and no-auto-create outcome) + **W17** (the certificate-affordance source scan) + W10 (store lifecycle) + **W13** (the no-network-call-while-unconfigured clause, §6.12 trigger clauses and network-silent replacement cancellation) |
 

@@ -3004,20 +3004,38 @@ client's cryptography is therefore unchanged from what the app ships today.
 | `GET` | `/v1/blobs/{hash}` | Fetch one blob. Immutable; long `Cache-Control`. |
 | `PUT` | `/v1/blobs/{hash}` | Upload one blob. Idempotent. |
 | `POST` | `/v1/blobs/missing` | Given a list of hashes, return the subset the store lacks. |
+| `POST` | `/v1/blobs/batch` | Given up to 200 hashes, return their blobs in one streamed response. |
 | `DELETE` | `/v1/manifests/{deviceId}` | Remove a device's manifest — for a lost or reinstalled device. Without it a dead device holds one of 32 slots forever and its unique blobs never GC, with a whole-store wipe the only remedy. |
 
-`POST /v1/blobs/missing` is the only non-REST-shaped call and it earns its place:
-without it, a device with 11,500 records issues 11,500 `HEAD` requests to find
-out what to upload.
+`POST /v1/blobs/missing` was the first non-REST-shaped call and it earns its
+place: without it, a device with 11,500 records issues 11,500 `HEAD` requests to
+find out what to upload.
 
-**Both of the endpoints that are not content-addressed carry a schema, and they
-did not always.** The blob and the manifest are specified to the byte because
+`POST /v1/blobs/batch` earns its place the same way, on the download side. With
+one `GET` per record, every request costs a token from the per-IP bucket (60 a
+minute, burst 120, spec §5.4), so a device's first connection to a 1,000-record
+library met the limit, stopped, and resumed a minute later — about 17 passes
+and 16 minutes, and for 5,000 records about 85. The records are small (a median
+dance is 1.7 KB of canonical JSON) and the request around them is not: measured
+in-process on the reference server, a single-blob `GET` spent about 0.5 ms of
+handler time, nearly all of it paid once per request whatever it carries —
+request and response handling, authentication, the store lookup and its
+`last_seen` write (about 0.15 ms on its own) — against about 40 µs for each
+further blob in a batch, or about 110 µs with gzip. Two hundred hashes a request makes that first download
+five requests. The wire format, the caps and the fallback for a server without
+the route are in spec §5.2 and §5.4, with the case for a frame stream over JSON
+or multipart beside the rule. How a batch is charged against the request-rate
+limits is not yet settled.
+
+**The endpoints that are not content-addressed carry a schema, and the first
+two did not always.** The blob and the manifest are specified to the byte because
 they are *hashed* — canonicalisation is a correctness requirement there, so the
 document had no choice. `GET /v1/store` and `POST /v1/blobs/missing` are
 ordinary JSON, nothing forced their shape, and for several rounds they were
 described only in prose: "epoch, device list, quota usage". Two servers
 emitting `devices` and `deviceIds` would both have satisfied that sentence and
-only one would work with any given client.
+only one would work with any given client. `POST /v1/blobs/batch` came later and
+was specified to the byte from the start (spec §5.2).
 
 The pattern is worth naming because it is not laziness and will recur: rigour
 had accumulated wherever some other mechanism *demanded* it, and the places
@@ -3554,8 +3572,9 @@ would break repair silently and without resembling a sync change at the point it
 was added. Any new write is checked against this the way new write paths are
 checked against the discriminator rule above.
 
-5. `GET /v1/blobs/{hash}` for each needed hash. **Verify the hash before
-   applying.**
+5. `POST /v1/blobs/batch` for each needed hash, up to 200 at a time
+   (`GET /v1/blobs/{hash}` against a server without the route). **Verify the
+   hash before applying.**
 6. Apply in one transaction, **read-modify-write** (below). Rebuild derived
    indexes.
 7. Recompute the local manifest from the post-apply state. Before any

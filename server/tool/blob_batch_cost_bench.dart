@@ -2,11 +2,12 @@
 // rules for `POST /v1/blobs/batch` against the request-rate limits (spec
 // §5.4). Run from `server/`:
 //
-//     dart run tool/blob_batch_cost_bench.dart
+//     dart run tool/blob_batch_cost_bench.dart corpus.json [--batch]
 //
 // It drives the real handler in-process with the rate limits lifted, against a
-// real store on disk, populated with canonical blobs from
-// `sync_bench_corpus.dart`. Numbers are medians over many requests on a warm
+// real store on disk, populated with the canonical blobs
+// `packages/compendium_core/tool/sync_bench_corpus.dart` writes, passed as the
+// first argument. Numbers are medians over many requests on a warm
 // process: they compare designs on one machine and are not capacity figures.
 import 'dart:convert';
 import 'dart:io';
@@ -16,15 +17,11 @@ import 'package:callers_compendium_server/callers_compendium_server.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:shelf/shelf.dart';
 
-import 'sync_bench_corpus.dart';
-
 const _syncId = 'alpha-beta-gamma-delta';
 const _iterations = 3000;
 
 Future<void> main(List<String> arguments) async {
-  final records = arguments.isEmpty ? 1000 : int.parse(arguments.first);
-  final root = Directory.current.parent.path;
-  final library = buildBenchLibrary(records, repositoryRoot: root);
+  final library = _readCorpus(arguments.first);
   _reportSizes(library);
 
   final directory = await Directory.systemTemp.createTemp('blob-batch-bench-');
@@ -243,3 +240,24 @@ Uint8List _hexToBytes(String hex) => Uint8List.fromList([
 
 Uint8List _u32(int value) =>
     Uint8List(4)..buffer.asByteData().setUint32(0, value);
+
+/// One record of a library `packages/compendium_core/tool/sync_bench_corpus.dart`
+/// wrote.
+final class BenchBlob {
+  BenchBlob(this.kind, this.id, this.bytes) : hash = sha256Hex(bytes);
+
+  final SyncRecordKind kind;
+  final String id;
+  final Uint8List bytes;
+  final String hash;
+}
+
+List<BenchBlob> _readCorpus(String path) => [
+  for (final record
+      in (jsonDecode(File(path).readAsStringSync()) as Map)['records'] as List)
+    BenchBlob(
+      SyncRecordKind.values.byName((record as Map)['kind'] as String),
+      record['id'] as String,
+      base64.decode(record['blob'] as String),
+    ),
+];
