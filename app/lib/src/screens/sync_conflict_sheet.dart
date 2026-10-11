@@ -309,6 +309,8 @@ class _SyncConflictChoiceState extends State<SyncConflictChoice> {
           SyncReviewFailureCode.combineUnavailable =>
             l10n.syncConflictCombineUnavailable,
           _ when reconsidering => l10n.syncConflictUndoChanged,
+          SyncReviewFailureCode.candidateInvalid =>
+            l10n.syncReviewCandidateInvalid,
           _ => l10n.syncReviewCandidateChanged,
         },
       );
