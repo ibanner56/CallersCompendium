@@ -626,4 +626,73 @@ void main() {
       expect(await repositories.settings.get('theme_mode'), 'system');
     });
   });
+
+  group('a copy still filed under an id merged away', () {
+    // Two devices each created the same choreographer, and natural-key
+    // reconciliation kept this device's id: the other device still publishes
+    // its copy under its own id, which the coordinator files under the
+    // surviving one. Reconciliation stamps the survivor with that copy's
+    // `updatedAt`, so the two tie.
+    const address = (kind: SyncRecordKind.choreographer, recordId: 'c1');
+
+    Future<SyncMergeCandidate> mergedAwayCopy(
+      Map<String, Object?> Function(Map<String, Object?> body) edit,
+    ) async {
+      // ignore: unused_result
+      await repositories.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Seth Tepfer'),
+        at: tie,
+      );
+      await repositories.syncLocal.upsertAlias(
+        kind: SyncRecordKind.choreographer,
+        losingId: 'c2',
+        survivingId: 'c1',
+      );
+      final local = await localCandidate(address);
+      return SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.choreographer,
+          id: 'c2',
+          updatedAt: local.updatedAt,
+          deletedAt: null,
+          existenceAt: local.existenceAt,
+          body: edit({...local.blob.body, 'id': 'c2'}),
+        ),
+        peerId: 'peer',
+      );
+    }
+
+    test('is not a conflict when only the id differs', () async {
+      final peer = await mergedAwayCopy((body) => body);
+
+      final plan = await mergeAndQueue(address, [peer]);
+
+      expect(plan.reviews, isEmpty);
+      expect(await queued(), isEmpty);
+    });
+
+    for (final keepOther in [false, true]) {
+      test('can be decided either way when its content differs '
+          '(keeping ${keepOther ? 'the other' : 'this'} device\'s)', () async {
+        final peer = await mergedAwayCopy(
+          (body) => {...body, 'notes': 'from the other device'},
+        );
+        await mergeAndQueue(address, [peer]);
+        final row = (await queued()).single;
+
+        await storage.resolveConflicts([
+          SyncConflictDecision(
+            kind: SyncRecordKind.choreographer,
+            recordId: 'c1',
+            keepCandidateHash: keepOther ? row.candidateHash : null,
+          ),
+        ]);
+
+        expect(await queued(), isEmpty);
+        final kept = await repositories.choreographers.getById('c1');
+        expect(kept?.notes, keepOther ? 'from the other device' : isNull);
+        expect(await repositories.choreographers.getById('c2'), isNull);
+      });
+    }
+  });
 }

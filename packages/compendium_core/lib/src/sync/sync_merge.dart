@@ -22,6 +22,14 @@ class SyncMergeCandidate {
 
   String get bodyHash => contentHash(blob.body);
 
+  /// Hashes the body without its `id`, for comparing copies of one address.
+  ///
+  /// A peer's copy of a record whose id this device merged away (an alias,
+  /// §4.1) is filed under the surviving id but still names its own: the same
+  /// content under two ids is one record, not a tie for the user to decide.
+  String get identityFreeBodyHash =>
+      contentHash(Map<String, Object?>.from(blob.body)..remove('id'));
+
   /// Hashes user content for quarantine repair agreement.
   ///
   /// Archive-shaped dance and program bodies repeat the envelope's timestamp
@@ -675,7 +683,7 @@ class SyncMergeEngine {
         .where((candidate) => candidate.updatedAt == maximumUpdated)
         .toList(growable: false);
     final hashes = updatedWinners
-        .map((candidate) => candidate.bodyHash)
+        .map((candidate) => candidate.identityFreeBodyHash)
         .toSet();
     if (hashes.length > 1) {
       // A live tie goes to the user (§6.3): there is no newer edit to prefer,

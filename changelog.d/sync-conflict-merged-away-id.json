@@ -1,0 +1,14 @@
+{
+  "id": "sync-conflict-merged-away-id",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A record created on two devices under the same name, such as a choreographer, no longer asks you to choose between two identical versions after sync merges them, and a choice between differing versions of one is saved instead of failing with \"The saved peer change is no longer current\" whichever version you pick."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "The merge no longer raises a conflict between copies of one record that differ only in an id merged away by natural-key reconciliation, and resolveConflicts accepts an offered version filed under the id it was merged into."
+    ]
+  }
+}

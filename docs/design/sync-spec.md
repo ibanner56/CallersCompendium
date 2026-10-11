@@ -2326,6 +2326,15 @@ republishes, which is an ordinary upload and needs no special path.
    edit without asking, which is the outcome this row exists to prevent
    (@ibanner56's ruling, 2026-10-02).
 
+   "Differing bodies" is compared without the body's `id`. A peer's copy of a
+   record whose id natural-key reconciliation merged away (§6.6, `id_aliases`) is
+   evaluated under the surviving id but still names its own, and the
+   reconciled survivor carries that copy's `updatedAt`; counting the id as
+   content would queue the same record against itself for a choice, and the
+   choice could not be applied. Such a copy, when its content does differ, is
+   offered under the surviving id and written through the apply engine, which
+   rewrites its id to the survivor.
+
    **Whole-collection settings.** Four settings keys hold a whole user-built
    collection behind one key: `custom_dialects`, `custom_themes`,
    `shorthand_mappings` and `walkthrough_snippets`. For these, a
