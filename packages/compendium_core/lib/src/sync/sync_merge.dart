@@ -524,6 +524,7 @@ class SyncMergeEngine {
           freshAttach: freshAttach,
           decidedAgainst: decidedAgainst[address] ?? const {},
           aliases: aliases,
+          address: address,
         );
         if (resolution.conflict != null) {
           decisions.add(
@@ -561,6 +562,7 @@ class SyncMergeEngine {
         freshAttach: freshAttach,
         decidedAgainst: decidedAgainst[address] ?? const {},
         aliases: aliases,
+        address: address,
       );
       if (resolution.conflict != null) {
         decisions.add(
@@ -622,6 +624,7 @@ class SyncMergeEngine {
     required bool freshAttach,
     required Set<String> decidedAgainst,
     required Map<SyncRecordKind, Map<String, String>> aliases,
+    required SyncRecordAddress address,
   }) {
     final candidates = [?local, ...remotes];
     final maximumExistence = candidates
@@ -683,9 +686,14 @@ class SyncMergeEngine {
     final updatedWinners = contentCandidates
         .where((candidate) => candidate.updatedAt == maximumUpdated)
         .toList(growable: false);
-    final hashes = updatedWinners
-        .map((candidate) => _contentHash(candidate, aliases))
-        .toSet();
+    // One version is the common case: nothing to compare.
+    final contentHashes = updatedWinners.length == 1
+        ? const <SyncMergeCandidate, String>{}
+        : {
+            for (final candidate in updatedWinners)
+              candidate: _contentHash(candidate, aliases),
+          };
+    final hashes = contentHashes.values.toSet();
     var invisibleTie = false;
     if (hashes.length > 1) {
       // A live tie goes to the user (§6.3): there is no newer edit to prefer,
@@ -724,34 +732,65 @@ class SyncMergeEngine {
       );
     }
 
-    // Prefer local only when it has the same content. This keeps the result
-    // deterministic without inventing a tie-break for differing bodies.
-    // A tie in nothing the user is shown keeps the body whose identity-free hash is lowest:
-    // every device holds the same versions, whatever ids they file them
-    // under, so every device keeps the same one and the tie does not return.
-    final keptBody = invisibleTie
-        ? (hashes.toList()..sort()).first
-        : hashes.single;
-    final keptBodies = updatedWinners
-        .where((candidate) => _contentHash(candidate, aliases) == keptBody)
-        .toList(growable: false);
-    final contentWinner = keptBodies.firstWhere(
-      (candidate) => identical(candidate, local),
-      orElse: () => keptBodies.first,
-    );
+    // Among tied copies, keep content every device would keep: the same
+    // content when there is one (copies differing only in ids, which are one
+    // record), else — a tie in nothing the user is shown — the content whose
+    // hash is lowest, since every device holds the same versions whatever
+    // ids it files them under. Of the copies holding that content, prefer
+    // this device's (nothing to write), then one already filed under this
+    // address, then the lowest wire hash, so the pick never depends on peer
+    // order.
+    final keptBody = hashes.isEmpty ? null : (hashes.toList()..sort()).first;
+    final keptBodies =
+        updatedWinners
+            .where(
+              (candidate) =>
+                  keptBody == null || contentHashes[candidate] == keptBody,
+            )
+            .toList()
+          ..sort((left, right) {
+            int rank(SyncMergeCandidate candidate) =>
+                identical(candidate, local)
+                ? 0
+                : candidate.blob.id == address.recordId
+                ? 1
+                : 2;
+            final byRank = rank(left).compareTo(rank(right));
+            return byRank != 0
+                ? byRank
+                : left.wireHash.compareTo(right.wireHash);
+          });
+    final contentWinner = keptBodies.first;
     final existenceWinner = existenceWinners.firstWhere(
       (candidate) => candidate.isDeleted,
       orElse: () => existenceWinners.first,
     );
+    // A tied copy kept from another device is filed as this device would
+    // store it — under this address, citing surviving ids — so applying it
+    // changes nothing reconciliation would rewrite. Rewriting there would
+    // re-stamp it as a new edit and every device would download a version
+    // nobody made; and the write is guarded under this address.
+    var winnerId = contentWinner.blob.id;
+    var winnerBody = contentWinner.blob.body;
+    if (updatedWinners.length > 1 && !identical(contentWinner, local)) {
+      if (aliases.isNotEmpty) {
+        winnerBody = rewriteSyncInboundReferences(winnerBody, aliases);
+      }
+      if (winnerId != address.recordId &&
+          address.kind != SyncRecordKind.setting) {
+        winnerId = address.recordId;
+        winnerBody = {...winnerBody, 'id': address.recordId};
+      }
+    }
     final winner = SyncMergeCandidate.fromBlob(
       SyncRecordBlob(
         v: contentWinner.blob.v,
         kind: contentWinner.blob.kind,
-        id: contentWinner.blob.id,
+        id: winnerId,
         updatedAt: contentWinner.updatedAt,
         deletedAt: existenceWinner.blob.deletedAt,
         existenceAt: existenceWinner.existenceAt,
-        body: contentWinner.blob.body,
+        body: winnerBody,
       ),
       peerId: contentWinner.peerId,
     );

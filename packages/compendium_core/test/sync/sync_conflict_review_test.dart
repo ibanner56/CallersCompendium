@@ -676,6 +676,96 @@ void main() {
       expect(await queued(), isEmpty);
     });
 
+    test('kept in a tie in nothing the user is shown is stored under the '
+        'surviving id, not re-stamped, and the tie does not return', () async {
+      const dance = (kind: SyncRecordKind.dance, recordId: 'd1');
+      await repositories.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Hey Day',
+          createdAt: tie,
+          updatedAt: tie,
+          provenance: Provenance(
+            source: ProvenanceSource.contradb,
+            importedAt: tie,
+          ),
+        ),
+      );
+      await repositories.syncLocal.upsertAlias(
+        kind: SyncRecordKind.dance,
+        losingId: 'd2',
+        survivingId: 'd1',
+      );
+      const aliases = {
+        SyncRecordKind.dance: {'d2': 'd1'},
+      };
+      final local = await localCandidate(dance);
+      String contentOf(Map<String, Object?> body) =>
+          contentHash(Map<String, Object?>.from(body)..remove('id'));
+      // The other device's copy, under the merged-away id, differing only in
+      // when it was imported — picked so that it is the one kept.
+      late SyncMergeCandidate peer;
+      for (var day = 1; ; day++) {
+        final provenance = Map<String, Object?>.from(
+          local.blob.body['provenance']! as Map,
+        );
+        provenance['importedAt'] = (provenance['importedAt']! as String)
+            .replaceFirst('2026-09-30', '2026-08-${'$day'.padLeft(2, '0')}');
+        final body = {...local.blob.body, 'id': 'd2', 'provenance': provenance};
+        if (contentOf(body).compareTo(contentOf(local.blob.body)) < 0) {
+          peer = SyncMergeCandidate.fromBlob(
+            SyncRecordBlob(
+              kind: SyncRecordKind.dance,
+              id: 'd2',
+              updatedAt: local.updatedAt,
+              deletedAt: null,
+              existenceAt: local.existenceAt,
+              body: body,
+            ),
+            peerId: 'peer',
+          );
+          break;
+        }
+      }
+      SyncMergeDecision decide(SyncMergeCandidate mine) => engine
+          .plan(
+            local: {dance: mine},
+            baseline: const {},
+            peers: [
+              {dance: peer},
+            ],
+            aliases: aliases,
+          )
+          .decisions
+          .single;
+
+      final decision = decide(local);
+      expect(decision.action, SyncMergeAction.download);
+      expect(decision.winner!.blob.id, 'd1');
+      expect(decision.winner!.blob.body['id'], 'd1');
+
+      final result = await SyncApplyEngine(now: () => tie).apply(
+        candidates: [decision.winner!],
+        storage: storage,
+        expectedWireHashes: {dance: local.wireHash},
+      );
+
+      expect(result.applied, [dance]);
+      final stored = await localCandidate(dance);
+      expect(
+        stored.updatedAt,
+        local.updatedAt,
+        reason: 'settling a tie is not a new edit',
+      );
+      expect(
+        (stored.blob.body['provenance']! as Map)['importedAt'],
+        (peer.blob.body['provenance']! as Map)['importedAt'],
+      );
+      expect(await repositories.dances.getById('d2'), isNull);
+      expect(decide(stored).action, isNot(SyncMergeAction.download));
+      expect(decide(stored).action, isNot(SyncMergeAction.review));
+    });
+
     test('queued before the merge stopped raising it, is not offered or '
         'counted', () async {
       // What an earlier version of the merge queued for exactly this case.
