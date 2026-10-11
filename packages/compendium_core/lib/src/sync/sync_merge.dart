@@ -58,10 +58,11 @@ class SyncMergeCandidate {
 /// The action required for one address after comparing all available copies.
 ///
 /// [review] leaves both sides untouched and hands the user the choice
-/// (sync-spec §6.3): differing bodies at an equal `updatedAt`, which no
-/// convergent rule may decide on the user's behalf, and a changed/changed
-/// conflict on a whole-collection setting, where last-writer-wins would discard
-/// one device's entire set.
+/// (sync-spec §6.3): bodies at an equal `updatedAt` that differ in what the
+/// user is shown, which no convergent rule may decide on the user's behalf (a
+/// tie in nothing the user is shown is settled instead), and a changed/changed
+/// conflict on a whole-collection setting, where last-writer-wins would
+/// discard one device's entire set.
 enum SyncMergeAction { none, upload, download, report, review, dropBaseline }
 
 /// The settings keys whose single value is a whole user-built collection.
@@ -82,7 +83,8 @@ const Set<String> syncWholeCollectionSettingKeys = {
 /// A conflict the user must decide: the versions on offer for one record.
 ///
 /// [local] is this device's live copy, when it holds one. [candidates] are the
-/// other versions, one per distinct body, each the newest copy of that body.
+/// other versions, one per version that looks different from [local] and from
+/// each other ([syncUserVisibleBody]), each the newest copy of what it shows.
 /// Neither is applied; storage queues them for review (sync-spec §6.6).
 class SyncMergeConflict {
   const SyncMergeConflict({
@@ -724,7 +726,7 @@ class SyncMergeEngine {
 
     // Prefer local only when it has the same content. This keeps the result
     // deterministic without inventing a tie-break for differing bodies.
-    // An invisible tie keeps the body whose identity-free hash is lowest:
+    // A tie in nothing the user is shown keeps the body whose identity-free hash is lowest:
     // every device holds the same versions, whatever ids they file them
     // under, so every device keeps the same one and the tie does not return.
     final keptBody = invisibleTie

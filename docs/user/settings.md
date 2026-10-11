@@ -800,6 +800,11 @@ edited on both a laptop and a phone. The app can't tell which change you meant
 to keep, so it doesn't pick one: both versions stay as they are, and it asks
 you.
 
+It only asks when the versions differ in something you can see. When they look
+exactly the same — the same choreographer added on two devices before they
+synced, say — the app keeps one of them for you, the same one on every device,
+and doesn't ask.
+
 - On the **Collection** and **Programs** pages, the **Sync now** button shows a
   number badge while anything is waiting for your choice. When a sync you
   started finds something new to choose, the choice opens straight away.
@@ -826,7 +831,8 @@ comparison shows:
   B2), and figures that match aren't repeated; when a figure reads the same in
   both, its note, its own walkthrough or wording, or its beats show what
   differs. Links show where they go, what kind they are and whether they join
-  the related-dance group; published sources show their page and number;
+  the related-dance group; published sources show their page and number; and
+  **Imported from** shows where the dance came from and its licence;
 - for a program: each detail that differs, then the dances only one version
   has (a dance is matched by which dance it is, not its title, and repeats are
   counted), whether the dances they share are in a different order, and

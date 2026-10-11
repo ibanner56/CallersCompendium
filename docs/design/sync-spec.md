@@ -2326,14 +2326,27 @@ republishes, which is an ordinary upload and needs no special path.
    edit without asking, which is the outcome this row exists to prevent
    (@ibanner56's ruling, 2026-10-02).
 
-   "Differing bodies" is compared without the body's `id`. A peer's copy of a
-   record whose id natural-key reconciliation merged away (§6.6, `id_aliases`) is
+   The choice is put to the user only when the tied versions differ in
+   something the user is shown. Bodies are compared as this device would
+   store them: without the body's own `id`, and with references to records
+   natural-key reconciliation merged away (§6.6, `id_aliases`) read as the
+   records they were merged into. A peer's copy of a merged-away record is
    evaluated under the surviving id but still names its own, and the
-   reconciled survivor carries that copy's `updatedAt`; counting the id as
-   content would queue the same record against itself for a choice, and the
-   choice could not be applied. Such a copy, when its content does differ, is
-   offered under the surviving id and written through the apply engine, which
-   rewrites its id to the survivor.
+   reconciled survivor carries that copy's `updatedAt`, so counting either id
+   as content would queue a record against itself. Versions whose
+   user-visible fields (`syncUserVisibleBody` in
+   `packages/compendium_core/lib/src/sync/sync_conflict_compare.dart`: the
+   fields the conflict comparison shows, plus a dance's import source and
+   licence, which its page shows) are equal but whose other content differs —
+   provenance details, say — are settled without the user: every device keeps
+   the version whose content hash is lowest, so all of them keep the same one.
+   That is the convergent rule the ruling above forbids, applied only where
+   choosing is arbitrary because nothing the user could weigh differs; the
+   exception was requested by the user on 2026-10-11 (PR that introduced it).
+   Where several versions are offered, one that looks the same as this
+   device's or as another offered version is not shown. A version offered
+   from a merged-away copy is written through the apply engine, which rewrites
+   its id to the survivor.
 
    **Whole-collection settings.** Four settings keys hold a whole user-built
    collection behind one key: `custom_dialects`, `custom_themes`,
@@ -5148,7 +5161,9 @@ The following are recorded as known and are not specified here:
   §6.3). It is queued for the user's choice on every device that sees it, and
   converges once anyone decides; until then the devices differ. No automatic
   rule decides it: the non-convergent ones disagree forever, and a convergent
-  one discards an edit without asking (@ibanner56's ruling, 2026-10-02).
+  one discards an edit without asking (@ibanner56's ruling, 2026-10-02). The
+  one exception is a tie in which nothing the user is shown differs, which a
+  convergent rule settles (§6.3).
   §6.10's dance merge is not an exception: having already collapsed two rows
   into one, it has the surviving UUID to order by, and takes that row's value.
   These paths differ in what they can still decline to do, not in how they read

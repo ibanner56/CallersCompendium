@@ -370,6 +370,12 @@ newest `updatedAt` wins.
 > other device as an ordinary newer edit (spec §6.3, §6.6 *Conflict choices*).
 > Keeping this device's own version re-stamps an unchanged body, the one write
 > spec invariant I2 now permits for that reason (§6.5).
+>
+> *Amended 2026-10-11:* a tie in which nothing the user is shown differs —
+> the same record under a merged-away id, say, or differing only in import
+> details — is no longer offered: choosing there is arbitrary, so the
+> lower-hash rule settles it (spec §6.3). The ruling above still holds
+> wherever the user could tell the versions apart.
 
 **Absence never means deletion.** Deletions travel as `deletedAt` tombstones.
 `Dances` and `Programs` carry `deletedAt` today; the sync migration adds it to the other
