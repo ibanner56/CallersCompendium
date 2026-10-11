@@ -164,16 +164,19 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
 
 /// The labelled fields that differ between [local] and [other], or every
 /// differing field when the kind has no labels (shown by their own names).
+/// Both are compared as [syncUserVisibleBody] reads them, with [aliases], so
+/// a reference to a merged-away record is not a difference.
 List<({String key, String label})> syncConflictDifferingFields(
   AppLocalizations l10n,
   SyncRecordKind kind,
   Map<String, Object?>? local,
-  Map<String, Object?>? other,
-) {
+  Map<String, Object?>? other, {
+  Map<SyncRecordKind, Map<String, String>> aliases = const {},
+}) {
   final labels = _fieldLabels(l10n, kind);
   final differing = syncDifferingFields(
-    local == null ? null : syncUserVisibleBody(kind, local),
-    other == null ? null : syncUserVisibleBody(kind, other),
+    local == null ? null : syncUserVisibleBody(kind, local, aliases: aliases),
+    other == null ? null : syncUserVisibleBody(kind, other, aliases: aliases),
   ).toSet();
   if (labels.isEmpty) {
     return [for (final key in differing) (key: key, label: key)];
@@ -217,6 +220,7 @@ String? syncConflictSummary(
     group.kind,
     group.localBody,
     other,
+    aliases: group.aliases,
   );
   if (fields.isEmpty) return null;
   const shown = 3;
@@ -291,6 +295,7 @@ class SyncConflictComparison extends StatelessWidget {
       group.kind,
       group.localBody,
       other,
+      aliases: group.aliases,
     );
     if (fields.isEmpty) {
       return [_note(context, l10n.syncConflictNothingToShow)];
@@ -737,18 +742,35 @@ class SyncConflictComparison extends StatelessWidget {
     if (value == null || value == '' || (value is List && value.isEmpty)) {
       return l10n.syncConflictValueNotSet;
     }
-    String names(Map<String, String> lookup) => [
+    // A version may still cite a record merged into another: name the one
+    // it became.
+    String current(SyncRecordKind kind, Object? id) {
+      final links = group.aliases[kind] ?? const <String, String>{};
+      var resolved = '$id';
+      final seen = {resolved};
+      for (var next = links[resolved]; next != null; next = links[resolved]) {
+        if (!seen.add(next)) break;
+        resolved = next;
+      }
+      return resolved;
+    }
+
+    String names(Map<String, String> lookup, SyncRecordKind kind) => [
       for (final id in value as List)
-        lookup[id] ?? l10n.syncConflictUnknownItem,
+        lookup[current(kind, id)] ?? l10n.syncConflictUnknownItem,
     ].join(', ');
     try {
       switch (key) {
         case 'authorIds':
-          return names(lookups.choreographers);
+          return names(lookups.choreographers, SyncRecordKind.choreographer);
         case 'tagIds':
-          return names(lookups.tags);
+          return names(lookups.tags, SyncRecordKind.tag);
         case 'difficultyLevelId':
-          return lookups.levels[value] ?? l10n.syncConflictUnknownItem;
+          return lookups.levels[current(
+                SyncRecordKind.difficultyLevel,
+                value,
+              )] ??
+              l10n.syncConflictUnknownItem;
         case 'venueId':
           return lookups.venues[value] ?? l10n.syncConflictUnknownItem;
         case 'form':

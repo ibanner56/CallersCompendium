@@ -339,6 +339,38 @@ void main() {
   });
 
   group('showing what differs', () {
+    test('a reference to a merged-away record is not a difference', () {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      List<String> differing({
+        Map<SyncRecordKind, Map<String, String>> aliases = const {},
+      }) => [
+        for (final field in syncConflictDifferingFields(
+          l10n,
+          SyncRecordKind.dance,
+          {
+            'title': 'Hey Day',
+            'authorIds': ['c1'],
+          },
+          {
+            'title': 'Hey Day!',
+            'authorIds': ['c2'],
+          },
+          aliases: aliases,
+        ))
+          field.key,
+      ];
+
+      expect(
+        differing(
+          aliases: {
+            SyncRecordKind.choreographer: {'c2': 'c1'},
+          },
+        ),
+        ['title'],
+      );
+      expect(differing(), ['title', 'authorIds']);
+    });
+
     test('shows exactly the fields the merge treats as visible, so a tie in '
         'any other field is never put to the user', () {
       final l10n = lookupAppLocalizations(const Locale('en'));

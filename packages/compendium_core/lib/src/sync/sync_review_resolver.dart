@@ -1,7 +1,8 @@
 import '../storage/database.dart' show ReviewQueueRow;
 import 'canonical_json.dart' show sha256Hex;
 import 'sync_codec.dart';
-import 'sync_conflict_compare.dart' show syncUserVisibleContentHash;
+import 'sync_conflict_compare.dart'
+    show syncUserVisibleBody, syncUserVisibleContentHash;
 import 'sync_record_kind.dart';
 import 'wire_mapping.dart' show projectShareableRecordBody;
 import 'sync_review.dart';
@@ -14,7 +15,10 @@ import 'sync_storage.dart';
 /// fields that stay on this device — or null when this device holds no live
 /// copy (two other devices tied). [localUpdatedAt] is when this device last
 /// changed it. [candidates] are the other versions on offer, one queue row
-/// each.
+/// each. [aliases] maps each id merged away by natural-key reconciliation to
+/// the id it was merged into, by kind: another device's version may still
+/// cite a merged-away id, and a comparison reads it as the record it became
+/// ([syncUserVisibleBody]).
 class SyncConflictGroup {
   const SyncConflictGroup({
     required this.kind,
@@ -22,6 +26,7 @@ class SyncConflictGroup {
     required this.localBody,
     required this.candidates,
     this.localUpdatedAt,
+    this.aliases = const {},
   });
 
   final SyncRecordKind kind;
@@ -29,6 +34,7 @@ class SyncConflictGroup {
   final Map<String, Object?>? localBody;
   final DateTime? localUpdatedAt;
   final List<SyncReviewQueueItem> candidates;
+  final Map<SyncRecordKind, Map<String, String>> aliases;
 }
 
 /// Coordinates the persisted queue with the production sync storage adapter.
@@ -138,6 +144,7 @@ final class SyncReviewQueueResolver {
               ? null
               : await storage.recordUpdatedAt(address),
           candidates: List.unmodifiable(distinct),
+          aliases: aliases,
         ),
       );
     }
