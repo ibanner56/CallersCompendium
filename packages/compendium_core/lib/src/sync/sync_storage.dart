@@ -1589,6 +1589,7 @@ final class CompendiumSyncStorage
       for (final row in queue)
         if (row.reason == syncConflictChoiceCopyReason) row,
     ];
+    final aliases = await _aliasMap();
     final plans = <_ConflictChoicePlan>[];
     for (final decision in decisions) {
       final address = (kind: decision.kind, recordId: decision.recordId);
@@ -1615,10 +1616,13 @@ final class CompendiumSyncStorage
             SyncReviewFailureCode.candidateInvalid,
           );
         }
+        // A peer's copy of a record merged into this one keeps its own id
+        // (filed under the surviving one by the coordinator); the write below
+        // goes through the apply engine, which rewrites it to the survivor.
         if (sha256Hex(encodeSyncRecordBlobUtf8(blob)) != row.candidateHash ||
             row.counterpartId != row.candidateHash ||
             blob.kind != decision.kind ||
-            blob.id != decision.recordId ||
+            _resolveInMap(blob.id, aliases[blob.kind]) != decision.recordId ||
             blob.deletedAt != null) {
           throw const SyncReviewException(
             SyncReviewFailureCode.candidateInvalid,
