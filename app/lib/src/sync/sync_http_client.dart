@@ -549,6 +549,8 @@ class SyncHttpClient {
       }
       reader.close();
     } on SyncBlobBatchFormatException {
+      // diagnostics: silent — rethrown as the transport's own malformed-reply
+      // exception, which fails the pass and reaches the log there.
       throw const SyncEndpointException('malformed blob batch response');
     }
     if (!reader.isComplete) {
