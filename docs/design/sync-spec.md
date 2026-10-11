@@ -2345,8 +2345,10 @@ republishes, which is an ordinary upload and needs no special path.
    omission. Such a tie is settled the same way everywhere: every device keeps
    the version whose content hash is lowest, so all of them keep the same one.
    That is the convergent rule the ruling above forbids, applied only where
-   choosing is arbitrary because nothing the user could weigh differs; the
-   exception was requested by the user on 2026-10-11 (PR that introduced it).
+   choosing is arbitrary because nothing the user could weigh differs. The
+   exception is not part of that ruling: it was requested in
+   [PR #1729](https://github.com/ibanner56/CallersCompendium/pull/1729)
+   (2026-10-11), and is the owner's to keep or reverse there.
    Where several versions are offered, one that looks the same as this
    device's or as another offered version is not shown. A version offered
    from a merged-away copy is written through the apply engine, which rewrites
@@ -2907,12 +2909,16 @@ reason:
 - one row per offered version that is not this device's own, with `record_id`
   the record itself and `counterpart_id` the version's wire hash, so the
   primary key stays unique however many devices disagree;
-- `candidate_blob` holding that version, newest copy per distinct body;
+- `candidate_blob` holding that version: the newest copy of each version that
+  looks different from this device's and from each other (§6.3, compared by
+  what the user is shown);
 - `local_hash` holding this device's wire hash when the row was queued, null
   when this device holds no live copy;
 - one further row, under a reason of its own and never listed, for every other
-  copy on offer that is not shown: an older copy of a shown body, or another
-  device's copy of this device's body, each under its own wire hash. Two devices
+  copy on offer that is not shown: an older copy of a shown version, or a copy
+  that looks the same as this device's or a shown version (the same body, or
+  one differing only in fields the user is not shown), each under its own wire
+  hash. Two devices
   holding one body at different stamps publish two hashes. Deciding goes against
   both copies, so both have to be known when the choice is written (below).
 

@@ -375,7 +375,9 @@ newest `updatedAt` wins.
 > the same record under a merged-away id, say, or differing only in import
 > details — is no longer offered: choosing there is arbitrary, so the
 > lower-hash rule settles it (spec §6.3). The ruling above still holds
-> wherever the user could tell the versions apart.
+> wherever the user could tell the versions apart. Requested in
+> [PR #1729](https://github.com/ibanner56/CallersCompendium/pull/1729); not
+> part of the ruling.
 
 **Absence never means deletion.** Deletions travel as `deletedAt` tombstones.
 `Dances` and `Programs` carry `deletedAt` today; the sync migration adds it to the other

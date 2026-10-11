@@ -97,8 +97,9 @@ class SyncMergeConflict {
   final List<SyncMergeCandidate> candidates;
 
   /// The wire hashes of every other copy on offer that is not shown: an older
-  /// copy of a body in [candidates], or another device's copy of [local]'s
-  /// body. Never [local]'s own hash or a shown candidate's. A choice goes
+  /// copy of a version in [candidates], or a copy that looks the same as
+  /// [local] or a shown candidate ([syncUserVisibleBody]). Never [local]'s own
+  /// hash or a shown candidate's. A choice goes
   /// against these too, so they are recorded with it; recording only the
   /// shown copies would let a hidden one raise the choice again.
   final Set<String> copies;

@@ -338,9 +338,12 @@ void main() {
         'authorIds': ['c2'],
       });
 
+      final decision = decide(mine, theirs, aliases: mergedAway);
+      // The same content: this device's copy stands and is published.
+      expect(decision.action, SyncMergeAction.upload);
       expect(
-        decide(mine, theirs, aliases: mergedAway).action,
-        isNot(SyncMergeAction.review),
+        decision.winner!.wireHash,
+        SyncMergeCandidate.fromBlob(mine).wireHash,
       );
       expect(decide(mine, theirs).action, SyncMergeAction.review);
     });
@@ -409,10 +412,14 @@ void main() {
         'provenance': {'source': 'contradb', 'importedAt': '2026-02-01'},
       });
 
+      final decision = decide(mine, theirs, aliases: mergedAway);
+      // Settled, one way or the other by content hash, with a winner that
+      // cites the surviving record.
       expect(
-        decide(mine, theirs, aliases: mergedAway).action,
-        isNot(SyncMergeAction.review),
+        decision.action,
+        anyOf(SyncMergeAction.upload, SyncMergeAction.download),
       );
+      expect(decision.winner!.blob.body['authorIds'], ['c1']);
     });
 
     test('is still asked when a field the user is shown differs', () {

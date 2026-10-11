@@ -254,8 +254,10 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
 Map<String, String> syncUserHiddenFields(SyncRecordKind kind) => switch (kind) {
   SyncRecordKind.dance => const {
     'provenance.externalId':
-        'The source site\'s own id for the dance, used only to recognise a '
-        're-import; nothing displays it.',
+        'The source site\'s own id for the dance. Never displayed; online '
+        'search uses it (with the source) to mark a result as already in the '
+        'collection, a hint rather than a field. Hidden by choice in PR '
+        '#1729.',
     'provenance.importedAt':
         'When this copy was imported; nothing displays it for a dance.',
     'provenance.permission':
@@ -266,9 +268,10 @@ Map<String, String> syncUserHiddenFields(SyncRecordKind kind) => switch (kind) {
   SyncRecordKind.program => const {
     'provenance':
         'Where an imported program came from. The program pages do not show '
-        'it; the ContraDB import screen uses it only to badge a program as '
-        'already imported, with the import date in that badge\'s tooltip, '
-        'and either version earns the same badge.',
+        'it; the ContraDB import screen uses its source and id to badge a '
+        'program as already imported, with the import date in the badge\'s '
+        'tooltip. A hint on another screen rather than a field of the '
+        'program: hidden by choice in PR #1729.',
   },
   SyncRecordKind.venue => const {
     'provenance':
@@ -323,7 +326,11 @@ String syncUserVisibleContentHash(
   Map<SyncRecordKind, Map<String, String>> aliases = const {},
 }) => contentHash(syncUserVisibleBody(kind, body, aliases: aliases));
 
-/// Fields every version of a record carries its own of: never compared.
+/// Identity and timestamps, never compared between versions: each copy
+/// names its own id, and its stamps decide a tie rather than being what it
+/// is decided between. `createdAt` does order the collection's "Recently
+/// added" sort, and is left out by choice (PR #1729): which of two creation
+/// times a record keeps is not a choice a person can weigh.
 const Set<String> syncIdentityAndTimestampFields = {
   'id',
   'createdAt',
