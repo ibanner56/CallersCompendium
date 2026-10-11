@@ -520,6 +520,54 @@ void main() {
       );
     });
 
+    test("is not asked when a link's or a slot's dance differs only by a "
+        'merged-away dance id', () {
+      const deduped = {
+        SyncRecordKind.dance: {'d9': 'd2'},
+      };
+      Map<String, Object?> link(String target) => {
+        'id': 'l1',
+        'kind': 'link',
+        'label': null,
+        'url': null,
+        'targetDanceId': target,
+        'transitive': true,
+      };
+      final mine = record(SyncRecordKind.dance, 'd1', {
+        'title': 'Hey Day',
+        'links': [link('d2')],
+      });
+      final theirs = record(SyncRecordKind.dance, 'd1', {
+        'title': 'Hey Day',
+        'links': [link('d9')],
+      });
+      expect(
+        decide(mine, theirs, aliases: deduped).action,
+        SyncMergeAction.upload,
+      );
+      expect(decide(mine, theirs).action, SyncMergeAction.review);
+
+      Map<String, Object?> slot(String dance) => {
+        'id': 's1',
+        'position': 0,
+        'danceId': dance,
+        'text': null,
+      };
+      final myProgram = record(SyncRecordKind.program, 'p1', {
+        'title': 'Saturday',
+        'slots': [slot('d2')],
+      });
+      final theirProgram = record(SyncRecordKind.program, 'p1', {
+        'title': 'Saturday',
+        'slots': [slot('d9')],
+      });
+      expect(
+        decide(myProgram, theirProgram, aliases: deduped).action,
+        SyncMergeAction.upload,
+      );
+      expect(decide(myProgram, theirProgram).action, SyncMergeAction.review);
+    });
+
     test('is still asked when a field the user is shown differs', () {
       final mine = record(SyncRecordKind.choreographer, 'c1', {
         'name': 'Seth Tepfer',

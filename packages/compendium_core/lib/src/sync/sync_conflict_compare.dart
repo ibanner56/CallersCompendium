@@ -323,9 +323,7 @@ Map<String, Object?> syncUserVisibleBody(
   Map<String, Object?> body, {
   Map<SyncRecordKind, Map<String, String>> aliases = const {},
 }) {
-  final resolved = aliases.isEmpty
-      ? body
-      : rewriteSyncInboundReferences(body, aliases);
+  final resolved = syncResolveComparedReferences(body, aliases);
   final visible = syncUserVisibleFields(kind);
   Object? shown(String key, Object? value) {
     final parts = {
@@ -353,6 +351,55 @@ Map<String, Object?> syncUserVisibleBody(
           : visible.contains(entry.key))
         entry.key: shown(entry.key, entry.value),
   };
+}
+
+/// [body] with every reference to a record merged away by natural-key
+/// reconciliation or dance deduplication ([aliases], losing id to surviving
+/// id) read as the record it was merged into: what inbound apply rewrites
+/// ([rewriteSyncInboundReferences]), and also the dances a dance's links and
+/// a program's slots cite. For comparing versions and naming what they cite;
+/// it does not change what apply writes. Returns [body] itself when there are
+/// no aliases.
+Map<String, Object?> syncResolveComparedReferences(
+  Map<String, Object?> body,
+  Map<SyncRecordKind, Map<String, String>> aliases,
+) {
+  if (aliases.isEmpty) return body;
+  final resolved = rewriteSyncInboundReferences(body, aliases);
+  final dances = aliases[SyncRecordKind.dance];
+  if (dances == null) return resolved;
+  String? dance(Object? id) {
+    if (id is! String) return null;
+    var current = id;
+    final seen = {id};
+    for (var next = dances[current]; next != null; next = dances[current]) {
+      if (!seen.add(next)) break;
+      current = next;
+    }
+    return current;
+  }
+
+  for (final (key, part) in const [
+    ('links', 'targetDanceId'),
+    ('slots', 'danceId'),
+  ]) {
+    final entries = resolved[key];
+    if (entries is! List) continue;
+    resolved[key] = [
+      for (final entry in entries)
+        entry is Map ? _withResolved(entry, part, dance) : entry,
+    ];
+  }
+  return resolved;
+}
+
+Object? _withResolved(
+  Map<Object?, Object?> entry,
+  String part,
+  String? Function(Object?) resolve,
+) {
+  final id = resolve(entry[part]);
+  return id == null ? entry : {...entry, part: id};
 }
 
 /// List fields the comparison shows in the order of a part it does not show:

@@ -772,6 +772,66 @@ void main() {
   });
 
   group('showing every saved detail', () {
+    testWidgets('a merged-away record a version cites is named as the record '
+        'it became', (tester) async {
+      final theirs = SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: 'd1',
+        updatedAt: DateTime.utc(2026, 9, 30),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 9, 30),
+        body: {
+          'id': 'd1',
+          'title': 'Hey Day',
+          'authorIds': ['c2', 'c3'],
+        },
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: SyncConflictComparison(
+                group: SyncConflictGroup(
+                  kind: SyncRecordKind.dance,
+                  recordId: 'd1',
+                  localBody: {
+                    'id': 'd1',
+                    'title': 'Hey Day',
+                    'authorIds': ['c1'],
+                  },
+                  candidates: syncConflictGroupFor(
+                    SyncConflictReconsideration(
+                      kind: SyncRecordKind.dance,
+                      recordId: 'd1',
+                      before: null,
+                      offered: [theirs],
+                      writtenWireHash: 'written',
+                      writtenAt: DateTime.utc(2026, 9, 30),
+                    ),
+                  ).candidates,
+                  aliases: const {
+                    SyncRecordKind.choreographer: {'c2': 'c1'},
+                  },
+                ),
+                lookups: const SyncConflictLookups(
+                  choreographers: {'c1': 'Seth Tepfer', 'c3': 'Bob Isaacs'},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.textContaining('Seth Tepfer, Bob Isaacs'),
+        findsOneWidget,
+        reason: 'c2 was merged into c1',
+      );
+      expect(find.textContaining('Not on this device'), findsNothing);
+    });
+
     for (final (name, kind, id, edit, mine, theirs) in [
       (
         "a tag's colour",

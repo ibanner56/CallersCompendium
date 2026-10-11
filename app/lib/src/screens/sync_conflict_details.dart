@@ -244,6 +244,13 @@ class SyncConflictComparison extends StatelessWidget {
   final SyncConflictGroup group;
   final SyncConflictLookups lookups;
 
+  /// A version as the comparison reads it: citing the records that
+  /// merged-away ones became, so each is named rather than shown as unknown.
+  Map<String, Object?>? _resolved(Map<String, Object?>? body) =>
+      body == null ? null : syncResolveComparedReferences(body, group.aliases);
+
+  Map<String, Object?>? get _local => _resolved(group.localBody);
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -262,7 +269,7 @@ class SyncConflictComparison extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleSmall,
               ),
             ),
-          ..._compare(context, l10n, item.candidate?.body),
+          ..._compare(context, l10n, _resolved(item.candidate?.body)),
         ],
       ],
     );
@@ -276,7 +283,7 @@ class SyncConflictComparison extends StatelessWidget {
     if (group.kind == SyncRecordKind.setting) {
       final diff = compareSyncCollection(
         group.recordId,
-        group.localBody?['value'],
+        _local?['value'],
         other?['value'],
       );
       if (diff != null) return _collection(context, l10n, diff);
@@ -285,7 +292,7 @@ class SyncConflictComparison extends StatelessWidget {
           context,
           l10n,
           label: null,
-          local: syncSettingValueText(l10n, group.localBody?['value']),
+          local: syncSettingValueText(l10n, _local?['value']),
           other: syncSettingValueText(l10n, other?['value']),
         ),
       ];
@@ -293,7 +300,7 @@ class SyncConflictComparison extends StatelessWidget {
     final fields = syncConflictDifferingFields(
       l10n,
       group.kind,
-      group.localBody,
+      _local,
       other,
       aliases: group.aliases,
     );
@@ -311,7 +318,7 @@ class SyncConflictComparison extends StatelessWidget {
             context,
             l10n,
             label: field.label,
-            local: _value(context, l10n, field.key, group.localBody),
+            local: _value(context, l10n, field.key, _local),
             other: _value(context, l10n, field.key, other),
           ),
     ];
@@ -532,7 +539,7 @@ class SyncConflictComparison extends StatelessWidget {
     Map<String, Object?>? other,
   ) {
     final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
-    final mine = _sectionedLines(group.localBody, dialect);
+    final mine = _sectionedLines(_local, dialect);
     final theirs = _sectionedLines(other, dialect);
     if (mine == null || theirs == null) {
       return [_note(context, l10n.syncConflictFiguresUnreadable)];
@@ -681,7 +688,7 @@ class SyncConflictComparison extends StatelessWidget {
       return keyed;
     }
 
-    final mine = byOccurrence(ordered(group.localBody));
+    final mine = byOccurrence(ordered(_local));
     final theirs = byOccurrence(ordered(other));
     final onlyMine = [
       for (final e in mine.entries)
@@ -742,35 +749,18 @@ class SyncConflictComparison extends StatelessWidget {
     if (value == null || value == '' || (value is List && value.isEmpty)) {
       return l10n.syncConflictValueNotSet;
     }
-    // A version may still cite a record merged into another: name the one
-    // it became.
-    String current(SyncRecordKind kind, Object? id) {
-      final links = group.aliases[kind] ?? const <String, String>{};
-      var resolved = '$id';
-      final seen = {resolved};
-      for (var next = links[resolved]; next != null; next = links[resolved]) {
-        if (!seen.add(next)) break;
-        resolved = next;
-      }
-      return resolved;
-    }
-
-    String names(Map<String, String> lookup, SyncRecordKind kind) => [
+    String names(Map<String, String> lookup) => [
       for (final id in value as List)
-        lookup[current(kind, id)] ?? l10n.syncConflictUnknownItem,
+        lookup[id] ?? l10n.syncConflictUnknownItem,
     ].join(', ');
     try {
       switch (key) {
         case 'authorIds':
-          return names(lookups.choreographers, SyncRecordKind.choreographer);
+          return names(lookups.choreographers);
         case 'tagIds':
-          return names(lookups.tags, SyncRecordKind.tag);
+          return names(lookups.tags);
         case 'difficultyLevelId':
-          return lookups.levels[current(
-                SyncRecordKind.difficultyLevel,
-                value,
-              )] ??
-              l10n.syncConflictUnknownItem;
+          return lookups.levels[value] ?? l10n.syncConflictUnknownItem;
         case 'venueId':
           return lookups.venues[value] ?? l10n.syncConflictUnknownItem;
         case 'form':

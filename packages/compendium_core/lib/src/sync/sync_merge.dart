@@ -4,7 +4,6 @@ import '../model/stored_timestamp.dart';
 import 'canonical_json.dart';
 import 'sync_codec.dart';
 import 'sync_conflict_compare.dart';
-import 'sync_reconciliation.dart' show rewriteSyncInboundReferences;
 import 'sync_record_kind.dart';
 import 'sync_report.dart';
 
@@ -773,7 +772,7 @@ class SyncMergeEngine {
     var winnerBody = contentWinner.blob.body;
     if (updatedWinners.length > 1 && !identical(contentWinner, local)) {
       if (aliases.isNotEmpty) {
-        winnerBody = rewriteSyncInboundReferences(winnerBody, aliases);
+        winnerBody = syncResolveComparedReferences(winnerBody, aliases);
       }
       if (winnerId != address.recordId &&
           address.kind != SyncRecordKind.setting) {
@@ -891,15 +890,15 @@ class SyncMergeEngine {
   /// A peer's copy of a record whose id was merged away (§6.6, `id_aliases`)
   /// is filed under the surviving id but still names its own, and may still
   /// cite merged-away ids: the same content under other ids is one record,
-  /// not a tie, and applying it would store exactly this.
+  /// not a tie. A copy kept from another device is filed this way
+  /// ([syncResolveComparedReferences]), so applying it rewrites nothing.
   static String _contentHash(
     SyncMergeCandidate candidate,
     Map<SyncRecordKind, Map<String, String>> aliases,
   ) => contentHash(
-    (aliases.isEmpty
-          ? Map<String, Object?>.from(candidate.blob.body)
-          : rewriteSyncInboundReferences(candidate.blob.body, aliases))
-      ..remove('id'),
+    Map<String, Object?>.from(
+      syncResolveComparedReferences(candidate.blob.body, aliases),
+    )..remove('id'),
   );
 
   static String _visibleHash(
