@@ -382,6 +382,25 @@ void main() {
       );
     });
 
+    test('is not asked when a merged-away reference and a field the user '
+        'is not shown both differ', () {
+      final mine = record(SyncRecordKind.dance, 'd1', {
+        'title': 'Hey Day',
+        'authorIds': ['c1'],
+        'provenance': {'source': 'contradb', 'importedAt': '2026-01-01'},
+      });
+      final theirs = record(SyncRecordKind.dance, 'd1', {
+        'title': 'Hey Day',
+        'authorIds': ['c2'],
+        'provenance': {'source': 'contradb', 'importedAt': '2026-02-01'},
+      });
+
+      expect(
+        decide(mine, theirs, aliases: mergedAway).action,
+        isNot(SyncMergeAction.review),
+      );
+    });
+
     test('is still asked when a field the user is shown differs', () {
       final mine = record(SyncRecordKind.choreographer, 'c1', {
         'name': 'Seth Tepfer',
