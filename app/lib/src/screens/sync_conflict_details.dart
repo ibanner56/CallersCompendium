@@ -10,6 +10,7 @@ import '../search/facet_labels.dart';
 import '../sync/sync_setting_labels.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/program_status_labels.dart';
+import '../widgets/provenance_labels.dart';
 
 /// Names for the records a conflicted record refers to by id — its authors,
 /// tags, level, custom fields, a program's dances and venue — so a comparison
@@ -91,8 +92,10 @@ String syncConflictWhen(BuildContext context, DateTime when) =>
     ).add_jm().format(when.toLocal());
 
 /// The fields of [kind] a comparison shows, in reading order, with their
-/// labels. Fields not listed — provenance, internal flags — are left out:
-/// they are never what a user is choosing between.
+/// labels: exactly core's [syncUserVisibleFields], which the merge also uses
+/// to decide whether a tie needs the user at all. Fields not listed —
+/// provenance details, internal flags — are left out: they are never what a
+/// user is choosing between.
 Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
     switch (kind) {
       SyncRecordKind.dance => {
@@ -118,6 +121,7 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'sourceCitations': l10n.danceEditorPublishedSourcesLabel,
         'composedOn': l10n.danceEditorComposedLabel,
         'revisedOn': l10n.danceEditorRevisedLabel,
+        'provenance': l10n.syncConflictFieldProvenance,
       },
       SyncRecordKind.program => {
         'title': l10n.programsTitleLabel,
@@ -167,7 +171,10 @@ List<({String key, String label})> syncConflictDifferingFields(
   Map<String, Object?>? other,
 ) {
   final labels = _fieldLabels(l10n, kind);
-  final differing = syncDifferingFields(local, other).toSet();
+  final differing = syncDifferingFields(
+    local == null ? null : syncUserVisibleBody(kind, local),
+    other == null ? null : syncUserVisibleBody(kind, other),
+  ).toSet();
   if (labels.isEmpty) {
     return [for (final key in differing) (key: key, label: key)];
   }
@@ -814,6 +821,18 @@ class SyncConflictComparison extends StatelessWidget {
           return code == null ? amount : '$amount $code';
         case 'color':
           return syncConflictColourText(value as int);
+        case 'provenance':
+          final map = value as Map;
+          final license = map['license'];
+          return [
+            l10n.danceProvenanceVia(
+              provenanceSourceLabel(
+                l10n,
+                ProvenanceSource.values.byName(map['source'] as String),
+              ),
+            ),
+            if (license is String && license.isNotEmpty) license,
+          ].join(' · ');
       }
     } on Object {
       // diagnostics: silent — a value this view cannot name falls through to

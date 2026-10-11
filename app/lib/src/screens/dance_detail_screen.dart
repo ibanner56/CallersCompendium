@@ -39,6 +39,7 @@ import 'dance_detail/calling_history_section.dart';
 import 'dance_editor_screen.dart';
 import 'perform_dance_screen.dart';
 import 'program_summary_screen.dart';
+import '../widgets/provenance_labels.dart';
 
 /// Dance detail / card (`docs/design/ux.md` §2): header (title, authors,
 /// formation, hook, tags, status banner, provenance line), a figure table
@@ -1456,7 +1457,7 @@ class _ProvenanceLine extends StatelessWidget {
     final theme = Theme.of(context);
     final license = provenance.license;
     final text = [
-      l10n.danceProvenanceVia(_sourceLabel(l10n, provenance.source)),
+      l10n.danceProvenanceVia(provenanceSourceLabel(l10n, provenance.source)),
       if (license != null && license.isNotEmpty) license,
     ].join(' · ');
     return Row(
@@ -1474,16 +1475,6 @@ class _ProvenanceLine extends StatelessWidget {
       ],
     );
   }
-
-  static String _sourceLabel(AppLocalizations l10n, ProvenanceSource source) =>
-      switch (source) {
-        ProvenanceSource.callersbox => "The Caller's Box",
-        ProvenanceSource.contradb => 'ContraDB',
-        ProvenanceSource.callersCompanion => "Caller's Companion",
-        ProvenanceSource.manual => l10n.danceProvenanceSourceManual,
-        ProvenanceSource.json => l10n.danceProvenanceSourceJson,
-        ProvenanceSource.publishedCollection => l10n.publishedCollectionsTitle,
-      };
 }
 
 class _LinkRow extends StatelessWidget {

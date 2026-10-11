@@ -772,6 +772,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Une version plus récente est arrivée après votre choix ; rien n’a été modifié.';
 
   @override
+  String get syncConflictFieldProvenance => 'Imported from';
+
+  @override
   String get syncConflictFieldColour => 'Couleur';
 
   @override

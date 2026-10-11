@@ -1,3 +1,4 @@
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/sync_conflict_details.dart';
 import 'package:compendium_app/src/screens/sync_conflict_sheet.dart';
@@ -338,6 +339,52 @@ void main() {
   });
 
   group('showing what differs', () {
+    test('shows exactly the fields the merge treats as visible, so a tie in '
+        'any other field is never put to the user', () {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      Object? value(String key, String side) =>
+          key == 'provenance' ? {'source': side} : side;
+      for (final kind in SyncRecordKind.values) {
+        final visible = syncUserVisibleFields(kind);
+        if (visible == null) continue;
+        for (final key in visible) {
+          final shown = syncConflictDifferingFields(
+            l10n,
+            kind,
+            {key: value(key, 'contradb')},
+            {key: value(key, 'callersbox')},
+          ).map((field) => field.key);
+          expect(shown, [
+            key == 'venueId' ? 'venue' : key,
+          ], reason: '${kind.name}.$key is visible to the merge');
+        }
+        expect(
+          syncConflictDifferingFields(
+            l10n,
+            kind,
+            {'provenanceNot': 'a', 'id': 'x'},
+            {'provenanceNot': 'b', 'id': 'y'},
+          ),
+          isEmpty,
+          reason: 'a field the merge does not see is not shown',
+        );
+      }
+      expect(
+        syncConflictDifferingFields(
+          l10n,
+          SyncRecordKind.dance,
+          {
+            'provenance': {'source': 'contradb', 'importedAt': '2026-01-01'},
+          },
+          {
+            'provenance': {'source': 'contradb', 'importedAt': '2026-02-01'},
+          },
+        ),
+        isEmpty,
+        reason: "a dance's page shows only where it came from and its licence",
+      );
+    });
+
     testWidgets('a single conflict shows its whole comparison at once', (
       tester,
     ) async {

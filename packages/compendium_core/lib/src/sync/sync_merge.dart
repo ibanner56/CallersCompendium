@@ -3,6 +3,8 @@ import '../imports/dedupe.dart';
 import '../model/stored_timestamp.dart';
 import 'canonical_json.dart';
 import 'sync_codec.dart';
+import 'sync_conflict_compare.dart';
+import 'sync_reconciliation.dart' show rewriteSyncInboundReferences;
 import 'sync_record_kind.dart';
 import 'sync_report.dart';
 
@@ -21,14 +23,6 @@ class SyncMergeCandidate {
   SyncRecordAddress get address => (kind: blob.kind, recordId: blob.id);
 
   String get bodyHash => contentHash(blob.body);
-
-  /// Hashes the body without its `id`, for comparing copies of one address.
-  ///
-  /// A peer's copy of a record whose id this device merged away (an alias,
-  /// §4.1) is filed under the surviving id but still names its own: the same
-  /// content under two ids is one record, not a tie for the user to decide.
-  String get identityFreeBodyHash =>
-      contentHash(Map<String, Object?>.from(blob.body)..remove('id'));
 
   /// Hashes user content for quarantine repair agreement.
   ///
@@ -471,6 +465,7 @@ class SyncMergeEngine {
     bool freshAttach = false,
     Set<SyncRecordAddress> unresolved = const {},
     Map<SyncRecordAddress, Set<String>> decidedAgainst = const {},
+    Map<SyncRecordKind, Map<String, String>> aliases = const {},
   }) {
     final peerMaps = peers.toList(growable: false);
     final addresses = <SyncRecordAddress>{
@@ -526,6 +521,7 @@ class SyncMergeEngine {
           baselineEntry: baselineEntry,
           freshAttach: freshAttach,
           decidedAgainst: decidedAgainst[address] ?? const {},
+          aliases: aliases,
         );
         if (resolution.conflict != null) {
           decisions.add(
@@ -562,6 +558,7 @@ class SyncMergeEngine {
         baselineEntry: baselineEntry,
         freshAttach: freshAttach,
         decidedAgainst: decidedAgainst[address] ?? const {},
+        aliases: aliases,
       );
       if (resolution.conflict != null) {
         decisions.add(
@@ -622,6 +619,7 @@ class SyncMergeEngine {
     required SyncBaselineEntry? baselineEntry,
     required bool freshAttach,
     required Set<String> decidedAgainst,
+    required Map<SyncRecordKind, Map<String, String>> aliases,
   }) {
     final candidates = [?local, ...remotes];
     final maximumExistence = candidates
@@ -674,6 +672,7 @@ class SyncMergeEngine {
       baselineEntry: baselineEntry,
       deletedWins: deletedWins,
       decidedAgainst: decidedAgainst,
+      aliases: aliases,
     );
     if (wholeCollection != null) return _Resolution.review(wholeCollection);
     final maximumUpdated = contentCandidates
@@ -683,21 +682,33 @@ class SyncMergeEngine {
         .where((candidate) => candidate.updatedAt == maximumUpdated)
         .toList(growable: false);
     final hashes = updatedWinners
-        .map((candidate) => candidate.identityFreeBodyHash)
+        .map((candidate) => _contentHash(candidate, aliases))
         .toSet();
+    var invisibleTie = false;
     if (hashes.length > 1) {
       // A live tie goes to the user (§6.3): there is no newer edit to prefer,
       // and any rule that picked one would discard the other without asking.
+      // Unless nothing the user is shown differs: then the choice is
+      // arbitrary, and is made below the same way on every device.
       // A tie between tombstones offers nothing a user could meaningfully
       // choose between, so it stays a report.
       if (!deletedWins) {
-        return _Resolution.review(
-          _conflict(
-            local: local != null && !local.isDeleted ? local : null,
-            offered: updatedWinners,
-          ),
-        );
+        final visible = updatedWinners
+            .map((candidate) => _visibleHash(candidate, aliases))
+            .toSet();
+        if (visible.length > 1) {
+          return _Resolution.review(
+            _conflict(
+              local: local != null && !local.isDeleted ? local : null,
+              offered: updatedWinners,
+              aliases: aliases,
+            ),
+          );
+        }
+        invisibleTie = true;
       }
+    }
+    if (hashes.length > 1 && !invisibleTie) {
       final first = updatedWinners.first;
       return _Resolution.report(
         SyncReport(
@@ -713,9 +724,18 @@ class SyncMergeEngine {
 
     // Prefer local only when it has the same content. This keeps the result
     // deterministic without inventing a tie-break for differing bodies.
-    final contentWinner = updatedWinners.firstWhere(
+    // An invisible tie keeps the body whose identity-free hash is lowest:
+    // every device holds the same versions, whatever ids they file them
+    // under, so every device keeps the same one and the tie does not return.
+    final keptBody = invisibleTie
+        ? (hashes.toList()..sort()).first
+        : hashes.single;
+    final keptBodies = updatedWinners
+        .where((candidate) => _contentHash(candidate, aliases) == keptBody)
+        .toList(growable: false);
+    final contentWinner = keptBodies.firstWhere(
       (candidate) => identical(candidate, local),
-      orElse: () => updatedWinners.first,
+      orElse: () => keptBodies.first,
     );
     final existenceWinner = existenceWinners.firstWhere(
       (candidate) => candidate.isDeleted,
@@ -760,6 +780,7 @@ class SyncMergeEngine {
     required SyncBaselineEntry? baselineEntry,
     required bool deletedWins,
     required Set<String> decidedAgainst,
+    required Map<SyncRecordKind, Map<String, String>> aliases,
   }) {
     if (deletedWins || contentCandidates.isEmpty) return null;
     final key = contentCandidates.first.blob;
@@ -782,27 +803,32 @@ class SyncMergeEngine {
     return _conflict(
       local: local != null && !local.isDeleted ? local : null,
       offered: changed,
+      aliases: aliases,
     );
   }
 
   /// Builds the user's choice: this device's live copy, plus one candidate
-  /// per distinct non-local body. Each is the newest copy of its body, ties
-  /// broken by wire hash, so every pass queues the same rows. The copies not
-  /// shown are named in [SyncMergeConflict.copies].
+  /// per version that looks different from it and from each other
+  /// ([syncUserVisibleContentHash]). Each is the newest copy of what it
+  /// shows, ties broken by wire hash, so every pass queues the same rows. The
+  /// copies not shown are named in [SyncMergeConflict.copies].
   SyncMergeConflict _conflict({
     required SyncMergeCandidate? local,
     required List<SyncMergeCandidate> offered,
+    required Map<SyncRecordKind, Map<String, String>> aliases,
   }) {
+    final localVisible = local == null ? null : _visibleHash(local, aliases);
     final byBody = <String, SyncMergeCandidate>{};
     for (final candidate in offered) {
       if (identical(candidate, local)) continue;
-      if (local != null && candidate.bodyHash == local.bodyHash) continue;
-      final current = byBody[candidate.bodyHash];
+      final visible = _visibleHash(candidate, aliases);
+      if (visible == localVisible) continue;
+      final current = byBody[visible];
       if (current == null ||
           candidate.updatedAt.isAfter(current.updatedAt) ||
           (candidate.updatedAt == current.updatedAt &&
               candidate.wireHash.compareTo(current.wireHash) < 0)) {
-        byBody[candidate.bodyHash] = candidate;
+        byBody[visible] = candidate;
       }
     }
     final candidates = byBody.values.toList()
@@ -817,6 +843,33 @@ class SyncMergeEngine {
       }),
     );
   }
+
+  /// Hashes a copy's content as this device would store it: without its own
+  /// `id`, and with references to merged-away records ([aliases]) read as the
+  /// records they were merged into.
+  ///
+  /// A peer's copy of a record whose id was merged away (§6.6, `id_aliases`)
+  /// is filed under the surviving id but still names its own, and may still
+  /// cite merged-away ids: the same content under other ids is one record,
+  /// not a tie, and applying it would store exactly this.
+  static String _contentHash(
+    SyncMergeCandidate candidate,
+    Map<SyncRecordKind, Map<String, String>> aliases,
+  ) => contentHash(
+    (aliases.isEmpty
+          ? Map<String, Object?>.from(candidate.blob.body)
+          : rewriteSyncInboundReferences(candidate.blob.body, aliases))
+      ..remove('id'),
+  );
+
+  static String _visibleHash(
+    SyncMergeCandidate candidate,
+    Map<SyncRecordKind, Map<String, String>> aliases,
+  ) => syncUserVisibleContentHash(
+    candidate.blob.kind,
+    candidate.blob.body,
+    aliases: aliases,
+  );
 
   static int _compareAddress(SyncRecordAddress left, SyncRecordAddress right) {
     final kind = left.kind.index.compareTo(right.kind.index);

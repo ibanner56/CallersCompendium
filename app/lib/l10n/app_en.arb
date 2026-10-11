@@ -969,6 +969,10 @@
   "@syncConflictUndoChanged": {
     "description": "Shown when an undo cannot be saved because the item changed since the original choice (for example, a newer edit arrived from another device)."
   },
+  "syncConflictFieldProvenance": "Imported from",
+  "@syncConflictFieldProvenance": {
+    "description": "Label in the sync conflict comparison for where a dance came from (its import source and licence), shown as the dance page's provenance line."
+  },
   "syncConflictFieldColour": "Colour",
   "@syncConflictFieldColour": {
     "description": "Label for a tag's colour in the conflict comparison."

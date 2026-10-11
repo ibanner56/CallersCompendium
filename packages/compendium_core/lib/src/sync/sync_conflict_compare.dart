@@ -3,6 +3,8 @@ import '../imports/shorthand_mappings.dart'
 import '../snippet/snippet_library.dart'
     show WalkthroughSnippetLibrary, kMaxSnippetLibraryEntries;
 import 'canonical_json.dart';
+import 'sync_reconciliation.dart' show rewriteSyncInboundReferences;
+import 'sync_record_kind.dart';
 
 /// One entry of a whole-collection setting, identified the way the user's own
 /// library identifies it, for comparing two versions of the collection.
@@ -152,7 +154,7 @@ SyncCollectionDiff? compareSyncCollection(
 List<String> syncDifferingFields(
   Map<String, Object?>? local,
   Map<String, Object?>? other, {
-  Set<String> ignore = const {'id', 'createdAt', 'updatedAt', 'deletedAt'},
+  Set<String> ignore = _identityAndTimestampFields,
 }) {
   final keys = <String>[...?local?.keys];
   for (final key in other?.keys ?? const <String>[]) {
@@ -165,6 +167,119 @@ List<String> syncDifferingFields(
         key,
   ];
 }
+
+/// The fields of a [kind] record a person is shown when comparing two
+/// versions of it, or null when every field is shown but identity and
+/// timestamps (the fields [syncDifferingFields] ignores by default).
+///
+/// Fields left out — provenance, internal flags — are never what a person is
+/// choosing between. The conflict comparison labels exactly these (an app
+/// test holds the two together), and the merge uses them to decide whether a
+/// tie needs a person at all ([syncUserVisibleContentHash]).
+Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
+  SyncRecordKind.dance => const {
+    'title',
+    'authorIds',
+    'form',
+    'formation',
+    'progression',
+    'phraseStructure',
+    'figures',
+    'hook',
+    'callingNotes',
+    'walkthrough',
+    'difficultyLevelId',
+    'mixedLevel',
+    'mixer',
+    'status',
+    'rating',
+    'tunes',
+    'tagIds',
+    'customFields',
+    'links',
+    'sourceCitations',
+    'composedOn',
+    'revisedOn',
+    // Only its source and licence; see [syncUserVisibleBody].
+    'provenance',
+  },
+  // The linked venue and the free-text venue are shown as one row.
+  SyncRecordKind.program => const {
+    'title',
+    'eventDate',
+    'venue',
+    'venueId',
+    'band',
+    'caller',
+    'dancerLevel',
+    'status',
+    'notes',
+    'slots',
+    'hideAlternates',
+    'dialectName',
+    'payMinorUnits',
+    'payCurrency',
+  },
+  SyncRecordKind.choreographer => const {'name', 'website', 'notes'},
+  SyncRecordKind.tag => const {'name', 'color'},
+  SyncRecordKind.venue => const {
+    'name',
+    'eventName',
+    'sponsor',
+    'time',
+    'genericSchedule',
+    'price',
+    'website',
+    'notes',
+  },
+  SyncRecordKind.publishedSource ||
+  SyncRecordKind.customFieldDef ||
+  SyncRecordKind.difficultyLevel ||
+  SyncRecordKind.setting => null,
+};
+
+/// What a person can see of a [kind] record's [body]: its
+/// [syncUserVisibleFields], with references to records merged away by
+/// natural-key reconciliation ([aliases], losing id to surviving id) read as
+/// the records they were merged into. A dance's provenance is shown as where
+/// it came from and its licence, so only those two of its fields are kept.
+Map<String, Object?> syncUserVisibleBody(
+  SyncRecordKind kind,
+  Map<String, Object?> body, {
+  Map<SyncRecordKind, Map<String, String>> aliases = const {},
+}) {
+  final resolved = aliases.isEmpty
+      ? body
+      : rewriteSyncInboundReferences(body, aliases);
+  final visible = syncUserVisibleFields(kind);
+  return {
+    for (final entry in resolved.entries)
+      if (visible == null
+          ? !_identityAndTimestampFields.contains(entry.key)
+          : visible.contains(entry.key))
+        entry.key: switch ((kind, entry.key, entry.value)) {
+          (SyncRecordKind.dance, 'provenance', final Map<Object?, Object?> p) =>
+            {'source': p['source'], 'license': p['license']},
+          _ => entry.value,
+        },
+  };
+}
+
+/// Hashes [syncUserVisibleBody]. Two versions with the same hash differ only
+/// in ways a person could not tell apart, so choosing between them is
+/// arbitrary and is never put to the user.
+String syncUserVisibleContentHash(
+  SyncRecordKind kind,
+  Map<String, Object?> body, {
+  Map<SyncRecordKind, Map<String, String>> aliases = const {},
+}) => contentHash(syncUserVisibleBody(kind, body, aliases: aliases));
+
+const _identityAndTimestampFields = {
+  'id',
+  'createdAt',
+  'updatedAt',
+  'deletedAt',
+};
 
 /// A walkthrough-snippet setting read exactly as the library loads it: keys
 /// written under an older signature scheme are migrated to the current one,

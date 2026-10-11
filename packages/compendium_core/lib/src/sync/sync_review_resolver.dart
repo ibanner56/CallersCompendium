@@ -1,6 +1,7 @@
 import '../storage/database.dart' show ReviewQueueRow;
 import 'canonical_json.dart' show sha256Hex;
 import 'sync_codec.dart';
+import 'sync_conflict_compare.dart' show syncUserVisibleContentHash;
 import 'sync_record_kind.dart';
 import 'wire_mapping.dart' show projectShareableRecordBody;
 import 'sync_review.dart';
@@ -55,19 +56,29 @@ final class SyncReviewQueueResolver {
     ];
   }
 
-  /// How many records await a conflict choice.
+  /// How many records await a conflict choice, counted as [listConflicts]
+  /// lists them.
   Future<int> conflictCount() async {
     final rows = await storage.repositories.syncLocal.listReviewQueue();
-    return {
-      for (final row in rows)
-        if (row.reason == syncConflictChoiceReason) (row.kind, row.recordId),
-    }.length;
+    if (!rows.any((row) => row.reason == syncConflictChoiceReason)) return 0;
+    return (await listConflicts()).length;
   }
 
   /// The records awaiting a conflict choice, oldest first, each with this
   /// device's current copy for comparison.
+  ///
+  /// A version that looks the same as this device's, or as another version
+  /// listed, is left out ([syncUserVisibleContentHash]): choosing between
+  /// versions a person cannot tell apart is arbitrary, so it is never asked,
+  /// and a record left with nothing to choose between is not listed. The
+  /// merge no longer queues such a choice and drops one queued earlier on its
+  /// next pass.
   Future<List<SyncConflictGroup>> listConflicts() async {
     final rows = await storage.repositories.syncLocal.listReviewQueue();
+    final aliases = <SyncRecordKind, Map<String, String>>{};
+    for (final row in await storage.repositories.syncLocal.listAliases()) {
+      aliases.putIfAbsent(row.kind, () => {})[row.losingId] = row.survivingId;
+    }
     final grouped = <(SyncRecordKind, String), List<SyncReviewQueueItem>>{};
     for (final row in rows) {
       if (row.reason != syncConflictChoiceReason) continue;
@@ -91,22 +102,38 @@ final class SyncReviewQueueResolver {
             if (def.field.shareable && !def.deleted) def.field.id,
         };
       }
+      final localBody = body == null
+          ? null
+          : projectShareableRecordBody(
+              kind,
+              body,
+              settingsKey: kind == SyncRecordKind.setting ? recordId : null,
+              allowedCustomFieldIds: shareableFieldIds ?? const {},
+            );
+      String visible(Map<String, Object?> body) =>
+          syncUserVisibleContentHash(kind, body, aliases: aliases);
+      final seen = {if (localBody != null) visible(localBody)};
+      final distinct = [
+        for (final item in items)
+          // An undecodable version stays listed: deciding it reports why.
+          if (item.candidate == null || seen.add(visible(item.candidate!.body)))
+            item,
+      ];
+      // With no live copy here, versions that all look alike leave one
+      // version on offer: nothing to choose.
+      if (distinct.isEmpty ||
+          (localBody == null && items.length > 1 && distinct.length < 2)) {
+        continue;
+      }
       groups.add(
         SyncConflictGroup(
           kind: kind,
           recordId: recordId,
-          localBody: body == null
-              ? null
-              : projectShareableRecordBody(
-                  kind,
-                  body,
-                  settingsKey: kind == SyncRecordKind.setting ? recordId : null,
-                  allowedCustomFieldIds: shareableFieldIds ?? const {},
-                ),
+          localBody: localBody,
           localUpdatedAt: body == null
               ? null
               : await storage.recordUpdatedAt(address),
-          candidates: List.unmodifiable(items),
+          candidates: List.unmodifiable(distinct),
         ),
       );
     }

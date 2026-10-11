@@ -49,12 +49,17 @@ void main() {
     List<SyncMergeCandidate> peers,
   ) async {
     final local = await localCandidate(address);
+    final aliases = <SyncRecordKind, Map<String, String>>{};
+    for (final row in await repositories.syncLocal.listAliases()) {
+      aliases.putIfAbsent(row.kind, () => {})[row.losingId] = row.survivingId;
+    }
     final plan = engine.plan(
       local: {address: local},
       baseline: const {},
       peers: [
         for (final peer in peers) {address: peer},
       ],
+      aliases: aliases,
     );
     await storage.refreshConflictReviews(plan.reviews);
     return plan;
@@ -668,6 +673,30 @@ void main() {
       final plan = await mergeAndQueue(address, [peer]);
 
       expect(plan.reviews, isEmpty);
+      expect(await queued(), isEmpty);
+    });
+
+    test('queued before the merge stopped raising it, is not offered or '
+        'counted', () async {
+      // What an earlier version of the merge queued for exactly this case.
+      final peer = await mergedAwayCopy((body) => body);
+      await repositories.syncLocal.enqueueReview(
+        kind: SyncRecordKind.choreographer,
+        recordId: 'c1',
+        counterpartId: peer.wireHash,
+        reason: syncConflictChoiceReason,
+        candidateBlob: encodeSyncRecordBlob(peer.blob),
+        candidateHash: peer.wireHash,
+        localHash: (await localCandidate(address)).wireHash,
+        queuedAt: tie,
+      );
+      final resolver = SyncReviewQueueResolver(storage);
+
+      expect(await resolver.listConflicts(), isEmpty);
+      expect(await resolver.conflictCount(), 0);
+
+      // The next pass, which no longer raises it, drops the row.
+      await mergeAndQueue(address, [peer]);
       expect(await queued(), isEmpty);
     });
 

@@ -728,6 +728,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncConflictUndoChanged => '選択した後に新しい変更が届いたため、何も変更されていません。';
 
   @override
+  String get syncConflictFieldProvenance => 'Imported from';
+
+  @override
   String get syncConflictFieldColour => '色';
 
   @override
