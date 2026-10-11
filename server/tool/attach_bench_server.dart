@@ -93,8 +93,15 @@ Future<void> main(List<String> arguments) async {
       return Response.ok(body, headers: {'content-type': 'application/json'});
     }
     if (!batch && path == 'v1/blobs/batch') {
-      // What an Athenaeum from before the route answers, at the same cost.
-      request = request.change(path: 'v1');
+      // What an Athenaeum from before the route answers, at the same cost:
+      // `400`, reading the last segment as a malformed hash.
+      request = Request(
+        request.method,
+        request.requestedUri.replace(path: '/v1/blobs/not-a-hash'),
+        headers: request.headers,
+        body: request.read(),
+        context: request.context,
+      );
     }
     final forwarded = compress
         ? request

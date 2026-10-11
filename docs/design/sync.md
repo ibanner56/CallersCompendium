@@ -3020,8 +3020,8 @@ dance is 1.7 KB of canonical JSON) and the request around them is not: measured
 in-process on the reference server, a single-blob `GET` spent about 0.5 ms of
 handler time, nearly all of it paid once per request whatever it carries —
 request and response handling, authentication, the store lookup and its
-`last_seen` write (about 0.15 ms on its own) — against about 40 µs for each
-further blob in a batch, or about 110 µs with gzip. Two hundred hashes a request makes that first download
+`last_seen` write (about 0.15 ms on its own) — against about 35 µs for each
+further blob in a batch, or about 50 µs with gzip. Two hundred hashes a request makes that first download
 five requests. The wire format, the caps and the fallback for a server without
 the route are in spec §5.2 and §5.4, with the case for a frame stream over JSON
 or multipart beside the rule. How a batch is charged against the request-rate
