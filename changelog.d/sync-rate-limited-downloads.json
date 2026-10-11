@@ -11,7 +11,7 @@
   "core": {
     "added": [
       "`SyncReport.httpStatus` carries the HTTP status of the response that raised a report, when one did.",
-      "`syncApplyKindOrder` exposes the apply engine's kind order, in which every kind a record can cite comes before the kinds that cite it."
+      "`syncApplyKindOrder` exposes the apply engine's kind order, in which every other kind a record can cite comes before it (cross-kind only: a dance can still cite another dance)."
     ]
   }
 }

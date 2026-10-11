@@ -970,6 +970,9 @@ final class _PeerDownloadProgress {
 
   /// How many blobs this pass downloaded and verified.
   int fetched = 0;
+
+  /// The records left unfetched once [stop] was set: waiting, not skipped.
+  final notFetched = <SyncRecordAddress>{};
 }
 
 final class _MissingBlobUploadResult {
@@ -1547,11 +1550,13 @@ class SyncCoordinator {
     final rejectedPeerAddresses = <SyncRecordAddress>{};
 
     // Kind-major across every peer, in apply order, so a pass that stops
-    // part-way through its downloads (spec §6.3 step 5) has fetched whatever
-    // the records it did fetch can cite. In manifest order — kinds sorted by
-    // name — a dance came before the tags and venues it names, and stopping
-    // between them turned every fetched dance into an unresolved-reference
-    // report about a record that was merely not fetched yet.
+    // part-way through its downloads (spec §6.3 step 5) has fetched every
+    // record of another kind that the records it did fetch can cite. In
+    // manifest order — kinds sorted by name — a dance came before the tags and
+    // venues it names, and stopping between them turned every fetched dance
+    // into an unresolved-reference report about a record that was merely not
+    // fetched yet. Citations within one kind (dance to dance) no order can
+    // put first; `_deferCitersOfUnfetched` holds those back instead.
     final downloadedByPeer = [
       for (final _ in peerManifests) <SyncRecordAddress, SyncMergeCandidate?>{},
     ];
@@ -1573,6 +1578,12 @@ class SyncCoordinator {
         );
       }
     }
+
+    _deferCitersOfUnfetched(
+      downloadedByPeer,
+      notFetched: downloadProgress.notFetched,
+      unresolved: unresolved,
+    );
 
     final rawPeerMaps = <Map<SyncRecordAddress, SyncMergeCandidate?>>[];
     for (var index = 0; index < peerManifests.length; index++) {
@@ -2536,6 +2547,7 @@ class SyncCoordinator {
       if (body == null) {
         if (progress.stop != null) {
           unresolved.add(address);
+          progress.notFetched.add(address);
           continue;
         }
         final SyncHttpResponse response;
@@ -2557,6 +2569,7 @@ class SyncCoordinator {
           );
           progress.stop = SyncFailure(cause, step: SyncFailureStep.download);
           unresolved.add(address);
+          progress.notFetched.add(address);
           continue;
         }
         if (!response.isSuccess) {
@@ -2566,6 +2579,7 @@ class SyncCoordinator {
               SyncFailureStep.download,
             );
             unresolved.add(address);
+            progress.notFetched.add(address);
             continue;
           }
           unresolved.add(address);
@@ -2651,12 +2665,55 @@ class SyncCoordinator {
     }
   }
 
+  /// Holds back every fetched record that cites, directly or through other
+  /// fetched records, one in [notFetched], so it waits with them instead of
+  /// being applied without them (spec §6.3 step 5).
+  ///
+  /// Kind order puts every *other* kind a record cites ahead of it, but a
+  /// dance can link to another dance, and those links can form cycles, so no
+  /// order fetches every citation first. Applied alone, a dance whose linked
+  /// dance was not fetched yet is refused as citing unavailable data and
+  /// reported as skipped, which is the notice the stop exists to avoid. Held
+  /// back, it joins [unresolved] without a report; its blob is already in the
+  /// session cache, so the next pass takes it with no request.
+  ///
+  /// Conservative: a citation the device can already satisfy locally holds
+  /// the record back all the same. That costs one pass's delay, never a
+  /// request, and needs no read of local state here.
+  static void _deferCitersOfUnfetched(
+    List<Map<SyncRecordAddress, SyncMergeCandidate?>> downloadedByPeer, {
+    required Set<SyncRecordAddress> notFetched,
+    required Set<SyncRecordAddress> unresolved,
+  }) {
+    if (notFetched.isEmpty) return;
+    final waiting = {...notFetched};
+    for (var changed = true; changed;) {
+      changed = false;
+      for (final downloaded in downloadedByPeer) {
+        for (final entry in downloaded.entries) {
+          final candidate = entry.value;
+          if (candidate == null || waiting.contains(entry.key)) continue;
+          if (syncRecordReferences(candidate).any(waiting.contains)) {
+            waiting.add(entry.key);
+            changed = true;
+          }
+        }
+      }
+    }
+    for (final downloaded in downloadedByPeer) {
+      downloaded.removeWhere((address, _) => waiting.contains(address));
+    }
+    unresolved.addAll(waiting);
+  }
+
   /// Whether a record download answered [kind] stops the pass's downloads
   /// rather than skipping that one record (spec §6.3 step 5).
   ///
-  /// `429` and `5xx` are about the server, not the record: every request after
-  /// a `429` fails the same way until the limit refills, and a server in
-  /// trouble is not helped by hundreds more. A `404` is about the record — its
+  /// `429` and `5xx` other than `507` are about the server, not the record:
+  /// every request after a `429` fails the same way until the limit refills,
+  /// and a server in trouble is not helped by hundreds more. A `507` is read as
+  /// [SyncResponseKind.quotaExhausted], not a server error, and is left as the
+  /// per-record report it was: a blob read cannot exhaust a quota. A `404` is about the record — its
   /// blob is gone (§7.3) — and stays a skip and a report, as does a body whose
   /// hash does not match.
   static bool _stopsDownloads(SyncResponseKind kind) =>

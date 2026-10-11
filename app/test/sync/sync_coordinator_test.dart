@@ -5002,8 +5002,12 @@ void main() {
     final at = DateTime.utc(2026, 7, 15, 12);
 
     /// What a peer publishes for three tags and three dances that cite them,
-    /// in apply order: every tag before any dance.
-    Future<List<SyncMergeCandidate>> peerLibrary() async {
+    /// in apply order: every tag before any dance. With [linkAcross],
+    /// dance-0 also links to dance-2, a citation within one kind that no kind
+    /// order can put first.
+    Future<List<SyncMergeCandidate>> peerLibrary({
+      bool linkAcross = false,
+    }) async {
       final peer = openTestRepositories();
       for (var i = 0; i < 3; i++) {
         final _ = await peer.tags.upsert(
@@ -5011,12 +5015,21 @@ void main() {
           at: at,
         );
       }
-      for (var i = 0; i < 3; i++) {
+      // Created last-first, so a linked dance exists before its link.
+      for (var i = 2; i >= 0; i--) {
         await peer.dances.create(
           Dance(
             id: 'dance-$i',
             title: 'Dance $i',
             tagIds: ['tag-$i'],
+            links: [
+              if (linkAcross && i == 0)
+                DanceLink(
+                  id: 'link-0',
+                  kind: LinkKind.relatedDance,
+                  targetDanceId: 'dance-2',
+                ),
+            ],
             createdAt: at,
             updatedAt: at,
           ),
@@ -5131,6 +5144,47 @@ void main() {
         });
       });
     }
+
+    test('a fetched dance linking to one not fetched yet waits with it, '
+        'unreported', () async {
+      // Kind order cannot help here: the link is dance to dance. Applied
+      // alone, dance-0 would be refused as citing an unavailable related
+      // dance — a skipped-record notice about a record merely not fetched.
+      final repositories = openTestRepositories();
+      await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
+      final library = await peerLibrary(linkAcross: true);
+      final transport = transportFor(library);
+      var limited = true;
+      transport.onBlob = (call, _) =>
+          limited && call >= 5 ? _FakeTransport.rateLimited : null;
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: CompendiumSyncCoordinatorStore(repositories),
+        transport: transport,
+      );
+      addTearDown(coordinator.dispose);
+
+      final first = await coordinator.syncNow();
+
+      expect(first.failure?.cause, SyncFailureCause.rateLimited);
+      expect(first.reports, isEmpty);
+      expect(await repositories.dances.getById('dance-0'), isNull);
+      expect(await repositories.tags.getById('tag-0'), isNotNull);
+
+      limited = false;
+      transport.blobHashes.clear();
+      final second = await coordinator.syncNow();
+
+      expect(second.status, SyncPassStatus.completed);
+      expect(second.reports, isEmpty);
+      expect(transport.blobHashes, [
+        hashOf(library, 'dance-1'),
+        hashOf(library, 'dance-2'),
+      ], reason: 'dance-0 waited in the session cache, not on the server');
+      final linked = await repositories.dances.getById('dance-0');
+      expect(linked?.links.single.targetDanceId, 'dance-2');
+    });
 
     test('a 503 stops downloads as a server fault, not a skip', () async {
       final library = await peerLibrary();

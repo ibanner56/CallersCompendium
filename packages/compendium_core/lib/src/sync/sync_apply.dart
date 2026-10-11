@@ -861,13 +861,17 @@ class SyncApplyEngine {
   }
 }
 
-/// The position of [kind] in apply order: every kind a record can cite comes
-/// before the kinds that cite it, so a dance follows the choreographers, tags
-/// and other records it names, and a program follows its dances.
+/// The position of [kind] in apply order: every *other* kind a record can
+/// cite comes before it, so a dance follows the choreographers, tags and
+/// other records it names, and a program follows its dances.
+///
+/// Cross-kind only. A dance can link to another dance, and those links can
+/// form cycles, so no kind order puts a record's every citation first; the
+/// apply engine resolves same-kind references within its batch instead.
 ///
 /// Public because the coordinator downloads in the same order (spec §6.3 step
-/// 5): a pass that stops part-way through its downloads has then fetched
-/// everything the records it did fetch can cite.
+/// 5), and holds back a fetched record whose same-kind citation was not
+/// fetched yet.
 int syncApplyKindOrder(SyncRecordKind kind) => switch (kind) {
   SyncRecordKind.choreographer => 0,
   SyncRecordKind.publishedSource => 1,

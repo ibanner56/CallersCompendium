@@ -2366,10 +2366,10 @@ republishes, which is an ordinary upload and needs no special path.
    find the blob missing and re-upload it. This is reachable without a faulty
    peer: a manifest can outlive its blob by §7.3.
 
-   **A `429`, a `5xx` or a network failure is not about the record, and MUST
-   NOT be reported as one.** After a `429` every later request fails the same
-   way until the limit refills, and a `5xx` or a dropped connection says the
-   server or the link is in trouble, so the client MUST stop requesting blobs
+   **A `429`, a `5xx` other than `507`, or a network failure is not about the
+   record, and MUST NOT be reported as one.** After a `429` every later
+   request fails the same way until the limit refills, and such a `5xx` or a
+   dropped connection says the server or the link is in trouble, so the client MUST stop requesting blobs
    for the rest of the pass. The record whose request failed, and every record
    still to fetch, is *not fetched yet*: it is excluded from the merge, the
    baseline does not advance for it, and nothing is decided about it — exactly
@@ -2385,12 +2385,15 @@ republishes, which is an ordinary upload and needs no special path.
    every later pass. A `404` and a hash mismatch stay reports, as above.
 
    So that each later pass resumes rather than restarts, the client MUST fetch
-   in dependency order — every record a record can cite before the record that
-   cites it, across all peers, so a pass that stops part-way has fetched what
-   its fetched records name — and SHOULD keep the blobs it has fetched for the
-   rest of the session, keyed by hash. Without the first, stopping between a
-   dance and the tag it names turns the dance into an unresolved-reference
-   report about a record that is merely not fetched yet. Without the second, a
+   in kind order across all peers — every other kind a record can cite
+   before the record's own kind — and MUST hold back, unreported and as not fetched yet,
+   every fetched record that cites a not-fetched one, directly or through
+   other fetched records. Kind order alone cannot do it: a dance can link to
+   another dance, and those links can form a cycle. Without both, stopping
+   between a dance and a tag or dance it names turns the dance into an
+   unresolved-reference report about a record that is merely not fetched yet.
+   The client SHOULD also keep the blobs it has fetched for the rest of the
+   session, keyed by hash, so a record held back costs no request next time. Without the second, a
    blob fetched and then not applied — the local copy won, or the choice waits
    for the user — is fetched again by every pass, and enough of them ahead of
    the rest can spend every pass's request budget on the same records. The
@@ -2400,8 +2403,8 @@ republishes, which is an ordinary upload and needs no special path.
    > **Amended 2026-10-11.** Step 5 said only how a `404` is treated, and the
    > reference client treated every non-success response the same way. A
    > user's first connection met the per-IP request limit (§5.4) part-way and
-   > reported 140 records as skipped. Whether `5xx` and network failures stop
-   > the pass with it was decided in the change that added this paragraph, by
+   > reported 140 records as skipped. Whether `5xx` other than `507` and
+   > network failures stop the pass with it was decided in the change that added this paragraph, by
    > its author rather than the maintainer: they are what §6.12 already calls
    > transient on every other request in a pass.
 6. Apply in one transaction (§6.7). Rebuild derived indexes.
