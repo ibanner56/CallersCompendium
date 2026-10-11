@@ -242,6 +242,62 @@ void main() {
       ]);
     });
 
+    test('a stopped download that made progress retries at the first step, '
+        'and one that made none still backs off', () async {
+      // A large first download meets the rate limit on every pass until it
+      // is done (spec §6.3 step 5); each of those passes moved it on, so the
+      // wait must not double through them (spec §6.12).
+      SyncPassResult stopped({required bool progressed}) => SyncPassResult(
+        SyncPassStatus.failed,
+        failure: SyncFailure(
+          SyncFailureCause.rateLimited,
+          step: SyncFailureStep.download,
+          statusCode: 429,
+          progressed: progressed,
+        ),
+      );
+      final controller = await paired([
+        stopped(progressed: true),
+        stopped(progressed: true),
+        stopped(progressed: true),
+        stopped(progressed: false),
+        stopped(progressed: false),
+        stopped(progressed: true),
+      ]);
+      final delays = <Duration?>[];
+      for (var i = 0; i < 6; i++) {
+        await controller.syncNow();
+        delays.add(controller.pendingRetryDelay);
+      }
+      expect(delays, [
+        _backoff[0],
+        _backoff[0],
+        _backoff[0],
+        _backoff[1],
+        _backoff[2],
+        _backoff[0],
+      ]);
+    });
+
+    test(
+      'a stopped download that made progress still waits out Retry-After',
+      () async {
+        final controller = await paired([
+          const SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(
+              SyncFailureCause.rateLimited,
+              step: SyncFailureStep.download,
+              retryAfter: Duration(seconds: 60),
+              progressed: true,
+            ),
+          ),
+        ]);
+        await controller.syncNow();
+        expect(controller.pendingRetryDelay, const Duration(seconds: 60));
+      },
+    );
+
     test('a completed pass resets the backoff', () async {
       final controller = await paired([
         _failed(SyncFailureCause.timedOut),

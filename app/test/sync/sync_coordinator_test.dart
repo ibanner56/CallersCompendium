@@ -2232,7 +2232,10 @@ void main() {
 
       expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
       expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
-      expect(transport.blobCalls, 2);
+      // One download in all: peer-b's duplicate entry reuses peer-a's blob
+      // within the first pass, and the second pass reuses the body the
+      // session already verified (`SyncPeerManifestCache.fetchedBlob`).
+      expect(transport.blobCalls, 1);
     },
   );
 
@@ -4988,6 +4991,285 @@ void main() {
     });
   });
 
+  // A `429` or `5xx` on a record download is about the server, not the record:
+  // every request after a `429` fails the same way until the limit refills. It
+  // ends the pass's downloads as a temporary failure, and the records not yet
+  // fetched are waiting rather than skipped (spec §6.3 step 5). Reported per
+  // record, as they were, a large first download raised a skipped-records
+  // notice listing most of the library and re-fetched it into the same limit
+  // on every later pass.
+  group('a record download the server refuses for now (spec §6.3 step 5)', () {
+    final at = DateTime.utc(2026, 7, 15, 12);
+
+    /// What a peer publishes for three tags and three dances that cite them,
+    /// in apply order: every tag before any dance.
+    Future<List<SyncMergeCandidate>> peerLibrary() async {
+      final peer = openTestRepositories();
+      for (var i = 0; i < 3; i++) {
+        await peer.tags.upsert(
+          Tag(id: 'tag-$i', name: 'Tag $i'),
+          at: at,
+        );
+      }
+      for (var i = 0; i < 3; i++) {
+        await peer.dances.create(
+          Dance(
+            id: 'dance-$i',
+            title: 'Dance $i',
+            tagIds: ['tag-$i'],
+            createdAt: at,
+            updatedAt: at,
+          ),
+        );
+      }
+      final publication = (await CompendiumSyncStorage(
+        peer,
+      ).snapshot()).publication;
+      final candidates = [
+        for (final candidate in publication.values)
+          if (candidate != null &&
+              (candidate.address.kind == SyncRecordKind.tag ||
+                  candidate.address.kind == SyncRecordKind.dance))
+            candidate,
+      ];
+      expect(candidates, hasLength(6));
+      return candidates;
+    }
+
+    String hashOf(List<SyncMergeCandidate> library, String recordId) =>
+        library.singleWhere((c) => c.address.recordId == recordId).wireHash;
+
+    _FakeTransport transportFor(List<SyncMergeCandidate> library) =>
+        _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              for (final kind in {for (final c in library) c.address.kind})
+                kind: {
+                  for (final c in library)
+                    if (c.address.kind == kind) c.address.recordId: c.wireHash,
+                },
+            },
+          ),
+          blobResponses: _blobs(library),
+        );
+
+    for (final freshAttach in [false, true]) {
+      final label = freshAttach ? 'a fresh attach' : 'a steady-state pass';
+      test('$label stops at a 429, applies what it fetched, reports nothing, '
+          'and the next pass fetches only the rest', () async {
+        final repositories = openTestRepositories();
+        if (!freshAttach) {
+          await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
+        }
+        final library = await peerLibrary();
+        final transport = transportFor(library);
+        // The fifth download meets the limit, and so would every one after.
+        var limited = true;
+        transport.onBlob = (call, _) =>
+            limited && call >= 5 ? _FakeTransport.rateLimited : null;
+        final store = CompendiumSyncCoordinatorStore(repositories);
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: store,
+          transport: transport,
+        );
+        addTearDown(coordinator.dispose);
+
+        final first = await coordinator.syncNow();
+
+        expect(first.status, SyncPassStatus.failed);
+        expect(first.failure?.cause, SyncFailureCause.rateLimited);
+        expect(first.failure?.cause.isTransient, isTrue);
+        expect(first.failure?.step, SyncFailureStep.download);
+        expect(first.failure?.statusCode, 429);
+        expect(first.failure?.retryAfter, const Duration(seconds: 60));
+        expect(first.failure?.progressed, isTrue);
+        expect(
+          first.reports,
+          isEmpty,
+          reason:
+              'nothing was skipped: no unresolvedBlob for the records not '
+              'fetched, and no unresolvedReference for a fetched dance whose '
+              'tag was not fetched yet',
+        );
+        // Every tag first, then dances: the stop came at dance-1.
+        expect(transport.blobHashes, [
+          for (final id in ['tag-0', 'tag-1', 'tag-2', 'dance-0', 'dance-1'])
+            hashOf(library, id),
+        ]);
+        for (var i = 0; i < 3; i++) {
+          expect(await repositories.tags.getById('tag-$i'), isNotNull);
+        }
+        expect(await repositories.dances.getById('dance-0'), isNotNull);
+        expect(await repositories.dances.getById('dance-1'), isNull);
+        expect(await repositories.dances.getById('dance-2'), isNull);
+        // Nothing was published, so nothing can have been baselined: the
+        // records not fetched were decided by nothing.
+        expect(transport.manifestPuts, 0);
+        final afterFirst = await store.snapshot();
+        expect(afterFirst.baseline, isEmpty);
+        expect(afterFirst.epoch, freshAttach ? isNull : 'epoch-1');
+
+        limited = false;
+        transport.blobHashes.clear();
+        final second = await coordinator.syncNow();
+
+        expect(second.status, SyncPassStatus.completed);
+        expect(second.reports, isEmpty);
+        expect(transport.blobHashes, [
+          hashOf(library, 'dance-1'),
+          hashOf(library, 'dance-2'),
+        ], reason: 'the next pass resumes where downloads stopped');
+        expect(await repositories.dances.getById('dance-2'), isNotNull);
+        final afterSecond = await store.snapshot();
+        expect(afterSecond.epoch, 'epoch-1');
+        expect(afterSecond.baseline.keys.toSet(), {
+          for (final c in library) c.address,
+        });
+      });
+    }
+
+    test('a 503 stops downloads as a server fault, not a skip', () async {
+      final library = await peerLibrary();
+      final transport = transportFor(library)
+        ..onBlob = (call, _) => call >= 2 ? _FakeTransport.response(503) : null;
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(),
+        transport: transport,
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.serverError);
+      expect(result.failure?.step, SyncFailureStep.download);
+      expect(result.failure?.statusCode, 503);
+      expect(result.reports, isEmpty);
+      expect(transport.blobCalls, 2, reason: 'no request after the 503');
+      expect(transport.manifestPuts, 0);
+    });
+
+    for (final error in <Object>[
+      const SyncTransportException('request timed out'),
+      const SocketException('connection reset'),
+    ]) {
+      test('a ${error.runtimeType} mid-download keeps what was fetched and '
+          'fails as temporary', () async {
+        final library = await peerLibrary();
+        final store = _FakeStore();
+        final transport = transportFor(library)
+          ..onBlob = (call, _) => call == 4 ? throw error : null;
+        final result = await SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: store,
+          transport: transport,
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.failed);
+        expect(result.failure?.cause.isTransient, isTrue);
+        expect(result.failure?.step, SyncFailureStep.download);
+        expect(result.failure?.progressed, isTrue);
+        expect(result.reports, isEmpty);
+        expect(transport.blobCalls, 4);
+        expect(store.writes.map((w) => w.address.recordId).toSet(), {
+          'tag-0',
+          'tag-1',
+          'tag-2',
+        });
+        expect(store.baselineAdvances, 0);
+      });
+    }
+
+    test('a 404 is still a skipped record, and carries its status', () async {
+      final library = await peerLibrary();
+      final missing = hashOf(library, 'dance-2');
+      final transport = transportFor(library)
+        ..onBlob = (_, hash) =>
+            hash == missing ? _FakeTransport.response(404) : null;
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(),
+        transport: transport,
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      final report = result.reports.singleWhere(
+        (r) => r.code == SyncReportCode.unresolvedBlob,
+      );
+      expect(report.recordId, 'dance-2');
+      expect(report.httpStatus, 404);
+    });
+
+    test('a 429 on a peer manifest is a temporary failure, not an '
+        'unreadable peer', () async {
+      for (final epoch in ['epoch-1', null]) {
+        final transport = _FakeTransport(
+          devices: ['peer'],
+          manifestResponses: {
+            'peer': [_FakeTransport.rateLimited],
+          },
+        );
+        final result = await SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: _FakeStore(epoch: epoch),
+          transport: transport,
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.failed, reason: '$epoch');
+        expect(result.failure?.cause, SyncFailureCause.rateLimited);
+        expect(result.failure?.retryAfter, const Duration(seconds: 60));
+        expect(result.reports, isEmpty, reason: '$epoch');
+        expect(transport.manifestPuts, 0);
+      }
+    });
+
+    test('downloads are kind-major across peers, so a tag only another peer '
+        'lists is fetched before the dance that cites it', () async {
+      final library = await peerLibrary();
+      final tags = [
+        for (final c in library)
+          if (c.address.kind == SyncRecordKind.tag) c,
+      ];
+      final dances = [
+        for (final c in library)
+          if (c.address.kind == SyncRecordKind.dance) c,
+      ];
+      SyncManifest manifestOf(String id, List<SyncMergeCandidate> records) =>
+          _manifest(
+            deviceId: id,
+            records: {
+              records.first.address.kind: {
+                for (final c in records) c.address.recordId: c.wireHash,
+              },
+            },
+          );
+      final transport = _FakeTransport(
+        devices: ['peer-a', 'peer-b'],
+        peerManifests: {
+          'peer-a': manifestOf('peer-a', dances),
+          'peer-b': manifestOf('peer-b', tags),
+        },
+        blobResponses: _blobs(library),
+      );
+      await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(),
+        transport: transport,
+      ).syncNow();
+
+      expect(transport.blobHashes, [
+        for (final c in [...tags, ...dances]) c.wireHash,
+      ]);
+    });
+  });
+
   group('a peer running a newer app version (spec §6.9)', () {
     SyncCoordinator coordinatorFor(_FakeTransport transport) => SyncCoordinator(
       syncId: 'configured',
@@ -5520,6 +5802,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     List<SyncHttpResponse>? createResponses,
     Map<String, List<SyncHttpResponse>>? manifestResponses,
     this.blobResponses = const {},
+    this.onBlob,
     List<List<String>>? missingResponses,
     this.putManifestStatus = 200,
     List<int>? putManifestStatuses,
@@ -5557,6 +5840,10 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   final List<SyncHttpResponse> createResponses;
   final Map<String, List<SyncHttpResponse>> manifestResponses;
   final Map<String, SyncHttpResponse> blobResponses;
+
+  /// Answers the [call]th blob request (1-based) for [hash] in place of
+  /// [blobResponses] when it returns non-null; may throw, as a transport does.
+  SyncHttpResponse? Function(int call, String hash)? onBlob;
   final List<List<String>> missingResponses;
   final int putManifestStatus;
   final List<int> putManifestStatuses;
@@ -5573,6 +5860,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   final manifestEtags = <String?>[];
   int manifestPuts = 0;
   int blobCalls = 0;
+  final blobHashes = <String>[];
   int postMissingCalls = 0;
   final putBlobHashes = <String>[];
   final postMissingBatches = <List<String>>[];
@@ -5667,8 +5955,11 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   @override
   Future<SyncHttpResponse> getBlob(String hash) async {
     blobCalls++;
+    blobHashes.add(hash);
     requestLog.add('blob');
-    return blobResponses[hash] ?? _response(404);
+    return onBlob?.call(blobCalls, hash) ??
+        blobResponses[hash] ??
+        _response(404);
   }
 
   @override
@@ -5679,6 +5970,15 @@ final class _FakeTransport implements SyncCoordinatorTransport {
 
   static SyncHttpResponse response(int status, {List<int>? body}) =>
       _response(status, body: body == null ? null : utf8.decode(body));
+
+  /// The server's `429`, exactly as `SyncHttpClient` reads it.
+  static const rateLimited = SyncHttpResponse(
+    statusCode: 429,
+    kind: SyncResponseKind.rateLimited,
+    headers: {'retry-after': '60'},
+    body: [],
+    retryAfter: Duration(seconds: 60),
+  );
 
   static SyncHttpResponse _response(
     int status, {
@@ -5691,7 +5991,8 @@ final class _FakeTransport implements SyncCoordinatorTransport {
       201 => SyncResponseKind.created,
       404 => SyncResponseKind.notFound,
       409 => SyncResponseKind.conflict,
-      500 => SyncResponseKind.serverError,
+      403 => SyncResponseKind.invalidSyncId,
+      500 || 503 => SyncResponseKind.serverError,
       _ => SyncResponseKind.unexpectedStatus,
     },
     headers: headers,

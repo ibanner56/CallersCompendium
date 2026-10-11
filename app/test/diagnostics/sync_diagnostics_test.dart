@@ -161,4 +161,55 @@ void main() {
     }
     expect(section, contains('equalUpdatedAt: 1 (dance ×1)'));
   });
+
+  test(
+    'says which HTTP status each report came from, and nothing more',
+    () async {
+      SyncReport blob(String id, {int? status}) => SyncReport(
+        code: SyncReportCode.unresolvedBlob,
+        kind: SyncRecordKind.dance,
+        recordId: id,
+        peerId: _peer,
+        httpStatus: status,
+        message: _message,
+      );
+      final controller = await _controller(
+        repos,
+        SyncPassResult(
+          SyncPassStatus.completed,
+          reports: [
+            blob('dance-1', status: 404),
+            blob('dance-2', status: 404),
+            blob('dance-3', status: 403),
+            // A body whose hash did not match: no status to give.
+            blob('dance-4'),
+            const SyncReport(
+              code: SyncReportCode.equalUpdatedAt,
+              kind: SyncRecordKind.dance,
+              recordId: _recordId,
+              message: _message,
+            ),
+          ],
+        ),
+      );
+      await controller.syncNow();
+
+      final section = syncDiagnosticsSection(controller)!;
+      expect(
+        section,
+        contains(
+          'unresolvedBlob: 4 (dance ×4) '
+          '[HTTP 403 ×1, HTTP 404 ×2, no HTTP status ×1]',
+        ),
+      );
+      expect(
+        section,
+        contains('equalUpdatedAt: 1 (dance ×1)\n'),
+        reason: 'a code no report gave a status for has no bracket',
+      );
+      for (final secret in [_peer, 'dance-1', _message]) {
+        expect(section, isNot(contains(secret)), reason: secret);
+      }
+    },
+  );
 }

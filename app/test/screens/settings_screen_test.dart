@@ -2475,6 +2475,53 @@ void main() {
           await pumped.controller.setEnabled(false);
         });
 
+        // A large first download meets the server's rate limit part-way
+        // (spec §6.3 step 5). It used to report every record not yet fetched
+        // as skipped, which read as a version mismatch between devices; now
+        // the pass stops as a temporary failure and says nothing was skipped.
+        testWidgets('a download stopped by the rate limit is the calm line, '
+            'with no skipped-records notice', (tester) async {
+          const result = SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(
+              SyncFailureCause.rateLimited,
+              step: SyncFailureStep.download,
+              statusCode: 429,
+              retryAfter: Duration(seconds: 60),
+              progressed: true,
+            ),
+          );
+          final pumped = await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.text('Waiting to sync. Your changes are saved here.'),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-status-calm')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-status-needs-you')),
+            findsNothing,
+          );
+          expect(
+            find.textContaining("couldn't be used and were skipped"),
+            findsNothing,
+          );
+          expect(
+            find.text(
+              'Details: Stopped while downloading from your other devices. '
+              'The server answered with HTTP status 429.',
+            ),
+            findsOneWidget,
+          );
+          expect(pumped.controller.notices, isEmpty);
+          expect(pumped.controller.pendingRetryDelay, isNotNull);
+          await pumped.controller.setEnabled(false);
+        });
+
         testWidgets('Copy details copies the short code, and only the code', (
           tester,
         ) async {

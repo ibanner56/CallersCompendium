@@ -854,24 +854,31 @@ class SyncApplyEngine {
     SyncMergeCandidate left,
     SyncMergeCandidate right,
   ) {
-    final kind = _kindOrder(
+    final kind = syncApplyKindOrder(
       left.blob.kind,
-    ).compareTo(_kindOrder(right.blob.kind));
+    ).compareTo(syncApplyKindOrder(right.blob.kind));
     return kind == 0 ? left.blob.id.compareTo(right.blob.id) : kind;
   }
-
-  static int _kindOrder(SyncRecordKind kind) => switch (kind) {
-    SyncRecordKind.choreographer => 0,
-    SyncRecordKind.publishedSource => 1,
-    SyncRecordKind.tag => 2,
-    SyncRecordKind.difficultyLevel => 3,
-    SyncRecordKind.customFieldDef => 4,
-    SyncRecordKind.venue => 5,
-    SyncRecordKind.dance => 6,
-    SyncRecordKind.program => 7,
-    SyncRecordKind.setting => 8,
-  };
 }
+
+/// The position of [kind] in apply order: every kind a record can cite comes
+/// before the kinds that cite it, so a dance follows the choreographers, tags
+/// and other records it names, and a program follows its dances.
+///
+/// Public because the coordinator downloads in the same order (spec §6.3 step
+/// 5): a pass that stops part-way through its downloads has then fetched
+/// everything the records it did fetch can cite.
+int syncApplyKindOrder(SyncRecordKind kind) => switch (kind) {
+  SyncRecordKind.choreographer => 0,
+  SyncRecordKind.publishedSource => 1,
+  SyncRecordKind.tag => 2,
+  SyncRecordKind.difficultyLevel => 3,
+  SyncRecordKind.customFieldDef => 4,
+  SyncRecordKind.venue => 5,
+  SyncRecordKind.dance => 6,
+  SyncRecordKind.program => 7,
+  SyncRecordKind.setting => 8,
+};
 
 DateTime _syncNowUtc() => DateTime.now().toUtc();
 
