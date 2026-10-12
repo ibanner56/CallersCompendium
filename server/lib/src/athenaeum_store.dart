@@ -985,6 +985,10 @@ class AthenaeumStore {
           statuses.add(200);
           continue;
         }
+        // Once one new blob is refused, every later one is too, even one
+        // small enough to fit: the client stops at the first refusal anyway,
+        // and `pending` above already left out every hash in this batch, so
+        // a refused hash's pending bytes must not let a later blob in.
         if (full ||
             count + pending.blobs >= quotaLimits.maxBlobs ||
             bytesUsed > quotaLimits.maxBytes - body.length) {

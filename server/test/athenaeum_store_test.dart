@@ -1837,6 +1837,85 @@ void main() {
     );
   });
 
+  group('putBlobs', () {
+    late Directory dataDirectory;
+    late Database database;
+    final now = DateTime.utc(2026, 9, 3, 12);
+    final idKey = '6' * 64;
+
+    AthenaeumStore open(AthenaeumQuotaLimits quota) {
+      dataDirectory = Directory.systemTemp.createTempSync(
+        'athenaeum-put-blobs-',
+      );
+      database = sqlite3.openInMemory();
+      final store = AthenaeumStore(
+        config: AthenaeumConfig(
+          dataDirectory: dataDirectory.path,
+          pepper: List<int>.filled(32, 0x42),
+        ),
+        database: database,
+        breakGlassDatabase: sqlite3.openInMemory(),
+        clock: () => now,
+        quotaLimits: quota,
+        deleteDirectory: (_) {},
+        deleteFile: (_) {
+          throw const FileSystemException('injected file failure');
+        },
+      );
+      addTearDown(() {
+        store.close();
+        dataDirectory.deleteSync(recursive: true);
+      });
+      return store;
+    }
+
+    ({String hash, Uint8List body}) blob(List<int> bytes) {
+      final body = Uint8List.fromList(bytes);
+      return (hash: sha256Hex(body), body: body);
+    }
+
+    test('once a new blob is past the quota, every later new blob is 507, '
+        'even one that would fit', () {
+      final store = open(const AthenaeumQuotaLimits(maxBytes: 4));
+      final epoch = store.create(idKey).epoch;
+      final statuses = store.putBlobs(
+        idKey: idKey,
+        epoch: epoch,
+        blobs: [
+          blob([1, 2]),
+          blob([3, 4, 5]),
+          blob([6]),
+        ],
+      );
+      expect(statuses, [201, 507, 507]);
+      expect(store.lookup(idKey)!.bytesUsed, 2);
+    });
+
+    test('a blob whose deletion is pending in this epoch is not charged '
+        'twice when it is uploaded again', () {
+      final store = open(const AthenaeumQuotaLimits(maxBytes: 3));
+      final epoch = store.create(idKey).epoch;
+      final again = blob([1, 2, 3]);
+      store.putBlob(
+        idKey: idKey,
+        epoch: epoch,
+        hash: again.hash,
+        body: again.body,
+      );
+      database.execute(
+        'UPDATE blob_refs SET uploaded_at = ? WHERE id_key = ?',
+        [
+          now.subtract(const Duration(days: 2)).millisecondsSinceEpoch ~/ 1000,
+          idKey,
+        ],
+      );
+      store.collectGarbage(idKey, epoch, now: now);
+      expect(database.select('SELECT * FROM blob_deletion_jobs'), hasLength(1));
+
+      expect(store.putBlobs(idKey: idKey, epoch: epoch, blobs: [again]), [201]);
+    });
+  });
+
   test('deleting a recreated store cleans stale epoch directories', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-store-test-',
