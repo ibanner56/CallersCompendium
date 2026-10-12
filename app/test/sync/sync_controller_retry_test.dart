@@ -119,6 +119,17 @@ final class _QuotaTransport implements SyncCoordinatorTransport {
 
   @override
   Future<SyncHttpResponse> putBlob(String hash, List<int> body) async => _ok();
+
+  // Not a route this server has, so uploads go one at a time.
+  @override
+  Future<SyncHttpResponse> putBlobBatch(
+    List<({String hash, List<int> body})> blobs,
+  ) async => const SyncHttpResponse(
+    statusCode: 404,
+    kind: SyncResponseKind.notFound,
+    headers: {},
+    body: [],
+  );
 }
 
 /// Backoff steps short enough to wait out in a test, and distinct enough that

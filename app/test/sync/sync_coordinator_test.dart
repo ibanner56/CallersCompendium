@@ -5837,6 +5837,188 @@ void main() {
     });
   });
 
+  group('batched uploads (spec §6.3 step 7)', () {
+    List<SyncMergeCandidate> localLibrary(int count) => [
+      for (var i = 0; i < count; i++)
+        SyncMergeCandidate.fromBlob(
+          _dance(
+            'dance-${i.toString().padLeft(4, '0')}',
+            updatedAt: DateTime.utc(2026, 7, 15, 12),
+          ),
+        ),
+    ];
+
+    _FakeTransport transportFor(List<SyncMergeCandidate> local) =>
+        _FakeTransport(
+          missingResponses: [
+            [for (final c in local) c.wireHash],
+          ],
+          uploadBatchSupported: true,
+        );
+
+    SyncCoordinator coordinatorFor(
+      List<SyncMergeCandidate> local,
+      _FakeTransport transport, {
+      SyncPeerManifestCache? cache,
+    }) {
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(local: {for (final c in local) c.address: c}),
+        transport: transport,
+        peerManifestCache: cache,
+      );
+      addTearDown(coordinator.dispose);
+      return coordinator;
+    }
+
+    test('uploads what the store is missing $syncBlobBatchMaxUploadBlobs to a '
+        'request, and publishes', () async {
+      final local = localLibrary(120);
+      final transport = transportFor(local);
+
+      final result = await coordinatorFor(local, transport).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(
+        [for (final batch in transport.putBatchRequests) batch.length],
+        [50, 50, 20],
+      );
+      expect(
+        {for (final batch in transport.putBatchRequests) ...batch},
+        {for (final c in local) c.wireHash},
+      );
+      expect(transport.putBlobHashes, isEmpty, reason: 'no single upload');
+      expect(transport.manifestPuts, 1);
+    });
+
+    for (final (status, refusal) in [
+      (429, _FakeTransport.rateLimited),
+      (503, _FakeTransport.response(503)),
+    ]) {
+      test('a $status on the second batch is a temporary failure that made '
+          'progress', () async {
+        final local = localLibrary(120);
+        final transport = transportFor(local)
+          ..onPutBatch = (call, _) => call == 2 ? refusal : null;
+
+        final result = await coordinatorFor(local, transport).syncNow();
+
+        expect(result.status, SyncPassStatus.failed);
+        expect(result.failure?.cause.isTransient, isTrue);
+        expect(result.failure?.step, SyncFailureStep.upload);
+        expect(result.failure?.statusCode, status);
+        expect(result.failure?.progressed, isTrue);
+        expect(transport.putBatchCalls, 2);
+        expect(transport.manifestPuts, 0);
+      });
+    }
+
+    for (final (status, cause) in [
+      (507, SyncFailureCause.storeFull),
+      (422, SyncFailureCause.rejected),
+    ]) {
+      test(
+        'a blob the store refuses with $status fails the pass as that '
+        'single upload would, keeping the progress of the ones it stored',
+        () async {
+          final local = localLibrary(10);
+          final refusedHash = local[4].wireHash;
+          final transport = transportFor(local)
+            ..putBatchStatus = (hash) => hash == refusedHash ? status : null;
+
+          final result = await coordinatorFor(local, transport).syncNow();
+
+          expect(result.status, SyncPassStatus.failed);
+          expect(result.failure?.cause, cause);
+          expect(result.failure?.step, SyncFailureStep.upload);
+          expect(result.failure?.statusCode, status);
+          expect(result.failure?.progressed, isTrue);
+          expect(transport.manifestPuts, 0);
+        },
+      );
+    }
+
+    for (final status in [400, 404, 405, 413, 501]) {
+      test('a $status on the batch route falls back to single uploads for the '
+          'rest of the session', () async {
+        final local = localLibrary(3);
+        final transport = transportFor(local)
+          ..onPutBatch = (_, _) => status == 501
+              ? const SyncHttpResponse(
+                  statusCode: 501,
+                  kind: SyncResponseKind.serverError,
+                  headers: {},
+                  body: [],
+                )
+              : _FakeTransport.response(status);
+        final cache = SyncPeerManifestCache();
+
+        final result = await coordinatorFor(
+          local,
+          transport,
+          cache: cache,
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.completed);
+        expect(result.reports, isEmpty);
+        expect(transport.putBatchCalls, 1);
+        expect(transport.putBlobHashes, {for (final c in local) c.wireHash});
+        expect(cache.blobUploadBatchUnsupported, isTrue);
+      });
+    }
+
+    test('a 200 that is not the route\'s answer falls back too', () async {
+      final local = localLibrary(3);
+      final transport = transportFor(local)
+        ..onPutBatch = (_, _) =>
+            _FakeTransport.response(200, body: utf8.encode('<html></html>'));
+
+      final result = await coordinatorFor(local, transport).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(transport.putBlobHashes, hasLength(3));
+    });
+
+    test('a blob over the size cap goes alone, and batches carry on', () async {
+      final local = localLibrary(3);
+      final big = SyncMergeCandidate.fromBlob(
+        _tag('big-tag', 'x' * (syncMaxBlobResponseBytes + 1)),
+      );
+      final all = [...local, big];
+      final transport = transportFor(all);
+      final cache = SyncPeerManifestCache();
+
+      final result = await coordinatorFor(
+        all,
+        transport,
+        cache: cache,
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(transport.putBlobHashes, [big.wireHash]);
+      expect(
+        {for (final batch in transport.putBatchRequests) ...batch},
+        {for (final c in local) c.wireHash},
+      );
+      expect(cache.blobUploadBatchUnsupported, isFalse);
+    });
+
+    test('a new store epoch asks for upload batches again', () {
+      final cache = SyncPeerManifestCache()
+        ..beginPublicationEpoch('epoch-1')
+        ..blobUploadBatchUnsupported = true;
+      expect(
+        SyncPeerManifestCache.fromMessage(
+          cache.toMessage(),
+        ).blobUploadBatchUnsupported,
+        isTrue,
+      );
+      cache.beginPublicationEpoch('epoch-2');
+      expect(cache.blobUploadBatchUnsupported, isFalse);
+    });
+  });
+
   // The upload side of the same problem: a device with a large library of its
   // own uploads one blob a request, so its first publication meets the
   // per-IP limit too. That already failed as a temporary `rateLimited`, never
@@ -6582,6 +6764,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     List<int>? postMissingStatuses,
     this.storeQuota,
     this.batchSupported = false,
+    this.uploadBatchSupported = false,
   }) : createResponses = [...createResponses ?? const []],
        storeEpochs = [
          ...storeEpochs ?? const ['epoch-1'],
@@ -6631,6 +6814,19 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   Object? Function(int call, int index)? cutBatch;
   int batchCalls = 0;
   final batchRequests = <List<String>>[];
+
+  /// Whether [putBlobBatch] is a route this server has; off by default, for
+  /// the same reason as [batchSupported].
+  final bool uploadBatchSupported;
+
+  /// Answers the [call]th batch upload (1-based) in place of storing it, when
+  /// it returns non-null.
+  SyncHttpResponse? Function(int call, List<String> hashes)? onPutBatch;
+
+  /// The status the store gives one blob of a batch upload; `201` when null.
+  int? Function(String hash)? putBatchStatus;
+  int putBatchCalls = 0;
+  final putBatchRequests = <List<String>>[];
 
   /// Answers the [call]th blob upload (1-based) in place of a `201` when it
   /// returns non-null; may throw, as a transport does.
@@ -6787,6 +6983,28 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   Future<SyncHttpResponse> putBlob(String hash, List<int> body) async {
     putBlobHashes.add(hash);
     return onPutBlob?.call(putBlobHashes.length, hash) ?? _response(201);
+  }
+
+  @override
+  Future<SyncHttpResponse> putBlobBatch(
+    List<({String hash, List<int> body})> blobs,
+  ) async {
+    putBatchCalls++;
+    final hashes = [for (final blob in blobs) blob.hash];
+    putBatchRequests.add(hashes);
+    if (!uploadBatchSupported) return _response(404);
+    requestLog.add('put-batch');
+    final scripted = onPutBatch?.call(putBatchCalls, hashes);
+    if (scripted != null) return scripted;
+    return _response(
+      200,
+      body: jsonEncode({
+        'results': [
+          for (final hash in hashes)
+            {'hash': hash, 'status': putBatchStatus?.call(hash) ?? 201},
+        ],
+      }),
+    );
   }
 
   static SyncHttpResponse response(int status, {List<int>? body}) =>

@@ -179,7 +179,7 @@ void main() {
         throwsA(isA<SyncBlobBatchFormatException>()),
       );
       final tooMany = [
-        for (var i = 0; i <= syncBlobBatchMaxHashes; i++)
+        for (var i = 0; i <= syncBlobBatchMaxUploadBlobs; i++)
           ...blobFrame(sha256Hex(utf8.encode('$i')), const [1]),
       ];
       expect(

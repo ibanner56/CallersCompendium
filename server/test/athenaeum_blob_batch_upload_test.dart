@@ -179,7 +179,8 @@ void main() {
   group('refuses the whole request', () {
     test('past the frame cap, or with a blob over the size cap', () async {
       final many = [
-        for (var i = 0; i <= syncBlobBatchMaxHashes; i++) utf8.encode('$i'),
+        for (var i = 0; i <= syncBlobBatchMaxUploadBlobs; i++)
+          utf8.encode('$i'),
       ];
       expect((await upload(frames(many))).statusCode, 413);
       final huge = List<int>.filled(maxBlobBytes + 1, 0x61);

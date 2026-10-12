@@ -7,6 +7,13 @@ const String syncBlobBatchMediaType =
 /// The most hashes one `POST /v1/blobs/batch` request may name (spec §5.4).
 const int syncBlobBatchMaxHashes = 200;
 
+/// The most blobs one `PUT /v1/blobs/batch` request may carry (spec §5.4).
+///
+/// Fewer than a read takes because the server stores a batch in one
+/// transaction without yielding, so every other request waits for it: 50
+/// blobs take tens of milliseconds where 200 took about a quarter of a second.
+const int syncBlobBatchMaxUploadBlobs = 50;
+
 /// The most blob bytes one `POST /v1/blobs/batch` response carries, before
 /// framing and compression (spec §5.4). A blob is never larger than 1 MB, so
 /// the first blob a response names always fits.
@@ -105,7 +112,7 @@ final class SyncBlobBatchFormatException implements Exception {
 /// order: a conforming server answers every requested hash exactly once, in
 /// the order requested. For a batch upload ([SyncBlobBatchFrameReader.upload])
 /// the hashes are not known in advance: every frame must carry a blob, no hash
-/// may appear twice, and there may be at most [syncBlobBatchMaxHashes]. A frame
+/// may appear twice, and there may be at most [syncBlobBatchMaxUploadBlobs]. A frame
 /// that breaks these, an unknown status, or a blob longer than [maxBlobBytes]
 /// is a [SyncBlobBatchFormatException]. Every complete frame is handed to the
 /// caller before the next is checked, so frames that arrived before a broken
@@ -162,7 +169,7 @@ final class SyncBlobBatchFrameReader {
         if (expected != null && _next >= expected.length) {
           throw const SyncBlobBatchFormatException('frame after the last hash');
         }
-        if (expected == null && _next >= syncBlobBatchMaxHashes) {
+        if (expected == null && _next >= syncBlobBatchMaxUploadBlobs) {
           throw const SyncBlobBatchFormatException(
             'too many frames',
             exceedsCap: true,

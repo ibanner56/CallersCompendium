@@ -680,7 +680,7 @@ class AthenaeumApp {
     );
   }
 
-  /// `PUT /v1/blobs/batch` (spec §5.2): up to [syncBlobBatchMaxHashes] blobs
+  /// `PUT /v1/blobs/batch` (spec §5.2): up to [syncBlobBatchMaxUploadBlobs] blobs
   /// uploaded in one request, so a device's first publication is not one
   /// request per record.
   ///

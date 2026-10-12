@@ -581,6 +581,11 @@ abstract interface class SyncCoordinatorTransport {
   });
 
   Future<SyncHttpResponse> putBlob(String hash, List<int> body);
+
+  /// `PUT /v1/blobs/batch` (spec §5.2): see [SyncHttpClient.putBlobBatch].
+  Future<SyncHttpResponse> putBlobBatch(
+    List<({String hash, List<int> body})> blobs,
+  );
 }
 
 /// Adapts the authenticated HTTP client to the coordinator transport seam.
@@ -620,6 +625,11 @@ final class SyncHttpCoordinatorTransport implements SyncCoordinatorTransport {
   @override
   Future<SyncHttpResponse> putBlob(String hash, List<int> body) =>
       client.putBlob(hash, body);
+
+  @override
+  Future<SyncHttpResponse> putBlobBatch(
+    List<({String hash, List<int> body})> blobs,
+  ) => client.putBlobBatch(blobs);
 }
 
 /// An injectable boundary for the pass operation.
@@ -687,6 +697,7 @@ final class SyncPeerManifestCache {
     this.passSequence = 0,
     this.publicationEpoch,
     this.blobBatchUnsupported = false,
+    this.blobUploadBatchUnsupported = false,
   }) : _entries = {...?entries},
        rejectedHashes = {...?rejectedHashes},
        publications = {...?publications},
@@ -726,6 +737,10 @@ final class SyncPeerManifestCache {
   /// this session fetches one blob per request instead of asking again every
   /// pass. A self-hosted server updates on its own schedule.
   bool blobBatchUnsupported;
+
+  /// The same, for `PUT /v1/blobs/batch`: the rest of this session uploads one
+  /// blob per request.
+  bool blobUploadBatchUnsupported;
 
   /// Verified peer blob bodies by wire hash, oldest first.
   ///
@@ -778,6 +793,7 @@ final class SyncPeerManifestCache {
     peerPublications.clear();
     publicationEpoch = epoch;
     blobBatchUnsupported = false;
+    blobUploadBatchUnsupported = false;
   }
 
   SyncPeerManifestCacheEntry? operator [](String peerId) => _entries[peerId];
@@ -800,6 +816,7 @@ final class SyncPeerManifestCache {
     passSequence = 0;
     publicationEpoch = null;
     blobBatchUnsupported = false;
+    blobUploadBatchUnsupported = false;
   }
 
   void replaceFrom(SyncPeerManifestCache source) {
@@ -825,6 +842,7 @@ final class SyncPeerManifestCache {
     passSequence = source.passSequence;
     publicationEpoch = source.publicationEpoch;
     blobBatchUnsupported = source.blobBatchUnsupported;
+    blobUploadBatchUnsupported = source.blobUploadBatchUnsupported;
   }
 
   Map<String, Object?> toMessage() => {
@@ -862,6 +880,7 @@ final class SyncPeerManifestCache {
     '_passSequence': passSequence,
     '_publicationEpoch': publicationEpoch,
     '_blobBatchUnsupported': blobBatchUnsupported,
+    '_blobUploadBatchUnsupported': blobUploadBatchUnsupported,
   };
 
   static SyncPeerManifestCache fromMessage(Object? message) {
@@ -985,6 +1004,13 @@ final class SyncPeerManifestCache {
         'sync isolate returned a malformed blob batch flag',
       );
     }
+    final rawUploadBatchUnsupported = message['_blobUploadBatchUnsupported'];
+    if (rawUploadBatchUnsupported != null &&
+        rawUploadBatchUnsupported is! bool) {
+      throw const FormatException(
+        'sync isolate returned a malformed blob upload batch flag',
+      );
+    }
     return SyncPeerManifestCache(
       entries: entries,
       rejectedHashes: rejectedHashes,
@@ -994,6 +1020,7 @@ final class SyncPeerManifestCache {
       passSequence: rawPassSequence,
       publicationEpoch: rawPublicationEpoch as String?,
       blobBatchUnsupported: rawBlobBatchUnsupported as bool? ?? false,
+      blobUploadBatchUnsupported: rawUploadBatchUnsupported as bool? ?? false,
     );
   }
 }
@@ -3093,6 +3120,7 @@ class SyncCoordinator {
           ),
         );
       }
+      final uploads = <({String hash, List<int> body})>[];
       for (final hash in missing) {
         final candidate = localByHash[hash];
         if (candidate == null) {
@@ -3122,12 +3150,96 @@ class SyncCoordinator {
             ),
           );
         }
+        uploads.add((
+          hash: hash,
+          body: encodeSyncRecordBlobUtf8(candidate.blob),
+        ));
+      }
+      final singles = <({String hash, List<int> body})>[];
+      var index = 0;
+      while (index < uploads.length) {
+        if (_peerManifestCache.blobUploadBatchUnsupported) {
+          singles.addAll(uploads.sublist(index));
+          break;
+        }
+        // A blob over the size cap goes alone, so its `413` is the one a
+        // single upload gets rather than a refusal of the whole batch.
+        if (uploads[index].body.length > syncMaxBlobResponseBytes) {
+          singles.add(uploads[index++]);
+          continue;
+        }
+        final batch = <({String hash, List<int> body})>[];
+        var bytes = 0;
+        while (index < uploads.length &&
+            batch.length < syncBlobBatchMaxUploadBlobs &&
+            uploads[index].body.length <= syncMaxBlobResponseBytes &&
+            bytes + uploads[index].body.length <= syncBlobBatchMaxBlobBytes) {
+          bytes += uploads[index].body.length;
+          batch.add(uploads[index++]);
+        }
+        final SyncHttpResponse response;
+        try {
+          response = await transport.putBlobBatch(batch);
+        } on Object catch (error, stack) {
+          final failed = transientFailure(error, stack);
+          logCaughtErrorTypeOnly(
+            error,
+            stack,
+            source: 'sync_coordinator._uploadMissingLocalBlobs',
+          );
+          return failed;
+        }
+        final statuses = response.isSuccess
+            ? _decodeUploadStatuses(response.body, batch)
+            : null;
+        if (statuses == null) {
+          // A `429`, or a `5xx` other than `507` and `501`, means what it
+          // means on a single upload. Anything else — a refusal, or a `200`
+          // that is not this route's answer — is a server or proxy that does
+          // not serve the route: the rest of the session uploads singly.
+          if (!response.isSuccess &&
+              (response.kind == SyncResponseKind.rateLimited ||
+                  (response.kind == SyncResponseKind.serverError &&
+                      response.statusCode != 501))) {
+            return _MissingBlobUploadResult.failed(
+              SyncFailure.fromResponse(
+                response,
+                SyncFailureStep.upload,
+              ).withProgress(uploadedCount > 0),
+            );
+          }
+          _peerManifestCache.blobUploadBatchUnsupported = true;
+          index -= batch.length;
+          continue;
+        }
+        // Every blob the store accepted counts, even past one it refused: the
+        // store keeps each on its own.
+        SyncHttpResponse? refused;
+        for (final status in statuses) {
+          if (status == 200 || status == 201) {
+            uploadedCount++;
+          } else {
+            refused ??= SyncHttpResponse(
+              statusCode: status,
+              kind: syncResponseKindForStatus(status),
+              headers: const {},
+              body: const [],
+            );
+          }
+        }
+        if (refused != null) {
+          return _MissingBlobUploadResult.failed(
+            SyncFailure.fromResponse(
+              refused,
+              SyncFailureStep.upload,
+            ).withProgress(uploadedCount > 0),
+          );
+        }
+      }
+      for (final (:hash, :body) in singles) {
         final SyncHttpResponse uploaded;
         try {
-          uploaded = await transport.putBlob(
-            hash,
-            encodeSyncRecordBlobUtf8(candidate.blob),
-          );
+          uploaded = await transport.putBlob(hash, body);
         } on Object catch (error, stack) {
           final failed = transientFailure(error, stack);
           logCaughtErrorTypeOnly(
@@ -3239,6 +3351,35 @@ class SyncCoordinator {
     } on FormatException {
       // diagnostics: silent — malformed store metadata is surfaced as a
       // failed pass.
+      return null;
+    }
+  }
+
+  /// The per-blob statuses of a `PUT /v1/blobs/batch` answer (spec §5.2), in
+  /// the order of [batch], or null when [body] is not that answer: not JSON,
+  /// not one result per blob, or not in order.
+  static List<int>? _decodeUploadStatuses(
+    List<int> body,
+    List<({String hash, List<int> body})> batch,
+  ) {
+    try {
+      final decoded = jsonDecode(utf8.decode(body, allowMalformed: false));
+      if (decoded is! Map || decoded['results'] is! List) return null;
+      final results = decoded['results'] as List;
+      if (results.length != batch.length) return null;
+      final statuses = <int>[];
+      for (final (index, result) in results.indexed) {
+        if (result is! Map ||
+            result['hash'] != batch[index].hash ||
+            result['status'] is! int) {
+          return null;
+        }
+        statuses.add(result['status'] as int);
+      }
+      return statuses;
+    } on FormatException {
+      // diagnostics: silent — an answer that is not the route's falls back to
+      // single uploads.
       return null;
     }
   }

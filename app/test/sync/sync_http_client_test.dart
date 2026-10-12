@@ -808,4 +808,54 @@ void main() {
       );
     });
   });
+
+  group('SyncHttpClient.putBlobBatch (spec §5.2)', () {
+    test(
+      'sends gzip-compressed blob frames with the batch media type',
+      () async {
+        final blobs = [for (var i = 0; i < 3; i++) utf8.encode('{"n":$i}')];
+        final received = <SyncBlobBatchFrame>[];
+        String? contentType;
+        String? encoding;
+        final server = await _startServer((request) async {
+          contentType = request.headers.value('content-type');
+          encoding = request.headers.value('content-encoding');
+          final body = await request.fold<List<int>>(
+            <int>[],
+            (all, chunk) => all..addAll(chunk),
+          );
+          SyncBlobBatchFrameReader.upload(
+              maxBlobBytes: syncMaxBlobResponseBytes,
+            )
+            ..add(gzip.decode(body), received.add)
+            ..close();
+          request.response.headers.contentType = ContentType.json;
+          request.response.write(
+            jsonEncode({
+              'results': [
+                for (final frame in received)
+                  {'hash': frame.hash, 'status': 201},
+              ],
+            }),
+          );
+          await request.response.close();
+        });
+        addTearDown(() => server.close(force: true));
+        final client = SyncHttpClient(
+          endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+          syncId: 'one-two-three-four',
+        );
+        addTearDown(client.close);
+
+        final response = await client.putBlobBatch([
+          for (final blob in blobs) (hash: sha256Hex(blob), body: blob),
+        ]);
+
+        expect(response.kind, SyncResponseKind.success);
+        expect(contentType, startsWith(syncBlobBatchMediaType));
+        expect(encoding, 'gzip');
+        expect([for (final frame in received) frame.body], blobs);
+      },
+    );
+  });
 }

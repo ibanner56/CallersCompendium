@@ -76,6 +76,48 @@ Future<void> main(List<String> arguments) async {
       );
     }
 
+    stdout.writeln('\n## PUT /v1/blobs/batch, in-process (µs, median of 20)');
+    for (final size in [1, 10, 50]) {
+      final batchSamples = <int>[];
+      for (var round = 0; round < 20; round++) {
+        final body = BytesBuilder(copy: false);
+        for (var i = 0; i < size; i++) {
+          final blob = utf8.encode('{"round":$round,"size":$size,"i":$i}');
+          body
+            ..add(
+              encodeSyncBlobBatchFrameHead(
+                SyncBlobBatchFrameStatus.blob,
+                sha256Hex(blob),
+                length: blob.length,
+              ),
+            )
+            ..add(blob);
+        }
+        watch
+          ..reset()
+          ..start();
+        final response = await app.handler(
+          Request(
+            'PUT',
+            Uri.parse('http://bench/v1/blobs/batch'),
+            headers: {
+              'authorization': authorization,
+              'content-type': syncBlobBatchMediaType,
+            },
+            body: body.takeBytes(),
+          ),
+        );
+        await response.read().drain<void>();
+        batchSamples.add(watch.elapsedMicroseconds);
+      }
+      batchSamples.sort();
+      final median = batchSamples[batchSamples.length ~/ 2];
+      stdout.writeln(
+        '${size.toString().padLeft(3)} blobs into ${library.length}: '
+        '$median   per blob ${(median / size).toStringAsFixed(0)}',
+      );
+    }
+
     stdout.writeln('\n## Store steps at ${library.length} blobs (µs, median)');
     final absent = sha256Hex(utf8.encode('never stored'));
     stdout.writeln(
