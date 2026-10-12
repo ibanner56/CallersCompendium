@@ -25,9 +25,9 @@ const int maxGeneralRequestsPerIpBurst = 120;
 const int maxGeneralRequestsPerStorePerMinute = 600;
 const int maxGeneralRequestsPerStoreBurst = 600;
 
-/// How many hashes of a `POST /v1/blobs/batch` one request token covers
-/// beyond the first (spec §5.4): a batch of `n` hashes costs `1 + ⌈n / 20⌉`
-/// tokens, so a full batch of 200 costs 11.
+/// A `POST /v1/blobs/batch` naming `n` hashes costs the request token every
+/// request pays plus one per this many hashes, rounded up: `1 + ⌈n / 20⌉`, so
+/// a full batch of 200 costs 11 (spec §5.4).
 const int defaultBlobBatchHashesPerToken = 20;
 const int _maxTrackedRequestBuckets = 10000;
 
