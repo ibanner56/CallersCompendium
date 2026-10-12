@@ -2207,11 +2207,12 @@ blob cap, so the first blob always fits.
 a batch in one SQLite transaction: one quota check and one commit instead of one
 per blob, which is most of what a single `PUT` costs. The reference server
 serves every request on one thread, so nothing else is answered while a batch
-is stored. Measured on the reference server (in-process, a 4-vCPU Xeon at
-2.1 GHz, across runs), a single `PUT` costs 4–13 ms of handler time, growing
-with the store because its quota check scans the store's blob rows; a batch of
-200 cost 210–250 ms, a stall every other user of the server would feel, and a
-batch of 50 costs 79–147 ms. 50 keeps the stall to about a dozen single `PUT`s.
+is stored. Measured on the reference server (in-process, a 4-vCPU Xeon, across
+runs, into a store of about 5,000 blobs), a single `PUT` costs 4–13 ms of
+handler time, growing with the store because its quota check scans the store's
+blob rows; a batch of 200 cost 210–250 ms, a stall every other user of the
+server would feel, and a batch of 50 costs 58–147 ms. 50 keeps the stall to
+what ten to twenty single `PUT`s cost.
 Until the maintainer decides how a batch upload is charged against the
 request-rate rows, the reference server charges it one token, as any request.
 
