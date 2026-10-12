@@ -550,7 +550,13 @@ class SyncHttpClient {
       reader.close();
     } on SyncBlobBatchFormatException {
       // diagnostics: silent — rethrown as the transport's own malformed-reply
-      // exception, which fails the pass and reaches the log there.
+      // exception, which the caller logs before falling back to single
+      // requests.
+      throw const SyncEndpointException('malformed blob batch response');
+    } on FormatException {
+      // diagnostics: silent — the gzip decoder's answer to a corrupt body,
+      // rethrown as above. Left as it is, it reads as an internal fault and
+      // fails every pass, where a malformed batch should fall back.
       throw const SyncEndpointException('malformed blob batch response');
     }
     if (!reader.isComplete) {

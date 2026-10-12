@@ -745,6 +745,23 @@ void main() {
       );
     });
 
+    test('a corrupt gzip body throws as a malformed reply, so the caller '
+        'falls back', () async {
+      final client = await clientFor((request) async {
+        await request.drain<void>();
+        request.response.headers
+          ..set('content-type', syncBlobBatchMediaType)
+          ..set('content-encoding', 'gzip');
+        request.response.add(utf8.encode('this is not gzip at all'));
+        await request.response.close();
+      });
+
+      await expectLater(
+        client.postBlobBatch([first], onFrame: (_) {}),
+        throwsA(isA<SyncEndpointException>()),
+      );
+    });
+
     test('caps the decoded response, and the encoded one', () async {
       // Blob frames of 1 MB each, more of them than the cap allows.
       final hashes = [
