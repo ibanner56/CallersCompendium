@@ -575,12 +575,13 @@ Sync is off and open while it is on.
   and you don't need to do anything: the app tries again by itself, waiting a
   little longer each time (from a minute up to half an hour, and never sooner
   than the server asked), and also tries when you come back to the app. The
-  server limits how quickly one device can fetch. The app fetches records in
-  batches, so connecting a device to a large library usually finishes in one
-  try, or a few for a very large one. A self-hosted server that hasn't been
-  updated for batched fetching gets one record at a time, and there it can
-  take several tries — roughly a minute for every sixty records. Each try
-  keeps what it brought over, so while it is
+  server limits how quickly one device can send and fetch. The app fetches
+  records from your other devices in batches, so connecting a device to a
+  large library usually finishes in one try, or a few for a very large one.
+  Sending a large library of its own goes one record at a time, as does
+  fetching from a self-hosted server that hasn't been updated for batched
+  fetching, and either can take several of these tries — roughly a minute for
+  every sixty records. Each try keeps what it got through, so while it is
   still getting further the app tries again every minute rather than waiting
   longer, and nothing it hasn't fetched yet is reported as skipped. A small
   **Details** line still names the step that stopped and the HTTP status, if
@@ -624,10 +625,15 @@ Sync is off and open while it is on.
   tunes the app can't read, so they aren't being sent (nothing is deleted —
   enter those figures or tunes again to send them); when another device is
   using a newer version of the app, so this device can't read some of what it
-  shared — either in a newer format, or with details this version doesn't
-  sync yet. That one is a warning, says how many of each kind of record are
-  waiting when it can tell (for example "2 programs, 1 setting"), lists only
-  those records, and is fixed by updating the app on this device; when records from
+  shared — either in a newer format, or with details this version can't keep,
+  such as new details inside a dance's figures (those dances are marked as
+  having figures only a newer version can read). That one is a warning, says
+  how many of each kind of record are waiting when it can tell (for example "2
+  programs, 1 setting"), lists only those records, and is fixed by updating the
+  app on this device; when records here carry other details a newer version
+  of the app added, which this version keeps and shares back unchanged so they
+  aren't lost when you edit the record here — that one is information only, the
+  records still sync, and updating the app shows the details; when records from
   another device couldn't be used and were skipped; when another device's clock
   looks far off; when an
   update arrived while you were editing the same record, so it waits for the

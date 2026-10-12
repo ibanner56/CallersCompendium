@@ -122,6 +122,7 @@ export 'src/sync/sync_merge.dart';
 export 'src/sync/sync_quarantine.dart';
 export 'src/sync/sync_reconciliation.dart';
 export 'src/sync/sync_report.dart';
+export 'src/sync/sync_retained_fields.dart';
 export 'src/sync/sync_apply.dart';
 export 'src/sync/sync_admission.dart';
 export 'src/sync/sync_review.dart';

@@ -144,15 +144,17 @@ class SyncFailure {
   /// sooner than this (`SyncController`, spec §6.12).
   final Duration? retryAfter;
 
-  /// Whether the pass fetched at least one record before it stopped, so the
+  /// Whether the pass moved at least one record before it stopped, so the
   /// next pass starts further on rather than where this one did.
   ///
-  /// Set only for a pass that stopped part-way through its downloads (spec
-  /// §6.3 step 5). `SyncController` retries such a failure at the first step
-  /// of its backoff instead of the next one (spec §6.12): a large first
-  /// download that meets the server's rate limit on every pass is still
-  /// moving, and doubling the wait each time would stretch fifteen minutes of
-  /// work over hours.
+  /// Set for a pass that stopped part-way through its downloads (spec §6.3
+  /// step 5) having fetched a record, or part-way through its uploads having
+  /// had one accepted: the store keeps an accepted blob, so the next pass is
+  /// not asked for it again. `SyncController` retries such a failure at the
+  /// first step of its backoff instead of the next one (spec §6.12): a large
+  /// first download or upload that meets the server's rate limit on every
+  /// pass is still moving, and doubling the wait each time would stretch
+  /// fifteen minutes of work over hours.
   final bool progressed;
 
   /// This failure, marked as having made progress when [value] is true.

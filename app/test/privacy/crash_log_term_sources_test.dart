@@ -87,6 +87,7 @@ const Map<String, String> _sources = {
   // -- Device Sync queues: whole serialized records (thirdParty) --
   'review_queue.candidate_blob': '{"TERMSRC":"review candidate blob"}',
   'pending_deletions.tombstone_blob': '{"TERMSRC":"tombstone blob"}',
+  'retained_sync_fields.payload': '{"TERMSRC":{"v":"kept newer field"}}',
   // -- not required by the registry; user content all the same --
   'venues.name': 'TERMSRC venue name',
   'venues.sponsor': 'TERMSRC venue sponsor',
@@ -274,6 +275,11 @@ Future<void> _populate(CompendiumRepositories repos) async {
     tombstonedAt: _now,
     tombstoneHash: 'tombstone-hash',
     tombstoneBlob: _v('pending_deletions.tombstone_blob'),
+  );
+  await repos.syncLocal.setRetainedSyncFields(
+    kind: SyncRecordKind.program,
+    recordId: 'p1',
+    payload: _v('retained_sync_fields.payload'),
   );
 }
 

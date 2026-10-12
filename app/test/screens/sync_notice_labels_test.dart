@@ -47,6 +47,16 @@ const _expected = <_Case>[
     group: SyncNoticeGroup.newerVersion,
   ),
   (
+    code: SyncReportCode.newerFigures,
+    peerId: 'peer-1',
+    group: SyncNoticeGroup.newerVersion,
+  ),
+  (
+    code: SyncReportCode.keptNewerFields,
+    peerId: null,
+    group: SyncNoticeGroup.keptNewerFields,
+  ),
+  (
     code: SyncReportCode.equalUpdatedAt,
     peerId: 'peer-1',
     group: SyncNoticeGroup.divergence,
@@ -196,6 +206,60 @@ void main() {
         ),
         'Another device is using a newer version of the app. Update the app '
         'on this device to receive 2 programs, 1 setting.',
+      );
+    });
+
+    test('a record refused for a newer version\'s figures says so', () {
+      // What this build does not understand, not only that it is behind.
+      const dance = (kind: SyncRecordKind.dance, recordId: 'd1');
+      const program = (kind: SyncRecordKind.program, recordId: 'p1');
+      final text = syncNoticeAffectedText(
+        l10n,
+        const [
+          (dance, SyncNoticeRecordNamed('Petronella')),
+          (program, SyncNoticeRecordNamed('Saturday')),
+        ],
+        2,
+        newerFigures: {dance},
+      );
+      expect(
+        text,
+        'Affects: Dance “Petronella” (has figures only a newer version can '
+        'read), Program “Saturday”',
+      );
+      expect(
+        syncNoticeNewerFigureRecords(const [
+          SyncReport(
+            code: SyncReportCode.newerFigures,
+            kind: SyncRecordKind.dance,
+            recordId: 'd1',
+            message: 'm',
+          ),
+          SyncReport(
+            code: SyncReportCode.newerRecordFields,
+            kind: SyncRecordKind.program,
+            recordId: 'p1',
+            message: 'm',
+          ),
+        ]),
+        {dance},
+      );
+    });
+
+    test('kept details are information, counted by kind', () {
+      expect(syncNoticeNeedsYou(SyncNoticeGroup.keptNewerFields), isFalse);
+      expect(
+        syncNoticeText(
+          l10n,
+          SyncNoticeGroup.keptNewerFields,
+          countedRecords: const [
+            (kind: SyncRecordKind.program, recordId: 'p1'),
+            (kind: SyncRecordKind.program, recordId: 'p2'),
+          ],
+        ),
+        "Kept for a newer version of the app: 2 programs. These still sync, "
+        "with details this version can't show. Update the app on this "
+        'device to see them.',
       );
     });
 

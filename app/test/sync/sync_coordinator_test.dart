@@ -5669,6 +5669,135 @@ void main() {
     });
   });
 
+  // The upload side of the same problem: a device with a large library of its
+  // own uploads one blob a request, so its first publication meets the
+  // per-IP limit too. That already failed as a temporary `rateLimited`, never
+  // as skipped records; what it lacked was saying it had moved on, so every
+  // such pass doubled the wait before the next (spec §6.12).
+  group('an upload the server refuses for now (spec §6.12)', () {
+    final local = [
+      for (final key in [
+        'default_program_band',
+        'default_program_caller',
+        'default_import_tag_names',
+        'custom_dialects',
+      ])
+        SyncMergeCandidate.fromBlob(_setting(key, 'local $key')),
+    ];
+
+    _FakeTransport transportMissingAll() => _FakeTransport(
+      missingResponses: [
+        [for (final c in local) c.wireHash],
+      ],
+    );
+
+    Future<SyncPassResult> pass(_FakeTransport transport) => SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(local: {for (final c in local) c.address: c}),
+      transport: transport,
+    ).syncNow();
+
+    test('a 429 after some uploads is a temporary failure that made '
+        'progress', () async {
+      final transport = transportMissingAll()
+        ..onPutBlob = (call, _) =>
+            call >= 3 ? _FakeTransport.rateLimited : null;
+
+      final result = await pass(transport);
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.rateLimited);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.retryAfter, const Duration(seconds: 60));
+      expect(result.failure?.progressed, isTrue);
+      expect(result.reports, isEmpty);
+      expect(transport.putBlobHashes, hasLength(3));
+      expect(transport.manifestPuts, 0);
+    });
+
+    test('a 429 on the first upload made no progress, so the wait still '
+        'grows', () async {
+      final transport = transportMissingAll()
+        ..onPutBlob = (_, _) => _FakeTransport.rateLimited;
+
+      final result = await pass(transport);
+
+      expect(result.failure?.cause, SyncFailureCause.rateLimited);
+      expect(result.failure?.progressed, isFalse);
+    });
+
+    test('a network failure mid-upload is a temporary result, not a throw, '
+        'and says how far it got', () async {
+      final transport = transportMissingAll()
+        ..onPutBlob = (call, _) =>
+            call == 2 ? throw const SocketException('connection reset') : null;
+
+      final result = await pass(transport);
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.unreachable);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.progressed, isTrue);
+      expect(transport.manifestPuts, 0);
+    });
+
+    test('a network failure asking which blobs are missing is a temporary '
+        'result at the upload step, not a throw', () async {
+      final transport = transportMissingAll();
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(local: {for (final c in local) c.address: c}),
+        transport: _FakeTransport(
+          missingResponses: transport.missingResponses,
+          onPostMissing: (_) async =>
+              throw const SyncTransportException('request timed out'),
+        ),
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.timedOut);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.progressed, isFalse);
+    });
+
+    test('a later missing-blob batch that fails keeps the progress of the '
+        'batches before it', () async {
+      // `POST /v1/blobs/missing` takes at most 10,000 hashes, so a library
+      // this size asks twice. The first batch's uploads all land; the second
+      // request drops. Those uploads are still progress.
+      final many = [
+        for (var i = 0; i <= 10000; i++)
+          SyncMergeCandidate.fromBlob(
+            _dance('dance-$i', updatedAt: DateTime.utc(2026, 7, 15, 12)),
+          ),
+      ];
+      var asks = 0;
+      final transport = _FakeTransport(
+        missingResponses: [
+          [for (final c in many) c.wireHash],
+        ],
+        onPostMissing: (_) async {
+          if (++asks == 2) throw const SocketException('connection reset');
+        },
+      );
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(local: {for (final c in many) c.address: c}),
+        transport: transport,
+      ).syncNow();
+
+      expect(asks, 2);
+      expect(transport.putBlobHashes, isNotEmpty);
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.unreachable);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.progressed, isTrue);
+    });
+  });
+
   group('a peer running a newer app version (spec §6.9)', () {
     SyncCoordinator coordinatorFor(_FakeTransport transport) => SyncCoordinator(
       syncId: 'configured',
@@ -5708,11 +5837,11 @@ void main() {
       expect(report.peerId, 'peer');
     });
 
-    test('a blob carrying a field this build does not know is reported as '
-        'newerRecordFields, naming its record', () async {
+    test('a blob carrying a field this build does not sync is applied, not '
+        'reported (spec §6.7)', () async {
       // The envelope `v` is unchanged: a newer build added a body field, as
-      // #1714 added a program's pay. The record is still skipped; only what
-      // the user is told changes.
+      // #1714 added a program's pay. This build keeps it rather than refusing
+      // the record.
       final tag = _tag('t-new', 'Newer').toJson();
       final newer = utf8.encode(
         jsonEncode({
@@ -5734,11 +5863,52 @@ void main() {
         ),
       ).syncNow();
 
-      final report = result.reports.singleWhere(
-        (report) => report.recordId == 't-new',
+      expect(
+        result.reports.where((report) => report.recordId == 't-new'),
+        isEmpty,
       );
-      expect(report.code, SyncReportCode.newerRecordFields);
-      expect(report.kind, SyncRecordKind.tag);
+    });
+
+    test('a dance whose figures a newer build extended is reported as '
+        'newerFigures, naming its record', () async {
+      final dance = SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: 'd-new',
+        updatedAt: DateTime.utc(2026, 7, 15, 12),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 7, 15, 12),
+        body: const {'id': 'd-new', 'title': 'Newer'},
+      ).toJson();
+      final newer = utf8.encode(
+        jsonEncode({
+          ...dance,
+          'body': {
+            ...(dance['body']! as Map<String, Object?>),
+            'figures': [
+              {'schemaVersion': 1, 'move': 'swing', 'handHold': 'cross'},
+            ],
+          },
+        }),
+      );
+      final hash = sha256Hex(newer);
+      final result = await coordinatorFor(
+        _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.dance: {'d-new': hash},
+            },
+          ),
+          blobResponses: {hash: _FakeTransport.response(200, body: newer)},
+        ),
+      ).syncNow();
+
+      final report = result.reports.singleWhere(
+        (report) => report.recordId == 'd-new',
+      );
+      expect(report.code, SyncReportCode.newerFigures);
+      expect(report.kind, SyncRecordKind.dance);
       expect(report.peerId, 'peer');
     });
 
@@ -6293,6 +6463,10 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   Object? Function(int call, int index)? cutBatch;
   int batchCalls = 0;
   final batchRequests = <List<String>>[];
+
+  /// Answers the [call]th blob upload (1-based) in place of a `201` when it
+  /// returns non-null; may throw, as a transport does.
+  SyncHttpResponse? Function(int call, String hash)? onPutBlob;
   final List<List<String>> missingResponses;
   final int putManifestStatus;
   final List<int> putManifestStatuses;
@@ -6444,7 +6618,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   @override
   Future<SyncHttpResponse> putBlob(String hash, List<int> body) async {
     putBlobHashes.add(hash);
-    return _response(201);
+    return onPutBlob?.call(putBlobHashes.length, hash) ?? _response(201);
   }
 
   static SyncHttpResponse response(int status, {List<int>? body}) =>

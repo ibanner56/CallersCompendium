@@ -714,6 +714,28 @@ class PendingDeletions extends Table {
   Set<Column> get primaryKey => {kind, recordId};
 }
 
+/// What this device keeps of a synced record for a newer version of the app
+/// (spec §6.7): the parts of a peer's body it does not sync, put back verbatim
+/// whenever it shares the record again, so the newer field survives this
+/// device's own edits.
+///
+/// [payload] is canonical JSON. For an ordinary record it is the kept-parts
+/// tree from `partitionInboundRecordBody`; for a [wholeRecord] — a setting
+/// whose key this build does not sync — it is the peer's encoded blob itself,
+/// republished as it came.
+@DataClassName('RetainedSyncFieldsRow')
+class RetainedSyncFields extends Table {
+  TextColumn get kind =>
+      text().map(const EnumNameConverter(SyncRecordKind.values))();
+  TextColumn get recordId => text()();
+  BoolColumn get wholeRecord =>
+      boolean().named('whole_record').withDefault(const Constant(false))();
+  TextColumn get payload => text()();
+
+  @override
+  Set<Column> get primaryKey => {kind, recordId};
+}
+
 /// Immutable candidates awaiting a user's conflict decision.
 @DataClassName('ReviewQueueRow')
 class ReviewQueue extends Table {

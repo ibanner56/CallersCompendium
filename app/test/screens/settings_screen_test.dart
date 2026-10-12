@@ -2750,6 +2750,42 @@ void main() {
           expect(skippedRecords.data, isNot(contains('Program')));
         });
 
+        testWidgets('records carrying details kept for a newer version are '
+            'information, not a warning', (tester) async {
+          final result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              for (final id in ['p1', 'p2'])
+                SyncReport(
+                  code: SyncReportCode.keptNewerFields,
+                  kind: SyncRecordKind.program,
+                  recordId: id,
+                  message: 'Carries fields kept for a newer version.',
+                ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.text(
+              'Kept for a newer version of the app: 2 programs. These still '
+              "sync, with details this version can't show. Update the app on "
+              'this device to see them.',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-notice-keptNewerFields-needs-you')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-notice-newerVersion')),
+            findsNothing,
+            reason: 'kept records are not waiting for anything',
+          );
+        });
+
         testWidgets('a notice needs no gesture to clear and gates no later '
             'pass (spec line 46)', (tester) async {
           var result = const SyncPassResult(

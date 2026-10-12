@@ -542,6 +542,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten.';
 
   @override
+  String settingsSyncNoticeKeptNewerItems(String items) {
+    return 'Für eine neuere Version der App aufbewahrt: $items. Sie werden weiter synchronisiert, mit Details, die diese Version nicht anzeigen kann. Aktualisiere die App auf diesem Gerät, um sie zu sehen.';
+  }
+
+  @override
   String get settingsSyncCopyDetails => 'Details kopieren';
 
   @override
@@ -624,6 +629,16 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String settingsSyncNoticeRecordNotHere(String kind) {
     return '$kind, nicht auf diesem Gerät';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNewerFigures(String kind, String name) {
+    return '$kind „$name“ (enthält Figuren, die nur eine neuere Version lesen kann)';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHereNewerFigures(String kind) {
+    return '$kind nicht auf diesem Gerät (enthält Figuren, die nur eine neuere Version lesen kann)';
   }
 
   @override

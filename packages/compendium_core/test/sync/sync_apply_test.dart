@@ -154,11 +154,14 @@ void main() {
           '{"v":${syncWireVersion + 1},"kind":"setting","id":"custom_dialects",'
           '"updatedAt":"2026-07-15T12:00:00.000Z","deletedAt":null,'
           '"existenceAt":"2026-07-15T12:00:00.000Z","body":{"value":null}}';
+      // A key a newer build added inside a figure: the one kind of new field
+      // this build cannot keep, so it still refuses the record (spec §6.7).
       final newerField =
-          '{"v":1,"kind":"setting","id":"custom_dialects",'
+          '{"v":1,"kind":"dance","id":"d1",'
           '"updatedAt":"2026-07-15T12:00:00.000Z","deletedAt":null,'
           '"existenceAt":"2026-07-15T12:00:00.000Z",'
-          '"body":{"value":null,"addedLater":1}}';
+          '"body":{"id":"d1","title":"T","figures":'
+          '[{"schemaVersion":1,"move":"swing","handHold":"cross"}]}}';
 
       final result = await const SyncApplyEngine().applyJson(
         blobs: [newerEnvelope, newerField],
@@ -168,7 +171,7 @@ void main() {
       expect(result.applied, isEmpty);
       expect(result.reports.map((report) => report.code), [
         SyncReportCode.newerWireVersion,
-        SyncReportCode.newerRecordFields,
+        SyncReportCode.newerFigures,
       ]);
       // A caller that logs the message is not told the record is broken
       // either.
@@ -437,8 +440,14 @@ void main() {
       body: {
         'id': 'collision',
         'title': 'Collision',
+        // Inside a figure's params, which are kept as given: a colliding key
+        // directly on the figure would now be refused as a newer version's.
         'figures': [
-          {'e\u0301': 'first', '\u00e9': 'second'},
+          {
+            'schemaVersion': 1,
+            'move': 'swing',
+            'params': {'e\u0301': 'first', '\u00e9': 'second'},
+          },
         ],
       },
     );

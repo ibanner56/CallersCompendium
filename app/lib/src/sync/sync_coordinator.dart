@@ -2714,7 +2714,9 @@ class SyncCoordinator {
               SyncReportCode.newerWireVersion =>
                 'Blob uses a newer wire version.', // i18n-ignore: internal report
               SyncReportCode.newerRecordFields =>
-                'Blob carries a field this build does not sync.', // i18n-ignore: internal report
+                'Blob carries a field this build cannot keep.', // i18n-ignore: internal report
+              SyncReportCode.newerFigures =>
+                'Blob carries figures from a newer version.', // i18n-ignore: internal report
               _ =>
                 'Blob did not decode as a record.', // i18n-ignore: internal report
             },
@@ -2975,6 +2977,26 @@ class SyncCoordinator {
       ...fallbackHashes,
     }.toList(growable: false);
     final unavailableFallbackHashes = <String>{};
+    // Every blob the store accepted stays accepted, so the next pass's
+    // `missing` list no longer names it: an upload that stops part-way has
+    // still moved on, and says so (`SyncFailure.progressed`, spec §6.12).
+    var uploadedCount = 0;
+    // A dropped connection or a timed-out request fails the pass as the
+    // transient failure it already was, but as a result rather than a throw,
+    // so it can say which step stopped and how far the uploads got — as for a
+    // record download (`_downloadPeerRecords`). Anything else still throws.
+    _MissingBlobUploadResult transientFailure(Object error, StackTrace stack) {
+      final cause = syncFailureCauseForError(error);
+      if (!cause.isTransient) Error.throwWithStackTrace(error, stack);
+      return _MissingBlobUploadResult.failed(
+        SyncFailure(
+          cause,
+          step: SyncFailureStep.upload,
+          progressed: uploadedCount > 0,
+        ),
+      );
+    }
+
     for (
       var offset = 0;
       offset < requestedHashes.length;
@@ -2984,12 +3006,26 @@ class SyncCoordinator {
         0,
         requestedHashes.length,
       );
-      final response = await transport.postMissing(
-        requestedHashes.sublist(offset, end),
-      );
+      final SyncHttpResponse response;
+      try {
+        response = await transport.postMissing(
+          requestedHashes.sublist(offset, end),
+        );
+      } on Object catch (error, stack) {
+        final failed = transientFailure(error, stack);
+        logCaughtErrorTypeOnly(
+          error,
+          stack,
+          source: 'sync_coordinator._uploadMissingLocalBlobs',
+        );
+        return failed;
+      }
       if (!response.isSuccess) {
         return _MissingBlobUploadResult.failed(
-          SyncFailure.fromResponse(response, SyncFailureStep.upload),
+          SyncFailure.fromResponse(
+            response,
+            SyncFailureStep.upload,
+          ).withProgress(uploadedCount > 0),
         );
       }
       final missing = _decodeMissing(response.body);
@@ -3030,15 +3066,30 @@ class SyncCoordinator {
             ),
           );
         }
-        final uploaded = await transport.putBlob(
-          hash,
-          encodeSyncRecordBlobUtf8(candidate.blob),
-        );
+        final SyncHttpResponse uploaded;
+        try {
+          uploaded = await transport.putBlob(
+            hash,
+            encodeSyncRecordBlobUtf8(candidate.blob),
+          );
+        } on Object catch (error, stack) {
+          final failed = transientFailure(error, stack);
+          logCaughtErrorTypeOnly(
+            error,
+            stack,
+            source: 'sync_coordinator._uploadMissingLocalBlobs',
+          );
+          return failed;
+        }
         if (!uploaded.isSuccess) {
           return _MissingBlobUploadResult.failed(
-            SyncFailure.fromResponse(uploaded, SyncFailureStep.upload),
+            SyncFailure.fromResponse(
+              uploaded,
+              SyncFailureStep.upload,
+            ).withProgress(uploadedCount > 0),
           );
         }
+        uploadedCount++;
       }
     }
     return _MissingBlobUploadResult(
@@ -3084,8 +3135,8 @@ class SyncCoordinator {
 
   /// The peer blob in [body] with a null [failure], or a null blob with
   /// [failure] the code the caller reports: whether it failed only because a
-  /// newer build wrote it — in a newer envelope, or with a field this build
-  /// does not sync — or is malformed.
+  /// newer build wrote it — in a newer envelope, or with a part this build
+  /// cannot keep — or is malformed.
   static ({SyncRecordBlob? blob, SyncReportCode? failure}) _decodeBlob(
     List<int> body,
   ) {
@@ -3097,9 +3148,16 @@ class SyncCoordinator {
     } on SyncNewerWireVersionException {
       // diagnostics: silent — reported by the caller as newerWireVersion.
       return (blob: null, failure: SyncReportCode.newerWireVersion);
-    } on SyncNewerFieldException {
-      // diagnostics: silent — reported by the caller as newerRecordFields.
-      return (blob: null, failure: SyncReportCode.newerRecordFields);
+    } on SyncNewerFieldException catch (error) {
+      // diagnostics: silent — reported by the caller as newerFigures when a
+      // newer build added something inside a dance's figures, which the
+      // notice names; otherwise as newerRecordFields.
+      return (
+        blob: null,
+        failure: error.path.startsWith('figures')
+            ? SyncReportCode.newerFigures
+            : SyncReportCode.newerRecordFields,
+      );
     } on FormatException {
       // diagnostics: silent — malformed peer blobs are reported by the caller
       // and do not advance the baseline.

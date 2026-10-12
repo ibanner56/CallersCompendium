@@ -4,6 +4,7 @@ import 'sync_codec.dart';
 import 'sync_conflict_compare.dart'
     show syncUserVisibleBody, syncUserVisibleContentHash;
 import 'sync_record_kind.dart';
+import 'sync_retained_fields.dart';
 import 'wire_mapping.dart' show projectShareableRecordBody;
 import 'sync_review.dart';
 import 'sync_storage.dart';
@@ -112,7 +113,7 @@ final class SyncReviewQueueResolver {
             if (def.field.shareable && !def.deleted) def.field.id,
         };
       }
-      final localBody = body == null
+      final projected = body == null
           ? null
           : projectShareableRecordBody(
               kind,
@@ -120,6 +121,14 @@ final class SyncReviewQueueResolver {
               settingsKey: kind == SyncRecordKind.setting ? recordId : null,
               allowedCustomFieldIds: shareableFieldIds ?? const {},
             );
+      // The copy this device shares includes what it keeps for a newer
+      // version (spec §6.7), so compare against that, not a stripped copy.
+      final kept = projected == null
+          ? null
+          : await storage.retainedSyncParts(address);
+      final localBody = projected == null || kept == null
+          ? projected
+          : mergeRetainedFields(projected, kept);
       String visible(Map<String, Object?> body) =>
           syncUserVisibleContentHash(kind, body, aliases: aliases);
       final seen = {if (localBody != null) visible(localBody)};
