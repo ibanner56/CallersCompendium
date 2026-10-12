@@ -1,11 +1,25 @@
-# Requesting and reading a Copilot review
+# Requesting and reading a review
 
 Load this chapter when you are requesting a review, reading one, or answering
 findings. The mechanical parts are automated by
 [`tools/ci/check_pr_review_gates.py`](../../../tools/ci/check_pr_review_gates.py);
 read it here when you need the reasoning or are working by hand.
 
-## Requesting a review
+## Choosing a reviewer
+
+Copilot is the default reviewer and needs no setup. Claude is **opt-in, per
+PR**: it reviews only PRs carrying the `review: claude` label. Use either one;
+neither is required of anyone else.
+
+The merge gate reads one reviewer's reviews, and a review by the other does not
+count. It defaults to Copilot, so existing invocations are unchanged. If you
+asked Claude instead, say so:
+
+```sh
+python3 tools/ci/check_pr_review_gates.py all <PR> --reviewer claude --closes <ISSUE>...
+```
+
+## Requesting a Copilot review
 
 Request Copilot as a reviewer by its **bot login**, not the display name:
 
@@ -28,7 +42,7 @@ Note: the Copilot reviewer is a bot, so it appears under
 request means the request did not attach (usually the wrong slug or a
 review-concurrency cap — retry once the cap frees).
 
-## Reading a review
+## Reading a Copilot review
 
 Read the review **body**, not just the inline threads. Copilot can report
 "reviewed N of N files and generated no new comments", leave `reviewThreads` at
@@ -75,6 +89,60 @@ matched nothing". A surprising zero is evidence about your query before it is
 evidence about the world. See
 [incidents.md](incidents.md#the-mismatched-reviewer-login-filter).
 
+## Requesting a Claude review
+
+Apply the label. The label is the request, so you need triage access to the
+repository:
+
+```sh
+gh pr edit <PR_NUMBER> --add-label "review: claude"
+```
+
+[`claude-code-review.yml`](../../../.github/workflows/claude-code-review.yml)
+then reviews the head. It **reviews again on every push** while the label stays
+on, so freshness takes care of itself. To review the same head again, remove
+the label and add it back. To stop further rounds, remove it. Each round costs
+a model run on the maintainer's Claude subscription, so remove the label once
+you no longer need reviews.
+
+Each round submits **one** PR review, using
+[`.github/skills/code-review/SKILL.md`](../../../.github/skills/code-review/SKILL.md)
+as its checklist and output format. The review's `commit_id` is the head it
+reviewed. Findings appear twice: in the body's template and as inline comments
+on diff lines. A finding on a line outside the diff appears in the body only.
+There is no `Suppressed comments` block.
+
+Traps:
+
+- **A green `claude-review` check does not prove a review happened.** The
+  action skips itself, and still reports success, when the workflow file
+  differs from `main`'s copy. So a PR that edits `claude-code-review.yml` is
+  never reviewed by it (observed on #1736). The review entry is the evidence;
+  `check_pr_review_gates.py review <N> --reviewer claude` reads that entry, not
+  the check.
+- **A PR that changes `claude-code-review.yml` or `claude.yml` may change
+  nothing else.** Claude refuses to review such a PR, so CI's `Claude workflow
+  isolation` job, which `Merge gate` requires, fails if any other file is in
+  it. That keeps the unreviewable part of a change to the workflow files
+  themselves. Put everything else in a separate PR
+  ([`check_claude_workflow_isolation.py`](../../../tools/ci/check_claude_workflow_isolation.py)).
+- **Draft PRs and fork PRs are skipped.** Fork runs receive no secrets. For a
+  draft, mark it ready (`ready_for_review` starts a round).
+- **The login is `claude[bot]` on both `/reviews` and `/comments`.** This comes
+  from the action's run identity, not from a review: no Claude review existed in
+  this repository when it was written. Confirm it on the first real review,
+  then update this line and `CLAUDE` in the gate script:
+
+  ```sh
+  gh api repos/<owner>/<repo>/pulls/<N>/reviews -q '[.[].user.login]|unique'
+  gh api repos/<owner>/<repo>/pulls/<N>/comments -q '[.[].user.login]|unique'
+  ```
+
+- **`@claude` in a comment is not a review request.**
+  [`claude.yml`](../../../.github/workflows/claude.yml) answers mentions as a
+  general assistant. Its output does not follow the review format, and it does
+  not run once per round.
+
 ## Answering findings
 
 - **Batch the round.** Fix everything from one review round in a single push
@@ -82,7 +150,7 @@ evidence about the world. See
   round re-reads the diff and re-pays the resident prompt, so per-comment pushes
   multiply the most expensive part of the cycle.
 - **Read findings through the script, not raw JSON.** `check_pr_review_gates.py
-  findings <N>` prints one line per finding — including the suppressed block —
+  findings <N>` (add `--reviewer claude` for a Claude review) prints one line per finding — including the suppressed block —
   instead of pages of paginated review JSON.
 - **Reply after the fix is pushed**, so the reply and the corrected code are
   visible together. Note that replies are recorded as review entries, which is

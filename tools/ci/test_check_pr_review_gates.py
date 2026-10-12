@@ -109,6 +109,114 @@ def test_reviews_are_read_across_pages() -> None:
 
 
 # --------------------------------------------------------------------------- #
+# reviewer selection (--reviewer)
+# --------------------------------------------------------------------------- #
+
+CLAUDE = gates.CLAUDE
+
+
+def test_claude_freshness_ignores_a_copilot_review_on_head() -> None:
+    """Asking for Claude's review must not be satisfied by Copilot's."""
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [
+                [review(CLAUDE.review_login, STALE), review(REVIEWER, HEAD)]
+            ],
+        }
+    )
+    ok, lines = gates.gate_review(fetcher, 1, CLAUDE)
+    assert not ok, lines
+    assert STALE[:8] in lines[0], lines
+
+
+def test_claude_freshness_passes_on_its_own_review_at_head() -> None:
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD)]],
+        }
+    )
+    ok, lines = gates.gate_review(fetcher, 1, CLAUDE)
+    assert ok, lines
+
+
+def test_default_reviewer_is_copilot_so_a_claude_review_does_not_count() -> None:
+    """Contributors who never pass --reviewer keep the Copilot gate unchanged."""
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD)]],
+        }
+    )
+    ok, lines = gates.gate_review(fetcher, 1)
+    assert not ok, lines
+    assert REVIEWER in lines[0], lines
+
+
+def test_claude_findings_read_claudes_inline_comments_only() -> None:
+    def inline(login: str, path: str) -> dict[str, Any]:
+        return {"user": {"login": login}, "path": path, "line": 3, "body": "x"}
+
+    fetcher = FakeFetcher(
+        {
+            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD)]],
+            "pulls/1/comments": [
+                [
+                    inline(CLAUDE.comment_login, "lib/claude.dart"),
+                    inline(gates.REVIEWER_COMMENT_LOGIN, "lib/copilot.dart"),
+                ]
+            ],
+        }
+    )
+    _, lines = gates.gate_findings(fetcher, 1, CLAUDE)
+    assert lines[0].startswith(f"1 round(s) by {CLAUDE.review_login}"), lines
+    assert "1 inline finding(s)" in lines[0], lines
+    assert any("lib/claude.dart" in line for line in lines[1:]), lines
+    assert not any("lib/copilot.dart" in line for line in lines[1:]), lines
+
+
+def test_run_gates_passes_the_reviewer_to_both_review_gates() -> None:
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            "pulls/1/reviews": [[review(CLAUDE.review_login, HEAD)]],
+            "pulls/1/comments": [[]],
+        }
+    )
+    printed: list[str] = []
+    code = gates.run_gates(
+        fetcher, 1, ["findings", "review"], [], reviewer=CLAUDE, out=printed.append
+    )
+    assert code == 0, printed
+    assert any(CLAUDE.review_login in line for line in printed), printed
+
+
+def _reviewer_chosen_by_cli(argv: list[str]) -> Any:
+    seen: dict[str, Any] = {}
+
+    def fake_run_gates(*_args: Any, reviewer: Any, **_kwargs: Any) -> int:
+        seen["reviewer"] = reviewer
+        return 0
+
+    real_run, real_fetcher = gates.run_gates, gates.GitHubFetcher
+    gates.run_gates, gates.GitHubFetcher = fake_run_gates, lambda repo: None
+    try:
+        assert gates.main(argv) == 0
+    finally:
+        gates.run_gates, gates.GitHubFetcher = real_run, real_fetcher
+    return seen["reviewer"]
+
+
+def test_cli_reviewer_defaults_to_copilot_and_accepts_claude() -> None:
+    assert _reviewer_chosen_by_cli(["review", "1", "--repo", "o/r"]) == gates.COPILOT
+    chosen = _reviewer_chosen_by_cli(
+        ["review", "1", "--repo", "o/r", "--reviewer", "claude"]
+    )
+    assert chosen == CLAUDE
+
+
+# --------------------------------------------------------------------------- #
 # findings
 # --------------------------------------------------------------------------- #
 

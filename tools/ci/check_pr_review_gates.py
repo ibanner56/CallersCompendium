@@ -31,6 +31,12 @@ Output is one line per gate: ``PASS <gate>: <evidence>``,
 A red run should cost a few hundred tokens to
 act on, not a few thousand to read.
 
+``--reviewer`` names whose review the ``findings`` and ``review`` gates read:
+``copilot`` (the default, so existing invocations are unchanged) or ``claude``
+(the opt-in ``claude-code-review.yml`` workflow). A PR reviewed by one is not
+reviewed as far as the gate for the other is concerned; pass the reviewer you
+actually requested.
+
 Exit codes: 0 all gates pass, 1 at least one gate failed, 2 at least one gate
 could not be answered (bad input, or ``gh`` missing or unauthenticated). 2
 dominates 1, so an environment problem never reads as a clean run.
@@ -47,13 +53,36 @@ import json
 import re
 import subprocess
 import sys
-from typing import Any, Callable, Iterable, Sequence
+from typing import Any, Callable, Iterable, NamedTuple, Sequence
 
-REVIEWER_LOGIN = "copilot-pull-request-reviewer[bot]"
-# The same reviewer is reported under a different login by the comments
-# endpoint. Carrying the /reviews login to /comments yields a silent zero, which
-# reads as "no inline findings" rather than "filter matched nothing".
-REVIEWER_COMMENT_LOGIN = "Copilot"
+
+class Reviewer(NamedTuple):
+    """Who a review is attributed to, per endpoint.
+
+    ``/pulls/<N>/reviews`` and ``/pulls/<N>/comments`` can report the same
+    reviewer under different logins. Carrying the /reviews login to /comments
+    yields a silent zero, which reads as "no inline findings" rather than
+    "filter matched nothing" -- so each endpoint's login is named separately.
+    """
+
+    review_login: str
+    comment_login: str
+
+
+COPILOT = Reviewer(
+    review_login="copilot-pull-request-reviewer[bot]",
+    comment_login="Copilot",
+)
+# The Claude GitHub App's bot user, on both endpoints. Taken from the identity
+# claude-code-action reported in its run on #1736 (`bot_name: claude[bot]`),
+# before any Claude review existed in this repository: confirm it against the
+# first real one with the two queries in docs/dev/agents/code-review.md.
+CLAUDE = Reviewer(review_login="claude[bot]", comment_login="claude[bot]")
+
+REVIEWERS = {"copilot": COPILOT, "claude": CLAUDE}
+
+REVIEWER_LOGIN = COPILOT.review_login
+REVIEWER_COMMENT_LOGIN = COPILOT.comment_login
 
 SUPPRESSED_BLOCK = re.compile(
     r"<details>\s*<summary>\s*Suppressed comments?\s*\((\d+)\)\s*</summary>(.*?)</details>",
@@ -156,13 +185,17 @@ def _reviews(fetcher: Any, pr: int) -> list[dict[str, Any]]:
     ]
 
 
-def gate_findings(fetcher: Any, pr: int) -> tuple[bool, list[str]]:
+def gate_findings(
+    fetcher: Any, pr: int, reviewer: Reviewer = COPILOT
+) -> tuple[bool, list[str]]:
     """Report review findings, including every suppressed block, every round."""
-    reviews = [r for r in _reviews(fetcher, pr) if _login(r) == REVIEWER_LOGIN]
+    reviews = [
+        r for r in _reviews(fetcher, pr) if _login(r) == reviewer.review_login
+    ]
     inline = [
         c
         for c in _flatten_pages(fetcher.rest(f"pulls/{pr}/comments", paginate=True))
-        if isinstance(c, dict) and _login(c) == REVIEWER_COMMENT_LOGIN
+        if isinstance(c, dict) and _login(c) == reviewer.comment_login
     ]
 
     lines: list[str] = []
@@ -181,7 +214,7 @@ def gate_findings(fetcher: Any, pr: int) -> tuple[bool, list[str]]:
         lines.append(f"  inline {path}:{line} {_first_line(comment.get('body'))}")
 
     summary = (
-        f"{len(reviews)} round(s) by {REVIEWER_LOGIN}; "
+        f"{len(reviews)} round(s) by {reviewer.review_login}; "
         f"{len(inline)} inline finding(s); {suppressed_total} suppressed"
     )
     if reviews and suppressed_total == 0 and not inline:
@@ -208,12 +241,18 @@ def _login(entry: dict[str, Any]) -> str:
     return user.get("login", "") if isinstance(user, dict) else ""
 
 
-def gate_review(fetcher: Any, pr: int) -> tuple[bool, list[str]]:
+def gate_review(
+    fetcher: Any, pr: int, reviewer: Reviewer = COPILOT
+) -> tuple[bool, list[str]]:
     """The reviewer's latest review must be on the commit being merged."""
     head = _head_sha(fetcher, pr)
-    reviewed = [r for r in _reviews(fetcher, pr) if _login(r) == REVIEWER_LOGIN]
+    reviewed = [
+        r for r in _reviews(fetcher, pr) if _login(r) == reviewer.review_login
+    ]
     if not reviewed:
-        return False, [f"no review by {REVIEWER_LOGIN} (an unreviewed PR fails closed)"]
+        return False, [
+            f"no review by {reviewer.review_login} (an unreviewed PR fails closed)"
+        ]
     latest = reviewed[-1].get("commit_id") or ""
     if latest != head:
         return False, [
@@ -407,6 +446,7 @@ def run_gates(
     names: Sequence[str],
     intended: Sequence[int],
     *,
+    reviewer: Reviewer = COPILOT,
     out: Callable[[str], None] = print,
 ) -> int:
     failed = 0
@@ -414,9 +454,12 @@ def run_gates(
     for name in names:
         gate = GATES[name]
         try:
-            ok, lines = (
-                gate(fetcher, pr, intended) if name == "closes" else gate(fetcher, pr)
-            )
+            if name == "closes":
+                ok, lines = gate(fetcher, pr, intended)
+            elif name in ("findings", "review"):
+                ok, lines = gate(fetcher, pr, reviewer)
+            else:
+                ok, lines = gate(fetcher, pr)
         except GateError as exc:
             # One unanswerable gate must not hide the answers to the others:
             # record it and keep going, but let its exit code dominate so an
@@ -450,6 +493,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             "numbers to assert the PR closes nothing"
         ),
     )
+    parser.add_argument(
+        "--reviewer",
+        choices=sorted(REVIEWERS),
+        default="copilot",
+        help=(
+            "whose review the findings and review gates read (default: "
+            "copilot); claude is the opt-in `review: claude` workflow"
+        ),
+    )
     parser.add_argument("--repo", help="owner/name (default: detected via gh)")
     args = parser.parse_args(argv)
 
@@ -469,7 +521,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"SKIP: {exc}")
         return 2
 
-    return run_gates(GitHubFetcher(repo), args.pr, names, args.closes or [])
+    return run_gates(
+        GitHubFetcher(repo),
+        args.pr,
+        names,
+        args.closes or [],
+        reviewer=REVIEWERS[args.reviewer],
+    )
 
 
 if __name__ == "__main__":

@@ -371,6 +371,11 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_check_version_history.py"),),
     ),
     Step(
+        "claude-isolation",
+        "the Claude-workflow isolation gate's own logic (the gate itself is PR-only)",
+        (py("tools/ci/test_check_claude_workflow_isolation.py"),),
+    ),
+    Step(
         "changelog-gate",
         "the CHANGELOG promotion gate's own logic",
         (py("tools/ci/test_check_changelog_promoted.py"),),

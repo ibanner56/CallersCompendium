@@ -403,11 +403,31 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: python3 tools/ci/check_version_history.py "$BASE_SHA"
 
+  # A PR that changes a Claude workflow changes nothing else: claude-code-action
+  # refuses to run when its workflow differs from main's (and still reports
+  # success), so anything riding along would merge without the Claude review it
+  # was meant to get. Whole-PR diff against the merge base, never the
+  # incremental range. See tools/ci/check_claude_workflow_isolation.py.
+  claude-workflow-isolation:
+    name: Claude workflow isolation
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # full history so we can diff against the PR base
+      - name: Test the Claude-workflow isolation gate
+        run: python3 tools/ci/test_check_claude_workflow_isolation.py
+      - name: Guard Claude workflow changes ship alone
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 tools/ci/check_claude_workflow_isolation.py "$BASE_SHA"
+
   # This is the sole required status for main. It runs even when a dependency
   # fails or is skipped, so a cancelled or missing heavy job cannot look green.
   merge-gate:
     name: Merge gate
-    needs: [classify, checks, build, schema-guard, docs-bundle-gate, changelog-structure-gate]
+    needs: [classify, checks, build, schema-guard, claude-workflow-isolation, docs-bundle-gate, changelog-structure-gate]
     if: ${{ always() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
@@ -421,6 +441,7 @@ jobs:
           CHECKS_RESULT: ${{ needs.checks.result }}
           BUILD_RESULT: ${{ needs.build.result }}
           SCHEMA_GUARD_RESULT: ${{ needs.schema-guard.result }}
+          CLAUDE_ISOLATION_RESULT: ${{ needs.claude-workflow-isolation.result }}
           DOCS_BUNDLE_GATE_RESULT: ${{ needs.docs-bundle-gate.result }}
           CHANGELOG_GATE_RESULT: ${{ needs.changelog-structure-gate.result }}
         run: |
@@ -443,6 +464,7 @@ jobs:
 
           require_success 'Classify changes' "$CLASSIFY_RESULT"
           require_success 'Schema migration gate' "$SCHEMA_GUARD_RESULT"
+          require_success 'Claude workflow isolation' "$CLAUDE_ISOLATION_RESULT"
 
           case "$VALIDATION_CHANGED" in
             true)
