@@ -339,6 +339,133 @@ void main() {
     expect(served.statusCode, 200);
   });
 
+  group('costing (spec §5.4)', () {
+    var now = DateTime.utc(2026, 10, 12);
+    late AthenaeumApp limited;
+    final full = [
+      for (var i = 0; i < syncBlobBatchMaxHashes; i++)
+        sha256Hex(utf8.encode('$i')),
+    ];
+
+    AthenaeumApp limitedApp(AthenaeumBudgetLimits limits) => AthenaeumApp(
+      config: config,
+      store: app.store,
+      clientAddressResolver: (request) =>
+          request.headers['x-test-ip'] ?? 'test',
+      clock: () => now,
+      budgetLimits: limits,
+    );
+
+    Future<Response> batch(
+      List<String> hashes, {
+      String ip = 'test',
+      String id = syncId,
+    }) async {
+      final response = await limited.call(
+        batchRequest({'hashes': hashes}, id: id, headers: {'x-test-ip': ip}),
+      );
+      if (response.statusCode == 200) await response.read().drain<void>();
+      return response;
+    }
+
+    setUp(() => now = DateTime.utc(2026, 10, 12));
+
+    test('a full batch costs 11 tokens of the per-IP bucket, and one that '
+        'overdraws it is refused whole with the wait it needs', () async {
+      limited = limitedApp(
+        const AthenaeumBudgetLimits(
+          perIpRequestsPerMinute: 60,
+          perIpRequestBurst: 30,
+        ),
+      );
+      // 30 → 19 → 8: each batch takes its request token and 10 more.
+      expect((await batch(full)).statusCode, 200);
+      expect((await batch(full)).statusCode, 200);
+      // The request token leaves 7; the batch needs 10 more.
+      final refused = await batch(full);
+      expect(refused.statusCode, 429);
+      // Refused whole, so it took nothing beyond its request token: 7 left,
+      // and the same batch again needs 11. At 60 a minute that is 4 seconds,
+      // and not a second sooner.
+      expect(refused.headers['retry-after'], '4');
+      now = now.add(const Duration(seconds: 3));
+      expect((await batch(full)).statusCode, 429);
+      now = now.add(const Duration(seconds: 4));
+      expect((await batch(full)).statusCode, 200);
+    });
+
+    test('the per-store bucket is charged too', () async {
+      limited = limitedApp(
+        const AthenaeumBudgetLimits(
+          perStoreRequestsPerMinute: 60,
+          perStoreRequestBurst: 30,
+        ),
+      );
+      // A different address each time, so only the store's bucket binds.
+      expect((await batch(full, ip: 'a')).statusCode, 200);
+      expect((await batch(full, ip: 'b')).statusCode, 200);
+      final refused = await batch(full, ip: 'c');
+      expect(refused.statusCode, 429);
+      expect(refused.headers['retry-after'], '4');
+    });
+
+    test('the cost rises one token per 20 hashes', () async {
+      limited = limitedApp(
+        const AthenaeumBudgetLimits(
+          perIpRequestsPerMinute: 1,
+          perIpRequestBurst: 6,
+        ),
+      );
+      // 20 hashes cost 2 and 21 cost 3: 6 → 4 → 1, then 20 more is refused.
+      expect((await batch(full.sublist(0, 20))).statusCode, 200);
+      expect((await batch(full.sublist(0, 21))).statusCode, 200);
+      expect((await batch(full.sublist(0, 20))).statusCode, 429);
+    });
+
+    test('an empty batch costs only its request token', () async {
+      limited = limitedApp(
+        const AthenaeumBudgetLimits(
+          perIpRequestsPerMinute: 1,
+          perIpRequestBurst: 2,
+        ),
+      );
+      expect((await batch(const [])).statusCode, 200);
+      expect((await batch(const [])).statusCode, 200);
+      expect((await batch(const [])).statusCode, 429);
+    });
+
+    test('a burst smaller than a full batch still serves one, at the cost of '
+        'the whole bucket', () async {
+      limited = limitedApp(
+        const AthenaeumBudgetLimits(
+          perIpRequestsPerMinute: 60,
+          perIpRequestBurst: 5,
+        ),
+      );
+      expect((await batch(full)).statusCode, 200);
+      final refused = await batch(full);
+      expect(refused.statusCode, 429);
+      // Empty: the request token was refused before the route ran.
+      expect(refused.headers['retry-after'], '60');
+      now = now.add(const Duration(seconds: 5));
+      expect((await batch(full)).statusCode, 200);
+    });
+
+    test('a store that does not resolve pays only its request token', () async {
+      limited = limitedApp(
+        const AthenaeumBudgetLimits(
+          perIpRequestsPerMinute: 1,
+          perIpRequestBurst: 12,
+        ),
+      );
+      final guessed = await batch(full, id: 'unknown-horse-battery-staple');
+      expect(guessed.statusCode, 404);
+      // 11 left: exactly one full batch.
+      expect((await batch(full)).statusCode, 200);
+      expect((await batch(full)).statusCode, 429);
+    });
+  });
+
   test('a single-blob GET is unchanged beside it', () async {
     final hash = put(utf8.encode('{"single":true}'));
     final response = await app.call(
