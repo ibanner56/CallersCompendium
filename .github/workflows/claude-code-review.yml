@@ -14,6 +14,11 @@
 # Claude has commented on a PR, so pushes after the first round would never be
 # re-reviewed, and it reads CLAUDE.md where this repository keeps AGENTS.md.
 #
+# The prompt limits findings to what the review established from the code, and
+# drops the template's "Verification the author still owes" checklist: the job
+# cannot run anything, and a "could not verify" note on every round reads to
+# contributors like a defect. CI and the merge gate own that checklist.
+#
 # The action refuses to run (and the job still reports success) when this file
 # differs from the default branch's copy, so a PR that edits this workflow is
 # never reviewed by it. A green `claude-review` check is therefore not evidence
@@ -76,10 +81,19 @@ jobs:
             Review this head even if you, Claude, have reviewed an earlier
             commit of this PR: every push is a new round.
 
+            Report only what you established by reading this checkout and the
+            diff. This job cannot run tests, builds or scripts, and the
+            contributors reading the review cannot tell "I could not check
+            this" from a defect. So never report that something is unverified
+            or untested, that you could not run or check something, or a
+            caveat the PR description already discloses. If you cannot
+            confirm a suspected defect from the code, leave it out.
+
             Post the result as exactly ONE pull request review:
             1. Write a JSON file with `commit_id` set to
                "${{ github.event.pull_request.head.sha }}", `event` set to
-               "COMMENT", `body` set to the full SKILL.md template output, and
+               "COMMENT", `body` set to the SKILL.md template output WITHOUT
+               its "Verification the author still owes" section, and
                `comments` holding one inline comment per finding
                (`path`, `line`, `side: "RIGHT"`, `body`). Only lines that appear
                in the diff can take an inline comment; any other finding goes
