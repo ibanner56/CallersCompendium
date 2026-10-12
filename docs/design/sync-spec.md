@@ -2098,9 +2098,10 @@ operator configures below 11 delays a full batch rather than refusing every
 one. An operator may change the 20 with the rest of these values.
 
 **Why 1 + ⌈*n*/20⌉.** Measured on the reference server (in-process, a 4-vCPU
-Xeon at 2.1 GHz), a single-blob `GET` costs about 0.45 ms of handler time and a
-200-hash batch about 7 ms, or 10.5 ms with gzip: nearly all of a request's cost
-is paid once whatever it carries. Charged one token, a batch would let one
+Xeon at 2.1 GHz, across runs), a single-blob `GET` costs 0.45–0.65 ms of handler
+time and a 200-hash batch 7–11 ms, or 10.5–15 ms with gzip — about 22 single
+`GET`s, for 200 records: nearly all of a request's cost is paid once whatever
+it carries. Charged one token, a batch would let one
 address pull 12,000 records a minute instead of 60 and double the worst-case
 bytes a token buys. Charged 1 + ⌈*n*/20⌉, one address sustains about 1,100
 records a minute in about 0.16 MB of gzip; a token still buys at most 1 MB, so

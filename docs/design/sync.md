@@ -3017,11 +3017,11 @@ minute, burst 120, spec §5.4), so a device's first connection to a 1,000-record
 library met the limit, stopped, and resumed a minute later — about 17 passes
 and 16 minutes, and for 5,000 records about 85. The records are small (a median
 dance is 1.7 KB of canonical JSON) and the request around them is not: measured
-in-process on the reference server, a single-blob `GET` spent about 0.5 ms of
+in-process on the reference server, a single-blob `GET` spent 0.45–0.65 ms of
 handler time, nearly all of it paid once per request whatever it carries —
 request and response handling, authentication, the store lookup and its
-`last_seen` write (about 0.15 ms on its own) — against about 35 µs for each
-further blob in a batch, or about 50 µs with gzip. Two hundred hashes a request makes that first download
+`last_seen` write (0.1–0.2 ms on its own) — against 35–55 µs for each further
+blob in a batch, or 50–75 µs with gzip. Two hundred hashes a request makes that first download
 five requests. The wire format, the caps and the fallback for a server without
 the route are in spec §5.2 and §5.4, with the case for a frame stream over JSON
 or multipart beside the rule. A batch of *n* hashes costs 1 + ⌈*n*/20⌉
