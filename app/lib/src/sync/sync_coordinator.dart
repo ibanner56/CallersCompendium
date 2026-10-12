@@ -574,6 +574,12 @@ abstract interface class SyncCoordinatorTransport {
 
   Future<SyncHttpResponse> getBlob(String hash);
 
+  /// `POST /v1/blobs/batch` (spec §5.2): see [SyncHttpClient.postBlobBatch].
+  Future<SyncHttpResponse> postBlobBatch(
+    List<String> hashes, {
+    required void Function(SyncBlobBatchFrame frame) onFrame,
+  });
+
   Future<SyncHttpResponse> putBlob(String hash, List<int> body);
 }
 
@@ -604,6 +610,12 @@ final class SyncHttpCoordinatorTransport implements SyncCoordinatorTransport {
 
   @override
   Future<SyncHttpResponse> getBlob(String hash) => client.getBlob(hash);
+
+  @override
+  Future<SyncHttpResponse> postBlobBatch(
+    List<String> hashes, {
+    required void Function(SyncBlobBatchFrame frame) onFrame,
+  }) => client.postBlobBatch(hashes, onFrame: onFrame);
 
   @override
   Future<SyncHttpResponse> putBlob(String hash, List<int> body) =>
@@ -674,6 +686,7 @@ final class SyncPeerManifestCache {
     Map<String, Uint8List>? fetchedBlobs,
     this.passSequence = 0,
     this.publicationEpoch,
+    this.blobBatchUnsupported = false,
   }) : _entries = {...?entries},
        rejectedHashes = {...?rejectedHashes},
        publications = {...?publications},
@@ -708,6 +721,12 @@ final class SyncPeerManifestCache {
   int passSequence;
   String? publicationEpoch;
 
+  /// Whether `POST /v1/blobs/batch` was answered as a route the server — or a
+  /// proxy in front of it — does not serve (spec §6.3 step 5), so the rest of
+  /// this session fetches one blob per request instead of asking again every
+  /// pass. A self-hosted server updates on its own schedule.
+  bool blobBatchUnsupported;
+
   /// Verified peer blob bodies by wire hash, oldest first.
   ///
   /// A blob is addressed by the hash of its bytes, so a body kept here is the
@@ -730,6 +749,9 @@ final class SyncPeerManifestCache {
     return body;
   }
 
+  /// Whether [fetchedBlob] holds [hash], without counting as a use of it.
+  bool hasFetchedBlob(String hash) => _fetchedBlobs.containsKey(hash);
+
   /// Keeps [body], whose SHA-256 the caller has verified is [hash].
   void rememberFetchedBlob(String hash, List<int> body) {
     final previous = _fetchedBlobs.remove(hash);
@@ -746,11 +768,16 @@ final class SyncPeerManifestCache {
 
   /// Starts the unreflected-publication evidence afresh when the store's epoch
   /// has changed: hashes and manifests from another epoch prove nothing here.
+  ///
+  /// It also forgets that the server lacked the batch route: a new epoch can
+  /// follow a store reaped and re-created mid-session, whose `404` the batch
+  /// read as a missing route.
   void beginPublicationEpoch(String epoch) {
     if (publicationEpoch == epoch) return;
     publications.clear();
     peerPublications.clear();
     publicationEpoch = epoch;
+    blobBatchUnsupported = false;
   }
 
   SyncPeerManifestCacheEntry? operator [](String peerId) => _entries[peerId];
@@ -772,6 +799,7 @@ final class SyncPeerManifestCache {
     _fetchedBlobBytes = 0;
     passSequence = 0;
     publicationEpoch = null;
+    blobBatchUnsupported = false;
   }
 
   void replaceFrom(SyncPeerManifestCache source) {
@@ -796,6 +824,7 @@ final class SyncPeerManifestCache {
     _fetchedBlobBytes = source._fetchedBlobBytes;
     passSequence = source.passSequence;
     publicationEpoch = source.publicationEpoch;
+    blobBatchUnsupported = source.blobBatchUnsupported;
   }
 
   Map<String, Object?> toMessage() => {
@@ -832,6 +861,7 @@ final class SyncPeerManifestCache {
     },
     '_passSequence': passSequence,
     '_publicationEpoch': publicationEpoch,
+    '_blobBatchUnsupported': blobBatchUnsupported,
   };
 
   static SyncPeerManifestCache fromMessage(Object? message) {
@@ -949,6 +979,12 @@ final class SyncPeerManifestCache {
         'sync isolate returned a malformed publication epoch',
       );
     }
+    final rawBlobBatchUnsupported = message['_blobBatchUnsupported'];
+    if (rawBlobBatchUnsupported != null && rawBlobBatchUnsupported is! bool) {
+      throw const FormatException(
+        'sync isolate returned a malformed blob batch flag',
+      );
+    }
     return SyncPeerManifestCache(
       entries: entries,
       rejectedHashes: rejectedHashes,
@@ -957,6 +993,7 @@ final class SyncPeerManifestCache {
       fetchedBlobs: fetchedBlobs,
       passSequence: rawPassSequence,
       publicationEpoch: rawPublicationEpoch as String?,
+      blobBatchUnsupported: rawBlobBatchUnsupported as bool? ?? false,
     );
   }
 }
@@ -968,6 +1005,13 @@ class SyncReplacementRequiredEvent {
 
 /// How far one pass's record downloads got (spec §6.3 step 5).
 final class _PeerDownloadProgress {
+  _PeerDownloadProgress(List<String> fetchOrder)
+    : fetchOrder = List.unmodifiable(fetchOrder),
+      _position = {
+        for (var index = 0; index < fetchOrder.length; index++)
+          fetchOrder[index]: index,
+      };
+
   /// Why downloads stopped, or null while they continue.
   SyncFailure? stop;
 
@@ -976,6 +1020,64 @@ final class _PeerDownloadProgress {
 
   /// The records left unfetched once [stop] was set: waiting, not skipped.
   final notFetched = <SyncRecordAddress>{};
+
+  /// Every hash this pass may need from the network, once each, in the order
+  /// the records naming them are taken: a batch asks for the next stretch of
+  /// it, so batches follow dependency order exactly as single requests did.
+  final List<String> fetchOrder;
+  final Map<String, int> _position;
+
+  /// Answers a batch brought ahead of the record that needs them: a body
+  /// (taken once, then kept by the session cache), or the status that refused
+  /// it (kept, so a second peer naming the same hash is not asked for again).
+  final Map<String, _BlobOutcome> batched = {};
+
+  /// The hashes the batch for [hash] asks for: [hash] first, then the ones
+  /// after it in [fetchOrder] that are still unanswered, up to [limit].
+  List<String> batchFrom(
+    String hash, {
+    required int limit,
+    required bool Function(String hash) answered,
+  }) {
+    final start = _position[hash];
+    if (start == null) return [hash];
+    final hashes = <String>[hash];
+    for (
+      var index = start + 1;
+      index < fetchOrder.length && hashes.length < limit;
+      index++
+    ) {
+      final next = fetchOrder[index];
+      if (!answered(next)) hashes.add(next);
+    }
+    return hashes;
+  }
+}
+
+/// What one record download came to.
+sealed class _BlobOutcome {
+  const _BlobOutcome();
+}
+
+/// The blob's bytes. [downloaded] when this pass fetched them, so the hash
+/// still has to be verified; false when the session cache already had them.
+final class _BlobBody extends _BlobOutcome {
+  const _BlobBody(this.body, {required this.downloaded});
+
+  final List<int> body;
+  final bool downloaded;
+}
+
+/// The server refused the blob with [statusCode]: a report, as for a `404`.
+final class _BlobRefused extends _BlobOutcome {
+  const _BlobRefused(this.statusCode);
+
+  final int statusCode;
+}
+
+/// Not fetched yet: downloads have stopped for this pass (spec §6.3 step 5).
+final class _BlobNotFetched extends _BlobOutcome {
+  const _BlobNotFetched();
 }
 
 final class _MissingBlobUploadResult {
@@ -1604,9 +1706,19 @@ class SyncCoordinator {
     final downloadedByPeer = [
       for (final _ in peerManifests) <SyncRecordAddress, SyncMergeCandidate?>{},
     ];
-    final downloadProgress = _PeerDownloadProgress();
     final kindsInApplyOrder = [...SyncRecordKind.values]
       ..sort((a, b) => syncApplyKindOrder(a).compareTo(syncApplyKindOrder(b)));
+    final fetchOrder = <String>{
+      for (final kind in kindsInApplyOrder)
+        for (final peer in peerManifests)
+          for (final hash
+              in (peer.manifest.records[kind] ?? const <String, String>{})
+                  .values)
+            if (!availableByHash.containsKey(hash) &&
+                !_peerManifestCache.hasFetchedBlob(hash))
+              hash,
+    };
+    final downloadProgress = _PeerDownloadProgress(fetchOrder.toList());
     for (final kind in kindsInApplyOrder) {
       for (var index = 0; index < peerManifests.length; index++) {
         await _downloadPeerRecords(
@@ -2603,79 +2715,46 @@ class SyncCoordinator {
         if (admitted != null) into[address] = admitted;
         continue;
       }
-      List<int>? body = _peerManifestCache.fetchedBlob(recordEntry.value);
-      if (body == null) {
-        if (progress.stop != null) {
+      final List<int> body;
+      switch (await _fetchPeerBlob(recordEntry.value, progress)) {
+        case _BlobNotFetched():
           unresolved.add(address);
           progress.notFetched.add(address);
           continue;
-        }
-        final SyncHttpResponse response;
-        try {
-          response = await transport.getBlob(recordEntry.value);
-        } on Object catch (error, stack) {
-          // A dropped connection or a timed-out request says nothing about
-          // the record, so it is not fetched yet rather than skipped. Only
-          // what `SyncController` would retry by itself is caught: anything
-          // else still fails the pass as it did.
-          final cause = syncFailureCauseForError(error);
-          if (!cause.isTransient) rethrow;
-          // Logged as the throw it replaces was (`_watch`), type only: the
-          // text of a transport error can carry the request URI.
-          logCaughtErrorTypeOnly(
-            error,
-            stack,
-            source: 'sync_coordinator._downloadPeerRecords',
+        case _BlobRefused(:final statusCode):
+          unresolved.add(address);
+          reports.add(
+            SyncReport(
+              code: SyncReportCode.unresolvedBlob,
+              kind: address.kind,
+              recordId: address.recordId,
+              peerId: peerId,
+              httpStatus: statusCode,
+              message:
+                  'Blob returned $statusCode.', // i18n-ignore: internal report
+            ),
           );
-          progress.stop = SyncFailure(cause, step: SyncFailureStep.download);
-          unresolved.add(address);
-          progress.notFetched.add(address);
           continue;
-        }
-        if (!response.isSuccess) {
-          if (_stopsDownloads(response.kind)) {
-            progress.stop = SyncFailure.fromResponse(
-              response,
-              SyncFailureStep.download,
-            );
+        case _BlobBody(body: final fetched, downloaded: false):
+          body = fetched;
+        case _BlobBody(body: final fetched, downloaded: true):
+          if (sha256Hex(fetched) != recordEntry.value) {
             unresolved.add(address);
-            progress.notFetched.add(address);
+            reports.add(
+              SyncReport(
+                code: SyncReportCode.unresolvedBlob,
+                kind: address.kind,
+                recordId: address.recordId,
+                peerId: peerId,
+                message:
+                    'Blob hash did not match its manifest reference.', // i18n-ignore: internal report
+              ),
+            );
             continue;
           }
-          unresolved.add(address);
-          reports.add(
-            SyncReport(
-              code: SyncReportCode.unresolvedBlob,
-              kind: address.kind,
-              recordId: address.recordId,
-              peerId: peerId,
-              httpStatus: response.statusCode,
-              message:
-                  'Blob returned ${response.statusCode}.', // i18n-ignore: internal report
-            ),
-          );
-          continue;
-        }
-        if (sha256Hex(response.body) != recordEntry.value) {
-          unresolved.add(address);
-          reports.add(
-            SyncReport(
-              code: SyncReportCode.unresolvedBlob,
-              kind: address.kind,
-              recordId: address.recordId,
-              peerId: peerId,
-              message:
-                  'Blob hash did not match its manifest reference.', // i18n-ignore: internal report
-            ),
-          );
-          continue;
-        }
-        _peerManifestCache.rememberFetchedBlob(
-          recordEntry.value,
-          response.body,
-        );
-        progress.fetched++;
-        body = response.body;
+          _peerManifestCache.rememberFetchedBlob(recordEntry.value, fetched);
+          progress.fetched++;
+          body = fetched;
       }
       final (:blob, :failure) = _decodeBlob(body);
       if (blob == null) {
@@ -2770,6 +2849,149 @@ class SyncCoordinator {
       downloaded.removeWhere((address, _) => waiting.contains(address));
     }
     unresolved.addAll(waiting);
+  }
+
+  /// The blob for [hash]: from the session cache, from a batch already
+  /// fetched, or from the network (spec §6.3 step 5).
+  ///
+  /// A network fetch asks for a batch starting at [hash] and running on
+  /// through the hashes the records after it will need, so a large download
+  /// takes one request per [syncBlobBatchMaxHashes] records rather than one
+  /// per record. Against a server without the batch route it fetches [hash]
+  /// alone, and so does every later fetch this session.
+  Future<_BlobOutcome> _fetchPeerBlob(
+    String hash,
+    _PeerDownloadProgress progress,
+  ) async {
+    final cached = _peerManifestCache.fetchedBlob(hash);
+    if (cached != null) return _BlobBody(cached, downloaded: false);
+    final batched = _takeBatched(hash, progress);
+    if (batched != null) return batched;
+    if (progress.stop != null) return const _BlobNotFetched();
+    if (!_peerManifestCache.blobBatchUnsupported) {
+      await _fetchBatch(hash, progress);
+      final answered = _takeBatched(hash, progress);
+      if (answered != null) return answered;
+      if (progress.stop != null) return const _BlobNotFetched();
+      // Otherwise the batch fell back (`_fetchBatch`), or — against a
+      // non-conforming server — did not answer the hash it was asked for
+      // first. Either way the single request below still can.
+    }
+    return _getBlob(hash, progress);
+  }
+
+  /// Takes [hash]'s answer from a batch already fetched, if it has one.
+  _BlobOutcome? _takeBatched(String hash, _PeerDownloadProgress progress) {
+    final outcome = progress.batched[hash];
+    if (outcome is _BlobBody) progress.batched.remove(hash);
+    return outcome;
+  }
+
+  /// One `POST /v1/blobs/batch` for [hash] and the hashes after it, its answers
+  /// left in [_PeerDownloadProgress.batched].
+  ///
+  /// Every blob a response delivers is kept, even when the response is then
+  /// cut off: it arrived whole, and it is verified like any other when its
+  /// record is reached. A `429`, a `5xx` other than `507` or a network failure
+  /// stops downloads exactly as on a single request. Any other refusal, a
+  /// `200` that is not a batch, or a batch that is malformed or over its caps,
+  /// is a server — or a proxy in front of it — that does not serve the route:
+  /// the session falls back to single requests and nothing is reported, so
+  /// each record gets whatever answer its own request gets. Copying a
+  /// refusal of the whole batch onto each of its records instead would report
+  /// up to 200 records skipped for a proxy's `413` that a single request
+  /// never meets.
+  Future<void> _fetchBatch(String hash, _PeerDownloadProgress progress) async {
+    final hashes = progress.batchFrom(
+      hash,
+      limit: syncBlobBatchMaxHashes,
+      answered: (candidate) =>
+          progress.batched.containsKey(candidate) ||
+          _peerManifestCache.hasFetchedBlob(candidate),
+    );
+    final SyncHttpResponse response;
+    try {
+      response = await transport.postBlobBatch(
+        hashes,
+        onFrame: (frame) {
+          switch (frame.status) {
+            case SyncBlobBatchFrameStatus.blob:
+              progress.batched[frame.hash] = _BlobBody(
+                frame.body!,
+                downloaded: true,
+              );
+            case SyncBlobBatchFrameStatus.missing:
+              progress.batched[frame.hash] = const _BlobRefused(404);
+            case SyncBlobBatchFrameStatus.notSent:
+              // Asked for again by the batch its record starts.
+              break;
+          }
+        },
+      );
+    } on SyncEndpointException catch (error, stack) {
+      // A malformed or oversized batch. Thrown, as on a single request, it
+      // would fail every pass the same way; the frames before it are kept.
+      logCaughtErrorTypeOnly(
+        error,
+        stack,
+        source: 'sync_coordinator._fetchBatch',
+      );
+      _peerManifestCache.blobBatchUnsupported = true;
+      return;
+    } on Object catch (error, stack) {
+      final cause = syncFailureCauseForError(error);
+      if (!cause.isTransient) rethrow;
+      logCaughtErrorTypeOnly(
+        error,
+        stack,
+        source: 'sync_coordinator._fetchBatch',
+      );
+      progress.stop = SyncFailure(cause, step: SyncFailureStep.download);
+      return;
+    }
+    if (response.isSuccess) return;
+    // `501 Not Implemented` is a server saying it has no such route, not one
+    // in trouble.
+    if (_stopsDownloads(response.kind) && response.statusCode != 501) {
+      progress.stop = SyncFailure.fromResponse(
+        response,
+        SyncFailureStep.download,
+      );
+      return;
+    }
+    _peerManifestCache.blobBatchUnsupported = true;
+  }
+
+  /// One `GET /v1/blobs/{hash}`.
+  Future<_BlobOutcome> _getBlob(
+    String hash,
+    _PeerDownloadProgress progress,
+  ) async {
+    final SyncHttpResponse response;
+    try {
+      response = await transport.getBlob(hash);
+    } on Object catch (error, stack) {
+      // A dropped connection or a timed-out request says nothing about the
+      // record, so it is not fetched yet rather than skipped. Only what
+      // `SyncController` would retry by itself is caught: anything else
+      // still fails the pass as it did.
+      final cause = syncFailureCauseForError(error);
+      if (!cause.isTransient) rethrow;
+      // Logged as the throw it replaces was (`_watch`), type only: the text
+      // of a transport error can carry the request URI.
+      logCaughtErrorTypeOnly(error, stack, source: 'sync_coordinator._getBlob');
+      progress.stop = SyncFailure(cause, step: SyncFailureStep.download);
+      return const _BlobNotFetched();
+    }
+    if (response.isSuccess) return _BlobBody(response.body, downloaded: true);
+    if (_stopsDownloads(response.kind)) {
+      progress.stop = SyncFailure.fromResponse(
+        response,
+        SyncFailureStep.download,
+      );
+      return const _BlobNotFetched();
+    }
+    return _BlobRefused(response.statusCode);
   }
 
   /// Whether a record download answered [kind] stops the pass's downloads

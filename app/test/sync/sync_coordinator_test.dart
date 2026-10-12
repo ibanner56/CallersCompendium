@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
@@ -5493,6 +5494,349 @@ void main() {
     });
   });
 
+  group('batched record downloads (spec §6.3 step 5)', () {
+    final at = DateTime.utc(2026, 7, 15, 12);
+
+    // Zero-padded, so a manifest's canonical (sorted) order is numeric order.
+    String tagId(int i) => 'tag-${i.toString().padLeft(4, '0')}';
+    String danceId(int i) => 'dance-${i.toString().padLeft(4, '0')}';
+
+    SyncManifest manifestOf(List<SyncMergeCandidate> library) => _manifest(
+      deviceId: 'peer',
+      records: {
+        for (final kind in {for (final c in library) c.address.kind})
+          kind: {
+            for (final c in library)
+              if (c.address.kind == kind) c.address.recordId: c.wireHash,
+          },
+      },
+    );
+
+    /// A peer's [tags] tags and [dances] dances, each dance citing a tag, in
+    /// apply order: every tag before any dance.
+    Future<List<SyncMergeCandidate>> peerLibrary({
+      required int tags,
+      required int dances,
+    }) async {
+      final peer = openTestRepositories();
+      for (var i = 0; i < tags; i++) {
+        final _ = await peer.tags.upsert(
+          Tag(id: tagId(i), name: 'Tag $i'),
+          at: at,
+        );
+      }
+      for (var i = 0; i < dances; i++) {
+        await peer.dances.create(
+          Dance(
+            id: danceId(i),
+            title: 'Dance $i',
+            tagIds: [tagId(i % tags)],
+            createdAt: at,
+            updatedAt: at,
+          ),
+        );
+      }
+      final publication = (await CompendiumSyncStorage(
+        peer,
+      ).snapshot()).publication;
+      final library = [
+        for (final candidate in publication.values)
+          if (candidate != null &&
+              (candidate.address.kind == SyncRecordKind.tag ||
+                  candidate.address.kind == SyncRecordKind.dance))
+            candidate,
+      ];
+      expect(library, hasLength(tags + dances));
+      return library;
+    }
+
+    /// The order a pass needs the library's hashes in: tags, then dances,
+    /// each in manifest order.
+    List<String> fetchOrder(List<SyncMergeCandidate> library) {
+      // As the client reads it: decoded from its canonical encoding.
+      final manifest = decodeSyncManifest(
+        encodeSyncManifest(manifestOf(library)),
+      );
+      return [
+        for (final kind in [SyncRecordKind.tag, SyncRecordKind.dance])
+          ...?manifest.records[kind]?.values,
+      ];
+    }
+
+    _FakeTransport transportFor(
+      List<SyncMergeCandidate> library, {
+      Map<String, SyncHttpResponse>? blobs,
+    }) => _FakeTransport(
+      devices: ['peer'],
+      peerManifest: manifestOf(library),
+      blobResponses: blobs ?? _blobs(library),
+      batchSupported: true,
+    );
+
+    SyncCoordinator coordinatorFor(
+      CompendiumRepositories repositories,
+      _FakeTransport transport, {
+      SyncPeerManifestCache? cache,
+    }) {
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: CompendiumSyncCoordinatorStore(repositories),
+        transport: transport,
+        peerManifestCache: cache,
+      );
+      addTearDown(coordinator.dispose);
+      return coordinator;
+    }
+
+    test('a 1,000-record fresh attach completes in one pass, '
+        'one batch per $syncBlobBatchMaxHashes records', () async {
+      final library = await peerLibrary(tags: 400, dances: 600);
+      final transport = transportFor(library);
+      final repositories = openTestRepositories();
+
+      final result = await coordinatorFor(repositories, transport).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.reports, isEmpty);
+      expect(
+        transport.batchCalls,
+        (library.length / syncBlobBatchMaxHashes).ceil(),
+      );
+      expect(transport.blobCalls, 0, reason: 'no single-blob request');
+      for (final batch in transport.batchRequests) {
+        expect(batch.length, lessThanOrEqualTo(syncBlobBatchMaxHashes));
+      }
+      // Every tag a dance cites is asked for before the dance.
+      expect([
+        for (final batch in transport.batchRequests) ...batch,
+      ], fetchOrder(library));
+      final snapshot = await CompendiumSyncCoordinatorStore(
+        repositories,
+      ).snapshot();
+      expect(snapshot.epoch, 'epoch-1');
+      expect(snapshot.baseline.keys.toSet(), {
+        for (final c in library) c.address,
+      });
+    });
+
+    for (final (status, refusal) in [
+      (429, _FakeTransport.rateLimited),
+      (503, _FakeTransport.response(503)),
+    ]) {
+      test('a $status on the second batch stops downloads with no reports, '
+          'and the next pass fetches only the rest', () async {
+        final library = await peerLibrary(tags: 300, dances: 200);
+        final order = fetchOrder(library);
+        final transport = transportFor(library);
+        var refusing = true;
+        transport.onBatch = (call, _) => refusing && call == 2 ? refusal : null;
+        final repositories = openTestRepositories();
+        final coordinator = coordinatorFor(repositories, transport);
+
+        final first = await coordinator.syncNow();
+
+        expect(first.status, SyncPassStatus.failed);
+        expect(first.failure?.cause.isTransient, isTrue);
+        expect(first.failure?.step, SyncFailureStep.download);
+        expect(first.failure?.statusCode, status);
+        expect(first.failure?.progressed, isTrue);
+        expect(first.reports, isEmpty, reason: 'nothing was skipped');
+        expect(transport.batchCalls, 2, reason: 'no request after the stop');
+        expect(transport.blobCalls, 0);
+        expect(transport.manifestPuts, 0);
+        // The first batch was applied; nothing after it was.
+        expect(await repositories.tags.getById(tagId(199)), isNotNull);
+        expect(await repositories.tags.getById(tagId(200)), isNull);
+
+        refusing = false;
+        transport.batchRequests.clear();
+        final second = await coordinator.syncNow();
+
+        expect(second.status, SyncPassStatus.completed);
+        expect(second.reports, isEmpty);
+        expect([
+          for (final batch in transport.batchRequests) ...batch,
+        ], order.sublist(syncBlobBatchMaxHashes));
+        expect(await repositories.dances.getById(danceId(199)), isNotNull);
+      });
+    }
+
+    test('a hash the batch lists as missing is reported as a 404', () async {
+      final library = await peerLibrary(tags: 3, dances: 0);
+      final gone = library[1];
+      final transport = transportFor(
+        library,
+        blobs: _blobs([library[0], library[2]]),
+      );
+      final repositories = openTestRepositories();
+      await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
+
+      final result = await coordinatorFor(repositories, transport).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      final report = result.reports.single;
+      expect(report.code, SyncReportCode.unresolvedBlob);
+      expect(report.recordId, gone.address.recordId);
+      expect(report.httpStatus, 404);
+      expect(transport.batchCalls, 1);
+      expect(transport.blobCalls, 0);
+      expect(
+        await repositories.tags.getById(library[0].address.recordId),
+        isNotNull,
+      );
+    });
+
+    // `400` is what an Athenaeum from before the route answers; `413` stands
+    // for any refusal a proxy in front of the server gives a POST that a
+    // single GET would not meet; `501` is a 5xx that says "no such route".
+    for (final status in [400, 404, 405, 413, 501]) {
+      test('a $status on the batch route falls back to single requests for '
+          'the rest of the session, with no notice', () async {
+        final library = await peerLibrary(tags: 4, dances: 0);
+        final transport = transportFor(library)
+          // As `SyncHttpClient` reads it: a 501 is a `serverError`.
+          ..onBatch = (_, _) => status == 501
+              ? const SyncHttpResponse(
+                  statusCode: 501,
+                  kind: SyncResponseKind.serverError,
+                  headers: {},
+                  body: [],
+                )
+              : _FakeTransport.response(status);
+        // The third single request meets the limit, so the session needs a
+        // second pass, which must not ask for a batch again.
+        var limited = true;
+        transport.onBlob = (call, _) =>
+            limited && call == 3 ? _FakeTransport.rateLimited : null;
+        final cache = SyncPeerManifestCache();
+        final repositories = openTestRepositories();
+        final coordinator = coordinatorFor(
+          repositories,
+          transport,
+          cache: cache,
+        );
+
+        final first = await coordinator.syncNow();
+
+        expect(first.status, SyncPassStatus.failed);
+        expect(first.failure?.cause, SyncFailureCause.rateLimited);
+        expect(first.reports, isEmpty, reason: 'the fallback raises nothing');
+        expect(transport.batchCalls, 1);
+        expect(transport.blobCalls, 3);
+        expect(cache.blobBatchUnsupported, isTrue);
+
+        limited = false;
+        final second = await coordinator.syncNow();
+
+        expect(second.status, SyncPassStatus.completed);
+        expect(second.reports, isEmpty);
+        expect(transport.batchCalls, 1, reason: 'not asked again');
+        expect(
+          transport.blobHashes,
+          fetchOrder(library).sublist(0, 3) + fetchOrder(library).sublist(2),
+        );
+      });
+    }
+
+    test('a 200 that is not a batch falls back too', () async {
+      final library = await peerLibrary(tags: 2, dances: 0);
+      final transport = transportFor(library)
+        ..onBatch = (_, _) => const SyncHttpResponse(
+          statusCode: 200,
+          kind: SyncResponseKind.unexpectedStatus,
+          headers: {},
+          body: [],
+        );
+
+      final result = await coordinatorFor(
+        openTestRepositories(),
+        transport,
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(transport.blobCalls, 2);
+    });
+
+    test('a malformed batch keeps the blobs that arrived and falls back to '
+        'single requests for the rest, with no notice', () async {
+      final library = await peerLibrary(tags: 5, dances: 0);
+      final order = fetchOrder(library);
+      final transport = transportFor(library)
+        ..cutBatch = (_, index) => index == 2
+            ? const SyncEndpointException('malformed blob batch response')
+            : null;
+      final repositories = openTestRepositories();
+      final cache = SyncPeerManifestCache();
+
+      final result = await coordinatorFor(
+        repositories,
+        transport,
+        cache: cache,
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.reports, isEmpty);
+      expect(transport.batchCalls, 1);
+      expect(transport.blobHashes, order.sublist(2));
+      expect(cache.blobBatchUnsupported, isTrue);
+      for (final candidate in library) {
+        expect(
+          await repositories.tags.getById(candidate.address.recordId),
+          isNotNull,
+        );
+      }
+    });
+
+    test('a new store epoch asks for batches again', () {
+      final cache = SyncPeerManifestCache()
+        ..beginPublicationEpoch('epoch-1')
+        ..blobBatchUnsupported = true
+        ..beginPublicationEpoch('epoch-1');
+      expect(cache.blobBatchUnsupported, isTrue, reason: 'same epoch');
+      cache.beginPublicationEpoch('epoch-2');
+      expect(cache.blobBatchUnsupported, isFalse);
+    });
+
+    test('a stream cut mid-batch keeps and applies the blobs that arrived, '
+        'and the next pass fetches only the rest', () async {
+      final library = await peerLibrary(tags: 5, dances: 0);
+      final order = fetchOrder(library);
+      final transport = transportFor(library);
+      var cutting = true;
+      transport.cutBatch = (call, index) => cutting && index == 3
+          ? const SocketException('connection reset')
+          : null;
+      final repositories = openTestRepositories();
+      final coordinator = coordinatorFor(repositories, transport);
+
+      final first = await coordinator.syncNow();
+
+      expect(first.status, SyncPassStatus.failed);
+      expect(first.failure?.cause, SyncFailureCause.unreachable);
+      expect(first.failure?.step, SyncFailureStep.download);
+      expect(first.failure?.progressed, isTrue);
+      expect(first.reports, isEmpty);
+      for (final candidate in library) {
+        final present = await repositories.tags.getById(
+          candidate.address.recordId,
+        );
+        expect(
+          present,
+          order.indexOf(candidate.wireHash) < 3 ? isNotNull : isNull,
+          reason: candidate.address.recordId,
+        );
+      }
+
+      cutting = false;
+      transport.batchRequests.clear();
+      final second = await coordinator.syncNow();
+
+      expect(second.status, SyncPassStatus.completed);
+      expect(transport.batchRequests, [order.sublist(3)]);
+    });
+  });
+
   // The upload side of the same problem: a device with a large library of its
   // own uploads one blob a request, so its first publication meets the
   // per-IP limit too. That already failed as a temporary `rateLimited`, never
@@ -6237,6 +6581,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     this.onPostMissing,
     List<int>? postMissingStatuses,
     this.storeQuota,
+    this.batchSupported = false,
   }) : createResponses = [...createResponses ?? const []],
        storeEpochs = [
          ...storeEpochs ?? const ['epoch-1'],
@@ -6271,6 +6616,21 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   /// [blobResponses] when it returns non-null; may throw, as a transport does.
   /// Assigned after construction, so a test can lift a limit between passes.
   SyncHttpResponse? Function(int call, String hash)? onBlob;
+
+  /// Whether [postBlobBatch] is a route this server has. Off by default, as
+  /// for an Athenaeum from before it: a test written against single requests
+  /// then exercises the fallback that keeps them, and sees only `getBlob`.
+  final bool batchSupported;
+
+  /// Answers the [call]th batch request (1-based) in place of the frames it
+  /// would otherwise serve, when it returns non-null.
+  SyncHttpResponse? Function(int call, List<String> hashes)? onBatch;
+
+  /// Throws, before the frame at [index] of the [call]th batch, what it
+  /// returns when non-null: the stream breaking with earlier frames sent.
+  Object? Function(int call, int index)? cutBatch;
+  int batchCalls = 0;
+  final batchRequests = <List<String>>[];
 
   /// Answers the [call]th blob upload (1-based) in place of a `201` when it
   /// returns non-null; may throw, as a transport does.
@@ -6391,6 +6751,36 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     return onBlob?.call(blobCalls, hash) ??
         blobResponses[hash] ??
         _response(404);
+  }
+
+  /// Serves a batch from [blobResponses]: a `200` there is the blob, anything
+  /// else is `missing`, as the server answers a hash it cannot serve.
+  @override
+  Future<SyncHttpResponse> postBlobBatch(
+    List<String> hashes, {
+    required void Function(SyncBlobBatchFrame frame) onFrame,
+  }) async {
+    batchCalls++;
+    batchRequests.add([...hashes]);
+    if (!batchSupported) return _response(404);
+    requestLog.add('batch');
+    final scripted = onBatch?.call(batchCalls, hashes);
+    if (scripted != null) return scripted;
+    for (final (index, hash) in hashes.indexed) {
+      final cut = cutBatch?.call(batchCalls, index);
+      if (cut != null) throw cut;
+      final blob = blobResponses[hash];
+      onFrame(
+        blob != null && blob.isSuccess
+            ? SyncBlobBatchFrame(
+                SyncBlobBatchFrameStatus.blob,
+                hash,
+                Uint8List.fromList(blob.body),
+              )
+            : SyncBlobBatchFrame(SyncBlobBatchFrameStatus.missing, hash),
+      );
+    }
+    return _response(200);
   }
 
   @override

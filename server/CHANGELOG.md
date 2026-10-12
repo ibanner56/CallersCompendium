@@ -8,6 +8,19 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+### Added
+
+- `POST /v1/blobs/batch` returns the blobs for up to 200 hashes in one
+  response (sync spec §5.2): a frame per hash, in request order, carrying the
+  blob or saying it is missing, or that the 2 MB response cap was reached
+  before it. The response is streamed one blob at a time and gzip-compressed
+  when the client accepts it. A store that does not resolve counts as a failed
+  resolution, as on every store-scoped route. A batch of *n* hashes costs
+  1 + ⌈*n*/20⌉ tokens of both the per-IP and the per-store request limits
+  (`AthenaeumBudgetLimits.blobBatchHashesPerToken`, default 20); one either
+  limit cannot cover is refused `429` whole, with a `Retry-After` computed for
+  that batch. `GET /v1/blobs/{hash}` is unchanged.
+
 ## [0.2.2] - 2026-10-01
 
 ### Fixed

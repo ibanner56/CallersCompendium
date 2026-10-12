@@ -31,6 +31,10 @@ class AthenaeumQuotaLimits {
 const int maxBlobBytes = 1024 * 1024;
 const int maxManifestBytes = 16 * 1024 * 1024;
 const int maxMissingHashes = 10000;
+
+/// The largest `POST /v1/blobs/batch` request body: room for the
+/// [syncBlobBatchMaxHashes] hashes it may name, with generous whitespace.
+const int maxBlobBatchRequestBytes = 64 * 1024;
 const int maxJsonDepth = 32;
 const int maxGzipBytes = 32 * 1024 * 1024;
 const int maxStoreBlobs = 100000;

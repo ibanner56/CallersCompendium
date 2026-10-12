@@ -24,6 +24,11 @@ const int maxGeneralRequestsPerIpPerMinute = 60;
 const int maxGeneralRequestsPerIpBurst = 120;
 const int maxGeneralRequestsPerStorePerMinute = 600;
 const int maxGeneralRequestsPerStoreBurst = 600;
+
+/// A `POST /v1/blobs/batch` naming `n` hashes costs the request token every
+/// request pays plus one per this many hashes, rounded up: `1 + ⌈n / 20⌉`, so
+/// a full batch of 200 costs 11 (spec §5.4).
+const int defaultBlobBatchHashesPerToken = 20;
 const int _maxTrackedRequestBuckets = 10000;
 
 void _writeOperationalAlert(AthenaeumOperationalAlert alert) {
@@ -183,7 +188,8 @@ class AthenaeumBudgetLimits {
     this.perIpFailureBurst = maxFailedResolutionsPerIpBurst,
     this.serverWideFailuresPerMinute = maxFailedResolutionsServerWide,
     this.creationsPerMinute = maxStoreCreationsPerMinute,
-  });
+    this.blobBatchHashesPerToken = defaultBlobBatchHashesPerToken,
+  }) : assert(blobBatchHashesPerToken > 0);
 
   final int perIpRequestsPerMinute;
   final int perIpRequestBurst;
@@ -193,6 +199,9 @@ class AthenaeumBudgetLimits {
   final int perIpFailureBurst;
   final int serverWideFailuresPerMinute;
   final int creationsPerMinute;
+
+  /// See [defaultBlobBatchHashesPerToken].
+  final int blobBatchHashesPerToken;
 }
 
 class AthenaeumApp {
@@ -211,6 +220,7 @@ class AthenaeumApp {
              request,
              trustForwardedHeaders: config.trustForwardedHeadersFromLoopback,
            )),
+       _blobBatchHashesPerToken = budgetLimits.blobBatchHashesPerToken,
        _requestBudget = _RequestBudget(
          budgetLimits,
          clock: clock ?? DateTime.now,
@@ -245,6 +255,7 @@ class AthenaeumApp {
   final AthenaeumConfig config;
   late final AthenaeumStore store;
   final ClientAddressResolver _clientAddressResolver;
+  final int _blobBatchHashesPerToken;
   final _RequestBudget _requestBudget;
   final _FailureBudget _failureBudget;
   final _CreationBudget _creationBudget;
@@ -463,6 +474,9 @@ class AthenaeumApp {
   }
 
   Future<Response> _blobRoute(Request request, List<String> segments) async {
+    if (segments.length == 3 && segments[2] == 'batch') {
+      return _blobBatchRoute(request);
+    }
     if (segments.length == 3 && segments[2] == 'missing') {
       if (request.method != 'POST') return _methodNotAllowed(const ['POST']);
       _requireContentType(request, 'application/json');
@@ -594,6 +608,146 @@ class AthenaeumApp {
       return Response(created ? 201 : 200);
     }
     return _methodNotAllowed(const ['GET', 'PUT']);
+  }
+
+  /// `POST /v1/blobs/batch` (spec §5.2): the blobs for up to
+  /// [syncBlobBatchMaxHashes] hashes in one response, so a device's first
+  /// download is not one request per record.
+  ///
+  /// The response is a frame per requested hash, in request order, streamed:
+  /// each blob is looked up and read only when the frame before it has been
+  /// handed on, so the response is never held whole.
+  Future<Response> _blobBatchRoute(Request request) async {
+    if (request.method != 'POST') return _methodNotAllowed(const ['POST']);
+    _requireContentType(request, 'application/json');
+    final auth = await _authenticate(request);
+    if (auth.response != null) return auth.response!;
+    final identity = auth.identity!;
+    final current = store.lookup(identity.idKey);
+    if (current == null) {
+      return _failedResolution(request, 404, 'store not found');
+    }
+    if (_declaredLengthExceeds(request, maxBlobBatchRequestBytes)) {
+      throw const _RequestFailure(413, 'request body exceeds limit');
+    }
+    final decoded = _decodeJson(
+      await _readBody(request, maxBlobBatchRequestBytes),
+    );
+    if (decoded is! Map || decoded['hashes'] is! List) {
+      throw const _RequestFailure(400, 'hashes must be an array');
+    }
+    final rawHashes = decoded['hashes'] as List;
+    if (rawHashes.length > syncBlobBatchMaxHashes) {
+      throw const _RequestFailure(413, 'too many hashes');
+    }
+    final hashes = <String>[];
+    final seen = <String>{};
+    for (final value in rawHashes) {
+      if (value is! String || !_validHash(value)) {
+        throw const _RequestFailure(400, 'invalid blob hash');
+      }
+      if (!seen.add(value)) {
+        throw const _RequestFailure(400, 'duplicate blob hash');
+      }
+      hashes.add(value);
+    }
+    // The request token every request takes is already spent, from both
+    // buckets; a batch then pays one more per [_blobBatchHashesPerToken]
+    // hashes, or is refused whole (spec §5.4). Charged only now, once the
+    // store has resolved: a guess at a store costs what any request costs.
+    final retryAfter = _requestBudget.chargeExtra(
+      address: _clientAddressResolver(request),
+      idKey: identity.idKey,
+      tokens:
+          (hashes.length + _blobBatchHashesPerToken - 1) ~/
+          _blobBatchHashesPerToken,
+    );
+    if (retryAfter != null) return _rateLimitedResponse(retryAfter);
+    final gzipped = _acceptsGzip(request.headers['accept-encoding']);
+    final frames = _blobBatchFrames(identity.idKey, current.epoch, hashes);
+    return Response(
+      200,
+      body: gzipped ? gzip.encoder.bind(frames) : frames,
+      headers: {
+        'content-type': syncBlobBatchMediaType,
+        'cache-control': 'no-store',
+        'vary': 'accept-encoding',
+        if (gzipped) 'content-encoding': 'gzip',
+      },
+    );
+  }
+
+  /// The frames answering [hashes], produced one blob at a time.
+  ///
+  /// A hash is `missing` when the store has no reference to it in [epoch], or
+  /// when its file is gone (§7.1), exactly the two cases a single-blob `GET`
+  /// answers `404`. Once the blobs already sent and the next one would
+  /// together pass [syncBlobBatchMaxBlobBytes], that hash and every later one
+  /// is `notSent`, and the client asks for them again.
+  Stream<List<int>> _blobBatchFrames(
+    String idKey,
+    String epoch,
+    List<String> hashes,
+  ) async* {
+    var sentBytes = 0;
+    var full = false;
+    for (final hash in hashes) {
+      if (!full) {
+        final reference = store.blobRef(idKey, epoch, hash);
+        if (reference != null &&
+            sentBytes + reference.size > syncBlobBatchMaxBlobBytes) {
+          full = true;
+        } else if (reference != null) {
+          Uint8List? body;
+          try {
+            body = store.blobFile(idKey, epoch, hash).readAsBytesSync();
+          } on FileSystemException {
+            body = null;
+          }
+          // The recorded size decided whether to read it; the bytes read
+          // decide whether they fit, should the file not match its record.
+          if (body != null &&
+              sentBytes + body.length > syncBlobBatchMaxBlobBytes) {
+            full = true;
+          } else if (body != null) {
+            sentBytes += body.length;
+            yield encodeSyncBlobBatchFrameHead(
+              SyncBlobBatchFrameStatus.blob,
+              hash,
+              length: body.length,
+            );
+            yield body;
+            continue;
+          }
+        }
+      }
+      yield encodeSyncBlobBatchFrameHead(
+        full
+            ? SyncBlobBatchFrameStatus.notSent
+            : SyncBlobBatchFrameStatus.missing,
+        hash,
+      );
+    }
+  }
+
+  /// Whether an `Accept-Encoding` value admits gzip: listed, and not with
+  /// `q=0`.
+  static bool _acceptsGzip(String? header) {
+    if (header == null) return false;
+    for (final part in header.split(',')) {
+      final pieces = part.split(';');
+      if (pieces.first.trim().toLowerCase() != 'gzip') continue;
+      for (final parameter in pieces.skip(1)) {
+        final pair = parameter.split('=');
+        if (pair.length == 2 &&
+            pair.first.trim().toLowerCase() == 'q' &&
+            (double.tryParse(pair.last.trim()) ?? 1) == 0) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
   }
 
   Future<_AuthResult> _authenticate(Request request) async {
@@ -1049,10 +1203,15 @@ class AthenaeumApp {
     headers: {'content-type': 'application/json'},
   );
 
-  static Response _rateLimitedResponse() => Response(
+  static Response _rateLimitedResponse([
+    Duration retryAfter = const Duration(seconds: 60),
+  ]) => Response(
     429,
     body: jsonEncode({'error': 'rate limited'}),
-    headers: {'content-type': 'application/json', 'retry-after': '60'},
+    headers: {
+      'content-type': 'application/json',
+      'retry-after': '${retryAfter.inSeconds}',
+    },
   );
 
   static Response _methodNotAllowed(Iterable<String> methods) =>
@@ -1387,6 +1546,13 @@ class _TokenBucket {
   DateTime _updatedAt;
 
   bool tryTake(DateTime now) {
+    if (refill(now) < 1) return false;
+    _tokens -= 1;
+    return true;
+  }
+
+  /// Brings the bucket up to [now] and returns the tokens it holds.
+  double refill(DateTime now) {
     final elapsedMinutes =
         now.difference(_updatedAt).inMicroseconds /
         Duration.microsecondsPerMinute;
@@ -1394,10 +1560,18 @@ class _TokenBucket {
         .clamp(0, capacity)
         .toDouble();
     _updatedAt = now;
-    if (_tokens < 1) return false;
-    _tokens -= 1;
-    return true;
+    return _tokens;
   }
+
+  /// Takes [count] tokens the caller has checked [refill] covers.
+  void take(int count) => _tokens -= count;
+
+  /// How long until the bucket holds [count] tokens, as of its last [refill].
+  Duration timeUntil(int count) => Duration(
+    microseconds:
+        ((count - _tokens) / refillPerMinute * Duration.microsecondsPerMinute)
+            .ceil(),
+  );
 
   bool isInactive(DateTime now) =>
       now.difference(_updatedAt).inSeconds >=
@@ -1428,6 +1602,45 @@ class _RequestBudget {
     final now = clock();
     return _perStore.allow(idKey, now);
   }
+
+  /// Charges [tokens] more to both [address]'s and [idKey]'s buckets, on top
+  /// of the one [allowClient] and [allowStore] already took, or nothing at
+  /// all (spec §5.4).
+  ///
+  /// Returns null when charged. Otherwise returns how long until both buckets
+  /// could pay for the same batch sent again, its request token included —
+  /// the `Retry-After` — rounded up to whole seconds, at least one. The charge is capped at what a full bucket holds beside the token
+  /// already taken, so a burst configured below a full batch's cost delays a
+  /// batch rather than refusing it forever.
+  Duration? chargeExtra({
+    required String address,
+    required String idKey,
+    required int tokens,
+  }) {
+    if (tokens <= 0) return null;
+    final now = clock();
+    final buckets = [_perIp.bucket(address, now), _perStore.bucket(idKey, now)];
+    final costs = [
+      for (final bucket in buckets) min(tokens, max(0, bucket.capacity - 1)),
+    ];
+    var wait = Duration.zero;
+    for (var index = 0; index < buckets.length; index++) {
+      if (buckets[index].refill(now) < costs[index]) {
+        // The retry pays its request token again before this charge.
+        final until = buckets[index].timeUntil(costs[index] + 1);
+        if (until > wait) wait = until;
+      }
+    }
+    if (wait == Duration.zero) {
+      for (var index = 0; index < buckets.length; index++) {
+        buckets[index].take(costs[index]);
+      }
+      return null;
+    }
+    final seconds = (wait.inMicroseconds / Duration.microsecondsPerSecond)
+        .ceil();
+    return Duration(seconds: max(1, seconds));
+  }
 }
 
 class _RequestBucketCache {
@@ -1441,7 +1654,10 @@ class _RequestBucketCache {
   final LinkedHashMap<String, _TokenBucket> _buckets =
       LinkedHashMap<String, _TokenBucket>();
 
-  bool allow(String key, DateTime now) {
+  bool allow(String key, DateTime now) => bucket(key, now).tryTake(now);
+
+  /// [key]'s bucket, created full if it has none, and marked as just used.
+  _TokenBucket bucket(String key, DateTime now) {
     _prune(now);
     var bucket = _buckets.remove(key);
     if (bucket == null) {
@@ -1454,9 +1670,8 @@ class _RequestBucketCache {
         now: now,
       );
     }
-    final allowed = bucket.tryTake(now);
     _buckets[key] = bucket;
-    return allowed;
+    return bucket;
   }
 
   void _prune(DateTime now) {

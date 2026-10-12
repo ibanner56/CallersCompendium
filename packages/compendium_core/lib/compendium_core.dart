@@ -99,6 +99,7 @@ export 'src/serialization/archive_codec.dart';
 export 'src/serialization/archive_service.dart';
 export 'src/serialization/compendium_archive.dart';
 export 'src/serialization/figure_codec.dart';
+export 'src/sync/blob_batch_frames.dart';
 export 'src/sync/canonical_json.dart';
 export 'src/sync/sync_record_kind.dart';
 export 'src/sync/sync_codec.dart';

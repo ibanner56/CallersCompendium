@@ -7,7 +7,15 @@ import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 
 import 'package:compendium_core/compendium_core.dart'
-    show SyncId, encodeSyncCredential, normalizeSyncId;
+    show
+        SyncBlobBatchFormatException,
+        SyncBlobBatchFrame,
+        SyncBlobBatchFrameReader,
+        SyncId,
+        encodeSyncCredential,
+        normalizeSyncId,
+        syncBlobBatchMaxResponseBytes,
+        syncBlobBatchMediaType;
 
 /// The project-operated Athenaeum, pre-filled in the pairing form. A user may
 /// replace it with a self-hosted server; see `isDefaultSyncEndpoint`.
@@ -42,6 +50,11 @@ const int syncMaxManifestResponseBytes = 16 * 1024 * 1024;
 
 /// Maximum decoded blob response body accepted by the client.
 const int syncMaxBlobResponseBytes = 1 * 1024 * 1024;
+
+/// Maximum decoded `POST /v1/blobs/batch` response body accepted by the
+/// client: every blob byte the server may send in one response, plus a frame
+/// for each hash it may name (spec §5.4).
+const int syncMaxBlobBatchResponseBytes = syncBlobBatchMaxResponseBytes;
 
 /// Maximum time allowed for one sync request, including its response body.
 const Duration syncRequestTimeout = Duration(seconds: 30);
@@ -201,6 +214,31 @@ class SyncHttpClient {
     maxDecodedBytes: min(maxResponseBytes, syncMaxBlobResponseBytes),
   );
 
+  /// Fetches the blobs for [hashes] in one request (spec §5.2,
+  /// `POST /v1/blobs/batch`).
+  ///
+  /// When the server answers with a batch, each frame goes to [onFrame] as soon
+  /// as it is complete, before the next is read, and the returned response has
+  /// an empty body. So a response cut off part-way has already delivered every
+  /// blob that arrived before the cut, and the throw that reports the cut
+  /// loses none of them. A frame's blob is *not* verified here: the caller
+  /// checks its hash, as for [getBlob].
+  ///
+  /// Any other answer is returned as [request] would return it. A `200` that is
+  /// not a batch — a server or proxy that does not know the route — comes back
+  /// as [SyncResponseKind.unexpectedStatus].
+  Future<SyncHttpResponse> postBlobBatch(
+    List<String> hashes, {
+    required void Function(SyncBlobBatchFrame frame) onFrame,
+  }) => _request(
+    'POST',
+    'blobs/batch',
+    body: utf8.encode(jsonEncode({'hashes': hashes})),
+    contentType: 'application/json',
+    extraHeaders: const {'Accept-Encoding': 'gzip'},
+    readSuccess: (response) => _readBlobBatch(response, hashes, onFrame),
+  );
+
   /// Returns the content-addressed blobs the store does not yet have.
   Future<SyncHttpResponse> postMissing(Iterable<String> hashes) => request(
     'POST',
@@ -266,6 +304,8 @@ class SyncHttpClient {
     Map<String, String> extraHeaders = const {},
     int? maxDecodedBytes,
     bool allowNotModified = false,
+    Future<SyncHttpResponse> Function(http.StreamedResponse response)?
+    readSuccess,
   }) async {
     final decodedLimit = maxDecodedBytes ?? maxResponseBytes;
     if (decodedLimit <= 0 || decodedLimit > maxResponseBytes) {
@@ -293,7 +333,9 @@ class SyncHttpClient {
       final response = await _beforeDeadline(_client.send(request), elapsed);
       if (!_isRedirect(response.statusCode)) {
         return _beforeDeadline(
-          _readResponse(response, decodedLimit, allowNotModified),
+          readSuccess != null && response.statusCode == HttpStatus.ok
+              ? readSuccess(response)
+              : _readResponse(response, decodedLimit, allowNotModified),
           elapsed,
         );
       }
@@ -446,6 +488,88 @@ class SyncHttpClient {
     final bytes = <int>[];
     await _consumeBoundedBody(response, bytes.addAll, maxDecodedBytes);
     return bytes;
+  }
+
+  /// Reads a batch response frame by frame (spec §5.2), handing each to
+  /// [onFrame] as it completes.
+  ///
+  /// Bounded by [syncMaxBlobBatchResponseBytes] decoded and slightly more
+  /// encoded, and each blob by [syncMaxBlobResponseBytes]. Not by the 10×
+  /// expansion guard [_consumeBoundedBody] applies elsewhere: real batches
+  /// compress past it — a batch of programs, whose slots repeat the same
+  /// keys, measured above 20× — and the guard exists to bound what a small
+  /// response can make the client allocate, which the absolute cap already
+  /// does here.
+  Future<SyncHttpResponse> _readBlobBatch(
+    http.StreamedResponse response,
+    List<String> hashes,
+    void Function(SyncBlobBatchFrame frame) onFrame,
+  ) async {
+    final headers = Map<String, String>.unmodifiable(response.headers);
+    final maxDecoded = min(maxResponseBytes, syncMaxBlobBatchResponseBytes);
+    final mediaType = headers['content-type']
+        ?.split(';')
+        .first
+        .trim()
+        .toLowerCase();
+    if (mediaType != syncBlobBatchMediaType) {
+      await _discardBoundedBody(response, maxDecoded);
+      return SyncHttpResponse(
+        statusCode: response.statusCode,
+        kind: SyncResponseKind.unexpectedStatus,
+        headers: headers,
+        body: const [],
+      );
+    }
+    final encoding = headers['content-encoding']?.toLowerCase();
+    // A stream of empty gzip members decodes to nothing, so the decoded cap
+    // alone would never stop it.
+    final maxEncoded = maxDecoded + (maxDecoded >> 8) + 1024;
+    var encodedBytes = 0;
+    Stream<List<int>> decoded = response.stream.map((chunk) {
+      encodedBytes += chunk.length;
+      if (encodedBytes > maxEncoded) {
+        throw const SyncEndpointException('sync response exceeds size limit');
+      }
+      return chunk;
+    });
+    if (encoding == 'gzip') decoded = gzip.decoder.bind(decoded);
+    final reader = SyncBlobBatchFrameReader(
+      hashes,
+      maxBlobBytes: syncMaxBlobResponseBytes,
+    );
+    var decodedBytes = 0;
+    try {
+      await for (final chunk in decoded) {
+        decodedBytes += chunk.length;
+        if (decodedBytes > maxDecoded) {
+          throw const SyncEndpointException('sync response exceeds size limit');
+        }
+        reader.add(chunk, onFrame);
+      }
+      reader.close();
+    } on SyncBlobBatchFormatException {
+      // diagnostics: silent — rethrown as the transport's own malformed-reply
+      // exception, which the caller logs before falling back to single
+      // requests.
+      throw const SyncEndpointException('malformed blob batch response');
+    } on FormatException {
+      // diagnostics: silent — the gzip decoder's answer to a corrupt body,
+      // rethrown as above. Left as it is, it reads as an internal fault and
+      // fails every pass, where a malformed batch should fall back.
+      throw const SyncEndpointException('malformed blob batch response');
+    }
+    if (!reader.isComplete) {
+      // The server ended the response cleanly without answering every hash:
+      // what arrived has been handed on, and the rest is not fetched yet.
+      throw const HttpException('blob batch response ended early');
+    }
+    return SyncHttpResponse(
+      statusCode: response.statusCode,
+      kind: SyncResponseKind.success,
+      headers: headers,
+      body: const [],
+    );
   }
 
   Future<void> _discardBoundedBody(

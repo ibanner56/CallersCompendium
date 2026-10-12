@@ -1803,9 +1803,10 @@ header that carries no information the request does not already imply.
 | `GET` | `/v1/blobs/{hash}` | Fetch one blob. Immutable; long `Cache-Control`. |
 | `PUT` | `/v1/blobs/{hash}` | Upload one blob. Idempotent. |
 | `POST` | `/v1/blobs/missing` | Given hashes, return the subset the store lacks. |
+| `POST` | `/v1/blobs/batch` | Given up to 200 hashes, return their blobs in one streamed response. |
 
 Blob and manifest bodies are specified byte-exactly in §4.3 and §4.5, because
-they are hashed. The two endpoints below are not content-addressed, so nothing
+they are hashed. The other bodies below are not content-addressed, so nothing
 forced their shape and it is stated here instead.
 
 **`ETag` on a manifest `GET`.** The value MUST be the manifest's own content
@@ -1924,6 +1925,84 @@ below can repair it. Every hash in the request MUST match `^[0-9a-f]{64}$`
 offending hash being skipped, so a client cannot read a short response as
 "present".
 
+**`POST /v1/blobs/batch`.** Fetches many blobs in one request, so that a
+device's first download of a large library is not one request per record. The
+request is an object, like `POST /v1/blobs/missing`'s:
+
+```json
+{ "hashes": ["e3b0c442...", "a3f5b1c9..."] }
+```
+
+It MUST name at most 200 hashes (§5.4), each matching `^[0-9a-f]{64}$`, and none
+twice; a request that breaks any of these is rejected whole, `413` for the
+count and `400` otherwise. `GET /v1/blobs/{hash}` is unchanged beside it.
+
+A `200` response has `Content-Type: application/vnd.callers-compendium.blob-batch`
+and `Cache-Control: no-store`, and its body is a sequence of **frames, exactly
+one per requested hash, in request order**:
+
+| Bytes | Field |
+| --- | --- |
+| 1 | Status: `0` blob, `1` missing, `2` not sent. |
+| 32 | The hash the frame answers, as raw bytes. |
+| 4 | Status `0` only: the blob's length, unsigned big-endian. |
+| *length* | Status `0` only: the blob's bytes, exactly as `GET /v1/blobs/{hash}` would serve them. |
+
+- **Missing** means what `404` means on `GET /v1/blobs/{hash}`: the store has no
+  reference to the hash in its current epoch, or the reference survives and its
+  file does not (§7.1). A client MUST treat a missing frame exactly as it treats
+  that `404` (§6.3 step 5).
+- **Not sent** means the response reached its byte cap (§5.4) before this blob.
+  Once one hash is not sent, every later hash in the response is not sent
+  either, so what a response carries is always a prefix of what was asked. The
+  cap is above the largest blob, so the first blob a response names is always
+  sent. A client asks for not-sent hashes again.
+
+The server MUST produce the body as it sends it, reading each blob only when its
+frame is reached, and MUST NOT assemble the whole response first. When the
+request's `Accept-Encoding` admits `gzip`, the server SHOULD send the body with
+`Content-Encoding: gzip`. A client MUST bound what it reads by the response cap
+in §5.4, encoded and decoded. A client MUST NOT apply a fixed expansion-ratio
+limit to this response: canonical record blobs share most of their keys, and a
+batch of them compresses past 10×; the absolute cap is what bounds the memory a
+response can cost.
+
+The status of the whole response is about the whole request. A store that does
+not resolve is `404` and counts as a failed resolution (§5.4), as on every
+store-scoped request; `429` and `5xx` mean what they mean elsewhere. A blob the
+store cannot serve is never a `404` *response*: it is a missing frame inside a
+`200`.
+
+**A frame stream rather than JSON or `multipart/mixed`.** JSON would carry each
+blob base64-encoded, a third larger before compression, and a client could not
+use any blob before the closing brace. Multipart needs a boundary that occurs
+in no blob, which the server can only promise by scanning every blob first,
+and gives the client headers and boundaries to parse for no information it
+uses. Length-prefixed frames are read by a few lines of code, need no
+scanning on either side, and each one names its hash, so a client verifies and
+keeps each blob as it completes. When the connection drops part-way, the blobs
+that arrived whole are already usable.
+
+**A server without this route.** A self-hosted server updates on its own
+schedule, and a proxy in front of one may refuse a `POST` it would let a `GET`
+through. Apart from `429` and the `5xx` statuses that stop downloads (§6.3
+step 5), a client MUST treat any non-success answer to this request — `400`,
+`404`, `405`, `413`, `501` and the rest — a `200` without the media type above,
+or a batch that is malformed or over its caps, as a server that does not serve
+the route. It keeps the blobs that arrived whole, fetches the rest with
+`GET /v1/blobs/{hash}`, raises no notice, and SHOULD NOT ask again for the
+rest of the session; a client that observes a new store epoch MAY ask again.
+`400` matters most: an Athenaeum from before the route reads `batch` as a
+malformed hash. A client MUST NOT report a refusal of the whole batch against
+each of its records: each record gets the answer its own request gets, and a
+proxy's `413` on a `POST` says nothing about any of them.
+
+> **Amended 2026-10-11.** This endpoint, its frame format, the caps in §5.4 and
+> the fallback rule were added by the change that introduced them, on its
+> author's judgement rather than a maintainer ruling. How a batch is charged
+> against the request-rate limits (§5.4) was the author's recommendation,
+> approved by the maintainer on 2026-10-12.
+
 **Blob `PUT` verification.** The server MUST verify that the body hashes to
 `{hash}` under §4.2 and MUST reject `400` if it does not. Without that check
 any holder of the sync ID can store arbitrary bytes under a chosen hash, which
@@ -1951,9 +2030,9 @@ indefinitely, and the window would bound nothing.
 | `400` | Malformed request. |
 | `401` | Missing or malformed `Authorization`. |
 | `403` | Sync ID fails the structural rule (four hyphen-separated words). |
-| `404` | No such blob, manifest, device — or store. On a store-scoped request this is also the signal an enumerating client sees, and §5.4 budgets it. Not used by `DELETE /v1/manifests/{deviceId}`, which is idempotent — see below. |
+| `404` | No such blob, manifest, device — or store. On a store-scoped request this is also the signal an enumerating client sees, and §5.4 budgets it. Not used by `DELETE /v1/manifests/{deviceId}`, which is idempotent — see below. On `POST /v1/blobs/batch` it means only that the store does not resolve: a blob the batch cannot serve is a *missing* frame inside a `200` (§5.2). |
 | `409` | Conflict: a stale epoch on a manifest `PUT`, or a `POST /v1/store` against an `id_key` that already has one. |
-| `413` | Payload exceeds a cap. |
+| `413` | Payload exceeds a cap. A `POST /v1/blobs/batch` naming more than 200 hashes is `413`; a *response* reaching its byte cap is not an error, and lists the rest as not sent (§5.2). |
 | `415` | Body media type is not the one the endpoint expects (optional; see §5.1). |
 | `422` | Payload rejected by the allow-list. |
 | `429` | Rate limited. `Retry-After` set. |
@@ -2012,15 +2091,61 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | Bytes per store (blobs and device manifests) | 250 MB |
 | Devices per store | 32 |
 | Hashes per `POST /v1/blobs/missing` request | 10,000 |
+| Hashes per `POST /v1/blobs/batch` request | 200 |
+| `POST /v1/blobs/batch` request body | 64 KB |
+| Blob bytes per `POST /v1/blobs/batch` response | 2 MB, plus at most 37 bytes of framing per hash; later blobs are *not sent* (§5.2) |
 | JSON parse depth | 32 |
 | Decompressed size of a `Content-Encoding: gzip` body (§4) | 10× compressed, cap 32 MB; encoded size also capped per route (decoded limit plus gzip framing slack) |
-| Request rate, per client IP | 60/minute, burst 120 |
+| Request rate, per client IP | 60/minute, burst 120; a `POST /v1/blobs/batch` of *n* hashes costs 1 + ⌈*n*/20⌉ (below) |
 | Request rate, per store (`id_key`) | 600/minute |
 | **Failed store resolutions**, per client IP | 10/minute, burst 20 |
 | **Failed store resolutions**, server-wide | 1,000/minute |
 | Store creations (`201` from `POST /v1/store`), server-wide | 60/minute |
 
-The request-rate rows bound load. The failed-store-resolution rows raise the
+The request-rate rows bound load: the work every request costs whatever it
+carries — authentication, the store lookup and its `last_seen` write, the
+request-path deletion retry (§7.3) — and the bytes it sends. **A
+`POST /v1/blobs/batch` naming *n* hashes costs 1 + ⌈*n*/20⌉ tokens on both
+rows**, so a full batch of 200 costs 11. The server MUST charge the extra
+⌈*n*/20⌉ only once the store resolves: a request for a store that does not
+resolve costs one token, as any request does, and counts as a failed
+resolution. A batch that either bucket cannot cover MUST be refused whole with
+`429`, taking nothing beyond its request token, and never trimmed to what is
+affordable — a `429` on a batch then always means nothing was sent, which is
+what §6.3 step 5 stops on. Its `Retry-After` is how long until both buckets
+could pay for the same batch sent again, request token included, rounded up to
+whole seconds. The charge is capped at what a full bucket holds, so a burst an
+operator configures below 11 delays a full batch rather than refusing every
+one. An operator may change the 20 with the rest of these values.
+
+**Why 1 + ⌈*n*/20⌉.** Measured on the reference server (in-process, a 4-vCPU
+Xeon at 2.1 GHz, across runs), a single-blob `GET` costs 0.45–0.65 ms of handler
+time and a 200-hash batch 7–11 ms, or 10.5–15 ms with gzip — about 22 single
+`GET`s, for 200 records: nearly all of a request's cost is paid once whatever
+it carries. Charged one token, a batch would let one
+address pull 12,000 records a minute instead of 60 and double the worst-case
+bytes a token buys. Charged 1 + ⌈*n*/20⌉, one address sustains about 1,100
+records a minute in about 0.16 MB of gzip; a token still buys at most 1 MB, so
+the worst case per address stays 60 MB a minute; and because the 50 ms
+deletion retry is charged per request, the worst-case handler time per address
+falls from about 3 s a minute to about 0.3 s. A 1,000-record first download
+finishes in one pass, and a 5,000-record one in four, about three minutes.
+Exempting batches from the per-IP row instead was rejected: the per-store row
+alone bounds nothing per address, which can hold any number of stores, and the
+per-IP row is what bounds the unauthenticated work of guessing at stores. When
+the per-IP limit is enforced at the proxy (§7.5 requirement 6), the proxy
+counts requests, not this cost; the server's own row still applies.
+
+**Why the batch caps are what they are.** 200 hashes is a request body of about
+13 KB and, at the median record size measured when the route was added (1.7 KB
+for a dance, 4 KB for a program), a response of about 350 KB before
+compression and about 30 KB after it, so a 1,000-record first download takes
+five requests. The 2 MB byte cap keeps even a response of unusually large
+records inside the client's 30-second request deadline on a slow connection —
+about 16 seconds at 1 Mbit/s with no compression at all — and is twice the 1 MB
+blob cap, so the first blob always fits.
+
+The failed-store-resolution rows raise the
 cost of casual probing and make an enumeration attempt visible in the operator's
 metrics, and the server-wide row keeps a distributed prober from consuming the
 service — a per-IP limit alone is defeated by distributing the guessing, which
@@ -2413,8 +2538,12 @@ republishes, which is an ordinary upload and needs no special path.
    land within the same second. Recorded as a limitation in §10.
 
    With N peers, evaluate against all and take the newest `updatedAt`.
-5. `GET /v1/blobs/{hash}` for each needed hash. The client MUST verify the hash
-   before applying, and MUST verify that the decoded envelope's `kind` and `id`
+5. Fetch the blob for each needed hash that this device does not already
+   hold: `POST /v1/blobs/batch` (§5.2) for up to 200 at a time, in the order
+   the records are needed (below), and `GET /v1/blobs/{hash}` against a server
+   without that route. A hash a response did not send is asked for again in
+   the next batch. The client MUST verify every blob's hash before applying,
+   however it arrived, and MUST verify that the decoded envelope's `kind` and `id`
    are exactly the pair the fetched manifest entry was filed under (§4.5).
    A blob whose envelope declares a different identity MUST be skipped and
    reported, never applied under either identity. Hash verification alone does
@@ -2427,7 +2556,8 @@ republishes, which is an ordinary upload and needs no special path.
    manifest's identity stores one record's body under another's id; applying it
    under the envelope's identity mutates a record the manifest never named while
    step 9 advances the baseline for the one it did.
-   A `404` here MUST be treated as an **unresolved reference**
+   A `404` here — or a *missing* frame in a batch, which means the same —
+   MUST be treated as an **unresolved reference**
    — skip the record and report it (§6.7) — and MUST NOT be treated as a
    deletion, since absence never deletes (§6.8) and the peer's manifest still
    asserts the record exists. The record MUST NOT advance in the baseline, so
@@ -2438,9 +2568,12 @@ republishes, which is an ordinary upload and needs no special path.
    **A `429`, a `5xx` other than `507`, or a network failure is not about the
    record, and MUST NOT be reported as one.** After a `429` every later
    request fails the same way until the limit refills, and such a `5xx` or a
-   dropped connection says the server or the link is in trouble, so the client MUST stop requesting blobs
-   for the rest of the pass. The record whose request failed, and every record
-   still to fetch, is *not fetched yet*: it is excluded from the merge, the
+   dropped connection says the server or the link is in trouble, so the client
+   MUST stop requesting blobs for the rest of the pass. This holds for a batch
+   exactly as for a single request, with one addition: every blob a batch
+   delivered whole before its connection dropped is kept, verified and applied
+   like any other. The record whose request failed, and every record still to
+   fetch, is *not fetched yet*: it is excluded from the merge, the
    baseline does not advance for it, and nothing is decided about it — exactly
    as for a `404` — but it raises no report, because nothing was skipped. A
    record whose blob this device already holds needs no request and is still
@@ -2469,6 +2602,12 @@ republishes, which is an ordinary upload and needs no special path.
    reference client keeps up to 8 MB of fetched blobs in memory, never on
    disk.
 
+   > **Amended 2026-10-11, batches.** Step 5 fetched one blob per request,
+   > so a first download of 1,000 records met the per-IP request limit
+   > (§5.4) every minute and took about 16 minutes over 17 passes. The batch
+   > route and the order of fetching by batch were added by the change that
+   > added this note, by its author rather than the maintainer.
+   >
    > **Amended 2026-10-11.** Step 5 said only how a `404` is treated, and the
    > reference client treated every non-success response the same way. A
    > user's first connection met the per-IP request limit (§5.4) part-way and
@@ -3717,8 +3856,9 @@ sequence, and so does a pass whose record downloads stopped (§6.3 step 5) after
 it had fetched at least one record, or whose uploads (§6.3 step 7) stopped after
 the store had accepted at least one blob; any other result cancels a pending
 retry without resetting it. The exception exists because a large first
-download or upload meets the per-IP limit (§5.4) on every pass until it is
-done: each such pass moved it on — the store keeps an accepted blob, so the
+upload, or a large first download from a server without the batch route
+(§5.2) or too large for one pass's tokens even in batches, meets the per-IP
+limit (§5.4) on every pass until it is done: each such pass moved it on — the store keeps an accepted blob, so the
 next pass's `POST /v1/blobs/missing` no longer names it — and doubling the
 wait through them would stretch some fifteen minutes of transfer for a
 thousand records over hours. The download half, like the step 5 paragraph it
@@ -4545,8 +4685,8 @@ cosmetic.
 **The rate limits keep their other jobs.** The request-rate rows bound load. The
 failure rows raise the cost of casual probing, keep a single client from
 consuming the service, and make an enumeration attempt visible in the operator's
-metrics rather than silent — which is worth having, and is why §5.4 is
-unchanged. What they must not do is carry a security bound they cannot support:
+metrics rather than silent — which is worth having, and is why §5.4 kept
+them. What they must not do is carry a security bound they cannot support:
 this section made that mistake once, and the correction is recorded here rather
 than in the commit log because the wrong version was specific, quantified, and
 read as rigorous.
@@ -5297,7 +5437,18 @@ store that is full is hammered every few minutes against §5.3's rule). **A
 was fetched is applied, nothing else is baselined, the pass fails as
 transient, and the next pass fetches only the rest (mutation: treat it as any
 other non-success response — every record after the limit is reported as
-skipped and the pass completes). **A
+skipped and the pass completes). **The same holds for a batch, which also
+keeps what arrived**: a `429` on the second `POST /v1/blobs/batch` stops
+downloads with nothing reported and the next pass asks only for the rest
+(mutation: report the batch's records as refused), and a connection dropped
+part-way through a batch keeps and applies the blobs that arrived whole
+(mutation: discard a batch's blobs when its stream breaks). **A missing frame is
+a `404`** (mutation: drop the frame — the record is silently not fetched and
+never reported). **A server without the batch route is asked once per
+session**: `400`, `404`, `405`, `413` and `501` each fall back to single
+requests with nothing reported, as does a malformed batch, which keeps the
+blobs that arrived (mutation: do not remember the fallback — the next record
+asks for a batch again). **A
 newer envelope is reported as `newerWireVersion`, a newer one that also adds
 a key included** (mutation: run the exact-key check before the version check —
 the plain `v` bump still passes, and the newer envelope that adds a key is
@@ -5318,6 +5469,22 @@ value). These are client-side and
 are grouped here rather than under **Server** because the server never parses
 record content beyond §7.2's key check — a server suite written from a list that
 included them would be testing rules its implementation is forbidden to have.
+
+**Server, `POST /v1/blobs/batch`.** Every requested hash is answered once, in
+request order; a hash with no reference in the current epoch, or whose file is
+gone, is *missing* (mutation: emit *not sent* for it — the client asks again
+forever). The byte cap ends the response's blobs at a prefix and lists the rest
+as *not sent* (mutation: drop the cap). The response is streamed: a blob deleted
+after the first frame has been read comes back *missing* (mutation: build the
+whole body before returning it). A request naming more than 200 hashes is
+`413`, and a store that does not resolve is a failed resolution under §5.4
+(mutation: answer its `404` without counting it). `gzip` is used when accepted
+and not when refused with `q=0`. A batch costs 1 + ⌈*n*/20⌉ on both request-rate
+rows and one that overdraws either is refused whole, with a `Retry-After` that
+covers the same batch sent again (mutations: charge one token — a full batch
+then costs what a single `GET` does; skip the per-store row; trim instead of
+refusing); a batch for a store that does not resolve costs only its request
+token (mutation: charge before the lookup).
 
 A blob uploaded but not yet manifested survives a concurrent peer's manifest
 `PUT` and survives the sweep (mutation: collect every unreferenced blob
