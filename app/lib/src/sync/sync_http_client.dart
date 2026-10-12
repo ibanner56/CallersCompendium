@@ -545,7 +545,7 @@ class SyncHttpClient {
         if (decodedBytes > maxDecoded) {
           throw const SyncEndpointException('sync response exceeds size limit');
         }
-        reader.add(chunk).forEach(onFrame);
+        reader.add(chunk, onFrame);
       }
       reader.close();
     } on SyncBlobBatchFormatException {

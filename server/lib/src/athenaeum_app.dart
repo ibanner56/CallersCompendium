@@ -704,7 +704,12 @@ class AthenaeumApp {
           } on FileSystemException {
             body = null;
           }
-          if (body != null) {
+          // The recorded size decided whether to read it; the bytes read
+          // decide whether they fit, should the file not match its record.
+          if (body != null &&
+              sentBytes + body.length > syncBlobBatchMaxBlobBytes) {
+            full = true;
+          } else if (body != null) {
             sentBytes += body.length;
             yield encodeSyncBlobBatchFrameHead(
               SyncBlobBatchFrameStatus.blob,

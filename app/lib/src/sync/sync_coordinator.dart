@@ -721,10 +721,10 @@ final class SyncPeerManifestCache {
   int passSequence;
   String? publicationEpoch;
 
-  /// Whether the server answered `POST /v1/blobs/batch` as a route it does
-  /// not have (spec §6.3 step 5), so the rest of this session fetches one
-  /// blob per request instead of asking again every pass. A self-hosted
-  /// server updates on its own schedule.
+  /// Whether `POST /v1/blobs/batch` was answered as a route the server — or a
+  /// proxy in front of it — does not serve (spec §6.3 step 5), so the rest of
+  /// this session fetches one blob per request instead of asking again every
+  /// pass. A self-hosted server updates on its own schedule.
   bool blobBatchUnsupported;
 
   /// Verified peer blob bodies by wire hash, oldest first.
@@ -768,11 +768,16 @@ final class SyncPeerManifestCache {
 
   /// Starts the unreflected-publication evidence afresh when the store's epoch
   /// has changed: hashes and manifests from another epoch prove nothing here.
+  ///
+  /// It also forgets that the server lacked the batch route: a new epoch can
+  /// follow a store reaped and re-created mid-session, whose `404` the batch
+  /// read as a missing route.
   void beginPublicationEpoch(String epoch) {
     if (publicationEpoch == epoch) return;
     publications.clear();
     peerPublications.clear();
     publicationEpoch = epoch;
+    blobBatchUnsupported = false;
   }
 
   SyncPeerManifestCacheEntry? operator [](String peerId) => _entries[peerId];
@@ -2810,9 +2815,9 @@ class SyncCoordinator {
       final answered = _takeBatched(hash, progress);
       if (answered != null) return answered;
       if (progress.stop != null) return const _BlobNotFetched();
-      // Otherwise the route is missing, or — against a non-conforming server
-      // — the batch did not answer the hash it was asked for first. Either
-      // way the single request below still can.
+      // Otherwise the batch fell back (`_fetchBatch`), or — against a
+      // non-conforming server — did not answer the hash it was asked for
+      // first. Either way the single request below still can.
     }
     return _getBlob(hash, progress);
   }
@@ -2829,10 +2834,15 @@ class SyncCoordinator {
   ///
   /// Every blob a response delivers is kept, even when the response is then
   /// cut off: it arrived whole, and it is verified like any other when its
-  /// record is reached. A `429`, a `5xx` or a network failure stops downloads
-  /// exactly as on a single request. A `400`, `404`, `405` or `501`, or a `200`
-  /// that is not a batch, is a server without the route: the session falls
-  /// back to single requests and nothing is reported.
+  /// record is reached. A `429`, a `5xx` other than `507` or a network failure
+  /// stops downloads exactly as on a single request. Any other refusal, a
+  /// `200` that is not a batch, or a batch that is malformed or over its caps,
+  /// is a server — or a proxy in front of it — that does not serve the route:
+  /// the session falls back to single requests and nothing is reported, so
+  /// each record gets whatever answer its own request gets. Copying a
+  /// refusal of the whole batch onto each of its records instead would report
+  /// up to 200 records skipped for a proxy's `413` that a single request
+  /// never meets.
   Future<void> _fetchBatch(String hash, _PeerDownloadProgress progress) async {
     final hashes = progress.batchFrom(
       hash,
@@ -2860,6 +2870,16 @@ class SyncCoordinator {
           }
         },
       );
+    } on SyncEndpointException catch (error, stack) {
+      // A malformed or oversized batch. Thrown, as on a single request, it
+      // would fail every pass the same way; the frames before it are kept.
+      logCaughtErrorTypeOnly(
+        error,
+        stack,
+        source: 'sync_coordinator._fetchBatch',
+      );
+      _peerManifestCache.blobBatchUnsupported = true;
+      return;
     } on Object catch (error, stack) {
       final cause = syncFailureCauseForError(error);
       if (!cause.isTransient) rethrow;
@@ -2872,22 +2892,16 @@ class SyncCoordinator {
       return;
     }
     if (response.isSuccess) return;
-    if (_lacksBatchRoute(response)) {
-      _peerManifestCache.blobBatchUnsupported = true;
-      return;
-    }
-    if (_stopsDownloads(response.kind)) {
+    // `501 Not Implemented` is a server saying it has no such route, not one
+    // in trouble.
+    if (_stopsDownloads(response.kind) && response.statusCode != 501) {
       progress.stop = SyncFailure.fromResponse(
         response,
         SyncFailureStep.download,
       );
       return;
     }
-    // Any other refusal is the answer each of these single requests would
-    // have had, so each record is reported with it.
-    for (final refused in hashes) {
-      progress.batched[refused] = _BlobRefused(response.statusCode);
-    }
+    _peerManifestCache.blobBatchUnsupported = true;
   }
 
   /// One `GET /v1/blobs/{hash}`.
@@ -2907,11 +2921,7 @@ class SyncCoordinator {
       if (!cause.isTransient) rethrow;
       // Logged as the throw it replaces was (`_watch`), type only: the text
       // of a transport error can carry the request URI.
-      logCaughtErrorTypeOnly(
-        error,
-        stack,
-        source: 'sync_coordinator._downloadPeerRecords',
-      );
+      logCaughtErrorTypeOnly(error, stack, source: 'sync_coordinator._getBlob');
       progress.stop = SyncFailure(cause, step: SyncFailureStep.download);
       return const _BlobNotFetched();
     }
@@ -2925,17 +2935,6 @@ class SyncCoordinator {
     }
     return _BlobRefused(response.statusCode);
   }
-
-  /// Whether a batch was answered by a server without the route (spec §6.3
-  /// step 5). An Athenaeum from before it answers `400`, reading `batch` as a
-  /// malformed hash; a proxy or another server may say `404`, `405` or `501`;
-  /// and a `200` that is not a batch did not come from the route at all.
-  static bool _lacksBatchRoute(SyncHttpResponse response) =>
-      switch (response.statusCode) {
-        400 || 404 || 405 || 501 => true,
-        200 => response.kind == SyncResponseKind.unexpectedStatus,
-        _ => false,
-      };
 
   /// Whether a record download answered [kind] stops the pass's downloads
   /// rather than skipping that one record (spec §6.3 step 5).

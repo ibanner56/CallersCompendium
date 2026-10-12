@@ -69,7 +69,7 @@ void main() {
     final reader = SyncBlobBatchFrameReader(hashes, maxBlobBytes: maxBlobBytes);
     final result = <SyncBlobBatchFrame>[];
     await for (final chunk in response.read()) {
-      result.addAll(reader.add(chunk));
+      reader.add(chunk, result.add);
     }
     reader.close();
     return result;
@@ -196,6 +196,28 @@ void main() {
     );
   });
 
+  test('a file larger than its recorded size cannot carry the response past '
+      'its cap', () async {
+    final small = put(utf8.encode('{"small":true}'));
+    final after = put(utf8.encode('{"after":true}'));
+    // Overwritten behind the store's back: the reference still says 14
+    // bytes.
+    app.store
+        .blobFile(idKey, epoch, small)
+        .writeAsBytesSync(List<int>.filled(syncBlobBatchMaxBlobBytes + 1, 1));
+    final hashes = [small, after];
+
+    final answered = await frames(
+      await app.call(batchRequest({'hashes': hashes})),
+      hashes,
+    );
+
+    expect(
+      [for (final frame in answered) frame.status],
+      [SyncBlobBatchFrameStatus.notSent, SyncBlobBatchFrameStatus.notSent],
+    );
+  });
+
   test('a blob of the largest size is always sent first', () async {
     final hash = put(List<int>.filled(maxBlobBytes, 0x31));
     final answered = await frames(
@@ -219,13 +241,13 @@ void main() {
     final answered = <SyncBlobBatchFrame>[];
     final iterator = StreamIterator(response.read());
     while (answered.isEmpty && await iterator.moveNext()) {
-      answered.addAll(reader.add(iterator.current));
+      reader.add(iterator.current, answered.add);
     }
     expect(answered.single.hash, first);
     // A response built before it was sent would already hold this blob.
     app.store.blobFile(idKey, epoch, last).deleteSync();
     while (await iterator.moveNext()) {
-      answered.addAll(reader.add(iterator.current));
+      reader.add(iterator.current, answered.add);
     }
     reader.close();
     expect(answered.last.hash, last);

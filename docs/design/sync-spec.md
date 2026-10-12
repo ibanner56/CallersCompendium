@@ -1970,11 +1970,18 @@ keeps each blob as it completes. When the connection drops part-way, the blobs
 that arrived whole are already usable.
 
 **A server without this route.** A self-hosted server updates on its own
-schedule. A client MUST treat a `400`, `404`, `405` or `501` answer to this
-request, or a `200` without the media type above, as a server that lacks the
-route: it fetches the rest with `GET /v1/blobs/{hash}`, raises no notice, and
-SHOULD NOT ask again for the rest of the session. `400` is on the list because
-an Athenaeum from before the route reads `batch` as a malformed hash.
+schedule, and a proxy in front of one may refuse a `POST` it would let a `GET`
+through. Apart from `429` and the `5xx` statuses that stop downloads (§6.3
+step 5), a client MUST treat any non-success answer to this request — `400`,
+`404`, `405`, `413`, `501` and the rest — a `200` without the media type above,
+or a batch that is malformed or over its caps, as a server that does not serve
+the route. It keeps the blobs that arrived whole, fetches the rest with
+`GET /v1/blobs/{hash}`, raises no notice, and SHOULD NOT ask again for the
+rest of the session; a client that observes a new store epoch MAY ask again.
+`400` matters most: an Athenaeum from before the route reads `batch` as a
+malformed hash. A client MUST NOT report a refusal of the whole batch against
+each of its records: each record gets the answer its own request gets, and a
+proxy's `413` on a `POST` says nothing about any of them.
 
 > **Amended 2026-10-11.** This endpoint, its frame format, the caps in §5.4 and
 > the fallback rule were added by the change that introduced them, on its
@@ -5345,8 +5352,9 @@ part-way through a batch keeps and applies the blobs that arrived whole
 (mutation: discard a batch's blobs when its stream breaks). **A missing frame is
 a `404`** (mutation: drop the frame — the record is silently not fetched and
 never reported). **A server without the batch route is asked once per
-session**: `400`, `404` and `405` each fall back to single requests with
-nothing reported (mutation: do not remember the fallback — the next record
+session**: `400`, `404`, `405`, `413` and `501` each fall back to single
+requests with nothing reported, as does a malformed batch, which keeps the
+blobs that arrived (mutation: do not remember the fallback — the next record
 asks for a batch again). **A
 newer envelope is reported as `newerWireVersion`, a newer one that also adds
 a key included** (mutation: run the exact-key check before the version check —

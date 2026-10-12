@@ -100,8 +100,8 @@ final class SyncBlobBatchFormatException implements Exception {
 /// answers every requested hash exactly once, in the order requested. A frame
 /// naming anything else, an unknown status, or a blob longer than
 /// [maxBlobBytes] is a [SyncBlobBatchFormatException]. Every complete frame is
-/// handed to the caller before the next is read, so frames that arrived
-/// before a broken stream are not lost with it.
+/// handed to the caller before the next is checked, so frames that arrived
+/// before a broken stream, or before a malformed frame, are not lost with it.
 final class SyncBlobBatchFrameReader {
   SyncBlobBatchFrameReader(
     List<String> expectedHashes, {
@@ -113,59 +113,76 @@ final class SyncBlobBatchFrameReader {
   final BytesBuilder _pending = BytesBuilder(copy: false);
   var _next = 0;
 
+  /// Bytes the frame being read needs before it can be checked further.
+  var _needed = 33;
+
   /// Whether every requested hash has been answered.
   bool get isComplete => _next == _expected.length;
 
-  /// Consumes [chunk] and returns the frames it completed.
-  List<SyncBlobBatchFrame> add(List<int> chunk) {
+  /// Consumes [chunk], handing each frame it completes to [onFrame] in order.
+  ///
+  /// A frame is handed on before the next is checked, so when a later frame
+  /// in the same chunk is malformed, the ones before it have still arrived.
+  /// Bytes are buffered until the frame they belong to is complete, and only
+  /// then gathered, so a large blob arriving in many small chunks is copied
+  /// once rather than once per chunk.
+  void add(List<int> chunk, void Function(SyncBlobBatchFrame frame) onFrame) {
     _pending.add(chunk);
-    final frames = <SyncBlobBatchFrame>[];
+    if (_pending.length < _needed) return;
     final buffer = _pending.takeBytes();
     var offset = 0;
-    while (buffer.length - offset >= 33) {
-      if (_next >= _expected.length) {
-        throw const SyncBlobBatchFormatException('frame after the last hash');
-      }
-      final status = SyncBlobBatchFrameStatus.fromCode(buffer[offset]);
-      if (status == null) {
-        throw const SyncBlobBatchFormatException('unknown frame status');
-      }
-      final hash = _hashHex(buffer, offset + 1);
-      if (hash != _expected[_next]) {
-        throw const SyncBlobBatchFormatException('frame out of order');
-      }
-      if (status != SyncBlobBatchFrameStatus.blob) {
-        frames.add(SyncBlobBatchFrame(status, hash));
-        offset += 33;
+    try {
+      while (true) {
+        final available = buffer.length - offset;
+        if (available < 33) {
+          _needed = 33;
+          break;
+        }
+        if (_next >= _expected.length) {
+          throw const SyncBlobBatchFormatException('frame after the last hash');
+        }
+        final status = SyncBlobBatchFrameStatus.fromCode(buffer[offset]);
+        if (status == null) {
+          throw const SyncBlobBatchFormatException('unknown frame status');
+        }
+        final hash = _hashHex(buffer, offset + 1);
+        if (hash != _expected[_next]) {
+          throw const SyncBlobBatchFormatException('frame out of order');
+        }
+        if (status != SyncBlobBatchFrameStatus.blob) {
+          offset += 33;
+          _next++;
+          onFrame(SyncBlobBatchFrame(status, hash));
+          continue;
+        }
+        if (available < 37) {
+          _needed = 37;
+          break;
+        }
+        final length = ByteData.sublistView(
+          buffer,
+          offset + 33,
+          offset + 37,
+        ).getUint32(0);
+        if (length > maxBlobBytes) {
+          throw const SyncBlobBatchFormatException('blob exceeds size limit');
+        }
+        if (available < 37 + length) {
+          _needed = 37 + length;
+          break;
+        }
+        final body = Uint8List.fromList(
+          Uint8List.sublistView(buffer, offset + 37, offset + 37 + length),
+        );
+        offset += 37 + length;
         _next++;
-        continue;
+        onFrame(SyncBlobBatchFrame(status, hash, body));
       }
-      if (buffer.length - offset < 37) break;
-      final length = ByteData.sublistView(
-        buffer,
-        offset + 33,
-        offset + 37,
-      ).getUint32(0);
-      if (length > maxBlobBytes) {
-        throw const SyncBlobBatchFormatException('blob exceeds size limit');
+    } finally {
+      if (offset < buffer.length) {
+        _pending.add(Uint8List.sublistView(buffer, offset));
       }
-      if (buffer.length - offset - 37 < length) break;
-      frames.add(
-        SyncBlobBatchFrame(
-          status,
-          hash,
-          Uint8List.fromList(
-            Uint8List.sublistView(buffer, offset + 37, offset + 37 + length),
-          ),
-        ),
-      );
-      offset += 37 + length;
-      _next++;
     }
-    if (offset < buffer.length) {
-      _pending.add(Uint8List.sublistView(buffer, offset));
-    }
-    return frames;
   }
 
   /// Checks that the stream ended between frames.

@@ -5519,12 +5519,23 @@ void main() {
       );
     });
 
-    for (final status in [400, 404, 405]) {
+    // `400` is what an Athenaeum from before the route answers; `413` stands
+    // for any refusal a proxy in front of the server gives a POST that a
+    // single GET would not meet; `501` is a 5xx that says "no such route".
+    for (final status in [400, 404, 405, 413, 501]) {
       test('a $status on the batch route falls back to single requests for '
           'the rest of the session, with no notice', () async {
         final library = await peerLibrary(tags: 4, dances: 0);
         final transport = transportFor(library)
-          ..onBatch = (_, _) => _FakeTransport.response(status);
+          // As `SyncHttpClient` reads it: a 501 is a `serverError`.
+          ..onBatch = (_, _) => status == 501
+              ? const SyncHttpResponse(
+                  statusCode: 501,
+                  kind: SyncResponseKind.serverError,
+                  headers: {},
+                  body: [],
+                )
+              : _FakeTransport.response(status);
         // The third single request meets the limit, so the session needs a
         // second pass, which must not ask for a batch again.
         var limited = true;
@@ -5577,6 +5588,46 @@ void main() {
 
       expect(result.status, SyncPassStatus.completed);
       expect(transport.blobCalls, 2);
+    });
+
+    test('a malformed batch keeps the blobs that arrived and falls back to '
+        'single requests for the rest, with no notice', () async {
+      final library = await peerLibrary(tags: 5, dances: 0);
+      final order = fetchOrder(library);
+      final transport = transportFor(library)
+        ..cutBatch = (_, index) => index == 2
+            ? const SyncEndpointException('malformed blob batch response')
+            : null;
+      final repositories = openTestRepositories();
+      final cache = SyncPeerManifestCache();
+
+      final result = await coordinatorFor(
+        repositories,
+        transport,
+        cache: cache,
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.reports, isEmpty);
+      expect(transport.batchCalls, 1);
+      expect(transport.blobHashes, order.sublist(2));
+      expect(cache.blobBatchUnsupported, isTrue);
+      for (final candidate in library) {
+        expect(
+          await repositories.tags.getById(candidate.address.recordId),
+          isNotNull,
+        );
+      }
+    });
+
+    test('a new store epoch asks for batches again', () {
+      final cache = SyncPeerManifestCache()
+        ..beginPublicationEpoch('epoch-1')
+        ..blobBatchUnsupported = true
+        ..beginPublicationEpoch('epoch-1');
+      expect(cache.blobBatchUnsupported, isTrue, reason: 'same epoch');
+      cache.beginPublicationEpoch('epoch-2');
+      expect(cache.blobBatchUnsupported, isFalse);
     });
 
     test('a stream cut mid-batch keeps and applies the blobs that arrived, '
