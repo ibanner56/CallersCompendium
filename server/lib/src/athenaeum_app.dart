@@ -33,7 +33,8 @@ const int defaultBlobBatchHashesPerToken = 20;
 /// A `PUT /v1/blobs/batch` of `n` blobs costs the request token every request
 /// pays plus one per this many blobs, rounded up: `1 + ⌈n / 10⌉`, so a full
 /// batch of 50 costs 6 (spec §5.4). Fewer per token than a read because a blob
-/// costs the server about ten times as much to store as to read.
+/// costs the server far more to store than to read: 1.2–2.9 ms in a batch,
+/// against well under a tenth of a millisecond.
 const int defaultBlobUploadBlobsPerToken = 10;
 const int _maxTrackedRequestBuckets = 10000;
 

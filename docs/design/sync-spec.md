@@ -2228,8 +2228,9 @@ blob rows; a batch of 200 cost 210–250 ms, a stall every other user of the
 server would feel, and a batch of 50 costs 58–147 ms. 50 keeps the stall to
 what ten to twenty single `PUT`s cost.
 
-**Why 1 + ⌈*n*/10⌉.** A blob costs about ten times as much to store as to read,
-so the read's 20 per token would let one address spend, in the typical case, up
+**Why 1 + ⌈*n*/10⌉.** A blob costs far more to store than to read — 1.2–2.9 ms
+each in a batch of 50, against 35–75 µs in a batch read — so the read's 20 per
+token would let one address spend, in the typical case, up
 to about three times the server time single `PUT`s let it spend: 15 full
 batches a minute, 0.9–2.2 s of handler time against 0.24–0.78 s. At 10 per token
 it sustains 500 blobs a minute in at most 10 batches, 0.58–1.5 s, and in the

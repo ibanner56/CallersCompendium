@@ -3042,7 +3042,8 @@ reference server answers every request on one thread and stores a batch in one
 transaction, so a batch of 200 held every other user up for about a quarter of
 a second. Uploads therefore go 50 at a time (spec §5.4), and a batch of *n*
 costs 1 + ⌈*n*/10⌉ request tokens rather than the read's 1 + ⌈*n*/20⌉: per
-blob, storing costs about ten times what reading does, and at 10 a token one
+blob, storing costs far more than reading does (1.2–2.9 ms against 35–75 µs in
+a batch), and at 10 a token one
 address can spend no more of the server's one thread than single `PUT`s let it
 in the worst case. A 5,000-record first publish takes about 8 minutes instead
 of about 81.
