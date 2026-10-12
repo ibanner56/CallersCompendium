@@ -1415,6 +1415,10 @@ the wire.
   record (spec §5.2), so nothing else would notice the attach taking sixteen
   minutes instead of seconds — and that a limit enforced at the proxy, which
   counts requests rather than batch cost, is not the one doing the bounding;
+  **a first publish large enough to need more than one `PUT /v1/blobs/batch`
+  stores every blob through the deployed proxy**, for the same reason on the
+  upload side: a proxy refusing a `PUT` there, or one with a request-body cap
+  below the batch's 2 MB, still syncs one record at a time;
   and each of the four operational prerequisites has been *exercised*, not
   merely written:
   - **Alerting** — a synthetic quota exhaustion and a synthetic GC failure each

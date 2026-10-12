@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
-/// The media type of a `POST /v1/blobs/batch` response body (sync spec §5.2).
+/// The media type of a `POST /v1/blobs/batch` response body and of a
+/// `PUT /v1/blobs/batch` request body (sync spec §5.2).
 const String syncBlobBatchMediaType =
     'application/vnd.callers-compendium.blob-batch';
 
@@ -16,7 +17,8 @@ const int syncBlobBatchMaxUploadBlobs = 50;
 
 /// The most blob bytes one `POST /v1/blobs/batch` response carries, before
 /// framing and compression (spec §5.4). A blob is never larger than 1 MB, so
-/// the first blob a response names always fits.
+/// the first blob a response names always fits. A client also keeps the blob
+/// bytes of one `PUT /v1/blobs/batch` within it.
 const int syncBlobBatchMaxBlobBytes = 2 * 1024 * 1024;
 
 /// Bytes of framing a response adds per requested hash, at most: a status
