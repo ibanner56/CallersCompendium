@@ -2213,8 +2213,8 @@ counts requests, not this cost; the server's own row still applies.
 **Why 5 a second, burst 300.** When this rate was chosen, downloads were
 batched and a device's first *upload* was still one `PUT` per record (§6.3
 step 7), so the per-IP row mostly paced that upload: a 1,000-record upload
-spent the burst, met the limit, and finished over about three passes a minute
-apart (§6.12), where 60 a minute stretched it over a quarter of an hour.
+spent the burst, met the limit, and finished over a few passes a minute apart
+(§6.12; four, measured), where 60 a minute stretched it over a quarter of an hour.
 Uploads are now batched too (below). The row is also what a guess at a store costs, so
 §8's figures scale with it, five times those at 60 a minute; the maintainer
 chose 5 a second, burst 300, on 2026-10-12 with those figures in front of them,
@@ -2265,8 +2265,8 @@ worked at the earlier 60 a minute, where each is a fifth as large, and the rule
 was approved on them.) Measured end to end through the reference client against
 the reference server at the shipped limits, a device publishing 1,000 records
 of its own finished in one pass and 19 seconds and 5,000 in two passes and about
-2.5 minutes, where one `PUT` a record takes, by the same limits, about three
-passes and about 16 minutes. 5 per token would match a single `PUT`'s handler
+2.5 minutes, where one `PUT` a record, measured the same way, took four passes
+and about 4 minutes and seventeen passes and about 26 minutes. 5 per token would match a single `PUT`'s handler
 time per token and lengthen those waits.
 
 The failed-store-resolution rows raise the
@@ -2758,7 +2758,7 @@ republishes, which is an ordinary upload and needs no special path.
    > **Amended 2026-10-12, batches.** Step 7 uploaded one blob per request, so
    > a device publishing 1,000 records of its own met the per-IP request limit
    > (§5.4): over about 16 minutes at the 60 a minute then in force, and over
-   > about three passes at 5 a second. The batch upload was added by the change that added
+   > four passes and about 4 minutes at 5 a second, measured. The batch upload was added by the change that added
    > this note, by its author rather than the maintainer.
 8. `PUT /v1/manifests/{self}`. The marker was written in step 7 before blob
    work, and the client MUST retain that protection before issuing this
