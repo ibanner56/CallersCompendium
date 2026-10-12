@@ -815,11 +815,19 @@ class SyncApplyEngine {
           SyncMergeCandidate.fromBlob(decodeSyncRecordBlob(encoded)),
         );
       } on FormatException catch (error) {
-        reports.add(
-          SyncReport(
-            code: SyncReportCode.malformedRecord,
-            message: 'Malformed inbound record: ${error.message}.',
+        final (code, label) = switch (error) {
+          SyncNewerWireVersionException() => (
+            SyncReportCode.newerWireVersion,
+            'Inbound record uses a newer wire version',
           ),
+          SyncNewerFieldException() => (
+            SyncReportCode.newerRecordFields,
+            'Inbound record carries a field this build does not sync',
+          ),
+          _ => (SyncReportCode.malformedRecord, 'Malformed inbound record'),
+        };
+        reports.add(
+          SyncReport(code: code, message: '$label: ${error.message}.'),
         );
       }
     }

@@ -5364,6 +5364,40 @@ void main() {
       expect(report.peerId, 'peer');
     });
 
+    test('a blob carrying a field this build does not know is reported as '
+        'newerRecordFields, naming its record', () async {
+      // The envelope `v` is unchanged: a newer build added a body field, as
+      // #1714 added a program's pay. The record is still skipped; only what
+      // the user is told changes.
+      final tag = _tag('t-new', 'Newer').toJson();
+      final newer = utf8.encode(
+        jsonEncode({
+          ...tag,
+          'body': {...(tag['body']! as Map<String, Object?>), 'addedLater': 1},
+        }),
+      );
+      final hash = sha256Hex(newer);
+      final result = await coordinatorFor(
+        _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.tag: {'t-new': hash},
+            },
+          ),
+          blobResponses: {hash: _FakeTransport.response(200, body: newer)},
+        ),
+      ).syncNow();
+
+      final report = result.reports.singleWhere(
+        (report) => report.recordId == 't-new',
+      );
+      expect(report.code, SyncReportCode.newerRecordFields);
+      expect(report.kind, SyncRecordKind.tag);
+      expect(report.peerId, 'peer');
+    });
+
     test('a newer manifest is reported as newerWireVersion for the peer, '
         'naming no record', () async {
       final newer = utf8.encode(

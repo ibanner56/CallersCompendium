@@ -2621,20 +2621,24 @@ class SyncCoordinator {
         progress.fetched++;
         body = response.body;
       }
-      final (:blob, :newer) = _decodeBlob(body);
+      final (:blob, :failure) = _decodeBlob(body);
       if (blob == null) {
         unresolved.add(address);
         reports.add(
           SyncReport(
-            code: newer
-                ? SyncReportCode.newerWireVersion
-                : SyncReportCode.malformedRecord,
+            // Never null without a blob: [_decodeBlob] pairs them.
+            code: failure!,
             kind: address.kind,
             recordId: address.recordId,
             peerId: peerId,
-            message: newer
-                ? 'Blob uses a newer wire version.' // i18n-ignore: internal report
-                : 'Blob did not decode as a record.', // i18n-ignore: internal report
+            message: switch (failure) {
+              SyncReportCode.newerWireVersion =>
+                'Blob uses a newer wire version.', // i18n-ignore: internal report
+              SyncReportCode.newerRecordFields =>
+                'Blob carries a field this build does not sync.', // i18n-ignore: internal report
+              _ =>
+                'Blob did not decode as a record.', // i18n-ignore: internal report
+            },
           ),
         );
         continue;
@@ -2856,21 +2860,28 @@ class SyncCoordinator {
     return null;
   }
 
-  /// The peer blob in [body], or null with [newer] saying whether it failed
-  /// only because a newer build wrote it.
-  static ({SyncRecordBlob? blob, bool newer}) _decodeBlob(List<int> body) {
+  /// The peer blob in [body] with a null [failure], or a null blob with
+  /// [failure] the code the caller reports: whether it failed only because a
+  /// newer build wrote it — in a newer envelope, or with a field this build
+  /// does not sync — or is malformed.
+  static ({SyncRecordBlob? blob, SyncReportCode? failure}) _decodeBlob(
+    List<int> body,
+  ) {
     try {
       return (
         blob: decodeSyncRecordBlob(utf8.decode(body, allowMalformed: false)),
-        newer: false,
+        failure: null,
       );
     } on SyncNewerWireVersionException {
       // diagnostics: silent — reported by the caller as newerWireVersion.
-      return (blob: null, newer: true);
+      return (blob: null, failure: SyncReportCode.newerWireVersion);
+    } on SyncNewerFieldException {
+      // diagnostics: silent — reported by the caller as newerRecordFields.
+      return (blob: null, failure: SyncReportCode.newerRecordFields);
     } on FormatException {
       // diagnostics: silent — malformed peer blobs are reported by the caller
       // and do not advance the baseline.
-      return (blob: null, newer: false);
+      return (blob: null, failure: SyncReportCode.malformedRecord);
     }
   }
 

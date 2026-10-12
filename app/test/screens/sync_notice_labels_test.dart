@@ -42,6 +42,11 @@ const _expected = <_Case>[
     group: SyncNoticeGroup.newerVersion,
   ),
   (
+    code: SyncReportCode.newerRecordFields,
+    peerId: 'peer-1',
+    group: SyncNoticeGroup.newerVersion,
+  ),
+  (
     code: SyncReportCode.equalUpdatedAt,
     peerId: 'peer-1',
     group: SyncNoticeGroup.divergence,
@@ -139,11 +144,7 @@ void main() {
     // says the records came "from another device" and tells the user to check
     // that device's app version — false in both halves for a row stored here,
     // and the reuse a future simplification would reach for.
-    final text = syncNoticeText(
-      l10n,
-      SyncNoticeGroup.withheldUnreadableLocal,
-      recordCount: 0,
-    );
+    final text = syncNoticeText(l10n, SyncNoticeGroup.withheldUnreadableLocal);
 
     expect(text, isNotEmpty);
     expect(text, isNot(equals(l10n.settingsSyncNoticeSkippedRecord)));
@@ -163,15 +164,55 @@ void main() {
       // A newer envelope is never their fault: this device is the one to
       // update.
       expect(
-        syncNoticeText(l10n, SyncNoticeGroup.newerVersion, recordCount: 4),
+        syncNoticeText(
+          l10n,
+          SyncNoticeGroup.newerVersion,
+          countedRecords: const [
+            (kind: SyncRecordKind.dance, recordId: 'd1'),
+            (kind: SyncRecordKind.dance, recordId: 'd2'),
+            (kind: SyncRecordKind.dance, recordId: 'd3'),
+            (kind: SyncRecordKind.dance, recordId: 'd4'),
+          ],
+        ),
         'Another device is using a newer version of the app. Update the app '
-        'on this device to receive 4 items.',
+        'on this device to receive 4 dances.',
+      );
+    });
+
+    test('says what is waiting by kind, not as a bare count of items', () {
+      // A notice that says "12 items" sends the user looking through
+      // everything; "2 programs, 1 setting" says where to look, and that the
+      // dances are fine. Kinds follow the wire order, whatever order the
+      // reports arrived in.
+      expect(
+        syncNoticeText(
+          l10n,
+          SyncNoticeGroup.newerVersion,
+          countedRecords: const [
+            (kind: SyncRecordKind.setting, recordId: 'a_new_setting'),
+            (kind: SyncRecordKind.program, recordId: 'p1'),
+            (kind: SyncRecordKind.program, recordId: 'p2'),
+          ],
+        ),
+        'Another device is using a newer version of the app. Update the app '
+        'on this device to receive 2 programs, 1 setting.',
+      );
+    });
+
+    test('every kind has its own count', () {
+      final text = syncNoticeKindCountsText(l10n, [
+        for (final kind in SyncRecordKind.values) (kind: kind, recordId: 'one'),
+      ]);
+      expect(
+        text,
+        '1 dance, 1 program, 1 choreographer, 1 tag, 1 published source, '
+        '1 custom field, 1 difficulty level, 1 venue, 1 setting',
       );
     });
 
     test('says so without a count when no record could be named', () {
       expect(
-        syncNoticeText(l10n, SyncNoticeGroup.newerVersion, recordCount: 0),
+        syncNoticeText(l10n, SyncNoticeGroup.newerVersion),
         l10n.settingsSyncNoticeNewerVersionUncounted,
       );
     });
@@ -244,7 +285,6 @@ void main() {
     String text(SyncNoticeGroup group) => syncNoticeText(
       l10n,
       group,
-      recordCount: 0,
       device: syncNoticeIsPerDevice(group) ? (tag: 'k7mQ2x', count: 2) : null,
     );
     for (final code in SyncReportCode.values) {
@@ -297,7 +337,6 @@ void main() {
         syncNoticeText(
           l10n,
           SyncNoticeGroup.unreflectedPublication,
-          recordCount: 0,
           device: (tag: '7c02Lm', count: 4),
         ),
         "Device 7c02Lm is syncing but isn't taking 4 changes from this device. "

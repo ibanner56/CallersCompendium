@@ -3075,7 +3075,8 @@ does.
 independently consult the registry to decide which absences mean *preserve*, and
 MUST **refuse the whole record** — one record skipped, batch intact, local state
 unchanged, reported as in §6.9 — if it carries any key not classified
-`shareable` for that kind and nesting context. For `kind: "setting"` the
+`shareable` for that kind and nesting context. Such a refusal is reported as a
+newer version's record, not a malformed one (§6.9). For `kind: "setting"` the
 receiver MUST additionally look the record id up in `settingsClassifications`
 and refuse anything not `shareable`.
 
@@ -3218,6 +3219,31 @@ what it lists. The status surface shows it as a needs-you notice naming how
 many items are waiting when the reports name any. A blob reaches an older
 client through any server (§7.2 accepts an unknown blob `v`); a newer manifest
 reaches it only once the server has been updated first.
+
+**A field this build does not sync is reported the same way.** A blob whose
+envelope `v` is current but whose body carries any path this build does not
+classify `shareable` for that kind — one it does not know at all, or one it
+knows but keeps private — or, for a setting, a key that is unclassified or not
+`shareable` here, is still refused whole (§6.7), but reported with code
+`newerRecordFields` rather than `malformedRecord`. Both are what a newer build
+looks like to an older one: it added a field (#1714 added a program's pay
+without a `v` bump), or reclassified one to travel, which §7.2 expects to
+recur. The remedy is the same as a newer envelope's, so the status surface
+shows the two in one needs-you notice. The notice says how many records of
+each kind are waiting — "2 programs, 1 setting" rather than a bare item count
+— and lists only those records, apart from records skipped for any other
+reason. Every non-shareable path is reported the same way, so which one a
+body's key order reaches first does not change the report.
+
+The receiver cannot tell a newer sender from a defective one that put a private
+field on the wire, and this rule names the newer sender. Decided by Isaac
+(maintainer) in review of #1728: the app's releases are under the maintainer's
+control, so a version difference is the case worth naming. The record is
+refused and nothing is stored either way; only the advice differs. A body that
+is structurally wrong — a setting with no `value`, an id that does not match
+its envelope — stays `malformedRecord`, and so does a shareable field whose
+value no longer has the type this build expects: a newer build MUST NOT change
+a synced field's type without a `v` bump.
 
 Rejecting both fields is what makes a poisoned value always **local**.
 
@@ -5183,7 +5209,11 @@ skipped and the pass completes). **A
 newer envelope is reported as `newerWireVersion`, a newer one that also adds
 a key included** (mutation: run the exact-key check before the version check —
 the plain `v` bump still passes, and the newer envelope that adds a key is
-reported as malformed). These are client-side and
+reported as malformed). **A body field this build does not sync is reported
+as `newerRecordFields`**, whether it is unknown or known but private, in
+either key order (mutation: report a known private field as malformed — the
+unknown-field case still passes, and a field a newer build reclassified to
+travel tells the user to check their other devices). These are client-side and
 are grouped here rather than under **Server** because the server never parses
 record content beyond §7.2's key check — a server suite written from a list that
 included them would be testing rules its implementation is forbidden to have.
