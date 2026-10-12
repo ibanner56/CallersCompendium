@@ -932,7 +932,14 @@ class _SyncNoticeTileState extends State<_SyncNoticeTile> {
                               (record, const SyncNoticeRecordUnnamed()),
                           ];
                       return Text(
-                        syncNoticeAffectedText(l10n, shown, total),
+                        syncNoticeAffectedText(
+                          l10n,
+                          shown,
+                          total,
+                          newerFigures: syncNoticeNewerFigureRecords(
+                            widget.reports,
+                          ),
+                        ),
                         key: ValueKey(
                           'sync-notice-${widget.group.name}-records',
                         ),

@@ -470,7 +470,7 @@ Future<void> clearNormalisationSkipAt(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 38;
+const int kCompendiumSchemaVersion = 39;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -587,6 +587,7 @@ const int kMinSupportedSchemaVersion = 35;
     PendingDeletions,
     ReviewQueue,
     PublishedRecords,
+    RetainedSyncFields,
   ],
 )
 class CompendiumDatabase extends _$CompendiumDatabase {
@@ -767,6 +768,16 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           if (!present.contains(programs.payCurrency.name)) {
             await m.addColumn(programs, programs.payCurrency);
           }
+        }
+        if (from < 39) {
+          // Fields a newer version of the app added, kept so this device
+          // shares them back unchanged (spec §6.7). A new table and nothing
+          // else; the existence check only keeps the step idempotent.
+          final existing = await customSelect(
+            "SELECT name FROM sqlite_master WHERE type = 'table' "
+            "AND name = '${retainedSyncFields.actualTableName}'",
+          ).get();
+          if (existing.isEmpty) await m.createTable(retainedSyncFields);
         }
 
         // Last statement in the transaction: see the comment above its

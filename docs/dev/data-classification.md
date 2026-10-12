@@ -215,7 +215,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**222 columns**: 150 shareable, 21 device-local, 26 device-scoped, 25 derived. 28 personal data by category.
+**226 columns**: 151 shareable, 21 device-local, 29 device-scoped, 25 derived. 29 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -390,6 +390,10 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `published_sources` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `published_sources` | `url` | `cc:WebsiteUrl` | WebsiteUrl | — | shareable |  |
 | `published_sources` | `year` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `retained_sync_fields` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `retained_sync_fields` | `payload` | `dpv:PersonalData` | PersonalData | third party | shareable | Opaque record content a newer app version added; unknown to this build, so it may contain third-party data. Shareable only because it is shared back to the sync store it came from, verbatim (maintainer decision, sync-spec §6.7); never backed up or exported. |
+| `retained_sync_fields` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `retained_sync_fields` | `whole_record` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `review_queue` | `candidate_blob` | `dpv:PersonalData` | PersonalData | third party | device-scoped | Opaque serialized sync candidate may contain third-party record content; held locally until review and never synchronized as queue state. |
 | `review_queue` | `candidate_hash` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `review_queue` | `counterpart_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |

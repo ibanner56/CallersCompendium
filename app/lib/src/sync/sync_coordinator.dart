@@ -2635,7 +2635,9 @@ class SyncCoordinator {
               SyncReportCode.newerWireVersion =>
                 'Blob uses a newer wire version.', // i18n-ignore: internal report
               SyncReportCode.newerRecordFields =>
-                'Blob carries a field this build does not sync.', // i18n-ignore: internal report
+                'Blob carries a field this build cannot keep.', // i18n-ignore: internal report
+              SyncReportCode.newerFigures =>
+                'Blob carries figures from a newer version.', // i18n-ignore: internal report
               _ =>
                 'Blob did not decode as a record.', // i18n-ignore: internal report
             },
@@ -2895,8 +2897,8 @@ class SyncCoordinator {
 
   /// The peer blob in [body] with a null [failure], or a null blob with
   /// [failure] the code the caller reports: whether it failed only because a
-  /// newer build wrote it — in a newer envelope, or with a field this build
-  /// does not sync — or is malformed.
+  /// newer build wrote it — in a newer envelope, or with a part this build
+  /// cannot keep — or is malformed.
   static ({SyncRecordBlob? blob, SyncReportCode? failure}) _decodeBlob(
     List<int> body,
   ) {
@@ -2908,9 +2910,16 @@ class SyncCoordinator {
     } on SyncNewerWireVersionException {
       // diagnostics: silent — reported by the caller as newerWireVersion.
       return (blob: null, failure: SyncReportCode.newerWireVersion);
-    } on SyncNewerFieldException {
-      // diagnostics: silent — reported by the caller as newerRecordFields.
-      return (blob: null, failure: SyncReportCode.newerRecordFields);
+    } on SyncNewerFieldException catch (error) {
+      // diagnostics: silent — reported by the caller as newerFigures when a
+      // newer build added something inside a dance's figures, which the
+      // notice names; otherwise as newerRecordFields.
+      return (
+        blob: null,
+        failure: error.path.startsWith('figures')
+            ? SyncReportCode.newerFigures
+            : SyncReportCode.newerRecordFields,
+      );
     } on FormatException {
       // diagnostics: silent — malformed peer blobs are reported by the caller
       // and do not advance the baseline.
