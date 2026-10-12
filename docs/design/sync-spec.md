@@ -2263,11 +2263,11 @@ token one address sustains 2,500 blobs a minute in at most 50 batches,
 request, about 9.9 s against single `PUT`s' 18.9 s. (These figures were first
 worked at the earlier 60 a minute, where each is a fifth as large, and the rule
 was approved on them.) Measured end to end through the reference client against
-the reference server, a device publishing 1,000 records of its own finished in
-two passes and 91 seconds and 5,000 in seven passes and about 10 minutes, where
-one `PUT` a record takes, by the same limits, about 15 and 81 minutes. 5 per
-token would match a single `PUT`'s handler time per token and about double
-those waits.
+the reference server at the shipped limits, a device publishing 1,000 records
+of its own finished in one pass and 19 seconds and 5,000 in two passes and about
+2.5 minutes, where one `PUT` a record takes, by the same limits, about three
+passes and about 16 minutes. 5 per token would match a single `PUT`'s handler
+time per token and lengthen those waits.
 
 The failed-store-resolution rows raise the
 cost of casual probing and make an enumeration attempt visible in the operator's

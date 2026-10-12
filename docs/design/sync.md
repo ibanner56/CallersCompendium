@@ -3046,8 +3046,8 @@ costs 1 + ⌈*n*/10⌉ request tokens rather than the read's 1 + ⌈*n*/20⌉: p
 blob, storing costs far more than reading does (1.2–2.9 ms against 35–75 µs in
 a batch), and at 10 a token one
 address can spend no more of the server's one thread than single `PUT`s let it
-in the worst case. A 5,000-record first publish measured about 10 minutes,
-where one `PUT` a record takes about 81.
+in the worst case. A 5,000-record first publish measured about 2.5 minutes,
+where one `PUT` a record takes about 16.
 
 **The endpoints that are not content-addressed carry a schema, and the first
 two did not always.** The blob and the manifest are specified to the byte because
