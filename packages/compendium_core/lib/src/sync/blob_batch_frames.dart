@@ -12,7 +12,7 @@ const int syncBlobBatchMaxHashes = 200;
 ///
 /// Fewer than a read takes because the server stores a batch in one
 /// transaction without yielding, so every other request waits for it: 50
-/// blobs take tens of milliseconds where 200 took about a quarter of a second.
+/// blobs took 58–147 ms where 200 took about a quarter of a second.
 const int syncBlobBatchMaxUploadBlobs = 50;
 
 /// The most blob bytes one `POST /v1/blobs/batch` response carries, before
@@ -144,9 +144,6 @@ final class SyncBlobBatchFrameReader {
   /// Whether every requested hash has been answered. Always true for an
   /// upload, which has no list to answer.
   bool get isComplete => _next == (_expected?.length ?? _next);
-
-  /// How many frames have been read.
-  int get frameCount => _next;
 
   /// Consumes [chunk], handing each frame it completes to [onFrame] in order.
   ///

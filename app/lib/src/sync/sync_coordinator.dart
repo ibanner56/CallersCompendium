@@ -3120,7 +3120,9 @@ class SyncCoordinator {
           ),
         );
       }
-      final uploads = <({String hash, List<int> body})>[];
+      // Encoded only when its request is built, so a chunk of thousands of
+      // records is never held in memory a second time as bytes.
+      final uploads = <({String hash, SyncMergeCandidate candidate})>[];
       for (final hash in missing) {
         final candidate = localByHash[hash];
         if (candidate == null) {
@@ -3150,12 +3152,11 @@ class SyncCoordinator {
             ),
           );
         }
-        uploads.add((
-          hash: hash,
-          body: encodeSyncRecordBlobUtf8(candidate.blob),
-        ));
+        uploads.add((hash: hash, candidate: candidate));
       }
-      final singles = <({String hash, List<int> body})>[];
+      List<int> bodyAt(int index) =>
+          encodeSyncRecordBlobUtf8(uploads[index].candidate.blob);
+      final singles = <({String hash, SyncMergeCandidate candidate})>[];
       var index = 0;
       while (index < uploads.length) {
         if (_peerManifestCache.blobUploadBatchUnsupported) {
@@ -3164,18 +3165,24 @@ class SyncCoordinator {
         }
         // A blob over the size cap goes alone, so its `413` is the one a
         // single upload gets rather than a refusal of the whole batch.
-        if (uploads[index].body.length > syncMaxBlobResponseBytes) {
+        final first = bodyAt(index);
+        if (first.length > syncMaxBlobResponseBytes) {
           singles.add(uploads[index++]);
           continue;
         }
-        final batch = <({String hash, List<int> body})>[];
-        var bytes = 0;
+        final batch = [(hash: uploads[index++].hash, body: first)];
+        var bytes = first.length;
         while (index < uploads.length &&
-            batch.length < syncBlobBatchMaxUploadBlobs &&
-            uploads[index].body.length <= syncMaxBlobResponseBytes &&
-            bytes + uploads[index].body.length <= syncBlobBatchMaxBlobBytes) {
-          bytes += uploads[index].body.length;
-          batch.add(uploads[index++]);
+            batch.length < syncBlobBatchMaxUploadBlobs) {
+          // A blob that does not fit is encoded again for the next batch:
+          // cheaper than holding it.
+          final body = bodyAt(index);
+          if (body.length > syncMaxBlobResponseBytes ||
+              bytes + body.length > syncBlobBatchMaxBlobBytes) {
+            break;
+          }
+          bytes += body.length;
+          batch.add((hash: uploads[index++].hash, body: body));
         }
         final SyncHttpResponse response;
         try {
@@ -3236,10 +3243,13 @@ class SyncCoordinator {
           );
         }
       }
-      for (final (:hash, :body) in singles) {
+      for (final (:hash, :candidate) in singles) {
         final SyncHttpResponse uploaded;
         try {
-          uploaded = await transport.putBlob(hash, body);
+          uploaded = await transport.putBlob(
+            hash,
+            encodeSyncRecordBlobUtf8(candidate.blob),
+          );
         } on Object catch (error, stack) {
           final failed = transientFailure(error, stack);
           logCaughtErrorTypeOnly(

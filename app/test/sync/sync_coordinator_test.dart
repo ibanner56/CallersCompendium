@@ -6004,6 +6004,23 @@ void main() {
       expect(cache.blobUploadBatchUnsupported, isFalse);
     });
 
+    test('a batch carries at most 2 MB of blobs', () async {
+      final large = [
+        for (var i = 0; i < 3; i++)
+          SyncMergeCandidate.fromBlob(_tag('large-$i', '$i' * 800000)),
+      ];
+      final transport = transportFor(large);
+
+      final result = await coordinatorFor(large, transport).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(transport.putBlobHashes, isEmpty);
+      expect(
+        [for (final batch in transport.putBatchRequests) batch.length],
+        [2, 1],
+      );
+    });
+
     test('a new store epoch asks for upload batches again', () {
       final cache = SyncPeerManifestCache()
         ..beginPublicationEpoch('epoch-1')

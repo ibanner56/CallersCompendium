@@ -2034,9 +2034,9 @@ limit to it, for the reason given for the batch response; the absolute cap in
 §5.4 bounds it instead.
 
 Each blob is then what its own `PUT /v1/blobs/{hash}` would be: verified against
-its frame's hash (`400`), checked against the allow-list (§7.2, `422`), and
-stored (`201`), or a no-op on a hash the store already holds (`200`, writing a
-lost file back as above). A `200` response carries one result per frame, in
+its frame's hash (`400`), checked against the allow-list (§7.2, `422`, or `413`
+for JSON nested past the parse depth), and stored (`201`), or a no-op on a hash
+the store already holds (`200`, writing a lost file back as above). A `200` response carries one result per frame, in
 request order:
 
 ```json
@@ -2044,11 +2044,14 @@ request order:
                { "hash": "a3f5b1c9...", "status": 422 } ] }
 ```
 
-Each status is the one that blob's single `PUT` would get, with one difference:
-once a new blob would pass a store quota, it and **every later new blob in the
-batch is `507`**, even one small enough to fit, so the new blobs a batch stores
-are always a prefix of the new blobs it carried. A blob the store already holds
-is still `200` after that point. A blob answered `200` or `201` is stored
+Each status is the one that blob's single `PUT` would get, with two
+differences. Once a new blob would pass a store quota, it and **every later new
+blob in the batch is `507`**, even one small enough to fit, so the new blobs a
+batch stores are always a prefix of the new blobs it carried; a blob the store
+already holds is still `200` after that point. And a batch checks each blob's
+hash and allow-list before the quota, so a malformed or refused blob is `400`
+or `422` even in a full store, where its single `PUT` checks the quota first
+and is `507`. A blob answered `200` or `201` is stored
 whatever the batch's other results are.
 
 As on the batch read, the status of the whole response is about the whole
