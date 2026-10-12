@@ -245,7 +245,11 @@ instead, and states the override's cost as expected findings per year — about
 1.4 a year against five hundred stores at the warned 2⁴⁰ reference from a
 hundred attacking addresses, against 0.035 at the generated 2⁵² from ten
 thousand. Maintainer's ruling, put a third time on those corrected numbers and
-kept: the floor stays advisory and the cost is disclosed.
+kept: the floor stays advisory and the cost is disclosed. Those figures assume
+the per-IP request rate of 60 a minute. On 2026-10-12 the maintainer raised it
+to 5 a second (spec §5.4), which makes them about 7 and 0.18, choosing that
+rate with those figures in front of them; the advisory ruling itself was not
+put again.
 
 This argument originally carried a third leg: that the server could not tell
 creating from joining, because `GET /v1/store` created the store when absent, so

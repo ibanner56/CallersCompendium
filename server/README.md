@@ -109,6 +109,9 @@ dart run tool/load_test.dart --data-dir /path/on/the/deployment/disk
 dart run tool/load_test.dart --help
 ```
 
+Add `--shipped-request-limits` to run with the shipped request-rate limits
+instead, each worker as its own client address, to see where they refuse.
+
 Run it on the hardware you deploy to, with `--data-dir` on the disk the server
 will use. Every authenticated request commits a SQLite write and every blob
 upload also flushes a file, so disk sync latency dominates: a tmpfs directory

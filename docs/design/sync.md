@@ -3013,7 +3013,8 @@ find out what to upload.
 
 `POST /v1/blobs/batch` earns its place the same way, on the download side. With
 one `GET` per record, every request costs a token from the per-IP bucket (60 a
-minute, burst 120, spec §5.4), so a device's first connection to a 1,000-record
+minute, burst 120, when the route was added; spec §5.4 has the current rate), so
+a device's first connection to a 1,000-record
 library met the limit, stopped, and resumed a minute later — about 17 passes
 and 16 minutes, and for 5,000 records about 85. The records are small (a median
 dance is 1.7 KB of canonical JSON) and the request around them is not: measured
@@ -3025,8 +3026,8 @@ blob in a batch, or 50–75 µs with gzip. Two hundred hashes a request makes th
 five requests. The wire format, the caps and the fallback for a server without
 the route are in spec §5.2 and §5.4, with the case for a frame stream over JSON
 or multipart beside the rule. A batch of *n* hashes costs 1 + ⌈*n*/20⌉
-request tokens (spec §5.4, with the comparison that chose it): one token would
-have let a single address pull 12,000 records a minute and doubled the bytes a
+request tokens (spec §5.4, with the comparison that chose it): at that rate one
+token would have let a single address pull 12,000 records a minute and doubled the bytes a
 token buys, and exempting batches from the per-IP limit would have left nothing
 bounding one address.
 
@@ -5690,6 +5691,12 @@ from a hundred addresses. The maintainer kept the strength floor advisory on
 those corrected numbers, so what the design owes the user who overrides the
 default is the cost in those terms rather than a warning they can read as
 cosmetic.
+
+> **Since 2026-10-12** the per-IP request rate is 5 a second rather than 60 a
+> minute (spec §5.4), so every guess rate above is five times larger: `2³³·⁹` at
+> a hundred addresses, `2³⁷·²` at a thousand, `2²⁷·²` for a single client, and
+> about 0.18 and 7 expected findings a year for the two cases. Spec §8 carries
+> the current figures; the figures above are those the ruling was made on.
 
 **The lesson is one step past round ten's, and the two together are the general
 form.** Round ten found that a rate limit bounds an attack only if the

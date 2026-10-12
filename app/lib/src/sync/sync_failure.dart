@@ -154,7 +154,7 @@ class SyncFailure {
   /// first step of its backoff instead of the next one (spec §6.12): a large
   /// first download or upload that meets the server's rate limit on every
   /// pass is still moving, and doubling the wait each time would stretch
-  /// fifteen minutes of work over hours.
+  /// minutes of work over hours.
   final bool progressed;
 
   /// This failure, marked as having made progress when [value] is true.
