@@ -28,8 +28,10 @@ import 'user_guide/user_guide_screen.dart';
 /// - **Narrow (< 900 px):** bottom [NavigationBar].
 /// - **Wide (≥ 900 px):** left [NavigationRail].
 ///
-/// All destinations are kept alive in an [IndexedStack] so switching preserves
-/// each screen's state (selection, scroll, in-progress edits). Settings and the
+/// Destinations are built the first time they are selected and then kept alive
+/// in an [IndexedStack], so switching preserves each screen's state (selection,
+/// scroll, in-progress edits) without paying at launch for screens the user may
+/// never open (Settings and the User Guide are the heaviest). Settings and the
 /// User Guide are first-class destinations alongside Collection and Programs
 /// rather than pushed routes, so the persistent shell chrome (rail search /
 /// bottom bar) stays visible while they're open.
@@ -54,6 +56,10 @@ class AppShell extends StatefulWidget {
 
 class AppShellState extends State<AppShell> {
   int _index = 0;
+
+  /// Destinations that have been selected at least once. Only these are
+  /// mounted; the rest are placeholders until first selected, then stay alive.
+  final Set<int> _visited = {0};
   late DanceReimportCoordinator _reimport;
   CompendiumRepositories? _reimportRepos;
 
@@ -206,14 +212,23 @@ class AppShellState extends State<AppShell> {
     setState(() => _index = _guideIndex);
   }
 
-  List<Widget> _buildPages() => [
-    const CollectionShell(),
-    const ProgramsShell(),
-    SettingsScreen(onOpenGuide: _openGuide),
-    // Kept alive alongside the other destinations; [UserGuideScreen.isActive]
-    // lets the offscreen guide avoid intercepting system back.
-    UserGuideScreen(isActive: _guideSelected),
-  ];
+  List<Widget> _buildPages() {
+    // Recorded here, not in each place that changes [_index], so no selection
+    // path (rail, bottom bar, search, tag filter, guide) can miss it.
+    _visited.add(_index);
+    final pages = <Widget Function()>[
+      () => const CollectionShell(),
+      () => const ProgramsShell(),
+      () => SettingsScreen(onOpenGuide: _openGuide),
+      // [UserGuideScreen.isActive] lets the offscreen guide avoid intercepting
+      // system back.
+      () => UserGuideScreen(isActive: _guideSelected),
+    ];
+    return [
+      for (final (i, page) in pages.indexed)
+        _visited.contains(i) ? page() : const SizedBox.shrink(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {

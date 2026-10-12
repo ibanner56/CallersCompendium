@@ -14,6 +14,8 @@ import 'package:compendium_app/src/screens/app_shell.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
+import 'package:compendium_app/src/screens/programs_shell.dart';
+import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/screens/user_guide/user_guide_screen.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_scope.dart';
@@ -210,6 +212,41 @@ void main() {
     expect(find.text('Settings'), findsWidgets);
     expect(find.text('Appearance'), findsWidgets);
     expect(find.byType(BackButton), findsNothing);
+  });
+
+  group('destinations are built on first selection', () {
+    testWidgets('only Collection is mounted at launch', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, size: const Size(1200, 900));
+
+      // skipOffstage: false, so a page kept alive but hidden would still count.
+      expect(find.byType(SettingsScreen, skipOffstage: false), findsNothing);
+      expect(find.byType(ProgramsShell, skipOffstage: false), findsNothing);
+      expect(find.byType(UserGuideScreen, skipOffstage: false), findsNothing);
+    });
+
+    testWidgets('a visited destination stays alive with its state', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, size: const Size(1200, 900));
+
+      await tester.tap(find.text('Settings').last);
+      await tester.pumpAndSettle();
+      final settingsState = tester.state(find.byType(SettingsScreen));
+
+      await tester.tap(find.text('Collection').last);
+      await tester.pumpAndSettle();
+
+      // Hidden, not disposed: switching away must not discard the screen.
+      expect(find.byType(SettingsScreen), findsNothing);
+      expect(
+        tester.state(find.byType(SettingsScreen, skipOffstage: false)),
+        same(settingsState),
+      );
+      // Still not-yet-visited destinations remain unbuilt.
+      expect(find.byType(UserGuideScreen, skipOffstage: false), findsNothing);
+    });
   });
 
   testWidgets('Ctrl-K opens the global search palette', (tester) async {
