@@ -374,8 +374,9 @@ Rules for the output:
 - **Post every finding and Suspected item as an inline comment** on its diff line
   when it has one. The body carries the structure; the inline comment is what
   `check_pr_review_gates.py findings` prints and what the thread-resolution gate
-  counts, so a Suspected item's thread must be resolved or dismissed before the
-  merge gate passes. `findings` prints only the first 160 characters of each
+  counts, so a Suspected item's thread must be resolved before the merge gate
+  passes (the gate counts only resolved threads, so a reply that dismisses it
+  is not enough on its own). `findings` prints only the first 160 characters of each
   comment, newlines collapsed, so start each inline comment with the ID,
   severity and title: `B1 blocker: <title>`, `N2 minor: <title>`,
   `S1 suspected: <title>`; the rest of the comment is that finding's block.

@@ -132,7 +132,8 @@ What a round is given and asked for:
   "Fails if X", never make the verdict `BLOCK` (they can keep it from being a
   clean `APPROVE`), and want a one-line confirm or dismiss.
   They are inline comments like any finding, so `gate threads` counts them:
-  resolve or dismiss each before merging. `findings` is informational and always
+  reply to confirm or dismiss each, then resolve its thread before merging (the
+  gate counts only resolved threads). `findings` is informational and always
   passes; it prints the first 160 characters of each comment with newlines
   collapsed, so the rubric leads each comment with the ID, severity and title.
   The job cannot run tests or scripts, so it never reports that something is
