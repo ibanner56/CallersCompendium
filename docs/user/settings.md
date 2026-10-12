@@ -577,8 +577,8 @@ Sync is off and open while it is on.
   than the server asked), and also tries when you come back to the app. The
   server limits how quickly one device can send and fetch. The app fetches
   records from your other devices and sends its own in batches, so connecting
-  a device to a large library usually finishes in one try, or several over a
-  few minutes for a very large one. With a self-hosted server that hasn't been updated for batches,
+  a device to a large library usually finishes in one try, or several over
+  about ten minutes for a very large one. With a self-hosted server that hasn't been updated for batches,
   fetching or sending goes one record at a time and can take several of these
   tries — roughly a minute for every sixty records. Each try keeps what it got through, so while it is
   still getting further the app tries again every minute rather than waiting

@@ -2235,10 +2235,12 @@ to about three times the server time single `PUT`s let it spend: 15 full
 batches a minute, 0.9–2.2 s of handler time against 0.24–0.78 s. At 10 per token
 it sustains 500 blobs a minute in at most 10 batches, 0.58–1.5 s, and in the
 worst case, with the 50 ms deletion retry on every request, about 2.0 s against
-single `PUT`s' 3.8 s. A device publishing 1,000 records of its own finishes in
-one or two passes and 5,000 in about 8 minutes, against about 15 and 81 one
-`PUT` at a time. 5 per token would match a single `PUT`'s handler time per token
-and double those waits.
+single `PUT`s' 3.8 s. Measured end to end through the reference client against
+the reference server, a device publishing 1,000 records of its own finished in
+two passes and 91 seconds and 5,000 in seven passes and about 10 minutes, where
+one `PUT` a record takes, by the same limits, about 15 and 81 minutes. 5 per
+token would match a single `PUT`'s handler time per token and about double
+those waits.
 
 The failed-store-resolution rows raise the
 cost of casual probing and make an enumeration attempt visible in the operator's
