@@ -26,12 +26,25 @@ from __future__ import annotations
 import re
 import sys
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 from check_debug_print import mask_source
 from check_settings_marker_reads import extract_sql_literals
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+@lru_cache(maxsize=None)
+def _masked_text(source: str) -> str:
+    """`mask_source` joined back into one string, computed once per source.
+
+    Several ratchets below mask the same file, and masking dominates the gate's
+    runtime, so the result is cached by source text.
+    """
+
+    return "\n".join(mask_source(source))
+
 
 SOFT_SQL_TABLES = frozenset(
     {
@@ -474,7 +487,7 @@ def _first_call_argument(source: str, open_at: int) -> str:
 
 
 def _drift_join_violations(source: str, path: str) -> tuple[list[Violation], int]:
-    masked = "\n".join(mask_source(source))
+    masked = _masked_text(source)
     violations: list[Violation] = []
     candidates = 0
     for match in DRIFT_JOIN_RE.finditer(masked):
@@ -664,7 +677,7 @@ def _interactive_upsert_violations(source: str, path: str) -> list[Violation]:
 
     if not path.startswith(SYNC_WRITE_DIR):
         return []
-    masked = "\n".join(mask_source(source))
+    masked = _masked_text(source)
     exempt = _write_from_sync_bodies(masked)
     violations: list[Violation] = []
     for match in INTERACTIVE_UPSERT_RE.finditer(masked):
@@ -690,7 +703,7 @@ def _interactive_upsert_violations(source: str, path: str) -> list[Violation]:
 def _drift_write_violations(source: str, path: str) -> list[Violation]:
     """Check direct Drift writes to sync-record tables for I1 and I2."""
 
-    masked = "\n".join(mask_source(source))
+    masked = _masked_text(source)
     violations: list[Violation] = []
     matches = {
         match.start(): match
@@ -771,7 +784,7 @@ def _drift_write_violations(source: str, path: str) -> list[Violation]:
 
 
 def _certificate_violations(source: str, path: str) -> list[Violation]:
-    masked = "\n".join(mask_source(source))
+    masked = _masked_text(source)
     violations: list[Violation] = []
     for name, pattern in CERTIFICATE_PATTERNS:
         for match in pattern.finditer(masked):
@@ -787,7 +800,7 @@ def _certificate_violations(source: str, path: str) -> list[Violation]:
 
 
 def _definitions(source: str, pattern: re.Pattern[str]) -> list[int]:
-    masked = "\n".join(mask_source(source))
+    masked = _masked_text(source)
     return [match.start() for match in pattern.finditer(masked)]
 
 
@@ -804,7 +817,7 @@ def _balanced_block_end(source: str, open_at: int) -> int | None:
 
 
 def _function_body(source: str, match: re.Match[str]) -> str:
-    masked = "\n".join(mask_source(source))
+    masked = _masked_text(source)
     body_at = match.end() - 1
     if match.group("body") == "=>":
         end = masked.find(";", body_at)
@@ -818,7 +831,7 @@ def _alternate_title_definitions(
 ) -> list[int]:
     """Find functions that implement title normalization under another name."""
 
-    masked = "\n".join(mask_source(source))
+    masked = _masked_text(source)
     definitions: list[int] = []
     for match in FUNCTION_DEF_RE.finditer(masked):
         name = match.group("name")
@@ -945,7 +958,7 @@ def _imports_definition(
 
 
 def _has_function_call(source: str, name: str) -> bool:
-    masked = "\n".join(mask_source(source))
+    masked = _masked_text(source)
     definition_spans = [
         range(match.start("name"), match.end("name"))
         for match in FUNCTION_DEF_RE.finditer(masked)
@@ -1019,7 +1032,7 @@ def scan(root: Path = REPO_ROOT) -> ScanResult:
                     "definition",
                 )
             )
-        sync_id_uses = SYNC_ID_MARKER_RE.search("\n".join(mask_source(source)))
+        sync_id_uses = SYNC_ID_MARKER_RE.search(_masked_text(source))
         if sync_id_uses:
             sync_id_activated = True
         for offset in _definitions(source, SYNC_ID_DEF_RE):
