@@ -5325,6 +5325,135 @@ void main() {
     });
   });
 
+  // The upload side of the same problem: a device with a large library of its
+  // own uploads one blob a request, so its first publication meets the
+  // per-IP limit too. That already failed as a temporary `rateLimited`, never
+  // as skipped records; what it lacked was saying it had moved on, so every
+  // such pass doubled the wait before the next (spec §6.12).
+  group('an upload the server refuses for now (spec §6.12)', () {
+    final local = [
+      for (final key in [
+        'default_program_band',
+        'default_program_caller',
+        'default_import_tag_names',
+        'custom_dialects',
+      ])
+        SyncMergeCandidate.fromBlob(_setting(key, 'local $key')),
+    ];
+
+    _FakeTransport transportMissingAll() => _FakeTransport(
+      missingResponses: [
+        [for (final c in local) c.wireHash],
+      ],
+    );
+
+    Future<SyncPassResult> pass(_FakeTransport transport) => SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(local: {for (final c in local) c.address: c}),
+      transport: transport,
+    ).syncNow();
+
+    test('a 429 after some uploads is a temporary failure that made '
+        'progress', () async {
+      final transport = transportMissingAll()
+        ..onPutBlob = (call, _) =>
+            call >= 3 ? _FakeTransport.rateLimited : null;
+
+      final result = await pass(transport);
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.rateLimited);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.retryAfter, const Duration(seconds: 60));
+      expect(result.failure?.progressed, isTrue);
+      expect(result.reports, isEmpty);
+      expect(transport.putBlobHashes, hasLength(3));
+      expect(transport.manifestPuts, 0);
+    });
+
+    test('a 429 on the first upload made no progress, so the wait still '
+        'grows', () async {
+      final transport = transportMissingAll()
+        ..onPutBlob = (_, _) => _FakeTransport.rateLimited;
+
+      final result = await pass(transport);
+
+      expect(result.failure?.cause, SyncFailureCause.rateLimited);
+      expect(result.failure?.progressed, isFalse);
+    });
+
+    test('a network failure mid-upload is a temporary result, not a throw, '
+        'and says how far it got', () async {
+      final transport = transportMissingAll()
+        ..onPutBlob = (call, _) =>
+            call == 2 ? throw const SocketException('connection reset') : null;
+
+      final result = await pass(transport);
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.unreachable);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.progressed, isTrue);
+      expect(transport.manifestPuts, 0);
+    });
+
+    test('a network failure asking which blobs are missing is a temporary '
+        'result at the upload step, not a throw', () async {
+      final transport = transportMissingAll();
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(local: {for (final c in local) c.address: c}),
+        transport: _FakeTransport(
+          missingResponses: transport.missingResponses,
+          onPostMissing: (_) async =>
+              throw const SyncTransportException('request timed out'),
+        ),
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.timedOut);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.progressed, isFalse);
+    });
+
+    test('a later missing-blob batch that fails keeps the progress of the '
+        'batches before it', () async {
+      // `POST /v1/blobs/missing` takes at most 10,000 hashes, so a library
+      // this size asks twice. The first batch's uploads all land; the second
+      // request drops. Those uploads are still progress.
+      final many = [
+        for (var i = 0; i <= 10000; i++)
+          SyncMergeCandidate.fromBlob(
+            _dance('dance-$i', updatedAt: DateTime.utc(2026, 7, 15, 12)),
+          ),
+      ];
+      var asks = 0;
+      final transport = _FakeTransport(
+        missingResponses: [
+          [for (final c in many) c.wireHash],
+        ],
+        onPostMissing: (_) async {
+          if (++asks == 2) throw const SocketException('connection reset');
+        },
+      );
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(local: {for (final c in many) c.address: c}),
+        transport: transport,
+      ).syncNow();
+
+      expect(asks, 2);
+      expect(transport.putBlobHashes, isNotEmpty);
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.unreachable);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.progressed, isTrue);
+    });
+  });
+
   group('a peer running a newer app version (spec §6.9)', () {
     SyncCoordinator coordinatorFor(_FakeTransport transport) => SyncCoordinator(
       syncId: 'configured',
@@ -5974,6 +6103,10 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   /// [blobResponses] when it returns non-null; may throw, as a transport does.
   /// Assigned after construction, so a test can lift a limit between passes.
   SyncHttpResponse? Function(int call, String hash)? onBlob;
+
+  /// Answers the [call]th blob upload (1-based) in place of a `201` when it
+  /// returns non-null; may throw, as a transport does.
+  SyncHttpResponse? Function(int call, String hash)? onPutBlob;
   final List<List<String>> missingResponses;
   final int putManifestStatus;
   final List<int> putManifestStatuses;
@@ -6095,7 +6228,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   @override
   Future<SyncHttpResponse> putBlob(String hash, List<int> body) async {
     putBlobHashes.add(hash);
-    return _response(201);
+    return onPutBlob?.call(putBlobHashes.length, hash) ?? _response(201);
   }
 
   static SyncHttpResponse response(int status, {List<int>? body}) =>

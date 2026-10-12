@@ -3687,13 +3687,16 @@ on the response is a floor on that wait, never a ceiling; the reference client
 holds the floor to at most one day, so one answer cannot park retries
 indefinitely while every other trigger still runs. A completed pass resets the
 sequence, and so does a pass whose record downloads stopped (§6.3 step 5) after
-it had fetched at least one record; any other result cancels a pending retry
-without resetting it. The exception exists because a large first download
-meets the per-IP limit (§5.4) on every pass until it is done: each such pass
-moved it on, and doubling the wait through them would stretch some fifteen
-minutes of downloading for a thousand records over hours. Like the step 5
-paragraph it rests on, it was decided by the change's author, not the
-maintainer.
+it had fetched at least one record, or whose uploads (§6.3 step 7) stopped after
+the store had accepted at least one blob; any other result cancels a pending
+retry without resetting it. The exception exists because a large first
+download or upload meets the per-IP limit (§5.4) on every pass until it is
+done: each such pass moved it on — the store keeps an accepted blob, so the
+next pass's `POST /v1/blobs/missing` no longer names it — and doubling the
+wait through them would stretch some fifteen minutes of transfer for a
+thousand records over hours. The download half, like the step 5 paragraph it
+rests on, was decided by the change's author, not the maintainer; the upload
+half the maintainer asked for (2026-10-12, in the session that wrote both).
 Disabling sync, detaching, wiping, pairing and shutting down cancel it. A retry
 the connection gate suppresses is not rescheduled: it waits, as any suppressed
 pass does, for the next trigger. Every other failure is *needs-you*, and is not

@@ -864,11 +864,12 @@ class SyncController extends ChangeNotifier {
       _cancelRetry();
       return;
     }
-    // A pass that stopped part-way through its downloads but fetched records
-    // first is moving, not failing again: a large first download meets the
-    // server's rate limit on every pass until it is done, and doubling the
-    // wait each time would stretch minutes of work over hours. It restarts
-    // the sequence; `Retry-After` still sets the floor below.
+    // A pass that stopped part-way through its downloads or uploads but moved
+    // records first is moving, not failing again: a large first download or
+    // upload meets the server's rate limit on every pass until it is done,
+    // and doubling the wait each time would stretch minutes of work over
+    // hours. It restarts the sequence; `Retry-After` still sets the floor
+    // below.
     if (failure.progressed) _retryAttempt = 0;
     final step = _retryAttempt < _retryBackoff.length
         ? _retryAttempt
