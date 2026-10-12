@@ -187,7 +187,8 @@ const Duration kSyncExpiryWarningAfter = Duration(days: 21);
 const Duration kSyncChangeDebounce = Duration(seconds: 30);
 
 /// The waits before each automatic retry after a transient failure (spec
-/// §6.12), in order; the last repeats. Reset by a completed pass.
+/// §6.12), in order; the last repeats. Reset by a completed pass, and by a
+/// failure that made progress ([SyncFailure.progressed]).
 const List<Duration> kSyncRetryBackoff = [
   Duration(minutes: 1),
   Duration(minutes: 2),
@@ -840,8 +841,10 @@ class SyncController extends ChangeNotifier {
   /// nothing else that fails clears by waiting. The wait doubles through
   /// [kSyncRetryBackoff] and never undercuts the server's `Retry-After`
   /// (capped at [kSyncRetryAfterCeiling]). A completed pass resets the
-  /// sequence; any other result cancels what was pending without resetting
-  /// it, so a run of mixed failures does not restart at a minute.
+  /// sequence, and so does a failure that made progress
+  /// ([SyncFailure.progressed]); any other result cancels what was pending
+  /// without resetting it, so a run of mixed failures does not restart at a
+  /// minute.
   ///
   /// Called from [trigger] only. A failed replacement confirmation is not
   /// retried: confirming creates a store, and that stays the user's decision.
@@ -861,6 +864,13 @@ class SyncController extends ChangeNotifier {
       _cancelRetry();
       return;
     }
+    // A pass that stopped part-way through its downloads or uploads but moved
+    // records first is moving, not failing again: a large first download or
+    // upload meets the server's rate limit on every pass until it is done,
+    // and doubling the wait each time would stretch minutes of work over
+    // hours. It restarts the sequence; `Retry-After` still sets the floor
+    // below.
+    if (failure.progressed) _retryAttempt = 0;
     final step = _retryAttempt < _retryBackoff.length
         ? _retryAttempt
         : _retryBackoff.length - 1;

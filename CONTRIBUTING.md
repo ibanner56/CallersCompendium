@@ -356,8 +356,9 @@ symlink you can point your editor/PATH at — see the FVM docs.)
    python3 tools/ci/check_pr_review_gates.py all <PR> --closes <ISSUE>...
    ```
 
-   which checks review freshness against the reviewer's own latest entry,
-   unresolved threads (with `totalCount`, so a truncated page is visible),
+   which checks review freshness against the reviewer's own latest entry
+   (Copilot by default; add `--reviewer claude` if you requested a Claude
+   review with the `review: claude` label), unresolved threads (with `totalCount`, so a truncated page is visible),
    checks on the current head, and that the PR closes exactly the issues you
    named — a branch name or a sentence containing a closing verb can create a
    link on its own. See

@@ -111,6 +111,13 @@ void main() {
             peerId: _peer,
             message: _message,
           ),
+          SyncReport(
+            code: SyncReportCode.newerRecordFields,
+            kind: SyncRecordKind.program,
+            recordId: 'program-1',
+            peerId: _peer,
+            message: _message,
+          ),
         ],
       ),
     );
@@ -125,6 +132,9 @@ void main() {
     );
     expect(section, contains('Store usage: SYNC-QUOTA 90%'));
     expect(section, contains('newerWireVersion: 3 (dance ×1, tag ×1)'));
+    // A field a newer build added is told apart from a newer envelope here
+    // too, even though the user sees both in one notice.
+    expect(section, contains('newerRecordFields: 1 (program ×1)'));
   });
 
   test('never carries the phrase, the server, an identifier or a report '
@@ -161,4 +171,55 @@ void main() {
     }
     expect(section, contains('equalUpdatedAt: 1 (dance ×1)'));
   });
+
+  test(
+    'says which HTTP status each report came from, and nothing more',
+    () async {
+      SyncReport blob(String id, {int? status}) => SyncReport(
+        code: SyncReportCode.unresolvedBlob,
+        kind: SyncRecordKind.dance,
+        recordId: id,
+        peerId: _peer,
+        httpStatus: status,
+        message: _message,
+      );
+      final controller = await _controller(
+        repos,
+        SyncPassResult(
+          SyncPassStatus.completed,
+          reports: [
+            blob('dance-1', status: 404),
+            blob('dance-2', status: 404),
+            blob('dance-3', status: 403),
+            // A body whose hash did not match: no status to give.
+            blob('dance-4'),
+            const SyncReport(
+              code: SyncReportCode.equalUpdatedAt,
+              kind: SyncRecordKind.dance,
+              recordId: _recordId,
+              message: _message,
+            ),
+          ],
+        ),
+      );
+      await controller.syncNow();
+
+      final section = syncDiagnosticsSection(controller)!;
+      expect(
+        section,
+        contains(
+          'unresolvedBlob: 4 (dance ×4) '
+          '[HTTP 403 ×1, HTTP 404 ×2, no HTTP status ×1]',
+        ),
+      );
+      expect(
+        section,
+        contains('equalUpdatedAt: 1 (dance ×1)\n'),
+        reason: 'a code no report gave a status for has no bracket',
+      );
+      for (final secret in [_peer, 'dance-1', _message]) {
+        expect(section, isNot(contains(secret)), reason: secret);
+      }
+    },
+  );
 }

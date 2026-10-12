@@ -574,6 +574,16 @@ database already carries it. The steps that can still fire are v36 onward.
   pay recorded. Shareable, so it syncs and is exported in archives, but it is
   not part of the shared program text or PDF and `Program.duplicate` does not
   copy it. Additive `addColumn`s; no back-fill and no derived rebuild.
+- v39 (sync-spec §6.7): adds the `retained_sync_fields` table — `kind`,
+  `record_id`, `whole_record` (bool) and `payload` (canonical JSON text), keyed
+  by `(kind, record_id)`. It holds what this device keeps of a synced record
+  for a newer version of the app: the parts of a peer's body this build does
+  not sync, put back verbatim whenever it shares the record again, or, for a
+  setting whose key this build does not sync, the peer's whole blob. `payload`
+  is `shareable` (unclassifiedPersonal / thirdParty, the tombstone payload's
+  classification); the other columns are Device Sync bookkeeping. Sync state,
+  not library content: never backed up or exported. Additive `createTable`; no
+  back-fill and no derived rebuild.
 
 ## The delete model
 

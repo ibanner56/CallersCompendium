@@ -875,7 +875,10 @@ class _SyncNoticeTileState extends State<_SyncNoticeTile> {
       syncNoticeText(
         l10n,
         widget.group,
-        recordCount: syncNoticeCountedRecords(widget.group, widget.reports),
+        countedRecords: syncNoticeCountableRecords(
+          widget.group,
+          widget.reports,
+        ),
         device: perDevice ? (tag: peerTag ?? '', count: total) : null,
       ),
     );
@@ -929,7 +932,14 @@ class _SyncNoticeTileState extends State<_SyncNoticeTile> {
                               (record, const SyncNoticeRecordUnnamed()),
                           ];
                       return Text(
-                        syncNoticeAffectedText(l10n, shown, total),
+                        syncNoticeAffectedText(
+                          l10n,
+                          shown,
+                          total,
+                          newerFigures: syncNoticeNewerFigureRecords(
+                            widget.reports,
+                          ),
+                        ),
                         key: ValueKey(
                           'sync-notice-${widget.group.name}-records',
                         ),

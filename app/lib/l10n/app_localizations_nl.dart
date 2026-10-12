@@ -434,14 +434,105 @@ class AppLocalizationsNl extends AppLocalizations {
       'Geïmporteerde dansen niet meer synchroniseren';
 
   @override
-  String settingsSyncNoticeNewerVersion(int count) {
+  String settingsSyncNoticeNewerVersionItems(String items) {
+    return 'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om $items te ontvangen.';
+  }
+
+  @override
+  String settingsSyncNoticeCountDance(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om $count items te ontvangen.',
-      one:
-          'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om 1 item te ontvangen.',
+      other: '$count dansen',
+      one: '1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountProgram(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programma\'s',
+      one: '1 programma',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountChoreographer(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count choreografen',
+      one: '1 choreograaf',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountTag(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tags',
+      one: '1 tag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountCustomField(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count aangepaste velden',
+      one: '1 aangepast veld',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountDifficulty(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count moeilijkheidsgraden',
+      one: '1 moeilijkheidsgraad',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountPublishedSource(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count gepubliceerde bronnen',
+      one: '1 gepubliceerde bron',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountVenue(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count locaties',
+      one: '1 locatie',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountSetting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count instellingen',
+      one: '1 instelling',
     );
     return '$_temp0';
   }
@@ -449,6 +540,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om de wijzigingen ervan te ontvangen.';
+
+  @override
+  String settingsSyncNoticeKeptNewerItems(String items) {
+    return 'Bewaard voor een nieuwere versie van de app: $items. Deze worden nog steeds gesynchroniseerd, met details die deze versie niet kan tonen. Werk de app op dit apparaat bij om ze te zien.';
+  }
 
   @override
   String get settingsSyncCopyDetails => 'Details kopiëren';
@@ -534,6 +630,16 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String settingsSyncNoticeRecordNotHere(String kind) {
     return '$kind, niet op dit apparaat';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNewerFigures(String kind, String name) {
+    return '$kind ‘$name’ (bevat figuren die alleen een nieuwere versie kan lezen)';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHereNewerFigures(String kind) {
+    return '$kind niet op dit apparaat (bevat figuren die alleen een nieuwere versie kan lezen)';
   }
 
   @override
@@ -765,6 +871,9 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get syncConflictUndoChanged =>
       'Na je keuze is er iets nieuwers binnengekomen, dus er is niets gewijzigd.';
+
+  @override
+  String get syncConflictFieldProvenance => 'Herkomst';
 
   @override
   String get syncConflictFieldColour => 'Kleur';

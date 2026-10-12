@@ -776,17 +776,77 @@ abstract class AppLocalizations {
   /// **'Stop syncing imported dances'**
   String get settingsSyncQuotaExcludeImports;
 
-  /// Device Sync notice when another device shared items in a newer format than this version of the app can read. {count} is how many items are waiting. The remedy is always updating the app on THIS device.
+  /// Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version cannot keep (for example new figure details). {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example "3 programs, 1 setting". The remedy is always updating the app on THIS device.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{Another device is using a newer version of the app. Update the app on this device to receive 1 item.} other{Another device is using a newer version of the app. Update the app on this device to receive {count} items.}}'**
-  String settingsSyncNoticeNewerVersion(int count);
+  /// **'Another device is using a newer version of the app. Update the app on this device to receive {items}.'**
+  String settingsSyncNoticeNewerVersionItems(String items);
 
-  /// Variant of settingsSyncNoticeNewerVersion used when this device cannot tell how many items are waiting, because the other device's list of what it shares is itself in the newer format.
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many dances are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance} other{{count} dances}}'**
+  String settingsSyncNoticeCountDance(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many programs are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 program} other{{count} programs}}'**
+  String settingsSyncNoticeCountProgram(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many choreographers are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 choreographer} other{{count} choreographers}}'**
+  String settingsSyncNoticeCountChoreographer(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many tags are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 tag} other{{count} tags}}'**
+  String settingsSyncNoticeCountTag(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many custom fields are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 custom field} other{{count} custom fields}}'**
+  String settingsSyncNoticeCountCustomField(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many difficulty levels are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 difficulty level} other{{count} difficulty levels}}'**
+  String settingsSyncNoticeCountDifficulty(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many published sources are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 published source} other{{count} published sources}}'**
+  String settingsSyncNoticeCountPublishedSource(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many venues are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 venue} other{{count} venues}}'**
+  String settingsSyncNoticeCountVenue(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many settings are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 setting} other{{count} settings}}'**
+  String settingsSyncNoticeCountSetting(int count);
+
+  /// Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting, because the other device's list of what it shares is itself in the newer format.
   ///
   /// In en, this message translates to:
   /// **'Another device is using a newer version of the app. Update the app on this device to receive its changes.'**
   String get settingsSyncNoticeNewerVersionUncounted;
+
+  /// Informational Device Sync notice (not a problem): records on this device carry details that a newer version of the app added. This version keeps those details and syncs them back unchanged, but cannot display them. {items} is a list of counts by kind built from the settingsSyncNoticeCount* strings, for example "3 programs, 1 setting".
+  ///
+  /// In en, this message translates to:
+  /// **'Kept for a newer version of the app: {items}. These still sync, with details this version can\'t show. Update the app on this device to see them.'**
+  String settingsSyncNoticeKeptNewerItems(String items);
 
   /// Tooltip of the button on a Device Sync problem that copies a short code describing it (for example SYNC-STORE-FULL), so the user can paste it into a message asking for help. Nothing is sent anywhere.
   ///
@@ -878,7 +938,7 @@ abstract class AppLocalizations {
   /// **'Affects: {records}'**
   String settingsSyncNoticeAffected(String records);
 
-  /// Separator between items in the settingsSyncNoticeAffected list. Include any spacing your language uses.
+  /// Separator between items in a Device Sync notice's lists: the records in settingsSyncNoticeAffected, and the counts by kind in settingsSyncNoticeNewerVersionItems (for example "3 programs, 1 setting"). Include any spacing your language uses.
   ///
   /// In en, this message translates to:
   /// **', '**
@@ -895,6 +955,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{kind} not on this device'**
   String settingsSyncNoticeRecordNotHere(String kind);
+
+  /// Variant of settingsSyncNoticeRecordNamed for a record another device shared that this version refused because a newer version of the app added something to its figures (the dance's steps). Tells the user what this version does not understand.
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} “{name}” (has figures only a newer version can read)'**
+  String settingsSyncNoticeRecordNewerFigures(String kind, String name);
+
+  /// Variant of settingsSyncNoticeRecordNotHere for a record this device does not have yet because it was refused: a newer version of the app added something to its figures (the dance's steps).
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} not on this device (has figures only a newer version can read)'**
+  String settingsSyncNoticeRecordNotHereNewerFigures(String kind);
 
   /// Ends the settingsSyncNoticeAffected list when it names only the first few records.
   ///
@@ -1177,6 +1249,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Something newer arrived after you chose, so nothing was changed.'**
   String get syncConflictUndoChanged;
+
+  /// Label in the sync conflict comparison for where a dance came from (its import source and licence), shown as the dance page's provenance line.
+  ///
+  /// In en, this message translates to:
+  /// **'Origin'**
+  String get syncConflictFieldProvenance;
 
   /// Label for a tag's colour in the conflict comparison.
   ///

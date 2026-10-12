@@ -15,6 +15,7 @@ import '../serialization/archive_codec.dart';
 import '../serialization/archive_entity_codec.dart';
 import 'canonical_json.dart';
 import 'sync_record_kind.dart';
+import 'sync_retained_fields.dart';
 import 'wire_mapping.dart';
 
 /// The record-blob and manifest envelope version defined by W3.
@@ -35,6 +36,35 @@ class SyncNewerWireVersionException extends FormatException {
 
   /// The envelope's own `v`, always greater than [syncWireVersion].
   final int version;
+}
+
+/// A record blob carrying a part a newer build added that this build can
+/// neither apply nor keep in place (spec §6.7): a key inside a dance's
+/// figures, a tune that is no longer text, a kept part on a list item with no
+/// id, or a transport setting key. The record is refused whole and reported as
+/// coming from a newer version of the app (§6.9).
+///
+/// Every other field this build does not sync is kept, not refused: see
+/// [partitionInboundRecordBody].
+///
+/// A [FormatException] subtype for the same reason as
+/// [SyncNewerWireVersionException]: every caller that treats an undecodable
+/// blob as malformed keeps doing so, and only the client's peer download
+/// distinguishes it, to report `SyncReportCode.newerRecordFields` rather than
+/// a malformed record.
+///
+/// A body that is structurally wrong — a setting with no `value`, an id that
+/// does not match its envelope — is not this, and stays a plain
+/// [FormatException].
+class SyncNewerFieldException extends FormatException {
+  const SyncNewerFieldException(this.kind, this.path)
+    : super('body contains a part this build cannot keep: $path');
+
+  final SyncRecordKind kind;
+
+  /// The first such wire path, dot-joined, such as "figures.handHold"; `value`
+  /// for a setting.
+  final String path;
 }
 
 /// A validated, versioned Device Sync record blob.
@@ -295,10 +325,15 @@ String? encodeSyncSettingsRecord(SyncSettingsRecord record) {
 }
 
 /// Builds a shareable archive-shaped body for one of the eight entity kinds.
+///
+/// [retained] is what this device keeps of the record for a newer version of
+/// the app ([partitionInboundRecordBody]); it is put back after projection so
+/// the body this device shares is the one it received (spec §6.7).
 Map<String, Object?> syncBodyForEntity(
   SyncRecordKind kind,
   Object entity, {
   Set<String> allowedCustomFieldIds = const {},
+  Map<String, Object?>? retained,
 }) {
   final archiveBody = switch (kind) {
     SyncRecordKind.dance => archiveDanceToJson(
@@ -338,11 +373,25 @@ Map<String, Object?> syncBodyForEntity(
       'settings use SyncSettingsRecord',
     ),
   };
-  return projectShareableRecordBody(
+  final projected = projectShareableRecordBody(
     kind,
     archiveBody,
     allowedCustomFieldIds: allowedCustomFieldIds,
   );
+  // The blob constructor accepts a kept private field from a peer, so it can
+  // no longer catch this device's own private field leaking through the
+  // projection. Check what this device built itself, before anything kept is
+  // put back.
+  final own = validateShareableRecordBody(kind, projected);
+  if (!own.isValid) {
+    throw StateError(
+      'projected ${kind.name} body contains non-shareable path '
+      '${own.invalidPath}',
+    );
+  }
+  return retained == null
+      ? projected
+      : mergeRetainedFields(projected, retained);
 }
 
 /// Strictly decodes an archive-shaped sync body into its entity model.
@@ -409,16 +458,14 @@ void validateSyncReviewCandidateBody(
   SyncRecordKind kind,
   Map<String, Object?> body,
 ) {
-  final validation = validateShareableRecordBody(kind, body);
-  if (!validation.isValid) {
-    throw FormatException(
-      'body contains non-shareable path ${validation.invalidPath}',
-    );
+  final split = partitionInboundRecordBody(kind, body);
+  if (split.refusedPath case final path?) {
+    throw SyncNewerFieldException(kind, path);
   }
   if (kind == SyncRecordKind.customFieldDef && body['shareable'] == false) {
     throw FormatException('custom-field definition is not shareable');
   }
-  decodeSyncRecordEntity(kind, body);
+  decodeSyncRecordEntity(kind, split.known);
 }
 
 /// Builds a versioned blob for one of the eight archive entity kinds.
@@ -429,6 +476,7 @@ SyncRecordBlob? syncRecordBlobForEntity(
   required DateTime existenceAt,
   DateTime? deletedAt,
   Set<String> allowedCustomFieldIds = const {},
+  Map<String, Object?>? retained,
 }) {
   if (kind == SyncRecordKind.setting) {
     throw ArgumentError('settings use SyncSettingsRecord');
@@ -437,6 +485,7 @@ SyncRecordBlob? syncRecordBlobForEntity(
     kind,
     entity,
     allowedCustomFieldIds: allowedCustomFieldIds,
+    retained: retained,
   );
   if (body.isEmpty) return null;
   final id = _requiredString(body['id'], 'body.id');
@@ -509,15 +558,13 @@ void _validateBlobBody(
   if (kind != SyncRecordKind.setting && body['id'] != id) {
     throw FormatException('body id must match envelope id');
   }
-  final validation = validateShareableRecordBody(
+  final split = partitionInboundRecordBody(
     kind,
     body,
     settingsKey: kind == SyncRecordKind.setting ? id : null,
   );
-  if (!validation.isValid) {
-    throw FormatException(
-      'body contains non-shareable path ${validation.invalidPath}',
-    );
+  if (split.refusedPath case final path?) {
+    throw SyncNewerFieldException(kind, path);
   }
 }
 

@@ -413,12 +413,96 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSyncQuotaExcludeImports => '取り込んだダンスの同期をやめる';
 
   @override
-  String settingsSyncNoticeNewerVersion(int count) {
+  String settingsSyncNoticeNewerVersionItems(String items) {
+    return '別のデバイスで新しいバージョンのアプリが使われています。$itemsを受け取るには、このデバイスのアプリを更新してください。';
+  }
+
+  @override
+  String settingsSyncNoticeCountDance(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          '別のデバイスで新しいバージョンのアプリが使われています。$count件の項目を受け取るには、このデバイスのアプリを更新してください。',
+      other: 'ダンス$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountProgram(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'プログラム$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountChoreographer(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '振付師$count名',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountTag(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'タグ$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountCustomField(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'カスタムフィールド$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountDifficulty(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '難易度$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountPublishedSource(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '公開元$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountVenue(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '会場$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountSetting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '設定$count件',
     );
     return '$_temp0';
   }
@@ -426,6 +510,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       '別のデバイスで新しいバージョンのアプリが使われています。その変更を受け取るには、このデバイスのアプリを更新してください。';
+
+  @override
+  String settingsSyncNoticeKeptNewerItems(String items) {
+    return '新しいバージョンのアプリのために保持しています：$items。このバージョンでは表示できない詳細を含めたまま、引き続き同期されます。表示するには、このデバイスのアプリを更新してください。';
+  }
 
   @override
   String get settingsSyncCopyDetails => '詳細をコピー';
@@ -508,6 +597,16 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String settingsSyncNoticeRecordNotHere(String kind) {
     return '$kind（このデバイスにはありません）';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNewerFigures(String kind, String name) {
+    return '$kind「$name」（新しいバージョンでしか読めないフィギュアを含みます）';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHereNewerFigures(String kind) {
+    return 'このデバイスにない$kind（新しいバージョンでしか読めないフィギュアを含みます）';
   }
 
   @override
@@ -726,6 +825,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get syncConflictUndoChanged => '選択した後に新しい変更が届いたため、何も変更されていません。';
+
+  @override
+  String get syncConflictFieldProvenance => '出典';
 
   @override
   String get syncConflictFieldColour => '色';

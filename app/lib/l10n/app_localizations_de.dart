@@ -434,14 +434,105 @@ class AppLocalizationsDe extends AppLocalizations {
       'Importierte Tänze nicht mehr synchronisieren';
 
   @override
-  String settingsSyncNoticeNewerVersion(int count) {
+  String settingsSyncNoticeNewerVersionItems(String items) {
+    return 'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um $items zu erhalten.';
+  }
+
+  @override
+  String settingsSyncNoticeCountDance(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um $count Elemente zu erhalten.',
-      one:
-          'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um 1 Element zu erhalten.',
+      other: '$count Tänze',
+      one: '1 Tanz',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountProgram(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Programme',
+      one: '1 Programm',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountChoreographer(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Choreografen',
+      one: '1 Choreografen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountTag(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tags',
+      one: '1 Tag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountCustomField(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count benutzerdefinierte Felder',
+      one: '1 benutzerdefiniertes Feld',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountDifficulty(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Schwierigkeitsgrade',
+      one: '1 Schwierigkeitsgrad',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountPublishedSource(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count veröffentlichte Quellen',
+      one: '1 veröffentlichte Quelle',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountVenue(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Veranstaltungsorte',
+      one: '1 Veranstaltungsort',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountSetting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einstellungen',
+      one: '1 Einstellung',
     );
     return '$_temp0';
   }
@@ -449,6 +540,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten.';
+
+  @override
+  String settingsSyncNoticeKeptNewerItems(String items) {
+    return 'Für eine neuere Version der App aufbewahrt: $items. Sie werden weiter synchronisiert, mit Details, die diese Version nicht anzeigen kann. Aktualisiere die App auf diesem Gerät, um sie zu sehen.';
+  }
 
   @override
   String get settingsSyncCopyDetails => 'Details kopieren';
@@ -533,6 +629,16 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String settingsSyncNoticeRecordNotHere(String kind) {
     return '$kind, nicht auf diesem Gerät';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNewerFigures(String kind, String name) {
+    return '$kind „$name“ (enthält Figuren, die nur eine neuere Version lesen kann)';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHereNewerFigures(String kind) {
+    return '$kind nicht auf diesem Gerät (enthält Figuren, die nur eine neuere Version lesen kann)';
   }
 
   @override
@@ -764,6 +870,9 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get syncConflictUndoChanged =>
       'Nach deiner Auswahl ist etwas Neueres eingetroffen, daher wurde nichts geändert.';
+
+  @override
+  String get syncConflictFieldProvenance => 'Herkunft';
 
   @override
   String get syncConflictFieldColour => 'Farbe';

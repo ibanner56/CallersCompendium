@@ -249,6 +249,9 @@ const Set<String> syncWireMappingExceptions = {
   // Tombstones are record content stored outside ordinary archive bodies and
   // retransmitted verbatim.
   'pending_deletions.tombstone_blob',
+  // Kept parts of a newer version's record, put back into the body verbatim
+  // (spec §6.7); they have no path of their own.
+  'retained_sync_fields.payload',
   'tags.updated_at',
   'tags.deleted_at',
   'tags.existence_at',

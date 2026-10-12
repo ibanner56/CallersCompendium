@@ -2475,6 +2475,53 @@ void main() {
           await pumped.controller.setEnabled(false);
         });
 
+        // A large first download meets the server's rate limit part-way
+        // (spec §6.3 step 5). It used to report every record not yet fetched
+        // as skipped, which read as a version mismatch between devices; now
+        // the pass stops as a temporary failure and says nothing was skipped.
+        testWidgets('a download stopped by the rate limit is the calm line, '
+            'with no skipped-records notice', (tester) async {
+          const result = SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(
+              SyncFailureCause.rateLimited,
+              step: SyncFailureStep.download,
+              statusCode: 429,
+              retryAfter: Duration(seconds: 60),
+              progressed: true,
+            ),
+          );
+          final pumped = await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.text('Waiting to sync. Your changes are saved here.'),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-status-calm')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-status-needs-you')),
+            findsNothing,
+          );
+          expect(
+            find.textContaining("couldn't be used and were skipped"),
+            findsNothing,
+          );
+          expect(
+            find.text(
+              'Details: Stopped while downloading from your other devices. '
+              'The server answered with HTTP status 429.',
+            ),
+            findsOneWidget,
+          );
+          expect(pumped.controller.notices, isEmpty);
+          expect(pumped.controller.pendingRetryDelay, isNotNull);
+          await pumped.controller.setEnabled(false);
+        });
+
         testWidgets('Copy details copies the short code, and only the code', (
           tester,
         ) async {
@@ -2606,7 +2653,7 @@ void main() {
             ),
             findsOneWidget,
           );
-          expect(find.textContaining('receive 1 item'), findsNothing);
+          expect(find.textContaining('receive 1 dance'), findsNothing);
         });
 
         testWidgets('a peer on a newer app version is a needs-you notice that '
@@ -2630,7 +2677,7 @@ void main() {
           expect(
             find.text(
               'Another device is using a newer version of the app. Update the '
-              'app on this device to receive 3 items.',
+              'app on this device to receive 3 dances.',
             ),
             findsOneWidget,
           );
@@ -2646,6 +2693,96 @@ void main() {
             find.byKey(const ValueKey('sync-notice-skippedRecord')),
             findsNothing,
             reason: 'not the generic "check your other devices" notice',
+          );
+        });
+
+        testWidgets('records refused for a field this build does not know '
+            'are counted by kind in the newer-version notice, apart from '
+            'records skipped for other reasons', (tester) async {
+          // The case that prompted it: a newer build added fields to programs,
+          // and the one notice this device showed listed every skipped
+          // record, dances included, under "check your other devices".
+          final result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              for (final id in ['p1', 'p2'])
+                SyncReport(
+                  code: SyncReportCode.newerRecordFields,
+                  kind: SyncRecordKind.program,
+                  recordId: id,
+                  peerId: 'peer-a',
+                  message: 'Blob carries a field this build does not know.',
+                ),
+              const SyncReport(
+                code: SyncReportCode.newerRecordFields,
+                kind: SyncRecordKind.setting,
+                recordId: 'a_new_setting',
+                peerId: 'peer-a',
+                message: 'Blob carries a field this build does not know.',
+              ),
+              const SyncReport(
+                code: SyncReportCode.unresolvedReference,
+                kind: SyncRecordKind.dance,
+                recordId: 'd1',
+                peerId: 'peer-a',
+                message: 'Reference could not be resolved.',
+              ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.text(
+              'Another device is using a newer version of the app. Update the '
+              'app on this device to receive 2 programs, 1 setting.',
+            ),
+            findsOneWidget,
+          );
+          final newerRecords = tester.widget<Text>(
+            find.byKey(const ValueKey('sync-notice-newerVersion-records')),
+          );
+          expect(newerRecords.data, isNot(contains('Dance')));
+          final skippedRecords = tester.widget<Text>(
+            find.byKey(const ValueKey('sync-notice-skippedRecord-records')),
+          );
+          expect(skippedRecords.data, contains('Dance'));
+          expect(skippedRecords.data, isNot(contains('Program')));
+        });
+
+        testWidgets('records carrying details kept for a newer version are '
+            'information, not a warning', (tester) async {
+          final result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              for (final id in ['p1', 'p2'])
+                SyncReport(
+                  code: SyncReportCode.keptNewerFields,
+                  kind: SyncRecordKind.program,
+                  recordId: id,
+                  message: 'Carries fields kept for a newer version.',
+                ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.text(
+              'Kept for a newer version of the app: 2 programs. These still '
+              "sync, with details this version can't show. Update the app on "
+              'this device to see them.',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-notice-keptNewerFields-needs-you')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-notice-newerVersion')),
+            findsNothing,
+            reason: 'kept records are not waiting for anything',
           );
         });
 

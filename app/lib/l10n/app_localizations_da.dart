@@ -433,14 +433,105 @@ class AppLocalizationsDa extends AppLocalizations {
       'Stop med at synkronisere importerede danse';
 
   @override
-  String settingsSyncNoticeNewerVersion(int count) {
+  String settingsSyncNoticeNewerVersionItems(String items) {
+    return 'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage $items.';
+  }
+
+  @override
+  String settingsSyncNoticeCountDance(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage $count elementer.',
-      one:
-          'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage 1 element.',
+      other: '$count danse',
+      one: '1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountProgram(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmer',
+      one: '1 program',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountChoreographer(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count koreografer',
+      one: '1 koreograf',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountTag(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mærker',
+      one: '1 mærke',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountCustomField(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count brugerdefinerede felter',
+      one: '1 brugerdefineret felt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountDifficulty(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sværhedsgrader',
+      one: '1 sværhedsgrad',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountPublishedSource(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count udgivne kilder',
+      one: '1 udgivet kilde',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountVenue(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count steder',
+      one: '1 sted',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountSetting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count indstillinger',
+      one: '1 indstilling',
     );
     return '$_temp0';
   }
@@ -448,6 +539,11 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage dens ændringer.';
+
+  @override
+  String settingsSyncNoticeKeptNewerItems(String items) {
+    return 'Gemt til en nyere version af appen: $items. De synkroniseres stadig, med detaljer denne version ikke kan vise. Opdater appen på denne enhed for at se dem.';
+  }
 
   @override
   String get settingsSyncCopyDetails => 'Kopiér detaljer';
@@ -531,6 +627,16 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String settingsSyncNoticeRecordNotHere(String kind) {
     return '$kind, ikke på denne enhed';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNewerFigures(String kind, String name) {
+    return '$kind »$name« (har figurer, som kun en nyere version kan læse)';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHereNewerFigures(String kind) {
+    return '$kind ikke på denne enhed (har figurer, som kun en nyere version kan læse)';
   }
 
   @override
@@ -762,6 +868,9 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get syncConflictUndoChanged =>
       'Der kom noget nyere efter dit valg, så intet blev ændret.';
+
+  @override
+  String get syncConflictFieldProvenance => 'Oprindelse';
 
   @override
   String get syncConflictFieldColour => 'Farve';

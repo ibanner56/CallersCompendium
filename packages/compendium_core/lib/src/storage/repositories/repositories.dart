@@ -10,6 +10,7 @@ import '../../privacy/field_registry.dart';
 import '../../privacy/data_classification.dart';
 import '../../privacy/settings_registry.dart';
 import '../../serialization/figure_codec.dart';
+import '../../sync/sync_storage.dart' show CompendiumSyncStorage;
 import '../../taxonomy/taxonomy.dart';
 import '../database.dart';
 import '../shareable_text.dart';
@@ -843,6 +844,13 @@ class CompendiumRepositories {
         owedFromHistory: normalisationCompletedBefore.isNotEmpty,
         onProgress: onDerivedRebuildProgress,
       );
+      // Last, so it reads records every earlier sweep has finished with. A
+      // field a newer version added and this device kept (sync-spec §6.7) may
+      // be one this build now syncs; move it into the record before anyone
+      // can edit that record, or the kept copy would win over the edit.
+      // Nothing to do — one indexed read — on every open but the first after
+      // such an upgrade.
+      await CompendiumSyncStorage(this).promoteRetainedSyncFields();
     } catch (_) {
       // Don't cache a failed migration: clear the memo so a subsequent call
       // retries. The durable marker is still set (only deleted after a

@@ -534,11 +534,12 @@ void main() {
     expect(many, few);
     // Independence from N cannot see a helper that loads twice per call, which
     // is still a constant. The count for this pass is exactly one load per
-    // `_normalize*` / `_resolveReferenceAliases` call it makes (14 on an empty
-    // peer manifest). A pass that gains or loses a normalisation step changes
-    // it deliberately; update the number with the step, never to absorb an
-    // extra load inside a helper.
-    expect(few, 14);
+    // `_normalize*` / `_resolveReferenceAliases` call it makes, plus the one
+    // the merge plan reads to compare references by the records they name
+    // (15 on an empty peer manifest). A pass that gains or loses a
+    // normalisation step changes it deliberately; update the number with the
+    // step, never to absorb an extra load inside a helper.
+    expect(few, 15);
   });
 
   group('SyncAliasMap resolves as the repository does', () {
@@ -2232,7 +2233,10 @@ void main() {
 
       expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
       expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
-      expect(transport.blobCalls, 2);
+      // One download in all: peer-b's duplicate entry reuses peer-a's blob
+      // within the first pass, and the second pass reuses the body the
+      // session already verified (`SyncPeerManifestCache.fetchedBlob`).
+      expect(transport.blobCalls, 1);
     },
   );
 
@@ -2719,7 +2723,9 @@ void main() {
       transport: _FakeTransport(
         devices: ['peer'],
         manifestResponses: {
-          'peer': [_FakeTransport.response(500)],
+          // A 404, which still completes the pass. A 5xx, which ends it as a
+          // temporary failure, is covered with the other server faults.
+          'peer': [_FakeTransport.response(404)],
         },
       ),
     );
@@ -4598,13 +4604,16 @@ void main() {
     test(
       'a fresh attach missing a peer manifest blames the peer, not the server',
       () async {
+        // A `404` is the store saying it has no list for that device: the
+        // peer's to fix, and the user's to chase. A `5xx` is the server's
+        // own fault and retries quietly instead (spec §6.3 step 3).
         final result = await coordinatorFor(
           _FakeStore(epoch: null),
           _FakeTransport(
             devices: ['peer'],
             peerManifest: _manifest(deviceId: 'peer', records: const {}),
             manifestResponses: {
-              'peer': [_FakeTransport.response(500)],
+              'peer': [_FakeTransport.response(404)],
             },
           ),
         ).syncNow();
@@ -4612,7 +4621,7 @@ void main() {
         expect(result.status, SyncPassStatus.failed);
         expect(result.failure?.cause, SyncFailureCause.peerUnavailable);
         expect(result.failure?.step, SyncFailureStep.download);
-        expect(result.failure?.statusCode, 500);
+        expect(result.failure?.statusCode, 404);
       },
     );
 
@@ -4988,6 +4997,631 @@ void main() {
     });
   });
 
+  // A `429` or `5xx` on a record download is about the server, not the record:
+  // every request after a `429` fails the same way until the limit refills. It
+  // ends the pass's downloads as a temporary failure, and the records not yet
+  // fetched are waiting rather than skipped (spec §6.3 step 5). Reported per
+  // record, as they were, a large first download raised a skipped-records
+  // notice listing most of the library and re-fetched it into the same limit
+  // on every later pass.
+  group('a record download the server refuses for now (spec §6.3 step 5)', () {
+    final at = DateTime.utc(2026, 7, 15, 12);
+
+    /// What a peer publishes for three tags and three dances that cite them,
+    /// in apply order: every tag before any dance. With [linkAcross],
+    /// dance-0 also links to dance-2, a citation within one kind that no kind
+    /// order can put first.
+    Future<List<SyncMergeCandidate>> peerLibrary({
+      bool linkAcross = false,
+    }) async {
+      final peer = openTestRepositories();
+      for (var i = 0; i < 3; i++) {
+        final _ = await peer.tags.upsert(
+          Tag(id: 'tag-$i', name: 'Tag $i'),
+          at: at,
+        );
+      }
+      // Created last-first, so a linked dance exists before its link.
+      for (var i = 2; i >= 0; i--) {
+        await peer.dances.create(
+          Dance(
+            id: 'dance-$i',
+            title: 'Dance $i',
+            tagIds: ['tag-$i'],
+            links: [
+              if (linkAcross && i == 0)
+                DanceLink(
+                  id: 'link-0',
+                  kind: LinkKind.relatedDance,
+                  targetDanceId: 'dance-2',
+                ),
+            ],
+            createdAt: at,
+            updatedAt: at,
+          ),
+        );
+      }
+      final publication = (await CompendiumSyncStorage(
+        peer,
+      ).snapshot()).publication;
+      final candidates = [
+        for (final candidate in publication.values)
+          if (candidate != null &&
+              (candidate.address.kind == SyncRecordKind.tag ||
+                  candidate.address.kind == SyncRecordKind.dance))
+            candidate,
+      ];
+      expect(candidates, hasLength(6));
+      return candidates;
+    }
+
+    String hashOf(List<SyncMergeCandidate> library, String recordId) =>
+        library.singleWhere((c) => c.address.recordId == recordId).wireHash;
+
+    _FakeTransport transportFor(List<SyncMergeCandidate> library) =>
+        _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              for (final kind in {for (final c in library) c.address.kind})
+                kind: {
+                  for (final c in library)
+                    if (c.address.kind == kind) c.address.recordId: c.wireHash,
+                },
+            },
+          ),
+          blobResponses: _blobs(library),
+        );
+
+    for (final freshAttach in [false, true]) {
+      final label = freshAttach ? 'a fresh attach' : 'a steady-state pass';
+      test('$label stops at a 429, applies what it fetched, reports nothing, '
+          'and the next pass fetches only the rest', () async {
+        final repositories = openTestRepositories();
+        if (!freshAttach) {
+          await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
+        }
+        final library = await peerLibrary();
+        final transport = transportFor(library);
+        // The fifth download meets the limit, and so would every one after.
+        var limited = true;
+        transport.onBlob = (call, _) =>
+            limited && call >= 5 ? _FakeTransport.rateLimited : null;
+        final store = CompendiumSyncCoordinatorStore(repositories);
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: store,
+          transport: transport,
+        );
+        addTearDown(coordinator.dispose);
+
+        final first = await coordinator.syncNow();
+
+        expect(first.status, SyncPassStatus.failed);
+        expect(first.failure?.cause, SyncFailureCause.rateLimited);
+        expect(first.failure?.cause.isTransient, isTrue);
+        expect(first.failure?.step, SyncFailureStep.download);
+        expect(first.failure?.statusCode, 429);
+        expect(first.failure?.retryAfter, const Duration(seconds: 60));
+        expect(first.failure?.progressed, isTrue);
+        expect(
+          first.reports,
+          isEmpty,
+          reason:
+              'nothing was skipped: no unresolvedBlob for the records not '
+              'fetched, and no unresolvedReference for a fetched dance whose '
+              'tag was not fetched yet',
+        );
+        // Every tag first, then dances: the stop came at dance-1.
+        expect(transport.blobHashes, [
+          for (final id in ['tag-0', 'tag-1', 'tag-2', 'dance-0', 'dance-1'])
+            hashOf(library, id),
+        ]);
+        for (var i = 0; i < 3; i++) {
+          expect(await repositories.tags.getById('tag-$i'), isNotNull);
+        }
+        expect(await repositories.dances.getById('dance-0'), isNotNull);
+        expect(await repositories.dances.getById('dance-1'), isNull);
+        expect(await repositories.dances.getById('dance-2'), isNull);
+        // Nothing was published, so nothing can have been baselined: the
+        // records not fetched were decided by nothing.
+        expect(transport.manifestPuts, 0);
+        final afterFirst = await store.snapshot();
+        expect(afterFirst.baseline, isEmpty);
+        expect(afterFirst.epoch, freshAttach ? isNull : 'epoch-1');
+
+        limited = false;
+        transport.blobHashes.clear();
+        final second = await coordinator.syncNow();
+
+        expect(second.status, SyncPassStatus.completed);
+        expect(second.reports, isEmpty);
+        expect(transport.blobHashes, [
+          hashOf(library, 'dance-1'),
+          hashOf(library, 'dance-2'),
+        ], reason: 'the next pass resumes where downloads stopped');
+        expect(await repositories.dances.getById('dance-2'), isNotNull);
+        final afterSecond = await store.snapshot();
+        expect(afterSecond.epoch, 'epoch-1');
+        expect(afterSecond.baseline.keys.toSet(), {
+          for (final c in library) c.address,
+        });
+      });
+    }
+
+    test('a fetched dance linking to one not fetched yet waits with it, '
+        'unreported', () async {
+      // Kind order cannot help here: the link is dance to dance. Applied
+      // alone, dance-0 would be refused as citing an unavailable related
+      // dance — a skipped-record notice about a record merely not fetched.
+      final repositories = openTestRepositories();
+      await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
+      final library = await peerLibrary(linkAcross: true);
+      final transport = transportFor(library);
+      var limited = true;
+      transport.onBlob = (call, _) =>
+          limited && call >= 5 ? _FakeTransport.rateLimited : null;
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: CompendiumSyncCoordinatorStore(repositories),
+        transport: transport,
+      );
+      addTearDown(coordinator.dispose);
+
+      final first = await coordinator.syncNow();
+
+      expect(first.failure?.cause, SyncFailureCause.rateLimited);
+      expect(first.reports, isEmpty);
+      expect(await repositories.dances.getById('dance-0'), isNull);
+      expect(await repositories.tags.getById('tag-0'), isNotNull);
+
+      limited = false;
+      transport.blobHashes.clear();
+      final second = await coordinator.syncNow();
+
+      expect(second.status, SyncPassStatus.completed);
+      expect(second.reports, isEmpty);
+      expect(transport.blobHashes, [
+        hashOf(library, 'dance-1'),
+        hashOf(library, 'dance-2'),
+      ], reason: 'dance-0 waited in the session cache, not on the server');
+      final linked = await repositories.dances.getById('dance-0');
+      expect(linked?.links.single.targetDanceId, 'dance-2');
+    });
+
+    test('a 503 stops downloads as a server fault, not a skip', () async {
+      final library = await peerLibrary();
+      final transport = transportFor(library)
+        ..onBlob = (call, _) => call >= 2 ? _FakeTransport.response(503) : null;
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(),
+        transport: transport,
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.serverError);
+      expect(result.failure?.step, SyncFailureStep.download);
+      expect(result.failure?.statusCode, 503);
+      expect(result.reports, isEmpty);
+      expect(transport.blobCalls, 2, reason: 'no request after the 503');
+      expect(transport.manifestPuts, 0);
+    });
+
+    for (final error in <Object>[
+      const SyncTransportException('request timed out'),
+      const SocketException('connection reset'),
+    ]) {
+      test('a ${error.runtimeType} mid-download keeps what was fetched and '
+          'fails as temporary', () async {
+        final library = await peerLibrary();
+        final store = _FakeStore();
+        final transport = transportFor(library)
+          ..onBlob = (call, _) => call == 4 ? throw error : null;
+        final result = await SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: store,
+          transport: transport,
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.failed);
+        expect(result.failure?.cause.isTransient, isTrue);
+        expect(result.failure?.step, SyncFailureStep.download);
+        expect(result.failure?.progressed, isTrue);
+        expect(result.reports, isEmpty);
+        expect(transport.blobCalls, 4);
+        expect(store.writes.map((w) => w.address.recordId).toSet(), {
+          'tag-0',
+          'tag-1',
+          'tag-2',
+        });
+        expect(store.baselineAdvances, 0);
+      });
+    }
+
+    test('a 404 is still a skipped record, and carries its status', () async {
+      final library = await peerLibrary();
+      final missing = hashOf(library, 'dance-2');
+      final transport = transportFor(library)
+        ..onBlob = (_, hash) =>
+            hash == missing ? _FakeTransport.response(404) : null;
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(),
+        transport: transport,
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      final report = result.reports.singleWhere(
+        (r) => r.code == SyncReportCode.unresolvedBlob,
+      );
+      expect(report.recordId, 'dance-2');
+      expect(report.httpStatus, 404);
+    });
+
+    // A `5xx` on a peer's manifest is the server failing, not the peer
+    // (spec §6.3 step 3). On a fresh attach, which cannot finish without every
+    // peer's list, it is a temporary failure that retries by itself; it was
+    // `peerUnavailable`, a needs-you warning sending the user to their other
+    // devices. In steady state the pass carries on as before — baselined
+    // records wait, and only records new to this device arrive from the
+    // readable peers — but without the skipped-records notice, whose advice
+    // (check the other device's app version) is false here.
+    for (final status in [500, 503]) {
+      test('a $status on a peer manifest during a fresh attach is a '
+          'temporary failure', () async {
+        final transport = _FakeTransport(
+          devices: ['peer'],
+          manifestResponses: {
+            'peer': [_FakeTransport.response(status)],
+          },
+        );
+        final result = await SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: _FakeStore(epoch: null),
+          transport: transport,
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.failed);
+        expect(result.failure?.cause, SyncFailureCause.serverError);
+        expect(result.failure?.cause.isTransient, isTrue);
+        expect(result.failure?.step, SyncFailureStep.download);
+        expect(result.failure?.statusCode, status);
+        expect(result.reports, isEmpty);
+        expect(transport.manifestPuts, 0);
+      });
+
+      test('a $status on one peer manifest in steady state finishes the pass '
+          'quietly, then ends it as a temporary failure', () async {
+        final other = SyncMergeCandidate.fromBlob(
+          _setting('default_program_band', 'from other'),
+        );
+        final transport = _FakeTransport(
+          devices: ['broken', 'other'],
+          manifestResponses: {
+            'broken': [_FakeTransport.response(status)],
+          },
+          peerManifests: {
+            'other': _manifest(
+              deviceId: 'other',
+              records: {
+                SyncRecordKind.setting: {other.blob.id: other.wireHash},
+              },
+            ),
+          },
+          blobResponses: _blobs([other]),
+        );
+        final store = _FakeStore();
+        final result = await SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: store,
+          transport: transport,
+        ).syncNow();
+
+        expect(
+          result.status,
+          SyncPassStatus.failed,
+          reason:
+              'reported as completed, the pass cancels the retry and advances '
+              'the last-success clock while shared edits are held back',
+        );
+        expect(result.failure?.cause, SyncFailureCause.serverError);
+        expect(result.failure?.cause.isTransient, isTrue);
+        expect(result.failure?.step, SyncFailureStep.download);
+        expect(result.failure?.statusCode, status);
+        expect(
+          result.failure?.progressed,
+          isFalse,
+          reason:
+              'a persistent fault backs off rather than retrying each minute',
+        );
+        expect(
+          result.reports,
+          isEmpty,
+          reason: 'no skipped-records notice for a server fault',
+        );
+        expect(
+          transport.manifestPuts,
+          1,
+          reason: 'the pass still publishes before it reports the fault',
+        );
+        expect(store.baselineAdvances, 1);
+        expect(
+          store.writes.map((w) => w.address.recordId),
+          contains('default_program_band'),
+          reason:
+              'a record new to this device still arrives from the readable '
+              'peer; baselined records wait, since none is decidable without '
+              'every peer list',
+        );
+        expect(
+          store.retiredPeerAddresses,
+          isEmpty,
+          reason: 'an unread peer list still blocks alias retirement',
+        );
+      });
+    }
+
+    test('with several peer manifests failing in steady state, the pass '
+        'keeps the longest Retry-After', () async {
+      SyncHttpResponse serverError(int status, int? seconds) =>
+          SyncHttpResponse(
+            statusCode: status,
+            kind: SyncResponseKind.serverError,
+            headers: {if (seconds != null) 'retry-after': '$seconds'},
+            body: const [],
+            retryAfter: seconds == null ? null : Duration(seconds: seconds),
+          );
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(),
+        transport: _FakeTransport(
+          devices: ['none', 'short', 'long', 'later-short'],
+          manifestResponses: {
+            'none': [serverError(503, null)],
+            'short': [serverError(503, 30)],
+            'long': [serverError(500, 120)],
+            'later-short': [serverError(503, 60)],
+          },
+        ),
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(
+        result.failure?.retryAfter,
+        const Duration(seconds: 120),
+        reason: 'the retry must not come sooner than any answer allowed',
+      );
+      expect(result.failure?.statusCode, 500);
+      expect(result.reports, isEmpty);
+    });
+
+    test(
+      'a 404 on one peer manifest in steady state is still reported',
+      () async {
+        final result = await SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: _FakeStore(),
+          transport: _FakeTransport(
+            devices: ['peer'],
+            manifestResponses: {
+              'peer': [_FakeTransport.response(404)],
+            },
+          ),
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.completed);
+        final report = result.reports.single;
+        expect(report.code, SyncReportCode.malformedRecord);
+        expect(report.peerId, 'peer');
+        expect(report.httpStatus, 404);
+      },
+    );
+
+    test('a 429 on a peer manifest is a temporary failure, not an '
+        'unreadable peer', () async {
+      for (final epoch in ['epoch-1', null]) {
+        final transport = _FakeTransport(
+          devices: ['peer'],
+          manifestResponses: {
+            'peer': [_FakeTransport.rateLimited],
+          },
+        );
+        final result = await SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: _FakeStore(epoch: epoch),
+          transport: transport,
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.failed, reason: '$epoch');
+        expect(result.failure?.cause, SyncFailureCause.rateLimited);
+        expect(result.failure?.retryAfter, const Duration(seconds: 60));
+        expect(result.reports, isEmpty, reason: '$epoch');
+        expect(transport.manifestPuts, 0);
+      }
+    });
+
+    test('downloads are kind-major across peers, so a tag only another peer '
+        'lists is fetched before the dance that cites it', () async {
+      final library = await peerLibrary();
+      final tags = [
+        for (final c in library)
+          if (c.address.kind == SyncRecordKind.tag) c,
+      ];
+      final dances = [
+        for (final c in library)
+          if (c.address.kind == SyncRecordKind.dance) c,
+      ];
+      SyncManifest manifestOf(String id, List<SyncMergeCandidate> records) =>
+          _manifest(
+            deviceId: id,
+            records: {
+              records.first.address.kind: {
+                for (final c in records) c.address.recordId: c.wireHash,
+              },
+            },
+          );
+      final transport = _FakeTransport(
+        devices: ['peer-a', 'peer-b'],
+        peerManifests: {
+          'peer-a': manifestOf('peer-a', dances),
+          'peer-b': manifestOf('peer-b', tags),
+        },
+        blobResponses: _blobs(library),
+      );
+      await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(),
+        transport: transport,
+      ).syncNow();
+
+      expect(transport.blobHashes, [
+        for (final c in [...tags, ...dances]) c.wireHash,
+      ]);
+    });
+  });
+
+  // The upload side of the same problem: a device with a large library of its
+  // own uploads one blob a request, so its first publication meets the
+  // per-IP limit too. That already failed as a temporary `rateLimited`, never
+  // as skipped records; what it lacked was saying it had moved on, so every
+  // such pass doubled the wait before the next (spec §6.12).
+  group('an upload the server refuses for now (spec §6.12)', () {
+    final local = [
+      for (final key in [
+        'default_program_band',
+        'default_program_caller',
+        'default_import_tag_names',
+        'custom_dialects',
+      ])
+        SyncMergeCandidate.fromBlob(_setting(key, 'local $key')),
+    ];
+
+    _FakeTransport transportMissingAll() => _FakeTransport(
+      missingResponses: [
+        [for (final c in local) c.wireHash],
+      ],
+    );
+
+    Future<SyncPassResult> pass(_FakeTransport transport) => SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(local: {for (final c in local) c.address: c}),
+      transport: transport,
+    ).syncNow();
+
+    test('a 429 after some uploads is a temporary failure that made '
+        'progress', () async {
+      final transport = transportMissingAll()
+        ..onPutBlob = (call, _) =>
+            call >= 3 ? _FakeTransport.rateLimited : null;
+
+      final result = await pass(transport);
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.rateLimited);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.retryAfter, const Duration(seconds: 60));
+      expect(result.failure?.progressed, isTrue);
+      expect(result.reports, isEmpty);
+      expect(transport.putBlobHashes, hasLength(3));
+      expect(transport.manifestPuts, 0);
+    });
+
+    test('a 429 on the first upload made no progress, so the wait still '
+        'grows', () async {
+      final transport = transportMissingAll()
+        ..onPutBlob = (_, _) => _FakeTransport.rateLimited;
+
+      final result = await pass(transport);
+
+      expect(result.failure?.cause, SyncFailureCause.rateLimited);
+      expect(result.failure?.progressed, isFalse);
+    });
+
+    test('a network failure mid-upload is a temporary result, not a throw, '
+        'and says how far it got', () async {
+      final transport = transportMissingAll()
+        ..onPutBlob = (call, _) =>
+            call == 2 ? throw const SocketException('connection reset') : null;
+
+      final result = await pass(transport);
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.unreachable);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.progressed, isTrue);
+      expect(transport.manifestPuts, 0);
+    });
+
+    test('a network failure asking which blobs are missing is a temporary '
+        'result at the upload step, not a throw', () async {
+      final transport = transportMissingAll();
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(local: {for (final c in local) c.address: c}),
+        transport: _FakeTransport(
+          missingResponses: transport.missingResponses,
+          onPostMissing: (_) async =>
+              throw const SyncTransportException('request timed out'),
+        ),
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.timedOut);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.progressed, isFalse);
+    });
+
+    test('a later missing-blob batch that fails keeps the progress of the '
+        'batches before it', () async {
+      // `POST /v1/blobs/missing` takes at most 10,000 hashes, so a library
+      // this size asks twice. The first batch's uploads all land; the second
+      // request drops. Those uploads are still progress.
+      final many = [
+        for (var i = 0; i <= 10000; i++)
+          SyncMergeCandidate.fromBlob(
+            _dance('dance-$i', updatedAt: DateTime.utc(2026, 7, 15, 12)),
+          ),
+      ];
+      var asks = 0;
+      final transport = _FakeTransport(
+        missingResponses: [
+          [for (final c in many) c.wireHash],
+        ],
+        onPostMissing: (_) async {
+          if (++asks == 2) throw const SocketException('connection reset');
+        },
+      );
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(local: {for (final c in many) c.address: c}),
+        transport: transport,
+      ).syncNow();
+
+      expect(asks, 2);
+      expect(transport.putBlobHashes, isNotEmpty);
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.unreachable);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.progressed, isTrue);
+    });
+  });
+
   group('a peer running a newer app version (spec §6.9)', () {
     SyncCoordinator coordinatorFor(_FakeTransport transport) => SyncCoordinator(
       syncId: 'configured',
@@ -5024,6 +5658,81 @@ void main() {
       );
       expect(report.code, SyncReportCode.newerWireVersion);
       expect(report.kind, SyncRecordKind.tag);
+      expect(report.peerId, 'peer');
+    });
+
+    test('a blob carrying a field this build does not sync is applied, not '
+        'reported (spec §6.7)', () async {
+      // The envelope `v` is unchanged: a newer build added a body field, as
+      // #1714 added a program's pay. This build keeps it rather than refusing
+      // the record.
+      final tag = _tag('t-new', 'Newer').toJson();
+      final newer = utf8.encode(
+        jsonEncode({
+          ...tag,
+          'body': {...(tag['body']! as Map<String, Object?>), 'addedLater': 1},
+        }),
+      );
+      final hash = sha256Hex(newer);
+      final result = await coordinatorFor(
+        _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.tag: {'t-new': hash},
+            },
+          ),
+          blobResponses: {hash: _FakeTransport.response(200, body: newer)},
+        ),
+      ).syncNow();
+
+      expect(
+        result.reports.where((report) => report.recordId == 't-new'),
+        isEmpty,
+      );
+    });
+
+    test('a dance whose figures a newer build extended is reported as '
+        'newerFigures, naming its record', () async {
+      final dance = SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: 'd-new',
+        updatedAt: DateTime.utc(2026, 7, 15, 12),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 7, 15, 12),
+        body: const {'id': 'd-new', 'title': 'Newer'},
+      ).toJson();
+      final newer = utf8.encode(
+        jsonEncode({
+          ...dance,
+          'body': {
+            ...(dance['body']! as Map<String, Object?>),
+            'figures': [
+              {'schemaVersion': 1, 'move': 'swing', 'handHold': 'cross'},
+            ],
+          },
+        }),
+      );
+      final hash = sha256Hex(newer);
+      final result = await coordinatorFor(
+        _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.dance: {'d-new': hash},
+            },
+          ),
+          blobResponses: {hash: _FakeTransport.response(200, body: newer)},
+        ),
+      ).syncNow();
+
+      final report = result.reports.singleWhere(
+        (report) => report.recordId == 'd-new',
+      );
+      expect(report.code, SyncReportCode.newerFigures);
+      expect(report.kind, SyncRecordKind.dance);
       expect(report.peerId, 'peer');
     });
 
@@ -5557,6 +6266,15 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   final List<SyncHttpResponse> createResponses;
   final Map<String, List<SyncHttpResponse>> manifestResponses;
   final Map<String, SyncHttpResponse> blobResponses;
+
+  /// Answers the [call]th blob request (1-based) for [hash] in place of
+  /// [blobResponses] when it returns non-null; may throw, as a transport does.
+  /// Assigned after construction, so a test can lift a limit between passes.
+  SyncHttpResponse? Function(int call, String hash)? onBlob;
+
+  /// Answers the [call]th blob upload (1-based) in place of a `201` when it
+  /// returns non-null; may throw, as a transport does.
+  SyncHttpResponse? Function(int call, String hash)? onPutBlob;
   final List<List<String>> missingResponses;
   final int putManifestStatus;
   final List<int> putManifestStatuses;
@@ -5573,6 +6291,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   final manifestEtags = <String?>[];
   int manifestPuts = 0;
   int blobCalls = 0;
+  final blobHashes = <String>[];
   int postMissingCalls = 0;
   final putBlobHashes = <String>[];
   final postMissingBatches = <List<String>>[];
@@ -5667,18 +6386,30 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   @override
   Future<SyncHttpResponse> getBlob(String hash) async {
     blobCalls++;
+    blobHashes.add(hash);
     requestLog.add('blob');
-    return blobResponses[hash] ?? _response(404);
+    return onBlob?.call(blobCalls, hash) ??
+        blobResponses[hash] ??
+        _response(404);
   }
 
   @override
   Future<SyncHttpResponse> putBlob(String hash, List<int> body) async {
     putBlobHashes.add(hash);
-    return _response(201);
+    return onPutBlob?.call(putBlobHashes.length, hash) ?? _response(201);
   }
 
   static SyncHttpResponse response(int status, {List<int>? body}) =>
       _response(status, body: body == null ? null : utf8.decode(body));
+
+  /// The server's `429`, exactly as `SyncHttpClient` reads it.
+  static const rateLimited = SyncHttpResponse(
+    statusCode: 429,
+    kind: SyncResponseKind.rateLimited,
+    headers: {'retry-after': '60'},
+    body: [],
+    retryAfter: Duration(seconds: 60),
+  );
 
   static SyncHttpResponse _response(
     int status, {
@@ -5691,7 +6422,8 @@ final class _FakeTransport implements SyncCoordinatorTransport {
       201 => SyncResponseKind.created,
       404 => SyncResponseKind.notFound,
       409 => SyncResponseKind.conflict,
-      500 => SyncResponseKind.serverError,
+      403 => SyncResponseKind.invalidSyncId,
+      500 || 503 => SyncResponseKind.serverError,
       _ => SyncResponseKind.unexpectedStatus,
     },
     headers: headers,

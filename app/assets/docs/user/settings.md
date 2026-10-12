@@ -574,15 +574,26 @@ Sync is off and open while it is on.
   to sync. Your changes are saved here.** Nothing is wrong with your library,
   and you don't need to do anything: the app tries again by itself, waiting a
   little longer each time (from a minute up to half an hour, and never sooner
-  than the server asked), and also tries when you come back to the app. A small
+  than the server asked), and also tries when you come back to the app. The
+  server limits how quickly one device can send and fetch, so connecting a
+  device to a large library — or connecting one that holds a large library of
+  its own — can take several of these tries, roughly a minute for every sixty
+  records. Each try keeps what it got through, so while it is still getting
+  further the app tries again every minute rather than waiting longer, and
+  nothing it hasn't fetched yet is reported as skipped. If the server has a
+  problem sending another device's latest list, changes to records your devices
+  already share wait until it can, so the status says **Waiting to sync** even
+  though anything new still arrived. A small
   **Details** line still names the step that stopped and the HTTP status, if
   you're curious. If this goes on for weeks, the expiry warning below is what
   tells you.
 - **When a sync fails for a reason you need to deal with**, the status shows a
   warning and says why: your store is out of space, something was too large to
   upload, the server refused what was sent or didn't accept the sync phrase, it
-  sent a reply the app couldn't use, another device's latest list couldn't be
-  read during a first connection, or something went wrong inside the app. Each
+  sent a reply the app couldn't use, another device's latest list was missing
+  or unreadable during a first connection (a problem on the server's side
+  while fetching it is the calm kind above), or something went wrong inside
+  the app. Each
   comes with what you can do about it, and — where it's known — a **Details**
   line naming the step that stopped and the HTTP status the server answered
   with. If the server refused what was sent, the advice depends on the server:
@@ -616,8 +627,15 @@ Sync is off and open while it is on.
   tunes the app can't read, so they aren't being sent (nothing is deleted —
   enter those figures or tunes again to send them); when another device is
   using a newer version of the app, so this device can't read some of what it
-  shared — that one is a warning, says how many items are waiting when it can
-  tell, and is fixed by updating the app on this device; when records from
+  shared — either in a newer format, or with details this version can't keep,
+  such as new details inside a dance's figures (those dances are marked as
+  having figures only a newer version can read). That one is a warning, says
+  how many of each kind of record are waiting when it can tell (for example "2
+  programs, 1 setting"), lists only those records, and is fixed by updating the
+  app on this device; when records here carry other details a newer version
+  of the app added, which this version keeps and shares back unchanged so they
+  aren't lost when you edit the record here — that one is information only, the
+  records still sync, and updating the app shows the details; when records from
   another device couldn't be used and were skipped; when another device's clock
   looks far off; when an
   update arrived while you were editing the same record, so it waits for the
@@ -800,6 +818,11 @@ edited on both a laptop and a phone. The app can't tell which change you meant
 to keep, so it doesn't pick one: both versions stay as they are, and it asks
 you.
 
+It only asks when the versions differ in something you can see. When they look
+exactly the same — the same choreographer added on two devices before they
+synced, say — the app keeps one of them for you, the same one on every device,
+and doesn't ask.
+
 - On the **Collection** and **Programs** pages, the **Sync now** button shows a
   number badge while anything is waiting for your choice. When a sync you
   started finds something new to choose, the choice opens straight away.
@@ -826,7 +849,8 @@ comparison shows:
   B2), and figures that match aren't repeated; when a figure reads the same in
   both, its note, its own walkthrough or wording, or its beats show what
   differs. Links show where they go, what kind they are and whether they join
-  the related-dance group; published sources show their page and number;
+  the related-dance group; published sources show their page and number; and
+  **Origin** shows where the dance came from and its licence;
 - for a program: each detail that differs, then the dances only one version
   has (a dance is matched by which dance it is, not its title, and repeats are
   counted), whether the dances they share are in a different order, and

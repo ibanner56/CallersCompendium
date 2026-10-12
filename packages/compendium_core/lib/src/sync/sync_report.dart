@@ -49,10 +49,50 @@ enum SyncReportCode {
   ///
   /// Deliberately not [malformedRecord], whose notice cannot say which side
   /// has to act. Here it is always this device: nothing is wrong with the
-  /// record, and updating the app is the whole remedy. A blob's report carries
-  /// `kind` and `recordId`; a manifest's carries only `peerId`, because a
-  /// manifest this build cannot read does not say what it lists.
+  /// record, and updating the app is the whole remedy. From the client's peer
+  /// download, a blob's report carries `kind` and `recordId`; a manifest's
+  /// carries only `peerId`, because a manifest this build cannot read does not
+  /// say what it lists. `SyncApplyEngine.applyJson` has neither a peer nor a
+  /// decoded envelope, so its report carries none of the three.
   newerWireVersion,
+
+  /// A peer's record blob carried a part a newer version of the app added
+  /// that this build can neither apply nor keep in place
+  /// (`SyncNewerFieldException`), so it was refused whole (spec §6.7, §6.9).
+  /// Every other field this build does not sync is kept, not refused, and
+  /// raises [keptNewerFields] instead. Also raised when versions tied on
+  /// `updatedAt` differ only in kept parts, which this build leaves to a
+  /// device that understands them.
+  ///
+  /// Its own code rather than [malformedRecord] for the reason
+  /// [newerWireVersion] has one: the remedy is updating the app on *this*
+  /// device, and the generic skipped-record notice cannot say so. It is shown
+  /// with [newerWireVersion], which has the same remedy. From the client's
+  /// peer download it always carries `kind`, `recordId` and `peerId`;
+  /// `SyncApplyEngine.applyJson` has no peer or decoded envelope, so its
+  /// report carries none of them.
+  ///
+  /// It does not distinguish a newer sender from a defective one that put a
+  /// private field on the wire. Decided by Isaac (maintainer) in review of
+  /// #1728: the app's releases are under the maintainer's control, so a
+  /// version difference is the case worth naming (spec §6.9).
+  newerRecordFields,
+
+  /// A peer's record was refused because a newer version of the app added
+  /// something inside a dance's figures (spec §6.7): figures are positional,
+  /// so this build could neither apply nor keep it. Its own code, beside
+  /// [newerRecordFields], so the notice can say what this build does not
+  /// understand rather than only that it is out of date. Shown with
+  /// [newerWireVersion]; same remedy.
+  newerFigures,
+
+  /// A record on *this* device carries details a newer version of the app
+  /// added, which this build keeps and shares back unchanged but cannot show
+  /// (spec §6.7). Information only: the record syncs, nothing is wrong, and
+  /// updating the app is what would show those details. Raised by every
+  /// snapshot for as long as the parts are kept, with `kind` and `recordId`
+  /// and a null `peerId`.
+  keptNewerFields,
 }
 
 /// A structured, non-blocking diagnostic produced by a sync pass.
@@ -63,6 +103,7 @@ class SyncReport {
     this.kind,
     this.recordId,
     this.peerId,
+    this.httpStatus,
   });
 
   final SyncReportCode code;
@@ -70,6 +111,17 @@ class SyncReport {
   final SyncRecordKind? kind;
   final String? recordId;
   final String? peerId;
+
+  /// The HTTP status the server answered the request behind this report with,
+  /// when a response is what raised it — a blob or manifest the store would
+  /// not serve. Null for everything else, a blob whose bytes did not match
+  /// its hash included.
+  ///
+  /// Kept apart from [message] so the diagnostics export can say which status
+  /// a report came from without printing the message, which is a maintainer
+  /// diagnostic and may name wire paths. Not part of [coalescingKey]: the
+  /// same record failing twice in one pass is one condition.
+  final int? httpStatus;
 
   String get coalescingKey =>
       '${code.name}:${kind?.name ?? ''}:${recordId ?? ''}:${peerId ?? ''}';

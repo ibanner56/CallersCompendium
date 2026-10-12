@@ -13923,6 +13923,334 @@ class PublishedRecordsCompanion extends UpdateCompanion<PublishedRecordRow> {
   }
 }
 
+class $RetainedSyncFieldsTable extends RetainedSyncFields
+    with TableInfo<$RetainedSyncFieldsTable, RetainedSyncFieldsRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RetainedSyncFieldsTable(this.attachedDatabase, [this._alias]);
+  @override
+  late final GeneratedColumnWithTypeConverter<SyncRecordKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<SyncRecordKind>($RetainedSyncFieldsTable.$converterkind);
+  static const VerificationMeta _recordIdMeta = const VerificationMeta(
+    'recordId',
+  );
+  @override
+  late final GeneratedColumn<String> recordId = GeneratedColumn<String>(
+    'record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _wholeRecordMeta = const VerificationMeta(
+    'wholeRecord',
+  );
+  @override
+  late final GeneratedColumn<bool> wholeRecord = GeneratedColumn<bool>(
+    'whole_record',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("whole_record" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [kind, recordId, wholeRecord, payload];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'retained_sync_fields';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RetainedSyncFieldsRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('record_id')) {
+      context.handle(
+        _recordIdMeta,
+        recordId.isAcceptableOrUnknown(data['record_id']!, _recordIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordIdMeta);
+    }
+    if (data.containsKey('whole_record')) {
+      context.handle(
+        _wholeRecordMeta,
+        wholeRecord.isAcceptableOrUnknown(
+          data['whole_record']!,
+          _wholeRecordMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {kind, recordId};
+  @override
+  RetainedSyncFieldsRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RetainedSyncFieldsRow(
+      kind: $RetainedSyncFieldsTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      recordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_id'],
+      )!,
+      wholeRecord: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}whole_record'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+    );
+  }
+
+  @override
+  $RetainedSyncFieldsTable createAlias(String alias) {
+    return $RetainedSyncFieldsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<SyncRecordKind, String, String> $converterkind =
+      const EnumNameConverter(SyncRecordKind.values);
+}
+
+class RetainedSyncFieldsRow extends DataClass
+    implements Insertable<RetainedSyncFieldsRow> {
+  final SyncRecordKind kind;
+  final String recordId;
+  final bool wholeRecord;
+  final String payload;
+  const RetainedSyncFieldsRow({
+    required this.kind,
+    required this.recordId,
+    required this.wholeRecord,
+    required this.payload,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    {
+      map['kind'] = Variable<String>(
+        $RetainedSyncFieldsTable.$converterkind.toSql(kind),
+      );
+    }
+    map['record_id'] = Variable<String>(recordId);
+    map['whole_record'] = Variable<bool>(wholeRecord);
+    map['payload'] = Variable<String>(payload);
+    return map;
+  }
+
+  RetainedSyncFieldsCompanion toCompanion(bool nullToAbsent) {
+    return RetainedSyncFieldsCompanion(
+      kind: Value(kind),
+      recordId: Value(recordId),
+      wholeRecord: Value(wholeRecord),
+      payload: Value(payload),
+    );
+  }
+
+  factory RetainedSyncFieldsRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RetainedSyncFieldsRow(
+      kind: $RetainedSyncFieldsTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
+      recordId: serializer.fromJson<String>(json['recordId']),
+      wholeRecord: serializer.fromJson<bool>(json['wholeRecord']),
+      payload: serializer.fromJson<String>(json['payload']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'kind': serializer.toJson<String>(
+        $RetainedSyncFieldsTable.$converterkind.toJson(kind),
+      ),
+      'recordId': serializer.toJson<String>(recordId),
+      'wholeRecord': serializer.toJson<bool>(wholeRecord),
+      'payload': serializer.toJson<String>(payload),
+    };
+  }
+
+  RetainedSyncFieldsRow copyWith({
+    SyncRecordKind? kind,
+    String? recordId,
+    bool? wholeRecord,
+    String? payload,
+  }) => RetainedSyncFieldsRow(
+    kind: kind ?? this.kind,
+    recordId: recordId ?? this.recordId,
+    wholeRecord: wholeRecord ?? this.wholeRecord,
+    payload: payload ?? this.payload,
+  );
+  RetainedSyncFieldsRow copyWithCompanion(RetainedSyncFieldsCompanion data) {
+    return RetainedSyncFieldsRow(
+      kind: data.kind.present ? data.kind.value : this.kind,
+      recordId: data.recordId.present ? data.recordId.value : this.recordId,
+      wholeRecord: data.wholeRecord.present
+          ? data.wholeRecord.value
+          : this.wholeRecord,
+      payload: data.payload.present ? data.payload.value : this.payload,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RetainedSyncFieldsRow(')
+          ..write('kind: $kind, ')
+          ..write('recordId: $recordId, ')
+          ..write('wholeRecord: $wholeRecord, ')
+          ..write('payload: $payload')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(kind, recordId, wholeRecord, payload);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RetainedSyncFieldsRow &&
+          other.kind == this.kind &&
+          other.recordId == this.recordId &&
+          other.wholeRecord == this.wholeRecord &&
+          other.payload == this.payload);
+}
+
+class RetainedSyncFieldsCompanion
+    extends UpdateCompanion<RetainedSyncFieldsRow> {
+  final Value<SyncRecordKind> kind;
+  final Value<String> recordId;
+  final Value<bool> wholeRecord;
+  final Value<String> payload;
+  final Value<int> rowid;
+  const RetainedSyncFieldsCompanion({
+    this.kind = const Value.absent(),
+    this.recordId = const Value.absent(),
+    this.wholeRecord = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RetainedSyncFieldsCompanion.insert({
+    required SyncRecordKind kind,
+    required String recordId,
+    this.wholeRecord = const Value.absent(),
+    required String payload,
+    this.rowid = const Value.absent(),
+  }) : kind = Value(kind),
+       recordId = Value(recordId),
+       payload = Value(payload);
+  static Insertable<RetainedSyncFieldsRow> custom({
+    Expression<String>? kind,
+    Expression<String>? recordId,
+    Expression<bool>? wholeRecord,
+    Expression<String>? payload,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (kind != null) 'kind': kind,
+      if (recordId != null) 'record_id': recordId,
+      if (wholeRecord != null) 'whole_record': wholeRecord,
+      if (payload != null) 'payload': payload,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RetainedSyncFieldsCompanion copyWith({
+    Value<SyncRecordKind>? kind,
+    Value<String>? recordId,
+    Value<bool>? wholeRecord,
+    Value<String>? payload,
+    Value<int>? rowid,
+  }) {
+    return RetainedSyncFieldsCompanion(
+      kind: kind ?? this.kind,
+      recordId: recordId ?? this.recordId,
+      wholeRecord: wholeRecord ?? this.wholeRecord,
+      payload: payload ?? this.payload,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $RetainedSyncFieldsTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (recordId.present) {
+      map['record_id'] = Variable<String>(recordId.value);
+    }
+    if (wholeRecord.present) {
+      map['whole_record'] = Variable<bool>(wholeRecord.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RetainedSyncFieldsCompanion(')
+          ..write('kind: $kind, ')
+          ..write('recordId: $recordId, ')
+          ..write('wholeRecord: $wholeRecord, ')
+          ..write('payload: $payload, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$CompendiumDatabase extends GeneratedDatabase {
   _$CompendiumDatabase(QueryExecutor e) : super(e);
   $CompendiumDatabaseManager get managers => $CompendiumDatabaseManager(this);
@@ -13971,6 +14299,8 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
   late final $PublishedRecordsTable publishedRecords = $PublishedRecordsTable(
     this,
   );
+  late final $RetainedSyncFieldsTable retainedSyncFields =
+      $RetainedSyncFieldsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -14003,6 +14333,7 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
     pendingDeletions,
     reviewQueue,
     publishedRecords,
+    retainedSyncFields,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -24682,6 +25013,203 @@ typedef $$PublishedRecordsTableProcessedTableManager =
       PublishedRecordRow,
       PrefetchHooks Function()
     >;
+typedef $$RetainedSyncFieldsTableCreateCompanionBuilder =
+    RetainedSyncFieldsCompanion Function({
+      required SyncRecordKind kind,
+      required String recordId,
+      Value<bool> wholeRecord,
+      required String payload,
+      Value<int> rowid,
+    });
+typedef $$RetainedSyncFieldsTableUpdateCompanionBuilder =
+    RetainedSyncFieldsCompanion Function({
+      Value<SyncRecordKind> kind,
+      Value<String> recordId,
+      Value<bool> wholeRecord,
+      Value<String> payload,
+      Value<int> rowid,
+    });
+
+class $$RetainedSyncFieldsTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $RetainedSyncFieldsTable> {
+  $$RetainedSyncFieldsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnWithTypeConverterFilters<SyncRecordKind, SyncRecordKind, String>
+  get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get wholeRecord => $composableBuilder(
+    column: $table.wholeRecord,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RetainedSyncFieldsTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $RetainedSyncFieldsTable> {
+  $$RetainedSyncFieldsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get wholeRecord => $composableBuilder(
+    column: $table.wholeRecord,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RetainedSyncFieldsTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $RetainedSyncFieldsTable> {
+  $$RetainedSyncFieldsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumnWithTypeConverter<SyncRecordKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get recordId =>
+      $composableBuilder(column: $table.recordId, builder: (column) => column);
+
+  GeneratedColumn<bool> get wholeRecord => $composableBuilder(
+    column: $table.wholeRecord,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+}
+
+class $$RetainedSyncFieldsTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $RetainedSyncFieldsTable,
+          RetainedSyncFieldsRow,
+          $$RetainedSyncFieldsTableFilterComposer,
+          $$RetainedSyncFieldsTableOrderingComposer,
+          $$RetainedSyncFieldsTableAnnotationComposer,
+          $$RetainedSyncFieldsTableCreateCompanionBuilder,
+          $$RetainedSyncFieldsTableUpdateCompanionBuilder,
+          (
+            RetainedSyncFieldsRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $RetainedSyncFieldsTable,
+              RetainedSyncFieldsRow
+            >,
+          ),
+          RetainedSyncFieldsRow,
+          PrefetchHooks Function()
+        > {
+  $$RetainedSyncFieldsTableTableManager(
+    _$CompendiumDatabase db,
+    $RetainedSyncFieldsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RetainedSyncFieldsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RetainedSyncFieldsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RetainedSyncFieldsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<SyncRecordKind> kind = const Value.absent(),
+                Value<String> recordId = const Value.absent(),
+                Value<bool> wholeRecord = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RetainedSyncFieldsCompanion(
+                kind: kind,
+                recordId: recordId,
+                wholeRecord: wholeRecord,
+                payload: payload,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required SyncRecordKind kind,
+                required String recordId,
+                Value<bool> wholeRecord = const Value.absent(),
+                required String payload,
+                Value<int> rowid = const Value.absent(),
+              }) => RetainedSyncFieldsCompanion.insert(
+                kind: kind,
+                recordId: recordId,
+                wholeRecord: wholeRecord,
+                payload: payload,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RetainedSyncFieldsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $RetainedSyncFieldsTable,
+      RetainedSyncFieldsRow,
+      $$RetainedSyncFieldsTableFilterComposer,
+      $$RetainedSyncFieldsTableOrderingComposer,
+      $$RetainedSyncFieldsTableAnnotationComposer,
+      $$RetainedSyncFieldsTableCreateCompanionBuilder,
+      $$RetainedSyncFieldsTableUpdateCompanionBuilder,
+      (
+        RetainedSyncFieldsRow,
+        BaseReferences<
+          _$CompendiumDatabase,
+          $RetainedSyncFieldsTable,
+          RetainedSyncFieldsRow
+        >,
+      ),
+      RetainedSyncFieldsRow,
+      PrefetchHooks Function()
+    >;
 
 class $CompendiumDatabaseManager {
   final _$CompendiumDatabase _db;
@@ -24742,4 +25270,6 @@ class $CompendiumDatabaseManager {
       $$ReviewQueueTableTableManager(_db, _db.reviewQueue);
   $$PublishedRecordsTableTableManager get publishedRecords =>
       $$PublishedRecordsTableTableManager(_db, _db.publishedRecords);
+  $$RetainedSyncFieldsTableTableManager get retainedSyncFields =>
+      $$RetainedSyncFieldsTableTableManager(_db, _db.retainedSyncFields);
 }

@@ -537,19 +537,119 @@
   "@settingsSyncQuotaExcludeImports": {
     "description": "Button under settingsSyncQuotaNearlyFull. Turns on the setting titled settingsSyncExcludeImportsTitle, which stops this device uploading imported dances nothing else uses. Shown only while that setting is off."
   },
-  "settingsSyncNoticeNewerVersion": "{count, plural, =1{Another device is using a newer version of the app. Update the app on this device to receive 1 item.} other{Another device is using a newer version of the app. Update the app on this device to receive {count} items.}}",
-  "@settingsSyncNoticeNewerVersion": {
-    "description": "Device Sync notice when another device shared items in a newer format than this version of the app can read. {count} is how many items are waiting. The remedy is always updating the app on THIS device.",
+  "settingsSyncNoticeNewerVersionItems": "Another device is using a newer version of the app. Update the app on this device to receive {items}.",
+  "@settingsSyncNoticeNewerVersionItems": {
+    "description": "Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version cannot keep (for example new figure details). {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example \"3 programs, 1 setting\". The remedy is always updating the app on THIS device.",
+    "placeholders": {
+      "items": {
+        "type": "String",
+        "example": "3 programs, 1 setting"
+      }
+    }
+  },
+  "settingsSyncNoticeCountDance": "{count, plural, =1{1 dance} other{{count} dances}}",
+  "@settingsSyncNoticeCountDance": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many dances are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
     "placeholders": {
       "count": {
         "type": "int",
-        "example": "4"
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountProgram": "{count, plural, =1{1 program} other{{count} programs}}",
+  "@settingsSyncNoticeCountProgram": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many programs are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountChoreographer": "{count, plural, =1{1 choreographer} other{{count} choreographers}}",
+  "@settingsSyncNoticeCountChoreographer": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many choreographers are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountTag": "{count, plural, =1{1 tag} other{{count} tags}}",
+  "@settingsSyncNoticeCountTag": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many tags are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountCustomField": "{count, plural, =1{1 custom field} other{{count} custom fields}}",
+  "@settingsSyncNoticeCountCustomField": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many custom fields are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountDifficulty": "{count, plural, =1{1 difficulty level} other{{count} difficulty levels}}",
+  "@settingsSyncNoticeCountDifficulty": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many difficulty levels are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountPublishedSource": "{count, plural, =1{1 published source} other{{count} published sources}}",
+  "@settingsSyncNoticeCountPublishedSource": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many published sources are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountVenue": "{count, plural, =1{1 venue} other{{count} venues}}",
+  "@settingsSyncNoticeCountVenue": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many venues are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountSetting": "{count, plural, =1{1 setting} other{{count} settings}}",
+  "@settingsSyncNoticeCountSetting": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many settings are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
       }
     }
   },
   "settingsSyncNoticeNewerVersionUncounted": "Another device is using a newer version of the app. Update the app on this device to receive its changes.",
   "@settingsSyncNoticeNewerVersionUncounted": {
-    "description": "Variant of settingsSyncNoticeNewerVersion used when this device cannot tell how many items are waiting, because the other device's list of what it shares is itself in the newer format."
+    "description": "Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting, because the other device's list of what it shares is itself in the newer format."
+  },
+  "settingsSyncNoticeKeptNewerItems": "Kept for a newer version of the app: {items}. These still sync, with details this version can't show. Update the app on this device to see them.",
+  "@settingsSyncNoticeKeptNewerItems": {
+    "description": "Informational Device Sync notice (not a problem): records on this device carry details that a newer version of the app added. This version keeps those details and syncs them back unchanged, but cannot display them. {items} is a list of counts by kind built from the settingsSyncNoticeCount* strings, for example \"3 programs, 1 setting\".",
+    "placeholders": {
+      "items": {
+        "type": "String",
+        "example": "3 programs, 1 setting"
+      }
+    }
   },
   "settingsSyncCopyDetails": "Copy details",
   "@settingsSyncCopyDetails": {
@@ -643,7 +743,7 @@
   },
   "settingsSyncNoticeListSeparator": ", ",
   "@settingsSyncNoticeListSeparator": {
-    "description": "Separator between items in the settingsSyncNoticeAffected list. Include any spacing your language uses."
+    "description": "Separator between items in a Device Sync notice's lists: the records in settingsSyncNoticeAffected, and the counts by kind in settingsSyncNoticeNewerVersionItems (for example \"3 programs, 1 setting\"). Include any spacing your language uses."
   },
   "settingsSyncNoticeRecordNamed": "{kind} “{name}”",
   "@settingsSyncNoticeRecordNamed": {
@@ -662,6 +762,30 @@
   "settingsSyncNoticeRecordNotHere": "{kind} not on this device",
   "@settingsSyncNoticeRecordNotHere": {
     "description": "One record in the settingsSyncNoticeAffected list that this device does not have, so there is no name to show — typically a record from another device that was skipped. {kind} is a syncReviewKind* label such as \"Dance\".",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "Dance"
+      }
+    }
+  },
+  "settingsSyncNoticeRecordNewerFigures": "{kind} “{name}” (has figures only a newer version can read)",
+  "@settingsSyncNoticeRecordNewerFigures": {
+    "description": "Variant of settingsSyncNoticeRecordNamed for a record another device shared that this version refused because a newer version of the app added something to its figures (the dance's steps). Tells the user what this version does not understand.",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "Dance"
+      },
+      "name": {
+        "type": "String",
+        "example": "Petronella"
+      }
+    }
+  },
+  "settingsSyncNoticeRecordNotHereNewerFigures": "{kind} not on this device (has figures only a newer version can read)",
+  "@settingsSyncNoticeRecordNotHereNewerFigures": {
+    "description": "Variant of settingsSyncNoticeRecordNotHere for a record this device does not have yet because it was refused: a newer version of the app added something to its figures (the dance's steps).",
     "placeholders": {
       "kind": {
         "type": "String",
@@ -968,6 +1092,10 @@
   "syncConflictUndoChanged": "Something newer arrived after you chose, so nothing was changed.",
   "@syncConflictUndoChanged": {
     "description": "Shown when an undo cannot be saved because the item changed since the original choice (for example, a newer edit arrived from another device)."
+  },
+  "syncConflictFieldProvenance": "Origin",
+  "@syncConflictFieldProvenance": {
+    "description": "Label in the sync conflict comparison for where a dance came from (its import source and licence), shown as the dance page's provenance line."
   },
   "syncConflictFieldColour": "Colour",
   "@syncConflictFieldColour": {
