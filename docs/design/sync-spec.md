@@ -2262,6 +2262,22 @@ republishes, which is an ordinary upload and needs no special path.
    applied. It MUST NOT be reported as an unreadable peer manifest, and on a
    fresh attach it MUST NOT fail the attach as a peer that could not be read:
    it is this device's request rate, not the peer, and it clears by waiting.
+   A `5xx` other than `507` here is the server failing, not the peer. On a
+   fresh attach, which cannot finish without every peer's list (§6.2), it
+   ends the pass as a transient failure, so the client retries by itself
+   rather than asking the user to see to their other devices. In steady state
+   that peer is skipped for the pass — nothing it lists is decided, and the
+   others still sync — but it MUST NOT be reported as an unreadable peer
+   manifest, whose remedy is the other device. Any other non-success answer,
+   a `404` included, is still about that peer's list and is reported as
+   before.
+
+   > **Amended 2026-10-12.** A `5xx` on a peer manifest was reported as an
+   > unreadable manifest in steady state and failed a fresh attach as a peer
+   > that could not be read; both pointed the user at their other devices
+   > for a server fault. The maintainer chose this split in the session that
+   > made the change, over stopping every pass on a `5xx` (which would lose
+   > the other peers' sync) and over leaving it as it was.
 4. Per record, resolve existence first (§6.4), then compare hashes and
    `updatedAt`:
 
