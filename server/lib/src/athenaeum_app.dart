@@ -29,6 +29,12 @@ const int maxGeneralRequestsPerStoreBurst = 600;
 /// request pays plus one per this many hashes, rounded up: `1 + ⌈n / 20⌉`, so
 /// a full batch of 200 costs 11 (spec §5.4).
 const int defaultBlobBatchHashesPerToken = 20;
+
+/// A `PUT /v1/blobs/batch` of `n` blobs costs the request token every request
+/// pays plus one per this many blobs, rounded up: `1 + ⌈n / 10⌉`, so a full
+/// batch of 50 costs 6 (spec §5.4). Fewer per token than a read because a blob
+/// costs the server about ten times as much to store as to read.
+const int defaultBlobUploadBlobsPerToken = 10;
 const int _maxTrackedRequestBuckets = 10000;
 
 void _writeOperationalAlert(AthenaeumOperationalAlert alert) {
@@ -189,7 +195,9 @@ class AthenaeumBudgetLimits {
     this.serverWideFailuresPerMinute = maxFailedResolutionsServerWide,
     this.creationsPerMinute = maxStoreCreationsPerMinute,
     this.blobBatchHashesPerToken = defaultBlobBatchHashesPerToken,
-  }) : assert(blobBatchHashesPerToken > 0);
+    this.blobUploadBlobsPerToken = defaultBlobUploadBlobsPerToken,
+  }) : assert(blobBatchHashesPerToken > 0),
+       assert(blobUploadBlobsPerToken > 0);
 
   final int perIpRequestsPerMinute;
   final int perIpRequestBurst;
@@ -202,6 +210,9 @@ class AthenaeumBudgetLimits {
 
   /// See [defaultBlobBatchHashesPerToken].
   final int blobBatchHashesPerToken;
+
+  /// See [defaultBlobUploadBlobsPerToken].
+  final int blobUploadBlobsPerToken;
 }
 
 class AthenaeumApp {
@@ -221,6 +232,7 @@ class AthenaeumApp {
              trustForwardedHeaders: config.trustForwardedHeadersFromLoopback,
            )),
        _blobBatchHashesPerToken = budgetLimits.blobBatchHashesPerToken,
+       _blobUploadBlobsPerToken = budgetLimits.blobUploadBlobsPerToken,
        _requestBudget = _RequestBudget(
          budgetLimits,
          clock: clock ?? DateTime.now,
@@ -256,6 +268,7 @@ class AthenaeumApp {
   late final AthenaeumStore store;
   final ClientAddressResolver _clientAddressResolver;
   final int _blobBatchHashesPerToken;
+  final int _blobUploadBlobsPerToken;
   final _RequestBudget _requestBudget;
   final _FailureBudget _failureBudget;
   final _CreationBudget _creationBudget;
@@ -717,10 +730,15 @@ class AthenaeumApp {
     } on SyncBlobBatchFormatException catch (error) {
       throw _RequestFailure(error.exceedsCap ? 413 : 400, error.message);
     }
+    // As for a batch read: one more token per [_blobUploadBlobsPerToken]
+    // blobs, charged once the store has resolved, or the batch is refused
+    // whole and stores nothing (spec §5.4).
     final retryAfter = _requestBudget.chargeExtra(
       address: _clientAddressResolver(request),
       idKey: identity.idKey,
-      tokens: _blobUploadExtraTokens(frames.length),
+      tokens:
+          (frames.length + _blobUploadBlobsPerToken - 1) ~/
+          _blobUploadBlobsPerToken,
     );
     if (retryAfter != null) return _rateLimitedResponse(retryAfter);
 
@@ -776,11 +794,6 @@ class AthenaeumApp {
     }
     return _jsonResponse(200, {'results': results});
   }
-
-  /// How many request tokens a batch upload of [blobs] blobs costs beyond the
-  /// one every request pays. Zero for now: how a batch upload is charged is
-  /// pending the maintainer's decision (spec §5.4).
-  int _blobUploadExtraTokens(int blobs) => 0;
 
   /// Records a refused blob in a batch upload as [_logFailure] records a
   /// refused single upload.

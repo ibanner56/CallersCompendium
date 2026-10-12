@@ -258,6 +258,120 @@ void main() {
     expect(await statuses(response), List.filled(20, 201));
   });
 
+  group('costing (spec §5.4)', () {
+    var now = DateTime.utc(2026, 10, 12);
+    late AthenaeumApp limited;
+    final full = [
+      for (var i = 0; i < syncBlobBatchMaxUploadBlobs; i++)
+        utf8.encode('{"n":$i}'),
+    ];
+
+    void limit(AthenaeumBudgetLimits limits) {
+      limited = AthenaeumApp(
+        config: app.config,
+        store: app.store,
+        clientAddressResolver: (request) =>
+            request.headers['x-test-ip'] ?? 'test',
+        clock: () => now,
+        budgetLimits: limits,
+      );
+    }
+
+    Future<Response> send(
+      List<List<int>> blobs, {
+      String ip = 'test',
+      String id = syncId,
+    }) async {
+      final response = await limited.call(
+        Request(
+          'PUT',
+          Uri.parse('http://127.0.0.1/v1/blobs/batch'),
+          headers: {
+            'authorization': 'Bearer ${encodeSyncCredential(id)}',
+            'content-type': syncBlobBatchMediaType,
+            'x-test-ip': ip,
+          },
+          body: frames(blobs),
+        ),
+      );
+      await response.read().drain<void>();
+      return response;
+    }
+
+    setUp(() => now = DateTime.utc(2026, 10, 12));
+
+    test('a full batch costs 6 tokens of the per-IP bucket, and one that '
+        'overdraws it is refused whole, storing nothing, with the wait it '
+        'needs', () async {
+      limit(
+        const AthenaeumBudgetLimits(
+          perIpRequestsPerMinute: 60,
+          perIpRequestBurst: 15,
+        ),
+      );
+      // 15 → 9 → 3: each batch takes its request token and 5 more.
+      // Blobs already held cost the same as new ones.
+      expect((await send(full)).statusCode, 200);
+      expect((await send(full)).statusCode, 200);
+      final fresh = [
+        for (var i = 0; i < syncBlobBatchMaxUploadBlobs; i++)
+          utf8.encode('{"fresh":$i}'),
+      ];
+      // The request token leaves 2; the batch needs 5 more.
+      final refused = await send(fresh);
+      expect(refused.statusCode, 429);
+      expect(app.store.blobRef(idKey, epoch, sha256Hex(fresh[0])), isNull);
+      // 2 left, and the same batch again needs 6: 4 seconds at 60 a minute.
+      expect(refused.headers['retry-after'], '4');
+      now = now.add(const Duration(seconds: 3));
+      expect((await send(fresh)).statusCode, 429);
+      now = now.add(const Duration(seconds: 4));
+      expect((await send(fresh)).statusCode, 200);
+      expect(app.store.blobRef(idKey, epoch, sha256Hex(fresh[0])), isNotNull);
+    });
+
+    test('the per-store bucket is charged too', () async {
+      limit(
+        const AthenaeumBudgetLimits(
+          perStoreRequestsPerMinute: 60,
+          perStoreRequestBurst: 15,
+        ),
+      );
+      expect((await send(full, ip: 'a')).statusCode, 200);
+      expect((await send(full, ip: 'b')).statusCode, 200);
+      final refused = await send(full, ip: 'c');
+      expect(refused.statusCode, 429);
+      expect(refused.headers['retry-after'], '4');
+    });
+
+    test('the cost rises one token per 10 blobs', () async {
+      limit(
+        const AthenaeumBudgetLimits(
+          perIpRequestsPerMinute: 1,
+          perIpRequestBurst: 6,
+        ),
+      );
+      // 10 blobs cost 2 and 11 cost 3: 6 → 4 → 1, then 10 more is refused.
+      expect((await send(full.sublist(0, 10))).statusCode, 200);
+      expect((await send(full.sublist(0, 11))).statusCode, 200);
+      expect((await send(full.sublist(0, 10))).statusCode, 429);
+    });
+
+    test('a store that does not resolve pays only its request token', () async {
+      limit(
+        const AthenaeumBudgetLimits(
+          perIpRequestsPerMinute: 1,
+          perIpRequestBurst: 7,
+        ),
+      );
+      final guessed = await send(full, id: 'unknown-horse-battery-staple');
+      expect(guessed.statusCode, 404);
+      // 6 left: exactly one full batch.
+      expect((await send(full)).statusCode, 200);
+      expect((await send(full)).statusCode, 429);
+    });
+  });
+
   test('a GET on the batch route lists both methods it serves', () async {
     final response = await app.call(
       Request(
