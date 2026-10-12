@@ -5397,6 +5397,61 @@ void main() {
       expect(result.failure?.progressed, isTrue);
       expect(transport.manifestPuts, 0);
     });
+
+    test('a network failure asking which blobs are missing is a temporary '
+        'result at the upload step, not a throw', () async {
+      final transport = transportMissingAll();
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(local: {for (final c in local) c.address: c}),
+        transport: _FakeTransport(
+          missingResponses: transport.missingResponses,
+          onPostMissing: (_) async =>
+              throw const SyncTransportException('request timed out'),
+        ),
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.timedOut);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.progressed, isFalse);
+    });
+
+    test('a later missing-blob batch that fails keeps the progress of the '
+        'batches before it', () async {
+      // `POST /v1/blobs/missing` takes at most 10,000 hashes, so a library
+      // this size asks twice. The first batch's uploads all land; the second
+      // request drops. Those uploads are still progress.
+      final many = [
+        for (var i = 0; i <= 10000; i++)
+          SyncMergeCandidate.fromBlob(
+            _dance('dance-$i', updatedAt: DateTime.utc(2026, 7, 15, 12)),
+          ),
+      ];
+      var asks = 0;
+      final transport = _FakeTransport(
+        missingResponses: [
+          [for (final c in many) c.wireHash],
+        ],
+        onPostMissing: (_) async {
+          if (++asks == 2) throw const SocketException('connection reset');
+        },
+      );
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(local: {for (final c in many) c.address: c}),
+        transport: transport,
+      ).syncNow();
+
+      expect(asks, 2);
+      expect(transport.putBlobHashes, isNotEmpty);
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.unreachable);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.progressed, isTrue);
+    });
   });
 
   group('a peer running a newer app version (spec §6.9)', () {
