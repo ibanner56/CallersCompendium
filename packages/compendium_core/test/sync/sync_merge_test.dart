@@ -296,6 +296,108 @@ void main() {
       SyncRecordKind.choreographer: {'c2': 'c1'},
     };
 
+    group('differing in a field only a newer version syncs (spec §6.7)', () {
+      // This build can neither show nor judge the difference, so it neither
+      // asks its user nor settles the tie — the settled copy could be the one
+      // without the newer field, and every device would keep it. It stands
+      // aside and leaves the choice to a device that understands the field.
+      SyncMergePlan plan(SyncRecordBlob mine, SyncRecordBlob theirs) =>
+          engine.plan(
+            local: {mine.address: SyncMergeCandidate.fromBlob(mine)},
+            baseline: const {},
+            peers: [
+              {mine.address: SyncMergeCandidate.fromBlob(theirs, peerId: 'p')},
+            ],
+          );
+
+      test('stands aside: a report, no winner and no review', () {
+        final mine = record(SyncRecordKind.tag, 't1', {
+          'name': 'Tag',
+          'color': null,
+          'addedLater': 'one',
+        });
+        final theirs = record(SyncRecordKind.tag, 't1', {
+          'name': 'Tag',
+          'color': null,
+          'addedLater': 'two',
+        });
+
+        final result = plan(mine, theirs);
+
+        expect(result.decisions.single.action, SyncMergeAction.report);
+        expect(result.reports.single.code, SyncReportCode.newerRecordFields);
+        expect(result.reports.single.recordId, 't1');
+      });
+
+      test('stands aside even where the copies also differ in a field this '
+          'build hides', () {
+        Map<String, Object?> provenance(String importedAt) => {
+          'source': 'contradb',
+          'externalId': null,
+          'importedAt': importedAt,
+          'permission': null,
+          'license': null,
+          'sourceVersion': null,
+        };
+        final mine = _danceCandidate(
+          'd1',
+          'Same',
+          provenance: provenance('2026-01-01T00:00:00.000Z'),
+        ).blob;
+        final theirs = _danceCandidate(
+          'd1',
+          'Same',
+          provenance: {
+            ...provenance('2026-02-01T00:00:00.000Z'),
+            'handedness': 'left',
+          },
+        ).blob;
+
+        final result = plan(mine, theirs);
+
+        expect(result.decisions.single.action, SyncMergeAction.report);
+        expect(result.reports.single.code, SyncReportCode.newerRecordFields);
+      });
+
+      test('a kind with no visible-field list does not ask over it either', () {
+        // A field this build does not sync counted as shown for kinds with no
+        // list of shown fields; it must not reach a review its user cannot
+        // read.
+        final mine = record(SyncRecordKind.difficultyLevel, 'l1', {
+          'label': 'Easy',
+          'position': 0,
+          'addedLater': 1,
+        });
+        final theirs = record(SyncRecordKind.difficultyLevel, 'l1', {
+          'label': 'Easy',
+          'position': 0,
+          'addedLater': 2,
+        });
+
+        final result = plan(mine, theirs);
+
+        expect(result.decisions.single.action, SyncMergeAction.report);
+        expect(result.reports.single.code, SyncReportCode.newerRecordFields);
+      });
+
+      test('still asks when a field this build shows differs too', () {
+        final mine = record(SyncRecordKind.tag, 't1', {
+          'name': 'Mine',
+          'color': null,
+          'addedLater': 'one',
+        });
+        final theirs = record(SyncRecordKind.tag, 't1', {
+          'name': 'Theirs',
+          'color': null,
+          'addedLater': 'two',
+        });
+
+        final result = plan(mine, theirs);
+
+        expect(result.decisions.single.conflict, isNotNull);
+      });
+    });
+
     test('is not asked, and downloads nothing, when the copies differ only '
         'in their own id', () {
       // Several names, so the outcome cannot hang on how two hashes order:

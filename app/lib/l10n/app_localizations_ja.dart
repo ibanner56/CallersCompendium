@@ -512,6 +512,11 @@ class AppLocalizationsJa extends AppLocalizations {
       '別のデバイスで新しいバージョンのアプリが使われています。その変更を受け取るには、このデバイスのアプリを更新してください。';
 
   @override
+  String settingsSyncNoticeKeptNewerItems(String items) {
+    return '新しいバージョンのアプリのために保持しています：$items。このバージョンでは表示できない詳細を含めたまま、引き続き同期されます。表示するには、このデバイスのアプリを更新してください。';
+  }
+
+  @override
   String get settingsSyncCopyDetails => '詳細をコピー';
 
   @override
@@ -592,6 +597,16 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String settingsSyncNoticeRecordNotHere(String kind) {
     return '$kind（このデバイスにはありません）';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNewerFigures(String kind, String name) {
+    return '$kind「$name」（新しいバージョンでしか読めないフィギュアを含みます）';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHereNewerFigures(String kind) {
+    return 'このデバイスにない$kind（新しいバージョンでしか読めないフィギュアを含みます）';
   }
 
   @override

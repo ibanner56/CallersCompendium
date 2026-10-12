@@ -38,6 +38,7 @@ import 'sync_quarantine.dart'
 import 'sync_record_kind.dart';
 import 'sync_reconciliation.dart';
 import 'sync_report.dart';
+import 'sync_retained_fields.dart';
 import 'sync_review.dart';
 
 Iterable<List<T>> _chunked<T>(Iterable<T> values, int size) sync* {
@@ -155,8 +156,15 @@ class SyncStorageSnapshot {
   /// advancement while their local citations still exist.
   final Set<SyncRecordAddress> pending;
 
-  /// Records this snapshot withheld from publication because this device could
-  /// not decode their stored content (spec §6.9, #1347).
+  /// Reports about this device's own records: those this snapshot withheld
+  /// from publication because this device could not decode their stored
+  /// content (spec §6.9, #1347), and those it publishes with details kept for
+  /// a newer version of the app, which it cannot show (§6.7).
+  ///
+  /// The second kind joined the first here rather than getting a field of its
+  /// own because both are snapshot-time facts the coordinator forwards to the
+  /// pass report unchanged; a separate field would add a coordinator change
+  /// for no difference in behaviour.
   ///
   /// Carried on the snapshot rather than emitted through a sink passed down
   /// into storage: the coordinator owns the per-pass [SyncReportSink], and the
@@ -372,6 +380,14 @@ final class CompendiumSyncStorage
       for (final entry in customFields)
         if (entry.field.shareable && !entry.deleted) entry.field.id,
     };
+    final retainedRows = await repositories.syncLocal.listRetainedSyncFields();
+    final retainedParts = {
+      for (final row in retainedRows)
+        if (!row.wholeRecord)
+          (kind: row.kind, recordId: row.recordId): _decodeRetainedPayload(
+            row.payload,
+          ),
+    };
 
     Future<void> addEntity({
       required SyncRecordKind kind,
@@ -381,6 +397,7 @@ final class CompendiumSyncStorage
       required DateTime existenceAt,
       DateTime? deletedAt,
     }) async {
+      final address = (kind: kind, recordId: id);
       final blob = syncRecordBlobForEntity(
         kind,
         entity,
@@ -388,9 +405,9 @@ final class CompendiumSyncStorage
         deletedAt: deletedAt,
         existenceAt: existenceAt,
         allowedCustomFieldIds: allowedCustomFieldIds,
+        retained: retainedParts[address],
       );
       if (blob == null) return;
-      final address = (kind: kind, recordId: id);
       local[address] = SyncMergeCandidate(
         blob: blob,
         wireHash: sha256Hex(encodeSyncRecordBlobUtf8(blob)),
@@ -592,18 +609,81 @@ final class CompendiumSyncStorage
       if (classifySettingsKey(row.key)?.egress != EgressClass.shareable) {
         continue;
       }
-      final blob = SyncSettingsRecord(
+      final settingBlob = SyncSettingsRecord(
         key: row.key,
         value: jsonDecode(row.valueJson),
         updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
         deletedAt: row.deletedAt,
         existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
       ).toBlob();
-      if (blob == null) continue;
+      if (settingBlob == null) continue;
       final address = (kind: SyncRecordKind.setting, recordId: row.key);
+      final kept = retainedParts[address];
+      final blob = kept == null
+          ? settingBlob
+          : SyncRecordBlob(
+              kind: SyncRecordKind.setting,
+              id: row.key,
+              updatedAt: settingBlob.updatedAt,
+              deletedAt: settingBlob.deletedAt,
+              existenceAt: settingBlob.existenceAt,
+              body: mergeRetainedFields(settingBlob.body, kept),
+            );
       local[address] = SyncMergeCandidate(
         blob: blob,
         wireHash: sha256Hex(encodeSyncRecordBlobUtf8(blob)),
+      );
+    }
+
+    // Settings this build does not sync, kept whole for a newer version and
+    // shared back as they came (spec §6.7). They are this device's copy of
+    // the record like any other, so they merge and publish as local.
+    for (final row in retainedRows) {
+      if (!row.wholeRecord) continue;
+      final blob = decodeSyncRecordBlob(row.payload);
+      final address = (kind: row.kind, recordId: row.recordId);
+      if (blob.kind != row.kind || blob.id != row.recordId) {
+        throw StateError('kept record does not match its stored identity');
+      }
+      local[address] = SyncMergeCandidate(
+        blob: blob,
+        wireHash: sha256Hex(encodeSyncRecordBlobUtf8(blob)),
+      );
+    }
+
+    // Parts kept for a record that no longer exists — hard-deleted, purged —
+    // go with it: third-party content must not outlive its record here.
+    final withheldAddresses = {
+      for (final report in withheld)
+        if ((report.kind, report.recordId) case (final kind?, final recordId?))
+          (kind: kind, recordId: recordId),
+    };
+    final pendingRowAddresses = {
+      for (final row in pendingRows) (kind: row.kind, recordId: row.recordId),
+    };
+    for (final row in retainedRows) {
+      final address = (kind: row.kind, recordId: row.recordId);
+      if (local.containsKey(address)) {
+        withheld.add(
+          SyncReport(
+            code: SyncReportCode.keptNewerFields,
+            kind: row.kind,
+            recordId: row.recordId,
+            message: row.wholeRecord
+                ? 'Kept whole for a newer version of the app.'
+                : 'Carries fields kept for a newer version of the app.',
+          ),
+        );
+        continue;
+      }
+      if (pendingRowAddresses.contains(address) ||
+          withheldAddresses.contains(address)) {
+        continue;
+      }
+      await repositories.syncLocal.setRetainedSyncFields(
+        kind: row.kind,
+        recordId: row.recordId,
+        payload: null,
       );
     }
 
@@ -928,6 +1008,11 @@ final class CompendiumSyncStorage
       for (final pending in await repositories.syncLocal.listPendingDeletions())
         if (pending.kind == SyncRecordKind.dance) pending.recordId,
     };
+    final retainedDances = {
+      for (final row in await repositories.syncLocal.listRetainedSyncFields())
+        if (row.kind == SyncRecordKind.dance && !row.wholeRecord)
+          row.recordId: _decodeRetainedPayload(row.payload),
+    };
     final candidates = <SyncMergeCandidate>[];
     for (final dance in dances) {
       // The live row is only retained until its inbound tombstone can apply.
@@ -961,6 +1046,7 @@ final class CompendiumSyncStorage
         deletedAt: row.deletedAt,
         existenceAt: row.existenceAt ?? row.updatedAt,
         allowedCustomFieldIds: allowedCustomFieldIds,
+        retained: retainedDances[dance.id],
       );
       if (blob != null) candidates.add(SyncMergeCandidate(blob: blob));
     }
@@ -977,7 +1063,10 @@ final class CompendiumSyncStorage
         await repositories.dances.readDeviceLocalCustomFields(losingId),
       );
     }
-    final body = _rewriteDanceReferences(merge.winner.blob.body, aliases);
+    final body = _rewriteDanceReferences(
+      syncInboundKnownBody(merge.winner.blob),
+      aliases,
+    );
     final record = SyncApplyRecord(
       address: merge.winner.address,
       body: body,
@@ -1022,6 +1111,9 @@ final class CompendiumSyncStorage
       deletedAt: record.deletedAt,
       existenceAt: record.existenceAt,
     );
+    // The merged body is the survivor's whole record, so what it keeps for a
+    // newer version replaces what the survivor and losers kept before.
+    await _storeRetained(record);
     await _reconcileDanceReviewQueue(
       survivorId: merge.winner.blob.id,
       losingIds: merge.losingIds.toSet(),
@@ -1180,7 +1272,7 @@ final class CompendiumSyncStorage
       }
       final body = _overlay(
         Map<String, Object?>.from(current ?? const {}),
-        blob.body,
+        syncInboundKnownBody(blob),
       );
       final record = SyncApplyRecord(
         address: (kind: blob.kind, recordId: blob.id),
@@ -2097,7 +2189,10 @@ final class CompendiumSyncStorage
     final report = await writeWithReport(
       SyncApplyRecord(
         address: candidateAddress,
-        body: _overlay(currentCandidateBody, candidateForApply.body),
+        body: _overlay(
+          currentCandidateBody,
+          syncInboundKnownBody(candidateForApply),
+        ),
         updatedAt: candidateForApply.updatedAt,
         deletedAt: candidateForApply.deletedAt,
         existenceAt: candidateForApply.existenceAt,
@@ -2342,7 +2437,10 @@ final class CompendiumSyncStorage
     final report = await writeWithReport(
       SyncApplyRecord(
         address: candidateAddress,
-        body: _overlay(currentCandidateBody, candidateForApply.body),
+        body: _overlay(
+          currentCandidateBody,
+          syncInboundKnownBody(candidateForApply),
+        ),
         updatedAt: candidateForApply.updatedAt,
         deletedAt: candidateForApply.deletedAt,
         existenceAt: candidateForApply.existenceAt,
@@ -2511,6 +2609,10 @@ final class CompendiumSyncStorage
       deletedAt: row.deletedAt,
       existenceAt: row.existenceAt ?? row.updatedAt,
       allowedCustomFieldIds: allowedCustomFieldIds,
+      retained: await retainedSyncParts((
+        kind: SyncRecordKind.dance,
+        recordId: id,
+      )),
     );
     return blob == null ? null : SyncMergeCandidate(blob: blob);
   }
@@ -3264,7 +3366,15 @@ final class CompendiumSyncStorage
     if (candidate.blob.kind == SyncRecordKind.setting) return admission;
 
     try {
-      _decodeEntity(candidate.blob.kind, admitted.blob.body);
+      // Only the part this build syncs is ever written, so only it is checked:
+      // a kept field it does not apply cannot make the record malformed.
+      _decodeEntity(
+        candidate.blob.kind,
+        partitionInboundRecordBody(
+          candidate.blob.kind,
+          admitted.blob.body,
+        ).known,
+      );
     } on Object catch (error) {
       return SyncInboundCandidateAdmission.rejected(
         SyncReport(
@@ -3746,9 +3856,27 @@ final class CompendiumSyncStorage
         updatedAt: metadata.updatedAt,
         deletedAt: metadata.deletedAt,
         existenceAt: metadata.existenceAt,
-        body: syncBodyForEntity(kind, entity),
+        body: syncBodyForEntity(
+          kind,
+          entity,
+          retained: await retainedSyncParts((kind: kind, recordId: id)),
+        ),
       ),
     );
+  }
+
+  /// What this device keeps of [address] for a newer version of the app, to
+  /// put back into any body it builds for the record (spec §6.7); null when
+  /// it keeps nothing, or keeps the record whole.
+  Future<Map<String, Object?>?> retainedSyncParts(
+    SyncRecordAddress address,
+  ) async {
+    final row = await repositories.syncLocal.getRetainedSyncFields(
+      kind: address.kind,
+      recordId: address.recordId,
+    );
+    if (row == null || row.wholeRecord) return null;
+    return _decodeRetainedPayload(row.payload);
   }
 
   /// Whether [candidate] would actually resolve a baseline-absent live local
@@ -4701,6 +4829,12 @@ final class CompendiumSyncStorage
       return null;
     }
     if (kind == SyncRecordKind.setting) {
+      if (_isWholeRetainedSetting(record)) {
+        // A setting this build does not sync: nothing to apply, and the
+        // peer's blob is kept to share back as it came (spec §6.7).
+        await _storeRetained(record);
+        return null;
+      }
       final value = record.body['value'];
       await _db
           .into(_db.settings)
@@ -4713,6 +4847,7 @@ final class CompendiumSyncStorage
               existenceAt: Value(record.existenceAt),
             ),
           );
+      await _storeRetained(record);
       return null;
     }
 
@@ -4792,6 +4927,7 @@ final class CompendiumSyncStorage
     // — a malformed body, a held natural key — and the deletion could never
     // apply again, because nothing else remembers it.
     await _cancelOutrankedPendingDeletion(record);
+    await _storeRetained(record);
     return report;
   }
 
@@ -4963,7 +5099,55 @@ final class CompendiumSyncStorage
     // where its deferred tombstone may be cancelled — not at the parent write,
     // which the joins phase can still undo.
     await _cancelOutrankedPendingDeletion(record);
+    // Inside the same savepoint, so a failed join keeps the parts this device
+    // kept before rather than the incoming ones.
+    await _storeRetained(record);
     return null;
+  }
+
+  bool _isWholeRetainedSetting(SyncApplyRecord record) {
+    final blob = record.sourceBlob;
+    return blob != null &&
+        partitionInboundRecordBody(
+          SyncRecordKind.setting,
+          blob.body,
+          settingsKey: record.address.recordId,
+        ).wholeRecord;
+  }
+
+  /// Replaces what this device keeps of [record] for a newer version of the
+  /// app with what the record it is applying carries (spec §6.7) — keeping
+  /// nothing when the incoming body has nothing to keep. The incoming record is
+  /// the whole record: a part it no longer carries is gone everywhere.
+  ///
+  /// Read from the peer's blob, never from `record.body`, which is that blob's
+  /// known part overlaid on this device's full local body.
+  Future<void> _storeRetained(SyncApplyRecord record) async {
+    final blob = record.sourceBlob;
+    if (blob == null) return;
+    final kind = record.address.kind;
+    final split = partitionInboundRecordBody(
+      kind,
+      blob.body,
+      settingsKey: kind == SyncRecordKind.setting
+          ? record.address.recordId
+          : null,
+    );
+    if (split.wholeRecord) {
+      await repositories.syncLocal.setRetainedSyncFields(
+        kind: kind,
+        recordId: record.address.recordId,
+        payload: encodeSyncRecordBlob(blob),
+        wholeRecord: true,
+      );
+      return;
+    }
+    final retained = split.retained;
+    await repositories.syncLocal.setRetainedSyncFields(
+      kind: kind,
+      recordId: record.address.recordId,
+      payload: retained == null ? null : canonicalJson(retained),
+    );
   }
 
   Future<void> _storePendingDeletion(SyncApplyRecord record) async {
@@ -6124,4 +6308,14 @@ class _ConflictChoicePlan {
   /// Wire hashes of copies on offer the choice did not show
   /// ([syncConflictChoiceCopyReason]); recorded as chosen against with it.
   final Set<String> copies;
+}
+
+/// The kept-parts tree stored for a record (spec §6.7), as
+/// [partitionInboundRecordBody] produced it.
+Map<String, Object?> _decodeRetainedPayload(String payload) {
+  final decoded = jsonDecode(payload);
+  if (decoded is! Map) {
+    throw StateError('kept sync fields are not a JSON object');
+  }
+  return decoded.cast<String, Object?>();
 }

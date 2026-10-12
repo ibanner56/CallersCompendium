@@ -488,6 +488,10 @@
   "@settingsSyncNoticeNewerVersionUncounted": {
     "x-sourceSha256": "ca371c7f36b6a2ca97e5fb9d8cd18cc2909af04e2973dec1a999d4e7a50fb339"
   },
+  "settingsSyncNoticeKeptNewerItems": "新しいバージョンのアプリのために保持しています：{items}。このバージョンでは表示できない詳細を含めたまま、引き続き同期されます。表示するには、このデバイスのアプリを更新してください。",
+  "@settingsSyncNoticeKeptNewerItems": {
+    "x-sourceSha256": "3217182e37c99c9a4d37ec173da3a608e206a4edb771bba48803bf68f2dd334a"
+  },
   "settingsSyncCopyDetails": "詳細をコピー",
   "@settingsSyncCopyDetails": {
     "x-sourceSha256": "ec7ee2826c849564576c1de2ff4bb666e39c191c746d2325d0ab110921491a96"
@@ -559,6 +563,14 @@
   "settingsSyncNoticeRecordNotHere": "{kind}（このデバイスにはありません）",
   "@settingsSyncNoticeRecordNotHere": {
     "x-sourceSha256": "26cb94ed02bbe50614443d20b73107a471d16600fe41f3425c65f60cded6a9e0"
+  },
+  "settingsSyncNoticeRecordNewerFigures": "{kind}「{name}」（新しいバージョンでしか読めないフィギュアを含みます）",
+  "@settingsSyncNoticeRecordNewerFigures": {
+    "x-sourceSha256": "8afc7ad25fad0c20ebd934e217ad05533a8a66f609193512af489b4f45a1484d"
+  },
+  "settingsSyncNoticeRecordNotHereNewerFigures": "このデバイスにない{kind}（新しいバージョンでしか読めないフィギュアを含みます）",
+  "@settingsSyncNoticeRecordNotHereNewerFigures": {
+    "x-sourceSha256": "f59ed5b584b43c2ebf01a65ce1ebc3b997669ff7ad4b5b083ecace816328e86e"
   },
   "settingsSyncNoticeAffectedMore": "{count, plural, other{ほか{count}件}}",
   "@settingsSyncNoticeAffectedMore": {

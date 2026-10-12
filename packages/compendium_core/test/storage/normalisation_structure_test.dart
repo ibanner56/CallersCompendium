@@ -31,6 +31,9 @@ const _normalisationExemptions = <String, String>{
       'choice strings are normalized before JSON encoding',
   'pending_deletions.tombstone_blob':
       'opaque hash-addressed sync payload; bytes must remain unchanged',
+  'retained_sync_fields.payload':
+      'kept parts of a peer body, put back verbatim so the wire hash matches; '
+      'admission already refused any body that is not canonical (§6.9)',
 };
 
 typedef _ShareableFields = Map<String, Map<String, Set<String>>>;

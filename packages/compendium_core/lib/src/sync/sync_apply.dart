@@ -5,6 +5,7 @@ import 'sync_merge.dart';
 import 'sync_quarantine.dart';
 import 'sync_record_kind.dart';
 import 'sync_report.dart';
+import 'sync_retained_fields.dart';
 
 /// The transaction-facing value passed to an inbound storage adapter.
 class SyncApplyRecord {
@@ -238,7 +239,7 @@ class SyncApplyEngine {
               final current = await storage.read(candidate.address) ?? const {};
               final merged = _overlay(
                 Map<String, Object?>.from(current),
-                Map<String, Object?>.from(candidate.blob.body),
+                syncInboundKnownBody(candidate.blob),
               );
               try {
                 final applyRecord = SyncApplyRecord(
@@ -432,7 +433,7 @@ class SyncApplyEngine {
           address: accepted.address,
           body: _overlay(
             Map<String, Object?>.from(current),
-            Map<String, Object?>.from(accepted.blob.body),
+            syncInboundKnownBody(accepted.blob),
           ),
           updatedAt: accepted.updatedAt,
           deletedAt: accepted.blob.deletedAt,
@@ -822,7 +823,7 @@ class SyncApplyEngine {
           ),
           SyncNewerFieldException() => (
             SyncReportCode.newerRecordFields,
-            'Inbound record carries a field this build does not sync',
+            'Inbound record carries a part this build cannot keep',
           ),
           _ => (SyncReportCode.malformedRecord, 'Malformed inbound record'),
         };
@@ -882,6 +883,19 @@ class SyncApplyEngine {
 }
 
 DateTime _syncNowUtc() => DateTime.now().toUtc();
+
+/// The part of an inbound [blob]'s body this build applies: everything it
+/// syncs, and nothing it keeps for a newer version (spec §6.7). Overlaying the
+/// whole body would write a kept private field into this device's own column.
+/// The kept parts travel separately, on the record's `sourceBlob`.
+Map<String, Object?> syncInboundKnownBody(SyncRecordBlob blob) =>
+    Map<String, Object?>.from(
+      partitionInboundRecordBody(
+        blob.kind,
+        blob.body,
+        settingsKey: blob.kind == SyncRecordKind.setting ? blob.id : null,
+      ).known,
+    );
 
 /// Rolls the inbound batch back when a named tombstone cannot be written.
 ///

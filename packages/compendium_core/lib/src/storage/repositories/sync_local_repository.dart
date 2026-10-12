@@ -194,6 +194,35 @@ class SyncLocalRepository {
     (tx) => tx.deletePendingDeletion(kind: kind, recordId: recordId),
   );
 
+  /// Every record this device keeps parts of for a newer version of the app
+  /// (spec §6.7).
+  Future<List<RetainedSyncFieldsRow>> listRetainedSyncFields() =>
+      _db.select(_db.retainedSyncFields).get();
+
+  Future<RetainedSyncFieldsRow?> getRetainedSyncFields({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) =>
+      (_db.select(_db.retainedSyncFields)..where(
+            (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+          ))
+          .getSingleOrNull();
+
+  /// Replaces what is kept of a record; a null [payload] keeps nothing.
+  Future<void> setRetainedSyncFields({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String? payload,
+    bool wholeRecord = false,
+  }) => transaction(
+    (tx) => tx.setRetainedSyncFields(
+      kind: kind,
+      recordId: recordId,
+      payload: payload,
+      wholeRecord: wholeRecord,
+    ),
+  );
+
   Future<List<ReviewQueueRow>> listReviewQueue() =>
       _db.select(_db.reviewQueue).get();
 
@@ -384,6 +413,10 @@ class SyncLocalTransaction {
     bool revalidatePending = true,
   }) async {
     await clearBaseline();
+    // A restore replaces the records these parts were kept for; what the
+    // restored records carry for a newer version, if anything, arrives again
+    // from a peer.
+    await _db.delete(_db.retainedSyncFields).go();
     if (revalidatePending) {
       await revalidatePendingDeletions(restoredRecords: restoredRecords);
     }
@@ -454,6 +487,62 @@ class SyncLocalTransaction {
             (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
           ))
           .go();
+
+  Future<void> setRetainedSyncFields({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String? payload,
+    bool wholeRecord = false,
+  }) async {
+    if (payload == null) {
+      await (_db.delete(_db.retainedSyncFields)..where(
+            (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+          ))
+          .go();
+      return;
+    }
+    await _db
+        .into(_db.retainedSyncFields)
+        .insertOnConflictUpdate(
+          RetainedSyncFieldsCompanion.insert(
+            kind: kind,
+            recordId: recordId,
+            wholeRecord: Value(wholeRecord),
+            payload: payload,
+          ),
+        );
+  }
+
+  /// Moves what is kept of [losingId] onto [survivingId] when two records
+  /// become one, unless the survivor already keeps its own parts.
+  Future<void> moveRetainedSyncFields({
+    required SyncRecordKind kind,
+    required String losingId,
+    required String survivingId,
+  }) async {
+    if (losingId == survivingId) return;
+    final losing =
+        await (_db.select(_db.retainedSyncFields)..where(
+              (row) =>
+                  row.kind.equals(kind.name) & row.recordId.equals(losingId),
+            ))
+            .getSingleOrNull();
+    if (losing == null) return;
+    await setRetainedSyncFields(kind: kind, recordId: losingId, payload: null);
+    final surviving =
+        await (_db.select(_db.retainedSyncFields)..where(
+              (row) =>
+                  row.kind.equals(kind.name) & row.recordId.equals(survivingId),
+            ))
+            .getSingleOrNull();
+    if (surviving != null) return;
+    await setRetainedSyncFields(
+      kind: kind,
+      recordId: survivingId,
+      payload: losing.payload,
+      wholeRecord: losing.wholeRecord,
+    );
+  }
 
   Future<void> enqueueReview({
     required SyncRecordKind kind,
@@ -553,6 +642,11 @@ class SyncLocalTransaction {
           .write(IdAliasesCompanion(survivingId: Value(target)));
     }
     await upsertAlias(kind: kind, losingId: losingId, survivingId: target);
+    await moveRetainedSyncFields(
+      kind: kind,
+      losingId: losingId,
+      survivingId: target,
+    );
 
     final publishedIds = {...rewrittenIds, target};
     for (final chunk in _chunked(publishedIds, 500)) {

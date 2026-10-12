@@ -539,7 +539,7 @@
   },
   "settingsSyncNoticeNewerVersionItems": "Another device is using a newer version of the app. Update the app on this device to receive {items}.",
   "@settingsSyncNoticeNewerVersionItems": {
-    "description": "Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version does not sync yet. {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example \"3 programs, 1 setting\". The remedy is always updating the app on THIS device.",
+    "description": "Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version cannot keep (for example new figure details). {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example \"3 programs, 1 setting\". The remedy is always updating the app on THIS device.",
     "placeholders": {
       "items": {
         "type": "String",
@@ -640,6 +640,16 @@
   "settingsSyncNoticeNewerVersionUncounted": "Another device is using a newer version of the app. Update the app on this device to receive its changes.",
   "@settingsSyncNoticeNewerVersionUncounted": {
     "description": "Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting, because the other device's list of what it shares is itself in the newer format."
+  },
+  "settingsSyncNoticeKeptNewerItems": "Kept for a newer version of the app: {items}. These still sync, with details this version can't show. Update the app on this device to see them.",
+  "@settingsSyncNoticeKeptNewerItems": {
+    "description": "Informational Device Sync notice (not a problem): records on this device carry details that a newer version of the app added. This version keeps those details and syncs them back unchanged, but cannot display them. {items} is a list of counts by kind built from the settingsSyncNoticeCount* strings, for example \"3 programs, 1 setting\".",
+    "placeholders": {
+      "items": {
+        "type": "String",
+        "example": "3 programs, 1 setting"
+      }
+    }
   },
   "settingsSyncCopyDetails": "Copy details",
   "@settingsSyncCopyDetails": {
@@ -752,6 +762,30 @@
   "settingsSyncNoticeRecordNotHere": "{kind} not on this device",
   "@settingsSyncNoticeRecordNotHere": {
     "description": "One record in the settingsSyncNoticeAffected list that this device does not have, so there is no name to show — typically a record from another device that was skipped. {kind} is a syncReviewKind* label such as \"Dance\".",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "Dance"
+      }
+    }
+  },
+  "settingsSyncNoticeRecordNewerFigures": "{kind} “{name}” (has figures only a newer version can read)",
+  "@settingsSyncNoticeRecordNewerFigures": {
+    "description": "Variant of settingsSyncNoticeRecordNamed for a record another device shared that this version refused because a newer version of the app added something to its figures (the dance's steps). Tells the user what this version does not understand.",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "Dance"
+      },
+      "name": {
+        "type": "String",
+        "example": "Petronella"
+      }
+    }
+  },
+  "settingsSyncNoticeRecordNotHereNewerFigures": "{kind} not on this device (has figures only a newer version can read)",
+  "@settingsSyncNoticeRecordNotHereNewerFigures": {
+    "description": "Variant of settingsSyncNoticeRecordNotHere for a record this device does not have yet because it was refused: a newer version of the app added something to its figures (the dance's steps).",
     "placeholders": {
       "kind": {
         "type": "String",
