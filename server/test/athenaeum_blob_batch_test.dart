@@ -396,7 +396,7 @@ void main() {
         'overdraws it is refused whole with the wait it needs', () async {
       limited = limitedApp(
         const AthenaeumBudgetLimits(
-          perIpRequestsPerMinute: 60,
+          perIpRequestsPerSecond: 1,
           perIpRequestBurst: 30,
         ),
       );
@@ -407,7 +407,7 @@ void main() {
       final refused = await batch(full);
       expect(refused.statusCode, 429);
       // Refused whole, so it took nothing beyond its request token: 7 left,
-      // and the same batch again needs 11. At 60 a minute that is 4 seconds,
+      // and the same batch again needs 11. At one a second that is 4 seconds,
       // and not a second sooner.
       expect(refused.headers['retry-after'], '4');
       now = now.add(const Duration(seconds: 3));
@@ -419,7 +419,7 @@ void main() {
     test('the per-store bucket is charged too', () async {
       limited = limitedApp(
         const AthenaeumBudgetLimits(
-          perStoreRequestsPerMinute: 60,
+          perStoreRequestsPerSecond: 1,
           perStoreRequestBurst: 30,
         ),
       );
@@ -434,7 +434,7 @@ void main() {
     test('the cost rises one token per 20 hashes', () async {
       limited = limitedApp(
         const AthenaeumBudgetLimits(
-          perIpRequestsPerMinute: 1,
+          perIpRequestsPerSecond: 1 / 60,
           perIpRequestBurst: 6,
         ),
       );
@@ -447,7 +447,7 @@ void main() {
     test('an empty batch costs only its request token', () async {
       limited = limitedApp(
         const AthenaeumBudgetLimits(
-          perIpRequestsPerMinute: 1,
+          perIpRequestsPerSecond: 1 / 60,
           perIpRequestBurst: 2,
         ),
       );
@@ -460,7 +460,7 @@ void main() {
         'the whole bucket', () async {
       limited = limitedApp(
         const AthenaeumBudgetLimits(
-          perIpRequestsPerMinute: 60,
+          perIpRequestsPerSecond: 1,
           perIpRequestBurst: 5,
         ),
       );
@@ -476,7 +476,7 @@ void main() {
     test('a store that does not resolve pays only its request token', () async {
       limited = limitedApp(
         const AthenaeumBudgetLimits(
-          perIpRequestsPerMinute: 1,
+          perIpRequestsPerSecond: 1 / 60,
           perIpRequestBurst: 12,
         ),
       );

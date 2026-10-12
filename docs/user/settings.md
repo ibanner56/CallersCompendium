@@ -580,8 +580,9 @@ Sync is off and open while it is on.
   large library usually finishes in one try, or a few for a very large one.
   Sending a large library of its own goes one record at a time, as does
   fetching from a self-hosted server that hasn't been updated for batched
-  fetching, and either can take several of these tries — roughly a minute for
-  every sixty records. Each try keeps what it got through, so while it is
+  fetching, and either can take several of these tries: roughly a minute for
+  every few hundred records, or for every sixty against a self-hosted server
+  that hasn't been updated. Each try keeps what it got through, so while it is
   still getting further the app tries again every minute rather than waiting
   longer, and nothing it hasn't fetched yet is reported as skipped. If the
   server has a problem sending another device's latest list, changes to

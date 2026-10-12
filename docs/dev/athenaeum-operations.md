@@ -104,9 +104,12 @@ client-supplied prefix cannot choose the rate-limit key even behind a proxy that
 appends instead of overwriting; Apache derives it from the underlying
 connection peer (`CONN_REMOTE_ADDR`) even if host-level `mod_remoteip` is
 enabled, and the application otherwise uses its peer address. The
-limits are independent: 10 failures per IP per minute, a burst of 20 failures
-per IP, 1,000 failures per minute server-wide, and 60 store creations per
-minute. A saturated server-wide failure budget must not block authenticated
+limits are independent: 5 requests per IP per second with a burst of 300, 15
+requests per store per second with a burst of 600, 10 failures per IP per
+minute, a burst of 20 failures per IP, 1,000 failures per minute server-wide,
+and 60 store creations per minute. There is deliberately no server-wide
+request limit (spec §5.4); `server/tool/load_test.dart` measures what the host
+sustains. A saturated server-wide failure budget must not block authenticated
 access to an existing store.
 
 Use a no-redirect probe after every Apache change in a direct-origin or staging

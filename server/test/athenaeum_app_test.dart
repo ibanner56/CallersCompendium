@@ -892,6 +892,14 @@ void main() {
     expect(missing.statusCode, 404);
   });
 
+  test('shipped request-rate limits are the ones spec §5.4 states', () {
+    const limits = AthenaeumBudgetLimits();
+    expect(limits.perIpRequestsPerSecond, 5);
+    expect(limits.perIpRequestBurst, 300);
+    expect(limits.perStoreRequestsPerSecond, 15);
+    expect(limits.perStoreRequestBurst, 600);
+  });
+
   test(
     'general client request budget limits successful sync requests',
     () async {
@@ -911,7 +919,7 @@ void main() {
           headers: {'authorization': authorization},
         ),
       );
-      for (var attempt = 0; attempt < 120; attempt++) {
+      for (var attempt = 0; attempt < 300; attempt++) {
         final response = await request();
         expect(response.statusCode, 200);
       }
@@ -937,7 +945,7 @@ void main() {
         clientAddressResolver: (_) => 'refill-client',
         clock: () => now,
         budgetLimits: const AthenaeumBudgetLimits(
-          perIpRequestsPerMinute: 60,
+          perIpRequestsPerSecond: 1,
           perIpRequestBurst: 2,
         ),
       );
@@ -972,7 +980,7 @@ void main() {
         clock: () => DateTime.utc(2026, 9, 3),
         budgetLimits: const AthenaeumBudgetLimits(
           perIpRequestBurst: 10,
-          perStoreRequestsPerMinute: 1,
+          perStoreRequestsPerSecond: 1 / 60,
           perStoreRequestBurst: 1,
         ),
       );
