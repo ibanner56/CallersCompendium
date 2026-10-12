@@ -110,7 +110,11 @@ Each round submits **one** PR review, using
 as its checklist and output format. The review's `commit_id` is the head it
 reviewed. Findings appear twice: in the body's template and as inline comments
 on diff lines. A finding on a line outside the diff appears in the body only.
-There is no `Suppressed comments` block.
+There is no `Suppressed comments` block. The job cannot run tests or scripts, so
+its prompt limits findings to what it established from the code. It never
+reports something as merely unverified, and it leaves out the template's
+"Verification the author still owes" checklist, which CI and the merge gate
+own.
 
 Traps:
 
