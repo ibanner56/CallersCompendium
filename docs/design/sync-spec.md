@@ -2076,7 +2076,9 @@ malformed hash, and one that serves only the batch read answers `405`.
 > it, on its author's judgement rather than a maintainer ruling: `PUT` on the
 > read's path, its frame format, the 50-blob cap, storing a batch in one
 > transaction, the `507` prefix, and the fallback rule. How a batch upload is
-> charged against the request-rate limits (§5.4) is not yet decided.
+> charged against the request-rate limits (§5.4) was the author's
+> recommendation, approved by the maintainer on 2026-10-12 as an initial
+> specification.
 
 ### 5.3 Status codes
 
@@ -2157,7 +2159,7 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | `PUT /v1/blobs/batch` request body, decoded | 2 MB plus 7,400 bytes, the most a batch response occupies; a client keeps a batch's blob bytes within 2 MB |
 | JSON parse depth | 32 |
 | Decompressed size of a `Content-Encoding: gzip` body (§4) | 10× compressed, cap 32 MB; encoded size also capped per route (decoded limit plus gzip framing slack) |
-| Request rate, per client IP | 60/minute, burst 120; a `POST /v1/blobs/batch` of *n* hashes costs 1 + ⌈*n*/20⌉ (below); a `PUT /v1/blobs/batch` is not yet charged beyond its one token (below) |
+| Request rate, per client IP | 60/minute, burst 120; a `POST /v1/blobs/batch` of *n* hashes costs 1 + ⌈*n*/20⌉ (below); a `PUT /v1/blobs/batch` of *n* blobs costs 1 + ⌈*n*/10⌉ (below) |
 | Request rate, per store (`id_key`) | 600/minute |
 | **Failed store resolutions**, per client IP | 10/minute, burst 20 |
 | **Failed store resolutions**, server-wide | 1,000/minute |
@@ -2178,6 +2180,15 @@ could pay for the same batch sent again, request token included, rounded up to
 whole seconds. The charge is capped at what a full bucket holds, so a burst an
 operator configures below 11 delays a full batch rather than refusing every
 one. An operator may change the 20 with the rest of these values.
+
+**A `PUT /v1/blobs/batch` of *n* blobs costs 1 + ⌈*n*/10⌉ tokens on both
+rows**, so a full batch of 50 costs 6, under every rule above for a batch read:
+charged only once the store resolves, refused whole with `429` and the same
+`Retry-After` when either bucket cannot cover it — and a refused batch stores
+nothing — and capped at what a full bucket holds. A blob the store already holds
+costs what a new one does. The server can count the blobs only once it has read
+the body, so a batch refused here has still cost that read, up to the body cap.
+An operator may change the 10 with the rest of these values.
 
 **Why 1 + ⌈*n*/20⌉.** Measured on the reference server (in-process, a 4-vCPU
 Xeon at 2.1 GHz, across runs), a single-blob `GET` costs 0.45–0.65 ms of handler
@@ -2216,8 +2227,17 @@ handler time, growing with the store because its quota check scans the store's
 blob rows; a batch of 200 cost 210–250 ms, a stall every other user of the
 server would feel, and a batch of 50 costs 58–147 ms. 50 keeps the stall to
 what ten to twenty single `PUT`s cost.
-Until the maintainer decides how a batch upload is charged against the
-request-rate rows, the reference server charges it one token, as any request.
+
+**Why 1 + ⌈*n*/10⌉.** A blob costs about ten times as much to store as to read,
+so the read's 20 per token would let one address spend, in the typical case, up
+to about three times the server time single `PUT`s let it spend: 15 full
+batches a minute, 0.9–2.2 s of handler time against 0.24–0.78 s. At 10 per token
+it sustains 500 blobs a minute in at most 10 batches, 0.58–1.5 s, and in the
+worst case, with the 50 ms deletion retry on every request, about 2.0 s against
+single `PUT`s' 3.8 s. A device publishing 1,000 records of its own finishes in
+one or two passes and 5,000 in about 8 minutes, against about 15 and 81 one
+`PUT` at a time. 5 per token would match a single `PUT`'s handler time per token
+and double those waits.
 
 The failed-store-resolution rows raise the
 cost of casual probing and make an enumeration attempt visible in the operator's
@@ -5595,6 +5615,11 @@ the current epoch is not charged twice when uploaded again. More than 50 blobs
 or a blob over the cap is `413`; a duplicate hash, a cut frame or a frame of
 another status is `400`; none of them stores anything. A store that does not
 resolve is a failed resolution. A `gzip` body compressed past 10× is accepted.
+A batch upload costs 1 + ⌈*n*/10⌉ on both request-rate rows, held blobs
+included, and one that overdraws either is refused whole, storing nothing, with
+a `Retry-After` that covers the same batch sent again (mutations: charge one
+token; charge one per 20 blobs, the read's rate; round down); a batch for a
+store that does not resolve costs only its request token.
 
 A blob uploaded but not yet manifested survives a concurrent peer's manifest
 `PUT` and survives the sweep (mutation: collect every unreferenced blob

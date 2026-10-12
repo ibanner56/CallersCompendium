@@ -27,8 +27,11 @@ the app and of `compendium_core`; version headings below refer to
   pass the store quota, it and every later new blob in the batch is `507`. A
   body over 50 blobs, with a blob over 1 MB, a duplicate hash or a frame that is
   not a blob is refused whole. A gzip body is not held to the 10× expansion
-  ratio; the absolute cap bounds it. For now a batch upload costs one request
-  token, as any request. `PUT /v1/blobs/{hash}` is unchanged.
+  ratio; the absolute cap bounds it. A batch of *n* blobs costs 1 + ⌈*n*/10⌉
+  tokens of both the per-IP and the per-store request limits
+  (`AthenaeumBudgetLimits.blobUploadBlobsPerToken`, default 10), charged once
+  the store resolves; one either limit cannot cover is refused `429` whole,
+  storing nothing. `PUT /v1/blobs/{hash}` is unchanged.
 
 ## [0.2.2] - 2026-10-01
 

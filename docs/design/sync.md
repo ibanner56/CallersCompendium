@@ -3040,8 +3040,12 @@ handled one before. An upload costs the server far more than a read — a single
 store's blob rows and a commit — and a batch shares one of each, but the
 reference server answers every request on one thread and stores a batch in one
 transaction, so a batch of 200 held every other user up for about a quarter of
-a second. Uploads therefore go 50 at a time (spec §5.4). How a batch upload is
-charged against the request-rate limits is not yet decided.
+a second. Uploads therefore go 50 at a time (spec §5.4), and a batch of *n*
+costs 1 + ⌈*n*/10⌉ request tokens rather than the read's 1 + ⌈*n*/20⌉: per
+blob, storing costs about ten times what reading does, and at 10 a token one
+address can spend no more of the server's one thread than single `PUT`s let it
+in the worst case. A 5,000-record first publish takes about 8 minutes instead
+of about 81.
 
 **The endpoints that are not content-addressed carry a schema, and the first
 two did not always.** The blob and the manifest are specified to the byte because
