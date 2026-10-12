@@ -2753,6 +2753,10 @@ class SyncCoordinator {
       ...fallbackHashes,
     }.toList(growable: false);
     final unavailableFallbackHashes = <String>{};
+    // Every blob the store accepted stays accepted, so the next pass's
+    // `missing` list no longer names it: an upload that stops part-way has
+    // still moved on, and says so (`SyncFailure.progressed`, spec §6.12).
+    var uploadedCount = 0;
     for (
       var offset = 0;
       offset < requestedHashes.length;
@@ -2767,7 +2771,10 @@ class SyncCoordinator {
       );
       if (!response.isSuccess) {
         return _MissingBlobUploadResult.failed(
-          SyncFailure.fromResponse(response, SyncFailureStep.upload),
+          SyncFailure.fromResponse(
+            response,
+            SyncFailureStep.upload,
+          ).withProgress(uploadedCount > 0),
         );
       }
       final missing = _decodeMissing(response.body);
@@ -2808,15 +2815,41 @@ class SyncCoordinator {
             ),
           );
         }
-        final uploaded = await transport.putBlob(
-          hash,
-          encodeSyncRecordBlobUtf8(candidate.blob),
-        );
-        if (!uploaded.isSuccess) {
+        final SyncHttpResponse uploaded;
+        try {
+          uploaded = await transport.putBlob(
+            hash,
+            encodeSyncRecordBlobUtf8(candidate.blob),
+          );
+        } on Object catch (error, stack) {
+          // As for a record download (`_downloadPeerRecords`): a dropped
+          // connection or a timed-out request fails the pass as the transient
+          // failure it already was, but as a result rather than a throw, so it
+          // can say how far the uploads got. Anything else still throws.
+          final cause = syncFailureCauseForError(error);
+          if (!cause.isTransient) rethrow;
+          logCaughtErrorTypeOnly(
+            error,
+            stack,
+            source: 'sync_coordinator._uploadMissingLocalBlobs',
+          );
           return _MissingBlobUploadResult.failed(
-            SyncFailure.fromResponse(uploaded, SyncFailureStep.upload),
+            SyncFailure(
+              cause,
+              step: SyncFailureStep.upload,
+              progressed: uploadedCount > 0,
+            ),
           );
         }
+        if (!uploaded.isSuccess) {
+          return _MissingBlobUploadResult.failed(
+            SyncFailure.fromResponse(
+              uploaded,
+              SyncFailureStep.upload,
+            ).withProgress(uploadedCount > 0),
+          );
+        }
+        uploadedCount++;
       }
     }
     return _MissingBlobUploadResult(

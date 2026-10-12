@@ -575,11 +575,12 @@ Sync is off and open while it is on.
   and you don't need to do anything: the app tries again by itself, waiting a
   little longer each time (from a minute up to half an hour, and never sooner
   than the server asked), and also tries when you come back to the app. The
-  server limits how quickly one device can fetch, so connecting a device to a
-  large library can take several of these tries — roughly a minute for every
-  sixty records. Each try keeps what it brought over, so while it is
-  still getting further the app tries again every minute rather than waiting
-  longer, and nothing it hasn't fetched yet is reported as skipped. A small
+  server limits how quickly one device can send and fetch, so connecting a
+  device to a large library — or connecting one that holds a large library of
+  its own — can take several of these tries, roughly a minute for every sixty
+  records. Each try keeps what it got through, so while it is still getting
+  further the app tries again every minute rather than waiting longer, and
+  nothing it hasn't fetched yet is reported as skipped. A small
   **Details** line still names the step that stopped and the HTTP status, if
   you're curious. If this goes on for weeks, the expiry warning below is what
   tells you.
