@@ -85,6 +85,7 @@ class SyncReport {
     this.kind,
     this.recordId,
     this.peerId,
+    this.httpStatus,
   });
 
   final SyncReportCode code;
@@ -92,6 +93,17 @@ class SyncReport {
   final SyncRecordKind? kind;
   final String? recordId;
   final String? peerId;
+
+  /// The HTTP status the server answered the request behind this report with,
+  /// when a response is what raised it — a blob or manifest the store would
+  /// not serve. Null for everything else, a blob whose bytes did not match
+  /// its hash included.
+  ///
+  /// Kept apart from [message] so the diagnostics export can say which status
+  /// a report came from without printing the message, which is a maintainer
+  /// diagnostic and may name wire paths. Not part of [coalescingKey]: the
+  /// same record failing twice in one pass is one condition.
+  final int? httpStatus;
 
   String get coalescingKey =>
       '${code.name}:${kind?.name ?? ''}:${recordId ?? ''}:${peerId ?? ''}';

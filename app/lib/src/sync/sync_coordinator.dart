@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
 
@@ -659,12 +661,17 @@ final class SyncPeerManifestCacheEntry {
 /// seen for each peer since ([peerPublications]), both stamped with
 /// [passSequence] so "seen after" never depends on comparing two devices'
 /// clocks alone.
+///
+/// And it keeps the peer blobs this session has already downloaded
+/// ([fetchedBlob]), so a pass that stopped part-way through its downloads
+/// (spec §6.3 step 5) is resumed by the next one rather than restarted.
 final class SyncPeerManifestCache {
   SyncPeerManifestCache({
     Map<String, SyncPeerManifestCacheEntry>? entries,
     Set<String>? rejectedHashes,
     Map<SyncRecordAddress, SyncOwnPublication>? publications,
     Map<String, List<SyncPeerPublication>>? peerPublications,
+    Map<String, Uint8List>? fetchedBlobs,
     this.passSequence = 0,
     this.publicationEpoch,
   }) : _entries = {...?entries},
@@ -673,7 +680,19 @@ final class SyncPeerManifestCache {
        peerPublications = {
          for (final entry in (peerPublications ?? const {}).entries)
            entry.key: [...entry.value],
-       };
+       } {
+    for (final entry in (fetchedBlobs ?? const {}).entries) {
+      rememberFetchedBlob(entry.key, entry.value);
+    }
+  }
+
+  /// The most blob bytes [fetchedBlob] holds; the oldest go first past it.
+  ///
+  /// Records are small — a dance is a few kilobytes — so this keeps several
+  /// thousand, more than a first download of a large library needs. It is a
+  /// bound on memory, and on what each pass copies across the isolate
+  /// boundary, not a target.
+  static const fetchedBlobBytesKept = 8 * 1024 * 1024;
 
   /// How many distinct `writtenAt` values are kept per peer. Two is what the
   /// judgement needs: a peer is taken to be refusing a record only once it has
@@ -688,6 +707,42 @@ final class SyncPeerManifestCache {
   final Map<String, List<SyncPeerPublication>> peerPublications;
   int passSequence;
   String? publicationEpoch;
+
+  /// Verified peer blob bodies by wire hash, oldest first.
+  ///
+  /// A blob is addressed by the hash of its bytes, so a body kept here is the
+  /// body the store would serve for that hash in any epoch. Without it, the
+  /// only thing that spared the next pass a request was the record having
+  /// been applied — a blob fetched and then not applied (the local copy won,
+  /// or the choice waits for the user) was downloaded again by every pass,
+  /// and enough of those ahead of the rest in download order would have
+  /// spent every pass's request budget on the same records. In memory only,
+  /// like the rest of this cache, and gone when the sync session ends.
+  final LinkedHashMap<String, Uint8List> _fetchedBlobs =
+      LinkedHashMap<String, Uint8List>();
+  int _fetchedBlobBytes = 0;
+
+  /// The body of the blob with [hash] if this session has downloaded and
+  /// verified it, or null.
+  Uint8List? fetchedBlob(String hash) {
+    final body = _fetchedBlobs.remove(hash);
+    if (body != null) _fetchedBlobs[hash] = body;
+    return body;
+  }
+
+  /// Keeps [body], whose SHA-256 the caller has verified is [hash].
+  void rememberFetchedBlob(String hash, List<int> body) {
+    final previous = _fetchedBlobs.remove(hash);
+    if (previous != null) _fetchedBlobBytes -= previous.length;
+    if (body.length > fetchedBlobBytesKept) return;
+    final kept = Uint8List.fromList(body);
+    _fetchedBlobs[hash] = kept;
+    _fetchedBlobBytes += kept.length;
+    while (_fetchedBlobBytes > fetchedBlobBytesKept) {
+      final oldest = _fetchedBlobs.keys.first;
+      _fetchedBlobBytes -= _fetchedBlobs.remove(oldest)!.length;
+    }
+  }
 
   /// Starts the unreflected-publication evidence afresh when the store's epoch
   /// has changed: hashes and manifests from another epoch prove nothing here.
@@ -713,6 +768,8 @@ final class SyncPeerManifestCache {
     rejectedHashes.clear();
     publications.clear();
     peerPublications.clear();
+    _fetchedBlobs.clear();
+    _fetchedBlobBytes = 0;
     passSequence = 0;
     publicationEpoch = null;
   }
@@ -733,6 +790,10 @@ final class SyncPeerManifestCache {
         for (final entry in source.peerPublications.entries)
           entry.key: [...entry.value],
       });
+    _fetchedBlobs
+      ..clear()
+      ..addAll(source._fetchedBlobs);
+    _fetchedBlobBytes = source._fetchedBlobBytes;
     passSequence = source.passSequence;
     publicationEpoch = source.publicationEpoch;
   }
@@ -765,6 +826,9 @@ final class SyncPeerManifestCache {
               'pass': seen.pass,
             },
         ],
+    },
+    '_fetchedBlobs': {
+      for (final entry in _fetchedBlobs.entries) entry.key: entry.value,
     },
     '_passSequence': passSequence,
     '_publicationEpoch': publicationEpoch,
@@ -856,6 +920,25 @@ final class SyncPeerManifestCache {
             throw malformedPublications,
       ];
     }
+    final fetchedBlobs = <String, Uint8List>{};
+    final rawFetchedBlobs = message['_fetchedBlobs'];
+    if (rawFetchedBlobs != null) {
+      if (rawFetchedBlobs is! Map<Object?, Object?>) {
+        throw const FormatException(
+          'sync isolate returned malformed fetched blobs',
+        );
+      }
+      for (final entry in rawFetchedBlobs.entries) {
+        final hash = entry.key;
+        final body = entry.value;
+        if (hash is! String || body is! Uint8List) {
+          throw const FormatException(
+            'sync isolate returned malformed fetched blobs',
+          );
+        }
+        fetchedBlobs[hash] = body;
+      }
+    }
     final rawPassSequence = message['_passSequence'];
     if (rawPassSequence is! int || rawPassSequence < 0) {
       throw malformedPublications;
@@ -871,6 +954,7 @@ final class SyncPeerManifestCache {
       rejectedHashes: rejectedHashes,
       publications: publications,
       peerPublications: peerPublications,
+      fetchedBlobs: fetchedBlobs,
       passSequence: rawPassSequence,
       publicationEpoch: rawPublicationEpoch as String?,
     );
@@ -880,6 +964,18 @@ final class SyncPeerManifestCache {
 /// A coalesced notification that a previously-used remote store is missing.
 class SyncReplacementRequiredEvent {
   const SyncReplacementRequiredEvent();
+}
+
+/// How far one pass's record downloads got (spec §6.3 step 5).
+final class _PeerDownloadProgress {
+  /// Why downloads stopped, or null while they continue.
+  SyncFailure? stop;
+
+  /// How many blobs this pass downloaded and verified.
+  int fetched = 0;
+
+  /// The records left unfetched once [stop] was set: waiting, not skipped.
+  final notFetched = <SyncRecordAddress>{};
 }
 
 final class _MissingBlobUploadResult {
@@ -1358,6 +1454,22 @@ class SyncCoordinator {
       if (response.kind == SyncResponseKind.notModified && manifest == null) {
         _peerManifestCache.remove(peerId);
       }
+      // A `429` is about this device's request rate, not the peer, so it ends
+      // the pass as a temporary failure (spec §6.3 step 3). Reported as an
+      // unreadable peer list, it raised the skipped-records notice — and on a
+      // fresh attach failed the pass as `peerUnavailable`, which waits for the
+      // user — over a limit that refills by itself in a minute. Nothing has
+      // been applied yet. A `5xx` here keeps its peer-unavailable reading;
+      // only record downloads stop on one (`_stopsDownloads`).
+      if (response.kind == SyncResponseKind.rateLimited) {
+        return SyncPassResult(
+          SyncPassStatus.failed,
+          reports: reports.reports,
+          message:
+              'peer manifest returned ${response.statusCode}', // i18n-ignore: internal status
+          failure: SyncFailure.fromResponse(response, SyncFailureStep.download),
+        );
+      }
       if (!response.isSuccess) {
         allPeerManifestsAvailable = false;
         unavailableManifestStatus ??= response.statusCode;
@@ -1366,6 +1478,7 @@ class SyncCoordinator {
           SyncReport(
             code: SyncReportCode.malformedRecord,
             peerId: peerId,
+            httpStatus: response.statusCode,
             message:
                 'Peer manifest returned ${response.statusCode}.', // i18n-ignore: internal report
           ),
@@ -1439,17 +1552,46 @@ class SyncCoordinator {
     final availableByHash = <String, SyncMergeCandidate>{...localByHash};
     final rejectedPeerAddresses = <SyncRecordAddress>{};
 
+    // Kind-major across every peer, in apply order, so a pass that stops
+    // part-way through its downloads (spec §6.3 step 5) has fetched every
+    // record of another kind that the records it did fetch can cite. In
+    // manifest order — kinds sorted by name — a dance came before the tags and
+    // venues it names, and stopping between them turned every fetched dance
+    // into an unresolved-reference report about a record that was merely not
+    // fetched yet. Citations within one kind (dance to dance) no order can
+    // put first; `_deferCitersOfUnfetched` holds those back instead.
+    final downloadedByPeer = [
+      for (final _ in peerManifests) <SyncRecordAddress, SyncMergeCandidate?>{},
+    ];
+    final downloadProgress = _PeerDownloadProgress();
+    final kindsInApplyOrder = [...SyncRecordKind.values]
+      ..sort((a, b) => syncApplyKindOrder(a).compareTo(syncApplyKindOrder(b)));
+    for (final kind in kindsInApplyOrder) {
+      for (var index = 0; index < peerManifests.length; index++) {
+        await _downloadPeerRecords(
+          peerManifests[index].manifest,
+          kind: kind,
+          into: downloadedByPeer[index],
+          peerId: peerManifests[index].peerId,
+          reports: reports,
+          unresolved: unresolved,
+          candidateByHash: availableByHash,
+          rejectedAddresses: rejectedPeerAddresses,
+          progress: downloadProgress,
+        );
+      }
+    }
+
+    _deferCitersOfUnfetched(
+      downloadedByPeer,
+      notFetched: downloadProgress.notFetched,
+      unresolved: unresolved,
+    );
+
     final rawPeerMaps = <Map<SyncRecordAddress, SyncMergeCandidate?>>[];
-    for (final peer in peerManifests) {
-      final downloaded = await _downloadPeerRecords(
-        peer.manifest,
-        peerId: peer.peerId,
-        reports: reports,
-        unresolved: unresolved,
-        candidateByHash: availableByHash,
-        rejectedAddresses: rejectedPeerAddresses,
-      );
-      final normalized = await _normalizeCandidates(downloaded);
+    for (var index = 0; index < peerManifests.length; index++) {
+      final peer = peerManifests[index];
+      final normalized = await _normalizeCandidates(downloadedByPeer[index]);
       final referenceAliases = await _resolveReferenceAliases([normalized]);
       rawPeerMaps.add(normalized);
       peerReferenceAliases.add(referenceAliases);
@@ -1689,6 +1831,26 @@ class SyncCoordinator {
     reports.addAll(dedupe.reports);
     if (freshAttach && dedupe.duplicateCount > 0) {
       appliedKinds.addAll({SyncRecordKind.dance, SyncRecordKind.program});
+    }
+    // Downloads stopped part-way (spec §6.3 step 5), so what was fetched is
+    // merged and applied above, and the pass ends here as the temporary
+    // failure it is: every request from here on — the uploads, the manifest,
+    // a fresh attach's continuation — would meet the same limit or fault. The
+    // records not fetched are in `normalizedUnresolved`, so nothing was
+    // decided for them, and returning before publication leaves the manifest
+    // and the baseline unadvanced for everything, as any failure does
+    // (§6.12). A fresh attach stays unfinished and is resumed by the next
+    // pass, which finds what this one applied already held here.
+    if (downloadProgress.stop case final stop?) {
+      return SyncPassResult(
+        SyncPassStatus.failed,
+        reports: reports.reports,
+        message:
+            'record downloads stopped after ${downloadProgress.fetched} fetched', // i18n-ignore: internal status
+        failure: stop.withProgress(downloadProgress.fetched > 0),
+        duplicateCount: dedupe.duplicateCount,
+        appliedKinds: appliedKinds.toList(),
+      );
     }
     if (freshAttach) {
       final attachedSnapshot = await store.snapshot();
@@ -2333,48 +2495,97 @@ class SyncCoordinator {
     return result;
   }
 
-  Future<Map<SyncRecordAddress, SyncMergeCandidate?>> _downloadPeerRecords(
+  /// Downloads [manifest]'s records of [kind] into [into].
+  ///
+  /// Once [progress] has stopped — a request answered `429` or `5xx`, or
+  /// failed on the network (spec §6.3 step 5) — no further request is made in
+  /// the pass: each record still to fetch joins [unresolved] *without* a
+  /// report, so the merge skips it and the baseline does not advance for it,
+  /// exactly as for a blob that could not be resolved, but nothing tells the
+  /// user it was skipped, because it was not. A record whose hash this pass or
+  /// session already holds needs no request and is still taken.
+  Future<void> _downloadPeerRecords(
     SyncManifest manifest, {
+    required SyncRecordKind kind,
+    required Map<SyncRecordAddress, SyncMergeCandidate?> into,
     required String peerId,
     required SyncReportSink reports,
     required Set<SyncRecordAddress> unresolved,
     required Map<String, SyncMergeCandidate> candidateByHash,
     required Set<SyncRecordAddress> rejectedAddresses,
+    required _PeerDownloadProgress progress,
   }) async {
-    final result = <SyncRecordAddress, SyncMergeCandidate?>{};
-    for (final kindEntry in manifest.records.entries) {
-      for (final recordEntry in kindEntry.value.entries) {
-        final address = (kind: kindEntry.key, recordId: recordEntry.key);
-        final cachedCandidate = candidateByHash[recordEntry.value];
-        if (cachedCandidate != null) {
-          if (cachedCandidate.address != address) {
-            unresolved.add(address);
-            reports.add(
-              SyncReport(
-                code: SyncReportCode.blobIdentityMismatch,
-                kind: address.kind,
-                recordId: address.recordId,
-                peerId: peerId,
-                message:
-                    'Cached blob identity did not match its manifest address.', // i18n-ignore: internal report
-              ),
-            );
-            continue;
-          }
-          final admitted = _admitPeerCandidate(
-            SyncMergeCandidate(
-              blob: cachedCandidate.blob,
-              wireHash: cachedCandidate.wireHash,
+    final records = manifest.records[kind];
+    if (records == null) return;
+    for (final recordEntry in records.entries) {
+      final address = (kind: kind, recordId: recordEntry.key);
+      final cachedCandidate = candidateByHash[recordEntry.value];
+      if (cachedCandidate != null) {
+        if (cachedCandidate.address != address) {
+          unresolved.add(address);
+          reports.add(
+            SyncReport(
+              code: SyncReportCode.blobIdentityMismatch,
+              kind: address.kind,
+              recordId: address.recordId,
               peerId: peerId,
+              message:
+                  'Cached blob identity did not match its manifest address.', // i18n-ignore: internal report
             ),
-            reports: reports,
-            rejectedAddresses: rejectedAddresses,
           );
-          if (admitted != null) result[address] = admitted;
           continue;
         }
-        final response = await transport.getBlob(recordEntry.value);
+        final admitted = _admitPeerCandidate(
+          SyncMergeCandidate(
+            blob: cachedCandidate.blob,
+            wireHash: cachedCandidate.wireHash,
+            peerId: peerId,
+          ),
+          reports: reports,
+          rejectedAddresses: rejectedAddresses,
+        );
+        if (admitted != null) into[address] = admitted;
+        continue;
+      }
+      List<int>? body = _peerManifestCache.fetchedBlob(recordEntry.value);
+      if (body == null) {
+        if (progress.stop != null) {
+          unresolved.add(address);
+          progress.notFetched.add(address);
+          continue;
+        }
+        final SyncHttpResponse response;
+        try {
+          response = await transport.getBlob(recordEntry.value);
+        } on Object catch (error, stack) {
+          // A dropped connection or a timed-out request says nothing about
+          // the record, so it is not fetched yet rather than skipped. Only
+          // what `SyncController` would retry by itself is caught: anything
+          // else still fails the pass as it did.
+          final cause = syncFailureCauseForError(error);
+          if (!cause.isTransient) rethrow;
+          // Logged as the throw it replaces was (`_watch`), type only: the
+          // text of a transport error can carry the request URI.
+          logCaughtErrorTypeOnly(
+            error,
+            stack,
+            source: 'sync_coordinator._downloadPeerRecords',
+          );
+          progress.stop = SyncFailure(cause, step: SyncFailureStep.download);
+          unresolved.add(address);
+          progress.notFetched.add(address);
+          continue;
+        }
         if (!response.isSuccess) {
+          if (_stopsDownloads(response.kind)) {
+            progress.stop = SyncFailure.fromResponse(
+              response,
+              SyncFailureStep.download,
+            );
+            unresolved.add(address);
+            progress.notFetched.add(address);
+            continue;
+          }
           unresolved.add(address);
           reports.add(
             SyncReport(
@@ -2382,6 +2593,7 @@ class SyncCoordinator {
               kind: address.kind,
               recordId: address.recordId,
               peerId: peerId,
+              httpStatus: response.statusCode,
               message:
                   'Blob returned ${response.statusCode}.', // i18n-ignore: internal report
             ),
@@ -2402,59 +2614,119 @@ class SyncCoordinator {
           );
           continue;
         }
-        final (:blob, :failure) = _decodeBlob(response.body);
-        if (blob == null) {
-          unresolved.add(address);
-          reports.add(
-            SyncReport(
-              // Never null without a blob: [_decodeBlob] pairs them.
-              code: failure!,
-              kind: address.kind,
-              recordId: address.recordId,
-              peerId: peerId,
-              message: switch (failure) {
-                SyncReportCode.newerWireVersion =>
-                  'Blob uses a newer wire version.', // i18n-ignore: internal report
-                SyncReportCode.newerRecordFields =>
-                  'Blob carries a field this build does not sync.', // i18n-ignore: internal report
-                _ =>
-                  'Blob did not decode as a record.', // i18n-ignore: internal report
-              },
-            ),
-          );
-          continue;
-        }
-        if (blob.kind != address.kind || blob.id != address.recordId) {
-          unresolved.add(address);
-          reports.add(
-            SyncReport(
-              code: SyncReportCode.blobIdentityMismatch,
-              kind: address.kind,
-              recordId: address.recordId,
-              peerId: peerId,
-              message:
-                  'Blob identity did not match its manifest address.', // i18n-ignore: internal report
-            ),
-          );
-          continue;
-        }
-        final candidate = SyncMergeCandidate(
-          blob: blob,
-          wireHash: recordEntry.value,
-          peerId: peerId,
+        _peerManifestCache.rememberFetchedBlob(
+          recordEntry.value,
+          response.body,
         );
-        final admitted = _admitPeerCandidate(
-          candidate,
-          reports: reports,
-          rejectedAddresses: rejectedAddresses,
+        progress.fetched++;
+        body = response.body;
+      }
+      final (:blob, :failure) = _decodeBlob(body);
+      if (blob == null) {
+        unresolved.add(address);
+        reports.add(
+          SyncReport(
+            // Never null without a blob: [_decodeBlob] pairs them.
+            code: failure!,
+            kind: address.kind,
+            recordId: address.recordId,
+            peerId: peerId,
+            message: switch (failure) {
+              SyncReportCode.newerWireVersion =>
+                'Blob uses a newer wire version.', // i18n-ignore: internal report
+              SyncReportCode.newerRecordFields =>
+                'Blob carries a field this build does not sync.', // i18n-ignore: internal report
+              _ =>
+                'Blob did not decode as a record.', // i18n-ignore: internal report
+            },
+          ),
         );
-        if (admitted == null) continue;
-        candidateByHash[recordEntry.value] = admitted;
-        result[address] = admitted;
+        continue;
+      }
+      if (blob.kind != address.kind || blob.id != address.recordId) {
+        unresolved.add(address);
+        reports.add(
+          SyncReport(
+            code: SyncReportCode.blobIdentityMismatch,
+            kind: address.kind,
+            recordId: address.recordId,
+            peerId: peerId,
+            message:
+                'Blob identity did not match its manifest address.', // i18n-ignore: internal report
+          ),
+        );
+        continue;
+      }
+      final candidate = SyncMergeCandidate(
+        blob: blob,
+        wireHash: recordEntry.value,
+        peerId: peerId,
+      );
+      final admitted = _admitPeerCandidate(
+        candidate,
+        reports: reports,
+        rejectedAddresses: rejectedAddresses,
+      );
+      if (admitted == null) continue;
+      candidateByHash[recordEntry.value] = admitted;
+      into[address] = admitted;
+    }
+  }
+
+  /// Holds back every fetched record that cites, directly or through other
+  /// fetched records, one in [notFetched], so it waits with them instead of
+  /// being applied without them (spec §6.3 step 5).
+  ///
+  /// Kind order puts every *other* kind a record cites ahead of it, but a
+  /// dance can link to another dance, and those links can form cycles, so no
+  /// order fetches every citation first. Applied alone, a dance whose linked
+  /// dance was not fetched yet is refused as citing unavailable data and
+  /// reported as skipped, which is the notice the stop exists to avoid. Held
+  /// back, it joins [unresolved] without a report; its blob is already in the
+  /// session cache, so the next pass takes it with no request.
+  ///
+  /// Conservative: a citation the device can already satisfy locally holds
+  /// the record back all the same. That costs one pass's delay, never a
+  /// request, and needs no read of local state here.
+  static void _deferCitersOfUnfetched(
+    List<Map<SyncRecordAddress, SyncMergeCandidate?>> downloadedByPeer, {
+    required Set<SyncRecordAddress> notFetched,
+    required Set<SyncRecordAddress> unresolved,
+  }) {
+    if (notFetched.isEmpty) return;
+    final waiting = {...notFetched};
+    for (var changed = true; changed;) {
+      changed = false;
+      for (final downloaded in downloadedByPeer) {
+        for (final entry in downloaded.entries) {
+          final candidate = entry.value;
+          if (candidate == null || waiting.contains(entry.key)) continue;
+          if (syncRecordReferences(candidate).any(waiting.contains)) {
+            waiting.add(entry.key);
+            changed = true;
+          }
+        }
       }
     }
-    return result;
+    for (final downloaded in downloadedByPeer) {
+      downloaded.removeWhere((address, _) => waiting.contains(address));
+    }
+    unresolved.addAll(waiting);
   }
+
+  /// Whether a record download answered [kind] stops the pass's downloads
+  /// rather than skipping that one record (spec §6.3 step 5).
+  ///
+  /// `429` and `5xx` other than `507` are about the server, not the record:
+  /// every request after a `429` fails the same way until the limit refills,
+  /// and a server in trouble is not helped by hundreds more. A `507` is read as
+  /// [SyncResponseKind.quotaExhausted], not a server error, and is left as the
+  /// per-record report it was: a blob read cannot exhaust a quota. A `404` is about the record — its
+  /// blob is gone (§7.3) — and stays a skip and a report, as does a body whose
+  /// hash does not match.
+  static bool _stopsDownloads(SyncResponseKind kind) =>
+      kind == SyncResponseKind.rateLimited ||
+      kind == SyncResponseKind.serverError;
 
   SyncMergeCandidate? _admitPeerCandidate(
     SyncMergeCandidate candidate, {

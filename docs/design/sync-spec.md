@@ -2243,7 +2243,11 @@ republishes, which is an ordinary upload and needs no special path.
    without a second `POST` rather than re-asking. Any other non-2xx fails the
    attempt and leaves the decision pending.
 2. Compute the local manifest.
-3. `GET /v1/manifests/{peer}` for each peer, with `If-None-Match`.
+3. `GET /v1/manifests/{peer}` for each peer, with `If-None-Match`. A `429`
+   here ends the pass as a transient failure (§6.12) before anything is
+   applied. It MUST NOT be reported as an unreadable peer manifest, and on a
+   fresh attach it MUST NOT fail the attach as a peer that could not be read:
+   it is this device's request rate, not the peer, and it clears by waiting.
 4. Per record, resolve existence first (§6.4), then compare hashes and
    `updatedAt`:
 
@@ -2389,6 +2393,48 @@ republishes, which is an ordinary upload and needs no special path.
    the next pass retries it; if this device is the record's origin, step 7 will
    find the blob missing and re-upload it. This is reachable without a faulty
    peer: a manifest can outlive its blob by §7.3.
+
+   **A `429`, a `5xx` other than `507`, or a network failure is not about the
+   record, and MUST NOT be reported as one.** After a `429` every later
+   request fails the same way until the limit refills, and such a `5xx` or a
+   dropped connection says the server or the link is in trouble, so the client MUST stop requesting blobs
+   for the rest of the pass. The record whose request failed, and every record
+   still to fetch, is *not fetched yet*: it is excluded from the merge, the
+   baseline does not advance for it, and nothing is decided about it — exactly
+   as for a `404` — but it raises no report, because nothing was skipped. A
+   record whose blob this device already holds needs no request and is still
+   taken. The client then merges and applies what it did fetch (step 6) and
+   ends the pass as a transient failure (§6.12), carrying the server's
+   `Retry-After`, without steps 7–9: every one of their requests would meet
+   the same limit or fault. A fresh attach stopped this way stays unfinished
+   and is resumed by the next pass. Reporting each such record as unresolved
+   told the user that a large first download had skipped most of the library
+   because of a version mismatch, and re-fetched it into the same limit on
+   every later pass. A `404` and a hash mismatch stay reports, as above.
+
+   So that each later pass resumes rather than restarts, the client MUST fetch
+   in kind order across all peers — every other kind a record can cite
+   before the record's own kind — and MUST hold back, unreported and as not fetched yet,
+   every fetched record that cites a not-fetched one, directly or through
+   other fetched records. Kind order alone cannot do it: a dance can link to
+   another dance, and those links can form a cycle. Without both, stopping
+   between a dance and a tag or dance it names turns the dance into an
+   unresolved-reference report about a record that is merely not fetched yet.
+   The client SHOULD also keep the blobs it has fetched for the rest of the
+   session, keyed by hash, so a record held back costs no request next time. Without the second, a
+   blob fetched and then not applied — the local copy won, or the choice waits
+   for the user — is fetched again by every pass, and enough of them ahead of
+   the rest can spend every pass's request budget on the same records. The
+   reference client keeps up to 8 MB of fetched blobs in memory, never on
+   disk.
+
+   > **Amended 2026-10-11.** Step 5 said only how a `404` is treated, and the
+   > reference client treated every non-success response the same way. A
+   > user's first connection met the per-IP request limit (§5.4) part-way and
+   > reported 140 records as skipped. Whether `5xx` other than `507` and
+   > network failures stop the pass with it was decided in the change that added this paragraph, by
+   > its author rather than the maintainer: they are what §6.12 already calls
+   > transient on every other request in a pass.
 6. Apply in one transaction (§6.7). Rebuild derived indexes.
 7. Recompute the local manifest from the post-apply state. Before any
    publication network request, a client relying on §3.1's forfeiture rule
@@ -3546,7 +3592,8 @@ failed pass leaves local data untouched. §6.3 applies and commits that
 transaction at step 6, uploads blobs missing from the post-apply final
 manifest at step 7, and publishes at step 8, so a network error or an epoch
 `409` between them leaves local data legitimately changed by a pass that then
-failed. That is correct behaviour and MUST NOT be undone: the applied content
+failed — as does a pass whose record downloads stopped at step 5, which
+applies what it fetched and then fails without steps 7–9. That is correct behaviour and MUST NOT be undone: the applied content
 was validly merged, and rolling it back would discard a peer's record on a
 transport error.
 What the failure leaves unadvanced is the **published manifest and the
@@ -3577,7 +3624,14 @@ successive failures and 30 minutes for every one after that. A `Retry-After`
 on the response is a floor on that wait, never a ceiling; the reference client
 holds the floor to at most one day, so one answer cannot park retries
 indefinitely while every other trigger still runs. A completed pass resets the
-sequence; any other result cancels a pending retry without resetting it.
+sequence, and so does a pass whose record downloads stopped (§6.3 step 5) after
+it had fetched at least one record; any other result cancels a pending retry
+without resetting it. The exception exists because a large first download
+meets the per-IP limit (§5.4) on every pass until it is done: each such pass
+moved it on, and doubling the wait through them would stretch some fifteen
+minutes of downloading for a thousand records over hours. Like the step 5
+paragraph it rests on, it was decided by the change's author, not the
+maintainer.
 Disabling sync, detaching, wiping, pairing and shutting down cancel it. A retry
 the connection gate suppresses is not rescheduled: it waits, as any suppressed
 pass does, for the next trigger. Every other failure is *needs-you*, and is not
@@ -5147,6 +5201,11 @@ timeout, a `5xx` other than `507` or a `429` schedules one retry on the §6.12
 backoff, never sooner than `Retry-After`, while a `507` or `422` schedules
 none (mutation: drop the transient test — every retry test still passes, and a
 store that is full is hammered every few minutes against §5.3's rule). **A
+`429` part-way through record downloads stops them and reports nothing**: what
+was fetched is applied, nothing else is baselined, the pass fails as
+transient, and the next pass fetches only the rest (mutation: treat it as any
+other non-success response — every record after the limit is reported as
+skipped and the pass completes). **A
 newer envelope is reported as `newerWireVersion`, a newer one that also adds
 a key included** (mutation: run the exact-key check before the version check —
 the plain `v` bump still passes, and the newer envelope that adds a key is

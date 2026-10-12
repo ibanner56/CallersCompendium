@@ -132,6 +132,26 @@ void main() {
     expect(decoded.statusCode, failure.statusCode);
   });
 
+  test('progress survives the isolate encoding, and defaults to none', () {
+    const failure = SyncFailure(
+      SyncFailureCause.rateLimited,
+      step: SyncFailureStep.download,
+      progressed: true,
+    );
+    expect(SyncFailure.decode(failure.encode()).progressed, isTrue);
+    expect(
+      SyncFailure.decode(
+        const SyncFailure(SyncFailureCause.timedOut).encode(),
+      ).progressed,
+      isFalse,
+    );
+    expect(
+      SyncFailure.decode({'cause': 'timedOut'}).progressed,
+      isFalse,
+      reason: 'an encoding from before the field existed',
+    );
+  });
+
   test('a malformed encoding is refused rather than guessed at', () {
     expect(
       () => SyncFailure.decode({'cause': 3}),
