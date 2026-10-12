@@ -4,7 +4,8 @@
 //
 // The real [AthenaeumApp] runs in its own isolate with every budget lifted, so
 // the client's load generation does not share a thread with the server and no
-// `429` caps the result. Run it on the hardware you intend to deploy to, with
+// `429` caps the result — unless `--shipped-request-limits` is given, which
+// keeps the shipped request-rate rows so that their `429`s show. Run it on the hardware you intend to deploy to, with
 // `--data-dir` on the disk the server will use: every authenticated request
 // commits a SQLite write and a blob upload also flushes a file, so the disk's
 // sync latency dominates and a tmpfs directory reports a fantasy.
@@ -80,8 +81,8 @@ Future<void> main(List<String> arguments) async {
       help:
           'Run with the shipped request-rate budgets instead of lifting '
           'them, each worker of each step as its own client address, to see '
-          'where they refuse. The server-wide bucket carries over between '
-          'steps, and workers retry a 429 at once rather than after a minute '
+          'where they refuse. The fixture stores\' per-store buckets carry '
+          'over between steps, and workers retry a 429 at once rather than after a minute '
           'as the app does. The failure and creation budgets stay lifted.',
     )
     ..addFlag('json', negatable: false, help: 'Print results as JSON lines.')
