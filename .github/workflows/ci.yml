@@ -403,10 +403,10 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: python3 tools/ci/check_version_history.py "$BASE_SHA"
 
-  # A PR that changes a Claude workflow changes nothing else: claude-code-action
-  # refuses to run when its workflow differs from main's (and still reports
-  # success), so anything riding along would merge without the Claude review it
-  # was meant to get. Whole-PR diff against the merge base, never the
+  # A PR that changes the Claude review workflow changes nothing else:
+  # claude-code-action refuses to run when its workflow differs from main's (and
+  # still reports success), so anything riding along would merge without the
+  # Claude review it was meant to get. Whole-PR diff against the merge base, never the
   # incremental range. See tools/ci/check_claude_workflow_isolation.py.
   claude-workflow-isolation:
     name: Claude workflow isolation

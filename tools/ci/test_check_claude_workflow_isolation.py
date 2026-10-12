@@ -29,19 +29,26 @@ def test_no_claude_workflow_passes() -> None:
     assert gate.stowaways(["app/lib/main.dart", ".github/workflows/ci.yml"]) == []
 
 
-def test_only_claude_workflows_pass() -> None:
+def test_only_the_review_workflow_passes() -> None:
     assert gate.stowaways([REVIEW]) == []
-    assert gate.stowaways([ASSISTANT]) == []
-    assert gate.stowaways([REVIEW, ASSISTANT]) == []
 
 
-def test_each_claude_workflow_with_another_file_fails() -> None:
-    for workflow in (REVIEW, ASSISTANT):
-        assert gate.stowaways([workflow, "docs/x.md"]) == ["docs/x.md"], workflow
+def test_review_workflow_with_another_file_fails() -> None:
+    assert gate.stowaways([REVIEW, "docs/x.md"]) == ["docs/x.md"]
+
+
+def test_the_assistant_workflow_is_not_isolated() -> None:
+    """Editing claude.yml leaves the review workflow as on main, so Claude
+    still reviews the PR; isolating it would only force needless splits."""
+    assert gate.stowaways([ASSISTANT, "docs/x.md"]) == []
 
 
 def test_every_other_file_is_reported() -> None:
-    assert gate.stowaways([REVIEW, "b.py", ASSISTANT, "a.py"]) == ["a.py", "b.py"]
+    assert gate.stowaways([REVIEW, "b.py", ASSISTANT, "a.py"]) == [
+        ".github/workflows/claude.yml",
+        "a.py",
+        "b.py",
+    ]
 
 
 def test_other_workflows_are_not_exempt() -> None:

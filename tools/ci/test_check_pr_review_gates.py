@@ -115,6 +115,14 @@ def test_reviews_are_read_across_pages() -> None:
 CLAUDE = gates.CLAUDE
 
 
+def test_reviewer_logins_are_the_ones_github_reports() -> None:
+    """The other tests build fixtures from these constants, so only this one
+    can catch a wrong login. Values observed on this repository: Copilot on
+    #900, Claude on #1738 (see docs/dev/agents/code-review.md)."""
+    assert gates.COPILOT == ("copilot-pull-request-reviewer[bot]", "Copilot")
+    assert gates.CLAUDE == ("claude[bot]", "claude[bot]")
+
+
 def test_claude_freshness_ignores_a_copilot_review_on_head() -> None:
     """Asking for Claude's review must not be satisfied by Copilot's."""
     fetcher = FakeFetcher(

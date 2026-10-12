@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
-"""Claude-workflow isolation gate: a PR that edits a Claude workflow edits nothing else.
+"""Claude-workflow isolation gate: a PR that edits the review workflow edits nothing else.
 
 ``anthropics/claude-code-action`` refuses to run when the workflow file invoking
 it differs from the default branch's copy -- and the job still reports success.
-So a PR that touches ``claude-code-review.yml`` or ``claude.yml`` is the one
-kind of PR Claude explicitly refuses to review, and any other file riding along
-in it escapes review without anything turning red.
+So a PR that touches ``claude-code-review.yml`` is the one kind of PR Claude
+explicitly refuses to review, and any other file riding along in it escapes
+review without anything turning red.
 
-This gate keeps that blind spot to the workflow files themselves: if a PR
-changes either one, those must be its only changes. Everything else lands in a
-PR Claude can review.
+This gate keeps that blind spot to the workflow file itself: if a PR changes
+it, that must be its only change. Everything else lands in a PR Claude can
+review.
+
+``claude.yml`` (the ``@claude`` assistant) is deliberately not covered. The
+action's validation is a token exchange that presents only the running job's
+OIDC token, so it checks the workflow that invoked it: a PR editing
+``claude.yml`` is reviewed by an unchanged ``claude-code-review.yml``.
 
 The diff is the whole PR (``<base>...<head>``, i.e. against the merge base), not
 an incremental range, and uses ``--no-renames`` so that renaming a workflow
@@ -18,9 +23,8 @@ counts as removing it -- which is a change to it.
 Usage:
     check_claude_workflow_isolation.py <base_ref> [head_ref]
 
-``head_ref`` defaults to ``HEAD``. Exit codes: 0 = OK (no Claude workflow
-changed, or only Claude workflows changed), 1 = a Claude workflow changed
-alongside other files, 2 = usage / git error, including a ref that does not
+``head_ref`` defaults to ``HEAD``. Exit codes: 0 = OK (the review workflow
+unchanged, or the only change), 1 = the review workflow changed alongside other files, 2 = usage / git error, including a ref that does not
 resolve to a commit -- which must never be mistaken for "nothing to check".
 """
 
@@ -30,12 +34,7 @@ import subprocess
 import sys
 from typing import Iterable
 
-CLAUDE_WORKFLOWS = frozenset(
-    {
-        ".github/workflows/claude-code-review.yml",
-        ".github/workflows/claude.yml",
-    }
-)
+CLAUDE_WORKFLOWS = frozenset({".github/workflows/claude-code-review.yml"})
 
 
 def _fail(msg: str, code: int = 2) -> None:
@@ -68,7 +67,7 @@ def changed_paths(base: str, head: str) -> list[str]:
 def stowaways(changed: Iterable[str]) -> list[str]:
     """Files that would escape Claude's review, or [] if none would.
 
-    Non-empty only when the change touches a Claude workflow *and* something
+    Non-empty only when the change touches the review workflow *and* something
     else; the something-else is what is returned.
     """
     changed = set(changed)
@@ -91,7 +90,7 @@ def main(argv: list[str]) -> int:
         touched = ", ".join(sorted(set(changed) & CLAUDE_WORKFLOWS))
         print(
             f"::error::This PR changes {touched} together with {len(others)} "
-            "other file(s). Claude refuses to review a PR whose Claude workflow "
+            "other file(s). Claude refuses to review a PR whose review workflow "
             "differs from main's, so those files would merge unreviewed. Move "
             "the workflow change into a PR of its own. "
             "See docs/dev/agents/code-review.md#requesting-a-claude-review."
@@ -101,9 +100,9 @@ def main(argv: list[str]) -> int:
         return 1
 
     if set(changed) & CLAUDE_WORKFLOWS:
-        print("OK: only Claude workflow files changed")
+        print("OK: only the Claude review workflow changed")
     else:
-        print("OK: no Claude workflow changed")
+        print("OK: the Claude review workflow is unchanged")
     return 0
 
 

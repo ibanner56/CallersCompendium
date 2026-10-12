@@ -124,23 +124,28 @@ Traps:
   never reviewed by it (observed on #1736). The review entry is the evidence;
   `check_pr_review_gates.py review <N> --reviewer claude` reads that entry, not
   the check.
-- **A PR that changes `claude-code-review.yml` or `claude.yml` may change
-  nothing else.** Claude refuses to review such a PR, so CI's `Claude workflow
-  isolation` job, which `Merge gate` requires, fails if any other file is in
-  it. That keeps the unreviewable part of a change to the workflow files
-  themselves. Put everything else in a separate PR
+- **A PR that changes `claude-code-review.yml` may change nothing else.**
+  Claude refuses to review such a PR, so CI's `Claude workflow isolation` job,
+  which `Merge gate` requires, fails if any other file is in it. That keeps the
+  unreviewable part of a change to the workflow file itself. Put everything
+  else in a separate PR. `claude.yml` is not covered: the action checks only
+  the workflow that invoked it, so a PR that edits `claude.yml` is still
+  reviewed
   ([`check_claude_workflow_isolation.py`](../../../tools/ci/check_claude_workflow_isolation.py)).
 - **Draft PRs and fork PRs are skipped.** Fork runs receive no secrets. For a
   draft, mark it ready (`ready_for_review` starts a round).
-- **The login is `claude[bot]` on both `/reviews` and `/comments`.** This comes
-  from the action's run identity, not from a review: no Claude review existed in
-  this repository when it was written. Confirm it on the first real review,
-  then update this line and `CLAUDE` in the gate script:
+- **The login is `claude[bot]` on both `/reviews` and `/comments`**, unlike
+  Copilot's two. Verified against this repository on #1738:
 
   ```sh
-  gh api repos/<owner>/<repo>/pulls/<N>/reviews -q '[.[].user.login]|unique'
-  gh api repos/<owner>/<repo>/pulls/<N>/comments -q '[.[].user.login]|unique'
+  gh api repos/ibanner56/CallersCompendium/pulls/1738/reviews -q '[.[].user.login]|unique'
+  # -> ["claude[bot]"]
+  gh api repos/ibanner56/CallersCompendium/pulls/1738/comments -q '[.[].user.login]|unique'
+  # -> ["claude[bot]"]
   ```
+
+  GraphQL (`reviewThreads`) reports the same author as `claude`,
+  without the suffix; the gate script reads only the REST endpoints.
 
 - **`@claude` in a comment is not a review request.**
   [`claude.yml`](../../../.github/workflows/claude.yml) answers mentions as a

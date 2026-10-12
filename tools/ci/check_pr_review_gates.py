@@ -73,10 +73,9 @@ COPILOT = Reviewer(
     review_login="copilot-pull-request-reviewer[bot]",
     comment_login="Copilot",
 )
-# The Claude GitHub App's bot user, on both endpoints. Taken from the identity
-# claude-code-action reported in its run on #1736 (`bot_name: claude[bot]`),
-# before any Claude review existed in this repository: confirm it against the
-# first real one with the two queries in docs/dev/agents/code-review.md.
+# The Claude GitHub App's bot user, the same on both endpoints -- unlike
+# Copilot. Verified against the first Claude reviews in this repository: on
+# #1738, /reviews and /comments both report only `claude[bot]`.
 CLAUDE = Reviewer(review_login="claude[bot]", comment_login="claude[bot]")
 
 REVIEWERS = {"copilot": COPILOT, "claude": CLAUDE}
