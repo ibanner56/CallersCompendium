@@ -109,12 +109,39 @@ Each round submits **one** PR review, using
 [`.github/skills/code-review/SKILL.md`](../../../.github/skills/code-review/SKILL.md)
 as its checklist and output format. The review's `commit_id` is the head it
 reviewed. Findings appear twice: in the body's template and as inline comments
-on diff lines. A finding on a line outside the diff appears in the body only.
-There is no `Suppressed comments` block. The job cannot run tests or scripts, so
-its prompt limits findings to what it established from the code. It never
-reports something as merely unverified, and it leaves out the template's
-"Verification the author still owes" checklist, which CI and the merge gate
-own.
+on diff lines. A finding on a line outside the diff appears in the body only,
+and `check_pr_review_gates.py findings` lists inline comments only, so read the
+body of a Claude review as well. There is no `Suppressed comments` block.
+
+What a round is given and asked for:
+
+- **The rubric comes from the PR's base commit.** The workflow copies `SKILL.md`,
+  `AGENTS.md` and `.github/instructions/*.instructions.md` from the base into the
+  job, so a PR cannot loosen the rules it is reviewed under. A PR that edits
+  `SKILL.md` is reviewed under the old rubric; the new one applies from the next
+  PR.
+- **It sees earlier rounds.** The job is handed the previous Claude reviews, all
+  inline comments with their replies, and the diff since the last reviewed
+  commit. It should not repeat a fixed finding or drop an unfixed one, and it
+  looks hardest at the lines you changed in response.
+- **It reads the claim.** The PR description and the issues the PR closes, via
+  `gh issue view`.
+- **Two tiers.** *Findings* carry an input, a path and a wrong result, and decide
+  the verdict. *Suspected* items hinge on one fact the job could not read from the
+  code (a value set elsewhere, data in an existing database); they are written as
+  "Fails if X", do not decide the verdict, and want a one-line confirm or dismiss.
+  They are inline comments like any finding, so `gate threads` counts them:
+  resolve or dismiss each before merging. `findings` is informational and always
+  passes; it prints each comment's first line, which the rubric makes the ID,
+  severity and title.
+  The job cannot run tests or scripts, so it never reports that something is
+  merely unverified, and the workflow (not the rubric) leaves out the template's
+  "Verification the author still owes" checklist, which CI and the merge gate
+  own.
+- **A `Coverage` section** lists every changed file and the disposition of each
+  hazard class. `APPROVE` requires it to be complete, so an `APPROVE` over a
+  thin `Coverage` is a reason to distrust the review, not to merge. The merge
+  gate does not read the verdict or `Coverage`: they are for you.
 
 Traps:
 
