@@ -590,8 +590,10 @@ Sync is off and open while it is on.
 - **When a sync fails for a reason you need to deal with**, the status shows a
   warning and says why: your store is out of space, something was too large to
   upload, the server refused what was sent or didn't accept the sync phrase, it
-  sent a reply the app couldn't use, another device's latest list couldn't be
-  read during a first connection, or something went wrong inside the app. Each
+  sent a reply the app couldn't use, another device's latest list was missing
+  or unreadable during a first connection (a problem on the server's side
+  while fetching it is the calm kind above), or something went wrong inside
+  the app. Each
   comes with what you can do about it, and — where it's known — a **Details**
   line naming the step that stopped and the HTTP status the server answered
   with. If the server refused what was sent, the advice depends on the server:

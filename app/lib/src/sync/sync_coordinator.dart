@@ -1561,9 +1561,30 @@ class SyncCoordinator {
       // unreadable peer list, it raised the skipped-records notice — and on a
       // fresh attach failed the pass as `peerUnavailable`, which waits for the
       // user — over a limit that refills by itself in a minute. Nothing has
-      // been applied yet. A `5xx` here keeps its peer-unavailable reading;
-      // only record downloads stop on one (`_stopsDownloads`).
+      // been applied yet. A `5xx` here is handled just below.
       if (response.kind == SyncResponseKind.rateLimited) {
+        return SyncPassResult(
+          SyncPassStatus.failed,
+          reports: reports.reports,
+          message:
+              'peer manifest returned ${response.statusCode}', // i18n-ignore: internal status
+          failure: SyncFailure.fromResponse(response, SyncFailureStep.download),
+        );
+      }
+      // A `5xx` is the server failing, not the peer (spec §6.3 step 3). A
+      // fresh attach cannot finish without every peer's list, so there it is
+      // the temporary failure it is, retried by itself; reported as an
+      // unreadable peer it failed as `peerUnavailable`, which waits for the
+      // user and sends them to their other devices. In steady state the pass
+      // carries on as before — every baselined address is left undecided for
+      // it (`unresolved` below), so only records new to this device can arrive
+      // from the readable peers, and edits to shared records wait for the next
+      // pass — but without a report: the skipped-records notice it raised
+      // tells the user to check their other device's app version, which is
+      // false advice for a server fault. Anything else — a `404`, an unexpected status — is
+      // still about that peer's list, and is still reported.
+      final serverFault = response.kind == SyncResponseKind.serverError;
+      if (serverFault && freshAttach) {
         return SyncPassResult(
           SyncPassStatus.failed,
           reports: reports.reports,
@@ -1576,15 +1597,17 @@ class SyncCoordinator {
         allPeerManifestsAvailable = false;
         unavailableManifestStatus ??= response.statusCode;
         unresolved.addAll(normalizedBaseline.keys);
-        reports.add(
-          SyncReport(
-            code: SyncReportCode.malformedRecord,
-            peerId: peerId,
-            httpStatus: response.statusCode,
-            message:
-                'Peer manifest returned ${response.statusCode}.', // i18n-ignore: internal report
-          ),
-        );
+        if (!serverFault) {
+          reports.add(
+            SyncReport(
+              code: SyncReportCode.malformedRecord,
+              peerId: peerId,
+              httpStatus: response.statusCode,
+              message:
+                  'Peer manifest returned ${response.statusCode}.', // i18n-ignore: internal report
+            ),
+          );
+        }
         continue;
       }
       if (manifest == null || manifest.epoch != metadata.epoch) {
