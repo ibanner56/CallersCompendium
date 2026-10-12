@@ -19,6 +19,8 @@ settings file the way dmgbuild does and pin the rest by inspection.
 
 from __future__ import annotations
 
+import os
+import posixpath
 import re
 import struct
 import subprocess
@@ -42,10 +44,19 @@ APP = "/build/Products/Release/Caller’s Compendium.app"
 
 
 def load_settings(app: str = APP) -> dict:
-    """Execute the settings file as dmgbuild 1.6's ``load_settings`` does."""
+    """Execute the settings file as dmgbuild 1.6's ``load_settings`` does.
+
+    dmgbuild runs on macOS, so the file's ``os.path`` is ``posixpath`` there;
+    swap it in for the duration so the joined paths match on any host.
+    """
     namespace: dict = {"defines": {"app": app, "background": str(BACKGROUND_1X)}}
-    exec(compile(SETTINGS.read_text(encoding="utf-8"), str(SETTINGS), "exec"),
-         namespace, namespace)
+    host_path = os.path
+    os.path = posixpath
+    try:
+        exec(compile(SETTINGS.read_text(encoding="utf-8"), str(SETTINGS), "exec"),
+             namespace, namespace)
+    finally:
+        os.path = host_path
     return namespace
 
 
@@ -136,7 +147,13 @@ def test_build_script_wires_settings_and_background() -> None:
     assert '-D app="$app_path"' in text
     assert '-D background="$here/dmg-background.png"' in text
     assert subprocess.run(["bash", "-n", str(BUILD)]).returncode == 0
-    assert BUILD.stat().st_mode & 0o111, "build_dmg.sh must be executable"
+    # The committed mode, not the working tree's: that is what the release
+    # runner checks out, and NTFS has no exec bit to stat.
+    mode = subprocess.run(
+        ["git", "ls-files", "--stage", "--", str(BUILD.relative_to(ROOT))],
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    ).stdout.split(" ", 1)[0]
+    assert mode == "100755", f"build_dmg.sh must be executable (index mode {mode!r})"
 
 
 def test_both_packaging_steps_use_the_build_script() -> None:
