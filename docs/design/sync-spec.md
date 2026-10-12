@@ -3994,8 +3994,8 @@ sequence, and so does a pass whose record downloads stopped (§6.3 step 5) after
 it had fetched at least one record, or whose uploads (§6.3 step 7) stopped after
 the store had accepted at least one blob; any other result cancels a pending
 retry without resetting it. The exception exists because a large first
-upload, or a large first download from a server without the batch route
-(§5.2) or too large for one pass's tokens even in batches, meets the per-IP
+upload or download, against a server without the batch routes (§5.2) or too
+large for one pass's tokens even in batches, meets the per-IP
 limit (§5.4) on every pass until it is done: each such pass moved it on — the store keeps an accepted blob, so the
 next pass's `POST /v1/blobs/missing` no longer names it — and doubling the
 wait through them would stretch minutes of transfer over hours: a few minutes
