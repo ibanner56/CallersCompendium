@@ -26,6 +26,61 @@ import '../model/figure.dart';
 /// a missing/unknown `customOrigin` decodes as `userEntered`, and a
 /// missing/non-bool `assumedSubject` decodes as `false`.
 
+/// Every key [figureToJson] can write. Decoding keeps only these and drops the
+/// rest, which is what lets an older build read a newer one's file — and why
+/// Device Sync must not accept a peer's figures carrying anything else
+/// ([unsupportedFigurePath]): the dropped key would be gone from the record
+/// this device then shares back. `figure_codec_test.dart` ties this set to
+/// [figureToJson]'s output.
+const Set<String> figureJsonKeys = {
+  'schemaVersion',
+  'move',
+  'params',
+  'note',
+  'progression',
+  'customOrigin',
+  'assumedSubject',
+  'walkthroughOverride',
+  'wordingOverride',
+};
+
+/// The first path inside a raw `figures` array that decoding would lose, or
+/// null when this build can read all of it: a key outside [figureJsonKeys], a
+/// `customOrigin` it does not know, or a `schemaVersion` newer than
+/// [figureSchemaVersion]. Paths are dotted from `figures`, through a
+/// structural container's `params.figures`, e.g. `figures.params.figures.key`.
+///
+/// Anything structurally wrong (a non-list, a non-object entry, a non-string
+/// `move`) is left to decoding to reject as malformed; this only answers "is
+/// this from a newer version of the app".
+String? unsupportedFigurePath(Object? raw, [String path = 'figures']) {
+  if (raw is! List) return null;
+  for (final entry in raw) {
+    if (entry is! Map) continue;
+    for (final key in entry.keys) {
+      if (!figureJsonKeys.contains(key)) return '$path.$key';
+    }
+    final origin = entry['customOrigin'];
+    if (origin != null && !CustomOrigin.values.any((o) => o.name == origin)) {
+      return '$path.customOrigin';
+    }
+    final version = entry['schemaVersion'];
+    if (version is int && version > figureSchemaVersion) {
+      return '$path.schemaVersion';
+    }
+    final move = entry['move'];
+    final params = entry['params'];
+    if ((move == meanwhileMove || move == modifierMove) && params is Map) {
+      final nested = unsupportedFigurePath(
+        params['figures'],
+        '$path.params.figures',
+      );
+      if (nested != null) return nested;
+    }
+  }
+  return null;
+}
+
 Map<String, Object?> figureToJson(Figure figure) {
   final params = _paramsToJson(figure);
   return {

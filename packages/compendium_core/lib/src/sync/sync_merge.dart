@@ -6,6 +6,7 @@ import 'sync_codec.dart';
 import 'sync_conflict_compare.dart';
 import 'sync_record_kind.dart';
 import 'sync_report.dart';
+import 'sync_retained_fields.dart';
 
 /// A record candidate carrying the hashes needed by the baseline diff.
 class SyncMergeCandidate {
@@ -715,6 +716,35 @@ class SyncMergeEngine {
             ),
           );
         }
+        // The versions also differ in something this build keeps for a newer
+        // version and cannot judge. It neither settles the tie — the pick
+        // below could keep the copy without the newer field, everywhere — nor
+        // asks, since its user would see no difference. It stands aside,
+        // keeping its own copy and writing nothing, and leaves the choice to
+        // a device that understands the field; that choice then arrives here
+        // as a newer version like any other. Decided by Isaac (maintainer) in
+        // planning this change (spec §6.7).
+        final unseeable = updatedWinners.map(_unseeableHash).toSet();
+        if (unseeable.length > 1) {
+          final first = updatedWinners.first;
+          return _Resolution.report(
+            SyncReport(
+              code: SyncReportCode.newerRecordFields,
+              kind: first.blob.kind,
+              recordId: address.recordId,
+              peerId: updatedWinners
+                  .firstWhere(
+                    (candidate) => !identical(candidate, local),
+                    orElse: () => first,
+                  )
+                  .peerId,
+              message:
+                  'Versions with the same updatedAt differ only in fields a '
+                  'newer version of the app syncs; left to a device that '
+                  'understands them.',
+            ),
+          );
+        }
         invisibleTie = true;
       }
     }
@@ -901,14 +931,41 @@ class SyncMergeEngine {
     )..remove('id'),
   );
 
+  /// What the user of this build is shown of [candidate]: drawn from the part
+  /// it syncs only, since nothing it keeps for a newer version is shown here
+  /// (spec §6.7).
   static String _visibleHash(
     SyncMergeCandidate candidate,
     Map<SyncRecordKind, Map<String, String>> aliases,
   ) => syncUserVisibleContentHash(
     candidate.blob.kind,
-    candidate.blob.body,
+    _knownBody(candidate),
     aliases: aliases,
   );
+
+  /// The parts of [candidate] this build keeps for a newer version and cannot
+  /// show or judge (spec §6.7): its kept parts, or the whole body of a record
+  /// it keeps whole.
+  static String _unseeableHash(SyncMergeCandidate candidate) {
+    final split = _split(candidate);
+    return contentHash(
+      split.wholeRecord ? candidate.blob.body : (split.retained ?? const {}),
+    );
+  }
+
+  static Map<String, Object?> _knownBody(SyncMergeCandidate candidate) {
+    final split = _split(candidate);
+    return split.wholeRecord ? const {} : split.known;
+  }
+
+  static SyncBodyPartition _split(SyncMergeCandidate candidate) =>
+      partitionInboundRecordBody(
+        candidate.blob.kind,
+        candidate.blob.body,
+        settingsKey: candidate.blob.kind == SyncRecordKind.setting
+            ? candidate.blob.id
+            : null,
+      );
 
   static int _compareAddress(SyncRecordAddress left, SyncRecordAddress right) {
     final kind = left.kind.index.compareTo(right.kind.index);

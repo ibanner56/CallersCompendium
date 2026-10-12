@@ -541,6 +541,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage dens ændringer.';
 
   @override
+  String settingsSyncNoticeKeptNewerItems(String items) {
+    return 'Gemt til en nyere version af appen: $items. De synkroniseres stadig, med detaljer denne version ikke kan vise. Opdater appen på denne enhed for at se dem.';
+  }
+
+  @override
   String get settingsSyncCopyDetails => 'Kopiér detaljer';
 
   @override
@@ -622,6 +627,16 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String settingsSyncNoticeRecordNotHere(String kind) {
     return '$kind, ikke på denne enhed';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNewerFigures(String kind, String name) {
+    return '$kind »$name« (har figurer, som kun en nyere version kan læse)';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHereNewerFigures(String kind) {
+    return '$kind ikke på denne enhed (har figurer, som kun en nyere version kan læse)';
   }
 
   @override

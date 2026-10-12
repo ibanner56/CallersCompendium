@@ -1138,6 +1138,15 @@ makes self-hosting materially harder, which constraint 4 forbids.
   > Separately, a peer whose envelope `v` is newer than this device's is now
   > reported as its own condition, `newerWireVersion`, asking the user to update
   > *this* device (sync-spec.md §6.9).
+  > **Amended 2026-10-12.** An older build no longer refuses a record because a
+  > newer one added a field: it keeps the fields it does not sync beside the
+  > record and shares them back unchanged, so they survive its own edits
+  > (sync-spec.md §6.7, schema v39 `retained_sync_fields`). It still refuses a
+  > record it could not put back exactly — new keys inside a dance's figures —
+  > and leaves to a newer device any tie it cannot judge. Decided by Isaac
+  > (maintainer) in planning the change: kept parts are classified the most
+  > cautious way that can still travel, a known-but-private field is kept like
+  > an unknown one, and a setting this build does not sync is kept whole.
 - **Settings sync requires a schema migration, and it should ship first.**
   `settings` is `(key, value_json)` with no timestamp, so the `updatedAt`
   conflict rule cannot reach it. The sync migration adds `updated_at`, stamping existing

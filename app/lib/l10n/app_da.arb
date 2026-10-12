@@ -488,6 +488,10 @@
   "@settingsSyncNoticeNewerVersionUncounted": {
     "x-sourceSha256": "ca371c7f36b6a2ca97e5fb9d8cd18cc2909af04e2973dec1a999d4e7a50fb339"
   },
+  "settingsSyncNoticeKeptNewerItems": "Gemt til en nyere version af appen: {items}. De synkroniseres stadig, med detaljer denne version ikke kan vise. Opdater appen på denne enhed for at se dem.",
+  "@settingsSyncNoticeKeptNewerItems": {
+    "x-sourceSha256": "3217182e37c99c9a4d37ec173da3a608e206a4edb771bba48803bf68f2dd334a"
+  },
   "settingsSyncCopyDetails": "Kopiér detaljer",
   "@settingsSyncCopyDetails": {
     "x-sourceSha256": "ec7ee2826c849564576c1de2ff4bb666e39c191c746d2325d0ab110921491a96"
@@ -559,6 +563,14 @@
   "settingsSyncNoticeRecordNotHere": "{kind}, ikke på denne enhed",
   "@settingsSyncNoticeRecordNotHere": {
     "x-sourceSha256": "26cb94ed02bbe50614443d20b73107a471d16600fe41f3425c65f60cded6a9e0"
+  },
+  "settingsSyncNoticeRecordNewerFigures": "{kind} »{name}« (har figurer, som kun en nyere version kan læse)",
+  "@settingsSyncNoticeRecordNewerFigures": {
+    "x-sourceSha256": "8afc7ad25fad0c20ebd934e217ad05533a8a66f609193512af489b4f45a1484d"
+  },
+  "settingsSyncNoticeRecordNotHereNewerFigures": "{kind} ikke på denne enhed (har figurer, som kun en nyere version kan læse)",
+  "@settingsSyncNoticeRecordNotHereNewerFigures": {
+    "x-sourceSha256": "f59ed5b584b43c2ebf01a65ce1ebc3b997669ff7ad4b5b083ecace816328e86e"
   },
   "settingsSyncNoticeAffectedMore": "{count, plural, other{og {count} mere}}",
   "@settingsSyncNoticeAffectedMore": {

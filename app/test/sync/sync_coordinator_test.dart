@@ -5493,11 +5493,11 @@ void main() {
       expect(report.peerId, 'peer');
     });
 
-    test('a blob carrying a field this build does not know is reported as '
-        'newerRecordFields, naming its record', () async {
+    test('a blob carrying a field this build does not sync is applied, not '
+        'reported (spec §6.7)', () async {
       // The envelope `v` is unchanged: a newer build added a body field, as
-      // #1714 added a program's pay. The record is still skipped; only what
-      // the user is told changes.
+      // #1714 added a program's pay. This build keeps it rather than refusing
+      // the record.
       final tag = _tag('t-new', 'Newer').toJson();
       final newer = utf8.encode(
         jsonEncode({
@@ -5519,11 +5519,52 @@ void main() {
         ),
       ).syncNow();
 
-      final report = result.reports.singleWhere(
-        (report) => report.recordId == 't-new',
+      expect(
+        result.reports.where((report) => report.recordId == 't-new'),
+        isEmpty,
       );
-      expect(report.code, SyncReportCode.newerRecordFields);
-      expect(report.kind, SyncRecordKind.tag);
+    });
+
+    test('a dance whose figures a newer build extended is reported as '
+        'newerFigures, naming its record', () async {
+      final dance = SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: 'd-new',
+        updatedAt: DateTime.utc(2026, 7, 15, 12),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 7, 15, 12),
+        body: const {'id': 'd-new', 'title': 'Newer'},
+      ).toJson();
+      final newer = utf8.encode(
+        jsonEncode({
+          ...dance,
+          'body': {
+            ...(dance['body']! as Map<String, Object?>),
+            'figures': [
+              {'schemaVersion': 1, 'move': 'swing', 'handHold': 'cross'},
+            ],
+          },
+        }),
+      );
+      final hash = sha256Hex(newer);
+      final result = await coordinatorFor(
+        _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.dance: {'d-new': hash},
+            },
+          ),
+          blobResponses: {hash: _FakeTransport.response(200, body: newer)},
+        ),
+      ).syncNow();
+
+      final report = result.reports.singleWhere(
+        (report) => report.recordId == 'd-new',
+      );
+      expect(report.code, SyncReportCode.newerFigures);
+      expect(report.kind, SyncRecordKind.dance);
       expect(report.peerId, 'peer');
     });
 
