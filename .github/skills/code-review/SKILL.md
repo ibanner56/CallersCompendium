@@ -4,7 +4,7 @@ description: >-
   Review a diff in the Callers Compendium repository and report only
   high-confidence bugs, security holes, and logic errors — never style. Use
   this when reviewing a pull request, a staged/unstaged/branch diff, or a
-  proposed change, or when reading and answering a Copilot review. Combines a
+  proposed change, or when reading and answering a Copilot or Claude review. Combines a
   general reviewing baseline with the repository-specific hazards that have
   actually caused churn here (documentation drift, missing changelog entries,
   unclassified persisted fields, guard tests that cannot fail, drifted taxonomy
@@ -192,7 +192,7 @@ publishing are security-relevant — a manifest without its `.sig` makes the
 updater fail closed. See
 [`.github/instructions/release-tooling.instructions.md`](../../../.github/instructions/release-tooling.instructions.md).
 
-## Reading and answering a Copilot review
+## Reading and answering a Copilot or Claude review
 
 When this skill is used to read a review rather than produce one, the mechanics
 have their own traps — do not reinvent them:
@@ -204,6 +204,9 @@ have their own traps — do not reinvent them:
   reviewer login differs by endpoint (`copilot-pull-request-reviewer[bot]` on
   `/reviews`, `Copilot` on `/comments`). Full procedure:
   [code-review.md](../../../docs/dev/agents/code-review.md).
+- A Claude review (the opt-in `review: claude` label) is this skill's own output
+  format, posted as one review per round by `claude-code-review.yml`. Read and
+  gate it with `--reviewer claude`; the script defaults to Copilot.
 - Batch fixes for a whole round into one push; each push starts another round and
   re-pays the resident prompt.
 
@@ -225,7 +228,9 @@ issue on its own — even a denial like `Does not close #887`. Reasoning:
 ## Output format
 
 Most work here is done by AI agents, so a review is an **input to another
-session**, not just prose for a human. Emit findings in the structure below: it
+session**, not just prose for a human. The opt-in Claude review workflow
+(`.github/workflows/claude-code-review.yml`) posts this template as its review
+body, so a change here changes what that workflow posts. Emit findings in the structure below: it
 is skimmable top-to-bottom, and each finding is self-contained so a fixing agent
 can act on one without reading the rest.
 
