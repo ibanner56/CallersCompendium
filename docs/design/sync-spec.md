@@ -1979,7 +1979,8 @@ an Athenaeum from before the route reads `batch` as a malformed hash.
 > **Amended 2026-10-11.** This endpoint, its frame format, the caps in §5.4 and
 > the fallback rule were added by the change that introduced them, on its
 > author's judgement rather than a maintainer ruling. How a batch is charged
-> against the request-rate limits is open: see §5.4.
+> against the request-rate limits (§5.4) was the author's recommendation,
+> approved by the maintainer on 2026-10-12.
 
 **Blob `PUT` verification.** The server MUST verify that the body hashes to
 `{hash}` under §4.2 and MUST reject `400` if it does not. Without that check
@@ -2074,15 +2075,44 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | Blob bytes per `POST /v1/blobs/batch` response | 2 MB, plus at most 37 bytes of framing per hash; later blobs are *not sent* (§5.2) |
 | JSON parse depth | 32 |
 | Decompressed size of a `Content-Encoding: gzip` body (§4) | 10× compressed, cap 32 MB; encoded size also capped per route (decoded limit plus gzip framing slack) |
-| Request rate, per client IP | 60/minute, burst 120 |
+| Request rate, per client IP | 60/minute, burst 120; a `POST /v1/blobs/batch` of *n* hashes costs 1 + ⌈*n*/20⌉ (below) |
 | Request rate, per store (`id_key`) | 600/minute |
 | **Failed store resolutions**, per client IP | 10/minute, burst 20 |
 | **Failed store resolutions**, server-wide | 1,000/minute |
 | Store creations (`201` from `POST /v1/store`), server-wide | 60/minute |
 
-The request-rate rows bound load. **How a `POST /v1/blobs/batch` is charged
-against them is open, pending the maintainer's decision**: until it is settled
-a batch is charged as one request, on both rows, like every other request.
+The request-rate rows bound load: the work every request costs whatever it
+carries — authentication, the store lookup and its `last_seen` write, the
+request-path deletion retry (§7.3) — and the bytes it sends. **A
+`POST /v1/blobs/batch` naming *n* hashes costs 1 + ⌈*n*/20⌉ tokens on both
+rows**, so a full batch of 200 costs 11. The server MUST charge the extra
+⌈*n*/20⌉ only once the store resolves: a request for a store that does not
+resolve costs one token, as any request does, and counts as a failed
+resolution. A batch that either bucket cannot cover MUST be refused whole with
+`429`, taking nothing beyond its request token, and never trimmed to what is
+affordable — a `429` on a batch then always means nothing was sent, which is
+what §6.3 step 5 stops on. Its `Retry-After` is how long until both buckets
+could pay for the same batch sent again, request token included, rounded up to
+whole seconds. The charge is capped at what a full bucket holds, so a burst an
+operator configures below 11 delays a full batch rather than refusing every
+one. An operator may change the 20 with the rest of these values.
+
+**Why 1 + ⌈*n*/20⌉.** Measured on the reference server (in-process, a 4-vCPU
+Xeon at 2.1 GHz), a single-blob `GET` costs about 0.45 ms of handler time and a
+200-hash batch about 7 ms, or 10.5 ms with gzip: nearly all of a request's cost
+is paid once whatever it carries. Charged one token, a batch would let one
+address pull 12,000 records a minute instead of 60 and double the worst-case
+bytes a token buys. Charged 1 + ⌈*n*/20⌉, one address sustains about 1,100
+records a minute in about 0.16 MB of gzip; a token still buys at most 1 MB, so
+the worst case per address stays 60 MB a minute; and because the 50 ms
+deletion retry is charged per request, the worst-case handler time per address
+falls from about 3 s a minute to about 0.3 s. A 1,000-record first download
+finishes in one pass, and a 5,000-record one in four, about three minutes.
+Exempting batches from the per-IP row instead was rejected: the per-store row
+alone bounds nothing per address, which can hold any number of stores, and the
+per-IP row is what bounds the unauthenticated work of guessing at stores. When
+the per-IP limit is enforced at the proxy (§7.5 requirement 6), the proxy
+counts requests, not this cost; the server's own row still applies.
 
 **Why the batch caps are what they are.** 200 hashes is a request body of about
 13 KB and, at the median record size measured when the route was added (1.7 KB
@@ -5338,7 +5368,12 @@ after the first frame has been read comes back *missing* (mutation: build the
 whole body before returning it). A request naming more than 200 hashes is
 `413`, and a store that does not resolve is a failed resolution under §5.4
 (mutation: answer its `404` without counting it). `gzip` is used when accepted
-and not when refused with `q=0`.
+and not when refused with `q=0`. A batch costs 1 + ⌈*n*/20⌉ on both request-rate
+rows and one that overdraws either is refused whole, with a `Retry-After` that
+covers the same batch sent again (mutations: charge one token — a full batch
+then costs what a single `GET` does; skip the per-store row; trim instead of
+refusing); a batch for a store that does not resolve costs only its request
+token (mutation: charge before the lookup).
 
 A blob uploaded but not yet manifested survives a concurrent peer's manifest
 `PUT` and survives the sweep (mutation: collect every unreferenced blob

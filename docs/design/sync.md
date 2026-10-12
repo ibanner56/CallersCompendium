@@ -3024,8 +3024,11 @@ request and response handling, authentication, the store lookup and its
 further blob in a batch, or about 50 µs with gzip. Two hundred hashes a request makes that first download
 five requests. The wire format, the caps and the fallback for a server without
 the route are in spec §5.2 and §5.4, with the case for a frame stream over JSON
-or multipart beside the rule. How a batch is charged against the request-rate
-limits is not yet settled.
+or multipart beside the rule. A batch of *n* hashes costs 1 + ⌈*n*/20⌉
+request tokens (spec §5.4, with the comparison that chose it): one token would
+have let a single address pull 12,000 records a minute and doubled the bytes a
+token buys, and exempting batches from the per-IP limit would have left nothing
+bounding one address.
 
 **The endpoints that are not content-addressed carry a schema, and the first
 two did not always.** The blob and the manifest are specified to the byte because
