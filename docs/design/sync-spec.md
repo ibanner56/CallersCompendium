@@ -2270,7 +2270,12 @@ republishes, which is an ordinary upload and needs no special path.
    peer's list no baselined record can be decided, so every one waits for the
    next pass, and only records new to this device arrive from the peers that
    could be read. It MUST NOT be reported as an unreadable peer manifest,
-   whose remedy is the other device. Any other non-success answer,
+   whose remedy is the other device. The pass still applies, publishes and
+   advances the baseline as far as it can (steps 4–9), and then ends as that
+   transient failure rather than as completed: a completed pass would cancel
+   the automatic retry (§6.12) and move the last-success time that §6.14
+   item 4's expiry warning reads, so a fault that persisted would hold every
+   shared edit back while the status said synced. Any other non-success answer,
    a `404` included, is still about that peer's list and is reported as
    before.
 
@@ -2280,7 +2285,10 @@ republishes, which is an ordinary upload and needs no special path.
    > for a server fault. The maintainer chose this split in the session that
    > made the change, over stopping every pass on a `5xx` (which would also
    > lose the records new to this device that the readable peers can still
-   > deliver) and over leaving it as it was.
+   > deliver) and over leaving it as it was. In the same session the
+   > maintainer chose ending the finished steady-state pass as the transient
+   > failure, over keeping it completed and over raising a server-fault
+   > notice instead; the first version of this rule kept it completed.
 4. Per record, resolve existence first (§6.4), then compare hashes and
    `updatedAt`:
 

@@ -580,7 +580,10 @@ Sync is off and open while it is on.
   its own — can take several of these tries, roughly a minute for every sixty
   records. Each try keeps what it got through, so while it is still getting
   further the app tries again every minute rather than waiting longer, and
-  nothing it hasn't fetched yet is reported as skipped. A small
+  nothing it hasn't fetched yet is reported as skipped. If the server has a
+  problem sending another device's latest list, changes to records your devices
+  already share wait until it can, so the status says **Waiting to sync** even
+  though anything new still arrived. A small
   **Details** line still names the step that stopped and the HTTP status, if
   you're curious. If this goes on for weeks, the expiry warning below is what
   tells you.

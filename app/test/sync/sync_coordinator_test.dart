@@ -2723,7 +2723,9 @@ void main() {
       transport: _FakeTransport(
         devices: ['peer'],
         manifestResponses: {
-          'peer': [_FakeTransport.response(500)],
+          // A 404, which still completes the pass. A 5xx, which ends it as a
+          // temporary failure, is covered with the other server faults.
+          'peer': [_FakeTransport.response(404)],
         },
       ),
     );
@@ -5296,8 +5298,8 @@ void main() {
         expect(transport.manifestPuts, 0);
       });
 
-      test('a $status on one peer manifest in steady state skips that peer '
-          'quietly, and a new record from the rest still arrives', () async {
+      test('a $status on one peer manifest in steady state finishes the pass '
+          'quietly, then ends it as a temporary failure', () async {
         final other = SyncMergeCandidate.fromBlob(
           _setting('default_program_band', 'from other'),
         );
@@ -5324,12 +5326,34 @@ void main() {
           transport: transport,
         ).syncNow();
 
-        expect(result.status, SyncPassStatus.completed);
+        expect(
+          result.status,
+          SyncPassStatus.failed,
+          reason:
+              'reported as completed, the pass cancels the retry and advances '
+              'the last-success clock while shared edits are held back',
+        );
+        expect(result.failure?.cause, SyncFailureCause.serverError);
+        expect(result.failure?.cause.isTransient, isTrue);
+        expect(result.failure?.step, SyncFailureStep.download);
+        expect(result.failure?.statusCode, status);
+        expect(
+          result.failure?.progressed,
+          isFalse,
+          reason:
+              'a persistent fault backs off rather than retrying each minute',
+        );
         expect(
           result.reports,
           isEmpty,
           reason: 'no skipped-records notice for a server fault',
         );
+        expect(
+          transport.manifestPuts,
+          1,
+          reason: 'the pass still publishes before it reports the fault',
+        );
+        expect(store.baselineAdvances, 1);
         expect(
           store.writes.map((w) => w.address.recordId),
           contains('default_program_band'),
