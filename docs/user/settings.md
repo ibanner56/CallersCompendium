@@ -621,10 +621,15 @@ Sync is off and open while it is on.
   tunes the app can't read, so they aren't being sent (nothing is deleted —
   enter those figures or tunes again to send them); when another device is
   using a newer version of the app, so this device can't read some of what it
-  shared — either in a newer format, or with details this version doesn't
-  sync yet. That one is a warning, says how many of each kind of record are
-  waiting when it can tell (for example "2 programs, 1 setting"), lists only
-  those records, and is fixed by updating the app on this device; when records from
+  shared — either in a newer format, or with details this version can't keep,
+  such as new details inside a dance's figures (those dances are marked as
+  having figures only a newer version can read). That one is a warning, says
+  how many of each kind of record are waiting when it can tell (for example "2
+  programs, 1 setting"), lists only those records, and is fixed by updating the
+  app on this device; when records here carry other details a newer version
+  of the app added, which this version keeps and shares back unchanged so they
+  aren't lost when you edit the record here — that one is information only, the
+  records still sync, and updating the app shows the details; when records from
   another device couldn't be used and were skipped; when another device's clock
   looks far off; when an
   update arrived while you were editing the same record, so it waits for the

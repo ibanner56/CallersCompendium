@@ -229,9 +229,23 @@ MUST be classified in the PR that creates it or the coverage ratchet fails.
 | `review_queue` | `kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, nullable `local_hash`, `queued_at` | `deviceScoped` |
 | `published_records` | `kind`, `record_id` | `deviceScoped` |
 | `normalisation_skips` | `table`, `column`, `record_id` | `deviceScoped` |
+| `retained_sync_fields` | `kind`, `record_id`, `whole_record` | `deviceScoped` |
+| `retained_sync_fields` | `payload` | **`shareable`** |
 
 `tombstone_blob` is `shareable` because it is record content that is
-re-transmitted, not device bookkeeping.
+re-transmitted, not device bookkeeping. `retained_sync_fields.payload` is
+`shareable` for the same reason (§6.7): parts of a peer's record that this build
+does not sync, put back into what it shares. Its content is unknown to this
+build by definition, so it is classified the most cautious way that can still
+travel — `unclassifiedPersonal`, `thirdParty` — as the maintainer decided.
+
+`retained_sync_fields` is record content, not store state: it MUST survive an
+epoch reset and a detach, like the record it belongs to. A restore replaces the
+records, so it MUST clear the table. A row MUST follow its record when two
+identities become one, and MUST go when its record is hard-deleted or purged;
+every snapshot drops a row whose record no longer exists, so third-party
+content never outlives its record. Only the sync engine writes it, so a write
+does not schedule a pass.
 
 **Lifecycle.** All are scoped to the store identity except `published_records`
 and `normalisation_skips`, which are treated separately below. `id_aliases` and
@@ -3072,26 +3086,59 @@ does.
 
 **Sender/receiver contract.** The sender emits explicit `null` for an empty
 `shareable` field and omits only non-`shareable` fields. The receiver MUST
-independently consult the registry to decide which absences mean *preserve*, and
-MUST **refuse the whole record** — one record skipped, batch intact, local state
-unchanged, reported as in §6.9 — if it carries any key not classified
-`shareable` for that kind and nesting context. Such a refusal is reported as a
-newer version's record, not a malformed one (§6.9). For `kind: "setting"` the
-receiver MUST additionally look the record id up in `settingsClassifications`
-and refuse anything not `shareable`.
+independently consult the registry to decide which absences mean *preserve*.
 
-Refusing rather than dropping the offending key is what keeps the hash
-meaningful. Dropping it changes the content before it is stored, so this
-device's serialisation no longer hashes to the blob the peer advertises and §6.3
-step 9 never advances the baseline for that record. What follows is an
-equal-`updatedAt` tie — the receiver copies the envelope stamp — which §6.3
-declines to resolve and requires reported on every pass, over a field the user
-cannot see or edit because their own build does not classify it. Failing closed
-is also the argument the ADR already makes for preferring an allow-list to a
-deny-list on the server, and it applies unchanged here: an unrecognised key
-cannot be distinguished from a newer peer's legitimate field, so storing a
-truncated copy is the one outcome that is silently wrong rather than loudly
-refused.
+**A field the receiver does not sync is kept, not dropped and not applied.**
+Any part of an inbound body that the receiver does not classify `shareable` for
+that kind and nesting context — a field a newer build added, or one a newer
+build reclassified to travel that this build keeps private — MUST be stored
+verbatim beside the record (`retained_sync_fields`, §3.2) and put back, in the
+same place, into every body this device builds for that record: what it
+publishes, hashes, offers in a review, matches for dedupe and compares for a
+natural key. It MUST NOT be written into the record itself, so a peer's value
+for a field this build keeps private never reaches this device's own column.
+Overlay (step 2 below) applies the part the receiver syncs; the kept part
+replaces whatever was kept for the record before, because the inbound body is
+the whole record: a field it no longer carries is gone everywhere. Decided by
+Isaac (maintainer) in planning this change, including that a known-but-private
+field is kept like an unknown one.
+
+A part is kept where it can be put back exactly: a key at the top level, a key
+inside a nested object (`formation`, `provenance`), or a key inside an item of
+a list whose items carry a stable id (`links` and `slots` by `id`,
+`customFields` by `fieldId`, `sourceCitations` by `sourceId`). A part with no
+such place — a key inside a dance's `figures` (or a container's
+`params.figures`), a `customOrigin` or figure `schemaVersion` this build does
+not know, a tune that is not a string, a kept part on a list item with no usable
+id — MUST instead **refuse the whole record**: one record skipped, batch
+intact, local state unchanged, reported as in §6.9. Figure decoding drops
+unknown keys silently, so applying such a dance would store a truncated copy.
+
+**A kept part this build later syncs moves into the record.** After an
+upgrade that starts syncing a field a device kept, the kept copy MUST NOT be put
+back over the record — it would overwrite what the device now holds, including
+the user's own edit, on every share. A conforming client MUST move such values
+into the record before anyone can edit it after the upgrade (this one does it
+at open, rewriting the record as the version it held, so its timestamps and
+wire hash are unchanged), keep only what it still does not sync, and drop
+already-synced paths from kept parts wherever it puts them back. A setting
+kept whole is applied the same way once its key is synced, unless the device
+already holds a newer copy of it, which wins.
+
+For `kind: "setting"`, a key this build does not classify `shareable` is kept
+**whole**: the peer's blob is stored as it came, published back as this
+device's copy of that record, and never written to `settings`. The two
+transport keys (`sync_id`, `sync_device_id`) are the exception and MUST still
+be refused; republishing either would repoint a store.
+
+Keeping rather than dropping is what keeps the hash meaningful. Dropping a part
+changes the content before it is stored, so this device's serialisation no
+longer hashes to the blob the peer advertises and §6.3 step 9 never advances
+the baseline for that record; worse, the device's next edit would share the
+record without the part, and last-writer-wins would erase it everywhere.
+Putting it back exactly makes this device's rebuilt blob byte-identical to the
+peer's. The receiver still cannot tell a newer peer's field from a defective
+one's: it keeps either, applies neither, and shares back only what it was given.
 
 **Admission and ordering**, before merge planning and within the apply
 transaction:
@@ -3220,30 +3267,45 @@ many items are waiting when the reports name any. A blob reaches an older
 client through any server (§7.2 accepts an unknown blob `v`); a newer manifest
 reaches it only once the server has been updated first.
 
-**A field this build does not sync is reported the same way.** A blob whose
-envelope `v` is current but whose body carries any path this build does not
-classify `shareable` for that kind — one it does not know at all, or one it
-knows but keeps private — or, for a setting, a key that is unclassified or not
-`shareable` here, is still refused whole (§6.7), but reported with code
-`newerRecordFields` rather than `malformedRecord`. Both are what a newer build
-looks like to an older one: it added a field (#1714 added a program's pay
-without a `v` bump), or reclassified one to travel, which §7.2 expects to
-recur. The remedy is the same as a newer envelope's, so the status surface
-shows the two in one needs-you notice. The notice says how many records of
-each kind are waiting — "2 programs, 1 setting" rather than a bare item count
-— and lists only those records, apart from records skipped for any other
-reason. Every non-shareable path is reported the same way, so which one a
-body's key order reaches first does not change the report.
+**A newer version's record this build cannot keep is reported the same way.**
+A blob whose envelope `v` is current but whose body carries a part this build
+can neither apply nor keep (§6.7) is refused whole and reported with code
+`newerRecordFields`, or `newerFigures` when the part is inside a dance's
+figures, rather than `malformedRecord`. Both are what a newer build looks like
+to an older one, and the remedy is the same as a newer envelope's, so the
+status surface shows all three in one needs-you notice. The notice says how
+many records of each kind are waiting — "2 programs, 1 setting" rather than a
+bare item count — and lists only those records, apart from records skipped for
+any other reason; a dance refused for its figures is marked as having figures
+only a newer version can read, so the user learns what this build does not
+understand rather than only that it is behind.
 
-The receiver cannot tell a newer sender from a defective one that put a private
-field on the wire, and this rule names the newer sender. Decided by Isaac
-(maintainer) in review of #1728: the app's releases are under the maintainer's
-control, so a version difference is the case worth naming. The record is
-refused and nothing is stored either way; only the advice differs. A body that
-is structurally wrong — a setting with no `value`, an id that does not match
-its envelope — stays `malformedRecord`, and so does a shareable field whose
-value no longer has the type this build expects: a newer build MUST NOT change
-a synced field's type without a `v` bump.
+The receiver cannot tell a newer sender from a defective one, and this rule
+names the newer sender. Decided by Isaac (maintainer) in review of #1728: the
+app's releases are under the maintainer's control, so a version difference is
+the case worth naming. A body that is structurally wrong — a setting with no
+`value`, an id that does not match its envelope — stays `malformedRecord`, and
+so does a shareable field whose value no longer has the type this build
+expects: a newer build MUST NOT change a synced field's type without a `v`
+bump.
+
+**Kept parts are information, not a problem.** Every snapshot reports each
+record this device publishes with kept parts (`keptNewerFields`, `kind` and
+`recordId`, no peer), and the status surface shows them as one informational
+notice: the records sync, and updating the app shows the details.
+
+**A tie this build cannot judge is left to one that can.** When versions with
+the same `updatedAt` differ in a kept part, this build can neither show the
+difference nor tell which copy to keep. Unless a field it does show also
+differs — then the tie is a review as in §6.6, and the user's choice carries
+its kept parts with it — it MUST NOT settle the tie, even where everything it
+syncs is identical (§6.3's settlement of a tie in nothing the user is shown
+could keep the copy without the newer field, on every device), and MUST NOT
+ask, since its user would see no difference. It keeps its own copy, writes
+nothing, and reports `newerRecordFields`; a device that understands the field
+settles or asks, and that outcome then arrives here as a newer version.
+Comparing what a user is shown draws only on the part this build syncs. Decided
+by Isaac (maintainer) in planning this change.
 
 Rejecting both fields is what makes a poisoned value always **local**.
 
@@ -5209,11 +5271,20 @@ skipped and the pass completes). **A
 newer envelope is reported as `newerWireVersion`, a newer one that also adds
 a key included** (mutation: run the exact-key check before the version check —
 the plain `v` bump still passes, and the newer envelope that adds a key is
-reported as malformed). **A body field this build does not sync is reported
-as `newerRecordFields`**, whether it is unknown or known but private, in
-either key order (mutation: report a known private field as malformed — the
-unknown-field case still passes, and a field a newer build reclassified to
-travel tells the user to check their other devices). These are client-side and
+reported as malformed). **A body field this build does not sync is kept and
+shared back byte for byte** — top level, nested object and id-keyed list item;
+unknown or known but private — so the device's rebuilt wire hash equals the
+peer's, and it survives the device's own edit (mutation: drop the kept parts
+from the snapshot — the record publishes without the field, and its hash
+differs from the peer's at the same `updatedAt`). **A part it cannot keep
+refuses the record as `newerRecordFields` or `newerFigures`** (mutation: let
+figure decoding drop the key — the dance applies, truncated). **A tie in kept
+parts is left to a device that understands them** (mutation: settle it as a tie
+in nothing the user is shown — the copy without the newer field can win
+everywhere). **After an upgrade that starts syncing a kept field, the record
+holds it and the kept copy no longer wins** (mutation: keep putting the kept
+copy back — the user's edit to the now-synced field is shared with the old
+value). These are client-side and
 are grouped here rather than under **Server** because the server never parses
 record content beyond §7.2's key check — a server suite written from a list that
 included them would be testing rules its implementation is forbidden to have.

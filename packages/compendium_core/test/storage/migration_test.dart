@@ -1310,6 +1310,60 @@ void main() {
       expect(row.read<String?>('pay_currency'), isNull);
     });
   });
+  group('v38 -> v39 upgrade (retained sync fields, sync-spec §6.7)', () {
+    test(
+      'adds an empty retained_sync_fields table and keeps every row',
+      () async {
+        final raw = sqlite3.sqlite3.openInMemory();
+        final historical = GeneratedHelper().databaseForVersion(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          38,
+        );
+        await historical.customSelect('SELECT 1').get();
+        final before = await historical
+            .customSelect(
+              "SELECT name FROM sqlite_master WHERE type = 'table' "
+              "AND name = 'retained_sync_fields'",
+            )
+            .get();
+        expect(before, isEmpty);
+        await historical.customStatement(
+          "INSERT INTO programs "
+          "(id, title, notes, status, hide_alternates, created_at, updated_at) "
+          "VALUES ('legacy-program', 'Legacy', 'keep', 'draft', 1, 0, 0)",
+        );
+        await historical.close();
+
+        final db = CompendiumDatabase(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        );
+        addTearDown(() async {
+          await db.close();
+          raw.close();
+        });
+        await db.customSelect('SELECT 1').get();
+
+        final columns = await db
+            .customSelect("PRAGMA table_info('retained_sync_fields')")
+            .get();
+        expect(
+          {for (final row in columns) row.read<String>('name')},
+          {'kind', 'record_id', 'whole_record', 'payload'},
+        );
+        expect(
+          await db.select(db.retainedSyncFields).get(),
+          isEmpty,
+          reason: 'nothing is back-filled',
+        );
+        final program = await db
+            .customSelect(
+              "SELECT notes FROM programs WHERE id = 'legacy-program'",
+            )
+            .getSingle();
+        expect(program.read<String>('notes'), 'keep');
+      },
+    );
+  });
 }
 
 Dance _rollAwayDance({

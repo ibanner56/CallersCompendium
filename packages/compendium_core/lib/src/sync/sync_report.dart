@@ -56,11 +56,13 @@ enum SyncReportCode {
   /// decoded envelope, so its report carries none of the three.
   newerWireVersion,
 
-  /// A peer's record blob carried a field this build does not accept
-  /// (`SyncNewerFieldException`): one it does not know, or one it knows but
-  /// does not classify `shareable`. The record is refused whole (spec §6.7,
-  /// §6.9), and the report presumes a newer version of the app sent it — one
-  /// that added the field, or reclassified it to travel.
+  /// A peer's record blob carried a part a newer version of the app added
+  /// that this build can neither apply nor keep in place
+  /// (`SyncNewerFieldException`), so it was refused whole (spec §6.7, §6.9).
+  /// Every other field this build does not sync is kept, not refused, and
+  /// raises [keptNewerFields] instead. Also raised when versions tied on
+  /// `updatedAt` differ only in kept parts, which this build leaves to a
+  /// device that understands them.
   ///
   /// Its own code rather than [malformedRecord] for the reason
   /// [newerWireVersion] has one: the remedy is updating the app on *this*
@@ -75,6 +77,22 @@ enum SyncReportCode {
   /// #1728: the app's releases are under the maintainer's control, so a
   /// version difference is the case worth naming (spec §6.9).
   newerRecordFields,
+
+  /// A peer's record was refused because a newer version of the app added
+  /// something inside a dance's figures (spec §6.7): figures are positional,
+  /// so this build could neither apply nor keep it. Its own code, beside
+  /// [newerRecordFields], so the notice can say what this build does not
+  /// understand rather than only that it is out of date. Shown with
+  /// [newerWireVersion]; same remedy.
+  newerFigures,
+
+  /// A record on *this* device carries details a newer version of the app
+  /// added, which this build keeps and shares back unchanged but cannot show
+  /// (spec §6.7). Information only: the record syncs, nothing is wrong, and
+  /// updating the app is what would show those details. Raised by every
+  /// snapshot for as long as the parts are kept, with `kind` and `recordId`
+  /// and a null `peerId`.
+  keptNewerFields,
 }
 
 /// A structured, non-blocking diagnostic produced by a sync pass.

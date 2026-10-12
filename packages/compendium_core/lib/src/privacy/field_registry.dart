@@ -118,6 +118,27 @@ const _syncTombstonePayload = DataClassification(
       'shareable because pending deletion retransmits it to sync peers.',
 );
 
+/// What a device keeps of a peer's record for a newer version of the app, and
+/// shares back unchanged (spec §6.7).
+///
+/// Classified the most cautious way that can still travel: its content is
+/// unknown to this build by definition — a field a newer version added, or one
+/// it reclassified to share — so it may hold anything a record can, including
+/// third-party data, and it must reach the sync store because sharing it back
+/// is its whole purpose. Decided by Isaac (maintainer) in planning this
+/// change: "if it was synced up, it can be synced down". It never leaves by
+/// any other route: it is not part of a backup or an export.
+const _syncRetainedPayload = DataClassification(
+  term: DpvTerm.unclassifiedPersonal,
+  subject: DataSubject.thirdParty,
+  egress: EgressClass.shareable,
+  note:
+      'Opaque record content a newer app version added; unknown to this build, '
+      'so it may contain third-party data. Shareable only because it is '
+      'shared back to the sync store it came from, verbatim (maintainer '
+      'decision, sync-spec §6.7); never backed up or exported.',
+);
+
 /// A soft-delete tombstone (`deleted_at`) on a syncable kind.
 ///
 /// Same reasoning as `dances.deleted_at`, which has carried it since long
@@ -645,6 +666,10 @@ final Map<String, DataClassification> fieldClassifications = {
   'pending_deletions.tombstoned_at': _syncBookkeeping,
   'pending_deletions.tombstone_hash': _syncBookkeeping,
   'pending_deletions.tombstone_blob': _syncTombstonePayload,
+  'retained_sync_fields.kind': _syncBookkeeping,
+  'retained_sync_fields.record_id': _syncBookkeeping,
+  'retained_sync_fields.whole_record': _syncBookkeeping,
+  'retained_sync_fields.payload': _syncRetainedPayload,
   'review_queue.kind': _syncBookkeeping,
   'review_queue.record_id': _syncBookkeeping,
   'review_queue.counterpart_id': _syncBookkeeping,

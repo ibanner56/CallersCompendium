@@ -210,7 +210,8 @@ Future<Set<String>> collectSensitiveTerms(
   }
 
   // Device Sync holds whole serialized records while a conflict awaits review
-  // or a tombstone awaits retransmission. Their content is a peer's copy of
+  // or a tombstone awaits retransmission, and the parts of records a newer
+  // version of the app added, kept to share back. Their content is a peer's copy of
   // the same person / place / dance fields, not yet (or no longer) in the
   // entity tables above, so nothing else here would cover it. Added verbatim
   // — the same rule as an undecodable figures list: the stored text is the
@@ -220,6 +221,9 @@ Future<Set<String>> collectSensitiveTerms(
   }
   for (final row in await repositories.syncLocal.listPendingDeletions()) {
     add(row.tombstoneBlob);
+  }
+  for (final row in await repositories.syncLocal.listRetainedSyncFields()) {
+    add(row.payload);
   }
 
   return terms;

@@ -776,7 +776,7 @@ abstract class AppLocalizations {
   /// **'Stop syncing imported dances'**
   String get settingsSyncQuotaExcludeImports;
 
-  /// Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version does not sync yet. {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example "3 programs, 1 setting". The remedy is always updating the app on THIS device.
+  /// Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version cannot keep (for example new figure details). {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example "3 programs, 1 setting". The remedy is always updating the app on THIS device.
   ///
   /// In en, this message translates to:
   /// **'Another device is using a newer version of the app. Update the app on this device to receive {items}.'**
@@ -841,6 +841,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Another device is using a newer version of the app. Update the app on this device to receive its changes.'**
   String get settingsSyncNoticeNewerVersionUncounted;
+
+  /// Informational Device Sync notice (not a problem): records on this device carry details that a newer version of the app added. This version keeps those details and syncs them back unchanged, but cannot display them. {items} is a list of counts by kind built from the settingsSyncNoticeCount* strings, for example "3 programs, 1 setting".
+  ///
+  /// In en, this message translates to:
+  /// **'Kept for a newer version of the app: {items}. These still sync, with details this version can\'t show. Update the app on this device to see them.'**
+  String settingsSyncNoticeKeptNewerItems(String items);
 
   /// Tooltip of the button on a Device Sync problem that copies a short code describing it (for example SYNC-STORE-FULL), so the user can paste it into a message asking for help. Nothing is sent anywhere.
   ///
@@ -949,6 +955,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{kind} not on this device'**
   String settingsSyncNoticeRecordNotHere(String kind);
+
+  /// Variant of settingsSyncNoticeRecordNamed for a record another device shared that this version refused because a newer version of the app added something to its figures (the dance's steps). Tells the user what this version does not understand.
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} “{name}” (has figures only a newer version can read)'**
+  String settingsSyncNoticeRecordNewerFigures(String kind, String name);
+
+  /// Variant of settingsSyncNoticeRecordNotHere for a record this device does not have yet because it was refused: a newer version of the app added something to its figures (the dance's steps).
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} not on this device (has figures only a newer version can read)'**
+  String settingsSyncNoticeRecordNotHereNewerFigures(String kind);
 
   /// Ends the settingsSyncNoticeAffected list when it names only the first few records.
   ///
