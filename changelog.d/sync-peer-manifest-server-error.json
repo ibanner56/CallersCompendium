@@ -1,0 +1,10 @@
+{
+  "id": "sync-peer-manifest-server-error",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "When the sync server has a problem reading what one of your other devices shared, connecting a device no longer stops with a warning telling you to check your other devices. It shows \"Waiting to sync\" and tries again by itself.",
+      "The same server problem during an ordinary sync no longer shows the \"records from another device couldn't be used and were skipped\" notice. Changes to records your devices already share wait for the next sync, as they did before, and nothing is reported as skipped."
+    ]
+  }
+}

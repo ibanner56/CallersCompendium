@@ -4602,13 +4602,16 @@ void main() {
     test(
       'a fresh attach missing a peer manifest blames the peer, not the server',
       () async {
+        // A `404` is the store saying it has no list for that device: the
+        // peer's to fix, and the user's to chase. A `5xx` is the server's
+        // own fault and retries quietly instead (spec §6.3 step 3).
         final result = await coordinatorFor(
           _FakeStore(epoch: null),
           _FakeTransport(
             devices: ['peer'],
             peerManifest: _manifest(deviceId: 'peer', records: const {}),
             manifestResponses: {
-              'peer': [_FakeTransport.response(500)],
+              'peer': [_FakeTransport.response(404)],
             },
           ),
         ).syncNow();
@@ -4616,7 +4619,7 @@ void main() {
         expect(result.status, SyncPassStatus.failed);
         expect(result.failure?.cause, SyncFailureCause.peerUnavailable);
         expect(result.failure?.step, SyncFailureStep.download);
-        expect(result.failure?.statusCode, 500);
+        expect(result.failure?.statusCode, 404);
       },
     );
 
@@ -5259,6 +5262,112 @@ void main() {
       expect(report.recordId, 'dance-2');
       expect(report.httpStatus, 404);
     });
+
+    // A `5xx` on a peer's manifest is the server failing, not the peer
+    // (spec §6.3 step 3). On a fresh attach, which cannot finish without every
+    // peer's list, it is a temporary failure that retries by itself; it was
+    // `peerUnavailable`, a needs-you warning sending the user to their other
+    // devices. In steady state the pass carries on as before — baselined
+    // records wait, and only records new to this device arrive from the
+    // readable peers — but without the skipped-records notice, whose advice
+    // (check the other device's app version) is false here.
+    for (final status in [500, 503]) {
+      test('a $status on a peer manifest during a fresh attach is a '
+          'temporary failure', () async {
+        final transport = _FakeTransport(
+          devices: ['peer'],
+          manifestResponses: {
+            'peer': [_FakeTransport.response(status)],
+          },
+        );
+        final result = await SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: _FakeStore(epoch: null),
+          transport: transport,
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.failed);
+        expect(result.failure?.cause, SyncFailureCause.serverError);
+        expect(result.failure?.cause.isTransient, isTrue);
+        expect(result.failure?.step, SyncFailureStep.download);
+        expect(result.failure?.statusCode, status);
+        expect(result.reports, isEmpty);
+        expect(transport.manifestPuts, 0);
+      });
+
+      test('a $status on one peer manifest in steady state skips that peer '
+          'quietly, and a new record from the rest still arrives', () async {
+        final other = SyncMergeCandidate.fromBlob(
+          _setting('default_program_band', 'from other'),
+        );
+        final transport = _FakeTransport(
+          devices: ['broken', 'other'],
+          manifestResponses: {
+            'broken': [_FakeTransport.response(status)],
+          },
+          peerManifests: {
+            'other': _manifest(
+              deviceId: 'other',
+              records: {
+                SyncRecordKind.setting: {other.blob.id: other.wireHash},
+              },
+            ),
+          },
+          blobResponses: _blobs([other]),
+        );
+        final store = _FakeStore();
+        final result = await SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: store,
+          transport: transport,
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.completed);
+        expect(
+          result.reports,
+          isEmpty,
+          reason: 'no skipped-records notice for a server fault',
+        );
+        expect(
+          store.writes.map((w) => w.address.recordId),
+          contains('default_program_band'),
+          reason:
+              'a record new to this device still arrives from the readable '
+              'peer; baselined records wait, since none is decidable without '
+              'every peer list',
+        );
+        expect(
+          store.retiredPeerAddresses,
+          isEmpty,
+          reason: 'an unread peer list still blocks alias retirement',
+        );
+      });
+    }
+
+    test(
+      'a 404 on one peer manifest in steady state is still reported',
+      () async {
+        final result = await SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: _FakeStore(),
+          transport: _FakeTransport(
+            devices: ['peer'],
+            manifestResponses: {
+              'peer': [_FakeTransport.response(404)],
+            },
+          ),
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.completed);
+        final report = result.reports.single;
+        expect(report.code, SyncReportCode.malformedRecord);
+        expect(report.peerId, 'peer');
+        expect(report.httpStatus, 404);
+      },
+    );
 
     test('a 429 on a peer manifest is a temporary failure, not an '
         'unreadable peer', () async {
