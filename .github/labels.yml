@@ -178,3 +178,11 @@
 - name: "github_actions"
   color: "CFD3D7"
   description: "GitHub Actions workflow updates"
+
+# --- review: opt-in reviewers (terracotta) -----------------------------------
+# A PR label, not a triage label. Copilot stays the default reviewer; this one
+# asks .github/workflows/claude-code-review.yml for a Claude review of every push
+# while it is applied (docs/dev/agents/code-review.md).
+- name: "review: claude"
+  color: "D97757"
+  description: "Opt-in: Claude reviews each push to this PR while the label is on"

@@ -12,7 +12,7 @@ which question, and [docs/dev/agents/](docs/dev/agents/) for the chapters below.
 
 | Read | When |
 | --- | --- |
-| [docs/dev/agents/code-review.md](docs/dev/agents/code-review.md) | Requesting or reading a Copilot review, or answering findings |
+| [docs/dev/agents/code-review.md](docs/dev/agents/code-review.md) | Requesting or reading a review (Copilot or Claude), or answering findings |
 | [docs/dev/agents/merging.md](docs/dev/agents/merging.md) | Merging: review/CI freshness, unresolved threads, what the PR closes |
 | [docs/dev/agents/verification.md](docs/dev/agents/verification.md) | Proving a guard test can fail; any red run that mutates the tree |
 | [docs/dev/agents/triage.md](docs/dev/agents/triage.md) | Triaging or scoping an issue |

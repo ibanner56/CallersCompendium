@@ -50,6 +50,10 @@ reasoning below when a gate fails, or when you are checking by hand.
   gh pr view <N> --json headRefOid -q .headRefOid
   ```
 
+  The login above is Copilot's. For a Claude review it is `claude[bot]`; the
+  script takes `--reviewer claude` rather than a login
+  ([code-review.md](code-review.md#choosing-a-reviewer)).
+
   `--slurp` wraps all pages into an outer array, so `.[][]` flattens them and
   `last` reliably picks the reviewer's latest entry across pages. (`--slurp` is
   incompatible with `-q`/`--jq`, so the filter is piped to a standalone `jq`.)
