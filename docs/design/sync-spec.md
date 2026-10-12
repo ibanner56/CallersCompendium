@@ -2210,11 +2210,12 @@ per-IP row is what bounds the unauthenticated work of guessing at stores. When
 the per-IP limit is enforced at the proxy (§7.5 requirement 6), the proxy
 counts requests, not this cost; the server's own row still applies.
 
-**Why 5 a second, burst 300.** With downloads batched, the per-IP row mostly
-paces a device's first *upload*, which is still one `PUT` per record (§6.3
-step 7): a 1,000-record upload spends the burst, meets the limit, and finishes
-over about three passes a minute apart (§6.12), where 60 a minute stretched it
-over a quarter of an hour. The row is also what a guess at a store costs, so
+**Why 5 a second, burst 300.** When this rate was chosen, downloads were
+batched and a device's first *upload* was still one `PUT` per record (§6.3
+step 7), so the per-IP row mostly paced that upload: a 1,000-record upload
+spent the burst, met the limit, and finished over about three passes a minute
+apart (§6.12), where 60 a minute stretched it over a quarter of an hour.
+Uploads are now batched too (below). The row is also what a guess at a store costs, so
 §8's figures scale with it, five times those at 60 a minute; the maintainer
 chose 5 a second, burst 300, on 2026-10-12 with those figures in front of them,
 over 10 and 20 a second and over keeping 1 a second with a larger burst. The
@@ -2254,12 +2255,14 @@ what ten to twenty single `PUT`s cost.
 
 **Why 1 + ⌈*n*/10⌉.** A blob costs far more to store than to read — 1.2–2.9 ms
 each in a batch of 50, against 35–75 µs in a batch read — so the read's 20 per
-token would let one address spend, in the typical case, up
-to about three times the server time single `PUT`s let it spend: 15 full
-batches a minute, 0.9–2.2 s of handler time against 0.24–0.78 s. At 10 per token
-it sustains 500 blobs a minute in at most 10 batches, 0.58–1.5 s, and in the
-worst case, with the 50 ms deletion retry on every request, about 2.0 s against
-single `PUT`s' 3.8 s. Measured end to end through the reference client against
+token would let one address spend, in the typical case, up to about three times
+the server time single `PUT`s let it spend: at the per-IP row's 5 a second, 75
+full batches a minute, 4.4–11 s of handler time against 1.2–3.9 s. At 10 per
+token one address sustains 2,500 blobs a minute in at most 50 batches,
+2.9–7.4 s, and in the worst case, with the 50 ms deletion retry on every
+request, about 9.9 s against single `PUT`s' 18.9 s. (These figures were first
+worked at the earlier 60 a minute, where each is a fifth as large, and the rule
+was approved on them.) Measured end to end through the reference client against
 the reference server, a device publishing 1,000 records of its own finished in
 two passes and 91 seconds and 5,000 in seven passes and about 10 minutes, where
 one `PUT` a record takes, by the same limits, about 15 and 81 minutes. 5 per
@@ -2754,7 +2757,8 @@ republishes, which is an ordinary upload and needs no special path.
 
    > **Amended 2026-10-12, batches.** Step 7 uploaded one blob per request, so
    > a device publishing 1,000 records of its own met the per-IP request limit
-   > (§5.4) every minute. The batch upload was added by the change that added
+   > (§5.4): over about 16 minutes at the 60 a minute then in force, and over
+   > about three passes at 5 a second. The batch upload was added by the change that added
    > this note, by its author rather than the maintainer.
 8. `PUT /v1/manifests/{self}`. The marker was written in step 7 before blob
    work, and the client MUST retain that protection before issuing this
