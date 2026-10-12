@@ -4,8 +4,8 @@
 // docs/dev/localization.md, "permanent exceptions"): it is read by whoever the
 // user chooses to send it to, not by the user in their own language.
 //
-// Built only from structured fields — enum names, counts, a step name and an
-// HTTP status — so it is safe in the scrubbed export without passing through
+// Built only from structured fields — enum names, counts, a step name and HTTP
+// status codes — so it is safe in the scrubbed export without passing through
 // the redactor. It never includes a title, the sync phrase, the server
 // address, a device or record identifier, or a report's message: messages are
 // maintainer diagnostics that can carry wire paths. Nothing here is sent
@@ -67,13 +67,41 @@ String? syncDiagnosticsSection(SyncController? controller) {
         final kind = report.kind;
         if (kind != null) kinds[kind.name] = (kinds[kind.name] ?? 0) + 1;
       }
+      final statuses = _httpStatuses(reports);
       buffer.writeln(
         '    ${code.name}: ${reports.length}'
-        '${kinds.isEmpty ? '' : ' (${[for (final MapEntry(:key, :value) in kinds.entries) '$key ×$value'].join(', ')})'}',
+        '${kinds.isEmpty ? '' : ' (${[for (final MapEntry(:key, :value) in kinds.entries) '$key ×$value'].join(', ')})'}'
+        '${statuses == null ? '' : ' [$statuses]'}',
       );
     }
   }
   return buffer.toString().trimRight();
+}
+
+/// How many of [reports] each HTTP status raised, as `HTTP 404 ×3`, with the
+/// rest counted as `no HTTP status` so the figures add up to the line's own;
+/// null when none carries a status.
+///
+/// Status codes only, never the report's message: the message is what would
+/// say *which* blob or path, and a status is all a reader needs to tell a
+/// blob the store has lost (`404`) from a request it refused (`403`, say).
+String? _httpStatuses(List<SyncReport> reports) {
+  final byStatus = <int, int>{};
+  var without = 0;
+  for (final report in reports) {
+    final status = report.httpStatus;
+    if (status == null) {
+      without++;
+    } else {
+      byStatus[status] = (byStatus[status] ?? 0) + 1;
+    }
+  }
+  if (byStatus.isEmpty) return null;
+  final ordered = byStatus.keys.toList()..sort();
+  return [
+    for (final status in ordered) 'HTTP $status ×${byStatus[status]}',
+    if (without > 0) 'no HTTP status ×$without',
+  ].join(', ');
 }
 
 /// [reports] grouped by code, in [SyncReportCode] declaration order.

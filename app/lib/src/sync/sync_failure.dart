@@ -105,7 +105,13 @@ enum SyncFailureStep {
 /// message is an English maintainer diagnostic, and the status surface must
 /// never show it (see `syncNoticeText`).
 class SyncFailure {
-  const SyncFailure(this.cause, {this.step, this.statusCode, this.retryAfter});
+  const SyncFailure(
+    this.cause, {
+    this.step,
+    this.statusCode,
+    this.retryAfter,
+    this.progressed = false,
+  });
 
   /// The failure a non-success [response] at [step] stands for. [step] is
   /// omitted for a request that is not part of a pass, such as removing a
@@ -138,12 +144,35 @@ class SyncFailure {
   /// sooner than this (`SyncController`, spec §6.12).
   final Duration? retryAfter;
 
+  /// Whether the pass fetched at least one record before it stopped, so the
+  /// next pass starts further on rather than where this one did.
+  ///
+  /// Set only for a pass that stopped part-way through its downloads (spec
+  /// §6.3 step 5). `SyncController` retries such a failure at the first step
+  /// of its backoff instead of the next one (spec §6.12): a large first
+  /// download that meets the server's rate limit on every pass is still
+  /// moving, and doubling the wait each time would stretch fifteen minutes of
+  /// work over hours.
+  final bool progressed;
+
+  /// This failure, marked as having made progress when [value] is true.
+  SyncFailure withProgress(bool value) => value == progressed
+      ? this
+      : SyncFailure(
+          cause,
+          step: step,
+          statusCode: statusCode,
+          retryAfter: retryAfter,
+          progressed: value,
+        );
+
   /// The isolate-message encoding read back by [SyncFailure.decode].
   Map<String, Object?> encode() => {
     'cause': cause.name,
     'step': step?.name,
     'statusCode': statusCode,
     'retryAfterMs': retryAfter?.inMilliseconds,
+    'progressed': progressed,
   };
 
   /// Reads [encode]'s output, or throws [FormatException].
@@ -155,10 +184,12 @@ class SyncFailure {
     final step = encoded['step'];
     final statusCode = encoded['statusCode'];
     final retryAfterMs = encoded['retryAfterMs'];
+    final progressed = encoded['progressed'];
     if (cause is! String ||
         (step != null && step is! String) ||
         (statusCode != null && statusCode is! int) ||
-        (retryAfterMs != null && retryAfterMs is! int)) {
+        (retryAfterMs != null && retryAfterMs is! int) ||
+        (progressed != null && progressed is! bool)) {
       throw const FormatException('sync isolate returned an invalid failure');
     }
     return SyncFailure(
@@ -168,6 +199,7 @@ class SyncFailure {
       retryAfter: retryAfterMs == null
           ? null
           : Duration(milliseconds: retryAfterMs as int),
+      progressed: progressed == true,
     );
   }
 }

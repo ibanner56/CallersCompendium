@@ -464,6 +464,7 @@ Map<String, Object?> _encodeResult(SyncPassResult result) => {
         'kind': report.kind?.name,
         'recordId': report.recordId,
         'peerId': report.peerId,
+        'httpStatus': report.httpStatus,
       },
   ],
   'peers': switch (result.peers) {
@@ -525,11 +526,13 @@ SyncPassResult _decodeResult(Map<String, Object?> encoded) {
     final kind = rawReport['kind'];
     final recordId = rawReport['recordId'];
     final peerId = rawReport['peerId'];
+    final httpStatus = rawReport['httpStatus'];
     if (code is! String ||
         message is! String ||
         (kind != null && kind is! String) ||
         (recordId != null && recordId is! String) ||
-        (peerId != null && peerId is! String)) {
+        (peerId != null && peerId is! String) ||
+        (httpStatus != null && httpStatus is! int)) {
       throw const FormatException('sync isolate returned an invalid report');
     }
     final kindName = kind == null ? null : kind as String;
@@ -542,6 +545,7 @@ SyncPassResult _decodeResult(Map<String, Object?> encoded) {
         kind: kindName == null ? null : SyncRecordKind.values.byName(kindName),
         recordId: recordIdValue,
         peerId: peerIdValue,
+        httpStatus: httpStatus as int?,
       ),
     );
   }

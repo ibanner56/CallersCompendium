@@ -297,6 +297,164 @@ void main() {
     },
   );
 
+  test(
+    'a rate-limited pass crosses the isolate as a temporary failure, and the '
+    'next pass reuses the blob it fetched but did not apply',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'compendium-sync-isolate-rate-limited-',
+      );
+      final databasePath = '${directory.path}/compendium.sqlite';
+      final database = CompendiumDatabase(NativeDatabase(File(databasePath)));
+      final repositories = CompendiumRepositories(database, contraTaxonomy);
+      await repositories.ensureMigrated();
+      await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
+      // Newer here than on the peer, so the peer's copy is fetched and then
+      // loses the merge: nothing but the session's blob cache can spare the
+      // next pass from fetching it again.
+      await repositories.settings.set(
+        'default_program_band',
+        'Local band',
+        at: DateTime.utc(2026, 7, 15, 13),
+      );
+
+      SyncRecordBlob setting(String id, String value) => SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: id,
+        updatedAt: DateTime.utc(2026, 7, 15, 12),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 7, 15, 12),
+        body: {'value': value},
+      );
+      final losing = encodeSyncRecordBlobUtf8(
+        setting('default_program_band', 'Peer band'),
+      );
+      final pending = encodeSyncRecordBlobUtf8(
+        setting('default_program_caller', 'Peer caller'),
+      );
+      final losingHash = sha256Hex(losing);
+      final pendingHash = sha256Hex(pending);
+      final manifest = SyncManifest(
+        deviceId: 'peer',
+        epoch: 'epoch-1',
+        writtenAt: DateTime.utc(2026, 7, 15, 12),
+        records: {
+          SyncRecordKind.setting: {
+            'default_program_band': losingHash,
+            'default_program_caller': pendingHash,
+          },
+        },
+      );
+
+      // First pass: the second blob meets the limit. Second pass: it is gone
+      // from the store, so its report must carry the 404 across the isolate.
+      var pass = 1;
+      final blobRequests = <String>[];
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        final path = request.uri.path;
+        await request.drain<void>();
+        if (request.method == 'GET' && path.startsWith('/v1/blobs/')) {
+          final hash = path.substring('/v1/blobs/'.length);
+          blobRequests.add(hash);
+          if (hash == losingHash) {
+            request.response.add(losing);
+          } else if (pass == 1) {
+            request.response
+              ..statusCode = HttpStatus.tooManyRequests
+              ..headers.set('retry-after', '60')
+              ..headers.contentType = ContentType.json
+              ..write('{"error":"rate limited"}');
+          } else {
+            request.response
+              ..statusCode = HttpStatus.notFound
+              ..headers.contentType = ContentType.json
+              ..write('{}');
+          }
+        } else if (request.method == 'GET' && path == '/v1/store') {
+          request.response.headers.contentType = ContentType.json;
+          request.response.write(
+            jsonEncode({
+              'epoch': 'epoch-1',
+              'devices': ['peer'],
+            }),
+          );
+        } else if (request.method == 'GET' && path == '/v1/manifests/peer') {
+          request.response.headers.contentType = ContentType.json;
+          request.response.write(encodeSyncManifest(manifest));
+        } else if (request.method == 'POST' && path == '/v1/blobs/missing') {
+          request.response.headers.contentType = ContentType.json;
+          request.response.write(jsonEncode({'missing': <String>[]}));
+        } else if (request.method == 'PUT' &&
+            path == '/v1/manifests/device-a') {
+          request.response.headers.contentType = ContentType.json;
+          request.response.write('{}');
+        } else {
+          request.response
+            ..statusCode = HttpStatus.notFound
+            ..headers.contentType = ContentType.json
+            ..write('{}');
+        }
+        await request.response.close();
+      });
+      addTearDown(() async {
+        await server.close(force: true);
+        await database.close();
+        await directory.delete(recursive: true);
+      });
+
+      final cache = SyncPeerManifestCache();
+      final operation = IsolatedSyncPassOperation(
+        databasePath: databasePath,
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
+        syncId: 'alpha-beta-gamma-delta',
+        deviceId: 'device-a',
+        peerManifestCache: cache,
+      );
+
+      final first = await operation.call();
+
+      expect(first.status, SyncPassStatus.failed);
+      expect(first.failure?.cause, SyncFailureCause.rateLimited);
+      expect(first.failure?.retryAfter, const Duration(seconds: 60));
+      expect(first.failure?.progressed, isTrue);
+      expect(first.reports, isEmpty);
+      expect(blobRequests, [losingHash, pendingHash]);
+      expect(cache.fetchedBlob(losingHash), losing);
+
+      pass = 2;
+      blobRequests.clear();
+      final second = await operation.call();
+
+      expect(blobRequests, [pendingHash]);
+      expect(second.status, SyncPassStatus.completed);
+      final report = second.reports.singleWhere(
+        (r) => r.code == SyncReportCode.unresolvedBlob,
+      );
+      expect(report.recordId, 'default_program_caller');
+      expect(report.httpStatus, 404);
+    },
+  );
+
+  test('the session blob cache crosses the isolate and holds a byte cap', () {
+    final cache = SyncPeerManifestCache();
+    final small = List<int>.filled(16, 1);
+    cache.rememberFetchedBlob('small', small);
+    final restored = SyncPeerManifestCache.fromMessage(cache.toMessage());
+    expect(restored.fetchedBlob('small'), small);
+
+    // Two blobs of more than half the cap cannot both be kept: the older goes.
+    final half = SyncPeerManifestCache.fetchedBlobBytesKept ~/ 2 + 1;
+    restored
+      ..rememberFetchedBlob('first', List<int>.filled(half, 2))
+      ..rememberFetchedBlob('second', List<int>.filled(half, 3));
+    expect(restored.fetchedBlob('first'), isNull);
+    expect(restored.fetchedBlob('second'), hasLength(half));
+
+    restored.clear();
+    expect(restored.fetchedBlob('second'), isNull);
+  });
+
   test('propagates a nonzero fresh-attach duplicate count', () async {
     final directory = await Directory.systemTemp.createTemp(
       'compendium-sync-isolate-dedupe-',
