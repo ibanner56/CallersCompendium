@@ -79,6 +79,36 @@ void main() {
       );
     });
 
+    test('a notice counts records refused for newer fields with those in a '
+        'newer envelope, each record once', () {
+      expect(
+        syncNoticeSupportCode(SyncNoticeGroup.newerVersion, const [
+          SyncReport(
+            code: SyncReportCode.newerWireVersion,
+            kind: SyncRecordKind.dance,
+            recordId: 'd1',
+            peerId: 'peer-a',
+            message: 'blob',
+          ),
+          SyncReport(
+            code: SyncReportCode.newerRecordFields,
+            kind: SyncRecordKind.program,
+            recordId: 'p1',
+            peerId: 'peer-a',
+            message: 'blob',
+          ),
+          SyncReport(
+            code: SyncReportCode.newerRecordFields,
+            kind: SyncRecordKind.program,
+            recordId: 'p1',
+            peerId: 'peer-b',
+            message: 'blob',
+          ),
+        ]),
+        'SYNC-NEWER-VERSION ×2',
+      );
+    });
+
     test('a notice that also has a report naming no record gives no count, '
         'since the count would understate it', () {
       expect(

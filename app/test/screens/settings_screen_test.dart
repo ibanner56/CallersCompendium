@@ -2606,7 +2606,7 @@ void main() {
             ),
             findsOneWidget,
           );
-          expect(find.textContaining('receive 1 item'), findsNothing);
+          expect(find.textContaining('receive 1 dance'), findsNothing);
         });
 
         testWidgets('a peer on a newer app version is a needs-you notice that '
@@ -2630,7 +2630,7 @@ void main() {
           expect(
             find.text(
               'Another device is using a newer version of the app. Update the '
-              'app on this device to receive 3 items.',
+              'app on this device to receive 3 dances.',
             ),
             findsOneWidget,
           );
@@ -2647,6 +2647,60 @@ void main() {
             findsNothing,
             reason: 'not the generic "check your other devices" notice',
           );
+        });
+
+        testWidgets('records refused for a field this build does not know '
+            'are counted by kind in the newer-version notice, apart from '
+            'records skipped for other reasons', (tester) async {
+          // The case that prompted it: a newer build added fields to programs,
+          // and the one notice this device showed listed every skipped
+          // record, dances included, under "check your other devices".
+          final result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              for (final id in ['p1', 'p2'])
+                SyncReport(
+                  code: SyncReportCode.newerRecordFields,
+                  kind: SyncRecordKind.program,
+                  recordId: id,
+                  peerId: 'peer-a',
+                  message: 'Blob carries a field this build does not know.',
+                ),
+              const SyncReport(
+                code: SyncReportCode.newerRecordFields,
+                kind: SyncRecordKind.setting,
+                recordId: 'a_new_setting',
+                peerId: 'peer-a',
+                message: 'Blob carries a field this build does not know.',
+              ),
+              const SyncReport(
+                code: SyncReportCode.unresolvedReference,
+                kind: SyncRecordKind.dance,
+                recordId: 'd1',
+                peerId: 'peer-a',
+                message: 'Reference could not be resolved.',
+              ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.text(
+              'Another device is using a newer version of the app. Update the '
+              'app on this device to receive 2 programs, 1 setting.',
+            ),
+            findsOneWidget,
+          );
+          final newerRecords = tester.widget<Text>(
+            find.byKey(const ValueKey('sync-notice-newerVersion-records')),
+          );
+          expect(newerRecords.data, isNot(contains('Dance')));
+          final skippedRecords = tester.widget<Text>(
+            find.byKey(const ValueKey('sync-notice-skippedRecord-records')),
+          );
+          expect(skippedRecords.data, contains('Dance'));
+          expect(skippedRecords.data, isNot(contains('Program')));
         });
 
         testWidgets('a notice needs no gesture to clear and gates no later '
