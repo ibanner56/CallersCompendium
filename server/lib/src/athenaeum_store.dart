@@ -701,9 +701,8 @@ class AthenaeumStore {
     String idKey, {
     String? excludingEpoch,
     String? excludingHash,
-    Set<String> excludingHashes = const {},
   }) {
-    final excluded = {...excludingHashes, ?excludingHash};
+    final excluded = {?excludingHash};
     var usage = const _DeletionUsage();
     final accountedPaths = <String>{};
     final directoryRows = _database.select(
@@ -955,15 +954,18 @@ class AthenaeumStore {
                 [idKey],
               ).single['bytes']
               as int;
-      final pending = _pendingDeletionUsage(
+      // Live bytes, without pending deletions: those depend on which blob is
+      // asking, since a single PUT leaves out its own hash's pending file.
+      var bytesUsed =
+          max(current.bytesUsed, aggregateBytes) + _manifestBytes(idKey);
+      // With nothing pending, which is the usual case, every blob's pending
+      // usage is zero and is computed once. Otherwise each new blob's is
+      // computed as its own PUT would compute it, against the rows this
+      // batch has already inserted.
+      final nothingPending = _pendingDeletionUsage(
         idKey,
         excludingEpoch: epoch,
-        excludingHashes: {for (final blob in blobs) blob.hash},
-      );
-      var bytesUsed =
-          max(current.bytesUsed, aggregateBytes) +
-          pending.bytes +
-          _manifestBytes(idKey);
+      ).isEmpty;
       var full = false;
       var added = 0;
       final now = _clock().millisecondsSinceEpoch ~/ 1000;
@@ -987,11 +989,20 @@ class AthenaeumStore {
         }
         // Once one new blob is refused, every later one is too, even one
         // small enough to fit: the client stops at the first refusal anyway,
-        // and `pending` above already left out every hash in this batch, so
-        // a refused hash's pending bytes must not let a later blob in.
-        if (full ||
-            count + pending.blobs >= quotaLimits.maxBlobs ||
-            bytesUsed > quotaLimits.maxBytes - body.length) {
+        // and what a batch stores stays a prefix of what it carried.
+        if (full) {
+          statuses.add(507);
+          continue;
+        }
+        final pending = nothingPending
+            ? const _DeletionUsage()
+            : _pendingDeletionUsage(
+                idKey,
+                excludingEpoch: epoch,
+                excludingHash: hash,
+              );
+        if (count + pending.blobs >= quotaLimits.maxBlobs ||
+            bytesUsed + pending.bytes > quotaLimits.maxBytes - body.length) {
           full = true;
           statuses.add(507);
           continue;
@@ -1366,6 +1377,8 @@ class _DeletionUsage {
 
   final int blobs;
   final int bytes;
+
+  bool get isEmpty => blobs == 0 && bytes == 0;
 
   _DeletionUsage add({_DeletionUsage? usage, int blobs = 0, int bytes = 0}) =>
       _DeletionUsage(

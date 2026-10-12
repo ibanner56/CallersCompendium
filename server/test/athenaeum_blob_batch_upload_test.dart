@@ -174,6 +174,14 @@ void main() {
 
     expect(await statuses(await upload(frame(hash, lost))), [200]);
     expect(file.readAsBytesSync(), lost);
+
+    file.deleteSync();
+    app.store.database.execute(
+      'UPDATE blob_refs SET size = size + 1 WHERE hash = ?',
+      [hash],
+    );
+    expect(await statuses(await upload(frame(hash, lost))), [400]);
+    expect(file.existsSync(), isFalse);
   });
 
   group('refuses the whole request', () {

@@ -1914,6 +1914,34 @@ void main() {
 
       expect(store.putBlobs(idKey: idKey, epoch: epoch, blobs: [again]), [201]);
     });
+
+    test('a pending deletion uploaded later in the batch is still charged to '
+        'the blobs before it, as a single PUT charges it', () {
+      final store = open(const AthenaeumQuotaLimits(maxBytes: 4));
+      final epoch = store.create(idKey).epoch;
+      final pending = blob([1, 2, 3]);
+      store.putBlob(
+        idKey: idKey,
+        epoch: epoch,
+        hash: pending.hash,
+        body: pending.body,
+      );
+      database.execute(
+        'UPDATE blob_refs SET uploaded_at = ? WHERE id_key = ?',
+        [
+          now.subtract(const Duration(days: 2)).millisecondsSinceEpoch ~/ 1000,
+          idKey,
+        ],
+      );
+      store.collectGarbage(idKey, epoch, now: now);
+      final fresh = blob([4, 5]);
+
+      expect(
+        store.putBlobs(idKey: idKey, epoch: epoch, blobs: [fresh, pending]),
+        [507, 507],
+      );
+      expect(store.blobRef(idKey, epoch, fresh.hash), isNull);
+    });
   });
 
   test('deleting a recreated store cleans stale epoch directories', () {
