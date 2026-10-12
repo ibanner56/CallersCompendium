@@ -1538,6 +1538,12 @@ class SyncCoordinator {
     // failure a fresh attach reports: the user can quote it, and it is what
     // separates a server fault from a peer whose list is merely unreadable.
     int? unavailableManifestStatus;
+    // The steady-state peer manifest the server failed to serve with the
+    // longest `Retry-After` (else the first). The pass still finishes, but it
+    // ends as that temporary failure rather than `completed`: see the `5xx`
+    // rule below. Keeping the longest wait means the retry never comes sooner
+    // than any of those answers allowed.
+    SyncHttpResponse? deferredServerFault;
     for (final peerId in metadata.devices) {
       if (peerId == deviceId) continue;
       final cached = _peerManifestCache[peerId];
@@ -1578,11 +1584,16 @@ class SyncCoordinator {
       // user and sends them to their other devices. In steady state the pass
       // carries on as before — every baselined address is left undecided for
       // it (`unresolved` below), so only records new to this device can arrive
-      // from the readable peers, and edits to shared records wait for the next
-      // pass — but without a report: the skipped-records notice it raised
-      // tells the user to check their other device's app version, which is
-      // false advice for a server fault. Anything else — a `404`, an unexpected status — is
-      // still about that peer's list, and is still reported.
+      // from the readable peers, and edits to shared records wait — but
+      // without a report: the skipped-records notice it raised tells the user
+      // to check their other device's app version, which is false advice for
+      // a server fault. Instead the finished pass ends as this failure
+      // ([deferredServerFault]): reported as `completed`, it cancelled the
+      // retry and advanced the last-success clock, so a persistent fault held
+      // shared edits back indefinitely while every surface said synced, and
+      // the §6.14 expiry warning that clock drives never came. Anything else —
+      // a `404`, an unexpected status — is still about that peer's list, and
+      // is still reported.
       final serverFault = response.kind == SyncResponseKind.serverError;
       if (serverFault && freshAttach) {
         return SyncPassResult(
@@ -1597,7 +1608,14 @@ class SyncCoordinator {
         allPeerManifestsAvailable = false;
         unavailableManifestStatus ??= response.statusCode;
         unresolved.addAll(normalizedBaseline.keys);
-        if (!serverFault) {
+        if (serverFault) {
+          final kept = deferredServerFault?.retryAfter;
+          final wait = response.retryAfter;
+          if (deferredServerFault == null ||
+              (wait != null && (kept == null || wait > kept))) {
+            deferredServerFault = response;
+          }
+        } else {
           reports.add(
             SyncReport(
               code: SyncReportCode.malformedRecord,
@@ -2263,6 +2281,21 @@ class SyncCoordinator {
       );
     }
 
+    if (deferredServerFault != null) {
+      return SyncPassResult(
+        SyncPassStatus.failed,
+        reports: reports.reports,
+        message:
+            'peer manifest returned ${deferredServerFault.statusCode}', // i18n-ignore: internal status
+        failure: SyncFailure.fromResponse(
+          deferredServerFault,
+          SyncFailureStep.download,
+        ),
+        duplicateCount: dedupe.duplicateCount,
+        appliedKinds: appliedKinds.toList(),
+        peers: peerSummaries,
+      );
+    }
     return SyncPassResult(
       SyncPassStatus.completed,
       reports: reports.reports,
