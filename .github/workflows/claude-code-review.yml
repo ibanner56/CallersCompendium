@@ -24,8 +24,9 @@
 # never reviewed by it. A green `claude-review` check is therefore not evidence
 # that a review happened; the review entry is. CI's `Claude workflow isolation`
 # job (tools/ci/check_claude_workflow_isolation.py) fails any PR that changes
-# this file or claude.yml together with anything else, so only the workflow
-# change itself goes unreviewed.
+# this file together with anything else, so only the workflow change itself
+# goes unreviewed. claude.yml is not covered: the check is on the invoking
+# workflow, so a PR editing claude.yml is still reviewed by this one.
 name: Claude Code Review
 
 on:
