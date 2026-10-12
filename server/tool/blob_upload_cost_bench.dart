@@ -30,9 +30,9 @@ Future<void> main(List<String> arguments) async {
     config: config,
     clientAddressResolver: (_) => 'bench',
     budgetLimits: const AthenaeumBudgetLimits(
-      perIpRequestsPerMinute: 1 << 30,
+      perIpRequestsPerSecond: 1073741824.0,
       perIpRequestBurst: 1 << 30,
-      perStoreRequestsPerMinute: 1 << 30,
+      perStoreRequestsPerSecond: 1073741824.0,
       perStoreRequestBurst: 1 << 30,
     ),
   );

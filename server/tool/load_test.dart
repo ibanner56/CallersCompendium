@@ -4,7 +4,8 @@
 //
 // The real [AthenaeumApp] runs in its own isolate with every budget lifted, so
 // the client's load generation does not share a thread with the server and no
-// `429` caps the result. Run it on the hardware you intend to deploy to, with
+// `429` caps the result — unless `--shipped-request-limits` is given, which
+// keeps the shipped request-rate rows so that their `429`s show. Run it on the hardware you intend to deploy to, with
 // `--data-dir` on the disk the server will use: every authenticated request
 // commits a SQLite write and a blob upload also flushes a file, so the disk's
 // sync latency dominates and a tmpfs directory reports a fantasy.
@@ -27,6 +28,8 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 
 const _scenarios = ['store-get', 'blob-get', 'blob-put', 'first-sync'];
 const _unlimited = 1 << 30;
+const _unlimitedRate = 1073741824.0;
+const _clientAddressHeader = 'x-load-test-client';
 
 Future<void> main(List<String> arguments) async {
   final parser = ArgParser()
@@ -72,6 +75,16 @@ Future<void> main(List<String> arguments) async {
           'Directory for the SQLite databases and blobs. Defaults to a '
           'temporary directory, which is deleted afterwards.',
     )
+    ..addFlag(
+      'shipped-request-limits',
+      negatable: false,
+      help:
+          'Run with the shipped request-rate budgets instead of lifting '
+          'them, each worker of each step as its own client address, to see '
+          'where they refuse. The fixture stores\' per-store buckets carry '
+          'over between steps, and workers retry a 429 at once rather than after a minute '
+          'as the app does. The failure and creation budgets stay lifted.',
+    )
     ..addFlag('json', negatable: false, help: 'Print results as JSON lines.')
     ..addFlag('help', abbr: 'h', negatable: false);
   final options = parser.parse(arguments);
@@ -96,7 +109,10 @@ Future<void> main(List<String> arguments) async {
   final dataDirectory = suppliedDirectory == null
       ? await Directory.systemTemp.createTemp('athenaeum-load-')
       : await Directory(suppliedDirectory).create(recursive: true);
-  final server = await _ServerHandle.start(dataDirectory.path);
+  final server = await _ServerHandle.start(
+    dataDirectory.path,
+    shippedRequestLimits: options['shipped-request-limits'] as bool,
+  );
   final client = HttpClient()
     ..maxConnectionsPerHost = concurrencies.reduce(max);
   final target = _Target(client, server.port);
@@ -114,7 +130,7 @@ Future<void> main(List<String> arguments) async {
       for (final concurrency in concurrencies) {
         final result = await _run(
           scenario,
-          target: target,
+          shared: target,
           fixture: fixture,
           concurrency: concurrency,
           duration: duration,
@@ -135,7 +151,7 @@ Future<void> main(List<String> arguments) async {
 
 Future<_Result> _run(
   String scenario, {
-  required _Target target,
+  required _Target shared,
   required _Fixture fixture,
   required int concurrency,
   required Duration duration,
@@ -148,6 +164,7 @@ Future<_Result> _run(
   final random = Random(concurrency);
 
   Future<void> worker(int index) async {
+    final target = shared.as('$scenario-$concurrency-worker-$index');
     while (DateTime.now().isBefore(deadline)) {
       final n = sequence++;
       switch (scenario) {
@@ -351,10 +368,17 @@ class _Response {
 }
 
 class _Target {
-  _Target(this.client, this.port);
+  _Target(this.client, this.port, {this.clientAddress = 'fixture'});
 
   final HttpClient client;
   final int port;
+
+  /// The address the server's rate limiter sees, sent as a header that only
+  /// this tool's server reads.
+  final String clientAddress;
+
+  _Target as(String clientAddress) =>
+      _Target(client, port, clientAddress: clientAddress);
 
   Future<_Response> request(
     String method,
@@ -371,6 +395,7 @@ class _Target {
       'authorization',
       'Bearer ${encodeSyncCredential(syncId)}',
     );
+    request.headers.set(_clientAddressHeader, clientAddress);
     if (contentType != null) request.headers.set('content-type', contentType);
     if (body != null) {
       request.contentLength = body.length;
@@ -517,13 +542,16 @@ class _ServerHandle {
   final SendPort _control;
   final Isolate _isolate;
 
-  static Future<_ServerHandle> start(String dataDirectory) async {
+  static Future<_ServerHandle> start(
+    String dataDirectory, {
+    required bool shippedRequestLimits,
+  }) async {
     // Readiness, an uncaught error and exit all arrive on one port, so a server
     // that dies before it is ready fails the run instead of hanging it.
     final events = ReceivePort();
     final isolate = await Isolate.spawn(
       _serve,
-      (events.sendPort, dataDirectory),
+      (events.sendPort, dataDirectory, shippedRequestLimits),
       onError: events.sendPort,
       onExit: events.sendPort,
     );
@@ -545,24 +573,33 @@ class _ServerHandle {
     _isolate.kill();
   }
 
-  static Future<void> _serve((SendPort, String) message) async {
-    final (ready, dataDirectory) = message;
+  static Future<void> _serve((SendPort, String, bool) message) async {
+    final (ready, dataDirectory, shippedRequestLimits) = message;
+    const unlimitedRequests = AthenaeumBudgetLimits(
+      perIpRequestsPerSecond: _unlimitedRate,
+      perIpRequestBurst: _unlimited,
+      perStoreRequestsPerSecond: _unlimitedRate,
+      perStoreRequestBurst: _unlimited,
+      perIpFailuresPerMinute: _unlimited,
+      perIpFailureBurst: _unlimited,
+      serverWideFailuresPerMinute: _unlimited,
+      creationsPerMinute: _unlimited,
+    );
+    // The shipped request-rate rows; the defaults the fields fall back to.
+    const shippedRequests = AthenaeumBudgetLimits(
+      perIpFailuresPerMinute: _unlimited,
+      perIpFailureBurst: _unlimited,
+      serverWideFailuresPerMinute: _unlimited,
+      creationsPerMinute: _unlimited,
+    );
     final app = AthenaeumApp(
       config: AthenaeumConfig(
         dataDirectory: dataDirectory,
         pepper: List<int>.generate(32, (i) => i),
       ),
-      clientAddressResolver: (_) => 'load-test',
-      budgetLimits: const AthenaeumBudgetLimits(
-        perIpRequestsPerMinute: _unlimited,
-        perIpRequestBurst: _unlimited,
-        perStoreRequestsPerMinute: _unlimited,
-        perStoreRequestBurst: _unlimited,
-        perIpFailuresPerMinute: _unlimited,
-        perIpFailureBurst: _unlimited,
-        serverWideFailuresPerMinute: _unlimited,
-        creationsPerMinute: _unlimited,
-      ),
+      clientAddressResolver: (request) =>
+          request.headers[_clientAddressHeader] ?? 'load-test',
+      budgetLimits: shippedRequestLimits ? shippedRequests : unlimitedRequests,
     );
     final server = await shelf_io.serve(
       app.handler,

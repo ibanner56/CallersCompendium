@@ -2159,8 +2159,8 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | `PUT /v1/blobs/batch` request body, decoded | 2 MB plus 7,400 bytes, the most a batch response occupies; a client keeps a batch's blob bytes within 2 MB |
 | JSON parse depth | 32 |
 | Decompressed size of a `Content-Encoding: gzip` body (§4) | 10× compressed, cap 32 MB; encoded size also capped per route (decoded limit plus gzip framing slack) |
-| Request rate, per client IP | 60/minute, burst 120; a `POST /v1/blobs/batch` of *n* hashes costs 1 + ⌈*n*/20⌉ (below); a `PUT /v1/blobs/batch` of *n* blobs costs 1 + ⌈*n*/10⌉ (below) |
-| Request rate, per store (`id_key`) | 600/minute |
+| Request rate, per client IP | 5/second, burst 300; a `POST /v1/blobs/batch` of *n* hashes costs 1 + ⌈*n*/20⌉ (below); a `PUT /v1/blobs/batch` of *n* blobs costs 1 + ⌈*n*/10⌉ (below) |
+| Request rate, per store (`id_key`) | 15/second, burst 600 |
 | **Failed store resolutions**, per client IP | 10/minute, burst 20 |
 | **Failed store resolutions**, server-wide | 1,000/minute |
 | Store creations (`201` from `POST /v1/store`), server-wide | 60/minute |
@@ -2194,19 +2194,43 @@ An operator may change the 10 with the rest of these values.
 Xeon at 2.1 GHz, across runs), a single-blob `GET` costs 0.45–0.65 ms of handler
 time and a 200-hash batch 7–11 ms, or 10.5–15 ms with gzip — about 22 single
 `GET`s, for 200 records: nearly all of a request's cost is paid once whatever
-it carries. Charged one token, a batch would let one
-address pull 12,000 records a minute instead of 60 and double the worst-case
-bytes a token buys. Charged 1 + ⌈*n*/20⌉, one address sustains about 1,100
-records a minute in about 0.16 MB of gzip; a token still buys at most 1 MB, so
-the worst case per address stays 60 MB a minute; and because the 50 ms
-deletion retry is charged per request, the worst-case handler time per address
-falls from about 3 s a minute to about 0.3 s. A 1,000-record first download
-finishes in one pass, and a 5,000-record one in four, about three minutes.
+it carries. At the per-IP row's 5 a second, charged one token, a batch would
+let one address pull 60,000 records a minute instead of 300 and double the
+worst-case bytes a token buys. Charged 1 + ⌈*n*/20⌉, one address sustains about
+5,500 records a minute in about 0.8 MB of gzip; a token still buys at most
+1 MB, so the worst case per address stays at 300 MB a minute; and because the
+50 ms deletion retry is charged per request, the worst-case handler time per
+address falls from about 15 s a minute to about 1.4 s. A 5,000-record first
+download needs 275 tokens for its 25 batches, inside the 300-token burst. (These
+figures were first worked at the earlier 60 a minute, where each is a fifth as
+large, and the rule was approved on them.)
 Exempting batches from the per-IP row instead was rejected: the per-store row
 alone bounds nothing per address, which can hold any number of stores, and the
 per-IP row is what bounds the unauthenticated work of guessing at stores. When
 the per-IP limit is enforced at the proxy (§7.5 requirement 6), the proxy
 counts requests, not this cost; the server's own row still applies.
+
+**Why 5 a second, burst 300.** With downloads batched, the per-IP row mostly
+paces a device's first *upload*, which is still one `PUT` per record (§6.3
+step 7): a 1,000-record upload spends the burst, meets the limit, and finishes
+over about three passes a minute apart (§6.12), where 60 a minute stretched it
+over a quarter of an hour. The row is also what a guess at a store costs, so
+§8's figures scale with it, five times those at 60 a minute; the maintainer
+chose 5 a second, burst 300, on 2026-10-12 with those figures in front of them,
+over 10 and 20 a second and over keeping 1 a second with a larger burst. The
+per-store row is three times the per-IP row, so that a few of one store's
+devices syncing together are not held to one device's pace; that ratio is the
+change author's choice. `server/tool/load_test.dart` measures what one server
+process sustains on given hardware, and runs these rows with
+`--shipped-request-limits` to show where they refuse.
+
+**A server-wide request limit was considered and rejected.** It would cap the
+load every client together can place, but it refuses before the store lookup
+and so refuses everyone alike: at 150 a second, about thirty addresses at the
+per-IP rate, sending even malformed requests, would hold every honest user
+out. The server-wide failure row is scoped to failures for exactly that reason
+(below). Without one, a server past its capacity answers slowly, and the client
+already treats a timed-out request as transient and retries (§6.12).
 
 **Why the batch caps are what they are.** 200 hashes is a request body of about
 13 KB and, at the median record size measured when the route was added (1.7 KB
@@ -3970,8 +3994,9 @@ upload, or a large first download from a server without the batch route
 (§5.2) or too large for one pass's tokens even in batches, meets the per-IP
 limit (§5.4) on every pass until it is done: each such pass moved it on — the store keeps an accepted blob, so the
 next pass's `POST /v1/blobs/missing` no longer names it — and doubling the
-wait through them would stretch some fifteen minutes of transfer for a
-thousand records over hours. The download half, like the step 5 paragraph it
+wait through them would stretch minutes of transfer over hours: a few minutes
+for a thousand records at §5.4's rates, a quarter of an hour at the 60 a minute
+they replaced or on a server an operator configures as low. The download half, like the step 5 paragraph it
 rests on, was decided by the change's author, not the maintainer; the upload
 half the maintainer asked for (2026-10-12, in the session that wrote both).
 Disabling sync, detaching, wiping, pairing and shutting down cancel it. A retry
@@ -4752,28 +4777,28 @@ nothing.
 
 What survives as a bound is the per-IP request rate, and §5.4 already says in
 the next paragraph that an attacker defeats a per-IP limit by distributing. At
-60 requests a minute per address, `M` addresses answer `3.15 × 10⁷ × M` guesses
-a year — `2³¹·⁶` at a hundred addresses, `2³⁴·⁹` at a thousand, and rising
+5 requests a second per address, `M` addresses answer `1.58 × 10⁸ × M` guesses
+a year — `2³³·⁹` at a hundred addresses, `2³⁷·²` at a thousand, and rising
 linearly with a number the attacker chooses rather than one the operator sets.
 The figure this section used to publish, `2²⁹`, is not a ceiling on guessing;
 it is the annual throughput of §5.4's server-wide budget of a thousand failed
 resolutions a minute — the number this subsection has just finished retiring as
-a bound. A single well-behaved client reaches `2²⁴·⁹`, sixteen times less, so
-the retired figure never described one.
+a bound. A single client at the per-IP limit reaches `2²⁷·²`, about a third of
+it, so the retired figure never described one.
 
 **So the enumeration bound rests on entropy, and on nothing else.** That is
 sufficient, and it is worth being precise about why. Against a generated
-identifier the expected number of stores found in a year is `N × 3.15 × 10⁷ × M
+identifier the expected number of stores found in a year is `N × 1.58 × 10⁸ × M
 / 2⁵²`: for five hundred stores and ten thousand attacking addresses — two
 orders of magnitude more than is needed to saturate the failure budget — that is
-about **0.035**, and every further order of magnitude of attacker costs the
+about **0.18**, and every further order of magnitude of attacker costs the
 defender nothing, because 2⁵² is not a number a distributed guesser reaches. The
 default is safe by construction rather than by throttling.
 
 **A user who overrides the pre-filled identifier gives that up, and the same
 arithmetic says so plainly.** At the ~2⁴⁰ reference the strength meter warns
 about, the same five hundred stores and a hundred attacking addresses give
-roughly **1.4** expected findings a year, and a thousand addresses give **14**.
+roughly **7** expected findings a year, and a thousand addresses give **72**.
 There is no rate limit standing behind that number and this specification does
 not pretend there is one.
 
@@ -4781,7 +4806,7 @@ not pretend there is one.
 optimistic case.** The strength meter scores a guess-rank estimate, not an
 entropy distribution, and human-chosen identifiers are skewed: a guesser who
 orders candidates by likelihood finds the early ones sooner than uniform
-sampling predicts. So 1.4 and 14 are a **floor** on the cost of overriding, not
+sampling predicts. So 7 and 72 are a **floor** on the cost of overriding, not
 a forecast of it, and they describe an identifier at the reference rather than
 the population of everyone who dismissed the warning. Modelling that population
 would not change what the design owes the user, which is why this section

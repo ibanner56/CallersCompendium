@@ -305,7 +305,7 @@ void main() {
         'needs', () async {
       limit(
         const AthenaeumBudgetLimits(
-          perIpRequestsPerMinute: 60,
+          perIpRequestsPerSecond: 1,
           perIpRequestBurst: 15,
         ),
       );
@@ -321,7 +321,7 @@ void main() {
       final refused = await send(fresh);
       expect(refused.statusCode, 429);
       expect(app.store.blobRef(idKey, epoch, sha256Hex(fresh[0])), isNull);
-      // 2 left, and the same batch again needs 6: 4 seconds at 60 a minute.
+      // 2 left, and the same batch again needs 6: 4 seconds at 1 a second.
       expect(refused.headers['retry-after'], '4');
       now = now.add(const Duration(seconds: 3));
       expect((await send(fresh)).statusCode, 429);
@@ -333,7 +333,7 @@ void main() {
     test('the per-store bucket is charged too', () async {
       limit(
         const AthenaeumBudgetLimits(
-          perStoreRequestsPerMinute: 60,
+          perStoreRequestsPerSecond: 1,
           perStoreRequestBurst: 15,
         ),
       );
@@ -347,7 +347,7 @@ void main() {
     test('the cost rises one token per 10 blobs', () async {
       limit(
         const AthenaeumBudgetLimits(
-          perIpRequestsPerMinute: 1,
+          perIpRequestsPerSecond: 1 / 60,
           perIpRequestBurst: 6,
         ),
       );
@@ -360,7 +360,7 @@ void main() {
     test('a store that does not resolve pays only its request token', () async {
       limit(
         const AthenaeumBudgetLimits(
-          perIpRequestsPerMinute: 1,
+          perIpRequestsPerSecond: 1 / 60,
           perIpRequestBurst: 7,
         ),
       );

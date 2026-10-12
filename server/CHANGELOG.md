@@ -8,6 +8,15 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+### Changed
+
+- The request-rate limits are counted per second (sync spec §5.4): 5 requests
+  a second per client IP with a burst of 300, was 60 a minute with a burst of
+  120, and 15 a second per store with a burst of 600, was 600 a minute.
+  `AthenaeumBudgetLimits.perIpRequestsPerSecond` and `perStoreRequestsPerSecond`
+  replace the per-minute fields. The failure and creation budgets are
+  unchanged and still per minute.
+
 ### Added
 
 - `POST /v1/blobs/batch` returns the blobs for up to 200 hashes in one

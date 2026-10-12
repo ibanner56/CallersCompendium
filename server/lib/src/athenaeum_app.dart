@@ -20,9 +20,11 @@ typedef AthenaeumPeriodicTimer =
     Timer Function(Duration interval, void Function(Timer timer) callback);
 typedef AthenaeumSweep = void Function();
 
-const int maxGeneralRequestsPerIpPerMinute = 60;
-const int maxGeneralRequestsPerIpBurst = 120;
-const int maxGeneralRequestsPerStorePerMinute = 600;
+// The request-rate rows of spec §5.4, refilled per second. The failure and
+// creation budgets beside them stay per minute (athenaeum_store.dart).
+const double maxGeneralRequestsPerIpPerSecond = 5;
+const int maxGeneralRequestsPerIpBurst = 300;
+const double maxGeneralRequestsPerStorePerSecond = 15;
 const int maxGeneralRequestsPerStoreBurst = 600;
 
 /// A `POST /v1/blobs/batch` naming `n` hashes costs the request token every
@@ -187,9 +189,9 @@ const _blobEnvelopeKeys = <String>{
 
 class AthenaeumBudgetLimits {
   const AthenaeumBudgetLimits({
-    this.perIpRequestsPerMinute = maxGeneralRequestsPerIpPerMinute,
+    this.perIpRequestsPerSecond = maxGeneralRequestsPerIpPerSecond,
     this.perIpRequestBurst = maxGeneralRequestsPerIpBurst,
-    this.perStoreRequestsPerMinute = maxGeneralRequestsPerStorePerMinute,
+    this.perStoreRequestsPerSecond = maxGeneralRequestsPerStorePerSecond,
     this.perStoreRequestBurst = maxGeneralRequestsPerStoreBurst,
     this.perIpFailuresPerMinute = maxFailedResolutionsPerIp,
     this.perIpFailureBurst = maxFailedResolutionsPerIpBurst,
@@ -200,9 +202,9 @@ class AthenaeumBudgetLimits {
   }) : assert(blobBatchHashesPerToken > 0),
        assert(blobUploadBlobsPerToken > 0);
 
-  final int perIpRequestsPerMinute;
+  final double perIpRequestsPerSecond;
   final int perIpRequestBurst;
-  final int perStoreRequestsPerMinute;
+  final double perStoreRequestsPerSecond;
   final int perStoreRequestBurst;
   final int perIpFailuresPerMinute;
   final int perIpFailureBurst;
@@ -1651,7 +1653,7 @@ class _FailureBudget {
       }
       bucket = _TokenBucket(
         capacity: _limits.perIpFailureBurst,
-        refillPerMinute: _limits.perIpFailuresPerMinute,
+        refillPerSecond: _limits.perIpFailuresPerMinute / 60,
       );
       _perIp[address] = bucket;
     }
@@ -1670,13 +1672,13 @@ class _FailureBudget {
 class _TokenBucket {
   _TokenBucket({
     required this.capacity,
-    required this.refillPerMinute,
+    required this.refillPerSecond,
     DateTime? now,
   }) : _tokens = capacity.toDouble(),
        _updatedAt = now ?? DateTime.now();
 
   final int capacity;
-  final int refillPerMinute;
+  final double refillPerSecond;
   double _tokens;
   DateTime _updatedAt;
 
@@ -1688,10 +1690,10 @@ class _TokenBucket {
 
   /// Brings the bucket up to [now] and returns the tokens it holds.
   double refill(DateTime now) {
-    final elapsedMinutes =
+    final elapsedSeconds =
         now.difference(_updatedAt).inMicroseconds /
-        Duration.microsecondsPerMinute;
-    _tokens = (_tokens + elapsedMinutes * refillPerMinute)
+        Duration.microsecondsPerSecond;
+    _tokens = (_tokens + elapsedSeconds * refillPerSecond)
         .clamp(0, capacity)
         .toDouble();
     _updatedAt = now;
@@ -1704,24 +1706,24 @@ class _TokenBucket {
   /// How long until the bucket holds [count] tokens, as of its last [refill].
   Duration timeUntil(int count) => Duration(
     microseconds:
-        ((count - _tokens) / refillPerMinute * Duration.microsecondsPerMinute)
+        ((count - _tokens) / refillPerSecond * Duration.microsecondsPerSecond)
             .ceil(),
   );
 
   bool isInactive(DateTime now) =>
       now.difference(_updatedAt).inSeconds >=
-      ((capacity * 60) / refillPerMinute).ceil();
+      (capacity / refillPerSecond).ceil();
 }
 
 class _RequestBudget {
   _RequestBudget(AthenaeumBudgetLimits limits, {required this.clock})
     : _perIp = _RequestBucketCache(
         capacity: limits.perIpRequestBurst,
-        refillPerMinute: limits.perIpRequestsPerMinute,
+        refillPerSecond: limits.perIpRequestsPerSecond,
       ),
       _perStore = _RequestBucketCache(
         capacity: limits.perStoreRequestBurst,
-        refillPerMinute: limits.perStoreRequestsPerMinute,
+        refillPerSecond: limits.perStoreRequestsPerSecond,
       );
 
   final DateTime Function() clock;
@@ -1781,11 +1783,11 @@ class _RequestBudget {
 class _RequestBucketCache {
   _RequestBucketCache({
     required this._capacity,
-    required this._refillPerMinute,
+    required this._refillPerSecond,
   });
 
   final int _capacity;
-  final int _refillPerMinute;
+  final double _refillPerSecond;
   final LinkedHashMap<String, _TokenBucket> _buckets =
       LinkedHashMap<String, _TokenBucket>();
 
@@ -1801,7 +1803,7 @@ class _RequestBucketCache {
       }
       bucket = _TokenBucket(
         capacity: _capacity,
-        refillPerMinute: _refillPerMinute,
+        refillPerSecond: _refillPerSecond,
         now: now,
       );
     }
