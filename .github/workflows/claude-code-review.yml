@@ -107,4 +107,5 @@ jobs:
                gate fails closed without one.
             Never use APPROVE or REQUEST_CHANGES, and post nothing else.
           claude_args: >-
+            --model opus
             --allowedTools "Read,Glob,Grep,Write,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api --method POST repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews:*)"
