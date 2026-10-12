@@ -5370,6 +5370,41 @@ void main() {
       });
     }
 
+    test('with several peer manifests failing in steady state, the pass '
+        'keeps the longest Retry-After', () async {
+      SyncHttpResponse serverError(int status, int? seconds) =>
+          SyncHttpResponse(
+            statusCode: status,
+            kind: SyncResponseKind.serverError,
+            headers: {if (seconds != null) 'retry-after': '$seconds'},
+            body: const [],
+            retryAfter: seconds == null ? null : Duration(seconds: seconds),
+          );
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(),
+        transport: _FakeTransport(
+          devices: ['none', 'short', 'long', 'later-short'],
+          manifestResponses: {
+            'none': [serverError(503, null)],
+            'short': [serverError(503, 30)],
+            'long': [serverError(500, 120)],
+            'later-short': [serverError(503, 60)],
+          },
+        ),
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(
+        result.failure?.retryAfter,
+        const Duration(seconds: 120),
+        reason: 'the retry must not come sooner than any answer allowed',
+      );
+      expect(result.failure?.statusCode, 500);
+      expect(result.reports, isEmpty);
+    });
+
     test(
       'a 404 on one peer manifest in steady state is still reported',
       () async {

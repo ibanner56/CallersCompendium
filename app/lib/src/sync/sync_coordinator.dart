@@ -1436,9 +1436,11 @@ class SyncCoordinator {
     // failure a fresh attach reports: the user can quote it, and it is what
     // separates a server fault from a peer whose list is merely unreadable.
     int? unavailableManifestStatus;
-    // The first steady-state peer manifest the server failed to serve. The
-    // pass still finishes, but it ends as that temporary failure rather than
-    // `completed`: see the `5xx` rule below.
+    // The steady-state peer manifest the server failed to serve with the
+    // longest `Retry-After` (else the first). The pass still finishes, but it
+    // ends as that temporary failure rather than `completed`: see the `5xx`
+    // rule below. Keeping the longest wait means the retry never comes sooner
+    // than any of those answers allowed.
     SyncHttpResponse? deferredServerFault;
     for (final peerId in metadata.devices) {
       if (peerId == deviceId) continue;
@@ -1505,7 +1507,12 @@ class SyncCoordinator {
         unavailableManifestStatus ??= response.statusCode;
         unresolved.addAll(normalizedBaseline.keys);
         if (serverFault) {
-          deferredServerFault ??= response;
+          final kept = deferredServerFault?.retryAfter;
+          final wait = response.retryAfter;
+          if (deferredServerFault == null ||
+              (wait != null && (kept == null || wait > kept))) {
+            deferredServerFault = response;
+          }
         } else {
           reports.add(
             SyncReport(
