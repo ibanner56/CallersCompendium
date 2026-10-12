@@ -423,7 +423,9 @@ def test_pdfium_pin_tests_are_split_across_two_steps() -> None:
     pin = "tools/release/test_pdfium_pin.py"
 
     def flags(name: str) -> list[tuple[str, ...]]:
-        return [c[c.index(pin) + 1 :] for c in steps[name].commands if pin in c]
+        # py() writes the script path with the host's separator.
+        posix = [tuple(PurePath(p).as_posix() for p in c) for c in steps[name].commands]
+        return [c[c.index(pin) + 1 :] for c in posix if pin in c]
 
     assert flags("release-tooling") == [("--without-cmake",)]
     assert flags("pdfium-verifier") == [("--cmake-only",)]
