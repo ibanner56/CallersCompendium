@@ -2266,9 +2266,11 @@ republishes, which is an ordinary upload and needs no special path.
    fresh attach, which cannot finish without every peer's list (§6.2), it
    ends the pass as a transient failure, so the client retries by itself
    rather than asking the user to see to their other devices. In steady state
-   that peer is skipped for the pass — nothing it lists is decided, and the
-   others still sync — but it MUST NOT be reported as an unreadable peer
-   manifest, whose remedy is the other device. Any other non-success answer,
+   the pass carries on as for any unreadable peer manifest: without that
+   peer's list no baselined record can be decided, so every one waits for the
+   next pass, and only records new to this device arrive from the peers that
+   could be read. It MUST NOT be reported as an unreadable peer manifest,
+   whose remedy is the other device. Any other non-success answer,
    a `404` included, is still about that peer's list and is reported as
    before.
 
@@ -2276,8 +2278,9 @@ republishes, which is an ordinary upload and needs no special path.
    > unreadable manifest in steady state and failed a fresh attach as a peer
    > that could not be read; both pointed the user at their other devices
    > for a server fault. The maintainer chose this split in the session that
-   > made the change, over stopping every pass on a `5xx` (which would lose
-   > the other peers' sync) and over leaving it as it was.
+   > made the change, over stopping every pass on a `5xx` (which would also
+   > lose the records new to this device that the readable peers can still
+   > deliver) and over leaving it as it was.
 4. Per record, resolve existence first (§6.4), then compare hashes and
    `updatedAt`:
 

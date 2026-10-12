@@ -5267,9 +5267,10 @@ void main() {
     // (spec §6.3 step 3). On a fresh attach, which cannot finish without every
     // peer's list, it is a temporary failure that retries by itself; it was
     // `peerUnavailable`, a needs-you warning sending the user to their other
-    // devices. In steady state that peer is still skipped for the pass and
-    // the others still sync, but without the skipped-records notice, whose
-    // advice — check the other device's app version — is false here.
+    // devices. In steady state the pass carries on as before — baselined
+    // records wait, and only records new to this device arrive from the
+    // readable peers — but without the skipped-records notice, whose advice
+    // (check the other device's app version) is false here.
     for (final status in [500, 503]) {
       test('a $status on a peer manifest during a fresh attach is a '
           'temporary failure', () async {
@@ -5296,7 +5297,7 @@ void main() {
       });
 
       test('a $status on one peer manifest in steady state skips that peer '
-          'quietly and syncs the rest', () async {
+          'quietly, and a new record from the rest still arrives', () async {
         final other = SyncMergeCandidate.fromBlob(
           _setting('default_program_band', 'from other'),
         );
@@ -5332,7 +5333,10 @@ void main() {
         expect(
           store.writes.map((w) => w.address.recordId),
           contains('default_program_band'),
-          reason: 'the readable peer still synced',
+          reason:
+              'a record new to this device still arrives from the readable '
+              'peer; baselined records wait, since none is decidable without '
+              'every peer list',
         );
         expect(
           store.retiredPeerAddresses,

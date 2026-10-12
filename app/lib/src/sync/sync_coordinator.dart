@@ -1473,11 +1473,13 @@ class SyncCoordinator {
       // fresh attach cannot finish without every peer's list, so there it is
       // the temporary failure it is, retried by itself; reported as an
       // unreadable peer it failed as `peerUnavailable`, which waits for the
-      // user and sends them to their other devices. In steady state the peer
-      // is skipped for this pass as before, so the others still sync, but
-      // without a report: the skipped-records notice it raised tells the user
-      // to check their other device's app version, which is false advice for
-      // a server fault. Anything else — a `404`, an unexpected status — is
+      // user and sends them to their other devices. In steady state the pass
+      // carries on as before — every baselined address is left undecided for
+      // it (`unresolved` below), so only records new to this device can arrive
+      // from the readable peers, and edits to shared records wait for the next
+      // pass — but without a report: the skipped-records notice it raised
+      // tells the user to check their other device's app version, which is
+      // false advice for a server fault. Anything else — a `404`, an unexpected status — is
       // still about that peer's list, and is still reported.
       final serverFault = response.kind == SyncResponseKind.serverError;
       if (serverFault && freshAttach) {
