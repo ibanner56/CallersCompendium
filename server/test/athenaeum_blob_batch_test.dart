@@ -331,7 +331,7 @@ void main() {
     }
     final get = await app.call(batchRequest(null, method: 'GET'));
     expect(get.statusCode, 405);
-    expect(get.headers['allow'], 'POST');
+    expect(get.headers['allow'], 'POST, PUT');
     final wrongType = await app.call(
       batchRequest(
         {
