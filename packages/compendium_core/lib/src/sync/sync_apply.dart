@@ -821,8 +821,10 @@ class SyncApplyEngine {
             SyncReportCode.newerWireVersion,
             'Inbound record uses a newer wire version',
           ),
-          SyncNewerFieldException() => (
-            SyncReportCode.newerRecordFields,
+          SyncNewerFieldException(:final path) => (
+            path.startsWith('figures')
+                ? SyncReportCode.newerFigures
+                : SyncReportCode.newerRecordFields,
             'Inbound record carries a part this build cannot keep',
           ),
           _ => (SyncReportCode.malformedRecord, 'Malformed inbound record'),

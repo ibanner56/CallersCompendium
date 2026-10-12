@@ -171,7 +171,7 @@ void main() {
       expect(result.applied, isEmpty);
       expect(result.reports.map((report) => report.code), [
         SyncReportCode.newerWireVersion,
-        SyncReportCode.newerRecordFields,
+        SyncReportCode.newerFigures,
       ]);
       // A caller that logs the message is not told the record is broken
       // either.

@@ -190,6 +190,118 @@ void main() {
     expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
   });
 
+  group('after an upgrade that starts syncing a kept field', () {
+    // The kept rows below are what an older build stored for the program's
+    // pay, before this build knew the field (#1714). This build knows it, so
+    // it must not keep putting the old build's copy back over the record.
+    Future<void> keepPayAsAnOlderBuildDid() async {
+      await repositories.programs.create(program());
+      await repositories.syncLocal.setRetainedSyncFields(
+        kind: SyncRecordKind.program,
+        recordId: 'p1',
+        payload: canonicalJson({
+          'payMinorUnits': {'v': 1250},
+          'payCurrency': {'v': 'USD'},
+          'cueSheet': {'v': 'still unknown here'},
+        }),
+      );
+    }
+
+    test('promotion moves the value into the record, keeps the rest, and '
+        'leaves the wire hash as it was', () async {
+      await keepPayAsAnOlderBuildDid();
+      final before = await published((
+        kind: SyncRecordKind.program,
+        recordId: 'p1',
+      ));
+
+      await storage.promoteRetainedSyncFields();
+
+      final stored = await repositories.programs.getById('p1');
+      expect(stored!.payMinorUnits, 1250);
+      expect(stored.payCurrency, 'USD');
+      final row = await repositories.syncLocal.getRetainedSyncFields(
+        kind: SyncRecordKind.program,
+        recordId: 'p1',
+      );
+      expect(
+        row!.payload,
+        canonicalJson({
+          'cueSheet': {'v': 'still unknown here'},
+        }),
+      );
+      final after = await published((
+        kind: SyncRecordKind.program,
+        recordId: 'p1',
+      ));
+      expect(after.blob.body['payMinorUnits'], 1250);
+      expect(after.blob.body['cueSheet'], 'still unknown here');
+      expect(after.blob.updatedAt, before.blob.updatedAt);
+    });
+
+    test('ensureMigrated promotes at open', () async {
+      await keepPayAsAnOlderBuildDid();
+      final reopened = CompendiumRepositories(db, contraTaxonomy);
+      await reopened.ensureMigrated();
+      expect((await repositories.programs.getById('p1'))!.payCurrency, 'USD');
+    });
+
+    test('a kept copy never wins over the record, even unpromoted', () async {
+      // Promotion skipped (or not yet run): the user's own edit to the now
+      // synced field is what this device shares, not the old kept copy.
+      await keepPayAsAnOlderBuildDid();
+      final edited = Program(
+        id: 'p1',
+        title: 'Shared Program',
+        slots: program().slots,
+        payMinorUnits: 9900,
+        payCurrency: 'EUR',
+        createdAt: _stamp,
+        updatedAt: _stamp.add(const Duration(hours: 1)),
+      );
+      await repositories.programs.update(edited);
+
+      final body = (await published((
+        kind: SyncRecordKind.program,
+        recordId: 'p1',
+      ))).blob.body;
+      expect(body['payMinorUnits'], 9900);
+      expect(body['payCurrency'], 'EUR');
+      expect(body['cueSheet'], 'still unknown here');
+    });
+
+    test('a setting kept whole is applied once this build syncs its key, '
+        'unless a newer copy is already here', () async {
+      SyncRecordBlob dialects(DateTime at, Object value) => SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: 'custom_dialects',
+        updatedAt: at,
+        deletedAt: null,
+        existenceAt: at,
+        body: {'value': value},
+      );
+      Future<void> keepWhole(SyncRecordBlob blob) =>
+          repositories.syncLocal.setRetainedSyncFields(
+            kind: SyncRecordKind.setting,
+            recordId: blob.id,
+            payload: encodeSyncRecordBlob(blob),
+            wholeRecord: true,
+          );
+
+      await keepWhole(dialects(_stamp, const ['kept']));
+      await storage.promoteRetainedSyncFields();
+      expect(await repositories.settings.get('custom_dialects'), ['kept']);
+      expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
+
+      await keepWhole(
+        dialects(_stamp.subtract(const Duration(days: 1)), ['older']),
+      );
+      await storage.promoteRetainedSyncFields();
+      expect(await repositories.settings.get('custom_dialects'), ['kept']);
+      expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
+    });
+  });
+
   test('a key a newer build added inside a figure refuses the record', () {
     final dance = syncRecordBlobForEntity(
       SyncRecordKind.dance,

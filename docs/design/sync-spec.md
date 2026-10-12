@@ -3068,6 +3068,17 @@ id — MUST instead **refuse the whole record**: one record skipped, batch
 intact, local state unchanged, reported as in §6.9. Figure decoding drops
 unknown keys silently, so applying such a dance would store a truncated copy.
 
+**A kept part this build later syncs moves into the record.** After an
+upgrade that starts syncing a field a device kept, the kept copy MUST NOT be put
+back over the record — it would overwrite what the device now holds, including
+the user's own edit, on every share. A conforming client MUST move such values
+into the record before anyone can edit it after the upgrade (this one does it
+at open, rewriting the record as the version it held, so its timestamps and
+wire hash are unchanged), keep only what it still does not sync, and drop
+already-synced paths from kept parts wherever it puts them back. A setting
+kept whole is applied the same way once its key is synced, unless the device
+already holds a newer copy of it, which wins.
+
 For `kind: "setting"`, a key this build does not classify `shareable` is kept
 **whole**: the peer's blob is stored as it came, published back as this
 device's copy of that record, and never written to `settings`. The two
@@ -5211,7 +5222,10 @@ refuses the record as `newerRecordFields` or `newerFigures`** (mutation: let
 figure decoding drop the key — the dance applies, truncated). **A tie in kept
 parts is left to a device that understands them** (mutation: settle it as a tie
 in nothing the user is shown — the copy without the newer field can win
-everywhere). These are client-side and
+everywhere). **After an upgrade that starts syncing a kept field, the record
+holds it and the kept copy no longer wins** (mutation: keep putting the kept
+copy back — the user's edit to the now-synced field is shared with the old
+value). These are client-side and
 are grouped here rather than under **Server** because the server never parses
 record content beyond §7.2's key check — a server suite written from a list that
 included them would be testing rules its implementation is forbidden to have.

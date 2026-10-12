@@ -384,8 +384,8 @@ final class CompendiumSyncStorage
     final retainedParts = {
       for (final row in retainedRows)
         if (!row.wholeRecord)
-          (kind: row.kind, recordId: row.recordId): _decodeRetainedPayload(
-            row.payload,
+          (kind: row.kind, recordId: row.recordId): ?_unsyncedRetainedParts(
+            row,
           ),
     };
 
@@ -1011,7 +1011,7 @@ final class CompendiumSyncStorage
     final retainedDances = {
       for (final row in await repositories.syncLocal.listRetainedSyncFields())
         if (row.kind == SyncRecordKind.dance && !row.wholeRecord)
-          row.recordId: _decodeRetainedPayload(row.payload),
+          row.recordId: ?_unsyncedRetainedParts(row),
     };
     final candidates = <SyncMergeCandidate>[];
     for (final dance in dances) {
@@ -3876,8 +3876,108 @@ final class CompendiumSyncStorage
       recordId: address.recordId,
     );
     if (row == null || row.wholeRecord) return null;
-    return _decodeRetainedPayload(row.payload);
+    return _unsyncedRetainedParts(row);
   }
+
+  /// Moves into the records themselves whatever this device kept for a newer
+  /// version of the app that this build now syncs (spec §6.7), and stops
+  /// keeping it. Runs at open, from `CompendiumRepositories.ensureMigrated`,
+  /// so it is done before anyone can edit a record after an upgrade.
+  ///
+  /// Each record is rewritten as the peer's body it was kept from — this
+  /// device's copy with the kept parts put back — so its timestamps and wire
+  /// hash stay those of the version it holds: this is the same content, now
+  /// stored where this build reads it. A setting kept whole is applied the
+  /// same way, unless this device already holds a newer copy of it, which
+  /// wins. A deleted record is left alone; its kept parts are pruned wherever
+  /// they would be put back, so they cannot win over it either.
+  Future<void> promoteRetainedSyncFields() async {
+    final rows = await repositories.syncLocal.listRetainedSyncFields();
+    final due = [
+      for (final row in rows)
+        if (row.wholeRecord
+            ? !isRetainableSettingKey(row.recordId)
+            : canonicalJson(_unsyncedRetainedParts(row)) !=
+                  canonicalJson(_decodeRetainedPayload(row.payload)))
+          row,
+    ];
+    if (due.isEmpty) return;
+    final snapshotNow = await snapshot();
+    await repositories.transaction(() async {
+      for (final row in due) {
+        final address = (kind: row.kind, recordId: row.recordId);
+        if (row.wholeRecord) {
+          final blob = decodeSyncRecordBlob(row.payload);
+          final existing =
+              await (_db.select(_db.settings)
+                    ..where((table) => table.key.equals(row.recordId)))
+                  .getSingleOrNull();
+          final heldAt = existing?.updatedAt ?? existing?.existenceAt;
+          if (classifySettingsKey(row.recordId)?.egress !=
+                  EgressClass.shareable ||
+              (heldAt != null && !blob.updatedAt.isAfter(heldAt))) {
+            await repositories.syncLocal.setRetainedSyncFields(
+              kind: row.kind,
+              recordId: row.recordId,
+              payload: null,
+            );
+            continue;
+          }
+          await writeWithReport(
+            SyncApplyRecord(
+              address: address,
+              body: syncInboundKnownBody(blob),
+              updatedAt: blob.updatedAt,
+              deletedAt: blob.deletedAt,
+              existenceAt: blob.existenceAt,
+              sourceBlob: blob,
+            ),
+          );
+          continue;
+        }
+        final held = snapshotNow.local[address];
+        if (held == null || held.blob.deletedAt != null) continue;
+        final blob = SyncRecordBlob(
+          v: held.blob.v,
+          kind: held.blob.kind,
+          id: held.blob.id,
+          updatedAt: held.blob.updatedAt,
+          deletedAt: held.blob.deletedAt,
+          existenceAt: held.blob.existenceAt,
+          body: mergeRetainedFields(
+            held.blob.body,
+            _decodeRetainedPayload(row.payload),
+          ),
+        );
+        final current = await read(address) ?? const <String, Object?>{};
+        final report = await writeWithReport(
+          SyncApplyRecord(
+            address: address,
+            body: _overlay(
+              Map<String, Object?>.from(current),
+              syncInboundKnownBody(blob),
+            ),
+            updatedAt: blob.updatedAt,
+            deletedAt: blob.deletedAt,
+            existenceAt: blob.existenceAt,
+            sourceBlob: blob,
+          ),
+        );
+        if (report != null &&
+            report.code != SyncReportCode.unresolvedReference) {
+          throw StateError(report.message);
+        }
+      }
+    });
+  }
+
+  /// What [row] keeps that this build still does not sync; null when nothing.
+  Map<String, Object?>? _unsyncedRetainedParts(RetainedSyncFieldsRow row) =>
+      pruneSyncedRetainedFields(
+        row.kind,
+        _decodeRetainedPayload(row.payload),
+        settingsKey: row.kind == SyncRecordKind.setting ? row.recordId : null,
+      );
 
   /// Whether [candidate] would actually resolve a baseline-absent live local
   /// row out of existence.

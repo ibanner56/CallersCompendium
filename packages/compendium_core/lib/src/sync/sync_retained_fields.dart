@@ -83,6 +83,69 @@ Map<String, Object?> mergeRetainedFields(
   Map<String, Object?> retained,
 ) => _merge(const [], body, retained);
 
+/// [retained] without the parts this build now syncs, or null when nothing is
+/// left — the same tree when nothing changed.
+///
+/// A kept part is only ever something the build that stored it did not sync.
+/// After an upgrade that starts syncing it, the value belongs in the record
+/// itself, and a kept copy put back over the projection would overwrite what
+/// this device now holds — including the user's own edit — on every share.
+/// `CompendiumSyncStorage.promoteRetainedSyncFields` moves such values into
+/// the record at open; every body builder also prunes with this, so a part
+/// that was not moved can never win over the record (spec §6.7).
+Map<String, Object?>? pruneSyncedRetainedFields(
+  SyncRecordKind kind,
+  Map<String, Object?> retained, {
+  String? settingsKey,
+}) {
+  final pruned = _prune(kind, const [], retained, settingsKey);
+  return pruned.isEmpty ? null : pruned;
+}
+
+Map<String, Object?> _prune(
+  SyncRecordKind kind,
+  List<String> segments,
+  Map<String, Object?> retained,
+  String? settingsKey,
+) {
+  final out = <String, Object?>{};
+  for (final entry in retained.entries) {
+    final part = entry.value;
+    if (part is! Map) continue;
+    final childSegments = [...segments, entry.key];
+    final path = childSegments.join('.');
+    if (part.containsKey('v')) {
+      final synced =
+          isShareableWirePath(kind, path, settingsKey: settingsKey) ||
+          hasShareableWireDescendant(kind, path);
+      if (!synced) out[entry.key] = part;
+    } else if (part['m'] case final Map<Object?, Object?> nested) {
+      final kept = _prune(
+        kind,
+        childSegments,
+        nested.cast<String, Object?>(),
+        settingsKey,
+      );
+      if (kept.isNotEmpty) out[entry.key] = {'m': kept};
+    } else if (part['l'] case final Map<Object?, Object?> byId) {
+      final keptById = <String, Object?>{};
+      for (final item in byId.entries) {
+        final itemParts = item.value;
+        if (itemParts is! Map) continue;
+        final kept = _prune(
+          kind,
+          childSegments,
+          itemParts.cast<String, Object?>(),
+          settingsKey,
+        );
+        if (kept.isNotEmpty) keptById[item.key as String] = kept;
+      }
+      if (keptById.isNotEmpty) out[entry.key] = {'l': keptById};
+    }
+  }
+  return out;
+}
+
 /// Whether a setting [key] this build does not sync may still be kept whole
 /// for a newer version. The two transport keys never may: they are never
 /// adopted from a peer, and republishing one would repoint the store.
