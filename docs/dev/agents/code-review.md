@@ -129,11 +129,12 @@ What a round is given and asked for:
 - **Two tiers.** *Findings* carry an input, a path and a wrong result, and decide
   the verdict. *Suspected* items hinge on one fact the job could not read from the
   code (a value set elsewhere, data in an existing database); they are written as
-  "Fails if X", do not decide the verdict, and want a one-line confirm or dismiss.
+  "Fails if X", never make the verdict `BLOCK` (they can keep it from being a
+  clean `APPROVE`), and want a one-line confirm or dismiss.
   They are inline comments like any finding, so `gate threads` counts them:
   resolve or dismiss each before merging. `findings` is informational and always
-  passes; it prints each comment's first line, which the rubric makes the ID,
-  severity and title.
+  passes; it prints the first 160 characters of each comment with newlines
+  collapsed, so the rubric leads each comment with the ID, severity and title.
   The job cannot run tests or scripts, so it never reports that something is
   merely unverified, and the workflow (not the rubric) leaves out the template's
   "Verification the author still owes" checklist, which CI and the merge gate

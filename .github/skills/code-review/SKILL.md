@@ -76,8 +76,8 @@ skipped, not assumed missing.
     platform behaviour, data in a user's existing database). State it as a
     condition the author can settle in one look: *"Fails if X; X holds when Y
     (`path:line`)"*. Do not write that you could not run, test, or check
-    something — name the condition. Suspected items do not decide the verdict,
-    and a failure path you cannot name (an input and a result) is not a
+    something — name the condition. A Suspected item can keep a round from
+    being a clean `APPROVE` but never makes it `BLOCK`, and a failure path you cannot name (an input and a result) is not a
     Suspected item: leave it out.
 - **Do not report style, formatting, naming, or import order.** Those are
   machine-enforced here (`dart format`, `flutter analyze --fatal-infos`) and a
@@ -375,8 +375,9 @@ Rules for the output:
   when it has one. The body carries the structure; the inline comment is what
   `check_pr_review_gates.py findings` prints and what the thread-resolution gate
   counts, so a Suspected item's thread must be resolved or dismissed before the
-  merge gate passes. Start each inline comment with the ID, severity and title,
-  which is all `findings` prints: `B1 blocker: <title>`, `N2 minor: <title>`,
+  merge gate passes. `findings` prints only the first 160 characters of each
+  comment, newlines collapsed, so start each inline comment with the ID,
+  severity and title: `B1 blocker: <title>`, `N2 minor: <title>`,
   `S1 suspected: <title>`; the rest of the comment is that finding's block.
 
 ### Template
@@ -409,7 +410,7 @@ Rules for the output:
 - **What:** <...>
 - **Fix:** <...>
 
-### Suspected (does not decide the verdict; confirm or dismiss in one line)
+### Suspected (never makes the verdict BLOCK; confirm or dismiss in one line)
 
 #### S1. <one-line title>
 - **Where:** `path/to/file.dart:57`
@@ -423,7 +424,7 @@ Rules for the output:
 ### Coverage
 
 - **Files:** `path/a.dart` — reviewed · `lib/l10n/*.arb` (12) — regenerated
-  from `app_en.arb`, parity checked · `path/b.dart` — reviewed from the file (diff
+  from `app_en.arb`, parity checked · `path/b.dart` — read in full (diff
   too large)
 - **Hazards:** documentation — finding N1 · changelog — checked, app fragment
   present · privacy registry — n/a, no persisted field · tests — checked, the
