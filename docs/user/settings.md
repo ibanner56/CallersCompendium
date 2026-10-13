@@ -48,9 +48,11 @@ The **General** section gathers everyday behavior into small groups.
   by their first meaningful word. With this on, "The Nice Combination" files under
   **N**, not **T**.
 - **Capitalize figures** (off by default) — starts each
-  [figure](./glossary.md#figure) shown on screen with a capital letter. Off, figures
-  are shown as written (built-in figures start in lower case, as in ContraDB). Only the on-screen look changes; exports,
-  search and screen-reader wording are unaffected.
+  [figure](./glossary.md#figure) in the dance view, [Perform mode](./perform.md) and
+  the figure editor with a capital letter. Off, figures are shown as written
+  (built-in figures start in lower case, as in ContraDB). Only the look in those
+  places changes; exports, search, sync comparisons and screen-reader wording are
+  unaffected.
 
 ### Accessibility
 

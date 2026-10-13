@@ -2696,7 +2696,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsGeneralCapitalizeFiguresSubtitle =>
-      'Wenn aktiviert, beginnt jede Figur mit einem Großbuchstaben („Neighbors allemande left“). Wenn deaktiviert, werden Figuren so angezeigt, wie sie geschrieben sind; eingebaute Figuren beginnen wie in ContraDB mit einem Kleinbuchstaben. Nur die Darstellung der Figuren auf dem Bildschirm ändert sich; Exporte, Suche und Screenreader-Wortlaut bleiben unverändert.';
+      'Wenn aktiviert, beginnt jede Figur in der Tanzansicht, im Perform-Modus und im Figureneditor mit einem Großbuchstaben („Neighbors allemande left“). Wenn deaktiviert, werden Figuren so angezeigt, wie sie geschrieben sind; eingebaute Figuren beginnen wie in ContraDB mit einem Kleinbuchstaben. Nur die Darstellung der Figuren an diesen Stellen ändert sich; Exporte, Suche, Sync-Vergleiche und Screenreader-Wortlaut bleiben unverändert.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Barrierefreiheit';

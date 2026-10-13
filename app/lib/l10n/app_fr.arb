@@ -2716,9 +2716,9 @@
   "@settingsGeneralCapitalizeFiguresTitle": {
     "x-sourceSha256": "c841b9d27fa36cfe2705a7247038669178a9773692bbb78c7886cfcdeff5d6d0"
   },
-  "settingsGeneralCapitalizeFiguresSubtitle": "Activé : chaque figure commence par une majuscule (« Neighbors allemande left »). Désactivé : les figures s’affichent telles qu’elles sont écrites ; les figures intégrées commencent par une minuscule, comme dans ContraDB. Seul l’aspect des figures à l’écran change ; les exports, la recherche et le texte lu par les lecteurs d’écran restent identiques.",
+  "settingsGeneralCapitalizeFiguresSubtitle": "Activé : chaque figure dans la vue de la danse, le mode Perform et l’éditeur de figures commence par une majuscule (« Neighbors allemande left »). Désactivé : les figures s’affichent telles qu’elles sont écrites ; les figures intégrées commencent par une minuscule, comme dans ContraDB. Seul l’aspect des figures à ces endroits change ; les exports, la recherche, les comparaisons de synchronisation et le texte lu par les lecteurs d’écran restent identiques.",
   "@settingsGeneralCapitalizeFiguresSubtitle": {
-    "x-sourceSha256": "a4345ad1a2c7e03613daa15117a6db6e620c84ba28922284da3ea6bc2cc7a7b2"
+    "x-sourceSha256": "7f240fb961d598881097268169b7eafcb32a2e8b4698331673904b34b1f95a09"
   },
   "settingsGeneralAccessibilityHeader": "Accessibilité",
   "@settingsGeneralAccessibilityHeader": {

@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "A new Capitalize figures switch under Settings > General > Library starts each figure shown on screen with a capital letter. It is off by default, so figures are shown as written (built-in figures start in lower case, as in ContraDB)."
+      "A new Capitalize figures switch under Settings > General > Library starts each figure in the dance view, Perform mode and the figure editor with a capital letter. It is off by default, so figures are shown as written (built-in figures start in lower case, as in ContraDB)."
     ]
   }
 }

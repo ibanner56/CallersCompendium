@@ -2716,9 +2716,9 @@
   "@settingsGeneralCapitalizeFiguresTitle": {
     "x-sourceSha256": "c841b9d27fa36cfe2705a7247038669178a9773692bbb78c7886cfcdeff5d6d0"
   },
-  "settingsGeneralCapitalizeFiguresSubtitle": "Wenn aktiviert, beginnt jede Figur mit einem Großbuchstaben („Neighbors allemande left“). Wenn deaktiviert, werden Figuren so angezeigt, wie sie geschrieben sind; eingebaute Figuren beginnen wie in ContraDB mit einem Kleinbuchstaben. Nur die Darstellung der Figuren auf dem Bildschirm ändert sich; Exporte, Suche und Screenreader-Wortlaut bleiben unverändert.",
+  "settingsGeneralCapitalizeFiguresSubtitle": "Wenn aktiviert, beginnt jede Figur in der Tanzansicht, im Perform-Modus und im Figureneditor mit einem Großbuchstaben („Neighbors allemande left“). Wenn deaktiviert, werden Figuren so angezeigt, wie sie geschrieben sind; eingebaute Figuren beginnen wie in ContraDB mit einem Kleinbuchstaben. Nur die Darstellung der Figuren an diesen Stellen ändert sich; Exporte, Suche, Sync-Vergleiche und Screenreader-Wortlaut bleiben unverändert.",
   "@settingsGeneralCapitalizeFiguresSubtitle": {
-    "x-sourceSha256": "a4345ad1a2c7e03613daa15117a6db6e620c84ba28922284da3ea6bc2cc7a7b2"
+    "x-sourceSha256": "7f240fb961d598881097268169b7eafcb32a2e8b4698331673904b34b1f95a09"
   },
   "settingsGeneralAccessibilityHeader": "Barrierefreiheit",
   "@settingsGeneralAccessibilityHeader": {
