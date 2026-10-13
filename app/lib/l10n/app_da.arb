@@ -2712,6 +2712,14 @@
   "@settingsProgramVenueCallCountOption": {
     "x-sourceSha256": "1c0cfc72e21f8c2822ac39f1e745a46fad5fe0ec3d19811be896910962f1925b"
   },
+  "settingsGeneralCapitalizeFiguresTitle": "Brug stort begyndelsesbogstav i figurer",
+  "@settingsGeneralCapitalizeFiguresTitle": {
+    "x-sourceSha256": "c841b9d27fa36cfe2705a7247038669178a9773692bbb78c7886cfcdeff5d6d0"
+  },
+  "settingsGeneralCapitalizeFiguresSubtitle": "Når aktiveret, begynder hver figur i dansevisningen, Perform-tilstand og figureditoren med et stort bogstav (“Neighbors allemande left”). Når deaktiveret, vises figurer som skrevet; indbyggede figurer begynder med lille bogstav, som i ContraDB. Kun figurernes udseende disse steder ændres; eksport, søgning, synkroniseringssammenligninger og skærmlæserens ordlyd er upåvirket.",
+  "@settingsGeneralCapitalizeFiguresSubtitle": {
+    "x-sourceSha256": "7f240fb961d598881097268169b7eafcb32a2e8b4698331673904b34b1f95a09"
+  },
   "settingsGeneralAccessibilityHeader": "Tilgængelighed",
   "@settingsGeneralAccessibilityHeader": {
     "x-sourceSha256": "d3368cbffe23c98da887d279a1b5c74b7618ba5c0488cbed30cf304f8f9398a1"
