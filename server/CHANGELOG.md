@@ -8,6 +8,15 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+### Fixed
+
+- The reference Apache vhost (`server/deploy/athenaeum.conf`) proxied
+  `/heartbeat` to `/heartbeat/heartbeat`, because a `ProxyPassMatch` target
+  without a backreference has the request path appended, so the liveness check
+  and the status page that polls it got the server's `404`. Both vhosts now
+  capture the path and pass it on. Existing deployments must update their
+  installed vhost and reload Apache; the server itself is unchanged.
+
 ### Changed
 
 - The request-rate limits are counted per second (sync spec §5.4): 5 requests
