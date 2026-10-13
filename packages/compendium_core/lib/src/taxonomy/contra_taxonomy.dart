@@ -19,7 +19,7 @@ import 'taxonomy.dart';
 /// It is kept there because it is a ledger of decisions already shipped: it
 /// constrains nothing on this line, and it grows on every bump, so readers of
 /// this file were paying for the whole history to reach one constant.
-const int contraTaxonomyVersion = 35;
+const int contraTaxonomyVersion = 36;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -1461,6 +1461,33 @@ final Taxonomy contraTaxonomy = Taxonomy(
           'full': 16,
         },
       ),
+    ),
+    // v36: the four-dancer circular hey. ADR-006 §7.4 is the starting point,
+    // but this is defined for contra on its own terms (ADR-006 §2: ECD owns
+    // its definitions), so ECD's `whom` and `slow` are not carried over. `who`
+    // is the group that passes first, mirroring `square_through.who`. `changes`
+    // counts the passes: 3 is a 3/4 circular hey (8 beats), 4 the full circuit
+    // (12 beats, the default). Only 3 and 4 are admitted because those are the
+    // counts the maintainer specified beat counts for; any other count stays
+    // custom text rather than being rounded to one the taxonomy can size.
+    const MoveDef(
+      id: 'circular_hey',
+      displayName: 'circular hey',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        'changes': ParamSpec(
+          ParamKind.choice,
+          defaultValue: '4',
+          choices: ['3', '4'],
+        ),
+        'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
+        'where': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 12),
+      },
+      renderTemplate: '{who} {move} {changes} {shoulder} {where}',
+      searchKeywords: ['square hey'],
+      goodBeats: [8, 12],
+      paramBeats: ParamBeats(param: 'changes', byValue: {'3': 8, '4': 12}),
     ),
     const MoveDef(
       id: 'dolphin_hey',

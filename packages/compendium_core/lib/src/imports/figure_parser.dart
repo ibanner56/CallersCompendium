@@ -1072,6 +1072,9 @@ final List<_Recognizer> _recognizers = [
   // Free-text phrasing "half hey, ladies start by the right": anchors on the
   // `hey` word plus a `start by` clause that no other recognizer consumes.
   _heyStartBy,
+  // `circular_hey` (taxonomy v36): the renderer's own sentence, "3/4 circular
+  // hey, neighbors pass right across", and its "square hey" alias.
+  _circularHey,
   // Additive TCB-attested moves (issue #553, Gap 1). Each is conservative
   // (leftover token → null → custom) and anchors on a distinct lead phrase, so
   // none shadows or is shadowed by the recognizers above.
@@ -2112,6 +2115,52 @@ _Match? _heyStartBy(List<String> w) {
     'pass1': pass1,
     'length': ?length,
     'shoulder': shoulder,
+  });
+}
+
+/// `circular_hey` (taxonomy v36): "3/4 circular hey, neighbors pass right
+/// across" / "full circular hey, ones pass left along", plus the "square hey"
+/// alias (ADR-006 §7.4). This is the shape the display renderer itself writes,
+/// so a hand-typed or copied line round-trips into the structured move.
+///
+/// Every fact the move stores is REQUIRED from the text, never defaulted: the
+/// extent (`3/4` -> `changes: '3'`; `full` or `4/4` -> `'4'`), the group that
+/// passes first, the shoulder and the direction. A bare "circular hey" would
+/// otherwise be stored with the taxonomy's defaults and read back as a stated
+/// "full, neighbors, right, across". Any other extent ("1/2", "5/4") or ANY
+/// leftover token yields null, so the line degrades to a faithful custom
+/// figure.
+_Match? _circularHey(List<String> w) {
+  String? changes;
+  if (_consumePhrase(w, ['3/4'])) {
+    changes = '3';
+  } else if (_consumePhrase(w, ['full']) || _consumePhrase(w, ['4/4'])) {
+    changes = '4';
+  }
+  if (changes == null) return null;
+  if (!_consumePhrase(w, ['circular', 'hey']) &&
+      !_consumePhrase(w, ['square', 'hey'])) {
+    return null;
+  }
+  final who = _takeDancer(w);
+  if (who == null || !_consumePhrase(w, ['pass'])) return null;
+  final shoulder = _takeSide(w);
+  if (shoulder == null) return null;
+  final String where;
+  if (_consumePhrase(w, ['across'])) {
+    where = 'across';
+  } else if (_consumePhrase(w, ['along'])) {
+    where = 'along';
+  } else {
+    return null;
+  }
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('circular_hey', {
+    'who': who,
+    'changes': changes,
+    'shoulder': shoulder,
+    'where': where,
   });
 }
 

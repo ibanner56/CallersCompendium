@@ -80,7 +80,7 @@ Adopted from ContraDB, with renames noted:
 allemande · arch & dive · balance · balance the ring ·
 box circulate · box the gnat (alias: swat the flea) · butterfly whirl ·
 California twirl · chain (role-parameterized, not "ladies chain") · circle ·
-contra corners · cross trails · **custom** · dosido (alias: seesaw) ·
+circular hey (alias: square hey; v36, not in ContraDB) · contra corners · cross trails · **custom** · dosido (alias: seesaw) ·
 dolphin hey · down the hall · up the hall · facing star · figure 8 ·
 form long wave / ocean wave / long waves · gate · give & take ·
 **shoulder round** (was gyre/gypsy; keyword-searchable under old names) ·
@@ -1602,6 +1602,20 @@ fails a PR that moves the constant without adding the matching entry.
   normalization. The container projection is also guarded by the
   `modifierContainerCanonicalRebuildDoneKey` one-shot sweep; stored figure JSON
   and the SQLite schema remain unchanged.
+- v36: adds `circular_hey`, the four-dancer hey passing by shoulders (alias
+    "square hey"), defined for contra on its own terms using
+    [ADR-006](../adr/006-english-country-dance-canonical-grammar.md) §7.4 as a
+    starting point; ADR-006 §2 keeps the ECD definition separate. Params: `who`
+    (default `neighbors`; the group that passes first, so there is no `whom`,
+    mirroring `square_through.who`), `changes` (choice `'3'`/`'4'`, default
+    `'4'`), `shoulder` (default `right`), `where` (default `across`) and
+    `beats`. `changes` drives `paramBeats` (3 -> 8, 4 -> 12; default 12). Only
+    3 and 4 are admitted; any other count stays custom text. The display line
+    is "3/4 circular hey, neighbors pass right across", dropping the fraction at
+    four changes. The shared free-text recognizer reads that same sentence
+    (plus "full"/"4/4" and "square hey"), requiring the extent, group, shoulder
+    and direction rather than defaulting them. Purely additive: no schema
+    migration, no derived-index rebuild (no existing figure changes).
 
 ## Open questions (to resolve during implementation, with user input)
 

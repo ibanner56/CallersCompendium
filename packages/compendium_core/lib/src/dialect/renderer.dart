@@ -833,6 +833,7 @@ class FigureRenderer {
       'box_circulate': 'circulating the box',
       'butterfly_whirl': 'doing a butterfly whirl',
       'california_twirl': 'doing a California twirl',
+      'circular_hey': 'doing a circular hey',
       'contra_corners': 'doing contra corners',
       'cross_trails': 'crossing trails',
       'dolphin_hey': 'doing a dolphin hey',
@@ -2536,6 +2537,26 @@ class FigureRenderer {
         '[ - {until}]'
         '[ - {ricochets}]',
       );
+    },
+    // `circular_hey` (v36): "3/4 circular hey, neighbors pass right across".
+    // The fraction names a partial circuit and is dropped for the full four
+    // changes, the default. `who` is the group that passes first, so it reads
+    // as the plural group noun the verb agrees with ("neighbors pass"). A
+    // `changes` outside {3, 4} (tolerantly-decoded data) is dropped rather
+    // than guessed at.
+    'circular_hey': (r, def, params, dialect, verbose, decimals) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final who = params['who'];
+      final swho = who is String
+          ? r._displayGroup(who, dialect)
+          : r._displaySubject(who, dialect);
+      return _displayTemplate({
+        'move': move,
+        'fraction': params['changes'] == '3' ? '3/4' : '',
+        'who': swho,
+        'shoulder': _displayScalar(params['shoulder']),
+        'where': _displayScalar(params['where']),
+      }, '[{fraction} ]{move}, {who} pass {shoulder} {where}');
     },
     // ContraDB `dolphinHeyWords`: words(smove, "- start with", swho, "passing",
     // swhom, "by", sshoulder). `whom` is a single-dancer identity, rendered via
