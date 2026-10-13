@@ -6036,9 +6036,11 @@ void main() {
     });
   });
 
-  // The upload side of the same problem: a device with a large library of its
-  // own uploads one blob a request, so its first publication meets the
-  // per-IP limit too. That already failed as a temporary `rateLimited`, never
+  // The upload side of the same problem: against a server without
+  // `PUT /v1/blobs/batch` (the fake's default), a device with a large library
+  // of its own uploads one blob a request, so its first publication meets the
+  // per-IP limit too; the batched equivalents are in `batched uploads (spec
+  // §6.3 step 7)`. That already failed as a temporary `rateLimited`, never
   // as skipped records; what it lacked was saying it had moved on, so every
   // such pass doubled the wait before the next (spec §6.12).
   group('an upload the server refuses for now (spec §6.12)', () {

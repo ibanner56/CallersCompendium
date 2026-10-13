@@ -55,7 +55,8 @@ void main() {
         stats: stats,
       );
       if (Platform.environment['ATTACH_BENCH_PUBLISH'] != '1') return;
-      // Burst 120 at 60 a minute: two minutes refills the per-IP bucket.
+      // Burst 300 at 5 a second: a minute refills the per-IP bucket, and the
+      // second is margin.
       await Future<void>.delayed(const Duration(minutes: 2));
       await stats();
       await run(
