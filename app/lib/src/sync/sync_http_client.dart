@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
@@ -11,6 +12,8 @@ import 'package:compendium_core/compendium_core.dart'
         SyncBlobBatchFormatException,
         SyncBlobBatchFrame,
         SyncBlobBatchFrameReader,
+        SyncBlobBatchFrameStatus,
+        encodeSyncBlobBatchFrameHead,
         SyncId,
         encodeSyncCredential,
         normalizeSyncId,
@@ -238,6 +241,35 @@ class SyncHttpClient {
     extraHeaders: const {'Accept-Encoding': 'gzip'},
     readSuccess: (response) => _readBlobBatch(response, hashes, onFrame),
   );
+
+  /// Uploads [blobs] in one request (spec §5.2, `PUT /v1/blobs/batch`), as
+  /// gzip-compressed blob frames.
+  ///
+  /// The response is returned as [request] would return it; for a batch the
+  /// server stored, its body is the per-blob results, read by the caller.
+  Future<SyncHttpResponse> putBlobBatch(
+    List<({String hash, List<int> body})> blobs,
+  ) {
+    final frames = BytesBuilder(copy: false);
+    for (final (:hash, :body) in blobs) {
+      frames
+        ..add(
+          encodeSyncBlobBatchFrameHead(
+            SyncBlobBatchFrameStatus.blob,
+            hash,
+            length: body.length,
+          ),
+        )
+        ..add(body);
+    }
+    return request(
+      'PUT',
+      'blobs/batch',
+      body: gzip.encode(frames.takeBytes()),
+      contentType: syncBlobBatchMediaType,
+      extraHeaders: const {'Content-Encoding': 'gzip'},
+    );
+  }
 
   /// Returns the content-addressed blobs the store does not yet have.
   Future<SyncHttpResponse> postMissing(Iterable<String> hashes) => request(
@@ -606,25 +638,7 @@ class SyncHttpClient {
   }
 
   SyncResponseKind _kindForStatus(int status, bool allowNotModified) =>
-      switch (status) {
-        200 => SyncResponseKind.success,
-        201 => SyncResponseKind.created,
-        204 => SyncResponseKind.success,
-        304 when allowNotModified => SyncResponseKind.notModified,
-        304 => SyncResponseKind.unexpectedStatus,
-        400 => SyncResponseKind.malformedRequest,
-        401 => SyncResponseKind.unauthorized,
-        403 => SyncResponseKind.invalidSyncId,
-        404 => SyncResponseKind.notFound,
-        409 => SyncResponseKind.conflict,
-        413 => SyncResponseKind.payloadTooLarge,
-        415 => SyncResponseKind.unsupportedMediaType,
-        422 => SyncResponseKind.rejected,
-        429 => SyncResponseKind.rateLimited,
-        507 => SyncResponseKind.quotaExhausted,
-        >= 500 && <= 599 => SyncResponseKind.serverError,
-        _ => SyncResponseKind.unexpectedStatus,
-      };
+      syncResponseKindForStatus(status, allowNotModified: allowNotModified);
 
   Duration? _retryAfter(String? value) {
     if (value == null) return null;
@@ -645,6 +659,32 @@ class SyncHttpClient {
     }
   }
 }
+
+/// The category a response with [status] falls in. Exposed so a status that
+/// arrives inside a batch's results reads exactly as the same status on its
+/// own request would (`PUT /v1/blobs/batch`, spec §5.2).
+SyncResponseKind syncResponseKindForStatus(
+  int status, {
+  bool allowNotModified = false,
+}) => switch (status) {
+  200 => SyncResponseKind.success,
+  201 => SyncResponseKind.created,
+  204 => SyncResponseKind.success,
+  304 when allowNotModified => SyncResponseKind.notModified,
+  304 => SyncResponseKind.unexpectedStatus,
+  400 => SyncResponseKind.malformedRequest,
+  401 => SyncResponseKind.unauthorized,
+  403 => SyncResponseKind.invalidSyncId,
+  404 => SyncResponseKind.notFound,
+  409 => SyncResponseKind.conflict,
+  413 => SyncResponseKind.payloadTooLarge,
+  415 => SyncResponseKind.unsupportedMediaType,
+  422 => SyncResponseKind.rejected,
+  429 => SyncResponseKind.rateLimited,
+  507 => SyncResponseKind.quotaExhausted,
+  >= 500 && <= 599 => SyncResponseKind.serverError,
+  _ => SyncResponseKind.unexpectedStatus,
+};
 
 Uri validateSyncEndpoint(Uri uri) {
   if (uri.userInfo.isNotEmpty || uri.hasQuery || uri.hasFragment) {

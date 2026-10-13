@@ -1,23 +1,33 @@
 import 'dart:typed_data';
 
-/// The media type of a `POST /v1/blobs/batch` response body (sync spec §5.2).
+/// The media type of a `POST /v1/blobs/batch` response body and of a
+/// `PUT /v1/blobs/batch` request body (sync spec §5.2).
 const String syncBlobBatchMediaType =
     'application/vnd.callers-compendium.blob-batch';
 
 /// The most hashes one `POST /v1/blobs/batch` request may name (spec §5.4).
 const int syncBlobBatchMaxHashes = 200;
 
+/// The most blobs one `PUT /v1/blobs/batch` request may carry (spec §5.4).
+///
+/// Fewer than a read takes because the server stores a batch in one
+/// transaction without yielding, so every other request waits for it: 50
+/// blobs took 58–147 ms where 200 took about a quarter of a second.
+const int syncBlobBatchMaxUploadBlobs = 50;
+
 /// The most blob bytes one `POST /v1/blobs/batch` response carries, before
 /// framing and compression (spec §5.4). A blob is never larger than 1 MB, so
-/// the first blob a response names always fits.
+/// the first blob a response names always fits. A client also keeps the blob
+/// bytes of one `PUT /v1/blobs/batch` within it.
 const int syncBlobBatchMaxBlobBytes = 2 * 1024 * 1024;
 
 /// Bytes of framing a response adds per requested hash, at most: a status
 /// byte, the 32-byte hash and a 4-byte length.
 const int syncBlobBatchFrameOverhead = 1 + 32 + 4;
 
-/// The most decoded bytes a conforming batch response can occupy: every blob
-/// byte it may carry, plus a frame for every hash it may name.
+/// The most decoded bytes a conforming frame sequence can occupy, a batch
+/// response or a batch upload: every blob byte it may carry, plus a frame for
+/// every hash it may name.
 const int syncBlobBatchMaxResponseBytes =
     syncBlobBatchMaxBlobBytes +
     syncBlobBatchMaxHashes * syncBlobBatchFrameOverhead;
@@ -86,29 +96,44 @@ Uint8List encodeSyncBlobBatchFrameHead(
 
 /// Thrown when a batch response is not a well-formed frame sequence.
 final class SyncBlobBatchFormatException implements Exception {
-  const SyncBlobBatchFormatException(this.message);
+  const SyncBlobBatchFormatException(this.message, {this.exceedsCap = false});
 
   final String message;
+
+  /// Whether the frames broke a cap — too many, or a blob too large — rather
+  /// than being malformed: the server answers `413` for it, not `400`.
+  final bool exceedsCap;
 
   @override
   String toString() => 'SyncBlobBatchFormatException: $message';
 }
 
-/// Reads a batch response incrementally, one frame at a time, as it arrives.
+/// Reads a frame sequence incrementally, one frame at a time, as it arrives.
 ///
-/// Frames are checked against [expectedHashes] in order: a conforming server
-/// answers every requested hash exactly once, in the order requested. A frame
-/// naming anything else, an unknown status, or a blob longer than
-/// [maxBlobBytes] is a [SyncBlobBatchFormatException]. Every complete frame is
-/// handed to the caller before the next is checked, so frames that arrived
-/// before a broken stream, or before a malformed frame, are not lost with it.
+/// For a batch response, frames are checked against [expectedHashes] in
+/// order: a conforming server answers every requested hash exactly once, in
+/// the order requested. For a batch upload ([SyncBlobBatchFrameReader.upload])
+/// the hashes are not known in advance: every frame must carry a blob, no hash
+/// may appear twice, and there may be at most [syncBlobBatchMaxUploadBlobs]. A frame
+/// that breaks these, an unknown status, or a blob longer than [maxBlobBytes]
+/// is a [SyncBlobBatchFormatException]. Every complete frame is handed to the
+/// caller before the next is checked, so frames that arrived before a broken
+/// stream, or before a malformed frame, are not lost with it. A frame's blob
+/// is not hashed here: the caller checks it against the frame's hash.
 final class SyncBlobBatchFrameReader {
   SyncBlobBatchFrameReader(
     List<String> expectedHashes, {
     required this.maxBlobBytes,
-  }) : _expected = List.unmodifiable(expectedHashes);
+  }) : _expected = List.unmodifiable(expectedHashes),
+       _seen = null;
 
-  final List<String> _expected;
+  /// A reader for the request body of `PUT /v1/blobs/batch` (sync spec §5.2).
+  SyncBlobBatchFrameReader.upload({required this.maxBlobBytes})
+    : _expected = null,
+      _seen = <String>{};
+
+  final List<String>? _expected;
+  final Set<String>? _seen;
   final int maxBlobBytes;
   final BytesBuilder _pending = BytesBuilder(copy: false);
   var _next = 0;
@@ -116,8 +141,9 @@ final class SyncBlobBatchFrameReader {
   /// Bytes the frame being read needs before it can be checked further.
   var _needed = 33;
 
-  /// Whether every requested hash has been answered.
-  bool get isComplete => _next == _expected.length;
+  /// Whether every requested hash has been answered. Always true for an
+  /// upload, which has no list to answer.
+  bool get isComplete => _next == (_expected?.length ?? _next);
 
   /// Consumes [chunk], handing each frame it completes to [onFrame] in order.
   ///
@@ -138,16 +164,35 @@ final class SyncBlobBatchFrameReader {
           _needed = 33;
           break;
         }
-        if (_next >= _expected.length) {
+        final expected = _expected;
+        if (expected != null && _next >= expected.length) {
           throw const SyncBlobBatchFormatException('frame after the last hash');
+        }
+        if (expected == null && _next >= syncBlobBatchMaxUploadBlobs) {
+          throw const SyncBlobBatchFormatException(
+            'too many frames',
+            exceedsCap: true,
+          );
         }
         final status = SyncBlobBatchFrameStatus.fromCode(buffer[offset]);
         if (status == null) {
           throw const SyncBlobBatchFormatException('unknown frame status');
         }
         final hash = _hashHex(buffer, offset + 1);
-        if (hash != _expected[_next]) {
+        if (expected != null && hash != expected[_next]) {
           throw const SyncBlobBatchFormatException('frame out of order');
+        }
+        if (expected == null) {
+          if (status != SyncBlobBatchFrameStatus.blob) {
+            throw const SyncBlobBatchFormatException(
+              'upload frame is not a blob',
+            );
+          }
+          // Checked here, but recorded only once the frame is complete: a
+          // frame split across chunks is parsed again from its start.
+          if (_seen!.contains(hash)) {
+            throw const SyncBlobBatchFormatException('duplicate hash');
+          }
         }
         if (status != SyncBlobBatchFrameStatus.blob) {
           offset += 33;
@@ -165,7 +210,10 @@ final class SyncBlobBatchFrameReader {
           offset + 37,
         ).getUint32(0);
         if (length > maxBlobBytes) {
-          throw const SyncBlobBatchFormatException('blob exceeds size limit');
+          throw const SyncBlobBatchFormatException(
+            'blob exceeds size limit',
+            exceedsCap: true,
+          );
         }
         if (available < 37 + length) {
           _needed = 37 + length;
@@ -176,6 +224,7 @@ final class SyncBlobBatchFrameReader {
         );
         offset += 37 + length;
         _next++;
+        _seen?.add(hash);
         onFrame(SyncBlobBatchFrame(status, hash, body));
       }
     } finally {

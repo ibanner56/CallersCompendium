@@ -138,6 +138,63 @@ void main() {
     expect([for (final f in frames) f.hash], [first]);
   });
 
+  group('an upload', () {
+    List<SyncBlobBatchFrame> readUpload(List<List<int>> chunks) {
+      final reader = SyncBlobBatchFrameReader.upload(maxBlobBytes: 1024);
+      final frames = <SyncBlobBatchFrame>[];
+      for (final chunk in chunks) {
+        reader.add(chunk, frames.add);
+      }
+      reader.close();
+      expect(reader.isComplete, isTrue);
+      return frames;
+    }
+
+    test('reads blob frames of any hashes, split at every possible byte', () {
+      final bytes = [
+        ...blobFrame(third, utf8.encode('three')),
+        ...blobFrame(first, List<int>.filled(300, 7)),
+      ];
+      final frames = readUpload([
+        for (final byte in bytes) [byte],
+      ]);
+      expect([for (final f in frames) f.hash], [third, first]);
+      expect(frames[1].body, List<int>.filled(300, 7));
+    });
+
+    test('rejects a hash twice, a frame that is not a blob, and more frames '
+        'than the cap', () {
+      expect(
+        () => readUpload([
+          [
+            ...blobFrame(first, utf8.encode('a')),
+            ...blobFrame(first, utf8.encode('a')),
+          ],
+        ]),
+        throwsA(isA<SyncBlobBatchFormatException>()),
+      );
+      expect(
+        () =>
+            readUpload([statusFrame(SyncBlobBatchFrameStatus.missing, first)]),
+        throwsA(isA<SyncBlobBatchFormatException>()),
+      );
+      final tooMany = [
+        for (var i = 0; i <= syncBlobBatchMaxUploadBlobs; i++)
+          ...blobFrame(sha256Hex(utf8.encode('$i')), const [1]),
+      ];
+      expect(
+        () => readUpload([tooMany]),
+        throwsA(
+          isA<SyncBlobBatchFormatException>().having(
+            (e) => e.exceedsCap,
+            'exceedsCap',
+            isTrue,
+          ),
+        ),
+      );
+    });
+  });
+
   test('a frame head names its hash in raw bytes, and a length only for a '
       'blob', () {
     final head = encodeSyncBlobBatchFrameHead(

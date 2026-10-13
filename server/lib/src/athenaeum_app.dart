@@ -31,6 +31,13 @@ const int maxGeneralRequestsPerStoreBurst = 600;
 /// request pays plus one per this many hashes, rounded up: `1 + ⌈n / 20⌉`, so
 /// a full batch of 200 costs 11 (spec §5.4).
 const int defaultBlobBatchHashesPerToken = 20;
+
+/// A `PUT /v1/blobs/batch` of `n` blobs costs the request token every request
+/// pays plus one per this many blobs, rounded up: `1 + ⌈n / 10⌉`, so a full
+/// batch of 50 costs 6 (spec §5.4). Fewer per token than a read because a blob
+/// costs the server far more to store than to read: 1.2–2.9 ms in a batch,
+/// against well under a tenth of a millisecond.
+const int defaultBlobUploadBlobsPerToken = 10;
 const int _maxTrackedRequestBuckets = 10000;
 
 void _writeOperationalAlert(AthenaeumOperationalAlert alert) {
@@ -191,7 +198,9 @@ class AthenaeumBudgetLimits {
     this.serverWideFailuresPerMinute = maxFailedResolutionsServerWide,
     this.creationsPerMinute = maxStoreCreationsPerMinute,
     this.blobBatchHashesPerToken = defaultBlobBatchHashesPerToken,
-  }) : assert(blobBatchHashesPerToken > 0);
+    this.blobUploadBlobsPerToken = defaultBlobUploadBlobsPerToken,
+  }) : assert(blobBatchHashesPerToken > 0),
+       assert(blobUploadBlobsPerToken > 0);
 
   final double perIpRequestsPerSecond;
   final int perIpRequestBurst;
@@ -204,6 +213,9 @@ class AthenaeumBudgetLimits {
 
   /// See [defaultBlobBatchHashesPerToken].
   final int blobBatchHashesPerToken;
+
+  /// See [defaultBlobUploadBlobsPerToken].
+  final int blobUploadBlobsPerToken;
 }
 
 class AthenaeumApp {
@@ -223,6 +235,7 @@ class AthenaeumApp {
              trustForwardedHeaders: config.trustForwardedHeadersFromLoopback,
            )),
        _blobBatchHashesPerToken = budgetLimits.blobBatchHashesPerToken,
+       _blobUploadBlobsPerToken = budgetLimits.blobUploadBlobsPerToken,
        _requestBudget = _RequestBudget(
          budgetLimits,
          clock: clock ?? DateTime.now,
@@ -258,6 +271,7 @@ class AthenaeumApp {
   late final AthenaeumStore store;
   final ClientAddressResolver _clientAddressResolver;
   final int _blobBatchHashesPerToken;
+  final int _blobUploadBlobsPerToken;
   final _RequestBudget _requestBudget;
   final _FailureBudget _failureBudget;
   final _CreationBudget _creationBudget;
@@ -477,6 +491,7 @@ class AthenaeumApp {
 
   Future<Response> _blobRoute(Request request, List<String> segments) async {
     if (segments.length == 3 && segments[2] == 'batch') {
+      if (request.method == 'PUT') return _blobBatchUploadRoute(request);
       return _blobBatchRoute(request);
     }
     if (segments.length == 3 && segments[2] == 'missing') {
@@ -620,7 +635,9 @@ class AthenaeumApp {
   /// each blob is looked up and read only when the frame before it has been
   /// handed on, so the response is never held whole.
   Future<Response> _blobBatchRoute(Request request) async {
-    if (request.method != 'POST') return _methodNotAllowed(const ['POST']);
+    if (request.method != 'POST') {
+      return _methodNotAllowed(const ['POST', 'PUT']);
+    }
     _requireContentType(request, 'application/json');
     final auth = await _authenticate(request);
     if (auth.response != null) return auth.response!;
@@ -677,6 +694,122 @@ class AthenaeumApp {
         if (gzipped) 'content-encoding': 'gzip',
       },
     );
+  }
+
+  /// `PUT /v1/blobs/batch` (spec §5.2): up to [syncBlobBatchMaxUploadBlobs] blobs
+  /// uploaded in one request, so a device's first publication is not one
+  /// request per record.
+  ///
+  /// Each blob gets the status a single `PUT /v1/blobs/{hash}` would have
+  /// given it, in a JSON list in request order. The whole body is read and
+  /// every blob checked before anything is stored, and the blobs are then
+  /// stored in one transaction with one quota computation: the store's write
+  /// lock is never held while waiting on the network, and the per-blob quota
+  /// scans that dominate a single upload are paid once.
+  Future<Response> _blobBatchUploadRoute(Request request) async {
+    _requireContentType(request, syncBlobBatchMediaType);
+    final auth = await _authenticate(request);
+    if (auth.response != null) return auth.response!;
+    final identity = auth.identity!;
+    final current = store.lookup(identity.idKey);
+    if (current == null) {
+      return _failedResolution(request, 404, 'store not found');
+    }
+    if (_declaredLengthExceeds(request, syncBlobBatchMaxResponseBytes)) {
+      throw const _RequestFailure(413, 'request body exceeds limit');
+    }
+    // Like a batch response, an upload of real records compresses past the
+    // 10× guard; the absolute cap bounds what it can cost.
+    final body = await _readBody(
+      request,
+      syncBlobBatchMaxResponseBytes,
+      expansionGuard: false,
+    );
+    final frames = <SyncBlobBatchFrame>[];
+    final reader = SyncBlobBatchFrameReader.upload(maxBlobBytes: maxBlobBytes);
+    try {
+      reader.add(body, frames.add);
+      reader.close();
+    } on SyncBlobBatchFormatException catch (error) {
+      throw _RequestFailure(error.exceedsCap ? 413 : 400, error.message);
+    }
+    // As for a batch read: one more token per [_blobUploadBlobsPerToken]
+    // blobs, charged once the store has resolved, or the batch is refused
+    // whole and stores nothing (spec §5.4).
+    final retryAfter = _requestBudget.chargeExtra(
+      address: _clientAddressResolver(request),
+      idKey: identity.idKey,
+      tokens:
+          (frames.length + _blobUploadBlobsPerToken - 1) ~/
+          _blobUploadBlobsPerToken,
+    );
+    if (retryAfter != null) return _rateLimitedResponse(retryAfter);
+
+    final statuses = List<int?>.filled(frames.length, null);
+    final accepted = <({String hash, Uint8List body})>[];
+    final acceptedIndex = <int>[];
+    for (final (index, frame) in frames.indexed) {
+      final blob = frame.body!;
+      if (rawBodyHash(blob) != frame.hash) {
+        statuses[index] = 400;
+        continue;
+      }
+      try {
+        _validateBlobAllowList(blob);
+      } on _RequestFailure catch (error) {
+        statuses[index] = error.status;
+        continue;
+      }
+      accepted.add((hash: frame.hash, body: blob));
+      acceptedIndex.add(index);
+    }
+    late final List<int> stored;
+    try {
+      stored = store.putBlobs(
+        idKey: identity.idKey,
+        epoch: current.epoch,
+        blobs: accepted,
+      );
+    } on StoreEpochMismatch {
+      return _failedResolution(request, 404, 'store not found');
+    }
+    for (final (position, index) in acceptedIndex.indexed) {
+      statuses[index] = stored[position];
+    }
+    final results = [
+      for (final (index, frame) in frames.indexed)
+        {'hash': frame.hash, 'status': statuses[index]!},
+    ];
+    for (final result in results) {
+      final status = result['status']! as int;
+      if (status >= 400) {
+        _logBlobFailure(identity.idKey, result['hash']! as String, status);
+      }
+    }
+    if (results.any((result) => result['status'] == 507)) {
+      _alertLimiter.add(
+        const AthenaeumOperationalAlert(
+          kind: 'quota_exhaustion',
+          source: 'request',
+          errorType: 'StoreQuotaExceeded',
+        ),
+      );
+    }
+    return _jsonResponse(200, {'results': results});
+  }
+
+  /// Records a refused blob in a batch upload as [_logFailure] records a
+  /// refused single upload.
+  void _logBlobFailure(String idKey, String hash, int status) {
+    try {
+      _diagnosticLogger(
+        AthenaeumDiagnosticEvent(status: status, idKey: idKey, hash: hash),
+      );
+    } on Object catch (loggerError) {
+      stderr.writeln(
+        'Athenaeum diagnostic logging failed (${loggerError.runtimeType})',
+      );
+    }
   }
 
   /// The frames answering [hashes], produced one blob at a time.
@@ -847,6 +980,7 @@ class AthenaeumApp {
     int maxBytes, {
     void Function(List<int> chunk)? onChunk,
     int? quotaBytes,
+    bool expansionGuard = true,
   }) async {
     final declaredLength = int.tryParse(
       request.headers['content-length'] ?? '',
@@ -884,6 +1018,7 @@ class AthenaeumApp {
         final chunk = iterator.current;
         size += chunk.length;
         final expansionExceeded =
+            expansionGuard &&
             encoding == 'gzip' &&
             compressed.value > 0 &&
             size > compressed.value * 10;

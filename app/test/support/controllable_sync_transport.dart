@@ -71,6 +71,11 @@ final class ControllableSyncTransport implements SyncCoordinatorTransport {
   }) async => throw StateError('unexpected sync transport call');
 
   @override
+  Future<SyncHttpResponse> putBlobBatch(
+    List<({String hash, List<int> body})> blobs,
+  ) async => throw StateError('unexpected sync transport call');
+
+  @override
   Future<SyncHttpResponse> putBlob(String hash, List<int> body) async =>
       throw StateError('unexpected sync transport call');
 }

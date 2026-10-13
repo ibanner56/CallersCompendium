@@ -1804,6 +1804,7 @@ header that carries no information the request does not already imply.
 | `PUT` | `/v1/blobs/{hash}` | Upload one blob. Idempotent. |
 | `POST` | `/v1/blobs/missing` | Given hashes, return the subset the store lacks. |
 | `POST` | `/v1/blobs/batch` | Given up to 200 hashes, return their blobs in one streamed response. |
+| `PUT` | `/v1/blobs/batch` | Upload up to 50 blobs in one request; each is answered as its own `PUT` would be. |
 
 Blob and manifest bodies are specified byte-exactly in §4.3 and §4.5, because
 they are hashed. The other bodies below are not content-addressed, so nothing
@@ -2019,6 +2020,66 @@ window, so refreshing it on each repeat `PUT` would let a client that re-uploads
 the same never-manifested blob every pass keep it collection-immune
 indefinitely, and the window would bound nothing.
 
+**`PUT /v1/blobs/batch`.** Uploads many blobs in one request, so that a device
+publishing a large library of its own is not one request per record.
+`PUT /v1/blobs/{hash}` is unchanged beside it. The request has
+`Content-Type: application/vnd.callers-compendium.blob-batch` and its body is a
+sequence of frames in the format of the batch response above, every one a blob
+frame (status `0`): at most 50 (§5.4), no hash twice, and no blob over the blob
+cap. A request that breaks any of these is rejected whole and stores nothing:
+`413` for the count or a blob's size, `400` for anything else, a frame cut short
+or of another status included. A client SHOULD send the body with
+`Content-Encoding: gzip`. The server MUST NOT apply a fixed expansion-ratio
+limit to it, for the reason given for the batch response; the absolute cap in
+§5.4 bounds it instead.
+
+Each blob is then what its own `PUT /v1/blobs/{hash}` would be: verified against
+its frame's hash (`400`), checked against the allow-list (§7.2, `422`, or `413`
+for JSON nested past the parse depth), and stored (`201`), or a no-op on a hash
+the store already holds (`200`, writing a lost file back as above). A `200` response carries one result per frame, in
+request order:
+
+```json
+{ "results": [ { "hash": "e3b0c442...", "status": 201 },
+               { "hash": "a3f5b1c9...", "status": 422 } ] }
+```
+
+Each status is the one that blob's single `PUT` would get, with two
+differences. Once a new blob would pass a store quota, it and **every later new
+blob in the batch is `507`**, even one small enough to fit, so the new blobs a
+batch stores are always a prefix of the new blobs it carried; a blob the store
+already holds is still `200` after that point. And a batch checks each blob's
+hash and allow-list before the quota, so a malformed or refused blob is `400`
+or `422` even in a full store, where its single `PUT` checks the quota first
+and is `507`. A blob answered `200` or `201` is stored
+whatever the batch's other results are.
+
+As on the batch read, the status of the whole response is about the whole
+request: a store that does not resolve is `404` and counts as a failed
+resolution (§5.4), and `429` and `5xx` mean what they mean elsewhere. A refused
+blob is never the response's status; it is a result inside a `200`.
+
+**A client sends a blob over the blob cap on its own**, with
+`PUT /v1/blobs/{hash}`, so that the refusal it meets is that blob's own `413`
+and not a refusal of every blob batched with it.
+
+**A server without this route.** Apart from `429` and the `5xx` statuses other
+than `501` and `507`, a client MUST treat any non-success answer to this request,
+or a `200` whose body is not one result per blob in request order, as a server
+that does not serve the route. It uploads those blobs with
+`PUT /v1/blobs/{hash}`, raises no notice, and SHOULD NOT try the batch again for
+the rest of the session; a client that observes a new store epoch MAY try again.
+An Athenaeum from before either batch route answers `400`, reading `batch` as a
+malformed hash, and one that serves only the batch read answers `405`.
+
+> **Amended 2026-10-12.** This endpoint was added by the change that introduced
+> it, on its author's judgement rather than a maintainer ruling: `PUT` on the
+> read's path, its frame format, the 50-blob cap, storing a batch in one
+> transaction, the `507` prefix, and the fallback rule. How a batch upload is
+> charged against the request-rate limits (§5.4) was the author's
+> recommendation, approved by the maintainer on 2026-10-12 as an initial
+> specification.
+
 ### 5.3 Status codes
 
 | Code | Meaning |
@@ -2030,11 +2091,11 @@ indefinitely, and the window would bound nothing.
 | `400` | Malformed request. |
 | `401` | Missing or malformed `Authorization`. |
 | `403` | Sync ID fails the structural rule (four hyphen-separated words). |
-| `404` | No such blob, manifest, device — or store. On a store-scoped request this is also the signal an enumerating client sees, and §5.4 budgets it. Not used by `DELETE /v1/manifests/{deviceId}`, which is idempotent — see below. On `POST /v1/blobs/batch` it means only that the store does not resolve: a blob the batch cannot serve is a *missing* frame inside a `200` (§5.2). |
+| `404` | No such blob, manifest, device — or store. On a store-scoped request this is also the signal an enumerating client sees, and §5.4 budgets it. Not used by `DELETE /v1/manifests/{deviceId}`, which is idempotent — see below. On `POST /v1/blobs/batch` it means only that the store does not resolve: a blob the batch cannot serve is a *missing* frame inside a `200` (§5.2). The same holds for `PUT /v1/blobs/batch`. |
 | `409` | Conflict: a stale epoch on a manifest `PUT`, or a `POST /v1/store` against an `id_key` that already has one. |
-| `413` | Payload exceeds a cap. A `POST /v1/blobs/batch` naming more than 200 hashes is `413`; a *response* reaching its byte cap is not an error, and lists the rest as not sent (§5.2). |
+| `413` | Payload exceeds a cap. A `POST /v1/blobs/batch` naming more than 200 hashes is `413`; a *response* reaching its byte cap is not an error, and lists the rest as not sent (§5.2). A `PUT /v1/blobs/batch` carrying more than 50 blobs, or a blob over the blob cap, is `413`. |
 | `415` | Body media type is not the one the endpoint expects (optional; see §5.1). |
-| `422` | Payload rejected by the allow-list. |
+| `422` | Payload rejected by the allow-list. In a `PUT /v1/blobs/batch` this and every other refusal of one blob is a result inside a `200` (§5.2). |
 | `429` | Rate limited. `Retry-After` set. |
 | `507` | Store quota exhausted. |
 
@@ -2094,9 +2155,11 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | Hashes per `POST /v1/blobs/batch` request | 200 |
 | `POST /v1/blobs/batch` request body | 64 KB |
 | Blob bytes per `POST /v1/blobs/batch` response | 2 MB, plus at most 37 bytes of framing per hash; later blobs are *not sent* (§5.2) |
+| Blobs per `PUT /v1/blobs/batch` request | 50 |
+| `PUT /v1/blobs/batch` request body, decoded | 2 MB plus 7,400 bytes, the most a batch response occupies; a client keeps a batch's blob bytes within 2 MB |
 | JSON parse depth | 32 |
 | Decompressed size of a `Content-Encoding: gzip` body (§4) | 10× compressed, cap 32 MB; encoded size also capped per route (decoded limit plus gzip framing slack) |
-| Request rate, per client IP | 5/second, burst 300; a `POST /v1/blobs/batch` of *n* hashes costs 1 + ⌈*n*/20⌉ (below) |
+| Request rate, per client IP | 5/second, burst 300; a `POST /v1/blobs/batch` of *n* hashes costs 1 + ⌈*n*/20⌉ (below); a `PUT /v1/blobs/batch` of *n* blobs costs 1 + ⌈*n*/10⌉ (below) |
 | Request rate, per store (`id_key`) | 15/second, burst 600 |
 | **Failed store resolutions**, per client IP | 10/minute, burst 20 |
 | **Failed store resolutions**, server-wide | 1,000/minute |
@@ -2118,6 +2181,15 @@ whole seconds. The charge is capped at what a full bucket holds, so a burst an
 operator configures below 11 delays a full batch rather than refusing every
 one. An operator may change the 20 with the rest of these values.
 
+**A `PUT /v1/blobs/batch` of *n* blobs costs 1 + ⌈*n*/10⌉ tokens on both
+rows**, so a full batch of 50 costs 6, under every rule above for a batch read:
+charged only once the store resolves, refused whole with `429` and the same
+`Retry-After` when either bucket cannot cover it — and a refused batch stores
+nothing — and capped at what a full bucket holds. A blob the store already holds
+costs what a new one does. The server can count the blobs only once it has read
+the body, so a batch refused here has still cost that read, up to the body cap.
+An operator may change the 10 with the rest of these values.
+
 **Why 1 + ⌈*n*/20⌉.** Measured on the reference server (in-process, a 4-vCPU
 Xeon at 2.1 GHz, across runs), a single-blob `GET` costs 0.45–0.65 ms of handler
 time and a 200-hash batch 7–11 ms, or 10.5–15 ms with gzip — about 22 single
@@ -2138,11 +2210,12 @@ per-IP row is what bounds the unauthenticated work of guessing at stores. When
 the per-IP limit is enforced at the proxy (§7.5 requirement 6), the proxy
 counts requests, not this cost; the server's own row still applies.
 
-**Why 5 a second, burst 300.** With downloads batched, the per-IP row mostly
-paces a device's first *upload*, which is still one `PUT` per record (§6.3
-step 7): a 1,000-record upload spends the burst, meets the limit, and finishes
-over about three passes a minute apart (§6.12), where 60 a minute stretched it
-over a quarter of an hour. The row is also what a guess at a store costs, so
+**Why 5 a second, burst 300.** When this rate was chosen, downloads were
+batched and a device's first *upload* was still one `PUT` per record (§6.3
+step 7), so the per-IP row mostly paced that upload: a 1,000-record upload
+spent the burst, met the limit, and finished over a few passes a minute apart
+(§6.12; four, measured), where 60 a minute stretched it over a quarter of an hour.
+Uploads are now batched too (below). The row is also what a guess at a store costs, so
 §8's figures scale with it, five times those at 60 a minute; the maintainer
 chose 5 a second, burst 300, on 2026-10-12 with those figures in front of them,
 over 10 and 20 a second and over keeping 1 a second with a larger burst. The
@@ -2168,6 +2241,33 @@ five requests. The 2 MB byte cap keeps even a response of unusually large
 records inside the client's 30-second request deadline on a slow connection —
 about 16 seconds at 1 Mbit/s with no compression at all — and is twice the 1 MB
 blob cap, so the first blob always fits.
+
+**Why an upload batch holds 50 blobs, and how it is charged.** The server stores
+a batch in one SQLite transaction: one quota check and one commit instead of one
+per blob, which is most of what a single `PUT` costs. The reference server
+serves every request on one thread, so nothing else is answered while a batch
+is stored. Measured on the reference server (in-process, a 4-vCPU Xeon, across
+runs, into a store of about 5,000 blobs), a single `PUT` costs 4–13 ms of
+handler time, growing with the store because its quota check scans the store's
+blob rows; a batch of 200 cost 210–250 ms, a stall every other user of the
+server would feel, and a batch of 50 costs 58–147 ms. 50 keeps the stall to
+what ten to twenty single `PUT`s cost.
+
+**Why 1 + ⌈*n*/10⌉.** A blob costs far more to store than to read — 1.2–2.9 ms
+each in a batch of 50, against 35–75 µs in a batch read — so the read's 20 per
+token would let one address spend, in the typical case, up to about three times
+the server time single `PUT`s let it spend: at the per-IP row's 5 a second, 75
+full batches a minute, 4.4–11 s of handler time against 1.2–3.9 s. At 10 per
+token one address sustains 2,500 blobs a minute in at most 50 batches,
+2.9–7.4 s, and in the worst case, with the 50 ms deletion retry on every
+request, about 9.9 s against single `PUT`s' 18.9 s. (These figures were first
+worked at the earlier 60 a minute, where each is a fifth as large, and the rule
+was approved on them.) Measured end to end through the reference client against
+the reference server at the shipped limits, a device publishing 1,000 records
+of its own finished in one pass and 19 seconds and 5,000 in two passes and about
+2.5 minutes, where one `PUT` a record, measured the same way, took four passes
+and about 4 minutes and seventeen passes and about 26 minutes. 5 per token would match a single `PUT`'s handler
+time per token and lengthen those waits.
 
 The failed-store-resolution rows raise the
 cost of casual probing and make an enumeration attempt visible in the operator's
@@ -2646,6 +2746,20 @@ republishes, which is an ordinary upload and needs no special path.
    `published_records`. Then issue `POST /v1/blobs/missing`; `PUT` only what is
    missing from that final manifest. The marker protects a concurrent hard
    delete during blob negotiation and upload, even if either request fails.
+
+   Upload with `PUT /v1/blobs/batch` (§5.2), up to 50 blobs and 2 MB of blob
+   bytes at a time, and with `PUT /v1/blobs/{hash}` for a blob over the blob cap
+   and against a server without the route. A blob a batch refuses is that
+   refusal of its single `PUT`, and stops the upload as it would; every blob
+   the batch stored counts as stored, before the refusal or after it. A `429`,
+   a `5xx` other than `501` and `507`, or a network failure answering the whole
+   batch stops the upload as it would on a single `PUT`.
+
+   > **Amended 2026-10-12, batches.** Step 7 uploaded one blob per request, so
+   > a device publishing 1,000 records of its own met the per-IP request limit
+   > (§5.4): over about 16 minutes at the 60 a minute then in force, and over
+   > four passes and about 4 minutes at 5 a second, measured. The batch upload was added by the change that added
+   > this note, by its author rather than the maintainer.
 8. `PUT /v1/manifests/{self}`. The marker was written in step 7 before blob
    work, and the client MUST retain that protection before issuing this
    request. A crash between the marker and the request then over-marks rather
@@ -3880,8 +3994,8 @@ sequence, and so does a pass whose record downloads stopped (§6.3 step 5) after
 it had fetched at least one record, or whose uploads (§6.3 step 7) stopped after
 the store had accepted at least one blob; any other result cancels a pending
 retry without resetting it. The exception exists because a large first
-upload, or a large first download from a server without the batch route
-(§5.2) or too large for one pass's tokens even in batches, meets the per-IP
+upload or download, against a server without the batch routes (§5.2) or too
+large for one pass's tokens even in batches, meets the per-IP
 limit (§5.4) on every pass until it is done: each such pass moved it on — the store keeps an accepted blob, so the
 next pass's `POST /v1/blobs/missing` no longer names it — and doubling the
 wait through them would stretch minutes of transfer over hours: a few minutes
@@ -5473,7 +5587,17 @@ never reported). **A server without the batch route is asked once per
 session**: `400`, `404`, `405`, `413` and `501` each fall back to single
 requests with nothing reported, as does a malformed batch, which keeps the
 blobs that arrived (mutation: do not remember the fallback — the next record
-asks for a batch again). **A
+asks for a batch again). **Uploads go in batches of at most 50, and a refusal
+inside one is its single `PUT`'s**: a `507` or `422` result stops the upload as
+that blob's `PUT` would, counting every blob the batch stored as progress
+(mutations: ignore the refused result — the pass publishes a manifest naming a
+blob the store refused; or count no stored blob — a full store reads as no
+progress). A `429` or `503` answering a batch stops the upload, and `400`,
+`404`, `405`, `413` and `501` fall back to single `PUT`s for the session
+(mutations: fall back on `429` — the next request meets the same limit; do not
+remember the fallback). A blob over the blob cap goes alone (mutation: batch it —
+its `413` refuses every blob beside it). The fallback is forgotten on a new
+store epoch and carried into the sync isolate. **A
 newer envelope is reported as `newerWireVersion`, a newer one that also adds
 a key included** (mutation: run the exact-key check before the version check —
 the plain `v` bump still passes, and the newer envelope that adds a key is
@@ -5510,6 +5634,24 @@ covers the same batch sent again (mutations: charge one token — a full batch
 then costs what a single `GET` does; skip the per-store row; trim instead of
 refusing); a batch for a store that does not resolve costs only its request
 token (mutation: charge before the lookup).
+
+**Server, `PUT /v1/blobs/batch`.** Each blob is answered in request order with
+the status its own `PUT` would get — `201`, `200` for a held hash, `422` for the
+allow-list and `400` for a body that does not hash to its frame (mutations:
+skip the hash check, or the allow-list — the batch then stores what a single
+`PUT` refuses), and a held hash whose file was lost is written back. Once a new
+blob would pass the quota, it and every later new blob is `507` and the earlier
+ones are stored and charged (mutations: let a later, smaller blob in; stop
+counting stored blobs against the quota). A blob whose deletion is pending in
+the current epoch is not charged twice when uploaded again. More than 50 blobs
+or a blob over the cap is `413`; a duplicate hash, a cut frame or a frame of
+another status is `400`; none of them stores anything. A store that does not
+resolve is a failed resolution. A `gzip` body compressed past 10× is accepted.
+A batch upload costs 1 + ⌈*n*/10⌉ on both request-rate rows, held blobs
+included, and one that overdraws either is refused whole, storing nothing, with
+a `Retry-After` that covers the same batch sent again (mutations: charge one
+token; charge one per 20 blobs, the read's rate; round down); a batch for a
+store that does not resolve costs only its request token.
 
 A blob uploaded but not yet manifested survives a concurrent peer's manifest
 `PUT` and survives the sweep (mutation: collect every unreferenced blob

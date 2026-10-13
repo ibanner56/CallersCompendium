@@ -3005,6 +3005,7 @@ client's cryptography is therefore unchanged from what the app ships today.
 | `PUT` | `/v1/blobs/{hash}` | Upload one blob. Idempotent. |
 | `POST` | `/v1/blobs/missing` | Given a list of hashes, return the subset the store lacks. |
 | `POST` | `/v1/blobs/batch` | Given up to 200 hashes, return their blobs in one streamed response. |
+| `PUT` | `/v1/blobs/batch` | Upload up to 50 blobs in one request; each is answered as its own `PUT` would be. |
 | `DELETE` | `/v1/manifests/{deviceId}` | Remove a device's manifest — for a lost or reinstalled device. Without it a dead device holds one of 32 slots forever and its unique blobs never GC, with a whole-store wipe the only remedy. |
 
 `POST /v1/blobs/missing` was the first non-REST-shaped call and it earns its
@@ -3030,6 +3031,23 @@ request tokens (spec §5.4, with the comparison that chose it): at that rate one
 token would have let a single address pull 12,000 records a minute and doubled the bytes a
 token buys, and exempting batches from the per-IP limit would have left nothing
 bounding one address.
+
+`PUT /v1/blobs/batch` is the same change on the upload side, where one `PUT`
+per record had the same effect on a device publishing a large library of its
+own. It reuses the read's frames, and answers each blob with the status its
+own `PUT` would get, so a client handles a refusal inside a batch exactly as it
+handled one before. An upload costs the server far more than a read — a single
+`PUT` measured 4–13 ms of handler time, most of it a quota check that scans the
+store's blob rows and a commit — and a batch shares one of each, but the
+reference server answers every request on one thread and stores a batch in one
+transaction, so a batch of 200 held every other user up for about a quarter of
+a second. Uploads therefore go 50 at a time (spec §5.4), and a batch of *n*
+costs 1 + ⌈*n*/10⌉ request tokens rather than the read's 1 + ⌈*n*/20⌉: per
+blob, storing costs far more than reading does (1.2–2.9 ms against 35–75 µs in
+a batch), and at 10 a token one
+address can spend no more of the server's one thread than single `PUT`s let it
+in the worst case. A 5,000-record first publish measured about 2.5 minutes,
+where one `PUT` a record took about 26.
 
 **The endpoints that are not content-addressed carry a schema, and the first
 two did not always.** The blob and the manifest are specified to the byte because
@@ -3584,7 +3602,9 @@ checked against the discriminator rule above.
 7. Recompute the local manifest from the post-apply state. Before any
    publication network request, record every address named by that final
    manifest in `published_records`; then `POST /v1/blobs/missing` and `PUT`
-   only what is missing from the final manifest. Attach-only blobs are not
+   only what is missing from the final manifest, 50 at a time with
+   `PUT /v1/blobs/batch` (one `PUT /v1/blobs/{hash}` per blob against a server
+   without the route). Attach-only blobs are not
    marked because attach writes no manifest and those blobs remain unreachable
    until this continuation pass.
 8. `PUT /v1/manifests/{self}`. The pre-blob marker is retained before this
@@ -4117,6 +4137,10 @@ On `PUT /v1/blobs/{hash}` the server:
    `kMaxContainerDepth` (2) guards structural figure nesting, not parse depth);
 6. **validates every key against a per-kind allow-list, rejecting anything not
    on it** with `422`.
+
+`PUT /v1/blobs/batch` applies steps 4–6 to each blob once the whole batch has
+been read within its caps, and answers each blob with the status these steps
+give it.
 
 #### Why an allow-list, and why the first attempt was worse than useless
 

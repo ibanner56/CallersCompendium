@@ -702,6 +702,7 @@ class AthenaeumStore {
     String? excludingEpoch,
     String? excludingHash,
   }) {
+    final excluded = {?excludingHash};
     var usage = const _DeletionUsage();
     final accountedPaths = <String>{};
     final directoryRows = _database.select(
@@ -721,8 +722,10 @@ class AthenaeumStore {
           blobFile(idKey, row['epoch'] as String, row['hash'] as String).path,
         );
       }
-      if (excludingEpoch != null && excludingHash != null) {
-        accountedPaths.add(blobFile(idKey, excludingEpoch, excludingHash).path);
+      if (excludingEpoch != null) {
+        for (final hash in excluded) {
+          accountedPaths.add(blobFile(idKey, excludingEpoch, hash).path);
+        }
       }
     }
     final rows = _database.select(
@@ -732,7 +735,7 @@ class AthenaeumStore {
     for (final row in rows) {
       final epoch = row['epoch'] as String;
       final hash = row['hash'] as String;
-      final isExcluded = epoch == excludingEpoch && hash == excludingHash;
+      final isExcluded = epoch == excludingEpoch && excluded.contains(hash);
       if (!isExcluded && blobRef(idKey, epoch, hash) == null) {
         final file = blobFile(idKey, epoch, hash);
         if (file.existsSync() && accountedPaths.add(file.path)) {
@@ -911,6 +914,135 @@ class AthenaeumStore {
         }
         rethrow;
       }
+    }
+  }
+
+  /// Stores a batch of blobs whose hashes the caller has verified, in one
+  /// transaction with one quota computation (spec §5.2, `PUT /v1/blobs/batch`),
+  /// and returns the status a single `PUT` would have answered for each, in
+  /// order: `201` stored, `200` already held (its file rewritten if it was
+  /// lost, as [putBlob] does), `400` a lost file whose bytes do not match the
+  /// recorded size, or `507` past the store's quota. Once one blob is past the
+  /// quota every later new blob is too, so what a batch stores is a prefix of
+  /// its new blobs, as a run of single uploads would have.
+  ///
+  /// Throws [StoreEpochMismatch] when the store is gone.
+  List<int> putBlobs({
+    required String idKey,
+    required String epoch,
+    required List<({String hash, Uint8List body})> blobs,
+  }) {
+    final statuses = <int>[];
+    final written = <File>[];
+    final temporaries = <File>[];
+    var inTransaction = false;
+    try {
+      _database.execute('BEGIN IMMEDIATE');
+      inTransaction = true;
+      final current = lookup(idKey);
+      if (current == null) throw const StoreEpochMismatch();
+      var count =
+          _database.select(
+                'SELECT COUNT(*) AS count FROM blob_refs WHERE id_key = ?',
+                [idKey],
+              ).single['count']
+              as int;
+      final aggregateBytes =
+          _database.select(
+                'SELECT COALESCE(SUM(size), 0) AS bytes FROM blob_refs '
+                'WHERE id_key = ?',
+                [idKey],
+              ).single['bytes']
+              as int;
+      // Live bytes, without pending deletions: those depend on which blob is
+      // asking, since a single PUT leaves out its own hash's pending file.
+      var bytesUsed =
+          max(current.bytesUsed, aggregateBytes) + _manifestBytes(idKey);
+      // With nothing pending, which is the usual case, every blob's pending
+      // usage is zero and is computed once. Otherwise each new blob's is
+      // computed as its own PUT would compute it, against the rows this
+      // batch has already inserted.
+      final nothingPending = _pendingDeletionUsage(
+        idKey,
+        excludingEpoch: epoch,
+      ).isEmpty;
+      var full = false;
+      var added = 0;
+      final now = _clock().millisecondsSinceEpoch ~/ 1000;
+      for (final (:hash, :body) in blobs) {
+        final file = blobFile(idKey, epoch, hash);
+        final existing = blobRef(idKey, epoch, hash);
+        if (existing != null) {
+          if (!file.existsSync()) {
+            if (body.length != existing.size) {
+              statuses.add(400);
+              continue;
+            }
+            file.parent.createSync(recursive: true);
+            final temporary = _temporaryBlobFile(file);
+            temporaries.add(temporary);
+            temporary.writeAsBytesSync(body, flush: true);
+            temporary.renameSync(file.path);
+          }
+          statuses.add(200);
+          continue;
+        }
+        // Once one new blob is refused, every later one is too, even one
+        // small enough to fit: the client stops at the first refusal anyway,
+        // and what a batch stores stays a prefix of what it carried.
+        if (full) {
+          statuses.add(507);
+          continue;
+        }
+        final pending = nothingPending
+            ? const _DeletionUsage()
+            : _pendingDeletionUsage(
+                idKey,
+                excludingEpoch: epoch,
+                excludingHash: hash,
+              );
+        if (count + pending.blobs >= quotaLimits.maxBlobs ||
+            bytesUsed + pending.bytes > quotaLimits.maxBytes - body.length) {
+          full = true;
+          statuses.add(507);
+          continue;
+        }
+        file.parent.createSync(recursive: true);
+        final temporary = _temporaryBlobFile(file);
+        temporaries.add(temporary);
+        temporary.writeAsBytesSync(body, flush: true);
+        temporary.renameSync(file.path);
+        written.add(file);
+        _database.execute(
+          'INSERT INTO blob_refs (id_key, epoch, hash, size, uploaded_at) '
+          'VALUES (?, ?, ?, ?, ?)',
+          [idKey, epoch, hash, body.length, now],
+        );
+        count++;
+        bytesUsed += body.length;
+        added += body.length;
+        statuses.add(201);
+      }
+      _database.execute(
+        'UPDATE stores SET bytes_used = bytes_used + ?, last_seen = ? '
+        'WHERE id_key = ? AND epoch = ?',
+        [added, now, idKey, epoch],
+      );
+      _database.execute('COMMIT');
+      inTransaction = false;
+      return statuses;
+    } catch (error) {
+      try {
+        if (inTransaction) _database.execute('ROLLBACK');
+      } finally {
+        for (final file in written) {
+          if (file.existsSync()) file.deleteSync();
+        }
+        for (final temporary in temporaries) {
+          if (temporary.existsSync()) temporary.deleteSync();
+        }
+      }
+      rethrow;
     }
   }
 
@@ -1245,6 +1377,8 @@ class _DeletionUsage {
 
   final int blobs;
   final int bytes;
+
+  bool get isEmpty => blobs == 0 && bytes == 0;
 
   _DeletionUsage add({_DeletionUsage? usage, int blobs = 0, int bytes = 0}) =>
       _DeletionUsage(

@@ -1,0 +1,14 @@
+{
+  "id": "sync-batched-blob-uploads",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Device Sync now sends a large library of this device's own records in batches, so the first sync of a well-stocked device takes far fewer tries instead of carrying on minute by minute. Against a self-hosted sync server that hasn't been updated yet, Device Sync carries on sending one record at a time, as before."
+    ]
+  },
+  "core": {
+    "added": [
+      "`blob_batch_frames.dart`: `SyncBlobBatchFrameReader.upload` reads the body of a `PUT /v1/blobs/batch` (blob frames only, no hash twice, at most `syncBlobBatchMaxUploadBlobs`), and `SyncBlobBatchFormatException.exceedsCap` marks a body that broke a cap rather than the format."
+    ]
+  }
+}

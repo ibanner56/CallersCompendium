@@ -9,9 +9,12 @@
 // The corpus is the library `packages/compendium_core/tool/sync_bench_corpus.dart`
 // writes.
 //
-// `--no-batch` answers `POST /v1/blobs/batch` as an Athenaeum from before the
-// route does (`400`), so the client falls back to one `GET` per record: the
-// "before" measurement. `--no-gzip` strips `Accept-Encoding`, so the same
+// It also serves an empty store under [benchPublishSyncId], for the client to
+// publish the attached library into.
+//
+// `--no-batch` answers `POST` and `PUT /v1/blobs/batch` as an Athenaeum from
+// before the routes does (`400`), so the client falls back to one `GET` or
+// `PUT` per record: the "before" measurement. `--no-gzip` strips `Accept-Encoding`, so the same
 // batches go uncompressed. The rate limits are the shipped defaults and the
 // clock is real.
 //
@@ -30,6 +33,9 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 
 /// The sync ID the harness and the client share.
 const benchSyncId = 'alpha-beta-gamma-delta';
+
+/// The sync ID of the empty store the client publishes into.
+const benchPublishSyncId = 'epsilon-zeta-eta-theta';
 
 Future<void> main(List<String> arguments) async {
   final options =
@@ -51,6 +57,7 @@ Future<void> main(List<String> arguments) async {
   final app = AthenaeumApp(config: config);
   final idKey = deriveIncomingSyncIdKey(benchSyncId, config.pepper);
   final epoch = app.store.create(idKey).epoch;
+  app.store.create(deriveIncomingSyncIdKey(benchPublishSyncId, config.pepper));
   for (final blob in library) {
     app.store.putBlob(
       idKey: idKey,

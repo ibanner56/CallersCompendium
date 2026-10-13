@@ -29,6 +29,18 @@ the app and of `compendium_core`; version headings below refer to
   (`AthenaeumBudgetLimits.blobBatchHashesPerToken`, default 20); one either
   limit cannot cover is refused `429` whole, with a `Retry-After` computed for
   that batch. `GET /v1/blobs/{hash}` is unchanged.
+- `PUT /v1/blobs/batch` stores up to 50 blobs in one request and one
+  transaction (sync spec §5.2): the body is the batch read's frames, every one
+  a blob, and the `200` response gives each blob the status its own
+  `PUT /v1/blobs/{hash}` would get, in request order. Once one new blob would
+  pass the store quota, it and every later new blob in the batch is `507`. A
+  body over 50 blobs, with a blob over 1 MB, a duplicate hash or a frame that is
+  not a blob is refused whole. A gzip body is not held to the 10× expansion
+  ratio; the absolute cap bounds it. A batch of *n* blobs costs 1 + ⌈*n*/10⌉
+  tokens of both the per-IP and the per-store request limits
+  (`AthenaeumBudgetLimits.blobUploadBlobsPerToken`, default 10), charged once
+  the store resolves; one either limit cannot cover is refused `429` whole,
+  storing nothing. `PUT /v1/blobs/{hash}` is unchanged.
 
 ## [0.2.2] - 2026-10-01
 
