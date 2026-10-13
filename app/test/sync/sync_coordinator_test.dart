@@ -754,6 +754,86 @@ void main() {
       expect(store.published!.record.verifiedAt, clock);
     });
 
+    test('a pass that cannot take a peer record still publishes', () async {
+      // §6.9: a peer is judged to be refusing a record only once it has
+      // published twice since, so a device refusing something must not go
+      // quiet. Here the peer lists a record whose blob the store lacks.
+      final missing = SyncMergeCandidate.fromBlob(_setting('gone', 'x'));
+      final store = _FakeStore(local: {first.address: first});
+      final transport = transportFor([first, missing]);
+      final coordinator = coordinatorFor(store, transport);
+      await coordinator.syncNow();
+      final again = await coordinator.syncNow();
+
+      expect(
+        again.reports.map((report) => report.code),
+        contains(SyncReportCode.unresolvedBlob),
+      );
+      expect(transport.manifestPuts, 2);
+      expect(
+        transport.postMissingCalls,
+        1,
+        reason: 'the blobs it already published are still known',
+      );
+    });
+
+    test('a stale-epoch PUT leaves nothing recorded', () async {
+      final store = _FakeStore(local: {first.address: first});
+      final transport = transportFor([first], putManifestStatuses: [200, 409]);
+      final coordinator = coordinatorFor(store, transport);
+      await coordinator.syncNow();
+
+      store.local[second.address] = second;
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.staleEpoch);
+      expect(store.published, isNull);
+      expect(store.publishedWrites.last, isNull);
+    });
+
+    test('a PUT that throws leaves nothing recorded', () async {
+      final store = _FakeStore(local: {first.address: first});
+      var puts = 0;
+      final transport = _FakeTransport(
+        devices: const ['device-a', 'peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.setting: {first.blob.id: first.wireHash},
+          },
+        ),
+        onManifestPut: (_) {
+          if (++puts == 2) throw const SocketException('reset');
+        },
+      );
+      final coordinator = coordinatorFor(store, transport);
+      await coordinator.syncNow();
+
+      store.local[second.address] = second;
+      await expectLater(coordinator.syncNow(), throwsA(isA<SocketException>()));
+
+      expect(puts, 2);
+      expect(store.published, isNull);
+    });
+
+    test('a fresh attach records what its continuation published', () async {
+      final store = _FakeStore(epoch: null, local: {first.address: first});
+      final transport = transportFor([first]);
+      final coordinator = coordinatorFor(store, transport);
+
+      expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
+      expect(store.baselineReplacements, 1);
+      expect(
+        store.published,
+        isNotNull,
+        reason: 'recorded after the baseline that starts the epoch',
+      );
+
+      final puts = transport.manifestPuts;
+      await coordinator.syncNow();
+      expect(transport.manifestPuts, puts);
+    });
+
     test('what it knows crosses the isolate boundary', () {
       final cache = SyncPeerManifestCache(
         ownManifest: (hash: 'manifest', blobHashes: {first.wireHash}),

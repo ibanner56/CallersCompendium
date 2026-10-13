@@ -73,15 +73,15 @@ class SyncBaselineEntry {
   final SyncBaselineBodyHashVersion bodyHashVersion;
 }
 
-/// Local-only state for the Device Sync protocol.
-///
-/// Public mutating methods each run in one transaction. Call [transaction]
-/// when a caller must compose a lifecycle operation with other database writes.
 /// What this device last published (sync-spec §6.3 step 8): the hash of its
 /// manifest encoded with `writtenAt` fixed, and when the store last confirmed
 /// every blob that manifest names.
 typedef SyncPublishedManifest = ({String hash, DateTime verifiedAt});
 
+/// Local-only state for the Device Sync protocol.
+///
+/// Public mutating methods each run in one transaction. Call [transaction]
+/// when a caller must compose a lifecycle operation with other database writes.
 class SyncLocalRepository {
   SyncLocalRepository(this._db);
 

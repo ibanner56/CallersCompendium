@@ -230,6 +230,12 @@ typedef SyncOwnManifest = ({String hash, Set<String> blobHashes});
 /// nothing in it changed, which also keeps its `writtenAt` — what peers show as
 /// this device's last share, and the evidence §6.9 judges a refusing peer by —
 /// from going stale on a device that is in use but has nothing new to share.
+///
+/// It must stay below §7.3's 24-hour grace for unreferenced uploads, and the
+/// confirmation it is measured from is the start of the pass that asked, not
+/// the answer. Together they mean a pass that stalled past the grace before
+/// its `PUT` — whose blobs the store may then have collected — is never
+/// current for the pass after it, which therefore asks about every blob.
 const Duration kSyncPublicationRefreshInterval = Duration(hours: 12);
 
 /// The data needed to construct a local manifest and calculate a pass.
@@ -2263,8 +2269,23 @@ class SyncCoordinator {
     // next pass. The fallback probe is skipped with the rest: the fallbacks
     // this manifest names were confirmed when it was published, and a
     // replan can only ever drop entries, which would change the hash.
+    //
+    // Except on a pass that refused or could not take a peer's record: §6.9
+    // judges a peer as refusing a record only once it has published twice
+    // since, and a peer that skips unchanged publications would otherwise
+    // republish only once per refresh interval. Republishing on every such
+    // pass keeps that judgement working as it did, and costs nothing while
+    // every peer's records are taken.
+    final refusedPeerRecords =
+        normalizedUnresolved.isNotEmpty ||
+        rejectedPeerAddresses.isNotEmpty ||
+        [
+          for (var index = 0; index < rawPeerMaps.length; index++)
+            peerMaps[index].length < rawPeerMaps[index].length,
+        ].any((filtered) => filtered);
     final unchanged =
         lastPublishedCurrent &&
+        !refusedPeerRecords &&
         _publishedManifestHash(publicationState.manifest) == lastPublished.hash;
     final ownManifest = _peerManifestCache.ownManifest;
     // Blobs the store is known to hold: those the published manifest names,
