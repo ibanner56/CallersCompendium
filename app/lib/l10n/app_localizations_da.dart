@@ -2657,6 +2657,14 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get settingsGeneralCapitalizeFiguresTitle =>
+      'Brug stort begyndelsesbogstav i figurer';
+
+  @override
+  String get settingsGeneralCapitalizeFiguresSubtitle =>
+      'Når aktiveret, begynder hver figur i dansevisningen, Perform-tilstand og figureditoren med et stort bogstav (“Neighbors allemande left”). Når deaktiveret, vises figurer som skrevet; indbyggede figurer begynder med lille bogstav, som i ContraDB. Kun figurernes udseende disse steder ændres; eksport, søgning, synkroniseringssammenligninger og skærmlæserens ordlyd er upåvirket.';
+
+  @override
   String get settingsGeneralAccessibilityHeader => 'Tilgængelighed';
 
   @override

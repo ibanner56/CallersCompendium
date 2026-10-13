@@ -2633,6 +2633,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get settingsGeneralCapitalizeFiguresTitle => 'Capitalize figures';
+
+  @override
+  String get settingsGeneralCapitalizeFiguresSubtitle =>
+      'When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (“Neighbors allemande left”). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.';
+
+  @override
   String get settingsGeneralAccessibilityHeader => 'Accessibility';
 
   @override
