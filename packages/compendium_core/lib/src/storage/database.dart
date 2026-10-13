@@ -470,7 +470,7 @@ Future<void> clearNormalisationSkipAt(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 40;
+const int kCompendiumSchemaVersion = 39;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -778,8 +778,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
             "AND name = '${retainedSyncFields.actualTableName}'",
           ).get();
           if (existing.isEmpty) await m.createTable(retainedSyncFields);
-        }
-        if (from < 40) {
+
           // What this device last published, so a pass with nothing new to
           // share sends nothing (sync-spec §6.3 step 8). Both columns are
           // nullable and start empty: the first pass after the upgrade

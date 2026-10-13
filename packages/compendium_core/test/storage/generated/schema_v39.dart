@@ -2357,8 +2357,30 @@ class BaselineState extends Table with TableInfo {
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL',
   );
+  late final GeneratedColumn<String> publishedManifestHash =
+      GeneratedColumn<String>(
+        'published_manifest_hash',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        $customConstraints: 'NULL',
+      );
+  late final GeneratedColumn<int> publishedVerifiedAt = GeneratedColumn<int>(
+    'published_verified_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, epoch];
+  List<GeneratedColumn> get $columns => [
+    id,
+    epoch,
+    publishedManifestHash,
+    publishedVerifiedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override

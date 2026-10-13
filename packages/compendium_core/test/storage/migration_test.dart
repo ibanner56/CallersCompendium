@@ -1365,7 +1365,7 @@ void main() {
     );
   });
   group(
-    'v39 -> v40 upgrade (published manifest fingerprint, sync-spec §6.3)',
+    'v38 -> v39 upgrade (published manifest fingerprint, sync-spec §6.3)',
     () {
       test(
         'adds two empty baseline_state columns and keeps the epoch row',
@@ -1373,7 +1373,7 @@ void main() {
           final raw = sqlite3.sqlite3.openInMemory();
           final historical = GeneratedHelper().databaseForVersion(
             NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-            39,
+            38,
           );
           await historical.customSelect('SELECT 1').get();
           await historical.customStatement(
