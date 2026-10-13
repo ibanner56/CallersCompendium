@@ -217,6 +217,21 @@ typedef SyncOwnPublication = ({String hash, int pass});
 /// number on which it was first seen.
 typedef SyncPeerPublication = ({DateTime writtenAt, int pass});
 
+/// The manifest this device last published, as this session knows it: the
+/// hash [SyncCoordinator] records for it, and every blob hash it names. Every
+/// one of those blobs was in the store when it was published, and stays
+/// there while the manifest names it (spec §7.3), so a later pass need not
+/// ask about them again.
+typedef SyncOwnManifest = ({String hash, Set<String> blobHashes});
+
+/// How long a pass may rely on what an earlier one confirmed about this
+/// device's own manifest and blobs (spec §6.3 steps 7 and 8). Past it, a pass
+/// asks the store about every blob again and republishes the manifest even when
+/// nothing in it changed, which also keeps its `writtenAt` — what peers show as
+/// this device's last share, and the evidence §6.9 judges a refusing peer by —
+/// from going stale on a device that is in use but has nothing new to share.
+const Duration kSyncPublicationRefreshInterval = Duration(hours: 12);
+
 /// The data needed to construct a local manifest and calculate a pass.
 class SyncCoordinatorSnapshot {
   SyncCoordinatorSnapshot({
@@ -362,6 +377,16 @@ abstract interface class SyncCoordinatorStore
   /// union, dedupe, blob publication, and resulting manifest are complete.
   Future<void> clearEpochState();
 
+  /// What this device last published in [epoch] (spec §6.3 step 8).
+  Future<SyncPublishedManifest?> publishedManifest({required String epoch});
+
+  /// Records, or with null forgets, what this device last published in
+  /// [epoch].
+  Future<void> setPublishedManifest({
+    required String epoch,
+    required SyncPublishedManifest? published,
+  });
+
   Future<void> advanceBaseline({
     required String epoch,
     required Iterable<SyncBaselineEntry> entries,
@@ -496,6 +521,19 @@ final class CompendiumSyncCoordinatorStore
   @override
   Future<void> clearEpochState() =>
       storage.repositories.syncLocal.clearBaseline();
+
+  @override
+  Future<SyncPublishedManifest?> publishedManifest({required String epoch}) =>
+      storage.repositories.syncLocal.publishedManifest(epoch: epoch);
+
+  @override
+  Future<void> setPublishedManifest({
+    required String epoch,
+    required SyncPublishedManifest? published,
+  }) => storage.repositories.syncLocal.setPublishedManifest(
+    epoch: epoch,
+    published: published,
+  );
 
   @override
   Future<void> advanceBaseline({
@@ -698,6 +736,7 @@ final class SyncPeerManifestCache {
     this.publicationEpoch,
     this.blobBatchUnsupported = false,
     this.blobUploadBatchUnsupported = false,
+    this.ownManifest,
   }) : _entries = {...?entries},
        rejectedHashes = {...?rejectedHashes},
        publications = {...?publications},
@@ -741,6 +780,12 @@ final class SyncPeerManifestCache {
   /// The same, for `PUT /v1/blobs/batch`: the rest of this session uploads one
   /// blob per request.
   bool blobUploadBatchUnsupported;
+
+  /// This device's own last published manifest, while this session knows
+  /// which blobs it names (spec §6.3 step 7). Trusted only while its hash is
+  /// the one storage records as published; a pass that publishes something
+  /// else replaces it, and one about to `PUT` clears it first.
+  SyncOwnManifest? ownManifest;
 
   /// Verified peer blob bodies by wire hash, oldest first.
   ///
@@ -794,6 +839,7 @@ final class SyncPeerManifestCache {
     publicationEpoch = epoch;
     blobBatchUnsupported = false;
     blobUploadBatchUnsupported = false;
+    ownManifest = null;
   }
 
   SyncPeerManifestCacheEntry? operator [](String peerId) => _entries[peerId];
@@ -817,6 +863,7 @@ final class SyncPeerManifestCache {
     publicationEpoch = null;
     blobBatchUnsupported = false;
     blobUploadBatchUnsupported = false;
+    ownManifest = null;
   }
 
   void replaceFrom(SyncPeerManifestCache source) {
@@ -843,6 +890,7 @@ final class SyncPeerManifestCache {
     publicationEpoch = source.publicationEpoch;
     blobBatchUnsupported = source.blobBatchUnsupported;
     blobUploadBatchUnsupported = source.blobUploadBatchUnsupported;
+    ownManifest = source.ownManifest;
   }
 
   Map<String, Object?> toMessage() => {
@@ -881,6 +929,13 @@ final class SyncPeerManifestCache {
     '_publicationEpoch': publicationEpoch,
     '_blobBatchUnsupported': blobBatchUnsupported,
     '_blobUploadBatchUnsupported': blobUploadBatchUnsupported,
+    '_ownManifest': switch (ownManifest) {
+      null => null,
+      final own => {
+        'hash': own.hash,
+        'blobHashes': own.blobHashes.toList(growable: false),
+      },
+    },
   };
 
   static SyncPeerManifestCache fromMessage(Object? message) {
@@ -1011,6 +1066,22 @@ final class SyncPeerManifestCache {
         'sync isolate returned a malformed blob upload batch flag',
       );
     }
+    SyncOwnManifest? ownManifest;
+    final rawOwnManifest = message['_ownManifest'];
+    if (rawOwnManifest != null) {
+      const malformedOwnManifest = FormatException(
+        'sync isolate returned a malformed own manifest',
+      );
+      if (rawOwnManifest is! Map<Object?, Object?>) throw malformedOwnManifest;
+      final hash = rawOwnManifest['hash'];
+      final blobHashes = rawOwnManifest['blobHashes'];
+      if (hash is! String ||
+          blobHashes is! List<Object?> ||
+          blobHashes.any((blobHash) => blobHash is! String)) {
+        throw malformedOwnManifest;
+      }
+      ownManifest = (hash: hash, blobHashes: blobHashes.cast<String>().toSet());
+    }
     return SyncPeerManifestCache(
       entries: entries,
       rejectedHashes: rejectedHashes,
@@ -1021,6 +1092,7 @@ final class SyncPeerManifestCache {
       publicationEpoch: rawPublicationEpoch as String?,
       blobBatchUnsupported: rawBlobBatchUnsupported as bool? ?? false,
       blobUploadBatchUnsupported: rawUploadBatchUnsupported as bool? ?? false,
+      ownManifest: ownManifest,
     );
   }
 }
@@ -1715,9 +1787,22 @@ class SyncCoordinator {
       await store.retireAliases(peerAddresses: peerAddresses);
     }
 
+    // Every blob this device can build from what it holds needs no download,
+    // not only those it publishes: a blob is addressed by the hash of its
+    // bytes, so a peer's copy with the same hash is this one. Publication
+    // alone left out the imported dances `sync_exclude_imports` keeps back
+    // and the live rows behind pending tombstones, so a peer still sharing
+    // either had it downloaded again on every pass that missed the session's
+    // cache, and on the first pass of every session.
     final localByHash = <String, SyncMergeCandidate>{};
-    for (final candidate in snapshot.publication.values) {
-      if (candidate != null) localByHash[candidate.wireHash] = candidate;
+    for (final candidates in [
+      snapshot.local,
+      snapshot.pendingLive,
+      snapshot.publication,
+    ]) {
+      for (final candidate in candidates.values) {
+        if (candidate != null) localByHash[candidate.wireHash] = candidate;
+      }
     }
     final availableByHash = <String, SyncMergeCandidate>{...localByHash};
     final rejectedPeerAddresses = <SyncRecordAddress>{};
@@ -2157,32 +2242,66 @@ class SyncCoordinator {
     });
 
     var publicationState = await buildPublicationState();
-    // Availability-only: a fallback hash is a baseline hash for a withheld
-    // address, which by construction differs from that address's current wire
-    // hash — and a wire blob embeds its own kind and id, so no other address
-    // can be carrying it either. There is therefore never a local candidate to
-    // re-upload; the probe exists to learn which agreed fallbacks the store has
-    // lost, so the replan can drop them.
-    final fallbackProbe = await _uploadMissingLocalBlobs(
-      const {},
-      fallbackHashes: publicationState.publicationPlan.fallbackHashes,
-      reports: reports,
-    );
-    if (!fallbackProbe.succeeded) {
-      return SyncPassResult(
-        SyncPassStatus.failed,
-        reports: reports.reports,
-        message:
-            'fallback blob availability probe failed', // i18n-ignore: internal status
-        failure: fallbackProbe.failure,
-        appliedKinds: appliedKinds.toList(),
+    // What this device last published (spec §6.3 step 8), and whether this
+    // pass may rely on it: the store still lists this device — so the
+    // manifest it holds is that one, since only this device writes it — and
+    // the store confirmed its blobs within the refresh interval. A device
+    // removed from the store (§5.3) has lost its manifest, and with it what
+    // kept its blobs from §7.3's collection, so it checks and publishes
+    // everything again.
+    final lastPublished = await store.publishedManifest(epoch: metadata.epoch);
+    final lastPublishedCurrent =
+        lastPublished != null &&
+        metadata.devices.contains(deviceId) &&
+        !localNow.isBefore(lastPublished.verifiedAt) &&
+        localNow.difference(lastPublished.verifiedAt) <
+            kSyncPublicationRefreshInterval;
+    // Nothing to share: the manifest is the one the store already holds, and
+    // every blob it names was there when it was published. Asking about them
+    // again and rewriting it would change only its `writtenAt`, and that alone
+    // gives it a new `ETag`, so every peer would download it in full on its
+    // next pass. The fallback probe is skipped with the rest: the fallbacks
+    // this manifest names were confirmed when it was published, and a
+    // replan can only ever drop entries, which would change the hash.
+    final unchanged =
+        lastPublishedCurrent &&
+        _publishedManifestHash(publicationState.manifest) == lastPublished.hash;
+    final ownManifest = _peerManifestCache.ownManifest;
+    // Blobs the store is known to hold: those the published manifest names,
+    // when this session knows which they are. Only the rest are asked about.
+    final knownPresent =
+        lastPublishedCurrent && ownManifest?.hash == lastPublished.hash
+        ? ownManifest!.blobHashes
+        : const <String>{};
+    if (!unchanged) {
+      // Availability-only: a fallback hash is a baseline hash for a withheld
+      // address, which by construction differs from that address's current
+      // wire hash — and a wire blob embeds its own kind and id, so no other
+      // address can be carrying it either. There is therefore never a local
+      // candidate to re-upload; the probe exists to learn which agreed
+      // fallbacks the store has lost, so the replan can drop them.
+      final fallbackProbe = await _uploadMissingLocalBlobs(
+        const {},
+        fallbackHashes: publicationState.publicationPlan.fallbackHashes,
+        knownPresent: knownPresent,
+        reports: reports,
       );
-    }
-    if (fallbackProbe.unavailableFallbackHashes.isNotEmpty) {
-      publicationState = await buildPublicationState(
-        publicationOverride: publicationState.publication,
-        unavailableFallbackHashes: fallbackProbe.unavailableFallbackHashes,
-      );
+      if (!fallbackProbe.succeeded) {
+        return SyncPassResult(
+          SyncPassStatus.failed,
+          reports: reports.reports,
+          message:
+              'fallback blob availability probe failed', // i18n-ignore: internal status
+          failure: fallbackProbe.failure,
+          appliedKinds: appliedKinds.toList(),
+        );
+      }
+      if (fallbackProbe.unavailableFallbackHashes.isNotEmpty) {
+        publicationState = await buildPublicationState(
+          publicationOverride: publicationState.publication,
+          unavailableFallbackHashes: fallbackProbe.unavailableFallbackHashes,
+        );
+      }
     }
     for (final address in quarantinedLocal) {
       final count =
@@ -2204,40 +2323,69 @@ class SyncCoordinator {
     final publicationPlan = publicationState.publicationPlan;
     final manifest = publicationState.manifest;
     final addresses = publicationState.addresses;
-    final finalUploadResult = await _uploadMissingLocalBlobs(
-      publicationPlan.uploadCandidates,
-      reports: reports,
-    );
-    if (!finalUploadResult.succeeded) {
-      return SyncPassResult(
-        SyncPassStatus.failed,
-        reports: reports.reports,
-        message:
-            'post-apply blob publication failed', // i18n-ignore: internal status
-        failure: finalUploadResult.failure,
-        appliedKinds: appliedKinds.toList(),
+    // What to record as published once the baseline is stored, if this pass
+    // publishes.
+    SyncPublishedManifest? nowPublished;
+    if (unchanged) {
+      if (ownManifest?.hash != lastPublished.hash) {
+        _peerManifestCache.ownManifest = (
+          hash: lastPublished.hash,
+          blobHashes: _manifestBlobHashes(manifest),
+        );
+      }
+    } else {
+      final finalUploadResult = await _uploadMissingLocalBlobs(
+        publicationPlan.uploadCandidates,
+        knownPresent: knownPresent,
+        reports: reports,
       );
-    }
-    final manifestBody = encodeSyncManifestUtf8(manifest);
-    await store.markPublicationAttempt(syncId: syncId!, records: addresses);
-    final published = await transport.putManifest(deviceId, manifestBody);
-    if (published.kind == SyncResponseKind.conflict) {
-      return SyncPassResult(
-        SyncPassStatus.staleEpoch,
-        reports: reports.reports,
-        message:
-            'manifest publication observed a stale epoch', // i18n-ignore: internal status
-        appliedKinds: appliedKinds.toList(),
-      );
-    }
-    if (!published.isSuccess) {
-      return SyncPassResult(
-        SyncPassStatus.failed,
-        reports: reports.reports,
-        message:
-            'manifest publication returned ${published.statusCode}', // i18n-ignore: internal status
-        failure: SyncFailure.fromResponse(published, SyncFailureStep.publish),
-        appliedKinds: appliedKinds.toList(),
+      if (!finalUploadResult.succeeded) {
+        return SyncPassResult(
+          SyncPassStatus.failed,
+          reports: reports.reports,
+          message:
+              'post-apply blob publication failed', // i18n-ignore: internal status
+          failure: finalUploadResult.failure,
+          appliedKinds: appliedKinds.toList(),
+        );
+      }
+      final manifestBody = encodeSyncManifestUtf8(manifest);
+      await store.markPublicationAttempt(syncId: syncId!, records: addresses);
+      // Forgotten before the `PUT`, not after it: a `PUT` that fails, or whose
+      // answer never arrives, may still have replaced the manifest, so until
+      // one is known to have landed nothing about the store's copy is known.
+      if (lastPublished != null) {
+        await store.setPublishedManifest(
+          epoch: metadata.epoch,
+          published: null,
+        );
+      }
+      _peerManifestCache.ownManifest = null;
+      final published = await transport.putManifest(deviceId, manifestBody);
+      if (published.kind == SyncResponseKind.conflict) {
+        return SyncPassResult(
+          SyncPassStatus.staleEpoch,
+          reports: reports.reports,
+          message:
+              'manifest publication observed a stale epoch', // i18n-ignore: internal status
+          appliedKinds: appliedKinds.toList(),
+        );
+      }
+      if (!published.isSuccess) {
+        return SyncPassResult(
+          SyncPassStatus.failed,
+          reports: reports.reports,
+          message:
+              'manifest publication returned ${published.statusCode}', // i18n-ignore: internal status
+          failure: SyncFailure.fromResponse(published, SyncFailureStep.publish),
+          appliedKinds: appliedKinds.toList(),
+        );
+      }
+      nowPublished = (
+        hash: _publishedManifestHash(manifest),
+        // Every blob was asked about unless some were taken as known, in
+        // which case the store last confirmed those when they were.
+        verifiedAt: knownPresent.isEmpty ? localNow : lastPublished!.verifiedAt,
       );
     }
     final observed = <SyncBaselineEntry>[];
@@ -2307,6 +2455,18 @@ class SyncCoordinator {
         entries: completedBaseline.values,
       );
     }
+    // Recorded after the baseline, because replacing the baseline (a fresh
+    // attach's continuation) starts its epoch with nothing published.
+    if (nowPublished != null) {
+      await store.setPublishedManifest(
+        epoch: metadata.epoch,
+        published: nowPublished,
+      );
+      _peerManifestCache.ownManifest = (
+        hash: nowPublished.hash,
+        blobHashes: _manifestBlobHashes(manifest),
+      );
+    }
 
     if (deferredServerFault != null) {
       return SyncPassResult(
@@ -2331,6 +2491,25 @@ class SyncCoordinator {
       peers: peerSummaries,
     );
   }
+
+  /// The hash a published [manifest] is recorded under: its encoding with
+  /// `writtenAt` fixed, so it changes exactly when the device id, epoch, wire
+  /// version or any record it lists does.
+  static String _publishedManifestHash(SyncManifest manifest) => sha256Hex(
+    encodeSyncManifestUtf8(
+      SyncManifest(
+        v: manifest.v,
+        deviceId: manifest.deviceId,
+        epoch: manifest.epoch,
+        writtenAt: DateTime.utc(1970),
+        records: manifest.records,
+      ),
+    ),
+  );
+
+  static Set<String> _manifestBlobHashes(SyncManifest manifest) => {
+    for (final records in manifest.records.values) ...records.values,
+  };
 
   Future<Set<SyncRecordAddress>> _normalizeAddresses(
     Iterable<SyncRecordAddress> addresses,
@@ -3050,15 +3229,22 @@ class SyncCoordinator {
     return admission.candidate!;
   }
 
+  /// Uploads whichever of [localByHash] the store is missing (spec §6.3 step
+  /// 7), and learns which of [fallbackHashes] it has lost.
+  ///
+  /// Hashes in [knownPresent] are not asked about: the store holds every blob
+  /// this device's published manifest names, for as long as it names them
+  /// (§7.3).
   Future<_MissingBlobUploadResult> _uploadMissingLocalBlobs(
     Map<String, SyncMergeCandidate> localByHash, {
     Set<String> fallbackHashes = const {},
+    Set<String> knownPresent = const {},
     required SyncReportSink reports,
   }) async {
     final requestedHashes = {
       ...localByHash.keys,
       ...fallbackHashes,
-    }.toList(growable: false);
+    }.where((hash) => !knownPresent.contains(hash)).toList(growable: false);
     final unavailableFallbackHashes = <String>{};
     // Every blob the store accepted stays accepted, so the next pass's
     // `missing` list no longer names it: an upload that stops part-way has

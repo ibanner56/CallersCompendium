@@ -1364,6 +1364,52 @@ void main() {
       },
     );
   });
+  group(
+    'v39 -> v40 upgrade (published manifest fingerprint, sync-spec §6.3)',
+    () {
+      test(
+        'adds two empty baseline_state columns and keeps the epoch row',
+        () async {
+          final raw = sqlite3.sqlite3.openInMemory();
+          final historical = GeneratedHelper().databaseForVersion(
+            NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+            39,
+          );
+          await historical.customSelect('SELECT 1').get();
+          await historical.customStatement(
+            "INSERT INTO baseline_state (id, epoch) VALUES (1, 'epoch-kept')",
+          );
+          await historical.close();
+
+          final db = CompendiumDatabase(
+            NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          );
+          addTearDown(() async {
+            await db.close();
+            raw.close();
+          });
+          await db.customSelect('SELECT 1').get();
+
+          final columns = await db
+              .customSelect("PRAGMA table_info('baseline_state')")
+              .get();
+          expect(
+            {for (final row in columns) row.read<String>('name')},
+            {'id', 'epoch', 'published_manifest_hash', 'published_verified_at'},
+          );
+          final state = await db.select(db.baselineState).getSingle();
+          expect(state.epoch, 'epoch-kept');
+          expect(
+            state.publishedManifestHash,
+            isNull,
+            reason:
+                'nothing is back-filled: the first pass publishes as before',
+          );
+          expect(state.publishedVerifiedAt, isNull);
+        },
+      );
+    },
+  );
 }
 
 Dance _rollAwayDance({

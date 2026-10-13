@@ -470,7 +470,7 @@ Future<void> clearNormalisationSkipAt(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 39;
+const int kCompendiumSchemaVersion = 40;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -778,6 +778,28 @@ class CompendiumDatabase extends _$CompendiumDatabase {
             "AND name = '${retainedSyncFields.actualTableName}'",
           ).get();
           if (existing.isEmpty) await m.createTable(retainedSyncFields);
+        }
+        if (from < 40) {
+          // What this device last published, so a pass with nothing new to
+          // share sends nothing (sync-spec §6.3 step 8). Both columns are
+          // nullable and start empty: the first pass after the upgrade
+          // publishes as every pass did before it. The live-schema check only
+          // keeps the step idempotent.
+          final stateColumns = await customSelect(
+            "SELECT name FROM pragma_table_info('${baselineState.actualTableName}')",
+          ).get();
+          final present = {
+            for (final row in stateColumns) row.read<String>('name'),
+          };
+          if (!present.contains(baselineState.publishedManifestHash.name)) {
+            await m.addColumn(
+              baselineState,
+              baselineState.publishedManifestHash,
+            );
+          }
+          if (!present.contains(baselineState.publishedVerifiedAt.name)) {
+            await m.addColumn(baselineState, baselineState.publishedVerifiedAt);
+          }
         }
 
         // Last statement in the transaction: see the comment above its
