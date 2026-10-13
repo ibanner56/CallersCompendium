@@ -2534,7 +2534,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGeneralCapitalizeFiguresSubtitle =>
-      'オンにすると、各フィギュアが大文字で始まります（「Neighbors allemande left」）。オフの場合は、ContraDB と同様に小文字で始まります。変更されるのは画面上の表示のみで、エクスポート、検索、スクリーンリーダーの読み上げ文言は変わりません。';
+      'オンにすると、各フィギュアが大文字で始まります（「Neighbors allemande left」）。オフの場合は、フィギュアは書かれたとおりに表示され、組み込みのフィギュアは ContraDB と同様に小文字で始まります。変更されるのは画面上の表示のみで、エクスポート、検索、スクリーンリーダーの読み上げ文言は変わりません。';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'アクセシビリティ';

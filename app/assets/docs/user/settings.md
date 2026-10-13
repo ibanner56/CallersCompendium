@@ -49,7 +49,7 @@ The **General** section gathers everyday behavior into small groups.
   **N**, not **T**.
 - **Capitalize figures** (off by default) — starts each
   [figure](./glossary.md#figure) shown on screen with a capital letter. Off, figures
-  start in lower case, as in ContraDB. Only the on-screen look changes; exports,
+  are shown as written (built-in figures start in lower case, as in ContraDB). Only the on-screen look changes; exports,
   search and screen-reader wording are unaffected.
 
 ### Accessibility

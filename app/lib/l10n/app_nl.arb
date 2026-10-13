@@ -2716,9 +2716,9 @@
   "@settingsGeneralCapitalizeFiguresTitle": {
     "x-sourceSha256": "c841b9d27fa36cfe2705a7247038669178a9773692bbb78c7886cfcdeff5d6d0"
   },
-  "settingsGeneralCapitalizeFiguresSubtitle": "Als ingeschakeld, begint elke figuur met een hoofdletter (“Neighbors allemande left”). Als uitgeschakeld, beginnen figuren met een kleine letter, zoals in ContraDB. Alleen het uiterlijk van figuren op het scherm verandert; exports, zoeken en de tekst voor schermlezers blijven ongewijzigd.",
+  "settingsGeneralCapitalizeFiguresSubtitle": "Als ingeschakeld, begint elke figuur met een hoofdletter (“Neighbors allemande left”). Als uitgeschakeld, worden figuren getoond zoals ze zijn geschreven; ingebouwde figuren beginnen met een kleine letter, zoals in ContraDB. Alleen het uiterlijk van figuren op het scherm verandert; exports, zoeken en de tekst voor schermlezers blijven ongewijzigd.",
   "@settingsGeneralCapitalizeFiguresSubtitle": {
-    "x-sourceSha256": "418218866f254c964e02d8947d63a7c88698632867b218d1cd39610fa488b8f1"
+    "x-sourceSha256": "a4345ad1a2c7e03613daa15117a6db6e620c84ba28922284da3ea6bc2cc7a7b2"
   },
   "settingsGeneralAccessibilityHeader": "Toegankelijkheid",
   "@settingsGeneralAccessibilityHeader": {

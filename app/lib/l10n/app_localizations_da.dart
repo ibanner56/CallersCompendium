@@ -2662,7 +2662,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsGeneralCapitalizeFiguresSubtitle =>
-      'Når aktiveret, begynder hver figur med et stort bogstav (“Neighbors allemande left”). Når deaktiveret, begynder figurer med lille bogstav, som i ContraDB. Kun figurernes udseende på skærmen ændres; eksport, søgning og skærmlæserens ordlyd er upåvirket.';
+      'Når aktiveret, begynder hver figur med et stort bogstav (“Neighbors allemande left”). Når deaktiveret, vises figurer som skrevet; indbyggede figurer begynder med lille bogstav, som i ContraDB. Kun figurernes udseende på skærmen ændres; eksport, søgning og skærmlæserens ordlyd er upåvirket.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Tilgængelighed';

@@ -2716,9 +2716,9 @@
   "@settingsGeneralCapitalizeFiguresTitle": {
     "x-sourceSha256": "c841b9d27fa36cfe2705a7247038669178a9773692bbb78c7886cfcdeff5d6d0"
   },
-  "settingsGeneralCapitalizeFiguresSubtitle": "Når aktiveret, begynder hver figur med et stort bogstav (“Neighbors allemande left”). Når deaktiveret, begynder figurer med lille bogstav, som i ContraDB. Kun figurernes udseende på skærmen ændres; eksport, søgning og skærmlæserens ordlyd er upåvirket.",
+  "settingsGeneralCapitalizeFiguresSubtitle": "Når aktiveret, begynder hver figur med et stort bogstav (“Neighbors allemande left”). Når deaktiveret, vises figurer som skrevet; indbyggede figurer begynder med lille bogstav, som i ContraDB. Kun figurernes udseende på skærmen ændres; eksport, søgning og skærmlæserens ordlyd er upåvirket.",
   "@settingsGeneralCapitalizeFiguresSubtitle": {
-    "x-sourceSha256": "418218866f254c964e02d8947d63a7c88698632867b218d1cd39610fa488b8f1"
+    "x-sourceSha256": "a4345ad1a2c7e03613daa15117a6db6e620c84ba28922284da3ea6bc2cc7a7b2"
   },
   "settingsGeneralAccessibilityHeader": "Tilgængelighed",
   "@settingsGeneralAccessibilityHeader": {

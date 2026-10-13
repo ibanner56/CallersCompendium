@@ -2716,9 +2716,9 @@
   "@settingsGeneralCapitalizeFiguresTitle": {
     "x-sourceSha256": "c841b9d27fa36cfe2705a7247038669178a9773692bbb78c7886cfcdeff5d6d0"
   },
-  "settingsGeneralCapitalizeFiguresSubtitle": "オンにすると、各フィギュアが大文字で始まります（「Neighbors allemande left」）。オフの場合は、ContraDB と同様に小文字で始まります。変更されるのは画面上の表示のみで、エクスポート、検索、スクリーンリーダーの読み上げ文言は変わりません。",
+  "settingsGeneralCapitalizeFiguresSubtitle": "オンにすると、各フィギュアが大文字で始まります（「Neighbors allemande left」）。オフの場合は、フィギュアは書かれたとおりに表示され、組み込みのフィギュアは ContraDB と同様に小文字で始まります。変更されるのは画面上の表示のみで、エクスポート、検索、スクリーンリーダーの読み上げ文言は変わりません。",
   "@settingsGeneralCapitalizeFiguresSubtitle": {
-    "x-sourceSha256": "418218866f254c964e02d8947d63a7c88698632867b218d1cd39610fa488b8f1"
+    "x-sourceSha256": "a4345ad1a2c7e03613daa15117a6db6e620c84ba28922284da3ea6bc2cc7a7b2"
   },
   "settingsGeneralAccessibilityHeader": "アクセシビリティ",
   "@settingsGeneralAccessibilityHeader": {

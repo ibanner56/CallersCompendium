@@ -8,11 +8,13 @@ const String kCapitalizeFiguresKey = 'capitalize_figures';
 /// to the widget tree.
 ///
 /// When `true`, the first letter of each rendered figure is capitalized
-/// (`Neighbors allemande left 1½`). When `false` (the default) figures keep the
-/// renderer's lower-case wording, matching ContraDB. This is a *display-only*
+/// (`Neighbors allemande left 1½`). When `false` (the default) figures are shown
+/// as the renderer produced them (built-in figures start in lower case,
+/// matching ContraDB); nothing is ever lower-cased. This is a *display-only*
 /// preference applied by [capitalizeFirstLetter] at the on-screen figure
 /// surfaces: the core renderer's canonical text (which feeds search/FTS/dedupe)
-/// and the spoken/verbose accessibility rendering are never affected.
+/// and the screen-reader semantics labels are never affected. Verbose text is
+/// capitalized only when it is shown on screen.
 /// Descendants that call [CapitalizeFiguresScope.of] rebuild automatically when
 /// the setting changes (live update).
 ///

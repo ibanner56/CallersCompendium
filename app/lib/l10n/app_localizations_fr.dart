@@ -2710,7 +2710,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsGeneralCapitalizeFiguresSubtitle =>
-      'Activé : chaque figure commence par une majuscule (« Neighbors allemande left »). Désactivé : les figures commencent par une minuscule, comme dans ContraDB. Seul l’aspect des figures à l’écran change ; les exports, la recherche et le texte lu par les lecteurs d’écran restent identiques.';
+      'Activé : chaque figure commence par une majuscule (« Neighbors allemande left »). Désactivé : les figures s’affichent telles qu’elles sont écrites ; les figures intégrées commencent par une minuscule, comme dans ContraDB. Seul l’aspect des figures à l’écran change ; les exports, la recherche et le texte lu par les lecteurs d’écran restent identiques.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Accessibilité';
