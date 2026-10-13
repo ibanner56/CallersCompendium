@@ -19,6 +19,10 @@ import 'sync_retained_fields.dart';
 import 'wire_mapping.dart';
 
 /// The record-blob and manifest envelope version defined by W3.
+///
+/// Bump only when the current value has shipped, in a release or on a deployed
+/// server. While it has not, a wire change joins that version instead
+/// (sync-spec §7.2, "An unreleased `v`"; CONTRIBUTING.md, "Versioned formats").
 const int syncWireVersion = 1;
 
 /// A record blob or manifest written in an envelope version newer than

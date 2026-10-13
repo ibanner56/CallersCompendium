@@ -846,6 +846,15 @@ from `CompendiumDatabase.schemaVersion`: a taxonomy bump implies no database
 migration unless its own entry says so. `tools/ci/check_version_history.py`
 fails a PR that moves the constant without adding the matching entry.
 
+**Bump only when the current version has shipped.** While the latest release
+tag carries an older `contraTaxonomyVersion` than `main`, the head version is
+unreleased: a further taxonomy change joins it and amends its entry here,
+rather than adding a version no release will carry. CONTRIBUTING.md
+("Versioned formats") gives the check. The gate cannot see an amendment,
+because the constant does not move. A one-time rebuild pass that already ran
+on a dev database at that version (a `…DoneKey` marker) does not run again.
+If the amended change needs that pass to re-run, it needs a marker of its own.
+
 - v2: roadmap 2.4a PR2 (dancer-interaction moves).
 - v3: roadmap 2.4a PR3 (choice-enum moves + `centers`/single-dancer vocab).
 - v4: roadmap 2.4a PR4 (places family + `ParamKind.places`).

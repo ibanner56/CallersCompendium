@@ -54,26 +54,58 @@ error paths, and edge cases. UI changes include widget tests where practical
 and must satisfy the [accessibility baseline](docs/research/accessibility-baseline.md)
 (semantics, keyboard, contrast) — a11y is an acceptance criterion, not polish.
 
+### Versioned formats: bank changes in the unreleased vNext
+Three version numbers mark formats other installs depend on:
+
+| Version | Declared in | Process |
+| --- | --- | --- |
+| `kCompendiumSchemaVersion` | `packages/compendium_core/lib/src/storage/database.dart` | [Database schema migrations](#database-schema-migrations) |
+| `contraTaxonomyVersion` | `packages/compendium_core/lib/src/taxonomy/contra_taxonomy.dart` | [Taxonomy version history](docs/design/figure-taxonomy.md#taxonomy-version-history) |
+| `syncWireVersion` | `packages/compendium_core/lib/src/sync/sync_codec.dart` | [sync-spec §7.2](docs/design/sync-spec.md#72-allow-list-validation), "An unreleased `v`" |
+
+A version is only worth a number once something outside `main` carries it.
+If the latest release tag carries an older value than `main`, that value is
+the unreleased *vNext*. Add your change to vNext rather than bumping again, so
+that every unreleased change ships together under one number (the maintainer's
+direction, 2026-10-13). Bump only when the tag's value matches `main`'s.
+Check all three at once with:
+
+```sh
+git fetch --tags origin
+tag=$(git for-each-ref --sort=-creatordate --count=1 \
+  --format='%(refname:short)' 'refs/tags/v*')
+for ref in "$tag" origin/main; do
+  echo "$ref:"
+  git show "$ref":packages/compendium_core/lib/src/storage/database.dart \
+    | grep -o 'kCompendiumSchemaVersion = [0-9]*'
+  git show "$ref":packages/compendium_core/lib/src/taxonomy/contra_taxonomy.dart \
+    | grep -o 'contraTaxonomyVersion = [0-9]*'
+  git show "$ref":packages/compendium_core/lib/src/sync/sync_codec.dart \
+    | grep -o 'syncWireVersion = [0-9]*'
+done
+```
+
+The wire version has one more way to ship. The Athenaeum server is deployed
+ahead of app releases and validates manifests with this same codec, so a
+server image built after a wire bump already enforces vNext. Amending vNext
+then means redeploying the server before any client emits the amended form,
+as for any manifest change. Ask the maintainer what is deployed if you can't
+tell.
+
+When you amend vNext rather than bump, the CI version gates
+(`check_schema_migration.py`, `check_version_history.py`) do not notice,
+because the constant does not move. Amending vNext's ledger entry and tests is
+on you. Anything run from source at vNext before your change (a dev database,
+a dev sync store) does not see it again. Recreate it rather than bumping.
+
 ### Database schema migrations
 The local database schema is versioned by `schemaVersion` in
 [`packages/compendium_core/lib/src/storage/database.dart`](packages/compendium_core/lib/src/storage/database.dart).
 When you change the schema:
 
-- **First check whether head has shipped.** A schema version is only worth a
-  number once a release carries it. If the latest release tag shipped an older
-  version than `main`'s, head is the unreleased *vNext*: add your change to
-  vNext instead of bumping again, so that every unreleased change ships together
-  under one version (the maintainer's direction, 2026-10-13). Find out with:
-
-  ```sh
-  git fetch --tags origin
-  tag=$(git for-each-ref --sort=-creatordate --count=1 \
-    --format='%(refname:short)' 'refs/tags/v*')
-  git show "$tag":packages/compendium_core/lib/src/storage/database.dart \
-    | grep -o 'kCompendiumSchemaVersion = [0-9]*'
-  ```
-
-  Bump only when that matches `main`. See
+- **First check whether head has shipped**, as
+  [above](#versioned-formats-bank-changes-in-the-unreleased-vnext). If it has
+  not, add your change to vNext instead of bumping: see
   [Adding to an unreleased version](#adding-to-an-unreleased-version) below.
 - When you do bump, bump `schemaVersion`, add the matching `MigrationStrategy` step, and ship a
   migration test/fixture (`test/storage/migration_test.dart` and/or a
@@ -109,8 +141,8 @@ When head is vNext, a change joins it rather than following it:
   release shipped to vNext.
 
 CI checks less here than for a bump. The constant does not move, so neither
-`check_schema_migration.py` nor `check_version_history.py` notices the change:
-the migration test and the ledger entry are on you.
+`check_schema_migration.py` nor `check_version_history.py` notices the change.
+The migration test and the ledger entry are on you.
 
 Only someone running `main` from source can have a database already stamped
 vNext. It does not re-run the step, so it lacks what you added, and the app
@@ -224,7 +256,10 @@ by opening a PR adding a `Proposed` ADR.
 - Stored data is always **canonical** (role IDs, canonical move names);
   user-facing terms go through the [dialect system](docs/design/dialect.md).
 - The figure taxonomy is versioned data — changes to it follow the process in
-  [docs/design/figure-taxonomy.md](docs/design/figure-taxonomy.md).
+  [docs/design/figure-taxonomy.md](docs/design/figure-taxonomy.md). A change
+  made while `contraTaxonomyVersion` is unreleased joins that version rather
+  than bumping it (see
+  [Versioned formats](#versioned-formats-bank-changes-in-the-unreleased-vnext)).
 
 ### User documentation
 The guides under [docs/user/](docs/user/) are the source of truth **and** ship
