@@ -40,9 +40,10 @@ Each dump is taken from a **real database file**, not from static analysis of
   version"). The binary fixtures that earlier floors still carried were
   retired with the v35 floor.
 
-Dumps for versions that were never in a release are the subject of open issue
-#1398, which proposes keeping only shipped versions; until that settles, the
-set is exactly floor…head.
+The set is exactly floor…head. Some of those versions were never in a release;
+no new ones are added that way. A schema change made while head is unreleased
+joins head rather than bumping it (see "Amending the unreleased head" below),
+so from here on each version past head is one that a release will carry.
 
 That matters because six entities in this schema are created by raw
 `customStatement` DDL rather than being drift-managed — the `dance_fts` FTS5
@@ -81,6 +82,19 @@ that is the cost this directory exists to remove.
 
 `schema_verification_test.dart` fails if a version has no dump, so forgetting
 this is a red test rather than a silent coverage hole.
+
+Bump only when head has already shipped. CONTRIBUTING.md's
+"Database schema migrations" section shows how to check.
+
+## Amending the unreleased head
+
+When head has not shipped yet, a schema change is added to head instead of
+bumping it, and head's dump has to be taken again. Regenerate **only** the head
+files: write a fresh head database (step 2 below), dump it over
+`drift_schema_v<head>.json`, and regenerate `schema_v<head>.dart` (steps 3 and
+4). `drift_dev schema generate` rewrites every version's class, so check that
+those below head come out byte-identical and commit only head's. Earlier
+versions have shipped, so their dumps must not change.
 
 ## Regenerating
 

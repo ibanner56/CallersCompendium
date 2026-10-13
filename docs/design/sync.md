@@ -1814,8 +1814,9 @@ permanently.
 did, and both were wrong before review finished. The first called it v22; #748
 landed `dance_figures.group_idx` as v22 while the design was being written. The
 second called it v23; `main` reached 24 before the ADR was accepted. The number
-is whatever `kCompendiumSchemaVersion + 1` is on the day the migration lands, and
-that is the only form of the statement that cannot go stale — a design under
+is whatever the next unreleased schema version is on the day the migration lands
+(head itself if head has not shipped, else head + 1), and that is the only form
+of the statement that cannot go stale — a design under
 review for weeks has no business pinning a counter that other work increments.
 
 Whoever implements it reads the constant rather than this document. Nothing about

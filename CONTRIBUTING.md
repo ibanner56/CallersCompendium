@@ -59,7 +59,23 @@ The local database schema is versioned by `schemaVersion` in
 [`packages/compendium_core/lib/src/storage/database.dart`](packages/compendium_core/lib/src/storage/database.dart).
 When you change the schema:
 
-- Bump `schemaVersion`, add the matching `MigrationStrategy` step, and ship a
+- **First check whether head has shipped.** A schema version is only worth a
+  number once a release carries it. If the latest release tag shipped an older
+  version than `main`'s, head is the unreleased *vNext*: add your change to
+  vNext instead of bumping again, so that every unreleased change ships together
+  under one version (the maintainer's direction, 2026-10-13). Find out with:
+
+  ```sh
+  git fetch --tags origin
+  tag=$(git for-each-ref --sort=-creatordate --count=1 \
+    --format='%(refname:short)' 'refs/tags/v*')
+  git show "$tag":packages/compendium_core/lib/src/storage/database.dart \
+    | grep -o 'kCompendiumSchemaVersion = [0-9]*'
+  ```
+
+  Bump only when that matches `main`. See
+  [Adding to an unreleased version](#adding-to-an-unreleased-version) below.
+- When you do bump, bump `schemaVersion`, add the matching `MigrationStrategy` step, and ship a
   migration test/fixture (`test/storage/migration_test.dart` and/or a
   `test/storage/fixtures/` fixture). CI **fails** a PR that bumps
   `schemaVersion` without adding or changing such a test/fixture.
@@ -72,6 +88,35 @@ When you change the schema:
   workspace and is driven from a throwaway project.
 - **Never bump `schemaVersion` in a PATCH release.** A schema change is a
   data-format change and rides at least a MINOR version bump.
+
+#### Adding to an unreleased version
+
+When head is vNext, a change joins it rather than following it:
+
+- Put the DDL in the existing `if (from < N)` step for vNext, beside what is
+  already there. Guard it on the live schema (`pragma_table_info`,
+  `sqlite_master`) as the neighbouring steps do, so the step stays idempotent.
+- Extend vNext's group in `migration_test.dart` (upgrading from the last
+  *shipped* version), and amend vNext's entry in the
+  [schema version history](docs/design/storage.md#schema-version-history)
+  rather than adding one.
+- Regenerate vNext's dump and schema class as the
+  [drift_schemas README](packages/compendium_core/drift_schemas/README.md#amending-the-unreleased-head)
+  describes. `schema_verification_test.dart` fails while the committed dump
+  is stale.
+- Add a `data_migrations` entry to your own `changelog.d/` fragment. The
+  release notes give the schema range once, from the version the previous
+  release shipped to vNext.
+
+CI checks less here than for a bump. The constant does not move, so neither
+`check_schema_migration.py` nor `check_version_history.py` notices the change:
+the migration test and the ledger entry are on you.
+
+Only someone running `main` from source can have a database already stamped
+vNext. It does not re-run the step, so it lacks what you added, and the app
+fails on the first query that reads the new column or table. That is accepted:
+recreate such a database, or apply the DDL to it by hand. It is never a reason
+to bump.
 
 Old schema versions are **retired** once they fall below the oldest supported
 release: `kMinSupportedSchemaVersion` is the floor, a database stamped below it

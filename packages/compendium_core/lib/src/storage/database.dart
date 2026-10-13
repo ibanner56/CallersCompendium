@@ -540,7 +540,13 @@ const int kMinSupportedSchemaVersion = 35;
 ///   takes effect for every bundle imported after the upgrade). No figure index
 ///   is touched; no derived rebuild is required.
 ///
-/// Every future migration must (a) bump [schemaVersion], (b) add a
+/// Bump [schemaVersion] only when the current value has shipped in a release.
+/// While it has not, a schema change joins that version's `MigrationStrategy`
+/// step, test, history entry and dump instead of adding a version that would
+/// never be released. CONTRIBUTING.md ("Adding to an unreleased version")
+/// gives the check and the steps.
+///
+/// Every bump must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, (c) ship a test that
 /// opens a fixture DB created at the previous version and asserts the
 /// migrated schema/data (see `test/storage/migration_test.dart`), and (d) add a
