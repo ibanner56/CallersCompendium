@@ -21,6 +21,7 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'canonical_discouraged_terms' =>
     l10n.settingsDialectCanonicalDiscouragedTermsTitle,
   'canonical_figure_text' => l10n.settingsDialectCanonicalFigureTextTitle,
+  'capitalize_figures' => l10n.settingsGeneralCapitalizeFiguresTitle,
   'collection_hidden_facets' => l10n.settingsDefaultsCollectionFiltersHeader,
   'collection_tile_visible_fields' => l10n.settingsDefaultsCollectionCardHeader,
   'colour_dance_theme' => l10n.settingsAppearanceColourDanceTitle,

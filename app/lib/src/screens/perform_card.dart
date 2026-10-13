@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/formation_colors_scope.dart';
+import '../data/capitalize_figures_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/perform_text_scale.dart'
@@ -1183,6 +1184,7 @@ class _FigureRow extends StatelessWidget {
       noteText.isNotEmpty ? 'yes' : 'no',
       noteText,
     );
+    final capitalize = CapitalizeFiguresScope.of(context);
     final textStyle = theme.textTheme.headlineSmall?.merge(
       AppTypography.performBody,
     );
@@ -1221,9 +1223,15 @@ class _FigureRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (mainSpans != null)
-                    Text.rich(_emphasisSpan(mainSpans!), style: textStyle)
+                    Text.rich(
+                      _emphasisSpan(_capitalizedLead(mainSpans!, capitalize)),
+                      style: textStyle,
+                    )
                   else
-                    Text(text, style: textStyle),
+                    Text(
+                      capitalizeFirstLetter(text, capitalize: capitalize),
+                      style: textStyle,
+                    ),
                   if (noteText.isNotEmpty)
                     Text.rich(_emphasisSpan(noteSpans!), style: noteStyle),
                 ],
@@ -1246,6 +1254,25 @@ class _FigureRow extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// [spans] with the first letter of the first span capitalized when
+  /// [capitalize] is set (the "Capitalize figures" setting). Only the visible
+  /// text changes; the semantics label is built from the unmodified spans.
+  static List<EmphasisSpan> _capitalizedLead(
+    List<EmphasisSpan> spans,
+    bool capitalize,
+  ) {
+    if (!capitalize || spans.isEmpty) return spans;
+    final lead = spans.first;
+    return [
+      EmphasisSpan(
+        text: capitalizeFirstLetter(lead.text, capitalize: true),
+        bold: lead.bold,
+        underline: lead.underline,
+      ),
+      ...spans.skip(1),
+    ];
   }
 
   /// Builds a `TextSpan` tree from parsed [EmphasisSpan]s, applying bold and/or

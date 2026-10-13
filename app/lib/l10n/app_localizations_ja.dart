@@ -2530,6 +2530,13 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get settingsGeneralCapitalizeFiguresTitle => 'フィギュアを大文字で始める';
+
+  @override
+  String get settingsGeneralCapitalizeFiguresSubtitle =>
+      'オンにすると、ダンス表示、Perform モード、フィギュアエディターの各フィギュアが大文字で始まります（「Neighbors allemande left」）。オフの場合は、フィギュアは書かれたとおりに表示され、組み込みのフィギュアは ContraDB と同様に小文字で始まります。変更されるのはこれらの場所での表示のみで、エクスポート、検索、同期の比較、スクリーンリーダーの読み上げ文言は変わりません。';
+
+  @override
   String get settingsGeneralAccessibilityHeader => 'アクセシビリティ';
 
   @override

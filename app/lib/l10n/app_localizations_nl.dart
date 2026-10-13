@@ -2680,6 +2680,14 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get settingsGeneralCapitalizeFiguresTitle =>
+      'Figuren met hoofdletter beginnen';
+
+  @override
+  String get settingsGeneralCapitalizeFiguresSubtitle =>
+      'Als ingeschakeld, begint elke figuur in de dansweergave, de Perform-modus en de figuureditor met een hoofdletter (“Neighbors allemande left”). Als uitgeschakeld, worden figuren getoond zoals ze zijn geschreven; ingebouwde figuren beginnen met een kleine letter, zoals in ContraDB. Alleen het uiterlijk van figuren op die plekken verandert; exports, zoeken, synchronisatievergelijkingen en de tekst voor schermlezers blijven ongewijzigd.';
+
+  @override
   String get settingsGeneralAccessibilityHeader => 'Toegankelijkheid';
 
   @override
