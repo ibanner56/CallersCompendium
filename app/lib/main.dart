@@ -69,6 +69,7 @@ import 'src/data/single_instance_guard.dart';
 import 'src/data/soft_delete_retention.dart';
 import 'src/data/sort_ignore_articles_scope.dart';
 import 'src/data/verbose_figure_rendering_scope.dart';
+import 'src/data/capitalize_figures_scope.dart';
 import 'src/data/decimal_turns_scope.dart';
 import 'src/data/canonical_discouraged_terms_scope.dart';
 import 'src/data/display_defaults.dart' show kCanonicalDiscouragedTermsKey;
@@ -547,6 +548,12 @@ class _CompendiumAppState extends State<CompendiumApp>
     decode: (Object? v) => v is bool ? v : false,
     encode: (v) => v,
   );
+  final _capitalizeFiguresNotifier = PreferenceNotifier<bool>(
+    key: kCapitalizeFiguresKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
   final _aggressiveBeatsUpdateNotifier = PreferenceNotifier<bool>(
     key: kAggressiveBeatsUpdateKey,
     defaultValue: false,
@@ -946,6 +953,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _verboseFigureRenderingNotifier,
     _canonicalDiscouragedTermsNotifier,
     _decimalTurnsNotifier,
+    _capitalizeFiguresNotifier,
     _aggressiveBeatsUpdateNotifier,
     _confirmBeforeDeleteNotifier,
     _venueEntityModeNotifier,
@@ -1707,6 +1715,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _verboseFigureRenderingNotifier.dispose();
     _canonicalDiscouragedTermsNotifier.dispose();
     _decimalTurnsNotifier.dispose();
+    _capitalizeFiguresNotifier.dispose();
     _aggressiveBeatsUpdateNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
     _venueEntityModeNotifier.dispose();
@@ -2256,6 +2265,10 @@ class _CompendiumAppState extends State<CompendiumApp>
       child: child,
     ),
     (child) => DecimalTurnsScope(notifier: _decimalTurnsNotifier, child: child),
+    (child) => CapitalizeFiguresScope(
+      notifier: _capitalizeFiguresNotifier,
+      child: child,
+    ),
     (child) => AggressiveBeatsUpdateScope(
       notifier: _aggressiveBeatsUpdateNotifier,
       child: child,

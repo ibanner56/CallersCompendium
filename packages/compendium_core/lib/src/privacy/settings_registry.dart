@@ -73,6 +73,7 @@ final Map<String, DataClassification> settingsClassifications = {
   'active_dialect_ref': _preference,
   'verbose_figure_rendering': _preference,
   'decimal_turns': _preference,
+  'capitalize_figures': _preference,
   'free_text_entry': _preference,
   'aggressive_beats_update': _preference,
   'canonical_figure_text': _preference,

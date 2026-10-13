@@ -2705,6 +2705,14 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get settingsGeneralCapitalizeFiguresTitle =>
+      'Mettre une majuscule aux figures';
+
+  @override
+  String get settingsGeneralCapitalizeFiguresSubtitle =>
+      'Activé : chaque figure dans la vue de la danse, le mode Perform et l’éditeur de figures commence par une majuscule (« Neighbors allemande left »). Désactivé : les figures s’affichent telles qu’elles sont écrites ; les figures intégrées commencent par une minuscule, comme dans ContraDB. Seul l’aspect des figures à ces endroits change ; les exports, la recherche, les comparaisons de synchronisation et le texte lu par les lecteurs d’écran restent identiques.';
+
+  @override
   String get settingsGeneralAccessibilityHeader => 'Accessibilité';
 
   @override
