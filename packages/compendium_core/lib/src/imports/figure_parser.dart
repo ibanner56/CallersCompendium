@@ -2118,24 +2118,33 @@ _Match? _heyStartBy(List<String> w) {
   });
 }
 
+/// Extent words of a circular hey -> number of changes (quarters of a full
+/// four-change circuit). `1/2` is the only non-quarter spelling accepted.
+final Map<String, int> _circularHeyExtents = {
+  for (var n = 1; n <= 10; n++) '$n/4': n,
+  '1/2': 2,
+  'full': 4,
+};
+
 /// `circular_hey` (taxonomy v36): "3/4 circular hey, neighbors pass right
 /// across" / "full circular hey, ones pass left along", plus the "square hey"
 /// alias (ADR-006 §7.4). This is the shape the display renderer itself writes,
 /// so a hand-typed or copied line round-trips into the structured move.
 ///
 /// Every fact the move stores is REQUIRED from the text, never defaulted: the
-/// extent (`3/4` -> `changes: '3'`; `full` or `4/4` -> `'4'`), the group that
-/// passes first, the shoulder and the direction. A bare "circular hey" would
-/// otherwise be stored with the taxonomy's defaults and read back as a stated
-/// "full, neighbors, right, across". Any other extent ("1/2", "5/4") or ANY
-/// leftover token yields null, so the line degrades to a faithful custom
-/// figure.
+/// extent as a quarter-fraction of a full circuit (`N/4` -> `changes: N`,
+/// `1/2` -> 2, `full` -> 4), the group that passes first, the shoulder and the
+/// direction. A bare "circular hey" would otherwise be stored with the
+/// taxonomy's defaults and read back as a stated "full, neighbors, right,
+/// across". An extent outside `1/4`..`10/4` or ANY leftover token yields null,
+/// so the line degrades to a faithful custom figure.
 _Match? _circularHey(List<String> w) {
-  String? changes;
-  if (_consumePhrase(w, ['3/4'])) {
-    changes = '3';
-  } else if (_consumePhrase(w, ['full']) || _consumePhrase(w, ['4/4'])) {
-    changes = '4';
+  int? changes;
+  for (final entry in _circularHeyExtents.entries) {
+    if (_consumePhrase(w, [entry.key])) {
+      changes = entry.value;
+      break;
+    }
   }
   if (changes == null) return null;
   if (!_consumePhrase(w, ['circular', 'hey']) &&

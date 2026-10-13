@@ -1611,6 +1611,8 @@ class FigureRenderer {
       return _formatFractionVerbose(value);
     }
     if (spec?.kind == ParamKind.places && value is int) {
+      // `circular_hey.changes` counts changes, not places around a ring.
+      if (name == 'changes') return value == 1 ? '1 change' : '$value changes';
       return _formatPlaces(value);
     }
     if (value is num) return _formatNumber(value);
@@ -2539,20 +2541,20 @@ class FigureRenderer {
       );
     },
     // `circular_hey` (v36): "3/4 circular hey, neighbors pass right across".
-    // The fraction names a partial circuit and is dropped for the full four
-    // changes, the default. `who` is the group that passes first, so it reads
+    // The fraction counts changes out of the four of a full circuit and is
+    // dropped for the full four changes, the default. `who` is the group that passes first, so it reads
     // as the plural group noun the verb agrees with ("neighbors pass"). A
-    // `changes` outside {3, 4} (tolerantly-decoded data) is dropped rather
-    // than guessed at.
+    // other count reads as its quarter-fraction ("1/4", "5/4").
     'circular_hey': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final who = params['who'];
+      final changes = params['changes'];
       final swho = who is String
           ? r._displayGroup(who, dialect)
           : r._displaySubject(who, dialect);
       return _displayTemplate({
         'move': move,
-        'fraction': params['changes'] == '3' ? '3/4' : '',
+        'fraction': changes is int && changes != 4 ? '$changes/4' : '',
         'who': swho,
         'shoulder': _displayScalar(params['shoulder']),
         'where': _displayScalar(params['where']),

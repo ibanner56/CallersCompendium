@@ -1607,15 +1607,18 @@ fails a PR that moves the constant without adding the matching entry.
     [ADR-006](../adr/006-english-country-dance-canonical-grammar.md) §7.4 as a
     starting point; ADR-006 §2 keeps the ECD definition separate. Params: `who`
     (default `neighbors`; the group that passes first, so there is no `whom`,
-    mirroring `square_through.who`), `changes` (choice `'3'`/`'4'`, default
-    `'4'`), `shoulder` (default `right`), `where` (default `across`) and
-    `beats`. `changes` drives `paramBeats` (3 -> 8, 4 -> 12; default 12). Only
-    3 and 4 are admitted; any other count stays custom text. The display line
-    is "3/4 circular hey, neighbors pass right across", dropping the fraction at
-    four changes. The shared free-text recognizer reads that same sentence
-    (plus "full"/"4/4" and "square hey"), requiring the extent, group, shoulder
-    and direction rather than defaulting them. Purely additive: no schema
-    migration, no derived-index rebuild (no existing figure changes).
+    mirroring `square_through.who`), `changes` (`ParamKind.places`, any whole
+    number 1..10 like `circle.places`, default 4), `shoulder` (default
+    `right`), `where` (default `across`) and `beats`. `changes` drives
+    `paramBeats`: 1 -> 2, 2 -> 4, 3 -> 8, 4 -> 12 (default), 5 and above -> 16.
+    Above six changes 16 is a placeholder the user is expected to override.
+    Canonical text names the count ("3 changes"), not "places". The display
+    line is "3/4 circular hey, neighbors pass right across", showing `N/4` for
+    any count but four. The shared free-text recognizer reads that sentence
+    (`1/4`..`10/4`, `1/2`, `full`, and "square hey"), requiring the extent,
+    group, shoulder and direction rather than defaulting them. Purely
+    additive: no schema migration, no derived-index rebuild (no existing
+    figure changes).
 
 ## Open questions (to resolve during implementation, with user input)
 

@@ -712,7 +712,7 @@ its notes in §7 say so.
 | `swat_the_flea` | stored as `box_the_gnat` with `hand` fixed to left | `{who} swat the flea` |
 | `circle` | `direction` (left), `places` (4), `singleFile` (no) | `circle {direction} {places}` |
 | `star` | `hand` (right), `places` (4), `grip` (none) | `star {hand} {places}` plus a "hands across" / "wrist grip" clause when grip is set |
-| `circular_hey` (**not** the ECD §7.4 entry) | `who` (neighbors, passes first), `changes` (4; 3 or 4), `shoulder` (right), `where` (across) | `{fraction} circular hey, {who} pass {shoulder} {where}`; fraction shown only for 3 changes ("3/4") |
+| `circular_hey` (**not** the ECD §7.4 entry) | `who` (neighbors, passes first), `changes` (4; any whole number 1-10), `shoulder` (right), `where` (across) | `{fraction} circular hey, {who} pass {shoulder} {where}`; fraction (`changes`/4) shown unless `changes` is 4 |
 | `figure_8` | `who` (ones), `where` (none / above / below / across), `lead` (a single dancer, ones' role2), `fraction` (half) | `{who} {fraction} figure 8` |
 | `poussette` | `who` (ones), `whom` (neighbors), `fraction` (half), `direction` (clockwise) | `{who} poussette {whom} {fraction} {direction}` |
 | `gate` | `who`, `pair`, `whom`, `direction`, `travel`, `endFacing` (all unspecified) | `{who} {pair} gate {whom} {direction} {travel} {endFacing}` |

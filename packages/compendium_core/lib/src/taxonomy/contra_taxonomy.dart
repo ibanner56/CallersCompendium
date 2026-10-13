@@ -1465,29 +1465,40 @@ final Taxonomy contraTaxonomy = Taxonomy(
     // v36: the four-dancer circular hey. ADR-006 §7.4 is the starting point,
     // but this is defined for contra on its own terms (ADR-006 §2: ECD owns
     // its definitions), so ECD's `whom` and `slow` are not carried over. `who`
-    // is the group that passes first, mirroring `square_through.who`. `changes`
-    // counts the passes: 3 is a 3/4 circular hey (8 beats), 4 the full circuit
-    // (12 beats, the default). Only 3 and 4 are admitted because those are the
-    // counts the maintainer specified beat counts for; any other count stays
-    // custom text rather than being rounded to one the taxonomy can size.
+    // is the group that passes first, mirroring `square_through.who`.
+    // `changes` counts the passes and, like `circle.places`, is any whole
+    // number 1..10 ([ParamKind.places]). Beats follow the maintainer's table:
+    // 1 -> 2, 2 -> 4, 3 -> 8, 4 -> 12 (the full circuit, the default) and 5
+    // or more -> 16. Above six changes 16 is only a placeholder: the caller is
+    // expected to set their own `beats`.
     const MoveDef(
       id: 'circular_hey',
       displayName: 'circular hey',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
-        'changes': ParamSpec(
-          ParamKind.choice,
-          defaultValue: '4',
-          choices: ['3', '4'],
-        ),
+        'changes': ParamSpec(ParamKind.places, defaultValue: 4),
         'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
         'where': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 12),
       },
       renderTemplate: '{who} {move} {changes} {shoulder} {where}',
       searchKeywords: ['square hey'],
-      goodBeats: [8, 12],
-      paramBeats: ParamBeats(param: 'changes', byValue: {'3': 8, '4': 12}),
+      goodBeats: [2, 4, 8, 12, 16],
+      paramBeats: ParamBeats(
+        param: 'changes',
+        byValue: {
+          1: 2,
+          2: 4,
+          3: 8,
+          4: 12,
+          5: 16,
+          6: 16,
+          7: 16,
+          8: 16,
+          9: 16,
+          10: 16,
+        },
+      ),
     ),
     const MoveDef(
       id: 'dolphin_hey',
