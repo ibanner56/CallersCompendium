@@ -442,7 +442,9 @@ every one of these holds:
    within one second reads as equal to the current manifest. Comparing two
    devices' clocks can also exclude a live peer whose clock runs slow, or one
    that published in the same second; that only makes the clean-up skip,
-   which condition 5 is allowed to do.
+   which condition 5 is allowed to do. So does a peer that has synced since
+   but had nothing new to publish (§6.3 step 8): it counts only once it
+   publishes again, on a change or when its refresh interval passes.
 
 There is no condition on unsynced local edits, and none is needed: an edit this
 device never published is not in its server manifest, so removing that manifest
@@ -2773,8 +2775,12 @@ republishes, which is an ordinary upload and needs no special path.
    > four passes and about 4 minutes at 5 a second, measured. The batch upload was added by the change that added
    > this note, by its author rather than the maintainer.
 8. `PUT /v1/manifests/{self}`, unless the last publication is current (step
-   7) and the final manifest, encoded with its `writtenAt` fixed, is
-   byte-identical to the one it recorded. A client that skips the `PUT` skips
+   7), the final manifest, encoded with its `writtenAt` fixed, is
+   byte-identical to the one it recorded, and the pass took every record its
+   peers' manifests list. A pass that left any peer's record unresolved,
+   refused it (§6.9) or held it back as quarantined publishes regardless, so
+   that a device refusing a record keeps publishing as §6.9's judgement of it
+   requires. A client that skips the `PUT` skips
    step 7's network requests with it, and still stores the baseline (step 9).
    The record of what was published MUST be cleared before every `PUT` and
    written only after one succeeds: a `PUT` whose answer was lost may still
@@ -3772,9 +3778,9 @@ manifest's `writtenAt`:
   peer).
 - **Refusing** — the peer has published at least twice since, with distinct
   `writtenAt` values, and its manifest still does not carry the record's hash.
-  A peer with nothing new republishes only once its refresh interval passes
-  (§6.3 step 8), so a refusing peer is recognised over that many hours of its
-  use rather than over two of its passes.
+  A peer that refuses or cannot take a record publishes on every pass that
+  does so, unchanged or not (§6.3 step 8), so this judgement is unaffected by
+  peers skipping publications that carry nothing new.
   This MUST be reported, once per record and peer, and the report MUST carry
   the peer's id. Twice, not once: a pass that was already running when this
   device published can finish afterwards without having read its manifest.
@@ -5338,7 +5344,10 @@ always publish). A changed record asks only about its own new hash (mutation:
 ask about every hash) and keeps the earlier confirmation time (mutation: stamp
 it now). The interval passing, the clock going back, and the store no longer
 listing this device each publish in full (mutation: drop the check). A failed
-`PUT` leaves nothing recorded (mutation: clear only after it). A new session
+`PUT` — refused, stale-epoch or thrown — leaves nothing recorded (mutation:
+clear only after it). A pass that cannot take a peer's record still publishes
+(mutation: skip it anyway). A fresh attach records its continuation's
+publication after the baseline it starts (mutation: record it before). A new session
 relies on the stored record and checks every blob when the manifest changed.
 A blob this device holds locally but does not publish — an import
 `sync_exclude_imports` keeps back, the live row behind a pending tombstone — is

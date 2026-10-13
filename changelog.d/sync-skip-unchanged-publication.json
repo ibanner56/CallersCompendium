@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "Device Sync sends much less when nothing has changed. A sync with nothing new to share no longer re-checks every record with the sync server or re-sends this device's list of records, which also spares your other devices from downloading that list again. At least every 12 hours a device that's in use still sends it in full, so your other devices keep seeing when it last shared changes.",
+      "Device Sync sends much less when nothing has changed. A sync with nothing new to share no longer re-checks every record with the sync server or re-sends this device's list of records, which also spares your other devices from downloading that list again. A device that's in use still sends it in full at least every 12 hours.",
       "Device Sync no longer downloads again records this device already has but doesn't share: imported dances that **Skip unused imported dances** keeps back, and records you've deleted whose deletion hasn't reached your other devices yet."
     ],
     "data_migrations": [
