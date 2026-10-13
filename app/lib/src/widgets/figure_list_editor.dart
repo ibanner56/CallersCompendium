@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/aggressive_beats_update_scope.dart';
 import '../data/reduce_motion_scope.dart';
+import '../data/capitalize_figures_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../editor/figure_draft.dart';
 import '../search/facet_labels.dart';
@@ -1603,7 +1604,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     }
 
     final sentence = hasMove
-        ? displaySummary(verbose: false)
+        ? capitalizeFirstLetter(
+            displaySummary(verbose: false),
+            capitalize: CapitalizeFiguresScope.of(context),
+          )
         : l10n.danceEditorEmptyFigureSummary;
     final spoken = hasMove
         ? displaySummary(verbose: true)

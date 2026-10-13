@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
+import 'package:compendium_app/src/data/capitalize_figures_scope.dart';
 import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
@@ -47,6 +48,9 @@ Future<void> _pumpGeneral(
   final decimalTurns = ValueNotifier<bool>(
     await repos.settings.get(kDecimalTurnsKey) == true,
   );
+  final capitalizeFigures = ValueNotifier<bool>(
+    await repos.settings.get(kCapitalizeFiguresKey) == true,
+  );
   addTearDown(dialect.dispose);
   addTearDown(theme.dispose);
   addTearDown(customThemes.dispose);
@@ -54,6 +58,7 @@ Future<void> _pumpGeneral(
   addTearDown(verboseFigures.dispose);
   addTearDown(confirmDelete.dispose);
   addTearDown(decimalTurns.dispose);
+  addTearDown(capitalizeFigures.dispose);
 
   await tester.pumpWidget(
     MaterialApp(
@@ -73,9 +78,12 @@ Future<void> _pumpGeneral(
                   notifier: verboseFigures,
                   child: DecimalTurnsScope(
                     notifier: decimalTurns,
-                    child: ConfirmBeforeDeleteScope(
-                      notifier: confirmDelete,
-                      child: const SettingsScreen(),
+                    child: CapitalizeFiguresScope(
+                      notifier: capitalizeFigures,
+                      child: ConfirmBeforeDeleteScope(
+                        notifier: confirmDelete,
+                        child: const SettingsScreen(),
+                      ),
                     ),
                   ),
                 ),
@@ -102,6 +110,7 @@ void main() {
     'general-reduce-motion': kReduceMotionKey,
     'general-verbose-figures': kVerboseFigureRenderingKey,
     'general-decimal-turns': kDecimalTurnsKey,
+    'general-capitalize-figures': kCapitalizeFiguresKey,
     'general-confirm-before-delete': kConfirmBeforeDeleteKey,
   };
 

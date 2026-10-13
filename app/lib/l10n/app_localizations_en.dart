@@ -2633,6 +2633,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get settingsGeneralCapitalizeFiguresTitle => 'Capitalize figures';
+
+  @override
+  String get settingsGeneralCapitalizeFiguresSubtitle =>
+      'When on, each figure starts with a capital letter (“Neighbors allemande left”). When off, figures start in lower case, as in ContraDB. Only how figures look on screen changes; exports, search and screen-reader wording are unaffected.';
+
+  @override
   String get settingsGeneralAccessibilityHeader => 'Accessibility';
 
   @override

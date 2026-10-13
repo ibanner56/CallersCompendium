@@ -4183,6 +4183,18 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Don\'t show} =1{1 venue} other{{count} venues}}'**
   String settingsProgramVenueCallCountOption(num count);
 
+  /// Title of the General settings Library toggle that capitalizes the first letter of each figure shown on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Capitalize figures'**
+  String get settingsGeneralCapitalizeFiguresTitle;
+
+  /// Subtitle explaining the capitalize figures toggle. ContraDB is a product name and stays untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, each figure starts with a capital letter (“Neighbors allemande left”). When off, figures start in lower case, as in ContraDB. Only how figures look on screen changes; exports, search and screen-reader wording are unaffected.'**
+  String get settingsGeneralCapitalizeFiguresSubtitle;
+
   /// General settings section header for accessibility preferences.
   ///
   /// In en, this message translates to:

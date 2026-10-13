@@ -2712,6 +2712,14 @@
   "@settingsProgramVenueCallCountOption": {
     "x-sourceSha256": "1c0cfc72e21f8c2822ac39f1e745a46fad5fe0ec3d19811be896910962f1925b"
   },
+  "settingsGeneralCapitalizeFiguresTitle": "Figuren großschreiben",
+  "@settingsGeneralCapitalizeFiguresTitle": {
+    "x-sourceSha256": "c841b9d27fa36cfe2705a7247038669178a9773692bbb78c7886cfcdeff5d6d0"
+  },
+  "settingsGeneralCapitalizeFiguresSubtitle": "Wenn aktiviert, beginnt jede Figur mit einem Großbuchstaben („Neighbors allemande left“). Wenn deaktiviert, beginnen Figuren wie in ContraDB mit einem Kleinbuchstaben. Nur die Darstellung der Figuren auf dem Bildschirm ändert sich; Exporte, Suche und Screenreader-Wortlaut bleiben unverändert.",
+  "@settingsGeneralCapitalizeFiguresSubtitle": {
+    "x-sourceSha256": "418218866f254c964e02d8947d63a7c88698632867b218d1cd39610fa488b8f1"
+  },
   "settingsGeneralAccessibilityHeader": "Barrierefreiheit",
   "@settingsGeneralAccessibilityHeader": {
     "x-sourceSha256": "d3368cbffe23c98da887d279a1b5c74b7618ba5c0488cbed30cf304f8f9398a1"
