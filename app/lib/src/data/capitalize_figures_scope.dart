@@ -32,7 +32,8 @@ class CapitalizeFiguresScope extends InheritedNotifier<ValueNotifier<bool>> {
   ///
   /// Returns `false` (the off-by-default behavior) when there is no
   /// [CapitalizeFiguresScope] ancestor, so callers — and tests that don't wire
-  /// the scope — get the product default of lower-case figures.
+  /// the scope — get the product default: figures shown as written (built-in
+  /// figures start in lower case).
   static bool of(BuildContext context) {
     final scope = context
         .dependOnInheritedWidgetOfExactType<CapitalizeFiguresScope>();
