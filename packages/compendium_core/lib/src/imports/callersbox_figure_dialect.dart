@@ -2835,11 +2835,13 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 /// always meaning "custom", which was never quite true and is now broadly
 /// untrue:
 ///
-/// - **The run IS the figure's structure** — [_hey], and
-///   [grandRightAndLeftFromPassList]. Without the pass list there is nothing to
-///   build, so the line goes to the custom fallback. `Hey 1/2 (P6R;P7L)` is
-///   custom.
-/// - **The run only ADDS params** — [_squareThroughPassList] (#799) and the
+/// - **The run IS the figure's structure** — [_hey],
+///   [grandRightAndLeftFromPassList], and [_squareThroughPassList]'s
+///   `without hands` form (a circular hey). Without the pass list there is
+///   nothing to build, so the line goes to the custom fallback.
+///   `Hey 1/2 (P6R;P7L)` and `Square through 3 without hands (C1R;C2L;C1R)`
+///   are custom.
+/// - **The run only ADDS params** — plain [_squareThroughPassList] (#799) and the
 ///   general [_decodeSideRunAnnotation] (#843). The line still structures through the
 ///   shared recognizer; it simply keeps the taxonomy's defaults instead of the
 ///   values the run states. `Square through 2 (C1R;C2L)` stays a
