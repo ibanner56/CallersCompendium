@@ -187,8 +187,14 @@ enum EgressClass {
   /// sending it would be redundant as well as risky.
   derived,
 
-  /// An opaque identifier the protocol must transmit for routing, but which
-  /// must never be adopted from a peer.
+  /// An opaque value the protocol must transmit — for routing, or as a cache
+  /// validator — only to the store it came from, and which is never taken as
+  /// this device's own.
+  ///
+  /// Its members carry no user data by construction: random bytes a device
+  /// minted (this device's id, or a peer's as the store lists it), or a
+  /// server-issued hash of data that server already holds (a manifest's
+  /// `ETag`). See the class table in `docs/design/sync.md`.
   protocolIdentifier,
 
   /// The address of a shared store on the configured endpoint — in effect a

@@ -509,9 +509,22 @@ a sixth, `storeAddress`, for the sync ID itself — recorded below the table.
 | --- | --- | --- | --- |
 | In a record blob | Never | Never | Never |
 | In a request path or envelope | Never | Yes, to the configured endpoint only | Yes, in `Authorization`, to that origin only |
-| Adopted from a peer | N/A | Never — each installation mints its own | Never — entered or generated locally |
-| Content | Any local value | Opaque random bytes, derived from nothing | May be user-chosen, so may carry personal content |
+| Adopted from a peer | N/A | Never taken as this device's own | Never — entered or generated locally |
+| Content | Any local value | Opaque, no user data by construction: random bytes a device minted, or a server-issued hash of data that server already holds | May be user-chosen, so may carry personal content |
 | Retention | Local only | Stated, bounded, and disclosed | By server/proxy: never retained recoverably; never logged. Local persistence follows the settings classification. |
+
+> **Amended 2026-10-14, by the maintainer's decision.** `protocolIdentifier` was
+> defined for this device's own id: "opaque random bytes, derived from nothing",
+> each installation minting its own, sent "for routing". Keeping peer manifests
+> across restarts (#1757) filed two more values under it, because each is sent
+> back to the store and `deviceScoped`'s "any route" is absolute:
+> `peer_manifests.peer_id`, an id another device minted, and
+> `peer_manifests.etag`, the server's content hash of a manifest, returned in
+> `If-None-Match`. The definition was widened to describe what the class holds
+> rather than to list them as exceptions. The guarantee it exists for is
+> unchanged: no user data by construction, never adopted as this device's own,
+> and sent only to the store it came from. A new class for server-issued
+> validators was the alternative not taken.
 
 A later Copilot round found that `sync_id` had the same defect the device ID
 had, one row down in the same table: it was `deviceScoped` while travelling on
