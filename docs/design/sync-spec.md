@@ -1579,8 +1579,8 @@ Three readers MUST stay strict, and each for its own reason:
 Added in #709 as the client half of introducing new record kinds. It protects
 only builds that have it: a build older than it still refuses the whole
 manifest. So publishing a new kind's records still has to wait until no
-attached device is older than that; #709 is adding a capability gate that
-does that waiting per store.
+attached device is older than that; the capability gate (§6.15) does that
+waiting per store.
 
 ### 4.6 Text sanitisation
 
