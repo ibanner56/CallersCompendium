@@ -21,6 +21,45 @@ core version. They are left that way deliberately — do not renumber them.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-14
+
+### Added
+
+- The shared figure recognizer reads `two-hand turn` (hyphenated, subject before or after, spin words and a trailing `and face …` kept as the note) as `two_hand_turn`, and `<ones|twos> arch, <twos|ones> dive` as `arch_and_dive` with the arching pair as `who`.
+- Contra taxonomy v36 adds the `circular_hey` move (`who`, `changes` 1-10, `shoulder`, `where`), with 2, 4, 8 and 12 beats for one to four changes and 16 for five or more, and the shared free-text recognizer reads its display sentence (except the full circuit, which omits the extent and must be written with `full`) and the "square hey" alias.
+- Classify the `update_retirement_notice` setting as device-scoped installation state, so it never syncs and is never backed up.
+- `blob_batch_frames.dart`: the frame format of a `POST /v1/blobs/batch` response, with `encodeSyncBlobBatchFrameHead` for the server and the incremental `SyncBlobBatchFrameReader` for the client, and the route's caps (`syncBlobBatchMaxHashes`, `syncBlobBatchMaxBlobBytes`, `syncBlobBatchMaxResponseBytes`).
+- `blob_batch_frames.dart`: `SyncBlobBatchFrameReader.upload` reads the body of a `PUT /v1/blobs/batch` (blob frames only, no hash twice, at most `syncBlobBatchMaxUploadBlobs`), and `SyncBlobBatchFormatException.exceedsCap` marks a body that broke a cap rather than the format.
+- Schema v39 also adds the `peer_manifests` table, with `SyncLocalRepository.peerManifest`, `putPeerManifest`, `removePeerManifest` and `retainPeerManifests` (`SyncStoredPeerManifest`). `clearBaseline` clears it.
+- A record blob whose body carries a part a newer build added that this build cannot keep in place throws SyncNewerFieldException (a FormatException) and is reported as SyncReportCode.newerRecordFields or SyncReportCode.newerFigures; unknown or known-but-private parts that can be retained are kept and reported as SyncReportCode.keptNewerFields. SyncApplyEngine.applyJson reports an unretainable part by those codes, and a newer envelope by its own code.
+- `SyncReport.httpStatus` carries the HTTP status of the response that raised a report, when one did.
+- `syncApplyKindOrder` exposes the apply engine's kind order, in which every other kind a record can cite comes before it (cross-kind only: a dance can still cite another dance).
+- partitionInboundRecordBody and mergeRetainedFields split an inbound body into the part this build syncs and the parts it keeps for a newer version, and put them back; the retained_sync_fields table (schema v39) stores them, and every local body builder re-emits them.
+- SyncReportCode.newerFigures and SyncReportCode.keptNewerFields; figureJsonKeys and unsupportedFigurePath.
+- CompendiumSyncStorage.promoteRetainedSyncFields, run by ensureMigrated, moves kept parts this build now syncs into their records; pruneSyncedRetainedFields drops them wherever kept parts are put back.
+- Schema v39 also adds nullable `baseline_state.published_manifest_hash` and `baseline_state.published_verified_at`, with `SyncLocalRepository.publishedManifest` and `setPublishedManifest` (`SyncPublishedManifest`).
+- Add foldTitlePunctuation, titleMatchKey and contraDbTitleQueryVariants for matching online-source titles regardless of apostrophe, quote and dash style.
+
+### Changed
+
+- The figure parser reads "same-role neighbor" and "same-sex neighbor" as the `sameRoles` dancer set, and the TCB codes `S1`/`S-1` and `S2` as `shadows` and `secondShadows`.
+- Round non-quarter rotation and places amounts to the nearest quarter (ties half up) in the shared figure decoders, recording the source amount in the figure note; add roundFractionToQuarters. Exact 2 1/4 turns now structure as 2.25.
+- An equal-updatedAt tie is raised for the user only when the versions' user-visible fields (syncUserVisibleFields / syncUserVisibleBody) differ, with merged-away ids resolved; otherwise the version with the lowest content hash is kept on every device. SyncMergeEngine.plan takes the alias map. Every synced field must be in syncUserVisibleFields or syncUserHiddenFields (with a reason); a test enforces it.
+- SyncRecordBlob accepts a body carrying fields this build does not classify shareable, refusing (SyncNewerFieldException) only a part it cannot put back exactly. The apply overlay writes only the synced part. A tie on updatedAt that differs only in kept parts is reported, not settled.
+
+### Fixed
+
+- The Caller's Box trailing balance-wave fold declines when the balance line's annotation does not decode, instead of dropping the annotation.
+- The Caller's Box figure dialect keeps `around the major set` and any annotation on a promenade line as the note wherever the phrase appears, and fills `promenade.destination` from a `to <dancer>` tail or `(to <dancer>)` annotation.
+- The Caller's Box front-end declines a line with a per-role turn-amount annotation `(M <amount>, W <amount>)` to custom.
+- resolveConflicts accepts an offered version filed under the id it was merged into.
+- CallersBoxAdapter's cross-line balance fold only merges a balance line into a following move when it balances the same dancers in the same formation: a stated subject must match the move's, a ring balance folds only into petronella, a balance-wave line only into a wave move, and a bare Balance never into a subject move.
+- canonicalContraDbFigureQuery accepts typographic apostrophes, so "Rory O’More" resolves to the ContraDB figure.
+
+### Removed
+
+- Raise `kMinSupportedSchemaVersion` from v20 to v35, the schema shipped by v0.4.0-beta. The `onUpgrade` steps for v21–v35, their fixtures, generators, schema dumps and generated schema classes are deleted; a database stamped below v35 is refused.
+
 ## [0.7.0] - 2026-10-06
 
 ### Added

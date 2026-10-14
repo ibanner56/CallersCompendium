@@ -8,6 +8,8 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-14
+
 ### Fixed
 
 - The reference Apache vhost (`server/deploy/athenaeum.conf`) proxied
@@ -25,6 +27,12 @@ the app and of `compendium_core`; version headings below refer to
   `AthenaeumBudgetLimits.perIpRequestsPerSecond` and `perStoreRequestsPerSecond`
   replace the per-minute fields. The failure and creation budgets are
   unchanged and still per minute.
+
+- The `compendium_core` schema advances from v38 → v39 for Device Sync
+  bookkeeping. The generated sync allow-list diff is empty, so this bump added
+  no shareable wire fields or record kinds. Clients running app `0.7.0` continue
+  to sync against older servers through one-blob requests; deploy server
+  `0.3.0` to enable the batch blob endpoints and per-second request budgets.
 
 ### Added
 
