@@ -2083,7 +2083,7 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: org.callerscompendium.compendiumApp
           releaseFiles: android-aab/CallersCompendium-*.aab
-          track: ${{ vars.PLAY_TRACK || 'internal' }}
+          tracks: ${{ vars.PLAY_TRACK || 'internal' }}
           status: ${{ vars.PLAY_RELEASE_STATUS || 'draft' }}
 
   # Publish refreshed manifests (stable.json / beta.json) to the persistent

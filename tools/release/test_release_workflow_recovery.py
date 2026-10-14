@@ -451,7 +451,7 @@ def main() -> None:
     )
     assert "if: ${{ !cancelled() && steps.play.outputs.upload == 'true' }}" in play_upload
     assert "packageName: org.callerscompendium.compendiumApp" in play_upload
-    assert "track: ${{ vars.PLAY_TRACK || 'internal' }}" in play_upload
+    assert "tracks: ${{ vars.PLAY_TRACK || 'internal' }}" in play_upload
     assert "status: ${{ vars.PLAY_RELEASE_STATUS || 'draft' }}" in play_upload
     assert "name: android-aab" in publish_mobile
 
