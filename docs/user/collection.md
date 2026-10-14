@@ -9,8 +9,8 @@ work.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Collection**, **Filters**, and **New dance**. The
-> first time a dance term appears it links to the
-> [Glossary](./glossary.md), so you can get a plain-language definition
+> first time a dance term appears it links to
+> [App terms](./glossary.md), so you can get a plain-language definition
 > without losing your place.
 
 If you are brand new here, start with the
@@ -397,5 +397,5 @@ level, by tag — use the Collection search and filters above.
   [Accessibility guide](./accessibility.md) covers screen readers, text
   size, high contrast, and keyboard use.
 
-Not sure what a word means? The [Glossary](./glossary.md) has plain
+Not sure what a word means? [App terms](./glossary.md) has plain
 definitions for every term used across these guides.

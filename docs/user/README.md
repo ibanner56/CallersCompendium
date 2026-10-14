@@ -55,7 +55,7 @@ Everything else can wait until you need it.
 | Change how the app looks or behaves | [Settings](settings.md) |
 | Send a crash report to the developers | [Settings — Diagnostics](settings.md#diagnostics) |
 | Work out why something isn't behaving | [FAQ & troubleshooting](faq.md) |
-| Look up a word I don't recognise | [Glossary](glossary.md) |
+| Look up a word I don't recognise | [App terms](glossary.md) |
 
 ## All guides
 
@@ -101,7 +101,7 @@ Everything else can wait until you need it.
 | Guide | What it covers |
 |---|---|
 | [FAQ & troubleshooting](faq.md) | Common questions and fixes for common snags |
-| [Glossary](glossary.md) | Plain definitions of the terms used throughout |
+| [App terms](glossary.md) | Plain definitions of the terms used throughout |
 
 ## Reading these guides inside the app
 

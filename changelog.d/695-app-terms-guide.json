@@ -1,0 +1,9 @@
+{
+  "id": "695-app-terms-guide",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The user guide's word list is now called App terms, so it isn't confused with the new Glossary of dance figures. It points to the Glossary for figure definitions."
+    ]
+  }
+}
