@@ -1073,6 +1073,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeAwaitingDevice(String tag) {
+    return 'Einige neue Arten von Daten auf diesem Gerät werden synchronisiert, sobald Gerät $tag auf die neueste Version der App aktualisiert oder aus Andere Geräte entfernt wurde. Sie sind hier sicher.';
+  }
+
+  @override
   String get settingsSyncNoticeNeedsYou => 'Erfordert dein Handeln';
 
   @override

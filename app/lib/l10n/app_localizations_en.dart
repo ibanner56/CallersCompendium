@@ -1057,6 +1057,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeAwaitingDevice(String tag) {
+    return 'Some new kinds of data on this device will start syncing once device $tag is updated to the latest version of the app, or removed from Other devices. They\'re safe here.';
+  }
+
+  @override
   String get settingsSyncNoticeNeedsYou => 'Needs you';
 
   @override

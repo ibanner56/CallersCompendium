@@ -57,6 +57,11 @@ const _expected = <_Case>[
     group: SyncNoticeGroup.newerVersion,
   ),
   (
+    code: SyncReportCode.withheldAwaitingDevices,
+    peerId: 'peer-1',
+    group: SyncNoticeGroup.awaitingDeviceUpdate,
+  ),
+  (
     code: SyncReportCode.keptNewerFields,
     peerId: null,
     group: SyncNoticeGroup.keptNewerFields,
@@ -382,10 +387,15 @@ void main() {
         syncNoticeNeedsYou(SyncNoticeGroup.unreflectedPublication),
         isTrue,
       );
+      // The capability gate's notice (#709) is per device too, naming the
+      // device that holds new data back; it is information, not needs-you.
       for (final group in SyncNoticeGroup.values) {
-        final perDevice = group == SyncNoticeGroup.unreflectedPublication;
+        final perDevice =
+            group == SyncNoticeGroup.unreflectedPublication ||
+            group == SyncNoticeGroup.awaitingDeviceUpdate;
         expect(syncNoticeIsPerDevice(group), perDevice, reason: group.name);
       }
+      expect(syncNoticeNeedsYou(SyncNoticeGroup.awaitingDeviceUpdate), isFalse);
     });
 
     test('lists each device it names once, in report order', () {

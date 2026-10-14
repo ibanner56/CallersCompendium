@@ -1067,6 +1067,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeAwaitingDevice(String tag) {
+    return 'Nogle nye typer data på denne enhed begynder at synkronisere, når enhed $tag er opdateret til den nyeste version af appen eller fjernet fra Andre enheder. De er sikre her.';
+  }
+
+  @override
   String get settingsSyncNoticeNeedsYou => 'Kræver din handling';
 
   @override

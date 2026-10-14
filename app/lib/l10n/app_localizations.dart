@@ -1520,6 +1520,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Device {tag} is syncing but isn\'t taking 1 change from this device. The change is safe here. That device may need an app update, or this device\'s date and time may be wrong.} other{Device {tag} is syncing but isn\'t taking {count} changes from this device. They\'re safe here. That device may need an app update, or this device\'s date and time may be wrong.}}'**
   String settingsSyncNoticePeerNotTaking(int count, String tag);
 
+  /// Informational Device Sync notice, one per other device: this device is holding back new kinds of data (for example custom compound figures) because that device runs an app version that couldn't read them. Holding back loses nothing. {tag} is the device's short random tag, exactly as on the Other devices screen (settingsSyncDeviceTag); never a name. 'Other devices' is the screen's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Some new kinds of data on this device will start syncing once device {tag} is updated to the latest version of the app, or removed from Other devices. They\'re safe here.'**
+  String settingsSyncNoticeAwaitingDevice(String tag);
+
   /// Short label beside the warning icon on a Device Sync notice that needs the user to do something, so the urgency is not carried by colour alone.
   ///
   /// In en, this message translates to:

@@ -1072,6 +1072,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeAwaitingDevice(String tag) {
+    return 'Sommige nieuwe soorten gegevens op dit apparaat worden gesynchroniseerd zodra apparaat $tag is bijgewerkt naar de nieuwste versie van de app of is verwijderd uit Andere apparaten. Ze zijn hier veilig.';
+  }
+
+  @override
   String get settingsSyncNoticeNeedsYou => 'Actie nodig';
 
   @override

@@ -95,6 +95,16 @@ enum SyncReportCode {
   /// diagnostics.
   newerRecordKind,
 
+  /// This device held back records waiting for a sync capability (#709)
+  /// because another attached device does not advertise it yet: a build that
+  /// could not read them. Local, like [withheldUnreadableRecord]: nothing was
+  /// received or refused. One report per device holding the capability
+  /// closed, carrying that device as `peerId`, so the notice can name it;
+  /// `kind` and `recordId` are null, and the message names the capability.
+  /// The records stay here and publish on the first pass after every device
+  /// advertises it, or after the device holding it back is removed.
+  withheldAwaitingDevices,
+
   /// A record on *this* device carries details a newer version of the app
   /// added, which this build keeps and shares back unchanged but cannot show
   /// (spec §6.7). Information only: the record syncs, nothing is wrong, and

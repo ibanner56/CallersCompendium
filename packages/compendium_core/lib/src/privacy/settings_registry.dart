@@ -368,6 +368,22 @@ final Map<String, DataClassification> settingsPrefixClassifications = {
         'Transient program-editor autosave draft, keyed per program '
         '(program_editor_draft:<id>). Same rationale as editor_draft:.',
   ),
+  // Each sync device's capability record (#709): which sync capabilities its
+  // build understands, so a device holds back data a peer could not read.
+  'sync_capabilities:': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note:
+        'Sync protocol metadata, keyed per attachment '
+        '(sync_capabilities:<deviceId>): the names of the sync capabilities '
+        'the device\'s build understands, nothing about the user. Travels so '
+        'every device can see what the others can read (#709 capability '
+        'gate). The device id in the key is the same protocolIdentifier every '
+        'manifest already carries. Never restored from a backup '
+        '(backup_service.dart denylists the prefix), since only its own device '
+        'may write it.',
+  ),
 };
 
 /// Resolves a settings-table [key] to its classification: an exact

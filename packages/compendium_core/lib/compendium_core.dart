@@ -124,6 +124,7 @@ export 'src/sync/sync_reconciliation.dart';
 export 'src/sync/sync_report.dart';
 export 'src/sync/sync_retained_fields.dart';
 export 'src/sync/sync_apply.dart';
+export 'src/sync/sync_capabilities.dart';
 export 'src/sync/sync_admission.dart';
 export 'src/sync/sync_review.dart';
 export 'src/sync/sync_conflict_compare.dart';

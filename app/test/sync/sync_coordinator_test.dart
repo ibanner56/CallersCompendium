@@ -6944,6 +6944,246 @@ void main() {
     });
   });
 
+  group('the capability gate (#709)', () {
+    const policy = SyncCapabilityPolicy(
+      advertised: {'test.v1'},
+      gatedSettingKeys: {'custom_dialects': 'test.v1'},
+    );
+    final stamp = DateTime.utc(2026, 7, 15, 12);
+    SyncMergeCandidate capabilityOf(String device, Set<String> caps) =>
+        SyncMergeCandidate.fromBlob(
+          SyncRecordBlob(
+            kind: SyncRecordKind.setting,
+            id: syncCapabilityRecordKey(device),
+            updatedAt: stamp,
+            deletedAt: null,
+            existenceAt: stamp,
+            body: {'value': syncCapabilityRecordValue(caps)},
+          ),
+        );
+    final gated = SyncMergeCandidate.fromBlob(
+      _setting('custom_dialects', 'mine', seconds: 10),
+    );
+    final plain = SyncMergeCandidate.fromBlob(_setting('theme_mode', 'dark'));
+
+    SyncCoordinator coordinatorFor(
+      _FakeStore store,
+      _FakeTransport transport, {
+      SyncCapabilityPolicy capabilities = policy,
+    }) => SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+      capabilityPolicy: capabilities,
+    );
+    _FakeTransport transportFor(
+      List<String> peers, {
+      Map<SyncRecordKind, Map<String, String>> peerRecords = const {},
+      Map<String, SyncHttpResponse> blobs = const {},
+    }) => _FakeTransport(
+      devices: ['device-a', ...peers],
+      peerManifests: {
+        for (final peer in peers)
+          peer: _manifest(deviceId: peer, records: peerRecords),
+      },
+      blobResponses: blobs,
+    );
+    Set<String> publishedSettings(_FakeTransport transport) =>
+        (decodeSyncManifest(
+                  utf8.decode(transport.manifestBodies.last),
+                ).records[SyncRecordKind.setting] ??
+                const <String, String>{})
+            .keys
+            .toSet();
+    List<SyncReport> awaiting(SyncPassResult result) => [
+      for (final report in result.reports)
+        if (report.code == SyncReportCode.withheldAwaitingDevices) report,
+    ];
+
+    test('(a) a device with no capability record holds gated data back, and '
+        'only that', () async {
+      final store = _FakeStore(
+        local: {gated.address: gated, plain.address: plain},
+      );
+      final transport = transportFor(['peer']);
+      final result = await coordinatorFor(store, transport).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(publishedSettings(transport), {'theme_mode'});
+      expect(awaiting(result).map((r) => r.peerId), ['peer']);
+    });
+
+    test('(b) once every other device advertises it, the next pass '
+        'publishes it', () async {
+      final peerCaps = capabilityOf('peer', {'test.v1'});
+      final store = _FakeStore(
+        local: {
+          gated.address: gated,
+          plain.address: plain,
+          peerCaps.address: peerCaps,
+        },
+      );
+      final transport = transportFor(['peer']);
+      final result = await coordinatorFor(store, transport).syncNow();
+
+      expect(
+        publishedSettings(transport),
+        containsAll(['custom_dialects', 'theme_mode']),
+      );
+      expect(awaiting(result), isEmpty);
+    });
+
+    test('(c) a device attaching without the capability closes it again, '
+        'and nothing is deleted', () async {
+      final peerCaps = capabilityOf('peer', {'test.v1'});
+      final store = _FakeStore(
+        local: {gated.address: gated, peerCaps.address: peerCaps},
+      );
+      final open = transportFor(['peer']);
+      await coordinatorFor(store, open).syncNow();
+      expect(publishedSettings(open), contains('custom_dialects'));
+
+      final closed = transportFor(['peer', 'peer2']);
+      final result = await coordinatorFor(store, closed).syncNow();
+
+      expect(publishedSettings(closed), isNot(contains('custom_dialects')));
+      expect(awaiting(result).map((r) => r.peerId), ['peer2']);
+      expect(store.local[gated.address], gated, reason: 'kept here');
+      expect(store.droppedRecords, isNot(contains(gated.address)));
+      expect(store.writes.where((w) => w.address == gated.address), isEmpty);
+    });
+
+    test('(d) receiving is never gated', () async {
+      final theirs = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'theirs', seconds: 20),
+      );
+      final store = _FakeStore(local: {plain.address: plain});
+      final transport = transportFor(
+        ['peer'],
+        peerRecords: {
+          SyncRecordKind.setting: {'custom_dialects': theirs.wireHash},
+        },
+        blobs: {
+          theirs.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(theirs.blob)),
+          ),
+        },
+      );
+      final result = await coordinatorFor(store, transport).syncNow();
+
+      expect(result.appliedKinds, contains(SyncRecordKind.setting));
+      expect(store.writes.map((w) => w.address), contains(gated.address));
+    });
+
+    test('(e) a capability record itself is never held back', () async {
+      final own = capabilityOf('device-a', {'test.v1'});
+      final store = _FakeStore(local: {gated.address: gated, own.address: own});
+      final transport = transportFor(['peer']);
+      await coordinatorFor(store, transport).syncNow();
+
+      expect(publishedSettings(transport), {own.address.recordId});
+    });
+
+    test(
+      '(g) an edit held back is not overwritten by a peer\'s older copy',
+      () async {
+        final older = SyncMergeCandidate.fromBlob(
+          _setting('custom_dialects', 'older'),
+        );
+        final store = _FakeStore(local: {gated.address: gated});
+        final transport = transportFor(
+          ['peer'],
+          peerRecords: {
+            SyncRecordKind.setting: {'custom_dialects': older.wireHash},
+          },
+          blobs: {
+            older.wireHash: _FakeTransport.response(
+              200,
+              body: utf8.encode(encodeSyncRecordBlob(older.blob)),
+            ),
+          },
+        );
+        final result = await coordinatorFor(store, transport).syncNow();
+
+        expect(awaiting(result), isNotEmpty, reason: 'the gate is closed');
+        expect(store.writes.where((w) => w.address == gated.address), isEmpty);
+      },
+    );
+
+    test('(g\') the same holds through a fresh attach', () async {
+      final older = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'older'),
+      );
+      final store = _FakeStore(
+        epoch: null,
+        snapshotEpochs: [null, null, 'epoch-1'],
+        local: {gated.address: gated},
+      );
+      final transport = transportFor(
+        ['peer'],
+        peerRecords: {
+          SyncRecordKind.setting: {'custom_dialects': older.wireHash},
+        },
+        blobs: {
+          older.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(older.blob)),
+          ),
+        },
+      );
+      await coordinatorFor(store, transport).syncNow();
+
+      expect(store.writes.where((w) => w.address == gated.address), isEmpty);
+      expect(publishedSettings(transport), isNot(contains('custom_dialects')));
+    });
+
+    test('(h) a build that does not advertise the capability never opens '
+        'it, even alone in its store', () async {
+      final store = _FakeStore(local: {gated.address: gated});
+      final transport = transportFor(const []);
+      final result = await coordinatorFor(
+        store,
+        transport,
+        capabilities: const SyncCapabilityPolicy(
+          gatedSettingKeys: {'custom_dialects': 'test.v1'},
+        ),
+      ).syncNow();
+
+      expect(publishedSettings(transport), isEmpty);
+      expect(awaiting(result), isEmpty, reason: 'no other device to name');
+    });
+
+    test('this build\'s policy gates nothing yet', () {
+      expect(SyncCapabilityPolicy.build.gatedCapabilities, isEmpty);
+      expect(SyncCapabilityPolicy.build.advertised, isEmpty);
+    });
+
+    test('the real store writes its own record only when it changes', () async {
+      final repositories = openTestRepositories();
+      final store = CompendiumSyncCoordinatorStore(repositories);
+      final key = syncCapabilityRecordKey('device-a');
+
+      await store.ensureCapabilityRecord('device-a', {'b.v1', 'a.v1'});
+      expect(await repositories.settings.get(key), {
+        'capabilities': ['a.v1', 'b.v1'],
+      });
+      Future<DateTime?> stampOf() async => (await store.snapshot())
+          .local[(kind: SyncRecordKind.setting, recordId: key)]
+          ?.blob
+          .updatedAt;
+      final first = await stampOf();
+      expect(first, isNotNull, reason: 'the record is a synced setting');
+      await store.ensureCapabilityRecord('device-a', {'a.v1', 'b.v1'});
+      expect(await stampOf(), first, reason: 'unchanged: not re-stamped');
+      await store.ensureCapabilityRecord('device-a', {'a.v1'});
+      expect(await repositories.settings.get(key), {
+        'capabilities': ['a.v1'],
+      });
+    });
+  });
+
   group('a peer running a newer app version (spec §6.9)', () {
     SyncCoordinator coordinatorFor(_FakeTransport transport) => SyncCoordinator(
       syncId: 'configured',

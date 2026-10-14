@@ -1014,6 +1014,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeAwaitingDevice(String tag) {
+    return 'このデバイスの一部の新しい種類のデータは、デバイス $tag がアプリの最新バージョンに更新されるか、「他のデバイス」から削除されると同期が始まります。データはこのデバイスに安全に残っています。';
+  }
+
+  @override
   String get settingsSyncNoticeNeedsYou => '対応が必要';
 
   @override
