@@ -97,6 +97,48 @@ const _syncBookkeeping = DataClassification(
   note: 'Device Sync bookkeeping; never exported or synchronized.',
 );
 
+/// Another device's per-attachment id, as the store lists it. Kept only so the
+/// manifest cached under it can be asked for again by `If-None-Match`.
+const _syncPeerDeviceId = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.protocolIdentifier,
+  note:
+      "A peer's random per-attachment routing id, read from the store's "
+      'device list and sent back to the same store in a manifest request '
+      'path. It names no person and carries no user data, and it is never '
+      "adopted as this device's own id. Kept only beside that peer's cached "
+      'manifest; never backed up, exported or synchronized.',
+);
+
+/// The `ETag` a peer manifest was served with. The protocol sends it back in
+/// `If-None-Match`, so it is not `deviceScoped`, whose "any route" is absolute.
+const _syncPeerManifestEtag = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.protocolIdentifier,
+  note:
+      "The server's content hash of a peer manifest: an opaque validator the "
+      'protocol returns, in If-None-Match, only to the server that issued it. '
+      'It carries no user data — it is a hash of a body that server already '
+      'holds — and it is never adopted as anything of this device\'s. Not '
+      'deviceScoped, because that class is never transmitted by any route; a '
+      'value the protocol must put on the wire takes this class instead '
+      '(EgressClass.deviceScoped). Never backed up, exported or synchronized.',
+);
+
+/// A peer's last verified manifest, kept so a restart need not fetch it again.
+const _syncPeerManifestBody = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.deviceScoped,
+  note:
+      "Record ids and content hashes another device published, as this device "
+      "verified them, and that device's per-attachment id. It is never sent "
+      'anywhere: it is the cached copy of what the server already serves. '
+      'Never backed up, exported or synchronized.',
+);
+
 /// An opaque pending sync candidate. Its serialized record may contain
 /// third-party data, but it is held locally until a user resolves the review.
 const _syncCandidatePayload = DataClassification(
@@ -672,6 +714,10 @@ final Map<String, DataClassification> fieldClassifications = {
   'retained_sync_fields.record_id': _syncBookkeeping,
   'retained_sync_fields.whole_record': _syncBookkeeping,
   'retained_sync_fields.payload': _syncRetainedPayload,
+  'peer_manifests.peer_id': _syncPeerDeviceId,
+  'peer_manifests.epoch': _syncBookkeeping,
+  'peer_manifests.etag': _syncPeerManifestEtag,
+  'peer_manifests.body': _syncPeerManifestBody,
   'review_queue.kind': _syncBookkeeping,
   'review_queue.record_id': _syncBookkeeping,
   'review_queue.counterpart_id': _syncBookkeeping,

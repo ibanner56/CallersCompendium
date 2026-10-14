@@ -1,0 +1,17 @@
+{
+  "id": "sync-keep-peer-manifests",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The first Device Sync after you open the app no longer downloads every other device's full list of records again. This device remembers each list and only fetches one that has changed since."
+    ],
+    "data_migrations": [
+      "This version's database update also keeps the record lists of your other devices for Device Sync (schema v39). Nothing in your library changes."
+    ]
+  },
+  "core": {
+    "added": [
+      "Schema v39 also adds the `peer_manifests` table, with `SyncLocalRepository.peerManifest`, `putPeerManifest`, `removePeerManifest` and `retainPeerManifests` (`SyncStoredPeerManifest`). `clearBaseline` clears it."
+    ]
+  }
+}

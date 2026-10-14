@@ -90,7 +90,7 @@ know exists.
 | `shareable` | May travel by any route the user chooses, including project-operated infrastructure: file export, share sheet, device sync |
 | `deviceLocal` | Must never reach project-operated infrastructure. Leaves only by a transfer the user deliberately initiates between their own devices, or in a local backup file they control. One recorded exception: the venue contact columns (`venues.contact*`) go to another person in a program export or share when the user ticks them in the pre-share consent dialog for that one export — see those rows' notes below |
 | `deviceScoped` | Never transmitted **by any route at all**, because the value is meaningless or actively wrong on another device — a window position, a per-device marker, a per-installation key. Distinct from `deviceLocal`: that is withheld for what it *contains*, this for what it *means*. |
-| `protocolIdentifier` | May travel as opaque protocol metadata to the configured endpoint, but carries no user data and is never adopted from a peer — here, the per-attachment sync device ID |
+| `protocolIdentifier` | May travel as opaque protocol metadata, only to the store it came from. Carries no user data by construction — random bytes a device minted, or a server-issued hash of data that server already holds — and is never taken as this device's own. Here: the per-attachment sync device ID, a peer's device id as the store lists it, and the `ETag` a kept peer manifest was served with |
 | `storeAddress` | Names *where* a shared store lives on the configured endpoint — in effect a path on the sync server. It travels only to that endpoint, is never serialised as record content, and is never recoverably retained, logged, or adopted by the server or a proxy — here, the sync ID. **Not a credential or a secret:** the user is expected to hand it to another person so the two can sync together |
 | `derived` | Never transmitted at all. Rebuildable from other fields on arrival, so sending it would be redundant as well as an extra copy to protect |
 
@@ -215,7 +215,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**228 columns**: 151 shareable, 21 device-local, 31 device-scoped, 25 derived. 29 personal data by category.
+**232 columns**: 151 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 29 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -333,6 +333,10 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `normalisation_skips` | `column_name` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
 | `normalisation_skips` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
 | `normalisation_skips` | `table_name` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
+| `peer_manifests` | `body` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Record ids and content hashes another device published, as this device verified them, and that device's per-attachment id. It is never sent anywhere: it is the cached copy of what the server already serves. Never backed up, exported or synchronized. |
+| `peer_manifests` | `epoch` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `peer_manifests` | `etag` | `dpv:NonPersonalData` | NonPersonalData | — | **protocol-identifier** | The server's content hash of a peer manifest: an opaque validator the protocol returns, in If-None-Match, only to the server that issued it. It carries no user data — it is a hash of a body that server already holds — and it is never adopted as anything of this device's. Not deviceScoped, because that class is never transmitted by any route; a value the protocol must put on the wire takes this class instead (EgressClass.deviceScoped). Never backed up, exported or synchronized. |
+| `peer_manifests` | `peer_id` | `dpv:NonPersonalData` | NonPersonalData | — | **protocol-identifier** | A peer's random per-attachment routing id, read from the store's device list and sent back to the same store in a manifest request path. It names no person and carries no user data, and it is never adopted as this device's own id. Kept only beside that peer's cached manifest; never backed up, exported or synchronized. |
 | `pending_deletions` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `pending_deletions` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `pending_deletions` | `tombstone_blob` | `dpv:PersonalData` | PersonalData | third party | shareable | Opaque serialized tombstone may contain third-party record content; shareable because pending deletion retransmits it to sync peers. |

@@ -202,6 +202,72 @@ void main() {
     expect(await repository.listBaselineEntries(), isEmpty);
   });
 
+  group('kept peer manifests (sync-spec §5.2)', () {
+    late CompendiumDatabase db;
+    late SyncLocalRepository repository;
+    const kept = (epoch: 'epoch-a', etag: '"v1"', body: '{"m":1}');
+
+    setUp(() async {
+      db = openTestDatabase();
+      repository = SyncLocalRepository(db);
+      await repository.replaceBaseline(epoch: 'epoch-a');
+    });
+    tearDown(() => db.close());
+
+    test('reads back, replaces and forgets one peer', () async {
+      await repository.putPeerManifest('peer', kept);
+      expect(await repository.peerManifest('peer'), kept);
+      expect(await repository.peerManifest('other'), isNull);
+
+      const replaced = (epoch: 'epoch-a', etag: '"v2"', body: '{"m":2}');
+      await repository.putPeerManifest('peer', replaced);
+      expect(await repository.peerManifest('peer'), replaced);
+
+      await repository.removePeerManifest('peer');
+      expect(await repository.peerManifest('peer'), isNull);
+    });
+
+    test('keeps only listed peers in the given epoch', () async {
+      await repository.putPeerManifest('listed', kept);
+      await repository.putPeerManifest('unlisted', kept);
+      await repository.putPeerManifest('old', (
+        epoch: 'epoch-old',
+        etag: '"v1"',
+        body: '{}',
+      ));
+
+      await repository.retainPeerManifests(
+        epoch: 'epoch-a',
+        peerIds: {'listed', 'old'},
+      );
+
+      expect(await repository.peerManifest('listed'), kept);
+      expect(await repository.peerManifest('unlisted'), isNull);
+      expect(await repository.peerManifest('old'), isNull);
+
+      await repository.retainPeerManifests(epoch: 'epoch-a', peerIds: {});
+      expect(await repository.peerManifest('listed'), isNull);
+    });
+
+    test('goes with the baseline: epoch reset, detach and restore', () async {
+      await repository.putPeerManifest('peer', kept);
+      await repository.clearBaseline();
+      expect(await repository.peerManifest('peer'), isNull);
+
+      await repository.putPeerManifest('peer', kept);
+      await repository.resetEpoch(epoch: 'epoch-b');
+      expect(await repository.peerManifest('peer'), isNull);
+
+      await repository.putPeerManifest('peer', kept);
+      await repository.clearOnDetach();
+      expect(await repository.peerManifest('peer'), isNull);
+
+      await repository.putPeerManifest('peer', kept);
+      await repository.clearForRestore(restoredRecords: const []);
+      expect(await repository.peerManifest('peer'), isNull);
+    });
+  });
+
   group('published manifest record (sync-spec §6.3 step 8)', () {
     late CompendiumDatabase db;
     late SyncLocalRepository repository;

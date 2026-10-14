@@ -746,6 +746,15 @@ and walkthrough snippets represent real work a user would hate to redo.
   that obliges a stated retention wherever the server records it, logs included,
   because `{deviceId}` sits in a request path and lands in ordinary access logs
   by default. Spec §3.3 and §7.3.
+
+  > **Amended 2026-10-14, by the maintainer's decision.** No longer only the
+  > sync device ID: keeping peer manifests across restarts (#1757) adds a
+  > peer's device id as the store lists it and the `ETag` a peer manifest was
+  > served with, both sent back only to that store. The class definition was
+  > widened to "random bytes a device minted, or a server-issued hash of data
+  > that server already holds", never taken as this device's own. Its guarantee
+  > — no user data by construction — is unchanged. See the class table in
+  > `docs/design/sync.md`.
 - `storeAddress` → **a sixth class this programme adds**, for the sync ID
   itself. The sync ID names *where* a shared store lives — in effect a path on
   the sync server, which is how the server handles it — and it is Other User

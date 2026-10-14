@@ -597,6 +597,16 @@ database already carries it. The steps that can still fire are v36 onward.
   epoch row so that anything that resets the epoch or the baseline forgets them
   too. Additive `addColumn`s; no back-fill (null means "publish as before").
   Added to v39 before it was released, rather than as v40.
+  The same step adds the `peer_manifests` table: `peer_id` (primary key), `epoch`,
+  `etag` and `body`. Each row is the last verified manifest of another device and
+  the `ETag` the server sent with it, so the first pass after a restart asks with
+  `If-None-Match` instead of downloading every peer's manifest again
+  (sync-spec §5.2). It is a cache: any row can be dropped and the next pass
+  fetches that manifest in full. `peer_id` and `etag` are `protocolIdentifier`s
+  (both are sent back to the store); `epoch` and `body` are Device Sync
+  bookkeeping. It is cleared with the baseline, and so on
+  an epoch change, detach and restore. Never backed up, exported or
+  synchronized. Additive `createTable`; no back-fill.
 
 ## The delete model
 

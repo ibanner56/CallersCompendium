@@ -509,9 +509,22 @@ a sixth, `storeAddress`, for the sync ID itself — recorded below the table.
 | --- | --- | --- | --- |
 | In a record blob | Never | Never | Never |
 | In a request path or envelope | Never | Yes, to the configured endpoint only | Yes, in `Authorization`, to that origin only |
-| Adopted from a peer | N/A | Never — each installation mints its own | Never — entered or generated locally |
-| Content | Any local value | Opaque random bytes, derived from nothing | May be user-chosen, so may carry personal content |
+| Adopted from a peer | N/A | Never taken as this device's own | Never — entered or generated locally |
+| Content | Any local value | Opaque, no user data by construction: random bytes a device minted, or a server-issued hash of data that server already holds | May be user-chosen, so may carry personal content |
 | Retention | Local only | Stated, bounded, and disclosed | By server/proxy: never retained recoverably; never logged. Local persistence follows the settings classification. |
+
+> **Amended 2026-10-14, by the maintainer's decision.** `protocolIdentifier` was
+> defined for this device's own id: "opaque random bytes, derived from nothing",
+> each installation minting its own, sent "for routing". Keeping peer manifests
+> across restarts (#1757) filed two more values under it, because each is sent
+> back to the store and `deviceScoped`'s "any route" is absolute:
+> `peer_manifests.peer_id`, an id another device minted, and
+> `peer_manifests.etag`, the server's content hash of a manifest, returned in
+> `If-None-Match`. The definition was widened to describe what the class holds
+> rather than to list them as exceptions. The guarantee it exists for is
+> unchanged: no user data by construction, never adopted as this device's own,
+> and sent only to the store it came from. A new class for server-issued
+> validators was the alternative not taken.
 
 A later Copilot round found that `sync_id` had the same defect the device ID
 had, one row down in the same table: it was `deviceScoped` while travelling on
@@ -622,8 +635,11 @@ it:
 | Deferred review items (`kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, nullable `local_hash`, `queued_at`) | `review_queue` | `deviceScoped` |
 | Records this device has selected for publication (`kind`, `record_id`) | `published_records` | `deviceScoped` |
 | Rows the normalisation pass could not repair (`table`, `column`, `record_id`) | `normalisation_skips` | `deviceScoped` |
+| This device's last published manifest — its hash and confirmation time | Baseline table | `deviceScoped` |
+| Each peer's last verified manifest — `epoch`, `body` | `peer_manifests` | `deviceScoped` |
+| Each peer's device id (`peer_id`) and the `ETag` its kept manifest was served with (`etag`), both sent back to the store | `peer_manifests` | `protocolIdentifier` |
 
-Writes to the sync bookkeeping tables above (`baseline_state`, `baseline_entries`, `id_aliases`, `pending_deletions`, `review_queue`, `published_records`) never schedule a sync pass: they are the engine's own state, not user edits. The app derives that set from the registry (`syncBookkeepingTables`).
+Writes to the sync bookkeeping tables above (`baseline_state`, `baseline_entries`, `id_aliases`, `pending_deletions`, `review_queue`, `published_records`, `retained_sync_fields`, `peer_manifests`) never schedule a sync pass: they are the engine's own state, not user edits. The app derives that set from the registry (`syncBookkeepingTables`).
 
 **Three of these are scoped to the store identity**, and `id_aliases` and
 `review_queue` are additionally scoped to the epoch and cleared with the

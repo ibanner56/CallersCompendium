@@ -594,6 +594,7 @@ const int kMinSupportedSchemaVersion = 35;
     ReviewQueue,
     PublishedRecords,
     RetainedSyncFields,
+    PeerManifests,
   ],
 )
 class CompendiumDatabase extends _$CompendiumDatabase {
@@ -805,6 +806,15 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           if (!present.contains(baselineState.publishedVerifiedAt.name)) {
             await m.addColumn(baselineState, baselineState.publishedVerifiedAt);
           }
+
+          // Each peer's last verified manifest, so a restart does not fetch
+          // them all again (sync-spec §5.2). A new, empty table: the first
+          // pass after the upgrade fetches every manifest, as before.
+          final peerManifestTable = await customSelect(
+            "SELECT name FROM sqlite_master WHERE type = 'table' "
+            "AND name = '${peerManifests.actualTableName}'",
+          ).get();
+          if (peerManifestTable.isEmpty) await m.createTable(peerManifests);
         }
 
         // Last statement in the transaction: see the comment above its

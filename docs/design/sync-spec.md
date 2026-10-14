@@ -223,6 +223,9 @@ MUST be classified in the PR that creates it or the coverage ratchet fails.
 | Table | Columns | Classification |
 | --- | --- | --- |
 | baseline | epoch, and per record `kind`, `record_id`, wire hash, `body` hash | `deviceScoped` |
+| baseline | the last published manifest's hash and confirmation time (§6.3 step 8) | `deviceScoped` |
+| `peer_manifests` | `epoch`, `body` | `deviceScoped` |
+| `peer_manifests` | `peer_id`, `etag` | **`protocolIdentifier`** |
 | `id_aliases` | `losing_id`, `surviving_id`, `kind` | `deviceScoped` |
 | `pending_deletions` | `kind`, `record_id`, `tombstoned_at`, `tombstone_hash` | `deviceScoped` |
 | `pending_deletions` | `tombstone_blob` | **`shareable`** |
@@ -239,6 +242,16 @@ does not sync, put back into what it shares. Its content is unknown to this
 build by definition, so it is classified the most cautious way that can still
 travel — `unclassifiedPersonal`, `thirdParty` — as the maintainer decided.
 
+`peer_manifests` keeps each peer's last verified manifest and its `ETag`
+(§5.2). `peer_id` is another device's per-attachment id, read from the store's
+device list and sent back to that store in a manifest request path, so it is a
+`protocolIdentifier`, as this device's own id is. The `etag` goes back in
+`If-None-Match`, so it is a `protocolIdentifier` too: an opaque validator that
+carries no user data and is returned only to the server that issued it.
+`deviceScoped`'s "any route" is absolute, so a value the protocol must put on the
+wire cannot take that class. The kept `body` names the peer's id too and is
+never sent anywhere.
+
 `retained_sync_fields` is record content, not store state: it MUST survive an
 epoch reset and a detach, like the record it belongs to. A restore replaces the
 records, so it MUST clear the table. A row MUST follow its record when two
@@ -248,8 +261,8 @@ content never outlives its record. Only the sync engine writes it, so a write
 does not schedule a pass.
 
 **Lifecycle.** All are scoped to the store identity except `published_records`
-and `normalisation_skips`, which are treated separately below. `id_aliases` and
-`review_queue` clear with the baseline. `pending_deletions` MUST survive an
+and `normalisation_skips`, which are treated separately below. `id_aliases`,
+`review_queue` and `peer_manifests` clear with the baseline. `pending_deletions` MUST survive an
 epoch reset and MUST clear on detach; after a restore its rows MUST be
 revalidated against the restored data.
 
@@ -1825,6 +1838,17 @@ entity-tag — some HTTP clients reject it, others pass it through, so a server
 emitting one interoperates with a client library by luck. The failure is a
 permanent fallback to refetching every manifest every pass, which is invisible
 except as traffic.
+
+A client MAY keep its cached manifests across restarts, and the reference
+client does: each peer's last verified manifest and its `ETag` are kept with the
+baseline, so the first pass after a launch is answered `304` rather than
+fetching every manifest again. A kept manifest is used only in the epoch it was
+fetched in and only for the device it names. One that no longer decodes is
+dropped and fetched again, and one for a device the store no longer lists is
+forgotten. A `304` puts back a kept copy that is missing — after a restore
+clears the kept copies, or after a device drops out of the store's list and
+returns — while a session still holds it. Keeping it changes nothing §6.9 judges: a peer's `writtenAt` is
+first seen by the session on its first pass either way.
 
 **`GET /v1/store`.** MUST NOT create anything. When no store exists for the
 `id_key` it MUST return `404`. Otherwise it returns:
@@ -5349,6 +5373,16 @@ A device whose own clock runs fast is still reported against (mutation: compare
 the peer's `writtenAt` with this device's clock). A peer holding a newer version
 is not refusing it (mutation: judge on hash inequality alone). Zero observed
 peers judges nothing.
+
+**Kept peer manifests (§5.2).** A restart asks with the kept `ETag` and takes
+the `304` (mutation: consult only the session cache). A full answer is kept
+(mutation: don't write it) and a `304` leaves it as it was. A kept copy that does
+not decode is dropped, even when the refetch fails (mutation: keep it); one from
+another epoch, or naming another device, is not used (mutation: drop either
+check); one for a device the store no longer lists, or whose manifest turns out
+malformed or stops carrying a validator, is forgotten (mutation: skip the
+forget). After a restore clears the kept copies, a `304` puts each back
+(mutation: keep trusting the session's view of what is kept).
 
 **Unchanged publication (§6.3 steps 7–8).** A second pass over an unchanged
 library sends neither `POST /v1/blobs/missing` nor the manifest `PUT` (mutation:

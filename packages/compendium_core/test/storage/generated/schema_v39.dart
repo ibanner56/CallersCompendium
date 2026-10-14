@@ -2810,6 +2810,68 @@ class RetainedSyncFields extends Table with TableInfo {
   bool get dontWriteConstraints => true;
 }
 
+class PeerManifests extends Table with TableInfo {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  PeerManifests(this.attachedDatabase, [this._alias]);
+  late final GeneratedColumn<String> peerId = GeneratedColumn<String>(
+    'peer_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<String> epoch = GeneratedColumn<String>(
+    'epoch',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<String> etag = GeneratedColumn<String>(
+    'etag',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+    'body',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [peerId, epoch, etag, body];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'peer_manifests';
+  @override
+  Set<GeneratedColumn> get $primaryKey => {peerId};
+  @override
+  Never map(Map<String, dynamic> data, {String? tablePrefix}) {
+    throw UnsupportedError('TableInfo.map in schema verification code');
+  }
+
+  @override
+  PeerManifests createAlias(String alias) {
+    return PeerManifests(attachedDatabase, alias);
+  }
+
+  @override
+  List<String> get customConstraints => const ['PRIMARY KEY(peer_id)'];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
 class DanceFts extends Table with TableInfo, VirtualTableInfo {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -3045,6 +3107,7 @@ class DatabaseAtV39 extends GeneratedDatabase {
   late final ReviewQueue reviewQueue = ReviewQueue(this);
   late final PublishedRecords publishedRecords = PublishedRecords(this);
   late final RetainedSyncFields retainedSyncFields = RetainedSyncFields(this);
+  late final PeerManifests peerManifests = PeerManifests(this);
   late final DanceFts danceFts = DanceFts(this);
   late final DanceSubstringFts danceSubstringFts = DanceSubstringFts(this);
   late final Index danceFiguresMoveSection = Index(
@@ -3104,6 +3167,7 @@ class DatabaseAtV39 extends GeneratedDatabase {
     reviewQueue,
     publishedRecords,
     retainedSyncFields,
+    peerManifests,
     danceFts,
     danceSubstringFts,
     danceFiguresMoveSection,
