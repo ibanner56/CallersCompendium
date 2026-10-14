@@ -5,6 +5,8 @@ import 'dart:async';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -18,6 +20,7 @@ import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_network.dart';
 import 'package:compendium_app/src/sync/sync_scope.dart';
+import 'package:compendium_app/src/theme/app_theme.dart';
 
 import '../support/l10n_harness.dart';
 import '../support/noop_sync_transport.dart';
@@ -40,6 +43,27 @@ final class _Network implements SyncNetworkClassifier {
 }
 
 const _glyph = ValueKey('sync-now-action');
+
+/// Registers the bundled families under their pubspec names. `flutter test`
+/// otherwise renders every glyph in the Ahem test font, whose advance widths
+/// bear no relation to the app's, so a truncation test would pass or fail for
+/// the wrong reason.
+Future<void> _loadAppFonts() async {
+  Future<void> load(String family, List<String> assets) async {
+    final loader = FontLoader(family);
+    for (final asset in assets) {
+      loader.addFont(rootBundle.load(asset));
+    }
+    await loader.load();
+  }
+
+  await load('Fraunces', ['assets/fonts/Fraunces-VariableFont.ttf']);
+  await load('AtkinsonHyperlegible', [
+    'assets/fonts/AtkinsonHyperlegible-Regular.ttf',
+    'assets/fonts/AtkinsonHyperlegible-Bold.ttf',
+  ]);
+  await load('Roboto', ['assets/fonts/Roboto-VariableFont.ttf']);
+}
 
 /// What a screen under test is hosted in: the controller, the network the
 /// controller consults, and the passes the coordinator has been asked to run.
@@ -68,8 +92,11 @@ Future<_Host> _pump(
   bool hasCoordinator = true,
   bool compact = false,
   Size size = const Size(600, 1200),
+  ThemeData? theme,
+  Future<void> Function(CompendiumRepositories repos)? seed,
 }) async {
   final repos = openTestRepositories();
+  await seed?.call(repos);
   if (paired) {
     await repos.settings.set('sync_id', 'alpha-bravo-charlie-delta');
   }
@@ -107,6 +134,7 @@ Future<_Host> _pump(
   addTearDown(dialect.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      theme: theme,
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) {
@@ -395,6 +423,80 @@ void main() {
 
       expect(find.byKey(_glyph), findsOneWidget);
       expect(tester.takeException(), isNull);
+    });
+
+    // #1413: the title was squeezed to "Collec…" by the icons beside it. The
+    // check needs the app theme and its fonts; under the default test theme
+    // the title is narrower and the bar never truncates.
+    Future<void> expectTitleIntact(
+      WidgetTester tester, {
+      required Size size,
+      bool compact = false,
+      List<String> tags = const [],
+    }) async {
+      await _loadAppFonts();
+      await _pump(
+        tester,
+        const CollectionShell(),
+        size: size,
+        theme: AppTheme.dark,
+        compact: compact,
+        seed: (repos) async {
+          for (final tag in tags) {
+            expect(await repos.tags.upsert(Tag(id: tag, name: tag)), tag);
+          }
+          await repos.dances.create(
+            Dance(
+              id: 'd1',
+              title: 'A Dance',
+              tagIds: tags,
+              createdAt: DateTime.utc(2026),
+              updatedAt: DateTime.utc(2026),
+            ),
+          );
+        },
+      );
+      final title = find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text('Collection'),
+      );
+      expect(title, findsOneWidget);
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.descendant(of: title, matching: find.byType(RichText)).first,
+      );
+      expect(paragraph.didExceedMaxLines, isFalse);
+      expect(tester.takeException(), isNull);
+    }
+
+    testWidgets(
+      'Collection title is not truncated beside a paired sync glyph',
+      (tester) async {
+        await expectTitleIntact(
+          tester,
+          size: const Size(CollectionShell.splitBreakpoint, 900),
+        );
+      },
+    );
+
+    testWidgets('Collection title survives tags plus a sync glyph', (
+      tester,
+    ) async {
+      await expectTitleIntact(
+        tester,
+        size: const Size(CollectionShell.splitBreakpoint, 900),
+        tags: ['category'],
+      );
+    });
+
+    testWidgets('narrow Collection keeps its title with search and sync', (
+      tester,
+    ) async {
+      await expectTitleIntact(
+        tester,
+        size: const Size(360, 800),
+        compact: true,
+        tags: ['category'],
+      );
     });
   });
 }

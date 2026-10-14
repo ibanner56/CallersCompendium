@@ -47,6 +47,7 @@ import '../widgets/dance_list_tile.dart';
 import '../widgets/facet_panel.dart';
 import '../widgets/online_result_tile.dart';
 import '../widgets/skeleton.dart';
+import '../sync/sync_scope.dart';
 import '../widgets/sync_now_action.dart';
 import '../screens/custom_fields_screen.dart';
 import '../screens/recently_deleted_screen.dart';
@@ -95,7 +96,6 @@ class DanceListScreen extends StatefulWidget {
     this.onImport,
     this.onCustomFields,
     this.onRecentlyDeleted,
-    this.compactActions = false,
     this.onSelectOnlineDance,
     this.selectedOnlineId,
     this.callersBoxOnline,
@@ -126,9 +126,6 @@ class DanceListScreen extends StatefulWidget {
 
   /// Lets a split-pane owner show recently deleted dances in its detail pane.
   final VoidCallback? onRecentlyDeleted;
-
-  /// Moves app-bar actions into the overflow menu for a constrained parent.
-  final bool compactActions;
 
   /// Called with a tapped online result when the split-pane shell owns the
   /// preview pane. Null ⇒ the list pushes its own preview route (narrow mode).
@@ -161,6 +158,9 @@ enum _CollectionCompactAction {
   recentlyDeleted,
   sortDirection,
 }
+
+/// The optional app-bar glyphs that give way to the ⋮ menu, as the bar narrows.
+enum _CollectionBarGlyph { importDances, sort, sortDirection, groupBy }
 
 class _CollectionCompactSortAction {
   const _CollectionCompactSortAction(this.value);
@@ -1857,12 +1857,74 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
+  /// Width of one app-bar action slot (an [IconButton]'s default hit target).
+  static const double _actionSlotWidth = 48;
+
   PreferredSizeWidget _buildDefaultAppBar() {
+    // The bar is sized by its pane, not the window: the wide layout hosts this
+    // list in a fixed-width column, so the actions that fit are measured
+    // against the width the bar is actually given.
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(kToolbarHeight),
+      child: LayoutBuilder(
+        builder: (context, constraints) =>
+            _buildAppBar(context, constraints.maxWidth),
+      ),
+    );
+  }
+
+  /// How many optional glyphs ([_CollectionBarGlyph]) fit beside the title.
+  ///
+  /// Search and Sync are not counted as optional (they stay visible, as they
+  /// are the only way to reach those actions), but they do spend slots, as does
+  /// the ⋮ menu, which is always present.
+  Set<_CollectionBarGlyph> _glyphsThatFit(
+    BuildContext context,
+    AppLocalizations l10n,
+    double barWidth, {
+    required bool hasSearch,
+    required bool hasSync,
+    required bool hasTags,
+  }) {
+    final theme = Theme.of(context);
+    final titleStyle =
+        AppBarTheme.of(context).titleTextStyle ?? theme.textTheme.titleLarge;
+    final titleWidth = (TextPainter(
+      text: TextSpan(text: l10n.collectionScreenTitle, style: titleStyle),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout()).width;
+    // NavigationToolbar's 16 dp middle spacing on each side of the title.
+    var slots =
+        ((barWidth - 32 - titleWidth) / _actionSlotWidth).floor() - 1; // ⋮
+    if (hasSearch) slots--;
+    if (hasSync) slots--;
+
+    // Highest priority first: what stays on the bar as slots run out. The
+    // rest moves into the ⋮ menu.
+    final wanted = <_CollectionBarGlyph>[
+      if (widget.onImport != null) _CollectionBarGlyph.importDances,
+      _CollectionBarGlyph.sort,
+      _CollectionBarGlyph.sortDirection,
+      if (hasTags) _CollectionBarGlyph.groupBy,
+    ];
+    return wanted.take(slots < 0 ? 0 : slots).toSet();
+  }
+
+  Widget _buildAppBar(BuildContext context, double barWidth) {
     final l10n = AppLocalizations.of(context);
     final openSearch = AppShellSearchScope.of(context)?.openSearch;
-    final compactActions =
-        openSearch != null ||
-        (widget.compactActions && (_data?.tags.isNotEmpty ?? false));
+    final sync = SyncScope.maybeOf(context);
+    final hasTags = _data?.tags.isNotEmpty ?? false;
+    final onBar = _glyphsThatFit(
+      context,
+      l10n,
+      barWidth,
+      hasSearch: openSearch != null,
+      hasSync: sync != null && sync.enabled && sync.paired,
+      hasTags: hasTags,
+    );
     return AppBar(
       title: Text(l10n.collectionScreenTitle),
       actions: [
@@ -1880,36 +1942,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
         // Sync is on and paired.
         const SyncNowAction(),
         if (_data != null) ...[
-          if (compactActions)
-            _buildCompactMoreActions(l10n)
-          else ...[
-            if (widget.onImport != null)
-              IconButton(
-                key: const ValueKey('import-dances'),
-                tooltip: l10n.importDances,
-                icon: const Icon(Icons.file_download_outlined),
-                onPressed: widget.onImport,
-              ),
+          if (onBar.contains(_CollectionBarGlyph.importDances))
             IconButton(
-              key: const ValueKey('batch-select'),
-              tooltip: l10n.collectionSelectDancesTooltip,
-              icon: const Icon(Icons.checklist),
-              onPressed: _results.isEmpty ? null : () => _enterSelectionMode(),
+              key: const ValueKey('import-dances'),
+              tooltip: l10n.importDances,
+              icon: const Icon(Icons.file_download_outlined),
+              onPressed: widget.onImport,
             ),
-            IconButton(
-              key: const ValueKey('manage-custom-fields'),
-              tooltip: l10n.collectionManageCustomFieldsTooltip,
-              icon: const Icon(Icons.note_add_outlined),
-              onPressed: _openCustomFields,
-            ),
-            IconButton(
-              key: const ValueKey('recently-deleted'),
-              tooltip: l10n.collectionRecentlyDeletedTooltip,
-              icon: const Icon(Icons.restore_from_trash_outlined),
-              onPressed: _openRecentlyDeleted,
-            ),
-          ],
-          if (!compactActions) ...[
+          if (onBar.contains(_CollectionBarGlyph.sort))
             PopupMenuButton<CollectionSort>(
               tooltip: l10n.collectionSortByTooltip(
                 collectionSortLabel(l10n, _sort),
@@ -1925,7 +1965,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
                   ),
               ],
             ),
+          if (onBar.contains(_CollectionBarGlyph.groupBy))
             _buildGroupByButton(l10n),
+          if (onBar.contains(_CollectionBarGlyph.sortDirection))
             IconButton(
               key: const ValueKey('collection-sort-direction'),
               tooltip: _sortDir == SortDirection.ascending
@@ -1938,7 +1980,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
               ),
               onPressed: _toggleSortDirection,
             ),
-          ],
+          _buildMoreActions(l10n, onBar),
         ],
       ],
     );
@@ -1969,7 +2011,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
     setState(() => _groupTagId = value == _noGroupSentinel ? null : value);
   }
 
-  Widget _buildCompactMoreActions(AppLocalizations l10n) {
+  /// The ⋮ menu: always holds Select dances, Manage custom fields and Recently
+  /// deleted, plus whichever of the [_CollectionBarGlyph]s did not fit on the
+  /// bar ([onBar] is what did).
+  Widget _buildMoreActions(
+    AppLocalizations l10n,
+    Set<_CollectionBarGlyph> onBar,
+  ) {
+    final tags = _data?.tags ?? const <Tag>[];
     return PopupMenuButton<Object>(
       key: const ValueKey('collection-more-actions'),
       tooltip: l10n.danceMoreActions,
@@ -1992,45 +2041,53 @@ class _DanceListScreenState extends State<DanceListScreen> {
         }
       },
       itemBuilder: (context) => [
-        if (widget.onImport != null)
-          PopupMenuItem(
+        if (widget.onImport != null &&
+            !onBar.contains(_CollectionBarGlyph.importDances))
+          PopupMenuItem<Object>(
             value: _CollectionCompactAction.importDances,
             child: Text(l10n.importDances),
           ),
-        PopupMenuItem(
+        PopupMenuItem<Object>(
+          key: const ValueKey('batch-select'),
           enabled: _results.isNotEmpty,
           value: _CollectionCompactAction.batchSelect,
           child: Text(l10n.collectionSelectDancesTooltip),
         ),
-        PopupMenuItem(
+        PopupMenuItem<Object>(
+          key: const ValueKey('manage-custom-fields'),
           value: _CollectionCompactAction.manageCustomFields,
           child: Text(l10n.collectionManageCustomFieldsTooltip),
         ),
-        PopupMenuItem(
+        PopupMenuItem<Object>(
+          key: const ValueKey('recently-deleted'),
           value: _CollectionCompactAction.recentlyDeleted,
           child: Text(l10n.collectionRecentlyDeletedTooltip),
         ),
-        const PopupMenuDivider(),
-        PopupMenuItem<Object>(
-          enabled: false,
-          child: Text(
-            l10n.collectionSortByTooltip(collectionSortLabel(l10n, _sort)),
-          ),
-        ),
-        for (final option in _availableSorts)
+        if (!onBar.contains(_CollectionBarGlyph.sort)) ...[
+          const PopupMenuDivider(),
           PopupMenuItem<Object>(
-            value: _CollectionCompactSortAction(option),
-            child: Text(collectionSortLabel(l10n, option)),
+            enabled: false,
+            child: Text(
+              l10n.collectionSortByTooltip(collectionSortLabel(l10n, _sort)),
+            ),
           ),
-        PopupMenuItem<Object>(
-          value: _CollectionCompactAction.sortDirection,
-          child: Text(
-            _sortDir == SortDirection.ascending
-                ? l10n.collectionSortAscendingTooltip
-                : l10n.collectionSortDescendingTooltip,
+          for (final option in _availableSorts)
+            PopupMenuItem<Object>(
+              value: _CollectionCompactSortAction(option),
+              child: Text(collectionSortLabel(l10n, option)),
+            ),
+        ],
+        if (!onBar.contains(_CollectionBarGlyph.sortDirection))
+          PopupMenuItem<Object>(
+            value: _CollectionCompactAction.sortDirection,
+            child: Text(
+              _sortDir == SortDirection.ascending
+                  ? l10n.collectionSortAscendingTooltip
+                  : l10n.collectionSortDescendingTooltip,
+            ),
           ),
-        ),
-        if (_data?.tags.isNotEmpty ?? false) ...[
+        if (tags.isNotEmpty &&
+            !onBar.contains(_CollectionBarGlyph.groupBy)) ...[
           const PopupMenuDivider(),
           PopupMenuItem<Object>(
             enabled: false,
@@ -2040,7 +2097,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
             value: const _CollectionCompactGroupAction(_noGroupSentinel),
             child: Text(l10n.collectionGroupByNone),
           ),
-          for (final tag in _data!.tags)
+          for (final tag in tags)
             PopupMenuItem<Object>(
               value: _CollectionCompactGroupAction(tag.id),
               child: Text(tag.name),

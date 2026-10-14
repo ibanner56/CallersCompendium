@@ -512,11 +512,18 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                   ),
                 ],
               ),
-              IconButton(
-                key: const ValueKey('programs-recently-deleted'),
-                tooltip: l10n.collectionRecentlyDeletedTooltip,
-                icon: const Icon(Icons.restore_from_trash_outlined),
-                onPressed: _openRecentlyDeleted,
+              PopupMenuButton<_ProgramsCompactAction>(
+                key: const ValueKey('programs-more-actions'),
+                tooltip: l10n.danceMoreActions,
+                icon: const Icon(Icons.more_vert),
+                onSelected: (_) => _openRecentlyDeleted(),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    key: const ValueKey('programs-recently-deleted'),
+                    value: _ProgramsCompactAction.recentlyDeleted,
+                    child: Text(l10n.collectionRecentlyDeletedTooltip),
+                  ),
+                ],
               ),
             ],
             PopupMenuButton<ProgramSort>(
