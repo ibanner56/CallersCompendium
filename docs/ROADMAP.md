@@ -261,7 +261,7 @@ implementation notes and deviations against each item — is in
       (`site/`), and the store-submission listing/privacy docs. No personal
       maintainer address remains in the repo.
   - **In progress**
-    - Beta execution with real callers. Underway: builds ship for every platform (macOS signed + notarized, Android signed, Windows signed when configured, Linux unsigned; iPhone/iPad via an open TestFlight beta), the Getting Started guide is live, and beta callers are filing feedback against the current beta releases. There are no formal exit criteria: the target audience is fewer than a thousand callers, too few for a numeric bar to mean much, so the first stable release is the maintainer's call once the beta feels ready (maintainer decision, recorded in this change's PR). Each release, stable included, still passes the per-tag gates in the [release checklist](dev/release-checklist.md).
+    - Beta execution with real callers. Underway: builds ship for every platform (macOS signed + notarized, Android signed, Windows signed when configured, Linux unsigned; iPhone/iPad via an open TestFlight beta), the Getting Started guide is live, and beta callers are filing feedback against the current beta releases. There are no formal exit criteria: the target audience is fewer than a thousand callers, too few for a numeric bar to mean much, so the first stable release is the maintainer's call once the beta feels ready (maintainer decision, #1754). Each release, stable included, still passes the per-tag gates in the [release checklist](dev/release-checklist.md).
 
 ## Later milestones
 
