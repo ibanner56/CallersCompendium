@@ -5,7 +5,7 @@ after it is filed. It describes how incoming beta feedback is sorted, labeled, a
 tracked so nothing gets lost and testers can see where their reports stand.
 
 Every label named here comes from the project's single source of truth,
-[`.github/labels.yml`](../../.github/labels.yml) — the 48-label triage taxonomy, plus the
+[`.github/labels.yml`](../../.github/labels.yml) — the 49-label triage taxonomy, plus the
 `review: claude` PR label, which is not a triage label. Use labels
 by their **exact names** (for example `severity: critical`, not "critical"); do not
 invent ad-hoc labels in the GitHub UI.
@@ -138,6 +138,10 @@ a `severity: major` edge case that hits almost no one could sit at `priority: lo
 
 - `beta` — apply to anything reported or raised during the beta program, so we can
   see the whole beta picture at a glance regardless of type or area.
+- `stable` — apply to work that will be delivered after the beta and is not
+  guaranteed to ship before `v1.0.0`. It records timing, not urgency, so
+  it does not replace a priority label: a `stable` issue can still be
+  `priority: high` for the post-beta milestone.
 - `good first issue` — a well-scoped, low-context task suitable for a first-time
   contributor. Adding this to confirmed, small issues invites help.
 
