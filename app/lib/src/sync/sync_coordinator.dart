@@ -761,6 +761,10 @@ final class SyncPeerManifestCacheEntry {
 
 /// Keeps verified peer manifests across isolated production passes.
 ///
+/// For the session only: storage keeps a copy of each across restarts
+/// ([SyncCoordinatorStore.storedPeerManifest], spec §5.2), which a pass takes
+/// in whenever this cache has none for a peer.
+///
 /// Isolate boundaries cannot retain the coordinator instance, so this cache
 /// has an explicit message representation that the pass operation can return
 /// to its owner after each worker finishes.

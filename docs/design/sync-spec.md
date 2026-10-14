@@ -1826,6 +1826,15 @@ emitting one interoperates with a client library by luck. The failure is a
 permanent fallback to refetching every manifest every pass, which is invisible
 except as traffic.
 
+A client MAY keep its cached manifests across restarts, and the reference
+client does: each peer's last verified manifest and its `ETag` are kept with the
+baseline, so the first pass after a launch is answered `304` rather than
+fetching every manifest again. A kept manifest is used only in the epoch it was
+fetched in and only for the device it names. One that no longer decodes is
+dropped and fetched again, and one for a device the store no longer lists is
+forgotten. Keeping it changes nothing §6.9 judges: a peer's `writtenAt` is
+first seen by the session on its first pass either way.
+
 **`GET /v1/store`.** MUST NOT create anything. When no store exists for the
 `id_key` it MUST return `404`. Otherwise it returns:
 
@@ -5349,6 +5358,14 @@ A device whose own clock runs fast is still reported against (mutation: compare
 the peer's `writtenAt` with this device's clock). A peer holding a newer version
 is not refusing it (mutation: judge on hash inequality alone). Zero observed
 peers judges nothing.
+
+**Kept peer manifests (§5.2).** A restart asks with the kept `ETag` and takes
+the `304` (mutation: consult only the session cache). A full answer is kept
+(mutation: don't write it) and a `304` leaves it as it was. A kept copy that does
+not decode is dropped, even when the refetch fails (mutation: keep it); one from
+another epoch is not used (mutation: drop the epoch check); one for a device the
+store no longer lists, or whose manifest stops being usable, is forgotten
+(mutation: skip the forget).
 
 **Unchanged publication (§6.3 steps 7–8).** A second pass over an unchanged
 library sends neither `POST /v1/blobs/missing` nor the manifest `PUT` (mutation:
