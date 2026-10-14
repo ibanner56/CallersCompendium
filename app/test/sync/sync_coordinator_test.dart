@@ -7112,6 +7112,14 @@ void main() {
 
         expect(awaiting(result), isNotEmpty, reason: 'the gate is closed');
         expect(store.writes.where((w) => w.address == gated.address), isEmpty);
+        // Filtering the merge's view instead would make the row look absent:
+        // the peer's older copy is then chosen for download, and only the
+        // apply step's concurrency check stops it, as a deferred change raised
+        // again on every pass.
+        expect(
+          result.reports.where((r) => r.recordId == 'custom_dialects'),
+          isEmpty,
+        );
       },
     );
 
@@ -7136,9 +7144,13 @@ void main() {
           ),
         },
       );
-      await coordinatorFor(store, transport).syncNow();
+      final result = await coordinatorFor(store, transport).syncNow();
 
       expect(store.writes.where((w) => w.address == gated.address), isEmpty);
+      expect(
+        result.reports.where((r) => r.recordId == 'custom_dialects'),
+        isEmpty,
+      );
       expect(publishedSettings(transport), isNot(contains('custom_dialects')));
     });
 
