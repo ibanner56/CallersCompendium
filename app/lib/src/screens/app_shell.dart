@@ -8,6 +8,7 @@ import '../data/contradb_online.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/repositories_scope.dart';
+import '../data/show_glossary_scope.dart';
 import '../install/install_location_banner.dart';
 import 'dance_reimport_flow.dart';
 import '../screens/dance_detail_screen.dart';
@@ -19,12 +20,16 @@ import '../widgets/brand_mark.dart';
 import '../widgets/command_palette.dart';
 import 'app_shell_search_scope.dart';
 import 'collection_shell.dart';
+import 'glossary/glossary_screen.dart';
 import 'programs_shell.dart';
 import 'settings_screen.dart';
 import 'user_guide/user_guide_screen.dart';
 
-/// Top-level navigation between Collection, Programs, Settings, and the User
-/// Guide (`docs/design/ux.md` information architecture).
+/// Top-level navigation between Collection, Programs, the Glossary, Settings,
+/// and the User Guide (`docs/design/ux.md` information architecture).
+///
+/// The Glossary destination (issue #695) appears only while the Experimental
+/// "Show Glossary" setting is on ([ShowGlossaryScope]).
 ///
 /// - **Narrow (< 900 px):** bottom [NavigationBar].
 /// - **Wide (≥ 900 px):** left [NavigationRail].
@@ -53,8 +58,18 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => AppShellState();
 }
 
+/// The shell's destinations, in [IndexedStack] page order.
+///
+/// Selection is tracked by destination rather than by position because the
+/// visible set changes: the Glossary comes and goes with its setting, which
+/// would otherwise shift Settings and the Guide to a different index.
+enum _Destination { collection, programs, glossary, settings, guide }
+
 class AppShellState extends State<AppShell> {
-  int _index = 0;
+  _Destination _current = _Destination.collection;
+
+  /// Whether the Glossary destination is shown ([ShowGlossaryScope]).
+  bool _showGlossary = false;
   late DanceReimportCoordinator _reimport;
   CompendiumRepositories? _reimportRepos;
 
@@ -70,6 +85,12 @@ class AppShellState extends State<AppShell> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _showGlossary = ShowGlossaryScope.of(context);
+    // Turning the setting off while the Glossary is open falls back to the
+    // Collection rather than leaving nothing selected.
+    if (!_showGlossary && _current == _Destination.glossary) {
+      _current = _Destination.collection;
+    }
     final repos = RepositoriesScope.of(context);
     if (!identical(repos, _reimportRepos)) {
       _reimportRepos = repos;
@@ -104,7 +125,7 @@ class AppShellState extends State<AppShell> {
     if (request == null || request.seq == _lastFilterSeq) return;
     _lastFilterSeq = request.seq;
     if (!mounted) return;
-    setState(() => _index = 0);
+    setState(() => _current = _Destination.collection);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
@@ -112,42 +133,64 @@ class AppShellState extends State<AppShell> {
     });
   }
 
-  /// The core destinations shared by both layouts: rail destinations on wide
-  /// and the first three bottom-bar destinations on narrow. The User Guide is
-  /// index [_guideIndex] — a fourth [IndexedStack] page reached from the
-  /// bottom-of-rail Help affordance (wide) or a fourth bottom-bar destination
-  /// (narrow), so it is deliberately *not* in this list. Labels are resolved by
-  /// index from [AppLocalizations] via [_destinationLabel].
-  static const _destinations = [
-    (icon: Icons.auto_stories_outlined, selectedIcon: Icons.auto_stories),
-    (icon: Icons.event_note_outlined, selectedIcon: Icons.event_note),
-    (icon: Icons.settings_outlined, selectedIcon: Icons.settings),
+  /// The destinations the rail (wide) and the bottom bar (narrow) list, in
+  /// order. The User Guide is deliberately *not* here: it is the
+  /// bottom-of-rail Help affordance on wide layouts and a trailing bottom-bar
+  /// destination on narrow ones.
+  List<_Destination> get _navDestinations => [
+    _Destination.collection,
+    _Destination.programs,
+    if (_showGlossary) _Destination.glossary,
+    _Destination.settings,
   ];
 
-  /// The IndexedStack position of the User Guide destination (after the three
-  /// [_destinations]).
-  static const int _guideIndex = 3;
+  static ({IconData icon, IconData selectedIcon}) _icons(_Destination d) =>
+      switch (d) {
+        _Destination.collection => (
+          icon: Icons.auto_stories_outlined,
+          selectedIcon: Icons.auto_stories,
+        ),
+        _Destination.programs => (
+          icon: Icons.event_note_outlined,
+          selectedIcon: Icons.event_note,
+        ),
+        _Destination.glossary => (
+          icon: Icons.menu_book_outlined,
+          selectedIcon: Icons.menu_book,
+        ),
+        _Destination.settings => (
+          icon: Icons.settings_outlined,
+          selectedIcon: Icons.settings,
+        ),
+        _Destination.guide => (
+          icon: Icons.help_outline,
+          selectedIcon: Icons.help,
+        ),
+      };
 
-  /// The localized navigation label for the destination at [index] (0-based,
-  /// matching [_destinations]; [_guideIndex] and anything else resolve to the
-  /// User Guide label). Labels come from [AppLocalizations].
-  static String _destinationLabel(AppLocalizations l10n, int index) {
-    switch (index) {
-      case 0:
-        return l10n.navCollection;
-      case 1:
-        return l10n.navPrograms;
-      case 2:
-        return l10n.navSettings;
-      default:
-        return l10n.navGuide;
-    }
-  }
+  /// The localized navigation label for [d], from [AppLocalizations].
+  static String _destinationLabel(AppLocalizations l10n, _Destination d) =>
+      switch (d) {
+        _Destination.collection => l10n.navCollection,
+        _Destination.programs => l10n.navPrograms,
+        _Destination.glossary => l10n.navGlossary,
+        _Destination.settings => l10n.navSettings,
+        _Destination.guide => l10n.navGuide,
+      };
 
   /// Whether the User Guide is the current destination.
-  bool get _guideSelected => _index == _guideIndex;
+  bool get _guideSelected => _current == _Destination.guide;
 
-  void _onSelect(int index) => setState(() => _index = index);
+  /// Selects the destination at [index] in the visible list: [_navDestinations]
+  /// on the rail, and the same list followed by the Guide on the bottom bar.
+  void _onSelect(int index) {
+    final visible = _navDestinations;
+    setState(
+      () => _current = index < visible.length
+          ? visible[index]
+          : _Destination.guide,
+    );
+  }
 
   /// Guards against a second palette while one is open (a held Ctrl-K repeats).
   bool _paletteOpen = false;
@@ -169,9 +212,9 @@ class AppShellState extends State<AppShell> {
       context,
     ).whenComplete(() => _paletteOpen = false);
     if (result == null || !mounted) return;
-    final (tabIndex, route) = switch (result.kind) {
+    final (destination, route) = switch (result.kind) {
       CommandResultKind.dance => (
-        0,
+        _Destination.collection,
         MaterialPageRoute<void>(
           builder: (_) => DanceDetailScreen(
             danceId: result.id,
@@ -180,7 +223,7 @@ class AppShellState extends State<AppShell> {
         ),
       ),
       CommandResultKind.program => (
-        1,
+        _Destination.programs,
         MaterialPageRoute<void>(
           builder: (_) => ProgramSummaryScreen(
             programId: result.id,
@@ -191,12 +234,12 @@ class AppShellState extends State<AppShell> {
         ),
       ),
     };
-    setState(() => _index = tabIndex);
+    setState(() => _current = destination);
     await Navigator.of(context).push(route);
   }
 
   /// Selects the offline in-app User Guide destination. Wired to the
-  /// bottom-of-rail Help affordance on wide layouts, the fourth bottom-bar
+  /// bottom-of-rail Help affordance on wide layouts, the last bottom-bar
   /// destination on narrow layouts, and Settings ▸ About ▸ User guide.
   ///
   /// First pops back to the shell so the guide is revealed even when reached
@@ -204,16 +247,24 @@ class AppShellState extends State<AppShell> {
   /// no-op when nothing is pushed (the wide inline layout).
   void _openGuide() {
     Navigator.of(context).popUntil((route) => route.isFirst);
-    setState(() => _index = _guideIndex);
+    setState(() => _current = _Destination.guide);
   }
 
+  /// One page per [_Destination], in enum order.
   List<Widget> _buildPages() => [
-    const CollectionShell(),
-    const ProgramsShell(),
-    SettingsScreen(onOpenGuide: _openGuide),
-    // Kept alive alongside the other destinations; [UserGuideScreen.isActive]
-    // lets the offscreen guide avoid intercepting system back.
-    UserGuideScreen(isActive: _guideSelected),
+    for (final d in _Destination.values)
+      switch (d) {
+        _Destination.collection => const CollectionShell(),
+        _Destination.programs => const ProgramsShell(),
+        // Built only while shown, so a hidden Glossary costs nothing.
+        _Destination.glossary =>
+          _showGlossary ? const GlossaryScreen() : const SizedBox.shrink(),
+        _Destination.settings => SettingsScreen(onOpenGuide: _openGuide),
+        // Kept alive alongside the other destinations;
+        // [UserGuideScreen.isActive] lets the offscreen guide avoid
+        // intercepting system back.
+        _Destination.guide => UserGuideScreen(isActive: _guideSelected),
+      },
   ];
 
   @override
@@ -228,17 +279,22 @@ class AppShellState extends State<AppShell> {
         final wide = constraints.maxWidth >= AppShell.railBreakpoint;
         // The app-wide update banners sit above the active tab's content so a
         // newer version — or an announced end of support for this one —
-        // surfaces on any destination (Collection, Programs, Settings, Guide).
+        // surfaces on any destination (Collection, Programs, Glossary,
+        // Settings, Guide).
         // The macOS not-installed notice (issue #1725) sits with them. Each
         // renders nothing unless it has something to say, so they add no
         // chrome in the common case.
+        final nav = _navDestinations;
         final body = Column(
           children: [
             const InstallLocationBanner(),
             const RetirementBanner(),
             const UpdateBanner(),
             Expanded(
-              child: IndexedStack(index: _index, children: _buildPages()),
+              child: IndexedStack(
+                index: _current.index,
+                children: _buildPages(),
+              ),
             ),
           ],
         );
@@ -248,10 +304,10 @@ class AppShellState extends State<AppShell> {
             body: Row(
               children: [
                 NavigationRail(
-                  // The rail hosts the three core destinations (0..2); the
-                  // guide (index 3) is selected via the trailing Help button,
-                  // so deselect the rail when the guide is showing.
-                  selectedIndex: _guideSelected ? null : _index,
+                  // The rail hosts [_navDestinations]; the guide is selected
+                  // via the trailing Help button, so deselect the rail when
+                  // the guide is showing.
+                  selectedIndex: _guideSelected ? null : nav.indexOf(_current),
                   onDestinationSelected: _onSelect,
                   labelType: NavigationRailLabelType.all,
                   leading: Padding(
@@ -275,11 +331,11 @@ class AppShellState extends State<AppShell> {
                     ),
                   ),
                   destinations: [
-                    for (final (i, d) in _destinations.indexed)
+                    for (final d in nav)
                       NavigationRailDestination(
-                        icon: Icon(d.icon),
-                        selectedIcon: Icon(d.selectedIcon),
-                        label: Text(_destinationLabel(l10n, i)),
+                        icon: Icon(_icons(d).icon),
+                        selectedIcon: Icon(_icons(d).selectedIcon),
+                        label: Text(_destinationLabel(l10n, d)),
                       ),
                   ],
                   // Bottom-aligned Help affordance: the natural home for the
@@ -293,7 +349,7 @@ class AppShellState extends State<AppShell> {
                         child: _RailHelpButton(
                           onPressed: _openGuide,
                           selected: _guideSelected,
-                          label: _destinationLabel(l10n, _guideIndex),
+                          label: _destinationLabel(l10n, _Destination.guide),
                           tooltip: l10n.navGuideTooltip,
                         ),
                       ),
@@ -317,23 +373,25 @@ class AppShellState extends State<AppShell> {
           child: Scaffold(
             body: body,
             bottomNavigationBar: NavigationBar(
-              selectedIndex: _index,
+              selectedIndex: _guideSelected
+                  ? nav.length
+                  : nav.indexOf(_current),
               onDestinationSelected: _onSelect,
               destinations: [
-                for (final (i, d) in _destinations.indexed)
+                for (final d in nav)
                   NavigationDestination(
-                    icon: Icon(d.icon),
-                    selectedIcon: Icon(d.selectedIcon),
-                    label: _destinationLabel(l10n, i),
+                    icon: Icon(_icons(d).icon),
+                    selectedIcon: Icon(_icons(d).selectedIcon),
+                    label: _destinationLabel(l10n, d),
                   ),
-                // The guide is a persistent fourth destination on narrow
+                // The guide is a persistent last destination on narrow
                 // layouts (parity with the wide rail's Help affordance), so
                 // viewing it keeps the bottom bar visible.
                 NavigationDestination(
                   key: const ValueKey('user-guide-destination'),
-                  icon: const Icon(Icons.help_outline),
-                  selectedIcon: const Icon(Icons.help),
-                  label: l10n.navGuide,
+                  icon: Icon(_icons(_Destination.guide).icon),
+                  selectedIcon: Icon(_icons(_Destination.guide).selectedIcon),
+                  label: _destinationLabel(l10n, _Destination.guide),
                 ),
               ],
             ),

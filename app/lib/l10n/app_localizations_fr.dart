@@ -45,6 +45,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get navSettings => 'Paramètres';
 
   @override
+  String get navGlossary => 'Glossaire';
+
+  @override
   String get navGuide => 'Guide';
 
   @override
@@ -265,6 +268,53 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsExperimentalPlaceholder =>
       'De nouvelles fonctionnalités peuvent apparaître ici pendant qu’elles sont encore en développement.';
+
+  @override
+  String get glossaryTitle => 'Glossaire';
+
+  @override
+  String get glossarySearchHint => 'Rechercher des figures';
+
+  @override
+  String glossaryNoMatches(String query) {
+    return 'Aucune figure ne correspond à « $query ».';
+  }
+
+  @override
+  String get glossarySelectPrompt =>
+      'Sélectionnez une figure pour voir sa définition.';
+
+  @override
+  String get glossaryNoDefinition => 'Pas encore de définition.';
+
+  @override
+  String glossaryVariantOf(String figure) {
+    return 'Une variante de $figure.';
+  }
+
+  @override
+  String glossaryNameWithDetail(String name, String detail) {
+    return '$name ($detail)';
+  }
+
+  @override
+  String get glossaryExample => 'Exemple';
+
+  @override
+  String get glossaryParameters => 'Paramètres';
+
+  @override
+  String get glossaryAlsoKnownAs => 'Également appelée';
+
+  @override
+  String get settingsExperimentalGlossaryHeader => 'Glossaire';
+
+  @override
+  String get settingsExperimentalShowGlossaryTitle => 'Afficher le glossaire';
+
+  @override
+  String get settingsExperimentalShowGlossarySubtitle =>
+      'Ajoute à la navigation, entre Programmes et Paramètres, un glossaire des figures intégrées.';
 
   @override
   String get settingsSyncHeader => 'Synchronisation des appareils';

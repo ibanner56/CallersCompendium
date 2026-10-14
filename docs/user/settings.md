@@ -522,9 +522,29 @@ useful thing you can send.
 ## Experimental
 
 The **Experimental** section holds features that are still in development —
-today, that's **Device Sync**. Anything here can change before it becomes a
-regular setting. Each feature sits in its own section: select its heading to
+today, that's the **Glossary** and **Device Sync**. Anything here can change
+before it becomes a regular setting. Each feature sits in its own section: select its heading to
 open or close it.
+
+### Glossary
+
+**Show Glossary** adds a **Glossary** destination to the navigation, between
+**Programs** and **Settings**. It is **off by default**, and the section starts
+closed while it is off.
+
+The Glossary is a read-only reference to the figures built into the app. Search
+it by a figure's name or an older name for it. Select a figure to see:
+
+- its definition and a short description, once the app ships one for that figure
+  (until then it says **No definition yet**)
+- an **Example** of how the figure is written
+- its **Parameters**, the details you can set on it in the dance editor
+- other names it is **Also known as**, with discouraged terms struck through
+
+Names, definitions and examples follow your active
+[dialect](dialects.md), so role words read the way you call them. The Glossary
+comes with the app: nothing in it is stored with your data, and turning it off
+only removes it from the navigation.
 
 ### Device Sync
 

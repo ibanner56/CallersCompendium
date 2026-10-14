@@ -25,6 +25,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
+import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart';
@@ -123,6 +124,9 @@ _pumpSettings(
   /// Makes the Device Sync controller's settings reads throw, as at a startup
   /// where the settings table could not be read.
   bool syncSettingsUnreadable = false,
+
+  /// Wires a [ShowGlossaryScope] around the screen when given.
+  ValueNotifier<bool>? showGlossary,
 }) async {
   final repos = openTestRepositories();
   await repos.ensureMigrated();
@@ -230,7 +234,12 @@ _pumpSettings(
                               controller: shorthandMappings,
                               child: WalkthroughSnippetLibraryScope(
                                 controller: walkthroughSnippets,
-                                child: child!,
+                                child: showGlossary == null
+                                    ? child!
+                                    : ShowGlossaryScope(
+                                        notifier: showGlossary,
+                                        child: child!,
+                                      ),
                               ),
                             ),
                           ),
@@ -5282,6 +5291,67 @@ void main() {
           );
         },
       );
+    });
+  });
+
+  group('SettingsScreen — Experimental ▸ Glossary (issue #695)', () {
+    Future<void> openGlossarySection(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('settings-nav-experimental')));
+      await tester.pumpAndSettle();
+      if (find
+          .byKey(const ValueKey('experimental-show-glossary'))
+          .evaluate()
+          .isEmpty) {
+        await tester.tap(find.byKey(const ValueKey('glossary-section')));
+        await tester.pumpAndSettle();
+      }
+    }
+
+    testWidgets('is off by default and starts collapsed', (tester) async {
+      final show = ValueNotifier<bool>(false);
+      addTearDown(show.dispose);
+      await _pumpSettings(tester, showGlossary: show);
+      await tester.tap(find.byKey(const ValueKey('settings-nav-experimental')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('GLOSSARY'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('experimental-show-glossary')),
+        findsNothing,
+        reason: 'collapsed while the Glossary is hidden',
+      );
+      await openGlossarySection(tester);
+      expect(
+        tester
+            .widget<SwitchListTile>(
+              find.byKey(const ValueKey('experimental-show-glossary')),
+            )
+            .value,
+        isFalse,
+      );
+    });
+
+    testWidgets('turning it on updates the live setting and persists it', (
+      tester,
+    ) async {
+      final show = ValueNotifier<bool>(false);
+      addTearDown(show.dispose);
+      final harness = await _pumpSettings(tester, showGlossary: show);
+      await openGlossarySection(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey('experimental-show-glossary')),
+      );
+      await tester.pumpAndSettle();
+      expect(show.value, isTrue);
+      expect(await harness.repos.settings.get(kShowGlossaryKey), isTrue);
+
+      await tester.tap(
+        find.byKey(const ValueKey('experimental-show-glossary')),
+      );
+      await tester.pumpAndSettle();
+      expect(show.value, isFalse);
+      expect(await harness.repos.settings.get(kShowGlossaryKey), isFalse);
     });
   });
 }

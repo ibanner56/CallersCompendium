@@ -41,6 +41,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get navSettings => '設定';
 
   @override
+  String get navGlossary => '用語集';
+
+  @override
   String get navGuide => 'ガイド';
 
   @override
@@ -252,6 +255,52 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsExperimentalPlaceholder => '開発中の新機能がここに表示される場合があります。';
+
+  @override
+  String get glossaryTitle => '用語集';
+
+  @override
+  String get glossarySearchHint => 'フィギュアを検索';
+
+  @override
+  String glossaryNoMatches(String query) {
+    return '「$query」に一致するフィギュアはありません。';
+  }
+
+  @override
+  String get glossarySelectPrompt => 'フィギュアを選択すると定義が表示されます。';
+
+  @override
+  String get glossaryNoDefinition => '定義はまだありません。';
+
+  @override
+  String glossaryVariantOf(String figure) {
+    return '$figureのバリエーションです。';
+  }
+
+  @override
+  String glossaryNameWithDetail(String name, String detail) {
+    return '$name（$detail）';
+  }
+
+  @override
+  String get glossaryExample => '例';
+
+  @override
+  String get glossaryParameters => 'パラメーター';
+
+  @override
+  String get glossaryAlsoKnownAs => '別名';
+
+  @override
+  String get settingsExperimentalGlossaryHeader => '用語集';
+
+  @override
+  String get settingsExperimentalShowGlossaryTitle => '用語集を表示';
+
+  @override
+  String get settingsExperimentalShowGlossarySubtitle =>
+      '組み込みフィギュアの用語集を、ナビゲーションの「プログラム」と「設定」の間に追加します。';
 
   @override
   String get settingsSyncHeader => 'デバイス同期';

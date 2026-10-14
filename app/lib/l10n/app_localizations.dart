@@ -166,6 +166,12 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get navSettings;
 
+  /// Bottom/rail navigation label for the Glossary destination (shown only when Settings > Experimental > Show Glossary is on).
+  ///
+  /// In en, this message translates to:
+  /// **'Glossary'**
+  String get navGlossary;
+
   /// Bottom/rail navigation label for the in-app user guide destination.
   ///
   /// In en, this message translates to:
@@ -517,6 +523,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New features may appear here while they are still in development.'**
   String get settingsExperimentalPlaceholder;
+
+  /// App bar title of the Glossary screen, a read-only reference of the app's built-in dance figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Glossary'**
+  String get glossaryTitle;
+
+  /// Hint text in the Glossary screen's search field, which filters the list of dance figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Search figures'**
+  String get glossarySearchHint;
+
+  /// Shown in the Glossary when no dance figure matches the search text.
+  ///
+  /// In en, this message translates to:
+  /// **'No figures match “{query}”.'**
+  String glossaryNoMatches(String query);
+
+  /// Shown in the empty detail pane of the wide Glossary layout before a figure is selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a figure to see its definition.'**
+  String get glossarySelectPrompt;
+
+  /// Shown on a Glossary figure's detail when the app does not yet ship a definition for that figure.
+  ///
+  /// In en, this message translates to:
+  /// **'No definition yet.'**
+  String get glossaryNoDefinition;
+
+  /// Shown on a Glossary figure that is a named variant of another figure (for example, see saw is a variant of do-si-do).
+  ///
+  /// In en, this message translates to:
+  /// **'A variant of {figure}.'**
+  String glossaryVariantOf(String figure);
+
+  /// A Glossary figure name followed by what tells it apart from a figure with the same name, e.g. the values a variant fixes: 'pull by (neighbors)'.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ({detail})'**
+  String glossaryNameWithDetail(String name, String detail);
+
+  /// Heading above an example of how a figure is written, on a Glossary figure's detail.
+  ///
+  /// In en, this message translates to:
+  /// **'Example'**
+  String get glossaryExample;
+
+  /// Heading above the list of a figure's adjustable details (such as hand or direction), on a Glossary figure's detail.
+  ///
+  /// In en, this message translates to:
+  /// **'Parameters'**
+  String get glossaryParameters;
+
+  /// Heading above other names for a figure, on a Glossary figure's detail.
+  ///
+  /// In en, this message translates to:
+  /// **'Also known as'**
+  String get glossaryAlsoKnownAs;
+
+  /// Header of the Glossary group in the Experimental settings section.
+  ///
+  /// In en, this message translates to:
+  /// **'Glossary'**
+  String get settingsExperimentalGlossaryHeader;
+
+  /// Title of the switch that adds the Glossary destination to the app's navigation.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Glossary'**
+  String get settingsExperimentalShowGlossaryTitle;
+
+  /// Subtitle of the Show Glossary switch in the Experimental settings section.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds a Glossary of the built-in figures to the navigation, between Programs and Settings.'**
+  String get settingsExperimentalShowGlossarySubtitle;
 
   /// Header of the Device Sync group in the Experimental settings section.
   ///

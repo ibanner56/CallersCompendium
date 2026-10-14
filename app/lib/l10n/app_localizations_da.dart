@@ -44,6 +44,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get navSettings => 'Indstillinger';
 
   @override
+  String get navGlossary => 'Ordliste';
+
+  @override
   String get navGuide => 'Vejledning';
 
   @override
@@ -262,6 +265,52 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsExperimentalPlaceholder =>
       'Nye funktioner vises muligvis her, mens de stadig er under udvikling.';
+
+  @override
+  String get glossaryTitle => 'Ordliste';
+
+  @override
+  String get glossarySearchHint => 'Søg i figurer';
+
+  @override
+  String glossaryNoMatches(String query) {
+    return 'Ingen figurer matcher “$query”.';
+  }
+
+  @override
+  String get glossarySelectPrompt => 'Vælg en figur for at se dens definition.';
+
+  @override
+  String get glossaryNoDefinition => 'Ingen definition endnu.';
+
+  @override
+  String glossaryVariantOf(String figure) {
+    return 'En variant af $figure.';
+  }
+
+  @override
+  String glossaryNameWithDetail(String name, String detail) {
+    return '$name ($detail)';
+  }
+
+  @override
+  String get glossaryExample => 'Eksempel';
+
+  @override
+  String get glossaryParameters => 'Parametre';
+
+  @override
+  String get glossaryAlsoKnownAs => 'Også kendt som';
+
+  @override
+  String get settingsExperimentalGlossaryHeader => 'Ordliste';
+
+  @override
+  String get settingsExperimentalShowGlossaryTitle => 'Vis ordliste';
+
+  @override
+  String get settingsExperimentalShowGlossarySubtitle =>
+      'Tilføjer en ordliste over de indbyggede figurer til navigationen, mellem Programmer og Indstillinger.';
 
   @override
   String get settingsSyncHeader => 'Enhedssynkronisering';
