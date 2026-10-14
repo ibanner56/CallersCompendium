@@ -2662,6 +2662,28 @@ void main() {
       expect(store.peerManifests['peer']!.etag, '"peer-v2"');
     });
 
+    test(
+      'an undecodable kept copy is dropped even when the refetch fails',
+      () async {
+        final store = _FakeStore()
+          ..peerManifests['peer'] = (
+            epoch: 'epoch-1',
+            etag: '"peer-v1"',
+            body: '{not a manifest',
+          );
+        final transport = _FakeTransport(
+          devices: ['peer'],
+          manifestResponses: {
+            'peer': [_FakeTransport.response(500)],
+          },
+        );
+
+        await restarted(store, transport).syncNow();
+
+        expect(store.peerManifests, isEmpty);
+      },
+    );
+
     test('a copy kept in another epoch is not used', () async {
       final store = _FakeStore()
         ..peerManifests['peer'] = (
