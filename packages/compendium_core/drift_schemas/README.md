@@ -94,7 +94,8 @@ files: write a fresh head database (step 2 below), dump it over
 `drift_schema_v<head>.json`, and regenerate `schema_v<head>.dart` (steps 3 and
 4). `drift_dev schema generate` rewrites every version's class, so check that
 those below head come out byte-identical and commit only head's. Earlier
-versions have shipped, so their dumps must not change.
+versions are fixed: each dump records the shape its version had when it was
+head, and nothing amends them.
 
 ## Regenerating
 

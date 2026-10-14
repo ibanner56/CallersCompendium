@@ -85,12 +85,12 @@ for ref in "$tag" origin/main; do
 done
 ```
 
-The wire version has one more way to ship. The Athenaeum server is deployed
-ahead of app releases and validates manifests with this same codec, so a
-server image built after a wire bump already enforces vNext. Amending vNext
-then means redeploying the server before any client emits the amended form,
-as for any manifest change. Ask the maintainer what is deployed if you can't
-tell.
+The wire version needs one more step. The Athenaeum server is deployed ahead
+of app releases and validates manifests with this same codec, so a server
+image built after a wire bump already enforces vNext. That doesn't make vNext
+shipped: amend it all the same, and redeploy the server before any client
+emits the amended form, as for any manifest change. Ask the maintainer what is
+deployed if you can't tell.
 
 When you amend vNext rather than bump, the CI version gates
 (`check_schema_migration.py`, `check_version_history.py`) do not notice,
