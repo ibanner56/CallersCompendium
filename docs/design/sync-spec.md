@@ -223,6 +223,9 @@ MUST be classified in the PR that creates it or the coverage ratchet fails.
 | Table | Columns | Classification |
 | --- | --- | --- |
 | baseline | epoch, and per record `kind`, `record_id`, wire hash, `body` hash | `deviceScoped` |
+| baseline | the last published manifest's hash and confirmation time (§6.3 step 8) | `deviceScoped` |
+| `peer_manifests` | `epoch`, `etag`, `body` | `deviceScoped` |
+| `peer_manifests` | `peer_id` | **`protocolIdentifier`** |
 | `id_aliases` | `losing_id`, `surviving_id`, `kind` | `deviceScoped` |
 | `pending_deletions` | `kind`, `record_id`, `tombstoned_at`, `tombstone_hash` | `deviceScoped` |
 | `pending_deletions` | `tombstone_blob` | **`shareable`** |
@@ -239,6 +242,15 @@ does not sync, put back into what it shares. Its content is unknown to this
 build by definition, so it is classified the most cautious way that can still
 travel — `unclassifiedPersonal`, `thirdParty` — as the maintainer decided.
 
+`peer_manifests` keeps each peer's last verified manifest and its `ETag`
+(§5.2). `peer_id` is another device's per-attachment id, read from the store's
+device list and sent back to that store in a manifest request path, so it is a
+`protocolIdentifier`, as this device's own id is. The `etag` likewise goes back
+in `If-None-Match`, but only to the server that issued it, and it is a hash of a
+body the server already holds, so it carries nothing that server does not have.
+That is why it stays `deviceScoped`. The kept `body` names the peer's id too and
+is never sent anywhere.
+
 `retained_sync_fields` is record content, not store state: it MUST survive an
 epoch reset and a detach, like the record it belongs to. A restore replaces the
 records, so it MUST clear the table. A row MUST follow its record when two
@@ -248,8 +260,8 @@ content never outlives its record. Only the sync engine writes it, so a write
 does not schedule a pass.
 
 **Lifecycle.** All are scoped to the store identity except `published_records`
-and `normalisation_skips`, which are treated separately below. `id_aliases` and
-`review_queue` clear with the baseline. `pending_deletions` MUST survive an
+and `normalisation_skips`, which are treated separately below. `id_aliases`,
+`review_queue` and `peer_manifests` clear with the baseline. `pending_deletions` MUST survive an
 epoch reset and MUST clear on detach; after a restore its rows MUST be
 revalidated against the restored data.
 

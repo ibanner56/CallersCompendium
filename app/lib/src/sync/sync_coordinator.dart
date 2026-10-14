@@ -752,11 +752,25 @@ final class SyncPeerManifestCacheEntry {
     required this.epoch,
     required this.etag,
     required this.manifest,
+    this.stored = false,
   });
 
   final String epoch;
   final String etag;
   final SyncManifest manifest;
+
+  /// Whether storage is known to keep this entry (spec §5.2). False until a
+  /// pass writes it or reads it back, and again after anything that clears
+  /// the kept copies, so a `304` can put back one that went missing.
+  final bool stored;
+
+  SyncPeerManifestCacheEntry withStored(bool stored) =>
+      SyncPeerManifestCacheEntry(
+        epoch: epoch,
+        etag: etag,
+        manifest: manifest,
+        stored: stored,
+      );
 }
 
 /// Keeps verified peer manifests across isolated production passes.
@@ -850,7 +864,8 @@ final class SyncPeerManifestCache {
   /// or the choice waits for the user) was downloaded again by every pass,
   /// and enough of those ahead of the rest in download order would have
   /// spent every pass's request budget on the same records. In memory only,
-  /// like the rest of this cache, and gone when the sync session ends.
+  /// and gone when the sync session ends: unlike the manifests, blobs are
+  /// never kept on disk.
   final LinkedHashMap<String, Uint8List> _fetchedBlobs =
       LinkedHashMap<String, Uint8List>();
   int _fetchedBlobBytes = 0;
@@ -906,6 +921,14 @@ final class SyncPeerManifestCache {
     _entries.remove(peerId);
   }
 
+  /// Marks every entry as no longer kept by storage: what just cleared the
+  /// kept manifests left these in place.
+  void markUnstored() {
+    for (final entry in _entries.entries.toList()) {
+      _entries[entry.key] = entry.value.withStored(false);
+    }
+  }
+
   void clear() {
     _entries.clear();
     rejectedHashes.clear();
@@ -954,6 +977,7 @@ final class SyncPeerManifestCache {
           'epoch': entry.value.epoch,
           'etag': entry.value.etag,
           'manifest': utf8.decode(encodeSyncManifestUtf8(entry.value.manifest)),
+          'stored': entry.value.stored,
         },
     },
     '_rejectedHashes': rejectedHashes.toList(growable: false),
@@ -1012,13 +1036,18 @@ final class SyncPeerManifestCache {
       final epoch = value['epoch'];
       final etag = value['etag'];
       final manifestBody = value['manifest'];
-      if (epoch is! String || etag is! String || manifestBody is! String) {
+      final stored = value['stored'] ?? false;
+      if (epoch is! String ||
+          etag is! String ||
+          manifestBody is! String ||
+          stored is! bool) {
         throw const FormatException('sync isolate returned a malformed cache');
       }
       entries[peerId] = SyncPeerManifestCacheEntry(
         epoch: epoch,
         etag: etag,
         manifest: decodeSyncManifest(manifestBody),
+        stored: stored,
       );
     }
     final rawHashes = message['_rejectedHashes'];
@@ -1625,12 +1654,14 @@ class SyncCoordinator {
     var freshAttach = epochMismatch && !attachContinuation;
     if (freshAttach) {
       await store.clearEpochState();
+      _peerManifestCache.markUnstored();
       snapshot = await store.snapshot();
     }
     if (!freshAttach &&
         deferredBaseline == null &&
         _hasLegacyBaselineBodyHashes(snapshot.baseline)) {
       await store.clearEpochState();
+      _peerManifestCache.markUnstored();
       snapshot = await store.snapshot();
       freshAttach = true;
     }
@@ -1809,25 +1840,29 @@ class SyncCoordinator {
             epoch: metadata.epoch,
             etag: etag,
             manifest: manifest,
+            stored: epochCached!.stored && epochCached.etag == etag,
           );
+        }
+        // A `304` leaves a kept copy as it was, and puts back one storage
+        // lost — cleared under a session that kept it in memory, or never
+        // written because the write failed.
+        final current = _peerManifestCache[peerId];
+        if (current != null && !current.stored) {
+          await _keepPeerManifest(peerId, current);
         }
       } else if (etag == null || etag.isEmpty) {
         await _forgetPeerManifest(peerId);
       } else {
-        final entry = SyncPeerManifestCacheEntry(
-          epoch: metadata.epoch,
-          etag: etag,
-          manifest: manifest,
-        );
-        _peerManifestCache[peerId] = entry;
         // Kept on disk too, so the first pass after a restart can ask with
-        // `If-None-Match` rather than download it again (spec §5.2). Written
-        // only on a full answer: a `304` leaves the kept copy as it was.
-        await store.storePeerManifest(peerId, (
-          epoch: entry.epoch,
-          etag: entry.etag,
-          body: utf8.decode(encodeSyncManifestUtf8(entry.manifest)),
-        ));
+        // `If-None-Match` rather than download it again (spec §5.2).
+        await _keepPeerManifest(
+          peerId,
+          SyncPeerManifestCacheEntry(
+            epoch: metadata.epoch,
+            etag: etag,
+            manifest: manifest,
+          ),
+        );
       }
       peerManifests.add((peerId: peerId, manifest: manifest));
       peerManifestHashes.add(await _normalizeManifestHashes(manifest));
@@ -2603,11 +2638,15 @@ class SyncCoordinator {
       // version it does not know — is as good as none. Anything else is a
       // fault and still throws.
       if (error is! FormatException && error is! ArgumentError) rethrow;
-      logCaughtErrorTypeOnly(
-        error,
-        stack,
-        source: 'sync_coordinator._storedPeerManifest',
-      );
+      // diagnostics: silent for a FormatException — after an update that
+      // bumps the wire version every kept copy fails this way, as expected.
+      if (error is ArgumentError) {
+        logCaughtErrorTypeOnly(
+          error,
+          stack,
+          source: 'sync_coordinator._storedPeerManifest',
+        );
+      }
       await store.forgetPeerManifest(peerId);
       return null;
     }
@@ -2619,9 +2658,26 @@ class SyncCoordinator {
       epoch: stored.epoch,
       etag: stored.etag,
       manifest: manifest,
+      stored: true,
     );
     _peerManifestCache[peerId] = entry;
     return entry;
+  }
+
+  /// Puts [entry] in the session cache and keeps it on disk.
+  Future<void> _keepPeerManifest(
+    String peerId,
+    SyncPeerManifestCacheEntry entry,
+  ) async {
+    // In the session cache first, unmarked: if the write throws, the entry is
+    // still used and a later `304` tries the write again.
+    _peerManifestCache[peerId] = entry.withStored(false);
+    await store.storePeerManifest(peerId, (
+      epoch: entry.epoch,
+      etag: entry.etag,
+      body: encodeSyncManifest(entry.manifest),
+    ));
+    _peerManifestCache[peerId] = entry.withStored(true);
   }
 
   /// Forgets [peerId]'s manifest in the session cache and on disk.

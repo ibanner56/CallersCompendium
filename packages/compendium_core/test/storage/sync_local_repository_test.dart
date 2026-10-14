@@ -249,13 +249,21 @@ void main() {
       expect(await repository.peerManifest('listed'), isNull);
     });
 
-    test('goes with the baseline, and so with detach and restore', () async {
+    test('goes with the baseline: epoch reset, detach and restore', () async {
       await repository.putPeerManifest('peer', kept);
       await repository.clearBaseline();
       expect(await repository.peerManifest('peer'), isNull);
 
       await repository.putPeerManifest('peer', kept);
+      await repository.resetEpoch(epoch: 'epoch-b');
+      expect(await repository.peerManifest('peer'), isNull);
+
+      await repository.putPeerManifest('peer', kept);
       await repository.clearOnDetach();
+      expect(await repository.peerManifest('peer'), isNull);
+
+      await repository.putPeerManifest('peer', kept);
+      await repository.clearForRestore(restoredRecords: const []);
       expect(await repository.peerManifest('peer'), isNull);
     });
   });

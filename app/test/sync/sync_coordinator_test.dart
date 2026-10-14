@@ -2684,6 +2684,125 @@ void main() {
       },
     );
 
+    String bodyFor({required String deviceId, required String epoch}) =>
+        encodeSyncManifest(
+          SyncManifest(
+            deviceId: deviceId,
+            epoch: epoch,
+            writtenAt: DateTime.utc(2026, 7, 15, 12),
+            records: const {},
+          ),
+        );
+
+    test('a kept copy that names another device is not used', () async {
+      final store = _FakeStore()
+        ..peerManifests['peer'] = (
+          epoch: 'epoch-1',
+          etag: '"other-v1"',
+          body: bodyFor(deviceId: 'other', epoch: 'epoch-1'),
+        );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [full('"peer-v1"')],
+        },
+      );
+
+      await restarted(store, transport).syncNow();
+
+      expect(transport.manifestEtags, [null]);
+      expect(store.peerManifests['peer']!.etag, '"peer-v1"');
+    });
+
+    test('a kept copy whose epoch disagrees with its row is not used', () {
+      final store = _FakeStore()
+        ..peerManifests['peer'] = (
+          epoch: 'epoch-1',
+          etag: '"peer-old"',
+          body: bodyFor(deviceId: 'peer', epoch: 'epoch-0'),
+        );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [full('"peer-v1"')],
+        },
+      );
+
+      return restarted(store, transport).syncNow().then((_) {
+        expect(transport.manifestEtags, [null]);
+        expect(store.peerManifests['peer']!.etag, '"peer-v1"');
+      });
+    });
+
+    test('a 304 puts back a kept copy a restore cleared', () async {
+      final store = _FakeStore();
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          // The first pass, then a fresh attach and its continuation.
+          'peer': [full('"peer-v1"'), notModified, notModified],
+        },
+      );
+      final coordinator = restarted(store, transport);
+      await coordinator.syncNow();
+      // A restore clears the baseline, and the kept manifests with it, while
+      // this session still holds them in memory.
+      await store.clearEpochState();
+      expect(store.peerManifests, isEmpty);
+
+      await coordinator.syncNow();
+
+      expect(transport.manifestEtags, [null, '"peer-v1"', '"peer-v1"']);
+      expect(store.peerManifests['peer']?.etag, '"peer-v1"');
+    });
+
+    test('a malformed answer forgets the kept copy', () async {
+      final store = _FakeStore()
+        ..peerManifests['peer'] = (
+          epoch: 'epoch-1',
+          etag: '"peer-v1"',
+          body: utf8.decode(encodedManifest),
+        );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [
+            SyncHttpResponse(
+              statusCode: 200,
+              kind: SyncResponseKind.success,
+              headers: const {'etag': '"peer-v2"'},
+              body: utf8.encode('{not a manifest'),
+            ),
+          ],
+        },
+      );
+
+      await restarted(store, transport).syncNow();
+
+      expect(transport.manifestEtags, ['"peer-v1"']);
+      expect(store.peerManifests, isEmpty);
+    });
+
+    test('whether a manifest is kept crosses the isolate boundary', () {
+      final cache = SyncPeerManifestCache(
+        entries: {
+          'peer': SyncPeerManifestCacheEntry(
+            epoch: 'epoch-1',
+            etag: '"peer-v1"',
+            manifest: peerManifest,
+            stored: true,
+          ),
+        },
+      );
+
+      final copy = SyncPeerManifestCache.fromMessage(cache.toMessage());
+
+      expect(copy['peer']?.stored, isTrue);
+      copy.markUnstored();
+      expect(copy['peer']?.stored, isFalse);
+      expect(copy['peer']?.etag, '"peer-v1"');
+    });
+
     test('a copy kept in another epoch is not used', () async {
       final store = _FakeStore()
         ..peerManifests['peer'] = (
