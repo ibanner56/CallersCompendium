@@ -28,6 +28,14 @@ the app and of `compendium_core`; version headings below refer to
 
 ### Added
 
+- A reference alert forwarder in `server/deploy/`: `athenaeum-alert-email`
+  emails each `quota_exhaustion` or `sweep_failure` line the container writes,
+  and `athenaeum-alert-email.service` feeds it from `docker logs --follow`. A
+  failed send is logged and skipped rather than stopping the forwarder. The
+  operations runbook installs it as first-deployment step 6, and now also
+  checks the root filesystem for `discard`, which stalled synced writes for
+  over half an hour after large deletions on the reference host.
+
 - `POST /v1/blobs/batch` returns the blobs for up to 200 hashes in one
   response (sync spec §5.2): a frame per hash, in request order, carrying the
   blob or saying it is missing, or that the 2 MB response cap was reached
