@@ -4281,8 +4281,11 @@ deletion (§4.5). The rows, and the merge's view of them, are untouched: a local
 edit stays the newer copy, nothing is downloaded over it, and it publishes on
 the first pass after the capability opens. The filter MUST be applied where
 publications are built and MUST NOT be applied inside the store's snapshot,
-because a fresh attach merges against the snapshot's publication (§6.2), and a
-row hidden there looks absent and is downloaded over. Receiving is never gated:
+because a fresh attach merges against the snapshot's publication (§6.2). A row
+hidden from the merge looks absent, so a peer's older copy is chosen for
+download; in the reference client only the apply step's concurrency check
+(§6.7) then stops it, as a deferred change raised again on every pass, so the
+merge's view is the wrong place to filter even where it loses nothing. Receiving is never gated:
 a device applies a gated kind whenever a peer publishes it. The gate is
 evaluated on every pass, so it closes again when a device without the
 capability attaches.
