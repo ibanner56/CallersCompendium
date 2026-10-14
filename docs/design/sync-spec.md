@@ -5376,9 +5376,11 @@ peers judges nothing.
 the `304` (mutation: consult only the session cache). A full answer is kept
 (mutation: don't write it) and a `304` leaves it as it was. A kept copy that does
 not decode is dropped, even when the refetch fails (mutation: keep it); one from
-another epoch is not used (mutation: drop the epoch check); one for a device the
-store no longer lists, or whose manifest stops being usable, is forgotten
-(mutation: skip the forget).
+another epoch, or naming another device, is not used (mutation: drop either
+check); one for a device the store no longer lists, or whose manifest turns out
+malformed or stops carrying a validator, is forgotten (mutation: skip the
+forget). After a restore clears the kept copies, a `304` puts each back
+(mutation: keep trusting the session's view of what is kept).
 
 **Unchanged publication (§6.3 steps 7–8).** A second pass over an unchanged
 library sends neither `POST /v1/blobs/missing` nor the manifest `PUT` (mutation:
