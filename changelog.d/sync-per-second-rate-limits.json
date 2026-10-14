@@ -1,9 +1,0 @@
-{
-  "id": "sync-per-second-rate-limits",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "Sending a large library to an updated Device Sync server for the first time now takes a few minutes rather than a quarter of an hour or more: the server lets each device send several requests a second instead of one."
-    ]
-  }
-}

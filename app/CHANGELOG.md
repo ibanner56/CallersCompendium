@@ -36,6 +36,66 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-14
+
+### Added
+
+- Dances imported from The Caller's Box now recognize "two-hand turn" however it is written (hyphenated or not, partner before or after) and "Ones arch, twos dive", instead of keeping those lines as unrecognized text. A stated turn direction, which a two-hand turn has no setting for, is kept as a note.
+- A new Capitalize figures switch under Settings > General > Library starts each figure in the dance view, Perform mode and the figure editor with a capital letter. It is off by default, so figures are shown as written (built-in figures start in lower case, as in ContraDB).
+- Contra dances can now include a circular hey (also called a square hey): choose who passes first, which shoulder, across or along the set, and how many changes it runs (four is the full circuit, shown as "3/4 circular hey, neighbors pass right across" for three). Typing that same wording into a figure is recognized as a circular hey.
+- On macOS, opening the app straight from the disk image (instead of dragging it to Applications first) now shows a notice explaining how to install it.
+- When an update check finds that your version of the app has an announced end-of-support date, a banner tells you the date you need to update by. The notice also appears in Settings ▸ Updates and stays visible offline. Choosing "Later" hides the banner until you next open the app. Versions up to and including 0.6.0-beta cannot show these notices.
+- The version comparison shows where a dance was imported from and its licence.
+
+### Changed
+
+- Caller's Box imports now recognise same-role neighbor figures ("Same-role neighbor swing") and numbered shadows ("S1 shadow allemande left 1", "S2 shadow swing"), so about 200 more figure lines import as structured moves instead of free text.
+- Opening the macOS disk image now shows a laid-out installer window: the app and your Applications folder side by side, an arrow between them, and short instructions on what to drag and how to open the app afterwards.
+- Imported figures with a turn amount in thirds or eighths, such as "Star left 7/8" or "allemande right 1 & 2/3", now import as structured figures rounded to the nearest quarter, with the original amount kept in the figure's note.
+- Connecting a device to a large library with Device Sync now fetches records from your other devices in batches, so it usually finishes in one sync instead of carrying on minute by minute for a quarter of an hour or more. Against a self-hosted sync server that hasn't been updated yet, Device Sync carries on fetching one record at a time, as before.
+- Device Sync now sends a large library of this device's own records in batches, so the first sync of a well-stocked device takes far fewer tries instead of carrying on minute by minute. Against a self-hosted sync server that hasn't been updated yet, Device Sync carries on sending one record at a time, as before.
+- The first Device Sync after you open the app no longer downloads every other device's full list of records again. This device remembers each list and only fetches one that has changed since.
+- When another device runs a newer version of the app and shares records with details this version doesn't sync yet, Device Sync now says so in the "update the app on this device" notice, with a count of each kind of record waiting (for example "2 programs, 1 setting"). Previously those records were listed in the general "records were skipped" notice alongside records skipped for unrelated reasons, which told you to check your other devices instead.
+- Sending a large library to an updated Device Sync server for the first time now takes a few minutes rather than a quarter of an hour or more: the server lets each device send several requests a second instead of one.
+- When another device runs a newer version of the app, Device Sync no longer skips records that carry details this version doesn't know about. It keeps those details, syncs the records, and shares them back unchanged, so editing a record on this device no longer loses what the newer version added. A notice lists these records as information. The only records still waiting for an update are dances whose figures a newer version changed; the update notice now marks them as having figures only a newer version can read.
+- Device Sync sends much less when nothing has changed. A sync with nothing new to share no longer re-checks every record with the sync server or re-sends this device's list of records, which also spares your other devices from downloading that list again. A device that's in use still sends it in full at least every 12 hours.
+- Device Sync no longer downloads again records this device already has but doesn't share: imported dances that **Skip unused imported dances** keeps back, and records you've deleted whose deletion hasn't reached your other devices yet.
+
+### Fixed
+
+- A Caller's Box "Balance wave of four" line whose hand notation could not be read, such as "(C2R,WL)", is no longer merged into the preceding wave and lost; it stays as free text.
+- Caller's Box promenades written "around the major set" followed by a note in parentheses or brackets, such as "(backwards)", now keep that note and the "around the major set" wording instead of dropping both.
+- Caller's Box promenades that end at a named dancer, such as "Partner promenade clockwise around the major set to N2", now import as promenades with their destination instead of as custom text.
+- A Caller's Box figure that gives each role a different turn amount, such as "allemande left (M 1 & 1/2, W 2)", now stays as free text instead of importing with a turn amount neither role dances.
+- The figure editor's move picker no longer lists several identical "pull by" entries; aliases that read the same as a move already offered are hidden.
+- A program's pay now shows in its summary, alongside the band, caller and level.
+- Choosing which version to keep no longer asks about versions that look exactly the same, such as a choreographer added on two devices before they synced: one is kept for you, the same one on every device. Such choices already waiting are no longer listed.
+- A choice between versions of a record that sync had merged from two devices is now saved, instead of failing with "The saved peer change is no longer current" whichever version you picked.
+- When the sync server has a problem reading what one of your other devices shared, connecting a device no longer stops with a warning telling you to check your other devices. It shows "Waiting to sync" and tries again by itself.
+- The same server problem during an ordinary sync no longer shows the "records from another device couldn't be used and were skipped" notice. Changes to records your devices already share wait until the server can send that list again, so the status shows "Waiting to sync" and the app keeps trying by itself rather than saying everything is synced.
+- Connecting a device to a large library no longer reports most of it as "records from another device couldn't be used and were skipped". When the sync server asks the device to slow down part-way through, Device Sync keeps what it has fetched, shows "Waiting to sync", and carries on by itself every minute until everything is here.
+- A sync that loses its connection or times out while fetching from your other devices keeps what it had already fetched, instead of starting again from the beginning next time.
+- The Device Sync part of the diagnostics export now says which HTTP status each skipped-record notice came from, such as "[HTTP 404 ×3]".
+- Connecting a device that holds a large library of its own no longer slows to a crawl when the sync server asks it to slow down. Each try keeps what it sent, and while it is still getting further Device Sync tries again every minute instead of waiting longer each time.
+- A sync that loses its connection or times out while sending this device's changes now says it stopped while uploading, instead of not saying which step.
+- Importing from The Caller's Box no longer turns a balance in a wave or a ring, followed by a swing, into a "balance and swing" for the swinging pair. The wave or ring balance now stays its own figure, so the dancers who balance and the hands they hold are kept.
+- Online search and title import now find a dance whose title you typed with a curly apostrophe or quote (’ “ ”) or a dash (– —) when the archive spells it with a straight one, and the other way round. Previously "Rory O’More" found nothing in The Caller's Box, and "Eleanor's Reel" found nothing in ContraDB.
+- A Caller's Box search for a title or author with accented letters, such as "Déjà vu", now finds it. Previously any accented letter made the search find nothing.
+- Checking for updates now reaches the update server directly over HTTPS, so new releases are offered instead of the check quietly finding nothing.
+- On Windows, a cancelled or failed update download no longer leaves an empty download folder behind in the temp directory.
+
+### Removed
+
+- Support for collections last opened by v0.3.1-beta or earlier. Caller's Compendium will no longer open a collection file that old; it stops rather than upgrading it halfway, which would leave the file quietly incomplete. Every tester is on v0.4.0-beta ("Allemande Left") or later, so in practice no collection is affected. If you do still have an older file, open it once with v0.6.0-beta and it will be upgraded normally, after which this release can open it.
+
+### Data / Migrations
+
+- The database moves from schema v38 → 39 for Device Sync bookkeeping: it retains newer fields, remembers the last published manifest, and remembers each peer's last verified manifest; existing library data is preserved.
+- The Contra taxonomy moves from v35 → 36 to recognise circular hey figures and their canonical forms; this is a documentary marker only and does not rewrite the database.
+- This version's database update also keeps the record lists of your other devices for Device Sync (schema v39). Nothing in your library changes.
+- Adds a table that holds details from newer app versions alongside the records they belong to (schema v39).
+- This version's database update also remembers what this device last shared with Device Sync (schema v39). Nothing in your library changes.
+
 ## [0.6.0] - 2026-10-06
 
 ### Added

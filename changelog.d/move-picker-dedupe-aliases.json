@@ -1,9 +1,0 @@
-{
-  "id": "move-picker-dedupe-aliases",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "The figure editor's move picker no longer lists several identical \"pull by\" entries; aliases that read the same as a move already offered are hidden."
-    ]
-  }
-}
