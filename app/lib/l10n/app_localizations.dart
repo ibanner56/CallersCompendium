@@ -920,7 +920,7 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 setting} other{{count} settings}}'**
   String settingsSyncNoticeCountSetting(int count);
 
-  /// Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting, because the other device's list of what it shares is itself in the newer format.
+  /// Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting: the other device's list of what it shares is itself in the newer format, or it shares a kind of data this version does not know.
   ///
   /// In en, this message translates to:
   /// **'Another device is using a newer version of the app. Update the app on this device to receive its changes.'**

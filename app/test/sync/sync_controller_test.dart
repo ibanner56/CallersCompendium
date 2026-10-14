@@ -1827,8 +1827,8 @@ void main() {
     });
 
     test('keeps it when a peer manifest lists a record kind this build does '
-        'not know (#709): detach decodes strictly, so the records it cannot '
-        'see are never judged carried', () async {
+        'not know (#709): detach reads peers strictly, so such a manifest '
+        'leaves clean-up undecided, as an unreadable one does', () async {
       final known = manifest('peer_b', {'a': hash('1')}).toJson();
       admin = _Admin(
         manifests: {

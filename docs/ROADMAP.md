@@ -290,11 +290,12 @@ implementation notes and deviations against each item — is in
     glossary does not sync, but any user additions (own terms, notes on
     figures) must. Still to build: user additions, together with their sync;
     then the CC `Term` mapping in 6.5.
-    User additions are being built in #709 (compound figures and notes on
-    shipped figures; decided by the maintainer on 2026-10-14). Their sync is
-    held behind a capability gate until every attached device understands it,
-    and clients now skip a record kind they do not know instead of refusing a
-    peer's whole manifest (sync-spec §4.5).
+    Compound figures and notes on shipped figures are being built in #709
+    (maintainer decisions recorded in #709's consolidated spec, 2026-10-14);
+    own terms stay with #1023. Their sync will be held behind a capability
+    gate until every attached device understands it, and clients now skip a
+    record kind they do not know instead of refusing a peer's whole manifest
+    (sync-spec §4.5).
 - **User-defined quick-entry snippets** — CC's "Insert Call" buttons (per-user
   label → expansion text + beats + a gender-free alternate). **Accepted, reframed**
   over our structured model (see #401): a user shorthand maps to a fully-configured
