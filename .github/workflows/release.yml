@@ -1193,7 +1193,7 @@ jobs:
       # as its own `android-aab` workflow artifact, so — exactly like the iOS
       # `ios-ipa` — it never lands in SHA256SUMS, the channel manifest, the SLSA
       # subject glob, or the public GitHub Release. The .aab is a store-upload
-      # input for the maintainer, not a sideloadable end-user download.
+      # input, not a sideloadable end-user download.
       - name: Build Android App Bundle (signed .aab)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
         working-directory: app
@@ -1547,8 +1547,9 @@ jobs:
       # Keep the signed .aab as its own workflow artifact for the Play upload.
       # Like the iOS `ios-ipa` artifact, it is deliberately NOT staged into dist/,
       # so it never enters SHA256SUMS, the channel manifest, the SLSA subject
-      # glob, or the GitHub Release. Download it from the run and upload it to the
-      # Play Console (see docs/dev/store-submission/google-play.md).
+      # glob, or the GitHub Release. The approval-gated `publish_mobile` job
+      # downloads it and uploads it to Google Play when the Play service-account
+      # secret is configured (see docs/dev/releasing.md#upload-to-google-play).
       - name: Upload Android .aab artifact
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -1949,9 +1950,13 @@ jobs:
           done
           echo "All ${#artifacts[@]} artifact(s) passed provenance + SBOM verification."
 
-  # Publish mobile artifacts to their respective app stores. Handles publication
-  # to TestFlight/App Store Connect for iOS today and later will handle 
-  # publication to Google Play for Android once that onboarding is complete.
+  # Publish mobile artifacts to their respective app stores: the iOS .ipa to
+  # TestFlight/App Store Connect and the Android .aab to Google Play. Each store
+  # is a clean no-op until its credentials exist, and each is attempted
+  # independently (a failed TestFlight upload does not stop the Play upload, or
+  # the reverse). Re-running a failed job re-attempts BOTH stores, and a store
+  # that already accepted this build rejects the duplicate (same build number /
+  # versionCode); see docs/dev/releasing.md#upload-to-google-play.
   publish_mobile:
     name: Publish mobile artifacts
     needs: [meta, verify]
@@ -1959,8 +1964,10 @@ jobs:
       github.repository == 'ibanner56/CallersCompendium' &&
       needs.meta.outputs.is_release == 'true' &&
       needs.meta.outputs.recovery != 'true'
-    # TestFlight upload is irreversible. The protected environment provides the
-    # same human approval gate that controls Windows Trusted Signing.
+    # TestFlight and Play uploads are not undoable (a build number / versionCode
+    # can never be reused). The protected environment provides the same human
+    # approval gate that controls Windows Trusted Signing, and is where the Play
+    # service-account secret should live so only this approved job can read it.
     runs-on: macos-latest
     environment: release-publication
     permissions:
@@ -1990,6 +1997,32 @@ jobs:
           else
             echo "upload=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Skipping TestFlight upload (event=$EVENT_NAME ref=$REF iOS signing=$signing)."
+          fi
+
+      # Google Play gate, mirroring the TestFlight gate above. The `secrets`
+      # context can't be used in a step-level `if:`, so read the service-account
+      # key via `env:` and export a plain `upload=true|false` output. Real tag
+      # pushes only: a workflow_dispatch dry run never uploads. The default
+      # track is `internal` and the default release status is `draft`, so an
+      # upload only lands the bundle in the Play Console for a human to review
+      # and roll out; set the PLAY_TRACK / PLAY_RELEASE_STATUS repository
+      # variables to change that. This step must never fail on its own: it runs
+      # before the TestFlight upload, so a failure here would skip iOS too. Any
+      # bad variable value is rejected later, by the Play API, in the upload step.
+      - name: Determine Google Play upload availability
+        id: play
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "push" ] && [[ "$REF" == refs/tags/v* ]] \
+            && [ -n "${PLAY_SERVICE_ACCOUNT_JSON:-}" ]; then
+            echo "upload=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "upload=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping Google Play upload (event=$EVENT_NAME ref=$REF service account configured=$([ -n "${PLAY_SERVICE_ACCOUNT_JSON:-}" ] && echo yes || echo no))."
           fi
 
       - name: Download signed iOS .ipa
@@ -2031,12 +2064,34 @@ jobs:
             --apiKey "$key_id" \
             --apiIssuer "${APPLE_API_ISSUER_ID:?missing App Store Connect API issuer id}"
 
+      # `!cancelled()` lets this run even when the TestFlight upload above
+      # failed, so one store's outage doesn't block the other.
+      - name: Download signed Android .aab
+        if: ${{ !cancelled() && steps.play.outputs.upload == 'true' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          # Only produced when the Android signing secrets are configured. If a
+          # Play service account exists without them this fails loudly, which is
+          # intended: a configured upload must not skip silently.
+          name: android-aab
+          path: android-aab
+
+      - name: Upload Android .aab to Google Play
+        if: ${{ !cancelled() && steps.play.outputs.upload == 'true' }}
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: org.callerscompendium.compendiumApp
+          releaseFiles: android-aab/CallersCompendium-*.aab
+          tracks: ${{ vars.PLAY_TRACK || 'internal' }}
+          status: ${{ vars.PLAY_RELEASE_STATUS || 'draft' }}
+
   # Publish refreshed manifests (stable.json / beta.json) to the persistent
   # `gh-pages` branch so the client's fixed URL resolves (A11c / ADR-002 §1):
   #   https://ibanner56.github.io/CallersCompendium/<channel>.json
   #
   # ORDERING: the update channel advances only after verification and public
-  # release. It is NOT ordered against `publish_mobile` (TestFlight): both run
+  # release. It is NOT ordered against `publish_mobile` (TestFlight / Play): both run
   # after `verify` and the desktop channel does not wait on the mobile upload.
   # This job (1) needs `verify`, so no manifest is published unless every
   # binary's provenance + SBOM attestation verified; (2) runs behind the

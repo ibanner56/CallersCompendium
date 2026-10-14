@@ -505,7 +505,7 @@ hop and silently report no update.
 
 On every real tagged release the `pages` job publishes the selected manifests
 to those URLs. The channel advances only after verification and public release (it is not
-ordered against the mobile TestFlight upload, which runs independently after
+ordered against the mobile store uploads (TestFlight / Google Play), which run independently after
 `verify`): the job needs `verify`, waits behind the `release-publication` approval (granted after
 the draft is published), and fails closed unless the release is public and its
 manifests download anonymously. It then downloads the `channel-manifests`
@@ -1023,7 +1023,9 @@ the canonical Flutter `key.properties` pattern in `app/android/app/build.gradle.
 > workflow artifact. Unlike the APK it is deliberately **not** staged into
 > `dist/`, so — like the iOS `.ipa` — it stays out of `SHA256SUMS`, the channel
 > manifest, provenance subjects, and the draft release; it is a Play-upload input
-> the maintainer downloads from the run and uploads to the Play Console (see
+> that the approval-gated `publish_mobile` job uploads to Google Play when the
+> service-account secret exists (see
+> [Upload to Google Play](#upload-to-google-play) and
 > [store-submission/google-play.md](store-submission/google-play.md)).
 >
 > Both Android artifacts receive the tag-derived `versionCode` described below;
@@ -1162,6 +1164,54 @@ are never uploaded as artifacts (only the APK is staged). The secrets are passed
 via step `env:` (never interpolated into a `run:` line) so they can't leak into
 logs, and they are only available to the canonical repo's tag-triggered run — not
 to forks or PRs.
+
+### Upload to Google Play
+
+On a real `v*` tag push, after the `release-publication` protected environment is
+approved, the `publish_mobile` job downloads the `android-aab` artifact and uploads
+it with [`r0adkll/upload-google-play`](https://github.com/r0adkll/upload-google-play)
+(pinned to a commit SHA like every other action). The same job uploads the iOS
+`.ipa` to TestFlight; the two stores are attempted independently, so a failure in
+one does not stop the other. The upload is skipped (a clean no-op) on a
+`workflow_dispatch` dry run, and an existing-tag recovery skips `publish_mobile`
+entirely, exactly as for TestFlight.
+
+One-time maintainer setup:
+
+1. In a Google Cloud project, enable the **Google Play Android Developer API** and
+   create a **service account** with a JSON key. In Play Console → **Users and
+   permissions**, invite the service account's email address and grant it access
+   to this app with the **Release apps to testing tracks** permission (add
+   **Release to production, exclude devices, and use Play App Signing** only if you
+   set `PLAY_TRACK=production`).
+2. Add the JSON key's **full contents** as a secret named
+   `PLAY_SERVICE_ACCOUNT_JSON`. Prefer storing it as a secret of the
+   `release-publication` **environment** rather than a repository secret, so only
+   the approval-gated job can read it.
+3. Optionally add repository **variables** (not secrets):
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `PLAY_TRACK` | `internal` | Play track to assign the bundle to: `internal`, `alpha`/`beta`/a custom closed-track name, or `production` |
+| `PLAY_RELEASE_STATUS` | `draft` | `draft` lands the release in the Play Console for you to review and roll out; `completed` rolls it out immediately on the chosen track. Use only these two: the workflow does not set a rollout fraction, so `inProgress` fails at the upload step |
+
+Behaviour to know about:
+
+- With no `PLAY_SERVICE_ACCOUNT_JSON` the Play steps are skipped. With it set but
+  the `ANDROID_*` signing secrets missing there is no `android-aab` artifact, so
+  the download step **fails loudly** rather than skipping.
+- A `versionCode` can never be reused on Play. **Re-running a failed
+  `publish_mobile` job re-attempts both stores**, and a store that already accepted
+  this build rejects the duplicate; if only one store failed, expect the other's
+  step to fail on the re-run and judge it by its error text.
+- The service account can publish to your users. Treat its key like the Android
+  keystore: never commit it, paste it into an issue, or print it in a log, and
+  rotate it (create a new key, update the secret, delete the old key) if exposed.
+- Play still applies its own gates: a new personal account cannot reach Open
+  testing or Production before the closed-testing requirement in
+  [store-submission/google-play.md](store-submission/google-play.md), and the first
+  release of a brand-new app must be created in the Console before the API can
+  upload to it.
 
 ### Android signing-key custody, backup, and rotation
 

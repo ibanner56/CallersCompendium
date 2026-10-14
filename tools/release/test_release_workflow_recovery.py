@@ -432,6 +432,29 @@ def main() -> None:
     assert "EVENT_NAME: ${{ github.event_name }}" in publish_mobile
     assert '[[ "$REF" == refs/tags/v* ]]' in publish_mobile
 
+    # Google Play upload: same real-tag guard and approval gate as TestFlight,
+    # SHA-pinned action, safe defaults, and independent of the iOS step's result.
+    assert "      - name: Determine Google Play upload availability" in publish_mobile
+    assert "secrets.PLAY_SERVICE_ACCOUNT_JSON" in publish_mobile
+    play_gate = _section(
+        publish_mobile,
+        "      - name: Determine Google Play upload availability",
+        "      - name: Download signed iOS .ipa",
+    )
+    assert '[ "$EVENT_NAME" = "push" ] && [[ "$REF" == refs/tags/v* ]]' in play_gate
+    assert "exit 1" not in play_gate  # a Play misconfiguration must not skip iOS
+    play_upload = publish_mobile.split(
+        "      - name: Upload Android .aab to Google Play", 1
+    )[1]
+    assert re.search(
+        r"uses: r0adkll/upload-google-play@[0-9a-f]{40} # v\d+\.\d+\.\d+", play_upload
+    )
+    assert "if: ${{ !cancelled() && steps.play.outputs.upload == 'true' }}" in play_upload
+    assert "packageName: org.callerscompendium.compendiumApp" in play_upload
+    assert "tracks: ${{ vars.PLAY_TRACK || 'internal' }}" in play_upload
+    assert "status: ${{ vars.PLAY_RELEASE_STATUS || 'draft' }}" in play_upload
+    assert "name: android-aab" in publish_mobile
+
     provenance = _section(
         text,
         "      # A recovery run's workflow comes from main",
