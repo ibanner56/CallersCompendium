@@ -146,6 +146,19 @@ final Set<String> _determiners = {
   'those',
 };
 
+/// Singular dancer nouns that, directly before a plural role/verb homograph,
+/// make it a verb under `subjectVerbException` ("partner leads").
+const Set<String> _singularSubjectNouns = {
+  'partner',
+  'neighbor',
+  'neighbour',
+  'shadow',
+  'corner',
+  'couple',
+  'dancer',
+  'person',
+};
+
 /// Words that, directly before the base form, make it a verb ("to lead",
 /// "do not follow").
 const Set<String> _auxiliaries = {
@@ -261,6 +274,10 @@ String? _unmarked(String? word) {
 ///      `twosRole2` dancer.
 /// 3. Anything else is a role, rewritten exactly as before.
 ///
+/// With `subjectVerbException` (user-glossary text only, #709), rule 2a has
+/// one exception: the plural form directly after a singular subject in the
+/// same clause is the verb ("the robin follows the lark", "partner leads").
+///
 /// Rewritten roles are lowercase canonical tokens (`role1s`), whatever case
 /// they were typed in. A move name from rule 1 is written lowercase and
 /// single-spaced ("mad robin"), as the import scrub stores it (maintainer
@@ -270,6 +287,7 @@ final class RoleCanonicalizer {
     Dialect dialect, {
     Map<String, String> extraRoleSynonyms = const {},
     MoveWordLexicon? lexicon,
+    this.subjectVerbException = false,
   }) {
     // Union enrichment first (lowest precedence); then legacy synonyms; then
     // the active dialect — so legacy and the active dialect always win where
@@ -328,6 +346,12 @@ final class RoleCanonicalizer {
     }
     _suspect = suspect;
   }
+
+  /// Whether the plural form of a role/verb homograph directly after a
+  /// singular subject is read as the verb (#709). Off everywhere but
+  /// user-glossary text, so notes, custom figures, imports and search keep
+  /// their bytes.
+  final bool subjectVerbException;
 
   late final Map<String, String> _reverse;
   late final Substitutor _roles;
@@ -408,7 +432,13 @@ final class RoleCanonicalizer {
     }
     final plural = _verbForms[lower];
     if (plural == null) return (RoleSpanKind.role, '3');
-    if (plural) return (RoleSpanKind.role, '2a');
+    if (plural) {
+      if (subjectVerbException &&
+          _isSingularSubject(_previousWord(text, start))) {
+        return (RoleSpanKind.verb, '2a-subject');
+      }
+      return (RoleSpanKind.role, '2a');
+    }
     final prev = _previousWord(text, start);
     if (prev != null && _determiners.contains(prev)) {
       return (RoleSpanKind.role, '2b');
@@ -421,6 +451,17 @@ final class RoleCanonicalizer {
       return (RoleSpanKind.verb, '2d');
     }
     return (RoleSpanKind.role, '2e');
+  }
+
+  /// Whether [word] names one dancer or one pair as a sentence subject: a
+  /// singular role term of this canonicalizer ("robin", "lead"), a singular
+  /// role token typed directly, or a singular dancer noun ("partner").
+  bool _isSingularSubject(String? word) {
+    if (word == null) return false;
+    if (word == 'role1' || word == 'role2') return true;
+    final token = _reverse[word];
+    if (token == 'role1' || token == 'role2') return true;
+    return _singularSubjectNouns.contains(word);
   }
 
   /// The lowercase word directly before [start] in the same clause: only

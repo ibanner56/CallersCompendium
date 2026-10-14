@@ -1,6 +1,7 @@
 import '../model/figure.dart' show customMoveId;
 import '../taxonomy/taxonomy.dart';
 import 'dialect.dart';
+import 'discouraged_terms.dart';
 import 'renderer.dart';
 import 'role_canonicalizer.dart';
 import 'substitution.dart';
@@ -97,6 +98,43 @@ String canonicalizeText(
   Dialect dialect, {
   Map<String, String> extraRoleSynonyms = const {},
 }) => _rolesFor(dialect, extraRoleSynonyms).canonicalize(text);
+
+/// Per-[Dialect] memo of the user-glossary role rewriters, bounded like
+/// [_dialectRoles].
+final Map<Dialect, RoleCanonicalizer> _glossaryRoles = {};
+
+/// The built-in discouraged terms as stored text, built once.
+final Substitutor _glossaryDiscouraged = Substitutor(
+  canonicalDiscouragedTerms,
+  caseInsensitive: true,
+);
+
+/// Canonicalizes text a user typed into their own glossary — a compound
+/// figure's name, definition and description, and notes on figures (#709).
+///
+/// Stricter than [canonicalizeText] in one way and wider in another, both
+/// decided by the maintainer for this text only (2026-10-14):
+/// - the built-in discouraged terms are stored canonically ("ladies" →
+///   `role2s`, "gypsy" → "shoulder round"), not kept as typed;
+/// - under a dialect whose roles are "lead"/"follow", "leads"/"follows"
+///   directly after a singular subject is the verb ("The robin follows the
+///   lark across" → "The role2 follows the role1 across"), where
+///   [canonicalizeText] would read it as the plural role.
+///
+/// Everything else is [canonicalizeText]'s behaviour, so "leads cross +
+/// follows loop" still becomes "role1s cross + role2s loop".
+String canonicalizeGlossaryText(String text, Dialect dialect) {
+  if (text.isEmpty) return text;
+  var roles = _glossaryRoles[dialect];
+  if (roles == null) {
+    if (_glossaryRoles.length >= _maxDialectRoles) _glossaryRoles.clear();
+    roles = _glossaryRoles[dialect] = RoleCanonicalizer(
+      dialect,
+      subjectVerbException: true,
+    );
+  }
+  return roles.canonicalize(_glossaryDiscouraged.apply(text));
+}
 
 /// Rewrites taxonomy move display names and legacy keywords to their canonical
 /// display names for full-text search. Unlike role canonicalization, this is
