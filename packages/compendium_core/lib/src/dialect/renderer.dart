@@ -2562,7 +2562,8 @@ class FigureRenderer {
         'who': swho,
         'shoulder': _displayScalar(params['shoulder']),
         'where': _displayScalar(params['where']),
-      }, '[{fraction} ]{move}, {who} pass {shoulder} {where}');
+        'second': _circularHeySecondPass(r, params, dialect),
+      }, '[{fraction} ]{move}, {who} pass {shoulder} {where}[, {second}]');
     },
     // ContraDB `dolphinHeyWords`: words(smove, "- start with", swho, "passing",
     // swhom, "by", sshoulder). `whom` is a single-dancer identity, rendered via
@@ -3048,6 +3049,30 @@ class FigureRenderer {
         ? words[changes]
         : '$changes';
     return '$word ${changes == 1 ? 'change' : 'changes'} of a';
+  }
+
+  /// The second pass of a circular hey ("partners pass left"), or '' when
+  /// `who2` is unstated (the `unspecified` default, or a v36 figure without
+  /// it), so the display line ends after the first pass as it always has.
+  /// The shoulder is the other one from the first pass: a circular hey
+  /// alternates shoulders.
+  static String _circularHeySecondPass(
+    FigureRenderer r,
+    Map<String, Object?> params,
+    Dialect dialect,
+  ) {
+    final who2 = params['who2'];
+    if (who2 == null || who2 == ParamVocab.unspecified) return '';
+    final sh = params['shoulder'];
+    final other = sh == 'right'
+        ? 'left'
+        : sh == 'left'
+        ? 'right'
+        : _displayScalar(sh);
+    final swho2 = who2 is String
+        ? r._displayGroup(who2, dialect)
+        : r._displaySubject(who2, dialect);
+    return '$swho2 pass $other';
   }
 
   /// Formats a places count using caller vocabulary ("1 place", "4 places").

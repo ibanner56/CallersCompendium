@@ -4,28 +4,43 @@ import 'package:test/test.dart';
 
 /// Taxonomy v36 — the contra `circular_hey` move (ADR-006 §7.4, redefined for
 /// contra: `who` names the group that passes first, `changes` is any whole number 1..10).
+/// v37 adds `who2`, the group passed second by the other shoulder.
 void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  Figure hey({int? changes, String? who, String? shoulder, String? where}) =>
-      testFigure(
-        move: 'circular_hey',
-        params: {
-          'changes': ?changes,
-          'who': ?who,
-          'shoulder': ?shoulder,
-          'where': ?where,
-        },
-      );
+  Figure hey({
+    int? changes,
+    String? who,
+    String? shoulder,
+    String? who2,
+    String? where,
+  }) => testFigure(
+    move: 'circular_hey',
+    params: {
+      'changes': ?changes,
+      'who': ?who,
+      'shoulder': ?shoulder,
+      'who2': ?who2,
+      'where': ?where,
+    },
+  );
 
-  test('taxonomy version is 36', () => expect(contraTaxonomyVersion, 36));
+  test('taxonomy version is 37', () => expect(contraTaxonomyVersion, 37));
 
   group('definition', () {
     final def = tax.resolve('circular_hey')!;
 
     test('params and defaults', () {
-      expect(def.params.keys, ['who', 'changes', 'shoulder', 'where', 'beats']);
+      expect(def.params.keys, [
+        'who',
+        'changes',
+        'shoulder',
+        'who2',
+        'where',
+        'beats',
+      ]);
+      expect(def.params['who2']!.defaultValue, ParamVocab.unspecified);
       expect(def.params['who']!.defaultValue, 'neighbors');
       expect(def.params['changes']!.kind, ParamKind.places);
       expect(def.params['changes']!.defaultValue, 4);
@@ -115,6 +130,46 @@ void main() {
     });
   });
 
+  group('second pass (v37)', () {
+    test('a stated who2 adds the second pass, by the other shoulder', () {
+      expect(
+        renderer.render(
+          hey(changes: 3, who: 'neighbors', who2: 'shadows'),
+          Dialect.canonical,
+        ),
+        '3/4 circular hey, neighbors pass right across, shadows pass left',
+      );
+      expect(
+        renderer.render(
+          hey(who: 'partners', shoulder: 'left', who2: 'neighbors'),
+          Dialect.canonical,
+        ),
+        'circular hey, partners pass left across, neighbors pass right',
+      );
+    });
+
+    test('an unstated who2 renders exactly as v36 did', () {
+      expect(
+        renderer.render(hey(changes: 3), Dialect.canonical),
+        '3/4 circular hey, neighbors pass right across',
+      );
+      expect(
+        renderer.render(
+          hey(changes: 3, who2: ParamVocab.unspecified),
+          Dialect.canonical,
+        ),
+        '3/4 circular hey, neighbors pass right across',
+      );
+    });
+
+    test('who2 stays out of canonical text, so no stored text changes', () {
+      expect(
+        renderer.renderCanonical(hey(changes: 3, who2: 'shadows')),
+        renderer.renderCanonical(hey(changes: 3)),
+      );
+    });
+  });
+
   test('canonical text names the count, so counts never dedupe together', () {
     expect(
       renderer.renderCanonical(hey(changes: 3)),
@@ -136,6 +191,21 @@ void main() {
       expect(f.params['changes'], 3);
       expect(f.params['shoulder'], 'right');
       expect(f.params['where'], 'across');
+    });
+
+    test('the second pass round-trips into who2', () {
+      final f = parse(
+        '3/4 circular hey, neighbors pass right across, shadows pass left',
+      )!;
+      expect(f.move, 'circular_hey');
+      expect(f.params['who'], 'neighbors');
+      expect(f.params['who2'], 'shadows');
+      expect(f.params['shoulder'], 'right');
+      final rendered = renderer.render(f, Dialect.canonical);
+      expect(
+        rendered,
+        '3/4 circular hey, neighbors pass right across, shadows pass left',
+      );
     });
 
     test('full circuit, left shoulder, along; "square hey" alias', () {
@@ -166,6 +236,10 @@ void main() {
         '3/4 circular hey, neighbors pass right', // no direction
         '11/4 circular hey, neighbors pass right across', // beyond 10 changes
         '3/4 circular hey, neighbors pass right across, then swing',
+        // A circular hey alternates shoulders; a same-shoulder second pass is
+        // not one.
+        '3/4 circular hey, neighbors pass right across, partners pass right',
+        '3/4 circular hey, neighbors pass right across, partners pass',
       ]) {
         expect(parse(line)?.move, 'custom', reason: line);
       }
