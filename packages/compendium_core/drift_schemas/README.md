@@ -33,9 +33,9 @@ Each dump is taken from a **real database file**, not from static analysis of
 
 * The head dump comes from a database created on the spot by
   `tool/write_head_database.dart`.
-* Every version below head (v35–v37) was dumped the same way the head is: from
-  a database written by `tool/write_head_database.dart` on a checkout of the
-  commit that made it head. Each was added by its own bump PR; none has a
+* Every version below head was dumped the same way the head is: from a
+  database written by `tool/write_head_database.dart` on a checkout taken
+  while that version was head. Each was added by its own bump PR; none has a
   fixture, and none needs one for shape verification (see "Adding a
   version"). The binary fixtures that earlier floors still carried were
   retired with the v35 floor.
@@ -95,7 +95,7 @@ files: write a fresh head database (step 2 below), dump it over
 4). `drift_dev schema generate` rewrites every version's class, so check that
 those below head come out byte-identical and commit only head's. Earlier
 versions are fixed: each dump records the shape its version had when it was
-head, and nothing amends them.
+last head, and nothing amends them.
 
 ## Regenerating
 
@@ -134,10 +134,20 @@ files here, from a throwaway project outside the workspace.
    dart run tool/write_head_database.dart /tmp/schema-src/head.sqlite
    ```
 
-   That covers head. For every other version (v35–v37 today), check out the commit that
-   bumped `kCompendiumSchemaVersion` to it — `git log -S 'kCompendiumSchemaVersion = 30' -- lib/src/storage/database.dart`
-   finds it — and run `write_head_database.dart` there into
-   `/tmp/schema-src/vN.sqlite`. Confirm `PRAGMA user_version` on each file
+   That covers head. For every other version N, check out the **last commit
+   before `kCompendiumSchemaVersion` was bumped past it**: the parent of the
+   commit that set it to N+1. Not the commit that set it to N, because a
+   change made while N was unreleased joins N after that commit (see
+   "Amending the unreleased head"), so the commit that first set N can lack
+   part of N's final shape. For N = 30:
+
+   ```sh
+   bump=$(git log --format=%H -S 'kCompendiumSchemaVersion = 31' \
+     -- lib/src/storage/database.dart | tail -1)
+   git checkout "$bump^"
+   ```
+
+   Run `write_head_database.dart` there into `/tmp/schema-src/vN.sqlite`. Confirm `PRAGMA user_version` on each file
    before dumping it.
 
 3. Dump each database, **from the scratch project**:
