@@ -336,6 +336,81 @@ void main() {
       expect(encoded, contains('"program":{"same-id":"$hash"'));
       expect(encodeSyncManifest(decodeSyncManifest(encoded)), encoded);
     });
+
+    group('a record kind this build does not know (#709)', () {
+      final hash = 'b' * 64;
+      Map<String, Object?> withFutureKind({Object? futureEntries}) => {
+        ..._manifest().toJson(),
+        'records': {
+          'dance': {'dance-1': hash},
+          'futureKind': futureEntries ?? {'future-1': hash},
+        },
+      };
+
+      test('is fatal by default, which keeps the server strict', () {
+        expect(
+          () => SyncManifest.fromJson(withFutureKind()),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e.message,
+              'message',
+              'unknown record kind futureKind',
+            ),
+          ),
+        );
+        expect(
+          () => decodeSyncManifest(jsonEncode(withFutureKind())),
+          throwsFormatException,
+        );
+      });
+
+      test('is skipped and named when a peer manifest opts in', () {
+        final manifest = decodeSyncManifest(
+          jsonEncode(withFutureKind()),
+          skipUnknownKinds: true,
+        );
+        expect(manifest.records, {
+          SyncRecordKind.dance: {'dance-1': hash},
+        });
+        expect(manifest.unknownKinds, {'futureKind'});
+        // The skipped kind is not part of the wire form, so a re-encoded copy
+        // has lost it: the reason a tolerant decode must never be cached.
+        expect(encodeSyncManifest(manifest), isNot(contains('futureKind')));
+      });
+
+      test('a manifest of known kinds decodes with no unknown kinds', () {
+        final manifest = decodeSyncManifest(
+          encodeSyncManifest(_manifest()),
+          skipUnknownKinds: true,
+        );
+        expect(manifest.unknownKinds, isEmpty);
+      });
+
+      test('stays strict about everything else', () {
+        for (final entries in <Object?>[
+          {'future-1': 'not-a-hash'},
+          {'future-1': 7},
+          'not-an-object',
+        ]) {
+          expect(
+            () => SyncManifest.fromJson(
+              withFutureKind(futureEntries: entries),
+              skipUnknownKinds: true,
+            ),
+            throwsFormatException,
+            reason: '$entries',
+          );
+        }
+        expect(
+          () => SyncManifest.fromJson({
+            ..._manifest().toJson(),
+            'records': {'': <String, Object?>{}},
+          }, skipUnknownKinds: true),
+          throwsFormatException,
+          reason: 'an empty kind name is malformed, not unknown',
+        );
+      });
+    });
   });
 
   group('strict decoding', () {

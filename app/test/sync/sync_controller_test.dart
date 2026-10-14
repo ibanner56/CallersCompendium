@@ -42,8 +42,8 @@ final class _Admin {
   /// published").
   final List<String> devices;
 
-  /// What `GET /v1/manifests/{id}` answers: a manifest, or a status code for
-  /// a refusal. An id with no entry answers `404`.
+  /// What `GET /v1/manifests/{id}` answers: a manifest, its raw JSON body,
+  /// or a status code for a refusal. An id with no entry answers `404`.
   final Map<String, Object> manifests;
 
   /// Holds `GET /v1/store` until completed, when set.
@@ -108,6 +108,12 @@ final class _Admin {
           kind: SyncResponseKind.success,
           headers: const {},
           body: encodeSyncManifestUtf8(manifest),
+        ),
+        final String raw => SyncHttpResponse(
+          statusCode: 200,
+          kind: SyncResponseKind.success,
+          headers: const {},
+          body: utf8.encode(raw),
         ),
         final int status => SyncHttpResponse(
           statusCode: status,
@@ -1807,6 +1813,34 @@ void main() {
           'device_1': manifest('device_1', {'a': hash('1')}),
           'peer_a': manifest('peer_a', {'a': hash('1')}),
           'peer_b': 500,
+        },
+      );
+      final controller = await paired();
+
+      await controller.detach();
+
+      expect(
+        await controller.detachCleanup,
+        SyncDetachCleanupOutcome.skippedUnknown,
+      );
+      expect(admin.removed, isEmpty);
+    });
+
+    test('keeps it when a peer manifest lists a record kind this build does '
+        'not know (#709): detach decodes strictly, so the records it cannot '
+        'see are never judged carried', () async {
+      final known = manifest('peer_b', {'a': hash('1')}).toJson();
+      admin = _Admin(
+        manifests: {
+          'device_1': manifest('device_1', {'a': hash('1')}),
+          'peer_a': manifest('peer_a', {'a': hash('1')}),
+          'peer_b': jsonEncode({
+            ...known,
+            'records': {
+              ...(known['records']! as Map<String, Object?>),
+              'futureKind': {'f': hash('2')},
+            },
+          }),
         },
       );
       final controller = await paired();

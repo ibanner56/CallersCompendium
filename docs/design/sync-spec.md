@@ -1550,6 +1550,34 @@ therefore MUST carry `kind` alongside the record id (§3.2), exactly as
 baseline was the one per-record structure that did not, which is why this is
 stated in both places rather than left to follow.
 
+**A client skips a `records` kind it does not know; the server does not.** A
+peer on a newer build may list a kind this build has no table for. A client
+reading a **peer's** manifest MUST skip that kind and read the rest, rather
+than refuse the whole manifest: refusing it would stop every record that peer
+holds from arriving, over records this build could not store anyway. It
+reports the peer with code `newerRecordKind` (§6.9). Everything else about the
+manifest stays strict, including the shape of the skipped kind's own entries.
+Three readers MUST stay strict, and each for its own reason:
+
+- **The server** (§7.2, below): it reads `records` to decide which blobs are
+  reachable, so a manifest it half understood would let it collect live blobs.
+- **A device's own manifest**, and detach clean-up's reading of its peers'
+  (§3.3): clean-up decides which records peers carry, and a kind it skipped is
+  one it would judge carried without having looked. A peer manifest with an
+  unknown kind leaves clean-up undecided, as an unreadable one does.
+- **A kept copy of a peer manifest** (§5.2). A tolerant decode re-encodes
+  without the skipped kinds, so a client MUST NOT keep one, in the session or
+  on disk: after an update that knows those kinds, a `304` against the kept
+  ETag would keep serving the stripped copy, and that peer's records of those
+  kinds would never download until it next published. Such a manifest is asked
+  for in full on every pass instead.
+
+Added in #709 as the client half of introducing new record kinds. It protects
+only builds that have it: a build older than it still refuses the whole
+manifest. So publishing a new kind's records still has to wait until no
+attached device is older than that; #709 is adding a capability gate that
+does that waiting per store.
+
 ### 4.6 Text sanitisation
 
 `sanitizeImportedText`
@@ -3633,6 +3661,12 @@ what it lists. The status surface shows it as a needs-you notice naming how
 many items are waiting when the reports name any. A blob reaches an older
 client through any server (§7.2 accepts an unknown blob `v`); a newer manifest
 reaches it only once the server has been updated first.
+
+**A newer version's record kind is reported the same way.** A peer manifest
+listing a kind this build does not know is read without it (§4.5) and reported
+with code `newerRecordKind`, naming only the peer: the kind is not one this
+build can name in a report. It joins the same needs-you notice, with the same
+remedy.
 
 **A newer version's record this build cannot keep is reported the same way.**
 A blob whose envelope `v` is current but whose body carries a part this build
