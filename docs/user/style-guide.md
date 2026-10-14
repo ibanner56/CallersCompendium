@@ -59,13 +59,13 @@ gig.
   **Perform**, **Settings**, the **Import** button.
 - Put the most common path first; tuck edge cases and power-user details under a
   later "More options" or "Troubleshooting" heading.
-- Cross-link generously to other guides and to the [Glossary](./glossary.md)
+- Cross-link generously to other guides and to [App terms](./glossary.md)
   rather than re-explaining the same concept in several places.
 
 ## Terminology conventions
 
 Consistent words reduce confusion. Use these, and **link the first use of a term
-in each guide to the [Glossary](./glossary.md)** so newcomers can get a
+in each guide to [App terms](./glossary.md)** so newcomers can get a
 definition without leaving the page. Link to the term's own anchor — for example
 `./glossary.md#program` or `./glossary.md#dialect` — so the reader lands directly
 on that definition rather than the top of the page.
@@ -90,7 +90,7 @@ on that definition rather than the top of the page.
 - **backup / restore** — saving all your data to a single file and loading it back.
 
 When community usage has moved on from an older term, use the current one (for
-example, "shoulder round," not the older gendered term) and let the Glossary note
+example, "shoulder round," not the older gendered term) and let [App terms](./glossary.md) note
 the history. Never bake gendered role names into examples; use Larks/Robins as the
 default and mention that any wording is configurable in your dialect.
 
