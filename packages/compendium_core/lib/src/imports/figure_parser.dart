@@ -1072,6 +1072,9 @@ final List<_Recognizer> _recognizers = [
   // Free-text phrasing "half hey, ladies start by the right": anchors on the
   // `hey` word plus a `start by` clause that no other recognizer consumes.
   _heyStartBy,
+  // `circular_hey` (taxonomy v36): the renderer's own sentence, "3/4 circular
+  // hey, neighbors pass right across", and its "square hey" alias.
+  _circularHey,
   // Additive TCB-attested moves (issue #553, Gap 1). Each is conservative
   // (leftover token → null → custom) and anchors on a distinct lead phrase, so
   // none shadows or is shadowed by the recognizers above.
@@ -2112,6 +2115,65 @@ _Match? _heyStartBy(List<String> w) {
     'pass1': pass1,
     'length': ?length,
     'shoulder': shoulder,
+  });
+}
+
+/// Extent words of a circular hey -> number of changes (quarters of a full
+/// four-change circuit). `1/2` is the only non-quarter spelling accepted.
+final Map<String, int> _circularHeyExtents = {
+  for (var n = 1; n <= 10; n++) '$n/4': n,
+  '1/2': 2,
+  'full': 4,
+};
+
+/// `circular_hey` (taxonomy v36): "3/4 circular hey, neighbors pass right
+/// across" / "full circular hey, ones pass left along", plus the "square hey"
+/// alias (ADR-006 §7.4). This is the shape the display renderer writes for
+/// every count except the full circuit: four changes (the default) renders with
+/// no extent ("circular hey, neighbors pass right across"), so that line does
+/// NOT parse back and stays custom text rather than a bare "circular hey"
+/// asserting a full circuit the source never stated. Write `full` to structure
+/// it.
+///
+/// Every fact the move stores is REQUIRED from the text, never defaulted: the
+/// extent as a quarter-fraction of a full circuit (`N/4` -> `changes: N`,
+/// `1/2` -> 2, `full` -> 4), the group that passes first, the shoulder and the
+/// direction. A bare "circular hey" would otherwise be stored with the
+/// taxonomy's defaults and read back as a stated "full, neighbors, right,
+/// across". An extent outside `1/4`..`10/4` or ANY leftover token yields null,
+/// so the line degrades to a faithful custom figure.
+_Match? _circularHey(List<String> w) {
+  int? changes;
+  for (final entry in _circularHeyExtents.entries) {
+    if (_consumePhrase(w, [entry.key])) {
+      changes = entry.value;
+      break;
+    }
+  }
+  if (changes == null) return null;
+  if (!_consumePhrase(w, ['circular', 'hey']) &&
+      !_consumePhrase(w, ['square', 'hey'])) {
+    return null;
+  }
+  final who = _takeDancer(w);
+  if (who == null || !_consumePhrase(w, ['pass'])) return null;
+  final shoulder = _takeSide(w);
+  if (shoulder == null) return null;
+  final String where;
+  if (_consumePhrase(w, ['across'])) {
+    where = 'across';
+  } else if (_consumePhrase(w, ['along'])) {
+    where = 'along';
+  } else {
+    return null;
+  }
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('circular_hey', {
+    'who': who,
+    'changes': changes,
+    'shoulder': shoulder,
+    'where': where,
   });
 }
 

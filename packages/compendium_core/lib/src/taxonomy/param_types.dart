@@ -25,6 +25,10 @@ enum ParamKind {
   /// Distance travelled around a ring/star, 1–10 "places" (circle, star,
   /// facing star, square through). Stored as places directly (not ContraDB's
   /// degrees), analogous to [rotation] being stored in turns.
+  ///
+  /// Also the 1–10 whole-number kind for `circular_hey.changes`, a count of
+  /// changes rather than a distance; the renderer words that param "N changes"
+  /// by name.
   places,
 
   /// `quarter` / `half` / `threeQuarter` / `full` / `other` (heys, poussettes).

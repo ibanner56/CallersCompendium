@@ -19,7 +19,7 @@ import 'taxonomy.dart';
 /// It is kept there because it is a ledger of decisions already shipped: it
 /// constrains nothing on this line, and it grows on every bump, so readers of
 /// this file were paying for the whole history to reach one constant.
-const int contraTaxonomyVersion = 35;
+const int contraTaxonomyVersion = 36;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -1459,6 +1459,44 @@ final Taxonomy contraTaxonomy = Taxonomy(
           'half': 8,
           'betweenHalfAndFull': 16,
           'full': 16,
+        },
+      ),
+    ),
+    // v36: the four-dancer circular hey. ADR-006 §7.4 is the starting point,
+    // but this is defined for contra on its own terms (ADR-006 §2: ECD owns
+    // its definitions), so ECD's `whom` and `slow` are not carried over. `who`
+    // is the group that passes first, mirroring `square_through.who`.
+    // `changes` counts the passes and, like `circle.places`, is any whole
+    // number 1..10 ([ParamKind.places]). Beats are the counts specified in the request that added this move:
+    // 1 -> 2, 2 -> 4, 3 -> 8, 4 -> 12 (the full circuit, the default) and 5
+    // or more -> 16. Above six changes 16 is only a placeholder: the caller is
+    // expected to set their own `beats`.
+    const MoveDef(
+      id: 'circular_hey',
+      displayName: 'circular hey',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        'changes': ParamSpec(ParamKind.places, defaultValue: 4),
+        'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
+        'where': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 12),
+      },
+      renderTemplate: '{who} {move} {changes} {shoulder} {where}',
+      searchKeywords: ['square hey'],
+      goodBeats: [2, 4, 8, 12, 16],
+      paramBeats: ParamBeats(
+        param: 'changes',
+        byValue: {
+          1: 2,
+          2: 4,
+          3: 8,
+          4: 12,
+          5: 16,
+          6: 16,
+          7: 16,
+          8: 16,
+          9: 16,
+          10: 16,
         },
       ),
     ),

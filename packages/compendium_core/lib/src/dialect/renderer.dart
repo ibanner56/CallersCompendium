@@ -833,6 +833,7 @@ class FigureRenderer {
       'box_circulate': 'circulating the box',
       'butterfly_whirl': 'doing a butterfly whirl',
       'california_twirl': 'doing a California twirl',
+      'circular_hey': 'doing a circular hey',
       'contra_corners': 'doing contra corners',
       'cross_trails': 'crossing trails',
       'dolphin_hey': 'doing a dolphin hey',
@@ -1610,6 +1611,8 @@ class FigureRenderer {
       return _formatFractionVerbose(value);
     }
     if (spec?.kind == ParamKind.places && value is int) {
+      // `circular_hey.changes` counts changes, not places around a ring.
+      if (name == 'changes') return value == 1 ? '1 change' : '$value changes';
       return _formatPlaces(value);
     }
     if (value is num) return _formatNumber(value);
@@ -2537,6 +2540,30 @@ class FigureRenderer {
         '[ - {ricochets}]',
       );
     },
+    // `circular_hey` (v36): "3/4 circular hey, neighbors pass right across".
+    // The fraction counts changes out of the four of a full circuit and is
+    // dropped for the full four changes, the default. `who` is the group that passes first, so it reads
+    // as the plural group noun the verb agrees with ("neighbors pass"). A
+    // other count reads as its quarter-fraction ("1/4", "5/4").
+    'circular_hey': (r, def, params, dialect, verbose, decimals) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final who = params['who'];
+      final changes = params['changes'];
+      final swho = who is String
+          ? r._displayGroup(who, dialect)
+          : r._displaySubject(who, dialect);
+      return _displayTemplate({
+        'move': move,
+        'fraction': changes is! int || changes == 4
+            ? ''
+            : verbose
+            ? _spokenChanges(changes)
+            : '$changes/4',
+        'who': swho,
+        'shoulder': _displayScalar(params['shoulder']),
+        'where': _displayScalar(params['where']),
+      }, '[{fraction} ]{move}, {who} pass {shoulder} {where}');
+    },
     // ContraDB `dolphinHeyWords`: words(smove, "- start with", swho, "passing",
     // swhom, "by", sshoulder). `whom` is a single-dancer identity, rendered via
     // [_singleDancerLabel] ("first lark"); the shoulder renders in full
@@ -3009,6 +3036,19 @@ class FigureRenderer {
 
   static String _formatNumber(num n) =>
       n == n.roundToDouble() ? n.toInt().toString() : n.toString();
+
+  /// Spoken form of a circular hey's extent ("three changes of a"), so the
+  /// verbose line carries no ASCII fraction a screen reader would misread.
+  static String _spokenChanges(int changes) {
+    const words = [
+      'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
+      'eight', 'nine', 'ten', //
+    ];
+    final word = changes >= 0 && changes < words.length
+        ? words[changes]
+        : '$changes';
+    return '$word ${changes == 1 ? 'change' : 'changes'} of a';
+  }
 
   /// Formats a places count using caller vocabulary ("1 place", "4 places").
   static String _formatPlaces(int places) =>

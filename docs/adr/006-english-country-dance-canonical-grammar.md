@@ -352,6 +352,12 @@ The draft display formulas in §7 use this notation:
 Formulas marked "*as contra*" reuse the contra renderer; Appendix A shows
 what those produce.
 
+`circular_hey` is the exception to "ECD owns its definitions" in one respect:
+contra gained its own `circular_hey` (taxonomy v36) with a different parameter
+set (`who`, `changes`, `shoulder`, `where`). It is defined independently, so
+the ECD entry in §7.4 is **not** "as contra", and Appendix A lists the contra
+version for comparison only.
+
 ## 7. The figure registry
 
 Each defined movement below has parameters and a draft display. "Defined"
@@ -706,6 +712,7 @@ its notes in §7 say so.
 | `swat_the_flea` | stored as `box_the_gnat` with `hand` fixed to left | `{who} swat the flea` |
 | `circle` | `direction` (left), `places` (4), `singleFile` (no) | `circle {direction} {places}` |
 | `star` | `hand` (right), `places` (4), `grip` (none) | `star {hand} {places}` plus a "hands across" / "wrist grip" clause when grip is set |
+| `circular_hey` (**not** the ECD §7.4 entry) | `who` (neighbors, passes first), `changes` (4; any whole number 1-10), `shoulder` (right), `where` (across) | `{fraction} circular hey, {who} pass {shoulder} {where}`; fraction (`changes`/4) shown unless `changes` is 4 |
 | `figure_8` | `who` (ones), `where` (none / above / below / across), `lead` (a single dancer, ones' role2), `fraction` (half) | `{who} {fraction} figure 8` |
 | `poussette` | `who` (ones), `whom` (neighbors), `fraction` (half), `direction` (clockwise) | `{who} poussette {whom} {fraction} {direction}` |
 | `gate` | `who`, `pair`, `whom`, `direction`, `travel`, `endFacing` (all unspecified) | `{who} {pair} gate {whom} {direction} {travel} {endFacing}` |
