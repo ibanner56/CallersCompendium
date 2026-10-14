@@ -1,0 +1,14 @@
+{
+  "id": "circular-hey-contra-move",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Contra dances can now include a circular hey (also called a square hey): choose who passes first, which shoulder, across or along the set, and how many changes it runs (four is the full circuit, shown as \"3/4 circular hey, neighbors pass right across\" for three). Typing that same wording into a figure is recognized as a circular hey."
+    ]
+  },
+  "core": {
+    "added": [
+      "Contra taxonomy v36 adds the `circular_hey` move (`who`, `changes` 1-10, `shoulder`, `where`), with 2, 4, 8 and 12 beats for one to four changes and 16 for five or more, and the shared free-text recognizer reads its display sentence (except the full circuit, which omits the extent and must be written with `full`) and the \"square hey\" alias."
+    ]
+  }
+}

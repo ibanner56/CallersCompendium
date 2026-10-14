@@ -73,6 +73,11 @@ class SyncBaselineEntry {
   final SyncBaselineBodyHashVersion bodyHashVersion;
 }
 
+/// What this device last published (sync-spec §6.3 step 8): the hash of its
+/// manifest encoded with `writtenAt` fixed, and when the store last confirmed
+/// every blob that manifest names.
+typedef SyncPublishedManifest = ({String hash, DateTime verifiedAt});
+
 /// Local-only state for the Device Sync protocol.
 ///
 /// Public mutating methods each run in one transaction. Call [transaction]
@@ -125,6 +130,46 @@ class SyncLocalRepository {
   }) => transaction(
     (tx) => tx.advanceBaseline(epoch: epoch, entries: entries, drop: drop),
   );
+
+  /// The manifest this device last published in [epoch] (sync-spec §6.3 step
+  /// 8), or null when none is recorded for that epoch.
+  Future<SyncPublishedManifest?> publishedManifest({
+    required String epoch,
+  }) async {
+    final state = await getBaselineState();
+    final hash = state?.publishedManifestHash;
+    final verifiedAt = state?.publishedVerifiedAt;
+    if (state == null ||
+        state.epoch != epoch ||
+        hash == null ||
+        verifiedAt == null) {
+      return null;
+    }
+    return (
+      hash: hash,
+      verifiedAt: DateTime.fromMillisecondsSinceEpoch(verifiedAt, isUtc: true),
+    );
+  }
+
+  /// Records [published] as what this device's manifest in [epoch] now is, or
+  /// forgets what was recorded when it is null. A no-op when the stored
+  /// baseline belongs to another epoch, or there is none: the record is only
+  /// ever read back against the epoch it was written for.
+  Future<void> setPublishedManifest({
+    required String epoch,
+    required SyncPublishedManifest? published,
+  }) async {
+    await (_db.update(
+      _db.baselineState,
+    )..where((row) => row.id.equals(1) & row.epoch.equals(epoch))).write(
+      BaselineStateCompanion(
+        publishedManifestHash: Value(published?.hash),
+        publishedVerifiedAt: Value(
+          published?.verifiedAt.toUtc().millisecondsSinceEpoch,
+        ),
+      ),
+    );
+  }
 
   Future<void> resetEpoch({
     required String epoch,

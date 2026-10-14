@@ -442,7 +442,9 @@ every one of these holds:
    within one second reads as equal to the current manifest. Comparing two
    devices' clocks can also exclude a live peer whose clock runs slow, or one
    that published in the same second; that only makes the clean-up skip,
-   which condition 5 is allowed to do.
+   which condition 5 is allowed to do. So does a peer that has synced since
+   but had nothing new to publish (§6.3 step 8): it counts only once it
+   publishes again, on a change or when its refresh interval passes.
 
 There is no condition on unsynced local edits, and none is needed: an edit this
 device never published is not in its server manifest, so removing that manifest
@@ -2688,8 +2690,10 @@ republishes, which is an ordinary upload and needs no special path.
    deletion, since absence never deletes (§6.8) and the peer's manifest still
    asserts the record exists. The record MUST NOT advance in the baseline, so
    the next pass retries it; if this device is the record's origin, step 7 will
-   find the blob missing and re-upload it. This is reachable without a faulty
-   peer: a manifest can outlive its blob by §7.3.
+   find the blob missing and re-upload it — at the latest once the refresh
+   interval of step 8 has passed, since until then step 7 does not ask again
+   about a blob its published manifest already names. This is reachable
+   without a faulty peer: a manifest can outlive its blob by §7.3.
 
    **A `429`, a `5xx` other than `507`, or a network failure is not about the
    record, and MUST NOT be reported as one.** After a `429` every later
@@ -2749,6 +2753,16 @@ republishes, which is an ordinary upload and needs no special path.
    missing from that final manifest. The marker protects a concurrent hard
    delete during blob negotiation and upload, even if either request fails.
 
+   A client MAY leave out of that `POST` any hash named by the manifest it
+   last published (step 8), while that publication is *current*: it is
+   recorded as landed, the store still lists this device, and the store
+   confirmed every blob that manifest names less than the refresh interval
+   ago (12 hours in the reference client) by this device's clock, which has
+   not gone back since. Such a blob is in the store and stays there while
+   this device's manifest names it (§7.3). Asking about every hash again is
+   always conforming. A pass that leaves hashes out does not reset the
+   interval; one that asks about every hash does.
+
    Upload with `PUT /v1/blobs/batch` (§5.2), up to 50 blobs and 2 MB of blob
    bytes at a time, and with `PUT /v1/blobs/{hash}` for a blob over the blob cap
    and against a server without the route. A blob a batch refuses is that
@@ -2762,7 +2776,30 @@ republishes, which is an ordinary upload and needs no special path.
    > (§5.4): over about 16 minutes at the 60 a minute then in force, and over
    > four passes and about 4 minutes at 5 a second, measured. The batch upload was added by the change that added
    > this note, by its author rather than the maintainer.
-8. `PUT /v1/manifests/{self}`. The marker was written in step 7 before blob
+8. `PUT /v1/manifests/{self}`, unless the last publication is current (step
+   7), the final manifest, encoded with its `writtenAt` fixed, is
+   byte-identical to the one it recorded, and the pass took every record its
+   peers' manifests list. A pass that left any peer's record unresolved,
+   refused it (§6.9) or held it back as quarantined publishes regardless, so
+   that a device refusing a record keeps publishing as §6.9's judgement of it
+   requires. A client that skips the `PUT` skips
+   step 7's network requests with it, and still stores the baseline (step 9).
+   The record of what was published MUST be cleared before every `PUT` and
+   written only after one succeeds: a `PUT` whose answer was lost may still
+   have replaced the manifest. A device the store no longer lists has lost its
+   manifest (§5.3), so its publication is never current.
+
+   > **Amended 2026-10-13.** Every pass re-checked every blob of the library
+   > and rewrote the manifest, and the new `writtenAt` alone gave it a new
+   > `ETag`, so each peer downloaded it in full on its next pass even when
+   > nothing had changed. The maintainer asked for unchanged passes to send
+   > neither, and for the record to persist across restarts. The 12-hour
+   > interval, which bounds how long a blob lost to the stall case of §7.3
+   > goes unrepaired and how stale a busy device's `writtenAt` can get (§6.9),
+   > was chosen by the change that added this note, by its author rather than
+   > the maintainer.
+
+   The marker was written in step 7 before blob
    work, and the client MUST retain that protection before issuing this
    request. A crash between the marker and the request then over-marks rather
    than under-marks, and those costs are not equivalent: an under-mark forfeits
@@ -3743,6 +3780,9 @@ manifest's `writtenAt`:
   peer).
 - **Refusing** — the peer has published at least twice since, with distinct
   `writtenAt` values, and its manifest still does not carry the record's hash.
+  A peer that refuses or cannot take a record publishes on every pass that
+  does so, unchanged or not (§6.3 step 8), so this judgement is unaffected by
+  peers skipping publications that carry nothing new.
   This MUST be reported, once per record and peer, and the report MUST carry
   the peer's id. Twice, not once: a pass that was already running when this
   device published can finish afterwards without having read its manifest.
@@ -4378,8 +4418,10 @@ architecture is built on.
 
 A pass that stalls for longer than the grace period and then publishes will
 name a collected blob. That is not silently wrong: peers skip and report the
-record (§6.7), and the next pass re-uploads it, because `blobs/missing` reports
-it missing again. The server is deliberately **not** required to reject a
+record (§6.7), and the origin re-uploads it on the first pass that asks
+`blobs/missing` about it again — the next pass that publishes a changed
+manifest without relying on its last one, and at the latest the first after
+§6.3 step 8's refresh interval. The server is deliberately **not** required to reject a
 manifest naming a blob it lacks — that would make manifest `PUT` referentially
 interpret its own body, which §7.1 forbids, to catch a case the client already
 self-heals.
@@ -5307,6 +5349,21 @@ A device whose own clock runs fast is still reported against (mutation: compare
 the peer's `writtenAt` with this device's clock). A peer holding a newer version
 is not refusing it (mutation: judge on hash inequality alone). Zero observed
 peers judges nothing.
+
+**Unchanged publication (§6.3 steps 7–8).** A second pass over an unchanged
+library sends neither `POST /v1/blobs/missing` nor the manifest `PUT` (mutation:
+always publish). A changed record asks only about its own new hash (mutation:
+ask about every hash) and keeps the earlier confirmation time (mutation: stamp
+it now). The interval passing, the clock going back, and the store no longer
+listing this device each publish in full (mutation: drop the check). A failed
+`PUT` — refused, stale-epoch or thrown — leaves nothing recorded (mutation:
+clear only after it). A pass that cannot take a peer's record still publishes
+(mutation: skip it anyway). A fresh attach records its continuation's
+publication after the baseline it starts (mutation: record it before). A new session
+relies on the stored record and checks every blob when the manifest changed.
+A blob this device holds locally but does not publish — an import
+`sync_exclude_imports` keeps back, the live row behind a pending tombstone — is
+not downloaded (mutation: take only the publication's hashes as held).
 
 **Detach clean-up (§3.3).** Removes this device's manifest when every entry is
 carried with the identical hash by some peer written later; keeps it when the

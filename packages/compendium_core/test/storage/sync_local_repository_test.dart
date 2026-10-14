@@ -202,6 +202,75 @@ void main() {
     expect(await repository.listBaselineEntries(), isEmpty);
   });
 
+  group('published manifest record (sync-spec §6.3 step 8)', () {
+    late CompendiumDatabase db;
+    late SyncLocalRepository repository;
+    final verifiedAt = DateTime.utc(2026, 10, 13, 9, 30);
+
+    setUp(() async {
+      db = openTestDatabase();
+      repository = SyncLocalRepository(db);
+      await repository.replaceBaseline(epoch: 'epoch-a');
+    });
+    tearDown(() => db.close());
+
+    test('reads back what was recorded for the same epoch', () async {
+      await repository.setPublishedManifest(
+        epoch: 'epoch-a',
+        published: (hash: 'manifest-hash', verifiedAt: verifiedAt),
+      );
+
+      expect(await repository.publishedManifest(epoch: 'epoch-a'), (
+        hash: 'manifest-hash',
+        verifiedAt: verifiedAt,
+      ));
+      expect(await repository.publishedManifest(epoch: 'epoch-b'), isNull);
+    });
+
+    test('is not written against another epoch', () async {
+      await repository.setPublishedManifest(
+        epoch: 'epoch-b',
+        published: (hash: 'manifest-hash', verifiedAt: verifiedAt),
+      );
+
+      expect(await repository.publishedManifest(epoch: 'epoch-a'), isNull);
+      expect(await repository.publishedManifest(epoch: 'epoch-b'), isNull);
+    });
+
+    test('is forgotten when cleared, and with the baseline', () async {
+      await repository.setPublishedManifest(
+        epoch: 'epoch-a',
+        published: (hash: 'manifest-hash', verifiedAt: verifiedAt),
+      );
+      await repository.setPublishedManifest(epoch: 'epoch-a', published: null);
+      expect(await repository.publishedManifest(epoch: 'epoch-a'), isNull);
+
+      await repository.setPublishedManifest(
+        epoch: 'epoch-a',
+        published: (hash: 'manifest-hash', verifiedAt: verifiedAt),
+      );
+      await repository.replaceBaseline(epoch: 'epoch-a');
+      expect(
+        await repository.publishedManifest(epoch: 'epoch-a'),
+        isNull,
+        reason: 'a replaced baseline starts with nothing published',
+      );
+
+      await repository.setPublishedManifest(
+        epoch: 'epoch-a',
+        published: (hash: 'manifest-hash', verifiedAt: verifiedAt),
+      );
+      await repository.advanceBaseline(epoch: 'epoch-a');
+      expect(
+        await repository.publishedManifest(epoch: 'epoch-a'),
+        isNotNull,
+        reason: 'advancing the baseline is not a new publication',
+      );
+      await repository.clearBaseline();
+      expect(await repository.publishedManifest(epoch: 'epoch-a'), isNull);
+    });
+  });
+
   test(
     'preserves opaque tombstone bytes alongside their supplied hash',
     () async {

@@ -671,6 +671,19 @@ class BaselineState extends Table {
   IntColumn get id => integer().customConstraint('NOT NULL CHECK (id = 1)')();
   TextColumn get epoch => text()();
 
+  /// SHA-256 of the manifest this device last published in [epoch], encoded
+  /// with its `writtenAt` fixed, so it names exactly the device id, epoch and
+  /// records the server holds for this device (sync-spec §6.3 step 8). Null
+  /// until a publication succeeds, and cleared before every manifest `PUT`, so
+  /// a `PUT` whose outcome is unknown is never mistaken for one that landed.
+  TextColumn get publishedManifestHash => text().nullable()();
+
+  /// When the store last confirmed every blob that manifest names, as
+  /// milliseconds since the Unix epoch, UTC. Set with
+  /// [publishedManifestHash]; a pass older than the refresh interval checks
+  /// every blob again and republishes even an unchanged manifest.
+  IntColumn get publishedVerifiedAt => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

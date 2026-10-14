@@ -654,6 +654,8 @@ final Map<String, DataClassification> fieldClassifications = {
   'normalisation_skips.record_id': _normalisationRepairState,
   'baseline_state.id': _syncBookkeeping,
   'baseline_state.epoch': _syncBookkeeping,
+  'baseline_state.published_manifest_hash': _syncBookkeeping,
+  'baseline_state.published_verified_at': _syncBookkeeping,
   'baseline_entries.kind': _syncBookkeeping,
   'baseline_entries.record_id': _syncBookkeeping,
   'baseline_entries.wire_hash': _syncBookkeeping,
