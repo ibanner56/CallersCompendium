@@ -986,7 +986,7 @@ void main() {
       // `ParamKind.spinDirection` renders from a HARDCODED `ParamVocab.spins`,
       // ignoring `spec.choices` entirely — so a sentinel there could not be
       // made safe by declaring choices. The move avoids the problem by having a
-      // real default (a courtesy turn wheels clockwise by construction).
+      // real default (counterclockwise since taxonomy v37, the ordinary turn).
       final spec = contraTaxonomy
           .resolve('courtesy_turn')!
           .params['direction']!;
@@ -997,7 +997,7 @@ void main() {
         tester,
         paramKey: 'direction',
         spec: spec,
-        value: 'clockwise',
+        value: spec.defaultValue,
       );
       await tester.pumpAndSettle();
       expect(read(), isNull);

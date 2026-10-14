@@ -1642,6 +1642,21 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     `circular_hey` with `who2` from the even cells. Purely additive: no schema
     migration, no derived-index rebuild, and already-imported dances keep
     their custom text (no backfill, maintainer decision).
+  v37 also changes the `courtesy_turn.direction` default from `clockwise` to
+    `counterclockwise`. The ordinary courtesy turn (after a role2s' chain, a
+    right and left through or a promenade across) wheels counterclockwise with
+    the left-hand dancer backing up (TCB glossary, "Courtesy turn"); clockwise
+    is the mirrored turn, chiefly after a role1s' chain (maintainer, on the PR
+    that made this change). v23's reading — "clockwise by construction", with
+    the 10 corpus lines that state `clockwise` taken as confirmations — was
+    wrong: a source names the rotation only when it is the unusual one, so
+    those lines are the mirrored case. The display now silences
+    `counterclockwise` and states `clockwise`. Source JSON is unchanged — a
+    stored courtesy turn without a stated direction now means the ordinary
+    turn, and one that states `clockwise` keeps it — but the canonical text of
+    every courtesy turn without a stated direction changes, so v37 owes a
+    one-time canonical/FTS rebuild, guarded by
+    `taxonomyV37CanonicalRebuildDoneKey`.
 
 ## Open questions (to resolve during implementation, with user input)
 

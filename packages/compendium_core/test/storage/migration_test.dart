@@ -241,6 +241,7 @@ void main() {
           promenadeTurnCircleWordingCanonicalRebuildDoneKey,
           compactDosidoSeesawCanonicalRebuildDoneKey,
           modifierContainerCanonicalRebuildDoneKey,
+          taxonomyV37CanonicalRebuildDoneKey,
           chainHandBackfillDoneKey,
         ]) {
           await repos.settings.set(key, 'done');
@@ -624,6 +625,107 @@ void main() {
         final rebuilds = repos.rebuildAttempts;
         await repos.ensureMigrated();
         expect(repos.rebuildAttempts, rebuilds);
+      },
+    );
+  });
+
+  group('taxonomy v37 canonical rebuild', () {
+    test(
+      'a courtesy turn with no stated direction re-derives as counterclockwise',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        final repos = _CountingRepositories(db, contraTaxonomy);
+        addTearDown(db.close);
+
+        final unstated = Figure(
+          move: 'courtesy_turn',
+          params: {'who': 'partners', 'beats': 4},
+        );
+        final stated = Figure(
+          move: 'courtesy_turn',
+          params: {'who': 'partners', 'direction': 'clockwise', 'beats': 4},
+        );
+        await repos.dances.create(
+          Dance(
+            id: 'v37-courtesy',
+            title: 'v37 courtesy turns',
+            figures: [unstated, stated],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        await _markPre1192SweepsComplete(repos);
+        await repos.settings.remove(taxonomyV37CanonicalRebuildDoneKey);
+        // What a v36 install derived for both figures.
+        await db.customUpdate(
+          'UPDATE dance_figures SET canonical_text = ? WHERE dance_id = ?',
+          variables: [
+            Variable<String>('partners courtesy turn clockwise'),
+            Variable<String>('v37-courtesy'),
+          ],
+        );
+        await db.customUpdate(
+          'UPDATE dance_fts SET figures_text = ? WHERE dance_id = ?',
+          variables: [
+            Variable<String>('stale FTS'),
+            Variable<String>('v37-courtesy'),
+          ],
+        );
+        final sourceBefore =
+            (await db
+                    .customSelect(
+                      'SELECT figures_json FROM dances WHERE id = ?',
+                      variables: [Variable<String>('v37-courtesy')],
+                    )
+                    .getSingle())
+                .read<String>('figures_json');
+
+        await repos.ensureMigrated();
+
+        final indexed = await db
+            .customSelect(
+              'SELECT canonical_text FROM dance_figures WHERE dance_id = ? '
+              'ORDER BY idx',
+              variables: [Variable<String>('v37-courtesy')],
+            )
+            .get();
+        expect(indexed.map((row) => row.read<String>('canonical_text')), [
+          'partners courtesy turn counterclockwise',
+          'partners courtesy turn clockwise',
+        ]);
+        final fts = await db
+            .customSelect(
+              'SELECT figures_text FROM dance_fts WHERE dance_id = ?',
+              variables: [Variable<String>('v37-courtesy')],
+            )
+            .getSingle();
+        expect(
+          fts.read<String>('figures_text'),
+          contains('partners courtesy turn counterclockwise'),
+        );
+        // Source JSON is untouched: only derived text was stale.
+        final sourceAfter =
+            (await db
+                    .customSelect(
+                      'SELECT figures_json FROM dances WHERE id = ?',
+                      variables: [Variable<String>('v37-courtesy')],
+                    )
+                    .getSingle())
+                .read<String>('figures_json');
+        expect(sourceAfter, sourceBefore);
+
+        final marker = await db
+            .customSelect(
+              'SELECT value_json FROM settings WHERE key = ? '
+              'AND deleted_at IS NULL',
+              variables: [Variable<String>(taxonomyV37CanonicalRebuildDoneKey)],
+            )
+            .getSingle();
+        expect(marker.read<String>('value_json'), '"done"');
+
+        final rebuilds = repos.rebuildAttempts;
+        await repos.ensureMigrated();
+        expect(repos.rebuildAttempts, rebuilds, reason: 'runs once');
       },
     );
   });
@@ -1459,6 +1561,7 @@ Future<void> _markPre1192SweepsComplete(CompendiumRepositories repos) async {
     taxonomyV33CanonicalRebuildDoneKey,
     taxonomyV34CanonicalRebuildDoneKey,
     modifierContainerCanonicalRebuildDoneKey,
+    taxonomyV37CanonicalRebuildDoneKey,
     chainHandBackfillDoneKey,
   ]) {
     await repos.settings.set(key, 'done');

@@ -1,0 +1,14 @@
+{
+  "id": "695-courtesy-turn-counterclockwise",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "A courtesy turn now turns counterclockwise unless you say otherwise, which is the usual way it's danced; clockwise is the mirrored turn, mostly when the larks chain. Courtesy turns that don't state a direction keep looking the same but are now understood as counterclockwise, and ones you set to clockwise now say so. The app rebuilds its search index once after updating so searches match."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Taxonomy v37: `courtesy_turn.direction` defaults to `counterclockwise` (was `clockwise`); display silences the default. A one-time canonical/FTS rebuild (`taxonomyV37CanonicalRebuildDoneKey`) re-derives stored courtesy turns' canonical text; source JSON is unchanged."
+    ]
+  }
+}

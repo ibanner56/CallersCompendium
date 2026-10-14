@@ -46,6 +46,13 @@ const String kTaxonomyV35FigureNormalizationDoneKey =
 const String kModifierContainerCanonicalRebuildDoneKey =
     '__modifier_container_canonical_rebuild_done__';
 
+/// App-side name for the one-shot taxonomy v37 canonical/FTS rebuild marker's
+/// denylist entry; the storage-owned constant remains the migration source of
+/// truth. See the note above [kTaxonomyV33CanonicalRebuildDoneKey] for why
+/// this duplicate exists.
+const String kTaxonomyV37CanonicalRebuildDoneKey =
+    '__taxonomy_v37_canonical_rebuild_done__';
+
 /// App-side name for the storage-owned one-shot repair marker's denylist
 /// entry; the core constant remains the migration source of truth. See the
 /// note above [kTaxonomyV33CanonicalRebuildDoneKey] for why this duplicate
@@ -122,6 +129,7 @@ const Set<String> kBackupSettingsDenylist = {
   kTaxonomyV34CanonicalRebuildDoneKey,
   kModifierContainerCanonicalRebuildDoneKey,
   kTaxonomyV35FigureNormalizationDoneKey,
+  kTaxonomyV37CanonicalRebuildDoneKey,
   kCallersBoxRollAwayRoleRepairDoneKey,
   kNormalisationDerivedIndexRepairDoneKey,
   derivedRebuildRequiredKey,
