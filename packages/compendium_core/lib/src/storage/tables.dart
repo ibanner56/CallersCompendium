@@ -784,3 +784,27 @@ class PublishedRecords extends Table {
 // is marked superseded: the app imports directly from the source instead).
 // The table, its repository and its test were dropped in #782; nothing ever
 // wrote a row.
+
+/// The last verified manifest fetched from each peer, kept so the first pass
+/// after a restart can send `If-None-Match` and be answered `304` instead of
+/// downloading every peer's manifest again (sync-spec §5.2). A cache: any row
+/// can be dropped at any time and the next pass fetches that manifest in full.
+@DataClassName('PeerManifestRow')
+class PeerManifests extends Table {
+  /// The peer's per-attachment device id, as the store lists it.
+  TextColumn get peerId => text()();
+
+  /// The store epoch the manifest was fetched in. A row from another epoch is
+  /// never used.
+  TextColumn get epoch => text()();
+
+  /// The strong validator the server sent with the manifest, verbatim.
+  TextColumn get etag => text()();
+
+  /// The manifest as this device verified and decoded it, re-encoded
+  /// canonically.
+  TextColumn get body => text()();
+
+  @override
+  Set<Column> get primaryKey => {peerId};
+}

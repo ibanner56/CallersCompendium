@@ -14400,6 +14400,322 @@ class RetainedSyncFieldsCompanion
   }
 }
 
+class $PeerManifestsTable extends PeerManifests
+    with TableInfo<$PeerManifestsTable, PeerManifestRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PeerManifestsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _peerIdMeta = const VerificationMeta('peerId');
+  @override
+  late final GeneratedColumn<String> peerId = GeneratedColumn<String>(
+    'peer_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _epochMeta = const VerificationMeta('epoch');
+  @override
+  late final GeneratedColumn<String> epoch = GeneratedColumn<String>(
+    'epoch',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _etagMeta = const VerificationMeta('etag');
+  @override
+  late final GeneratedColumn<String> etag = GeneratedColumn<String>(
+    'etag',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
+  @override
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+    'body',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [peerId, epoch, etag, body];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'peer_manifests';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PeerManifestRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('peer_id')) {
+      context.handle(
+        _peerIdMeta,
+        peerId.isAcceptableOrUnknown(data['peer_id']!, _peerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_peerIdMeta);
+    }
+    if (data.containsKey('epoch')) {
+      context.handle(
+        _epochMeta,
+        epoch.isAcceptableOrUnknown(data['epoch']!, _epochMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_epochMeta);
+    }
+    if (data.containsKey('etag')) {
+      context.handle(
+        _etagMeta,
+        etag.isAcceptableOrUnknown(data['etag']!, _etagMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_etagMeta);
+    }
+    if (data.containsKey('body')) {
+      context.handle(
+        _bodyMeta,
+        body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bodyMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {peerId};
+  @override
+  PeerManifestRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PeerManifestRow(
+      peerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}peer_id'],
+      )!,
+      epoch: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}epoch'],
+      )!,
+      etag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}etag'],
+      )!,
+      body: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}body'],
+      )!,
+    );
+  }
+
+  @override
+  $PeerManifestsTable createAlias(String alias) {
+    return $PeerManifestsTable(attachedDatabase, alias);
+  }
+}
+
+class PeerManifestRow extends DataClass implements Insertable<PeerManifestRow> {
+  /// The peer's per-attachment device id, as the store lists it.
+  final String peerId;
+
+  /// The store epoch the manifest was fetched in. A row from another epoch is
+  /// never used.
+  final String epoch;
+
+  /// The strong validator the server sent with the manifest, verbatim.
+  final String etag;
+
+  /// The manifest as this device verified and decoded it, re-encoded
+  /// canonically.
+  final String body;
+  const PeerManifestRow({
+    required this.peerId,
+    required this.epoch,
+    required this.etag,
+    required this.body,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['peer_id'] = Variable<String>(peerId);
+    map['epoch'] = Variable<String>(epoch);
+    map['etag'] = Variable<String>(etag);
+    map['body'] = Variable<String>(body);
+    return map;
+  }
+
+  PeerManifestsCompanion toCompanion(bool nullToAbsent) {
+    return PeerManifestsCompanion(
+      peerId: Value(peerId),
+      epoch: Value(epoch),
+      etag: Value(etag),
+      body: Value(body),
+    );
+  }
+
+  factory PeerManifestRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PeerManifestRow(
+      peerId: serializer.fromJson<String>(json['peerId']),
+      epoch: serializer.fromJson<String>(json['epoch']),
+      etag: serializer.fromJson<String>(json['etag']),
+      body: serializer.fromJson<String>(json['body']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'peerId': serializer.toJson<String>(peerId),
+      'epoch': serializer.toJson<String>(epoch),
+      'etag': serializer.toJson<String>(etag),
+      'body': serializer.toJson<String>(body),
+    };
+  }
+
+  PeerManifestRow copyWith({
+    String? peerId,
+    String? epoch,
+    String? etag,
+    String? body,
+  }) => PeerManifestRow(
+    peerId: peerId ?? this.peerId,
+    epoch: epoch ?? this.epoch,
+    etag: etag ?? this.etag,
+    body: body ?? this.body,
+  );
+  PeerManifestRow copyWithCompanion(PeerManifestsCompanion data) {
+    return PeerManifestRow(
+      peerId: data.peerId.present ? data.peerId.value : this.peerId,
+      epoch: data.epoch.present ? data.epoch.value : this.epoch,
+      etag: data.etag.present ? data.etag.value : this.etag,
+      body: data.body.present ? data.body.value : this.body,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PeerManifestRow(')
+          ..write('peerId: $peerId, ')
+          ..write('epoch: $epoch, ')
+          ..write('etag: $etag, ')
+          ..write('body: $body')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(peerId, epoch, etag, body);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PeerManifestRow &&
+          other.peerId == this.peerId &&
+          other.epoch == this.epoch &&
+          other.etag == this.etag &&
+          other.body == this.body);
+}
+
+class PeerManifestsCompanion extends UpdateCompanion<PeerManifestRow> {
+  final Value<String> peerId;
+  final Value<String> epoch;
+  final Value<String> etag;
+  final Value<String> body;
+  final Value<int> rowid;
+  const PeerManifestsCompanion({
+    this.peerId = const Value.absent(),
+    this.epoch = const Value.absent(),
+    this.etag = const Value.absent(),
+    this.body = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PeerManifestsCompanion.insert({
+    required String peerId,
+    required String epoch,
+    required String etag,
+    required String body,
+    this.rowid = const Value.absent(),
+  }) : peerId = Value(peerId),
+       epoch = Value(epoch),
+       etag = Value(etag),
+       body = Value(body);
+  static Insertable<PeerManifestRow> custom({
+    Expression<String>? peerId,
+    Expression<String>? epoch,
+    Expression<String>? etag,
+    Expression<String>? body,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (peerId != null) 'peer_id': peerId,
+      if (epoch != null) 'epoch': epoch,
+      if (etag != null) 'etag': etag,
+      if (body != null) 'body': body,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PeerManifestsCompanion copyWith({
+    Value<String>? peerId,
+    Value<String>? epoch,
+    Value<String>? etag,
+    Value<String>? body,
+    Value<int>? rowid,
+  }) {
+    return PeerManifestsCompanion(
+      peerId: peerId ?? this.peerId,
+      epoch: epoch ?? this.epoch,
+      etag: etag ?? this.etag,
+      body: body ?? this.body,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (peerId.present) {
+      map['peer_id'] = Variable<String>(peerId.value);
+    }
+    if (epoch.present) {
+      map['epoch'] = Variable<String>(epoch.value);
+    }
+    if (etag.present) {
+      map['etag'] = Variable<String>(etag.value);
+    }
+    if (body.present) {
+      map['body'] = Variable<String>(body.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PeerManifestsCompanion(')
+          ..write('peerId: $peerId, ')
+          ..write('epoch: $epoch, ')
+          ..write('etag: $etag, ')
+          ..write('body: $body, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$CompendiumDatabase extends GeneratedDatabase {
   _$CompendiumDatabase(QueryExecutor e) : super(e);
   $CompendiumDatabaseManager get managers => $CompendiumDatabaseManager(this);
@@ -14450,6 +14766,7 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
   );
   late final $RetainedSyncFieldsTable retainedSyncFields =
       $RetainedSyncFieldsTable(this);
+  late final $PeerManifestsTable peerManifests = $PeerManifestsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -14483,6 +14800,7 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
     reviewQueue,
     publishedRecords,
     retainedSyncFields,
+    peerManifests,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -25530,6 +25848,206 @@ typedef $$RetainedSyncFieldsTableProcessedTableManager =
       RetainedSyncFieldsRow,
       PrefetchHooks Function()
     >;
+typedef $$PeerManifestsTableCreateCompanionBuilder =
+    PeerManifestsCompanion Function({
+      required String peerId,
+      required String epoch,
+      required String etag,
+      required String body,
+      Value<int> rowid,
+    });
+typedef $$PeerManifestsTableUpdateCompanionBuilder =
+    PeerManifestsCompanion Function({
+      Value<String> peerId,
+      Value<String> epoch,
+      Value<String> etag,
+      Value<String> body,
+      Value<int> rowid,
+    });
+
+class $$PeerManifestsTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $PeerManifestsTable> {
+  $$PeerManifestsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get peerId => $composableBuilder(
+    column: $table.peerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get epoch => $composableBuilder(
+    column: $table.epoch,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get etag => $composableBuilder(
+    column: $table.etag,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PeerManifestsTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $PeerManifestsTable> {
+  $$PeerManifestsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get peerId => $composableBuilder(
+    column: $table.peerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get epoch => $composableBuilder(
+    column: $table.epoch,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get etag => $composableBuilder(
+    column: $table.etag,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PeerManifestsTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $PeerManifestsTable> {
+  $$PeerManifestsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get peerId =>
+      $composableBuilder(column: $table.peerId, builder: (column) => column);
+
+  GeneratedColumn<String> get epoch =>
+      $composableBuilder(column: $table.epoch, builder: (column) => column);
+
+  GeneratedColumn<String> get etag =>
+      $composableBuilder(column: $table.etag, builder: (column) => column);
+
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
+}
+
+class $$PeerManifestsTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $PeerManifestsTable,
+          PeerManifestRow,
+          $$PeerManifestsTableFilterComposer,
+          $$PeerManifestsTableOrderingComposer,
+          $$PeerManifestsTableAnnotationComposer,
+          $$PeerManifestsTableCreateCompanionBuilder,
+          $$PeerManifestsTableUpdateCompanionBuilder,
+          (
+            PeerManifestRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $PeerManifestsTable,
+              PeerManifestRow
+            >,
+          ),
+          PeerManifestRow,
+          PrefetchHooks Function()
+        > {
+  $$PeerManifestsTableTableManager(
+    _$CompendiumDatabase db,
+    $PeerManifestsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PeerManifestsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PeerManifestsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PeerManifestsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> peerId = const Value.absent(),
+                Value<String> epoch = const Value.absent(),
+                Value<String> etag = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PeerManifestsCompanion(
+                peerId: peerId,
+                epoch: epoch,
+                etag: etag,
+                body: body,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String peerId,
+                required String epoch,
+                required String etag,
+                required String body,
+                Value<int> rowid = const Value.absent(),
+              }) => PeerManifestsCompanion.insert(
+                peerId: peerId,
+                epoch: epoch,
+                etag: etag,
+                body: body,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$PeerManifestsTable, PeerManifestRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $PeerManifestsTable,
+                    PeerManifestRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PeerManifestsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $PeerManifestsTable,
+      PeerManifestRow,
+      $$PeerManifestsTableFilterComposer,
+      $$PeerManifestsTableOrderingComposer,
+      $$PeerManifestsTableAnnotationComposer,
+      $$PeerManifestsTableCreateCompanionBuilder,
+      $$PeerManifestsTableUpdateCompanionBuilder,
+      (
+        PeerManifestRow,
+        BaseReferences<
+          _$CompendiumDatabase,
+          $PeerManifestsTable,
+          PeerManifestRow
+        >,
+      ),
+      PeerManifestRow,
+      PrefetchHooks Function()
+    >;
 
 class $CompendiumDatabaseManager {
   final _$CompendiumDatabase _db;
@@ -25592,4 +26110,6 @@ class $CompendiumDatabaseManager {
       $$PublishedRecordsTableTableManager(_db, _db.publishedRecords);
   $$RetainedSyncFieldsTableTableManager get retainedSyncFields =>
       $$RetainedSyncFieldsTableTableManager(_db, _db.retainedSyncFields);
+  $$PeerManifestsTableTableManager get peerManifests =>
+      $$PeerManifestsTableTableManager(_db, _db.peerManifests);
 }

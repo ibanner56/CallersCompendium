@@ -396,6 +396,24 @@ abstract interface class SyncCoordinatorStore
     required SyncPublishedManifest? published,
   });
 
+  /// The manifest kept for [peerId] (spec §5.2), or null.
+  Future<SyncStoredPeerManifest?> storedPeerManifest(String peerId);
+
+  /// Keeps [manifest] as [peerId]'s.
+  Future<void> storePeerManifest(
+    String peerId,
+    SyncStoredPeerManifest manifest,
+  );
+
+  /// Forgets the manifest kept for [peerId].
+  Future<void> forgetPeerManifest(String peerId);
+
+  /// Forgets every kept manifest except those of [peerIds] in [epoch].
+  Future<void> retainPeerManifests({
+    required String epoch,
+    required Set<String> peerIds,
+  });
+
   Future<void> advanceBaseline({
     required String epoch,
     required Iterable<SyncBaselineEntry> entries,
@@ -542,6 +560,29 @@ final class CompendiumSyncCoordinatorStore
   }) => storage.repositories.syncLocal.setPublishedManifest(
     epoch: epoch,
     published: published,
+  );
+
+  @override
+  Future<SyncStoredPeerManifest?> storedPeerManifest(String peerId) =>
+      storage.repositories.syncLocal.peerManifest(peerId);
+
+  @override
+  Future<void> storePeerManifest(
+    String peerId,
+    SyncStoredPeerManifest manifest,
+  ) => storage.repositories.syncLocal.putPeerManifest(peerId, manifest);
+
+  @override
+  Future<void> forgetPeerManifest(String peerId) =>
+      storage.repositories.syncLocal.removePeerManifest(peerId);
+
+  @override
+  Future<void> retainPeerManifests({
+    required String epoch,
+    required Set<String> peerIds,
+  }) => storage.repositories.syncLocal.retainPeerManifests(
+    epoch: epoch,
+    peerIds: peerIds,
   );
 
   @override
@@ -1654,7 +1695,8 @@ class SyncCoordinator {
     SyncHttpResponse? deferredServerFault;
     for (final peerId in metadata.devices) {
       if (peerId == deviceId) continue;
-      final cached = _peerManifestCache[peerId];
+      final cached =
+          _peerManifestCache[peerId] ?? await _storedPeerManifest(peerId);
       final epochCached = cached?.epoch == metadata.epoch ? cached : null;
       final response = await transport.getManifest(
         peerId,
@@ -1668,7 +1710,7 @@ class SyncCoordinator {
           ? epochCached?.manifest
           : decoded?.manifest;
       if (response.kind == SyncResponseKind.notModified && manifest == null) {
-        _peerManifestCache.remove(peerId);
+        await _forgetPeerManifest(peerId);
       }
       // A `429` is about this device's request rate, not the peer, so it ends
       // the pass as a temporary failure (spec §6.3 step 3). Reported as an
@@ -1738,7 +1780,7 @@ class SyncCoordinator {
       }
       if (manifest == null || manifest.epoch != metadata.epoch) {
         allPeerManifestsAvailable = false;
-        _peerManifestCache.remove(peerId);
+        await _forgetPeerManifest(peerId);
         unresolved.addAll(normalizedBaseline.keys);
         reports.add(
           SyncReport(
@@ -1766,17 +1808,35 @@ class SyncCoordinator {
           );
         }
       } else if (etag == null || etag.isEmpty) {
-        _peerManifestCache.remove(peerId);
+        await _forgetPeerManifest(peerId);
       } else {
-        _peerManifestCache[peerId] = SyncPeerManifestCacheEntry(
+        final entry = SyncPeerManifestCacheEntry(
           epoch: metadata.epoch,
           etag: etag,
           manifest: manifest,
         );
+        _peerManifestCache[peerId] = entry;
+        // Kept on disk too, so the first pass after a restart can ask with
+        // `If-None-Match` rather than download it again (spec §5.2). Written
+        // only on a full answer: a `304` leaves the kept copy as it was.
+        await store.storePeerManifest(peerId, (
+          epoch: entry.epoch,
+          etag: entry.etag,
+          body: utf8.decode(encodeSyncManifestUtf8(entry.manifest)),
+        ));
       }
       peerManifests.add((peerId: peerId, manifest: manifest));
       peerManifestHashes.add(await _normalizeManifestHashes(manifest));
     }
+    // Kept manifests of devices the store no longer lists, or from another
+    // epoch, would never be asked for again.
+    await store.retainPeerManifests(
+      epoch: metadata.epoch,
+      peerIds: {
+        for (final peerId in metadata.devices)
+          if (peerId != deviceId) peerId,
+      },
+    );
     // Zero observed peers is not evidence that an alias has nothing left to
     // resolve — it is the absence of evidence, the same distinction §6.9 draws
     // twice for clock-suspect and for unreflected publications. Without the
@@ -2522,6 +2582,48 @@ class SyncCoordinator {
       appliedKinds: appliedKinds.toList(),
       peers: peerSummaries,
     );
+  }
+
+  /// The manifest kept on disk for [peerId], taken into the session cache, or
+  /// null when none is kept or the kept copy no longer decodes — in which
+  /// case it is dropped and the manifest is fetched in full, as it would be
+  /// with nothing kept.
+  Future<SyncPeerManifestCacheEntry?> _storedPeerManifest(String peerId) async {
+    final stored = await store.storedPeerManifest(peerId);
+    if (stored == null) return null;
+    final SyncManifest manifest;
+    try {
+      manifest = decodeSyncManifest(stored.body);
+    } on Object catch (error, stack) {
+      // A kept copy this build cannot read — damaged, or written in a wire
+      // version it does not know — is as good as none. Anything else is a
+      // fault and still throws.
+      if (error is! FormatException && error is! ArgumentError) rethrow;
+      logCaughtErrorTypeOnly(
+        error,
+        stack,
+        source: 'sync_coordinator._storedPeerManifest',
+      );
+      await store.forgetPeerManifest(peerId);
+      return null;
+    }
+    if (manifest.deviceId != peerId || manifest.epoch != stored.epoch) {
+      await store.forgetPeerManifest(peerId);
+      return null;
+    }
+    final entry = SyncPeerManifestCacheEntry(
+      epoch: stored.epoch,
+      etag: stored.etag,
+      manifest: manifest,
+    );
+    _peerManifestCache[peerId] = entry;
+    return entry;
+  }
+
+  /// Forgets [peerId]'s manifest in the session cache and on disk.
+  Future<void> _forgetPeerManifest(String peerId) async {
+    _peerManifestCache.remove(peerId);
+    await store.forgetPeerManifest(peerId);
   }
 
   /// The hash a published [manifest] is recorded under: its encoding with

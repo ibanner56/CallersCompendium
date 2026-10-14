@@ -6,12 +6,15 @@ import 'package:test/test.dart';
 /// from the registry, so a registry change that adds or drops a bookkeeping
 /// table must be a deliberate edit here too.
 void main() {
-  test('the sync bookkeeping tables are exactly the seven registry tables', () {
+  test('the sync bookkeeping tables are exactly the eight registry tables', () {
     expect(syncBookkeepingTables, {
       'baseline_state',
       'baseline_entries',
       'id_aliases',
       'pending_deletions',
+      // Written by the sync engine as it fetches peer manifests, so a write
+      // must not schedule another pass.
+      'peer_manifests',
       'published_records',
       // Only the sync engine writes it, while applying a peer's record, so a
       // write must not schedule another pass.

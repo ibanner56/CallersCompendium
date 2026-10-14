@@ -1406,6 +1406,19 @@ void main() {
                 'nothing is back-filled: the first pass publishes as before',
           );
           expect(state.publishedVerifiedAt, isNull);
+
+          final peerManifestColumns = await db
+              .customSelect("PRAGMA table_info('peer_manifests')")
+              .get();
+          expect(
+            {for (final row in peerManifestColumns) row.read<String>('name')},
+            {'peer_id', 'epoch', 'etag', 'body'},
+          );
+          expect(
+            await db.select(db.peerManifests).get(),
+            isEmpty,
+            reason: 'the first pass after the upgrade fetches every manifest',
+          );
         },
       );
     },

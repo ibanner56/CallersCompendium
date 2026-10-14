@@ -78,6 +78,11 @@ class SyncBaselineEntry {
 /// every blob that manifest names.
 typedef SyncPublishedManifest = ({String hash, DateTime verifiedAt});
 
+/// A peer's last verified manifest as this device keeps it (sync-spec §5.2):
+/// the epoch it was fetched in, the server's `ETag` for it, and its canonical
+/// encoding.
+typedef SyncStoredPeerManifest = ({String epoch, String etag, String body});
+
 /// Local-only state for the Device Sync protocol.
 ///
 /// Public mutating methods each run in one transaction. Call [transaction]
@@ -170,6 +175,47 @@ class SyncLocalRepository {
       ),
     );
   }
+
+  /// The manifest last kept for [peerId], or null when none is.
+  Future<SyncStoredPeerManifest?> peerManifest(String peerId) async {
+    final row = await (_db.select(
+      _db.peerManifests,
+    )..where((row) => row.peerId.equals(peerId))).getSingleOrNull();
+    if (row == null) return null;
+    return (epoch: row.epoch, etag: row.etag, body: row.body);
+  }
+
+  /// Keeps [manifest] as [peerId]'s, replacing whatever was kept for it.
+  Future<void> putPeerManifest(
+    String peerId,
+    SyncStoredPeerManifest manifest,
+  ) => _db
+      .into(_db.peerManifests)
+      .insertOnConflictUpdate(
+        PeerManifestsCompanion.insert(
+          peerId: peerId,
+          epoch: manifest.epoch,
+          etag: manifest.etag,
+          body: manifest.body,
+        ),
+      );
+
+  /// Forgets what was kept for [peerId].
+  Future<void> removePeerManifest(String peerId) => (_db.delete(
+    _db.peerManifests,
+  )..where((row) => row.peerId.equals(peerId))).go();
+
+  /// Keeps only the manifests of [peerIds] fetched in [epoch]: a peer the
+  /// store no longer lists, or one cached in another epoch, is forgotten.
+  Future<void> retainPeerManifests({
+    required String epoch,
+    required Set<String> peerIds,
+  }) =>
+      (_db.delete(_db.peerManifests)..where(
+            (row) =>
+                row.epoch.equals(epoch).not() | row.peerId.isNotIn(peerIds),
+          ))
+          .go();
 
   Future<void> resetEpoch({
     required String epoch,
@@ -444,6 +490,7 @@ class SyncLocalTransaction {
   Future<void> clearBaseline() async {
     await _db.delete(_db.baselineState).go();
     await _db.delete(_db.baselineEntries).go();
+    await _db.delete(_db.peerManifests).go();
     await _db.delete(_db.idAliases).go();
     await _db.delete(_db.reviewQueue).go();
   }

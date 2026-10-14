@@ -2939,6 +2939,65 @@
       "references": [],
       "type": "table",
       "data": {
+        "name": "peer_manifests",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "peer_id",
+            "getter_name": "peerId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "epoch",
+            "getter_name": "epoch",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "etag",
+            "getter_name": "etag",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "body",
+            "getter_name": "body",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "PRIMARY KEY(peer_id)"
+        ],
+        "explicit_pk": [
+          "peer_id"
+        ]
+      }
+    },
+    {
+      "id": 29,
+      "references": [],
+      "type": "table",
+      "data": {
         "name": "dance_fts",
         "was_declared_in_moor": true,
         "columns": [
@@ -3030,7 +3089,7 @@
       }
     },
     {
-      "id": 29,
+      "id": 30,
       "references": [],
       "type": "table",
       "data": {
@@ -3125,7 +3184,7 @@
       }
     },
     {
-      "id": 30,
+      "id": 31,
       "references": [
         4
       ],
@@ -3139,7 +3198,7 @@
       }
     },
     {
-      "id": 31,
+      "id": 32,
       "references": [
         11
       ],
@@ -3153,7 +3212,7 @@
       }
     },
     {
-      "id": 32,
+      "id": 33,
       "references": [
         11
       ],
@@ -3167,7 +3226,7 @@
       }
     },
     {
-      "id": 33,
+      "id": 34,
       "references": [
         1
       ],
@@ -3181,7 +3240,7 @@
       }
     },
     {
-      "id": 34,
+      "id": 35,
       "references": [
         5
       ],
@@ -3195,7 +3254,7 @@
       }
     },
     {
-      "id": 35,
+      "id": 36,
       "references": [
         6
       ],

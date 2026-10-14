@@ -2563,6 +2563,180 @@ void main() {
     expect(transport.manifestEtags, [null, '"peer-v1"']);
   });
 
+  group('peer manifests kept across restarts (spec §5.2)', () {
+    final peerManifest = _manifest(deviceId: 'peer', records: const {});
+    final encodedManifest = encodeSyncManifestUtf8(peerManifest);
+    SyncHttpResponse full(String etag) => SyncHttpResponse(
+      statusCode: 200,
+      kind: SyncResponseKind.success,
+      headers: {'etag': etag},
+      body: encodedManifest,
+    );
+    const notModified = SyncHttpResponse(
+      statusCode: 304,
+      kind: SyncResponseKind.notModified,
+      headers: {},
+      body: [],
+    );
+
+    SyncCoordinator restarted(_FakeStore store, _FakeTransport transport) {
+      // A new coordinator with a cache of its own: what the app has after a
+      // restart.
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        peerManifestCache: SyncPeerManifestCache(),
+      );
+      addTearDown(coordinator.dispose);
+      return coordinator;
+    }
+
+    test('a restart asks with the kept ETag and takes the 304', () async {
+      final store = _FakeStore();
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [full('"peer-v1"'), notModified],
+        },
+      );
+      await restarted(store, transport).syncNow();
+      expect(store.peerManifests['peer'], (
+        epoch: 'epoch-1',
+        etag: '"peer-v1"',
+        body: utf8.decode(encodedManifest),
+      ));
+
+      final result = await restarted(store, transport).syncNow();
+
+      expect(transport.manifestEtags, [null, '"peer-v1"']);
+      expect(result.status, SyncPassStatus.completed);
+      expect(
+        result.reports.map((report) => report.code),
+        isNot(contains(SyncReportCode.malformedRecord)),
+        reason: 'the 304 is answered from the kept manifest',
+      );
+      expect(result.peers?.map((peer) => peer.peerId), ['peer']);
+    });
+
+    test('a 304 leaves the kept copy as it was', () async {
+      final store = _FakeStore();
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [full('"peer-v1"'), notModified],
+        },
+      );
+      final coordinator = restarted(store, transport);
+      await coordinator.syncNow();
+      store.peerManifests['peer'] = (
+        epoch: 'epoch-1',
+        etag: '"peer-v1"',
+        body: 'left alone',
+      );
+
+      await coordinator.syncNow();
+
+      expect(store.peerManifests['peer']!.body, 'left alone');
+    });
+
+    test('a kept copy that does not decode is dropped and refetched', () async {
+      final store = _FakeStore()
+        ..peerManifests['peer'] = (
+          epoch: 'epoch-1',
+          etag: '"peer-v1"',
+          body: '{not a manifest',
+        );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [full('"peer-v2"')],
+        },
+      );
+
+      final result = await restarted(store, transport).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(transport.manifestEtags, [null]);
+      expect(store.peerManifests['peer']!.etag, '"peer-v2"');
+    });
+
+    test('a copy kept in another epoch is not used', () async {
+      final store = _FakeStore()
+        ..peerManifests['peer'] = (
+          epoch: 'epoch-0',
+          etag: '"peer-old"',
+          body: utf8.decode(
+            encodeSyncManifestUtf8(
+              SyncManifest(
+                deviceId: 'peer',
+                epoch: 'epoch-0',
+                writtenAt: DateTime.utc(2026, 7, 15, 12),
+                records: const {},
+              ),
+            ),
+          ),
+        );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [full('"peer-v1"')],
+        },
+      );
+
+      await restarted(store, transport).syncNow();
+
+      expect(transport.manifestEtags, [null]);
+      expect(store.peerManifests['peer']!.epoch, 'epoch-1');
+    });
+
+    test('a device the store no longer lists is forgotten', () async {
+      final store = _FakeStore()
+        ..peerManifests['gone'] = (
+          epoch: 'epoch-1',
+          etag: '"gone-v1"',
+          body: '{}',
+        );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [full('"peer-v1"')],
+        },
+      );
+
+      await restarted(store, transport).syncNow();
+
+      expect(store.peerManifests.keys, ['peer']);
+    });
+
+    test('a manifest that stops being usable is forgotten', () async {
+      final store = _FakeStore();
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [
+            full('"peer-v1"'),
+            // A full answer with no validator: nothing to ask with next time.
+            SyncHttpResponse(
+              statusCode: 200,
+              kind: SyncResponseKind.success,
+              headers: const {},
+              body: encodedManifest,
+            ),
+          ],
+        },
+      );
+      final coordinator = restarted(store, transport);
+      await coordinator.syncNow();
+      expect(store.peerManifests, contains('peer'));
+
+      await coordinator.syncNow();
+
+      expect(store.peerManifests, isEmpty);
+    });
+  });
+
   test(
     'keeps a concurrently-created record in the final publication',
     () async {
@@ -6871,6 +7045,26 @@ final class _SnapshotInterleavingStore
   }) => _delegate.setPublishedManifest(epoch: epoch, published: published);
 
   @override
+  Future<SyncStoredPeerManifest?> storedPeerManifest(String peerId) =>
+      _delegate.storedPeerManifest(peerId);
+
+  @override
+  Future<void> storePeerManifest(
+    String peerId,
+    SyncStoredPeerManifest manifest,
+  ) => _delegate.storePeerManifest(peerId, manifest);
+
+  @override
+  Future<void> forgetPeerManifest(String peerId) =>
+      _delegate.forgetPeerManifest(peerId);
+
+  @override
+  Future<void> retainPeerManifests({
+    required String epoch,
+    required Set<String> peerIds,
+  }) => _delegate.retainPeerManifests(epoch: epoch, peerIds: peerIds);
+
+  @override
   Future<void> advanceBaseline({
     required String epoch,
     required Iterable<SyncBaselineEntry> entries,
@@ -7211,8 +7405,39 @@ final class _FakeStore implements SyncCoordinatorStore {
     _storedEpoch = null;
     baseline.clear();
     published = null;
+    peerManifests.clear();
     epochStateClears++;
     lifecycle.add('clearEpochState');
+  }
+
+  /// Peer manifests kept on disk (spec §5.2), as storage would hold them.
+  final Map<String, SyncStoredPeerManifest> peerManifests = {};
+
+  @override
+  Future<SyncStoredPeerManifest?> storedPeerManifest(String peerId) async =>
+      peerManifests[peerId];
+
+  @override
+  Future<void> storePeerManifest(
+    String peerId,
+    SyncStoredPeerManifest manifest,
+  ) async {
+    peerManifests[peerId] = manifest;
+  }
+
+  @override
+  Future<void> forgetPeerManifest(String peerId) async {
+    peerManifests.remove(peerId);
+  }
+
+  @override
+  Future<void> retainPeerManifests({
+    required String epoch,
+    required Set<String> peerIds,
+  }) async {
+    peerManifests.removeWhere(
+      (peerId, kept) => kept.epoch != epoch || !peerIds.contains(peerId),
+    );
   }
 
   @override
