@@ -1844,7 +1844,8 @@ baseline, so the first pass after a launch is answered `304` rather than
 fetching every manifest again. A kept manifest is used only in the epoch it was
 fetched in and only for the device it names. One that no longer decodes is
 dropped and fetched again, and one for a device the store no longer lists is
-forgotten. Keeping it changes nothing §6.9 judges: a peer's `writtenAt` is
+forgotten. A `304` puts back a kept copy that is missing, as after a restore
+clears the kept copies under a session still holding them. Keeping it changes nothing §6.9 judges: a peer's `writtenAt` is
 first seen by the session on its first pass either way.
 
 **`GET /v1/store`.** MUST NOT create anything. When no store exists for the
