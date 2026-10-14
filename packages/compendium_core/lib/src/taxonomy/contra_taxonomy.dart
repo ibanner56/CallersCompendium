@@ -465,11 +465,16 @@ final Taxonomy contraTaxonomy = Taxonomy(
           defaultValue: ParamVocab.unspecified,
           choices: _dancerOrUnspecified,
         ),
-        // The rotation sense. A courtesy turn wheels clockwise by construction,
-        // and all 10 corpus lines that state a direction say `clockwise` —
-        // `counterclockwise` is unattested — so `clockwise` is a REAL default
-        // rather than a fabricated one, and the display renderer says nothing
-        // when it holds.
+        // The rotation sense. v37: the default is `counterclockwise` (it was
+        // `clockwise` through v36). The ordinary courtesy turn — after a
+        // role2s' chain, a right and left through or a promenade across —
+        // wheels counterclockwise, the left-hand dancer backing up (TCB
+        // glossary, "Courtesy turn"). Clockwise is the mirrored turn, chiefly
+        // after a role1s' chain (maintainer, on the PR that made this change).
+        // The 10 corpus lines that state a direction all say `clockwise`
+        // because a source only names the rotation when it is the unusual one;
+        // they are the mirrored case, not evidence for the default. The
+        // display renderer says nothing when the default holds.
         //
         // ⚠️ DELIBERATELY NO `unspecified` SENTINEL — but only because this
         // move has no semantic need for one, NOT because a sentinel would be
@@ -499,11 +504,11 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // includes `mirror`, which no typed kind can express (see
         // `_gateDirectionOrUnspecified`). THIS param keeps the honest
         // `ParamKind.spinDirection` and no sentinel because a courtesy turn
-        // wheels clockwise by construction, so `clockwise` is a real default
-        // rather than a fabricated one.
+        // has a real default rotation (counterclockwise, since v37) rather
+        // than a fabricated one.
         'direction': ParamSpec(
           ParamKind.spinDirection,
-          defaultValue: 'clockwise',
+          defaultValue: 'counterclockwise',
         ),
         // ⚠️ THIS IS A DANCER, NOT A FACING — do not read it as `swing.endFacing`.
         // The names match; the domains do not. `swing.endFacing` (issue #543)
@@ -538,13 +543,13 @@ final Taxonomy contraTaxonomy = Taxonomy(
       // Canonical (dedupe/FTS) line, deliberately FLAT — a `renderTemplate`
       // cannot express a conditional. The maintainer's stated wording
       // (`{who} courtesy turn {whom, when present} {direction, when not
-      // clockwise} {"to face" + endFacing, when set}`) is the DISPLAY render
+      // the default} {"to face" + endFacing, when set}`) is the DISPLAY render
       // and lives in `renderer.dart`'s `_displayBaseRenderers`, exactly as the
       // merged `gate`'s "to face …" clause does. `whom`/`endFacing` are the
       // `unspecified` sentinel unless stated and render as the empty string, so
-      // an imported line reads "partners courtesy turn clockwise" — carrying
-      // the default direction the same way `right_left_through` carries its
-      // default `across`. `direction` stays IN the canonical text (rather than
+      // an imported line reads "partners courtesy turn counterclockwise" —
+      // carrying the default direction the same way `right_left_through`
+      // carries its default `across`. `direction` stays IN the canonical text (rather than
       // being display-only like `swing.endFacing`) because that omission was a
       // byte-stability concession a brand-new move does not need, and without
       // it a counterclockwise courtesy turn would dedupe as identical to a

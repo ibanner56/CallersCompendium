@@ -59,6 +59,9 @@ void main() {
     await SettingsRepository(
       db,
     ).set(taxonomyV35FigureNormalizationDoneKey, true);
+    await SettingsRepository(
+      db,
+    ).set(taxonomyV37CanonicalRebuildDoneKey, 'done');
   });
   tearDown(() => db.close());
 

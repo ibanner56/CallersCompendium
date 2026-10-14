@@ -2053,18 +2053,20 @@ class FigureRenderer {
     // stated wording, verbatim:
     //   {who} courtesy turn {whom, when present} {direction, when not
     //   clockwise} {"to face" + endFacing, when set}
+    // That was v23's reading; since v37 the silenced direction is the new
+    // default, `counterclockwise` (see below).
     // A `renderTemplate` cannot express those conditionals, so the canonical
     // (dedupe/FTS) render keeps expanding the flat template — byte-stability of
     // the canonical text is therefore untouched by anything here — and the
     // conditional wording lives on this DISPLAY-ONLY path, exactly as the
     // merged `gate`'s "to face …" clause does.
     //
-    // `clockwise` is silenced because a courtesy turn wheels clockwise by
-    // construction: all 10 corpus lines that state a direction say `clockwise`,
-    // so printing it would add a word to nearly every courtesy turn while
-    // distinguishing nothing. `counterclockwise` — unattested in the corpus but
-    // authorable — is genuinely surprising and always shown. An unexpected
-    // value is surfaced rather than silently vanishing, mirroring `gate`.
+    // `counterclockwise` is silenced because it is the ordinary courtesy turn
+    // (the taxonomy default since v37), so printing it would add a word to
+    // nearly every courtesy turn while distinguishing nothing. `clockwise` —
+    // the mirrored turn, chiefly after a role1s' chain — is the unusual one
+    // and always shown. An unexpected value is surfaced rather than silently
+    // vanishing, mirroring `gate`.
     //
     // `endFacing` renders in ContraDB's "to face …" idiom, but the value it
     // names is a DANCER (`face N2` → "to face next neighbors"), not one of the
@@ -2079,7 +2081,7 @@ class FigureRenderer {
           ? r._displaySubject(whomRaw, dialect)
           : '';
       final directionRaw = params['direction'];
-      final direction = (directionRaw == 'clockwise')
+      final direction = (directionRaw == 'counterclockwise')
           ? ''
           : _displayChoice(directionRaw);
       final facingRaw = params['endFacing'];

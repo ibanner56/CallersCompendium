@@ -254,6 +254,13 @@ const String taxonomyV33CanonicalRebuildDoneKey =
 const String taxonomyV34CanonicalRebuildDoneKey =
     '__taxonomy_v34_canonical_rebuild_done__';
 
+/// Settings key for the one-time canonical/FTS rebuild owed by taxonomy v37.
+/// The courtesy turn's default rotation became counterclockwise, which changes
+/// the canonical text of every stored courtesy turn that does not state its
+/// direction, without changing its source JSON.
+const String taxonomyV37CanonicalRebuildDoneKey =
+    '__taxonomy_v37_canonical_rebuild_done__';
+
 /// Settings key for the one-time canonical/FTS rebuild owed by the modifier
 /// container structural tokens. Existing figures gain searchable canonical
 /// container text without changing their source JSON.

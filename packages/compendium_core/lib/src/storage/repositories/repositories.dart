@@ -815,6 +815,10 @@ class CompendiumRepositories {
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
+      rebuiltThisCall = await _emitTaxonomyV37CanonicalTextIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
       rebuiltThisCall = await _backfillChainHandIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
@@ -2202,6 +2206,29 @@ class CompendiumRepositories {
     }
     await _writeSweepMarker(taxonomyV35FigureNormalizationDoneKey, 'true');
     return alreadyRebuilt || rebuildOwed;
+  }
+
+  /// Rebuilds canonical/FTS text after taxonomy v37 changed the courtesy
+  /// turn's default rotation to counterclockwise. Source JSON is unchanged: a
+  /// courtesy turn that never stated a direction now means the ordinary
+  /// counterclockwise turn, and only its derived canonical text was stale.
+  Future<bool> _emitTaxonomyV37CanonicalTextIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [Variable.withString(taxonomyV37CanonicalRebuildDoneKey)],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    if (!alreadyRebuilt) {
+      await runDerivedRebuild(onProgress: onProgress);
+    }
+    await _writeSweepMarker(taxonomyV37CanonicalRebuildDoneKey, '"done"');
+    return true;
   }
 
   Future<bool> _emitModifierContainerCanonicalTextIfNeeded({

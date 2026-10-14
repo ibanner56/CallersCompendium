@@ -149,6 +149,7 @@ export 'src/storage/database.dart'
         taxonomyV33CanonicalRebuildDoneKey,
         taxonomyV34CanonicalRebuildDoneKey,
         taxonomyV35FigureNormalizationDoneKey,
+        taxonomyV37CanonicalRebuildDoneKey,
         callersBoxRollAwayRoleRepairDoneKey,
         shareableTextNormalisationScopeKey,
         normalisationDerivedIndexRepairDoneKey,
