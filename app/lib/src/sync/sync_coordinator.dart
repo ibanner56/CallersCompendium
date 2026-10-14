@@ -921,10 +921,12 @@ final class SyncPeerManifestCache {
     _entries.remove(peerId);
   }
 
-  /// Marks every entry as no longer kept by storage: what just cleared the
-  /// kept manifests left these in place.
-  void markUnstored() {
+  /// Marks every entry as no longer kept by storage, except those of
+  /// [keptPeerIds]: whatever just cleared the kept manifests left these in
+  /// place.
+  void markUnstored({Set<String> keptPeerIds = const {}}) {
     for (final entry in _entries.entries.toList()) {
+      if (keptPeerIds.contains(entry.key)) continue;
       _entries[entry.key] = entry.value.withStored(false);
     }
   }
@@ -1868,14 +1870,18 @@ class SyncCoordinator {
       peerManifestHashes.add(await _normalizeManifestHashes(manifest));
     }
     // Kept manifests of devices the store no longer lists, or from another
-    // epoch, would never be asked for again.
+    // epoch, would never be asked for again. The session keeps its copies, so
+    // a device listed again is still asked with its `ETag`, but they are no
+    // longer kept, so that `304` writes them back.
+    final listedPeers = {
+      for (final peerId in metadata.devices)
+        if (peerId != deviceId) peerId,
+    };
     await store.retainPeerManifests(
       epoch: metadata.epoch,
-      peerIds: {
-        for (final peerId in metadata.devices)
-          if (peerId != deviceId) peerId,
-      },
+      peerIds: listedPeers,
     );
+    _peerManifestCache.markUnstored(keptPeerIds: listedPeers);
     // Zero observed peers is not evidence that an alias has nothing left to
     // resolve — it is the absence of evidence, the same distinction §6.9 draws
     // twice for clock-suspect and for unreflected publications. Without the

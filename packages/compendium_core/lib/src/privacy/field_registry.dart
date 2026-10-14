@@ -111,17 +111,20 @@ const _syncPeerDeviceId = DataClassification(
       'manifest; never backed up, exported or synchronized.',
 );
 
-/// The `ETag` a peer manifest was served with. Sent back in `If-None-Match`,
-/// so it does travel, but only to the server that issued it.
+/// The `ETag` a peer manifest was served with. The protocol sends it back in
+/// `If-None-Match`, so it is not `deviceScoped`, whose "any route" is absolute.
 const _syncPeerManifestEtag = DataClassification(
   term: DpvTerm.nonPersonal,
   subject: DataSubject.none,
-  egress: EgressClass.deviceScoped,
+  egress: EgressClass.protocolIdentifier,
   note:
-      "The server's content hash of a peer manifest, returned only to that "
-      'server in If-None-Match. It is a hash of a body the server already '
-      'holds, so it carries nothing the server lacks, and it means nothing to '
-      'any other device or server. Never backed up, exported or synchronized.',
+      "The server's content hash of a peer manifest: an opaque validator the "
+      'protocol returns, in If-None-Match, only to the server that issued it. '
+      'It carries no user data — it is a hash of a body that server already '
+      'holds — and it is never adopted as anything of this device\'s. Not '
+      'deviceScoped, because that class is never transmitted by any route; a '
+      'value the protocol must put on the wire takes this class instead '
+      '(EgressClass.deviceScoped). Never backed up, exported or synchronized.',
 );
 
 /// A peer's last verified manifest, kept so a restart need not fetch it again.

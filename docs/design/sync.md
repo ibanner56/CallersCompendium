@@ -623,8 +623,8 @@ it:
 | Records this device has selected for publication (`kind`, `record_id`) | `published_records` | `deviceScoped` |
 | Rows the normalisation pass could not repair (`table`, `column`, `record_id`) | `normalisation_skips` | `deviceScoped` |
 | This device's last published manifest — its hash and confirmation time | Baseline table | `deviceScoped` |
-| Each peer's last verified manifest — `epoch`, `etag`, `body` | `peer_manifests` | `deviceScoped` |
-| Each peer's device id, the key of its kept manifest (`peer_id`) | `peer_manifests` | `protocolIdentifier` |
+| Each peer's last verified manifest — `epoch`, `body` | `peer_manifests` | `deviceScoped` |
+| Each peer's device id (`peer_id`) and the `ETag` its kept manifest was served with (`etag`), both sent back to the store | `peer_manifests` | `protocolIdentifier` |
 
 Writes to the sync bookkeeping tables above (`baseline_state`, `baseline_entries`, `id_aliases`, `pending_deletions`, `review_queue`, `published_records`, `retained_sync_fields`, `peer_manifests`) never schedule a sync pass: they are the engine's own state, not user edits. The app derives that set from the registry (`syncBookkeepingTables`).
 

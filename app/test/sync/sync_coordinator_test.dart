@@ -2756,6 +2756,28 @@ void main() {
       expect(store.peerManifests['peer']?.etag, '"peer-v1"');
     });
 
+    test('a device that leaves the list and returns is kept again', () async {
+      final store = _FakeStore();
+      final devices = ['peer'];
+      final transport = _FakeTransport(
+        devices: devices,
+        manifestResponses: {
+          'peer': [full('"peer-v1"'), notModified],
+        },
+      );
+      final coordinator = restarted(store, transport);
+      await coordinator.syncNow();
+      devices.clear();
+      await coordinator.syncNow();
+      expect(store.peerManifests, isEmpty);
+
+      devices.add('peer');
+      await coordinator.syncNow();
+
+      expect(transport.manifestEtags, [null, '"peer-v1"']);
+      expect(store.peerManifests['peer']?.etag, '"peer-v1"');
+    });
+
     test('a malformed answer forgets the kept copy', () async {
       final store = _FakeStore()
         ..peerManifests['peer'] = (

@@ -215,7 +215,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**232 columns**: 151 shareable, 21 device-local, 34 device-scoped, 25 derived, 1 protocol-identifier. 29 personal data by category.
+**232 columns**: 151 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 29 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -335,7 +335,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `normalisation_skips` | `table_name` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
 | `peer_manifests` | `body` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Record ids and content hashes another device published, as this device verified them, and that device's per-attachment id. It is never sent anywhere: it is the cached copy of what the server already serves. Never backed up, exported or synchronized. |
 | `peer_manifests` | `epoch` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
-| `peer_manifests` | `etag` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | The server's content hash of a peer manifest, returned only to that server in If-None-Match. It is a hash of a body the server already holds, so it carries nothing the server lacks, and it means nothing to any other device or server. Never backed up, exported or synchronized. |
+| `peer_manifests` | `etag` | `dpv:NonPersonalData` | NonPersonalData | — | **protocol-identifier** | The server's content hash of a peer manifest: an opaque validator the protocol returns, in If-None-Match, only to the server that issued it. It carries no user data — it is a hash of a body that server already holds — and it is never adopted as anything of this device's. Not deviceScoped, because that class is never transmitted by any route; a value the protocol must put on the wire takes this class instead (EgressClass.deviceScoped). Never backed up, exported or synchronized. |
 | `peer_manifests` | `peer_id` | `dpv:NonPersonalData` | NonPersonalData | — | **protocol-identifier** | A peer's random per-attachment routing id, read from the store's device list and sent back to the same store in a manifest request path. It names no person and carries no user data, and it is never adopted as this device's own id. Kept only beside that peer's cached manifest; never backed up, exported or synchronized. |
 | `pending_deletions` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `pending_deletions` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |

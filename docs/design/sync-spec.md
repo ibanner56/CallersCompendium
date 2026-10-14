@@ -224,8 +224,8 @@ MUST be classified in the PR that creates it or the coverage ratchet fails.
 | --- | --- | --- |
 | baseline | epoch, and per record `kind`, `record_id`, wire hash, `body` hash | `deviceScoped` |
 | baseline | the last published manifest's hash and confirmation time (§6.3 step 8) | `deviceScoped` |
-| `peer_manifests` | `epoch`, `etag`, `body` | `deviceScoped` |
-| `peer_manifests` | `peer_id` | **`protocolIdentifier`** |
+| `peer_manifests` | `epoch`, `body` | `deviceScoped` |
+| `peer_manifests` | `peer_id`, `etag` | **`protocolIdentifier`** |
 | `id_aliases` | `losing_id`, `surviving_id`, `kind` | `deviceScoped` |
 | `pending_deletions` | `kind`, `record_id`, `tombstoned_at`, `tombstone_hash` | `deviceScoped` |
 | `pending_deletions` | `tombstone_blob` | **`shareable`** |
@@ -245,11 +245,12 @@ travel — `unclassifiedPersonal`, `thirdParty` — as the maintainer decided.
 `peer_manifests` keeps each peer's last verified manifest and its `ETag`
 (§5.2). `peer_id` is another device's per-attachment id, read from the store's
 device list and sent back to that store in a manifest request path, so it is a
-`protocolIdentifier`, as this device's own id is. The `etag` likewise goes back
-in `If-None-Match`, but only to the server that issued it, and it is a hash of a
-body the server already holds, so it carries nothing that server does not have.
-That is why it stays `deviceScoped`. The kept `body` names the peer's id too and
-is never sent anywhere.
+`protocolIdentifier`, as this device's own id is. The `etag` goes back in
+`If-None-Match`, so it is a `protocolIdentifier` too: an opaque validator that
+carries no user data and is returned only to the server that issued it.
+`deviceScoped`'s "any route" is absolute, so a value the protocol must put on the
+wire cannot take that class. The kept `body` names the peer's id too and is
+never sent anywhere.
 
 `retained_sync_fields` is record content, not store state: it MUST survive an
 epoch reset and a detach, like the record it belongs to. A restore replaces the
@@ -1844,8 +1845,9 @@ baseline, so the first pass after a launch is answered `304` rather than
 fetching every manifest again. A kept manifest is used only in the epoch it was
 fetched in and only for the device it names. One that no longer decodes is
 dropped and fetched again, and one for a device the store no longer lists is
-forgotten. A `304` puts back a kept copy that is missing, as after a restore
-clears the kept copies under a session still holding them. Keeping it changes nothing §6.9 judges: a peer's `writtenAt` is
+forgotten. A `304` puts back a kept copy that is missing — after a restore
+clears the kept copies, or after a device drops out of the store's list and
+returns — while a session still holds it. Keeping it changes nothing §6.9 judges: a peer's `writtenAt` is
 first seen by the session on its first pass either way.
 
 **`GET /v1/store`.** MUST NOT create anything. When no store exists for the
