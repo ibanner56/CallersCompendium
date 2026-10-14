@@ -7040,14 +7040,17 @@ void main() {
       final store = _FakeStore(
         local: {gated.address: gated, peerCaps.address: peerCaps},
       );
-      final open = transportFor(['peer']);
-      await coordinatorFor(store, open).syncNow();
-      expect(publishedSettings(open), contains('custom_dialects'));
+      // One coordinator across both passes, so a gate decided once and kept
+      // would be caught; the store's device list grows between them.
+      final transport = transportFor(['peer']);
+      final coordinator = coordinatorFor(store, transport);
+      await coordinator.syncNow();
+      expect(publishedSettings(transport), contains('custom_dialects'));
 
-      final closed = transportFor(['peer', 'peer2']);
-      final result = await coordinatorFor(store, closed).syncNow();
+      transport.devices.add('peer2');
+      final result = await coordinator.syncNow();
 
-      expect(publishedSettings(closed), isNot(contains('custom_dialects')));
+      expect(publishedSettings(transport), isNot(contains('custom_dialects')));
       expect(awaiting(result).map((r) => r.peerId), ['peer2']);
       expect(store.local[gated.address], gated, reason: 'kept here');
       expect(store.droppedRecords, isNot(contains(gated.address)));
