@@ -3,7 +3,7 @@ import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 /// Taxonomy v36 — the contra `circular_hey` move (ADR-006 §7.4, redefined for
-/// contra: `who` names the group that passes first, `changes` is 3 or 4).
+/// contra: `who` names the group that passes first, `changes` is any whole number 1..10).
 void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
@@ -87,6 +87,21 @@ void main() {
           '$text circular hey, neighbors pass right across',
         );
       }
+    });
+
+    test('verbose spells the extent out instead of a spoken "3 slash 4"', () {
+      expect(
+        renderer.renderVerbose(hey(changes: 3), Dialect.canonical),
+        'three changes of a circular hey, neighbors pass right across',
+      );
+      expect(
+        renderer.renderVerbose(hey(changes: 1), Dialect.canonical),
+        'one change of a circular hey, neighbors pass right across',
+      );
+      expect(
+        renderer.renderVerbose(hey(), Dialect.canonical),
+        'circular hey, neighbors pass right across',
+      );
     });
 
     test('who and shoulder inform the first pass', () {

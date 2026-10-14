@@ -2554,7 +2554,11 @@ class FigureRenderer {
           : r._displaySubject(who, dialect);
       return _displayTemplate({
         'move': move,
-        'fraction': changes is int && changes != 4 ? '$changes/4' : '',
+        'fraction': changes is! int || changes == 4
+            ? ''
+            : verbose
+            ? _spokenChanges(changes)
+            : '$changes/4',
         'who': swho,
         'shoulder': _displayScalar(params['shoulder']),
         'where': _displayScalar(params['where']),
@@ -3034,6 +3038,19 @@ class FigureRenderer {
       n == n.roundToDouble() ? n.toInt().toString() : n.toString();
 
   /// Formats a places count using caller vocabulary ("1 place", "4 places").
+  /// Spoken form of a circular hey's extent ("three changes of a"), so the
+  /// verbose line carries no ASCII fraction a screen reader would misread.
+  static String _spokenChanges(int changes) {
+    const words = [
+      'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
+      'eight', 'nine', 'ten', //
+    ];
+    final word = changes >= 0 && changes < words.length
+        ? words[changes]
+        : '$changes';
+    return '$word ${changes == 1 ? 'change' : 'changes'} of a';
+  }
+
   static String _formatPlaces(int places) =>
       places == 1 ? '1 place' : '$places places';
 

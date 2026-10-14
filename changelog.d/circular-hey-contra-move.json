@@ -8,7 +8,7 @@
   },
   "core": {
     "added": [
-      "Contra taxonomy v36 adds the `circular_hey` move (`who`, `changes` 1-10, `shoulder`, `where`), with 2, 4, 8 and 12 beats for one to four changes and 16 for five or more, and the shared free-text recognizer reads its display sentence and the \"square hey\" alias."
+      "Contra taxonomy v36 adds the `circular_hey` move (`who`, `changes` 1-10, `shoulder`, `where`), with 2, 4, 8 and 12 beats for one to four changes and 16 for five or more, and the shared free-text recognizer reads its display sentence (except the full circuit, which omits the extent and must be written with `full`) and the \"square hey\" alias."
     ]
   }
 }

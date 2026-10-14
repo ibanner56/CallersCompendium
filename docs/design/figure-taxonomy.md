@@ -1614,8 +1614,10 @@ fails a PR that moves the constant without adding the matching entry.
     Above six changes 16 is a placeholder the user is expected to override.
     Canonical text names the count ("3 changes"), not "places". The display
     line is "3/4 circular hey, neighbors pass right across", showing `N/4` for
-    any count but four. The shared free-text recognizer reads that sentence
-    (`1/4`..`10/4`, `1/2`, `full`, and "square hey"), requiring the extent,
+    any count but four. The shared free-text recognizer reads that sentence for
+    every count but four (`1/4`..`10/4`, `1/2`, `full`, and "square hey"); the
+    full circuit's display omits the extent, so that line stays custom text
+    unless written with `full`. The recognizer requires the extent,
     group, shoulder and direction rather than defaulting them. Purely
     additive: no schema migration, no derived-index rebuild (no existing
     figure changes).

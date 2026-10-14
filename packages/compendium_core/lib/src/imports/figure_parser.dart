@@ -2128,8 +2128,12 @@ final Map<String, int> _circularHeyExtents = {
 
 /// `circular_hey` (taxonomy v36): "3/4 circular hey, neighbors pass right
 /// across" / "full circular hey, ones pass left along", plus the "square hey"
-/// alias (ADR-006 §7.4). This is the shape the display renderer itself writes,
-/// so a hand-typed or copied line round-trips into the structured move.
+/// alias (ADR-006 §7.4). This is the shape the display renderer writes for
+/// every count except the full circuit: four changes (the default) renders with
+/// no extent ("circular hey, neighbors pass right across"), so that line does
+/// NOT parse back and stays custom text rather than a bare "circular hey"
+/// asserting a full circuit the source never stated. Write `full` to structure
+/// it.
 ///
 /// Every fact the move stores is REQUIRED from the text, never defaulted: the
 /// extent as a quarter-fraction of a full circuit (`N/4` -> `changes: N`,

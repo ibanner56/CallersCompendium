@@ -1467,7 +1467,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
     // its definitions), so ECD's `whom` and `slow` are not carried over. `who`
     // is the group that passes first, mirroring `square_through.who`.
     // `changes` counts the passes and, like `circle.places`, is any whole
-    // number 1..10 ([ParamKind.places]). Beats follow the maintainer's table:
+    // number 1..10 ([ParamKind.places]). Beats are the counts specified in the request that added this move:
     // 1 -> 2, 2 -> 4, 3 -> 8, 4 -> 12 (the full circuit, the default) and 5
     // or more -> 16. Above six changes 16 is only a placeholder: the caller is
     // expected to set their own `beats`.
