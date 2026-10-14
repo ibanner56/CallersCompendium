@@ -1,8 +1,11 @@
 import 'package:meta/meta.dart';
 
 import '../model/figure.dart' show customMoveId;
+import 'contra_figure_definitions.dart';
 import 'move_def.dart';
 import 'taxonomy.dart';
+
+export 'contra_figure_definitions.dart' show contraFigureDefinitions;
 
 /// Shipped, read-only glossary text for one bundled figure (issue #695).
 ///
@@ -21,11 +24,6 @@ final class FigureDefinition {
   /// length, and what its parameters change.
   final String description;
 }
-
-/// The shipped definitions for [contraTaxonomy]'s figures, keyed by move or
-/// alias id. A figure missing from this map is still listed in the glossary,
-/// without a definition.
-const Map<String, FigureDefinition> contraFigureDefinitions = {};
 
 /// One figure in the shipped glossary: a taxonomy move or alias, never stored.
 @immutable
@@ -56,7 +54,8 @@ final class FigureGlossaryEntry {
   /// alias omits the parameters it pins.
   final List<String> params;
 
-  /// The shipped definition, or `null` when none has been written yet.
+  /// The shipped definition, or `null` when the definitions map passed to
+  /// [figureGlossaryEntries] has none for [id].
   final FigureDefinition? definition;
 
   /// Whether this entry is an alias of another figure.

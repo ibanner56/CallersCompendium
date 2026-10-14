@@ -533,10 +533,10 @@ open or close it.
 closed while it is off.
 
 The Glossary is a read-only reference to the figures built into the app. Search
-it by a figure's name or an older name for it. Select a figure to see:
+it by a figure's name, an older name for it, or a word from its definition.
+Select a figure to see:
 
-- its definition and a short description, once the app ships one for that figure
-  (until then it says **No definition yet**)
+- a one-line definition and a short description of how it's danced
 - an **Example** of how the figure is written
 - its **Parameters**, the details you can set on it in the dance editor
 - other names it is **Also known as**, with discouraged terms struck through

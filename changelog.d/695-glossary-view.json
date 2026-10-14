@@ -3,12 +3,12 @@
   "user_visible": true,
   "app": {
     "added": [
-      "A new Show Glossary switch under Settings > Experimental adds a Glossary to the navigation, between Programs and Settings. It lists the figures built into the app in your dialect, with an example of each, its parameters and its other names, and you can search it by a figure's name or an older name for it. It is off by default, and definitions for each figure will follow in a later update."
+      "A new Show Glossary switch under Settings > Experimental adds a Glossary to the navigation, between Programs and Settings. It lists the figures built into the app in your dialect, with an example of each, its parameters and its other names, and you can search it by a figure's name, an older name for it, or a word from its definition. Each figure has a short definition and a description of how it's danced. It is off by default."
     ]
   },
   "core": {
     "added": [
-      "Add `figureGlossaryEntries`, `FigureGlossaryEntry`, `FigureDefinition` and the (initially empty) `contraFigureDefinitions` map: the shipped, read-only glossary of the taxonomy's figures."
+      "Add `figureGlossaryEntries`, `FigureGlossaryEntry`, `FigureDefinition` and `contraFigureDefinitions`: the shipped, read-only glossary of the taxonomy's figures, with a definition and description for every figure."
     ]
   }
 }

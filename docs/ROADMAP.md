@@ -278,14 +278,18 @@ implementation notes and deviations against each item — is in
   - **Delivered:** a read-only **Glossary** navigation destination, off by
     default behind **Settings ▸ Experimental ▸ Show Glossary**, listing the
     taxonomy's built-in figures in the active dialect. Its entries are derived
-    from the taxonomy at runtime, so nothing is stored or synced; shipped
-    definitions slot in through `contraFigureDefinitions`.
+    from the taxonomy at runtime, so nothing is stored or synced.
+  - **Delivered:** a shipped, read-only definition and description for every
+    built-in figure (`contra_figure_definitions.dart`), checked against The
+    Caller's Box glossary and the glossary of Larry Jennings's *Give and Take*
+    and written in the project's own words. A test requires every taxonomy
+    figure to have one.
   - **Remaining.** Maintainer decisions (2026-10-14, recorded in the PR that
     delivered the view): each built-in figure shows a read-only shipped
     definition and description, with a user-editable notes field; the shipped
     glossary does not sync, but any user additions (own terms, notes on
-    figures) must. Still to build: the shipped definitions; then user
-    additions, together with their sync; then the CC `Term` mapping in 6.5.
+    figures) must. Still to build: user additions, together with their sync;
+    then the CC `Term` mapping in 6.5.
     The author's proposed order for sync — not yet a maintainer decision — is a
     tolerant manifest reader released first, because older clients reject an
     unknown sync record kind.

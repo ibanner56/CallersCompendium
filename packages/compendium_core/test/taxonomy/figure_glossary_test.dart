@@ -1,5 +1,10 @@
+import 'dart:io';
+
 import 'package:compendium_core/compendium_core.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
+
+import '../test_package_root.dart';
 
 void main() {
   group('figureGlossaryEntries', () {
@@ -55,6 +60,31 @@ void main() {
       }
     });
 
+    // Every listed figure ships a definition, so a figure added to the
+    // taxonomy has to arrive with one.
+    test('defines every figure the glossary lists', () {
+      for (final id in ids) {
+        expect(
+          contraFigureDefinitions.keys,
+          contains(id),
+          reason: '"$id" has no shipped definition',
+        );
+      }
+    });
+
+    test('keeps a definition to one short sentence', () {
+      for (final MapEntry(key: id, value: def)
+          in contraFigureDefinitions.entries) {
+        final words = def.definition.trim().split(RegExp(r'\s+')).length;
+        expect(words, lessThanOrEqualTo(25), reason: '"$id": $words words');
+        expect(
+          RegExp(r'[.!?]\s').hasMatch(def.definition.trim()),
+          isFalse,
+          reason: '"$id" definition is more than one sentence',
+        );
+      }
+    });
+
     // Shipped text is rendered through the user's dialect, so it must carry
     // the canonical role tokens rather than any dialect's role words, and
     // must not use a term the app flags as discouraged.
@@ -71,6 +101,44 @@ void main() {
         }
       }
     });
+  });
+
+  // The text is canonical and only becomes role words at display time: under
+  // every shipped dialect that names roles, no role token survives rendering
+  // (a misspelt token such as "role 2s" would).
+  test('every role token translates at display time', () {
+    final renderer = FigureRenderer(contraTaxonomy);
+    for (final dialect in Dialect.presets.where((d) => d.roles.isNotEmpty)) {
+      for (final MapEntry(key: id, value: def)
+          in contraFigureDefinitions.entries) {
+        for (final text in [def.definition, def.description]) {
+          final shown = renderer.renderFreeText(text, dialect).toLowerCase();
+          expect(
+            RegExp(r'role\s*[12]').hasMatch(shown),
+            isFalse,
+            reason: '"$id" under ${dialect.name}: $shown',
+          );
+        }
+      }
+    }
+  });
+
+  // Stricter than the check above, and over the whole source file, comments
+  // included: the shipped text is written for the canonical dialect, so no
+  // dialect's role words (not even "lead"/"follow" as verbs, which a
+  // Leads/Follows reader would trip on), no discouraged term and no gendered
+  // word appear anywhere in it. A figure's own name ("mad robin") is allowed.
+  test('the definitions source names no role word, even in comments', () async {
+    final root = await packageRootPath();
+    final source = File(
+      p.join(root, 'lib', 'src', 'taxonomy', 'contra_figure_definitions.dart'),
+    ).readAsStringSync().toLowerCase().replaceAll('mad robin', ' ');
+    final banned = RegExp(
+      r"\b(gents?|gentlemen|gentlespoons?|ladies|lady|ladles?|men|women|man|"
+      r"woman|male|female|larks?|robins?|ravens?|leads?|leading|led|leaders?|"
+      r"follows?|following|followed|followers?|gypsy|gyre)\b",
+    );
+    expect([for (final m in banned.allMatches(source)) m.group(0)], isEmpty);
   });
 
   // The checker the test above runs over the shipped map, exercised on fixed
