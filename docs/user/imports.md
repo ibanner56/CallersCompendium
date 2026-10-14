@@ -9,7 +9,7 @@ and backing up and restoring everything you own.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Settings**, **Import…**, and **Choose file…**. The
-> first time a dance term appears it links to the [Glossary](./glossary.md), so
+> first time a dance term appears it links to [App terms](./glossary.md), so
 > you can get a plain-language definition without losing your place.
 
 ## Your data stays yours
@@ -505,5 +505,5 @@ instead.
 - Want imported dances to read in your own words and role names? See
   [Dialect](./dialects.md).
 - Tidying up a dance after it lands: [Write & edit dances](./authoring.md).
-- Unsure about a term used here? The [Glossary](./glossary.md) has plain
+- Unsure about a term used here? [App terms](./glossary.md) has plain
   definitions.

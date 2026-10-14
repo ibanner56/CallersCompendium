@@ -7,7 +7,7 @@ shows the first time you open it, and how to keep the app up to date.
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Settings**, **Assets**, and **Open**. File names
 > and anything you type appear in `monospace`. The first time a dance term
-> appears it links to the [Glossary](./glossary.md), so you can get a
+> appears it links to [App terms](./glossary.md), so you can get a
 > plain-language definition without losing your place.
 
 ## Before you start
@@ -247,5 +247,5 @@ You're ready to open the app and start calling.
   covers moving your [collection](./glossary.md#collection) onto this device.
 - **Hit a snag?** The [FAQ & troubleshooting guide](./faq.md) has fixes for the
   most common bumps.
-- **Not sure what a word means?** The [Glossary](./glossary.md) has plain
+- **Not sure what a word means?** [App terms](./glossary.md) has plain
   definitions for every term used across these guides.
