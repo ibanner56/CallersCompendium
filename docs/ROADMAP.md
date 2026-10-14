@@ -217,8 +217,12 @@ implementation notes and deviations against each item — is in
       [releasing.md](dev/releasing.md#ios-testflight-via-app-store-connect-api)
       and [store-submission/app-store.md](dev/store-submission/app-store.md#4-open-beta--testflight-external-testing--done).
     - **macOS Developer ID signing + notarization delivered** (#311, notarization wait bounded in #329): the `release.yml` macOS leg signs the universal build with an Apple Developer ID and notarizes it (gated on the configured Apple secrets), so the macOS `.dmg`/`.zip` now open without the Gatekeeper right-click workaround. Shipped in beta.2.
-  - **Remaining (maintainer — one-time, $0)**
-    - Document Android upload-keystore custody (owner, secure backup, rotation policy) — the key is generated and wired into CI, so this is governance, not a build blocker (see [ADR-002](adr/002-distribution-and-update-channels.md) §6). **Tracked in #692**, which also records the sideload-vs-Play App Signing distinction (the sideload signing key is unrotatable; the Play upload key is resettable) and the cross-channel key decision that must be made before the first Play publication.
+  - **Resolved (maintainer ops)**
+    - Android signing-key custody, backup, and rotation policy — documented in the
+      [release runbook](dev/releasing.md#android-signing-key-custody-backup-and-rotation)
+      (#692, #1087). The cross-channel decision is made: the Play app-signing key
+      is **intentionally distinct** from the direct-APK key, so moving between
+      channels is a backup → uninstall → install → restore, not an in-place update.
   - **Deferred** (later signing wave — needs paid developer accounts / a decision; see [ADR-002](adr/002-distribution-and-update-channels.md) §6)
     - Windows Authenticode/Store (MSIX) signing — Azure Trusted Signing is wired for the Windows installer and portable bundle when configured; the Linux half is decided in ADR-003 and tracked in #491. (macOS is now signed + notarized and iOS is distributed via TestFlight — see **Delivered** above.)
     - Store distribution (Google Play, F-Droid, Flathub). **Google Play submission is now in preparation:** a release-workflow leg builds and stages a **signed Android App Bundle (`.aab`)** for Play (#535), a store-distribution **license exception** to the AGPL was added so managed marketplaces are permitted (#534), and **App Store & Google Play submission guides** plus listing copy, a privacy policy, and a contact address landed under [docs/dev/store-submission/](dev/store-submission/) (#532, #534). Actual store listing/publication is still pending. For Linux, the post-beta channel evaluation is decided in [ADR-003](adr/003-linux-native-distribution-channel.md): **Flathub-first** (auto-update + desktop integration + trusted-publisher signing, no self-run infra), with Snap/Launchpad PPA secondary and a self-hosted apt repo only on clear demand.
@@ -257,7 +261,7 @@ implementation notes and deviations against each item — is in
       (`site/`), and the store-submission listing/privacy docs. No personal
       maintainer address remains in the repo.
   - **In progress**
-    - Beta execution — recruit → run → interview → GA. Underway: builds ship for every platform (macOS signed + notarized, Android signed, Windows signed when configured, Linux unsigned; iPhone/iPad via an open TestFlight beta), the Getting Started guide is live, and beta callers are filing feedback against the current beta releases. Remaining is the run → interview → GA arc with more real callers.
+    - Beta execution with real callers. Underway: builds ship for every platform (macOS signed + notarized, Android signed, Windows signed when configured, Linux unsigned; iPhone/iPad via an open TestFlight beta), the Getting Started guide is live, and beta callers are filing feedback against the current beta releases. There are no formal exit criteria: the target audience is fewer than a thousand callers, too few for a numeric bar to mean much, so the first stable release is the maintainer's call once the beta feels ready (maintainer decision, recorded in this change's PR). Each release, stable included, still passes the per-tag gates in the [release checklist](dev/release-checklist.md).
 
 ## Later milestones
 
