@@ -624,6 +624,43 @@ class CompendiumDatabase extends _$CompendiumDatabase {
          ),
        );
 
+  /// The v39 additions, each created only if absent.
+  Future<void> _ensureV39Schema(Migrator m) async {
+    // Fields a newer version of the app added, kept so this device
+    // shares them back unchanged (spec §6.7). A new table and nothing
+    // else; the existence check only keeps the step idempotent.
+    final existing = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' "
+      "AND name = '${retainedSyncFields.actualTableName}'",
+    ).get();
+    if (existing.isEmpty) await m.createTable(retainedSyncFields);
+
+    // What this device last published, so a pass with nothing new to
+    // share sends nothing (sync-spec §6.3 step 8). Both columns are
+    // nullable and start empty: the first pass after the upgrade
+    // publishes as every pass did before it. The live-schema check only
+    // keeps the step idempotent.
+    final stateColumns = await customSelect(
+      "SELECT name FROM pragma_table_info('${baselineState.actualTableName}')",
+    ).get();
+    final present = {for (final row in stateColumns) row.read<String>('name')};
+    if (!present.contains(baselineState.publishedManifestHash.name)) {
+      await m.addColumn(baselineState, baselineState.publishedManifestHash);
+    }
+    if (!present.contains(baselineState.publishedVerifiedAt.name)) {
+      await m.addColumn(baselineState, baselineState.publishedVerifiedAt);
+    }
+
+    // Each peer's last verified manifest, so a restart does not fetch
+    // them all again (sync-spec §5.2). A new, empty table: the first
+    // pass after the upgrade fetches every manifest, as before.
+    final peerManifestTable = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' "
+      "AND name = '${peerManifests.actualTableName}'",
+    ).get();
+    if (peerManifestTable.isEmpty) await m.createTable(peerManifests);
+  }
+
   @override
   int get schemaVersion => kCompendiumSchemaVersion;
 
@@ -776,46 +813,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
             await m.addColumn(programs, programs.payCurrency);
           }
         }
-        if (from < 39) {
-          // Fields a newer version of the app added, kept so this device
-          // shares them back unchanged (spec §6.7). A new table and nothing
-          // else; the existence check only keeps the step idempotent.
-          final existing = await customSelect(
-            "SELECT name FROM sqlite_master WHERE type = 'table' "
-            "AND name = '${retainedSyncFields.actualTableName}'",
-          ).get();
-          if (existing.isEmpty) await m.createTable(retainedSyncFields);
-
-          // What this device last published, so a pass with nothing new to
-          // share sends nothing (sync-spec §6.3 step 8). Both columns are
-          // nullable and start empty: the first pass after the upgrade
-          // publishes as every pass did before it. The live-schema check only
-          // keeps the step idempotent.
-          final stateColumns = await customSelect(
-            "SELECT name FROM pragma_table_info('${baselineState.actualTableName}')",
-          ).get();
-          final present = {
-            for (final row in stateColumns) row.read<String>('name'),
-          };
-          if (!present.contains(baselineState.publishedManifestHash.name)) {
-            await m.addColumn(
-              baselineState,
-              baselineState.publishedManifestHash,
-            );
-          }
-          if (!present.contains(baselineState.publishedVerifiedAt.name)) {
-            await m.addColumn(baselineState, baselineState.publishedVerifiedAt);
-          }
-
-          // Each peer's last verified manifest, so a restart does not fetch
-          // them all again (sync-spec §5.2). A new, empty table: the first
-          // pass after the upgrade fetches every manifest, as before.
-          final peerManifestTable = await customSelect(
-            "SELECT name FROM sqlite_master WHERE type = 'table' "
-            "AND name = '${peerManifests.actualTableName}'",
-          ).get();
-          if (peerManifestTable.isEmpty) await m.createTable(peerManifests);
-        }
+        if (from < 39) await _ensureV39Schema(m);
 
         // Last statement in the transaction: see the comment above its
         // opening for why this closes the remaining crash window. `to` is
@@ -826,6 +824,10 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
       if (details.wasCreated) return;
+      // v39 shipped in pieces: a development build stamped it before every
+      // piece existed, so a file at v39 can lack some, and `from < 39` never
+      // runs for it again. The step is idempotent; run it on every open.
+      if (details.versionNow >= 39) await _ensureV39Schema(createMigrator());
       // Defensive: guards a hand-rolled DB (e.g. restored from an external
       // backup) that lacks either raw FTS5 table. Creating a missing index
       // alone would silently return incomplete results, so schedule a durable

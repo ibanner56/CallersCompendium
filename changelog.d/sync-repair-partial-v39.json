@@ -1,0 +1,9 @@
+{
+  "id": "sync-repair-partial-v39",
+  "user_visible": false,
+  "core": {
+    "fixed": [
+      "A database stamped schema v39 by a pre-release build before the v39 step was complete is repaired on open: the missing peer_manifests table and published-manifest columns are created, instead of every sync pass failing."
+    ]
+  }
+}
