@@ -9,7 +9,7 @@ how the app keeps your work safe while you type.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **New dance**, **Save**, and **Figures**. The first
-> time a dance term appears it links to the [Glossary](./glossary.md), so you can
+> time a dance term appears it links to [App terms](./glossary.md), so you can
 > get a plain-language definition without losing your place.
 
 If you have not entered a dance before, the
@@ -404,5 +404,5 @@ tells you when its figures cannot be read.
   [Accessibility guide](./accessibility.md) covers screen readers, text size,
   high contrast, and keyboard use.
 
-Not sure what a word means? The [Glossary](./glossary.md) has plain definitions
+Not sure what a word means? [App terms](./glossary.md) has plain definitions
 for every term used across these guides.

@@ -8,8 +8,8 @@ losing your place.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Perform this dance** and **Perform this program**.
-> The first time a dance term appears it links to the
-> [Glossary](./glossary.md), so you can get a plain-language definition
+> The first time a dance term appears it links to
+> [App terms](./glossary.md), so you can get a plain-language definition
 > without losing your place.
 
 New to the app? Start with the [Getting started guide](./getting-started.md).
@@ -267,5 +267,5 @@ and the export follows your active dialect. See
   [Accessibility guide](./accessibility.md) and
   [Settings](./settings.md)
 
-Not sure what a word means? The [Glossary](./glossary.md) has plain
+Not sure what a word means? [App terms](./glossary.md) has plain
 definitions for every term used across these guides.

@@ -335,4 +335,4 @@ both recognise, then flip back to your own.
   use.
 - [Imports & migration](./imports.md) — bring in dances written in other words.
 - [Share, print & export](./sharing.md) — which words leave the app with a dance.
-- [Glossary](./glossary.md) — plain definitions of the terms used here.
+- [App terms](./glossary.md) — plain definitions of the terms used here.

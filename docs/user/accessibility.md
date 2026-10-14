@@ -10,8 +10,8 @@ on a dim stage, at arm's length, often one-handed and under pressure.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Settings**, **Appearance**, and **Reduce motion**.
-> The first time a dance term appears it links to the
-> [Glossary](./glossary.md), so you can get a plain-language definition without
+> The first time a dance term appears it links to
+> [App terms](./glossary.md), so you can get a plain-language definition without
 > losing your place.
 
 If you're brand new to the app, the [Getting started](./getting-started.md) guide
