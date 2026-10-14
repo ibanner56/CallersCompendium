@@ -59,6 +59,70 @@ void main() {
     expect(find.text('buzz'), findsNothing);
   });
 
+  group('indistinguishable aliases', () {
+    testWidgets('offers a single "pull by" for the move and its v34 aliases', (
+      tester,
+    ) async {
+      await _pump(tester);
+      await tester.enterText(find.byKey(const ValueKey('move-input')), 'pull');
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('move-option-pull_by')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('move-option-pull_by_dancers')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('move-option-pull_by_direction')),
+        findsNothing,
+      );
+      expect(find.text('pull by'), findsOneWidget);
+    });
+
+    testWidgets('submitting "pull by" still selects the canonical move', (
+      tester,
+    ) async {
+      MoveOption? picked;
+      await _pump(tester, onSelected: (o) => picked = o);
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'pull by',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(picked?.id, 'pull_by');
+    });
+
+    testWidgets('still offers an alias whose label differs from its move', (
+      tester,
+    ) async {
+      await _pump(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('move-input')),
+        'seesaw',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('move-option-see_saw')), findsOneWidget);
+    });
+
+    testWidgets('never hides a move that shares a dialect term with another', (
+      tester,
+    ) async {
+      final dialect = Dialect(
+        name: 'Custom',
+        moves: const {'swing': 'buzz', 'balance': 'buzz'},
+      );
+      await _pump(tester, dialect: dialect);
+      await tester.enterText(find.byKey(const ValueKey('move-input')), 'buzz');
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('move-option-swing')), findsOneWidget);
+      expect(find.byKey(const ValueKey('move-option-balance')), findsOneWidget);
+    });
+  });
+
   testWidgets('offers a structural modifier option when enabled', (
     tester,
   ) async {

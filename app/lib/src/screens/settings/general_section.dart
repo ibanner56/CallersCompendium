@@ -26,6 +26,7 @@ import '../../data/soft_delete_retention.dart';
 import '../../data/sort_ignore_articles_scope.dart';
 import '../../data/verbose_figure_rendering_scope.dart';
 import '../../data/decimal_turns_scope.dart';
+import '../../data/capitalize_figures_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
@@ -535,6 +536,12 @@ class _GeneralSectionState extends State<GeneralSection> {
     await persistSetting(repos.settings, kSortIgnoreArticlesKey, value);
   }
 
+  Future<void> _onCapitalizeFiguresChanged(bool value) async {
+    CapitalizeFiguresScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kCapitalizeFiguresKey, value);
+  }
+
   Future<void> _onReduceMotionChanged(bool value) async {
     // Same instant-notifier-then-persist pattern (ROADMAP G.7): flip the live
     // notifier so animation-gated widgets rebuild immediately, then persist.
@@ -568,6 +575,8 @@ class _GeneralSectionState extends State<GeneralSection> {
     return _GeneralView(
       sortIgnoreArticles: SortIgnoreArticlesScope.of(context),
       onSortIgnoreArticlesChanged: _onSortIgnoreArticlesChanged,
+      capitalizeFigures: CapitalizeFiguresScope.of(context),
+      onCapitalizeFiguresChanged: _onCapitalizeFiguresChanged,
       reduceMotion: ReduceMotionScope.of(context),
       onReduceMotionChanged: _onReduceMotionChanged,
       verboseFigureRendering: VerboseFigureRenderingScope.of(context),
@@ -600,6 +609,8 @@ class _GeneralView extends StatelessWidget {
   const _GeneralView({
     required this.sortIgnoreArticles,
     required this.onSortIgnoreArticlesChanged,
+    required this.capitalizeFigures,
+    required this.onCapitalizeFiguresChanged,
     required this.reduceMotion,
     required this.onReduceMotionChanged,
     required this.verboseFigureRendering,
@@ -622,6 +633,8 @@ class _GeneralView extends StatelessWidget {
 
   final bool sortIgnoreArticles;
   final ValueChanged<bool> onSortIgnoreArticlesChanged;
+  final bool capitalizeFigures;
+  final ValueChanged<bool> onCapitalizeFiguresChanged;
   final bool reduceMotion;
   final ValueChanged<bool> onReduceMotionChanged;
   final bool verboseFigureRendering;
@@ -665,6 +678,14 @@ class _GeneralView extends StatelessWidget {
           onChanged: onSortIgnoreArticlesChanged,
           title: Text(l10n.settingsGeneralSortIgnoreArticlesTitle),
           subtitle: Text(l10n.settingsGeneralSortIgnoreArticlesSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-capitalize-figures'),
+          value: capitalizeFigures,
+          onChanged: onCapitalizeFiguresChanged,
+          title: Text(l10n.settingsGeneralCapitalizeFiguresTitle),
+          subtitle: Text(l10n.settingsGeneralCapitalizeFiguresSubtitle),
           isThreeLine: true,
         ),
         SectionHeader(title: l10n.settingsGeneralAccessibilityHeader),

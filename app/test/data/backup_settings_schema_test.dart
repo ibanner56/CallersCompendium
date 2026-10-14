@@ -2,6 +2,8 @@ import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart'
     show kAggressiveBeatsUpdateKey;
 import 'package:compendium_app/src/data/backup_reminder.dart'
     show kBackupReminderCadenceKey;
+import 'package:compendium_app/src/data/capitalize_figures_scope.dart'
+    show kCapitalizeFiguresKey;
 import 'package:compendium_app/src/data/backup_service.dart'
     show isBackupEligibleSettingKey;
 import 'package:compendium_app/src/data/backup_settings_schema.dart';
@@ -106,6 +108,16 @@ void main() {
       );
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, 1), isFalse);
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, null), isFalse);
+    });
+
+    test('capitalize figures setting accepts only bools', () {
+      expect(validateBackupSettingValue(kCapitalizeFiguresKey, true), isTrue);
+      expect(validateBackupSettingValue(kCapitalizeFiguresKey, false), isTrue);
+      expect(
+        validateBackupSettingValue(kCapitalizeFiguresKey, 'true'),
+        isFalse,
+      );
+      expect(validateBackupSettingValue(kCapitalizeFiguresKey, null), isFalse);
     });
 
     test('individual Perform timer setting accepts only bools', () {
