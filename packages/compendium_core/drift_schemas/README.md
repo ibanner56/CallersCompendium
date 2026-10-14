@@ -33,16 +33,17 @@ Each dump is taken from a **real database file**, not from static analysis of
 
 * The head dump comes from a database created on the spot by
   `tool/write_head_database.dart`.
-* Every version below head (v35–v37) was dumped the same way the head is: from
-  a database written by `tool/write_head_database.dart` on a checkout of the
-  commit that made it head. Each was added by its own bump PR; none has a
+* Every version below head was dumped the same way the head is: from a
+  database written by `tool/write_head_database.dart` on a checkout taken
+  while that version was head. Each was added by its own bump PR; none has a
   fixture, and none needs one for shape verification (see "Adding a
   version"). The binary fixtures that earlier floors still carried were
   retired with the v35 floor.
 
-Dumps for versions that were never in a release are the subject of open issue
-#1398, which proposes keeping only shipped versions; until that settles, the
-set is exactly floor…head.
+The set is exactly floor…head. Some of those versions were never in a release;
+no new ones are added that way. A schema change made while head is unreleased
+joins head rather than bumping it (see "Amending the unreleased head" below),
+so from here on each version past head is one that a release will carry.
 
 That matters because six entities in this schema are created by raw
 `customStatement` DDL rather than being drift-managed — the `dance_fts` FTS5
@@ -82,6 +83,20 @@ that is the cost this directory exists to remove.
 `schema_verification_test.dart` fails if a version has no dump, so forgetting
 this is a red test rather than a silent coverage hole.
 
+Bump only when head has already shipped. CONTRIBUTING.md's
+"Database schema migrations" section shows how to check.
+
+## Amending the unreleased head
+
+When head has not shipped yet, a schema change is added to head instead of
+bumping it, and head's dump has to be taken again. Regenerate **only** the head
+files: write a fresh head database (step 2 below), dump it over
+`drift_schema_v<head>.json`, and regenerate `schema_v<head>.dart` (steps 3 and
+4). `drift_dev schema generate` rewrites every version's class, so check that
+those below head come out byte-identical and commit only head's. Earlier
+versions are fixed: each dump records the shape its version had when it was
+last head, and nothing amends them.
+
 ## Regenerating
 
 `drift_dev` cannot run from this workspace. Every release from 2.34.1 onwards
@@ -119,10 +134,20 @@ files here, from a throwaway project outside the workspace.
    dart run tool/write_head_database.dart /tmp/schema-src/head.sqlite
    ```
 
-   That covers head. For every other version (v35–v37 today), check out the commit that
-   bumped `kCompendiumSchemaVersion` to it — `git log -S 'kCompendiumSchemaVersion = 30' -- lib/src/storage/database.dart`
-   finds it — and run `write_head_database.dart` there into
-   `/tmp/schema-src/vN.sqlite`. Confirm `PRAGMA user_version` on each file
+   That covers head. For every other version N, check out the **last commit
+   before `kCompendiumSchemaVersion` was bumped past it**: the parent of the
+   commit that set it to N+1. Not the commit that set it to N, because a
+   change made while N was unreleased joins N after that commit (see
+   "Amending the unreleased head"), so the commit that first set N can lack
+   part of N's final shape. For N = 30:
+
+   ```sh
+   bump=$(git log --format=%H -S 'kCompendiumSchemaVersion = 31' \
+     -- lib/src/storage/database.dart | tail -1)
+   git checkout "$bump^"
+   ```
+
+   Run `write_head_database.dart` there into `/tmp/schema-src/vN.sqlite`. Confirm `PRAGMA user_version` on each file
    before dumping it.
 
 3. Dump each database, **from the scratch project**:

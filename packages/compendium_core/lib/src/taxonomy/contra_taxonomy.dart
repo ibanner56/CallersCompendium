@@ -19,6 +19,10 @@ import 'taxonomy.dart';
 /// It is kept there because it is a ledger of decisions already shipped: it
 /// constrains nothing on this line, and it grows on every bump, so readers of
 /// this file were paying for the whole history to reach one constant.
+///
+/// Bump only when the current value has shipped in a release. While it has
+/// not, a taxonomy change joins that version and amends its entry instead
+/// (CONTRIBUTING.md, "Versioned formats").
 const int contraTaxonomyVersion = 36;
 
 // Shared parameter specs.

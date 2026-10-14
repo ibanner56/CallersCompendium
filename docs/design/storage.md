@@ -222,7 +222,10 @@ rides a PATCH release — stays there, next to the constant it governs.
 
 **Every bump appends an entry here, in the same PR.**
 `tools/ci/check_version_history.py` fails a PR that moves the constant without
-adding the matching entry.
+adding the matching entry. A change added to a version that has not shipped yet
+(see CONTRIBUTING.md, "Adding to an unreleased version") amends that version's
+entry instead. The gate cannot see that case, because the constant does not
+move.
 
 ### Retired (v1–v34): history only
 

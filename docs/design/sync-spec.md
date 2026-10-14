@@ -1384,7 +1384,9 @@ paragraph already gave is the reason repair cannot be right; only its conclusion
 was inverted.*
 
 Two devices holding an identical record MUST produce identical bytes. A change
-to canonicalisation is a wire-format break and MUST bump `v`.
+to canonicalisation is a wire-format break and MUST bump `v`, unless no release
+carries the current `v` yet, in which case the change joins it (§7.2, "An
+unreleased `v`").
 
 For `dance` and `program` records, the `updatedAt` and `deletedAt` values in
 the body are redundant projections of the envelope fields, not independent
@@ -4367,6 +4369,16 @@ only stores; on a manifest it is silent data loss on the server's own schedule.
 Clients refuse an unknown manifest `v` too, so a manifest change is a
 coordinated break in both directions either way, and nothing is bought by
 loosening one end of it.
+
+**An unreleased `v`.** A wire-version bump that no release carries yet is
+amended rather than bumped again: a further envelope or canonicalisation change
+joins it. A server image built after the bump already enforces it (the server
+validates manifests with the client's codec), so a server deployed in between
+is redeployed before any client emits the amended form, under the rule above.
+Blobs and manifests written from source at the earlier form of an unreleased
+`v` are development data. A store holding them is recreated, never
+interpreted. (Contributor process, the maintainer's direction 2026-10-13;
+CONTRIBUTING.md, "Versioned formats".)
 
 ### 7.3 TTL and garbage collection
 
