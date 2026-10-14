@@ -9,8 +9,8 @@ replaced, or wiped.
 
 > **Finding your way around these words.** On-screen buttons and screens
 > are written in **bold** — like **Settings**, **Export**, and
-> **Restore**. The first time a dance term appears it links to the
-> [Glossary](./glossary.md), so you can get a plain-language
+> **Restore**. The first time a dance term appears it links to
+> [App terms](./glossary.md), so you can get a plain-language
 > definition without losing your place.
 
 ## Why back up
