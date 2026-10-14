@@ -572,9 +572,12 @@ were each checked in context and are genuine timing: dance 2957 writes
 `(3) Neighbor courtesy turn`, dance 14823 `(10) Star left 1 & 1/4` +
 `(6) Partner courtesy turn`.
 
-**`direction`:** stated on 10 lines; **all 10 say `clockwise`**.
-`counterclockwise` is unattested — consistent with the figure's mechanics (the
-couple wheels as a unit), so `clockwise` is a real default rather than a guess.
+**`direction`:** stated on 10 lines; **all 10 say `clockwise`**, and
+`counterclockwise` is unattested. A source names the rotation only when it is
+the unusual one, so those 10 lines are the mirrored turn (chiefly after a
+role1s' chain); the ordinary turn, and the taxonomy default since v37, is
+`counterclockwise`. (v23 read this census the other way and defaulted to
+`clockwise`.)
 
 **⚠️ The ending facing is a DANCER, not a direction.** Every in-line ending
 facing is a neighbor relationship — `, face N2` x8, `, face N3` x4, `, face N0`

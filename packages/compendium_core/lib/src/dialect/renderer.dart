@@ -2053,6 +2053,8 @@ class FigureRenderer {
     // stated wording, verbatim:
     //   {who} courtesy turn {whom, when present} {direction, when not
     //   clockwise} {"to face" + endFacing, when set}
+    // That was v23's reading; since v37 the silenced direction is the new
+    // default, `counterclockwise` (see below).
     // A `renderTemplate` cannot express those conditionals, so the canonical
     // (dedupe/FTS) render keeps expanding the flat template — byte-stability of
     // the canonical text is therefore untouched by anything here — and the

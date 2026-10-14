@@ -1611,9 +1611,10 @@ _Match? _courtesyTurn(List<String> w) {
   if (!_consumePhrase(w, ['courtesy', 'turn'])) return null;
   final who2 = who ?? _takeDancer(w);
   // Emitted only when the line STATES it. Omitted otherwise, so the taxonomy's
-  // `clockwise` default applies without the figure claiming the source said so.
-  // Every one of the 10 corpus lines that states a direction says `clockwise`;
-  // `counterclockwise` is accepted for authoring parity and is unattested.
+  // default (`counterclockwise` since v37) applies without the figure claiming
+  // the source said so. Every one of the 10 corpus lines that states a
+  // direction says `clockwise`: a source names the rotation only when it is the
+  // unusual, mirrored turn. `counterclockwise` is accepted for authoring parity.
   final direction = _takeSpinDirection(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
