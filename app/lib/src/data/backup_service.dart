@@ -263,7 +263,9 @@ class BackupService {
 
   /// Builds a [BackupDocument] snapshot of the current app state.
   Future<BackupDocument> buildDocument({DateTime? createdAt}) async {
-    final core = await ArchiveExporter(_repos).export();
+    // One stamp for the envelope and the nested archive, so they agree.
+    final stamp = (createdAt ?? DateTime.now()).toUtc();
+    final core = await ArchiveExporter(_repos).export(exportedAt: stamp);
     final allSettings = await _repos.settings.all();
 
     final customDialects = _readDialects(allSettings[kCustomDialectsKey]);
@@ -277,7 +279,7 @@ class BackupService {
     };
 
     return BackupDocument(
-      createdAt: (createdAt ?? DateTime.now()).toUtc(),
+      createdAt: stamp,
       core: core,
       customDialects: customDialects,
       activeDialectRef: activeDialectRef is String ? activeDialectRef : null,

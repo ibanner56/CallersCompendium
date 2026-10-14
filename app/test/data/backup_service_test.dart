@@ -633,10 +633,20 @@ void main() {
     final source = openTestRepositories();
     await _seed(source);
     final service = BackupService(source);
-    final full = await service.exportToJson();
+    // Pin the stamp: DateTime.toIso8601String prints 3 or 6 fractional digits
+    // depending on whether the microseconds are zero, so two separate
+    // wall-clock exports can differ by 3 bytes and the size comparison flakes.
+    // The stamp covers both the envelope and the nested archive's exportedAt.
+    final createdAt = DateTime.utc(2026, 1, 2, 3, 4, 5, 6, 7);
+    final full = await service.exportToJson(createdAt: createdAt);
+    expect(
+      (await service.buildDocument(createdAt: createdAt)).core.exportedAt,
+      createdAt,
+      reason: 'the nested archive must carry the pinned stamp, not the clock',
+    );
 
     await expectLater(
-      service.exportToJson(maxBytes: 64),
+      service.exportToJson(maxBytes: 64, createdAt: createdAt),
       throwsA(
         isA<BackupExportTooLargeException>()
             .having((e) => e.maxBytes, 'maxBytes', 64)
@@ -645,7 +655,10 @@ void main() {
     );
     // Exactly at the cap is allowed (the restore refuses only above it).
     expect(
-      await service.exportToJson(maxBytes: utf8.encode(full).length),
+      await service.exportToJson(
+        maxBytes: utf8.encode(full).length,
+        createdAt: createdAt,
+      ),
       isNotEmpty,
     );
   });
