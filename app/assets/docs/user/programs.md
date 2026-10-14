@@ -9,8 +9,8 @@ have called.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Programs**, **New program**, and **Matrix**. The
-> first time a dance term appears it links to the
-> [Glossary](./glossary.md), so you can get a plain-language definition
+> first time a dance term appears it links to
+> [App terms](./glossary.md), so you can get a plain-language definition
 > without losing your place.
 
 New to the app? The [Getting started guide](./getting-started.md) gives you the
@@ -442,5 +442,5 @@ yourself, and control the repeated-venues summary.
   [Settings](./settings.md) ·
   [Backup & portability](./backup-portability.md)
 
-Not sure what a word means? The [Glossary](./glossary.md) has plain
+Not sure what a word means? [App terms](./glossary.md) has plain
 definitions for every term used across these guides.
