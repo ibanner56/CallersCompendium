@@ -3037,7 +3037,6 @@ class FigureRenderer {
   static String _formatNumber(num n) =>
       n == n.roundToDouble() ? n.toInt().toString() : n.toString();
 
-  /// Formats a places count using caller vocabulary ("1 place", "4 places").
   /// Spoken form of a circular hey's extent ("three changes of a"), so the
   /// verbose line carries no ASCII fraction a screen reader would misread.
   static String _spokenChanges(int changes) {
@@ -3051,6 +3050,7 @@ class FigureRenderer {
     return '$word ${changes == 1 ? 'change' : 'changes'} of a';
   }
 
+  /// Formats a places count using caller vocabulary ("1 place", "4 places").
   static String _formatPlaces(int places) =>
       places == 1 ? '1 place' : '$places places';
 
