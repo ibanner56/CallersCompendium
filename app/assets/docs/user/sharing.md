@@ -7,7 +7,7 @@ caller — and, just as importantly, what the app deliberately leaves behind.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Export**, **Copy set list**, and **Continue**. The
-> first time a dance term appears it links to the [Glossary](./glossary.md), so
+> first time a dance term appears it links to [App terms](./glossary.md), so
 > you can get a plain-language definition without losing your place.
 
 Looking for a copy of *everything* — your whole collection, your settings, your
@@ -314,5 +314,5 @@ your own address book — it is for you, not for sharing.
 - **Record the details that travel with a dance:**
   [Write & edit dances](./authoring.md)
 
-Not sure what a word means? The [Glossary](./glossary.md) has plain definitions
+Not sure what a word means? [App terms](./glossary.md) has plain definitions
 for every term used across these guides.
