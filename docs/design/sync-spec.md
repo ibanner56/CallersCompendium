@@ -1382,7 +1382,9 @@ paragraph already gave is the reason repair cannot be right; only its conclusion
 was inverted.*
 
 Two devices holding an identical record MUST produce identical bytes. A change
-to canonicalisation is a wire-format break and MUST bump `v`.
+to canonicalisation is a wire-format break and MUST bump `v`, unless no release
+carries the current `v` yet, in which case the change joins it (§7.2, "An
+unreleased `v`").
 
 For `dance` and `program` records, the `updatedAt` and `deletedAt` values in
 the body are redundant projections of the envelope fields, not independent
