@@ -12008,8 +12008,34 @@ class $BaselineStateTable extends BaselineState
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _publishedManifestHashMeta =
+      const VerificationMeta('publishedManifestHash');
   @override
-  List<GeneratedColumn> get $columns => [id, epoch];
+  late final GeneratedColumn<String> publishedManifestHash =
+      GeneratedColumn<String>(
+        'published_manifest_hash',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _publishedVerifiedAtMeta =
+      const VerificationMeta('publishedVerifiedAt');
+  @override
+  late final GeneratedColumn<int> publishedVerifiedAt = GeneratedColumn<int>(
+    'published_verified_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    epoch,
+    publishedManifestHash,
+    publishedVerifiedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -12033,6 +12059,24 @@ class $BaselineStateTable extends BaselineState
     } else if (isInserting) {
       context.missing(_epochMeta);
     }
+    if (data.containsKey('published_manifest_hash')) {
+      context.handle(
+        _publishedManifestHashMeta,
+        publishedManifestHash.isAcceptableOrUnknown(
+          data['published_manifest_hash']!,
+          _publishedManifestHashMeta,
+        ),
+      );
+    }
+    if (data.containsKey('published_verified_at')) {
+      context.handle(
+        _publishedVerifiedAtMeta,
+        publishedVerifiedAt.isAcceptableOrUnknown(
+          data['published_verified_at']!,
+          _publishedVerifiedAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -12050,6 +12094,14 @@ class $BaselineStateTable extends BaselineState
         DriftSqlType.string,
         data['${effectivePrefix}epoch'],
       )!,
+      publishedManifestHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}published_manifest_hash'],
+      ),
+      publishedVerifiedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}published_verified_at'],
+      ),
     );
   }
 
@@ -12063,17 +12115,50 @@ class BaselineStateRow extends DataClass
     implements Insertable<BaselineStateRow> {
   final int id;
   final String epoch;
-  const BaselineStateRow({required this.id, required this.epoch});
+
+  /// SHA-256 of the manifest this device last published in [epoch], encoded
+  /// with its `writtenAt` fixed, so it names exactly the device id, epoch and
+  /// records the server holds for this device (sync-spec §6.3 step 8). Null
+  /// until a publication succeeds, and cleared before every manifest `PUT`, so
+  /// a `PUT` whose outcome is unknown is never mistaken for one that landed.
+  final String? publishedManifestHash;
+
+  /// When the store last confirmed every blob that manifest names, as
+  /// milliseconds since the Unix epoch, UTC. Set with
+  /// [publishedManifestHash]; a pass older than the refresh interval checks
+  /// every blob again and republishes even an unchanged manifest.
+  final int? publishedVerifiedAt;
+  const BaselineStateRow({
+    required this.id,
+    required this.epoch,
+    this.publishedManifestHash,
+    this.publishedVerifiedAt,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['epoch'] = Variable<String>(epoch);
+    if (!nullToAbsent || publishedManifestHash != null) {
+      map['published_manifest_hash'] = Variable<String>(publishedManifestHash);
+    }
+    if (!nullToAbsent || publishedVerifiedAt != null) {
+      map['published_verified_at'] = Variable<int>(publishedVerifiedAt);
+    }
     return map;
   }
 
   BaselineStateCompanion toCompanion(bool nullToAbsent) {
-    return BaselineStateCompanion(id: Value(id), epoch: Value(epoch));
+    return BaselineStateCompanion(
+      id: Value(id),
+      epoch: Value(epoch),
+      publishedManifestHash: publishedManifestHash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(publishedManifestHash),
+      publishedVerifiedAt: publishedVerifiedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(publishedVerifiedAt),
+    );
   }
 
   factory BaselineStateRow.fromJson(
@@ -12084,6 +12169,12 @@ class BaselineStateRow extends DataClass
     return BaselineStateRow(
       id: serializer.fromJson<int>(json['id']),
       epoch: serializer.fromJson<String>(json['epoch']),
+      publishedManifestHash: serializer.fromJson<String?>(
+        json['publishedManifestHash'],
+      ),
+      publishedVerifiedAt: serializer.fromJson<int?>(
+        json['publishedVerifiedAt'],
+      ),
     );
   }
   @override
@@ -12092,15 +12183,38 @@ class BaselineStateRow extends DataClass
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'epoch': serializer.toJson<String>(epoch),
+      'publishedManifestHash': serializer.toJson<String?>(
+        publishedManifestHash,
+      ),
+      'publishedVerifiedAt': serializer.toJson<int?>(publishedVerifiedAt),
     };
   }
 
-  BaselineStateRow copyWith({int? id, String? epoch}) =>
-      BaselineStateRow(id: id ?? this.id, epoch: epoch ?? this.epoch);
+  BaselineStateRow copyWith({
+    int? id,
+    String? epoch,
+    Value<String?> publishedManifestHash = const Value.absent(),
+    Value<int?> publishedVerifiedAt = const Value.absent(),
+  }) => BaselineStateRow(
+    id: id ?? this.id,
+    epoch: epoch ?? this.epoch,
+    publishedManifestHash: publishedManifestHash.present
+        ? publishedManifestHash.value
+        : this.publishedManifestHash,
+    publishedVerifiedAt: publishedVerifiedAt.present
+        ? publishedVerifiedAt.value
+        : this.publishedVerifiedAt,
+  );
   BaselineStateRow copyWithCompanion(BaselineStateCompanion data) {
     return BaselineStateRow(
       id: data.id.present ? data.id.value : this.id,
       epoch: data.epoch.present ? data.epoch.value : this.epoch,
+      publishedManifestHash: data.publishedManifestHash.present
+          ? data.publishedManifestHash.value
+          : this.publishedManifestHash,
+      publishedVerifiedAt: data.publishedVerifiedAt.present
+          ? data.publishedVerifiedAt.value
+          : this.publishedVerifiedAt,
     );
   }
 
@@ -12108,46 +12222,71 @@ class BaselineStateRow extends DataClass
   String toString() {
     return (StringBuffer('BaselineStateRow(')
           ..write('id: $id, ')
-          ..write('epoch: $epoch')
+          ..write('epoch: $epoch, ')
+          ..write('publishedManifestHash: $publishedManifestHash, ')
+          ..write('publishedVerifiedAt: $publishedVerifiedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, epoch);
+  int get hashCode =>
+      Object.hash(id, epoch, publishedManifestHash, publishedVerifiedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is BaselineStateRow &&
           other.id == this.id &&
-          other.epoch == this.epoch);
+          other.epoch == this.epoch &&
+          other.publishedManifestHash == this.publishedManifestHash &&
+          other.publishedVerifiedAt == this.publishedVerifiedAt);
 }
 
 class BaselineStateCompanion extends UpdateCompanion<BaselineStateRow> {
   final Value<int> id;
   final Value<String> epoch;
+  final Value<String?> publishedManifestHash;
+  final Value<int?> publishedVerifiedAt;
   const BaselineStateCompanion({
     this.id = const Value.absent(),
     this.epoch = const Value.absent(),
+    this.publishedManifestHash = const Value.absent(),
+    this.publishedVerifiedAt = const Value.absent(),
   });
   BaselineStateCompanion.insert({
     this.id = const Value.absent(),
     required String epoch,
+    this.publishedManifestHash = const Value.absent(),
+    this.publishedVerifiedAt = const Value.absent(),
   }) : epoch = Value(epoch);
   static Insertable<BaselineStateRow> custom({
     Expression<int>? id,
     Expression<String>? epoch,
+    Expression<String>? publishedManifestHash,
+    Expression<int>? publishedVerifiedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (epoch != null) 'epoch': epoch,
+      if (publishedManifestHash != null)
+        'published_manifest_hash': publishedManifestHash,
+      if (publishedVerifiedAt != null)
+        'published_verified_at': publishedVerifiedAt,
     });
   }
 
-  BaselineStateCompanion copyWith({Value<int>? id, Value<String>? epoch}) {
+  BaselineStateCompanion copyWith({
+    Value<int>? id,
+    Value<String>? epoch,
+    Value<String?>? publishedManifestHash,
+    Value<int?>? publishedVerifiedAt,
+  }) {
     return BaselineStateCompanion(
       id: id ?? this.id,
       epoch: epoch ?? this.epoch,
+      publishedManifestHash:
+          publishedManifestHash ?? this.publishedManifestHash,
+      publishedVerifiedAt: publishedVerifiedAt ?? this.publishedVerifiedAt,
     );
   }
 
@@ -12160,6 +12299,14 @@ class BaselineStateCompanion extends UpdateCompanion<BaselineStateRow> {
     if (epoch.present) {
       map['epoch'] = Variable<String>(epoch.value);
     }
+    if (publishedManifestHash.present) {
+      map['published_manifest_hash'] = Variable<String>(
+        publishedManifestHash.value,
+      );
+    }
+    if (publishedVerifiedAt.present) {
+      map['published_verified_at'] = Variable<int>(publishedVerifiedAt.value);
+    }
     return map;
   }
 
@@ -12167,7 +12314,9 @@ class BaselineStateCompanion extends UpdateCompanion<BaselineStateRow> {
   String toString() {
     return (StringBuffer('BaselineStateCompanion(')
           ..write('id: $id, ')
-          ..write('epoch: $epoch')
+          ..write('epoch: $epoch, ')
+          ..write('publishedManifestHash: $publishedManifestHash, ')
+          ..write('publishedVerifiedAt: $publishedVerifiedAt')
           ..write(')'))
         .toString();
   }
@@ -14733,7 +14882,9 @@ class $$DifficultyLevelsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DifficultyLevelsTable, DifficultyLevelRow>(
+                    table,
+                  ),
                   $$DifficultyLevelsTableReferences(db, table, e),
                 ),
               )
@@ -16041,8 +16192,10 @@ class $$DancesTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) =>
-                    (e.readTable(table), $$DancesTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable<$DancesTable, DanceRow>(table),
+                  $$DancesTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback:
@@ -16684,7 +16837,7 @@ class $$ChoreographersTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ChoreographersTable, ChoreographerRow>(table),
                   $$ChoreographersTableReferences(db, table, e),
                 ),
               )
@@ -17036,7 +17189,7 @@ class $$DanceAuthorsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DanceAuthorsTable, DanceAuthorRow>(table),
                   $$DanceAuthorsTableReferences(db, table, e),
                 ),
               )
@@ -17455,7 +17608,7 @@ class $$DanceFiguresTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DanceFiguresTable, DanceFigureRow>(table),
                   $$DanceFiguresTableReferences(db, table, e),
                 ),
               )
@@ -18106,7 +18259,7 @@ class $$ProgramsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ProgramsTable, ProgramRow>(table),
                   $$ProgramsTableReferences(db, table, e),
                 ),
               )
@@ -18646,7 +18799,7 @@ class $$ProgramSlotsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ProgramSlotsTable, ProgramSlotRow>(table),
                   $$ProgramSlotsTableReferences(db, table, e),
                 ),
               )
@@ -19109,7 +19262,7 @@ class $$CustomFieldDefsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$CustomFieldDefsTable, CustomFieldDefRow>(table),
                   $$CustomFieldDefsTableReferences(db, table, e),
                 ),
               )
@@ -19486,7 +19639,9 @@ class $$CustomFieldValuesTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$CustomFieldValuesTable, CustomFieldValueRow>(
+                    table,
+                  ),
                   $$CustomFieldValuesTableReferences(db, table, e),
                 ),
               )
@@ -19835,8 +19990,10 @@ class $$TagsTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) =>
-                    (e.readTable(table), $$TagsTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable<$TagsTable, TagRow>(table),
+                  $$TagsTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback: ({danceTagsRefs = false}) {
@@ -20148,7 +20305,7 @@ class $$DanceTagsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DanceTagsTable, DanceTagRow>(table),
                   $$DanceTagsTableReferences(db, table, e),
                 ),
               )
@@ -20593,7 +20750,7 @@ class $$DanceLinksTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DanceLinksTable, DanceLinkRow>(table),
                   $$DanceLinksTableReferences(db, table, e),
                 ),
               )
@@ -20971,7 +21128,7 @@ class $$ProvenanceTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ProvenanceTable, ProvenanceRow>(table),
                   $$ProvenanceTableReferences(db, table, e),
                 ),
               )
@@ -21373,7 +21530,9 @@ class $$PublishedSourcesTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$PublishedSourcesTable, PublishedSourceRow>(
+                    table,
+                  ),
                   $$PublishedSourcesTableReferences(db, table, e),
                 ),
               )
@@ -21760,7 +21919,7 @@ class $$DanceSourcesTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DanceSourcesTable, DanceSourceRow>(table),
                   $$DanceSourcesTableReferences(db, table, e),
                 ),
               )
@@ -22015,7 +22174,16 @@ class $$SettingsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$SettingsTable, SettingRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $SettingsTable,
+                    SettingRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -22353,7 +22521,9 @@ class $$ProgramProvenanceTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ProgramProvenanceTable, ProgramProvenanceRow>(
+                    table,
+                  ),
                   $$ProgramProvenanceTableReferences(db, table, e),
                 ),
               )
@@ -23067,8 +23237,10 @@ class $$VenuesTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) =>
-                    (e.readTable(table), $$VenuesTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable<$VenuesTable, VenueRow>(table),
+                  $$VenuesTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback: ({venueProvenanceRefs = false}) {
@@ -23431,7 +23603,7 @@ class $$VenueProvenanceTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$VenueProvenanceTable, VenueProvenanceRow>(table),
                   $$VenueProvenanceTableReferences(db, table, e),
                 ),
               )
@@ -23675,7 +23847,19 @@ class $$CollectionImportEventsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<
+                    $CollectionImportEventsTable,
+                    CollectionImportEventRow
+                  >(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $CollectionImportEventsTable,
+                    CollectionImportEventRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -23854,7 +24038,18 @@ class $$NormalisationSkipsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$NormalisationSkipsTable, NormalisationSkipRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $NormalisationSkipsTable,
+                    NormalisationSkipRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -23883,9 +24078,19 @@ typedef $$NormalisationSkipsTableProcessedTableManager =
       PrefetchHooks Function()
     >;
 typedef $$BaselineStateTableCreateCompanionBuilder =
-    BaselineStateCompanion Function({Value<int> id, required String epoch});
+    BaselineStateCompanion Function({
+      Value<int> id,
+      required String epoch,
+      Value<String?> publishedManifestHash,
+      Value<int?> publishedVerifiedAt,
+    });
 typedef $$BaselineStateTableUpdateCompanionBuilder =
-    BaselineStateCompanion Function({Value<int> id, Value<String> epoch});
+    BaselineStateCompanion Function({
+      Value<int> id,
+      Value<String> epoch,
+      Value<String?> publishedManifestHash,
+      Value<int?> publishedVerifiedAt,
+    });
 
 class $$BaselineStateTableFilterComposer
     extends Composer<_$CompendiumDatabase, $BaselineStateTable> {
@@ -23903,6 +24108,16 @@ class $$BaselineStateTableFilterComposer
 
   ColumnFilters<String> get epoch => $composableBuilder(
     column: $table.epoch,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get publishedManifestHash => $composableBuilder(
+    column: $table.publishedManifestHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get publishedVerifiedAt => $composableBuilder(
+    column: $table.publishedVerifiedAt,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -23925,6 +24140,16 @@ class $$BaselineStateTableOrderingComposer
     column: $table.epoch,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get publishedManifestHash => $composableBuilder(
+    column: $table.publishedManifestHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get publishedVerifiedAt => $composableBuilder(
+    column: $table.publishedVerifiedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$BaselineStateTableAnnotationComposer
@@ -23941,6 +24166,16 @@ class $$BaselineStateTableAnnotationComposer
 
   GeneratedColumn<String> get epoch =>
       $composableBuilder(column: $table.epoch, builder: (column) => column);
+
+  GeneratedColumn<String> get publishedManifestHash => $composableBuilder(
+    column: $table.publishedManifestHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get publishedVerifiedAt => $composableBuilder(
+    column: $table.publishedVerifiedAt,
+    builder: (column) => column,
+  );
 }
 
 class $$BaselineStateTableTableManager
@@ -23982,12 +24217,37 @@ class $$BaselineStateTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> epoch = const Value.absent(),
-              }) => BaselineStateCompanion(id: id, epoch: epoch),
+                Value<String?> publishedManifestHash = const Value.absent(),
+                Value<int?> publishedVerifiedAt = const Value.absent(),
+              }) => BaselineStateCompanion(
+                id: id,
+                epoch: epoch,
+                publishedManifestHash: publishedManifestHash,
+                publishedVerifiedAt: publishedVerifiedAt,
+              ),
           createCompanionCallback:
-              ({Value<int> id = const Value.absent(), required String epoch}) =>
-                  BaselineStateCompanion.insert(id: id, epoch: epoch),
+              ({
+                Value<int> id = const Value.absent(),
+                required String epoch,
+                Value<String?> publishedManifestHash = const Value.absent(),
+                Value<int?> publishedVerifiedAt = const Value.absent(),
+              }) => BaselineStateCompanion.insert(
+                id: id,
+                epoch: epoch,
+                publishedManifestHash: publishedManifestHash,
+                publishedVerifiedAt: publishedVerifiedAt,
+              ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$BaselineStateTable, BaselineStateRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $BaselineStateTable,
+                    BaselineStateRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -24179,7 +24439,16 @@ class $$BaselineEntriesTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$BaselineEntriesTable, BaselineEntryRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $BaselineEntriesTable,
+                    BaselineEntryRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -24348,7 +24617,16 @@ class $$IdAliasesTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$IdAliasesTable, IdAliasRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $IdAliasesTable,
+                    IdAliasRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -24561,7 +24839,18 @@ class $$PendingDeletionsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$PendingDeletionsTable, PendingDeletionRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $PendingDeletionsTable,
+                    PendingDeletionRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -24835,7 +25124,16 @@ class $$ReviewQueueTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$ReviewQueueTable, ReviewQueueRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $ReviewQueueTable,
+                    ReviewQueueRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -24985,7 +25283,18 @@ class $$PublishedRecordsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$PublishedRecordsTable, PublishedRecordRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $PublishedRecordsTable,
+                    PublishedRecordRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -25182,7 +25491,18 @@ class $$RetainedSyncFieldsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$RetainedSyncFieldsTable, RetainedSyncFieldsRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $RetainedSyncFieldsTable,
+                    RetainedSyncFieldsRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),

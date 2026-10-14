@@ -584,6 +584,16 @@ database already carries it. The steps that can still fire are v36 onward.
   classification); the other columns are Device Sync bookkeeping. Sync state,
   not library content: never backed up or exported. Additive `createTable`; no
   back-fill and no derived rebuild.
+  The same step adds nullable `baseline_state.published_manifest_hash`
+  (SHA-256 of the manifest this device last published, encoded with its
+  `writtenAt` fixed) and `baseline_state.published_verified_at` (when the store
+  last confirmed every blob that manifest names, epoch milliseconds UTC;
+  sync-spec §6.3 step 8). A pass whose manifest hashes the same, within the
+  refresh interval, skips the blob check and the manifest `PUT`. Device Sync
+  bookkeeping: never backed up, exported or synchronized. They live on the
+  epoch row so that anything that resets the epoch or the baseline forgets them
+  too. Additive `addColumn`s; no back-fill (null means "publish as before").
+  Added to v39 before it was released, rather than as v40.
 
 ## The delete model
 

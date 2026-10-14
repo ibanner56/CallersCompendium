@@ -3606,10 +3606,14 @@ checked against the discriminator rule above.
    `PUT /v1/blobs/batch` (one `PUT /v1/blobs/{hash}` per blob against a server
    without the route). Attach-only blobs are not
    marked because attach writes no manifest and those blobs remain unreachable
-   until this continuation pass.
+   until this continuation pass. Hashes the last published manifest already
+   names are not asked about again for 12 hours (spec §6.3 step 7).
 8. `PUT /v1/manifests/{self}`. The pre-blob marker is retained before this
    request, so a failure between the marker and the request over-marks rather
-   than allowing a later hard delete to erase publication evidence.
+   than allowing a later hard delete to erase publication evidence. Skipped,
+   with step 7's requests, when the manifest is the one last published and that
+   publication is current (spec §6.3 step 8): an unchanged manifest rewritten
+   only for its `writtenAt` gets a new `ETag`, and every peer downloads it again.
 9. Store the new baseline. A record's entry advances only where a peer's
    manifest was observed to carry **this device's current content hash** — an
    upload not yet reflected by any peer is not agreement, and quarantine repair
@@ -4013,8 +4017,8 @@ the next pass's `POST /v1/blobs/missing` reports it present.
 The residual case is a pass that stalls past the grace period and then
 publishes, naming a blob that was collected. That resolves without a new rule:
 a peer that cannot fetch a blob treats it as an unresolved reference and skips
-and reports the record, and the origin device re-uploads on its next pass
-because `blobs/missing` reports it missing again. That downstream behaviour had
+and reports the record, and the origin device re-uploads on the first pass
+that asks `blobs/missing` about it again (within 12 hours, spec §6.3 step 7). That downstream behaviour had
 to be written down too — the spec said what a client does when a *record*
 reference cannot be resolved and said nothing about a failed blob fetch, and
 the dangerous default reading is that an unfetchable record has gone away.
