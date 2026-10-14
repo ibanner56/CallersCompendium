@@ -1183,21 +1183,6 @@ class _FigureDraftCard extends StatefulWidget {
   State<_FigureDraftCard> createState() => _FigureDraftCardState();
 }
 
-/// v28 (#976): seeds `chain`'s implicit hand from its role (`who`), mirroring
-/// ContraDB's own `chainChange` (`figure.js:256-263`) so a chain created or
-/// edited in the editor stores the SAME explicit hand as one parsed from
-/// import text (`contradb_figure_dialect.dart` / `figure_parser.dart`),
-/// rather than diverging on `unspecified` until a user happens to touch
-/// `who` (#976 §6.1 — the divergence a first draft of this fix missed). A
-/// no-op for any other move or an unrecognized `who`.
-void _seedChainHand(String moveId, Map<String, Object?> params) {
-  if (moveId != 'chain') return;
-  final who = params['who'];
-  if (who is! String) return;
-  final hand = chainHandForWho(who);
-  if (hand != null) params['hand'] = hand;
-}
-
 /// Replaces an ordinary draft with a minimally valid modifier draft while
 /// preserving the selected figure as the core. The editor keeps the same
 /// parent object so callers only need the usual [onChanged] rebuild.
@@ -1308,7 +1293,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     _applyMoveParamDefaults(moveId);
     final chainOverrides = widget.moveParamDefaults?[moveId];
     if (chainOverrides == null || !chainOverrides.containsKey('hand')) {
-      _seedChainHand(moveId, widget.draft.params);
+      seedChainHand(moveId, widget.draft.params);
     }
     _showMoreOptions = false;
     widget.onChanged();
@@ -1373,138 +1358,36 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     widget.onChanged();
   }
 
-  /// Applies a non-`beats` param change and reconciles `beats` with the move's
-  /// canonical default (issue #262). Capturing the default before *and* after
-  /// the mutation means:
-  ///
-  /// - a driver change that shifts the default (e.g. adding a `balance` prefix
-  ///   to a swing, 8→16) snaps beats to the new default; but
-  /// - a change that leaves the default put (e.g. a circle's `turn`/`places`,
-  ///   which carry no `paramBeats`) never disturbs an existing count — so a
-  ///   user-entered value isn't snapped back when nothing about the duration
-  ///   changed.
-  ///
-  /// A `balance` *flag* toggle is the exception: it shifts `beats` by +4 (on)
-  /// or -4 (off) relative to the current count (clamped to 0..64), including a
-  /// manual override, and returns before the canonical-default logic below.
-  ///
-  /// A `beats` that is missing or non-int (older/partial data loaded without an
-  /// explicit count) is still seeded to the canonical default, so an unowned
-  /// figure never gets stuck at 0. A manual override
-  /// ([FigureDraft.beatsTouched]) is never overwritten — UNLESS the opt-in
-  /// "Aggressively recompute figure beats" setting (issue #689) is on, in
-  /// which case the override is intentionally ignored and `beats` is
-  /// re-derived from the move's canonical default on every beats-affecting
-  /// param change. That setting defaults to off, so this method is
-  /// byte-identical to its pre-#689 behavior unless the user has opted in.
+  /// Applies a non-`beats` param change with every rule it carries — the
+  /// hey and promenade resets, the `balance` flag's ±4 beats, chain's
+  /// role-implied hand, inverse-pair rerouting, and reconciling `beats` with
+  /// the move's canonical default (#262), which keeps a manual override
+  /// ([FigureDraft.beatsTouched]) unless the opt-in "Aggressively recompute
+  /// figure beats" setting (#689) is on. The rules are core's
+  /// [applyParamChange], which documents each one.
   void _applyNonBeatsParamChange(String key, Object? value) {
     final draft = widget.draft;
     // Explicitly editing the subject makes it a stated choice, so it is no
     // longer a parser-assumed default (#460): drop the non-authoritative marker.
     if (key == 'who') draft.assumedSubject = false;
-    // issue #576: hey's `meetTarget` only applies to the partial lengths. If the
-    // user moves `length` back to `half`/`full`, drop any stale `meetTarget` so
-    // a now-irrelevant target can't linger in the stored figure (it would be
-    // hidden in the editor and ignored by the renderer, but keeping it out
-    // avoids surprising re-surfacing and keeps the figure minimal).
-    if (draft.move == 'hey' && key == 'length') {
-      final partial = value == 'lessThanHalf' || value == 'betweenHalfAndFull';
-      if (!partial) draft.params.remove('meetTarget');
-    }
-    // v30 (#989): a promenade's `direction` (rotation sense) is meaningless
-    // once `where` points `in`/`out`/`up`/`down` — there is no "across" plane left to
-    // rotate through, and the field is hidden alongside `destination` for the
-    // same reason (see `_buildParams`). Reset it to the `unspecified` sentinel
-    // so a stale rotation doesn't silently persist, hidden, behind the field.
-    //
-    // Unlike `hey.meetTarget` above, this WRITES the sentinel rather than
-    // removing the key: `direction`'s spec default is the CONCRETE
-    // `'counterclockwise'` (v30 owner decision — the taxonomy's first
-    // concrete-default-plus-sentinel param), so `draft.params.remove('direction')`
-    // would fall through `effectiveParams` to that concrete default and
-    // render it — the opposite of "not stated" this reset is meant to
-    // achieve. Only an explicit sentinel write gets there.
-    if (draft.move == 'promenade' && key == 'where') {
-      const rotationless = {'in', 'out', 'up', 'down'};
-      if (rotationless.contains(value)) {
-        draft.params['direction'] = ParamVocab.unspecified;
-      }
-    }
-    // #976: a `who` edit on a chain rewrites its role-implied hand, mirroring
-    // ContraDB's `chainChange` (figure.js:256-263) — an explicit hand set for
-    // the OLD role must not silently survive onto the new one.
-    final oldDefault = _canonicalBeats(draft.params);
-    // A `balance` flag toggle is worth a fixed 4 beats: on adds 4, off removes
-    // 4, relative to the current count (manual overrides included). Compared on
-    // the *effective* value so a spec default of `true` counts as "on".
-    if (key == 'balance' && value is bool && _isBalanceFlag(draft.move)) {
-      final wasOn = _effectiveBalance(draft.params);
+    final move = draft.move;
+    if (move == null) {
       draft.params[key] = value;
-      if (wasOn != value) {
-        final current = draft.params['beats'];
-        final base = current is int ? current : oldDefault;
-        if (base != null) {
-          draft.params['beats'] = (base + (value ? 4 : -4)).clamp(0, 64);
-        }
-      }
       return;
     }
-    draft.params[key] = value;
-    if (draft.move == 'chain' && key == 'who') {
-      _seedChainHand('chain', draft.params);
-    }
-    _rerouteInversePair(draft, widget.taxonomy);
-    final newDefault = _canonicalBeats(draft.params);
-    if (newDefault == null) return;
-    if (draft.beatsTouched) {
-      // #689: aggressive mode deliberately overrides a manual override (the
-      // owner-locked decision) — but only when this param change actually
-      // shifts the canonical default. A param that doesn't affect beats
-      // (e.g. circle's turn direction) must leave a manually-set value
-      // alone, matching the "a param that affects timing" UI copy.
-      if (AggressiveBeatsUpdateScope.of(context) && newDefault != oldDefault) {
-        draft.params['beats'] = newDefault;
-      }
-      return;
-    }
-    final currentBeats = draft.params['beats'];
-    if (currentBeats is! int || newDefault != oldDefault) {
-      draft.params['beats'] = newDefault;
-    }
-  }
-
-  /// Whether [move] declares `balance` as a boolean flag (as opposed to swing's
-  /// `prefix` choice, which has its own 8→16 timing).
-  bool _isBalanceFlag(String? move) {
-    if (move == null) return false;
-    return widget.taxonomy.resolve(move)?.params['balance']?.kind ==
-        ParamKind.flag;
-  }
-
-  /// The effective `balance` flag for [params], falling back to the spec default.
-  bool _effectiveBalance(Map<String, Object?> params) {
-    final move = widget.draft.move;
-    if (move == null) return false;
-    final effective = widget.taxonomy.effectiveParams(
-      Figure(move: move, params: Map<String, Object?>.of(params)),
-    )['balance'];
-    return effective == true;
-  }
-
-  /// The move's canonical `beats` default for [params], ignoring any explicit
-  /// `beats` so the taxonomy re-derives the value from the driver params.
-  /// Returns null when there is no move, no beats spec, or a non-int result.
-  /// Delegates to the Flutter-free core resolver.
-  int? _canonicalBeats(Map<String, Object?> params) {
-    final move = widget.draft.move;
-    if (move == null) return null;
-    final def = widget.taxonomy.resolve(move);
-    if (def == null || !def.params.containsKey('beats')) return null;
-    final probeParams = Map<String, Object?>.of(params)..remove('beats');
-    final beats = widget.taxonomy.effectiveParams(
-      Figure(move: move, params: probeParams),
-    )['beats'];
-    return beats is int ? beats : null;
+    // The rules themselves are in core, shared with compound expansion (#709).
+    // The aggressive-beats setting only matters for a manual override, so it is
+    // read only then.
+    draft.move = applyParamChange(
+      widget.taxonomy,
+      move: move,
+      params: draft.params,
+      key: key,
+      value: value,
+      beatsTouched: draft.beatsTouched,
+      aggressiveBeats:
+          draft.beatsTouched && AggressiveBeatsUpdateScope.of(context),
+    );
   }
 
   void _toggleProgression() {
@@ -2952,7 +2835,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     _applyMoveParamDefaults(moveId);
     final chainOverrides = widget.moveParamDefaults?[moveId];
     if (chainOverrides == null || !chainOverrides.containsKey('hand')) {
-      _seedChainHand(moveId, draft.params);
+      seedChainHand(moveId, draft.params);
     }
     widget.onChanged();
   }
@@ -3202,7 +3085,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
               // — an explicit hand set for the OLD role must not silently
               // survive onto the new one.
               if (draft.move == 'chain' && entry.key == 'who') {
-                _seedChainHand('chain', draft.params);
+                seedChainHand('chain', draft.params);
               }
               _rerouteInversePair(draft, widget.taxonomy);
               widget.onChanged();

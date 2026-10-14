@@ -1,0 +1,9 @@
+{
+  "id": "709-param-change-rules-core",
+  "user_visible": false,
+  "core": {
+    "added": [
+      "Add `applyParamChange`, `seedChainHand` and `canonicalBeatsFor`: the rules the dance editor applies when a figure's param changes (hey and promenade resets, a balance flag's ±4 beats, chain's role-implied hand, inverse-pair rerouting and beats reconciliation), now in core so compound expansion can apply them too."
+    ]
+  }
+}
