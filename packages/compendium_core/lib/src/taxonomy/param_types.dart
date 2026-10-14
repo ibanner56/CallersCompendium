@@ -203,8 +203,9 @@ String? invertPairDancerSet(String who) => ParamVocab.pairInverse[who];
 /// derive it from our default rather than from the source).
 ///
 /// The single source of truth for this mapping, shared by every write/read
-/// site that must agree on it: both `_selectMove` implementations and
-/// `_applyNonBeatsParamChange` in `figure_list_editor.dart`, the ContraDB and
+/// site that must agree on it: core's `seedChainHand` (`param_change_rules.dart`,
+/// called by `applyParamChange` and by both `_selectMove` implementations and
+/// the meanwhile side editor in `figure_list_editor.dart`), the ContraDB and
 /// shared-recognizer `_chain` parsers, the one-time backfill sweep, and the
 /// canonical/display silencing rule in `renderer.dart`. Kept here (not in
 /// `contra_taxonomy.dart`) because the app-layer editor needs it too.
