@@ -24,6 +24,7 @@ import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
 import 'package:compendium_app/src/data/date_format_scope.dart';
 import 'package:compendium_app/src/data/capitalize_figures_scope.dart';
+import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/data/decimal_turns_scope.dart';
 import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/editor_draft_shutdown_scope.dart';
@@ -77,6 +78,7 @@ const _expectedAppScopeTypes = <Type>[
   CanonicalDiscouragedTermsScope,
   DecimalTurnsScope,
   CapitalizeFiguresScope,
+  ShowGlossaryScope,
   AggressiveBeatsUpdateScope,
   ConfirmBeforeDeleteScope,
   ColourDanceThemeScope,

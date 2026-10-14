@@ -4,6 +4,8 @@ import 'package:compendium_app/src/data/backup_reminder.dart'
     show kBackupReminderCadenceKey;
 import 'package:compendium_app/src/data/capitalize_figures_scope.dart'
     show kCapitalizeFiguresKey;
+import 'package:compendium_app/src/data/show_glossary_scope.dart'
+    show kShowGlossaryKey;
 import 'package:compendium_app/src/data/backup_service.dart'
     show isBackupEligibleSettingKey;
 import 'package:compendium_app/src/data/backup_settings_schema.dart';
@@ -118,6 +120,13 @@ void main() {
         isFalse,
       );
       expect(validateBackupSettingValue(kCapitalizeFiguresKey, null), isFalse);
+    });
+
+    test('show glossary setting accepts only bools', () {
+      expect(validateBackupSettingValue(kShowGlossaryKey, true), isTrue);
+      expect(validateBackupSettingValue(kShowGlossaryKey, false), isTrue);
+      expect(validateBackupSettingValue(kShowGlossaryKey, 'true'), isFalse);
+      expect(validateBackupSettingValue(kShowGlossaryKey, null), isFalse);
     });
 
     test('individual Perform timer setting accepts only bools', () {

@@ -40,6 +40,10 @@
   "@navSettings": {
     "description": "Bottom/rail navigation label for the settings destination."
   },
+  "navGlossary": "Glossary",
+  "@navGlossary": {
+    "description": "Bottom/rail navigation label for the Glossary destination (shown only when Settings > Experimental > Show Glossary is on)."
+  },
   "navGuide": "Guide",
   "@navGuide": {
     "description": "Bottom/rail navigation label for the in-app user guide destination."
@@ -340,6 +344,80 @@
   "settingsExperimentalPlaceholder": "New features may appear here while they are still in development.",
   "@settingsExperimentalPlaceholder": {
     "description": "Placeholder text explaining that the Experimental settings section will contain features still in development."
+  },
+  "glossaryTitle": "Glossary",
+  "@glossaryTitle": {
+    "description": "App bar title of the Glossary screen, a read-only reference of the app's built-in dance figures."
+  },
+  "glossarySearchHint": "Search figures",
+  "@glossarySearchHint": {
+    "description": "Hint text in the Glossary screen's search field, which filters the list of dance figures."
+  },
+  "glossaryNoMatches": "No figures match “{query}”.",
+  "@glossaryNoMatches": {
+    "description": "Shown in the Glossary when no dance figure matches the search text.",
+    "placeholders": {
+      "query": {
+        "type": "String",
+        "example": "hey"
+      }
+    }
+  },
+  "glossarySelectPrompt": "Select a figure to see its definition.",
+  "@glossarySelectPrompt": {
+    "description": "Shown in the empty detail pane of the wide Glossary layout before a figure is selected."
+  },
+  "glossaryNoDefinition": "No definition yet.",
+  "@glossaryNoDefinition": {
+    "description": "Shown on a Glossary figure's detail when the app does not yet ship a definition for that figure."
+  },
+  "glossaryVariantOf": "A variant of {figure}.",
+  "@glossaryVariantOf": {
+    "description": "Shown on a Glossary figure that is a named variant of another figure (for example, see saw is a variant of do-si-do).",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "do-si-do"
+      }
+    }
+  },
+  "glossaryNameWithDetail": "{name} ({detail})",
+  "@glossaryNameWithDetail": {
+    "description": "A Glossary figure name followed by what tells it apart from a figure with the same name, e.g. the values a variant fixes: 'pull by (neighbors)'.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "pull by"
+      },
+      "detail": {
+        "type": "String",
+        "example": "neighbors"
+      }
+    }
+  },
+  "glossaryExample": "Example",
+  "@glossaryExample": {
+    "description": "Heading above an example of how a figure is written, on a Glossary figure's detail."
+  },
+  "glossaryParameters": "Parameters",
+  "@glossaryParameters": {
+    "description": "Heading above the list of a figure's adjustable details (such as hand or direction), on a Glossary figure's detail."
+  },
+  "glossaryAlsoKnownAs": "Also known as",
+  "@glossaryAlsoKnownAs": {
+    "description": "Heading above other names for a figure, on a Glossary figure's detail."
+  },
+  "settingsExperimentalGlossaryHeader": "Glossary",
+  "@settingsExperimentalGlossaryHeader": {
+    "description": "Header of the Glossary group in the Experimental settings section."
+  },
+  "settingsExperimentalShowGlossaryTitle": "Show Glossary",
+  "@settingsExperimentalShowGlossaryTitle": {
+    "description": "Title of the switch that adds the Glossary destination to the app's navigation."
+  },
+  "settingsExperimentalShowGlossarySubtitle": "Adds a Glossary of the built-in figures to the navigation, between Programs and Settings.",
+  "@settingsExperimentalShowGlossarySubtitle": {
+    "description": "Subtitle of the Show Glossary switch in the Experimental settings section."
   },
   "settingsSyncHeader": "Device Sync",
   "@settingsSyncHeader": {

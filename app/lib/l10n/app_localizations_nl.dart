@@ -45,6 +45,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get navSettings => 'Instellingen';
 
   @override
+  String get navGlossary => 'Woordenlijst';
+
+  @override
   String get navGuide => 'Gids';
 
   @override
@@ -261,6 +264,53 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsExperimentalPlaceholder =>
       'Nieuwe functies kunnen hier verschijnen terwijl ze nog in ontwikkeling zijn.';
+
+  @override
+  String get glossaryTitle => 'Woordenlijst';
+
+  @override
+  String get glossarySearchHint => 'Figuren zoeken';
+
+  @override
+  String glossaryNoMatches(String query) {
+    return 'Geen figuren komen overeen met ‘$query’.';
+  }
+
+  @override
+  String get glossarySelectPrompt =>
+      'Selecteer een figuur om de definitie te zien.';
+
+  @override
+  String get glossaryNoDefinition => 'Nog geen definitie.';
+
+  @override
+  String glossaryVariantOf(String figure) {
+    return 'Een variant van $figure.';
+  }
+
+  @override
+  String glossaryNameWithDetail(String name, String detail) {
+    return '$name ($detail)';
+  }
+
+  @override
+  String get glossaryExample => 'Voorbeeld';
+
+  @override
+  String get glossaryParameters => 'Parameters';
+
+  @override
+  String get glossaryAlsoKnownAs => 'Ook bekend als';
+
+  @override
+  String get settingsExperimentalGlossaryHeader => 'Woordenlijst';
+
+  @override
+  String get settingsExperimentalShowGlossaryTitle => 'Woordenlijst tonen';
+
+  @override
+  String get settingsExperimentalShowGlossarySubtitle =>
+      'Voegt een woordenlijst van de ingebouwde figuren toe aan de navigatie, tussen Programma\'s en Instellingen.';
 
   @override
   String get settingsSyncHeader => 'Apparaatsynchronisatie';

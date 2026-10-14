@@ -317,8 +317,9 @@ offered as updates rather than duplicated. The same warning area
 also tells you when figures, programs or related-dance links in the file could
 not be read.
 
-One thing does not come across yet: custom **glossary terms** stay behind, because
-the app has no glossary of its own to put them in.
+One thing does not come across yet: custom **glossary terms** stay behind. The
+app's **Glossary** (an Experimental setting) lists only the figures built into
+the app, and has nowhere yet to keep terms of your own.
 
 ### Bring your call buttons across as shorthands
 

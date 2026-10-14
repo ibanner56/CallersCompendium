@@ -10,11 +10,13 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 ```
 ┌ Collection (default)   – the dance library
 ├ Programs               – event set lists
+├ Glossary               – built-in figure reference (Experimental, off by default; #695)
 ├ Perform                – performance mode (entered from a program or dance)
 └ Settings               – dialect(s), data sources, custom fields, appearance
 ```
 
-- **Phones/tablets**: bottom navigation (Collection, Programs, Settings);
+- **Phones/tablets**: bottom navigation (Collection, Programs, Glossary when
+  turned on, Settings, Guide);
   Perform is a mode, not a tab — entered explicitly, exits back to context.
 - **Desktop**: left nav rail; list/detail split panes; full keyboard map,
   global search shortcut (Ctrl/Cmd-K).

@@ -10,8 +10,10 @@ import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
+import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
+import 'package:compendium_app/src/screens/glossary/glossary_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/user_guide/user_guide_screen.dart';
@@ -29,6 +31,7 @@ Future<void> _pump(
   CompendiumRepositories repos, {
   required Size size,
   ImportPicker? reimportPicker,
+  ValueNotifier<bool>? showGlossary,
 }) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -79,7 +82,12 @@ Future<void> _pump(
                 notifier: notifier,
                 child: RequirePerformedForHistoryScope(
                   notifier: requirePerformedNotifier,
-                  child: child!,
+                  child: showGlossary == null
+                      ? child!
+                      : ShowGlossaryScope(
+                          notifier: showGlossary,
+                          child: child!,
+                        ),
                 ),
               ),
             ),
@@ -514,5 +522,195 @@ void main() {
     await tester.tap(button);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
+  });
+
+  group('Glossary destination (issue #695)', () {
+    List<String> barLabels(WidgetTester tester) => [
+      for (final d in tester.widgetList<NavigationDestination>(
+        find.byType(NavigationDestination),
+      ))
+        d.label,
+    ];
+
+    List<String> railLabels(WidgetTester tester) => [
+      for (final d
+          in tester
+              .widget<NavigationRail>(find.byType(NavigationRail))
+              .destinations)
+        (d.label as Text).data!,
+    ];
+
+    testWidgets('is absent while Show Glossary is off', (tester) async {
+      final repos = openTestRepositories();
+      final show = ValueNotifier<bool>(false);
+      addTearDown(show.dispose);
+      await _pump(
+        tester,
+        repos,
+        size: const Size(500, 900),
+        showGlossary: show,
+      );
+
+      expect(barLabels(tester), [
+        'Collection',
+        'Programs',
+        'Settings',
+        'Guide',
+      ]);
+      expect(find.byType(GlossaryScreen), findsNothing);
+    });
+
+    testWidgets('sits between Programs and Settings on both layouts', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final show = ValueNotifier<bool>(true);
+      addTearDown(show.dispose);
+      await _pump(
+        tester,
+        repos,
+        size: const Size(500, 900),
+        showGlossary: show,
+      );
+      expect(barLabels(tester), [
+        'Collection',
+        'Programs',
+        'Glossary',
+        'Settings',
+        'Guide',
+      ]);
+
+      await _pump(
+        tester,
+        repos,
+        size: const Size(1200, 900),
+        showGlossary: show,
+      );
+      expect(railLabels(tester), [
+        'Collection',
+        'Programs',
+        'Glossary',
+        'Settings',
+      ]);
+    });
+
+    testWidgets('selecting it shows the Glossary, and Settings and the Guide '
+        'still open their own pages', (tester) async {
+      final repos = openTestRepositories();
+      final show = ValueNotifier<bool>(true);
+      addTearDown(show.dispose);
+      await _pump(
+        tester,
+        repos,
+        size: const Size(500, 900),
+        showGlossary: show,
+      );
+
+      await tester.tap(find.widgetWithText(NavigationDestination, 'Glossary'));
+      await tester.pumpAndSettle();
+      expect(find.byType(GlossaryScreen), findsOneWidget);
+      expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        2,
+      );
+
+      await tester.tap(find.widgetWithText(NavigationDestination, 'Settings'));
+      await tester.pumpAndSettle();
+      expect(find.text('Appearance'), findsWidgets);
+      expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        3,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('user-guide-destination')));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        4,
+      );
+    });
+
+    testWidgets('the rail selects the Glossary and Settings by name', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final show = ValueNotifier<bool>(true);
+      addTearDown(show.dispose);
+      await _pump(
+        tester,
+        repos,
+        size: const Size(1200, 900),
+        showGlossary: show,
+      );
+      int? railIndex() => tester
+          .widget<NavigationRail>(find.byType(NavigationRail))
+          .selectedIndex;
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationRail),
+          matching: find.text('Glossary'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(railIndex(), 2);
+      expect(find.byType(GlossaryScreen), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationRail),
+          matching: find.text('Settings'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(railIndex(), 3);
+      expect(find.text('Appearance'), findsWidgets);
+    });
+
+    testWidgets('turning it on keeps Settings selected', (tester) async {
+      final repos = openTestRepositories();
+      final show = ValueNotifier<bool>(false);
+      addTearDown(show.dispose);
+      await _pump(
+        tester,
+        repos,
+        size: const Size(500, 900),
+        showGlossary: show,
+      );
+
+      await tester.tap(find.widgetWithText(NavigationDestination, 'Settings'));
+      await tester.pumpAndSettle();
+      show.value = true;
+      await tester.pumpAndSettle();
+
+      final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+      expect(bar.destinations.length, 5);
+      expect(bar.selectedIndex, 3, reason: 'Settings moved to index 3');
+      expect(find.text('Appearance'), findsWidgets);
+    });
+
+    testWidgets('turning it off while open falls back to the Collection', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final show = ValueNotifier<bool>(true);
+      addTearDown(show.dispose);
+      await _pump(
+        tester,
+        repos,
+        size: const Size(500, 900),
+        showGlossary: show,
+      );
+
+      await tester.tap(find.widgetWithText(NavigationDestination, 'Glossary'));
+      await tester.pumpAndSettle();
+      show.value = false;
+      await tester.pumpAndSettle();
+
+      final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+      expect(bar.destinations.length, 4);
+      expect(bar.selectedIndex, 0);
+      expect(find.byType(GlossaryScreen), findsNothing);
+    });
   });
 }

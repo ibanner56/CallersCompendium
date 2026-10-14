@@ -1,0 +1,14 @@
+{
+  "id": "695-glossary-view",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A new Show Glossary switch under Settings > Experimental adds a Glossary to the navigation, between Programs and Settings. It lists the figures built into the app in your dialect, with an example of each, its parameters and its other names, and you can search it by a figure's name or an older name for it. It is off by default, and definitions for each figure will follow in a later update."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add `figureGlossaryEntries`, `FigureGlossaryEntry`, `FigureDefinition` and the (initially empty) `contraFigureDefinitions` map: the shipped, read-only glossary of the taxonomy's figures."
+    ]
+  }
+}

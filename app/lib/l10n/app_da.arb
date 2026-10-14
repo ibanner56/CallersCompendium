@@ -40,6 +40,10 @@
   "@navSettings": {
     "x-sourceSha256": "74a883a037bc227f91891ab654a753d3a99f31ab06ae5b5d2b6e594a692b41f8"
   },
+  "navGlossary": "Ordliste",
+  "@navGlossary": {
+    "x-sourceSha256": "4c4e436f9a453c776dbf011f98d932d615988bb08bddec6051625340e88d012f"
+  },
   "navGuide": "Vejledning",
   "@navGuide": {
     "x-sourceSha256": "8dd65d0952ed144ccf6e76ebf8aa45644afb2b9236762c414d07e813d42f588e"
@@ -271,6 +275,58 @@
   "settingsExperimentalPlaceholder": "Nye funktioner vises muligvis her, mens de stadig er under udvikling.",
   "@settingsExperimentalPlaceholder": {
     "x-sourceSha256": "a268657b05fd60bc06b7df9f6abc968d3f880d899c7599cf0c000ff6dce634f5"
+  },
+  "glossaryTitle": "Ordliste",
+  "@glossaryTitle": {
+    "x-sourceSha256": "4c4e436f9a453c776dbf011f98d932d615988bb08bddec6051625340e88d012f"
+  },
+  "glossarySearchHint": "Søg i figurer",
+  "@glossarySearchHint": {
+    "x-sourceSha256": "0936aaf6b4dbbaac4665de2cf98f0163d536c42925b58aef8801814ab4cf9a60"
+  },
+  "glossaryNoMatches": "Ingen figurer matcher “{query}”.",
+  "@glossaryNoMatches": {
+    "x-sourceSha256": "f52d4b33c03650afa3f2c74c834f662d7ef42734c353a004d488dd147bf19a67"
+  },
+  "glossarySelectPrompt": "Vælg en figur for at se dens definition.",
+  "@glossarySelectPrompt": {
+    "x-sourceSha256": "d97b02adc2d0a840ea30bc0fb3695c2814ff88387e9e4738d206dea39297e7a8"
+  },
+  "glossaryNoDefinition": "Ingen definition endnu.",
+  "@glossaryNoDefinition": {
+    "x-sourceSha256": "5a97ad24f6d76f144e5f2008ca1291720b18e718c28f36afb8014dd089028959"
+  },
+  "glossaryVariantOf": "En variant af {figure}.",
+  "@glossaryVariantOf": {
+    "x-sourceSha256": "8b30de361f0cdd3e65c535d7c2ae00e2757911496f993f7be5d466d8df32cbcb"
+  },
+  "glossaryNameWithDetail": "{name} ({detail})",
+  "@glossaryNameWithDetail": {
+    "x-sourceSha256": "27511a9915d0041981129b054a95a5c1fc5a16a41c4811cd2576b43cee523678"
+  },
+  "glossaryExample": "Eksempel",
+  "@glossaryExample": {
+    "x-sourceSha256": "d029f87e3d80f8fd9b1be67c7426b4cc1ff47b4a9d0a8461c826a59d8c5eb6cd"
+  },
+  "glossaryParameters": "Parametre",
+  "@glossaryParameters": {
+    "x-sourceSha256": "e68b36b17cbd990802f57741cb75cf3a73fa66a61999b0cd70e3cf7d26cfb25f"
+  },
+  "glossaryAlsoKnownAs": "Også kendt som",
+  "@glossaryAlsoKnownAs": {
+    "x-sourceSha256": "4f8c470505d11f7da49d382956a128ebf4c524ac56893030dc0839da7fcad4f0"
+  },
+  "settingsExperimentalGlossaryHeader": "Ordliste",
+  "@settingsExperimentalGlossaryHeader": {
+    "x-sourceSha256": "4c4e436f9a453c776dbf011f98d932d615988bb08bddec6051625340e88d012f"
+  },
+  "settingsExperimentalShowGlossaryTitle": "Vis ordliste",
+  "@settingsExperimentalShowGlossaryTitle": {
+    "x-sourceSha256": "b9b74a82200a2f6733532a1fe14429332eeb4729de42060ef0b1f213a62fce80"
+  },
+  "settingsExperimentalShowGlossarySubtitle": "Tilføjer en ordliste over de indbyggede figurer til navigationen, mellem Programmer og Indstillinger.",
+  "@settingsExperimentalShowGlossarySubtitle": {
+    "x-sourceSha256": "32b69c6f973eca67d40ab920cd4a4e1936711550d1cfa90abe21ca1423732075"
   },
   "settingsSyncHeader": "Enhedssynkronisering",
   "@settingsSyncHeader": {

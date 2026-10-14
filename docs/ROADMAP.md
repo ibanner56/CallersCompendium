@@ -159,9 +159,11 @@ implementation notes and deviations against each item — is in
       call buttons also seed figure shorthands (#562), and the ingestion is
       sanitized + fail-closed bounded (#561). One source table is confirmed
       present in the real file but not yet mapped:
-      - `Term` → glossary import remains **blocked** on the glossary browser,
-        which is not yet built (post-GA "later" scope). **Tracked in #695.**
-        It is now the only remaining unmapped CC table for 6.5.
+      - `Term` → glossary import remains **blocked**: the Glossary view
+        exists (Experimental, read-only), but user-added terms — the storage
+        a `Term` row would import into, which must sync — are not built yet.
+        **Tracked in #695.** It is now the only remaining unmapped CC table
+        for 6.5.
 - [x] 6.6 Generic import/export (JSON) for backup and inter-user sharing
   - Export/backup delivered under G.5 (whole-collection archive + restore/merge).
   - Inter-user-sharing **import** delivered: `GenericJsonAdapter` (pure-Dart CORE
@@ -272,9 +274,21 @@ implementation notes and deviations against each item — is in
   the existing JSON backup export/import, or AirDrop of that file; everything
   shareable syncs through Athenaeum instead.
 - **Glossary / terms** (CC `Term`: term + definition + source) — a browsable
-  reference of caller terminology, dialect-aware. **Tracked in #695**; today the
-  app ships only the static `docs/user/glossary.md` guide (no glossary entity),
-  which is why the CC `Term` mapping in 6.5 stays blocked.
+  reference of caller terminology, dialect-aware. **Tracked in #695.**
+  - **Delivered:** a read-only **Glossary** navigation destination, off by
+    default behind **Settings ▸ Experimental ▸ Show Glossary**, listing the
+    taxonomy's built-in figures in the active dialect. Its entries are derived
+    from the taxonomy at runtime, so nothing is stored or synced; shipped
+    definitions slot in through `contraFigureDefinitions`.
+  - **Remaining.** Maintainer decisions (2026-10-14, recorded in the PR that
+    delivered the view): each built-in figure shows a read-only shipped
+    definition and description, with a user-editable notes field; the shipped
+    glossary does not sync, but any user additions (own terms, notes on
+    figures) must. Still to build: the shipped definitions; then user
+    additions, together with their sync; then the CC `Term` mapping in 6.5.
+    The author's proposed order for sync — not yet a maintainer decision — is a
+    tolerant manifest reader released first, because older clients reject an
+    unknown sync record kind.
 - **User-defined quick-entry snippets** — CC's "Insert Call" buttons (per-user
   label → expansion text + beats + a gender-free alternate). **Accepted, reframed**
   over our structured model (see #401): a user shorthand maps to a fully-configured
