@@ -1630,6 +1630,18 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     group, shoulder and direction rather than defaulting them. Purely
     additive: no schema migration, no derived-index rebuild (no existing
     figure changes).
+- v37: adds `circular_hey.who2`, the group passed second, by the other
+    shoulder — the counterpart of `hey.pass2`. It defaults to the
+    `unspecified` sentinel and draws from the same pair vocabulary as
+    `pass2`. When stated, the display line gains a second pass ("3/4 circular
+    hey, neighbors pass right across, shadows pass left"); unstated, it
+    renders exactly as v36 did. Like `pass2`, `who2` is not in the canonical
+    template, so no stored canonical text changes. The free-text recognizer
+    reads the second pass back and rejects a same-shoulder one. The Caller's
+    Box `Square through <n> without hands (<pass list>)` now imports as a
+    `circular_hey` with `who2` from the even cells. Purely additive: no schema
+    migration, no derived-index rebuild, and already-imported dances keep
+    their custom text (no backfill, maintainer decision).
 
 ## Open questions (to resolve during implementation, with user input)
 

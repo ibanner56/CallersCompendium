@@ -3041,8 +3041,9 @@ FigureMatch? _circulate(String scrubbed) {
 ///   * there is no single `(...)` pass list (a second parenthetical also
 ///     declines — extra structure we do not model);
 ///   * the text OUTSIDE the pass list is not exactly `square through <n>`
-///     (modulo filler), `n` in 2..10 — so an `interrupted`/`modified` qualifier,
-///     a trailing `-` clause, an inline `balance`, or any other prose stays out;
+///     or `square through <n> without hands` (modulo filler), `n` in
+///     2..10 — so an `interrupted`/`modified` qualifier, a trailing `-`
+///     clause, an inline `balance`, or any other prose stays out;
 ///   * the cell count does not equal `n` (a square through of `n` has `n`
 ///     passes; a mismatch is an unmodeled variant);
 ///   * any cell is not `<people-code><R|L>` with the people code present in
@@ -3056,6 +3057,13 @@ FigureMatch? _circulate(String scrubbed) {
 /// untrusted, so the cell list must be capped before it is allocated, not
 /// after); the `n <= 10` cap then keeps the accepted cell count small. Both
 /// are shared with the hey and grand-right-and-left decoders.
+///
+/// **`Square through <n> without hands (<pass list>)` is a circular hey.** TCB
+/// has no circular hey of its own and writes one this way (dances 20273, 527),
+/// so with `without hands` between the count and the pass list the same decode
+/// yields a `circular_hey` instead: `who` from the odd cells, `who2` from the
+/// even cells (v37), `changes` from `n`, and the first cell's side as the
+/// `shoulder`. See [_circularHeyFromPasses] for what it declines.
 FigureMatch? _squareThroughPassList(String scrubbed) {
   final lower = scrubbed.toLowerCase();
   final open = lower.indexOf('(');
@@ -3071,13 +3079,18 @@ FigureMatch? _squareThroughPassList(String scrubbed) {
   final passText = lower.substring(open + 1, close);
   final outside = '${lower.substring(0, open)} ${lower.substring(close + 1)}';
 
-  // Outside the pass list must be EXACTLY "square through <n>" (+ filler).
+  // Outside the pass list must be EXACTLY "square through <n>", optionally
+  // followed by "without hands" (+ filler).
   final outWords = outside
       .split(_wsRe)
       .map(_stripEdgePunct)
       .where((w) => w.isNotEmpty && !_filler.contains(w))
       .toList();
-  if (outWords.length != 3) return null;
+  final withoutHands =
+      outWords.length == 5 &&
+      outWords[3] == 'without' &&
+      outWords[4] == 'hands';
+  if (outWords.length != 3 && !withoutHands) return null;
   if (outWords[0] != 'square' || outWords[1] != 'through') return null;
   final places = int.tryParse(outWords[2]);
   // A square through has at least 2 passes; the upper bound mirrors the shared
@@ -3133,6 +3146,15 @@ FigureMatch? _squareThroughPassList(String scrubbed) {
   }
   if (who == null || handBase == null) return null;
 
+  if (withoutHands) {
+    return _circularHeyFromPasses(
+      changes: places,
+      who: who,
+      who2: who2,
+      shoulder: handBase,
+    );
+  }
+
   return FigureMatch(
     'square_through',
     params: {
@@ -3142,6 +3164,39 @@ FigureMatch? _squareThroughPassList(String scrubbed) {
       'hand': handBase,
       // Import fidelity: TCB never inlines the balance on a square-through line.
       'balance': false,
+    },
+  );
+}
+
+/// Builds the `circular_hey` for a decoded `Square through <n> without hands`
+/// pass list, or `null` (the line stays custom) when the move cannot hold it.
+///
+/// The even cells' dancers become `who2` (taxonomy v37), the group passed
+/// second by the other shoulder, so `(NR;SL)` keeps its shadows. The list
+/// declines when there is no second pass, when the second group is the first
+/// one again (a ring of four never passes the same group twice running), or
+/// when that group is outside `who2`'s vocabulary.
+///
+/// `where` is not set: the pass list names who passes and by which shoulder,
+/// not whether the first pass runs across or along the set. As for TCB heys,
+/// that unstated axis is left to the taxonomy default rather than asserted.
+FigureMatch? _circularHeyFromPasses({
+  required int changes,
+  required String who,
+  required String? who2,
+  required String shoulder,
+}) {
+  if (who2 == null || who2 == who) return null;
+  final who2Choices =
+      contraTaxonomy.moves['circular_hey']!.params['who2']!.choices;
+  if (who2Choices != null && !who2Choices.contains(who2)) return null;
+  return FigureMatch(
+    'circular_hey',
+    params: {
+      'who': who,
+      'changes': changes,
+      'shoulder': shoulder,
+      'who2': who2,
     },
   );
 }

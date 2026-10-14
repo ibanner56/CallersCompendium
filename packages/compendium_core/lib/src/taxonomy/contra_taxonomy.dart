@@ -23,7 +23,7 @@ import 'taxonomy.dart';
 /// Bump only when the current value has shipped in a release. While it has
 /// not, a taxonomy change joins that version and amends its entry instead
 /// (CONTRIBUTING.md, "Versioned formats").
-const int contraTaxonomyVersion = 36;
+const int contraTaxonomyVersion = 37;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -48,6 +48,13 @@ const _downTheHallEnders = [
 // chooser_pairz_or_unspecified). Built from the pair-level dancer sets so a
 // single-dancer identity can't be selected as a "pair".
 const _heyPass2Choices = [...ParamVocab.pairDancerSets, ParamVocab.unspecified];
+
+// circular_hey's `who2` (v37): the group passed second, from the same pair
+// vocabulary as hey's `pass2`, plus the `unspecified` default.
+const _circularHeyWho2Choices = [
+  ...ParamVocab.pairDancerSets,
+  ParamVocab.unspecified,
+];
 
 // hey's `meetTarget` (issue #576): which pair you run a partial hey until you
 // meet. ContraDB's `dancer%%N` meeting target is drawn from `chooser_pairz`
@@ -1482,6 +1489,17 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
         'changes': ParamSpec(ParamKind.places, defaultValue: 4),
         'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
+        // v37: the group passed second (by the other shoulder), like `hey`'s
+        // `pass2`. The Caller's Box states it in its pass lists
+        // (`(NR;SL)` = neighbors by the right, then shadows by the left).
+        // Defaults to the `unspecified` sentinel, which renders as nothing, so
+        // a v36 figure displays exactly as before; like `pass2`, it stays out
+        // of the canonical template, so no stored canonical text changes.
+        'who2': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _circularHeyWho2Choices,
+        ),
         'where': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 12),
       },

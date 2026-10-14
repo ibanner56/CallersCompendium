@@ -2142,6 +2142,11 @@ final Map<String, int> _circularHeyExtents = {
 /// taxonomy's defaults and read back as a stated "full, neighbors, right,
 /// across". An extent outside `1/4`..`10/4` or ANY leftover token yields null,
 /// so the line degrades to a faithful custom figure.
+///
+/// v37: the display line may end with the second pass, "…, partners pass
+/// left", which is read into `who2`. That pass must use the other shoulder —
+/// a circular hey alternates — so a same-shoulder second pass also yields
+/// null.
 _Match? _circularHey(List<String> w) {
   int? changes;
   for (final entry in _circularHeyExtents.entries) {
@@ -2168,11 +2173,20 @@ _Match? _circularHey(List<String> w) {
     return null;
   }
   _dropFiller(w);
-  if (w.isNotEmpty) return null;
+  String? who2;
+  if (w.isNotEmpty) {
+    who2 = _takeDancer(w);
+    if (who2 == null || !_consumePhrase(w, ['pass'])) return null;
+    final shoulder2 = _takeSide(w);
+    if (shoulder2 == null || shoulder2 == shoulder) return null;
+    _dropFiller(w);
+    if (w.isNotEmpty) return null;
+  }
   return _Match('circular_hey', {
     'who': who,
     'changes': changes,
     'shoulder': shoulder,
+    'who2': ?who2,
     'where': where,
   });
 }

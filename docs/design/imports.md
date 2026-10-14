@@ -650,7 +650,8 @@ the `hey` pass-list decoder — same `tcbPassPeople` map) reads the codes:
   effective `who`; a ring or wave balance stays its own figure.)
 
 **Whole-line strictness / prefer-custom.** The text outside the pass list must be
-exactly `square through <n>` (modulo filler), `n` in 2..10; the cell count must
+exactly `square through <n>` (modulo filler), or `square through <n> without
+hands` for the circular hey below, `n` in 2..10; the cell count must
 equal `n`; every cell must be `<people-code><R|L>` with the code in
 `tcbPassPeople`. A second parenthetical, an `interrupted`/`modified` qualifier, a
 trailing clause, an unmappable code (`C1`–`C3`, out-of-range neighbors, a bare
@@ -673,6 +674,26 @@ share is unchanged.
 source-level discrepancy, not something the importer reconciles, so the two
 imports of *Tangled Yarns* remain distinguishable on `who` even after the fix;
 what the fix removes is the fabricated dancers and the doubled balance.
+
+#### Square through without hands → circular hey
+
+TCB has no circular hey of its own. It writes one as a square through without
+hands: `Square through 3 without hands (NR;PL;NR)` (dances 20273 and 527). With
+`without hands` between the count and the pass list, the same pass-list decoder
+yields a `circular_hey`: `changes` is `n`, `who` is the odd cells' dancers,
+`who2` (taxonomy v37) is the even cells' dancers, and `shoulder` is the first
+cell's side. So `(NR;SL)` is neighbors by the right, then shadows by the left.
+
+The pass list names who passes and by which shoulder, not whether the first
+pass runs across or along the set, so `where` is left to the taxonomy default,
+as for TCB heys.
+
+The line stays custom when there is no pass list (nothing says who starts),
+when the second group repeats the first (a ring of four never passes the same
+group twice running), when that group is outside `who2`'s vocabulary, and on
+any failure of the square-through checks above. Lines imported before this
+change keep their custom text; there is no backfill (maintainer decision on the
+PR that added this mapping).
 
 ### 4. Generic JSON (6.6)
 - Our own canonical archive format (figures, programs, custom fields, provenance,
