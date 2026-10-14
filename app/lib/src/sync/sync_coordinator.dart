@@ -210,7 +210,10 @@ final class SyncPeerSummary {
 }
 
 /// The pass sequence number on which this device first published one record's
-/// current hash in this sync session.
+/// current hash in this sync session — or, for a hash an earlier session
+/// published, the first pass of this one that found it in the manifest the
+/// store holds. That is later than the real publication, so it can only delay
+/// a §6.9 refusing judgement, never bring one forward.
 typedef SyncOwnPublication = ({String hash, int pass});
 
 /// One distinct manifest `writtenAt` seen for a peer, and the pass sequence
@@ -2276,9 +2279,17 @@ class SyncCoordinator {
     // republish only once per refresh interval. Republishing on every such
     // pass keeps that judgement working as it did, and costs nothing while
     // every peer's records are taken.
+    //
+    // That counts a record the apply step refused (an unkeepable newer field,
+    // a reference to data this device lacks, a malformed body) as much as one
+    // refused before it: a downloaded winner that was not applied.
+    final appliedAddresses = applyResult.applied.toSet();
     final refusedPeerRecords =
         normalizedUnresolved.isNotEmpty ||
         rejectedPeerAddresses.isNotEmpty ||
+        downloads.any(
+          (candidate) => !appliedAddresses.contains(candidate.address),
+        ) ||
         [
           for (var index = 0; index < rawPeerMaps.length; index++)
             peerMaps[index].length < rawPeerMaps[index].length,
@@ -2703,8 +2714,12 @@ class SyncCoordinator {
   /// Judges, per peer, whether the records this device publishes are reaching
   /// it, and summarises each peer for the *Other devices* list (spec §6.9).
   ///
-  /// Called once per pass, after this device's manifest `PUT` has succeeded,
-  /// with the manifests the pass already fetched — so it costs no request.
+  /// Called once per pass that reaches publication, with the manifests the
+  /// pass already fetched — so it costs no request. That is after this
+  /// device's manifest `PUT` has succeeded, or on a pass with nothing new to
+  /// share, after the `PUT` was skipped because the store already holds that
+  /// manifest (spec §6.3 step 8). Either way, "published" below means named by
+  /// the manifest the store holds.
   ///
   /// A peer missing one of this device's hashes is in one of two states, and
   /// only one of them is worth the user's attention:

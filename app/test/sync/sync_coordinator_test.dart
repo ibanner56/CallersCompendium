@@ -777,6 +777,42 @@ void main() {
       );
     });
 
+    test(
+      'a pass that refused a peer record at apply still publishes',
+      () async {
+        // The peer's record downloads and is admitted, then storage refuses it
+        // (here as an unresolved reference): refused all the same (§6.9).
+        final peerOnly = SyncMergeCandidate.fromBlob(
+          _setting('peer-only', 'p'),
+        );
+        final store = _FakeStore(local: {first.address: first})
+          ..refuseWrite = (record) => record.address == peerOnly.address;
+        final transport = _FakeTransport(
+          devices: const ['device-a', 'peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.setting: {
+                first.blob.id: first.wireHash,
+                peerOnly.blob.id: peerOnly.wireHash,
+              },
+            },
+          ),
+          blobResponses: _blobs([peerOnly]),
+        );
+        final coordinator = coordinatorFor(store, transport);
+        await coordinator.syncNow();
+        final again = await coordinator.syncNow();
+
+        expect(
+          again.reports.map((report) => report.code),
+          contains(SyncReportCode.unresolvedReference),
+        );
+        expect(store.writes, isEmpty);
+        expect(transport.manifestPuts, 2);
+      },
+    );
+
     test('a stale-epoch PUT leaves nothing recorded', () async {
       final store = _FakeStore(local: {first.address: first});
       final transport = transportFor([first], putManifestStatuses: [200, 409]);
@@ -7068,8 +7104,15 @@ final class _FakeStore implements SyncCoordinatorStore {
     return null;
   }
 
+  /// Refuses, as storage does for a reference to data this device lacks, the
+  /// records for which it returns true.
+  bool Function(SyncApplyRecord record)? refuseWrite;
+
   @override
   Future<void> write(SyncApplyRecord record) async {
+    if (refuseWrite?.call(record) ?? false) {
+      throw StateError('scripted refusal');
+    }
     writes.add(record);
   }
 
