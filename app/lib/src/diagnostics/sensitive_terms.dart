@@ -161,6 +161,45 @@ Future<Set<String>> collectSensitiveTerms(
     add(entry.level.label);
   }
 
+  // The user's own glossary (#709): their words defining and annotating
+  // figures. Stored canonically, as figure notes are.
+  for (final entry in await repositories.userGlossary.listAll(
+    includeDeleted: true,
+  )) {
+    add(entry.name);
+    add(entry.definition);
+    add(entry.description);
+    add(entry.notes);
+    for (final keyword in entry.keywords) {
+      add(keyword);
+    }
+    // A compound's payload holds more of the user's words: the parameter
+    // names they chose, and each template figure's note. Read leniently, as
+    // stored: an entry whose payload no longer decodes is still kept.
+    if (entry.payload case final Map<Object?, Object?> payload) {
+      if (payload['params'] case final List<Object?> params) {
+        for (final param in params) {
+          if (param case {'key': final Object? key}) add(key);
+        }
+      }
+      if (payload['figures'] case final List<Object?> figures) {
+        for (final raw in figures) {
+          if (raw is! Map) continue;
+          try {
+            addFigureContent(figureFromJson(raw.cast<String, Object?>()));
+          } on Object {
+            // diagnostics: silent — a template that no longer decodes has no figure content to read; the entry's own text is still collected.
+          }
+        }
+      }
+    }
+  }
+  for (final note in await repositories.figureNotes.listAll(
+    includeDeleted: true,
+  )) {
+    add(note.notes);
+  }
+
   // People, places and sources. Every column the registry classifies as
   // third-party or personal data is here, plus every other free-text scalar
   // column on these entities — identity fields a user would recognise as

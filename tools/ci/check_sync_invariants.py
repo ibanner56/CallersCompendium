@@ -43,6 +43,8 @@ SOFT_SQL_TABLES = frozenset(
         "published_sources",
         "venues",
         "settings",
+        "user_glossary_entries",
+        "figure_notes",
     }
 )
 
@@ -55,6 +57,8 @@ SOFT_DRIFT_TABLES = {
     "publishedSources",
     "venues",
     "settings",
+    "userGlossaryEntries",
+    "figureNotes",
 }
 SQL_ALIAS_STOP_WORDS = frozenset(
     {"where", "join", "on", "group", "order", "limit", "having", "union"}

@@ -477,7 +477,7 @@ Future<void> clearNormalisationSkipAt(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 39;
+const int kCompendiumSchemaVersion = 40;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -602,6 +602,8 @@ const int kMinSupportedSchemaVersion = 35;
     PublishedRecords,
     RetainedSyncFields,
     PeerManifests,
+    UserGlossaryEntries,
+    FigureNotes,
   ],
 )
 class CompendiumDatabase extends _$CompendiumDatabase {
@@ -666,6 +668,23 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       "AND name = '${peerManifests.actualTableName}'",
     ).get();
     if (peerManifestTable.isEmpty) await m.createTable(peerManifests);
+  }
+
+  /// The v40 additions (#709), each created only if absent: the user's own
+  /// glossary entries and their notes on shipped figures. Two new, empty
+  /// tables and nothing else; the existence checks only keep the step
+  /// idempotent.
+  Future<void> _ensureV40Schema(Migrator m) async {
+    for (final table in <TableInfo<Table, Object?>>[
+      userGlossaryEntries,
+      figureNotes,
+    ]) {
+      final existing = await customSelect(
+        "SELECT name FROM sqlite_master WHERE type = 'table' "
+        "AND name = '${table.actualTableName}'",
+      ).get();
+      if (existing.isEmpty) await m.createTable(table);
+    }
   }
 
   @override
@@ -821,6 +840,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           }
         }
         if (from < 39) await _ensureV39Schema(m);
+        if (from < 40) await _ensureV40Schema(m);
 
         // Last statement in the transaction: see the comment above its
         // opening for why this closes the remaining crash window. `to` is

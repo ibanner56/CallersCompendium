@@ -24,6 +24,7 @@ import 'published_source_repository.dart';
 import 'settings_repository.dart';
 import 'sync_local_repository.dart';
 import 'tag_repository.dart';
+import 'user_glossary_repository.dart';
 import 'venue_repository.dart';
 
 const _shareableTextNormalisationAlgorithmVersion = 2;
@@ -34,7 +35,13 @@ const _taxonomyV35MigrationPageSize = 128;
 /// canonicalize at all, so they are also the only ones for which the pass must
 /// be able to name a record to skip — see [_normaliseStoredColumn] and the
 /// record-id select in `_normaliseShareableTextIfNeeded`.
-const _shareableJsonColumns = {'figures_json', 'tunes_json', 'choices_json'};
+const _shareableJsonColumns = {
+  'figures_json',
+  'tunes_json',
+  'choices_json',
+  'keywords_json',
+  'payload_json',
+};
 
 /// The normalized form of [raw] for [column], or **null when the stored value
 /// cannot be canonicalized at all**.
@@ -235,6 +242,8 @@ class CompendiumRepositories {
        collectionImports =
            collectionImports ?? CollectionImportEventRepository(db),
        settings = settings ?? SettingsRepository(db),
+       userGlossary = UserGlossaryRepository(db),
+       figureNotes = FigureNoteRepository(db),
        syncLocal = SyncLocalRepository(db);
 
   final CompendiumDatabase db;
@@ -248,6 +257,12 @@ class CompendiumRepositories {
   final VenueRepository venues;
   final CollectionImportEventRepository collectionImports;
   final SettingsRepository settings;
+
+  /// The user's own glossary entries (#709).
+  final UserGlossaryRepository userGlossary;
+
+  /// The user's notes on shipped figures (#709).
+  final FigureNoteRepository figureNotes;
   final SyncLocalRepository syncLocal;
 
   /// Runs a cross-repository write as one database transaction.

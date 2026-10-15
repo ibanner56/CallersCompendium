@@ -1412,6 +1412,77 @@ void main() {
       expect(row.read<String?>('pay_currency'), isNull);
     });
   });
+  group('v39 -> v40 upgrade (user glossary, #709)', () {
+    test('adds empty user_glossary_entries and figure_notes tables and keeps '
+        'every row', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        39,
+      );
+      await historical.customSelect('SELECT 1').get();
+      final before = await historical
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type = 'table' "
+            "AND name IN ('user_glossary_entries', 'figure_notes')",
+          )
+          .get();
+      expect(before, isEmpty);
+      await historical.customStatement(
+        "INSERT INTO programs "
+        "(id, title, notes, status, hide_alternates, created_at, updated_at) "
+        "VALUES ('legacy-program', 'Legacy', 'keep', 'draft', 1, 0, 0)",
+      );
+      await historical.close();
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      Future<Set<String>> columnsOf(String table) async => {
+        for (final row
+            in await db.customSelect("PRAGMA table_info('$table')").get())
+          row.read<String>('name'),
+      };
+      expect(await columnsOf('user_glossary_entries'), {
+        'id',
+        'kind',
+        'name',
+        'definition',
+        'description',
+        'keywords_json',
+        'notes',
+        'payload_json',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+        'existence_at',
+      });
+      expect(await columnsOf('figure_notes'), {
+        'figure_id',
+        'notes',
+        'updated_at',
+        'deleted_at',
+        'existence_at',
+      });
+      expect(await db.select(db.userGlossaryEntries).get(), isEmpty);
+      expect(await db.select(db.figureNotes).get(), isEmpty);
+      final program = await db
+          .customSelect(
+            "SELECT notes FROM programs WHERE id = 'legacy-program'",
+          )
+          .getSingle();
+      expect(program.read<String>('notes'), 'keep');
+      final version = await db.customSelect('PRAGMA user_version').getSingle();
+      expect(version.read<int>('user_version'), 40);
+    });
+  });
+
   group('v38 -> v39 upgrade (retained sync fields, sync-spec §6.7)', () {
     test(
       'adds an empty retained_sync_fields table and keeps every row',

@@ -300,7 +300,15 @@ flag) toward CC `Author`; privacy-aware, all optional.
 [Venue](#venue) above) replacing reliance on the free-text `Program.venue`
 string, while keeping that free text as a coexisting fallback.
 
-**New entities (Later milestones — not yet built)** — `GlossaryTerm`
-(term/definition/source). The question of user-defined quick-entry
+**UserGlossaryEntry** and **FigureNote** (schema v40, #709) — the user's own
+glossary. A `UserGlossaryEntry` carries a name, definition, description,
+optional keywords and notes, and a kind-specific payload; its `kind` is
+`compound` (a named, parameterised sequence of shipped figures) or one of the
+kinds reserved for #1023, `term` (the former `GlossaryTerm` idea) and
+`customFigure`. A `FigureNote` is the user's note on one shipped figure.
+Neither is part of a dance; both are carried by backups (`app.glossary`), not by
+archives.
+
+**Quick-entry snippets** — the question of user-defined quick-entry
 **snippets** (CC "Insert Call" buttons) is closed: a CC import seeds them as
 `ShorthandMapping`s (#562, `insert_call_shorthands.dart`).

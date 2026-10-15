@@ -458,7 +458,10 @@ class _GeneralSectionState extends State<GeneralSection> {
     Future<void> Function()? onRestored,
   ) async {
     try {
-      final outcome = await BackupService(repos).retryApplySettingsFrom(read);
+      // The restore this retries runs in the default mode, replace.
+      final outcome = await BackupService(
+        repos,
+      ).retryApplySettingsFrom(read, mode: RestoreMode.replace);
       // Only refresh when something was actually applied.
       if (outcome.applied && onRestored != null) await onRestored();
       if (!mounted) return;

@@ -14716,6 +14716,1111 @@ class PeerManifestsCompanion extends UpdateCompanion<PeerManifestRow> {
   }
 }
 
+class $UserGlossaryEntriesTable extends UserGlossaryEntries
+    with TableInfo<$UserGlossaryEntriesTable, UserGlossaryEntryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UserGlossaryEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _definitionMeta = const VerificationMeta(
+    'definition',
+  );
+  @override
+  late final GeneratedColumn<String> definition = GeneratedColumn<String>(
+    'definition',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _keywordsJsonMeta = const VerificationMeta(
+    'keywordsJson',
+  );
+  @override
+  late final GeneratedColumn<String> keywordsJson = GeneratedColumn<String>(
+    'keywords_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _existenceAtMeta = const VerificationMeta(
+    'existenceAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> existenceAt = GeneratedColumn<DateTime>(
+    'existence_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    kind,
+    name,
+    definition,
+    description,
+    keywordsJson,
+    notes,
+    payloadJson,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    existenceAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'user_glossary_entries';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<UserGlossaryEntryRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('definition')) {
+      context.handle(
+        _definitionMeta,
+        definition.isAcceptableOrUnknown(data['definition']!, _definitionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_definitionMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_descriptionMeta);
+    }
+    if (data.containsKey('keywords_json')) {
+      context.handle(
+        _keywordsJsonMeta,
+        keywordsJson.isAcceptableOrUnknown(
+          data['keywords_json']!,
+          _keywordsJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('existence_at')) {
+      context.handle(
+        _existenceAtMeta,
+        existenceAt.isAcceptableOrUnknown(
+          data['existence_at']!,
+          _existenceAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  UserGlossaryEntryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UserGlossaryEntryRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      definition: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}definition'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
+      keywordsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}keywords_json'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      existenceAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}existence_at'],
+      ),
+    );
+  }
+
+  @override
+  $UserGlossaryEntriesTable createAlias(String alias) {
+    return $UserGlossaryEntriesTable(attachedDatabase, alias);
+  }
+}
+
+class UserGlossaryEntryRow extends DataClass
+    implements Insertable<UserGlossaryEntryRow> {
+  final String id;
+  final String kind;
+  final String name;
+  final String definition;
+  final String description;
+
+  /// A JSON array of strings.
+  final String keywordsJson;
+  final String? notes;
+
+  /// The kind-specific payload as JSON, or null for a kind with none.
+  final String? payloadJson;
+
+  /// When the entry was first created; never moved by an edit.
+  final DateTime createdAt;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
+  final DateTime? existenceAt;
+  const UserGlossaryEntryRow({
+    required this.id,
+    required this.kind,
+    required this.name,
+    required this.definition,
+    required this.description,
+    required this.keywordsJson,
+    this.notes,
+    this.payloadJson,
+    required this.createdAt,
+    this.updatedAt,
+    this.deletedAt,
+    this.existenceAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['kind'] = Variable<String>(kind);
+    map['name'] = Variable<String>(name);
+    map['definition'] = Variable<String>(definition);
+    map['description'] = Variable<String>(description);
+    map['keywords_json'] = Variable<String>(keywordsJson);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || payloadJson != null) {
+      map['payload_json'] = Variable<String>(payloadJson);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || existenceAt != null) {
+      map['existence_at'] = Variable<DateTime>(existenceAt);
+    }
+    return map;
+  }
+
+  UserGlossaryEntriesCompanion toCompanion(bool nullToAbsent) {
+    return UserGlossaryEntriesCompanion(
+      id: Value(id),
+      kind: Value(kind),
+      name: Value(name),
+      definition: Value(definition),
+      description: Value(description),
+      keywordsJson: Value(keywordsJson),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      payloadJson: payloadJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payloadJson),
+      createdAt: Value(createdAt),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      existenceAt: existenceAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(existenceAt),
+    );
+  }
+
+  factory UserGlossaryEntryRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UserGlossaryEntryRow(
+      id: serializer.fromJson<String>(json['id']),
+      kind: serializer.fromJson<String>(json['kind']),
+      name: serializer.fromJson<String>(json['name']),
+      definition: serializer.fromJson<String>(json['definition']),
+      description: serializer.fromJson<String>(json['description']),
+      keywordsJson: serializer.fromJson<String>(json['keywordsJson']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      payloadJson: serializer.fromJson<String?>(json['payloadJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      existenceAt: serializer.fromJson<DateTime?>(json['existenceAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'kind': serializer.toJson<String>(kind),
+      'name': serializer.toJson<String>(name),
+      'definition': serializer.toJson<String>(definition),
+      'description': serializer.toJson<String>(description),
+      'keywordsJson': serializer.toJson<String>(keywordsJson),
+      'notes': serializer.toJson<String?>(notes),
+      'payloadJson': serializer.toJson<String?>(payloadJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'existenceAt': serializer.toJson<DateTime?>(existenceAt),
+    };
+  }
+
+  UserGlossaryEntryRow copyWith({
+    String? id,
+    String? kind,
+    String? name,
+    String? definition,
+    String? description,
+    String? keywordsJson,
+    Value<String?> notes = const Value.absent(),
+    Value<String?> payloadJson = const Value.absent(),
+    DateTime? createdAt,
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    Value<DateTime?> existenceAt = const Value.absent(),
+  }) => UserGlossaryEntryRow(
+    id: id ?? this.id,
+    kind: kind ?? this.kind,
+    name: name ?? this.name,
+    definition: definition ?? this.definition,
+    description: description ?? this.description,
+    keywordsJson: keywordsJson ?? this.keywordsJson,
+    notes: notes.present ? notes.value : this.notes,
+    payloadJson: payloadJson.present ? payloadJson.value : this.payloadJson,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    existenceAt: existenceAt.present ? existenceAt.value : this.existenceAt,
+  );
+  UserGlossaryEntryRow copyWithCompanion(UserGlossaryEntriesCompanion data) {
+    return UserGlossaryEntryRow(
+      id: data.id.present ? data.id.value : this.id,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      name: data.name.present ? data.name.value : this.name,
+      definition: data.definition.present
+          ? data.definition.value
+          : this.definition,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      keywordsJson: data.keywordsJson.present
+          ? data.keywordsJson.value
+          : this.keywordsJson,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      existenceAt: data.existenceAt.present
+          ? data.existenceAt.value
+          : this.existenceAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserGlossaryEntryRow(')
+          ..write('id: $id, ')
+          ..write('kind: $kind, ')
+          ..write('name: $name, ')
+          ..write('definition: $definition, ')
+          ..write('description: $description, ')
+          ..write('keywordsJson: $keywordsJson, ')
+          ..write('notes: $notes, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('existenceAt: $existenceAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    kind,
+    name,
+    definition,
+    description,
+    keywordsJson,
+    notes,
+    payloadJson,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    existenceAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UserGlossaryEntryRow &&
+          other.id == this.id &&
+          other.kind == this.kind &&
+          other.name == this.name &&
+          other.definition == this.definition &&
+          other.description == this.description &&
+          other.keywordsJson == this.keywordsJson &&
+          other.notes == this.notes &&
+          other.payloadJson == this.payloadJson &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.existenceAt == this.existenceAt);
+}
+
+class UserGlossaryEntriesCompanion
+    extends UpdateCompanion<UserGlossaryEntryRow> {
+  final Value<String> id;
+  final Value<String> kind;
+  final Value<String> name;
+  final Value<String> definition;
+  final Value<String> description;
+  final Value<String> keywordsJson;
+  final Value<String?> notes;
+  final Value<String?> payloadJson;
+  final Value<DateTime> createdAt;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<DateTime?> existenceAt;
+  final Value<int> rowid;
+  const UserGlossaryEntriesCompanion({
+    this.id = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.name = const Value.absent(),
+    this.definition = const Value.absent(),
+    this.description = const Value.absent(),
+    this.keywordsJson = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.existenceAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  UserGlossaryEntriesCompanion.insert({
+    required String id,
+    required String kind,
+    required String name,
+    required String definition,
+    required String description,
+    this.keywordsJson = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    required DateTime createdAt,
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.existenceAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       kind = Value(kind),
+       name = Value(name),
+       definition = Value(definition),
+       description = Value(description),
+       createdAt = Value(createdAt);
+  static Insertable<UserGlossaryEntryRow> custom({
+    Expression<String>? id,
+    Expression<String>? kind,
+    Expression<String>? name,
+    Expression<String>? definition,
+    Expression<String>? description,
+    Expression<String>? keywordsJson,
+    Expression<String>? notes,
+    Expression<String>? payloadJson,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<DateTime>? existenceAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (kind != null) 'kind': kind,
+      if (name != null) 'name': name,
+      if (definition != null) 'definition': definition,
+      if (description != null) 'description': description,
+      if (keywordsJson != null) 'keywords_json': keywordsJson,
+      if (notes != null) 'notes': notes,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (existenceAt != null) 'existence_at': existenceAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  UserGlossaryEntriesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? kind,
+    Value<String>? name,
+    Value<String>? definition,
+    Value<String>? description,
+    Value<String>? keywordsJson,
+    Value<String?>? notes,
+    Value<String?>? payloadJson,
+    Value<DateTime>? createdAt,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<DateTime?>? existenceAt,
+    Value<int>? rowid,
+  }) {
+    return UserGlossaryEntriesCompanion(
+      id: id ?? this.id,
+      kind: kind ?? this.kind,
+      name: name ?? this.name,
+      definition: definition ?? this.definition,
+      description: description ?? this.description,
+      keywordsJson: keywordsJson ?? this.keywordsJson,
+      notes: notes ?? this.notes,
+      payloadJson: payloadJson ?? this.payloadJson,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      existenceAt: existenceAt ?? this.existenceAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (definition.present) {
+      map['definition'] = Variable<String>(definition.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (keywordsJson.present) {
+      map['keywords_json'] = Variable<String>(keywordsJson.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (existenceAt.present) {
+      map['existence_at'] = Variable<DateTime>(existenceAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserGlossaryEntriesCompanion(')
+          ..write('id: $id, ')
+          ..write('kind: $kind, ')
+          ..write('name: $name, ')
+          ..write('definition: $definition, ')
+          ..write('description: $description, ')
+          ..write('keywordsJson: $keywordsJson, ')
+          ..write('notes: $notes, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('existenceAt: $existenceAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $FigureNotesTable extends FigureNotes
+    with TableInfo<$FigureNotesTable, FigureNoteRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FigureNotesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _figureIdMeta = const VerificationMeta(
+    'figureId',
+  );
+  @override
+  late final GeneratedColumn<String> figureId = GeneratedColumn<String>(
+    'figure_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _existenceAtMeta = const VerificationMeta(
+    'existenceAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> existenceAt = GeneratedColumn<DateTime>(
+    'existence_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    figureId,
+    notes,
+    updatedAt,
+    deletedAt,
+    existenceAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'figure_notes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FigureNoteRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('figure_id')) {
+      context.handle(
+        _figureIdMeta,
+        figureId.isAcceptableOrUnknown(data['figure_id']!, _figureIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_figureIdMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_notesMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('existence_at')) {
+      context.handle(
+        _existenceAtMeta,
+        existenceAt.isAcceptableOrUnknown(
+          data['existence_at']!,
+          _existenceAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {figureId};
+  @override
+  FigureNoteRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FigureNoteRow(
+      figureId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}figure_id'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      existenceAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}existence_at'],
+      ),
+    );
+  }
+
+  @override
+  $FigureNotesTable createAlias(String alias) {
+    return $FigureNotesTable(attachedDatabase, alias);
+  }
+}
+
+class FigureNoteRow extends DataClass implements Insertable<FigureNoteRow> {
+  final String figureId;
+  final String notes;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
+  final DateTime? existenceAt;
+  const FigureNoteRow({
+    required this.figureId,
+    required this.notes,
+    this.updatedAt,
+    this.deletedAt,
+    this.existenceAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['figure_id'] = Variable<String>(figureId);
+    map['notes'] = Variable<String>(notes);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || existenceAt != null) {
+      map['existence_at'] = Variable<DateTime>(existenceAt);
+    }
+    return map;
+  }
+
+  FigureNotesCompanion toCompanion(bool nullToAbsent) {
+    return FigureNotesCompanion(
+      figureId: Value(figureId),
+      notes: Value(notes),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      existenceAt: existenceAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(existenceAt),
+    );
+  }
+
+  factory FigureNoteRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FigureNoteRow(
+      figureId: serializer.fromJson<String>(json['figureId']),
+      notes: serializer.fromJson<String>(json['notes']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      existenceAt: serializer.fromJson<DateTime?>(json['existenceAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'figureId': serializer.toJson<String>(figureId),
+      'notes': serializer.toJson<String>(notes),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'existenceAt': serializer.toJson<DateTime?>(existenceAt),
+    };
+  }
+
+  FigureNoteRow copyWith({
+    String? figureId,
+    String? notes,
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    Value<DateTime?> existenceAt = const Value.absent(),
+  }) => FigureNoteRow(
+    figureId: figureId ?? this.figureId,
+    notes: notes ?? this.notes,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    existenceAt: existenceAt.present ? existenceAt.value : this.existenceAt,
+  );
+  FigureNoteRow copyWithCompanion(FigureNotesCompanion data) {
+    return FigureNoteRow(
+      figureId: data.figureId.present ? data.figureId.value : this.figureId,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      existenceAt: data.existenceAt.present
+          ? data.existenceAt.value
+          : this.existenceAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FigureNoteRow(')
+          ..write('figureId: $figureId, ')
+          ..write('notes: $notes, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('existenceAt: $existenceAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(figureId, notes, updatedAt, deletedAt, existenceAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FigureNoteRow &&
+          other.figureId == this.figureId &&
+          other.notes == this.notes &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.existenceAt == this.existenceAt);
+}
+
+class FigureNotesCompanion extends UpdateCompanion<FigureNoteRow> {
+  final Value<String> figureId;
+  final Value<String> notes;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<DateTime?> existenceAt;
+  final Value<int> rowid;
+  const FigureNotesCompanion({
+    this.figureId = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.existenceAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FigureNotesCompanion.insert({
+    required String figureId,
+    required String notes,
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.existenceAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : figureId = Value(figureId),
+       notes = Value(notes);
+  static Insertable<FigureNoteRow> custom({
+    Expression<String>? figureId,
+    Expression<String>? notes,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<DateTime>? existenceAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (figureId != null) 'figure_id': figureId,
+      if (notes != null) 'notes': notes,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (existenceAt != null) 'existence_at': existenceAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FigureNotesCompanion copyWith({
+    Value<String>? figureId,
+    Value<String>? notes,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<DateTime?>? existenceAt,
+    Value<int>? rowid,
+  }) {
+    return FigureNotesCompanion(
+      figureId: figureId ?? this.figureId,
+      notes: notes ?? this.notes,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      existenceAt: existenceAt ?? this.existenceAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (figureId.present) {
+      map['figure_id'] = Variable<String>(figureId.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (existenceAt.present) {
+      map['existence_at'] = Variable<DateTime>(existenceAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FigureNotesCompanion(')
+          ..write('figureId: $figureId, ')
+          ..write('notes: $notes, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('existenceAt: $existenceAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$CompendiumDatabase extends GeneratedDatabase {
   _$CompendiumDatabase(QueryExecutor e) : super(e);
   $CompendiumDatabaseManager get managers => $CompendiumDatabaseManager(this);
@@ -14767,6 +15872,9 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
   late final $RetainedSyncFieldsTable retainedSyncFields =
       $RetainedSyncFieldsTable(this);
   late final $PeerManifestsTable peerManifests = $PeerManifestsTable(this);
+  late final $UserGlossaryEntriesTable userGlossaryEntries =
+      $UserGlossaryEntriesTable(this);
+  late final $FigureNotesTable figureNotes = $FigureNotesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -14801,6 +15909,8 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
     publishedRecords,
     retainedSyncFields,
     peerManifests,
+    userGlossaryEntries,
+    figureNotes,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -26048,6 +27158,593 @@ typedef $$PeerManifestsTableProcessedTableManager =
       PeerManifestRow,
       PrefetchHooks Function()
     >;
+typedef $$UserGlossaryEntriesTableCreateCompanionBuilder =
+    UserGlossaryEntriesCompanion Function({
+      required String id,
+      required String kind,
+      required String name,
+      required String definition,
+      required String description,
+      Value<String> keywordsJson,
+      Value<String?> notes,
+      Value<String?> payloadJson,
+      required DateTime createdAt,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+typedef $$UserGlossaryEntriesTableUpdateCompanionBuilder =
+    UserGlossaryEntriesCompanion Function({
+      Value<String> id,
+      Value<String> kind,
+      Value<String> name,
+      Value<String> definition,
+      Value<String> description,
+      Value<String> keywordsJson,
+      Value<String?> notes,
+      Value<String?> payloadJson,
+      Value<DateTime> createdAt,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+
+class $$UserGlossaryEntriesTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $UserGlossaryEntriesTable> {
+  $$UserGlossaryEntriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get definition => $composableBuilder(
+    column: $table.definition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get keywordsJson => $composableBuilder(
+    column: $table.keywordsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$UserGlossaryEntriesTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $UserGlossaryEntriesTable> {
+  $$UserGlossaryEntriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get definition => $composableBuilder(
+    column: $table.definition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get keywordsJson => $composableBuilder(
+    column: $table.keywordsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$UserGlossaryEntriesTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $UserGlossaryEntriesTable> {
+  $$UserGlossaryEntriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get definition => $composableBuilder(
+    column: $table.definition,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get keywordsJson => $composableBuilder(
+    column: $table.keywordsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => column,
+  );
+}
+
+class $$UserGlossaryEntriesTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $UserGlossaryEntriesTable,
+          UserGlossaryEntryRow,
+          $$UserGlossaryEntriesTableFilterComposer,
+          $$UserGlossaryEntriesTableOrderingComposer,
+          $$UserGlossaryEntriesTableAnnotationComposer,
+          $$UserGlossaryEntriesTableCreateCompanionBuilder,
+          $$UserGlossaryEntriesTableUpdateCompanionBuilder,
+          (
+            UserGlossaryEntryRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $UserGlossaryEntriesTable,
+              UserGlossaryEntryRow
+            >,
+          ),
+          UserGlossaryEntryRow,
+          PrefetchHooks Function()
+        > {
+  $$UserGlossaryEntriesTableTableManager(
+    _$CompendiumDatabase db,
+    $UserGlossaryEntriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UserGlossaryEntriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UserGlossaryEntriesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$UserGlossaryEntriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> definition = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<String> keywordsJson = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<String?> payloadJson = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<DateTime?> existenceAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UserGlossaryEntriesCompanion(
+                id: id,
+                kind: kind,
+                name: name,
+                definition: definition,
+                description: description,
+                keywordsJson: keywordsJson,
+                notes: notes,
+                payloadJson: payloadJson,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                existenceAt: existenceAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String kind,
+                required String name,
+                required String definition,
+                required String description,
+                Value<String> keywordsJson = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<String?> payloadJson = const Value.absent(),
+                required DateTime createdAt,
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<DateTime?> existenceAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UserGlossaryEntriesCompanion.insert(
+                id: id,
+                kind: kind,
+                name: name,
+                definition: definition,
+                description: description,
+                keywordsJson: keywordsJson,
+                notes: notes,
+                payloadJson: payloadJson,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                existenceAt: existenceAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$UserGlossaryEntriesTable, UserGlossaryEntryRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $UserGlossaryEntriesTable,
+                    UserGlossaryEntryRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$UserGlossaryEntriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $UserGlossaryEntriesTable,
+      UserGlossaryEntryRow,
+      $$UserGlossaryEntriesTableFilterComposer,
+      $$UserGlossaryEntriesTableOrderingComposer,
+      $$UserGlossaryEntriesTableAnnotationComposer,
+      $$UserGlossaryEntriesTableCreateCompanionBuilder,
+      $$UserGlossaryEntriesTableUpdateCompanionBuilder,
+      (
+        UserGlossaryEntryRow,
+        BaseReferences<
+          _$CompendiumDatabase,
+          $UserGlossaryEntriesTable,
+          UserGlossaryEntryRow
+        >,
+      ),
+      UserGlossaryEntryRow,
+      PrefetchHooks Function()
+    >;
+typedef $$FigureNotesTableCreateCompanionBuilder =
+    FigureNotesCompanion Function({
+      required String figureId,
+      required String notes,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+typedef $$FigureNotesTableUpdateCompanionBuilder =
+    FigureNotesCompanion Function({
+      Value<String> figureId,
+      Value<String> notes,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+
+class $$FigureNotesTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $FigureNotesTable> {
+  $$FigureNotesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get figureId => $composableBuilder(
+    column: $table.figureId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FigureNotesTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $FigureNotesTable> {
+  $$FigureNotesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get figureId => $composableBuilder(
+    column: $table.figureId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FigureNotesTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $FigureNotesTable> {
+  $$FigureNotesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get figureId =>
+      $composableBuilder(column: $table.figureId, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => column,
+  );
+}
+
+class $$FigureNotesTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $FigureNotesTable,
+          FigureNoteRow,
+          $$FigureNotesTableFilterComposer,
+          $$FigureNotesTableOrderingComposer,
+          $$FigureNotesTableAnnotationComposer,
+          $$FigureNotesTableCreateCompanionBuilder,
+          $$FigureNotesTableUpdateCompanionBuilder,
+          (
+            FigureNoteRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $FigureNotesTable,
+              FigureNoteRow
+            >,
+          ),
+          FigureNoteRow,
+          PrefetchHooks Function()
+        > {
+  $$FigureNotesTableTableManager(
+    _$CompendiumDatabase db,
+    $FigureNotesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FigureNotesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FigureNotesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FigureNotesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> figureId = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<DateTime?> existenceAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FigureNotesCompanion(
+                figureId: figureId,
+                notes: notes,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                existenceAt: existenceAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String figureId,
+                required String notes,
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<DateTime?> existenceAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FigureNotesCompanion.insert(
+                figureId: figureId,
+                notes: notes,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                existenceAt: existenceAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$FigureNotesTable, FigureNoteRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $FigureNotesTable,
+                    FigureNoteRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FigureNotesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $FigureNotesTable,
+      FigureNoteRow,
+      $$FigureNotesTableFilterComposer,
+      $$FigureNotesTableOrderingComposer,
+      $$FigureNotesTableAnnotationComposer,
+      $$FigureNotesTableCreateCompanionBuilder,
+      $$FigureNotesTableUpdateCompanionBuilder,
+      (
+        FigureNoteRow,
+        BaseReferences<_$CompendiumDatabase, $FigureNotesTable, FigureNoteRow>,
+      ),
+      FigureNoteRow,
+      PrefetchHooks Function()
+    >;
 
 class $CompendiumDatabaseManager {
   final _$CompendiumDatabase _db;
@@ -26112,4 +27809,8 @@ class $CompendiumDatabaseManager {
       $$RetainedSyncFieldsTableTableManager(_db, _db.retainedSyncFields);
   $$PeerManifestsTableTableManager get peerManifests =>
       $$PeerManifestsTableTableManager(_db, _db.peerManifests);
+  $$UserGlossaryEntriesTableTableManager get userGlossaryEntries =>
+      $$UserGlossaryEntriesTableTableManager(_db, _db.userGlossaryEntries);
+  $$FigureNotesTableTableManager get figureNotes =>
+      $$FigureNotesTableTableManager(_db, _db.figureNotes);
 }

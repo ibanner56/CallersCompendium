@@ -21,6 +21,30 @@ const _choreography = DataClassification(
   egress: EgressClass.shareable,
 );
 
+/// Text the user wrote in their own glossary (#709): a compound figure's name,
+/// definition, description, keywords and notes, and notes on shipped figures.
+///
+/// Classified by intent, as program notes ([_programNote]) and calling notes
+/// ([_choreography]) are: it defines and annotates choreography, and is about
+/// no person, so its subject is `none`. Residual risk, accepted as for every
+/// freeform field: a user may type a name into it.
+const _userGlossaryText = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.shareable,
+  note:
+      "The user's own words defining or annotating figures (#709). Classified "
+      'by intent, as program notes and calling notes are: choreography '
+      'reference, not about a person, so subject none (see "Freeform fields '
+      'are classified by intent, not by content"). The subject is the '
+      "implementer's call, following those precedents; appUser was rejected "
+      'as giving no reason the text is about the user, and thirdParty as '
+      'classifying by what a user might type. Shareable because the '
+      'maintainer decided it travels like custom shorthands (#709, comments '
+      'of 2026-08-06 and 2026-10-14): in backups now, and in sync once its '
+      'record kind exists.',
+);
+
 /// An opaque surrogate key. Carries no meaning alone, but must travel for
 /// relationships to survive a transfer.
 const _key = DataClassification(
@@ -198,6 +222,18 @@ const _tombstone = DataClassification(
       'kind.',
 );
 
+/// [_tombstone] for the user's glossary (#709), whose tables have no record
+/// kind yet: the tombstone is kept for sync to carry once they do.
+const _glossaryTombstone = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.shareable,
+  note:
+      'Soft-delete tombstone; see dances.deleted_at. Kept so that sync can '
+      'carry the deletion once this table has a record kind; until then it '
+      'stays on the device, and backups export live rows only.',
+);
+
 /// A freeform note attached to a person, place or source record.
 ///
 /// Still classified as personal data — the field is unbounded and a user may
@@ -300,6 +336,43 @@ final Map<String, DataClassification> fieldClassifications = {
         'recently will resurrect a dance the user deleted elsewhere.',
   ),
   'dances.existence_at': _existenceStamp,
+
+  // --------------------------------------------------- user_glossary_entries --
+  // The user's own glossary (#709). Travels: the maintainer decided these
+  // sync and back up like custom shorthands
+  // (https://github.com/ibanner56/CallersCompendium/issues/709#issuecomment-5198798303,
+  // https://github.com/ibanner56/CallersCompendium/issues/709#issuecomment-6177064546).
+  // Not synced until their record kind exists, and then only once every
+  // attached device can read it (the capability gate, #709).
+  'user_glossary_entries.id': _key,
+  'user_glossary_entries.kind': _choreography,
+  'user_glossary_entries.name': _userGlossaryText,
+  'user_glossary_entries.definition': _userGlossaryText,
+  'user_glossary_entries.description': _userGlossaryText,
+  'user_glossary_entries.keywords_json': _userGlossaryText,
+  'user_glossary_entries.notes': _userGlossaryText,
+  'user_glossary_entries.payload_json': _choreography,
+  'user_glossary_entries.created_at': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note:
+        'When the entry was first created; never moved by an edit. Travels so '
+        'every device agrees which of two entries sharing a name is the newer '
+        'one, the one flagged for rename (#709 consolidated spec, decision '
+        '6). Judging "newer" by creation time, so that an edit cannot change '
+        'which one is flagged, is the implementer\'s choice.',
+  ),
+  'user_glossary_entries.updated_at': _recordStamp,
+  'user_glossary_entries.deleted_at': _glossaryTombstone,
+  'user_glossary_entries.existence_at': _existenceStamp,
+
+  // ------------------------------------------------------------ figure_notes --
+  'figure_notes.figure_id': _key,
+  'figure_notes.notes': _userGlossaryText,
+  'figure_notes.updated_at': _recordStamp,
+  'figure_notes.deleted_at': _glossaryTombstone,
+  'figure_notes.existence_at': _existenceStamp,
 
   // ------------------------------------------------------ difficulty_levels --
   'difficulty_levels.id': _key,

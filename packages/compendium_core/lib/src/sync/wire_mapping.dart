@@ -218,6 +218,25 @@ const Map<SyncRecordKind, List<SyncWireField>> syncWireFields = {
 /// an inline parent relationship. These are reviewed exceptions to the
 /// source-field-to-body-path relation.
 const Set<String> syncWireMappingExceptions = {
+  // The user glossary (#709) has no record kind yet; it gains one, and these
+  // leave this set, when its sync lands behind the capability gate.
+  'user_glossary_entries.id',
+  'user_glossary_entries.kind',
+  'user_glossary_entries.name',
+  'user_glossary_entries.definition',
+  'user_glossary_entries.description',
+  'user_glossary_entries.keywords_json',
+  'user_glossary_entries.notes',
+  'user_glossary_entries.payload_json',
+  'user_glossary_entries.created_at',
+  'user_glossary_entries.updated_at',
+  'user_glossary_entries.deleted_at',
+  'user_glossary_entries.existence_at',
+  'figure_notes.figure_id',
+  'figure_notes.notes',
+  'figure_notes.updated_at',
+  'figure_notes.deleted_at',
+  'figure_notes.existence_at',
   'dances.existence_at',
   'choreographers.updated_at',
   'choreographers.deleted_at',

@@ -232,10 +232,10 @@ class BackupRestoreOutcome {
   /// Whether the **core** content restored and committed successfully but the
   /// subsequent **app-settings** apply step failed (issue #608).
   ///
-  /// The core (dances/programs/etc.) and app settings (SharedPreferences-style
-  /// `settings` table) live in two independent stores that cannot share one
-  /// transaction, so once the core has committed it CANNOT be part of a settings
-  /// rollback. When the settings-apply step genuinely fails (the settings store
+  /// The core (dances/programs/etc.) is written in one transaction that commits
+  /// first; the app-local pieces (the SharedPreferences-style `settings` table
+  /// and, since #709, the user's glossary) are applied after it, so once the
+  /// core has committed it CANNOT be part of a settings rollback. When the settings-apply step genuinely fails (the settings store
   /// throws / is unavailable — as opposed to a single invalid value, which #609
   /// already degrades to its default), the owner-decided behavior is to KEEP the
   /// successfully-restored core (no disproportionate pre-restore snapshot /
@@ -258,8 +258,9 @@ class BackupRestoreOutcome {
 /// The service is UI-free and depends only on [CompendiumRepositories]: it reads
 /// core content through [ArchiveExporter] and the app-local pieces straight from
 /// the `settings` table (which the dialect/theme controllers keep current on
-/// every mutation), and applies a restore by writing core content through
-/// [ArchiveRestorer] (replace mode) and the app-local pieces back into `settings`.
+/// every mutation) and, since #709, the user's glossary repositories, and
+/// applies a restore by writing core content through [ArchiveRestorer] and the
+/// app-local pieces back where they were read from.
 ///
 /// Refreshing the live UI after a restore (reloading the dialect/theme
 /// controllers and re-reading the preference notifiers) is the caller's job —
@@ -299,6 +300,8 @@ class BackupService {
       customThemes: customThemes,
       activeCustomThemeId: activeThemeId is String ? activeThemeId : null,
       settings: settings,
+      glossaryEntries: await _repos.userGlossary.listAll(),
+      figureNotes: await _repos.figureNotes.listAll(),
     );
   }
 
@@ -333,7 +336,8 @@ class BackupService {
   /// Decodes [json] and applies it to the live app.
   ///
   /// Core content is restored via [ArchiveRestorer]; the app-local dialects,
-  /// themes, and preference settings are written back into the `settings` table.
+  /// themes, and preference settings are written back into the `settings`
+  /// table, and the user's glossary into its own tables.
   /// Tolerant throughout: decode/restore problems are collected into the
   /// returned [BackupRestoreOutcome] rather than thrown.
   ///
@@ -477,7 +481,7 @@ class BackupService {
     // routine "settings failed". Log the caught failure (guarded so it never
     // reaches a release build, per #617) so the failure isn't invisible.
     try {
-      await _applyAppSettings(read, warnings);
+      await _applyAppSettings(read, warnings, errors: errors, mode: mode);
     } on Exception catch (e, st) {
       // diagnostics: silent — settings-apply failed; outcome returned to caller (general_section._onRestoreBackup) which handles user surface.
       if (kDebugMode) {
@@ -513,23 +517,32 @@ class BackupService {
   ///
   /// Idempotent: for each section the backup describes, [_applyAppSettings] is
   /// a full REPLACE of that section (for settings: it removes stale eligible
-  /// keys, then re-sets each backed-up key), and it leaves undescribed sections
-  /// alone, so running it once or several times converges to the same state.
-  /// This makes the retry safe to invoke repeatedly, and a settings-apply
-  /// failure that recurs is reported (again) as [BackupRestoreOutcome.applied]
-  /// `true` with [BackupRestoreOutcome.settingsFailed] `true` rather than thrown
-  /// (an [Error], i.e. a programming bug, is deliberately NOT caught so it
+  /// keys, then re-sets each backed-up key) — except the user's glossary in a
+  /// merge, or when part of it could not be read, which is only added to —
+  /// and it leaves undescribed sections alone, so running it once or several
+  /// times converges to the same state. This makes the retry safe to invoke
+  /// repeatedly, and a settings-apply failure that recurs is reported (again)
+  /// as [BackupRestoreOutcome.applied] `true` with
+  /// [BackupRestoreOutcome.settingsFailed] `true` rather than thrown (an
+  /// [Error], i.e. a programming bug, is deliberately NOT caught so it
   /// surfaces; the caught [Exception] is logged in debug builds).
-  Future<BackupRestoreOutcome> retryApplySettings(String json) async =>
-      retryApplySettingsFrom(
-        await decodeBackupOnIsolate(json, runner: _codecRunner),
-      );
+  ///
+  /// [mode] is the mode the restore being retried ran in. It is required so a
+  /// retry can never delete glossary entries a merge restore would have kept.
+  Future<BackupRestoreOutcome> retryApplySettings(
+    String json, {
+    required RestoreMode mode,
+  }) async => retryApplySettingsFrom(
+    await decodeBackupOnIsolate(json, runner: _codecRunner),
+    mode: mode,
+  );
 
   /// [retryApplySettings] over an already-decoded [read] (e.g. the one the
   /// restore just produced), so the retry does not decode the whole file again.
   Future<BackupRestoreOutcome> retryApplySettingsFrom(
-    BackupReadResult read,
-  ) async {
+    BackupReadResult read, {
+    required RestoreMode mode,
+  }) async {
     final errors = <ArchiveError>[...read.errors];
     final warnings = <String>[...read.warnings];
 
@@ -546,7 +559,7 @@ class BackupService {
     }
 
     try {
-      await _applyAppSettings(read, warnings);
+      await _applyAppSettings(read, warnings, errors: errors, mode: mode);
     } on Exception catch (e, st) {
       // diagnostics: silent — settings-apply retry failed; outcome returned to caller (general_section._retrySettingsRestore) which handles user surface.
       if (kDebugMode) {
@@ -567,8 +580,82 @@ class BackupService {
     );
   }
 
+  /// The user's own glossary (#709), when the backup describes it.
+  ///
+  /// One transaction, so it is applied whole or not at all. A replace restore
+  /// replaces it: live entries and notes the backup does not hold are deleted
+  /// softly, leaving tombstones for sync to carry once these have a record
+  /// kind. A merge restore only adds and
+  /// updates, as a merge does for the collection. Either way nothing is
+  /// deleted when part of the section could not be read
+  /// ([BackupReadResult.glossaryComplete]), since what was lost cannot be told
+  /// apart from what the backup lacks.
+  ///
+  /// An entry or note the repository refuses (over a bound, or a payload that
+  /// cannot be stored, in a hand-edited file) is skipped, its live copy kept,
+  /// and reported as an error so the restore says something was skipped.
+  ///
+  /// A backup made where the glossary was empty has no section (an empty one
+  /// would end v1's byte-for-byte compatibility), so restoring it leaves the
+  /// glossary here as it is rather than emptying it.
+  Future<void> _applyGlossary(
+    BackupReadResult read,
+    List<ArchiveError> errors, {
+    required RestoreMode mode,
+  }) => _repos.transaction(() async {
+    final doc = read.document;
+    final removeMissing = mode == RestoreMode.replace && read.glossaryComplete;
+    if (removeMissing) {
+      final keptIds = {for (final e in doc.glossaryEntries) e.id};
+      for (final live in await _repos.userGlossary.listAll()) {
+        if (!keptIds.contains(live.id)) {
+          await _repos.userGlossary.delete(live.id);
+        }
+      }
+      final keptNotes = {for (final n in doc.figureNotes) n.figureId};
+      for (final live in await _repos.figureNotes.listAll()) {
+        if (!keptNotes.contains(live.figureId)) {
+          await _repos.figureNotes.delete(live.figureId);
+        }
+      }
+    }
+    for (final entry in doc.glossaryEntries) {
+      try {
+        await _repos.userGlossary.upsert(entry);
+      } on UserGlossaryEntryInvalid catch (e) {
+        // diagnostics: silent — the skipped entry is reported in the restore outcome's errors.
+        errors.add(
+          ArchiveError(
+            kind: ArchiveErrorKind.restore,
+            entityType: 'glossaryEntry',
+            entityId: entry.id,
+            message:
+                'glossary entry skipped: ${e.field} cannot be stored', // i18n-ignore: internal diagnostic, never shown
+          ),
+        );
+      }
+    }
+    for (final note in doc.figureNotes) {
+      try {
+        await _repos.figureNotes.set(note.figureId, note.notes);
+      } on FigureNoteInvalid {
+        // diagnostics: silent — the skipped note is reported in the restore outcome's errors.
+        errors.add(
+          ArchiveError(
+            kind: ArchiveErrorKind.restore,
+            entityType: 'figureNote',
+            entityId: note.figureId,
+            message:
+                'figure note skipped: too long', // i18n-ignore: internal diagnostic, never shown
+          ),
+        );
+      }
+    }
+  });
+
   /// Writes the backup's app-local pieces into the `settings` table so the
-  /// dialect/theme controllers and preference notifiers pick them up on reload.
+  /// dialect/theme controllers and preference notifiers pick them up on reload,
+  /// and the user's glossary into its own tables ([_applyGlossary]).
   ///
   /// Each section the backup **describes** (`app.settings`, `app.dialects`,
   /// `app.themes` present as objects — see [BackupReadResult.hasSettingsSection]
@@ -583,8 +670,10 @@ class BackupService {
   /// explicitly below.
   Future<void> _applyAppSettings(
     BackupReadResult read,
-    List<String> warnings,
-  ) async {
+    List<String> warnings, {
+    required List<ArchiveError> errors,
+    required RestoreMode mode,
+  }) async {
     final doc = read.document;
     final settings = _repos.settings;
 
@@ -613,6 +702,10 @@ class BackupService {
       if (active != null) {
         await settings.set(kActiveDialectKey, active.toJson());
       }
+    }
+
+    if (read.hasGlossarySection) {
+      await _applyGlossary(read, errors, mode: mode);
     }
 
     // Custom themes: rewrite the list and the active id.

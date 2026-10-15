@@ -102,6 +102,13 @@ const Map<String, String> _sources = {
   'venues.time': 'TERMSRC venue time',
   'venues.price': 'TERMSRC venue price',
   'published_sources.url': 'https://termsrc-source.example',
+  'user_glossary_entries.name': 'TERMSRC glossary name',
+  'user_glossary_entries.definition': 'TERMSRC glossary definition',
+  'user_glossary_entries.description': 'TERMSRC glossary description',
+  'user_glossary_entries.notes': 'TERMSRC glossary notes',
+  'user_glossary_entries.keywords_json': 'TERMSRC glossary keyword',
+  'user_glossary_entries.payload_json': 'TERMSRC compound template note',
+  'figure_notes.notes': 'TERMSRC figure note',
 };
 
 /// Freeform scalar TEXT columns the registry classifies non-personal
@@ -130,6 +137,16 @@ const Set<String> _alsoRequiredColumns = {
   'venues.time',
   'venues.price',
   'published_sources.url',
+  // The user's own glossary (#709): about no person by intent, but the
+  // user's own words all the same. The payload holds a compound's parameter
+  // names and its template figures' notes.
+  'user_glossary_entries.name',
+  'user_glossary_entries.definition',
+  'user_glossary_entries.description',
+  'user_glossary_entries.keywords_json',
+  'user_glossary_entries.notes',
+  'user_glossary_entries.payload_json',
+  'figure_notes.notes',
 };
 
 /// Required columns that deliberately have no term source, with the reason.
@@ -139,6 +156,10 @@ const Set<String> _alsoRequiredColumns = {
 const Map<String, String> _exempt = {};
 
 String _v(String column) => _sources[column]!;
+
+/// A compound parameter's name, which the user chose: stored in the payload
+/// beside [_sources]' template note, and collected with it.
+const _glossaryParamKey = 'TERMSRC compound parameter';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -223,6 +244,33 @@ Future<void> _populate(CompendiumRepositories repos) async {
       position: 99,
     ),
   );
+  await repos.userGlossary.upsert(
+    UserGlossaryEntry(
+      id: 'fixture-glossary',
+      kindName: UserGlossaryEntryKind.compound.name,
+      name: _v('user_glossary_entries.name'),
+      definition: _v('user_glossary_entries.definition'),
+      description: _v('user_glossary_entries.description'),
+      notes: _v('user_glossary_entries.notes'),
+      keywords: [_v('user_glossary_entries.keywords_json')],
+      payload: {
+        'params': [
+          {'key': _glossaryParamKey, 'kind': 'handedness'},
+        ],
+        'figures': [
+          figureToJson(
+            Figure(
+              move: 'swing',
+              note: _v('user_glossary_entries.payload_json'),
+            ),
+          ),
+        ],
+        'bindings': <Object?>[],
+      },
+      createdAt: DateTime.utc(2026, 10, 14),
+    ),
+  );
+  await repos.figureNotes.set('swing', _v('figure_notes.notes'));
   await repos.dances.create(
     Dance(
       id: 'd1',
@@ -365,6 +413,12 @@ void main() {
         );
       },
     );
+
+    test('the collector returns a compound\'s parameter names', () async {
+      final repos = openTestRepositories();
+      await _populate(repos);
+      expect(await collectSensitiveTerms(repos), contains(_glossaryParamKey));
+    });
 
     test('the collector returns every declared source value', () async {
       final repos = openTestRepositories();
