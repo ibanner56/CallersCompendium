@@ -1,3 +1,4 @@
+import '../dialect/canonicalize.dart';
 import '../dialect/dialect.dart';
 import '../model/figure.dart';
 import 'taxonomy.dart';
@@ -32,6 +33,13 @@ String normalizeGlossaryName(String name) =>
 /// made, so that switching dialect cannot create a collision after the fact.
 /// A dialect's `%s` placeholder is ignored, as [Dialect.validate] ignores it.
 /// [userEntryNames] should leave out the entry being edited.
+///
+/// [candidate] may be the name as typed or as stored, canonical (#709): the
+/// app compares stored names, as the Glossary flags duplicates by them. A
+/// dialect's renames and the shorthand tokens are written in display words, so
+/// each is compared both as written and canonicalized as its dialect would
+/// store it — a rename "robins chain" and a name stored as "role2s chain" are
+/// the same name to the user.
 Set<GlossaryNameSource> glossaryNameCollisions(
   String candidate, {
   required Taxonomy taxonomy,
@@ -60,14 +68,21 @@ Set<GlossaryNameSource> glossaryNameCollisions(
       found.add(GlossaryNameSource.shippedKeyword);
     }
   }
+  bool sameIn(String written, Dialect dialect) =>
+      same(written) || same(canonicalizeGlossaryText(written, dialect));
   for (final dialect in dialects) {
     for (final rename in dialect.moves.values) {
-      if (same(rename.replaceAll(RegExp('%s', caseSensitive: false), ''))) {
+      final written = rename.replaceAll(RegExp('%s', caseSensitive: false), '');
+      if (sameIn(written, dialect)) {
         found.add(GlossaryNameSource.dialectMove);
       }
     }
   }
-  if (shorthandTokens.any(same)) found.add(GlossaryNameSource.shorthand);
+  if (shorthandTokens.any(
+    (token) => same(token) || dialects.any((d) => sameIn(token, d)),
+  )) {
+    found.add(GlossaryNameSource.shorthand);
+  }
   if (userEntryNames.any(same)) found.add(GlossaryNameSource.userEntry);
   return found;
 }
