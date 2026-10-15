@@ -9384,6 +9384,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Je notities zijn te lang om op te slaan. Maak ze korter en probeer het opnieuw.';
 
   @override
+  String get glossaryOverBudget =>
+      'Je woordenlijst heeft de maximale grootte bereikt, dus dit kon niet worden opgeslagen. Maak ruimte door andere figuren of notities te verwijderen of in te korten en probeer het opnieuw.';
+
+  @override
   String get compoundEditorTitleNew => 'Nieuwe figuur';
 
   @override

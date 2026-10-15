@@ -8965,6 +8965,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get glossaryNotesTooLong => 'メモが長すぎるため保存できません。短くしてもう一度お試しください。';
 
   @override
+  String get glossaryOverBudget =>
+      '用語集のサイズが上限に達したため、保存できませんでした。ほかのフィギュアやメモを削除するか短くして空きを作り、もう一度お試しください。';
+
+  @override
   String get compoundEditorTitleNew => '新しいフィギュア';
 
   @override

@@ -49,26 +49,95 @@ bool userGlossaryPayloadIsJson(String text) {
   }
 }
 
+/// The most the user's glossary (entries and figure notes together) may hold
+/// when written through the editor or a restore, counted as
+/// [glossaryRowBytes]: the UTF-8 bytes of every stored text column plus
+/// [kGlossaryRowOverheadBytes] a row. A write that would take the total past
+/// it is refused as [UserGlossaryEntryInvalid] or [FigureNoteInvalid]; rows
+/// already there are never touched. A row that arrives by sync is not refused
+/// (see [UserGlossaryRepository.writeFromSync]).
+///
+/// Why a total, and why 4 MiB. Each field has its own bound, but 5000 entries
+/// at those bounds come to gigabytes, while a backup is one file that restore
+/// reads into memory, capped at 50 MiB (`kMaxBackupFileBytes`, in the app
+/// package), and export refuses to write past it. A glossary that outgrew the
+/// cap left the user unable to back up at all, so the bound has to hold when
+/// the data is written.
+///
+/// The arithmetic, worst case. The backup container is double-encoded (its
+/// payload is the document JSON as a string), so a `"` or `\` stored as 1 byte
+/// is written as 4 (`\\\"` for a quote); a newline, tab or return as 3; text
+/// outside ASCII as itself, since `jsonEncode` does not escape it; the control
+/// characters that would cost 7 are stripped on write. Keywords and payload are
+/// stored as JSON already, so they cost at most 2 a byte. Four times the
+/// counted bytes therefore bounds what the glossary adds to the file: 4 MiB x 4
+/// = 16 MiB, under a third of the 50 MiB cap, which leaves 34 MiB for
+/// everything else (the app's own estimate is about 30 MiB for a lean
+/// 20,000-dance library). Typical use is far below: a compound is 23-91 KB, so
+/// 4 MiB holds roughly 45 to 170 of them, or a few thousand short entries. The
+/// bound limits what the glossary can add; a collection that is already near
+/// the cap by itself can still reach it.
+///
+/// Rejected: a budget at export. The user would still be unable to back up,
+/// and the only way out would be deleting entries blind.
+const int maxUserGlossaryBytes = 4 * 1024 * 1024;
+
+/// Counted against [maxUserGlossaryBytes] for each entry and each figure note
+/// on top of its text: the keys, id, kind and timestamp the backup writes
+/// around it (about 250 bytes before the container escapes it again), rounded
+/// up.
+const int kGlossaryRowOverheadBytes = 512;
+
+/// What a glossary entry or figure note holding these stored text values counts
+/// for against [maxUserGlossaryBytes]; a null counts as empty.
+///
+/// The repositories total the same quantity in SQL over the stored columns
+/// (`LENGTH(CAST(col AS BLOB))` is a column's UTF-8 byte length), so this is
+/// what a row weighs once written.
+int glossaryRowBytes(Iterable<String?> storedTexts) {
+  var total = kGlossaryRowOverheadBytes;
+  for (final text in storedTexts) {
+    if (text != null) total += utf8.encode(text).length;
+  }
+  return total;
+}
+
 /// Thrown when an entry's required text is empty, a field is over its bound,
-/// or its id or kind is not an identifier sync can carry.
+/// its id or kind is not an identifier sync can carry, or storing it would take
+/// the glossary past [maxUserGlossaryBytes].
 class UserGlossaryEntryInvalid implements Exception {
   const UserGlossaryEntryInvalid(this.field);
 
-  /// `id`, `kind`, `name`, `definition`, `description`, `keywords`, `notes`
-  /// or `payload`.
+  /// The write would take the glossary past [maxUserGlossaryBytes]. Nothing is
+  /// wrong with the entry itself: the rest of the glossary has no room for it.
+  const UserGlossaryEntryInvalid.overBudget() : field = budgetField;
+
+  /// The [field] of [UserGlossaryEntryInvalid.overBudget].
+  static const String budgetField = 'budget';
+
+  /// `id`, `kind`, `name`, `definition`, `description`, `keywords`, `notes`,
+  /// `payload` or [budgetField].
   final String field;
+
+  /// Whether this is [UserGlossaryEntryInvalid.overBudget], not a field bound.
+  bool get isOverBudget => field == budgetField;
 
   @override
   String toString() => 'UserGlossaryEntryInvalid($field)';
 }
 
 /// Thrown when a note on a shipped figure is over its bound, or its figure id
-/// is not an identifier sync can carry.
+/// is not an identifier sync can carry, or, with [overBudget], when the
+/// glossary has no room for it ([maxUserGlossaryBytes]).
 class FigureNoteInvalid implements Exception {
-  const FigureNoteInvalid();
+  const FigureNoteInvalid({this.overBudget = false});
+
+  /// The note is within its own bound; the glossary has no room for it.
+  final bool overBudget;
 
   @override
-  String toString() => 'FigureNoteInvalid';
+  String toString() =>
+      overBudget ? 'FigureNoteInvalid(budget)' : 'FigureNoteInvalid';
 }
 
 /// The user's own glossary entries (#709).
@@ -81,10 +150,16 @@ class FigureNoteInvalid implements Exception {
 /// sanitised and normalised on write (sync-spec §4.1, §4.6), as every
 /// shareable text column is; canonicalizing role words is the caller's job,
 /// before it gets here.
+///
+/// The whole glossary, entries and [FigureNoteRepository] notes together, is
+/// held to [maxBytes] ([maxUserGlossaryBytes]) when written: see [upsert].
 class UserGlossaryRepository {
-  UserGlossaryRepository(this._db);
+  UserGlossaryRepository(this._db, {this.maxBytes = maxUserGlossaryBytes});
 
   final CompendiumDatabase _db;
+
+  /// The glossary's byte budget; only a test passes anything but the default.
+  final int maxBytes;
 
   /// Every live entry, oldest first; with [includeDeleted], tombstones too.
   Future<List<UserGlossaryEntry>> listAll({bool includeDeleted = false}) async {
@@ -114,6 +189,13 @@ class UserGlossaryRepository {
   /// sync could not carry (empty, over [maxUserGlossaryNameLength], or not
   /// normalised) is refused as [UserGlossaryEntryInvalid], so a restored
   /// backup cannot store a row every peer would refuse.
+  ///
+  /// Refused as [UserGlossaryEntryInvalid.overBudget] when the write would take
+  /// the glossary past [maxBytes] *and* make this entry larger than it was, as
+  /// stored. A write that does not grow its entry always goes through, so a
+  /// glossary already over the budget (one from before there was a budget, a
+  /// restored backup, or one that sync filled) can still be edited down and
+  /// pruned; it just cannot grow.
   Future<void> upsert(UserGlossaryEntry entry, {DateTime? at}) async {
     final now = resolveStamp(at);
     if (!_isSyncableIdentifier(entry.id)) {
@@ -192,7 +274,11 @@ class UserGlossaryRepository {
   /// Applies a validated inbound sync record (#709).
   ///
   /// Separate from [upsert] per sync-spec §6.7, so the editor's path cannot
-  /// change what an inbound apply does. The entry is written as the peer sent
+  /// change what an inbound apply does. It is not held to [maxBytes]: a peer's
+  /// row is applied or the two devices never converge, and the peer's own
+  /// glossary was within the budget when it was written. A glossary that sync
+  /// fills past the budget can still be exported (up to the backup file cap)
+  /// and edited down, but not grown. The entry is written as the peer sent
   /// it: its kind and payload text verbatim, whether or not this build can
   /// read them, and its creation time unchanged, since which of two entries
   /// sharing a name is flagged for rename is decided by it. Text is normalised
@@ -339,11 +425,54 @@ class UserGlossaryRepository {
   }
 }
 
-/// The user's notes on shipped figures (#709).
+// SQL for what a live row counts for against [maxUserGlossaryBytes]: the same
+// quantity as [glossaryRowBytes], over the stored columns. `LENGTH` of a BLOB
+// is its byte length, and a text column cast to one is its UTF-8 encoding.
+const String _entryBytesSql =
+    '$kGlossaryRowOverheadBytes'
+    ' + LENGTH(CAST(name AS BLOB)) + LENGTH(CAST(definition AS BLOB))'
+    ' + LENGTH(CAST(description AS BLOB)) + LENGTH(CAST(keywords_json AS BLOB))'
+    ' + COALESCE(LENGTH(CAST(notes AS BLOB)), 0)'
+    ' + COALESCE(LENGTH(CAST(payload_json AS BLOB)), 0)';
+const String _noteBytesSql =
+    '$kGlossaryRowOverheadBytes'
+    ' + LENGTH(CAST(figure_id AS BLOB)) + LENGTH(CAST(notes AS BLOB))';
+
+/// The bytes every live glossary entry and figure note counts for together
+/// ([total]), and what the one row named by [entryId] or [figureId] counts for
+/// ([row]; 0 when there is none, or it is deleted). Deleted rows are not in the
+/// backup, so they count for nothing.
+Future<({int total, int row})> _glossaryBytes(
+  CompendiumDatabase db, {
+  String? entryId,
+  String? figureId,
+}) async {
+  final result = await db
+      .customSelect(
+        'SELECT'
+        ' (SELECT COALESCE(SUM($_entryBytesSql), 0) FROM user_glossary_entries'
+        '   WHERE deleted_at IS NULL)'
+        ' + (SELECT COALESCE(SUM($_noteBytesSql), 0) FROM figure_notes'
+        '   WHERE deleted_at IS NULL) AS total,'
+        ' (SELECT COALESCE(SUM($_entryBytesSql), 0) FROM user_glossary_entries'
+        '   WHERE deleted_at IS NULL AND id = ?)'
+        ' + (SELECT COALESCE(SUM($_noteBytesSql), 0) FROM figure_notes'
+        '   WHERE deleted_at IS NULL AND figure_id = ?) AS own',
+        variables: [Variable<String>(entryId), Variable<String>(figureId)],
+      )
+      .getSingle();
+  return (total: result.read<int>('total'), row: result.read<int>('own'));
+}
+
+/// The user's notes on shipped figures (#709). They count against the same
+/// [maxUserGlossaryBytes] as the glossary entries.
 class FigureNoteRepository {
-  FigureNoteRepository(this._db);
+  FigureNoteRepository(this._db, {this.maxBytes = maxUserGlossaryBytes});
 
   final CompendiumDatabase _db;
+
+  /// The glossary's byte budget; only a test passes anything but the default.
+  final int maxBytes;
 
   /// Every live note; with [includeDeleted], tombstones too.
   Future<List<FigureNote>> listAll({bool includeDeleted = false}) async {
@@ -369,7 +498,10 @@ class FigureNoteRepository {
   /// Sets the note on [figureId]. Empty text deletes it; text over
   /// [maxUserGlossaryTextLength], or a figure id sync could not carry (empty,
   /// over [maxUserGlossaryNameLength], or not normalised), is refused as
-  /// [FigureNoteInvalid].
+  /// [FigureNoteInvalid]. So is a note that would take the glossary past
+  /// [maxBytes] and is larger than the one it replaces
+  /// ([FigureNoteInvalid.overBudget]); a note that does not grow always goes
+  /// through, as [UserGlossaryRepository.upsert] does.
   Future<void> set(String figureId, String notes, {DateTime? at}) async {
     final now = resolveStamp(at);
     if (!_isSyncableIdentifier(figureId)) throw const FigureNoteInvalid();
@@ -400,7 +532,9 @@ class FigureNoteRepository {
 
   /// Applies a validated inbound sync record (#709). Separate from [set] per
   /// sync-spec §6.7: the note is written as the peer sent it, never deleted
-  /// for being empty, and the sync engine restores its timestamps after.
+  /// for being empty, and the sync engine restores its timestamps after. Not
+  /// held to [maxBytes], for the reason [UserGlossaryRepository.writeFromSync]
+  /// gives.
   Future<void> writeFromSync(FigureNote note, {DateTime? at}) async {
     final now = resolveStamp(at);
     await _db

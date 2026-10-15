@@ -347,5 +347,37 @@ void main() {
         isNull,
       );
     });
+
+    testWidgets('a note the full Glossary has no room for says so, not that '
+        'the note is too long', (tester) async {
+      final h = await pump(tester);
+      // Rows written before there was a budget, put there directly because
+      // the repository would now refuse them.
+      await tester.runAsync(
+        () => h.repos.db.customStatement(
+          'INSERT INTO user_glossary_entries '
+          '(id, kind, name, definition, description, created_at) '
+          "VALUES ('old', 'compound', 'old', 'd', "
+          "replace(hex(zeroblob(${maxUserGlossaryBytes + 1024})), '00', 'x'), 0)",
+        ),
+      );
+      await search(tester, 'swing');
+      await tester.tap(find.byKey(const ValueKey('glossary-entry-swing')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('glossary-notes-field')),
+        'Larks finish on the left',
+      );
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-save')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('has reached its size limit'), findsOneWidget);
+      expect(find.textContaining('too long to save'), findsNothing);
+      expect(
+        await tester.runAsync(() => h.repos.figureNotes.get('swing')),
+        isNull,
+      );
+    });
   });
 }
