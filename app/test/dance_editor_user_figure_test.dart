@@ -142,4 +142,27 @@ void main() {
     expect(use.text, 'role1s zoom zoom-id around');
     expect(use.attached, isTrue);
   });
+
+  test('a use\'s line is not canonicalized as a typed line is, which would '
+      'detach it, but a detached one is', () {
+    final entry = zoom();
+    final params = userFigureDraftParams(
+      entry,
+      decodeUserFigureDefinition(entry.payload)!,
+    );
+    String shout(String text) => text.toUpperCase();
+
+    final attached = FigureDraft(
+      move: customMove,
+      params: params,
+    ).toFigure(canonicalizeNote: shout)!;
+    expect(attached.params['text'], 'role1s zoom zoom-id around');
+    expect(userFigureUseOf(attached)!.attached, isTrue);
+
+    final detached = FigureDraft(
+      move: customMove,
+      params: {...params, userFigureCheckKey: '00000000'},
+    ).toFigure(canonicalizeNote: shout)!;
+    expect(detached.params['text'], 'ROLE1S ZOOM ZOOM-ID AROUND');
+  });
 }
