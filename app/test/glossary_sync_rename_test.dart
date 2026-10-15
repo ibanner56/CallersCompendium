@@ -22,7 +22,11 @@ void main() {
     name: 'Grand spiral',
     definition: 'A spiral.',
     description: 'All the way round.',
-    payload: const {'params': [], 'figures': [], 'bindings': []},
+    payload: const {
+      'params': <Object?>[],
+      'figures': <Object?>[],
+      'bindings': <Object?>[],
+    },
     createdAt: createdAt,
   );
 

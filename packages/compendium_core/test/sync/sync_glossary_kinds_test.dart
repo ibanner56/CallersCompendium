@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:compendium_core/src/storage/database.dart';
 import 'package:compendium_core/src/sync/sync_glossary_body.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:test/test.dart';
@@ -40,7 +39,11 @@ void main() {
         description: 'All the way round.',
         keywords: const ['chain'],
         notes: 'Mind the hands.',
-        payload: const {'params': [], 'figures': [], 'bindings': []},
+        payload: const {
+          'params': <Object?>[],
+          'figures': <Object?>[],
+          'bindings': <Object?>[],
+        },
         createdAt: createdAt ?? created,
       );
 
@@ -176,7 +179,11 @@ void main() {
       final applied = (await b.userGlossary.getById('e1'))!;
       expect(applied.name, 'role1s chain');
       expect(applied.createdAt, created);
-      expect(applied.payload, {'params': [], 'figures': [], 'bindings': []});
+      expect(applied.payload, {
+        'params': <Object?>[],
+        'figures': <Object?>[],
+        'bindings': <Object?>[],
+      });
       expect(
         (await held(b, address)).wireHash,
         live.wireHash,

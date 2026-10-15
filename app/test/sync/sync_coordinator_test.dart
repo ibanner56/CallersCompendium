@@ -7342,7 +7342,11 @@ void main() {
           name: 'role1s spiral',
           definition: 'A spiral.',
           description: 'Round.',
-          payload: const {'params': [], 'figures': [], 'bindings': []},
+          payload: const {
+            'params': <Object?>[],
+            'figures': <Object?>[],
+            'bindings': <Object?>[],
+          },
           createdAt: created,
         ),
         at: created,
