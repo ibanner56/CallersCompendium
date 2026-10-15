@@ -1699,14 +1699,17 @@ class FigureRenderer {
   /// glossary canonicalization (`discouraged_terms.dart`).
   static Map<String, String> _discouragedDisplayTerms(Dialect dialect) => {
     for (final e in discouragedTermMeanings.entries)
-      e.key: switch (e.value) {
-        (canonical: final token, possessive: final possessive)
-            when roleTokens.contains(token) =>
-          possessive
-              ? possessiveSpelling(_roleTerm(token, dialect))
-              : _roleTerm(token, dialect),
-        (canonical: final name, possessive: _) => name,
-      },
+      // A term the dialect uses as its own role word is that role, shown as
+      // the dialect's own role substitution shows it (#709).
+      if (!discouragedTermClaimedBy(dialect, e.key))
+        e.key: switch (e.value) {
+          (canonical: final token, possessive: final possessive)
+              when roleTokens.contains(token) =>
+            possessive
+                ? possessiveSpelling(_roleTerm(token, dialect))
+                : _roleTerm(token, dialect),
+          (canonical: final name, possessive: _) => name,
+        },
   };
 
   /// Human phrasing for a set-relative facing token, shared by the derived

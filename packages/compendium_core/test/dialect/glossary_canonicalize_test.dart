@@ -72,13 +72,21 @@ void main() {
   });
 
   test('a discouraged term the dialect uses as its own role word is that '
-      'role', () {
+      'role, stored and shown', () {
     // "ravens" is discouraged (role2s) in the built-in table, but this
     // dialect calls role1 "raven": storing role2s would invert the role.
-    final birds = Dialect(
-      name: 'Ravens/Crows',
-      roles: const {'role1': RoleTerm('Raven'), 'role2': RoleTerm('Crow')},
-      discouragedTerms: Dialect.defaultDiscouragedTerms,
+    final birds = _birds;
+    expect(
+      FigureRenderer(
+        contraTaxonomy,
+      ).renderFreeTextWithCanonicalDiscouragedTerms('ravens cross', birds),
+      'ravens cross',
+      reason: 'shown as written, not as the other role',
+    );
+    // A word within a role term counts too.
+    expect(
+      canonicalizeGlossaryText('lady birds cross', _ladyBirds),
+      'role1s cross',
     );
     expect(canonicalizeGlossaryText('ravens cross', birds), 'role1s cross');
     expect(
@@ -105,12 +113,15 @@ void main() {
   });
 
   test('a stored discouraged term displays as the renderer displays the term '
-      'itself, in every preset dialect', () {
+      'itself, in every preset dialect and in custom ones', () {
     // Storage and display read one table (discouraged_terms.dart); this pins
     // that the two readers agree, so neither can drift from the other.
     final renderer = FigureRenderer(contraTaxonomy);
-    for (final dialect in Dialect.presets) {
+    for (final dialect in [...Dialect.presets, _birds, _ladyBirds]) {
       for (final term in discouragedTermMeanings.keys) {
+        // A term the dialect claims is its own role word, read by the role
+        // rules on both sides; the next test covers it.
+        if (discouragedTermClaimedBy(dialect, term)) continue;
         final stored = canonicalizeGlossaryText(term, dialect);
         expect(stored, storedDiscouragedTerms[term], reason: term);
         expect(
@@ -122,3 +133,15 @@ void main() {
     }
   });
 }
+
+final _birds = Dialect(
+  name: 'Ravens/Crows',
+  roles: const {'role1': RoleTerm('Raven'), 'role2': RoleTerm('Crow')},
+  discouragedTerms: Dialect.defaultDiscouragedTerms,
+);
+
+final _ladyBirds = Dialect(
+  name: 'Lady Birds/Jays',
+  roles: const {'role1': RoleTerm('Lady Bird'), 'role2': RoleTerm('Jay')},
+  discouragedTerms: Dialect.defaultDiscouragedTerms,
+);

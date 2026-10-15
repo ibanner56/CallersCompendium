@@ -60,10 +60,12 @@ Substitutor? _discouragedFor(Dialect dialect) =>
       }, caseInsensitive: true);
 
 /// The canonicalization chokepoint (dialect design §"Canonicalization on
-/// input"); user-glossary text has its own variant, [canonicalizeGlossaryText]. Inverse-maps the user's active dialect role terms — plus known
-/// legacy synonyms — back to canonical role tokens before persistence, so
-/// storage and search stay dialect-agnostic. Conservative: only exact,
-/// word-boundary term matches are rewritten; unknown prose is left as typed.
+/// input"); user-glossary text has its own variant,
+/// [canonicalizeGlossaryText]. Inverse-maps the user's active dialect role
+/// terms — plus known legacy synonyms — back to canonical role tokens before
+/// persistence, so storage and search stay dialect-agnostic. Conservative:
+/// only exact, word-boundary term matches are rewritten; unknown prose is
+/// left as typed.
 ///
 /// A role term that is also a move word is not rewritten to a role: "robin" in
 /// the move name "mad robin" (which is written in lowercase, "mad robin", as
@@ -108,36 +110,19 @@ final Map<Dialect, RoleCanonicalizer> _glossaryRoles = {};
 final Map<Dialect, Substitutor> _glossaryDiscouraged = {};
 
 /// The built-in discouraged terms as stored text, less any [dialect] uses as
-/// its own role word. A custom dialect may call a role "raven": there,
-/// "ravens" is that role, and storing it as the discouraged term's `role2s`
-/// would invert it, so the role canonicalizer reads it instead.
+/// its own role word ([discouragedTermClaimedBy]); the role canonicalizer
+/// reads those instead.
 Substitutor _glossaryDiscouragedFor(Dialect dialect) {
   final cached = _glossaryDiscouraged[dialect];
   if (cached != null) return cached;
   if (_glossaryDiscouraged.length >= _maxDialectRoles) {
     _glossaryDiscouraged.clear();
   }
-  final claimed = {
-    for (final term in dialect.roles.values) ...{
-      term.singular.toLowerCase(),
-      term.plural.toLowerCase(),
-    },
-  };
   return _glossaryDiscouraged[dialect] = Substitutor({
     for (final MapEntry(key: term, value: stored)
         in storedDiscouragedTerms.entries)
-      if (!claimed.contains(_withoutPossessive(term))) term: stored,
+      if (!discouragedTermClaimedBy(dialect, term)) term: stored,
   }, caseInsensitive: true);
-}
-
-/// [term] without a possessive ending (`'s`, `’s` or a bare `'`).
-String _withoutPossessive(String term) {
-  for (final ending in const ["'s", '’s', "'"]) {
-    if (term.endsWith(ending)) {
-      return term.substring(0, term.length - ending.length);
-    }
-  }
-  return term;
 }
 
 /// Canonicalizes text a user typed into their own glossary — a compound
