@@ -7774,7 +7774,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceEditorCompoundUnavailable =>
-      'Cette figure ne peut pas être développée : elle a été supprimée ou modifiée, ou n’accepte pas ces valeurs. À l’enregistrement, seul son nom est conservé.';
+      'Cette figure ne peut pas être développée : elle a été supprimée ou modifiée, ou n’accepte pas ces valeurs. À l’enregistrement, seuls son nom, ses temps, sa note et la marque de progression sont conservés.';
 
   @override
   String danceEditorFigureSummarySemantic(
@@ -9324,7 +9324,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Affiche vos propres figures dans le glossaire, où vous pouvez les ajouter et les modifier. Désactiver cette option les masque sans les supprimer.';
+      'Affiche vos propres figures dans le glossaire, où vous pouvez les ajouter et les modifier, et les propose quand vous modifiez une danse. Désactiver cette option les masque sans les supprimer.';
 
   @override
   String get settingsExperimentalShowCustomFiguresNeedsGlossary =>

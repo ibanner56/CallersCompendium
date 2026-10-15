@@ -11652,7 +11652,7 @@ abstract class AppLocalizations {
   /// Screen-reader phrase for a figure row that is one of the user's own custom figures. unavailable is 'yes' when it can no longer be expanded.
   ///
   /// In en, this message translates to:
-  /// **'{summary}, custom figure{unavailable, select, yes{, can\'t be expanded} other{}}'**
+  /// **'{summary}, your own figure{unavailable, select, yes{, can\'t be expanded} other{}}'**
   String danceEditorCompoundSemantic(String summary, String unavailable);
 
   /// Under a custom figure being edited in a dance: how many figures, and how many beats, it is replaced by when the dance is saved.
@@ -11664,7 +11664,7 @@ abstract class AppLocalizations {
   /// Shown on a dance's figure row that is one of the user's own custom figures when it can no longer be expanded into figures; the dance then saves it as a custom figure whose text is the name.
   ///
   /// In en, this message translates to:
-  /// **'This custom figure can\'t be expanded: it has been deleted or changed, or doesn\'t accept these values. Saving keeps it as its name alone.'**
+  /// **'This figure of yours can\'t be expanded: it has been deleted or changed, or doesn\'t accept these values. Saving keeps only its name, beats, note and progression mark.'**
   String get danceEditorCompoundUnavailable;
 
   /// Composite screen-reader label for a figure row, including optional import-gap, progression, beats, and note details plus row position.
@@ -13883,7 +13883,7 @@ abstract class AppLocalizations {
   /// Subtitle of the Custom Figures switch while Show Glossary is on.
   ///
   /// In en, this message translates to:
-  /// **'Lists your own figures in the Glossary, where you can add and edit them. Turning this off hides them; it doesn\'t delete them.'**
+  /// **'Lists your own figures in the Glossary, where you can add and edit them, and offers them when you edit a dance. Turning this off hides them; it doesn\'t delete them.'**
   String get settingsExperimentalShowCustomFiguresSubtitle;
 
   /// Subtitle of the Custom Figures switch while it is disabled because Show Glossary is off.

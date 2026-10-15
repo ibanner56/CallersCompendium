@@ -2206,7 +2206,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 taxonomy: widget.taxonomy,
                 dialect: widget.dialect,
                 initialText: name,
-                includeModifier: widget.allowModifierSelection,
+                // A placeholder is never a modifier's core, so the option
+                // would only discard it.
+                includeModifier: false,
                 includeCustomMove: widget.allowCustom,
                 compoundOptions: _compoundPickerOptions(),
                 compoundMarkerLabel: l10n.glossaryCustomMarker,

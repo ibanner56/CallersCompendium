@@ -9939,7 +9939,7 @@
       }
     }
   },
-  "danceEditorCompoundSemantic": "{summary}, custom figure{unavailable, select, yes{, can't be expanded} other{}}",
+  "danceEditorCompoundSemantic": "{summary}, your own figure{unavailable, select, yes{, can't be expanded} other{}}",
   "@danceEditorCompoundSemantic": {
     "description": "Screen-reader phrase for a figure row that is one of the user's own custom figures. unavailable is 'yes' when it can no longer be expanded.",
     "placeholders": {
@@ -9967,7 +9967,7 @@
       }
     }
   },
-  "danceEditorCompoundUnavailable": "This custom figure can't be expanded: it has been deleted or changed, or doesn't accept these values. Saving keeps it as its name alone.",
+  "danceEditorCompoundUnavailable": "This figure of yours can't be expanded: it has been deleted or changed, or doesn't accept these values. Saving keeps only its name, beats, note and progression mark.",
   "@danceEditorCompoundUnavailable": {
     "description": "Shown on a dance's figure row that is one of the user's own custom figures when it can no longer be expanded into figures; the dance then saves it as a custom figure whose text is the name."
   },
@@ -12069,7 +12069,7 @@
   "@settingsExperimentalShowCustomFiguresTitle": {
     "description": "Title of the switch, nested under Show Glossary, that shows the user's own compound figures in the Glossary (#709)."
   },
-  "settingsExperimentalShowCustomFiguresSubtitle": "Lists your own figures in the Glossary, where you can add and edit them. Turning this off hides them; it doesn't delete them.",
+  "settingsExperimentalShowCustomFiguresSubtitle": "Lists your own figures in the Glossary, where you can add and edit them, and offers them when you edit a dance. Turning this off hides them; it doesn't delete them.",
   "@settingsExperimentalShowCustomFiguresSubtitle": {
     "description": "Subtitle of the Custom Figures switch while Show Glossary is on."
   },

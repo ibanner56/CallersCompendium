@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -160,6 +162,21 @@ void main() {
       },
     );
 
+    test('a restored draft\'s placeholder takes the beats its compound has '
+        'now', () async {
+      final repos = openTestRepositories();
+      await repos.userGlossary.upsert(entry());
+      final controller = await loaded(repos);
+      final stale = placeholder()..compound!.beats = 3;
+      controller.figureDrafts.add(stale);
+      final snapshot = controller.captureSnapshot();
+      controller.figureDrafts.clear();
+
+      controller.applyRestoredDraft(snapshot);
+      expect(controller.figureDrafts.single.compound!.beats, 8);
+      expect(controller.figureDrafts.single.beats, 8);
+    });
+
     test('a duplicated placeholder keeps its values', () async {
       final repos = openTestRepositories();
       await repos.userGlossary.upsert(entry());
@@ -262,6 +279,29 @@ void main() {
         ],
       );
       expect(figures.skip(4).any((f) => f.move == customMove), isFalse);
+    });
+
+    testWidgets('a save expands with the compound as stored then, even when '
+        'the change has not reached the editor', (tester) async {
+      final repos = await pump(tester);
+      await tester.enterText(find.byKey(const ValueKey('title-field')), 'T');
+      await typeMove(tester, 'grand');
+      await tester.tap(find.byKey(option));
+      await tester.pumpAndSettle();
+      // Written past the repository, so the editor's watch is not told.
+      await tester.runAsync(
+        () => repos.db.customStatement(
+          'UPDATE user_glossary_entries SET payload_json = ? WHERE id = ?',
+          [jsonEncode(grandRightAndLeft(beats: 4).toJson()), 'grl'],
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final dance = (await tester.runAsync(repos.dances.listAll))!.single;
+      expect([
+        for (final f in figuresOf(dance).take(4)) f.params['beats'],
+      ], List.filled(4, 4));
     });
 
     testWidgets('no compound is offered while Custom Figures is off', (

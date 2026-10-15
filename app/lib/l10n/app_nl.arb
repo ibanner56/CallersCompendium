@@ -7666,17 +7666,17 @@
   "@danceEditorCompoundSummary": {
     "x-sourceSha256": "7f476fe79cafd92164769794845898ea0d554e4a05b2c9f9c5bf5c5ef7e5ec7a"
   },
-  "danceEditorCompoundSemantic": "{summary}, eigen figuur{unavailable, select, yes{, kan niet worden uitgebreid} other{}}",
+  "danceEditorCompoundSemantic": "{summary}, eigen figuur{unavailable, select, yes{, kan niet worden uitgevouwen} other{}}",
   "@danceEditorCompoundSemantic": {
-    "x-sourceSha256": "4c6bc0afebb84b79baf158be8b6300001403d7010168f341373133857e83ea8f"
+    "x-sourceSha256": "d04eb81bad5803bb1ed81eb9e75652aa7f2f8fd2fe282bc5d93eb028378a4aae"
   },
   "danceEditorCompoundExpandsTo": "Wordt bij het opslaan van de dans {count, plural, =1{1 figuur} other{{count} figuren}} ({beats, plural, =1{1 beat} other{{beats} beats}}).",
   "@danceEditorCompoundExpandsTo": {
     "x-sourceSha256": "e1e59e23f7602c299e99da09509da61d362a2d51216e964a0fdf7f0d85a6732d"
   },
-  "danceEditorCompoundUnavailable": "Deze eigen figuur kan niet worden uitgebreid: hij is verwijderd of gewijzigd, of accepteert deze waarden niet. Bij het opslaan blijft alleen de naam bewaard.",
+  "danceEditorCompoundUnavailable": "Deze eigen figuur kan niet worden uitgevouwen: hij is verwijderd of gewijzigd, of accepteert deze waarden niet. Bij het opslaan blijven alleen de naam, de beats, de notitie en de progressie bewaard.",
   "@danceEditorCompoundUnavailable": {
-    "x-sourceSha256": "f6c9e3b775b9468783ef477b151f73566a40ccefa53ded040d43710c5757b302"
+    "x-sourceSha256": "ed634f3cb27197c9dbd7a4c570a64adccedace935c49e3fbf8cbb4c54e532732"
   },
   "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progressie} other{}}{hasMove, select, yes{, {beats, plural, =1{1 beat} other{{beats} beats}}} other{}}{hasNote, select, yes{, notitie: {note}} other{}}. Figuur {position} van {total}.",
   "@danceEditorFigureSummarySemantic": {
@@ -9142,9 +9142,9 @@
   "@settingsExperimentalShowCustomFiguresTitle": {
     "x-sourceSha256": "5678ffb9929561067862bd046b5b3a21f57923e2403c78826dece4b932e87462"
   },
-  "settingsExperimentalShowCustomFiguresSubtitle": "Toont je eigen figuren in de woordenlijst, waar je ze kunt toevoegen en bewerken. Als je dit uitzet, worden ze verborgen, niet verwijderd.",
+  "settingsExperimentalShowCustomFiguresSubtitle": "Toont je eigen figuren in de woordenlijst, waar je ze kunt toevoegen en bewerken, en biedt ze aan wanneer je een dans bewerkt. Als je dit uitzet, worden ze verborgen, niet verwijderd.",
   "@settingsExperimentalShowCustomFiguresSubtitle": {
-    "x-sourceSha256": "817edbffcd2e85f8c4fa1329d4377ca8a04af6ad2484e4db5f4b5a37412a1535"
+    "x-sourceSha256": "1a77089cccd357d0a8a5b72258e36ce5746af7de119ec5c03b9c23fa4909d1eb"
   },
   "settingsExperimentalShowCustomFiguresNeedsGlossary": "Zet Woordenlijst tonen aan om je eigen figuren te gebruiken.",
   "@settingsExperimentalShowCustomFiguresNeedsGlossary": {

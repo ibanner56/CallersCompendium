@@ -7759,7 +7759,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get danceEditorCompoundUnavailable =>
-      'Diese eigene Figur kann nicht erweitert werden: Sie wurde gelöscht oder geändert, oder sie akzeptiert diese Werte nicht. Beim Speichern bleibt nur ihr Name erhalten.';
+      'Diese eigene Figur kann nicht erweitert werden: Sie wurde gelöscht oder geändert, oder sie akzeptiert diese Werte nicht. Beim Speichern bleiben nur Name, Takte, Notiz und Progression erhalten.';
 
   @override
   String danceEditorFigureSummarySemantic(
@@ -9312,7 +9312,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Zeigt deine eigenen Figuren im Glossar an, wo du sie hinzufügen und bearbeiten kannst. Ausschalten blendet sie aus, löscht sie aber nicht.';
+      'Zeigt deine eigenen Figuren im Glossar an, wo du sie hinzufügen und bearbeiten kannst, und bietet sie beim Bearbeiten eines Tanzes an. Ausschalten blendet sie aus, löscht sie aber nicht.';
 
   @override
   String get settingsExperimentalShowCustomFiguresNeedsGlossary =>

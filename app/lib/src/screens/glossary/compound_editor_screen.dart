@@ -41,8 +41,10 @@ const List<ParamKind> compoundParamKinds = [
 /// every slot the parameter fills; any other choice is shown, disabled, with
 /// the reason.
 ///
-/// Text is stored canonically ([canonicalizeGlossaryText]) and shown here in
-/// the active dialect.
+/// Text is stored canonically and shown here in the active dialect: the entry's
+/// own fields with [canonicalizeGlossaryText], and a note on one of its parts
+/// with [canonicalizeText], as a dance's figure notes are (see
+/// `docs/design/dialect.md`, "User-glossary text").
 class CompoundEditorScreen extends StatefulWidget {
   const CompoundEditorScreen({super.key, this.initial});
 
@@ -230,9 +232,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   /// The definition as it stands, with [override] in place of the binding of
   /// [draft]'s [slot] when given (null [override] unbinds it).
   ///
-  /// [canonicalizeNote] stores each figure's note as the dance editor stores
-  /// one: the save passes it, so a note re-renders in every dialect, in the
-  /// Glossary and in every dance the figure expands into.
+  /// [canonicalizeNote] stores each figure's note as a dance's figure notes
+  /// are stored, which the save passes, since an expansion copies the note
+  /// into a dance.
   CompoundDefinition _definitionNow({
     FigureDraft? draft,
     String? slot,

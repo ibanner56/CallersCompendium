@@ -7668,15 +7668,15 @@
   },
   "danceEditorCompoundSemantic": "{summary}, egen figur{unavailable, select, yes{, kan ikke udvides} other{}}",
   "@danceEditorCompoundSemantic": {
-    "x-sourceSha256": "4c6bc0afebb84b79baf158be8b6300001403d7010168f341373133857e83ea8f"
+    "x-sourceSha256": "d04eb81bad5803bb1ed81eb9e75652aa7f2f8fd2fe282bc5d93eb028378a4aae"
   },
   "danceEditorCompoundExpandsTo": "Bliver til {count, plural, =1{1 figur} other{{count} figurer}} ({beats, plural, =1{1 slag} other{{beats} slag}}), når dansen gemmes.",
   "@danceEditorCompoundExpandsTo": {
     "x-sourceSha256": "e1e59e23f7602c299e99da09509da61d362a2d51216e964a0fdf7f0d85a6732d"
   },
-  "danceEditorCompoundUnavailable": "Denne egen figur kan ikke udvides: den er slettet eller ændret, eller den accepterer ikke disse værdier. Når du gemmer, bevares kun dens navn.",
+  "danceEditorCompoundUnavailable": "Denne egen figur kan ikke udvides: den er slettet eller ændret, eller den accepterer ikke disse værdier. Når du gemmer, bevares kun navn, slag, note og progression.",
   "@danceEditorCompoundUnavailable": {
-    "x-sourceSha256": "f6c9e3b775b9468783ef477b151f73566a40ccefa53ded040d43710c5757b302"
+    "x-sourceSha256": "ed634f3cb27197c9dbd7a4c570a64adccedace935c49e3fbf8cbb4c54e532732"
   },
   "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}{hasMove, select, yes{, {beats, plural, =1{1 slag} other{{beats} slag}}} other{}}{hasNote, select, yes{, note: {note}} other{}}. Figur {position} af {total}.",
   "@danceEditorFigureSummarySemantic": {
@@ -9142,9 +9142,9 @@
   "@settingsExperimentalShowCustomFiguresTitle": {
     "x-sourceSha256": "5678ffb9929561067862bd046b5b3a21f57923e2403c78826dece4b932e87462"
   },
-  "settingsExperimentalShowCustomFiguresSubtitle": "Viser dine egne figurer i ordlisten, hvor du kan tilføje og redigere dem. Slår du det fra, skjules de, men de slettes ikke.",
+  "settingsExperimentalShowCustomFiguresSubtitle": "Viser dine egne figurer i ordlisten, hvor du kan tilføje og redigere dem, og tilbyder dem, når du redigerer en dans. Slår du det fra, skjules de, men de slettes ikke.",
   "@settingsExperimentalShowCustomFiguresSubtitle": {
-    "x-sourceSha256": "817edbffcd2e85f8c4fa1329d4377ca8a04af6ad2484e4db5f4b5a37412a1535"
+    "x-sourceSha256": "1a77089cccd357d0a8a5b72258e36ce5746af7de119ec5c03b9c23fa4909d1eb"
   },
   "settingsExperimentalShowCustomFiguresNeedsGlossary": "Slå Vis ordliste til for at bruge dine egne figurer.",
   "@settingsExperimentalShowCustomFiguresNeedsGlossary": {

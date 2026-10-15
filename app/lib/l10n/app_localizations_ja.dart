@@ -7370,7 +7370,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorCompoundUnavailable =>
-      'この自分のフィギュアは展開できません。削除または変更されたか、これらの値を受け付けません。保存すると名前だけが残ります。';
+      'この自分のフィギュアは展開できません。削除または変更されたか、これらの値を受け付けません。保存すると、名前・拍数・メモ・プログレッションだけが残ります。';
 
   @override
   String danceEditorFigureSummarySemantic(
@@ -8854,7 +8854,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      '自分のフィギュアを用語集に表示し、そこで追加や編集ができます。オフにすると非表示になりますが、削除はされません。';
+      '自分のフィギュアを用語集に表示し、そこで追加や編集ができます。ダンスの編集時にも選べます。オフにすると非表示になりますが、削除はされません。';
 
   @override
   String get settingsExperimentalShowCustomFiguresNeedsGlossary =>
