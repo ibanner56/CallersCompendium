@@ -83,8 +83,10 @@ final class CompoundSlotBinding {
 ///
 /// Templates are bundled taxonomy figures with fixed values; a bound slot's
 /// template value is replaced on expansion. A compound is a sequence of
-/// plain figures: no `custom` figure, no meanwhile or modifier container, and
-/// no compound inside a compound (maintainer, 2026-10-14).
+/// plain figures: no compound inside a compound (#709 consolidated spec,
+/// decision 3), and — the implementer's choice, so that every template has
+/// slots to bind and a figure to validate — no `custom` figure and no
+/// meanwhile or modifier container.
 final class CompoundDefinition {
   CompoundDefinition({
     required List<CompoundParam> params,
@@ -204,8 +206,10 @@ CompoundDefinition? decodeCompoundDefinition(Object? raw, Taxonomy taxonomy) {
   }
 }
 
-/// One slot per template figure and parameter at most.
-const int _maxBindings = maxCompoundFigures * 16;
+/// Each template figure's slots, each bound to at most one parameter: the
+/// bound is figures × [maxCompoundParams], which is above any move's slot
+/// count (hey's 11 is the most).
+const int _maxBindings = maxCompoundFigures * maxCompoundParams;
 
 ParamKind? _kindNamed(String name) {
   for (final kind in ParamKind.values) {
@@ -321,6 +325,11 @@ abstract final class CompoundIssueCodes {
   /// A slot's `beats`: the parts' beats are the compound's, not an input.
   static const beatsBinding = 'compound_beats_binding';
 
+  /// A slot an alias template pins (`meltdown_swing`'s `prefix`), where the
+  /// alias has no inverse pair to reroute to: a bound value would contradict
+  /// the alias's name. Bind on the move it resolves to instead.
+  static const pinnedSlot = 'compound_pinned_slot';
+
   /// A parameter is bound to a slot of another kind.
   static const typeMismatch = 'compound_type_mismatch';
 
@@ -425,6 +434,18 @@ List<ValidationIssue> validateCompound(
         {'figure': binding.figureIndex, 'slot': binding.slotKey},
       );
     }
+    final alias =
+        taxonomy.aliases[definition.figures[binding.figureIndex].move];
+    if (alias != null &&
+        alias.inversePairId == null &&
+        alias.pinnedParams.containsKey(binding.slotKey)) {
+      error(
+        CompoundIssueCodes.pinnedSlot,
+        'figure ${binding.figureIndex} slot "${binding.slotKey}" is pinned by '
+        '${alias.id}',
+        {'figure': binding.figureIndex, 'slot': binding.slotKey},
+      );
+    }
     if (binding.slotKey == 'beats') {
       error(
         CompoundIssueCodes.beatsBinding,
@@ -488,7 +509,8 @@ List<ValidationIssue> validateCompound(
 /// taxonomy's validation. The caller falls back to a custom figure; this
 /// never fabricates one.
 ///
-/// Each template is copied, then each of its bound slots is set through
+/// Each template is copied whole — its note, progression marker, wording and
+/// walkthrough overrides included — then each of its bound slots is set through
 /// [applyParamChange], so a bound value carries the editor's follow-on rules
 /// (a balance's ±4 beats, chain's hand, an inverse pair's reroute). A
 /// figure's slots are set in the order its move declares them, never in the
@@ -497,9 +519,10 @@ List<ValidationIssue> validateCompound(
 /// wins, whichever binding was saved first. The flags
 /// are fixed — a template that states its beats is treated as owning them,
 /// and the aggressive-beats preference is never consulted — so the same
-/// compound expands to the same figures on every device. A template's own
-/// note is kept; nothing records that a figure came from a compound
-/// (maintainer, 2026-10-14).
+/// compound expands to the same figures on every device. A bound `who` clears
+/// the template's assumed-subject mark, as editing `who` does in the editor.
+/// Nothing records that a figure came from a compound (#709 consolidated
+/// spec: expanded figures record no origin).
 List<Figure>? expandCompound(
   CompoundDefinition definition,
   Map<String, Object?> args,
@@ -557,7 +580,13 @@ List<Figure>? expandCompound(
         aggressiveBeats: false,
       );
     }
-    final figure = Figure(move: move, params: params, note: template.note);
+    final figure = template.copyWith(
+      move: move,
+      params: params,
+      assumedSubject:
+          template.assumedSubject &&
+          !figureBindings.any((b) => b.slotKey == 'who'),
+    );
     if (taxonomy
         .validateFigure(figure)
         .any((issue) => issue.severity == ValidationSeverity.error)) {
