@@ -931,7 +931,12 @@ GitHub's context-availability table has no row for `jobs.<job_id>.permissions`,
 so no `matrix` expression is available there. Narrowing the grant would mean
 splitting Windows back into its own job, which duplicates the shared setup
 steps; the Windows leg already runs the same dependency resolution as the
-other legs, so the gain is small.
+other legs, so the gain is small. (`jobs.<job_id>.environment`, unlike
+`permissions`, does accept a `matrix` expression, so Windows could be given an
+environment of its own with a distinct `sub`. That would let an Azure
+credential tell Windows from the other legs, but it would not narrow
+`id-token: write`, and it would need its own approvals and variables. It has
+not been adopted.)
 
 What this means in practice:
 
@@ -954,17 +959,21 @@ What this means in practice:
 
 The Azure federated credential and the `release-signing` environment's
 reviewers and deployment rules live in the Azure portal and the repository
-settings, not in this repository, so nothing in the workflow can narrow them
-and this repository does not record their current values. When reviewing them,
-check that:
+settings, not in this repository, so this repository can neither change them
+nor record their current values. When reviewing them, check that:
 
-- the credential's subject is the environment form above (a ref-based subject
-  such as `…:ref:refs/tags/v*` never matches a job that references an
+- the credential's subject is the environment form above (a ref-based subject,
+  in its branch or tag form, never matches a job that references an
   environment);
 - the service principal holds only the Artifact Signing Certificate Profile
   Signer role, scoped to the one signing account;
 - the environment has required reviewers, and that its deployment branch and
-  tag rule admits only the refs a release or a dry run is meant to run from.
+  tag rule admits only the refs a release or a dry run is meant to run from;
+- the five `AZURE_*` variables are repository variables, not set on the
+  `release-signing` environment: the `build` job would read an environment
+  variable of the same name in preference, but `publish_draft` has no
+  environment and would not see it, so the release notes would say the Windows
+  artifacts are unsigned while the leg had signed them.
 
 ## macOS (Developer ID signed + notarized)
 
