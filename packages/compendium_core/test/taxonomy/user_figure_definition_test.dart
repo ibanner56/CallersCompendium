@@ -77,10 +77,10 @@ void main() {
     test('strips control and bidi characters from the template and labels', () {
       final definition = decodeUserFigureDefinition(
         zoom(
-          template: '{who} zoom‮ around',
+          template: '{who} zoom\u202e around',
           params: [
             {'key': 'who', 'kind': 'dancerSet'},
-            {'key': 'flourish', 'kind': 'flag', 'label': 'with​ flair'},
+            {'key': 'flourish', 'kind': 'flag', 'label': 'with\u200b flair'},
           ],
         ),
       )!;
@@ -133,6 +133,13 @@ void main() {
         zoom(template: '{who'),
         zoom(template: '{unknown}'),
         {...zoom(), 'copiedFrom': 4},
+        {...zoom(), 'copiedFrom': 'x' * 65},
+        {...zoom(), 'form': 'x' * 33},
+        zoom(
+          params: [
+            {'key': 'where', 'kind': 'text', 'default': 'x' * 1001},
+          ],
+        ),
       ];
       for (final raw in hostile) {
         expect(
@@ -212,6 +219,38 @@ void main() {
           reason: params.map((p) => p.key).join(', '),
         );
       }
+    });
+
+    test('an empty key is refused, and never throws', () {
+      final definition = definitionWith([
+        UserFigureParam(key: '', kind: ParamKind.handedness),
+        UserFigureParam(key: '', kind: ParamKind.flag),
+      ]);
+      expect(() => definition.slots, returnsNormally);
+      expect(() => definition.unusedParams, returnsNormally);
+      expect(codes(definition), contains(UserFigureIssueCodes.badParamKey));
+    });
+
+    test('keys differing only in case are one key: they would share an '
+        'opposite slot', () {
+      expect(
+        codes(
+          definitionWith([
+            UserFigureParam(key: 'hand', kind: ParamKind.handedness),
+            UserFigureParam(key: 'Hand', kind: ParamKind.handedness),
+          ], template: '{hand} {Hand}'),
+        ),
+        contains(UserFigureIssueCodes.badParamKey),
+      );
+      expect(
+        codes(
+          definitionWith([
+            UserFigureParam(key: 'hand', kind: ParamKind.handedness),
+            UserFigureParam(key: 'OtherHand', kind: ParamKind.text),
+          ], template: '{hand} {OtherHand}'),
+        ),
+        contains(UserFigureIssueCodes.badParamKey),
+      );
     });
 
     test('a figure may not declare beats: they are the use\'s own', () {
@@ -313,7 +352,7 @@ void main() {
   group('glossaryEntryForm', () {
     test('reads any kind of entry\'s form, contra when it names none', () {
       expect(glossaryEntryForm(null), 'contra');
-      expect(glossaryEntryForm(const {'params': []}), 'contra');
+      expect(glossaryEntryForm(const {'params': <Object?>[]}), 'contra');
       expect(glossaryEntryForm(const {'form': 'ecd'}), 'ecd');
       expect(glossaryEntryForm(const {'form': 3}), 'contra');
     });

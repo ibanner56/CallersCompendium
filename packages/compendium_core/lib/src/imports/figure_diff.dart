@@ -58,6 +58,14 @@ const int kMaxFigureDiffLines = 200;
 /// a malformed/non-`String` value is treated as empty rather than thrown —
 /// this must never crash the comparison.
 ///
+/// A use of a figure of your own (#1023) is the exception among custom
+/// figures: while attached it keys on its figure's id and its arguments
+/// (`userFigure:<id>(<JSON of the arguments sorted by key>)`), case kept,
+/// rather than its stored line, which may lag the definition until the dance
+/// is next saved. Its arguments are compared as stored, so a stated value and
+/// the definition's default do not collapse. A detached use keys on its line,
+/// as any free-text figure.
+///
 /// **Deliberately excluded from the key** (owner-locked, #686): `beats`,
 /// [Figure.progression], [Figure.note], [Figure.walkthroughOverride],
 /// [Figure.wordingOverride],
@@ -95,15 +103,17 @@ String figureCanonicalKey(Figure figure, Taxonomy taxonomy) {
     // arguments, not its stored line: editing the definition re-renders
     // every use without rewriting the dances (maintainer decision 2), so two
     // uses with the same arguments may store different lines.
+    // The arguments are JSON-encoded, sorted by key and case kept, so no
+    // value can be read as a separator: two uses share a key only when they
+    // share every argument.
     final use = userFigureUseOf(figure);
     if (use != null && use.attached) {
       final keys = use.args.keys.toList()..sort();
-      final parts = [
+      final args = [
         for (final key in keys)
-          if (use.args[key] case final Object value)
-            '$key=${_normalizeValue(value)}',
+          if (use.args[key] != null) [key, use.args[key]],
       ];
-      return 'userFigure:${use.id}(${parts.join(',')})';
+      return 'userFigure:${use.id}(${jsonEncode(args)})';
     }
     final rawText = figure.params['text'];
     final text = rawText is String ? rawText : '';

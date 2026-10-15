@@ -4,6 +4,7 @@ import '../util/text_sanitizer.dart';
 import '../validation/validation.dart';
 import 'param_opposites.dart';
 import 'param_types.dart';
+import 'user_figure_use.dart';
 
 /// Most parameters a figure of your own may declare.
 const int maxUserFigureParams = 16;
@@ -32,10 +33,12 @@ const String userFigureMoveSlot = 'move';
 /// The slot every template may use for the use's beats.
 const String userFigureBeatsSlot = 'beats';
 
-/// Keys a declared parameter may not take: the reserved slots, the free-text
-/// key a figure's fallback line is stored under, and the role tokens, which
-/// display substitution would rewrite inside a template's `{…}` (the template
-/// is rendered in the dialect before its slots are filled).
+/// Longest dance form name a payload may carry.
+const int maxGlossaryEntryFormLength = 32;
+
+/// Keys a declared parameter may not take, compared ignoring case: the
+/// reserved slots, the free-text key a figure's fallback line is stored
+/// under, and the role tokens, which read as role words rather than slots.
 final Set<String> _reservedParamKeys = {
   userFigureMoveSlot,
   userFigureBeatsSlot,
@@ -47,10 +50,11 @@ final RegExp _paramKeyShape = RegExp(r'^[A-Za-z][A-Za-z0-9_]*$');
 final RegExp _choiceIdShape = RegExp(r'^[a-z0-9]{1,16}$');
 final RegExp _wordingSlot = RegExp(r'\{!?(\w+)\}');
 
-/// The template slot holding [key]'s opposite: `hand` → `otherHand` (#709's
-/// "other hand", offered and never declared).
+/// The template slot holding [key]'s opposite: for `hand`, other followed by
+/// Hand (#709's "other hand", offered and never declared). Empty for an
+/// empty key, which validation refuses.
 String userFigureOppositeSlot(String key) =>
-    'other${key[0].toUpperCase()}${key.substring(1)}';
+    key.isEmpty ? '' : 'other${key[0].toUpperCase()}${key.substring(1)}';
 
 /// One choice of a `choice` parameter (#1023): a stable [id] stored in the
 /// dances that use it, and an editable [label] shown in its place, so
@@ -187,7 +191,8 @@ final class UserFigureDefinition {
     userFigureBeatsSlot,
     for (final p in params) ...{
       p.key,
-      if (ParamOpposites.coverage(p.kind) != OppositeCoverage.none)
+      if (p.key.isNotEmpty &&
+          ParamOpposites.coverage(p.kind) != OppositeCoverage.none)
         userFigureOppositeSlot(p.key),
     },
   };
@@ -250,10 +255,13 @@ UserFigureDefinition? decodeUserFigureDefinition(Object? raw) {
     final rawParams = raw['params'];
     final copiedFrom = raw['copiedFrom'];
     if (form is! String ||
+        form.length > maxGlossaryEntryFormLength ||
         template is! String ||
         defaultBeats is! int ||
         rawParams is! List ||
-        (copiedFrom != null && copiedFrom is! String)) {
+        (copiedFrom != null &&
+            (copiedFrom is! String ||
+                copiedFrom.length > maxUserFigureParamKeyLength))) {
       return null;
     }
     if (rawParams.length > maxUserFigureParams) return null;
@@ -313,11 +321,16 @@ UserFigureParam? _decodeParam(Object? raw) {
       );
     }
   }
+  final defaultValue = raw['default'];
+  if (defaultValue is String &&
+      defaultValue.length > maxUserFigureTextArgLength) {
+    return null;
+  }
   return UserFigureParam(
     key: key,
     kind: kind,
     choices: choices,
-    defaultValue: raw['default'],
+    defaultValue: defaultValue,
     label: label == null
         ? null
         : sanitizeImportedText(label as String, allowLineBreaks: false),
@@ -401,11 +414,14 @@ List<ValidationIssue> validateUserFigure(UserFigureDefinition definition) {
     error(UserFigureIssueCodes.tooLarge, 'too many parameters');
   }
 
+  // Compared ignoring case: two keys differing only in case would share an
+  // opposite slot.
   final keys = <String>{};
   final opposites = <String>{};
   for (final p in definition.params) {
-    if (ParamOpposites.coverage(p.kind) != OppositeCoverage.none) {
-      opposites.add(userFigureOppositeSlot(p.key));
+    if (p.key.isNotEmpty &&
+        ParamOpposites.coverage(p.kind) != OppositeCoverage.none) {
+      opposites.add(userFigureOppositeSlot(p.key).toLowerCase());
     }
   }
   for (final p in definition.params) {
@@ -415,8 +431,8 @@ List<ValidationIssue> validateUserFigure(UserFigureDefinition definition) {
         !_paramKeyShape.hasMatch(p.key);
     if (badShape ||
         _reservedParamKeys.contains(p.key.toLowerCase()) ||
-        !keys.add(p.key) ||
-        opposites.contains(p.key)) {
+        !keys.add(p.key.toLowerCase()) ||
+        opposites.contains(p.key.toLowerCase())) {
       error(
         UserFigureIssueCodes.badParamKey,
         'parameter "${p.key}" has a bad, reserved or repeated key',

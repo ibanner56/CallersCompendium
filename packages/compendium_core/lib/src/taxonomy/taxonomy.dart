@@ -352,10 +352,7 @@ class Taxonomy {
     // A use of a figure of your own (#1023) is a custom figure with exactly
     // three more keys; they are checked as a whole, by shape.
     if (def.id == customMove && hasUserFigureReferenceKeys(figure)) {
-      final readable =
-          userFigureUseOf(figure) != null &&
-          userFigureReferenceKeys.every(figure.params.containsKey);
-      if (!readable) {
+      if (userFigureUseOf(figure) == null) {
         issues.add(
           const ValidationIssue(
             severity: ValidationSeverity.error,

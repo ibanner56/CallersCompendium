@@ -146,16 +146,18 @@ Figure userFigureUseFigure({
   progression: progression,
 );
 
-/// [figure] with its reference removed: a plain free-text figure showing the
-/// line it last stored. What deleting a definition does to its uses
-/// (maintainer decision 2: frozen as plain text).
-Figure detachUserFigureUse(Figure figure) {
+/// [figure] with its reference removed: a plain free-text figure showing
+/// [text], or the line it last stored when [text] is null. What deleting a
+/// definition does to its uses (maintainer decision 2: frozen as plain
+/// text); the caller passes the line the use renders to now, so freezing
+/// keeps what the user last saw rather than a line stored before an edit.
+Figure detachUserFigureUse(Figure figure, {String? text}) {
   if (!hasUserFigureReferenceKeys(figure)) return figure;
   return figure.copyWith(
     params: {
       for (final entry in figure.params.entries)
         if (!userFigureReferenceKeys.contains(entry.key))
-          entry.key: entry.value,
+          entry.key: entry.key == 'text' && text != null ? text : entry.value,
     },
   );
 }
@@ -222,8 +224,9 @@ final class UserFigureView {
 
 /// The user's own figures by id (#1023): what renders a use live.
 ///
-/// Built from the live glossary entries; a deleted entry is absent, so its
-/// uses show their stored line.
+/// Built from glossary entries the caller has already filtered to live ones
+/// ([fromEntries] does not filter deleted entries); a figure absent from it
+/// renders its uses' stored lines.
 final class UserFigureCatalog {
   const UserFigureCatalog._(this._byId);
 

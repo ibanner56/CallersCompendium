@@ -317,7 +317,8 @@ class ShorthandMappings {
 
     // A use of a figure of your own (#1023) never lives here: builds before
     // it drop such a mapping when they read this key, so refusing it keeps
-    // every build's reading the same. They have a key of their own.
+    // every build's reading the same. Shorthands for those figures are to
+    // get a key of their own.
     if (hasUserFigureReferenceKeys(figure)) return false;
     final issues = taxonomy.validateFigure(figure);
     return !issues.any((i) => i.severity == ValidationSeverity.error);

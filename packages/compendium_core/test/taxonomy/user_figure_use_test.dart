@@ -70,12 +70,12 @@ void main() {
 
     test('its check is taken over the text as the repository stores it', () {
       expect(
-        userFigureTextCheck('café zoom'),
-        userFigureTextCheck('café zoom'),
+        userFigureTextCheck('cafe\u0301 zoom'),
+        userFigureTextCheck('caf\u00e9 zoom'),
         reason: 'NFC-equivalent text has one check',
       );
       expect(
-        userFigureTextCheck('zoom​'),
+        userFigureTextCheck('zoom\u200b'),
         userFigureTextCheck('zoom'),
         reason: 'what normalisation strips does not count',
       );
@@ -119,6 +119,14 @@ void main() {
         isNull,
         reason: 'only a free-text figure holds one',
       );
+    });
+
+    test('detaching can freeze the line the use renders to now', () {
+      final frozen = detachUserFigureUse(
+        use(const {}, text: 'line stored before an edit'),
+        text: 'line after the edit',
+      );
+      expect(frozen.params, {'text': 'line after the edit'});
     });
 
     test('detaching keeps the line and drops only the reference', () {
@@ -284,7 +292,7 @@ void main() {
           ]),
         );
         expect(
-          textual.renderCanonical(use(const {'where': '{move} {beats}‮'})),
+          textual.renderCanonical(use(const {'where': '{move} {beats}\u202e'})),
           'zoom to {move} {beats}',
         );
       },
@@ -339,14 +347,41 @@ void main() {
       expect(flagged.renderCanonical(use(const {'prefix': false})), 'zoom');
     });
 
-    test('the canonical line is what a stored line is refreshed to', () {
+    test('the canonical line a stored line is refreshed to, and none '
+        'without the figure', () {
       final figure = use(const {'who': 'role1s', 'hand': 'left', 'style': 'f'});
       expect(
         renderer.renderUserFigureCanonical(figure),
-        renderer.renderCanonical(figure),
+        'role1s zoom left hand, then right fast',
       );
       expect(bare.renderUserFigureCanonical(figure), isNull);
     });
+
+    test(
+      'a text argument is one line, and its role words follow the dialect',
+      () {
+        final textual = FigureRenderer(
+          contraTaxonomy,
+          userFigures: UserFigureCatalog.fromEntries([
+            entry(
+              payload: const {
+                'template': '{move} to {where}',
+                'defaultBeats': 8,
+                'params': [
+                  {'key': 'where', 'kind': 'text'},
+                ],
+              },
+            ),
+          ]),
+        );
+        final figure = use(const {'where': 'the role1s\nand back'});
+        expect(textual.renderCanonical(figure), 'zoom to the role1s and back');
+        expect(
+          textual.render(figure, Dialect.larksRobins),
+          'zoom to the larks and back',
+        );
+      },
+    );
   });
 
   group('the dance diff key', () {
@@ -362,6 +397,13 @@ void main() {
         figureCanonicalKey(a, contraTaxonomy),
         isNot(figureCanonicalKey(c, contraTaxonomy)),
       );
+    });
+
+    test('no argument value can read as a separator, and case is kept', () {
+      String key(Map<String, Object?> args) =>
+          figureCanonicalKey(use(args), contraTaxonomy);
+      expect(key(const {'a': 'x,b=y'}), isNot(key(const {'a': 'x', 'b': 'y'})));
+      expect(key(const {'a': 'Paris'}), isNot(key(const {'a': 'paris'})));
     });
 
     test('keys a detached use by its line, as any free-text figure', () {

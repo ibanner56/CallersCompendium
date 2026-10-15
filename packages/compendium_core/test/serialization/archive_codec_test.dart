@@ -1695,6 +1695,30 @@ void main() {
       final result = decodeArchive(jsonEncode(archive));
       expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
       final figures = figuresOf(result.archive.dances.single);
+      // A use whose line is clean keeps its check through the decoder: it is
+      // still attached on the other side.
+      final clean = userFigureUseFigure(
+        id: 'zoom-id',
+        args: const {'hand': 'right'},
+        text: 'neighbors zoom',
+      );
+      final roundTrip = decodeArchive(
+        jsonEncode({
+          ...archive,
+          'dances': [
+            {
+              ...(archive['dances']! as List).single as Map<String, Object?>,
+              'figures': [figureToJson(clean)],
+            },
+          ],
+        }),
+      );
+      expect(
+        userFigureUseOf(
+          figuresOf(roundTrip.archive.dances.single).single,
+        )?.attached,
+        isTrue,
+      );
       for (final figure in [figures[0], figures[1].subFigures.first]) {
         expect(figure.params['text'], 'zoom');
         expect(figure.params['userFigureArgs'], {

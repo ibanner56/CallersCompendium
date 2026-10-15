@@ -142,7 +142,11 @@ class FigureRenderer {
   ///
   /// This is the ONE invariant: its output is persisted to
   /// `dance_figures.canonicalText` / `dance_fts` and is the dedupe key, so it
-  /// must stay byte-for-byte stable. It passes `forCanonical: true`, which
+  /// must stay byte-for-byte stable. One input besides the figure: an
+  /// attached use of a figure of your own (#1023) renders from its definition
+  /// in [userFigures], so its canonical text follows that definition, and
+  /// every renderer writing the index must be given the live figures (the
+  /// dance repository reads them as it indexes). It passes `forCanonical: true`, which
   /// bypasses every display-only polish (silenced defaults, subject omission,
   /// dancer-set singularization, shoulder injection) that [render] /
   /// [renderSummary] apply. As a result `render(figure, Dialect.canonical)`
@@ -387,6 +391,7 @@ class FigureRenderer {
         verbose: verbose,
         decimals: decimals,
         forCanonical: forCanonical,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
       );
       if (live != null) return live;
       final text = (figure.params['text'] as String?)?.trim() ?? '';
@@ -1682,16 +1687,19 @@ class FigureRenderer {
   /// its figure is not in [userFigures] or no longer decodes, or an argument
   /// is outside its parameter's values (a choice since removed, say).
   ///
-  /// The template is rendered in [dialect] first, then its slots are filled
-  /// in one pass that never rescans a value, so an argument can never inject
-  /// a slot. Role tokens cannot be parameter keys, so substitution cannot
-  /// touch a `{…}`.
+  /// The template's slots are filled first, in one pass that never rescans
+  /// a value, so an argument can never inject a slot; the assembled line is
+  /// then rendered in [dialect] as free text is, so a dialect's role word
+  /// can never add a slot or a group either. Text, choice and flag slots are
+  /// filled with their canonical words and rendered with the line; the
+  /// other kinds render through [_renderValue], already in [dialect].
   String? _renderUserFigure(
     Figure figure,
     Dialect dialect, {
     required bool verbose,
     required bool decimals,
     required bool forCanonical,
+    bool canonicalizeDiscouragedTerms = false,
   }) {
     final use = userFigureUseOf(figure);
     if (use == null || !use.attached) return null;
@@ -1727,16 +1735,21 @@ class FigureRenderer {
               );
       }
     }
-    slots[userFigureMoveSlot] = renderFreeText(view.name, dialect);
+    slots[userFigureMoveSlot] = view.name;
     final beats = figure.params['beats'];
     slots[userFigureBeatsSlot] = _formatNumber(
       beats is int ? beats : definition.defaultBeats,
     );
     final line = _assembleDisplayTemplate(
-      _displayTemplate(slots, renderFreeText(definition.template, dialect)),
+      _displayTemplate(slots, definition.template),
     );
-    return line.isEmpty ? null : line;
+    if (line.isEmpty) return null;
+    return canonicalizeDiscouragedTerms
+        ? renderFreeTextWithCanonicalDiscouragedTerms(line, dialect)
+        : renderFreeText(line, dialect);
   }
+
+  static final RegExp _lineBreaks = RegExp(r'\r\n|[\r\n\u2028\u2029]');
 
   String _renderUserFigureValue(
     UserFigureParam param,
@@ -1749,16 +1762,16 @@ class FigureRenderer {
     if (value == null) return '';
     switch (param.kind) {
       case ParamKind.choice:
-        final label = param.choiceLabel(value);
-        return label == null ? '' : renderFreeText(label, dialect);
+        return param.choiceLabel(value) ?? '';
       case ParamKind.text:
-        return renderFreeText(
-          sanitizeImportedText(value as String, allowLineBreaks: false),
-          dialect,
+        // One line: a break reads as a space, not as nothing.
+        return sanitizeImportedText(
+          (value as String).replaceAll(_lineBreaks, ' '),
+          allowLineBreaks: false,
         );
       case ParamKind.flag:
         if (value != true) return '';
-        return renderFreeText(param.label ?? param.key, dialect);
+        return param.label ?? param.key;
       default:
         // A neutral name, so no user key reaches the renderer's name-based
         // wording (a choice named `prefix`, places named `changes`).
