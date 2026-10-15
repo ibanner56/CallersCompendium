@@ -254,8 +254,42 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('changing a parameter\'s kind drops its default, and a '
-        'default can be any of its values, or none', (tester) async {
+    testWidgets('changing a parameter\'s kind drops its default: a choice\'s '
+        'id is never kept as text', (tester) async {
+      final repos = await pump(tester);
+      await fillRequired(tester);
+      await chooseNewFigure(tester);
+      await addParam(tester, 0, 'style');
+      await choose(tester, const ValueKey('compound-param-0-kind'), 'option');
+      await tester.tap(
+        find.byKey(const ValueKey('user-figure-param-0-add-choice')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('user-figure-param-0-choice-0')),
+        'fast',
+      );
+      await tester.pumpAndSettle();
+      await choose(
+        tester,
+        const ValueKey('user-figure-param-0-default-style'),
+        'fast',
+      );
+      await choose(tester, const ValueKey('compound-param-0-kind'), 'text');
+      await tester.enterText(
+        find.byKey(const ValueKey('user-figure-wording')),
+        '{move} {style}',
+      );
+      await save(tester);
+      final figure = decodeUserFigureDefinition(
+        (await tester.runAsync(repos.userGlossary.listAll))!.single.payload,
+      )!;
+      expect(figure.param('style')!.kind, ParamKind.text);
+      expect(figure.param('style')!.defaultValue, isNull);
+    });
+
+    testWidgets('a default is chosen from its values, and a line break in the '
+        'wording reads as a space', (tester) async {
       final repos = await pump(tester);
       await fillRequired(tester);
       await chooseNewFigure(tester);
@@ -266,26 +300,6 @@ void main() {
         const ValueKey('user-figure-param-0-default-n'),
         '3',
       );
-      await choose(tester, const ValueKey('compound-param-0-kind'), 'text');
-      expect(
-        tester
-            .widget<TextField>(
-              find.descendant(
-                of: find.byKey(const ValueKey('user-figure-param-0-default-n')),
-                matching: find.byType(TextField),
-              ),
-            )
-            .controller!
-            .text,
-        isEmpty,
-        reason: 'the places default is gone',
-      );
-      await choose(tester, const ValueKey('compound-param-0-kind'), 'places');
-      await choose(
-        tester,
-        const ValueKey('user-figure-param-0-default-n'),
-        '2',
-      );
       await tester.enterText(
         find.byKey(const ValueKey('user-figure-wording')),
         '{move}\n{n}',
@@ -294,12 +308,8 @@ void main() {
       final figure = decodeUserFigureDefinition(
         (await tester.runAsync(repos.userGlossary.listAll))!.single.payload,
       )!;
-      expect(figure.param('n')!.defaultValue, 2);
-      expect(
-        figure.template,
-        '{move} {n}',
-        reason: 'a line break reads as a space',
-      );
+      expect(figure.param('n')!.defaultValue, 3);
+      expect(figure.template, '{move} {n}');
     });
 
     testWidgets('a combination keeps the dance form chosen for it', (
