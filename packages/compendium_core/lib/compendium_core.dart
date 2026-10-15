@@ -196,6 +196,7 @@ export 'src/taxonomy/figure_glossary.dart';
 export 'src/taxonomy/gate_facing.dart';
 export 'src/taxonomy/move_def.dart';
 export 'src/taxonomy/offerable_dancer_sets.dart';
+export 'src/taxonomy/param_change_rules.dart';
 export 'src/taxonomy/param_types.dart';
 export 'src/taxonomy/taxonomy.dart';
 export 'src/util/argb.dart';

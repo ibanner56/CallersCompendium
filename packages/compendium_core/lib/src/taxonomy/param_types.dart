@@ -203,8 +203,9 @@ String? invertPairDancerSet(String who) => ParamVocab.pairInverse[who];
 /// derive it from our default rather than from the source).
 ///
 /// The single source of truth for this mapping, shared by every write/read
-/// site that must agree on it: both `_selectMove` implementations and
-/// `_applyNonBeatsParamChange` in `figure_list_editor.dart`, the ContraDB and
+/// site that must agree on it: core's `seedChainHand` (`param_change_rules.dart`,
+/// called by `applyParamChange` and by both `_selectMove` implementations and
+/// the meanwhile side editor in `figure_list_editor.dart`), the ContraDB and
 /// shared-recognizer `_chain` parsers, the one-time backfill sweep, and the
 /// canonical/display silencing rule in `renderer.dart`. Kept here (not in
 /// `contra_taxonomy.dart`) because the app-layer editor needs it too.
@@ -255,8 +256,9 @@ class ParamSpec {
   /// active choice to erase a stated rotation down to "not stated", which the
   /// taxonomy owner explicitly does not want reachable as a manual action
   /// (owner ruling, 2026-08-18): the sentinel is reachable ONLY via the
-  /// automatic reset the editor performs when `dir` is set to `in`/`out`/
-  /// `up`/`down` (see `figure_list_editor.dart`), never via a button. Set
+  /// automatic reset when promenade's `where` is set to `in`/`out`/`up`/
+  /// `down` (`applyParamChange`, `param_change_rules.dart`), never via a
+  /// button. Set
   /// `false` there for that reason; every other spec leaves this at its
   /// default.
   final bool allowManualClear;
