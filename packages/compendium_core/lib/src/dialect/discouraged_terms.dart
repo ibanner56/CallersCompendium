@@ -47,23 +47,33 @@ final Map<String, String> storedDiscouragedTerms = {
         : e.value.canonical,
 };
 
-/// Whether [dialect] uses the discouraged [term] (possessive or not) as one
-/// of its own role words, or as a word within one. Both readers of
-/// [discouragedTermMeanings] leave such a term to the dialect: in a custom
-/// dialect whose role1 is "Raven", "ravens" is role1, and reading it as the
-/// table's `role2s` would invert it.
-bool discouragedTermClaimedBy(Dialect dialect, String term) {
-  final base = _withoutPossessive(term.toLowerCase());
-  for (final role in dialect.roles.values) {
-    for (final word in [role.singular, role.plural]) {
-      final lower = word.toLowerCase();
-      if (lower == base || lower.split(_whitespace).contains(base)) return true;
-    }
-  }
-  return false;
+/// [dialect]'s own role words (singular and plural, lowercase) that are one
+/// of the built-in discouraged terms, or hold one as a word: "ravens" in a
+/// dialect whose role1 is "Raven", "lady birds" in one whose role1 is "Lady
+/// Bird". Words are split as [Substitutor] splits them, so "Lady-Bird"
+/// counts too.
+///
+/// User-glossary canonicalization keeps these as the dialect's roles rather
+/// than reading them by the table, which would invert a "ravens" role1 into
+/// `role2s`. The renderer's display conversion does not consult this (see
+/// `docs/design/dialect.md`).
+Set<String> claimedRoleWords(Dialect dialect) {
+  final bases = {
+    for (final term in discouragedTermMeanings.keys) _withoutPossessive(term),
+  };
+  return {
+    for (final role in dialect.roles.values)
+      for (final word in [role.singular, role.plural])
+        if (word
+            .toLowerCase()
+            .split(_nonWord)
+            .any((w) => w.isNotEmpty && bases.contains(w)))
+          word.toLowerCase(),
+  };
 }
 
-final RegExp _whitespace = RegExp(r'\s+');
+/// What [Substitutor] treats as a word boundary.
+final RegExp _nonWord = RegExp(r'[^\p{L}\p{M}\p{N}\p{Pc}]+', unicode: true);
 
 /// [term] without a possessive ending (`'s`, `’s`, or a bare `'` or `’`).
 String _withoutPossessive(String term) {

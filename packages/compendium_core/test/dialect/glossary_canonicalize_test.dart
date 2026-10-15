@@ -71,31 +71,32 @@ void main() {
     );
   });
 
-  test('a discouraged term the dialect uses as its own role word is that '
-      'role, stored and shown', () {
+  test('a role word of the dialect that is or holds a discouraged term '
+      'keeps the dialect\'s meaning', () {
     // "ravens" is discouraged (role2s) in the built-in table, but this
     // dialect calls role1 "raven": storing role2s would invert the role.
-    final birds = _birds;
+    expect(canonicalizeGlossaryText('ravens cross', _birds), 'role1s cross');
+    expect(canonicalizeGlossaryText("ravens' turn", _birds), "role1s' turn");
     expect(
-      FigureRenderer(
-        contraTaxonomy,
-      ).renderFreeTextWithCanonicalDiscouragedTerms('ravens cross', birds),
-      'ravens cross',
-      reason: 'shown as written, not as the other role',
+      canonicalizeGlossaryText('the raven leads', _birds),
+      'the role1 leads',
     );
-    // A word within a role term counts too.
+    // A role word holding a term is kept whole, however it is split.
     expect(
       canonicalizeGlossaryText('lady birds cross', _ladyBirds),
       'role1s cross',
     );
-    expect(canonicalizeGlossaryText('ravens cross', birds), 'role1s cross');
     expect(
-      canonicalizeGlossaryText('the raven leads', birds),
-      'the role1 leads',
+      canonicalizeGlossaryText('Lady-Birds cross', _hyphenBirds),
+      'role1s cross',
     );
+    // The term on its own still reads by the table, as the role rules'
+    // legacy synonyms read it too.
+    expect(canonicalizeGlossaryText('lady chain', _ladyBirds), 'role2 chain');
+    expect(canonicalizeText('lady chain', _ladyBirds), 'role2 chain');
     // The rest of the table still applies.
-    expect(canonicalizeGlossaryText('ladies chain', birds), 'role2s chain');
-    expect(canonicalizeGlossaryText('gypsy', birds), 'shoulder round');
+    expect(canonicalizeGlossaryText('ladies chain', _birds), 'role2s chain');
+    expect(canonicalizeGlossaryText('gypsy', _birds), 'shoulder round');
   });
 
   test('move names stay protected', () {
@@ -115,13 +116,12 @@ void main() {
   test('a stored discouraged term displays as the renderer displays the term '
       'itself, in every preset dialect and in custom ones', () {
     // Storage and display read one table (discouraged_terms.dart); this pins
-    // that the two readers agree, so neither can drift from the other.
+    // that the two readers agree, so neither can drift from the other. Not
+    // the Ravens dialect: there "ravens" is its own role1, which storage
+    // keeps and display conversion does not know (docs/design/dialect.md).
     final renderer = FigureRenderer(contraTaxonomy);
-    for (final dialect in [...Dialect.presets, _birds, _ladyBirds]) {
+    for (final dialect in [...Dialect.presets, _ladyBirds, _hyphenBirds]) {
       for (final term in discouragedTermMeanings.keys) {
-        // A term the dialect claims is its own role word, read by the role
-        // rules on both sides; the next test covers it.
-        if (discouragedTermClaimedBy(dialect, term)) continue;
         final stored = canonicalizeGlossaryText(term, dialect);
         expect(stored, storedDiscouragedTerms[term], reason: term);
         expect(
@@ -143,5 +143,11 @@ final _birds = Dialect(
 final _ladyBirds = Dialect(
   name: 'Lady Birds/Jays',
   roles: const {'role1': RoleTerm('Lady Bird'), 'role2': RoleTerm('Jay')},
+  discouragedTerms: Dialect.defaultDiscouragedTerms,
+);
+
+final _hyphenBirds = Dialect(
+  name: 'Lady-Birds/Jays',
+  roles: const {'role1': RoleTerm('Lady-Bird'), 'role2': RoleTerm('Jay')},
   discouragedTerms: Dialect.defaultDiscouragedTerms,
 );

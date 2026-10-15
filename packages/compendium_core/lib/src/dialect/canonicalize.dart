@@ -109,9 +109,13 @@ final Map<Dialect, RoleCanonicalizer> _glossaryRoles = {};
 /// bounded like [_dialectRoles].
 final Map<Dialect, Substitutor> _glossaryDiscouraged = {};
 
-/// The built-in discouraged terms as stored text, less any [dialect] uses as
-/// its own role word ([discouragedTermClaimedBy]); the role canonicalizer
-/// reads those instead.
+/// The built-in discouraged terms as stored text, with [dialect]'s own role
+/// words that hold one ([claimedRoleWords]) mapped to themselves, possessives
+/// included. Longest match wins, so "lady birds" in a dialect whose role1 is
+/// "Lady Bird" is kept whole for the role canonicalizer, while "lady" alone
+/// still reads by the table; and where the role word is the term itself,
+/// such as "ravens" for a role1 "Raven", the dialect's meaning replaces the
+/// table's.
 Substitutor _glossaryDiscouragedFor(Dialect dialect) {
   final cached = _glossaryDiscouraged[dialect];
   if (cached != null) return cached;
@@ -119,9 +123,10 @@ Substitutor _glossaryDiscouragedFor(Dialect dialect) {
     _glossaryDiscouraged.clear();
   }
   return _glossaryDiscouraged[dialect] = Substitutor({
-    for (final MapEntry(key: term, value: stored)
-        in storedDiscouragedTerms.entries)
-      if (!discouragedTermClaimedBy(dialect, term)) term: stored,
+    ...storedDiscouragedTerms,
+    for (final word in claimedRoleWords(dialect))
+      for (final form in [word, "$word'", "$word's", '$word’', '$word’s'])
+        form: form,
   }, caseInsensitive: true);
 }
 
@@ -134,9 +139,9 @@ Substitutor _glossaryDiscouragedFor(Dialect dialect) {
 /// - the built-in discouraged terms are stored canonically ("ladies" →
 ///   `role2s`, "gypsy" → "shoulder round"), not kept as typed. The table is
 ///   the built-in one the renderer displays them from, not [dialect]'s own
-///   editable list, so stored and displayed text agree; a term [dialect]
-///   uses as a role word is left to the role rules (the implementer's
-///   choice, see `docs/design/dialect.md`);
+///   editable list; a role word of [dialect] that is or holds one of its
+///   terms keeps the dialect's meaning (the implementer's choices, see
+///   `docs/design/dialect.md`);
 /// - under a dialect whose roles are "lead"/"follow", "leads"/"follows"
 ///   directly after a singular subject is the verb ("The robin follows the
 ///   lark across" → "The role2 follows the role1 across"), where

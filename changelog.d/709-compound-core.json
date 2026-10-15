@@ -1,21 +1,13 @@
 {
   "id": "709-compound-core",
-  "user_visible": true,
+  "user_visible": false,
   "core": {
     "added": [
       "Add user compound figure definitions (`CompoundDefinition`, `decodeCompoundDefinition`, `validateCompound`, `allowedValues`, `expandCompound`): a named sequence of taxonomy figures with declared parameters bound to their slots, expanded through `applyParamChange`.",
       "Add `ParamOpposites`, which classifies every parameter kind's opposites (right and left, clockwise and counterclockwise, up and down, paired dancers through `invertPairDancerSet`), and `paramDomain`.",
       "Add `canonicalizeGlossaryText` for user-glossary text: discouraged terms are stored canonically, and under Leads/Follows a plural homograph directly after a singular subject is read as the verb. `canonicalizeText` is unchanged.",
       "Add `glossaryNameCollisions` and `normalizeGlossaryName`.",
-      "The renderer's discouraged-term display and `canonicalizeGlossaryText` read one internal table of what each built-in discouraged term stands for, so the two cannot drift."
-    ],
-    "fixed": [
-      "The renderer's discouraged-term display leaves a term the active dialect uses as its own role word to the dialect, instead of rewriting it as the other role."
-    ]
-  },
-  "app": {
-    "fixed": [
-      "With a custom dialect whose own role word is one of the built-in discouraged terms, such as Ravens, **Auto-convert all discouraged terms** no longer shows that role word as the other role."
+      "The renderer's discouraged-term display and `canonicalizeGlossaryText` read one internal table of what each built-in discouraged term stands for."
     ]
   }
 }
