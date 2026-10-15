@@ -861,6 +861,133 @@ void main() {
       expect(dest.existsSync(), isFalse, reason: 'partial file left behind');
     });
   });
+
+  group('discarding a file whose close never settles', () {
+    // How long a cancel may take to reach the caller when the OS never lets
+    // the partial file's handle close. The UI's Cancel is fire-and-forget and
+    // the controller stays `downloading` (a retry is ignored) until this
+    // returns, so it must be seconds, not the 60 s network idle timeout.
+    const cancelBudget = Duration(seconds: 5);
+
+    // Runs under the testWidgets fake clock: [tester.pump] advances time
+    // without waiting for it, and the in-memory file below keeps the whole
+    // path off real I/O (which fake time cannot drive).
+    testWidgets('cancel returns within a few seconds and the deferred cleanup '
+        'removes the file once the close finally lands', (tester) async {
+      final sink = _HungCloseSink();
+      final file = _MemoryFile('${tempDir.path}/artifact.exe', sink);
+      // An `onCancel` is needed under fake time: without one, a controller's
+      // `cancel()` completes outside the fake clock and the test would hang.
+      final body = StreamController<List<int>>(onCancel: () async {});
+      final token = DownloadCancelToken();
+      DownloadOutcome? outcome;
+
+      IOOverrides.runZoned(
+        () {
+          downloadArtifact(
+            _artifact(size: 1000),
+            destination: file,
+            client: MockClient.streaming(
+              (request, _) async =>
+                  http.StreamedResponse(body.stream, 200, contentLength: 1000),
+            ),
+            cancelToken: token,
+          ).then((o) => outcome = o);
+        },
+        fseGetType: (path, followLinks) async => FileSystemEntityType.notFound,
+      );
+
+      await tester.pump();
+      expect(body.hasListener, isTrue);
+      body.add(List<int>.filled(100, 0x41));
+      await tester.pump();
+      token.cancel();
+      body.add(List<int>.filled(100, 0x41)); // observes the cancel
+      await tester.pump();
+      expect(sink.closeCalls, 1, reason: 'the discard started closing');
+      expect(outcome, isNull, reason: 'still waiting on the stuck close');
+
+      await tester.pump(cancelBudget);
+
+      expect(outcome, isNotNull, reason: 'cancel hung behind the close');
+      expect(outcome!.kind, DownloadResultKind.cancelled);
+      expect(outcome!.released, isNotNull, reason: 'returned with it open');
+      expect(file.present, isTrue, reason: 'Windows cannot delete it yet');
+
+      var released = false;
+      unawaited(outcome!.released!.then((_) => released = true));
+      sink.closeGate.complete();
+      await tester.pump();
+      expect(released, isTrue);
+      expect(file.present, isFalse, reason: 'deleted once the handle closed');
+    });
+  });
+}
+
+/// An [IOSink] whose [close] settles only when [closeGate] completes: a file
+/// handle the OS will not release (antivirus scan, network share, stalled
+/// disk).
+class _HungCloseSink implements IOSink {
+  final closeGate = Completer<void>();
+  int closeCalls = 0;
+  bool get isOpen => !closeGate.isCompleted;
+
+  @override
+  void add(List<int> data) {}
+
+  @override
+  Future<void> flush() async {}
+
+  @override
+  Future<void> close() async {
+    closeCalls++;
+    await closeGate.future;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('_HungCloseSink.${invocation.memberName}');
+}
+
+/// An in-memory [File] with Windows delete semantics: deleting fails while
+/// [_sink] is still open.
+class _MemoryFile implements File {
+  _MemoryFile(this.path, this._sink);
+
+  @override
+  final String path;
+  final _HungCloseSink _sink;
+
+  /// Whether the file currently exists.
+  bool present = false;
+
+  @override
+  Future<File> create({bool recursive = false, bool exclusive = false}) async {
+    present = true;
+    return this;
+  }
+
+  @override
+  Future<bool> exists() async => present;
+
+  @override
+  Future<FileSystemEntity> delete({bool recursive = false}) async {
+    if (_sink.isOpen) {
+      throw FileSystemException('file is open in another process', path);
+    }
+    present = false;
+    return this;
+  }
+
+  @override
+  IOSink openWrite({
+    FileMode mode = FileMode.write,
+    Encoding encoding = utf8,
+  }) => _sink;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('_MemoryFile.${invocation.memberName}');
 }
 
 /// A [StreamConsumer] behind a real dart:io [IOSink]: each write batch
