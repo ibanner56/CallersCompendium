@@ -54,6 +54,13 @@ class ShorthandMappingsController extends ChangeNotifier {
   List<CompoundShorthand> get compoundShorthands =>
       List.unmodifiable(_compound);
 
+  /// Every token a shorthand of either kind has, normalized: what a new
+  /// shorthand, of either kind, cannot take.
+  Set<String> get takenTokens => {
+    for (final m in _mappings) m.normalizedToken,
+    for (final c in _compound) c.normalizedToken,
+  };
+
   /// The compound shorthands as a resolvable store, for free-text entry.
   CompoundShorthands get compoundStore => CompoundShorthands(_compound);
 
@@ -178,7 +185,9 @@ class ShorthandMappingsController extends ChangeNotifier {
     );
     // Mirror the decode invariant, as [upsert] does: a shorthand the next
     // load would drop must not be saved as if it were kept.
-    if (!CompoundShorthands.keeps(normalized)) {
+    final adding = index == null || index < 0 || index >= _compound.length;
+    if (!CompoundShorthands.keeps(normalized) ||
+        (adding && _compound.length >= maxCompoundShorthands)) {
       throw ArgumentError.value(shorthand, 'shorthand', 'would not be kept');
     }
     final next = _compound.toList();

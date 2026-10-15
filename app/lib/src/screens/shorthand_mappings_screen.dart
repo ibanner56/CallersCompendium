@@ -95,10 +95,7 @@ class ShorthandMappingsScreen extends StatelessWidget {
     BuildContext context,
     ShorthandMappingsController controller,
   ) async {
-    final existing = {
-      for (final m in controller.mappings) m.normalizedToken,
-      for (final c in controller.compoundShorthands) c.normalizedToken,
-    };
+    final existing = controller.takenTokens;
     final hidden = _hiddenCompoundTokens(context, controller);
     final edited = await Navigator.of(context).push<ShorthandMapping>(
       MaterialPageRoute(

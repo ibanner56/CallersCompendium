@@ -8348,7 +8348,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String shorthandEditorErrorDuplicateHidden(String token) {
-    return '\"$token\" er allerede en kortform for en af dine egne figurer. De vises her, når Egne figurer er slået til.';
+    return '„$token“ er allerede en kortform for en af dine egne figurer. De vises her, når Egne figurer er slået til.';
   }
 
   @override
