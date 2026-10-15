@@ -12,8 +12,10 @@ const String kShowCustomFiguresKey = 'show_custom_figures';
 ///
 /// When `true` — and only while "Show Glossary" is on too — the user's own
 /// compound figures are listed in the Glossary and can be added and edited
-/// there. When `false` they are hidden, never deleted: turning it back on
-/// shows them again.
+/// there, and the dance editor offers them as a figure's move. When `false`
+/// they are hidden, never deleted: turning it back on shows them again. A
+/// dance-editor row that already holds one still expands when the dance is
+/// saved (#709).
 ///
 /// Use [ShowCustomFiguresScope.notifierOf] to change the setting.
 class ShowCustomFiguresScope extends InheritedNotifier<ValueNotifier<bool>> {
