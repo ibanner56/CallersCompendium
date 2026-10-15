@@ -55,8 +55,9 @@ sort by:
   app uses to put the strongest matches at the top.
 
 The arrow button beside **Sort** flips between ascending and descending order.
-On a narrow screen, sorting and grouping are in the **More actions** menu
-instead.
+When the toolbar runs out of room — on a narrow screen, or beside a long
+**Collection** title — the import, sort, arrow and group-by buttons move, one at
+a time, into the **More actions** (**⋮**) menu instead.
 
 If you use [Device Sync](./settings.md#device-sync) and have connected a store,
 a **Sync now** button also sits in the **Collection** toolbar, so you can pull in
@@ -311,7 +312,8 @@ usually want to bring them in rather than retype them — see
 
 Beyond the built-in details, you can track whatever matters to you — a tune
 suggestion, a "taught it at" note, a difficulty of your own. Choose **Manage
-custom fields** on the **Collection** page to create, edit, and delete your
+custom fields** from the **More actions** (**⋮**) menu on the **Collection**
+page to create, edit, and delete your
 own fields.
 
 A custom field can be a choice list, a yes/no switch, a text note, or a number.
@@ -345,14 +347,16 @@ undone.
 - **Delete** a dance and it is only *soft-deleted* — an **Undo** option appears
   right away, and the dance moves to a **Recently Deleted** area rather than
   vanishing.
-- **Restore or remove** from **Recently Deleted** — bring a dance back, or delete
+- **Restore or remove** from **Recently Deleted** (in the **More actions**
+  menu on the **Collection** page) — bring a dance back, or delete
   it permanently when you are sure. Anything left there is purged automatically
   after 30 days; you can choose a longer window, or never, in
   [Settings](./settings.md#deleted-items).
 
 ### Change many dances at once
 
-To organize in bulk, enter selection mode: choose **Select dances**, or long-press
+To organize in bulk, enter selection mode: choose **Select dances** from the **More actions** menu,
+or long-press
 a row on a touchscreen. Tick as many dances as you like, then apply one change
 across all of them. Tags and level are on the toolbar; the rest are under
 **More batch actions**:
