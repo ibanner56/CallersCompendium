@@ -1065,7 +1065,7 @@ jobs:
       # store-delivered (ADR-002), not a direct download.
       - name: Upload iOS .ipa artifact
         if: matrix.platform == 'ios' && steps.ios_signing.outputs.signing == 'configured'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ios-ipa
           path: app/build/ios/ipa/*.ipa
@@ -1076,7 +1076,7 @@ jobs:
       # no-op paths without exporting signing secrets or matrix-step outputs.
       - name: Upload iOS TestFlight status
         if: matrix.platform == 'ios'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ios-testflight-status
           path: ios-testflight-status/signing
@@ -1378,7 +1378,7 @@ jobs:
       # be merged into the release assets.
       - name: Upload the MSVC runtime manifest for the SBOM
         if: matrix.platform == 'windows'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: native-components-windows
           path: native-components/msvc-runtime.json
@@ -1531,7 +1531,7 @@ jobs:
         run: ls -l dist
 
       - name: Upload packaged artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist-${{ matrix.platform }}
           path: dist/
@@ -1552,7 +1552,7 @@ jobs:
       # secret is configured (see docs/dev/releasing.md#upload-to-google-play).
       - name: Upload Android .aab artifact
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: android-aab
           path: aab/CallersCompendium-*.aab
@@ -1578,7 +1578,7 @@ jobs:
           ref: ${{ needs.meta.outputs.source_sha }}
 
       - name: Download all packaged artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: dist
           pattern: dist-*
@@ -1607,7 +1607,7 @@ jobs:
       # The MSVC runtime manifest the Windows build leg wrote; gen_sbom.py lists those
       # DLLs. pdfium comes from packaging/pdfium/pdfium.cmake in the checkout.
       - name: Download the MSVC runtime manifest
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: native-components-windows
           path: ${{ runner.temp }}/native-components
@@ -1718,7 +1718,7 @@ jobs:
           done
 
       - name: Upload signed manifests for the Pages publish
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: channel-manifests
           path: manifest/
@@ -1910,7 +1910,7 @@ jobs:
       attestations: read     # read the attestations minted by `publish`
     steps:
       - name: Download all packaged artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: dist
           pattern: dist-*
@@ -1974,7 +1974,7 @@ jobs:
       contents: read
     steps:
       - name: Download iOS TestFlight status
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ios-testflight-status
           path: ios-testflight-status
@@ -2027,7 +2027,7 @@ jobs:
 
       - name: Download signed iOS .ipa
         if: steps.testflight.outputs.upload == 'true'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ios-ipa
           path: ios-ipa
@@ -2068,7 +2068,7 @@ jobs:
       # failed, so one store's outage doesn't block the other.
       - name: Download signed Android .aab
         if: ${{ !cancelled() && steps.play.outputs.upload == 'true' }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           # Only produced when the Android signing secrets are configured. If a
           # Play service account exists without them this fails loudly, which is
@@ -2154,7 +2154,7 @@ jobs:
           ref: ${{ needs.meta.outputs.source_sha }}
 
       - name: Download signed manifests
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: channel-manifests
           path: manifest
