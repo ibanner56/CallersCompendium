@@ -77,9 +77,10 @@ String? compoundShorthandValueText(
 /// Used by a compound placeholder row in the dance editor and by the compound
 /// shorthand editor, so both offer the same values. A stored value the
 /// compound no longer accepts, or a missing one, is never replaced by the
-/// editor itself, and is never shown as a value it holds: a list shows nothing
-/// selected and asks for a choice, and every other kind's editor has a line
-/// beneath it asking for one. "Not stated" is shown only when it is the value.
+/// editor itself, and is never shown as a value it holds: a list or a rotation
+/// asks for a choice in place of a value, and every other kind's editor has a
+/// line beneath it asking for one. "Not stated" is shown only when it is the
+/// value.
 class CompoundArgumentEditor extends StatelessWidget {
   const CompoundArgumentEditor({
     super.key,
@@ -152,12 +153,13 @@ class CompoundArgumentEditor extends StatelessWidget {
       correctsValue: false,
       onChanged: onChanged,
     );
-    // A list asks for a choice itself; every other kind's editor shows a
-    // fallback (1, 0, off, empty) for a value it can't show, so say so here.
+    // A list and a rotation ask for a choice themselves; every other kind's
+    // editor shows a fallback (1, 0, off, empty) for a value it can't show, so
+    // say so here.
     final accepted = allowed == null
         ? value is String
         : allowed.contains(value);
-    if (listed || accepted) return editor;
+    if (listed || accepted || param.kind == ParamKind.rotation) return editor;
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

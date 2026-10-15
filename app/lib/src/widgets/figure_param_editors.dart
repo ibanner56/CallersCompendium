@@ -99,11 +99,21 @@ class FigureParamEditor extends StatelessWidget {
         // fabricated number into stored data.
         final allowsUnset =
             spec.choices?.contains(ParamVocab.unspecified) ?? false;
+        // A value left as it is (see [correctsValue]) that is neither an amount
+        // nor the sentinel is shown as needing a choice, never as "not stated"
+        // or as a made-up amount, as the dropdown does.
+        final needsChoice =
+            !correctsValue &&
+            value is! num &&
+            !(allowsUnset && value == ParamVocab.unspecified);
         return _RotationStepper(
           fieldKey: _key,
           label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
-          value: value is num ? value! as num : (allowsUnset ? null : 1.0),
+          value: value is num
+              ? value! as num
+              : (allowsUnset || needsChoice ? null : 1.0),
           allowsUnset: allowsUnset,
+          needsChoice: needsChoice,
           onChanged: onChanged,
         );
       case ParamKind.beats:
@@ -311,6 +321,7 @@ class _RotationStepper extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.allowsUnset = false,
+    this.needsChoice = false,
   });
 
   final String fieldKey;
@@ -323,6 +334,10 @@ class _RotationStepper extends StatelessWidget {
   /// Whether this param admits [ParamVocab.unspecified], i.e. whether "the
   /// source stated no amount" is a representable state.
   final bool allowsUnset;
+
+  /// Whether the stored value is neither an amount nor the sentinel and is
+  /// left as it is: shown as asking for a choice, with [value] null.
+  final bool needsChoice;
   final ValueChanged<Object?> onChanged;
 
   static const double _min = 0.25;
@@ -366,13 +381,17 @@ class _RotationStepper extends StatelessWidget {
             ),
             Text(
               current == null
-                  ? l10n.danceEditorParamNotStated
+                  ? (needsChoice
+                        ? l10n.danceEditorParamChooseValue
+                        : l10n.danceEditorParamNotStated)
                   : l10n.danceEditorTurnCount(current, _format(current)),
               key: ValueKey('$fieldKey-value'),
               style: current == null
                   ? theme.textTheme.bodyMedium?.copyWith(
                       fontStyle: FontStyle.italic,
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: needsChoice
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.onSurfaceVariant,
                     )
                   : null,
             ),
@@ -395,7 +414,7 @@ class _RotationStepper extends StatelessWidget {
             // and only once a value is set — so a user who set an amount by
             // mistake can put it back rather than being stuck with a number the
             // source never gave.
-            if (allowsUnset && current != null)
+            if (allowsUnset && (current != null || needsChoice))
               IconButton(
                 key: ValueKey('$fieldKey-clear'),
                 tooltip: l10n.danceEditorParamClearTooltip,

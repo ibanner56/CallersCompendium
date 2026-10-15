@@ -368,18 +368,30 @@ void main() {
     expect(drafts.single.compound!.args, {'turns': ParamVocab.unspecified});
   });
 
-  testWidgets('a rotation argument the compound no longer accepts asks for a '
-      'choice', (tester) async {
-    await pumpGate(tester, {'turns': 'sideways', 'again': true});
-    expect(
-      find.byKey(const ValueKey('figure-0-compound-turns-choose')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('figure-0-compound-again-choose')),
-      findsNothing,
-    );
-  });
+  for (final (label, args) in [
+    (
+      'one the compound no longer accepts',
+      {'turns': 'sideways', 'again': true},
+    ),
+    ('a missing one', {'again': true}),
+  ]) {
+    testWidgets('a rotation argument asks for a choice for $label, never '
+        'reading "not stated", and can be cleared', (tester) async {
+      final drafts = await pumpGate(tester, Map.of(args));
+      expect(turnsShown(tester), 'choose a value');
+      // Nothing on the page claims "not stated": the only other argument
+      // is a flag.
+      expect(find.text('not stated'), findsNothing);
+      expect(drafts.single.compound!.args, args, reason: 'left as it is');
+
+      await tester.tap(
+        find.byKey(const ValueKey('figure-0-compound-turns-clear')),
+      );
+      await tester.pumpAndSettle();
+      expect(drafts.single.compound!.args['turns'], ParamVocab.unspecified);
+      expect(turnsShown(tester), 'not stated');
+    });
+  }
 
   testWidgets('a placeholder counts its beats in the phrase labels', (
     tester,
