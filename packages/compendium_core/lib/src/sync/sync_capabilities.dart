@@ -24,9 +24,9 @@ abstract final class SyncCapabilities {
   static const String glossaryV1 = 'glossary.v1';
 
   /// The user's own terms and figures (#1023): glossary entries of the
-  /// `term` and `customFigure` kinds, and their settings. A build that only
-  /// understands [glossaryV1] reads such an entry as one it cannot use, so
-  /// they wait for every device to understand this too.
+  /// `term` and `customFigure` kinds. A build that only understands
+  /// [glossaryV1] reads such an entry as one it cannot use, so they wait for
+  /// every device to understand this too.
   static const String glossaryV2 = 'glossary.v2';
 }
 

@@ -109,8 +109,8 @@ built-in figures. The archive does not carry them, so their bodies have a codec
 of their own rather than the archive's shape; they are published only once
 every attached device can read them (spec §6.15; the user's own terms and
 figures, #1023, wait for `glossary.v2` rather than `glossary.v1`), and a
-glossary entry's kind and payload travel as stored text so sync carries an entry a build cannot read
-byte for byte (spec §4.3).
+glossary entry's kind and payload travel as stored text so sync carries an
+entry a build cannot read byte for byte (spec §4.3).
 
 Join rows are **not** separate records. They ride inline with their parent
 exactly as the archive codec already models them — a dance carries its

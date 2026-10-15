@@ -4290,9 +4290,9 @@ says it can read it.
 **Capabilities.** A capability is a name (`glossary.v1`) for a set of record
 kinds and settings keys, and of `glossaryEntry` records by the entry's `kind`
 (#1023): an entry of a kind gated on a capability of its own waits for that
-one, and any other entry for its record kind's. A build advertises the capabilities it fully
-supports, sync included. Named rather than numbered, so features may ship or
-be backported in any order.
+one, and any other entry for its record kind's. A build advertises the
+capabilities it fully supports, sync included. Named rather than numbered, so
+features may ship or be backported in any order.
 
 **Advertising.** Each device writes one settings record,
 `sync_capabilities:<deviceId>`, whose value is
@@ -4331,13 +4331,14 @@ they stand after the pass's pull.
 
 **Holding back.** While a capability is closed, every record of a kind, key or
 entry kind gated on it, tombstones included, is left out of the device's
-**publication** only: set to no candidate, as the import filter does, so it is not in the
-manifest and its blob is not uploaded. Absence from a manifest is never a
-deletion (§4.5). The rows, and the merge's view of them, are untouched: a local
-edit stays the newer copy, nothing is downloaded over it, and it publishes on
-the first pass after the capability opens. The filter MUST be applied where
-publications are built and MUST NOT be applied inside the store's snapshot,
-because a fresh attach merges against the snapshot's publication (§6.2). A row
+**publication** only: set to no candidate, as the import filter does, so it is
+not in the manifest and its blob is not uploaded. Absence from a manifest is
+never a deletion (§4.5). The rows, and the merge's view of them, are untouched:
+a local edit stays the newer copy, nothing is downloaded over it, and it
+publishes on the first pass after the capability opens. The filter MUST be
+applied where publications are built and MUST NOT be applied inside the
+store's snapshot, because a fresh attach merges against the snapshot's
+publication (§6.2). A row
 hidden from the merge looks absent, so a peer's older copy is chosen for
 download; in the reference client only the apply step's concurrency check
 (§6.7) then stops it, as a deferred change raised again on every pass, so the
