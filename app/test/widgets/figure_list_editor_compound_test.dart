@@ -209,6 +209,36 @@ void main() {
     expect(find.text('grand pull'), findsOneWidget);
   });
 
+  testWidgets('opening a placeholder whose value the compound no longer '
+      'accepts leaves the value as it is', (tester) async {
+    final drafts = [
+      FigureDraft(
+        compound: CompoundPlaceholder(
+          id: 'grl',
+          name: 'grand pull',
+          args: {'who': 'neighbors', 'hand': 'sideways'},
+          beats: 8,
+        ),
+      ),
+    ];
+    await pump(tester, drafts);
+    expect(
+      find.byKey(const ValueKey('figure-0-compound-unavailable')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.compound!.args, {
+      'who': 'neighbors',
+      'hand': 'sideways',
+    });
+    final status = tester.widget<Text>(
+      find.byKey(const ValueKey('figure-0-compound-status')),
+    );
+    expect(status.data, startsWith('This figure of yours can\'t be expanded'));
+  });
+
   testWidgets('a placeholder counts its beats in the phrase labels', (
     tester,
   ) async {

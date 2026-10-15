@@ -28,6 +28,7 @@ class FigureParamEditor extends StatelessWidget {
     required this.dialect,
     this.mixer = false,
     this.moveId,
+    this.correctsValue = true,
   });
 
   /// Stem for the child widget's [ValueKey] (e.g. `figure-0`); the editor
@@ -55,6 +56,14 @@ class FigureParamEditor extends StatelessWidget {
 
   /// Move identity used only for display-specific parameter labels.
   final String? moveId;
+
+  /// Whether a dropdown corrects a value outside its choices by writing a
+  /// valid one back after the frame. Off where the value is the user's
+  /// standing choice and an invalid one must stay visible as such, not be
+  /// replaced by opening the editor: a compound placeholder's argument, whose
+  /// compound may have changed since it was chosen (#709). Off, such a value
+  /// shows as nothing selected and is left as it is.
+  final bool correctsValue;
 
   String get _key => '$keyPrefix-$paramKey';
 
@@ -163,7 +172,12 @@ class FigureParamEditor extends StatelessWidget {
     // prevent. Specs that do not admit the sentinel keep the original behaviour
     // untouched.
     final specDefault = spec.defaultValue;
-    final current = (admitsUnstated && value == ParamVocab.unspecified)
+    final current = !correctsValue
+        // Shown as it is when it is a choice, else as nothing selected.
+        ? (value is String && selectable.contains(value)
+              ? value! as String
+              : null)
+        : (admitsUnstated && value == ParamVocab.unspecified)
         ? null
         : (value is String && selectable.contains(value))
         ? value! as String
@@ -172,7 +186,9 @@ class FigureParamEditor extends StatelessWidget {
         : (admitsUnstated
               ? null
               : (selectable.isNotEmpty ? selectable.first : null));
-    if (current != null && current != value) {
+    if (!correctsValue) {
+      // Nothing is written back.
+    } else if (current != null && current != value) {
       WidgetsBinding.instance.addPostFrameCallback((_) => onChanged(current));
     } else if (admitsUnstated &&
         current == null &&
