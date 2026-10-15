@@ -52,6 +52,11 @@ const _expected = <_Case>[
     group: SyncNoticeGroup.newerVersion,
   ),
   (
+    code: SyncReportCode.newerRecordKind,
+    peerId: 'peer-1',
+    group: SyncNoticeGroup.newerVersion,
+  ),
+  (
     code: SyncReportCode.keptNewerFields,
     peerId: null,
     group: SyncNoticeGroup.keptNewerFields,
