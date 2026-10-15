@@ -1697,6 +1697,13 @@ class FigureRenderer {
   /// The built-in discouraged terms, displayed in [dialect]: a role term in
   /// its dialect wording, a move name as itself. The meanings are shared with
   /// glossary canonicalization (`discouraged_terms.dart`).
+  ///
+  /// [dialect]'s own role words that hold one ([claimedRoleWords]) are shown
+  /// as written, possessives included, as glossary canonicalization keeps
+  /// them: in a dialect whose role1 is "Raven", "ravens" means that dialect's
+  /// role1, not the table's role2s. Longest match wins, so a claimed phrase
+  /// such as "lady birds" is kept whole while "lady" alone still reads by the
+  /// table.
   static Map<String, String> _discouragedDisplayTerms(Dialect dialect) => {
     for (final e in discouragedTermMeanings.entries)
       e.key: switch (e.value) {
@@ -1707,6 +1714,9 @@ class FigureRenderer {
               : _roleTerm(token, dialect),
         (canonical: final name, possessive: _) => name,
       },
+    for (final word in claimedRoleWords(dialect))
+      // The forms the table's own keys take: plain, `'` and `'s`/`’s`.
+      for (final form in [word, "$word'", "$word's", '$word’s']) form: form,
   };
 
   /// Human phrasing for a set-relative facing token, shared by the derived

@@ -445,7 +445,8 @@ class _GeneralSectionState extends State<GeneralSection> {
 
   /// Re-applies ONLY the settings portion of the backup (#608 retry path). The
   /// core is never touched. Shows the success confirmation ONLY when the retry
-  /// actually applied (`applied && !settingsFailed`); a recurring settings
+  /// actually applied (`applied && !settingsFailed`), and then the count of
+  /// skipped problems instead when the restore skipped any; a recurring settings
   /// failure re-shows the retryable snackbar, and an `applied: false` outcome
   /// (a now-fatal/altered envelope — defensive: the captured JSON already
   /// decoded once, so this is not normally reachable) surfaces the matching
@@ -485,9 +486,18 @@ class _GeneralSectionState extends State<GeneralSection> {
         );
         return;
       }
+      // Problems the restore skipped are refused again on every retry, so a
+      // retry that applied the settings still reports them rather than
+      // claiming the restore is now complete.
       messenger.clearSnackBars();
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.backupRestoreSettingsRetried)),
+        SnackBar(
+          content: Text(
+            outcome.hasErrors
+                ? l10n.backupRestoreSkippedProblems(outcome.errors.length)
+                : l10n.backupRestoreSettingsRetried,
+          ),
+        ),
       );
     } on Object catch (e, st) {
       logCaughtError(e, st, source: 'general_section._retrySettingsRestore');

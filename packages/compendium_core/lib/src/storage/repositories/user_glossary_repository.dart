@@ -7,6 +7,7 @@ import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
 import '../utc_datetime.dart';
+import '../../util/json_depth.dart';
 
 /// Longest name a user glossary entry may have, in UTF-16 code units.
 const int maxUserGlossaryNameLength = 200;
@@ -437,20 +438,5 @@ class FigureNoteRepository {
 /// Whether [value] nests lists and maps more than [limit] deep, walked
 /// without recursion, so a payload nested deep enough to overflow the stack
 /// is refused before anything recursive touches it (#709).
-bool userGlossaryPayloadDeeperThan(Object? value, int limit) {
-  final stack = <(Object?, int)>[(value, 1)];
-  while (stack.isNotEmpty) {
-    final (current, depth) = stack.removeLast();
-    final Iterable<Object?>? children = switch (current) {
-      final Map<Object?, Object?> map => map.values,
-      final List<Object?> list => list,
-      _ => null,
-    };
-    if (children == null) continue;
-    if (depth > limit) return true;
-    for (final child in children) {
-      stack.add((child, depth + 1));
-    }
-  }
-  return false;
-}
+bool userGlossaryPayloadDeeperThan(Object? value, int limit) =>
+    jsonNestedDeeperThan(value, limit);

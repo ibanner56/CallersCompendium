@@ -254,9 +254,10 @@ notes on shipped figures — has its own variant of the chokepoint,
   dialect's meaning. In a custom dialect whose role1 is "Raven", "ravens" is
   stored as `role1s`, not the table's `role2s`; in one whose role1 is "Lady
   Bird", "lady birds" is `role1s` while "lady" alone is still `role2`. The
-  renderer's **Auto-convert all discouraged terms** display does not make this
-  exception — it shows a "ravens" typed into a dance's text as that dialect's
-  role2 — which predates #709 and is left as it is here. A stored possessive
+  renderer's **Auto-convert all discouraged terms** display makes the same
+  exception: it shows such a word as written rather than as the table's role
+  (fixed after #709; it used to show a "ravens" typed into a dance's text as
+  that dialect's role2). A stored possessive
   also keeps the canonical token's spelling (`role1s'`), so where a dialect's
   plural does not end in "s" it reads back as, say, "Leaderfolk'" where the
   display path writes "Leaderfolk's", as any stored possessive role token

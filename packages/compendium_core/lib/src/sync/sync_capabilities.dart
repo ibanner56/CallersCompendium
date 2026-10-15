@@ -4,7 +4,9 @@ import 'sync_record_kind.dart';
 /// `sync_capabilities:<deviceId>`, whose value is
 /// `{"capabilities": ["glossary.v1", …]}`.
 ///
-/// Each device writes only its own. It travels as an ordinary `setting`
+/// Each device writes only its own, except that removing a device from the
+/// store tombstones the removed device's record (sync-spec §6.15). It travels
+/// as an ordinary `setting`
 /// record, which every build since v0.7.0 keeps whole when it does not know
 /// the key (ADR-004), so advertising is safe to older peers.
 const String syncCapabilityKeyPrefix = 'sync_capabilities:';
