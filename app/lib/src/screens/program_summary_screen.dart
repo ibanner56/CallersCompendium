@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
@@ -598,7 +599,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           danceOverrides: deletedDances.dances,
           authorNameOverrides: deletedDances.authorNames,
           difficultyLevels: _difficultyLevels,
-          renderer: _performRenderer,
+          renderer: UserFiguresScope.rendererOf(context),
           // Resume where the caller left off (issue #434).
           initialGroup: _performResume?.groupIndex ?? 0,
           initialElapsedSeconds: _performResume?.elapsedSeconds ?? 0,

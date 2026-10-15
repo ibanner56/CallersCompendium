@@ -7,6 +7,7 @@ import 'package:flutter/semantics.dart';
 import 'package:printing/printing.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
@@ -1839,10 +1840,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// Returns false when the dance is unavailable.
   bool _mixerForDance(String danceId) => _danceById(danceId)?.mixer ?? false;
 
-  /// Shared renderer for the large-print Perform view (mirrors the dance
-  /// detail / single-dance Perform screens).
-  static final FigureRenderer _performRenderer = FigureRenderer(contraTaxonomy);
-
   /// The program to hand to the large-print Perform view, assembled from the
   /// current (possibly unsaved) edits. Falls back to a placeholder title for a
   /// brand-new, still-untitled program so performing always works when slots
@@ -1902,7 +1899,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             for (final entry in _createdChoreographers.entries)
               entry.key: entry.value.name,
           },
-          renderer: _performRenderer,
+          renderer: UserFiguresScope.rendererOf(context),
           // Resume where the caller left off (issue #434): thread the last
           // position + clock back in, and capture the new one on exit. The
           // screen clamps a now-out-of-range group after edits.

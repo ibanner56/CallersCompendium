@@ -39,8 +39,8 @@ class CustomGlossaryItem {
   /// the app, and is shown read-only, so no editor can rewrite it as another
   /// kind.
   bool get unsupported => switch (entry.kind) {
-    UserGlossaryEntryKind.compound || UserGlossaryEntryKind.customFigure =>
-      false,
+    UserGlossaryEntryKind.compound ||
+    UserGlossaryEntryKind.customFigure => false,
     _ => true,
   };
 

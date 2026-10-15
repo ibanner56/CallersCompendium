@@ -10,6 +10,7 @@ import 'package:flutter/services.dart'
 import 'package:path/path.dart' as p;
 
 import 'l10n/app_localizations.dart';
+import 'src/data/user_figures_scope.dart';
 import 'src/data/active_dialect_scope.dart';
 import 'src/data/aggressive_beats_update_scope.dart';
 import 'src/data/application_shutdown_controller.dart';
@@ -653,6 +654,7 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// the free-text entry path. Loaded during bootstrap; exposed via
   /// [ShorthandMappingsScope].
   late ShorthandMappingsController _shorthandMappings;
+  late UserFiguresController _userFigures;
 
   /// Owns the user's personal walkthrough snippet library (#411): per-figure
   /// step descriptions keyed by figure signature. Loaded during bootstrap;
@@ -807,6 +809,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _shorthandMappings = ShorthandMappingsController(
       _appData.repositories.settings,
     );
+    _userFigures = UserFiguresController(_appData.repositories.userGlossary);
     _walkthroughSnippets = WalkthroughSnippetLibraryController(
       _appData.repositories.settings,
     );
@@ -864,6 +867,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _dialectLibrary.removeListener(_syncActiveDialect);
     _dialectLibrary.dispose();
     _shorthandMappings.dispose();
+    _userFigures.dispose();
     _walkthroughSnippets.dispose();
     _updateController.dispose();
     unawaited(_syncChangeSubscription?.cancel());
@@ -1752,6 +1756,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _dialectLibrary.removeListener(_syncActiveDialect);
     _dialectLibrary.dispose();
     _shorthandMappings.dispose();
+    _userFigures.dispose();
     _walkthroughSnippets.dispose();
     _updateController.dispose();
     unawaited(_syncChangeSubscription?.cancel());
@@ -2246,6 +2251,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     (child) => DialectLibraryScope(controller: _dialectLibrary, child: child),
     (child) =>
         ShorthandMappingsScope(controller: _shorthandMappings, child: child),
+    (child) => UserFiguresScope(controller: _userFigures, child: child),
     (child) => WalkthroughSnippetLibraryScope(
       controller: _walkthroughSnippets,
       child: child,

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/user_figures_scope.dart';
 import '../data/callersbox_online.dart';
 import '../data/import_diagnostic_labels.dart';
 import '../data/import_error_labels.dart';
@@ -1119,7 +1120,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
     if (!hasConfidentMatch) return const {};
     final dialect = ActiveDialectScope.of(context);
-    final renderer = FigureRenderer(contraTaxonomy);
+    final renderer = UserFiguresScope.rendererOf(context);
     final diffs = <int, FigureDiffResult>{};
     for (var i = 0; i < batch.records.length; i++) {
       if (!mounted) return diffs;

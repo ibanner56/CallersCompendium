@@ -4,6 +4,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/user_figures_scope.dart';
 import '../data/aggressive_beats_update_scope.dart';
 import '../data/reduce_motion_scope.dart';
 import '../data/capitalize_figures_scope.dart';
@@ -1615,7 +1616,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final draft = widget.draft;
     final figure = draft.toFigure();
     final hasMove = figure != null;
-    final renderer = FigureRenderer(widget.taxonomy);
+    final renderer = FigureRenderer(
+      widget.taxonomy,
+      userFigures: UserFiguresScope.catalogOf(context),
+    );
     String displaySummary({required bool verbose}) {
       return widget.canonicalizeDiscouragedTerms
           ? renderer.renderSummaryWithCanonicalDiscouragedTerms(

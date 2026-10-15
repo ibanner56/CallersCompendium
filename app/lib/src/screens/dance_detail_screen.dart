@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/collection_filter_scope.dart';
@@ -437,7 +438,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         settings: const RouteSettings(name: performRouteName),
         builder: (_) => PerformDanceScreen(
           dance: detail.dance,
-          renderer: _renderer,
+          renderer: UserFiguresScope.rendererOf(context),
           authorNames: detail.authorNames,
           difficultyLevel: detail.difficultyLevel,
         ),
@@ -653,7 +654,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       ),
       levelLabel: _levelLabel(l10n, detail.dance, detail.difficultyLevel),
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
-      renderer: _renderer,
+      renderer: UserFiguresScope.rendererOf(context),
       fields: DanceShareFieldsScope.of(context),
       choreographersById: detail.choreographersById,
       tagsById: detail.tagsById,
@@ -754,7 +755,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       ),
       levelLabel: _levelLabel(l10n, detail.dance, detail.difficultyLevel),
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
-      renderer: _renderer,
+      renderer: UserFiguresScope.rendererOf(context),
       fields: DanceShareFieldsScope.of(context),
       canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
       choreographersById: detail.choreographersById,
@@ -1187,7 +1188,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           DecodedFigures(:final figures) => FigureTable(
             figures: figures,
             phraseStructure: dance.phraseStructure,
-            renderer: _renderer,
+            renderer: UserFiguresScope.rendererOf(context),
             dialect: dialect,
           ),
           // An empty table would say the dance has no figures, which is false
