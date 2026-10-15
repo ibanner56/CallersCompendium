@@ -884,9 +884,9 @@ class CompendiumRepositories {
   /// normalizing path. Only a change to *which keys are classified* brings
   /// already-written values newly into scope.
   ///
-  /// `settingsPrefixes` is empty today — no [settingsPrefixClassifications]
-  /// entry is `shareable` — and is emitted anyway, because the fingerprint's
-  /// job is to notice the day that stops being true.
+  /// `settingsPrefixes` holds the `shareable` [settingsPrefixClassifications]
+  /// entries: the first was `sync_capabilities:` (#709), and its arrival
+  /// re-ran the pass once, as any newly shareable key does.
   ///
   /// Compared by string equality, which is the inequality §4.1 `:740`–`:755`
   /// requires rather than containment: containment never contracts, so a

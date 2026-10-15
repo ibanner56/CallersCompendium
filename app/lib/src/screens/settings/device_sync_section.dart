@@ -911,7 +911,7 @@ class _SyncNoticeTileState extends State<_SyncNoticeTile> {
         ),
         null => null,
       },
-      subtitle: total == 0 && peers == 0 && !(needsYou && perDevice)
+      subtitle: total == 0 && peers == 0 && !perDevice
           ? null
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -953,9 +953,11 @@ class _SyncNoticeTileState extends State<_SyncNoticeTile> {
                   ),
                 // A per-device notice's one action: the list where that
                 // device is shown by the same tag, with what is waiting for
-                // it. A newer-version notice's remedy is updating this app,
-                // which nothing on this screen does, so it has none here.
-                if (needsYou && perDevice)
+                // it. That is where either remedy is, whether the notice
+                // needs you or not (#709: update or remove the device holding
+                // data back). A newer-version notice's remedy is updating
+                // this app, which nothing on this screen does, so it has none.
+                if (perDevice)
                   Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: TextButton(

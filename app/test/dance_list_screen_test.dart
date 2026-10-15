@@ -631,6 +631,8 @@ void main() {
 
       expect(counted.dances.loads, 1, reason: 'initial CollectionData.load');
 
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('batch-select')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('batch-checkbox-d1')));
@@ -1880,6 +1882,8 @@ void main() {
       await _pumpScreen(tester, repos);
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('recently-deleted')));
       await tester.pumpAndSettle();
 

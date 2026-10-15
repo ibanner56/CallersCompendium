@@ -1072,6 +1072,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeAwaitingDevice(String tag) {
+    return 'Sommige nieuwe soorten gegevens op dit apparaat worden gesynchroniseerd zodra apparaat $tag is bijgewerkt naar de nieuwste versie van de app of is verwijderd uit Andere apparaten. Ze zijn hier veilig.';
+  }
+
+  @override
   String get settingsSyncNoticeNeedsYou => 'Actie nodig';
 
   @override
@@ -1345,6 +1350,14 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsSyncPairingSharingBody =>
       'Een tweede persoon kan dezelfde zin op zijn apparaat gebruiken. Als jullie tegelijk dezelfde dans of hetzelfde programma bewerken, overschrijft de ene bewerking stilzwijgend de andere — er is geen waarschuwing en geen manier om ze te combineren.';
+
+  @override
+  String get settingsSyncPairingNewerDataTitle =>
+      'Elk apparaat heeft een bijgewerkte app nodig';
+
+  @override
+  String get settingsSyncPairingNewerDataBody =>
+      'Deze versie synchroniseert een aantal dingen die eerdere versies van de app niet kunnen lezen. Werk elk apparaat bij voordat je het verbindt: een apparaat met een eerdere versie kan mogelijk geen verbinding maken. Tot alle verbonden apparaten zijn bijgewerkt, blijven die dingen op het apparaat waarop ze zijn gemaakt.';
 
   @override
   String get settingsSyncPairingBearerTitle =>

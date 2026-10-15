@@ -21,6 +21,8 @@ Dance _dance({required String id, required String title, DanceLevel? level}) =>
     );
 
 Future<void> _enterSelectionMode(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+  await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('batch-select')));
   await tester.pumpAndSettle();
 }
@@ -65,7 +67,10 @@ void main() {
     // The un-selected dance is untouched.
     expect((await repos.dances.getById('d3'))!.difficultyLevelId, isNull);
     // Selection mode ends after applying.
-    expect(find.byKey(const ValueKey('batch-select')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('collection-more-actions')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('set-level is idempotent on dances already at that level', (

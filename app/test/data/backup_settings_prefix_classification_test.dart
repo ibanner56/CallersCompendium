@@ -29,9 +29,16 @@ void main() {
         if (entry.value.egress == EgressClass.deviceScoped) entry.key,
     };
 
+    // The one exception, by name: each sync device's capability record
+    // (#709) is shareable — it must travel — yet only its own device may
+    // write it, so a replace restore must never touch it.
+    expect(
+      settingsPrefixClassifications[syncCapabilityKeyPrefix]?.egress,
+      EgressClass.shareable,
+    );
     expect(
       kBackupSettingsDenylistPrefixes,
-      deviceScopedPrefixes,
+      {...deviceScopedPrefixes, syncCapabilityKeyPrefix},
       reason:
           'kBackupSettingsDenylistPrefixes (backup_service.dart) and the '
           'deviceScoped prefixes in settingsPrefixClassifications '
@@ -92,6 +99,10 @@ void main() {
       containsAll({'sync_id', 'sync_device_id', 'sync_last_used_fingerprint'}),
     );
     expect(isBackupEligibleSettingKey('sync_id'), isFalse);
+    expect(
+      isBackupEligibleSettingKey(syncCapabilityRecordKey('device-a')),
+      isFalse,
+    );
     expect(isBackupEligibleSettingKey('sync_device_id'), isFalse);
     expect(isBackupEligibleSettingKey('sync_last_used_fingerprint'), isFalse);
     for (final key in [

@@ -1,0 +1,9 @@
+{
+  "id": "collection-toolbar-overflow",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "On the desktop Collection view, the screen title is no longer cut off to \"Collec\u2026\": Select dances, Manage custom fields and Recently deleted now live in a three-dots menu, and the sort, import and group-by buttons move into it only when they do not fit beside the title. Having a tagged dance no longer collapses the whole toolbar into that menu. Recently deleted on the Programs view moved into a three-dots menu to match."
+    ]
+  }
+}

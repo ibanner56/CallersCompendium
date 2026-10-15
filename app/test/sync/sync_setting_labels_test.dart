@@ -37,6 +37,28 @@ void main() {
     );
   });
 
+  test('every synced settings prefix has a name for the keys under it', () {
+    // The prefix counterpart of the ratchet above: a key under a shareable
+    // prefix syncs too, so it needs a label the same way. Probed with a key
+    // that is the prefix plus a suffix, as a stored one is.
+    final shareable = [
+      for (final MapEntry(key: prefix, value: classification)
+          in settingsPrefixClassifications.entries)
+        if (classification.egress == EgressClass.shareable) prefix,
+    ];
+    final unlabelled = [
+      for (final prefix in shareable)
+        if (syncSettingLabel(l10n, '${prefix}probe') == null) prefix,
+    ]..sort();
+    expect(
+      unlabelled,
+      isEmpty,
+      reason:
+          'These settings prefixes sync but have no label in '
+          'syncSettingLabel:\n  ${unlabelled.join('\n  ')}',
+    );
+  });
+
   test('the whole-collection keys are synced settings with labels', () {
     for (final key in syncWholeCollectionSettingKeys) {
       expect(

@@ -1014,6 +1014,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeAwaitingDevice(String tag) {
+    return 'このデバイスの一部の新しい種類のデータは、デバイス $tag がアプリの最新バージョンに更新されるか、「他のデバイス」から削除されると同期が始まります。データはこのデバイスに安全に残っています。';
+  }
+
+  @override
   String get settingsSyncNoticeNeedsYou => '対応が必要';
 
   @override
@@ -1272,6 +1277,13 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsSyncPairingSharingBody =>
       'もう一人が同じフレーズを自分のデバイスで使用できます。同じダンスやプログラムを同時に編集すると、一方の編集がもう一方を警告なく静かに上書きし、両方を統合する方法はありません。';
+
+  @override
+  String get settingsSyncPairingNewerDataTitle => 'すべてのデバイスでアプリを最新にしてください';
+
+  @override
+  String get settingsSyncPairingNewerDataBody =>
+      'このバージョンは、以前のバージョンのアプリでは読み取れない一部のデータを同期します。接続する前に各デバイスをアップデートしてください。以前のバージョンのデバイスは接続できない場合があります。接続中のすべてのデバイスが最新になるまで、それらのデータは作成したデバイスに残ります。';
 
   @override
   String get settingsSyncPairingBearerTitle => 'このフレーズを持つ人は誰でもライブラリを開けます';

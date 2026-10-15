@@ -158,9 +158,14 @@ const Set<String> kBackupSettingsDenylist = {
 ///   neither user content nor preferences and must never travel in a backup.
 /// - [kProgramEditorDraftKeyPrefix] — the program-editor equivalent
 ///   (`program_editor_draft:<id>`); same device-local, transient rationale.
+/// - [syncCapabilityKeyPrefix] — each sync device's capability record
+///   (`sync_capabilities:<deviceId>`, #709). Synced, but only its own device
+///   may write it: a replace restore would delete the others' records or
+///   rewrite them with a newer stamp that beats their owners'.
 const Set<String> kBackupSettingsDenylistPrefixes = {
   kDanceEditorDraftKeyPrefix,
   kProgramEditorDraftKeyPrefix,
+  syncCapabilityKeyPrefix,
 };
 
 /// Whether a settings-table [key] is eligible to travel in a backup's

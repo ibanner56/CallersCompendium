@@ -1520,6 +1520,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Device {tag} is syncing but isn\'t taking 1 change from this device. The change is safe here. That device may need an app update, or this device\'s date and time may be wrong.} other{Device {tag} is syncing but isn\'t taking {count} changes from this device. They\'re safe here. That device may need an app update, or this device\'s date and time may be wrong.}}'**
   String settingsSyncNoticePeerNotTaking(int count, String tag);
 
+  /// Informational Device Sync notice, one per other device: this device is holding back new kinds of data (for example custom compound figures) because that device runs an app version that couldn't read them. Holding back loses nothing. {tag} is the device's short random tag, exactly as on the Other devices screen (settingsSyncDeviceTag); never a name. 'Other devices' is the screen's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Some new kinds of data on this device will start syncing once device {tag} is updated to the latest version of the app, or removed from Other devices. They\'re safe here.'**
+  String settingsSyncNoticeAwaitingDevice(String tag);
+
   /// Short label beside the warning icon on a Device Sync notice that needs the user to do something, so the urgency is not carried by colour alone.
   ///
   /// In en, this message translates to:
@@ -1927,6 +1933,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A second person can use this same phrase on their device. If you both edit the same dance or program at the same time, one edit silently overwrites the other — there\'s no warning and no way to combine them.'**
   String get settingsSyncPairingSharingBody;
+
+  /// Heading of the pairing disclosure shown when this version syncs data earlier app versions cannot read (#709): earlier versions may be unable to connect, and that data waits until every device is updated.
+  ///
+  /// In en, this message translates to:
+  /// **'Every device needs an up-to-date app'**
+  String get settingsSyncPairingNewerDataTitle;
+
+  /// Body of the pairing disclosure about devices on earlier app versions (#709). 'Those things' are the kinds of data the earlier versions cannot read; they are kept, not lost, and sync once every device is updated.
+  ///
+  /// In en, this message translates to:
+  /// **'This version syncs some things that earlier versions of the app can\'t read. Update each device before you connect it: one running an earlier version may not be able to connect. Until every connected device is up to date, those things stay on the device they were made on.'**
+  String get settingsSyncPairingNewerDataBody;
 
   /// Heading of the disclosure spec §8 requires, shown on both pairing paths. The phrase names WHERE the shared library is, so an address framing is the accurate one; do not write 'access', 'key', 'account' or 'password' here.
   ///

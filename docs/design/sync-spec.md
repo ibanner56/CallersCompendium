@@ -1579,8 +1579,8 @@ Three readers MUST stay strict, and each for its own reason:
 Added in #709 as the client half of introducing new record kinds. It protects
 only builds that have it: a build older than it still refuses the whole
 manifest. So publishing a new kind's records still has to wait until no
-attached device is older than that; #709 is adding a capability gate that
-does that waiting per store.
+attached device is older than that; the capability gate (§6.15) does that
+waiting per store.
 
 ### 4.6 Text sanitisation
 
@@ -2648,9 +2648,10 @@ republishes, which is an ordinary upload and needs no special path.
    two conforming implementations diverge permanently. It is not an edge case.
    §4.4 makes the settings key the record `id`, so it is a natural key rather
    than a UUID: two attached devices that each set the same shareable preference
-   before the next pass reach exactly this state, and 60 settings keys are
+   before the next pass reach exactly this state, and 62 settings keys are
    `shareable` (exact keys in `settingsClassifications` whose egress is
-   `shareable`, counted 2026-10-02; no prefix entry is). Records with UUID ids reach it too, because archive
+   `shareable`, counted 2026-10-15), as is one prefix entry,
+   `sync_capabilities:` (§6.15). Records with UUID ids reach it too, because archive
    import preserves ids, so two devices importing one bundle and then editing it
    locally collide on the same id.
 
@@ -4243,6 +4244,100 @@ cannot discover before the harm: a silently discarded edit, an address that can
 be neither recovered nor taken back, a backup that is not one, and a store that
 is not the one they meant, or replacement of a collection without consent.
 Requirement 4 is a SHOULD because what it prevents is surprise, not loss.
+
+### 6.15 Capability gate
+
+Added in #709. A new record kind, or a new shareable settings key, may be data
+an older build cannot hold. Publishing it breaks a peer on such a build: a
+manifest naming a kind it does not know is unreadable to a build without the
+client half of §4.5, and a setting it does not sync shows as kept for a newer
+version. So data of that kind waits, per store, until every attached device
+says it can read it.
+
+**Capabilities.** A capability is a name (`glossary.v1`) for a set of record
+kinds and settings keys. A build advertises the capabilities it fully
+supports, sync included. Named rather than numbered, so features may ship or
+be backported in any order.
+
+**Advertising.** Each device writes one settings record,
+`sync_capabilities:<deviceId>`, whose value is
+`{"capabilities": [<sorted names>]}`. It is an ordinary `shareable` setting,
+classified by prefix, and it is never itself gated. A device writes only its
+own, before the snapshot of each pass, and only when the stored one is missing
+or lists something else, so an unchanged record is never re-stamped. A build
+that advertises nothing writes none. The prefix is excluded from backups: only
+its own device may write the record, and a restore would delete the others' or
+re-stamp them over their owners'. A build since v0.7.0 that does not know the
+key keeps it whole (§6.7) and shows the informational kept-for-a-newer-version
+notice; an older build reports it as a malformed record. Decided by Isaac
+(maintainer) as an accepted consequence of advertising this way (#709
+consolidated spec, decision 13).
+On detach every capability record is erased, not tombstoned: each names a
+device of the store being left, and a tombstone would carry those device IDs
+to the next store, as keeping this device's own ID would (§3.3). Nothing else
+removes a capability record: the record of a device removed from the store,
+or of an old device ID after a detach and re-attach, stays and is
+republished by the devices that hold it, counting for nothing in the gate.
+
+**The gate.** A capability is open on a device, for a pass, only when its own
+build advertises it **and** every other device in that pass's store device
+list (§7.1) has a capability record listing it. A device with no record, or a
+malformed one, holds every capability closed. A record of a device the list no
+longer names counts for nothing. The records read are the synced settings as
+they stand after the pass's pull.
+
+**Holding back.** While a capability is closed, every record of a kind or key
+gated on it, tombstones included, is left out of the device's **publication**
+only: set to no candidate, as the import filter does, so it is not in the
+manifest and its blob is not uploaded. Absence from a manifest is never a
+deletion (§4.5). The rows, and the merge's view of them, are untouched: a local
+edit stays the newer copy, nothing is downloaded over it, and it publishes on
+the first pass after the capability opens. The filter MUST be applied where
+publications are built and MUST NOT be applied inside the store's snapshot,
+because a fresh attach merges against the snapshot's publication (§6.2). A row
+hidden from the merge looks absent, so a peer's older copy is chosen for
+download; in the reference client only the apply step's concurrency check
+(§6.7) then stops it, as a deferred change raised again on every pass, so the
+merge's view is the wrong place to filter even where it loses nothing. A row
+held back is still recorded as published with the manifest's own records, so
+that a deletion made while it waits keeps its tombstone: a row never named by
+a publication may be hard-deleted without one, which would lose a deletion the
+gate is only postponing. It follows that a gated row created and deleted while
+the gate is closed, never having left the device, is still published as a
+tombstone once the gate opens, and a tombstone blob carries its body (§4.3):
+over-marking, as §3.1 and §6.3 step 8 accept elsewhere, within the data's own
+`shareable` class. Receiving is never gated:
+a device applies a gated kind whenever a peer publishes it. The gate is
+evaluated on every pass, so it closes again when a device without the
+capability attaches.
+
+**Self-contained data.** No record of an ungated kind or key may refer to a
+record of a gated one, because the referring record publishes while what it
+refers to is held back, and a peer would receive a dangling reference. A
+capability's records may refer to each other and to ungated records. #709's
+data meets this: a compound expands into ordinary figures when a dance is
+saved, and the expanded figures record no origin.
+
+**Reporting.** A device holding data back raises `withheldAwaitingDevices` once
+per device holding a capability closed, naming that device as the peer and
+every such capability that held something back this pass. It is
+shown per device, by its tag, as information: nothing is lost, and the remedy
+is updating or removing that device.
+
+**What it cannot see.** The store's device list names only devices that have
+published a manifest (§7.1), and a build without §4.5's client half cannot
+finish a fresh attach to a store whose peers publish a kind it does not know
+(§6.2: every peer manifest must be readable). So a device on such a build
+cannot join a store once the gate has opened, and the gate never sees it.
+Decided by Isaac (maintainer) in planning as accepted, with a warning in the
+pairing screens (#709 consolidated spec, decision 13): the pairing screen says so, on
+both its paths, while the build advertises any capability. There is no
+timeout: a device that never updates keeps the gate closed until it is
+removed.
+
+**Server.** The server needs no code for the gate. It validates settings keys
+and record kinds through the registry it is built from, so it MUST be deployed
+before any client emits the capability prefix or a gated kind (§7.5).
 
 ## 7. Server conformance
 
