@@ -278,8 +278,9 @@ implementation notes and deviations against each item — is in
   reference of caller terminology, dialect-aware. **Tracked in #695.**
   - **Delivered:** a read-only **Glossary** navigation destination, off by
     default behind **Settings ▸ Experimental ▸ Show Glossary**, listing the
-    taxonomy's built-in figures in the active dialect. Its entries are derived
-    from the taxonomy at runtime, so nothing is stored or synced.
+    taxonomy's built-in figures in the active dialect. Its built-in entries
+    are derived from the taxonomy at runtime, so they are never stored or
+    synced.
   - **Delivered:** a shipped, read-only definition and description for every
     built-in figure (`contra_figure_definitions.dart`), checked against The
     Caller's Box glossary and the glossary of Larry Jennings's *Give and Take*
@@ -289,11 +290,13 @@ implementation notes and deviations against each item — is in
     delivered the view): each built-in figure shows a read-only shipped
     definition and description, with a user-editable notes field; the shipped
     glossary does not sync, but any user additions (own terms, notes on
-    figures) must. Still to build: user additions, together with their sync;
-    then the CC `Term` mapping in 6.5.
-    Compound figures and notes on shipped figures are being built in #709
-    (maintainer decisions recorded in #709's consolidated spec, 2026-10-14);
-    own terms stay with #1023. The sync capability gate they will sync
+    figures) must. Still to build: the sync of user additions, and own terms
+    with the CC `Term` mapping in 6.5 (#1023).
+  - **Delivered (#709):** notes on built-in figures, and the user's own
+    compound figures behind a nested **Custom Figures** setting — added,
+    edited and deleted in the Glossary, kept in backups, not yet synced
+    (maintainer decisions recorded in #709's consolidated spec, 2026-10-14).
+    Own terms stay with #1023. The sync capability gate they will sync
     behind is built (sync-spec §6.15): data waits until every attached device
     understands it. Clients also skip a record kind they do not know instead of
     refusing a peer's whole manifest (sync-spec §4.5).

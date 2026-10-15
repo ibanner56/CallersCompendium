@@ -473,7 +473,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**97 settings keys**: 62 shareable, 8 device-local, 25 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
+**98 settings keys**: 63 shareable, 8 device-local, 25 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -550,6 +550,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `seed.initialCollection.completed` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `set_list_color_coding` | `dpv:NonPersonalData` | app user | shareable |  |
 | `shorthand_mappings` | `dpv:NonPersonalData` | app user | shareable |  |
+| `show_custom_figures` | `dpv:NonPersonalData` | app user | shareable |  |
 | `show_glossary` | `dpv:NonPersonalData` | app user | shareable |  |
 | `show_individual_perform_timer` | `dpv:NonPersonalData` | app user | shareable |  |
 | `show_program_slot_caller_notes` | `dpv:NonPersonalData` | app user | shareable |  |

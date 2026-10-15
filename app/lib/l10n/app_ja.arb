@@ -316,9 +316,9 @@
   "@glossaryAlsoKnownAs": {
     "x-sourceSha256": "4f8c470505d11f7da49d382956a128ebf4c524ac56893030dc0839da7fcad4f0"
   },
-  "settingsExperimentalGlossaryHeader": "用語集",
+  "settingsExperimentalGlossaryHeader": "用語集とカスタムフィギュア",
   "@settingsExperimentalGlossaryHeader": {
-    "x-sourceSha256": "4c4e436f9a453c776dbf011f98d932d615988bb08bddec6051625340e88d012f"
+    "x-sourceSha256": "c9b0e297712544f1874fb91612cb2731138f56d1a4d0d9fa314869247b8abd00"
   },
   "settingsExperimentalShowGlossaryTitle": "用語集を表示",
   "@settingsExperimentalShowGlossaryTitle": {
@@ -9081,5 +9081,321 @@
   "dialectEditorMoveWordingConfirmBody": "これらのテンプレートでは利用可能なスロットが省略されているため、フィギュアの詳細が隠れる可能性があります:\n{figures}\n\nそれでも保存しますか？",
   "@dialectEditorMoveWordingConfirmBody": {
     "x-sourceSha256": "4495d1a42205b677e8271a54bfab129e8bebcc9267877bf5fd4baba6d3fb9c73"
+  },
+  "settingsExperimentalShowCustomFiguresTitle": "カスタムフィギュア",
+  "@settingsExperimentalShowCustomFiguresTitle": {
+    "x-sourceSha256": "5678ffb9929561067862bd046b5b3a21f57923e2403c78826dece4b932e87462"
+  },
+  "settingsExperimentalShowCustomFiguresSubtitle": "自分のフィギュアを用語集に表示し、そこで追加や編集ができます。オフにすると非表示になりますが、削除はされません。",
+  "@settingsExperimentalShowCustomFiguresSubtitle": {
+    "x-sourceSha256": "817edbffcd2e85f8c4fa1329d4377ca8a04af6ad2484e4db5f4b5a37412a1535"
+  },
+  "settingsExperimentalShowCustomFiguresNeedsGlossary": "自分のフィギュアを使うには、「用語集を表示」をオンにしてください。",
+  "@settingsExperimentalShowCustomFiguresNeedsGlossary": {
+    "x-sourceSha256": "a16be7f1d091598c36c894c3eae0bc9e75db61dd9e39485af1068976d598ac03"
+  },
+  "glossaryAddCustomFigure": "自分のフィギュアを追加",
+  "@glossaryAddCustomFigure": {
+    "x-sourceSha256": "33ad8774d841771938cf8bc5e3d181ad4c97607dc8ced2808127cca8410e91c5"
+  },
+  "glossaryCustomMarker": "カスタム",
+  "@glossaryCustomMarker": {
+    "x-sourceSha256": "494ca78f7374e46fb2de9ad9f2dbd4aaae89b50b2ca044177a1566a59e06627e"
+  },
+  "glossaryCustomNeedsRepair": "要修復",
+  "@glossaryCustomNeedsRepair": {
+    "x-sourceSha256": "4ed3689d9d350f08124d79e8cc2a12ec7c380b454879a456d0b9cd2c3965e69e"
+  },
+  "glossaryCustomNeedsRepairBody": "このフィギュアはこのままでは使用できません。含まれるフィギュアまたはパラメーターのいずれかが無効になっています。編集して修復してください。",
+  "@glossaryCustomNeedsRepairBody": {
+    "x-sourceSha256": "dfd7ada292634d27a059848ed8dbd4dd77f2cecfeafb7f03486acc878b6a57ed"
+  },
+  "glossaryCustomRenameNeeded": "名前の変更が必要",
+  "@glossaryCustomRenameNeeded": {
+    "x-sourceSha256": "1416219675e8117f0d7fe729b8f5bb06a3eb5846e73e81c2cdd6f62ed9212ee1"
+  },
+  "glossaryCustomRenameNeededBody": "別のフィギュアまたはショートハンドがすでにこの名前を使用しています。区別できるように、こちらの名前を変更してください。",
+  "@glossaryCustomRenameNeededBody": {
+    "x-sourceSha256": "abb710c0a3847ef1d64e8dabdf73545442b23410dc46ea7687680f8f798e1f9d"
+  },
+  "glossaryCustomUnsupported": "新しいバージョン",
+  "@glossaryCustomUnsupported": {
+    "x-sourceSha256": "73c5173a76fdf70239a8cea8bceaac825f005a3596c151a03373cb55adf4c92a"
+  },
+  "glossaryCustomUnsupportedBody": "この項目は新しいバージョンのアプリで作成されました。編集または使用するには、このデバイスのアプリを更新してください。",
+  "@glossaryCustomUnsupportedBody": {
+    "x-sourceSha256": "5a1cadea5dfe1d947a05dfeff086782cecfed7a6b18821dfdf454436be77a42e"
+  },
+  "glossaryCustomExpandsTo": "展開先（{beats}拍）",
+  "@glossaryCustomExpandsTo": {
+    "x-sourceSha256": "1b63b35172b700aae5b91bd0436f54ff21226d2f95f529991816a3f0a7ed23ae"
+  },
+  "glossaryCustomGone": "このフィギュアは削除されました。",
+  "@glossaryCustomGone": {
+    "x-sourceSha256": "17205e750f85c76f870ce2905af9c6bf3291e085daf3728bd4e71820718f058f"
+  },
+  "glossaryCustomDeleteTitle": "「{name}」を削除しますか？",
+  "@glossaryCustomDeleteTitle": {
+    "x-sourceSha256": "8e13216a05b75255681daa6d0da8938db3480ee79257419a088bb3b3a4c6f6c2"
+  },
+  "glossaryCustomDeleteBody": "用語集から削除されます。このフィギュアを使ってすでに保存したダンスのフィギュアはそのまま残ります。",
+  "@glossaryCustomDeleteBody": {
+    "x-sourceSha256": "bbf9bd847e9fbfdc4464983d3121cd8dc2748df7bcab132c31e57270e09085d4"
+  },
+  "glossaryNotes": "自分のノート",
+  "@glossaryNotes": {
+    "x-sourceSha256": "55576676783c7f797f5a83c9db47604a670d315864ecd6d00ea49e2661dd378b"
+  },
+  "glossaryNotesEmpty": "ノートはまだありません。",
+  "@glossaryNotesEmpty": {
+    "x-sourceSha256": "57bde4deb215bfafd265380441109093117699d85e5c895f591ffcf6eb10c47e"
+  },
+  "glossaryNotesAdd": "ノートを追加",
+  "@glossaryNotesAdd": {
+    "x-sourceSha256": "c51c3efa1dc48989efaa05f8a1e2720cbec4fa26c5306352da0b3e5833aa4cef"
+  },
+  "glossaryNotesEdit": "ノートを編集",
+  "@glossaryNotesEdit": {
+    "x-sourceSha256": "31f8e944d3762751d73ba33df5f94a89971ecad9e77dbea79c2d761914e7ad94"
+  },
+  "glossaryNotesEditTitle": "自分のノート",
+  "@glossaryNotesEditTitle": {
+    "x-sourceSha256": "55576676783c7f797f5a83c9db47604a670d315864ecd6d00ea49e2661dd378b"
+  },
+  "glossaryNotesHint": "コールの仕方、注意点など…",
+  "@glossaryNotesHint": {
+    "x-sourceSha256": "2ebb2baa1b27d06ecfc064ccef91f84ec3cbd6b5b4ab0590f6dba78a11360788"
+  },
+  "glossaryNotesTooLong": "メモが長すぎるため保存できません。短くしてもう一度お試しください。",
+  "@glossaryNotesTooLong": {
+    "x-sourceSha256": "c2ecf8838d292638167b611a8223636504b1c2756a50854797f78afe414fc11c"
+  },
+  "compoundEditorTitleNew": "新しいフィギュア",
+  "@compoundEditorTitleNew": {
+    "x-sourceSha256": "3bd330f1f22470db1387c962d78ceea1c7f302fd57729577ba2ee6cb9e9d3326"
+  },
+  "compoundEditorTitleEdit": "フィギュアを編集",
+  "@compoundEditorTitleEdit": {
+    "x-sourceSha256": "9aa48cf853ce9567e3069d453150f6323ef6b9c69ce11d32c23aa4157ea0f2f7"
+  },
+  "compoundEditorName": "名前",
+  "@compoundEditorName": {
+    "x-sourceSha256": "dcd1d5223f73b3a965c07e3ff5dbee3eedcfedb806686a05b9b3868a2c3d6d50"
+  },
+  "compoundEditorDefinition": "定義",
+  "@compoundEditorDefinition": {
+    "x-sourceSha256": "9813fafb098c218090536790280a91ee70062a8490eb3615395ee731cdd40023"
+  },
+  "compoundEditorDefinitionHelper": "1文で入力します。用語集の一覧に表示されます。",
+  "@compoundEditorDefinitionHelper": {
+    "x-sourceSha256": "047f42e5ecfb3bcaec8bf2492e2a2a02eac1e35810b3311a1ef26341f09a1eae"
+  },
+  "compoundEditorDescription": "説明",
+  "@compoundEditorDescription": {
+    "x-sourceSha256": "526e0087cc3f254d9f86f6c7d8e23d954c4dfda2b312efc29194ae8a860106ba"
+  },
+  "compoundEditorKeywords": "別名",
+  "@compoundEditorKeywords": {
+    "x-sourceSha256": "df5ad6a61094585c1a2e4b9149a1d519f587a8f3c595d019fff6b6c33ba2e805"
+  },
+  "compoundEditorKeywordsHelper": "任意。カンマで区切ってください。",
+  "@compoundEditorKeywordsHelper": {
+    "x-sourceSha256": "4198d10484049d535659c22ce355122960d0ce427473078f69eb4ef2568cef09"
+  },
+  "compoundEditorNotes": "ノート",
+  "@compoundEditorNotes": {
+    "x-sourceSha256": "8a7525b1492fb84833f5c4a69b30f4bfbb134f9b666b61a2c1872d63d234c085"
+  },
+  "compoundEditorOptional": "任意。",
+  "@compoundEditorOptional": {
+    "x-sourceSha256": "a9aaf97cc9e9ce8a8778726775a058f6e317e5f7f5f9d30fc96078d534378b30"
+  },
+  "compoundEditorFieldRequired": "必須",
+  "@compoundEditorFieldRequired": {
+    "x-sourceSha256": "4850b174b713d88cfc63de107830d5388929020e78abc91fc19bba7a6821625f"
+  },
+  "compoundEditorRequired": "フィギュアの名前、定義、説明を入力してください。",
+  "@compoundEditorRequired": {
+    "x-sourceSha256": "0bf8c1329f7e5958c2355a8f5139d9ba770fa3a1eb056c47747559cd15aaf445"
+  },
+  "compoundEditorParams": "パラメーター",
+  "@compoundEditorParams": {
+    "x-sourceSha256": "e68b36b17cbd990802f57741cb75cf3a73fa66a61999b0cd70e3cf7d26cfb25f"
+  },
+  "compoundEditorParamsHelp": "フィギュアを使うたびに選ぶ項目です（誰が、どちらの手で、など）。",
+  "@compoundEditorParamsHelp": {
+    "x-sourceSha256": "bceac323a264cca7000f71191323c5f33b584477571d4ef6fb9e30b2225006ae"
+  },
+  "compoundEditorParamName": "パラメーター名",
+  "@compoundEditorParamName": {
+    "x-sourceSha256": "d7cb455aa6905a1b4b4192949eabbf3cc299b755fd24cf4b53fefa16b87f00fb"
+  },
+  "compoundEditorParamKind": "種類",
+  "@compoundEditorParamKind": {
+    "x-sourceSha256": "f5387f9bb6ed70315a77fdcb9335facc27a9bf241f35955bd2755c55e0c016c7"
+  },
+  "compoundEditorAddParam": "パラメーターを追加",
+  "@compoundEditorAddParam": {
+    "x-sourceSha256": "f4e0c4d76e5c18cc8096ce26047bb33f0330be6f32a7c11a8767b0816659a28b"
+  },
+  "compoundEditorRemoveParam": "パラメーターを削除",
+  "@compoundEditorRemoveParam": {
+    "x-sourceSha256": "674964c2c65eda36485cc3e8de21f4b6f817eb5a79e0d3e8b27297e305e5a8ca"
+  },
+  "compoundEditorParamNames": "各パラメーターに異なる名前を付けてください。",
+  "@compoundEditorParamNames": {
+    "x-sourceSha256": "3dadabf3b4002290c65063b7684b55f15656095638d419b39f40665a928c7594"
+  },
+  "compoundEditorFigures": "フィギュア",
+  "@compoundEditorFigures": {
+    "x-sourceSha256": "f2f410e7009e9a31dcc7c971e662285f4071150ef1e211f76e838efb35082d1e"
+  },
+  "compoundEditorFiguresHelp": "ダンスを保存するときに展開されるフィギュアです（順番どおり）。",
+  "@compoundEditorFiguresHelp": {
+    "x-sourceSha256": "98b04d72d69262255e1c4f6ee4a0c31c54341b893336a7b3d771728d3278d0dc"
+  },
+  "compoundEditorBindings": "パラメーターで指定",
+  "@compoundEditorBindings": {
+    "x-sourceSha256": "c6c35a3388bef819c4b24ccc64271735b55a35f4959753d3c40fa43ffab20a78"
+  },
+  "compoundEditorBindingsHelp": "各フィギュアについて、どの設定をパラメーターから取るかを選びます。それ以外は設定したままになります。",
+  "@compoundEditorBindingsHelp": {
+    "x-sourceSha256": "8239a6ac93c19a05fc33fa0d7617d1557f6037c3e053f5dec916a1dfea11032f"
+  },
+  "compoundEditorFigureN": "フィギュア{number}：{figure}",
+  "@compoundEditorFigureN": {
+    "x-sourceSha256": "e10eef0ff049ffcc4ffd2068eaa31a19f9a9b49fbf9f4827fc8950725baadb57"
+  },
+  "compoundBindingFixed": "フィギュアでの設定どおり",
+  "@compoundBindingFixed": {
+    "x-sourceSha256": "7d6b649ed562abcd731c63d4cda141bda9f9f27c64abfc4bae11a1cb63c6a149"
+  },
+  "compoundBindingOpposite": "{param}の逆",
+  "@compoundBindingOpposite": {
+    "x-sourceSha256": "088d011be6d20b785d8524c474e1fbb585457d178b284ce194e36ddd3206bef4"
+  },
+  "compoundBindingUnavailable": "{option}（使用不可：{reason}）",
+  "@compoundBindingUnavailable": {
+    "x-sourceSha256": "7b21720a952905f829169c34c6ab1752fc8cb31d783b1de2d6097148bdc653fa"
+  },
+  "compoundBindingNoName": "まだ名前がありません",
+  "@compoundBindingNoName": {
+    "x-sourceSha256": "4955eed814a7b548f3b4207be2f00e835a08f2b9d1d96fede8ffb042c4a02f31"
+  },
+  "compoundBindingWrongKind": "種類が{paramKind}ですが、この設定は{slotKind}です",
+  "@compoundBindingWrongKind": {
+    "x-sourceSha256": "432e37f8b66c19c139fe1a87d0334aa6359b719e97c70fa31cce378233d87576"
+  },
+  "compoundBindingNoOpposite": "この種類には逆がありません",
+  "@compoundBindingNoOpposite": {
+    "x-sourceSha256": "82b631500c9d36c46f27e362151d952aeb658f9b3ef264f7bdb206163b4bfade"
+  },
+  "compoundBindingNoSharedValues": "指定先のすべての設定に合う値がありません",
+  "@compoundBindingNoSharedValues": {
+    "x-sourceSha256": "f34596f45b1082e802551c509d729fb65d1ad066f850a7235345fbc298e94217"
+  },
+  "compoundEditorNameTaken": "「{name}」はすでにフィギュアまたはショートハンドの名前として使われています。別の名前を選んでください。",
+  "@compoundEditorNameTaken": {
+    "x-sourceSha256": "262606172e7c9de4247bd5725ee0ea74ab261bedc4310906e817cc955d9efcf3"
+  },
+  "compoundEditorNoFigures": "フィギュアを1つ以上追加してください。",
+  "@compoundEditorNoFigures": {
+    "x-sourceSha256": "077dee789ee7f11036fcd87132392a01ed1e1e808a55b857280846be61e40d8c"
+  },
+  "compoundEditorEmptyDomain": "{param}には、指定先のすべての設定に合う値がありません。",
+  "@compoundEditorEmptyDomain": {
+    "x-sourceSha256": "27c364942248a8217a9a0f231a559c125add49a868489d0f5afd4d1714376c5d"
+  },
+  "compoundEditorTooLarge": "このフィギュアには、保持できる数を超えるフィギュアまたはパラメーターがあります。",
+  "@compoundEditorTooLarge": {
+    "x-sourceSha256": "6b2baca8c762ddc31d4f1e6f56e2df92f57c4e6d32b15631b6e7d65712eeacd0"
+  },
+  "compoundEditorBindingInvalid": "フィギュアの設定に、もう合わないパラメーターが指定されています。「パラメーターで指定」を確認してください。",
+  "@compoundEditorBindingInvalid": {
+    "x-sourceSha256": "aba84452b69d4ed2d8aed5b30469a6571421bb56c45e3f18ccc4dd5ef299a03c"
+  },
+  "compoundEditorInvalidFigures": "いずれかのフィギュアがまだ不完全か無効です。",
+  "@compoundEditorInvalidFigures": {
+    "x-sourceSha256": "96082f358b6508b3b0536adaad2e8ee1c60c177ccc833540cac1e5352695a1c8"
+  },
+  "compoundEditorTooLong": "いずれかの欄が長すぎます。",
+  "@compoundEditorTooLong": {
+    "x-sourceSha256": "736493cc17bc71def69a380c2f68290cb2b0102df3e2479d40f6a6800b808694"
+  },
+  "compoundEditorUnusedTitle": "使われていないパラメーターがあります",
+  "@compoundEditorUnusedTitle": {
+    "x-sourceSha256": "64bb1d3e387b4cd9bddf30b61f5072d3b04e1c445bc11df9b5960df10b3e5639"
+  },
+  "compoundEditorUnusedBody": "{params}はどのフィギュアの設定にも使われていないため、選んでも何も変わりません。",
+  "@compoundEditorUnusedBody": {
+    "x-sourceSha256": "855be0fd15f372e1d5f83f09c5049a4c455f530620422fd682e7d307cd989110"
+  },
+  "compoundEditorUnusedBack": "エディターに戻る",
+  "@compoundEditorUnusedBack": {
+    "x-sourceSha256": "01e8fc461b6a6d341f6be67730a8396ea1de6e760067a0a64268113761b62b5d"
+  },
+  "compoundEditorUnusedSave": "このまま保存",
+  "@compoundEditorUnusedSave": {
+    "x-sourceSha256": "ef4c87b5083fbe4867b0bfb4e2575ecb106bdd4612160ef40f8f022c415cbdac"
+  },
+  "compoundEditorDiscardBody": "このフィギュアに未保存の変更があります。",
+  "@compoundEditorDiscardBody": {
+    "x-sourceSha256": "b75777162fce7dd48f0bfc6ab3ba104c6c897d4b492a3e59c5e4d88637d112ba"
+  },
+  "compoundParamWithKind": "{param}（{kind}）",
+  "@compoundParamWithKind": {
+    "x-sourceSha256": "f181c85fdc2ef4113e1dcaa727ac0bce716f39367d9062c555377b5668f2ad52"
+  },
+  "compoundParamKindDancers": "ダンサー",
+  "@compoundParamKindDancers": {
+    "x-sourceSha256": "569da09b053e462cb512b19d943f60ee1931a01ac41116aa6c41202aff74e842"
+  },
+  "compoundParamKindDancerPair": "ダンサーのペア",
+  "@compoundParamKindDancerPair": {
+    "x-sourceSha256": "a42ddb306dcf7ed749e67e4a4e6479a1ca616d30c2c5c430942011ebd4550396"
+  },
+  "compoundParamKindHand": "手",
+  "@compoundParamKindHand": {
+    "x-sourceSha256": "1b001706a418bdfca35361355c643b7918572b8f9b7503f3043a6e23b45dce52"
+  },
+  "compoundParamKindShoulder": "肩",
+  "@compoundParamKindShoulder": {
+    "x-sourceSha256": "89f45d4c8172f37edf9ad45a9eb7f9d66be49c2bf515ac76ae83faa75092b0b0"
+  },
+  "compoundParamKindSpin": "回転方向",
+  "@compoundParamKindSpin": {
+    "x-sourceSha256": "9393e70c099f31b63e5b8d138e48596379cd08eea379ac5523d0f7783d81c136"
+  },
+  "compoundParamKindDirection": "方向",
+  "@compoundParamKindDirection": {
+    "x-sourceSha256": "93c4abe27cf1696102534bb60b3795f41f60f52fa806cd5d0feadfc8bd2b8170"
+  },
+  "compoundParamKindFraction": "分数",
+  "@compoundParamKindFraction": {
+    "x-sourceSha256": "2c0f0f4581aa813bfe2ea2128451ab86cee6b7442e17879e939751c9aa893859"
+  },
+  "compoundParamKindRotation": "回転量",
+  "@compoundParamKindRotation": {
+    "x-sourceSha256": "9db9e16303e0139c0092d4a9fb3c6ac92df5a50a99c5f72c2217996a1677b1da"
+  },
+  "compoundParamKindPlaces": "位置の数",
+  "@compoundParamKindPlaces": {
+    "x-sourceSha256": "a48fcb713243b3d460ca7f05e4e4e5ef1cd4d8ce4981ce20cdd3e98a39d4fd38"
+  },
+  "compoundParamKindBeats": "拍数",
+  "@compoundParamKindBeats": {
+    "x-sourceSha256": "d5803722f3983afbfa30b24a1ea991d1b2cb78805311b360128269ef495105af"
+  },
+  "compoundParamKindFlag": "オン/オフ",
+  "@compoundParamKindFlag": {
+    "x-sourceSha256": "418203c3163c9b95c372e2c50ecd46134fa6cad29e704e732f7c6d83d272e7e9"
+  },
+  "compoundParamKindChoice": "選択肢",
+  "@compoundParamKindChoice": {
+    "x-sourceSha256": "a11a75e0feeecc1a9eff682b06ef0b1461ed4ee7a4d6da4ae333bdc1041d9d51"
+  },
+  "compoundParamKindText": "テキスト",
+  "@compoundParamKindText": {
+    "x-sourceSha256": "982d9e3eb996f559e633f4d194def3761d909f5a3b647d1a851fead67c32c9d1"
   }
 }

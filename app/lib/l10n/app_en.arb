@@ -407,7 +407,7 @@
   "@glossaryAlsoKnownAs": {
     "description": "Heading above other names for a figure, on a Glossary figure's detail."
   },
-  "settingsExperimentalGlossaryHeader": "Glossary",
+  "settingsExperimentalGlossaryHeader": "Glossary and Custom Figures",
   "@settingsExperimentalGlossaryHeader": {
     "description": "Header of the Glossary group in the Experimental settings section."
   },
@@ -11978,5 +11978,397 @@
         "example": "Swing: {who}, {prefix}"
       }
     }
+  },
+  "settingsExperimentalShowCustomFiguresTitle": "Custom Figures",
+  "@settingsExperimentalShowCustomFiguresTitle": {
+    "description": "Title of the switch, nested under Show Glossary, that shows the user's own compound figures in the Glossary (#709)."
+  },
+  "settingsExperimentalShowCustomFiguresSubtitle": "Lists your own figures in the Glossary, where you can add and edit them. Turning this off hides them; it doesn't delete them.",
+  "@settingsExperimentalShowCustomFiguresSubtitle": {
+    "description": "Subtitle of the Custom Figures switch while Show Glossary is on."
+  },
+  "settingsExperimentalShowCustomFiguresNeedsGlossary": "Turn on Show Glossary to use your own figures.",
+  "@settingsExperimentalShowCustomFiguresNeedsGlossary": {
+    "description": "Subtitle of the Custom Figures switch while it is disabled because Show Glossary is off."
+  },
+  "glossaryAddCustomFigure": "Add your own figure",
+  "@glossaryAddCustomFigure": {
+    "description": "Tooltip of the Glossary's add button, which opens the editor for a new custom figure."
+  },
+  "glossaryCustomMarker": "Custom",
+  "@glossaryCustomMarker": {
+    "description": "Chip marking one of the user's own figures in the Glossary."
+  },
+  "glossaryCustomNeedsRepair": "Needs repair",
+  "@glossaryCustomNeedsRepair": {
+    "description": "Short label on a custom figure whose figures or parameters are no longer valid."
+  },
+  "glossaryCustomNeedsRepairBody": "This figure can't be used as it is: one of its figures or parameters is no longer valid. Edit it to repair it.",
+  "@glossaryCustomNeedsRepairBody": {
+    "description": "Explains the Needs repair label on a custom figure's detail page."
+  },
+  "glossaryCustomRenameNeeded": "Rename needed",
+  "@glossaryCustomRenameNeeded": {
+    "description": "Short label on a custom figure whose name another figure or shorthand already uses."
+  },
+  "glossaryCustomRenameNeededBody": "Another figure or shorthand already has this name. Rename this one so the two can be told apart.",
+  "@glossaryCustomRenameNeededBody": {
+    "description": "Explains the Rename needed label on a custom figure's detail page."
+  },
+  "glossaryCustomUnsupported": "Newer version",
+  "@glossaryCustomUnsupported": {
+    "description": "Short label on a custom glossary entry made by a newer version of the app, which this version can show but not edit."
+  },
+  "glossaryCustomUnsupportedBody": "This entry was made with a newer version of the app. Update the app here to edit or use it.",
+  "@glossaryCustomUnsupportedBody": {
+    "description": "Explains the Newer version label on a custom glossary entry."
+  },
+  "glossaryCustomExpandsTo": "Expands to ({beats} beats)",
+  "@glossaryCustomExpandsTo": {
+    "description": "Title of the folded panel listing the figures a custom figure becomes when a dance is saved.",
+    "placeholders": {
+      "beats": {
+        "type": "int",
+        "example": "16"
+      }
+    }
+  },
+  "glossaryCustomGone": "This figure has been deleted.",
+  "@glossaryCustomGone": {
+    "description": "Shown in place of a custom figure's details once it has been deleted."
+  },
+  "glossaryCustomDeleteTitle": "Delete “{name}”?",
+  "@glossaryCustomDeleteTitle": {
+    "description": "Title of the dialog confirming that a custom figure is deleted.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "grand right and left"
+      }
+    }
+  },
+  "glossaryCustomDeleteBody": "It's removed from your Glossary. Dances you've already saved with it keep their figures.",
+  "@glossaryCustomDeleteBody": {
+    "description": "Body of the dialog confirming that a custom figure is deleted."
+  },
+  "glossaryNotes": "Your notes",
+  "@glossaryNotes": {
+    "description": "Heading of the user's own notes on a Glossary figure."
+  },
+  "glossaryNotesEmpty": "No notes yet.",
+  "@glossaryNotesEmpty": {
+    "description": "Shown under Your notes on a Glossary figure that has none."
+  },
+  "glossaryNotesAdd": "Add notes",
+  "@glossaryNotesAdd": {
+    "description": "Button that opens the editor for the user's notes on a built-in figure that has none."
+  },
+  "glossaryNotesEdit": "Edit notes",
+  "@glossaryNotesEdit": {
+    "description": "Button that opens the editor for the user's existing notes on a built-in figure."
+  },
+  "glossaryNotesEditTitle": "Your notes",
+  "@glossaryNotesEditTitle": {
+    "description": "Title of the dialog where the user edits their notes on a built-in figure."
+  },
+  "glossaryNotesHint": "How you call it, what to watch for…",
+  "@glossaryNotesHint": {
+    "description": "Hint text of the notes field on a built-in figure."
+  },
+  "glossaryNotesTooLong": "Your notes are too long to save. Shorten them and try again.",
+  "@glossaryNotesTooLong": {
+    "description": "Shown when the user's notes on a built-in figure in the Glossary are over the length that can be stored."
+  },
+  "compoundEditorTitleNew": "New figure",
+  "@compoundEditorTitleNew": {
+    "description": "Title of the editor for a new custom figure."
+  },
+  "compoundEditorTitleEdit": "Edit figure",
+  "@compoundEditorTitleEdit": {
+    "description": "Title of the editor for an existing custom figure."
+  },
+  "compoundEditorName": "Name",
+  "@compoundEditorName": {
+    "description": "Label of a custom figure's name field."
+  },
+  "compoundEditorDefinition": "Definition",
+  "@compoundEditorDefinition": {
+    "description": "Label of a custom figure's one-sentence definition field."
+  },
+  "compoundEditorDefinitionHelper": "One sentence, shown in the Glossary list.",
+  "@compoundEditorDefinitionHelper": {
+    "description": "Helper text of a custom figure's definition field."
+  },
+  "compoundEditorDescription": "Description",
+  "@compoundEditorDescription": {
+    "description": "Label of a custom figure's description field."
+  },
+  "compoundEditorKeywords": "Other names",
+  "@compoundEditorKeywords": {
+    "description": "Label of a custom figure's optional keywords field, which search also finds it by."
+  },
+  "compoundEditorKeywordsHelper": "Optional. Separate them with commas.",
+  "@compoundEditorKeywordsHelper": {
+    "description": "Helper text of a custom figure's keywords field."
+  },
+  "compoundEditorNotes": "Notes",
+  "@compoundEditorNotes": {
+    "description": "Label of a custom figure's optional notes field."
+  },
+  "compoundEditorOptional": "Optional.",
+  "@compoundEditorOptional": {
+    "description": "Helper text of an optional field in the custom figure editor."
+  },
+  "compoundEditorFieldRequired": "Required",
+  "@compoundEditorFieldRequired": {
+    "description": "Error under an empty required field in the custom figure editor."
+  },
+  "compoundEditorRequired": "Give the figure a name, a definition and a description.",
+  "@compoundEditorRequired": {
+    "description": "Error shown when saving a custom figure with a required field empty."
+  },
+  "compoundEditorParams": "Parameters",
+  "@compoundEditorParams": {
+    "description": "Heading of the custom figure editor's parameters, the values asked for each time the figure is used."
+  },
+  "compoundEditorParamsHelp": "What you choose each time you use the figure, such as who and which hand.",
+  "@compoundEditorParamsHelp": {
+    "description": "Help text under the Parameters heading of the custom figure editor."
+  },
+  "compoundEditorParamName": "Parameter name",
+  "@compoundEditorParamName": {
+    "description": "Label of a parameter's name field in the custom figure editor."
+  },
+  "compoundEditorParamKind": "Kind",
+  "@compoundEditorParamKind": {
+    "description": "Label of a parameter's kind dropdown in the custom figure editor."
+  },
+  "compoundEditorAddParam": "Add parameter",
+  "@compoundEditorAddParam": {
+    "description": "Button that adds a parameter in the custom figure editor."
+  },
+  "compoundEditorRemoveParam": "Remove parameter",
+  "@compoundEditorRemoveParam": {
+    "description": "Tooltip of the button that removes a parameter in the custom figure editor."
+  },
+  "compoundEditorParamNames": "Give each parameter a different name.",
+  "@compoundEditorParamNames": {
+    "description": "Error shown when saving a custom figure with an unnamed or repeated parameter."
+  },
+  "compoundEditorFigures": "Figures",
+  "@compoundEditorFigures": {
+    "description": "Heading of the figures a custom figure expands into."
+  },
+  "compoundEditorFiguresHelp": "The figures it becomes when you save a dance, in order.",
+  "@compoundEditorFiguresHelp": {
+    "description": "Help text under the Figures heading of the custom figure editor."
+  },
+  "compoundEditorBindings": "Filled in by parameters",
+  "@compoundEditorBindings": {
+    "description": "Heading of the section where a figure's settings are tied to the custom figure's parameters."
+  },
+  "compoundEditorBindingsHelp": "For each figure, choose which settings come from a parameter. The others stay as you set them.",
+  "@compoundEditorBindingsHelp": {
+    "description": "Help text under the Filled in by parameters heading."
+  },
+  "compoundEditorFigureN": "Figure {number}: {figure}",
+  "@compoundEditorFigureN": {
+    "description": "Heading of one figure's card in the Filled in by parameters section.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "2"
+      },
+      "figure": {
+        "type": "String",
+        "example": "pull by neighbors left"
+      }
+    }
+  },
+  "compoundBindingFixed": "As set in the figure",
+  "@compoundBindingFixed": {
+    "description": "Dropdown choice that leaves a figure's setting as it is rather than taking it from a parameter."
+  },
+  "compoundBindingOpposite": "Opposite of {param}",
+  "@compoundBindingOpposite": {
+    "description": "Dropdown choice that fills a figure's setting with the opposite of a parameter's value (left for right).",
+    "placeholders": {
+      "param": {
+        "type": "String",
+        "example": "hand"
+      }
+    }
+  },
+  "compoundBindingUnavailable": "{option} (unavailable: {reason})",
+  "@compoundBindingUnavailable": {
+    "description": "A dropdown choice that cannot be picked, with why.",
+    "placeholders": {
+      "option": {
+        "type": "String",
+        "example": "who"
+      },
+      "reason": {
+        "type": "String",
+        "example": "it's a hand, this setting is dancers"
+      }
+    }
+  },
+  "compoundBindingNoName": "it has no name yet",
+  "@compoundBindingNoName": {
+    "description": "Why a parameter cannot fill a setting: it is unnamed."
+  },
+  "compoundBindingWrongKind": "its kind is {paramKind}; this setting's is {slotKind}",
+  "@compoundBindingWrongKind": {
+    "description": "Why a parameter cannot fill a setting: their kinds differ.",
+    "placeholders": {
+      "paramKind": {
+        "type": "String",
+        "example": "hand"
+      },
+      "slotKind": {
+        "type": "String",
+        "example": "dancers"
+      }
+    }
+  },
+  "compoundBindingNoOpposite": "this kind has no opposite",
+  "@compoundBindingNoOpposite": {
+    "description": "Why a parameter's opposite cannot fill a setting."
+  },
+  "compoundBindingNoSharedValues": "no value fits every setting it fills",
+  "@compoundBindingNoSharedValues": {
+    "description": "Why a parameter cannot fill a setting: no value is allowed in all of them."
+  },
+  "compoundEditorNameTaken": "“{name}” is already the name of a figure or shorthand. Choose another name.",
+  "@compoundEditorNameTaken": {
+    "description": "Error shown when saving a custom figure under a name already in use.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "pull by"
+      }
+    }
+  },
+  "compoundEditorNoFigures": "Add at least one figure.",
+  "@compoundEditorNoFigures": {
+    "description": "Error shown when saving a custom figure with no figures."
+  },
+  "compoundEditorEmptyDomain": "No value of {param} fits every setting it fills.",
+  "@compoundEditorEmptyDomain": {
+    "description": "Error shown when a parameter fills settings that have no value in common.",
+    "placeholders": {
+      "param": {
+        "type": "String",
+        "example": "who"
+      }
+    }
+  },
+  "compoundEditorTooLarge": "This figure has more figures or parameters than it can hold.",
+  "@compoundEditorTooLarge": {
+    "description": "Error shown when a custom figure is over its size limits."
+  },
+  "compoundEditorBindingInvalid": "A figure's setting is filled by a parameter that no longer fits it. Check Filled in by parameters.",
+  "@compoundEditorBindingInvalid": {
+    "description": "Error shown when saving a custom figure where a later edit (a figure's move, a parameter's kind) left a setting bound to a parameter that cannot fill it. 'Filled in by parameters' is the section heading (compoundEditorBindings)."
+  },
+  "compoundEditorInvalidFigures": "One of the figures isn't complete or valid yet.",
+  "@compoundEditorInvalidFigures": {
+    "description": "Error shown when a custom figure's parts don't validate."
+  },
+  "compoundEditorTooLong": "One of the fields is too long.",
+  "@compoundEditorTooLong": {
+    "description": "Error shown when a custom figure's text is over its length limit."
+  },
+  "compoundEditorUnusedTitle": "Some parameters aren't used",
+  "@compoundEditorUnusedTitle": {
+    "description": "Title of the dialog warning that a declared parameter fills no figure's setting."
+  },
+  "compoundEditorUnusedBody": "{params} doesn't fill any figure's settings, so choosing it will change nothing.",
+  "@compoundEditorUnusedBody": {
+    "description": "Body of the unused-parameter warning.",
+    "placeholders": {
+      "params": {
+        "type": "String",
+        "example": "hand"
+      }
+    }
+  },
+  "compoundEditorUnusedBack": "Back to editor",
+  "@compoundEditorUnusedBack": {
+    "description": "Unused-parameter dialog button that returns to the editor."
+  },
+  "compoundEditorUnusedSave": "Save anyway",
+  "@compoundEditorUnusedSave": {
+    "description": "Unused-parameter dialog button that saves despite the warning."
+  },
+  "compoundEditorDiscardBody": "You have unsaved changes to this figure.",
+  "@compoundEditorDiscardBody": {
+    "description": "Body of the dialog confirming that unsaved changes to a custom figure are discarded."
+  },
+  "compoundParamWithKind": "{param} ({kind})",
+  "@compoundParamWithKind": {
+    "description": "A custom figure's parameter, with its kind, in the Glossary.",
+    "placeholders": {
+      "param": {
+        "type": "String",
+        "example": "hand"
+      },
+      "kind": {
+        "type": "String",
+        "example": "hand"
+      }
+    }
+  },
+  "compoundParamKindDancers": "dancers",
+  "@compoundParamKindDancers": {
+    "description": "The kind of a custom figure's parameter: dancers. Lowercase; also used inside sentences."
+  },
+  "compoundParamKindDancerPair": "pair of dancers",
+  "@compoundParamKindDancerPair": {
+    "description": "The kind of a custom figure's parameter: pair of dancers. Lowercase; also used inside sentences."
+  },
+  "compoundParamKindHand": "hand",
+  "@compoundParamKindHand": {
+    "description": "The kind of a custom figure's parameter: hand. Lowercase; also used inside sentences."
+  },
+  "compoundParamKindShoulder": "shoulder",
+  "@compoundParamKindShoulder": {
+    "description": "The kind of a custom figure's parameter: shoulder. Lowercase; also used inside sentences."
+  },
+  "compoundParamKindSpin": "turning direction",
+  "@compoundParamKindSpin": {
+    "description": "The kind of a custom figure's parameter: turning direction. Lowercase; also used inside sentences."
+  },
+  "compoundParamKindDirection": "direction",
+  "@compoundParamKindDirection": {
+    "description": "The kind of a custom figure's parameter: direction. Lowercase; also used inside sentences."
+  },
+  "compoundParamKindFraction": "fraction",
+  "@compoundParamKindFraction": {
+    "description": "The kind of a custom figure's parameter: fraction. Lowercase; also used inside sentences."
+  },
+  "compoundParamKindRotation": "amount of turn",
+  "@compoundParamKindRotation": {
+    "description": "The kind of a custom figure's parameter: amount of turn. Lowercase; also used inside sentences."
+  },
+  "compoundParamKindPlaces": "places",
+  "@compoundParamKindPlaces": {
+    "description": "The kind of a custom figure's parameter: places. Lowercase; also used inside sentences."
+  },
+  "compoundParamKindBeats": "beats",
+  "@compoundParamKindBeats": {
+    "description": "The kind of a custom figure's parameter: beats. Lowercase; also used inside sentences."
+  },
+  "compoundParamKindFlag": "on or off",
+  "@compoundParamKindFlag": {
+    "description": "The kind of a custom figure's parameter: on or off. Lowercase; also used inside sentences."
+  },
+  "compoundParamKindChoice": "option",
+  "@compoundParamKindChoice": {
+    "description": "The kind of a custom figure's parameter: option. Lowercase; also used inside sentences."
+  },
+  "compoundParamKindText": "text",
+  "@compoundParamKindText": {
+    "description": "The kind of a custom figure's parameter: text. Lowercase; also used inside sentences."
   }
 }

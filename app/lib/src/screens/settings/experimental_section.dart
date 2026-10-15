@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../data/backup_io.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
+import '../../data/show_custom_figures_scope.dart';
 import '../../data/show_glossary_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/collapsible_section.dart';
@@ -37,8 +38,13 @@ class ExperimentalSection extends StatelessWidget {
   }
 }
 
-/// The Glossary feature's section (issue #695): one switch that adds or
-/// removes the Glossary navigation destination.
+/// The Glossary and Custom Figures section (issues #695, #709): a switch that
+/// adds or removes the Glossary navigation destination, and nested under it a
+/// switch for the user's own compound figures.
+///
+/// The nested switch stays visible but disabled while the Glossary is off,
+/// keeping its value, as the figure-shorthands entry does under free-text
+/// entry: turning the Glossary back on restores it as it was.
 class _GlossarySection extends StatelessWidget {
   const _GlossarySection();
 
@@ -50,22 +56,49 @@ class _GlossarySection extends StatelessWidget {
     await persistSetting(repos.settings, kShowGlossaryKey, value);
   }
 
+  Future<void> _onCustomChanged(BuildContext context, bool value) async {
+    ShowCustomFiguresScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kShowCustomFiguresKey, value);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final show = ShowGlossaryScope.of(context);
+    final custom = ShowCustomFiguresScope.of(context);
     return CollapsibleSection(
       sectionKey: const ValueKey('glossary-section'),
       title: l10n.settingsExperimentalGlossaryHeader,
       expanded: show,
-      child: SwitchListTile(
-        key: const ValueKey('experimental-show-glossary'),
-        secondary: const Icon(Icons.menu_book_outlined),
-        value: show,
-        onChanged: (value) => _onChanged(context, value),
-        title: Text(l10n.settingsExperimentalShowGlossaryTitle),
-        subtitle: Text(l10n.settingsExperimentalShowGlossarySubtitle),
-        isThreeLine: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SwitchListTile(
+            key: const ValueKey('experimental-show-glossary'),
+            secondary: const Icon(Icons.menu_book_outlined),
+            value: show,
+            onChanged: (value) => _onChanged(context, value),
+            title: Text(l10n.settingsExperimentalShowGlossaryTitle),
+            subtitle: Text(l10n.settingsExperimentalShowGlossarySubtitle),
+            isThreeLine: true,
+          ),
+          SwitchListTile(
+            key: const ValueKey('experimental-show-custom-figures'),
+            secondary: const Icon(Icons.dashboard_customize_outlined),
+            value: custom,
+            onChanged: show
+                ? (value) => _onCustomChanged(context, value)
+                : null,
+            title: Text(l10n.settingsExperimentalShowCustomFiguresTitle),
+            subtitle: Text(
+              show
+                  ? l10n.settingsExperimentalShowCustomFiguresSubtitle
+                  : l10n.settingsExperimentalShowCustomFiguresNeedsGlossary,
+            ),
+            isThreeLine: true,
+          ),
+        ],
       ),
     );
   }

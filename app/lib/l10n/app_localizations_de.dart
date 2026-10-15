@@ -303,7 +303,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get glossaryAlsoKnownAs => 'Auch bekannt als';
 
   @override
-  String get settingsExperimentalGlossaryHeader => 'Glossar';
+  String get settingsExperimentalGlossaryHeader => 'Glossar und eigene Figuren';
 
   @override
   String get settingsExperimentalShowGlossaryTitle => 'Glossar anzeigen';
@@ -9235,4 +9235,280 @@ class AppLocalizationsDe extends AppLocalizations {
   String dialectEditorMoveWordingConfirmBody(String figures) {
     return 'Diese Vorlagen lassen verfügbare Platzhalter aus und können Figurdetails verbergen:\n$figures\n\nTrotzdem speichern?';
   }
+
+  @override
+  String get settingsExperimentalShowCustomFiguresTitle => 'Eigene Figuren';
+
+  @override
+  String get settingsExperimentalShowCustomFiguresSubtitle =>
+      'Zeigt deine eigenen Figuren im Glossar an, wo du sie hinzufügen und bearbeiten kannst. Ausschalten blendet sie aus, löscht sie aber nicht.';
+
+  @override
+  String get settingsExperimentalShowCustomFiguresNeedsGlossary =>
+      'Schalte Glossar anzeigen ein, um deine eigenen Figuren zu verwenden.';
+
+  @override
+  String get glossaryAddCustomFigure => 'Eigene Figur hinzufügen';
+
+  @override
+  String get glossaryCustomMarker => 'Eigene';
+
+  @override
+  String get glossaryCustomNeedsRepair => 'Reparatur nötig';
+
+  @override
+  String get glossaryCustomNeedsRepairBody =>
+      'Diese Figur kann so nicht verwendet werden: Eine ihrer Figuren oder einer ihrer Parameter ist nicht mehr gültig. Bearbeite sie, um sie zu reparieren.';
+
+  @override
+  String get glossaryCustomRenameNeeded => 'Umbenennung nötig';
+
+  @override
+  String get glossaryCustomRenameNeededBody =>
+      'Eine andere Figur oder Abkürzung hat bereits diesen Namen. Benenne diese um, damit sich die beiden unterscheiden lassen.';
+
+  @override
+  String get glossaryCustomUnsupported => 'Neuere Version';
+
+  @override
+  String get glossaryCustomUnsupportedBody =>
+      'Dieser Eintrag wurde mit einer neueren Version der App erstellt. Aktualisiere die App auf diesem Gerät, um ihn zu bearbeiten oder zu verwenden.';
+
+  @override
+  String glossaryCustomExpandsTo(int beats) {
+    return 'Wird erweitert zu ($beats Takte)';
+  }
+
+  @override
+  String get glossaryCustomGone => 'Diese Figur wurde gelöscht.';
+
+  @override
+  String glossaryCustomDeleteTitle(String name) {
+    return '„$name“ löschen?';
+  }
+
+  @override
+  String get glossaryCustomDeleteBody =>
+      'Sie wird aus deinem Glossar entfernt. Tänze, die du bereits damit gespeichert hast, behalten ihre Figuren.';
+
+  @override
+  String get glossaryNotes => 'Deine Notizen';
+
+  @override
+  String get glossaryNotesEmpty => 'Noch keine Notizen.';
+
+  @override
+  String get glossaryNotesAdd => 'Notizen hinzufügen';
+
+  @override
+  String get glossaryNotesEdit => 'Notizen bearbeiten';
+
+  @override
+  String get glossaryNotesEditTitle => 'Deine Notizen';
+
+  @override
+  String get glossaryNotesHint => 'Wie du sie ansagst, worauf zu achten ist…';
+
+  @override
+  String get glossaryNotesTooLong =>
+      'Deine Notizen sind zu lang zum Speichern. Kürze sie und versuche es erneut.';
+
+  @override
+  String get compoundEditorTitleNew => 'Neue Figur';
+
+  @override
+  String get compoundEditorTitleEdit => 'Figur bearbeiten';
+
+  @override
+  String get compoundEditorName => 'Name';
+
+  @override
+  String get compoundEditorDefinition => 'Definition';
+
+  @override
+  String get compoundEditorDefinitionHelper =>
+      'Ein Satz, der in der Glossarliste angezeigt wird.';
+
+  @override
+  String get compoundEditorDescription => 'Beschreibung';
+
+  @override
+  String get compoundEditorKeywords => 'Andere Namen';
+
+  @override
+  String get compoundEditorKeywordsHelper => 'Optional. Mit Kommas trennen.';
+
+  @override
+  String get compoundEditorNotes => 'Notizen';
+
+  @override
+  String get compoundEditorOptional => 'Optional.';
+
+  @override
+  String get compoundEditorFieldRequired => 'Erforderlich';
+
+  @override
+  String get compoundEditorRequired =>
+      'Gib der Figur einen Namen, eine Definition und eine Beschreibung.';
+
+  @override
+  String get compoundEditorParams => 'Parameter';
+
+  @override
+  String get compoundEditorParamsHelp =>
+      'Was du bei jeder Verwendung der Figur auswählst, etwa wer und welche Hand.';
+
+  @override
+  String get compoundEditorParamName => 'Parametername';
+
+  @override
+  String get compoundEditorParamKind => 'Typ';
+
+  @override
+  String get compoundEditorAddParam => 'Parameter hinzufügen';
+
+  @override
+  String get compoundEditorRemoveParam => 'Parameter entfernen';
+
+  @override
+  String get compoundEditorParamNames =>
+      'Gib jedem Parameter einen eigenen Namen.';
+
+  @override
+  String get compoundEditorFigures => 'Figuren';
+
+  @override
+  String get compoundEditorFiguresHelp =>
+      'Die Figuren, zu denen sie beim Speichern eines Tanzes wird, in Reihenfolge.';
+
+  @override
+  String get compoundEditorBindings => 'Von Parametern ausgefüllt';
+
+  @override
+  String get compoundEditorBindingsHelp =>
+      'Wähle für jede Figur, welche Einstellungen aus einem Parameter kommen. Die übrigen bleiben so, wie du sie eingestellt hast.';
+
+  @override
+  String compoundEditorFigureN(int number, String figure) {
+    return 'Figur $number: $figure';
+  }
+
+  @override
+  String get compoundBindingFixed => 'Wie in der Figur eingestellt';
+
+  @override
+  String compoundBindingOpposite(String param) {
+    return 'Gegenteil von $param';
+  }
+
+  @override
+  String compoundBindingUnavailable(String option, String reason) {
+    return '$option (nicht verfügbar: $reason)';
+  }
+
+  @override
+  String get compoundBindingNoName => 'hat noch keinen Namen';
+
+  @override
+  String compoundBindingWrongKind(String paramKind, String slotKind) {
+    return 'ist vom Typ $paramKind, diese Einstellung vom Typ $slotKind';
+  }
+
+  @override
+  String get compoundBindingNoOpposite => 'dieser Typ hat kein Gegenteil';
+
+  @override
+  String get compoundBindingNoSharedValues =>
+      'kein Wert passt zu allen Einstellungen, die er ausfüllt';
+
+  @override
+  String compoundEditorNameTaken(String name) {
+    return '„$name“ ist bereits der Name einer Figur oder Abkürzung. Wähle einen anderen Namen.';
+  }
+
+  @override
+  String get compoundEditorNoFigures => 'Füge mindestens eine Figur hinzu.';
+
+  @override
+  String compoundEditorEmptyDomain(String param) {
+    return 'Kein Wert von $param passt zu allen Einstellungen, die er ausfüllt.';
+  }
+
+  @override
+  String get compoundEditorTooLarge =>
+      'Diese Figur hat mehr Figuren oder Parameter, als sie aufnehmen kann.';
+
+  @override
+  String get compoundEditorBindingInvalid =>
+      'Eine Einstellung einer Figur wird von einem Parameter ausgefüllt, der nicht mehr dazu passt. Prüfe „Von Parametern ausgefüllt“.';
+
+  @override
+  String get compoundEditorInvalidFigures =>
+      'Eine der Figuren ist noch nicht vollständig oder gültig.';
+
+  @override
+  String get compoundEditorTooLong => 'Eines der Felder ist zu lang.';
+
+  @override
+  String get compoundEditorUnusedTitle =>
+      'Einige Parameter werden nicht verwendet';
+
+  @override
+  String compoundEditorUnusedBody(String params) {
+    return '$params füllt keine Einstellung einer Figur aus, daher ändert eine Auswahl nichts.';
+  }
+
+  @override
+  String get compoundEditorUnusedBack => 'Zurück zum Editor';
+
+  @override
+  String get compoundEditorUnusedSave => 'Trotzdem speichern';
+
+  @override
+  String get compoundEditorDiscardBody =>
+      'Du hast nicht gespeicherte Änderungen an dieser Figur.';
+
+  @override
+  String compoundParamWithKind(String param, String kind) {
+    return '$param ($kind)';
+  }
+
+  @override
+  String get compoundParamKindDancers => 'Tänzer';
+
+  @override
+  String get compoundParamKindDancerPair => 'Tänzerpaar';
+
+  @override
+  String get compoundParamKindHand => 'Hand';
+
+  @override
+  String get compoundParamKindShoulder => 'Schulter';
+
+  @override
+  String get compoundParamKindSpin => 'Drehrichtung';
+
+  @override
+  String get compoundParamKindDirection => 'Richtung';
+
+  @override
+  String get compoundParamKindFraction => 'Bruchteil';
+
+  @override
+  String get compoundParamKindRotation => 'Drehumfang';
+
+  @override
+  String get compoundParamKindPlaces => 'Plätze';
+
+  @override
+  String get compoundParamKindBeats => 'Takte';
+
+  @override
+  String get compoundParamKindFlag => 'Ein/Aus';
+
+  @override
+  String get compoundParamKindChoice => 'Option';
+
+  @override
+  String get compoundParamKindText => 'Text';
 }

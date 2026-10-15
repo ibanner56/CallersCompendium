@@ -43,6 +43,7 @@ import 'package:compendium_app/src/data/canonical_discouraged_terms_scope.dart';
 import 'package:compendium_app/src/data/colour_dance_theme_scope.dart';
 import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/capitalize_figures_scope.dart';
+import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/data/decimal_turns_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart'
@@ -1467,6 +1468,11 @@ void main() {
           (
             key: kShowGlossaryKey,
             read: ShowGlossaryScope.of,
+            defaultValue: false,
+          ),
+          (
+            key: kShowCustomFiguresKey,
+            read: ShowCustomFiguresScope.of,
             defaultValue: false,
           ),
           (

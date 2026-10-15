@@ -83,7 +83,7 @@ Four destinations are always one step away in the navigation (a bottom bar on a
 phone, a left rail on a tablet or desktop): **Collection**, **Programs**,
 **Settings**, and **Guide**. A fifth, **Glossary**, appears between **Programs**
 and **Settings** if you turn it on in **Settings ▸ Experimental** (see
-[Settings](settings.md#glossary)).
+[Settings](settings.md#glossary-and-custom-figures)).
 
 **Perform** is not a destination but a *mode* — you step into it from a dance or a
 program when it is time to call, and step back out when you are done.

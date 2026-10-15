@@ -1,0 +1,13 @@
+{
+  "id": "709-glossary-custom-figures",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can keep your own notes on any built-in figure in the Glossary.",
+      "With the new Custom Figures setting under Show Glossary, you can build your own figures in the Glossary from the built-in ones: give one parameters such as who and which hand, choose which of each figure's settings they fill (or fill with their opposite), and see what it expands to. Your figures are marked Custom and can be edited or deleted; turning the setting off hides them without deleting them."
+    ],
+    "changed": [
+      "The Experimental Glossary section is now called Glossary and Custom Figures."
+    ]
+  }
+}

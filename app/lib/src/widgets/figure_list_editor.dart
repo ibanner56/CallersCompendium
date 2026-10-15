@@ -71,6 +71,7 @@ class FigureListEditor extends StatefulWidget {
     this.showPhraseStructure = true,
     this.allowModifierSelection = true,
     this.allowNestedContainerSelection = true,
+    this.allowCustom = true,
     this.keyPrefix = 'figure',
   });
 
@@ -213,6 +214,11 @@ class FigureListEditor extends StatefulWidget {
   /// Settings lists whose persistence accepts ordinary figures only disable
   /// this affordance.
   final bool allowModifierSelection;
+
+  /// Whether text that names no move becomes a custom figure. The compound
+  /// editor (#709) turns it off: a compound's parts must be taxonomy figures,
+  /// whose slots it can fill.
+  final bool allowCustom;
 
   /// Whether ordinary children may be converted into the one legal opposite
   /// container kind. Nested editors at the maximum depth disable this so the
@@ -731,6 +737,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         rowFocusNode: _rowFocusNode(draft.id),
         allowModifierSelection: widget.allowModifierSelection,
         allowNestedContainerSelection: widget.allowNestedContainerSelection,
+        allowCustom: widget.allowCustom,
         onChanged: widget.onChanged,
         onActivate: () => _toggleDraft(draft.id),
         onClose: () => _closeDraft(draft.id),
@@ -1082,6 +1089,7 @@ class _FigureDraftCard extends StatefulWidget {
     this.canonicalizeDiscouragedTerms = false,
     this.allowModifierSelection = true,
     this.allowNestedContainerSelection = true,
+    this.allowCustom = true,
     this.onGroupWithNext,
     this.onGroupWithNextAsModifier,
     this.onCollapseMeanwhileGroup,
@@ -1162,6 +1170,9 @@ class _FigureDraftCard extends StatefulWidget {
   final bool showWordingOverride;
   final bool allowModifierSelection;
   final bool allowNestedContainerSelection;
+
+  /// See [FigureListEditor.allowCustom].
+  final bool allowCustom;
 
   /// Resolved "group with next" action for THIS row (#590/#593), already
   /// accounting for adjacency/flat-only conditions (see
@@ -1883,10 +1894,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 initialText: moveText,
                 autofocus: move == null || move == _standStillMove,
                 includeModifier: widget.allowModifierSelection,
+                includeCustomMove: widget.allowCustom,
                 onSelected: (option) => option.kind == MoveOptionKind.modifier
                     ? _selectModifier()
                     : _selectMove(option.id),
-                onCustomSubmitted: _createCustom,
+                onCustomSubmitted: widget.allowCustom ? _createCustom : null,
                 onCleared: _clearMove,
               ),
               if (def != null) ...[

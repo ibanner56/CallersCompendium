@@ -318,8 +318,9 @@ also tells you when figures, programs or related-dance links in the file could
 not be read.
 
 One thing does not come across yet: custom **glossary terms** stay behind. The
-app's **Glossary** (an Experimental setting) lists only the figures built into
-the app, and has nowhere yet to keep terms of your own.
+app's **Glossary** (an Experimental setting) lists the figures built into the
+app and your own [custom figures](settings.md#glossary-and-custom-figures), but
+has nowhere yet to keep terms of your own.
 
 ### Bring your call buttons across as shorthands
 

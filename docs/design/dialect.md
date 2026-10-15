@@ -239,8 +239,8 @@ Where the chokepoint IS wired:
 > closed as not planned.
 
 **User-glossary text (#709).** Text the user writes into their own glossary — a
-custom compound's name, definition, description and notes, and their notes on
-shipped figures — has its own variant of the chokepoint,
+custom compound's name, definition, description, keywords and notes, and their
+notes on shipped figures — has its own variant of the chokepoint,
 `canonicalizeGlossaryText` (`dialect/canonicalize.dart`). It is
 `canonicalizeText` plus two rules, and `canonicalizeText` itself is unchanged:
 
@@ -275,6 +275,19 @@ verbatim (#613): the maintainer accepted it (recorded in #709's consolidated
 spec), because glossary text describes figures and is read back through the
 active dialect like a figure note.
 
+The Glossary's custom-figure editor and its notes on built-in figures save
+through it, against the active dialect, and render the stored text back with
+`renderFreeText`.
+
+One field of a custom compound does not: a note on one of its parts is a
+figure note, and is stored with `canonicalizeText`, as the dance editor stores
+a dance's figure notes. Expanding the compound copies the note into a dance,
+where every later save of that dance runs it through `canonicalizeText` again;
+stored with the glossary variant, a note such as "The follow leads across"
+under Leads/Follows would be stored `The role2 leads across` and then turned
+into `The role2 role1s across` by that later save. The implementer chose
+this; the rejected alternative was the glossary variant for every field.
+
 Edge rules:
 - Round-trip safety: `canonicalize(render(x)) == x` for all taxonomy terms in
   every shipped preset — property-tested.
@@ -292,6 +305,8 @@ Edge rules:
 |---|---|
 | Dance card, editor previews, performance mode | ✅ |
 | Free text: custom figures, figure notes | ✅ (canonical on save, rendered on read) |
+| User-glossary text: custom compounds, notes on built-in figures | ✅ (glossary variant on save, rendered on read; #709) |
+| Figure notes inside a custom compound's parts | ✅ (`canonicalizeText` on save, as a dance's figure notes; #709) |
 | Hand-typed prose: hooks, calling notes, walkthrough | ❌ verbatim (intentional; #613) |
 | Per-dance figure wording override | ✅ display-only; canonical identity unchanged |
 | Program notes / free-text slots | ❌ verbatim (intentional; #665 not planned) |

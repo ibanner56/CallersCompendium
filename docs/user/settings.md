@@ -526,25 +526,57 @@ today, that's the **Glossary** and **Device Sync**. Anything here can change
 before it becomes a regular setting. Each feature sits in its own section: select its heading to
 open or close it.
 
-### Glossary
+### Glossary and Custom Figures
 
 **Show Glossary** adds a **Glossary** destination to the navigation, between
 **Programs** and **Settings**. It is **off by default**, and the section starts
 closed while it is off.
 
-The Glossary is a read-only reference to the figures built into the app. Search
-it by a figure's name, an older name for it, or a word from its definition.
-Select a figure to see:
+The Glossary is a reference to the figures built into the app. Search it by a
+figure's name, an older name for it, or a word from its definition. Select a
+figure to see:
 
 - a one-line definition and a short description of how it's danced
 - an **Example** of how the figure is written
 - its **Parameters**, the details you can set on it in the dance editor
 - other names it is **Also known as**, with discouraged terms struck through
+- **Your notes** on it: choose **Add notes** or **Edit notes** to write your
+  own, such as how you call it or what to watch for. Clear the text to remove
+  them.
 
 Names, definitions and examples follow your active
-[dialect](dialects.md), so role words read the way you call them. The Glossary
-comes with the app: nothing in it is stored with your data, and turning it off
-only removes it from the navigation.
+[dialect](dialects.md), so role words read the way you call them. The built-in
+figures come with the app, and turning the Glossary off only removes it from
+the navigation; your notes are kept, and come back when you turn it on again.
+
+**Custom Figures**, under Show Glossary, lists your own figures in the
+Glossary. It is **off by default**, and it can only be turned on while Show
+Glossary is on. While it is on:
+
+- Choose **+** in the Glossary to add a figure of your own: a name, a
+  definition and a description (all required), other names it can be found by,
+  and notes.
+- Build it from figures that come with the app, in order, the same way as in
+  the dance editor. Custom figures, meanwhile and modifier groups can't be
+  used as parts.
+- Add **Parameters** for what can differ from one use to the next, such as
+  *who* and *which hand*, and under **Filled in by parameters** choose which of each
+  figure's settings come from them. A setting can also take the **opposite** of
+  a parameter — the other hand, the other role — where that has one. A choice
+  that can't be used, because the kinds differ or no value would fit every
+  setting it fills, is shown greyed out with the reason.
+- If a parameter fills nothing, saving asks whether to go **Back to editor** or
+  **Save anyway**.
+- A name already taken can't be saved: a built-in figure's name or one of its
+  other names, a figure's name in one of your dialects, one of your
+  shorthands, or another of your figures.
+- Your figures are marked **Custom** in the list. Select one to see what it
+  **Expands to** (folded until you open it), and to **Edit** or **Delete** it.
+  A figure that can no longer be expanded is marked **Needs repair**; one whose
+  name is also another figure's is marked **Rename needed**.
+
+Turning Custom Figures off hides your figures; it doesn't delete them. They are
+kept in your backups.
 
 ### Device Sync
 
