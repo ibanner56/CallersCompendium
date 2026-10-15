@@ -71,6 +71,19 @@ const _figureNoteSubject = DataClassification(
       "note's identity, so it must travel for the note to reach its figure.",
 );
 
+/// A difficulty level's id: one of the fixed ids the app ships its levels
+/// with, or a UUID for a level the user added. Not opaque, but about no one.
+const _difficultyLevelId = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.shareable,
+  isIdentity: true,
+  note:
+      'One of the fixed ids the app ships its difficulty levels with, or a '
+      'UUID for a level the user added (sync-spec §4.3): about no one. The '
+      "level's identity, so it must travel for dances to keep their level.",
+);
+
 /// A rebuildable index. Never transmitted: the receiving device recomputes it,
 /// so sending it would be redundant as well as an extra copy to protect.
 const _derivedIndex = DataClassification(
@@ -389,7 +402,7 @@ final Map<String, DataClassification> fieldClassifications = {
   'figure_notes.existence_at': _existenceStamp,
 
   // ------------------------------------------------------ difficulty_levels --
-  'difficulty_levels.id': _key,
+  'difficulty_levels.id': _difficultyLevelId,
   'difficulty_levels.label': _choreography,
   'difficulty_levels.position': _choreography,
   'difficulty_levels.updated_at': _recordStamp,

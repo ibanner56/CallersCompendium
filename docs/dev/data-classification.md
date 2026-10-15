@@ -323,7 +323,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dances` | `walkthrough` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `difficulty_levels` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind. |
 | `difficulty_levels` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. |
-| `difficulty_levels` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `difficulty_levels` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | One of the fixed ids the app ships its difficulty levels with, or a UUID for a level the user added (sync-spec §4.3): about no one. The level's identity, so it must travel for dances to keep their level. |
 | `difficulty_levels` | `label` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `difficulty_levels` | `position` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `difficulty_levels` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
