@@ -125,8 +125,8 @@ Substitutor _glossaryDiscouragedFor(Dialect dialect) {
   return _glossaryDiscouraged[dialect] = Substitutor({
     ...storedDiscouragedTerms,
     for (final word in claimedRoleWords(dialect))
-      for (final form in [word, "$word'", "$word's", '$word’', '$word’s'])
-        form: form,
+      // The forms the table's own keys take: plain, `'` and `'s`/`’s`.
+      for (final form in [word, "$word'", "$word's", '$word’s']) form: form,
   }, caseInsensitive: true);
 }
 
