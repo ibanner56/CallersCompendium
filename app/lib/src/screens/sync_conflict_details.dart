@@ -9,6 +9,7 @@ import '../data/custom_theme.dart';
 import '../search/facet_labels.dart';
 import '../sync/sync_setting_labels.dart';
 import '../theme/app_spacing.dart';
+import '../widgets/compound_argument_editor.dart';
 import '../widgets/program_status_labels.dart';
 import '../widgets/provenance_labels.dart';
 
@@ -525,6 +526,11 @@ class SyncConflictComparison extends StatelessWidget {
       case 'shorthand_mappings':
         final figures = value is Map ? value['figures'] : null;
         return _figureText(figures, dialect) ?? l10n.syncConflictValueNotSet;
+      case compoundShorthandsSettingKey:
+        // One of the user's own figures, by the name the shorthand stored,
+        // with the values it gives.
+        return compoundShorthandValueText(l10n, value, dialect) ??
+            l10n.syncConflictValueNotSet;
       default:
         // A dialect or theme: name what differs inside it is beyond this
         // view; its name and a count of its parts tell the two apart.

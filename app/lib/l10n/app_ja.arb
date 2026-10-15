@@ -8186,6 +8186,46 @@
   "@shorthandMappingsActionsTooltip": {
     "x-sourceSha256": "8794003dafec4a03b433f702ad1645c759dba638a9aa61e3da40ab8e65dab5e8"
   },
+  "shorthandsCompoundTitle": "自分のフィギュア用のショートハンド",
+  "@shorthandsCompoundTitle": {
+    "x-sourceSha256": "b37015f6e5621c3bf45810cce907194e87f5b4a9814b5c5695f960f484aa5949"
+  },
+  "shorthandsCompoundIntro": "フリーテキスト入力がオンのとき、ダンスの編集中にこれらのいずれかを1行だけ入力すると、ここで選んだ値で自分のフィギュアが追加されます。",
+  "@shorthandsCompoundIntro": {
+    "x-sourceSha256": "80090b751b53b2c67b417cdeed684cb8b14db7c4fa9ea70f67e05421fec4f587"
+  },
+  "shorthandsCompoundNew": "自分のフィギュア用の新しいショートハンド",
+  "@shorthandsCompoundNew": {
+    "x-sourceSha256": "1b347bb6599a3f25aeff5e17d7a6e5eeb0dfdb9e7ef94f7939e4d657027a8a14"
+  },
+  "shorthandsCompoundEmpty": "自分のフィギュア用のショートハンドはまだありません。",
+  "@shorthandsCompoundEmpty": {
+    "x-sourceSha256": "a10d6f5f186121f862135340b6e0cb665b5aaa7855bad0814bc34fa596c51b24"
+  },
+  "shorthandsCompoundUnavailable": "使用できません。フィギュアが削除または変更されたか、これらの値を受け付けません。入力すると通常の行として読み取られます。",
+  "@shorthandsCompoundUnavailable": {
+    "x-sourceSha256": "1b95eac1564cf87d7e26c29bfb086720d29821ed2df01c8b5495c164a12b11e0"
+  },
+  "shorthandsCompoundShadowed": "使用されていません。フィギュアのショートハンドに同じテキストがあります。",
+  "@shorthandsCompoundShadowed": {
+    "x-sourceSha256": "75111a930cc8890e0f1378c778ee2c93d1ec4cd35897e8d496d60f0cc46d60b6"
+  },
+  "compoundShorthandEditorFigureLabel": "自分のフィギュア",
+  "@compoundShorthandEditorFigureLabel": {
+    "x-sourceSha256": "6af67418286324f390ac3a5859240761a8b839514d0f5e667ab73f2a3ebce834"
+  },
+  "compoundShorthandEditorNoFigure": "自分のフィギュアを1つ選んでください。",
+  "@compoundShorthandEditorNoFigure": {
+    "x-sourceSha256": "1cc30345f89f7d60df026db7a7d9058a654a1cae56aada728df7863bf573fd28"
+  },
+  "compoundShorthandEditorNoCompounds": "自分のフィギュアがまだありません。まず用語集で追加してください。",
+  "@compoundShorthandEditorNoCompounds": {
+    "x-sourceSha256": "62a41226cac8234479053580ceee7bf7ee3b36e0d5bf8a2b97d1b8e5c0945a61"
+  },
+  "compoundShorthandEditorInvalidValues": "これらの値はこのフィギュアに合いません。別の値を選んでください。",
+  "@compoundShorthandEditorInvalidValues": {
+    "x-sourceSha256": "af97e0a8be30a36c45361b3f63c27fb0fcbf14984cd22b61567bb0b1e787061d"
+  },
   "shorthandEditorTitleNew": "新しいショートハンド",
   "@shorthandEditorTitleNew": {
     "x-sourceSha256": "bcb70a5881650d222f46a45b002a5e5d5af4760fe5f046123ce0f9e05100c220"
@@ -8221,6 +8261,10 @@
   "shorthandEditorErrorDuplicate": "別のショートハンドがすでに「{token}」を使用しています（大文字と小文字を区別せずに一致します）。",
   "@shorthandEditorErrorDuplicate": {
     "x-sourceSha256": "652678e63db28b88cf7ee418247d06d9a21db5efad07e7753757d3581bc29dbf"
+  },
+  "shorthandEditorErrorDuplicateHidden": "「{token}」は自分のフィギュア用のショートハンドとしてすでに使われています。それらはカスタムフィギュアがオンのときにここに表示されます。",
+  "@shorthandEditorErrorDuplicateHidden": {
+    "x-sourceSha256": "7e3ee1d83196cfbd629298030de3866e4a983082c6b7fc1f5a0312d316091c27"
   },
   "shorthandEditorErrorNoFigures": "このショートハンドの展開先に少なくとも1つのフィギュアを追加してください。",
   "@shorthandEditorErrorNoFigures": {

@@ -8186,6 +8186,46 @@
   "@shorthandMappingsActionsTooltip": {
     "x-sourceSha256": "8794003dafec4a03b433f702ad1645c759dba638a9aa61e3da40ab8e65dab5e8"
   },
+  "shorthandsCompoundTitle": "Abkürzungen für deine eigenen Figuren",
+  "@shorthandsCompoundTitle": {
+    "x-sourceSha256": "b37015f6e5621c3bf45810cce907194e87f5b4a9814b5c5695f960f484aa5949"
+  },
+  "shorthandsCompoundIntro": "Wenn die Freitexteingabe an ist, fügt das Eintippen einer dieser Abkürzungen als ganze Zeile beim Bearbeiten eines Tanzes eine deiner eigenen Figuren mit den hier gewählten Werten ein.",
+  "@shorthandsCompoundIntro": {
+    "x-sourceSha256": "80090b751b53b2c67b417cdeed684cb8b14db7c4fa9ea70f67e05421fec4f587"
+  },
+  "shorthandsCompoundNew": "Neue Abkürzung für eine deiner Figuren",
+  "@shorthandsCompoundNew": {
+    "x-sourceSha256": "1b347bb6599a3f25aeff5e17d7a6e5eeb0dfdb9e7ef94f7939e4d657027a8a14"
+  },
+  "shorthandsCompoundEmpty": "Noch keine Abkürzungen für deine eigenen Figuren.",
+  "@shorthandsCompoundEmpty": {
+    "x-sourceSha256": "a10d6f5f186121f862135340b6e0cb665b5aaa7855bad0814bc34fa596c51b24"
+  },
+  "shorthandsCompoundUnavailable": "Nicht verwendbar: Die Figur wurde gelöscht oder geändert oder akzeptiert diese Werte nicht. Eingetippt wird die Abkürzung als gewöhnliche Zeile gelesen.",
+  "@shorthandsCompoundUnavailable": {
+    "x-sourceSha256": "1b95eac1564cf87d7e26c29bfb086720d29821ed2df01c8b5495c164a12b11e0"
+  },
+  "shorthandsCompoundShadowed": "Nicht verwendet: Eine Figur-Abkürzung hat denselben Text.",
+  "@shorthandsCompoundShadowed": {
+    "x-sourceSha256": "75111a930cc8890e0f1378c778ee2c93d1ec4cd35897e8d496d60f0cc46d60b6"
+  },
+  "compoundShorthandEditorFigureLabel": "Deine Figur",
+  "@compoundShorthandEditorFigureLabel": {
+    "x-sourceSha256": "6af67418286324f390ac3a5859240761a8b839514d0f5e667ab73f2a3ebce834"
+  },
+  "compoundShorthandEditorNoFigure": "Wähle eine deiner Figuren.",
+  "@compoundShorthandEditorNoFigure": {
+    "x-sourceSha256": "1cc30345f89f7d60df026db7a7d9058a654a1cae56aada728df7863bf573fd28"
+  },
+  "compoundShorthandEditorNoCompounds": "Du hast noch keine eigenen Figuren. Füge zuerst eine im Glossar hinzu.",
+  "@compoundShorthandEditorNoCompounds": {
+    "x-sourceSha256": "62a41226cac8234479053580ceee7bf7ee3b36e0d5bf8a2b97d1b8e5c0945a61"
+  },
+  "compoundShorthandEditorInvalidValues": "Diese Werte passen nicht zu dieser Figur. Wähle andere.",
+  "@compoundShorthandEditorInvalidValues": {
+    "x-sourceSha256": "af97e0a8be30a36c45361b3f63c27fb0fcbf14984cd22b61567bb0b1e787061d"
+  },
   "shorthandEditorTitleNew": "Neue Abkürzung",
   "@shorthandEditorTitleNew": {
     "x-sourceSha256": "bcb70a5881650d222f46a45b002a5e5d5af4760fe5f046123ce0f9e05100c220"
@@ -8221,6 +8261,10 @@
   "shorthandEditorErrorDuplicate": "Eine andere Abkürzung verwendet bereits „{token}“ (Abkürzungen werden ohne Berücksichtigung der Groß-/Kleinschreibung abgeglichen).",
   "@shorthandEditorErrorDuplicate": {
     "x-sourceSha256": "652678e63db28b88cf7ee418247d06d9a21db5efad07e7753757d3581bc29dbf"
+  },
+  "shorthandEditorErrorDuplicateHidden": "„{token}“ ist bereits eine Abkürzung für eine deiner eigenen Figuren. Diese werden hier aufgeführt, solange „Eigene Figuren“ an ist.",
+  "@shorthandEditorErrorDuplicateHidden": {
+    "x-sourceSha256": "7e3ee1d83196cfbd629298030de3866e4a983082c6b7fc1f5a0312d316091c27"
   },
   "shorthandEditorErrorNoFigures": "Fügen Sie mindestens eine Figur hinzu, zu der diese Abkürzung erweitert werden soll.",
   "@shorthandEditorErrorNoFigures": {

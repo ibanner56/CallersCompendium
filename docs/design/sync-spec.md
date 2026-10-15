@@ -2648,7 +2648,7 @@ republishes, which is an ordinary upload and needs no special path.
    two conforming implementations diverge permanently. It is not an edge case.
    §4.4 makes the settings key the record `id`, so it is a natural key rather
    than a UUID: two attached devices that each set the same shareable preference
-   before the next pass reach exactly this state, and 63 settings keys are
+   before the next pass reach exactly this state, and 64 settings keys are
    `shareable` (exact keys in `settingsClassifications` whose egress is
    `shareable`, counted 2026-10-15), as is one prefix entry,
    `sync_capabilities:` (§6.15). Records with UUID ids reach it too, because archive
@@ -2709,9 +2709,9 @@ republishes, which is an ordinary upload and needs no special path.
    from a merged-away copy is written through the apply engine, which rewrites
    its id to the survivor.
 
-   **Whole-collection settings.** Four settings keys hold a whole user-built
-   collection behind one key: `custom_dialects`, `custom_themes`,
-   `shorthand_mappings` and `walkthrough_snippets`. For these, a
+   **Whole-collection settings.** Five settings keys hold a whole user-built
+   collection behind one key: `compound_shorthands`, `custom_dialects`,
+   `custom_themes`, `shorthand_mappings` and `walkthrough_snippets`. For these, a
    `changed`/`changed` conflict MUST be queued for the user's choice whatever
    the two `updatedAt` values, because last-writer-wins would discard one
    device's entire set rather than one edit. Both sides must have changed since

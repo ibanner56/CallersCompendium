@@ -10820,6 +10820,46 @@
   "@shorthandMappingsActionsTooltip": {
     "description": "Tooltip for the per-row overflow menu in the shorthand manager."
   },
+  "shorthandsCompoundTitle": "Shorthands for your own figures",
+  "@shorthandsCompoundTitle": {
+    "description": "Heading of the list of compound shorthands (#709) on the shorthands screen, and the name of their setting in sync notices: tokens that stand for one of the user's own Custom Figures with fixed values."
+  },
+  "shorthandsCompoundIntro": "With Free-text entry on, typing one of these as a whole line while you edit a dance adds one of your own figures, with the values chosen here.",
+  "@shorthandsCompoundIntro": {
+    "description": "Explains the compound shorthands section."
+  },
+  "shorthandsCompoundNew": "New shorthand for one of your figures",
+  "@shorthandsCompoundNew": {
+    "description": "Button that creates a compound shorthand."
+  },
+  "shorthandsCompoundEmpty": "No shorthands for your own figures yet.",
+  "@shorthandsCompoundEmpty": {
+    "description": "Shown when there are no compound shorthands."
+  },
+  "shorthandsCompoundUnavailable": "Can't be used: its figure has been deleted or changed, or doesn't accept these values. Typing it is read as an ordinary line.",
+  "@shorthandsCompoundUnavailable": {
+    "description": "Shown under a compound shorthand whose figure can no longer be expanded with its values."
+  },
+  "shorthandsCompoundShadowed": "Not used: a figure shorthand has the same text.",
+  "@shorthandsCompoundShadowed": {
+    "description": "Shown under a compound shorthand whose token a figure shorthand also has (possible when two devices each add one before syncing); the figure shorthand is used."
+  },
+  "compoundShorthandEditorFigureLabel": "Your figure",
+  "@compoundShorthandEditorFigureLabel": {
+    "description": "Label of the field choosing which of the user's own figures a compound shorthand stands for."
+  },
+  "compoundShorthandEditorNoFigure": "Choose one of your figures.",
+  "@compoundShorthandEditorNoFigure": {
+    "description": "Error when saving a compound shorthand without choosing a figure."
+  },
+  "compoundShorthandEditorNoCompounds": "You have no figures of your own yet. Add one in the Glossary first.",
+  "@compoundShorthandEditorNoCompounds": {
+    "description": "Shown in the compound shorthand editor when the user has no usable custom figures."
+  },
+  "compoundShorthandEditorInvalidValues": "These values don't fit this figure. Choose others.",
+  "@compoundShorthandEditorInvalidValues": {
+    "description": "Error when saving a compound shorthand whose values the chosen figure does not accept."
+  },
   "shorthandEditorTitleNew": "New shorthand",
   "@shorthandEditorTitleNew": {
     "description": "App-bar title when creating a new figure-shorthand mapping."
@@ -10860,6 +10900,15 @@
   "shorthandEditorErrorDuplicate": "Another shorthand already uses \"{token}\" (shorthands are matched case-insensitively).",
   "@shorthandEditorErrorDuplicate": {
     "description": "Validation error when the shorthand token duplicates an existing one; {token} is the user's token, rendered as plain text.",
+    "placeholders": {
+      "token": {
+        "type": "String"
+      }
+    }
+  },
+  "shorthandEditorErrorDuplicateHidden": "\"{token}\" is already a shorthand for one of your own figures. Those are listed here while Custom Figures is on.",
+  "@shorthandEditorErrorDuplicateHidden": {
+    "description": "Validation error when a figure shorthand's token is taken by a shorthand for one of the user's own figures, which the screen hides while the Custom Figures setting is off; {token} is the user's token.",
     "placeholders": {
       "token": {
         "type": "String"

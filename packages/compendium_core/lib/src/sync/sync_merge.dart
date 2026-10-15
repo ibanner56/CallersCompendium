@@ -74,6 +74,7 @@ enum SyncMergeAction { none, upload, download, report, review, dropBaseline }
 /// own them; `app/test/sync/sync_whole_collection_keys_test.dart` holds the
 /// two together.
 const Set<String> syncWholeCollectionSettingKeys = {
+  'compound_shorthands',
   'custom_dialects',
   'custom_themes',
   'shorthand_mappings',

@@ -7288,8 +7288,15 @@ void main() {
       final toggle = SyncMergeCandidate.fromBlob(
         _setting('show_custom_figures', 'true'),
       );
+      final shorthands = SyncMergeCandidate.fromBlob(
+        _setting('compound_shorthands', '[]'),
+      );
       final store = _FakeStore(
-        local: {toggle.address: toggle, plain.address: plain},
+        local: {
+          toggle.address: toggle,
+          shorthands.address: shorthands,
+          plain.address: plain,
+        },
       );
       final transport = transportFor(const []);
       await coordinatorFor(

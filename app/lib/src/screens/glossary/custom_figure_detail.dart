@@ -167,12 +167,7 @@ class _GlossaryCustomFigureDetailState
         dialect,
         ...?DialectLibraryScope.maybeOf(context)?.customDialects,
       ],
-      shorthandTokens: [
-        for (final m
-            in ShorthandMappingsScope.maybeOf(context)?.mappings ??
-                const <ShorthandMapping>[])
-          m.token,
-      ],
+      shorthandTokens: ShorthandMappingsScope.tokensOf(context),
     );
     final item = items.where((i) => i.entry.id == widget.entryId).firstOrNull;
     if (item == null) {

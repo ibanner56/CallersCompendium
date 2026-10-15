@@ -8219,6 +8219,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shorthandMappingsActionsTooltip => 'Shorthand actions';
 
   @override
+  String get shorthandsCompoundTitle => 'Shorthands for your own figures';
+
+  @override
+  String get shorthandsCompoundIntro =>
+      'With Free-text entry on, typing one of these as a whole line while you edit a dance adds one of your own figures, with the values chosen here.';
+
+  @override
+  String get shorthandsCompoundNew => 'New shorthand for one of your figures';
+
+  @override
+  String get shorthandsCompoundEmpty =>
+      'No shorthands for your own figures yet.';
+
+  @override
+  String get shorthandsCompoundUnavailable =>
+      'Can\'t be used: its figure has been deleted or changed, or doesn\'t accept these values. Typing it is read as an ordinary line.';
+
+  @override
+  String get shorthandsCompoundShadowed =>
+      'Not used: a figure shorthand has the same text.';
+
+  @override
+  String get compoundShorthandEditorFigureLabel => 'Your figure';
+
+  @override
+  String get compoundShorthandEditorNoFigure => 'Choose one of your figures.';
+
+  @override
+  String get compoundShorthandEditorNoCompounds =>
+      'You have no figures of your own yet. Add one in the Glossary first.';
+
+  @override
+  String get compoundShorthandEditorInvalidValues =>
+      'These values don\'t fit this figure. Choose others.';
+
+  @override
   String get shorthandEditorTitleNew => 'New shorthand';
 
   @override
@@ -8249,6 +8285,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String shorthandEditorErrorDuplicate(String token) {
     return 'Another shorthand already uses \"$token\" (shorthands are matched case-insensitively).';
+  }
+
+  @override
+  String shorthandEditorErrorDuplicateHidden(String token) {
+    return '\"$token\" is already a shorthand for one of your own figures. Those are listed here while Custom Figures is on.';
   }
 
   @override

@@ -12440,6 +12440,66 @@ abstract class AppLocalizations {
   /// **'Shorthand actions'**
   String get shorthandMappingsActionsTooltip;
 
+  /// Heading of the list of compound shorthands (#709) on the shorthands screen, and the name of their setting in sync notices: tokens that stand for one of the user's own Custom Figures with fixed values.
+  ///
+  /// In en, this message translates to:
+  /// **'Shorthands for your own figures'**
+  String get shorthandsCompoundTitle;
+
+  /// Explains the compound shorthands section.
+  ///
+  /// In en, this message translates to:
+  /// **'With Free-text entry on, typing one of these as a whole line while you edit a dance adds one of your own figures, with the values chosen here.'**
+  String get shorthandsCompoundIntro;
+
+  /// Button that creates a compound shorthand.
+  ///
+  /// In en, this message translates to:
+  /// **'New shorthand for one of your figures'**
+  String get shorthandsCompoundNew;
+
+  /// Shown when there are no compound shorthands.
+  ///
+  /// In en, this message translates to:
+  /// **'No shorthands for your own figures yet.'**
+  String get shorthandsCompoundEmpty;
+
+  /// Shown under a compound shorthand whose figure can no longer be expanded with its values.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t be used: its figure has been deleted or changed, or doesn\'t accept these values. Typing it is read as an ordinary line.'**
+  String get shorthandsCompoundUnavailable;
+
+  /// Shown under a compound shorthand whose token a figure shorthand also has (possible when two devices each add one before syncing); the figure shorthand is used.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used: a figure shorthand has the same text.'**
+  String get shorthandsCompoundShadowed;
+
+  /// Label of the field choosing which of the user's own figures a compound shorthand stands for.
+  ///
+  /// In en, this message translates to:
+  /// **'Your figure'**
+  String get compoundShorthandEditorFigureLabel;
+
+  /// Error when saving a compound shorthand without choosing a figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose one of your figures.'**
+  String get compoundShorthandEditorNoFigure;
+
+  /// Shown in the compound shorthand editor when the user has no usable custom figures.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no figures of your own yet. Add one in the Glossary first.'**
+  String get compoundShorthandEditorNoCompounds;
+
+  /// Error when saving a compound shorthand whose values the chosen figure does not accept.
+  ///
+  /// In en, this message translates to:
+  /// **'These values don\'t fit this figure. Choose others.'**
+  String get compoundShorthandEditorInvalidValues;
+
   /// App-bar title when creating a new figure-shorthand mapping.
   ///
   /// In en, this message translates to:
@@ -12493,6 +12553,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Another shorthand already uses \"{token}\" (shorthands are matched case-insensitively).'**
   String shorthandEditorErrorDuplicate(String token);
+
+  /// Validation error when a figure shorthand's token is taken by a shorthand for one of the user's own figures, which the screen hides while the Custom Figures setting is off; {token} is the user's token.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{token}\" is already a shorthand for one of your own figures. Those are listed here while Custom Figures is on.'**
+  String shorthandEditorErrorDuplicateHidden(String token);
 
   /// Validation error when no target figures have been added to a shorthand.
   ///

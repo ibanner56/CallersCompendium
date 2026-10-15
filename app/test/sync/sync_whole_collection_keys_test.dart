@@ -16,6 +16,7 @@ void main() {
     // renamed or added collection key that missed core would silently fall
     // back to discarding one device's whole set.
     expect(syncWholeCollectionSettingKeys, {
+      kCompoundShorthandsKey,
       kCustomDialectsKey,
       kCustomThemesKey,
       kShorthandMappingsKey,

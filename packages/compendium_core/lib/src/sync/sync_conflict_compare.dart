@@ -1,5 +1,7 @@
 import 'package:collection/collection.dart' show mergeSort;
 
+import '../imports/compound_shorthands.dart'
+    show compoundShorthandsSettingKey, maxCompoundShorthands;
 import '../imports/shorthand_mappings.dart'
     show maxShorthandMappings, normalizeShorthandToken;
 import '../snippet/snippet_library.dart'
@@ -54,10 +56,11 @@ class SyncCollectionDiff {
 /// not a whole-collection setting or [value] is not shaped like one.
 ///
 /// Each key has its own notion of identity, matching how its library already
-/// tells entries apart: a dialect by its name, a custom theme by its id, a
-/// figure shorthand by its normalized token, a walkthrough snippet by its
-/// figure signature. Malformed entries are skipped rather than failing the
-/// comparison — this is display, and the merge already admitted the value.
+/// tells entries apart: a dialect by its name, a custom theme by its id,
+/// a figure or compound shorthand by its normalized token, a walkthrough
+/// snippet by its figure signature. Malformed entries are skipped rather than
+/// failing the comparison — this is display, and the merge already admitted
+/// the value.
 List<SyncCollectionEntry>? syncCollectionEntries(String key, Object? value) {
   switch (key) {
     case 'custom_dialects':
@@ -83,6 +86,17 @@ List<SyncCollectionEntry>? syncCollectionEntries(String key, Object? value) {
             ),
       ];
     case 'shorthand_mappings':
+      if (value is! List) return null;
+      return [
+        for (final entry in value)
+          if (entry is Map && entry['token'] is String)
+            SyncCollectionEntry(
+              key: normalizeShorthandToken(entry['token'] as String),
+              label: entry['token'] as String,
+              value: entry,
+            ),
+      ];
+    case compoundShorthandsSettingKey:
       if (value is! List) return null;
       return [
         for (final entry in value)
@@ -450,6 +464,7 @@ const int syncMaxCustomDialects = 128;
 int? syncCollectionLimit(String key) => switch (key) {
   'custom_dialects' => syncMaxCustomDialects,
   'shorthand_mappings' => maxShorthandMappings,
+  compoundShorthandsSettingKey => maxCompoundShorthands,
   'walkthrough_snippets' => kMaxSnippetLibraryEntries,
   _ => null,
 };

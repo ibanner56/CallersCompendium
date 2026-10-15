@@ -7946,6 +7946,41 @@ class AppLocalizationsJa extends AppLocalizations {
   String get shorthandMappingsActionsTooltip => 'ショートハンドのアクション';
 
   @override
+  String get shorthandsCompoundTitle => '自分のフィギュア用のショートハンド';
+
+  @override
+  String get shorthandsCompoundIntro =>
+      'フリーテキスト入力がオンのとき、ダンスの編集中にこれらのいずれかを1行だけ入力すると、ここで選んだ値で自分のフィギュアが追加されます。';
+
+  @override
+  String get shorthandsCompoundNew => '自分のフィギュア用の新しいショートハンド';
+
+  @override
+  String get shorthandsCompoundEmpty => '自分のフィギュア用のショートハンドはまだありません。';
+
+  @override
+  String get shorthandsCompoundUnavailable =>
+      '使用できません。フィギュアが削除または変更されたか、これらの値を受け付けません。入力すると通常の行として読み取られます。';
+
+  @override
+  String get shorthandsCompoundShadowed =>
+      '使用されていません。フィギュアのショートハンドに同じテキストがあります。';
+
+  @override
+  String get compoundShorthandEditorFigureLabel => '自分のフィギュア';
+
+  @override
+  String get compoundShorthandEditorNoFigure => '自分のフィギュアを1つ選んでください。';
+
+  @override
+  String get compoundShorthandEditorNoCompounds =>
+      '自分のフィギュアがまだありません。まず用語集で追加してください。';
+
+  @override
+  String get compoundShorthandEditorInvalidValues =>
+      'これらの値はこのフィギュアに合いません。別の値を選んでください。';
+
+  @override
   String get shorthandEditorTitleNew => '新しいショートハンド';
 
   @override
@@ -7976,6 +8011,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String shorthandEditorErrorDuplicate(String token) {
     return '別のショートハンドがすでに「$token」を使用しています（大文字と小文字を区別せずに一致します）。';
+  }
+
+  @override
+  String shorthandEditorErrorDuplicateHidden(String token) {
+    return '「$token」は自分のフィギュア用のショートハンドとしてすでに使われています。それらはカスタムフィギュアがオンのときにここに表示されます。';
   }
 
   @override
