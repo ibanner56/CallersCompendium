@@ -1934,6 +1934,18 @@ abstract class AppLocalizations {
   /// **'A second person can use this same phrase on their device. If you both edit the same dance or program at the same time, one edit silently overwrites the other — there\'s no warning and no way to combine them.'**
   String get settingsSyncPairingSharingBody;
 
+  /// Heading of the pairing disclosure shown when this version syncs data earlier app versions cannot read (#709): earlier versions may be unable to connect, and that data waits until every device is updated.
+  ///
+  /// In en, this message translates to:
+  /// **'Every device needs an up-to-date app'**
+  String get settingsSyncPairingNewerDataTitle;
+
+  /// Body of the pairing disclosure about devices on earlier app versions (#709). 'Those things' are the kinds of data the earlier versions cannot read; they are kept, not lost, and sync once every device is updated.
+  ///
+  /// In en, this message translates to:
+  /// **'This version syncs some things that earlier versions of the app can\'t read. Update each device before you connect it: one running an earlier version may not be able to connect. Until every connected device is up to date, those things stay on the device they were made on.'**
+  String get settingsSyncPairingNewerDataBody;
+
   /// Heading of the disclosure spec §8 requires, shown on both pairing paths. The phrase names WHERE the shared library is, so an address framing is the accurate one; do not write 'access', 'key', 'account' or 'password' here.
   ///
   /// In en, this message translates to:

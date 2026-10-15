@@ -1216,6 +1216,14 @@
   "@settingsSyncPairingSharingBody": {
     "x-sourceSha256": "a98a2f3493bfcb71d5e1c5020747752924342c3821a4aa3ca1b4cca5b4c195d1"
   },
+  "settingsSyncPairingNewerDataTitle": "Elk apparaat heeft een bijgewerkte app nodig",
+  "@settingsSyncPairingNewerDataTitle": {
+    "x-sourceSha256": "a70ee18e575d46d080d7a7d51c306ac8647d1e4b28b2cf4a6397534f0bd50189"
+  },
+  "settingsSyncPairingNewerDataBody": "Deze versie synchroniseert een aantal dingen die eerdere versies van de app niet kunnen lezen. Werk elk apparaat bij voordat je het verbindt: een apparaat met een eerdere versie kan mogelijk geen verbinding maken. Tot alle verbonden apparaten zijn bijgewerkt, blijven die dingen op het apparaat waarop ze zijn gemaakt.",
+  "@settingsSyncPairingNewerDataBody": {
+    "x-sourceSha256": "4d930677c1fe7d851fcb0909abedd8931a194760e3c63f5196393e7fc39bb024"
+  },
   "settingsSyncPairingBearerTitle": "Iedereen met deze zin kan je bibliotheek openen",
   "@settingsSyncPairingBearerTitle": {
     "x-sourceSha256": "45858e1bf94c0decbeb0f3870a62926a932f62bd361bc394dda6c5c07f7ebb81"

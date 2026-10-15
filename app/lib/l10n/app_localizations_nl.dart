@@ -1352,6 +1352,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een tweede persoon kan dezelfde zin op zijn apparaat gebruiken. Als jullie tegelijk dezelfde dans of hetzelfde programma bewerken, overschrijft de ene bewerking stilzwijgend de andere — er is geen waarschuwing en geen manier om ze te combineren.';
 
   @override
+  String get settingsSyncPairingNewerDataTitle =>
+      'Elk apparaat heeft een bijgewerkte app nodig';
+
+  @override
+  String get settingsSyncPairingNewerDataBody =>
+      'Deze versie synchroniseert een aantal dingen die eerdere versies van de app niet kunnen lezen. Werk elk apparaat bij voordat je het verbindt: een apparaat met een eerdere versie kan mogelijk geen verbinding maken. Tot alle verbonden apparaten zijn bijgewerkt, blijven die dingen op het apparaat waarop ze zijn gemaakt.';
+
+  @override
   String get settingsSyncPairingBearerTitle =>
       'Iedereen met deze zin kan je bibliotheek openen';
 

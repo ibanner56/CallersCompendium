@@ -1279,6 +1279,13 @@ class AppLocalizationsJa extends AppLocalizations {
       'もう一人が同じフレーズを自分のデバイスで使用できます。同じダンスやプログラムを同時に編集すると、一方の編集がもう一方を警告なく静かに上書きし、両方を統合する方法はありません。';
 
   @override
+  String get settingsSyncPairingNewerDataTitle => 'すべてのデバイスでアプリを最新にしてください';
+
+  @override
+  String get settingsSyncPairingNewerDataBody =>
+      'このバージョンは、以前のバージョンのアプリでは読み取れない一部のデータを同期します。接続する前に各デバイスをアップデートしてください。以前のバージョンのデバイスは接続できない場合があります。接続中のすべてのデバイスが最新になるまで、それらのデータは作成したデバイスに残ります。';
+
+  @override
   String get settingsSyncPairingBearerTitle => 'このフレーズを持つ人は誰でもライブラリを開けます';
 
   @override

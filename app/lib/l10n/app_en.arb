@@ -1669,6 +1669,14 @@
   "@settingsSyncPairingSharingBody": {
     "description": "Body text of the sharing-not-collaboration disclosure (spec §6.14 item 1)."
   },
+  "settingsSyncPairingNewerDataTitle": "Every device needs an up-to-date app",
+  "@settingsSyncPairingNewerDataTitle": {
+    "description": "Heading of the pairing disclosure shown when this version syncs data earlier app versions cannot read (#709): earlier versions may be unable to connect, and that data waits until every device is updated."
+  },
+  "settingsSyncPairingNewerDataBody": "This version syncs some things that earlier versions of the app can't read. Update each device before you connect it: one running an earlier version may not be able to connect. Until every connected device is up to date, those things stay on the device they were made on.",
+  "@settingsSyncPairingNewerDataBody": {
+    "description": "Body of the pairing disclosure about devices on earlier app versions (#709). 'Those things' are the kinds of data the earlier versions cannot read; they are kept, not lost, and sync once every device is updated."
+  },
   "settingsSyncPairingBearerTitle": "Anyone with this phrase can open your library",
   "@settingsSyncPairingBearerTitle": {
     "description": "Heading of the disclosure spec §8 requires, shown on both pairing paths. The phrase names WHERE the shared library is, so an address framing is the accurate one; do not write 'access', 'key', 'account' or 'password' here."

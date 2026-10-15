@@ -1216,6 +1216,14 @@
   "@settingsSyncPairingSharingBody": {
     "x-sourceSha256": "a98a2f3493bfcb71d5e1c5020747752924342c3821a4aa3ca1b4cca5b4c195d1"
   },
+  "settingsSyncPairingNewerDataTitle": "Alle enheder skal have en opdateret app",
+  "@settingsSyncPairingNewerDataTitle": {
+    "x-sourceSha256": "a70ee18e575d46d080d7a7d51c306ac8647d1e4b28b2cf4a6397534f0bd50189"
+  },
+  "settingsSyncPairingNewerDataBody": "Denne version synkroniserer nogle ting, som tidligere versioner af appen ikke kan læse. Opdater hver enhed, før du forbinder den: en enhed med en tidligere version kan muligvis ikke forbinde. Indtil alle forbundne enheder er opdateret, bliver de ting på den enhed, hvor de blev lavet.",
+  "@settingsSyncPairingNewerDataBody": {
+    "x-sourceSha256": "4d930677c1fe7d851fcb0909abedd8931a194760e3c63f5196393e7fc39bb024"
+  },
   "settingsSyncPairingBearerTitle": "Enhver med denne sætning kan åbne dit bibliotek",
   "@settingsSyncPairingBearerTitle": {
     "x-sourceSha256": "45858e1bf94c0decbeb0f3870a62926a932f62bd361bc394dda6c5c07f7ebb81"

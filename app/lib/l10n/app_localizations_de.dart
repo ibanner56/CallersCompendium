@@ -1353,6 +1353,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Eine zweite Person kann dieselbe Phrase auf ihrem Gerät verwenden. Wenn ihr beide gleichzeitig denselben Tanz oder dasselbe Programm bearbeitet, überschreibt eine Änderung die andere stillschweigend — es gibt keine Warnung und keine Möglichkeit, sie zu kombinieren.';
 
   @override
+  String get settingsSyncPairingNewerDataTitle =>
+      'Alle Geräte brauchen eine aktuelle App';
+
+  @override
+  String get settingsSyncPairingNewerDataBody =>
+      'Diese Version synchronisiert einiges, das frühere Versionen der App nicht lesen können. Aktualisiere jedes Gerät, bevor du es verbindest: Ein Gerät mit einer früheren Version kann sich womöglich nicht verbinden. Bis alle verbundenen Geräte aktuell sind, bleibt dies auf dem Gerät, auf dem es erstellt wurde.';
+
+  @override
   String get settingsSyncPairingBearerTitle =>
       'Wer diese Phrase hat, kann deine Bibliothek öffnen';
 

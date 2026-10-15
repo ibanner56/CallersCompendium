@@ -2401,7 +2401,7 @@ class SyncCoordinator {
       // Upload-only (#709): [current], the merge's view, is never filtered.
       // Filtered here rather than inside the store's snapshot, because a fresh
       // attach merges against the snapshot's publication.
-      _holdBackGated(
+      final heldBack = _holdBackGated(
         publication,
         local: current,
         devices: metadata.devices,
@@ -2424,7 +2424,8 @@ class SyncCoordinator {
       final addresses = _manifestAddresses(manifest);
       // The initial plan is a conservative superset of any replan that omits
       // unavailable fallback hashes, so protect it before probing the store.
-      await store.markPublished(addresses);
+      // Held-back rows are protected too: they are only waiting (#709).
+      await store.markPublished([...addresses, ...heldBack]);
       return (
         current: current,
         publication: publication,
@@ -2722,14 +2723,20 @@ class SyncCoordinator {
   ///
   /// The capability records come from [local], the synced settings as they
   /// stand after this pass's pull.
-  void _holdBackGated(
+  ///
+  /// Returns the addresses it held back, live rows and tombstones alike. The
+  /// caller marks them published with the manifest's own (§6.15): a held-back
+  /// row has not been named by a publication yet, and a row never named by
+  /// one may be hard-deleted without a tombstone, which would lose a deletion
+  /// the gate is only postponing.
+  Set<SyncRecordAddress> _holdBackGated(
     Map<SyncRecordAddress, SyncMergeCandidate?> publication, {
     required Map<SyncRecordAddress, SyncMergeCandidate?> local,
     required List<String> devices,
     required SyncReportSink reports,
   }) {
     final gated = capabilityPolicy.gatedCapabilities;
-    if (gated.isEmpty) return;
+    if (gated.isEmpty) return const {};
     final records = <String, Set<String>?>{};
     for (final MapEntry(key: address, value: candidate) in local.entries) {
       if (address.kind != SyncRecordKind.setting ||
@@ -2748,30 +2755,34 @@ class SyncCoordinator {
       devices: devices,
       recordsByDevice: records,
     );
-    if (closed.isEmpty) return;
-    var heldBack = false;
+    if (closed.isEmpty) return const {};
+    final heldBack = <SyncRecordAddress>{};
+    final heldCapabilities = <String>{};
     for (final address in publication.keys.toList()) {
       final capability = capabilityPolicy.capabilityFor(
         address.kind,
         address.recordId,
       );
       if (capability == null || !closed.containsKey(capability)) continue;
-      if (publication[address] != null) heldBack = true;
+      if (publication[address] != null) {
+        heldBack.add(address);
+        heldCapabilities.add(capability);
+      }
       publication[address] = null;
     }
-    if (!heldBack) return;
-    for (final MapEntry(key: capability, value: holders) in closed.entries) {
-      for (final peerId in holders) {
+    for (final capability in heldCapabilities) {
+      for (final peerId in closed[capability]!) {
         reports.add(
           SyncReport(
             code: SyncReportCode.withheldAwaitingDevices,
             peerId: peerId,
             message:
-                'Holding back $capability until this device advertises it.', // i18n-ignore: internal report
+                'Holding back $capability until device $peerId advertises it.', // i18n-ignore: internal report
           ),
         );
       }
     }
+    return heldBack;
   }
 
   /// The manifest kept on disk for [peerId], taken into the session cache, or

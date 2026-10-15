@@ -7000,6 +7000,21 @@ void main() {
       for (final report in result.reports)
         if (report.code == SyncReportCode.withheldAwaitingDevices) report,
     ];
+    Set<String> uploaded(_FakeTransport transport) => {
+      ...transport.putBlobHashes,
+      for (final batch in transport.putBatchRequests) ...batch,
+    };
+    SyncMergeCandidate tombstoneOf(SyncMergeCandidate live) =>
+        SyncMergeCandidate.fromBlob(
+          SyncRecordBlob(
+            kind: live.blob.kind,
+            id: live.blob.id,
+            updatedAt: stamp.add(const Duration(minutes: 1)),
+            deletedAt: stamp.add(const Duration(minutes: 1)),
+            existenceAt: stamp.add(const Duration(minutes: 1)),
+            body: live.blob.body,
+          ),
+        );
 
     test('(a) a device with no capability record holds gated data back, and '
         'only that', () async {
@@ -7011,7 +7026,67 @@ void main() {
 
       expect(result.status, SyncPassStatus.completed);
       expect(publishedSettings(transport), {'theme_mode'});
+      expect(uploaded(transport), isNot(contains(gated.wireHash)));
       expect(awaiting(result).map((r) => r.peerId), ['peer']);
+      expect(awaiting(result).single.message, contains('device peer'));
+    });
+
+    test('(a\') a held-back row is marked published, so deleting it before '
+        'the gate opens still leaves a tombstone to publish', () async {
+      // A row never named by a publication may be hard-deleted without a
+      // tombstone; a held-back row is only waiting, so it is protected too.
+      final store = _FakeStore(
+        local: {gated.address: gated, plain.address: plain},
+      );
+      final transport = transportFor(['peer']);
+      await coordinatorFor(store, transport).syncNow();
+
+      expect(publishedSettings(transport), isNot(contains('custom_dialects')));
+      expect(store.publishedRecords, contains(gated.address));
+    });
+
+    test('(a\'\') a gated tombstone is held back as a live row is', () async {
+      final deleted = tombstoneOf(gated);
+      final store = _FakeStore(
+        local: {deleted.address: deleted, plain.address: plain},
+      );
+      final transport = transportFor(['peer']);
+      final result = await coordinatorFor(store, transport).syncNow();
+
+      expect(publishedSettings(transport), {'theme_mode'});
+      expect(uploaded(transport), isNot(contains(deleted.wireHash)));
+      expect(awaiting(result).map((r) => r.peerId), ['peer']);
+      expect(store.publishedRecords, contains(deleted.address));
+    });
+
+    test('a tombstoned capability record counts as no record', () async {
+      final peerCaps = tombstoneOf(capabilityOf('peer', {'test.v1'}));
+      final store = _FakeStore(
+        local: {gated.address: gated, peerCaps.address: peerCaps},
+      );
+      final transport = transportFor(['peer']);
+      final result = await coordinatorFor(store, transport).syncNow();
+
+      expect(publishedSettings(transport), isNot(contains('custom_dialects')));
+      expect(awaiting(result).map((r) => r.peerId), ['peer']);
+    });
+
+    test('a store that can write a capability record writes one only while '
+        'this build advertises something', () async {
+      final quiet = _CapabilityRecordingStore(local: {plain.address: plain});
+      await coordinatorFor(
+        quiet,
+        transportFor(['peer']),
+        capabilities: SyncCapabilityPolicy.build,
+      ).syncNow();
+      expect(quiet.ensured, isEmpty);
+
+      final advertising = _CapabilityRecordingStore(
+        local: {plain.address: plain},
+      );
+      await coordinatorFor(advertising, transportFor(['peer'])).syncNow();
+      expect(advertising.ensured.single.$1, 'device-a');
+      expect(advertising.ensured.single.$2, {'test.v1'});
     });
 
     test('(b) once every other device advertises it, the next pass '
@@ -7152,6 +7227,7 @@ void main() {
         isEmpty,
       );
       expect(publishedSettings(transport), isNot(contains('custom_dialects')));
+      expect(uploaded(transport), isNot(contains(gated.wireHash)));
     });
 
     test('(h) a build that does not advertise the capability never opens '
@@ -7419,6 +7495,20 @@ void main() {
       );
     });
   });
+}
+
+/// A [_FakeStore] that can write a capability record, recording each call.
+final class _CapabilityRecordingStore extends _FakeStore
+    implements SyncCapabilityRecordStore {
+  _CapabilityRecordingStore({super.local});
+
+  final List<(String, Set<String>)> ensured = [];
+
+  @override
+  Future<void> ensureCapabilityRecord(
+    String deviceId,
+    Set<String> capabilities,
+  ) async => ensured.add((deviceId, {...capabilities}));
 }
 
 final class _SnapshotInterleavingStore

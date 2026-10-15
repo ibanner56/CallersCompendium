@@ -1344,6 +1344,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'En anden person kan bruge den samme sætning på deres enhed. Hvis I begge redigerer den samme dans eller det samme program på samme tid, overskriver den ene redigering stille den anden — der er ingen advarsel og ingen måde at kombinere dem på.';
 
   @override
+  String get settingsSyncPairingNewerDataTitle =>
+      'Alle enheder skal have en opdateret app';
+
+  @override
+  String get settingsSyncPairingNewerDataBody =>
+      'Denne version synkroniserer nogle ting, som tidligere versioner af appen ikke kan læse. Opdater hver enhed, før du forbinder den: en enhed med en tidligere version kan muligvis ikke forbinde. Indtil alle forbundne enheder er opdateret, bliver de ting på den enhed, hvor de blev lavet.';
+
+  @override
   String get settingsSyncPairingBearerTitle =>
       'Enhver med denne sætning kan åbne dit bibliotek';
 
