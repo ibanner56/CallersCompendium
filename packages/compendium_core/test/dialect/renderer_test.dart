@@ -399,6 +399,25 @@ void main() {
       );
     });
 
+    test('keeps a multi-word claimed role word exactly as typed', () {
+      // "lady" is in the table, so "lady birds" is a claimed word here; a
+      // mixed-case span such as "Lady Birds" must not come back lowercased.
+      final ladyBird = Dialect(
+        name: 'Lady Birds/Beetles',
+        roles: const {
+          'role1': RoleTerm('Lady Bird'),
+          'role2': RoleTerm('Beetle'),
+        },
+      );
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          'Lady Birds cross; LADY BIRDS wait; lady birds turn.',
+          ladyBird,
+        ),
+        'Lady Birds cross; LADY BIRDS wait; lady birds turn.',
+      );
+    });
+
     test('converts custom text before role substitution exactly once', () {
       final ravenDialect = Dialect(
         name: 'Ravens/Robins',
