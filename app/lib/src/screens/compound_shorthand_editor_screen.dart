@@ -61,13 +61,18 @@ class _CompoundShorthandEditorScreenState
     unawaited(_sub?.cancel());
     _sub = repos?.userGlossary.watchAll().listen((entries) {
       if (!mounted) return;
-      final usable = [
-        for (final entry in entries)
-          if (entry.kind == UserGlossaryEntryKind.compound)
-            if (decodeCompoundDefinition(entry.payload, contraTaxonomy)
-                case final definition?)
-              (entry: entry, definition: definition),
-      ]..sort((a, b) => a.entry.name.compareTo(b.entry.name));
+      final usable =
+          [
+            for (final entry in entries)
+              if (entry.kind == UserGlossaryEntryKind.compound)
+                if (decodeCompoundDefinition(entry.payload, contraTaxonomy)
+                    case final definition?)
+                  (entry: entry, definition: definition),
+          ]..sort(
+            (a, b) => a.entry.name.toLowerCase().compareTo(
+              b.entry.name.toLowerCase(),
+            ),
+          );
       setState(() => _compounds = {for (final c in usable) c.entry.id: c});
     });
   }
@@ -111,21 +116,27 @@ class _CompoundShorthandEditorScreenState
         null) {
       error = l10n.compoundShorthandEditorInvalidValues;
     }
+    final shorthand = picked == null
+        ? null
+        : CompoundShorthand(
+            token: token,
+            compoundId: picked.entry.id,
+            compoundName: picked.entry.name,
+            args: {
+              for (final p in picked.definition.params)
+                if (_args[p.key] case final Object value) p.key: value,
+            },
+          );
+    // What is saved must survive the next load: a text value over the stored
+    // bound would drop the whole shorthand then.
+    if (error == null && !CompoundShorthands.keeps(shorthand!)) {
+      error = l10n.compoundEditorTooLong;
+    }
     if (error != null) {
       setState(() => _error = error);
       return;
     }
-    Navigator.of(context).pop(
-      CompoundShorthand(
-        token: token,
-        compoundId: picked!.entry.id,
-        compoundName: picked.entry.name,
-        args: {
-          for (final p in picked.definition.params)
-            if (_args.containsKey(p.key)) p.key: _args[p.key],
-        },
-      ),
-    );
+    Navigator.of(context).pop(shorthand);
   }
 
   @override

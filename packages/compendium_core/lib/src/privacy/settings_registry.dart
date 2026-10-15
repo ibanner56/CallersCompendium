@@ -54,11 +54,16 @@ final Map<String, DataClassification> settingsClassifications = {
   'custom_dialects': _preference,
   'custom_themes': _preference,
   'shorthand_mappings': _preference,
-  // The user's shorthands for their own compound figures (#709): tokens they
-  // chose, a compound's id and name, and argument values. Shareable like the
-  // figure shorthands; it waits for every device to read it
-  // (`SyncCapabilityPolicy.build`).
-  'compound_shorthands': _preference,
+  'compound_shorthands': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'The user\'s shorthands for their own compound figures (#709): '
+        'tokens they chose, a figure\'s id and name, and values. Shareable '
+        'like the figure shorthands; held back until every device can read '
+        'it (SyncCapabilityPolicy.build).',
+  ),
   'walkthrough_snippets': _preference,
   'formation_color_overrides': _preference,
   'default_move_param_overrides': _preference,

@@ -8285,6 +8285,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String shorthandEditorErrorDuplicateHidden(String token) {
+    return '\"$token\" is already a shorthand for one of your own figures. Those are listed here while Custom Figures is on.';
+  }
+
+  @override
   String get shorthandEditorErrorNoFigures =>
       'Add at least one figure for this shorthand to expand to.';
 

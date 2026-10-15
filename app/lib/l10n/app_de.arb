@@ -8198,7 +8198,7 @@
   "@shorthandsCompoundEmpty": {
     "x-sourceSha256": "a10d6f5f186121f862135340b6e0cb665b5aaa7855bad0814bc34fa596c51b24"
   },
-  "shorthandsCompoundUnavailable": "Nicht verwendbar: Ihre Figur wurde gelöscht oder geändert oder akzeptiert diese Werte nicht. Eingetippt wird sie als gewöhnliche Zeile gelesen.",
+  "shorthandsCompoundUnavailable": "Nicht verwendbar: Die Figur wurde gelöscht oder geändert oder akzeptiert diese Werte nicht. Eingetippt wird die Abkürzung als gewöhnliche Zeile gelesen.",
   "@shorthandsCompoundUnavailable": {
     "x-sourceSha256": "1b95eac1564cf87d7e26c29bfb086720d29821ed2df01c8b5495c164a12b11e0"
   },
@@ -8257,6 +8257,10 @@
   "shorthandEditorErrorDuplicate": "Eine andere Abkürzung verwendet bereits „{token}“ (Abkürzungen werden ohne Berücksichtigung der Groß-/Kleinschreibung abgeglichen).",
   "@shorthandEditorErrorDuplicate": {
     "x-sourceSha256": "652678e63db28b88cf7ee418247d06d9a21db5efad07e7753757d3581bc29dbf"
+  },
+  "shorthandEditorErrorDuplicateHidden": "„{token}“ ist bereits eine Abkürzung für eine deiner eigenen Figuren. Diese werden hier aufgeführt, solange „Eigene Figuren“ an ist.",
+  "@shorthandEditorErrorDuplicateHidden": {
+    "x-sourceSha256": "7e3ee1d83196cfbd629298030de3866e4a983082c6b7fc1f5a0312d316091c27"
   },
   "shorthandEditorErrorNoFigures": "Fügen Sie mindestens eine Figur hinzu, zu der diese Abkürzung erweitert werden soll.",
   "@shorthandEditorErrorNoFigures": {

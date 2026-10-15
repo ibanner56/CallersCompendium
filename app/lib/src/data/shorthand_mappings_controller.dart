@@ -60,14 +60,15 @@ class ShorthandMappingsController extends ChangeNotifier {
   /// Loads persisted mappings from storage. Safe to call once at startup;
   /// malformed payloads degrade to "no mappings" rather than throwing.
   Future<void> load() async {
+    // Both keys are read before either is applied, so a failed read leaves
+    // the controller as it was.
     final stored = await _settings.get(kShorthandMappingsKey);
+    final storedCompound = await _settings.get(kCompoundShorthandsKey);
     _mappings = ShorthandMappings.decode(
       stored,
       taxonomy: _taxonomy,
     ).mappings.toList();
-    _compound = CompoundShorthands.decode(
-      await _settings.get(kCompoundShorthandsKey),
-    ).shorthands.toList();
+    _compound = CompoundShorthands.decode(storedCompound).shorthands.toList();
     notifyListeners();
   }
 
@@ -175,6 +176,11 @@ class ShorthandMappingsController extends ChangeNotifier {
       compoundName: shorthand.compoundName,
       args: shorthand.args,
     );
+    // Mirror the decode invariant, as [upsert] does: a shorthand the next
+    // load would drop must not be saved as if it were kept.
+    if (!CompoundShorthands.keeps(normalized)) {
+      throw ArgumentError.value(shorthand, 'shorthand', 'would not be kept');
+    }
     final next = _compound.toList();
     if (index == null || index < 0 || index >= next.length) {
       next.add(normalized);

@@ -8436,6 +8436,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String shorthandEditorErrorDuplicateHidden(String token) {
+    return '« $token » est déjà une abréviation pour l’une de vos propres figures. Celles-ci sont listées ici quand « Figures personnalisées » est activé.';
+  }
+
+  @override
   String get shorthandEditorErrorNoFigures =>
       'Ajoutez au moins une figure que cette abréviation développera.';
 

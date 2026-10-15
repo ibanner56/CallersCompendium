@@ -153,8 +153,10 @@ class FigureListEditor extends StatefulWidget {
   /// is parsed as usual. Null (the default) offers none.
   final bool Function(String line)? onSubmitCompoundShorthand;
 
-  /// User-defined shorthand → figure(s) mappings (issue #420) consulted FIRST
-  /// during free-text entry: a typed line matching a shorthand token (whole
+  /// User-defined shorthand → figure(s) mappings (issue #420) consulted
+  /// during free-text entry before the parser (after
+  /// [onSubmitCompoundShorthand], whose caller lets a figure shorthand with
+  /// the same token win): a typed line matching a shorthand token (whole
   /// line, case-insensitive) expands to the mapped figures instead of being
   /// parsed. `null` (the default) disables shorthand expansion, preserving the
   /// pure #419 parse behavior. Only relevant when [freeTextEntry] is enabled.

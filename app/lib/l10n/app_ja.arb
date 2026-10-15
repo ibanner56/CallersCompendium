@@ -8202,7 +8202,7 @@
   "@shorthandsCompoundUnavailable": {
     "x-sourceSha256": "1b95eac1564cf87d7e26c29bfb086720d29821ed2df01c8b5495c164a12b11e0"
   },
-  "shorthandsCompoundShadowed": "使用されていません。フィギュアショートハンドに同じテキストがあります。",
+  "shorthandsCompoundShadowed": "使用されていません。フィギュアのショートハンドに同じテキストがあります。",
   "@shorthandsCompoundShadowed": {
     "x-sourceSha256": "75111a930cc8890e0f1378c778ee2c93d1ec4cd35897e8d496d60f0cc46d60b6"
   },
@@ -8257,6 +8257,10 @@
   "shorthandEditorErrorDuplicate": "別のショートハンドがすでに「{token}」を使用しています（大文字と小文字を区別せずに一致します）。",
   "@shorthandEditorErrorDuplicate": {
     "x-sourceSha256": "652678e63db28b88cf7ee418247d06d9a21db5efad07e7753757d3581bc29dbf"
+  },
+  "shorthandEditorErrorDuplicateHidden": "「{token}」は自分のフィギュア用のショートハンドとしてすでに使われています。それらはカスタムフィギュアがオンのときにここに表示されます。",
+  "@shorthandEditorErrorDuplicateHidden": {
+    "x-sourceSha256": "7e3ee1d83196cfbd629298030de3866e4a983082c6b7fc1f5a0312d316091c27"
   },
   "shorthandEditorErrorNoFigures": "このショートハンドの展開先に少なくとも1つのフィギュアを追加してください。",
   "@shorthandEditorErrorNoFigures": {

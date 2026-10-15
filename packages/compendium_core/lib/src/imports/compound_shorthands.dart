@@ -135,6 +135,11 @@ class CompoundShorthands {
     return CompoundShorthands(result);
   }
 
+  /// Whether [shorthand] is one [decode] keeps: what is saved must survive the
+  /// next load, so the controller refuses anything else.
+  static bool keeps(CompoundShorthand shorthand) =>
+      _decodeOne(shorthand.toJson()) != null;
+
   static CompoundShorthand? _decodeOne(Object? entry) {
     if (entry is! Map) return null;
     final rawToken = entry['token'];

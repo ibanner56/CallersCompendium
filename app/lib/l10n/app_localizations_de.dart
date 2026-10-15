@@ -8363,7 +8363,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get shorthandsCompoundUnavailable =>
-      'Nicht verwendbar: Ihre Figur wurde gelöscht oder geändert oder akzeptiert diese Werte nicht. Eingetippt wird sie als gewöhnliche Zeile gelesen.';
+      'Nicht verwendbar: Die Figur wurde gelöscht oder geändert oder akzeptiert diese Werte nicht. Eingetippt wird die Abkürzung als gewöhnliche Zeile gelesen.';
 
   @override
   String get shorthandsCompoundShadowed =>
@@ -8414,6 +8414,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String shorthandEditorErrorDuplicate(String token) {
     return 'Eine andere Abkürzung verwendet bereits „$token“ (Abkürzungen werden ohne Berücksichtigung der Groß-/Kleinschreibung abgeglichen).';
+  }
+
+  @override
+  String shorthandEditorErrorDuplicateHidden(String token) {
+    return '„$token“ ist bereits eine Abkürzung für eine deiner eigenen Figuren. Diese werden hier aufgeführt, solange „Eigene Figuren“ an ist.';
   }
 
   @override

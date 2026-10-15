@@ -23,6 +23,7 @@ class ShorthandMappingEditorScreen extends StatefulWidget {
     super.key,
     this.initial,
     this.existingTokens = const {},
+    this.hiddenTokens = const {},
   });
 
   /// The mapping being edited, or `null` when creating a new one.
@@ -31,6 +32,12 @@ class ShorthandMappingEditorScreen extends StatefulWidget {
   /// Normalized ([normalizeShorthandToken]) tokens of OTHER mappings, used to
   /// reject a case-insensitive duplicate token on Save.
   final Set<String> existingTokens;
+
+  /// Normalized tokens of compound shorthands (#709) that the shorthands
+  /// screen is not showing, because Custom Figures is off. They are taken all
+  /// the same, so a clash with one names it rather than a shorthand the user
+  /// cannot see.
+  final Set<String> hiddenTokens;
 
   @override
   State<ShorthandMappingEditorScreen> createState() =>
@@ -81,6 +88,10 @@ class _ShorthandMappingEditorScreenState
         () =>
             _error = l10n.shorthandEditorErrorTooLong(maxShorthandTokenLength),
       );
+      return;
+    }
+    if (widget.hiddenTokens.contains(normalizeShorthandToken(token))) {
+      setState(() => _error = l10n.shorthandEditorErrorDuplicateHidden(token));
       return;
     }
     if (widget.existingTokens.contains(normalizeShorthandToken(token))) {

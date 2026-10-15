@@ -211,12 +211,7 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
         dialect,
         ...?DialectLibraryScope.maybeOf(context)?.customDialects,
       ],
-      shorthandTokens: [
-        for (final m
-            in ShorthandMappingsScope.maybeOf(context)?.mappings ??
-                const <ShorthandMapping>[])
-          m.token,
-      ],
+      shorthandTokens: ShorthandMappingsScope.tokensOf(context),
     );
   }
 
