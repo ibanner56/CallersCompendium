@@ -2267,6 +2267,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       dialect: widget.dialect,
       mixer: widget.mixer,
       value: compound.args[param.key],
+      // A value the compound no longer accepts stays as it is, so the row
+      // keeps saying it can't be expanded until the user chooses another.
+      correctsValue: false,
       onChanged: (value) {
         compound.args[param.key] = value;
         _refreshCompoundBeats();
