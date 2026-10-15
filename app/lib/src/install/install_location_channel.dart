@@ -1,9 +1,10 @@
 import 'package:flutter/services.dart';
 
-/// The mockable seam to the macOS check for an app that is running without
-/// having been installed — issue #1725: double-clicked inside the mounted
-/// `.dmg`, or run from Gatekeeper's translocated copy, instead of dragged to
-/// Applications first. Native side: `app/macos/Runner/InstallLocationBridge.swift`.
+/// The mockable seam to the macOS check for an app that is running from a
+/// read-only volume, which usually means it was never installed — issue #1725:
+/// double-clicked inside the mounted `.dmg`, or run from Gatekeeper's
+/// translocated copy. Native side:
+/// `app/macos/Runner/InstallLocationBridge.swift`.
 class InstallLocationChannel {
   InstallLocationChannel({MethodChannel? channel})
     : _channel = channel ?? const MethodChannel(channelName);

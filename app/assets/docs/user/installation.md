@@ -108,12 +108,13 @@ macOS has one universal download that runs on both Intel and Apple Silicon Macs.
   **Applications**, and open it from there; the notice stops appearing.
 
   The notice means the app is running from a read-only location. That is
-  usually the disk image, but macOS can also open a freshly downloaded app from
-  a temporary read-only location of its own, even when the app is already in
-  **Applications**. If you see the notice there, quit the app, move or copy it
-  into **Applications** in Finder, and open it from there. If the notice still
-  appears, you can dismiss it; it only hides until the next time you open the
-  app.
+  usually the disk image, but macOS may also run a freshly downloaded app from
+  a temporary read-only location of its own, which could happen even when the
+  app is already in **Applications**. If you see the notice and the app is
+  already there, you can dismiss it: it only hides until the next time you open
+  the app. Quitting the app and opening it again is fine, and moving or copying
+  it into **Applications** in Finder may help, but it may not make the notice
+  go away.
 - **Archive** (`...-macos-universal.zip`) — unzip it and move the app wherever
   you keep your applications, then open it the same way.
 

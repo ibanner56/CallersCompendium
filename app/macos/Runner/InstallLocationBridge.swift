@@ -46,9 +46,9 @@ enum InstallLocation {
   /// translocated copy of a disk-image app is on a read-only mount too. An
   /// installed copy in `/Applications` or `~/Applications` is on the writable
   /// data volume, unless macOS runs it through a translocated (read-only)
-  /// copy, which can happen to a quarantined app that was placed in
+  /// copy. That is suspected, not reproduced, for a quarantined app placed in
   /// `/Applications` by `cp`, `ditto` or MDM with its quarantine attribute
-  /// retained (whether a Finder drag is exempt is unverified). This check
+  /// retained (whether a Finder drag is exempt is also unverified). This check
   /// cannot tell that case from the disk image, so the Dart banner words its
   /// message as "may not be installed" (see `InstallLocationBanner`).
   ///

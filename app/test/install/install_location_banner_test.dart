@@ -55,6 +55,11 @@ void main() {
     // the translocated case, and must let a user who has already installed it
     // dismiss the notice.
     expect(find.textContaining("isn't installed yet"), findsNothing);
+    // Whether moving the app clears a translocated copy is unverified, so the
+    // message must not promise that the notice goes away.
+    expect(find.textContaining('stops appearing'), findsNothing);
+    expect(find.textContaining('goes away'), findsNothing);
+    expect(find.textContaining('will not appear'), findsNothing);
     expect(find.textContaining('may not be installed'), findsOneWidget);
     expect(find.textContaining('disk image or archive'), findsOneWidget);
     expect(find.textContaining('temporary read-only location'), findsOneWidget);
