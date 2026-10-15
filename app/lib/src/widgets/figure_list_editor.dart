@@ -2427,7 +2427,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // v30 (#989): a promenade's `where` gates two other params' relevance:
     // - `direction` (rotation sense) is meaningless once `where` leaves the
     //   across/along plane (`in`/`out`/`up`/`down`) — hidden here, and reset
-    //   to the sentinel by `_applyNonBeatsParamChange` the moment `where`
+    //   to the sentinel by core's `applyParamChange` the moment `where`
     //   changes to one of those, so the field can never go stale-but-hidden.
     // - `destination` renders nowhere once `where == 'across'` (the renderer's
     //   `where != 'across'` gate, matching Ask 2) — hidden here too, so the

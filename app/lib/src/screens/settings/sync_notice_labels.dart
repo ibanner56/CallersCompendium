@@ -133,6 +133,7 @@ SyncNoticeGroup syncNoticeGroupFor(SyncReport report) => switch (report.code) {
   SyncReportCode.newerWireVersion => SyncNoticeGroup.newerVersion,
   SyncReportCode.newerRecordFields => SyncNoticeGroup.newerVersion,
   SyncReportCode.newerFigures => SyncNoticeGroup.newerVersion,
+  SyncReportCode.newerRecordKind => SyncNoticeGroup.newerVersion,
   SyncReportCode.keptNewerFields => SyncNoticeGroup.keptNewerFields,
 };
 

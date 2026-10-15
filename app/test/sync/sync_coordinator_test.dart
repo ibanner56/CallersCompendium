@@ -7084,6 +7084,64 @@ void main() {
       expect(report.recordId, isNull);
     });
 
+    test('a manifest listing a record kind this build does not know still '
+        'delivers the known records, is reported as newerRecordKind, and is '
+        'never kept (#709)', () async {
+      final tagBlob = utf8.encode(encodeSyncRecordBlob(_tag('t-1', 'Known')));
+      final tagHash = sha256Hex(tagBlob);
+      final known = _manifest(
+        deviceId: 'peer',
+        records: {
+          SyncRecordKind.tag: {'t-1': tagHash},
+        },
+      ).toJson();
+      final manifestBody = utf8.encode(
+        jsonEncode({
+          ...known,
+          'records': {
+            ...(known['records']! as Map<String, Object?>),
+            'futureKind': {'future-1': 'b' * 64},
+          },
+        }),
+      );
+      SyncHttpResponse full() => SyncHttpResponse(
+        statusCode: 200,
+        kind: SyncResponseKind.success,
+        headers: const {'etag': '"peer-v1"'},
+        body: manifestBody,
+      );
+      final store = _FakeStore();
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [full(), full()],
+        },
+        blobResponses: {tagHash: _FakeTransport.response(200, body: tagBlob)},
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.appliedKinds, contains(SyncRecordKind.tag));
+      final report = result.reports.singleWhere(
+        (report) => report.peerId == 'peer',
+      );
+      expect(report.code, SyncReportCode.newerRecordKind);
+      expect(report.kind, isNull);
+      expect(report.message, contains('futureKind'));
+      // Neither cache keeps the copy, which has lost the unknown kind: the
+      // next pass asks in full, with no ETag a `304` could answer.
+      expect(store.peerManifests, isNot(contains('peer')));
+      await coordinator.syncNow();
+      expect(transport.manifestEtags, [null, null]);
+    });
+
     test('a genuinely malformed blob is still malformedRecord', () async {
       final broken = utf8.encode(jsonEncode({'v': syncWireVersion}));
       final hash = sha256Hex(broken);

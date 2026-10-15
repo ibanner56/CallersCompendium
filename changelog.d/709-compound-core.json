@@ -7,7 +7,7 @@
       "Add `ParamOpposites`, which classifies every parameter kind's opposites (right and left, clockwise and counterclockwise, up and down, paired dancers through `invertPairDancerSet`), and `paramDomain`.",
       "Add `canonicalizeGlossaryText` for user-glossary text: discouraged terms are stored canonically, and under Leads/Follows a plural homograph directly after a singular subject is read as the verb. `canonicalizeText` is unchanged.",
       "Add `glossaryNameCollisions` and `normalizeGlossaryName`.",
-      "Add `discouragedTermMeanings`, the one table of what each built-in discouraged term stands for, which the renderer now reads."
+      "The renderer's discouraged-term display and `canonicalizeGlossaryText` read one internal table of what each built-in discouraged term stands for, so the two cannot drift."
     ]
   }
 }

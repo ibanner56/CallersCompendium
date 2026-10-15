@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 /// Core's [applyParamChange] (#709): the rules the dance editor applies when a
@@ -30,7 +31,7 @@ void main() {
   }
 
   Map<String, Object?> defaults(String move) =>
-      taxonomy.effectiveParams(Figure(move: move));
+      taxonomy.effectiveParams(testFigure(move: move));
 
   group('hey length (#576)', () {
     test('a full or half length drops a stale meetTarget', () {
@@ -114,6 +115,35 @@ void main() {
         beatsTouched: true,
       );
       expect(low.params['beats'], 0);
+    });
+
+    test('returns before beats are reconciled, even in aggressive mode', () {
+      // petronella's balance drives its canonical beats (true: 8, false: 4),
+      // so a fall-through into the reconciliation would snap a manual 10 to
+      // 4 rather than shifting it to 6.
+      final result = change(
+        'petronella',
+        {...defaults('petronella'), 'beats': 10},
+        'balance',
+        false,
+        beatsTouched: true,
+        aggressiveBeats: true,
+      );
+      expect(result.params['beats'], 6);
+    });
+
+    test('reads the effective flag, so an unstated spec default of on counts '
+        'as on', () {
+      final result = change('petronella', {'beats': 8}, 'balance', false);
+      expect(result.params['beats'], 4);
+    });
+
+    test('with no beats it shifts from the default before the change', () {
+      // The fallback base is the default the flag had, not the one it now
+      // has: petronella on is 8, so turning it off gives 4, not 0. Compound
+      // expansion hits this branch whenever a template leaves beats unset.
+      final result = change('petronella', {'balance': true}, 'balance', false);
+      expect(result.params['beats'], 4);
     });
 
     test('setting it to the value it already has changes nothing else', () {
@@ -206,6 +236,19 @@ void main() {
         canonicalBeatsFor(taxonomy, 'swing', aggressive.params),
       );
       expect(aggressive.params['beats'], isNot(10));
+    });
+
+    test('aggressive mode leaves an override alone when the default did not '
+        'move', () {
+      final result = change(
+        'circle',
+        {...defaults('circle'), 'beats': 12},
+        'direction',
+        'right',
+        beatsTouched: true,
+        aggressiveBeats: true,
+      );
+      expect(result.params['beats'], 12);
     });
 
     test('an unowned count snaps to a moved default', () {

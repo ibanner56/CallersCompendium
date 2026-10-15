@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 /// User compound figures' core semantics (#709).
@@ -6,7 +7,7 @@ void main() {
   final taxonomy = contraTaxonomy;
   const u = ParamVocab.unspecified;
 
-  Figure pullBy({String hand = 'right'}) => Figure(
+  Figure pullBy({String hand = 'right'}) => testFigure(
     move: 'pull_by',
     params: {'who': 'neighbors', 'hand': hand, 'beats': 2},
   );
@@ -89,13 +90,53 @@ void main() {
       expect(expanded.single.params['hand'], 'left');
     });
 
+    test('slots are set in the order the move declares them, whatever order '
+        'the bindings were saved in', () {
+      // chain's `who` re-seeds `hand`: set after it, a bound hand wins.
+      const who = CompoundSlotBinding(
+        figureIndex: 0,
+        slotKey: 'who',
+        paramKey: 'who',
+      );
+      const hand = CompoundSlotBinding(
+        figureIndex: 0,
+        slotKey: 'hand',
+        paramKey: 'hand',
+      );
+      for (final bindings in [
+        [who, hand],
+        [hand, who],
+      ]) {
+        final definition = CompoundDefinition(
+          params: const [
+            CompoundParam(key: 'who', kind: ParamKind.dancerSet),
+            CompoundParam(key: 'hand', kind: ParamKind.handedness),
+          ],
+          figures: [
+            Figure(move: 'chain', params: {'who': 'role2s', 'hand': 'right'}),
+          ],
+          bindings: bindings,
+        );
+        final expanded = expandCompound(definition, {
+          'who': 'role1s',
+          'hand': 'right',
+        }, taxonomy)!;
+        expect(
+          expanded.single.params,
+          containsPair('hand', 'right'),
+          reason: '${bindings.map((b) => b.slotKey)}',
+        );
+        expect(expanded.single.params, containsPair('who', 'role1s'));
+      }
+    });
+
     test('a template that states its beats keeps them when a bound value '
         'moves the canonical default; one that does not snaps to it', () {
       CompoundDefinition swing({required bool statedBeats}) =>
           CompoundDefinition(
             params: const [CompoundParam(key: 'pre', kind: ParamKind.choice)],
             figures: [
-              Figure(
+              testFigure(
                 move: 'swing',
                 params: {'who': 'partners', if (statedBeats) 'beats': 8},
               ),
@@ -167,6 +208,26 @@ void main() {
   });
 
   group('allowed values', () {
+    test('an unbound parameter takes its kind\'s vocabulary; free text is '
+        'null; an undeclared key is empty', () {
+      final definition = CompoundDefinition(
+        params: const [
+          CompoundParam(key: 'hand', kind: ParamKind.handedness),
+          CompoundParam(key: 'slide', kind: ParamKind.choice),
+          CompoundParam(key: 'words', kind: ParamKind.text),
+        ],
+        figures: [pullBy()],
+        bindings: const [],
+      );
+      expect(allowedValues(definition, 'hand', taxonomy), {
+        ...ParamVocab.sides,
+        u,
+      });
+      expect(allowedValues(definition, 'slide', taxonomy), isEmpty);
+      expect(allowedValues(definition, 'words', taxonomy), isNull);
+      expect(allowedValues(definition, 'nope', taxonomy), isEmpty);
+    });
+
     test('are the overlap of every slot a parameter fills', () {
       final definition = CompoundDefinition(
         params: const [CompoundParam(key: 'who', kind: ParamKind.dancerSet)],
@@ -302,7 +363,7 @@ void main() {
 
     test('custom, container and nested-compound templates are refused', () {
       for (final figure in [
-        Figure(move: customMove, params: {'text': 'x', 'beats': 8}),
+        testFigure(move: customMove, params: {'text': 'x', 'beats': 8}),
         Figure.meanwhile(
           figures: [
             Figure(move: 'allemande'),
@@ -310,6 +371,14 @@ void main() {
           ],
           beats: 8,
         ),
+        Figure.modifier(
+          figures: [
+            Figure(move: 'balance'),
+            Figure(move: 'swing'),
+          ],
+          beats: 16,
+        ),
+        // invalid-fixture: an id the taxonomy lacks stands in for a compound nested in a compound
         Figure(move: 'some_user_compound'),
       ]) {
         final definition = CompoundDefinition(

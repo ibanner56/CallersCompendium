@@ -1835,8 +1835,26 @@ class SyncCoordinator {
         );
         continue;
       }
+      if (manifest.unknownKinds.isNotEmpty) {
+        final kinds = (manifest.unknownKinds.toList()..sort()).join(', ');
+        reports.add(
+          SyncReport(
+            code: SyncReportCode.newerRecordKind,
+            peerId: peerId,
+            message:
+                'Peer manifest lists record kinds this build does not know: $kinds.', // i18n-ignore: internal report
+          ),
+        );
+      }
       final etag = _header(response.headers, 'etag');
-      if (response.kind == SyncResponseKind.notModified) {
+      if (manifest.unknownKinds.isNotEmpty) {
+        // Never kept, in the session or on disk. The copy would be the
+        // re-encoded decode, which has lost the skipped kinds; after an update
+        // that knows them, a `304` against its ETag would keep serving that
+        // copy, and the peer's records of those kinds would never download
+        // until it next republished. Asked for in full every pass instead.
+        await _forgetPeerManifest(peerId);
+      } else if (response.kind == SyncResponseKind.notModified) {
         if (etag != null && etag.isNotEmpty) {
           _peerManifestCache[peerId] = SyncPeerManifestCacheEntry(
             epoch: metadata.epoch,
@@ -3681,7 +3699,13 @@ class SyncCoordinator {
   ) {
     try {
       return (
-        manifest: decodeSyncManifest(utf8.decode(body, allowMalformed: false)),
+        // A peer's manifest only: a kind a newer build added is skipped, not
+        // fatal, so that peer's other records still arrive (#709). Kept and
+        // cached copies, and the server, decode strictly.
+        manifest: decodeSyncManifest(
+          utf8.decode(body, allowMalformed: false),
+          skipUnknownKinds: true,
+        ),
         newer: false,
       );
     } on SyncNewerWireVersionException {

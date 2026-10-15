@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/src/dialect/discouraged_terms.dart';
 import 'package:test/test.dart';
 
 /// User-glossary text canonicalization (#709): today's role rules, plus the
@@ -18,8 +19,26 @@ void main() {
       'the role1 follows',
     );
     expect(
+      canonicalizeGlossaryText('your partner leads down', lf),
+      'your partner leads down',
+    );
+    expect(
+      canonicalizeGlossaryText('each neighbor follows', lf),
+      'each neighbor follows',
+    );
+    expect(canonicalizeGlossaryText('role2 follows', lf), 'role2 follows');
+  });
+
+  test('a dancer noun with no determiner is not taken for a subject', () {
+    // "swing partner" makes partner the object, so what follows starts the
+    // next call: the plural role.
+    expect(
+      canonicalizeGlossaryText('swing partner follows cross', lf),
+      'swing partner role2s cross',
+    );
+    expect(
       canonicalizeGlossaryText('partner leads down', lf),
-      'partner leads down',
+      'partner role1s down',
     );
   });
 
@@ -66,14 +85,21 @@ void main() {
     expect(canonicalizeText('gypsy with partner', lr), 'gypsy with partner');
   });
 
-  test('the shared discouraged-term table drives the renderer too', () {
-    // The renderer displays each term from the same meanings; this pins the
-    // storage side against the display side so the two cannot drift.
-    for (final entry in discouragedTermMeanings.entries) {
-      final stored = canonicalDiscouragedTerms[entry.key]!;
-      final shown = FigureRenderer(contraTaxonomy).renderFreeText(stored, lr);
-      expect(stored, isNotEmpty, reason: entry.key);
-      expect(shown, isNot(contains('role')), reason: entry.key);
+  test('a stored discouraged term displays as the renderer displays the term '
+      'itself, in every preset dialect', () {
+    // Storage and display read one table (discouraged_terms.dart); this pins
+    // that the two readers agree, so neither can drift from the other.
+    final renderer = FigureRenderer(contraTaxonomy);
+    for (final dialect in Dialect.presets) {
+      for (final term in discouragedTermMeanings.keys) {
+        final stored = canonicalizeGlossaryText(term, dialect);
+        expect(stored, storedDiscouragedTerms[term], reason: term);
+        expect(
+          renderer.renderFreeText(stored, dialect),
+          renderer.renderFreeTextWithCanonicalDiscouragedTerms(term, dialect),
+          reason: '${dialect.name}: $term',
+        );
+      }
     }
   });
 }
