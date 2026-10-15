@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 /// User compound figures' core semantics (#709).
@@ -6,7 +7,7 @@ void main() {
   final taxonomy = contraTaxonomy;
   const u = ParamVocab.unspecified;
 
-  Figure pullBy({String hand = 'right'}) => Figure(
+  Figure pullBy({String hand = 'right'}) => testFigure(
     move: 'pull_by',
     params: {'who': 'neighbors', 'hand': hand, 'beats': 2},
   );
@@ -135,7 +136,7 @@ void main() {
           CompoundDefinition(
             params: const [CompoundParam(key: 'pre', kind: ParamKind.choice)],
             figures: [
-              Figure(
+              testFigure(
                 move: 'swing',
                 params: {'who': 'partners', if (statedBeats) 'beats': 8},
               ),
@@ -362,7 +363,7 @@ void main() {
 
     test('custom, container and nested-compound templates are refused', () {
       for (final figure in [
-        Figure(move: customMove, params: {'text': 'x', 'beats': 8}),
+        testFigure(move: customMove, params: {'text': 'x', 'beats': 8}),
         Figure.meanwhile(
           figures: [
             Figure(move: 'allemande'),
@@ -377,6 +378,7 @@ void main() {
           ],
           beats: 16,
         ),
+        // invalid-fixture: an id the taxonomy lacks stands in for a compound nested in a compound
         Figure(move: 'some_user_compound'),
       ]) {
         final definition = CompoundDefinition(
