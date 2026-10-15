@@ -49,12 +49,13 @@ void main() {
 
   UserGlossaryEntry entry({
     String id = 'grl',
+    String kindName = 'compound',
     String name = 'grand right and left',
     Object? payload,
     List<String> keywords = const ['grl'],
   }) => UserGlossaryEntry(
     id: id,
-    kindName: UserGlossaryEntryKind.compound.name,
+    kindName: kindName,
     name: name,
     definition: 'Pull by alternating hands around the ring.',
     description: 'Four pull-bys, starting with the hand you choose.',
@@ -194,6 +195,43 @@ void main() {
         findsOneWidget,
       );
     });
+  });
+
+  group('entries of a kind this build cannot use (#1023)', () {
+    for (final kind in ['term', 'customFigure', 'someLaterKind']) {
+      testWidgets('a $kind entry says it is from a newer version, and cannot '
+          'be edited as a compound', (tester) async {
+        await pump(
+          tester,
+          entries: [
+            entry(
+              id: 'newer',
+              kindName: kind,
+              name: 'contra corners',
+              payload: const {'form': 'contra'},
+              keywords: const [],
+            ),
+          ],
+        );
+        await search(tester, 'contra corners');
+        final row = find.byKey(const ValueKey('glossary-entry-custom:newer'));
+        expect(
+          find.descendant(of: row, matching: find.text('Newer version')),
+          findsOneWidget,
+        );
+        expect(find.text('Needs repair'), findsNothing);
+        await tester.tap(row);
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('glossary-custom-unsupported')),
+          findsOneWidget,
+        );
+        final edit = tester.widget<ButtonStyleButton>(
+          find.byKey(const ValueKey('glossary-custom-edit')),
+        );
+        expect(edit.onPressed, isNull);
+      });
+    }
   });
 
   group('a custom figure\'s detail', () {
