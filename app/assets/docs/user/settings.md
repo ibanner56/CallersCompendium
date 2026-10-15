@@ -582,6 +582,14 @@ Glossary is on. While it is on:
 Turning Custom Figures off hides your figures; it doesn't delete them. They are
 kept in your backups.
 
+With [Device Sync](#device-sync) on, your own figures, your notes on built-in
+figures, the Custom Figures setting and your shorthands for your own figures
+sync to your other devices too, once every device connected to your store has
+this version of the app or a later one. Until then changes to them aren't sent
+to your other devices, and Device Sync shows a note naming the device that is
+holding them back (see [New kinds of data wait for every
+device](#new-kinds-of-data-wait-for-every-device)).
+
 ### Device Sync
 
 **Device Sync** keeps your library in step across your own devices. It is **off
@@ -717,8 +725,8 @@ Sync is off and open while it is on.
   which ones to look at. Dances, programs, choreographers, tags and venues are
   named by the title or name this device has for them, and one this device
   doesn't have is listed as not on this device; other kinds of record —
-  settings, custom fields, difficulty levels, published sources — are listed
-  by kind only. A notice about records
+  settings, custom fields, difficulty levels, published sources, your own
+  figures and your notes on figures — are listed by kind only. A notice about records
   from other devices also says how many devices they came from. A notice is
   only ever a message — it
   never blocks an edit, never holds up a sync, and there is nothing to dismiss.
@@ -881,6 +889,26 @@ on, the [venue](./glossary.md#venue) editor shows a note on a venue whose
 address and contact fields are blank, naming exactly those fields. (Notes
 does sync — if you've put contact information there, it travels with the
 note.)
+
+#### New kinds of data wait for every device
+
+Some things this version syncs can't be read by earlier versions of the app:
+your [own figures and your notes on built-in
+figures](#glossary-and-custom-figures), the Custom Figures setting, and your
+shorthands for your own figures. They start syncing only once every device
+connected to your store has an up-to-date app. Until then changes to them
+aren't sent to your other devices, and nothing already on a device is removed;
+you can keep using and editing them on each device.
+
+While something is held back, Device Sync shows a note naming the device that
+is holding it back, by its tag in **Other devices**. Update the app on that
+device, or remove it from **Other devices** if you no longer use it, and they
+sync on the next pass. Nothing is lost or deleted while they wait. Holding
+data back never stops this device receiving what other devices send.
+
+Because of this, the screen for connecting a device says **Every device needs
+an up-to-date app**: update each device before you connect it, since one on an
+earlier version may not be able to connect.
 
 #### Choosing which version to keep
 

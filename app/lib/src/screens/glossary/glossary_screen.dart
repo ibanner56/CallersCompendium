@@ -14,6 +14,7 @@ import '../../data/shorthand_mappings_scope.dart';
 import '../../data/show_custom_figures_scope.dart';
 import '../../data/verbose_figure_rendering_scope.dart';
 import '../../glossary/custom_figures.dart';
+import '../../glossary/figure_titles.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
 import 'compound_editor_screen.dart';
@@ -51,40 +52,16 @@ class GlossaryScreen extends StatefulWidget {
 }
 
 final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
-final List<FigureGlossaryEntry> _shippedEntries = figureGlossaryEntries(
-  contraTaxonomy,
-);
+final List<FigureGlossaryEntry> _shippedEntries = shippedFigureGlossaryEntries;
 
-/// The name [entry] is listed and headed by under [dialect].
-///
-/// Usually the figure's dialect name. When another entry in [all] shares that
-/// name — the two `pull by` aliases share it with `pull by` itself — an alias
-/// is qualified by the values it pins (`pull by (neighbors)`), so no two rows
-/// read the same.
+/// The name [entry] is listed and headed by under [dialect]
+/// ([glossaryFigureTitle]).
 String _entryTitle(
   AppLocalizations l10n,
   FigureGlossaryEntry entry,
   List<FigureGlossaryEntry> all,
   Dialect dialect,
-) {
-  final name = _renderer.displayMoveName(entry.id, dialect);
-  final alias = contraTaxonomy.aliases[entry.id];
-  if (alias == null || alias.pinnedParams.isEmpty) return name;
-  final collides = all.any(
-    (other) =>
-        other.id != entry.id &&
-        _renderer.displayMoveName(other.id, dialect).toLowerCase() ==
-            name.toLowerCase(),
-  );
-  if (!collides) return name;
-  final target = contraTaxonomy.moves[alias.targetMove]!;
-  final detail = [
-    for (final MapEntry(key: param, value: value) in alias.pinnedParams.entries)
-      if (target.params[param] case final spec?)
-        figureParamChoiceLabel(l10n, spec, dialect, '$value'),
-  ].join(', ');
-  return l10n.glossaryNameWithDetail(name, detail);
-}
+) => glossaryFigureTitle(l10n, entry.id, all, dialect);
 
 /// An entry resolved for display under one dialect: a shipped figure or one
 /// of the user's own.

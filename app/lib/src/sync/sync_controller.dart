@@ -1462,6 +1462,18 @@ class SyncController extends ChangeNotifier {
         } finally {
           admin.close?.call();
         }
+        // The device is gone from the store, so its capability record is
+        // tombstoned, not left to be republished forever (spec §6.15): the
+        // tombstone syncs, and every other device drops the record too. A
+        // removed device that is still attached, or pairs again, writes its
+        // record afresh on the pass after the tombstone reaches it. Inside
+        // the boundary, so it cannot interleave with a pass. If this throws,
+        // the removal is reported as failed although the manifest is gone;
+        // retrying is safe, since the server answers 204 again and the
+        // tombstone is written then.
+        if (outcome == SyncAdminOutcome.done) {
+          await _settings.remove(syncCapabilityRecordKey(deviceId));
+        }
       });
     } on Object catch (error, stack) {
       logCaughtErrorTypeOnly(

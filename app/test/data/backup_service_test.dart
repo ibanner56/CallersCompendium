@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart' as crypto;
+
 import 'package:compendium_app/src/data/backup_document.dart';
 import 'package:compendium_app/src/data/backup_io.dart'
     show BackupExportTooLargeException, kMaxBackupFileBytes;
@@ -236,6 +238,44 @@ void main() {
 
     expect(outcome.hasErrors, isFalse);
     expect((await target.dances.getById('existing'))?.title, 'café');
+  });
+
+  test('restore skips a settings value nested too deep to store, and applies '
+      'the rest', () async {
+    final source = openTestRepositories();
+    await _seed(source);
+    await source.settings.set(kSoftDeleteRetentionKey, 30);
+    final exported = await BackupService(source).exportToJson();
+
+    // Splice a value nested past the bound into the payload's text. Deep
+    // enough (tens of thousands of levels) such a value overflowed the stack
+    // in the recursive normalisation and encoding of `settings.set`, aborting
+    // the restore half-applied; this depth is past the bound but cheap to run.
+    final container = jsonDecode(exported) as Map<String, Object?>;
+    final payload = container['payload']! as String;
+    const marker = '"settings":{';
+    expect(marker.allMatches(payload), hasLength(1));
+    const depth = 500;
+    final spliced = payload.replaceFirst(
+      marker,
+      '$marker"a_future_key":${'[' * depth}${']' * depth},',
+    );
+    final checksum = container['checksum']! as Map<String, Object?>;
+    final json = jsonEncode({
+      ...container,
+      'checksum': {
+        ...checksum,
+        'value': crypto.sha256.convert(utf8.encode(spliced)).toString(),
+      },
+      'payload': spliced,
+    });
+
+    final target = openTestRepositories();
+    final outcome = await BackupService(target).restoreFromJson(json);
+
+    expect(outcome.applied, isTrue);
+    expect(await target.settings.get('a_future_key'), isNull);
+    expect(await target.settings.get(kSoftDeleteRetentionKey), 30);
   });
 
   test(

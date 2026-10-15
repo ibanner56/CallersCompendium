@@ -187,6 +187,64 @@ void main() {
     });
   });
 
+  test('collects the words of a figure of your own and of its uses '
+      '(#1023)', () async {
+    final repos = openTestRepositories();
+    await repos.userGlossary.upsert(
+      UserGlossaryEntry(
+        id: 'zoom-id',
+        kindName: UserGlossaryEntryKind.customFigure.name,
+        name: 'zoomies',
+        definition: 'A zoom.',
+        description: 'Fast.',
+        payload: const {
+          'form': 'contra',
+          'template': 'secret template wording {move} {where}',
+          'defaultBeats': 8,
+          'params': [
+            {'key': 'where', 'kind': 'text', 'default': 'secret default'},
+            {'key': 'loud', 'kind': 'flag', 'label': 'secret flag label'},
+            {
+              'key': 'style',
+              'kind': 'choice',
+              'choices': [
+                {'id': 'a', 'label': 'secret choice label'},
+              ],
+            },
+          ],
+        },
+        createdAt: DateTime.utc(2026, 10, 15),
+      ),
+    );
+    await repos.dances.create(
+      Dance(
+        id: 'd1',
+        title: 'Zoom Reel',
+        figures: [
+          userFigureUseFigure(
+            id: 'zoom-id',
+            args: const {'where': 'secret argument'},
+            text: 'zoomies',
+          ),
+        ],
+        createdAt: DateTime.utc(2026, 10, 15),
+        updatedAt: DateTime.utc(2026, 10, 15),
+      ),
+    );
+
+    final terms = await collectSensitiveTerms(repos);
+    expect(
+      terms,
+      containsAll([
+        'secret template wording {move} {where}',
+        'secret default',
+        'secret flag label',
+        'secret choice label',
+        'secret argument',
+      ]),
+    );
+  });
+
   test('is fail-closed: a source read error propagates', () async {
     final repos = openTestRepositories();
     // Drop the first source table so its read throws a real SQLite error. The

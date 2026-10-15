@@ -10,7 +10,7 @@ final _stamp = DateTime.utc(2026, 7, 15, 12);
 
 void main() {
   group('record blobs', () {
-    test('encode canonicalizes bytes and decodes all nine kinds', () {
+    test('encode canonicalizes bytes and decodes every kind', () {
       final blobs = <SyncRecordBlob>[
         syncRecordBlobForEntity(
           SyncRecordKind.dance,
@@ -61,6 +61,26 @@ void main() {
           updatedAt: _stamp,
           existenceAt: _stamp,
         )!,
+        syncRecordBlobForEntity(
+          SyncRecordKind.glossaryEntry,
+          StoredUserGlossaryEntry(
+            id: 'g1',
+            kind: 'compound',
+            name: 'Spiral',
+            definition: 'A spiral.',
+            description: 'Round.',
+            payloadJson: '{"params":[],"figures":[],"bindings":[]}',
+            createdAt: _stamp,
+          ),
+          updatedAt: _stamp,
+          existenceAt: _stamp,
+        )!,
+        syncRecordBlobForEntity(
+          SyncRecordKind.figureNote,
+          const FigureNote(figureId: 'swing', notes: 'Smooth.'),
+          updatedAt: _stamp,
+          existenceAt: _stamp,
+        )!,
         SyncSettingsRecord(
           key: 'custom_dialects',
           value: null,
@@ -70,6 +90,10 @@ void main() {
         ).toBlob()!,
       ];
 
+      expect(
+        blobs.map((blob) => blob.kind).toSet(),
+        SyncRecordKind.values.toSet(),
+      );
       for (final blob in blobs) {
         final encoded = encodeSyncRecordBlob(blob);
         expect(

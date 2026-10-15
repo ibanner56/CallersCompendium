@@ -9,4 +9,6 @@ enum SyncRecordKind {
   difficultyLevel,
   venue,
   setting,
+  glossaryEntry,
+  figureNote,
 }

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/serialization/archive_entity_codec.dart';
+import 'package:compendium_core/src/sync/sync_glossary_body.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
@@ -11,9 +12,11 @@ import '../storage/test_database.dart';
 
 final _now = DateTime.utc(2026, 7, 15, 12);
 
-/// The eight entity kinds. `setting` is excluded throughout: its wire fields
-/// are resolved per settings key through `settingsRegistry`, not through the
-/// archive codec, and are covered by the settings-key cases below.
+/// The entity kinds: the eight the archive carries, and the user's glossary
+/// (#709), whose bodies `sync_glossary_body.dart` builds instead. `setting` is
+/// excluded throughout: its wire fields are resolved per settings key through
+/// `settingsRegistry`, not through a body codec, and are covered by the
+/// settings-key cases below.
 const _entityKinds = <SyncRecordKind>[
   SyncRecordKind.dance,
   SyncRecordKind.program,
@@ -23,9 +26,11 @@ const _entityKinds = <SyncRecordKind>[
   SyncRecordKind.difficultyLevel,
   SyncRecordKind.tag,
   SyncRecordKind.venue,
+  SyncRecordKind.glossaryEntry,
+  SyncRecordKind.figureNote,
 ];
 
-/// Every registry column the eight entity kinds map a wire path to.
+/// Every registry column the entity kinds map a wire path to.
 ///
 /// Derived from the mapping under test, so it cannot drift away from it: a
 /// column added to `syncWireFields` is seeded and asserted from the moment it
@@ -113,6 +118,37 @@ void main() {
       }
     }
     expect(observedRecords, greaterThanOrEqualTo(8));
+
+    // The user's glossary is not in the archive (#709); its bodies are built
+    // by their own codec, and every path they emit must be mapped too.
+    final fixture = _Fixture(null);
+    final glossaryBodies = <SyncRecordKind, Map<String, Object?>>{
+      SyncRecordKind.glossaryEntry: syncGlossaryEntryBody(
+        fixture.glossaryEntry(),
+      ),
+      SyncRecordKind.figureNote: syncFigureNoteBody(fixture.figureNote()),
+    };
+    for (final MapEntry(key: kind, value: body) in glossaryBodies.entries) {
+      final paths = _wirePaths(kind, body);
+      expect(paths, isNotEmpty, reason: kind.name);
+      for (final path in paths) {
+        final mapping = syncWireFields[kind]!.where(
+          (field) => field.path == path,
+        );
+        expect(
+          mapping,
+          isNotEmpty,
+          reason: '$kind emitted unmapped wire path $path',
+        );
+        for (final source in mapping.single.sourceFields) {
+          expect(
+            fieldClassifications[source],
+            isNotNull,
+            reason: '$kind.$path references unknown source $source',
+          );
+        }
+      }
+    }
 
     final mappedSources = {
       for (final fields in syncWireFields.values)
@@ -560,6 +596,14 @@ Map<SyncRecordKind, Map<String, Object?>> _bodies(
     ),
     SyncRecordKind.tag: body(SyncRecordKind.tag, fixture.tag()),
     SyncRecordKind.venue: body(SyncRecordKind.venue, fixture.venue()),
+    SyncRecordKind.glossaryEntry: body(
+      SyncRecordKind.glossaryEntry,
+      fixture.glossaryEntry(),
+    ),
+    SyncRecordKind.figureNote: body(
+      SyncRecordKind.figureNote,
+      fixture.figureNote(),
+    ),
   };
 }
 
@@ -605,6 +649,10 @@ Map<String, Object?> _archiveBody(SyncRecordKind kind, Object entity) =>
         entity as Venue,
         includeOptionalFields: true,
       ),
+      SyncRecordKind.glossaryEntry => syncGlossaryEntryBody(
+        entity as StoredUserGlossaryEntry,
+      ),
+      SyncRecordKind.figureNote => syncFigureNoteBody(entity as FigureNote),
       SyncRecordKind.setting => throw StateError('settings have no entity'),
     };
 
@@ -712,6 +760,9 @@ Future<Map<String, List<Object?>>> _storedColumns(_Fixture fixture) async {
       await dances.create(record);
     }
     await ProgramRepository(db).create(fixture.program());
+    // The glossary's sync writers, which store an entry as it arrives.
+    await UserGlossaryRepository(db).writeFromSync(fixture.glossaryEntry());
+    await FigureNoteRepository(db).writeFromSync(fixture.figureNote());
 
     final stored = <String, List<Object?>>{};
     for (final column in _inScopeColumns) {
@@ -816,6 +867,8 @@ const _valuePairs = <String, List<Object?>>{
   'program_provenance.imported_at': _earlier,
   'venue_provenance.source': ['callersbox', 'contradb'],
   'venue_provenance.imported_at': _earlier,
+  'user_glossary_entries.created_at': _earlier,
+  'user_glossary_entries.payload_json': ['{"seed":1}', '{"seed":2}'],
 };
 
 const _earlier = ['2031-01-05T00:00:00.000Z', '2032-02-06T00:00:00.000Z'];
@@ -826,7 +879,7 @@ const _auxNumberFieldId = 'aux-number-field';
 const _auxLinkId = 'aux-related-link';
 const _auxSlotId = 'aux-slot';
 
-/// Builds the eight subject entities with at most one column varied.
+/// Builds the subject entities with at most one column varied.
 ///
 /// Every in-scope column is wired through exactly one model field here. That
 /// wiring is the one hand-written step left in the chain, and it is not taken
@@ -1088,6 +1141,23 @@ class _Fixture {
     createdAt: _date('programs.created_at'),
     updatedAt: _date('programs.updated_at'),
     deletedAt: _date('programs.deleted_at'),
+  );
+
+  StoredUserGlossaryEntry glossaryEntry() => StoredUserGlossaryEntry(
+    id: _str('user_glossary_entries.id'),
+    kind: _str('user_glossary_entries.kind'),
+    name: _str('user_glossary_entries.name'),
+    definition: _str('user_glossary_entries.definition'),
+    description: _str('user_glossary_entries.description'),
+    keywords: [_str('user_glossary_entries.keywords_json')],
+    notes: _str('user_glossary_entries.notes'),
+    payloadJson: _str('user_glossary_entries.payload_json'),
+    createdAt: _date('user_glossary_entries.created_at'),
+  );
+
+  FigureNote figureNote() => FigureNote(
+    figureId: _str('figure_notes.figure_id'),
+    notes: _str('figure_notes.notes'),
   );
 
   Venue venue() => Venue(
