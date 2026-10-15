@@ -590,9 +590,10 @@ class BackupService {
   /// ([BackupReadResult.glossaryComplete]), since what was lost cannot be told
   /// apart from what the backup lacks.
   ///
-  /// An entry or note the repository refuses (over a bound, or a payload that
-  /// cannot be stored, in a hand-edited file) is skipped, its live copy kept,
-  /// and reported as an error so the restore says something was skipped.
+  /// An entry or note the repository refuses (over a bound, a payload that
+  /// cannot be stored, or an id or kind sync could not carry, in a
+  /// hand-edited file) is skipped, its live copy kept, and reported as an
+  /// error so the restore says something was skipped.
   ///
   /// A backup made where the glossary was empty has no section (an empty one
   /// would end v1's byte-for-byte compatibility), so restoring it leaves the
@@ -645,7 +646,7 @@ class BackupService {
             entityType: 'figureNote',
             entityId: note.figureId,
             message:
-                'figure note skipped: too long', // i18n-ignore: internal diagnostic, never shown
+                'figure note skipped: cannot be stored', // i18n-ignore: internal diagnostic, never shown
           ),
         );
       }

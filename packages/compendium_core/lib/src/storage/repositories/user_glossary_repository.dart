@@ -27,6 +27,16 @@ const int maxUserGlossaryPayloadLength = 256 * 1024;
 /// nested deep enough to overflow the stack is refused, not crashed on.
 const int maxUserGlossaryPayloadDepth = 32;
 
+/// Whether [value] can be an entry's id or kind, or a note's figure id: not
+/// empty, within [maxUserGlossaryNameLength], and already in normalised form.
+/// The sync decoder and inbound admission refuse anything else, so a row
+/// stored with one would be published and refused by every peer, every pass
+/// (#709). Stored as given rather than normalised, since the id is identity.
+bool _isSyncableIdentifier(String value) =>
+    value.isNotEmpty &&
+    value.length <= maxUserGlossaryNameLength &&
+    normalizeShareableText(value) == value;
+
 /// Whether the payload [text] parses as JSON. A stored payload need not: one
 /// that does not is kept as text and read as a broken entry (#709).
 bool userGlossaryPayloadIsJson(String text) {
@@ -38,18 +48,21 @@ bool userGlossaryPayloadIsJson(String text) {
   }
 }
 
-/// Thrown when an entry's required text is empty or a field is over its bound.
+/// Thrown when an entry's required text is empty, a field is over its bound,
+/// or its id or kind is not an identifier sync can carry.
 class UserGlossaryEntryInvalid implements Exception {
   const UserGlossaryEntryInvalid(this.field);
 
-  /// `name`, `definition`, `description`, `keywords`, `notes` or `payload`.
+  /// `id`, `kind`, `name`, `definition`, `description`, `keywords`, `notes`
+  /// or `payload`.
   final String field;
 
   @override
   String toString() => 'UserGlossaryEntryInvalid($field)';
 }
 
-/// Thrown when a note on a shipped figure is over its bound.
+/// Thrown when a note on a shipped figure is over its bound, or its figure id
+/// is not an identifier sync can carry.
 class FigureNoteInvalid implements Exception {
   const FigureNoteInvalid();
 
@@ -63,9 +76,10 @@ class FigureNoteInvalid implements Exception {
 /// not know or whose payload no longer decodes as a definition: the caller
 /// decides how to show it, and reading never drops or rewrites it. (A payload
 /// whose text is not JSON at all reads as none, and so does not survive a
-/// backup, which carries the decoded payload; sync carries the text.) Text is sanitised and
-/// normalised on write (sync-spec §4.1, §4.6), as every shareable text column
-/// is; canonicalizing role words is the caller's job, before it gets here.
+/// backup, which carries the decoded payload; sync carries the text.) Text is
+/// sanitised and normalised on write (sync-spec §4.1, §4.6), as every
+/// shareable text column is; canonicalizing role words is the caller's job,
+/// before it gets here.
 class UserGlossaryRepository {
   UserGlossaryRepository(this._db);
 
@@ -95,9 +109,18 @@ class UserGlossaryRepository {
   /// Creates or replaces [entry]. A new entry keeps [UserGlossaryEntry.
   /// createdAt]; an existing one keeps the creation time it already has, so
   /// an edit never moves it. Reviving a deleted entry by writing it again
-  /// stamps the transition causally, as every synced kind does.
+  /// stamps the transition causally, as every synced kind does. An id or kind
+  /// sync could not carry (empty, over [maxUserGlossaryNameLength], or not
+  /// normalised) is refused as [UserGlossaryEntryInvalid], so a restored
+  /// backup cannot store a row every peer would refuse.
   Future<void> upsert(UserGlossaryEntry entry, {DateTime? at}) async {
     final now = resolveStamp(at);
+    if (!_isSyncableIdentifier(entry.id)) {
+      throw const UserGlossaryEntryInvalid('id');
+    }
+    if (!_isSyncableIdentifier(entry.kindName)) {
+      throw const UserGlossaryEntryInvalid('kind');
+    }
     final name = _requiredText(entry.name, 'name', maxUserGlossaryNameLength);
     final definition = _requiredText(
       entry.definition,
@@ -343,9 +366,12 @@ class FigureNoteRepository {
   }
 
   /// Sets the note on [figureId]. Empty text deletes it; text over
-  /// [maxUserGlossaryTextLength] is refused as [FigureNoteInvalid].
+  /// [maxUserGlossaryTextLength], or a figure id sync could not carry (empty,
+  /// over [maxUserGlossaryNameLength], or not normalised), is refused as
+  /// [FigureNoteInvalid].
   Future<void> set(String figureId, String notes, {DateTime? at}) async {
     final now = resolveStamp(at);
+    if (!_isSyncableIdentifier(figureId)) throw const FigureNoteInvalid();
     final text = normalizeShareableText(sanitizeShareableText(notes).trim());
     if (text.length > maxUserGlossaryTextLength) {
       throw const FigureNoteInvalid();
