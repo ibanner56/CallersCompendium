@@ -10820,7 +10820,7 @@
   "@shorthandsCompoundTitle": {
     "description": "Heading of the list of compound shorthands (#709) on the shorthands screen, and the name of their setting in sync notices: tokens that stand for one of the user's own Custom Figures with fixed values."
   },
-  "shorthandsCompoundIntro": "With Free-text entry on, typing one of these as a whole line in the dance editor adds one of your own figures, with the values chosen here.",
+  "shorthandsCompoundIntro": "With Free-text entry on, typing one of these as a whole line while you edit a dance adds one of your own figures, with the values chosen here.",
   "@shorthandsCompoundIntro": {
     "description": "Explains the compound shorthands section."
   },

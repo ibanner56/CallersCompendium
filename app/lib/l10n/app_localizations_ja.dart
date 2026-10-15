@@ -7947,7 +7947,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get shorthandsCompoundIntro =>
-      'フリーテキスト入力がオンのとき、ダンスエディターでこれらのいずれかを1行だけ入力すると、ここで選んだ値で自分のフィギュアが追加されます。';
+      'フリーテキスト入力がオンのとき、ダンスの編集中にこれらのいずれかを1行だけ入力すると、ここで選んだ値で自分のフィギュアが追加されます。';
 
   @override
   String get shorthandsCompoundNew => '自分のフィギュア用の新しいショートハンド';

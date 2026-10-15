@@ -8220,7 +8220,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shorthandsCompoundIntro =>
-      'With Free-text entry on, typing one of these as a whole line in the dance editor adds one of your own figures, with the values chosen here.';
+      'With Free-text entry on, typing one of these as a whole line while you edit a dance adds one of your own figures, with the values chosen here.';
 
   @override
   String get shorthandsCompoundNew => 'New shorthand for one of your figures';

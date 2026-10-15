@@ -8186,9 +8186,9 @@
   "@shorthandsCompoundTitle": {
     "x-sourceSha256": "b37015f6e5621c3bf45810cce907194e87f5b4a9814b5c5695f960f484aa5949"
   },
-  "shorthandsCompoundIntro": "Wenn die Freitexteingabe an ist, fügt das Eintippen einer dieser Abkürzungen als ganze Zeile im Tanzeditor eine deiner eigenen Figuren mit den hier gewählten Werten ein.",
+  "shorthandsCompoundIntro": "Wenn die Freitexteingabe an ist, fügt das Eintippen einer dieser Abkürzungen als ganze Zeile beim Bearbeiten eines Tanzes eine deiner eigenen Figuren mit den hier gewählten Werten ein.",
   "@shorthandsCompoundIntro": {
-    "x-sourceSha256": "d33b23e45c1700cf7ba71c09de854ab8a50a8af2390a5a4d1bf42a805adddd4a"
+    "x-sourceSha256": "80090b751b53b2c67b417cdeed684cb8b14db7c4fa9ea70f67e05421fec4f587"
   },
   "shorthandsCompoundNew": "Neue Abkürzung für eine deiner Figuren",
   "@shorthandsCompoundNew": {

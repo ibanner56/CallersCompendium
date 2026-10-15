@@ -8352,7 +8352,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get shorthandsCompoundIntro =>
-      'Wenn die Freitexteingabe an ist, fügt das Eintippen einer dieser Abkürzungen als ganze Zeile im Tanzeditor eine deiner eigenen Figuren mit den hier gewählten Werten ein.';
+      'Wenn die Freitexteingabe an ist, fügt das Eintippen einer dieser Abkürzungen als ganze Zeile beim Bearbeiten eines Tanzes eine deiner eigenen Figuren mit den hier gewählten Werten ein.';
 
   @override
   String get shorthandsCompoundNew => 'Neue Abkürzung für eine deiner Figuren';

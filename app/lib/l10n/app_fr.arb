@@ -8186,9 +8186,9 @@
   "@shorthandsCompoundTitle": {
     "x-sourceSha256": "b37015f6e5621c3bf45810cce907194e87f5b4a9814b5c5695f960f484aa5949"
   },
-  "shorthandsCompoundIntro": "Quand la saisie en texte libre est activée, taper l’une de ces abréviations seul sur une ligne dans l’éditeur de danse ajoute l’une de vos propres figures, avec les valeurs choisies ici.",
+  "shorthandsCompoundIntro": "Quand la saisie en texte libre est activée, taper l’une de ces abréviations seule sur une ligne pendant que vous modifiez une danse ajoute l’une de vos propres figures, avec les valeurs choisies ici.",
   "@shorthandsCompoundIntro": {
-    "x-sourceSha256": "d33b23e45c1700cf7ba71c09de854ab8a50a8af2390a5a4d1bf42a805adddd4a"
+    "x-sourceSha256": "80090b751b53b2c67b417cdeed684cb8b14db7c4fa9ea70f67e05421fec4f587"
   },
   "shorthandsCompoundNew": "Nouvelle abréviation pour l’une de vos figures",
   "@shorthandsCompoundNew": {

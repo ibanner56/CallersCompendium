@@ -8186,9 +8186,9 @@
   "@shorthandsCompoundTitle": {
     "x-sourceSha256": "b37015f6e5621c3bf45810cce907194e87f5b4a9814b5c5695f960f484aa5949"
   },
-  "shorthandsCompoundIntro": "Når fri tekstindtastning er slået til, tilføjer du en af dine egne figurer med de værdier, der er valgt her, ved at skrive en af disse kortformer som en hel linje i danseeditoren.",
+  "shorthandsCompoundIntro": "Når fri tekstindtastning er slået til, tilføjer du en af dine egne figurer med de værdier, der er valgt her, ved at skrive en af disse kortformer som en hel linje, mens du redigerer en dans.",
   "@shorthandsCompoundIntro": {
-    "x-sourceSha256": "d33b23e45c1700cf7ba71c09de854ab8a50a8af2390a5a4d1bf42a805adddd4a"
+    "x-sourceSha256": "80090b751b53b2c67b417cdeed684cb8b14db7c4fa9ea70f67e05421fec4f587"
   },
   "shorthandsCompoundNew": "Ny kortform for en af dine figurer",
   "@shorthandsCompoundNew": {

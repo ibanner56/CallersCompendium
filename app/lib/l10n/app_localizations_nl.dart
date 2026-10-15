@@ -8317,7 +8317,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get shorthandsCompoundIntro =>
-      'Als vrije tekstinvoer aan staat, voegt het typen van een van deze afkortingen als hele regel in de dans-editor een van je eigen figuren toe, met de waarden die hier zijn gekozen.';
+      'Als vrije tekstinvoer aan staat, voegt het typen van een van deze afkortingen als hele regel tijdens het bewerken van een dans een van je eigen figuren toe, met de waarden die hier zijn gekozen.';
 
   @override
   String get shorthandsCompoundNew =>

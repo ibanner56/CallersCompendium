@@ -8369,7 +8369,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get shorthandsCompoundIntro =>
-      'Quand la saisie en texte libre est activée, taper l’une de ces abréviations seul sur une ligne dans l’éditeur de danse ajoute l’une de vos propres figures, avec les valeurs choisies ici.';
+      'Quand la saisie en texte libre est activée, taper l’une de ces abréviations seule sur une ligne pendant que vous modifiez une danse ajoute l’une de vos propres figures, avec les valeurs choisies ici.';
 
   @override
   String get shorthandsCompoundNew =>

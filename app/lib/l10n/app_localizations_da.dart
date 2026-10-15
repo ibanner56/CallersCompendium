@@ -8254,7 +8254,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get shorthandsCompoundIntro =>
-      'Når fri tekstindtastning er slået til, tilføjer du en af dine egne figurer med de værdier, der er valgt her, ved at skrive en af disse kortformer som en hel linje i danseeditoren.';
+      'Når fri tekstindtastning er slået til, tilføjer du en af dine egne figurer med de værdier, der er valgt her, ved at skrive en af disse kortformer som en hel linje, mens du redigerer en dans.';
 
   @override
   String get shorthandsCompoundNew => 'Ny kortform for en af dine figurer';

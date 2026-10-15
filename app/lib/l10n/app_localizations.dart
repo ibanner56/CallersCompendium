@@ -12443,7 +12443,7 @@ abstract class AppLocalizations {
   /// Explains the compound shorthands section.
   ///
   /// In en, this message translates to:
-  /// **'With Free-text entry on, typing one of these as a whole line in the dance editor adds one of your own figures, with the values chosen here.'**
+  /// **'With Free-text entry on, typing one of these as a whole line while you edit a dance adds one of your own figures, with the values chosen here.'**
   String get shorthandsCompoundIntro;
 
   /// Button that creates a compound shorthand.
