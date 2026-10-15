@@ -24,6 +24,8 @@ Dance _dance({
 );
 
 Future<void> _enterSelectionMode(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+  await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('batch-select')));
   await tester.pumpAndSettle();
 }
@@ -59,7 +61,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('batch-exit')));
     await tester.pumpAndSettle();
     expect(find.text('1 selected'), findsNothing);
-    expect(find.byKey(const ValueKey('batch-select')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('collection-more-actions')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('long-press enters selection mode with that row selected', (
@@ -104,7 +109,10 @@ void main() {
     expect(_tagIdsOf((await repos.dances.getById('d2'))!), {'t1'});
     expect(_tagIdsOf((await repos.dances.getById('d3'))!), isEmpty);
     // Selection mode ends after applying.
-    expect(find.byKey(const ValueKey('batch-select')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('collection-more-actions')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('add-tags unions without duplicating an existing tag', (
@@ -469,7 +477,10 @@ void main() {
       expect(find.byKey(const ValueKey('batch-tag-snackbar')), findsOneWidget);
       expect(find.text('Tagged 1 dance'), findsOneWidget);
       // Never entered selection mode.
-      expect(find.byKey(const ValueKey('batch-select')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('collection-more-actions')),
+        findsOneWidget,
+      );
       expect(find.byKey(const ValueKey('batch-exit')), findsNothing);
     });
 
