@@ -670,8 +670,13 @@ Sync is off and open while it is on.
   another device couldn't be used and were skipped; when another device's clock
   looks far off; when an
   update arrived while you were editing the same record, so it waits for the
-  next sync; and when another device is syncing but isn't taking changes from
-  this one. Each notice lists the records it is
+  next sync; when another device is syncing but isn't taking changes from
+  this one; and when this device is holding back a new kind of data because
+  another device runs a version of the app that couldn't read it yet. That one
+  names the device by its tag from **Other devices**, is information only —
+  the data is safe here — and goes away once that device is updated or removed
+  from **Other devices**, when the data starts syncing. Choose **See other devices**
+  on it to open that list. Each notice lists the records it is
   about, the first few individually and the rest as a count, so you know
   which ones to look at. Dances, programs, choreographers, tags and venues are
   named by the title or name this device has for them, and one this device

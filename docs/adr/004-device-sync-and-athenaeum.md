@@ -1670,6 +1670,18 @@ makes self-hosting materially harder, which constraint 4 forbids.
   test is strict — identical figures *and* params — so a false positive means two
   genuinely identical dances, but the user is not told it happened. Reporting a
   count afterwards ("merged 412 duplicates") is the mitigation, not a prompt.
+- **New kinds of data wait for every device (added 2026-10-14, #709).** A
+  record kind or shareable settings key an older build cannot hold is gated on
+  a named capability: each device advertises what its build understands in a
+  synced `sync_capabilities:<deviceId>` setting, and a device publishes gated
+  data only while every attached device advertises it (sync-spec §6.15). So a
+  store syncs new data as soon as all its devices can read it, without a
+  second release to switch it on. Accepted with it, by the maintainer: a device
+  that never updates holds the data back until it is removed; older peers show
+  a notice about the capability record (informational on v0.7.0, a malformed
+  record before that); and a device on a build without the client half of
+  sync-spec §4.5 cannot join a store once the gate has opened, which the gate
+  cannot see because the store lists only devices that have published.
 
 ### Blocking prerequisite — satisfied by [#1115]
 

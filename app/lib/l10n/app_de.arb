@@ -940,6 +940,10 @@
   "@settingsSyncNoticePeerNotTaking": {
     "x-sourceSha256": "23d0a5d9e3852253a55eaf588f9a609c8082b70652fe7c8a1556438d0683bfe0"
   },
+  "settingsSyncNoticeAwaitingDevice": "Einige neue Arten von Daten auf diesem Gerät werden synchronisiert, sobald Gerät {tag} auf die neueste Version der App aktualisiert oder aus „Andere Geräte“ entfernt wurde. Sie sind hier sicher.",
+  "@settingsSyncNoticeAwaitingDevice": {
+    "x-sourceSha256": "dd67c9a6e21f58132f7b9256ec7eb09bfc1ddf510b4ca310091b60e9e7788fde"
+  },
   "settingsSyncNoticeNeedsYou": "Erfordert dein Handeln",
   "@settingsSyncNoticeNeedsYou": {
     "x-sourceSha256": "74b6abdf59690fdffec2059089487cd63658249da5301cbf065e9977518fbd8f"
@@ -1211,6 +1215,14 @@
   "settingsSyncPairingSharingBody": "Eine zweite Person kann dieselbe Phrase auf ihrem Gerät verwenden. Wenn ihr beide gleichzeitig denselben Tanz oder dasselbe Programm bearbeitet, überschreibt eine Änderung die andere stillschweigend — es gibt keine Warnung und keine Möglichkeit, sie zu kombinieren.",
   "@settingsSyncPairingSharingBody": {
     "x-sourceSha256": "a98a2f3493bfcb71d5e1c5020747752924342c3821a4aa3ca1b4cca5b4c195d1"
+  },
+  "settingsSyncPairingNewerDataTitle": "Alle Geräte brauchen eine aktuelle App",
+  "@settingsSyncPairingNewerDataTitle": {
+    "x-sourceSha256": "a70ee18e575d46d080d7a7d51c306ac8647d1e4b28b2cf4a6397534f0bd50189"
+  },
+  "settingsSyncPairingNewerDataBody": "Diese Version synchronisiert einiges, das frühere Versionen der App nicht lesen können. Aktualisiere jedes Gerät, bevor du es verbindest: Ein Gerät mit einer früheren Version kann sich womöglich nicht verbinden. Bis alle verbundenen Geräte aktuell sind, bleibt dies auf dem Gerät, auf dem es erstellt wurde.",
+  "@settingsSyncPairingNewerDataBody": {
+    "x-sourceSha256": "4d930677c1fe7d851fcb0909abedd8931a194760e3c63f5196393e7fc39bb024"
   },
   "settingsSyncPairingBearerTitle": "Wer diese Phrase hat, kann deine Bibliothek öffnen",
   "@settingsSyncPairingBearerTitle": {

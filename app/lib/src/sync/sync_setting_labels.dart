@@ -1,3 +1,6 @@
+import 'package:compendium_core/compendium_core.dart'
+    show syncCapabilityKeyPrefix;
+
 import '../../l10n/app_localizations.dart';
 
 /// The name a person knows a synced setting by, for surfaces that must say
@@ -80,6 +83,11 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'venue_entity_mode' => l10n.settingsGeneralVenueEntityModeTitle,
   'verbose_figure_rendering' => l10n.settingsGeneralVerboseFiguresTitle,
   'walkthrough_snippets' => l10n.settingsWalkthroughSnippetsTitle,
+  // A device's capability record (#709). Only its own device writes it, so a
+  // conflict over one is not expected; if one is ever shown, it is about the
+  // device list.
+  final key when key.startsWith(syncCapabilityKeyPrefix) =>
+    l10n.settingsSyncDevicesTitle,
   _ => null,
 };
 

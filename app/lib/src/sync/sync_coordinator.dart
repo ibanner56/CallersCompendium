@@ -421,6 +421,23 @@ abstract interface class SyncCoordinatorStore
   });
 }
 
+/// A store that can write this device's capability record (#709).
+///
+/// Type-tested by the coordinator rather than added to [SyncCoordinatorStore],
+/// so a store without settings — every test double that predates the gate —
+/// writes no record. Its own gate is unaffected (that depends on its build's
+/// policy and the other devices' records); its peers, finding no record for
+/// it, hold their gated data back as they would from any device without one.
+abstract interface class SyncCapabilityRecordStore {
+  /// Writes [deviceId]'s capability record as [capabilities] when the stored
+  /// one is missing or lists something else; otherwise writes nothing, so an
+  /// unchanged record is never re-stamped and republished.
+  Future<void> ensureCapabilityRecord(
+    String deviceId,
+    Set<String> capabilities,
+  );
+}
+
 /// Adapts the core repository/database sync boundary to the app coordinator.
 ///
 /// The adapter is intentionally small: all entity mapping and transaction
@@ -430,7 +447,8 @@ final class CompendiumSyncCoordinatorStore
     implements
         SyncCoordinatorStore,
         SyncApplyReconciliationStorage,
-        SyncApplyRestorableStorage {
+        SyncApplyRestorableStorage,
+        SyncCapabilityRecordStore {
   CompendiumSyncCoordinatorStore(
     CompendiumRepositories repositories, {
     this.syncId,
@@ -494,6 +512,22 @@ final class CompendiumSyncCoordinatorStore
 
   @override
   Future<void> markSyncUsed(String syncId) => storage.markSyncUsed(syncId);
+
+  @override
+  Future<void> ensureCapabilityRecord(
+    String deviceId,
+    Set<String> capabilities,
+  ) async {
+    final settings = storage.repositories.settings;
+    final key = syncCapabilityRecordKey(deviceId);
+    final stored = decodeSyncCapabilityRecord(await settings.get(key));
+    if (stored != null &&
+        stored.length == capabilities.length &&
+        stored.containsAll(capabilities)) {
+      return;
+    }
+    await settings.set(key, syncCapabilityRecordValue(capabilities));
+  }
 
   @override
   Future<void> markPublished(Iterable<SyncRecordAddress> records) =>
@@ -1296,6 +1330,7 @@ class SyncCoordinator {
     SyncApplyEngine? applyEngine,
     SyncPeerManifestCache? peerManifestCache,
     this.now = _syncNowUtc,
+    this.capabilityPolicy = SyncCapabilityPolicy.build,
   }) : _mergeEngine = mergeEngine ?? const SyncMergeEngine(),
        _applyEngine = applyEngine ?? SyncApplyEngine(now: now),
        _peerManifestCache = peerManifestCache ?? SyncPeerManifestCache(),
@@ -1313,6 +1348,10 @@ class SyncCoordinator {
   final SyncPeerManifestCache _peerManifestCache;
   final bool _ownsPeerManifestCache;
   final DateTime Function() now;
+
+  /// What this build advertises and what it holds back until every attached
+  /// device advertises it too (#709). Injected for tests.
+  final SyncCapabilityPolicy capabilityPolicy;
   final _replacementEvents =
       StreamController<SyncReplacementRequiredEvent>.broadcast();
 
@@ -1606,6 +1645,15 @@ class SyncCoordinator {
     String? continuationEpoch,
     List<SyncBaselineEntry>? deferredBaseline,
   }) async {
+    // Before the snapshot, so a new or changed record is published this pass.
+    // Nothing to say while this build advertises nothing.
+    if (store case final SyncCapabilityRecordStore capable
+        when capabilityPolicy.advertised.isNotEmpty) {
+      await capable.ensureCapabilityRecord(
+        deviceId,
+        capabilityPolicy.advertised,
+      );
+    }
     var snapshot = await store.snapshot();
     final storeResult =
         initialStore ??
@@ -2256,6 +2304,12 @@ class SyncCoordinator {
       final attachedPublication = await _normalizeCandidates(
         attachedSnapshot.publication,
       );
+      _holdBackGated(
+        attachedPublication,
+        local: attachedLocal,
+        devices: metadata.devices,
+        reports: reports,
+      );
       final attachedReferenceAliases = await _resolveReferenceAliases([
         attachedPublication,
       ]);
@@ -2346,6 +2400,15 @@ class SyncCoordinator {
       final publication =
           publicationOverride ??
           await _normalizeCandidates(currentSnapshot.publication);
+      // Upload-only (#709): [current], the merge's view, is never filtered.
+      // Filtered here rather than inside the store's snapshot, because a fresh
+      // attach merges against the snapshot's publication.
+      final heldBack = _holdBackGated(
+        publication,
+        local: current,
+        devices: metadata.devices,
+        reports: reports,
+      );
       final referenceAliases = await _resolveReferenceAliases([publication]);
       final publicationPlan = planSyncPublication(
         publication: publication,
@@ -2363,7 +2426,8 @@ class SyncCoordinator {
       final addresses = _manifestAddresses(manifest);
       // The initial plan is a conservative superset of any replan that omits
       // unavailable fallback hashes, so protect it before probing the store.
-      await store.markPublished(addresses);
+      // Held-back rows are protected too: they are only waiting (#709).
+      await store.markPublished([...addresses, ...heldBack]);
       return (
         current: current,
         publication: publication,
@@ -2645,6 +2709,82 @@ class SyncCoordinator {
       appliedKinds: appliedKinds.toList(),
       peers: peerSummaries,
     );
+  }
+
+  /// Leaves out of [publication] every record waiting for a sync capability
+  /// that is closed this pass (#709), and reports each device holding one
+  /// closed.
+  ///
+  /// Sets the entry to null, as the store's own upload-only filters do, which
+  /// [planSyncPublication] treats as an address with nothing to publish: the
+  /// record is not in this device's manifest, and absence from a manifest is
+  /// never a deletion (sync-spec §4.5). Tombstones are held back too, since a
+  /// device that cannot read the kind cannot read its deletion either. The
+  /// rows themselves, and the merge's view of them, are untouched: they
+  /// publish on the first pass after the capability opens.
+  ///
+  /// The capability records come from [local], the synced settings as they
+  /// stand after this pass's pull.
+  ///
+  /// Returns the addresses it held back, live rows and tombstones alike. The
+  /// caller marks them published with the manifest's own (§6.15): a held-back
+  /// row has not been named by a publication yet, and a row never named by
+  /// one may be hard-deleted without a tombstone, which would lose a deletion
+  /// the gate is only postponing.
+  Set<SyncRecordAddress> _holdBackGated(
+    Map<SyncRecordAddress, SyncMergeCandidate?> publication, {
+    required Map<SyncRecordAddress, SyncMergeCandidate?> local,
+    required List<String> devices,
+    required SyncReportSink reports,
+  }) {
+    final gated = capabilityPolicy.gatedCapabilities;
+    if (gated.isEmpty) return const {};
+    final records = <String, Set<String>?>{};
+    for (final MapEntry(key: address, value: candidate) in local.entries) {
+      if (address.kind != SyncRecordKind.setting ||
+          !address.recordId.startsWith(syncCapabilityKeyPrefix) ||
+          candidate == null ||
+          candidate.blob.deletedAt != null) {
+        continue;
+      }
+      records[address.recordId.substring(syncCapabilityKeyPrefix.length)] =
+          decodeSyncCapabilityRecord(candidate.blob.body['value']);
+    }
+    final closed = closedSyncCapabilities(
+      gated: gated,
+      advertised: capabilityPolicy.advertised,
+      deviceId: deviceId,
+      devices: devices,
+      recordsByDevice: records,
+    );
+    if (closed.isEmpty) return const {};
+    final heldBack = <SyncRecordAddress>{};
+    final heldCapabilities = <String>{};
+    for (final address in publication.keys.toList()) {
+      final capability = capabilityPolicy.capabilityFor(
+        address.kind,
+        address.recordId,
+      );
+      if (capability == null || !closed.containsKey(capability)) continue;
+      if (publication[address] != null) {
+        heldBack.add(address);
+        heldCapabilities.add(capability);
+      }
+      publication[address] = null;
+    }
+    for (final capability in heldCapabilities) {
+      for (final peerId in closed[capability]!) {
+        reports.add(
+          SyncReport(
+            code: SyncReportCode.withheldAwaitingDevices,
+            peerId: peerId,
+            message:
+                'Holding back $capability until device $peerId advertises it.', // i18n-ignore: internal report
+          ),
+        );
+      }
+    }
+    return heldBack;
   }
 
   /// The manifest kept on disk for [peerId], taken into the session cache, or

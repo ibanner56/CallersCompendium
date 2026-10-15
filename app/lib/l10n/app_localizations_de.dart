@@ -1073,6 +1073,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeAwaitingDevice(String tag) {
+    return 'Einige neue Arten von Daten auf diesem Gerät werden synchronisiert, sobald Gerät $tag auf die neueste Version der App aktualisiert oder aus „Andere Geräte“ entfernt wurde. Sie sind hier sicher.';
+  }
+
+  @override
   String get settingsSyncNoticeNeedsYou => 'Erfordert dein Handeln';
 
   @override
@@ -1346,6 +1351,14 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsSyncPairingSharingBody =>
       'Eine zweite Person kann dieselbe Phrase auf ihrem Gerät verwenden. Wenn ihr beide gleichzeitig denselben Tanz oder dasselbe Programm bearbeitet, überschreibt eine Änderung die andere stillschweigend — es gibt keine Warnung und keine Möglichkeit, sie zu kombinieren.';
+
+  @override
+  String get settingsSyncPairingNewerDataTitle =>
+      'Alle Geräte brauchen eine aktuelle App';
+
+  @override
+  String get settingsSyncPairingNewerDataBody =>
+      'Diese Version synchronisiert einiges, das frühere Versionen der App nicht lesen können. Aktualisiere jedes Gerät, bevor du es verbindest: Ein Gerät mit einer früheren Version kann sich womöglich nicht verbinden. Bis alle verbundenen Geräte aktuell sind, bleibt dies auf dem Gerät, auf dem es erstellt wurde.';
 
   @override
   String get settingsSyncPairingBearerTitle =>

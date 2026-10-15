@@ -1,0 +1,9 @@
+{
+  "id": "709-sync-capability-gate",
+  "user_visible": false,
+  "core": {
+    "added": [
+      "Add the sync capability gate: `SyncCapabilityPolicy`, `closedSyncCapabilities`, the `sync_capabilities:<deviceId>` record (`syncCapabilityKeyPrefix`, `syncCapabilityRecordValue`, `decodeSyncCapabilityRecord`), and `SyncReportCode.withheldAwaitingDevices`. A device holds back data gated on a capability until every attached device advertises it. This build gates nothing and advertises nothing yet."
+    ]
+  }
+}

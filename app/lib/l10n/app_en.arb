@@ -1351,6 +1351,16 @@
       }
     }
   },
+  "settingsSyncNoticeAwaitingDevice": "Some new kinds of data on this device will start syncing once device {tag} is updated to the latest version of the app, or removed from Other devices. They're safe here.",
+  "@settingsSyncNoticeAwaitingDevice": {
+    "description": "Informational Device Sync notice, one per other device: this device is holding back new kinds of data (for example custom compound figures) because that device runs an app version that couldn't read them. Holding back loses nothing. {tag} is the device's short random tag, exactly as on the Other devices screen (settingsSyncDeviceTag); never a name. 'Other devices' is the screen's title.",
+    "placeholders": {
+      "tag": {
+        "type": "String",
+        "example": "7c02Lm"
+      }
+    }
+  },
   "settingsSyncNoticeNeedsYou": "Needs you",
   "@settingsSyncNoticeNeedsYou": {
     "description": "Short label beside the warning icon on a Device Sync notice that needs the user to do something, so the urgency is not carried by colour alone."
@@ -1658,6 +1668,14 @@
   "settingsSyncPairingSharingBody": "A second person can use this same phrase on their device. If you both edit the same dance or program at the same time, one edit silently overwrites the other — there's no warning and no way to combine them.",
   "@settingsSyncPairingSharingBody": {
     "description": "Body text of the sharing-not-collaboration disclosure (spec §6.14 item 1)."
+  },
+  "settingsSyncPairingNewerDataTitle": "Every device needs an up-to-date app",
+  "@settingsSyncPairingNewerDataTitle": {
+    "description": "Heading of the pairing disclosure shown when this version syncs data earlier app versions cannot read (#709): earlier versions may be unable to connect, and that data waits until every device is updated."
+  },
+  "settingsSyncPairingNewerDataBody": "This version syncs some things that earlier versions of the app can't read. Update each device before you connect it: one running an earlier version may not be able to connect. Until every connected device is up to date, those things stay on the device they were made on.",
+  "@settingsSyncPairingNewerDataBody": {
+    "description": "Body of the pairing disclosure about devices on earlier app versions (#709). 'Those things' are the kinds of data the earlier versions cannot read; they are kept, not lost, and sync once every device is updated."
   },
   "settingsSyncPairingBearerTitle": "Anyone with this phrase can open your library",
   "@settingsSyncPairingBearerTitle": {
