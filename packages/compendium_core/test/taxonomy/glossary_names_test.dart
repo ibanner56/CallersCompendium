@@ -37,6 +37,27 @@ void main() {
     });
   });
 
+  test('a stored, canonical name collides with a rename or a shorthand '
+      'that says it in role words', () {
+    final dialect = Dialect.larksRobins.copyWith(
+      name: 'mine',
+      moves: {'chain': 'robins chain'},
+    );
+    final stored = canonicalizeGlossaryText('Robins chain', dialect);
+    expect(stored, 'role2s chain');
+    expect(check(stored, dialects: [dialect]), {
+      GlossaryNameSource.dialectMove,
+    });
+    expect(
+      check(
+        canonicalizeGlossaryText('Larks loop', dialect),
+        dialects: [dialect],
+        shorthands: ['larks loop'],
+      ),
+      {GlossaryNameSource.shorthand},
+    );
+  });
+
   test('shorthand tokens and other entries collide', () {
     expect(check('GRL', shorthands: ['grl']), {GlossaryNameSource.shorthand});
     expect(check('Grand right and left', entries: ['grand right AND left']), {

@@ -344,7 +344,8 @@ class _GlossaryCustomFigureDetailState
 
 /// A custom figure's name in the active dialect, kept current as the entry
 /// changes: the title of its pushed detail page, from which it can be renamed.
-/// [fallback] shows until the entry is read, and once it is deleted.
+/// [fallback] shows until the entry is read. The page closes when the entry
+/// is deleted from it.
 class CustomFigureTitle extends StatefulWidget {
   const CustomFigureTitle({
     super.key,

@@ -173,7 +173,9 @@ void main() {
     expect(saved.definition, 'Pull by twice.');
   });
 
-  testWidgets('saving twice in quick succession stores one figure', (
+  // The entry keeps its id, so two saves would still leave one row; what a
+  // second save would also do is pop a second route, which is the check here.
+  testWidgets('saving twice in quick succession saves and closes once', (
     tester,
   ) async {
     final repos = await pump(tester, initial: twoPullBys());
