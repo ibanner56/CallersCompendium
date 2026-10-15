@@ -9659,6 +9659,10 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get danceEditorUserFigureUnavailable =>
+      'Je figuur is niet beschikbaar, dus deze rij houdt de formulering die hij heeft.';
+
+  @override
   String get compoundEditorDiscardBody =>
       'Je hebt niet-opgeslagen wijzigingen in deze figuur.';
 

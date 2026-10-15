@@ -246,7 +246,13 @@ class FigureDraft {
     String Function(String) canonicalizeNote,
   ) {
     final copy = Map<String, Object?>.of(params);
-    if (moveId == customMove && copy['text'] is String) {
+    // A use of one of the user's own figures (#1023) keeps its line as the
+    // figure rendered it, canonical already: canonicalizing it again could
+    // change it, and a changed line no longer matches its check.
+    if (moveId == customMove &&
+        copy['text'] is String &&
+        userFigureUseOf(Figure(move: customMove, params: copy))?.attached !=
+            true) {
       final text = copy['text']! as String;
       if (text.isNotEmpty) {
         copy['text'] = canonicalizeNote(text);

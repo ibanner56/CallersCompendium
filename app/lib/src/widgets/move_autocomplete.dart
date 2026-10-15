@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'responsive_autocomplete.dart';
 
 /// The kind of entry selected from a [MoveAutocomplete]: a taxonomy move or
-/// alias, the structural modifier, or one of the user's own compound figures
-/// (#709), whose [MoveOption.id] is its glossary entry id.
-enum MoveOptionKind { move, modifier, compound }
+/// alias, the structural modifier, or one of the user's own figures, a
+/// compound (#709) or a new figure (#1023), whose [MoveOption.id] is its
+/// glossary entry id.
+enum MoveOptionKind { move, modifier, compound, userFigure }
 
 /// One selectable entry in a [MoveAutocomplete]: either a canonical move, an
 /// alias, or an enabled structural option. [id] is what gets stored on the
@@ -24,7 +25,11 @@ class MoveOption {
   final String displayName;
   final MoveOptionKind kind;
 
-  /// Other words that find a [MoveOptionKind.compound] option: its keywords.
+  /// One of the user's own figures, listed first and marked as theirs.
+  bool get isUsers =>
+      kind == MoveOptionKind.compound || kind == MoveOptionKind.userFigure;
+
+  /// Other words that find one of the user's own figures: its keywords.
   final List<String> searchTerms;
 }
 
@@ -171,7 +176,7 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
       // a dialect that gives two moves one term cannot hide either of them.
       final labels = {
         for (final o in options)
-          if (o.kind != MoveOptionKind.compound) _labelKey(o.displayName),
+          if (!o.isUsers) _labelKey(o.displayName),
       };
       for (final a in widget.taxonomy.aliases.values) {
         final label = renderer.displayMoveName(a.id, dialect);
@@ -198,11 +203,15 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
       optionsBuilder: (value) => _optionsFor(value.text),
       onSelected: widget.onSelected,
       optionTileBuilder: (context, option, onSelected) {
-        final compound = option.kind == MoveOptionKind.compound;
+        final compound = option.isUsers;
         return ListTile(
           key: ValueKey(
             '${widget.fieldKey ?? 'move'}-option-'
-            '${compound ? 'compound:' : ''}${option.id}',
+            '${switch (option.kind) {
+              MoveOptionKind.compound => 'compound:',
+              MoveOptionKind.userFigure => 'userFigure:',
+              _ => '',
+            }}${option.id}',
           ),
           dense: true,
           title: Text(option.displayName),

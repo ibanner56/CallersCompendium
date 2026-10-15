@@ -12606,6 +12606,10 @@
       }
     }
   },
+  "danceEditorUserFigureUnavailable": "This figure of yours isn't available, so this row keeps the wording it has.",
+  "@danceEditorUserFigureUnavailable": {
+    "description": "Shown on a dance editor row that uses one of the user's own figures when the figure is deleted or can no longer be read."
+  },
   "compoundEditorDiscardBody": "You have unsaved changes to this figure.",
   "@compoundEditorDiscardBody": {
     "description": "Body of the dialog confirming that unsaved changes to a custom figure are discarded."
