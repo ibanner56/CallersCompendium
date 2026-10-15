@@ -3,7 +3,7 @@
   "user_visible": false,
   "core": {
     "added": [
-      "Add the sync capability gate: `SyncCapabilityPolicy`, `closedSyncCapabilities`, the `sync_capabilities:<deviceId>` record (`syncCapabilityKeyPrefix`, `syncCapabilityRecordValue`, `decodeSyncCapabilityRecord`), and `SyncReportCode.withheldAwaitingDevices`. A device holds back data gated on a capability until every attached device advertises it. This build advertises nothing yet, and gates only the `show_custom_figures` setting (on `glossary.v1`), so that setting stays on its device."
+      "Add the sync capability gate: `SyncCapabilityPolicy`, `closedSyncCapabilities`, the `sync_capabilities:<deviceId>` record (`syncCapabilityKeyPrefix`, `syncCapabilityRecordValue`, `decodeSyncCapabilityRecord`), and `SyncReportCode.withheldAwaitingDevices`. A device holds back data gated on a capability until every attached device advertises it. This build advertises nothing yet, and gates only the `show_custom_figures` and `compound_shorthands` settings (on `glossary.v1`), so those settings stay on their device."
     ]
   }
 }
