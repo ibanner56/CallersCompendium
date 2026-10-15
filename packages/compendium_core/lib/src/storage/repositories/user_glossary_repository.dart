@@ -21,6 +21,12 @@ const int maxUserGlossaryKeywords = 32;
 /// A compound at its own bounds (64 figures, 16 parameters) is far below it.
 const int maxUserGlossaryPayloadLength = 256 * 1024;
 
+/// Deepest nesting of lists and maps a payload may have. A compound needs
+/// about five levels; the bound is checked before anything recursive (JSON
+/// encoding, normalisation) touches the payload, so a hand-edited backup
+/// nested deep enough to overflow the stack is refused, not crashed on.
+const int maxUserGlossaryPayloadDepth = 32;
+
 /// Thrown when an entry's required text is empty or a field is over its bound.
 class UserGlossaryEntryInvalid implements Exception {
   const UserGlossaryEntryInvalid(this.field);
@@ -146,7 +152,8 @@ class UserGlossaryRepository {
     });
   }
 
-  /// Deletes entry [id] softly, leaving a tombstone that sync carries.
+  /// Deletes entry [id] softly, leaving a tombstone for sync to carry once
+  /// these entries have a record kind.
   Future<void> delete(String id, {DateTime? at}) => stampExistenceTransition(
     _db,
     table: _db.userGlossaryEntries,
@@ -204,11 +211,15 @@ class UserGlossaryRepository {
       normalizeShareableText(sanitizeShareableText(raw).trim());
 
   /// [payload] as normalised JSON text, or null for none. Refused as
-  /// [UserGlossaryEntryInvalid] when it cannot be stored: not encodable as
-  /// JSON (a non-finite number from a hand-edited backup), two keys that
-  /// normalise to one, or over [maxUserGlossaryPayloadLength].
+  /// [UserGlossaryEntryInvalid] when it cannot be stored: nested deeper than
+  /// [maxUserGlossaryPayloadDepth], not encodable as JSON (a non-finite number
+  /// from a hand-edited backup), two keys that normalise to one, or over
+  /// [maxUserGlossaryPayloadLength].
   static String? _payloadJson(Object? payload) {
     if (payload == null) return null;
+    if (_deeperThan(payload, maxUserGlossaryPayloadDepth)) {
+      throw const UserGlossaryEntryInvalid('payload');
+    }
     final String encoded;
     try {
       encoded = normalizeShareableJsonText(jsonEncode(payload));
@@ -221,6 +232,26 @@ class UserGlossaryRepository {
       throw const UserGlossaryEntryInvalid('payload');
     }
     return encoded;
+  }
+
+  /// Whether [value] nests lists and maps more than [limit] deep, walked
+  /// without recursion.
+  static bool _deeperThan(Object? value, int limit) {
+    final stack = <(Object?, int)>[(value, 1)];
+    while (stack.isNotEmpty) {
+      final (current, depth) = stack.removeLast();
+      final Iterable<Object?>? children = switch (current) {
+        final Map<Object?, Object?> map => map.values,
+        final List<Object?> list => list,
+        _ => null,
+      };
+      if (children == null) continue;
+      if (depth > limit) return true;
+      for (final child in children) {
+        stack.add((child, depth + 1));
+      }
+    }
+    return false;
   }
 
   static String _requiredText(String raw, String field, int max) {

@@ -36,7 +36,10 @@ const _userGlossaryText = DataClassification(
       "The user's own words defining or annotating figures (#709). Classified "
       'by intent, as program notes and calling notes are: choreography '
       'reference, not about a person, so subject none (see "Freeform fields '
-      'are classified by intent, not by content"). Shareable because the '
+      'are classified by intent, not by content"). The subject is the '
+      "implementer's call, following those precedents; appUser was rejected "
+      'as giving no reason the text is about the user, and thirdParty as '
+      'classifying by what a user might type. Shareable because the '
       'maintainer decided it travels like custom shorthands (#709, comments '
       'of 2026-08-06 and 2026-10-14): in backups now, and in sync once its '
       'record kind exists.',
