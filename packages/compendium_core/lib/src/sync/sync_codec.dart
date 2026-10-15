@@ -229,8 +229,10 @@ class SyncManifest {
     required this.epoch,
     required DateTime writtenAt,
     required Map<SyncRecordKind, Map<String, String>> records,
+    Set<String> unknownKinds = const {},
   }) : writtenAt = _normalizeTimestamp(writtenAt),
-       records = _copyManifestRecords(records) {
+       records = _copyManifestRecords(records),
+       unknownKinds = Set.unmodifiable(unknownKinds) {
     _validateVersion(v);
     _validateNonEmptyString(deviceId, 'deviceId');
     _validateNonEmptyString(epoch, 'epoch');
@@ -243,6 +245,15 @@ class SyncManifest {
   final DateTime writtenAt;
   final Map<SyncRecordKind, Map<String, String>> records;
 
+  /// The `records` keys this build did not recognise as a record kind and
+  /// skipped, when decoded with `skipUnknownKinds: true`; otherwise empty.
+  ///
+  /// Not part of the wire form: [toJson] writes [records] only, so a manifest
+  /// re-encoded from a tolerant decode has lost these kinds. That is why a
+  /// caller must never keep such a manifest as a stand-in for the peer's own
+  /// (see the app's peer-manifest cache).
+  final Set<String> unknownKinds;
+
   Map<String, Object?> toJson() => {
     'v': v,
     'deviceId': deviceId,
@@ -254,7 +265,24 @@ class SyncManifest {
     },
   };
 
-  static SyncManifest fromJson(Map<String, Object?> value) {
+  /// Decodes [value] strictly by shape.
+  ///
+  /// A `records` key naming a kind this build does not know throws, unless
+  /// [skipUnknownKinds] is set: then that kind is left out of [records] and
+  /// its name is recorded in [unknownKinds]. Everything else stays strict,
+  /// including the shape of the skipped kind's own entries.
+  ///
+  /// Only a client reading a **peer's** manifest may pass it (#709). A peer on
+  /// a newer build may publish a kind this one does not know, and refusing the
+  /// whole manifest would stop every record that peer holds from arriving.
+  /// The server must stay strict (sync-spec §4.5): it reads `records` to
+  /// decide which blobs are reachable, so a manifest it only half understood
+  /// would let it collect live blobs. A device's own manifest stays strict
+  /// too, since it can only ever hold kinds its own build wrote.
+  static SyncManifest fromJson(
+    Map<String, Object?> value, {
+    bool skipUnknownKinds = false,
+  }) {
     _rejectNewerVersion(value, 'manifest');
     _requireExactKeys(value, const {
       'v',
@@ -272,8 +300,11 @@ class SyncManifest {
     final writtenAt = _parseTimestamp(value['writtenAt'], 'writtenAt');
     final rawRecords = _requiredObject(value['records'], 'records');
     final records = <SyncRecordKind, Map<String, String>>{};
+    final unknownKinds = <String>{};
     for (final entry in rawRecords.entries) {
-      final kind = _kindFromJson(entry.key);
+      final kind = skipUnknownKinds
+          ? _knownKindFromJson(entry.key)
+          : _kindFromJson(entry.key);
       final rawById = _requiredObject(entry.value, 'records.${entry.key}');
       final byId = <String, String>{};
       for (final record in rawById.entries) {
@@ -284,7 +315,11 @@ class SyncManifest {
         }
         byId[id] = hash;
       }
-      records[kind] = byId;
+      if (kind == null) {
+        unknownKinds.add(entry.key);
+      } else {
+        records[kind] = byId;
+      }
     }
     return SyncManifest(
       v: version,
@@ -292,6 +327,7 @@ class SyncManifest {
       epoch: epoch,
       writtenAt: writtenAt,
       records: records,
+      unknownKinds: unknownKinds,
     );
   }
 }
@@ -318,9 +354,12 @@ String encodeSyncManifest(SyncManifest manifest) =>
     canonicalJson(manifest.toJson());
 
 /// Decodes a canonical or non-canonical JSON manifest strictly by shape.
-SyncManifest decodeSyncManifest(String json) {
+///
+/// [skipUnknownKinds] is for a client reading a peer's manifest only; see
+/// [SyncManifest.fromJson].
+SyncManifest decodeSyncManifest(String json, {bool skipUnknownKinds = false}) {
   final decoded = _decodeObject(json, 'manifest');
-  return SyncManifest.fromJson(decoded);
+  return SyncManifest.fromJson(decoded, skipUnknownKinds: skipUnknownKinds);
 }
 
 /// Encodes a settings value when its key is classified as shareable.
@@ -539,6 +578,18 @@ String _requiredString(Object? value, String field) {
     throw FormatException('$field must be a non-empty string');
   }
   return value;
+}
+
+/// The kind [value] names, or null when it is a well-formed name this build
+/// does not know. A value that is not a non-empty string is still malformed.
+SyncRecordKind? _knownKindFromJson(Object? value) {
+  if (value is! String || value.isEmpty) {
+    throw FormatException('kind must be a non-empty string');
+  }
+  for (final kind in SyncRecordKind.values) {
+    if (kind.name == value) return kind;
+  }
+  return null;
 }
 
 SyncRecordKind _kindFromJson(Object? value) {
