@@ -99,7 +99,7 @@ entry** is on.
 
 With **Custom Figures** on, the same screen also lists **Shorthands for your own
 figures**. Choose **New shorthand for one of your figures**, type the
-shorthand, pick one of [your own figures](#your-own-figures) and choose the
+shorthand, pick one of your [combinations](#your-own-figures) and choose the
 value for each of its parameters. Typing that shorthand as a whole line adds a
 row for your figure with those values, which becomes the figures it stands for
 when you save the dance, as if you had picked it. Its token is unique among all
@@ -166,32 +166,60 @@ typed them. "Leads chain" and "the lead on the left" still use the role. Text sa
 ### Your own figures
 
 With **Custom Figures** on (see [Settings](./settings.md)), the figures you
-built in the [Glossary](./glossary.md) are offered when you choose a figure's
-move, listed first and marked with a person icon (announced as **Custom** by
-screen readers). They are found by their name or by
-any of their other names. They are offered for a figure in the list itself,
-not inside a meanwhile or modifier group.
+built in the [Glossary](./glossary.md) for the dance's form are offered when
+you choose a figure's move, listed first and marked with a person icon
+(announced as **Custom** by screen readers). They are found by their name or by
+any of their other names. A figure you built has one of two kinds, and each
+works differently in a dance.
 
-A figure you pick this way stays one row while you edit: it shows its name and
+#### A combination
+
+A combination is offered for a figure in the list itself, not inside a
+meanwhile or modifier group.
+
+A combination you pick stays one row while you edit: it shows its name and
 the value you chose for each of its parameters, and opening it lets you change
-those values (only values the figure accepts are offered), mark the
+those values (only values the combination accepts are offered), mark the
 progression, and add a note. It says how many figures, and how many beats, it
 becomes.
 
 When you save the dance, the row is replaced by the figures it stands for,
-filled in with your values, as the figure is defined at that moment, so an edit
-made in the Glossary since you picked it applies. Your note goes on the first of
-them and the progression mark on the last. After that they are ordinary
-figures: the saved dance does not remember that they came from one of yours,
-and changing or deleting your figure later does not change it.
+filled in with your values, as the combination is defined at that moment, so
+an edit made in the Glossary since you picked it applies. Your note goes on the
+first of them and the progression mark on the last. After that they are
+ordinary figures: the saved dance does not remember that they came from one of
+yours, and changing or deleting your combination later does not change it.
 
-If your figure has been deleted, has changed so that it can no longer be
+If your combination has been deleted, has changed so that it can no longer be
 expanded, or no longer accepts the values on the row, the row says so, and
-saving keeps it as a [custom figure](#custom-figure) with your figure's name,
-its beats, and the row's note and progression mark. The values you chose for
-its parameters are not kept. A row that is one of your figures cannot be
+saving keeps it as a [custom figure](#custom-figure) with its name, its beats,
+and the row's note and progression mark. The values you chose for its
+parameters are not kept. A row that is one of your combinations cannot be
 grouped as a meanwhile or modifier. Turning Custom Figures off stops them being
 offered, but a row you already picked is still expanded when you save.
+
+#### A new figure
+
+A new figure is offered for a figure in the list and inside a meanwhile or
+modifier group.
+
+A new figure you pick stays one figure, in the dance and once it is saved. It
+starts with its defaults and its default beats. Opening it lets you choose the
+value of each of its parameters and its beats (inside a group, the group's
+beats count), mark the progression, and add a note. It reads in the dance with
+its own wording, filled in with your values.
+
+The dance keeps following your figure: when you change its wording in the
+Glossary, every dance that uses it reads the new way, on this device. Saving
+the dance also stores how it reads at that moment, which is what a device
+without your figure, or with an older version of the app, shows. If you change
+that line on such a device, it becomes an ordinary [custom
+figure](#custom-figure) there and stops following your figure.
+
+If your figure has been deleted, the row says so and keeps the line it had.
+Deleting a figure from the Glossary changes each dance that uses it to that
+line, as a custom figure. Turning Custom Figures off stops new figures being
+offered, but a dance that already uses one still reads with its wording.
 
 ### Reorder, cut, and duplicate
 
