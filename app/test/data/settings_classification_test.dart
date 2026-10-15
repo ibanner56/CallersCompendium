@@ -70,6 +70,12 @@ void main() {
     // manifest's keys are a `const List<String> kUpdateManifestPublicKeys`
     // since security-2, a shape [declaration] does not match.)
     'kPublishedCollectionPublicKey',
+    // The keys inside a custom figure's params that refer to a figure of your
+    // own (#1023): parts of a dance's stored figures, classified with
+    // `dances.figures_json`, not settings.
+    'userFigureRefKey',
+    'userFigureArgsKey',
+    'userFigureCheckKey',
   };
 
   /// Replaces comment bodies with blanks so a commented-out declaration is not

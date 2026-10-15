@@ -893,6 +893,10 @@ int syncApplyKindOrder(SyncRecordKind kind) => switch (kind) {
   SyncRecordKind.dance => 6,
   SyncRecordKind.program => 7,
   SyncRecordKind.setting => 8,
+  // The user's glossary cites no record, and nothing cites it (sync-spec
+  // §6.15, "Self-contained data").
+  SyncRecordKind.glossaryEntry => 9,
+  SyncRecordKind.figureNote => 10,
 };
 
 DateTime _syncNowUtc() => DateTime.now().toUtc();

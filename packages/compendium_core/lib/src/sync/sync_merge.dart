@@ -44,6 +44,8 @@ class SyncMergeCandidate {
       case SyncRecordKind.difficultyLevel:
       case SyncRecordKind.venue:
       case SyncRecordKind.setting:
+      case SyncRecordKind.glossaryEntry:
+      case SyncRecordKind.figureNote:
         return bodyHash;
     }
   }

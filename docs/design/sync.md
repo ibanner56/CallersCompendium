@@ -98,10 +98,19 @@ fields are `shareable`.
 
 ### Record kinds
 
-Nine kinds produce blobs:
+Eleven kinds produce blobs:
 
 `dance` · `program` · `choreographer` · `tag` · `publishedSource` ·
-`customFieldDef` · `difficultyLevel` · `venue` · `setting`
+`customFieldDef` · `difficultyLevel` · `venue` · `setting` · `glossaryEntry` ·
+`figureNote`
+
+The last two (#709) are the user's own glossary entries and their notes on
+built-in figures. The archive does not carry them, so their bodies have a codec
+of their own rather than the archive's shape; they are published only once
+every attached device can read them (spec §6.15; the user's own terms and
+figures, #1023, wait for `glossary.v2` rather than `glossary.v1`), and a
+glossary entry's kind and payload travel as stored text so sync carries an
+entry a build cannot read byte for byte (spec §4.3).
 
 Join rows are **not** separate records. They ride inline with their parent
 exactly as the archive codec already models them — a dance carries its
@@ -1775,8 +1784,9 @@ every device is the failure this whole mechanism exists to prevent, and it is
 also the harder of the two to notice.
 
 `existenceAt` is `shareable`: it is a bare timestamp with no subject, it must
-travel for the rule to work, and it is stored per record on all nine syncable
-kinds (see the sync-migration scope).
+travel for the rule to work, and it is stored per record on all eleven syncable
+kinds (see the sync-migration scope; the glossary's two tables were created
+with it in schema v40, #709).
 
 Because nothing has shipped, this lands in envelope `v: 1` rather than bumping
 the version — there is no deployed client that could receive a blob without it.
@@ -3544,8 +3554,9 @@ The user is told the count afterwards ("merged 412 duplicates"), not asked.
    is otherwise undefined.
 
    This rule is only universally applicable because of the record model: all
-   nine syncable kinds carry `updatedAt` — the five that lacked it, plus
-   `settings` and `difficultyLevel`, gain it in the sync migration. A kind without a modification timestamp
+   eleven syncable kinds carry `updatedAt` — the five that lacked it, plus
+   `settings` and `difficultyLevel`, gain it in the sync migration, and the
+   glossary's two tables were created with it (schema v40, #709). A kind without a modification timestamp
    cannot participate in this rule at all, which is why the migration is a prerequisite
    rather than a convenience.
 

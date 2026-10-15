@@ -186,6 +186,26 @@ const _venueFields = [
   ]),
 ];
 
+// The user's glossary (#709). `payload` is the stored payload text and
+// `keywords` the decoded keyword list; see `sync_glossary_body.dart`.
+const _glossaryEntryFields = [
+  SyncWireField('id', ['user_glossary_entries.id']),
+  SyncWireField('kind', ['user_glossary_entries.kind']),
+  SyncWireField('name', ['user_glossary_entries.name']),
+  SyncWireField('definition', ['user_glossary_entries.definition']),
+  SyncWireField('description', ['user_glossary_entries.description']),
+  SyncWireField('keywords', ['user_glossary_entries.keywords_json']),
+  SyncWireField('notes', ['user_glossary_entries.notes']),
+  SyncWireField('payload', ['user_glossary_entries.payload_json']),
+  SyncWireField('createdAt', ['user_glossary_entries.created_at']),
+];
+
+// A note's record id is the shipped figure's id.
+const _figureNoteFields = [
+  SyncWireField('id', ['figure_notes.figure_id']),
+  SyncWireField('notes', ['figure_notes.notes']),
+];
+
 const _settingFields = [
   SyncWireField('id', ['settings.key']),
   SyncWireField('value', ['settings.value_json']),
@@ -212,28 +232,18 @@ const Map<SyncRecordKind, List<SyncWireField>> syncWireFields = {
   SyncRecordKind.difficultyLevel: _difficultyLevelFields,
   SyncRecordKind.venue: _venueFields,
   SyncRecordKind.setting: _settingFields,
+  SyncRecordKind.glossaryEntry: _glossaryEntryFields,
+  SyncRecordKind.figureNote: _figureNoteFields,
 };
 
 /// Shareable source fields represented by metadata outside an archive body or by
 /// an inline parent relationship. These are reviewed exceptions to the
 /// source-field-to-body-path relation.
 const Set<String> syncWireMappingExceptions = {
-  // The user glossary (#709) has no record kind yet; it gains one, and these
-  // leave this set, when its sync lands behind the capability gate.
-  'user_glossary_entries.id',
-  'user_glossary_entries.kind',
-  'user_glossary_entries.name',
-  'user_glossary_entries.definition',
-  'user_glossary_entries.description',
-  'user_glossary_entries.keywords_json',
-  'user_glossary_entries.notes',
-  'user_glossary_entries.payload_json',
-  'user_glossary_entries.created_at',
+  // The glossary's stamps travel on the envelope, as every kind's do (#709).
   'user_glossary_entries.updated_at',
   'user_glossary_entries.deleted_at',
   'user_glossary_entries.existence_at',
-  'figure_notes.figure_id',
-  'figure_notes.notes',
   'figure_notes.updated_at',
   'figure_notes.deleted_at',
   'figure_notes.existence_at',

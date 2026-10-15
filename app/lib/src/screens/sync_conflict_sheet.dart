@@ -525,9 +525,22 @@ class _ConflictGroupTile extends StatelessWidget {
       for (final item in group.candidates) ?item.candidate?.updatedAt.toUtc(),
     };
     final showTimes = times.length > 1;
-    String subtitle(String text, DateTime? when) => showTimes && when != null
-        ? '$text\n${l10n.syncConflictChangedAt(syncConflictWhen(context, when))}'
-        : text;
+    // A note's version is the note itself, up to 20,000 characters over many
+    // lines: a few lines here, the whole of it in the comparison (#709).
+    final clipped = group.kind == SyncRecordKind.figureNote;
+    Widget subtitle(String text, DateTime? when) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          text,
+          maxLines: clipped ? 3 : null,
+          overflow: clipped ? TextOverflow.ellipsis : null,
+        ),
+        if (showTimes && when != null)
+          Text(l10n.syncConflictChangedAt(syncConflictWhen(context, when))),
+      ],
+    );
     return Card(
       margin: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -551,7 +564,7 @@ class _ConflictGroupTile extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 child: Text(
-                  _recordTitle(l10n),
+                  _recordTitle(context, l10n),
                   style: theme.textTheme.titleMedium,
                 ),
               ),
@@ -568,8 +581,9 @@ class _ConflictGroupTile extends StatelessWidget {
                   value: _thisDevice,
                   enabled: onChoose != null,
                   title: Text(l10n.syncConflictThisDevice),
-                  subtitle: Text(
-                    subtitle(_versionText(l10n, local), group.localUpdatedAt),
+                  subtitle: subtitle(
+                    _versionText(context, l10n, local),
+                    group.localUpdatedAt,
                   ),
                 ),
               for (final (index, item) in group.candidates.indexed)
@@ -584,11 +598,9 @@ class _ConflictGroupTile extends StatelessWidget {
                         ? l10n.syncConflictOtherDeviceNumbered(index + 1)
                         : l10n.syncConflictOtherDevice,
                   ),
-                  subtitle: Text(
-                    subtitle(
-                      _versionText(l10n, item.candidate?.body),
-                      item.candidate?.updatedAt,
-                    ),
+                  subtitle: subtitle(
+                    _versionText(context, l10n, item.candidate?.body),
+                    item.candidate?.updatedAt,
                   ),
                 ),
               if (combination != null)
@@ -699,7 +711,7 @@ class _ConflictGroupTile extends StatelessWidget {
   /// dialog over the list on a wide window.
   Future<void> _showDifferences(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final title = _recordTitle(l10n);
+    final title = _recordTitle(context, l10n);
     Widget body(BuildContext context) => SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: SyncConflictComparison(group: group, lookups: lookups),
@@ -748,28 +760,52 @@ class _ConflictGroupTile extends StatelessWidget {
     return entry.label ?? (value is String ? value : entry.key);
   }
 
-  String _recordTitle(AppLocalizations l10n) {
+  String _recordTitle(BuildContext context, AppLocalizations l10n) {
     if (group.kind == SyncRecordKind.setting) {
       return syncSettingLabel(l10n, group.recordId) ??
           syncRecordKindLabel(l10n, group.kind);
     }
+    // A note's record id is the built-in figure it annotates (#709).
+    if (group.kind == SyncRecordKind.figureNote) {
+      final figure = syncConflictFigureName(context, group.recordId);
+      return figure == null
+          ? syncRecordKindLabel(l10n, group.kind)
+          : l10n.syncConflictFigureNoteTitle(figure);
+    }
     final name =
-        _name(group.localBody) ?? _name(group.candidates.first.candidate?.body);
+        _name(context, group.localBody) ??
+        _name(context, group.candidates.first.candidate?.body);
     final kind = syncRecordKindLabel(l10n, group.kind);
     return name == null ? kind : l10n.settingsSyncNoticeRecordNamed(kind, name);
   }
 
-  String _versionText(AppLocalizations l10n, Map<String, Object?>? body) {
+  String _versionText(
+    BuildContext context,
+    AppLocalizations l10n,
+    Map<String, Object?>? body,
+  ) {
     if (body == null) return l10n.syncConflictValueNotSet;
     if (group.kind == SyncRecordKind.setting) {
       return syncSettingValueText(l10n, body['value']);
     }
-    return _name(body) ?? syncRecordKindLabel(l10n, group.kind);
+    return _name(context, body) ?? syncRecordKindLabel(l10n, group.kind);
   }
 
-  static String? _name(Map<String, Object?>? body) {
+  String? _name(BuildContext context, Map<String, Object?>? body) {
+    // A note has no name; a version of it reads as what it says (#709).
+    if (group.kind == SyncRecordKind.figureNote) {
+      final notes = body?['notes'];
+      return notes is String && notes.isNotEmpty
+          ? syncConflictFreeText(context, notes)
+          : null;
+    }
     final value =
         body?['title'] ?? body?['name'] ?? body?['label'] ?? body?['key'];
-    return value is String && value.isNotEmpty ? value : null;
+    if (value is! String || value.isEmpty) return null;
+    // One of the user's own figures is named in canonical role words (#709),
+    // read in the active dialect as the Glossary shows it.
+    return group.kind == SyncRecordKind.glossaryEntry
+        ? syncConflictFreeText(context, value)
+        : value;
   }
 }
