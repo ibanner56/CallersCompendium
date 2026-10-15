@@ -243,7 +243,7 @@ build by definition, so it is classified the most cautious way that can still
 travel — `unclassifiedPersonal`, `thirdParty` — as the maintainer decided.
 
 `peer_manifests` keeps each peer's last verified manifest and its `ETag`
-(§5.2). `peer_id` is another device's per-attachment id, read from the store's
+(§5.2), except one listing a record kind this build does not know (§4.5). `peer_id` is another device's per-attachment id, read from the store's
 device list and sent back to that store in a manifest request path, so it is a
 `protocolIdentifier`, as this device's own id is. The `etag` goes back in
 `If-None-Match`, so it is a `protocolIdentifier` too: an opaque validator that
@@ -1550,6 +1550,38 @@ therefore MUST carry `kind` alongside the record id (§3.2), exactly as
 baseline was the one per-record structure that did not, which is why this is
 stated in both places rather than left to follow.
 
+**A client skips a `records` kind it does not know; the server does not.** A
+peer on a newer build may list a kind this build has no table for. A client
+reading a **peer's** manifest MUST skip that kind and read the rest, rather
+than refuse the whole manifest: refusing it would stop every record that peer
+holds from arriving, over records this build could not store anyway. It
+reports the peer with code `newerRecordKind` (§6.9). Everything else about the
+manifest stays strict, including the shape of the skipped kind's own entries.
+Three readers MUST stay strict, and each for its own reason:
+
+- **The server** (§7.2, below): it reads `records` to decide which blobs are
+  reachable, so a manifest it half understood would let it collect live blobs.
+- **A device's own manifest**: it can only ever hold kinds its own build
+  wrote, and detach clean-up (§3.3) decides from it which of this device's
+  records peers carry, so a kind skipped there is one it would judge carried
+  without having looked. Clean-up also reads its **peers'** manifests strictly.
+  That is the conservative choice rather than a necessity — it only asks peers
+  about kinds in its own manifest, so a skipped peer kind could make an entry
+  look uncarried, never carried — and it means a peer manifest naming an
+  unknown kind leaves clean-up undecided, as an unreadable one does.
+- **A kept copy of a peer manifest** (§5.2). A tolerant decode re-encodes
+  without the skipped kinds, so a client MUST NOT keep one, in the session or
+  on disk: after an update that knows those kinds, a `304` against the kept
+  ETag would keep serving the stripped copy, and that peer's records of those
+  kinds would never download until it next published. Such a manifest is asked
+  for in full on every pass instead.
+
+Added in #709 as the client half of introducing new record kinds. It protects
+only builds that have it: a build older than it still refuses the whole
+manifest. So publishing a new kind's records still has to wait until no
+attached device is older than that; #709 is adding a capability gate that
+does that waiting per store.
+
 ### 4.6 Text sanitisation
 
 `sanitizeImportedText`
@@ -1841,7 +1873,7 @@ except as traffic.
 
 A client MAY keep its cached manifests across restarts, and the reference
 client does: each peer's last verified manifest and its `ETag` are kept with the
-baseline, so the first pass after a launch is answered `304` rather than
+baseline (never one listing a record kind this build does not know, §4.5), so the first pass after a launch is answered `304` rather than
 fetching every manifest again. A kept manifest is used only in the epoch it was
 fetched in and only for the device it names. One that no longer decodes is
 dropped and fetched again, and one for a device the store no longer lists is
@@ -3634,13 +3666,20 @@ many items are waiting when the reports name any. A blob reaches an older
 client through any server (§7.2 accepts an unknown blob `v`); a newer manifest
 reaches it only once the server has been updated first.
 
+**A newer version's record kind is reported the same way.** A peer manifest
+listing a kind this build does not know is read without it (§4.5) and reported
+with code `newerRecordKind`, naming only the peer: the kind is not one this
+build can name in a report. It joins the same needs-you notice, with the same
+remedy.
+
 **A newer version's record this build cannot keep is reported the same way.**
 A blob whose envelope `v` is current but whose body carries a part this build
 can neither apply nor keep (§6.7) is refused whole and reported with code
 `newerRecordFields`, or `newerFigures` when the part is inside a dance's
 figures, rather than `malformedRecord`. Both are what a newer build looks like
 to an older one, and the remedy is the same as a newer envelope's, so the
-status surface shows all three in one needs-you notice. The notice says how
+status surface shows them, with `newerRecordKind` (§4.5), in one needs-you
+notice. The notice says how
 many records of each kind are waiting — "2 programs, 1 setting" rather than a
 bare item count — and lists only those records, apart from records skipped for
 any other reason; a dance refused for its figures is marked as having figures
@@ -5376,7 +5415,9 @@ peers judges nothing.
 
 **Kept peer manifests (§5.2).** A restart asks with the kept `ETag` and takes
 the `304` (mutation: consult only the session cache). A full answer is kept
-(mutation: don't write it) and a `304` leaves it as it was. A kept copy that does
+(mutation: don't write it) and a `304` leaves it as it was — unless it lists a
+record kind this build does not know, which is kept neither in the session nor
+on disk, so the next pass asks without an `ETag` (mutation: keep it). A kept copy that does
 not decode is dropped, even when the refetch fails (mutation: keep it); one from
 another epoch, or naming another device, is not used (mutation: drop either
 check); one for a device the store no longer lists, or whose manifest turns out
@@ -5405,7 +5446,8 @@ only carrier was written earlier, such as this device's own leftover manifest
 (mutation: drop the `writtenAt` floor), and when it was written in the same
 second (mutation: accept an equal `writtenAt`); keeps it when one entry is carried
 only at another hash (mutation: drop the per-entry check), when a peer manifest
-cannot be read (mutation: skip it), when a peer manifest is in another epoch
+cannot be read (mutation: skip it) or lists a record kind this build does not
+know (mutation: decode peers tolerantly), when a peer manifest is in another epoch
 (mutation: drop the epoch check), and when no other device is listed (mutation:
 drop that check — the per-entry check then refuses it anyway, so the test asserts
 no manifest was read). Sends nothing offline or on a metered connection with
@@ -5455,8 +5497,8 @@ only — the second device silently gets an empty store rather than an error,
 which no status-code test can catch). A manifest `GET` returns a quoted strong
 `ETag` equal to the manifest content hash, and honours `If-None-Match` with
 `304`. A `Content-Type` carrying `; charset=utf-8` is accepted. **A manifest
-whose `v` is unknown, and a `v: 1` manifest carrying one extra top-level key,
-are each rejected `400`, while a blob whose `v` is unknown is accepted `201`**
+whose `v` is unknown, a `v: 1` manifest carrying one extra top-level key, and
+one naming a record kind the server does not know are each rejected `400`, while a blob whose `v` is unknown is accepted `201`**
 (mutation: route the manifest through the same tolerant path as the blob — every
 blob test still passes, and a manifest whose `records` shape the server cannot
 read then reports success while §7.3 finds no references in it and reaps the
@@ -5704,8 +5746,10 @@ store epoch and carried into the sync isolate. **A
 newer envelope is reported as `newerWireVersion`, a newer one that also adds
 a key included** (mutation: run the exact-key check before the version check —
 the plain `v` bump still passes, and the newer envelope that adds a key is
-reported as malformed). **A body field this build does not sync is kept and
-shared back byte for byte** — top level, nested object and id-keyed list item;
+reported as malformed). **A peer manifest naming a record kind this build
+does not know still delivers its known records and reports `newerRecordKind`**
+(mutation: decode it strictly — every record that peer holds is skipped). **A
+body field this build does not sync is kept and shared back byte for byte** — top level, nested object and id-keyed list item;
 unknown or known but private — so the device's rebuilt wire hash equals the
 peer's, and it survives the device's own edit (mutation: drop the kept parts
 from the snapshot — the record publishes without the field, and its hash

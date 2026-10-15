@@ -86,6 +86,15 @@ enum SyncReportCode {
   /// [newerWireVersion]; same remedy.
   newerFigures,
 
+  /// A peer's manifest lists a record kind this build does not know: a newer
+  /// version of the app syncs something this one cannot hold (#709). The
+  /// manifest is still read — every record of a known kind arrives as usual —
+  /// and only the unknown kinds are skipped. Shown with [newerWireVersion];
+  /// same remedy. Carries only `peerId`: an unknown kind is not a
+  /// [SyncRecordKind], and the message names the skipped kinds for
+  /// diagnostics.
+  newerRecordKind,
+
   /// A record on *this* device carries details a newer version of the app
   /// added, which this build keeps and shares back unchanged but cannot show
   /// (spec §6.7). Information only: the record syncs, nothing is wrong, and
