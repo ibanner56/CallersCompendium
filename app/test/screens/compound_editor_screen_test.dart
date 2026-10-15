@@ -97,6 +97,184 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  group('a new figure (#1023)', () {
+    UserGlossaryEntry zoom({
+      String template = '{who} zoom [{style}]',
+      Object? whoDefault = 'role1s',
+    }) => UserGlossaryEntry(
+      id: 'zoom-id',
+      kindName: UserGlossaryEntryKind.customFigure.name,
+      name: 'zoom',
+      definition: 'A zoom.',
+      description: 'Fast.',
+      payload: {
+        'form': 'contra',
+        'template': template,
+        'defaultBeats': 6,
+        'params': [
+          {'key': 'who', 'kind': 'dancerSet', 'default': ?whoDefault},
+          {
+            'key': 'style',
+            'kind': 'choice',
+            'choices': [
+              {'id': 'abc12345', 'label': 'fast'},
+            ],
+          },
+        ],
+      },
+      createdAt: created,
+    );
+
+    Future<void> fillRequired(WidgetTester tester) async {
+      await tester.enterText(
+        find.byKey(const ValueKey('compound-name')),
+        'zoomies',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('compound-definition')),
+        'A zoom.',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('compound-description')),
+        'Larks zoom.',
+      );
+    }
+
+    Future<void> chooseNewFigure(WidgetTester tester) async {
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('glossary-entry-kind')),
+          matching: find.text('New figure'),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> addParam(WidgetTester tester, int index, String key) async {
+      await tester.tap(find.byKey(const ValueKey('compound-add-param')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(ValueKey('compound-param-$index-name')),
+        key,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('is saved with its kind, its choices under stable ids, and '
+        'its wording canonical', (tester) async {
+      final repos = await pump(tester);
+      await fillRequired(tester);
+      await chooseNewFigure(tester);
+      await addParam(tester, 0, 'style');
+      await tester.tap(find.byKey(const ValueKey('compound-param-0-kind')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('option').last);
+      await tester.pumpAndSettle();
+      for (final (i, label) in ['fast', 'slow'].indexed) {
+        await tester.tap(
+          find.byKey(const ValueKey('user-figure-param-0-add-choice')),
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(ValueKey('user-figure-param-0-choice-$i')),
+          label,
+        );
+      }
+      await tester.enterText(
+        find.byKey(const ValueKey('user-figure-wording')),
+        'Larks {move} {style}',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Reads as: larks zoomies'),
+        findsOneWidget,
+        reason: 'no default style: its slot reads as nothing',
+      );
+      await save(tester);
+
+      final saved = (await tester.runAsync(repos.userGlossary.listAll))!.single;
+      expect(saved.kind, UserGlossaryEntryKind.customFigure);
+      expect(saved.description, 'role1s zoom.');
+      final figure = decodeUserFigureDefinition(saved.payload)!;
+      expect(figure.template, 'role1s {move} {style}');
+      expect(figure.defaultBeats, 8);
+      final choices = figure.param('style')!.choices;
+      expect([for (final c in choices) c.label], ['fast', 'slow']);
+      expect([
+        for (final c in choices) c.id,
+      ], everyElement(matches(RegExp(r'^[a-z0-9]{8}$'))));
+    });
+
+    testWidgets('refuses wording that uses a slot it does not have', (
+      tester,
+    ) async {
+      final repos = await pump(tester);
+      await fillRequired(tester);
+      await chooseNewFigure(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('user-figure-wording')),
+        '{move} {hand}',
+      );
+      await save(tester);
+      expect(
+        find.text(
+          "The wording uses {hand}, which isn't one of this figure's "
+          'parameters.',
+        ),
+        findsOneWidget,
+      );
+      expect(await tester.runAsync(repos.userGlossary.listAll), isEmpty);
+    });
+
+    testWidgets('a parameter the wording leaves out asks first', (
+      tester,
+    ) async {
+      final repos = await pump(tester);
+      await fillRequired(tester);
+      await chooseNewFigure(tester);
+      await addParam(tester, 0, 'who');
+      await tester.enterText(
+        find.byKey(const ValueKey('user-figure-wording')),
+        '{move}',
+      );
+      await save(tester);
+      expect(
+        find.text(
+          "who isn't in the wording, so choosing it will change nothing.",
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('compound-unused-save')));
+      await tester.pumpAndSettle();
+      expect(await tester.runAsync(repos.userGlossary.listAll), hasLength(1));
+    });
+
+    testWidgets('an edit keeps its kind and a renamed choice\'s id', (
+      tester,
+    ) async {
+      final repos = await pump(tester, initial: zoom());
+      expect(
+        find.byKey(const ValueKey('glossary-entry-kind')),
+        findsNothing,
+        reason: 'a stored entry keeps its kind',
+      );
+      expect(find.text('Reads as: larks zoom'), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey('user-figure-param-1-choice-0')),
+        'quick',
+      );
+      await save(tester);
+      final saved = (await tester.runAsync(
+        () => repos.userGlossary.getById('zoom-id'),
+      ))!;
+      expect(saved.kind, UserGlossaryEntryKind.customFigure);
+      final choice = decodeUserFigureDefinition(
+        saved.payload,
+      )!.param('style')!.choices.single;
+      expect((choice.id, choice.label), ('abc12345', 'quick'));
+    });
+  });
+
   testWidgets('a name, a definition and a description are required', (
     tester,
   ) async {

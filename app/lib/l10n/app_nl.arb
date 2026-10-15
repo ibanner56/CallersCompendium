@@ -9422,6 +9422,122 @@
   "@compoundEditorUnusedSave": {
     "x-sourceSha256": "ef4c87b5083fbe4867b0bfb4e2575ecb106bdd4612160ef40f8f022c415cbdac"
   },
+  "glossaryEntryKindHeading": "Wat het is",
+  "@glossaryEntryKindHeading": {
+    "x-sourceSha256": "1f36becc3aa7c8a8893bc0688d52b8bef91dae5528528706003bc4f45e409f96"
+  },
+  "glossaryEntryKindHelp": "Een combinatie wordt ingebouwde figuren wanneer een dans wordt opgeslagen. Een nieuwe figuur blijft één figuur, met je eigen formulering.",
+  "@glossaryEntryKindHelp": {
+    "x-sourceSha256": "88207860515a937eaa3a035c86ca465d2bed902bfad7e051fec78ff656096f5f"
+  },
+  "glossaryEntryKindCombination": "Combinatie",
+  "@glossaryEntryKindCombination": {
+    "x-sourceSha256": "51f9b3e644ea5a1c653b79e21b43ff1e8547edf3e9ad63d87a08ee77afa51387"
+  },
+  "glossaryEntryKindNewFigure": "Nieuwe figuur",
+  "@glossaryEntryKindNewFigure": {
+    "x-sourceSha256": "3bd330f1f22470db1387c962d78ceea1c7f302fd57729577ba2ee6cb9e9d3326"
+  },
+  "glossaryEntryFormLabel": "Dansvorm",
+  "@glossaryEntryFormLabel": {
+    "x-sourceSha256": "29c681cc37b84d4e1262914451b1a7639a18d34339ac92da8a1cdc4dbd0b222f"
+  },
+  "glossaryEntryFormHelper": "Aangeboden in dansen van deze vorm.",
+  "@glossaryEntryFormHelper": {
+    "x-sourceSha256": "08cc16d46c24dd858bb82cd35399e7fbc6635cbfee0f4a4d32f8887e800441ce"
+  },
+  "userFigureEditorParamNames": "Begin de naam van elke parameter met een letter, gebruik alleen letters, cijfers en _, en geef elke parameter een andere naam. Een naam kan niet move, beats of text zijn.",
+  "@userFigureEditorParamNames": {
+    "x-sourceSha256": "ba834174aff1cd0047a013c01483700f88838eecd8504df21d8bb93d31260019"
+  },
+  "userFigureEditorChoiceLabel": "Optie {number}",
+  "@userFigureEditorChoiceLabel": {
+    "x-sourceSha256": "28c125cdc5559e650a4cfdd23363841ec89cbab8842a6d418cb5866b12496adc"
+  },
+  "userFigureEditorAddChoice": "Optie toevoegen",
+  "@userFigureEditorAddChoice": {
+    "x-sourceSha256": "a1827a12bb439024a60d5e42a9e9d616cf6a6374e26e3f6f14843b6daa41ab26"
+  },
+  "userFigureEditorRemoveChoice": "Optie verwijderen",
+  "@userFigureEditorRemoveChoice": {
+    "x-sourceSha256": "dfe086c24105cabb9f9a48138bae11f262e6604fe51ae71e6d47f5d05459dbec"
+  },
+  "userFigureEditorDefault": "Standaard",
+  "@userFigureEditorDefault": {
+    "x-sourceSha256": "21b111cbfe6e8fca2d181c43f53ad548b22e38aca955b9824706a504b0a07a2d"
+  },
+  "userFigureEditorNoDefault": "Geen standaard",
+  "@userFigureEditorNoDefault": {
+    "x-sourceSha256": "706e7d9f0e1dc1ec7df9d700d109ec76d1b00e77e8fb7a444af04483e49a989c"
+  },
+  "userFigureEditorFlagLabel": "Formulering als aan",
+  "@userFigureEditorFlagLabel": {
+    "x-sourceSha256": "59fdea9670f7750d40570b5bea9efaf5d37b6287369be2eaf00d75eb5d3e4477"
+  },
+  "userFigureEditorFlagLabelHelper": "Getoond in de formulering als dit aan staat, zoals ‘met een zwier’.",
+  "@userFigureEditorFlagLabelHelper": {
+    "x-sourceSha256": "7e5040023e872753fdcee9beb1543c6fba579aa53431c721fb3ec862bd818f88"
+  },
+  "userFigureEditorWording": "Formulering",
+  "@userFigureEditorWording": {
+    "x-sourceSha256": "f041260620c8857c5ad221d225d7dea65aa7b3b3b1ef69952e58be1bd87e2541"
+  },
+  "userFigureEditorWordingHelp": "Hoe de figuur in een dans leest. Zet een parameter tussen accolades, zoals {example}; een deel tussen vierkante haken valt weg als de parameters ervan leeg zijn.",
+  "@userFigureEditorWordingHelp": {
+    "x-sourceSha256": "2b5ffdc723b54cc0665c5e15ceadc78b571106f15d8003c5cdee465c0cd53725"
+  },
+  "userFigureEditorWordingSlots": "Je kunt gebruiken: {slots}",
+  "@userFigureEditorWordingSlots": {
+    "x-sourceSha256": "531291804de7dc8760c321ea2fc08d2e6c73fcc8cd953ec4f4d45f10cbe743af"
+  },
+  "userFigureEditorDefaultBeats": "Standaardtellen",
+  "@userFigureEditorDefaultBeats": {
+    "x-sourceSha256": "2f205792b8c5e048cbd658bfcbbb9e07b7ddb616348b948a9d1a56d230d0ddbc"
+  },
+  "userFigureEditorDefaultBeatsHelper": "Een dans kan ze wijzigen telkens als die de figuur gebruikt.",
+  "@userFigureEditorDefaultBeatsHelper": {
+    "x-sourceSha256": "d040ee94830d774750f995ab2f8176c8f274b40554b1dc3e948c925b93e8f919"
+  },
+  "userFigureEditorPreview": "Leest als: {text}",
+  "@userFigureEditorPreview": {
+    "x-sourceSha256": "04ae5a210366732c8adcd382a49291fc89a1a9b0bb30512d21bd01238a7c1335"
+  },
+  "userFigureEditorPreviewUnavailable": "Maak de formulering af om te zien hoe die leest.",
+  "@userFigureEditorPreviewUnavailable": {
+    "x-sourceSha256": "f7b14136d946788b895cd6ade2713f5822d505972b99edbc2964b0a37c2ea159"
+  },
+  "userFigureEditorBadWording": "De formulering is niet compleet: controleer de accolades en vierkante haken.",
+  "@userFigureEditorBadWording": {
+    "x-sourceSha256": "d39e15f768586554a71e355b7bf747aee4d18308367392bb272fea34388faab2"
+  },
+  "userFigureEditorUnknownSlot": "De formulering gebruikt {slot}, dat geen parameter van deze figuur is.",
+  "@userFigureEditorUnknownSlot": {
+    "x-sourceSha256": "5cea07a6898fa8c3651f65fd7832a640519dc4093818f8f687fadd5777221d00"
+  },
+  "userFigureEditorBadChoices": "Geef {param} minstens één optie, elk met een andere naam.",
+  "@userFigureEditorBadChoices": {
+    "x-sourceSha256": "7ae4d0b10bff17bbb8923de146f56e55cebd192e73c16a01657ddf2da32425c6"
+  },
+  "userFigureEditorBadBeats": "Standaardtellen moeten tussen 0 en 64 liggen.",
+  "@userFigureEditorBadBeats": {
+    "x-sourceSha256": "1b2b9fae59537a1f29ed22b6d77e2ed8387cb2cdc7e8db14d05abb3aa51e53c3"
+  },
+  "userFigureEditorUnusedBody": "{params} staat niet in de formulering, dus kiezen verandert niets.",
+  "@userFigureEditorUnusedBody": {
+    "x-sourceSha256": "c4eef152a8364ae20890a7118ab7fdeeffecfa18f508c245c4f871b892154308"
+  },
+  "glossaryCustomWording": "Formulering",
+  "@glossaryCustomWording": {
+    "x-sourceSha256": "f041260620c8857c5ad221d225d7dea65aa7b3b3b1ef69952e58be1bd87e2541"
+  },
+  "glossaryCustomExample": "Voorbeeld",
+  "@glossaryCustomExample": {
+    "x-sourceSha256": "d029f87e3d80f8fd9b1be67c7426b4cc1ff47b4a9d0a8461c826a59d8c5eb6cd"
+  },
+  "glossaryCustomDeleteUses": "{count, plural, =0{Geen dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd.} =1{1 dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd en die dans behoudt zijn huidige formulering als platte tekst.} other{{count} dansen gebruiken hem. Hij wordt uit je woordenlijst verwijderd en die dansen behouden hun huidige formulering als platte tekst.}}",
+  "@glossaryCustomDeleteUses": {
+    "x-sourceSha256": "dcf33d6b0593707bf881496eed5b4701d8c69b24f391307e51e9990421e3e214"
+  },
   "compoundEditorDiscardBody": "Je hebt niet-opgeslagen wijzigingen in deze figuur.",
   "@compoundEditorDiscardBody": {
     "x-sourceSha256": "b75777162fce7dd48f0bfc6ab3ba104c6c897d4b492a3e59c5e4d88637d112ba"

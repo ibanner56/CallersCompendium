@@ -349,6 +349,32 @@ void main() {
     });
   });
 
+  group('editing helpers', () {
+    test('a template\'s literal text is mapped and its slots kept', () {
+      expect(
+        mapUserFigureTemplateText(
+          'Leads {leads} [{!hand} hand] leads',
+          (text) => text.replaceAll('eads', 'EADS'),
+        ),
+        'LEADS {leads} [{!hand} hand] lEADS',
+      );
+    });
+
+    test('a new choice id is well-shaped and avoids those taken', () {
+      final taken = <String>{};
+      for (var i = 0; i < 50; i++) {
+        final id = newUserFigureChoiceId(taken);
+        expect(id, matches(RegExp(r'^[a-z0-9]{8}$')));
+        expect(taken.add(id), isTrue);
+      }
+    });
+
+    test('a payload\'s unknown keys are what an edit carries', () {
+      expect(userFigurePayloadExtra({...zoom(), 'later': 1}), {'later': 1});
+      expect(userFigurePayloadExtra(null), isEmpty);
+    });
+  });
+
   group('glossaryEntryForm', () {
     test('reads any kind of entry\'s form, contra when it names none', () {
       expect(glossaryEntryForm(null), 'contra');

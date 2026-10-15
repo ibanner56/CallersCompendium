@@ -9,6 +9,7 @@ import '../../data/dialect_library_scope.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
 import '../../glossary/custom_figures.dart';
+import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
 import 'compound_editor_screen.dart';
 
@@ -127,14 +128,30 @@ class _GlossaryCustomFigureDetailState
         MaterialPageRoute(builder: (_) => CompoundEditorScreen(initial: entry)),
       );
 
-  Future<void> _delete(BuildContext context, String name) async {
+  Future<void> _delete(
+    BuildContext context,
+    String name, {
+    required bool isFigure,
+  }) async {
     final l10n = AppLocalizations.of(context);
     final navigator = Navigator.of(context);
+    final repos = _repos!;
+    // A figure of your own is used by reference (#1023): say how many dances
+    // keep its current wording as plain text (maintainer decision 2).
+    final uses = isFigure
+        ? await repos.dances.countDancesUsingUserFigure(widget.entryId)
+        : null;
+    if (!context.mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.glossaryCustomDeleteTitle(name)),
-        content: Text(l10n.glossaryCustomDeleteBody),
+        content: Text(
+          uses == null
+              ? l10n.glossaryCustomDeleteBody
+              : l10n.glossaryCustomDeleteUses(uses),
+          key: const ValueKey('glossary-custom-delete-body'),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -149,7 +166,11 @@ class _GlossaryCustomFigureDetailState
       ),
     );
     if (confirmed != true) return;
-    await _repos!.userGlossary.delete(widget.entryId);
+    if (isFigure) {
+      await repos.deleteUserFigure(widget.entryId);
+    } else {
+      await repos.userGlossary.delete(widget.entryId);
+    }
     if (!widget.showName && mounted) navigator.pop();
   }
 
@@ -206,6 +227,8 @@ class _GlossaryCustomFigureDetailState
       ),
     );
 
+    final figure = item.figure;
+    final example = figure == null ? null : _exampleOf(entry, figure, dialect);
     final args = definition == null
         ? null
         : previewArguments(definition, contraTaxonomy);
@@ -269,6 +292,40 @@ class _GlossaryCustomFigureDetailState
             key: const ValueKey('glossary-parameters'),
           ),
         ],
+        if (figure != null) ...[
+          if (figure.params.isNotEmpty) ...[
+            heading(l10n.glossaryParameters),
+            Text(
+              [
+                for (final p in figure.params)
+                  l10n.compoundParamWithKind(
+                    p.key,
+                    compoundParamKindLabel(l10n, p.kind),
+                  ),
+              ].join(', '),
+              key: const ValueKey('glossary-parameters'),
+            ),
+          ],
+          heading(l10n.glossaryCustomWording),
+          Text(
+            mapUserFigureTemplateText(
+              figure.template,
+              (text) => _renderer.renderFreeText(text, dialect),
+            ),
+            key: const ValueKey('glossary-custom-wording'),
+          ),
+          if (example != null) ...[
+            heading(l10n.glossaryCustomExample),
+            Text(example, key: const ValueKey('glossary-custom-example')),
+          ],
+        ],
+        if (!item.unsupported) ...[
+          heading(l10n.glossaryEntryFormLabel),
+          Text(
+            _formLabel(l10n, item.form),
+            key: const ValueKey('glossary-custom-form'),
+          ),
+        ],
         // The expansion stays out of the flat list and is folded here until
         // asked for (maintainer, #709).
         if (expanded != null)
@@ -327,7 +384,14 @@ class _GlossaryCustomFigureDetailState
                 key: const ValueKey('glossary-custom-delete'),
                 icon: const Icon(Icons.delete_outline),
                 label: Text(l10n.commonDelete),
-                onPressed: _repos == null ? null : () => _delete(context, name),
+                onPressed: _repos == null
+                    ? null
+                    : () => _delete(
+                        context,
+                        name,
+                        isFigure:
+                            entry.kind == UserGlossaryEntryKind.customFigure,
+                      ),
               ),
             ],
           ),
@@ -335,6 +399,37 @@ class _GlossaryCustomFigureDetailState
       ],
     );
   }
+}
+
+/// How a figure of your own reads with its defaults, in [dialect], or null
+/// when it can't be rendered.
+String? _exampleOf(
+  UserGlossaryEntry entry,
+  UserFigureDefinition figure,
+  Dialect dialect,
+) {
+  final renderer = FigureRenderer(
+    contraTaxonomy,
+    userFigures: UserFigureCatalog.fromEntries([entry]),
+  );
+  final use = userFigureUseFigure(
+    id: entry.id,
+    args: {
+      for (final p in figure.params)
+        if (p.defaultValue != null) p.key: p.defaultValue,
+    },
+    text: '',
+  );
+  if (renderer.renderUserFigureCanonical(use) == null) return null;
+  return renderer.render(use, dialect);
+}
+
+/// [form]'s label, or [form] as written for one a later build added.
+String _formLabel(AppLocalizations l10n, String form) {
+  for (final value in DanceForm.values) {
+    if (value.name == form) return danceFormLabel(l10n, value);
+  }
+  return form;
 }
 
 /// A custom figure's name in the active dialect, kept current as the entry

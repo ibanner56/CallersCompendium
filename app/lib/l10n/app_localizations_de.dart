@@ -9577,6 +9577,125 @@ class AppLocalizationsDe extends AppLocalizations {
   String get compoundEditorUnusedSave => 'Trotzdem speichern';
 
   @override
+  String get glossaryEntryKindHeading => 'Was es ist';
+
+  @override
+  String get glossaryEntryKindHelp =>
+      'Eine Kombination wird beim Speichern eines Tanzes zu eingebauten Figuren. Eine neue Figur bleibt eine eigene Figur, mit deinem eigenen Wortlaut.';
+
+  @override
+  String get glossaryEntryKindCombination => 'Kombination';
+
+  @override
+  String get glossaryEntryKindNewFigure => 'Neue Figur';
+
+  @override
+  String get glossaryEntryFormLabel => 'Tanzform';
+
+  @override
+  String get glossaryEntryFormHelper => 'Wird in Tänzen dieser Form angeboten.';
+
+  @override
+  String get userFigureEditorParamNames =>
+      'Beginne jeden Parameternamen mit einem Buchstaben, verwende nur Buchstaben, Ziffern und _ und gib jedem einen eigenen Namen. Ein Name darf nicht move, beats oder text sein.';
+
+  @override
+  String userFigureEditorChoiceLabel(int number) {
+    return 'Option $number';
+  }
+
+  @override
+  String get userFigureEditorAddChoice => 'Option hinzufügen';
+
+  @override
+  String get userFigureEditorRemoveChoice => 'Option entfernen';
+
+  @override
+  String get userFigureEditorDefault => 'Standard';
+
+  @override
+  String get userFigureEditorNoDefault => 'Kein Standard';
+
+  @override
+  String get userFigureEditorFlagLabel => 'Wortlaut, wenn an';
+
+  @override
+  String get userFigureEditorFlagLabelHelper =>
+      'Erscheint im Wortlaut, wenn dies an ist, etwa „mit Schwung“.';
+
+  @override
+  String get userFigureEditorWording => 'Wortlaut';
+
+  @override
+  String userFigureEditorWordingHelp(String example) {
+    return 'So liest sich die Figur in einem Tanz. Setze einen Parameter in geschweifte Klammern, wie $example; ein Teil in eckigen Klammern entfällt, wenn seine Parameter leer sind.';
+  }
+
+  @override
+  String userFigureEditorWordingSlots(String slots) {
+    return 'Du kannst verwenden: $slots';
+  }
+
+  @override
+  String get userFigureEditorDefaultBeats => 'Standard-Beats';
+
+  @override
+  String get userFigureEditorDefaultBeatsHelper =>
+      'Ein Tanz kann sie bei jeder Verwendung der Figur ändern.';
+
+  @override
+  String userFigureEditorPreview(String text) {
+    return 'Liest sich als: $text';
+  }
+
+  @override
+  String get userFigureEditorPreviewUnavailable =>
+      'Vervollständige den Wortlaut, um zu sehen, wie er sich liest.';
+
+  @override
+  String get userFigureEditorBadWording =>
+      'Der Wortlaut ist unvollständig: Prüfe seine geschweiften und eckigen Klammern.';
+
+  @override
+  String userFigureEditorUnknownSlot(String slot) {
+    return 'Der Wortlaut verwendet $slot, das kein Parameter dieser Figur ist.';
+  }
+
+  @override
+  String userFigureEditorBadChoices(String param) {
+    return 'Gib $param mindestens eine Option, jede mit einem eigenen Namen.';
+  }
+
+  @override
+  String get userFigureEditorBadBeats =>
+      'Standard-Beats müssen zwischen 0 und 64 liegen.';
+
+  @override
+  String userFigureEditorUnusedBody(String params) {
+    return '$params kommt im Wortlaut nicht vor, daher ändert eine Auswahl nichts.';
+  }
+
+  @override
+  String get glossaryCustomWording => 'Wortlaut';
+
+  @override
+  String get glossaryCustomExample => 'Beispiel';
+
+  @override
+  String glossaryCustomDeleteUses(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Tänze verwenden sie. Sie wird aus deinem Glossar entfernt, und diese Tänze behalten ihren aktuellen Wortlaut als einfachen Text.',
+      one:
+          '1 Tanz verwendet sie. Sie wird aus deinem Glossar entfernt, und dieser Tanz behält seinen aktuellen Wortlaut als einfachen Text.',
+      zero: 'Kein Tanz verwendet sie. Sie wird aus deinem Glossar entfernt.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get compoundEditorDiscardBody =>
       'Du hast nicht gespeicherte Änderungen an dieser Figur.';
 

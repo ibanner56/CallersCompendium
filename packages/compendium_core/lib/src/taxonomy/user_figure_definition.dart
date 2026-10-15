@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import '../dialect/renderer.dart';
 import '../model/enums.dart';
 import '../util/text_sanitizer.dart';
@@ -49,6 +51,36 @@ final Set<String> _reservedParamKeys = {
 final RegExp _paramKeyShape = RegExp(r'^[A-Za-z][A-Za-z0-9_]*$');
 final RegExp _choiceIdShape = RegExp(r'^[a-z0-9]{1,16}$');
 final RegExp _wordingSlot = RegExp(r'\{!?(\w+)\}');
+
+/// [template] with [map] applied to its literal text only, its slots kept
+/// exactly as written: how a template's words are canonicalized for storage
+/// and rendered in a dialect for editing (#1023), so a role word never
+/// reaches inside a `{…}` and a slot's key is never taken for a role word.
+String mapUserFigureTemplateText(
+  String template,
+  String Function(String text) map,
+) => template.splitMapJoin(
+  _wordingSlot,
+  onMatch: (match) => match[0]!,
+  onNonMatch: map,
+);
+
+final Random _choiceIds = Random.secure();
+const String _choiceIdAlphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+
+/// A new choice id, distinct from every id in [taken]: what a choice is stored
+/// under in the dances using it, so its label can change.
+String newUserFigureChoiceId(Set<String> taken) {
+  while (true) {
+    final id = String.fromCharCodes([
+      for (var i = 0; i < 8; i++)
+        _choiceIdAlphabet.codeUnitAt(
+          _choiceIds.nextInt(_choiceIdAlphabet.length),
+        ),
+    ]);
+    if (!taken.contains(id)) return id;
+  }
+}
 
 /// The template slot holding [key]'s opposite: for `hand`, other followed by
 /// Hand (#709's "other hand", offered and never declared). Empty for an
@@ -224,6 +256,15 @@ Set<String> userFigureTemplateSlots(String template) => {
   for (final match in _wordingSlot.allMatches(template)) match[1]!,
 };
 
+/// The keys of a stored figure [payload] this build does not know, which an
+/// edit carries through ([UserFigureDefinition.extra]).
+Map<String, Object?> userFigurePayloadExtra(Object? payload) => {
+  if (payload is Map)
+    for (final entry in payload.entries)
+      if (entry.key is String && !_knownPayloadKeys.contains(entry.key))
+        entry.key as String: entry.value,
+};
+
 const Set<String> _knownPayloadKeys = {
   'form',
   'template',
@@ -277,11 +318,7 @@ UserFigureDefinition? decodeUserFigureDefinition(Object? raw) {
       defaultBeats: defaultBeats,
       params: params,
       copiedFrom: copiedFrom as String?,
-      extra: {
-        for (final entry in raw.entries)
-          if (entry.key is String && !_knownPayloadKeys.contains(entry.key))
-            entry.key as String: entry.value,
-      },
+      extra: userFigurePayloadExtra(raw),
     );
     final hasError = validateUserFigure(
       definition,
