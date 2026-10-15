@@ -173,6 +173,26 @@ Future<Set<String>> collectSensitiveTerms(
     for (final keyword in entry.keywords) {
       add(keyword);
     }
+    // A compound's payload holds more of the user's words: the parameter
+    // names they chose, and each template figure's note. Read leniently, as
+    // stored: an entry whose payload no longer decodes is still kept.
+    if (entry.payload case final Map<Object?, Object?> payload) {
+      if (payload['params'] case final List<Object?> params) {
+        for (final param in params) {
+          if (param case {'key': final Object? key}) add(key);
+        }
+      }
+      if (payload['figures'] case final List<Object?> figures) {
+        for (final raw in figures) {
+          if (raw is! Map) continue;
+          try {
+            addFigureContent(figureFromJson(raw.cast<String, Object?>()));
+          } on Object {
+            // diagnostics: silent — a template that no longer decodes has no figure content to read; the entry's own text is still collected.
+          }
+        }
+      }
+    }
   }
   for (final note in await repositories.figureNotes.listAll(
     includeDeleted: true,

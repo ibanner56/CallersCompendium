@@ -130,6 +130,33 @@ void main() {
       expect(await glossary.listAll(), isEmpty);
     });
 
+    test('a payload that cannot be stored is refused, not thrown as an '
+        'error', () async {
+      for (final payload in <Object?>[
+        {'x': double.infinity},
+        {'Cafe\u0301': 1, 'Café': 2},
+        {'big': 'x' * maxUserGlossaryPayloadLength},
+      ]) {
+        await expectLater(
+          glossary.upsert(entry(payload: payload)),
+          throwsA(
+            isA<UserGlossaryEntryInvalid>().having(
+              (e) => e.field,
+              'field',
+              'payload',
+            ),
+          ),
+        );
+      }
+      expect(await glossary.listAll(), isEmpty);
+    });
+
+    test('entries created in the same second read back in id order', () async {
+      await glossary.upsert(entry(id: 'b'));
+      await glossary.upsert(entry(id: 'a'));
+      expect((await glossary.listAll()).map((e) => e.id), ['a', 'b']);
+    });
+
     test('watchAll re-emits on a change', () async {
       final emissions = glossary.watchAll().map((e) => e.length);
       final first = emissions.first;
@@ -157,6 +184,15 @@ void main() {
       );
     });
 
+    test('read back in figure id order', () async {
+      await notes.set('swing', 'n');
+      await notes.set('chain', 'n');
+      expect((await notes.listAll()).map((n) => n.figureId), [
+        'chain',
+        'swing',
+      ]);
+    });
+
     test('a note on an id the taxonomy no longer has is kept', () async {
       await notes.set('retired_move', 'still here');
       expect((await notes.get('retired_move'))!.notes, 'still here');
@@ -165,7 +201,7 @@ void main() {
     test('an over-long note is refused', () async {
       await expectLater(
         notes.set('swing', 'x' * (maxUserGlossaryTextLength + 1)),
-        throwsA(isA<UserGlossaryEntryInvalid>()),
+        throwsA(isA<FigureNoteInvalid>()),
       );
     });
   });

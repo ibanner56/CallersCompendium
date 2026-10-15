@@ -77,7 +77,10 @@ class BackupDocument {
     this.figureNotes = const [],
   });
 
-  /// The [backupSchemaVersion] this document was written under.
+  /// The `backupVersion` the file this document was read from carries. Only
+  /// decoding sets it: [backupToJson] ignores it and stamps
+  /// [backupSchemaVersionGlossary] or [backupSchemaVersionBase] by whether the
+  /// document has glossary data.
   final int schemaVersion;
 
   /// When the backup was produced (UTC).
@@ -819,10 +822,12 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
           final note = rawNotes[index];
           final figureId = note is Map ? note['figureId'] : null;
           final text = note is Map ? note['notes'] : null;
+          // A note with no visible text would be stored as empty, which
+          // deletes the live note, so it counts as unreadable instead.
           if (figureId is String &&
               figureId.isNotEmpty &&
               text is String &&
-              text.isNotEmpty) {
+              sanitizeShareableText(text).trim().isNotEmpty) {
             figureNotes.add(FigureNote(figureId: figureId, notes: text));
           } else {
             readError('figureNote', 'a figure note could not be read');

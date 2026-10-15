@@ -59,8 +59,10 @@ class UserGlossaryEntry {
   final Object? payload;
 
   /// When the entry was first created. Stable across edits, so of two entries
-  /// sharing a name the later-created one is the one flagged for rename
-  /// (maintainer, 2026-10-14).
+  /// sharing a name the later-created one is the one flagged for rename. The
+  /// flag is the maintainer's (#709 consolidated spec, decision 6); judging
+  /// "newer" by creation time is the implementer's choice, so an edit cannot
+  /// change which one is flagged.
   final DateTime createdAt;
 
   /// The kind, or null when [kindName] is one this build does not know.

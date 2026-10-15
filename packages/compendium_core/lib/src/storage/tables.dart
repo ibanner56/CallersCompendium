@@ -811,12 +811,13 @@ class PeerManifests extends Table {
 
 /// The user's own glossary entries (#709, and #1023 after it): one table for
 /// every kind, so a single name check, search source, privacy classification
-/// and sync kind serve them all (decided on #695, 2026-10-14).
+/// and sync kind serve them all (approved by the maintainer on #695,
+/// https://github.com/ibanner56/CallersCompendium/issues/695#issuecomment-6177759097).
 ///
 /// `kind` decides the payload: `compound` (a `CompoundDefinition`), and the
 /// reserved `term` and `customFigure`. Names are not unique: an entry arriving
 /// by sync or restore may share a name, and is kept and flagged for rename
-/// rather than refused (maintainer, 2026-10-14). Text columns hold canonical
+/// rather than refused (#709 consolidated spec, decision 6). Text columns hold canonical
 /// role tokens. Added in schema v40.
 @DataClassName('UserGlossaryEntryRow')
 class UserGlossaryEntries extends Table {

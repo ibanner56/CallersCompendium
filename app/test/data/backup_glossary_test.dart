@@ -194,8 +194,8 @@ void main() {
       }
     });
 
-    test('an entry over a bound is skipped with a warning and its live copy '
-        'kept', () async {
+    test('an entry over a bound is skipped, reported as an error, and its live '
+        'copy kept', () async {
       final repos = await seeded();
       final json = backupWith({
         'entries': [
@@ -207,11 +207,100 @@ void main() {
       final outcome = await BackupService(repos).restoreFromJson(json);
 
       expect(outcome.applied, isTrue);
-      expect(outcome.warnings, contains(contains('glossary entry')));
+      // Errors, not warnings: the restore reports skipped problems from its
+      // errors, and never shows its warnings.
+      expect(
+        outcome.errors.map((e) => (e.entityType, e.entityId)),
+        contains(('glossaryEntry', 'live')),
+      );
       expect(
         (await repos.userGlossary.getById('live'))!.name,
         'grand right and left',
       );
+    });
+
+    test('a payload that cannot be stored is skipped the same way, and the '
+        'rest of the restore still applies', () async {
+      final repos = await seeded();
+      // A bare backup (no container) can carry a number JSON cannot encode
+      // back: 1e999 decodes as infinity.
+      final json = backupWith({
+        'entries': [
+          {...entryJson('live'), 'payload': '__payload__'},
+          entryJson('fromBackup'),
+        ],
+        'figureNotes': <Object?>[],
+      }).replaceFirst('"__payload__"', '{"x": 1e999}');
+
+      final outcome = await BackupService(repos).restoreFromJson(json);
+
+      expect(outcome.applied, isTrue);
+      expect(outcome.settingsFailed, isFalse);
+      expect(
+        outcome.errors.map((e) => (e.entityType, e.entityId)),
+        contains(('glossaryEntry', 'live')),
+      );
+      expect(await liveIds(repos), containsAll(['live', 'fromBackup']));
+      expect(
+        (await repos.userGlossary.getById('live'))!.name,
+        'grand right and left',
+      );
+    });
+
+    test('a note with no visible text is unreadable, so the live note is '
+        'kept', () async {
+      final repos = await seeded();
+      final json = backupWith({
+        'entries': <Object?>[],
+        'figureNotes': [
+          {'figureId': 'swing', 'notes': '\u200B'},
+        ],
+      });
+
+      final outcome = await BackupService(repos).restoreFromJson(json);
+
+      expect(outcome.applied, isTrue);
+      expect(
+        (await repos.figureNotes.get('swing'))!.notes,
+        'role1s on the left',
+      );
+      expect(await liveIds(repos), ['live'], reason: 'nothing deleted');
+    });
+
+    test('a merge restore adds and updates, and deletes nothing', () async {
+      final repos = await seeded();
+      final json = backupWith({
+        'entries': [entryJson('fromBackup')],
+        'figureNotes': [
+          {'figureId': 'chain', 'notes': 'n'},
+        ],
+      });
+
+      final outcome = await BackupService(
+        repos,
+      ).restoreFromJson(json, mode: RestoreMode.merge);
+
+      expect(outcome.applied, isTrue);
+      expect(await liveIds(repos), unorderedEquals(['live', 'fromBackup']));
+      expect(await liveNoteIds(repos), ['chain', 'swing']);
+    });
+
+    test('retrying the settings apply replaces the glossary as the restore '
+        'would, in the mode it ran in', () async {
+      final json = backupWith({
+        'entries': [entryJson('fromBackup')],
+        'figureNotes': <Object?>[],
+      });
+
+      final replaced = await seeded();
+      await BackupService(replaced).retryApplySettings(json);
+      expect(await liveIds(replaced), ['fromBackup']);
+
+      final merged = await seeded();
+      await BackupService(
+        merged,
+      ).retryApplySettings(json, mode: RestoreMode.merge);
+      expect(await liveIds(merged), unorderedEquals(['live', 'fromBackup']));
     });
   });
 

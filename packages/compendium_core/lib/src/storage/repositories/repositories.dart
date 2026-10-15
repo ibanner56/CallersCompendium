@@ -35,7 +35,13 @@ const _taxonomyV35MigrationPageSize = 128;
 /// canonicalize at all, so they are also the only ones for which the pass must
 /// be able to name a record to skip — see [_normaliseStoredColumn] and the
 /// record-id select in `_normaliseShareableTextIfNeeded`.
-const _shareableJsonColumns = {'figures_json', 'tunes_json', 'choices_json'};
+const _shareableJsonColumns = {
+  'figures_json',
+  'tunes_json',
+  'choices_json',
+  'keywords_json',
+  'payload_json',
+};
 
 /// The normalized form of [raw] for [column], or **null when the stored value
 /// cannot be canonicalized at all**.

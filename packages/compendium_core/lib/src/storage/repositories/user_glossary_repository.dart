@@ -17,15 +17,27 @@ const int maxUserGlossaryTextLength = 20000;
 /// Most search keywords an entry may carry.
 const int maxUserGlossaryKeywords = 32;
 
+/// Longest payload an entry may carry, as encoded JSON in UTF-16 code units.
+/// A compound at its own bounds (64 figures, 16 parameters) is far below it.
+const int maxUserGlossaryPayloadLength = 256 * 1024;
+
 /// Thrown when an entry's required text is empty or a field is over its bound.
 class UserGlossaryEntryInvalid implements Exception {
   const UserGlossaryEntryInvalid(this.field);
 
-  /// `name`, `definition`, `description`, `keywords` or `notes`.
+  /// `name`, `definition`, `description`, `keywords`, `notes` or `payload`.
   final String field;
 
   @override
   String toString() => 'UserGlossaryEntryInvalid($field)';
+}
+
+/// Thrown when a note on a shipped figure is over its bound.
+class FigureNoteInvalid implements Exception {
+  const FigureNoteInvalid();
+
+  @override
+  String toString() => 'FigureNoteInvalid';
 }
 
 /// The user's own glossary entries (#709).
@@ -45,12 +57,12 @@ class UserGlossaryRepository {
     final query = includeDeleted
         ? _db.select(_db.userGlossaryEntries)
         : _live();
-    final rows = await (query..orderBy([_order])).get();
+    final rows = await (query..orderBy(_order)).get();
     return [for (final row in rows) _toModel(row)];
   }
 
   /// [listAll] as a stream that re-emits on every change.
-  Stream<List<UserGlossaryEntry>> watchAll() => (_live()..orderBy([_order]))
+  Stream<List<UserGlossaryEntry>> watchAll() => (_live()..orderBy(_order))
       .watch()
       .map((rows) => [for (final row in rows) _toModel(row)]);
 
@@ -90,23 +102,35 @@ class UserGlossaryRepository {
     if (notes != null && notes.length > maxUserGlossaryTextLength) {
       throw const UserGlossaryEntryInvalid('notes');
     }
+    final payloadJson = _payloadJson(entry.payload);
     await _db.transaction(() async {
       final existing = await (_db.select(
         _db.userGlossaryEntries,
       )..where((t) => t.id.equals(entry.id))).getSingleOrNull();
+      // Every value is already normalised above; each is wrapped again here,
+      // which changes nothing, so the normalisation ratchet
+      // (normalisation_structure_test.dart) can see it at the write.
       await _db
           .into(_db.userGlossaryEntries)
           .insertOnConflictUpdate(
             UserGlossaryEntriesCompanion.insert(
               id: entry.id,
               kind: entry.kindName,
-              name: name,
-              definition: definition,
-              description: description,
-              keywordsJson: Value(jsonEncode(keywords)),
-              notes: Value(notes == null || notes.isEmpty ? null : notes),
+              name: normalizeShareableText(name),
+              definition: normalizeShareableText(definition),
+              description: normalizeShareableText(description),
+              keywordsJson: Value(
+                normalizeShareableJsonText(jsonEncode(keywords)),
+              ),
+              notes: Value(
+                notes == null || notes.isEmpty
+                    ? null
+                    : normalizeShareableText(notes),
+              ),
               payloadJson: Value(
-                entry.payload == null ? null : jsonEncode(entry.payload),
+                payloadJson == null
+                    ? null
+                    : normalizeShareableJsonText(payloadJson),
               ),
               createdAt: existing?.createdAt ?? asUtc(entry.createdAt),
               updatedAt: Value(now),
@@ -136,8 +160,12 @@ class UserGlossaryRepository {
   _live() =>
       _db.select(_db.userGlossaryEntries)..where((t) => t.deletedAt.isNull());
 
-  static OrderingTerm _order($UserGlossaryEntriesTable t) =>
-      OrderingTerm.asc(t.createdAt);
+  // created_at is stored to the second, so the id breaks a tie: entries made
+  // in the same second still read back in one order on every device.
+  static List<OrderingTerm Function($UserGlossaryEntriesTable)> get _order => [
+    (t) => OrderingTerm.asc(t.createdAt),
+    (t) => OrderingTerm.asc(t.id),
+  ];
 
   static UserGlossaryEntry _toModel(UserGlossaryEntryRow row) =>
       UserGlossaryEntry(
@@ -175,6 +203,26 @@ class UserGlossaryRepository {
   static String _text(String raw) =>
       normalizeShareableText(sanitizeShareableText(raw).trim());
 
+  /// [payload] as normalised JSON text, or null for none. Refused as
+  /// [UserGlossaryEntryInvalid] when it cannot be stored: not encodable as
+  /// JSON (a non-finite number from a hand-edited backup), two keys that
+  /// normalise to one, or over [maxUserGlossaryPayloadLength].
+  static String? _payloadJson(Object? payload) {
+    if (payload == null) return null;
+    final String encoded;
+    try {
+      encoded = normalizeShareableJsonText(jsonEncode(payload));
+    } on JsonUnsupportedObjectError {
+      throw const UserGlossaryEntryInvalid('payload');
+    } on ShareableJsonKeyCollision {
+      throw const UserGlossaryEntryInvalid('payload');
+    }
+    if (encoded.length > maxUserGlossaryPayloadLength) {
+      throw const UserGlossaryEntryInvalid('payload');
+    }
+    return encoded;
+  }
+
   static String _requiredText(String raw, String field, int max) {
     final text = _text(raw);
     if (text.isEmpty || text.length > max) {
@@ -192,14 +240,17 @@ class FigureNoteRepository {
 
   /// Every live note; with [includeDeleted], tombstones too.
   Future<List<FigureNote>> listAll({bool includeDeleted = false}) async {
-    final rows = await (includeDeleted ? _db.select(_db.figureNotes) : _live())
+    final query = includeDeleted ? _db.select(_db.figureNotes) : _live();
+    final rows = await (query..orderBy([(t) => OrderingTerm.asc(t.figureId)]))
         .get();
     return [for (final row in rows) _toModel(row)];
   }
 
   /// [listAll] as a stream that re-emits on every change.
   Stream<List<FigureNote>> watchAll() =>
-      _live().watch().map((rows) => [for (final row in rows) _toModel(row)]);
+      (_live()..orderBy([(t) => OrderingTerm.asc(t.figureId)])).watch().map(
+        (rows) => [for (final row in rows) _toModel(row)],
+      );
 
   /// The live note on [figureId], or null.
   Future<FigureNote?> get(String figureId) async {
@@ -208,12 +259,13 @@ class FigureNoteRepository {
     return row == null ? null : _toModel(row);
   }
 
-  /// Sets the note on [figureId]. Empty text deletes it.
+  /// Sets the note on [figureId]. Empty text deletes it; text over
+  /// [maxUserGlossaryTextLength] is refused as [FigureNoteInvalid].
   Future<void> set(String figureId, String notes, {DateTime? at}) async {
     final now = resolveStamp(at);
     final text = normalizeShareableText(sanitizeShareableText(notes).trim());
     if (text.length > maxUserGlossaryTextLength) {
-      throw const UserGlossaryEntryInvalid('notes');
+      throw const FigureNoteInvalid();
     }
     if (text.isEmpty) return delete(figureId, at: now);
     await _db.transaction(() async {
@@ -222,7 +274,7 @@ class FigureNoteRepository {
           .insertOnConflictUpdate(
             FigureNotesCompanion.insert(
               figureId: figureId,
-              notes: text,
+              notes: normalizeShareableText(text),
               updatedAt: Value(now),
             ),
           );

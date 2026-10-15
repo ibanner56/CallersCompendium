@@ -75,8 +75,9 @@ void main() {
       // nullable programs.dialect_name, likewise leaving the taxonomy alone.
       // Schema 38 (#1418) adds the nullable programs pay columns, also
       // leaving the taxonomy alone. Schema 39 adds the retained_sync_fields
-      // table (sync-spec §6.7), and leaves the taxonomy alone too.
-      expect(kCompendiumSchemaVersion, 39);
+      // table (sync-spec §6.7), and leaves the taxonomy alone too. Schema 40
+      // (#709) adds the user glossary tables, taxonomy untouched.
+      expect(kCompendiumSchemaVersion, 40);
     });
 
     test('registers with the maintainer-ruled param set', () {

@@ -24,18 +24,22 @@ const _choreography = DataClassification(
 /// Text the user wrote in their own glossary (#709): a compound figure's name,
 /// definition, description, keywords and notes, and notes on shipped figures.
 ///
-/// Classified by intent, as program notes are ([_programNote]): it defines and
-/// annotates choreography, and names no third party by design. Residual risk,
-/// accepted as for every freeform field: a user may type a name into it.
+/// Classified by intent, as program notes ([_programNote]) and calling notes
+/// ([_choreography]) are: it defines and annotates choreography, and is about
+/// no person, so its subject is `none`. Residual risk, accepted as for every
+/// freeform field: a user may type a name into it.
 const _userGlossaryText = DataClassification(
   term: DpvTerm.nonPersonal,
-  subject: DataSubject.appUser,
+  subject: DataSubject.none,
   egress: EgressClass.shareable,
   note:
       "The user's own words defining or annotating figures (#709). Classified "
-      'by intent, as program notes are: choreography reference, not '
-      'commentary on a person. Synced and backed up like custom shorthands '
-      '(maintainer).',
+      'by intent, as program notes and calling notes are: choreography '
+      'reference, not about a person, so subject none (see "Freeform fields '
+      'are classified by intent, not by content"). Shareable because the '
+      'maintainer decided it travels like custom shorthands (#709, comments '
+      'of 2026-08-06 and 2026-10-14): in backups now, and in sync once its '
+      'record kind exists.',
 );
 
 /// An opaque surrogate key. Carries no meaning alone, but must travel for
@@ -320,9 +324,11 @@ final Map<String, DataClassification> fieldClassifications = {
 
   // --------------------------------------------------- user_glossary_entries --
   // The user's own glossary (#709). Travels: the maintainer decided these
-  // sync and back up like custom shorthands (2026-07-31, 2026-10-14). Not
-  // published until their record kind exists and every attached device can
-  // read it (sync-spec §6.15).
+  // sync and back up like custom shorthands
+  // (https://github.com/ibanner56/CallersCompendium/issues/709#issuecomment-5198798303,
+  // https://github.com/ibanner56/CallersCompendium/issues/709#issuecomment-6177064546).
+  // Not synced until their record kind exists, and then only once every
+  // attached device can read it (the capability gate, #709).
   'user_glossary_entries.id': _key,
   'user_glossary_entries.kind': _choreography,
   'user_glossary_entries.name': _userGlossaryText,
@@ -338,7 +344,9 @@ final Map<String, DataClassification> fieldClassifications = {
     note:
         'When the entry was first created; never moved by an edit. Travels so '
         'every device agrees which of two entries sharing a name is the newer '
-        'one, the one flagged for rename (maintainer, 2026-10-14).',
+        'one, the one flagged for rename (#709 consolidated spec, decision '
+        '6). Judging "newer" by creation time, so that an edit cannot change '
+        'which one is flagged, is the implementer\'s choice.',
   ),
   'user_glossary_entries.updated_at': _recordStamp,
   'user_glossary_entries.deleted_at': _tombstone,
