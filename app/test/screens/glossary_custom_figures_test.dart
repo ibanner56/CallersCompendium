@@ -229,19 +229,19 @@ void main() {
         tester
             .widget<Text>(find.byKey(const ValueKey('glossary-custom-wording')))
             .data,
-        'Larks {move} {hand}',
+        'larks {move} {hand}',
       );
       expect(
         tester
             .widget<Text>(find.byKey(const ValueKey('glossary-custom-example')))
             .data,
-        'Larks zoom right',
+        'larks zoom right',
       );
       expect(
         tester
             .widget<Text>(find.byKey(const ValueKey('glossary-custom-form')))
             .data,
-        'English country dance',
+        'English (ECD)',
       );
       expect(find.text('Needs repair'), findsNothing);
     });

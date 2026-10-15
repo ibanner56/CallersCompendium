@@ -1,0 +1,15 @@
+{
+  "id": "1023-glossary-new-figures",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "With Custom Figures on, a figure of your own in the Glossary can now be a new figure with its own wording, not only a combination of built-in figures: give it parameters (including options you name and on/off parameters), write how it reads with each parameter in braces, and see how it reads with its defaults. Choose its dance form and its default beats.",
+      "Deleting one of your new figures says how many dances use it; each keeps the wording it shows now, as plain text."
+    ]
+  },
+  "core": {
+    "added": [
+      "`mapUserFigureTemplateText`, `newUserFigureChoiceId` and `userFigurePayloadExtra` for editing a figure of your own (#1023)."
+    ]
+  }
+}
