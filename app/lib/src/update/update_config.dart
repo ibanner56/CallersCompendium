@@ -122,6 +122,19 @@ const Duration kUpdateCheckTimeout = Duration(seconds: 10);
 /// real transfer is expected here, unlike the fire-and-forget check.
 const Duration kUpdateDownloadTimeout = Duration(seconds: 60);
 
+/// How long [downloadArtifact] waits for a failed or cancelled download's
+/// partial file to close before it returns anyway, with
+/// [DownloadOutcome.released] set so the caller finishes the cleanup later.
+///
+/// Much shorter than [kUpdateDownloadTimeout] on purpose. The idle timeout
+/// waits for a slow network that is still expected to deliver; this waits for
+/// a local file handle that normally closes in milliseconds, and the user is
+/// waiting on it: the controller only leaves `downloading` (and so only
+/// accepts a retry) once the downloader returns, so a handle the OS holds
+/// (antivirus scan, stalled disk or network share) would otherwise leave
+/// Cancel apparently dead for the whole idle timeout.
+const Duration kUpdateDiscardCloseTimeout = Duration(seconds: 3);
+
 /// A hard upper bound on the number of bytes [downloadArtifact] will write for a
 /// single artifact, applied as a **backstop** for an artifact that carries no
 /// usable `size` (`size == 0`). A manifest parsed by [UpdateManifest] can never
