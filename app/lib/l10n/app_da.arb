@@ -8274,6 +8274,10 @@
   "@shorthandEditorErrorDuplicate": {
     "x-sourceSha256": "652678e63db28b88cf7ee418247d06d9a21db5efad07e7753757d3581bc29dbf"
   },
+  "shorthandEditorErrorDuplicateHidden": "\"{token}\" er allerede en kortform for en af dine egne figurer. De vises her, når Egne figurer er slået til.",
+  "@shorthandEditorErrorDuplicateHidden": {
+    "x-sourceSha256": "7e3ee1d83196cfbd629298030de3866e4a983082c6b7fc1f5a0312d316091c27"
+  },
   "shorthandEditorErrorNoFigures": "Tilføj mindst én figur, som denne kortform skal udvide til.",
   "@shorthandEditorErrorNoFigures": {
     "x-sourceSha256": "35363a122b3e910c9c6e0317b77c43c92231c5d2bbbb845ebd5ede6b20b2b3c8"

@@ -29,6 +29,40 @@ String compoundArgumentsText(
     },
 ].join(', ');
 
+final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
+
+/// A stored compound shorthand ([CompoundShorthand.toJson]) as one line, from
+/// the stored value alone, where its figure's definition is not at hand (the
+/// sync conflict view): the figure's name and each value, readable and in the
+/// dialect's words, in the order stored. Null when [value] is not one.
+String? compoundShorthandValueText(
+  AppLocalizations l10n,
+  Object? value,
+  Dialect dialect,
+) {
+  if (value case {
+    'name': final String name,
+    'args': final Map<Object?, Object?> args,
+  }) {
+    final shown = _renderer.renderFreeText(name, dialect);
+    if (args.isEmpty) return shown;
+    final values = [
+      for (final v in args.values)
+        switch (v) {
+          ParamVocab.unspecified => l10n.danceEditorParamNotStated,
+          final String text => humanizeToken(
+            _renderer.renderFreeText(text, dialect),
+          ),
+          true => l10n.commonYes,
+          false => l10n.commonNo,
+          _ => '$v',
+        },
+    ];
+    return l10n.danceEditorCompoundSummary(shown, values.join(', '));
+  }
+  return null;
+}
+
 /// The editor for one argument of one of the user's compound figures (#709):
 /// the parameter's kind's own editor, its choices narrowed to the values the
 /// compound accepts ([allowedValues]).

@@ -99,9 +99,13 @@ class ShorthandMappingsScreen extends StatelessWidget {
       for (final m in controller.mappings) m.normalizedToken,
       for (final c in controller.compoundShorthands) c.normalizedToken,
     };
+    final hidden = _hiddenCompoundTokens(context, controller);
     final edited = await Navigator.of(context).push<ShorthandMapping>(
       MaterialPageRoute(
-        builder: (_) => ShorthandMappingEditorScreen(existingTokens: existing),
+        builder: (_) => ShorthandMappingEditorScreen(
+          existingTokens: existing,
+          hiddenTokens: hidden,
+        ),
       ),
     );
     if (edited == null) return;
@@ -123,17 +127,28 @@ class ShorthandMappingsScreen extends StatelessWidget {
         if (i != index) mappings[i].normalizedToken,
       for (final c in controller.compoundShorthands) c.normalizedToken,
     };
+    final hidden = _hiddenCompoundTokens(context, controller);
     final edited = await Navigator.of(context).push<ShorthandMapping>(
       MaterialPageRoute(
         builder: (_) => ShorthandMappingEditorScreen(
           initial: current,
           existingTokens: existing,
+          hiddenTokens: hidden,
         ),
       ),
     );
     if (edited == null) return;
     await controller.upsert(edited, index: index);
   }
+
+  /// The compound shorthands' tokens while their section is hidden (Custom
+  /// Figures off): still taken, but not on screen.
+  static Set<String> _hiddenCompoundTokens(
+    BuildContext context,
+    ShorthandMappingsController controller,
+  ) => customFiguresShown(context)
+      ? const {}
+      : {for (final c in controller.compoundShorthands) c.normalizedToken};
 
   Future<void> _confirmDelete(
     BuildContext context,
@@ -226,7 +241,10 @@ class _CompoundShorthandsSectionState
 
   CompendiumRepositories? _repos;
   StreamSubscription<List<UserGlossaryEntry>>? _sub;
-  Map<String, UserGlossaryEntry> _entries = const {};
+
+  /// The user's glossary entries by id; null until first read, when no row
+  /// is yet judged usable or not.
+  Map<String, UserGlossaryEntry>? _entries;
 
   @override
   void didChangeDependencies() {
@@ -249,7 +267,7 @@ class _CompoundShorthandsSectionState
   }
 
   CompoundDefinition? _definition(String id) {
-    final entry = _entries[id];
+    final entry = _entries?[id];
     if (entry == null || entry.kind != UserGlossaryEntryKind.compound) {
       return null;
     }
@@ -361,7 +379,7 @@ class _CompoundShorthandsSectionState
     Set<String> figureTokens,
   ) {
     final theme = Theme.of(context);
-    final entry = _entries[shorthand.compoundId];
+    final entry = _entries?[shorthand.compoundId];
     final name = _renderer.renderFreeText(
       entry?.name ?? shorthand.compoundName,
       dialect,
@@ -381,7 +399,7 @@ class _CompoundShorthandsSectionState
     final shadowed = figureTokens.contains(shorthand.normalizedToken);
     final problem = shadowed
         ? l10n.shorthandsCompoundShadowed
-        : usable
+        : usable || _entries == null
         ? null
         : l10n.shorthandsCompoundUnavailable;
     final definition = _definition(shorthand.compoundId);

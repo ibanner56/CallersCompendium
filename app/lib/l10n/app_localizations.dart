@@ -12572,6 +12572,12 @@ abstract class AppLocalizations {
   /// **'Another shorthand already uses \"{token}\" (shorthands are matched case-insensitively).'**
   String shorthandEditorErrorDuplicate(String token);
 
+  /// Validation error when a figure shorthand's token is taken by a shorthand for one of the user's own figures, which the screen hides while the Custom Figures setting is off; {token} is the user's token.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{token}\" is already a shorthand for one of your own figures. Those are listed here while Custom Figures is on.'**
+  String shorthandEditorErrorDuplicateHidden(String token);
+
   /// Validation error when no target figures have been added to a shorthand.
   ///
   /// In en, this message translates to:

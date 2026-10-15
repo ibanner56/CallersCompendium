@@ -7987,7 +7987,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get shorthandsCompoundShadowed =>
-      '使用されていません。フィギュアショートハンドに同じテキストがあります。';
+      '使用されていません。フィギュアのショートハンドに同じテキストがあります。';
 
   @override
   String get compoundShorthandEditorFigureLabel => '自分のフィギュア';
@@ -8034,6 +8034,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String shorthandEditorErrorDuplicate(String token) {
     return '別のショートハンドがすでに「$token」を使用しています（大文字と小文字を区別せずに一致します）。';
+  }
+
+  @override
+  String shorthandEditorErrorDuplicateHidden(String token) {
+    return '「$token」は自分のフィギュア用のショートハンドとしてすでに使われています。それらはカスタムフィギュアがオンのときにここに表示されます。';
   }
 
   @override

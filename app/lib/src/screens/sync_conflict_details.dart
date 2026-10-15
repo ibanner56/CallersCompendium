@@ -11,6 +11,7 @@ import '../data/custom_theme.dart';
 import '../search/facet_labels.dart';
 import '../sync/sync_setting_labels.dart';
 import '../theme/app_spacing.dart';
+import '../widgets/compound_argument_editor.dart';
 import '../widgets/program_status_labels.dart';
 import '../widgets/provenance_labels.dart';
 
@@ -552,16 +553,8 @@ class SyncConflictComparison extends StatelessWidget {
       case compoundShorthandsSettingKey:
         // One of the user's own figures, by the name the shorthand stored,
         // with the values it gives.
-        if (value case {
-          'name': final String name,
-          'args': final Map<Object?, Object?> args,
-        }) {
-          final shown = _renderer.renderFreeText(name, dialect);
-          return args.isEmpty
-              ? shown
-              : l10n.danceEditorCompoundSummary(shown, args.values.join(', '));
-        }
-        return l10n.syncConflictValueNotSet;
+        return compoundShorthandValueText(l10n, value, dialect) ??
+            l10n.syncConflictValueNotSet;
       default:
         // A dialect or theme: name what differs inside it is beyond this
         // view; its name and a count of its parts tell the two apart.

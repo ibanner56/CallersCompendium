@@ -1521,6 +1521,10 @@ makes self-hosting materially harder, which constraint 4 forbids.
   > memory only; because a written choice is already the newest version
   > everywhere, undo cannot restore "undecided", so it reopens the choice and
   > writes only when the user chooses again.
+  >
+  > **Amended 2026-10-15.** A fifth key joins them: `compound_shorthands`,
+  > the user's shorthands for their own compound figures (#709), compared and
+  > combined token by token like `shorthand_mappings`.
 - **Re-attaching to the same store can leave the previous attachment behind
   as an inactive device.** Because each attachment has its own device ID, an
   old manifest left on the server stays under the old identifier. It shows

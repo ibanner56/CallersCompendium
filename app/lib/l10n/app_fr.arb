@@ -8274,6 +8274,10 @@
   "@shorthandEditorErrorDuplicate": {
     "x-sourceSha256": "652678e63db28b88cf7ee418247d06d9a21db5efad07e7753757d3581bc29dbf"
   },
+  "shorthandEditorErrorDuplicateHidden": "« {token} » est déjà une abréviation pour l’une de vos propres figures. Celles-ci sont listées ici quand « Figures personnalisées » est activé.",
+  "@shorthandEditorErrorDuplicateHidden": {
+    "x-sourceSha256": "7e3ee1d83196cfbd629298030de3866e4a983082c6b7fc1f5a0312d316091c27"
+  },
   "shorthandEditorErrorNoFigures": "Ajoutez au moins une figure que cette abréviation développera.",
   "@shorthandEditorErrorNoFigures": {
     "x-sourceSha256": "35363a122b3e910c9c6e0317b77c43c92231c5d2bbbb845ebd5ede6b20b2b3c8"

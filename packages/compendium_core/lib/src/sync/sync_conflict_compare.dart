@@ -57,8 +57,8 @@ class SyncCollectionDiff {
 ///
 /// Each key has its own notion of identity, matching how its library already
 /// tells entries apart: a dialect by its name, a custom theme by its id, a
-/// figure or compound shorthand by its normalized token, a walkthrough snippet by its
-/// figure signature. Malformed entries are skipped rather than failing the
+/// figure or compound shorthand by its normalized token, a walkthrough
+/// snippet by its figure signature. Malformed entries are skipped rather than failing the
 /// comparison — this is display, and the merge already admitted the value.
 List<SyncCollectionEntry>? syncCollectionEntries(String key, Object? value) {
   switch (key) {

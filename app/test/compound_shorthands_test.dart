@@ -10,8 +10,11 @@ import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
+import 'package:compendium_app/src/screens/glossary/compound_editor_screen.dart';
 import 'package:compendium_app/src/screens/shorthand_mappings_screen.dart';
+import 'package:compendium_app/src/widgets/compound_argument_editor.dart';
 
 import 'figures_support.dart';
 import 'support/l10n_harness.dart';
@@ -94,6 +97,21 @@ void main() {
       );
       expect(controller.hasToken('Grl'), isTrue);
       expect(controller.hasToken('grl', exceptCompoundIndex: 0), isFalse);
+    });
+
+    test('refuses one the next load would drop', () async {
+      final repos = openTestRepositories();
+      final controller = ShorthandMappingsController(repos.settings);
+      addTearDown(controller.dispose);
+      await expectLater(
+        controller.upsertCompound(
+          shorthand(
+            args: {'text': 'x' * (maxCompoundShorthandTextArgLength + 1)},
+          ),
+        ),
+        throwsArgumentError,
+      );
+      expect(controller.compoundShorthands, isEmpty);
     });
 
     test('stores compound shorthands under their own key, and reads both '
@@ -290,6 +308,7 @@ void main() {
       WidgetTester tester, {
       bool customFigures = true,
       List<CompoundShorthand> compounds = const [],
+      List<ShorthandMapping> figureShorthands = const [],
     }) async {
       await tester.binding.setSurfaceSize(const Size(800, 1600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -300,6 +319,14 @@ void main() {
         await repos.userGlossary.upsert(entry);
         for (final c in compounds) {
           await controller.upsertCompound(c);
+        }
+        // Written past the controller's uniqueness check, as two devices
+        // could each add one before they sync.
+        if (figureShorthands.isNotEmpty) {
+          await repos.settings.set(kShorthandMappingsKey, [
+            for (final m in figureShorthands) m.toJson(),
+          ]);
+          await controller.load();
         }
       });
       final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
@@ -336,8 +363,9 @@ void main() {
       return controller;
     }
 
-    testWidgets('lists them while Custom Figures is on, and hides them, '
-        'kept, while it is off', (tester) async {
+    testWidgets('hides them, kept, while Custom Figures is off', (
+      tester,
+    ) async {
       final controller = await pump(
         tester,
         customFigures: false,
@@ -349,13 +377,143 @@ void main() {
       );
       expect(find.text('GRL'), findsNothing);
       expect(controller.compoundShorthands, hasLength(1));
+    });
 
+    testWidgets('lists them while Custom Figures is on', (tester) async {
       await pump(tester, compounds: [shorthand()]);
       expect(find.text('GRL'), findsOneWidget);
       expect(find.text('grand pull: partners, left'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('compound-shorthand-problem-grl')),
         findsNothing,
+      );
+    });
+
+    testWidgets('says when a figure shorthand has the same token', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        compounds: [shorthand()],
+        figureShorthands: [
+          ShorthandMapping(token: 'GRL', figures: [swing()]),
+        ],
+      );
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('compound-shorthand-problem-grl')),
+            )
+            .data,
+        'Not used: a figure shorthand has the same text.',
+      );
+    });
+
+    Future<void> newFigureShorthand(WidgetTester tester, String token) async {
+      await tester.tap(find.byKey(const ValueKey('new-shorthand')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('shorthand-token-field')),
+        token,
+      );
+      await tester.tap(find.byKey(const ValueKey('shorthand-editor-save')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a figure shorthand cannot take a compound shorthand\'s '
+        'token', (tester) async {
+      await pump(tester, compounds: [shorthand()]);
+      await newFigureShorthand(tester, 'grl');
+      expect(
+        find.text(
+          'Another shorthand already uses "grl" (shorthands are matched '
+          'case-insensitively).',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('while they are hidden, a clash with one says what it is', (
+      tester,
+    ) async {
+      await pump(tester, customFigures: false, compounds: [shorthand()]);
+      await newFigureShorthand(tester, 'grl');
+      expect(
+        find.text(
+          '"grl" is already a shorthand for one of your own figures. Those '
+          'are listed here while Custom Figures is on.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a compound shorthand cannot take a figure shorthand\'s '
+        'token', (tester) async {
+      final controller = await pump(
+        tester,
+        figureShorthands: [
+          ShorthandMapping(token: 'ns', figures: [swing()]),
+        ],
+      );
+      await tester.tap(find.byKey(const ValueKey('new-compound-shorthand')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('compound-shorthand-token')),
+        'NS',
+      );
+      // A figure is picked, so only the token can be refused.
+      await tester.tap(
+        find.byKey(const ValueKey('compound-shorthand-compound')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('grand pull').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('compound-shorthand-save')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'Another shorthand already uses "NS" (shorthands are matched '
+          'case-insensitively).',
+        ),
+        findsOneWidget,
+      );
+      expect(controller.compoundShorthands, isEmpty);
+    });
+
+    testWidgets('one is edited in place, and deleted', (tester) async {
+      final controller = await pump(
+        tester,
+        compounds: [
+          shorthand(),
+          shorthand(token: 'other'),
+        ],
+      );
+      await tester.tap(find.text('GRL'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('compound-shorthand-token')),
+        'GRL2',
+      );
+      await tester.tap(find.byKey(const ValueKey('compound-shorthand-save')));
+      await tester.pumpAndSettle();
+      expect(
+        [for (final c in controller.compoundShorthands) c.token],
+        ['GRL2', 'other'],
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('compound-shorthand-menu-grl2')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('compound-shorthand-delete')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('compound-shorthand-delete-confirm')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        [for (final c in controller.compoundShorthands) c.token],
+        ['other'],
       );
     });
 
@@ -423,5 +581,67 @@ void main() {
       );
       expect(controller.compoundShorthands, hasLength(1));
     });
+  });
+
+  testWidgets('a custom figure cannot be named like a compound shorthand', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(600, 2400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final repos = openTestRepositories();
+    final controller = ShorthandMappingsController(repos.settings);
+    addTearDown(controller.dispose);
+    await tester.runAsync(() => controller.upsertCompound(shorthand()));
+    final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(dialect.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(
+            notifier: dialect,
+            child: ShorthandMappingsScope(
+              controller: controller,
+              child: child!,
+            ),
+          ),
+        ),
+        home: CompoundEditorScreen(initial: entry),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('compound-name')), 'GRL');
+    await tester.tap(find.byKey(const ValueKey('compound-editor-save')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('is already the name'), findsOneWidget);
+  });
+
+  testWidgets('a stored one reads in the conflict view as its figure and '
+      'values, in words', (tester) async {
+    late String text;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Builder(
+          builder: (context) {
+            text = compoundShorthandValueText(AppLocalizations.of(context), {
+              'token': 'GRL',
+              'compound': 'grl',
+              'name': 'role1s pull',
+              'args': {
+                'who': 'role2s',
+                'hand': ParamVocab.unspecified,
+                'balance': true,
+              },
+            }, Dialect.larksRobins)!;
+            return const SizedBox();
+          },
+        ),
+      ),
+    );
+    expect(text, 'larks pull: robins, not stated, Yes');
   });
 }
