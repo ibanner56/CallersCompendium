@@ -1,8 +1,12 @@
 import '../model/figure.dart';
 import '../taxonomy/gate_facing.dart';
 import '../taxonomy/move_def.dart';
+import '../taxonomy/param_opposites.dart';
 import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
+import '../taxonomy/user_figure_definition.dart';
+import '../taxonomy/user_figure_use.dart';
+import '../util/text_sanitizer.dart';
 import 'dialect.dart';
 import 'discouraged_terms.dart';
 import 'substitution.dart';
@@ -123,9 +127,15 @@ enum _BalancePlacement { leading, afterWho }
 /// search/FTS) and display (a chosen [Dialect] applied). Pure functions —
 /// golden-tested.
 class FigureRenderer {
-  FigureRenderer(this.taxonomy);
+  FigureRenderer(this.taxonomy, {this.userFigures = UserFigureCatalog.empty});
 
   final Taxonomy taxonomy;
+
+  /// The user's own figures (#1023): a use of one renders live from its
+  /// definition here, on every path, canonical included. A use whose figure
+  /// is absent from the catalog, or which cannot render live, shows the line
+  /// it stored, as every build does.
+  final UserFigureCatalog userFigures;
 
   /// Canonical text for [figure]: role tokens stay as `role1`/`role2`, no
   /// dialect. Used to build the search index.
@@ -371,6 +381,14 @@ class FigureRenderer {
     bool canonicalizeDiscouragedTerms = false,
   }) {
     if (figure.isCustom) {
+      final live = _renderUserFigure(
+        figure,
+        dialect,
+        verbose: verbose,
+        decimals: decimals,
+        forCanonical: forCanonical,
+      );
+      if (live != null) return live;
       final text = (figure.params['text'] as String?)?.trim() ?? '';
       if (text.isEmpty) return customMove;
       return canonicalizeDiscouragedTerms
@@ -1645,6 +1663,115 @@ class FigureRenderer {
     final term = dialect.roles[baseId];
     if (term == null) return token; // canonical: render the token itself
     return plural ? term.plural : term.singular;
+  }
+
+  /// The canonical line a use of a figure of your own renders to from its
+  /// definition, or null when it cannot render live (see
+  /// [_renderUserFigure]). What a use's stored line is refreshed to.
+  String? renderUserFigureCanonical(Figure figure) => _renderUserFigure(
+    figure,
+    Dialect.canonical,
+    verbose: false,
+    decimals: false,
+    forCanonical: true,
+  );
+
+  /// Renders a use of a figure of your own (#1023) from its definition, or
+  /// returns null so the caller shows the stored line instead: when [figure]
+  /// holds no readable use, the use is detached ([UserFigureUse.attached]),
+  /// its figure is not in [userFigures] or no longer decodes, or an argument
+  /// is outside its parameter's values (a choice since removed, say).
+  ///
+  /// The template is rendered in [dialect] first, then its slots are filled
+  /// in one pass that never rescans a value, so an argument can never inject
+  /// a slot. Role tokens cannot be parameter keys, so substitution cannot
+  /// touch a `{…}`.
+  String? _renderUserFigure(
+    Figure figure,
+    Dialect dialect, {
+    required bool verbose,
+    required bool decimals,
+    required bool forCanonical,
+  }) {
+    final use = userFigureUseOf(figure);
+    if (use == null || !use.attached) return null;
+    final view = userFigures[use.id];
+    final definition = view?.definition;
+    if (view == null || definition == null) return null;
+    final slots = <String, String>{};
+    for (final param in definition.params) {
+      final value = use.args.containsKey(param.key)
+          ? use.args[param.key]
+          : param.defaultValue;
+      if (value != null && !param.spec.validate(value)) return null;
+      slots[param.key] = _renderUserFigureValue(
+        param,
+        value,
+        dialect,
+        verbose: verbose,
+        decimals: decimals,
+        forCanonical: forCanonical,
+      );
+      if (ParamOpposites.coverage(param.kind) != OppositeCoverage.none) {
+        final opposite = ParamOpposites.of(param.kind, value);
+        slots[userFigureOppositeSlot(param.key)] = opposite == null
+            ? ''
+            : _renderValue(
+                'value',
+                opposite,
+                ParamSpec(param.kind, defaultValue: null),
+                dialect,
+                verbose,
+                decimals,
+                forCanonical,
+              );
+      }
+    }
+    slots[userFigureMoveSlot] = renderFreeText(view.name, dialect);
+    final beats = figure.params['beats'];
+    slots[userFigureBeatsSlot] = _formatNumber(
+      beats is int ? beats : definition.defaultBeats,
+    );
+    final line = _assembleDisplayTemplate(
+      _displayTemplate(slots, renderFreeText(definition.template, dialect)),
+    );
+    return line.isEmpty ? null : line;
+  }
+
+  String _renderUserFigureValue(
+    UserFigureParam param,
+    Object? value,
+    Dialect dialect, {
+    required bool verbose,
+    required bool decimals,
+    required bool forCanonical,
+  }) {
+    if (value == null) return '';
+    switch (param.kind) {
+      case ParamKind.choice:
+        final label = param.choiceLabel(value);
+        return label == null ? '' : renderFreeText(label, dialect);
+      case ParamKind.text:
+        return renderFreeText(
+          sanitizeImportedText(value as String, allowLineBreaks: false),
+          dialect,
+        );
+      case ParamKind.flag:
+        if (value != true) return '';
+        return renderFreeText(param.label ?? param.key, dialect);
+      default:
+        // A neutral name, so no user key reaches the renderer's name-based
+        // wording (a choice named `prefix`, places named `changes`).
+        return _renderValue(
+          'value',
+          value,
+          param.spec,
+          dialect,
+          verbose,
+          decimals,
+          forCanonical,
+        );
+    }
   }
 
   /// Free-text (notes, hooks, custom figures): apply role-term substitution

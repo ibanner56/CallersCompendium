@@ -7,6 +7,7 @@ import '../dialect/renderer.dart';
 import '../model/figure.dart';
 import '../model/phrase_structure.dart';
 import '../taxonomy/taxonomy.dart';
+import '../taxonomy/user_figure_use.dart';
 
 /// Maximum number of figures honoured on **either side** of [diffFigures]
 /// before it declines the full O(n·m) LCS pass (issue #686, OWASP-adjacent
@@ -90,6 +91,20 @@ String figureCanonicalKey(Figure figure, Taxonomy taxonomy) {
     return '${figure.move}(${jsonEncode(childKeys.toList())})';
   }
   if (figure.isCustom) {
+    // A use of a figure of your own (#1023) is keyed by the figure and its
+    // arguments, not its stored line: editing the definition re-renders
+    // every use without rewriting the dances (maintainer decision 2), so two
+    // uses with the same arguments may store different lines.
+    final use = userFigureUseOf(figure);
+    if (use != null && use.attached) {
+      final keys = use.args.keys.toList()..sort();
+      final parts = [
+        for (final key in keys)
+          if (use.args[key] case final Object value)
+            '$key=${_normalizeValue(value)}',
+      ];
+      return 'userFigure:${use.id}(${parts.join(',')})';
+    }
     final rawText = figure.params['text'];
     final text = rawText is String ? rawText : '';
     return 'custom:${_collapseWhitespace(text)}';

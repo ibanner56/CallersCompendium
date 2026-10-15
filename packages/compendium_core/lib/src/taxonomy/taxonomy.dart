@@ -4,6 +4,7 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../validation/validation.dart';
 import 'move_def.dart';
+import 'user_figure_use.dart';
 
 /// A versioned, per-form move taxonomy.
 ///
@@ -348,7 +349,26 @@ class Taxonomy {
         ),
       ];
     }
+    // A use of a figure of your own (#1023) is a custom figure with exactly
+    // three more keys; they are checked as a whole, by shape.
+    if (def.id == customMove && hasUserFigureReferenceKeys(figure)) {
+      final readable =
+          userFigureUseOf(figure) != null &&
+          userFigureReferenceKeys.every(figure.params.containsKey);
+      if (!readable) {
+        issues.add(
+          const ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'invalid_param_value',
+            message: 'a use of a figure of your own is malformed',
+          ),
+        );
+      }
+    }
     for (final entry in figure.params.entries) {
+      if (def.id == customMove && userFigureReferenceKeys.contains(entry.key)) {
+        continue;
+      }
       final spec = def.params[entry.key];
       if (spec == null) {
         issues.add(

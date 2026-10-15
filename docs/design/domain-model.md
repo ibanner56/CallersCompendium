@@ -306,7 +306,12 @@ glossary. A `UserGlossaryEntry` carries a name, definition, description,
 optional keywords and notes, and a kind-specific payload; its `kind` is
 `compound` (a named, parameterised sequence of shipped figures) or one of the
 kinds reserved for #1023, `term` (the former `GlossaryTerm` idea) and
-`customFigure`. A `FigureNote` is the user's note on one shipped figure.
+`customFigure`. A `customFigure` payload is a `UserFigureDefinition`
+(`user_figure_definition.dart`): the dance form, a #822 wording template,
+default beats, and the declared parameters, a `choice` parameter's choices
+carrying stable ids beside editable labels. Every kind's payload may name a
+dance `form` (contra when it names none), and keys a build does not know are
+carried through an edit. A `FigureNote` is the user's note on one shipped figure.
 Neither is part of a dance; both are carried by backups (`app.glossary`) and by
 Device Sync (once every attached device can read them), not by archives.
 

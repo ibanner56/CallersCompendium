@@ -118,6 +118,13 @@ free text (notes/custom) ──term regex (case-preserving)──▶ display tex
   dialect's move template, then the existing renderer output. Move templates
   replace the display line; summary modifiers are not appended to a templated
   line.
+- A use of a figure of your own (#1023) renders from its definition's
+  template: the template is rendered in the dialect first (role tokens), then
+  its slots are filled in one pass that never rescans a value, so an argument
+  cannot inject a slot. A parameter key can never be a role token, so the
+  substitution cannot touch a `{…}`. The canonical render does the same in the
+  canonical dialect. Without the definition, the use shows its stored line as
+  any custom figure does.
 - Search always runs against canonical text/structures → dialect never affects
   results (dialect-agnostic search for free).
 - Print/export lets the user choose canonical or active dialect; exports embed
@@ -308,6 +315,7 @@ Edge rules:
 | Free text: custom figures, figure notes | ✅ (canonical on save, rendered on read) |
 | User-glossary text: custom compounds, notes on built-in figures | ✅ (glossary variant on save, rendered on read; #709) |
 | Figure notes inside a custom compound's parts | ✅ (`canonicalizeText` on save, as a dance's figure notes; #709) |
+| A figure of your own's wording template, choice and flag labels, text arguments | ✅ rendered on read (#1023) |
 | Hand-typed prose: hooks, calling notes, walkthrough | ❌ verbatim (intentional; #613) |
 | Per-dance figure wording override | ✅ display-only; canonical identity unchanged |
 | Program notes / free-text slots | ❌ verbatim (intentional; #665 not planned) |

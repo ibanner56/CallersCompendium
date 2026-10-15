@@ -7,6 +7,7 @@ import '../model/figure.dart';
 import '../serialization/figure_codec.dart';
 import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
+import '../taxonomy/user_figure_use.dart';
 
 /// Upper bound on how many shorthand mappings we will decode from persisted
 /// config. The store is user-editable and plausibly shareable, so it is treated
@@ -314,6 +315,10 @@ class ShorthandMappings {
       });
     }
 
+    // A use of a figure of your own (#1023) never lives here: builds before
+    // it drop such a mapping when they read this key, so refusing it keeps
+    // every build's reading the same. They have a key of their own.
+    if (hasUserFigureReferenceKeys(figure)) return false;
     final issues = taxonomy.validateFigure(figure);
     return !issues.any((i) => i.severity == ValidationSeverity.error);
   }

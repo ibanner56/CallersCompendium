@@ -1646,6 +1646,65 @@ void main() {
       );
       expect(figures[1].wordingOverride!.length, kMaxWalkthroughSnippetLength);
     });
+
+    test('a use of a figure of your own has its arguments scrubbed, inside '
+        'containers too, and keeps only scalar ones (#1023)', () {
+      Map<String, Object?> useJson() => {
+        'move': 'custom',
+        'params': {
+          'text': 'zoom\u202E',
+          'userFigure': 'zoom-id',
+          'userFigureArgs': {
+            'where': 'home\u0007\u202E',
+            'hand': 'right',
+            'count': 2,
+            'loud': true,
+            'nested': {'a': 1},
+            'list': [1],
+          },
+          'userFigureCheck': '00000000',
+        },
+      };
+      final archive = {
+        'schemaVersion': archiveSchemaVersion,
+        'exportedAt': '2026-01-01T00:00:00.000Z',
+        'dances': [
+          {
+            'id': 'd1',
+            'title': 'Zoom',
+            'authorIds': <String>[],
+            'phraseStructure': '',
+            'figures': [
+              useJson(),
+              {
+                'move': 'meanwhile',
+                'params': {
+                  'beats': 8,
+                  'figures': [
+                    useJson(),
+                    {'move': 'swing', 'params': <String, Object?>{}},
+                  ],
+                },
+              },
+            ],
+            'createdAt': '2026-01-01T00:00:00.000Z',
+            'updatedAt': '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      };
+      final result = decodeArchive(jsonEncode(archive));
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      final figures = figuresOf(result.archive.dances.single);
+      for (final figure in [figures[0], figures[1].subFigures.first]) {
+        expect(figure.params['text'], 'zoom');
+        expect(figure.params['userFigureArgs'], {
+          'where': 'home',
+          'hand': 'right',
+          'count': 2,
+          'loud': true,
+        });
+      }
+    });
   });
 
   // ---------------------------------------------------------------------------
