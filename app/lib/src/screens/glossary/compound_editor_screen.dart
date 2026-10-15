@@ -162,8 +162,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         draftsByIndex[i] = draft;
         _drafts.add(draft);
       } on Object {
-        // A figure that no longer reads is left out; the entry stays broken
-        // until the user saves a repaired one.
+        // diagnostics: silent — a figure that no longer reads is left out; the
+        // entry stays broken, and is shown as needing repair, until the user
+        // saves a repaired one.
         continue;
       }
     }
