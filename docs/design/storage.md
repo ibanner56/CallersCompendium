@@ -73,10 +73,12 @@ lives in the core package; all access through repositories.*
   of your own is indexed as it renders, from its live definition in
   `user_glossary_entries`, and its reference stays in `params_json` only while
   the use is attached and its figure is live. A local write of such a
-  definition rebuilds the derived rows of the dances using it (found by their
-  `figures_json`, soft-deleted dances included) without rewriting the dances
-  themselves; a sync apply batch already rebuilds every dance's rows, from the
-  live figures.
+  definition rebuilds the derived rows of the live dances using it (found by
+  their `figures_json`) without rewriting the dances themselves; a dance in
+  the Trash is rebuilt when restored, and a sync apply batch already rebuilds
+  every dance's rows, from the live figures. Deleting a figure freezes each use
+  in a live dance as plain text; a dance in the Trash keeps the line its use
+  last stored.
 
 ## Tables (abridged)
 

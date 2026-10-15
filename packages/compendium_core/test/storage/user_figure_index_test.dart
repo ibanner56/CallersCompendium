@@ -81,7 +81,7 @@ void main() {
     expect(
       figuresOf(stored).single.params['text'],
       'a stale stored line',
-      reason: 'the stored line refreshes only when the dance is saved',
+      reason: 'the dance itself is not rewritten',
     );
   });
 
@@ -114,10 +114,20 @@ void main() {
     final detached = use().copyWith(
       params: {...use().params, 'text': 'typed on an older device'},
     );
-    await repos.dances.create(dance('d1', [use(), detached]));
+    final outOfRange = userFigureUseFigure(
+      id: 'zoom-id',
+      args: const {'hand': 'sideways'},
+      text: 'neighbors zoom sideways',
+    );
+    await repos.dances.create(dance('d1', [use(), detached, outOfRange]));
     final params = await indexedParams('d1');
     expect(params[0][userFigureRefKey], 'zoom-id');
     expect(params[1].containsKey(userFigureRefKey), isFalse);
+    expect(
+      params[2].containsKey(userFigureRefKey),
+      isFalse,
+      reason: 'an argument the figure no longer takes shows the stored line',
+    );
 
     await repos.userGlossary.delete('zoom-id', at: removed);
     expect(
@@ -141,7 +151,7 @@ void main() {
   });
 
   test('deleting a figure freezes each live use to the line it renders to '
-      'now, in one write per dance', () async {
+      'now', () async {
     await repos.userGlossary.upsert(figure(), at: created);
     await repos.dances.create(
       dance('d1', [use(text: 'a stale stored line'), Figure(move: 'swing')]),
@@ -157,6 +167,42 @@ void main() {
     expect((await repos.dances.getById('d2'))!.updatedAt, saved);
     expect(await repos.userGlossary.getById('zoom-id'), isNull);
     expect(await repos.dances.countDancesUsingUserFigure('zoom-id'), 0);
+  });
+
+  test('a use inside a container is frozen too', () async {
+    await repos.userGlossary.upsert(figure(), at: created);
+    await repos.dances.create(
+      dance('d1', [
+        Figure.meanwhile(
+          figures: [
+            use(text: 'stale'),
+            Figure(move: 'swing'),
+          ],
+          beats: 8,
+        ),
+      ]),
+    );
+    expect(await repos.deleteUserFigure('zoom-id', at: removed), 1);
+    final side = figuresOf(
+      (await repos.dances.getById('d1'))!,
+    ).single.subFigures.first;
+    expect(side.params, {'text': 'neighbors zoom right'});
+  });
+
+  test('a dance in the Trash is not counted or frozen, and restored shows '
+      'the line its use last stored', () async {
+    await repos.userGlossary.upsert(figure(), at: created);
+    await repos.dances.create(dance('d1', [use(text: 'neighbors zoom right')]));
+    await repos.userGlossary.upsert(
+      figure(template: '{who} whirl {hand}'),
+      at: edited,
+    );
+    await repos.dances.softDelete('d1', at: edited);
+    expect(await repos.dances.countDancesUsingUserFigure('zoom-id'), 0);
+    expect(await repos.deleteUserFigure('zoom-id', at: removed), 0);
+    await repos.dances.restore('d1', at: removed.add(const Duration(hours: 1)));
+    expect(await repos.dances.searchText('zoom'), ['d1']);
+    expect(await repos.dances.searchText('whirl'), isEmpty);
   });
 
   test('a soft-deleted dance is not counted or frozen', () async {

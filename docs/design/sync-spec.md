@@ -1256,7 +1256,8 @@ four in-scope columns do not feed it.** `runDerivedRebuild` forwards to
 `dance_substring_fts` and `dance_figures` for every dance; it is the only
 rebuild routine that exists. Its indexed columns are `title, authors, hook,
 notes, figures_text, custom_values, sources`, and the row is assembled from
-resolved author names, custom-field *values* and source texts
+resolved author names, custom-field *values*, source texts and, since #1023,
+the live definitions of the user's own figures the dance uses
 (`dance_repository.dart:509`–`:531`). Of the four tables this pass exists for,
 only `choreographers.name` reaches an index, through `authors`; `tags.name`,
 `custom_field_defs.key` and `difficulty_levels.label` reach none. So a pass
