@@ -2,6 +2,7 @@ import '../model/figure.dart';
 import '../storage/figure_reparse.dart';
 import '../taxonomy/taxonomy.dart';
 import 'figure_front_end_fan_out.dart';
+import '../taxonomy/user_figure_use.dart';
 
 /// Upper bound on the length of stored custom text we will feed back through
 /// the parser. Import-gap text is a single figure line (typically a few dozen
@@ -150,6 +151,9 @@ Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy) {
   if (!figure.isCustom || figure.customOrigin != CustomOrigin.importGap) {
     return null;
   }
+  // A use of a figure of your own (#1023) is never an import gap, whatever
+  // its origin says: re-parsing its line would drop the reference.
+  if (hasUserFigureReferenceKeys(figure)) return null;
 
   final rawText = figure.params['text'];
   if (rawText is! String) return null;
