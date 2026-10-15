@@ -72,14 +72,24 @@ void main() {
     }
   });
 
-  testWidgets('silent while this build advertises nothing, as it does today', (
+  testWidgets('silent while a build advertises nothing', (tester) async {
+    for (final path in const ['create', 'connect']) {
+      await pump(tester, const SyncCapabilityPolicy());
+      await choose(tester, path);
+      expect(find.byKey(finder), findsNothing, reason: path);
+    }
+  });
+
+  testWidgets('shown by this build, which advertises glossary.v1 (#709)', (
     tester,
   ) async {
-    expect(SyncCapabilityPolicy.build.advertised, isEmpty);
+    expect(SyncCapabilityPolicy.build.advertised, {
+      SyncCapabilities.glossaryV1,
+    });
     for (final path in const ['create', 'connect']) {
       await pump(tester, SyncCapabilityPolicy.build);
       await choose(tester, path);
-      expect(find.byKey(finder), findsNothing, reason: path);
+      expect(find.byKey(finder), findsOneWidget, reason: path);
     }
   });
 }
