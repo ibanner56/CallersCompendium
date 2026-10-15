@@ -1192,7 +1192,9 @@ class DanceRepository {
   /// that uses the figure of your own [userFigureId] (#1023), so search
   /// follows its definition. Editing a definition re-renders its uses without
   /// rewriting the dances (maintainer decision 2); this is what keeps their
-  /// index in step. Returns the number of dances rebuilt.
+  /// index in step after a local write. A sync apply batch rebuilds every
+  /// dance's rows anyway ([rebuildAllDerived]). Returns the number of dances
+  /// rebuilt.
   Future<int> reindexDancesUsingUserFigure(String userFigureId) async {
     final ids = await _danceIdsUsingUserFigure(
       userFigureId,

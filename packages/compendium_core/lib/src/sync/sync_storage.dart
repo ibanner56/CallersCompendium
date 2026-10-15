@@ -5092,16 +5092,6 @@ final class CompendiumSyncStorage
       deletedAt: record.deletedAt,
       existenceAt: record.existenceAt,
     );
-    // A figure of your own renders its uses live (#1023): once its new
-    // definition, or its tombstone, has landed with its timestamps, the
-    // dances using it are indexed from it. Their own sync writes index them
-    // from whatever has landed by then, so either order of arrival ends
-    // indexed alike.
-    if (kind == SyncRecordKind.glossaryEntry) {
-      await repositories.dances.reindexDancesUsingUserFigure(
-        record.address.recordId,
-      );
-    }
     // Last, once the record has actually landed. Cancelling earlier discarded
     // the deferred tombstone even when the write was then reported and skipped
     // — a malformed body, a held natural key — and the deletion could never

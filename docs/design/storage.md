@@ -72,10 +72,11 @@ lives in the core package; all access through repositories.*
   check + repair on migration). One more input since #1023: a use of a figure
   of your own is indexed as it renders, from its live definition in
   `user_glossary_entries`, and its reference stays in `params_json` only while
-  the use is attached and its figure is live. Every write of such a
+  the use is attached and its figure is live. A local write of such a
   definition rebuilds the derived rows of the dances using it (found by their
-  `figures_json`, soft-deleted dances included), locally and on sync apply,
-  without rewriting the dances themselves.
+  `figures_json`, soft-deleted dances included) without rewriting the dances
+  themselves; a sync apply batch already rebuilds every dance's rows, from the
+  live figures.
 
 ## Tables (abridged)
 
