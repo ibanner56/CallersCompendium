@@ -51,7 +51,8 @@ StoredUserGlossaryEntry decodeSyncGlossaryEntryBody(Map<String, Object?> body) {
   if (keywords is! List ||
       keywords.length > maxUserGlossaryKeywords ||
       keywords.any(
-        (k) => k is! String || k.isEmpty || k.length > maxUserGlossaryNameLength,
+        (k) =>
+            k is! String || k.isEmpty || k.length > maxUserGlossaryNameLength,
       )) {
     throw const FormatException('glossary entry keywords are invalid');
   }

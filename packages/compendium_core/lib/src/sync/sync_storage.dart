@@ -6347,8 +6347,8 @@ final class CompendiumSyncStorage
         )..where((row) => row.id.equals(id))).getSingleOrNull())?.updatedAt;
       case SyncRecordKind.figureNote:
         return (await (_db.select(
-          _db.figureNotes,
-        )..where((row) => row.figureId.equals(id))).getSingleOrNull())
+              _db.figureNotes,
+            )..where((row) => row.figureId.equals(id))).getSingleOrNull())
             ?.updatedAt;
     }
   }
