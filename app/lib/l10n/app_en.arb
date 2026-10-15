@@ -1693,7 +1693,7 @@
   "@settingsSyncPairingNewerDataTitle": {
     "description": "Heading of the pairing disclosure shown when this version syncs data earlier app versions cannot read (#709): earlier versions may be unable to connect, and that data waits until every device is updated."
   },
-  "settingsSyncPairingNewerDataBody": "This version syncs some things that earlier versions of the app can't read. Update each device before you connect it: one running an earlier version may not be able to connect. Until every connected device is up to date, those things stay on the device they were made on.",
+  "settingsSyncPairingNewerDataBody": "This version syncs some things that earlier versions of the app can't read. Update each device before you connect it: one running an earlier version may not be able to connect. Until every connected device is up to date, those things aren't sent to your other devices.",
   "@settingsSyncPairingNewerDataBody": {
     "description": "Body of the pairing disclosure about devices on earlier app versions (#709). 'Those things' are the kinds of data the earlier versions cannot read; they are kept, not lost, and sync once every device is updated."
   },

@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "Device Sync now carries your own figures from the Glossary, your notes on built-in figures, the Custom Figures setting and your shorthands for your own figures, once every device connected to your store has this version of the app or a later one. Until then they stay on the device they were made on, and Device Sync names the device holding them back. Because of this, the screen for connecting a device now says that every device needs an up-to-date app: one on an earlier version may not be able to connect."
+      "Device Sync now carries your own figures from the Glossary, your notes on built-in figures, the Custom Figures setting and your shorthands for your own figures, once every device connected to your store has this version of the app or a later one. Until then changes to them aren't sent to your other devices, and Device Sync names the device holding them back. Because of this, the screen for connecting a device now says that every device needs an up-to-date app: one on an earlier version may not be able to connect."
     ]
   },
   "core": {

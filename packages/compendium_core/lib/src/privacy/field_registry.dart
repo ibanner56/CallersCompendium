@@ -58,6 +58,19 @@ const _key = DataClassification(
       'across a transfer.',
 );
 
+/// The shipped figure a note is about: a taxonomy move or alias id, the
+/// note's identity. Not opaque, but public vocabulary about no one.
+const _figureNoteSubject = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.shareable,
+  isIdentity: true,
+  note:
+      'The id of the shipped figure (taxonomy move or alias) the note is '
+      'about: public vocabulary shipped with the app, about no one. The '
+      "note's identity, so it must travel for the note to reach its figure.",
+);
+
 /// A rebuildable index. Never transmitted: the receiving device recomputes it,
 /// so sending it would be redundant as well as an extra copy to protect.
 const _derivedIndex = DataClassification(
@@ -369,7 +382,7 @@ final Map<String, DataClassification> fieldClassifications = {
   'user_glossary_entries.existence_at': _existenceStamp,
 
   // ------------------------------------------------------------ figure_notes --
-  'figure_notes.figure_id': _key,
+  'figure_notes.figure_id': _figureNoteSubject,
   'figure_notes.notes': _userGlossaryText,
   'figure_notes.updated_at': _recordStamp,
   'figure_notes.deleted_at': _glossaryTombstone,

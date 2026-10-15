@@ -1380,7 +1380,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncPairingNewerDataBody =>
-      'Diese Version synchronisiert einiges, das frühere Versionen der App nicht lesen können. Aktualisiere jedes Gerät, bevor du es verbindest: Ein Gerät mit einer früheren Version kann sich womöglich nicht verbinden. Bis alle verbundenen Geräte aktuell sind, bleibt dies auf dem Gerät, auf dem es erstellt wurde.';
+      'Diese Version synchronisiert einiges, das frühere Versionen der App nicht lesen können. Aktualisiere jedes Gerät, bevor du es verbindest: Ein Gerät mit einer früheren Version kann sich womöglich nicht verbinden. Bis alle verbundenen Geräte aktuell sind, wird dies nicht an deine anderen Geräte gesendet.';
 
   @override
   String get settingsSyncPairingBearerTitle =>

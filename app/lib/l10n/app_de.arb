@@ -1228,9 +1228,9 @@
   "@settingsSyncPairingNewerDataTitle": {
     "x-sourceSha256": "a70ee18e575d46d080d7a7d51c306ac8647d1e4b28b2cf4a6397534f0bd50189"
   },
-  "settingsSyncPairingNewerDataBody": "Diese Version synchronisiert einiges, das frühere Versionen der App nicht lesen können. Aktualisiere jedes Gerät, bevor du es verbindest: Ein Gerät mit einer früheren Version kann sich womöglich nicht verbinden. Bis alle verbundenen Geräte aktuell sind, bleibt dies auf dem Gerät, auf dem es erstellt wurde.",
+  "settingsSyncPairingNewerDataBody": "Diese Version synchronisiert einiges, das frühere Versionen der App nicht lesen können. Aktualisiere jedes Gerät, bevor du es verbindest: Ein Gerät mit einer früheren Version kann sich womöglich nicht verbinden. Bis alle verbundenen Geräte aktuell sind, wird dies nicht an deine anderen Geräte gesendet.",
   "@settingsSyncPairingNewerDataBody": {
-    "x-sourceSha256": "4d930677c1fe7d851fcb0909abedd8931a194760e3c63f5196393e7fc39bb024"
+    "x-sourceSha256": "71895e175c3abfaa7fbb5c050e9583e2f3b0420d09d1653dff98d1e7324a972e"
   },
   "settingsSyncPairingBearerTitle": "Wer diese Phrase hat, kann deine Bibliothek öffnen",
   "@settingsSyncPairingBearerTitle": {

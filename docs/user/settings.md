@@ -585,9 +585,9 @@ kept in your backups.
 With [Device Sync](#device-sync) on, your own figures, your notes on built-in
 figures, the Custom Figures setting and your shorthands for your own figures
 sync to your other devices too, once every device connected to your store has
-this version of the app or a later one. Until then they stay on the device they
-were made on, and Device Sync shows a note naming the device that is holding
-them back (see [New kinds of data wait for every
+this version of the app or a later one. Until then changes to them aren't sent
+to your other devices, and Device Sync shows a note naming the device that is
+holding them back (see [New kinds of data wait for every
 device](#new-kinds-of-data-wait-for-every-device)).
 
 ### Device Sync
@@ -896,8 +896,9 @@ Some things this version syncs can't be read by earlier versions of the app:
 your [own figures and your notes on built-in
 figures](#glossary-and-custom-figures), the Custom Figures setting, and your
 shorthands for your own figures. They start syncing only once every device
-connected to your store has an up-to-date app. Until then they stay on the
-device they were made on, untouched; you can keep using and editing them there.
+connected to your store has an up-to-date app. Until then changes to them
+aren't sent to your other devices, and nothing already on a device is removed;
+you can keep using and editing them on each device.
 
 While something is held back, Device Sync shows a note naming the device that
 is holding it back, by its tag in **Other devices**. Update the app on that

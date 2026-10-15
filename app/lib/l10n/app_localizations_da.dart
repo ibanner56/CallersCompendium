@@ -1371,7 +1371,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncPairingNewerDataBody =>
-      'Denne version synkroniserer nogle ting, som tidligere versioner af appen ikke kan læse. Opdater hver enhed, før du forbinder den: en enhed med en tidligere version kan muligvis ikke forbinde. Indtil alle forbundne enheder er opdateret, bliver de ting på den enhed, hvor de blev lavet.';
+      'Denne version synkroniserer nogle ting, som tidligere versioner af appen ikke kan læse. Opdater hver enhed, før du forbinder den: en enhed med en tidligere version kan muligvis ikke forbinde. Indtil alle forbundne enheder er opdateret, bliver de ting ikke sendt til dine andre enheder.';
 
   @override
   String get settingsSyncPairingBearerTitle =>

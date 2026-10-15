@@ -7432,8 +7432,14 @@ void main() {
       expect((await repos.userGlossary.getById('theirs'))?.name, 'Grand spin');
       expect((await repos.figureNotes.get('swing'))?.notes, 'Smooth.');
       final snapshot = await CompendiumSyncStorage(repos).snapshot();
-      expect(snapshot.local[entry]?.blob.deletedAt, isNull);
-      expect(snapshot.local[note]?.blob.deletedAt, isNull);
+      expect(
+        snapshot.local[entry],
+        isNotNull,
+        reason: 'kept in the merge view',
+      );
+      expect(snapshot.local[note], isNotNull, reason: 'kept in the merge view');
+      expect(snapshot.local[entry]!.blob.deletedAt, isNull);
+      expect(snapshot.local[note]!.blob.deletedAt, isNull);
 
       // Device B holds its own glossary back too now: absence from its
       // manifest is not a deletion (spec §4.5), so its entry stays live here.

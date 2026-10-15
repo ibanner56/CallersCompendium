@@ -1462,7 +1462,7 @@ see below, and §6.15 for when they are published).
 | --- | --- |
 | `v` | Envelope version. A client MUST refuse an unknown value rather than guess. It MUST read `v` before any other envelope check — the exact key set included — so that a newer envelope which also adds a key is refused as *newer* and reported as such (§6.9), not as malformed. The same applies to a manifest's `v` (§4.5). |
 | `kind` | One of the eleven above. |
-| `id` | The record's id — a UUID for entity kinds other than `difficultyLevel` and `figureNote`, one of the fixed shipped IDs or a UUID for `difficultyLevel`, the id of the shipped figure (move or alias) a note annotates for `figureNote`, and the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
+| `id` | The record's id — a UUID for entity kinds other than `difficultyLevel`, `glossaryEntry` and `figureNote`, one of the fixed shipped IDs or a UUID for `difficultyLevel`, an opaque id of 1–200 UTF-16 code units already in normalised form for `glossaryEntry` (a UUID when the app creates the entry; one restored from a backup keeps the id it was saved with), the id of the shipped figure (move or alias) a note annotates for `figureNote`, and the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
 | `updatedAt` | Content discriminator. UTC, one-tick precision (§2). Plain local clock. |
 | `deletedAt` | Non-null means tombstone. Plain local clock; also the retention timestamp. |
 | `existenceAt` | Orders live↔deleted transitions. Causally stamped; see §6.4. |

@@ -1228,9 +1228,9 @@
   "@settingsSyncPairingNewerDataTitle": {
     "x-sourceSha256": "a70ee18e575d46d080d7a7d51c306ac8647d1e4b28b2cf4a6397534f0bd50189"
   },
-  "settingsSyncPairingNewerDataBody": "Denne version synkroniserer nogle ting, som tidligere versioner af appen ikke kan læse. Opdater hver enhed, før du forbinder den: en enhed med en tidligere version kan muligvis ikke forbinde. Indtil alle forbundne enheder er opdateret, bliver de ting på den enhed, hvor de blev lavet.",
+  "settingsSyncPairingNewerDataBody": "Denne version synkroniserer nogle ting, som tidligere versioner af appen ikke kan læse. Opdater hver enhed, før du forbinder den: en enhed med en tidligere version kan muligvis ikke forbinde. Indtil alle forbundne enheder er opdateret, bliver de ting ikke sendt til dine andre enheder.",
   "@settingsSyncPairingNewerDataBody": {
-    "x-sourceSha256": "4d930677c1fe7d851fcb0909abedd8931a194760e3c63f5196393e7fc39bb024"
+    "x-sourceSha256": "71895e175c3abfaa7fbb5c050e9583e2f3b0420d09d1653dff98d1e7324a972e"
   },
   "settingsSyncPairingBearerTitle": "Enhver med denne sætning kan åbne dit bibliotek",
   "@settingsSyncPairingBearerTitle": {

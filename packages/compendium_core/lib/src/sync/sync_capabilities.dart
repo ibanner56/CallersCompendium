@@ -49,8 +49,8 @@ final class SyncCapabilityPolicy {
   /// [SyncCapabilities.glossaryV1] (#709) gates the user's glossary entries,
   /// their notes on shipped figures, the Custom Figures toggle and the
   /// compound shorthands, and this build advertises it: they publish once
-  /// every other device attached to the store advertises it too, and stay on
-  /// their device, untouched, until then.
+  /// every other device attached to the store advertises it too. Until then
+  /// this device sends none of them, and leaves alone what it already holds.
   static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
     advertised: {SyncCapabilities.glossaryV1},
     gatedRecordKinds: {

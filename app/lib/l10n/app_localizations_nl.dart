@@ -1380,7 +1380,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncPairingNewerDataBody =>
-      'Deze versie synchroniseert een aantal dingen die eerdere versies van de app niet kunnen lezen. Werk elk apparaat bij voordat je het verbindt: een apparaat met een eerdere versie kan mogelijk geen verbinding maken. Tot alle verbonden apparaten zijn bijgewerkt, blijven die dingen op het apparaat waarop ze zijn gemaakt.';
+      'Deze versie synchroniseert een aantal dingen die eerdere versies van de app niet kunnen lezen. Werk elk apparaat bij voordat je het verbindt: een apparaat met een eerdere versie kan mogelijk geen verbinding maken. Tot alle verbonden apparaten zijn bijgewerkt, worden die dingen niet naar je andere apparaten gestuurd.';
 
   @override
   String get settingsSyncPairingBearerTitle =>
