@@ -1,6 +1,7 @@
 import '../model/figure.dart' show customMoveId;
 import '../taxonomy/taxonomy.dart';
 import 'dialect.dart';
+import 'discouraged_terms.dart';
 import 'renderer.dart';
 import 'role_canonicalizer.dart';
 import 'substitution.dart';
@@ -58,11 +59,13 @@ Substitutor? _discouragedFor(Dialect dialect) =>
         for (final t in dialect.discouragedTerms) t: t,
       }, caseInsensitive: true);
 
-/// The single canonicalization chokepoint (dialect design §"Canonicalization
-/// on input"). Inverse-maps the user's active dialect role terms — plus known
-/// legacy synonyms — back to canonical role tokens before persistence, so
-/// storage and search stay dialect-agnostic. Conservative: only exact,
-/// word-boundary term matches are rewritten; unknown prose is left as typed.
+/// The canonicalization chokepoint (dialect design §"Canonicalization on
+/// input"); user-glossary text has its own variant,
+/// [canonicalizeGlossaryText]. Inverse-maps the user's active dialect role
+/// terms — plus known legacy synonyms — back to canonical role tokens before
+/// persistence, so storage and search stay dialect-agnostic. Conservative:
+/// only exact, word-boundary term matches are rewritten; unknown prose is
+/// left as typed.
 ///
 /// A role term that is also a move word is not rewritten to a role: "robin" in
 /// the move name "mad robin" (which is written in lowercase, "mad robin", as
@@ -97,6 +100,67 @@ String canonicalizeText(
   Dialect dialect, {
   Map<String, String> extraRoleSynonyms = const {},
 }) => _rolesFor(dialect, extraRoleSynonyms).canonicalize(text);
+
+/// Per-[Dialect] memo of the user-glossary role rewriters, bounded like
+/// [_dialectRoles].
+final Map<Dialect, RoleCanonicalizer> _glossaryRoles = {};
+
+/// Per-[Dialect] memo of the built-in discouraged terms as stored text,
+/// bounded like [_dialectRoles].
+final Map<Dialect, Substitutor> _glossaryDiscouraged = {};
+
+/// The built-in discouraged terms as stored text, with [dialect]'s own role
+/// words that hold one ([claimedRoleWords]) mapped to themselves, possessives
+/// included. Longest match wins, so "lady birds" in a dialect whose role1 is
+/// "Lady Bird" is kept whole for the role canonicalizer, while "lady" alone
+/// still reads by the table; and where the role word is the term itself,
+/// such as "ravens" for a role1 "Raven", the dialect's meaning replaces the
+/// table's.
+Substitutor _glossaryDiscouragedFor(Dialect dialect) {
+  final cached = _glossaryDiscouraged[dialect];
+  if (cached != null) return cached;
+  if (_glossaryDiscouraged.length >= _maxDialectRoles) {
+    _glossaryDiscouraged.clear();
+  }
+  return _glossaryDiscouraged[dialect] = Substitutor({
+    ...storedDiscouragedTerms,
+    for (final word in claimedRoleWords(dialect))
+      // The forms the table's own keys take: plain, `'` and `'s`/`’s`.
+      for (final form in [word, "$word'", "$word's", '$word’s']) form: form,
+  }, caseInsensitive: true);
+}
+
+/// Canonicalizes text a user typed into their own glossary — a compound
+/// figure's name, definition, description and notes, and their notes on
+/// shipped figures (#709). Notes on a dance's figures keep [canonicalize].
+///
+/// Stricter than [canonicalizeText] in one way and wider in another, both
+/// decided by the maintainer for this text only (2026-10-14):
+/// - the built-in discouraged terms are stored canonically ("ladies" →
+///   `role2s`, "gypsy" → "shoulder round"), not kept as typed. The table is
+///   the built-in one the renderer displays them from, not [dialect]'s own
+///   editable list; a role word of [dialect] that is or holds one of its
+///   terms keeps the dialect's meaning (the implementer's choices, see
+///   `docs/design/dialect.md`);
+/// - under a dialect whose roles are "lead"/"follow", "leads"/"follows"
+///   directly after a singular subject is the verb ("The robin follows the
+///   lark across" → "The role2 follows the role1 across"), where
+///   [canonicalizeText] would read it as the plural role.
+///
+/// Everything else is [canonicalizeText]'s behaviour, so "leads cross +
+/// follows loop" still becomes "role1s cross + role2s loop".
+String canonicalizeGlossaryText(String text, Dialect dialect) {
+  if (text.isEmpty) return text;
+  var roles = _glossaryRoles[dialect];
+  if (roles == null) {
+    if (_glossaryRoles.length >= _maxDialectRoles) _glossaryRoles.clear();
+    roles = _glossaryRoles[dialect] = RoleCanonicalizer(
+      dialect,
+      subjectVerbException: true,
+    );
+  }
+  return roles.canonicalize(_glossaryDiscouragedFor(dialect).apply(text));
+}
 
 /// Rewrites taxonomy move display names and legacy keywords to their canonical
 /// display names for full-text search. Unlike role canonicalization, this is

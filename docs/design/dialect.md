@@ -238,6 +238,43 @@ Where the chokepoint IS wired:
 > a no-op for the overwhelming majority of program prose. Tracked as issue #665,
 > closed as not planned.
 
+**User-glossary text (#709).** Text the user writes into their own glossary — a
+custom compound's name, definition, description and notes, and their notes on
+shipped figures — has its own variant of the chokepoint,
+`canonicalizeGlossaryText` (`dialect/canonicalize.dart`). It is
+`canonicalizeText` plus two rules, and `canonicalizeText` itself is unchanged:
+
+- The built-in discouraged terms are stored canonically: `ladies` → `role2s`,
+  `gents'` → `role1s'`, `gypsy` → `shoulder round`. The table is the one the
+  renderer displays them from (`dialect/discouraged_terms.dart`), so a stored
+  term reads back as the renderer would show the term itself; it is that
+  built-in table, not the dialect's own editable discouraged list, because
+  display uses the same table. One exception: a role word of the active
+  dialect that is one of the table's terms, or holds one as a word, keeps the
+  dialect's meaning. In a custom dialect whose role1 is "Raven", "ravens" is
+  stored as `role1s`, not the table's `role2s`; in one whose role1 is "Lady
+  Bird", "lady birds" is `role1s` while "lady" alone is still `role2`. The
+  renderer's **Auto-convert all discouraged terms** display does not make this
+  exception — it shows a "ravens" typed into a dance's text as that dialect's
+  role2 — which predates #709 and is left as it is here. A stored possessive
+  also keeps the canonical token's spelling (`role1s'`), so where a dialect's
+  plural does not end in "s" it reads back as, say, "Leaderfolk'" where the
+  display path writes "Leaderfolk's", as any stored possessive role token
+  does. These are the implementer's choices.
+- Under a dialect whose roles are "lead"/"follow", the plural form directly
+  after a singular subject in the same clause is the verb, not the plural
+  role: "The robin follows the lark across" stores `The role2 follows the
+  role1 across`. A singular subject is a singular role term or token, or a
+  dancer noun after a determiner ("your partner leads"); a bare dancer noun
+  ("swing partner follows cross") is not, so there `follows` is the role.
+  "leads cross + follows loop" still stores `role1s cross + role2s loop`.
+
+Every one of those fields is canonicalized, the prose ones included. That
+takes on, for this text only, the proper-noun risk that keeps hand-typed prose
+verbatim (#613): the maintainer accepted it (recorded in #709's consolidated
+spec), because glossary text describes figures and is read back through the
+active dialect like a figure note.
+
 Edge rules:
 - Round-trip safety: `canonicalize(render(x)) == x` for all taxonomy terms in
   every shipped preset — property-tested.

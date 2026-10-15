@@ -4,6 +4,7 @@ import '../taxonomy/move_def.dart';
 import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import 'dialect.dart';
+import 'discouraged_terms.dart';
 import 'substitution.dart';
 
 /// The canonical role tokens recognized specially everywhere (rendering and
@@ -1693,29 +1694,20 @@ class FigureRenderer {
     },
   };
 
+  /// The built-in discouraged terms, displayed in [dialect]: a role term in
+  /// its dialect wording, a move name as itself. The meanings are shared with
+  /// glossary canonicalization (`discouraged_terms.dart`).
   static Map<String, String> _discouragedDisplayTerms(Dialect dialect) => {
-    'gypsy': 'shoulder round',
-    'gyre': 'shoulder round',
-    'gent': _roleTerm('role1', dialect),
-    "gent's": _possessive(_roleTerm('role1', dialect)),
-    'gents': _roleTerm('role1s', dialect),
-    "gents'": _possessive(_roleTerm('role1s', dialect)),
-    'men': _roleTerm('role1s', dialect),
-    "men's": _possessive(_roleTerm('role1s', dialect)),
-    'men’s': _possessive(_roleTerm('role1s', dialect)),
-    'lady': _roleTerm('role2', dialect),
-    "lady's": _possessive(_roleTerm('role2', dialect)),
-    'ladies': _roleTerm('role2s', dialect),
-    "ladies'": _possessive(_roleTerm('role2s', dialect)),
-    'women': _roleTerm('role2s', dialect),
-    "women's": _possessive(_roleTerm('role2s', dialect)),
-    'women’s': _possessive(_roleTerm('role2s', dialect)),
-    'ravens': _roleTerm('role2s', dialect),
-    "ravens'": _possessive(_roleTerm('role2s', dialect)),
+    for (final e in discouragedTermMeanings.entries)
+      e.key: switch (e.value) {
+        (canonical: final token, possessive: final possessive)
+            when roleTokens.contains(token) =>
+          possessive
+              ? possessiveSpelling(_roleTerm(token, dialect))
+              : _roleTerm(token, dialect),
+        (canonical: final name, possessive: _) => name,
+      },
   };
-
-  static String _possessive(String term) =>
-      term.endsWith('s') ? "$term'" : "$term's";
 
   /// Human phrasing for a set-relative facing token, shared by the derived
   /// rotation-gate ending facing (issue #294) and swing's `endFacing` clause
