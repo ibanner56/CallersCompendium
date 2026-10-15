@@ -1,9 +1,10 @@
 import FlutterMacOS
 import Foundation
 
-/// Tells Dart whether the app is running from somewhere it was never installed
-/// to — issue #1725, typically the app double-clicked inside the mounted `.dmg`
-/// rather than dragged to Applications first. Dart shows a notice when it is.
+/// Tells Dart whether the app bundle is on a read-only volume, which usually
+/// means it was never installed — issue #1725, typically the app double-clicked
+/// inside the mounted `.dmg` rather than dragged to Applications first. Dart
+/// shows a notice when it is.
 ///
 /// The check runs off the main thread and answers `false` on any error, so it
 /// can neither delay startup nor raise a false notice.
