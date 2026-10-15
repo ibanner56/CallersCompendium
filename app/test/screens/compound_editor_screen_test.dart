@@ -186,6 +186,9 @@ void main() {
     await tester.tap(button, warnIfMissed: false);
     await tester.pumpAndSettle();
     expect(await tester.runAsync(repos.userGlossary.listAll), hasLength(1));
+    // A second save would also pop a second route: the page that opened the
+    // editor.
+    expect(find.byKey(const ValueKey('open')), findsOneWidget);
   });
 
   testWidgets('a figure\'s note is stored canonical and shown in the dialect', (
@@ -215,7 +218,19 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
     await tester.pumpAndSettle();
-    expect(find.text('larks step in'), findsWidgets, reason: 'rendered');
+    expect(
+      tester
+          .widget<EditableText>(
+            find.descendant(
+              of: find.byKey(const ValueKey('figure-0-note')),
+              matching: find.byType(EditableText),
+            ),
+          )
+          .controller
+          .text,
+      'larks step in',
+      reason: 'rendered into the dialect for editing',
+    );
     await tester.enterText(
       find.byKey(const ValueKey('figure-0-note')),
       'Larks step out',
