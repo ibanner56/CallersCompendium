@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/display_defaults.dart';
 import '../../data/canonical_discouraged_terms_scope.dart';
+import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
 import '../../data/walkthrough_snippet_library_scope.dart';
@@ -94,9 +95,11 @@ class _DanceDetailsAndShorthandsSectionState
       _canonicalFigureTextUserSet = true;
       _canonicalFigureText = value;
     });
-    await RepositoriesScope.of(
-      context,
-    ).settings.set(kCanonicalFigureTextKey, value);
+    await persistSetting(
+      RepositoriesScope.of(context).settings,
+      kCanonicalFigureTextKey,
+      value,
+    );
   }
 
   Future<void> _onCanonicalDiscouragedTermsChanged(bool value) async {
@@ -105,9 +108,11 @@ class _DanceDetailsAndShorthandsSectionState
       _canonicalDiscouragedTerms = value;
     });
     CanonicalDiscouragedTermsScope.notifierOf(context).value = value;
-    await RepositoriesScope.of(
-      context,
-    ).settings.set(kCanonicalDiscouragedTermsKey, value);
+    await persistSetting(
+      RepositoriesScope.of(context).settings,
+      kCanonicalDiscouragedTermsKey,
+      value,
+    );
   }
 
   Future<void> _onDefaultRenderingChanged(DanceDetailRendering value) async {
@@ -115,9 +120,11 @@ class _DanceDetailsAndShorthandsSectionState
       _defaultRenderingUserSet = true;
       _defaultRendering = value;
     });
-    await RepositoriesScope.of(
-      context,
-    ).settings.set(kDefaultDanceDetailRenderingKey, value.name);
+    await persistSetting(
+      RepositoriesScope.of(context).settings,
+      kDefaultDanceDetailRenderingKey,
+      value.name,
+    );
   }
 
   Future<void> _onFreeTextEntryChanged(bool value) async {
@@ -125,7 +132,11 @@ class _DanceDetailsAndShorthandsSectionState
       _freeTextEntryUserSet = true;
       _freeTextEntry = value;
     });
-    await RepositoriesScope.of(context).settings.set(kFreeTextEntryKey, value);
+    await persistSetting(
+      RepositoriesScope.of(context).settings,
+      kFreeTextEntryKey,
+      value,
+    );
   }
 
   @override

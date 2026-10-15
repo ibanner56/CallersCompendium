@@ -63,6 +63,13 @@ dialects, themes, and settings — is stored **locally on your device**. It is u
 your control. If you enable Device Sync, selected shareable content is also
 stored by the sync service you configure so it can be synchronized.
 
+The sync service also stores a random identifier for each connected device,
+which the device makes up itself and replaces with a new one each time it
+connects to a store, together with when that device last shared changes. They
+are kept until that device is removed from the store or the store is deleted or
+expires. The identifier names a connection, not a person: it contains nothing
+about you or your device.
+
 The service operator can read the plaintext synchronized store if they choose to.
 A break-glass access path exists for abuse investigations, and every use is
 logged. The derived sync storage path in that log becomes eligible for nulling

@@ -68,10 +68,17 @@ document root before enabling the vhost. The reference vhost is
 Store deletion removes the epoch directory immediately when possible; a
 durable cleanup record retries failed filesystem removal in a larger bounded
 batch on requests and server start, and the hourly sweep drains the remainder.
-Request-path retry failures are isolated so they do not change protocol
-responses.
+Request-path retry is bounded by a total job count (shared by the directory and blob queues) and a 50 ms monotonic-clock budget
+checked between jobs (at least one job always runs, and a job that has started
+always finishes, so one very large directory can still take longer). Request-path
+retry failures are isolated so they do not change protocol responses.
 Startup reconciliation also queues crash-orphaned final blob files and temporary
-upload artifacts for the same cleanup path. Every pending physical file remains
+upload artifacts for the same cleanup path; it walks one store epoch at a time
+and queues each epoch in a single transaction, but still runs before the server
+accepts requests, so startup time grows with the size of the blob tree.
+A blob whose reference survives but whose file has gone missing is reported by
+`POST /v1/blobs/missing`, and a repeated `PUT` of the same bytes restores the
+file without charging quota again. Every pending physical file remains
 charged against recreated-store quotas, and an epoch that gains a stale upload is
 preserved until its refs are gone. Store deletion also prioritizes all
 directories belonging to that store before background retries.
@@ -85,3 +92,28 @@ timestamp.
 Ordinary diagnostic events become eligible for removal after 30 days and are
 removed by the next hourly sweep; unauthenticated failures are not persisted,
 and the diagnostic store is capped at 10,000 rows with a timestamp index.
+
+## Load testing
+
+`tool/load_test.dart` measures how many requests one server process serves, as
+input to the request-rate limits in spec §5.4. It runs the real `AthenaeumApp`
+in its own isolate with every rate budget lifted, so it measures the server
+rather than the limits, and it steps through several numbers of in-flight
+requests per scenario: `store-get`, `blob-get`, `blob-put` (a fresh ~1.5 KB
+record blob), and `first-sync` (one device uploading a whole library into a new
+store, reported as time per device).
+
+```sh
+cd server
+dart run tool/load_test.dart --data-dir /path/on/the/deployment/disk
+dart run tool/load_test.dart --help
+```
+
+Add `--shipped-request-limits` to run with the shipped request-rate limits
+instead, each worker as its own client address, to see where they refuse.
+
+Run it on the hardware you deploy to, with `--data-dir` on the disk the server
+will use. Every authenticated request commits a SQLite write and every blob
+upload also flushes a file, so disk sync latency dominates: a tmpfs directory
+reports roughly three times the throughput of a real disk. A supplied
+`--data-dir` is left in place afterwards; delete it once you have the numbers.

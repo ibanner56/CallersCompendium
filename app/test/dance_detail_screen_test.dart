@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/dance_reimport.dart';
 import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
@@ -19,10 +20,13 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/export/dance_share_bundle.dart';
 import 'package:compendium_app/src/export/json_export.dart';
+import 'package:compendium_app/src/export/share_file.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
+import 'package:compendium_app/src/widgets/dance_export_menu.dart'
+    show PdfLayouter, ShareInvoker;
 import 'package:compendium_app/src/widgets/figure_table.dart';
 
 import 'support/fake_url_launcher.dart';
@@ -72,6 +76,8 @@ Future<ValueNotifier<bool>> _pumpDetail(
   Size surfaceSize = const Size(1200, 2400),
   DialectLibraryController? dialectLibrary,
   JsonExportDelivery? jsonExportDelivery,
+  ShareInvoker? shareInvoker,
+  PdfLayouter? pdfLayouter,
   bool readOnly = false,
   Future<void> Function(DanceDetailData detail)? onReimport,
   Set<DanceShareField>? shareFields,
@@ -121,6 +127,8 @@ Future<ValueNotifier<bool>> _pumpDetail(
       home: DanceDetailScreen(
         danceId: danceId,
         jsonExportDelivery: jsonExportDelivery,
+        shareInvoker: shareInvoker,
+        pdfLayouter: pdfLayouter,
         readOnly: readOnly,
         onReimport: onReimport,
       ),
@@ -131,6 +139,11 @@ Future<ValueNotifier<bool>> _pumpDetail(
 }
 
 void main() {
+  // Pin the platform seam so these tests do not depend on the host OS.
+  final realBundleShareUnsupported = isBundleShareUnsupported;
+  setUp(() => isBundleShareUnsupported = () => false);
+  tearDown(() => isBundleShareUnsupported = realBundleShareUnsupported);
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('renders header: title, authors, hook, tags', (tester) async {
@@ -487,6 +500,51 @@ void main() {
       },
     );
 
+    testWidgets('on Linux the overflow dance file action saves, not shares', (
+      tester,
+    ) async {
+      isBundleShareUnsupported = () => true;
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
+      final saved = <String>[];
+
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+        shareInvoker: (_) async => fail('share_plus cannot carry files here'),
+        jsonExportDelivery: JsonExportDelivery(
+          saveInvoker: (json, fileName) async {
+            saved.add(fileName);
+            return JsonSaveResult(
+              path: '/Documents/$fileName',
+              fileName: fileName,
+            );
+          },
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
+      expect(find.text('Share dance file'), findsNothing);
+      expect(find.text('Save dance file…'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('overflow-share-dance-bundle')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(saved, ['Narrow_Dance.ccshare']);
+      expect(
+        find.text(
+          '"Narrow_Dance.ccshare" saved to /Documents/Narrow_Dance.ccshare.',
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('overflow Export actions are reachable and Copy works', (
       tester,
     ) async {
@@ -522,7 +580,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
       await tester.pumpAndSettle();
 
-      // The three Export actions are flattened directly into the overflow menu.
+      // The export actions are flattened directly into the overflow menu.
       expect(find.text('Share dance (text)'), findsOneWidget);
       expect(find.text('Copy dance'), findsOneWidget);
       expect(find.text('Export / print PDF'), findsOneWidget);
@@ -533,6 +591,73 @@ void main() {
       expect(find.text('Dance copied to clipboard.'), findsOneWidget);
       expect(clipboardText, contains('Narrow Dance'));
     });
+
+    testWidgets(
+      'overflow Share text shows the export-error snackbar when the share '
+      'throws an Error, not an Exception',
+      (tester) async {
+        final sink = _RecordingSink();
+        installCaughtErrorLog(sink);
+        addTearDown(resetCaughtErrorLogForTesting);
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+        final library = await buildLibrary(repos);
+
+        await _pumpDetail(
+          tester,
+          repos,
+          'd1',
+          surfaceSize: const Size(360, 800),
+          dialectLibrary: library,
+          shareInvoker: (params) async => throw StateError('no share target'),
+        );
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(DanceDetailScreen)),
+        );
+
+        await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('overflow-share-dance')));
+        await tester.pumpAndSettle();
+
+        expect(find.text(l10n.exportShareDanceError), findsOneWidget);
+        expect(sink.sources, ['dance_export_actions.shareText']);
+      },
+    );
+
+    testWidgets(
+      'overflow PDF shows the export-error snackbar when the layouter '
+      'throws an Error, not an Exception',
+      (tester) async {
+        final sink = _RecordingSink();
+        installCaughtErrorLog(sink);
+        addTearDown(resetCaughtErrorLogForTesting);
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+        final library = await buildLibrary(repos);
+
+        await _pumpDetail(
+          tester,
+          repos,
+          'd1',
+          surfaceSize: const Size(360, 800),
+          dialectLibrary: library,
+          pdfLayouter: ({required name, required onLayout}) async =>
+              throw StateError('no printer'),
+        );
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(DanceDetailScreen)),
+        );
+
+        await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('overflow-export-pdf')));
+        await tester.pumpAndSettle();
+
+        expect(find.text(l10n.exportDanceError), findsOneWidget);
+        expect(sink.sources, ['dance_export_actions.exportPdf']);
+      },
+    );
 
     testWidgets(
       'the compact overflow Copy respects a deselected DanceShareFieldsScope '
@@ -721,6 +846,89 @@ void main() {
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
       expect(find.text('Export JSON'), findsNothing);
+    });
+
+    testWidgets('each overflow export item reaches its seam exactly once', (
+      tester,
+    ) async {
+      // Characterisation test for the DanceExportActions extraction (CS-10b):
+      // passes before and after the move, pinning that all five compact items
+      // keep reaching the same seams. The bundle item runs the Linux Save-As
+      // branch so it is observable through `saveInvoker` without a temp dir.
+      isBundleShareUnsupported = () => true;
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
+
+      final shares = <ShareParams>[];
+      final pdfNames = <String>[];
+      final saved = <String>[];
+      var jsonCopies = 0;
+      final clipboardWrites = <String?>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardWrites.add((call.arguments as Map)['text'] as String?);
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+        shareInvoker: (params) async => shares.add(params),
+        pdfLayouter: ({required name, required onLayout}) async =>
+            pdfNames.add(name),
+        jsonExportDelivery: JsonExportDelivery(
+          choicePicker: (_) async => JsonExportChoice.copy,
+          clipboardWriter: (_) async => jsonCopies++,
+          saveInvoker: (json, fileName) async {
+            saved.add(fileName);
+            return JsonSaveResult(path: '', fileName: fileName);
+          },
+        ),
+      );
+
+      Future<void> tapItem(String key) async {
+        await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(ValueKey(key)));
+        await tester.pumpAndSettle();
+      }
+
+      await tapItem('overflow-share-dance');
+      expect(shares, hasLength(1));
+      expect(shares.single.text, contains('Narrow Dance'));
+      expect(shares.single.subject, 'Narrow Dance');
+
+      await tapItem('overflow-share-dance-bundle');
+      expect(saved, ['Narrow_Dance.ccshare']);
+      expect(shares, hasLength(1), reason: 'file shares are Save As here');
+
+      await tapItem('overflow-copy-dance');
+      expect(clipboardWrites, hasLength(1));
+      expect(clipboardWrites.single, contains('Narrow Dance'));
+
+      await tapItem('overflow-share-dance-json');
+      expect(jsonCopies, 1);
+      expect(saved, hasLength(1), reason: 'JSON Copy must not save');
+
+      await tapItem('overflow-export-pdf');
+      expect(pdfNames, ['Narrow_Dance']);
+
+      expect(shares, hasLength(1));
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('overflow dialect switch still changes the active dialect', (
@@ -2820,9 +3028,17 @@ class _DanglingDances extends DanceRepository {
   final Dance danglingDance;
 
   @override
-  Future<Dance?> getById(String id, {bool includeDeleted = false}) async {
+  Future<Dance?> getById(
+    String id, {
+    bool includeDeleted = false,
+    bool includeDeletedAuthors = false,
+  }) async {
     if (id == danglingDance.id) return danglingDance;
-    return super.getById(id, includeDeleted: includeDeleted);
+    return super.getById(
+      id,
+      includeDeleted: includeDeleted,
+      includeDeletedAuthors: includeDeletedAuthors,
+    );
   }
 }
 

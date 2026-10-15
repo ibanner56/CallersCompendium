@@ -64,6 +64,9 @@ class ProgramExportMenu extends StatelessWidget {
     this.venuesById = const {},
     this.danceFor,
     this.choreographerFor,
+    this.tagFor,
+    this.publishedSourceFor,
+    this.customFieldFor,
     this.difficultyLevelFor,
     this.shareInvoker,
     this.bundleFileWriter,
@@ -91,9 +94,26 @@ class ProgramExportMenu extends StatelessWidget {
   /// reference and author attribution survives the round-trip. Optional and
   /// best-effort: an unresolved id is simply omitted from the bundle.
   final Choreographer? Function(String id)? choreographerFor;
+
+  /// Resolves the difficulty level of the dance with this id (dance-keyed, not
+  /// level-keyed). Must cover every dance in the program, alternates included:
+  /// the share bundle is complete regardless of `hideAlternates`.
   final DifficultyLevel? Function(String danceId)? difficultyLevelFor;
 
+  /// Resolve the tags, published sources and custom-field definitions that the
+  /// bundled dances reference. Strict, unlike [choreographerFor]: an unresolved
+  /// id makes the share fail (nothing is written) instead of being skipped,
+  /// because a missing custom-field definition means its `shareable` flag is
+  /// unknown and a private value could otherwise leave the device. When `null`,
+  /// nothing resolves, so a dance carrying any tag, source or custom-field
+  /// value cannot be shared through this menu.
+  final Tag? Function(String id)? tagFor;
+  final PublishedSource? Function(String id)? publishedSourceFor;
+  final CustomFieldDef? Function(String id)? customFieldFor;
+
   /// Test seam for the share call; defaults to [SharePlus.instance.share].
+  /// Not used on platforms where [isBundleShareUnsupported] (Linux) routes the
+  /// file actions to Save As.
   final ShareInvoker? shareInvoker;
 
   /// Test seam for the bundle temp-file write; defaults to
@@ -105,6 +125,8 @@ class ProgramExportMenu extends StatelessWidget {
 
   /// Shared JSON delivery seam. When absent, the legacy share/file seams above
   /// are used for Share while Save, Copy, and the choice dialog use defaults.
+  /// Its `saveInvoker` also receives the `.ccshare` bundle on platforms where
+  /// [isBundleShareUnsupported] (Linux) turns the bundle action into Save As.
   final JsonExportDelivery? jsonExportDelivery;
 
   String _formatDate(BuildContext context, DateTime date) =>
@@ -116,15 +138,16 @@ class ProgramExportMenu extends StatelessWidget {
   /// reading it straight off the stored record would put the venue's postal
   /// address — seven fields classified [EgressClass.deviceLocal] — into the
   /// shared/copied set list. The venue is therefore routed through
-  /// [sanitizeVenueForShare] first, exactly as the bundle and PDF paths do, and
-  /// the label collapses to the venue's public name (issue #853).
+  /// [resolveSanitizedVenueLabelParts] (which applies [sanitizeVenueForShare]),
+  /// exactly as the bundle and PDF builders do, and the label collapses to the
+  /// venue's public name (issue #853). An unresolvable link falls back to the
+  /// program's free-text venue, the same label the renderer would use anyway.
   ///
   /// No `include` set is threaded through: the six opt-in contact fields are
   /// not part of `displayName`, so there is nothing here for the consent dialog
   /// to grant, and the text export never prompts.
   String? _venueNameFor(String venueId) {
-    final venue = venuesById[venueId];
-    return venue == null ? null : sanitizeVenueForShare(venue).displayName;
+    return resolveSanitizedVenueLabelParts(venueId, program.venue, venuesById);
   }
 
   /// Resolves [danceId]'s author names via [danceFor] + [choreographerFor] —
@@ -348,7 +371,9 @@ class ProgramExportMenu extends StatelessWidget {
   /// there is deliberately no second encoder, so the two can never drift.
   ///
   /// The bundle *carries* the program plus the full definition of every dance
-  /// its slots reference, and the receive side imports both.
+  /// its slots reference, together with the tags, sources and shareable
+  /// custom-field definitions those dances use, and the receive side imports
+  /// them. Custom fields marked not shareable are omitted, values included.
   Future<void> _shareBundle(
     BuildContext context,
     Rect? origin, {
@@ -357,18 +382,19 @@ class ProgramExportMenu extends StatelessWidget {
     final bundle = await _buildBundle(context, extension: extension);
     if (bundle == null) return;
 
-    final writeFile = bundleFileWriter ?? writeBundleTempFile;
-    final xfile = await writeFile(bundle.json, bundle.fileName);
-
-    final share = shareInvoker ?? SharePlus.instance.share;
-    await share(
-      ShareParams(
-        files: [xfile],
-        fileNameOverrides: [bundle.fileName],
-        subject: program.title,
-        sharePositionOrigin: origin,
-      ),
+    if (!context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final result = await shareOrSaveBundleFile(
+      json: bundle.json,
+      fileName: bundle.fileName,
+      subject: program.title,
+      origin: origin,
+      shareInvoker: shareInvoker,
+      bundleFileWriter: bundleFileWriter,
+      saveInvoker: jsonExportDelivery?.saveInvoker,
     );
+    announceBundleSaved(messenger, l10n, result);
   }
 
   Future<({String json, String fileName})?> _buildBundle(
@@ -390,17 +416,10 @@ class ProgramExportMenu extends StatelessWidget {
       danceFor: resolveDance,
       choreographerFor: choreographerFor ?? (_) => null,
       venueFor: (id) => venuesById[id],
-      difficultyLevelFor: (id) {
-        for (final dance in _orderedExportDances().map(
-          (entry) => entry.dance,
-        )) {
-          if (dance.difficultyLevelId == id) {
-            return difficultyLevelFor?.call(dance.id) ??
-                DifficultyLevel.knownForId(id);
-          }
-        }
-        return DifficultyLevel.knownForId(id);
-      },
+      tagFor: tagFor ?? (_) => null,
+      publishedSourceFor: publishedSourceFor ?? (_) => null,
+      customFieldFor: customFieldFor ?? (_) => null,
+      difficultyLevelFor: (dance) => difficultyLevelFor?.call(dance.id),
       includeVenueContact: includeVenueContact,
     );
     final fileName = programShareBundleFileName(
@@ -434,43 +453,14 @@ class ProgramExportMenu extends StatelessWidget {
     );
     if (bundle == null || !context.mounted) return;
 
-    final delivery = _jsonDelivery;
-    final choice = await delivery.choose(context);
-    if (choice == null || !context.mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-
-    switch (choice) {
-      case JsonExportChoice.save:
-        await guardExport(messenger, l10n.exportJsonSaveError, () async {
-          final result = await delivery.save(bundle.json, bundle.fileName);
-          if (result == null || !context.mounted) return;
-          final message = result.fileName == null
-              ? l10n.exportJsonSavedGeneric
-              : result.path.isEmpty
-              ? l10n.exportJsonSaved(result.fileName!)
-              : l10n.exportJsonSavedTo(result.fileName!, result.path);
-          messenger.showSnackBar(SnackBar(content: Text(message)));
-        }, source: 'program_export_menu._guard');
-      case JsonExportChoice.copy:
-        await guardExport(messenger, l10n.exportJsonCopyError, () async {
-          await delivery.copy(bundle.json);
-          if (context.mounted) {
-            messenger.showSnackBar(
-              SnackBar(content: Text(l10n.exportJsonCopied)),
-            );
-          }
-        }, source: 'program_export_menu._guard');
-      case JsonExportChoice.share:
-        await guardExport(messenger, l10n.exportJsonShareError, () {
-          return delivery.share(
-            json: bundle.json,
-            fileName: bundle.fileName,
-            subject: program.title,
-            sharePositionOrigin: origin,
-          );
-        }, source: 'program_export_menu._guard');
-    }
+    await _jsonDelivery.deliver(
+      context,
+      json: bundle.json,
+      fileName: bundle.fileName,
+      subject: program.title,
+      sharePositionOrigin: origin,
+      source: 'program_export_menu._guard',
+    );
   }
 
   Future<void> _copyText(BuildContext context) async {
@@ -506,15 +496,6 @@ class ProgramExportMenu extends StatelessWidget {
     if (includeFigures == null) return;
     if (!context.mounted) return;
 
-    // Feed the PDF builder a venue already run through the single
-    // `sanitizeVenueForShare` primitive, so un-consented contact fields are
-    // physically absent — the renderer never needs its own redaction.
-    final venuesForPdf = venuesWithSanitizedContact(
-      venuesById,
-      program.venueId,
-      include: includeVenueContact,
-    );
-
     final List<({Dance dance, bool isAlternate})>? appendDances;
     final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
     final renderer = FigureRenderer(contraTaxonomy);
@@ -530,6 +511,9 @@ class ProgramExportMenu extends StatelessWidget {
     // closure captured for later — mirrors the existing eager `labels`/
     // `danceLabels` resolution just above.
     final shareFields = DanceShareFieldsScope.of(context);
+    final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     final resolvedAuthorNamesFor = shareFields.contains(DanceShareField.authors)
         ? _authorNamesFor
         : null;
@@ -550,16 +534,15 @@ class ProgramExportMenu extends StatelessWidget {
       onLayout: (format) => buildProgramPdf(
         program,
         titleFor: titleFor,
-        venuesById: venuesForPdf,
+        venuesById: venuesById,
+        includeVenueContact: includeVenueContact,
         formatDate: localizations.formatMediumDate,
         labels: labels,
         appendDances: appendDances,
         danceLabels: includeFigures ? danceExportLabels(l10n) : null,
         dialect: dialect,
         renderer: renderer,
-        canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
-          context,
-        ),
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         authorNamesFor: resolvedAuthorNamesFor,
         cardLabelsFor: appendDances == null
             ? null
@@ -636,8 +619,16 @@ class ProgramExportMenu extends StatelessWidget {
           PopupMenuItem<_ExportAction>(
             value: _ExportAction.shareBundle,
             child: ListTile(
-              leading: const Icon(Icons.share_outlined),
-              title: Text(l10n.exportShareProgramBundle),
+              leading: Icon(
+                isBundleShareUnsupported()
+                    ? Icons.save_alt_outlined
+                    : Icons.share_outlined,
+              ),
+              title: Text(
+                isBundleShareUnsupported()
+                    ? l10n.exportSaveProgramBundle
+                    : l10n.exportShareProgramBundle,
+              ),
               contentPadding: EdgeInsets.zero,
             ),
           ),

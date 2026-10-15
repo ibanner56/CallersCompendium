@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../diagnostics/error_log.dart';
+import '../export/share_file.dart';
 
 /// Runs [action], surfacing [failureMessage] as a [SnackBar] if it throws.
 ///
@@ -29,4 +31,22 @@ Future<void> guardExport(
     }
     messenger.showSnackBar(SnackBar(content: Text(failureMessage)));
   }
+}
+
+/// Confirms a bundle that [shareOrSaveBundleFile] saved to disk (Linux, where
+/// the share sheet cannot carry files). A share-sheet delivery or a cancelled
+/// Save As shows nothing, as before.
+void announceBundleSaved(
+  ScaffoldMessengerState messenger,
+  AppLocalizations l10n,
+  BundleDeliveryResult? result,
+) {
+  final saved = result?.saved;
+  if (saved == null) return;
+  final message = saved.fileName == null
+      ? l10n.exportJsonSavedGeneric
+      : saved.path.isEmpty
+      ? l10n.exportJsonSaved(saved.fileName!)
+      : l10n.exportJsonSavedTo(saved.fileName!, saved.path);
+  messenger.showSnackBar(SnackBar(content: Text(message)));
 }

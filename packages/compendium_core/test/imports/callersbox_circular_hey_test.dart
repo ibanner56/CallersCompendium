@@ -1,0 +1,132 @@
+import 'dart:convert';
+
+import 'package:compendium_core/compendium_core.dart';
+import 'package:test/test.dart';
+import '../figures_support.dart';
+
+/// The Caller's Box writes a circular hey as a square through without hands —
+/// `Square through 3 without hands (NR;PL;NR)` (TCB dances 20273 and 527). Now
+/// that the taxonomy has `circular_hey` (v36), that line imports as one
+/// instead of staying custom text.
+///
+/// The pass list supplies the move's facts: the odd cells' dancers are `who`,
+/// the even cells' dancers are `who2` (taxonomy v37), the first cell's side is
+/// `shoulder`, and the count is `changes`. The pass list does not say whether
+/// the first pass runs across or along, so `where` is left to the taxonomy
+/// default, as for TCB heys. A line with no pass list stays custom.
+List<Figure> _parse(String text, {int beats = 0}) =>
+    parseFigureLines(text, beats: beats, frontEnd: tcbFigureFrontEnd);
+
+Future<List<Figure>> _importedFigures(List<String> lines) async {
+  final payload = jsonEncode({
+    'ID': '20273',
+    'Name': 'Circular hey fixture',
+    'Permission': 'full',
+    'phrases': [
+      {'name': 'B2', 'figures': lines},
+    ],
+  });
+  final adapter = CallersBoxAdapter();
+  final discovered = await adapter.discover(ImportRequest(payload: payload));
+  final raw = await adapter.fetch(discovered.single);
+  return figuresOf(adapter.parse(raw).dance);
+}
+
+void main() {
+  group('square through without hands -> circular_hey', () {
+    test('(NR;PL;NR): three changes, neighbors first by the right', () {
+      final f = _parse(
+        'Square through 3 without hands (NR;PL;NR)',
+        beats: 8,
+      ).single;
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'circular_hey');
+      expect(f.params['who'], 'neighbors');
+      expect(f.params['changes'], 3);
+      expect(f.params['shoulder'], 'right');
+      expect(f.params['who2'], 'partners');
+      expect(f.params['beats'], 8);
+      expect(
+        f.params.containsKey('where'),
+        isFalse,
+        reason: 'TCB states no direction; none is asserted',
+      );
+      expect(f.note, isNull);
+    });
+
+    test('partners first by the left, full circuit', () {
+      final f = _parse(
+        'Square through 4 without hands (PL;NR;PL;NR)',
+        beats: 12,
+      ).single;
+      expect(f.move, 'circular_hey');
+      expect(f.params['who'], 'partners');
+      expect(f.params['changes'], 4);
+      expect(f.params['shoulder'], 'left');
+      expect(f.params['who2'], 'neighbors');
+    });
+
+    test('any second group the pass list names is kept in who2', () {
+      final shadows = _parse('Square through 2 without hands (NR;SL)').single;
+      expect(shadows.move, 'circular_hey');
+      expect(shadows.params['who'], 'neighbors');
+      expect(shadows.params['who2'], 'shadows');
+      expect(shadows.params['shoulder'], 'right');
+
+      final next = _parse('Square through 2 without hands (PR;N2L)').single;
+      expect(next.move, 'circular_hey');
+      expect(next.params['who'], 'partners');
+      expect(next.params['who2'], 'nextNeighbors');
+    });
+
+    test('a square through WITH hands is still a square through', () {
+      final f = _parse('Square through 3 (NR;PL;NR)', beats: 8).single;
+      expect(f.move, 'square_through');
+      expect(f.params['places'], 3);
+      expect(f.params['who'], 'neighbors');
+      expect(f.params['who2'], 'partners');
+    });
+  });
+
+  group('conservative declines stay custom', () {
+    void expectCustom(String line) {
+      final f = _parse(line, beats: 8).single;
+      expect(f.isCustom, isTrue, reason: line);
+      expect(f.params['text'], line);
+    }
+
+    test('no pass list: the first passer is unknown', () {
+      expectCustom('Square through 3 without hands');
+    });
+
+    test('the same group passed twice running', () {
+      expectCustom('Square through 2 without hands (NR;NL)');
+    });
+
+    test('shoulders that do not alternate', () {
+      expectCustom('Square through 3 without hands (NR;PR;NR)');
+    });
+
+    test('a cell count that disagrees with the count', () {
+      expectCustom('Square through 3 without hands (NR;PL)');
+    });
+
+    test('extra words around "without hands"', () {
+      expectCustom('Interrupted square through 3 without hands (NR;PL;NR)');
+    });
+  });
+
+  test('end to end through the TCB adapter (dance 20273 B2)', () async {
+    final figures = await _importedFigures([
+      '(8) Square through 3 without hands (NR;PL;NR)',
+    ]);
+    expect(figures, hasLength(1));
+    final f = figures.single;
+    expect(f.move, 'circular_hey');
+    expect(f.params['who'], 'neighbors');
+    expect(f.params['changes'], 3);
+    expect(f.params['shoulder'], 'right');
+    expect(f.params['who2'], 'partners');
+    expect(f.beats, 8);
+  });
+}

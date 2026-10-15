@@ -301,16 +301,22 @@ class TagRepository {
   /// available to administrative surfaces, while pickers that attach tags to
   /// dances should not offer rows that have no live dance reference.
   Future<List<Tag>> listReferencedByLiveDances() async {
+    // Both joins are `useColumns: false`: they only filter, so drift must not
+    // materialise every `dance_tags` and `dances` column (figures JSON, notes)
+    // for each of the thousands of links. Only `tags` is read below, so
+    // `row.readTable(_db.dances)` here would throw. SQLite de-duplicates.
     final rows =
-        await (_db.select(_db.tags).join([
+        await (_db.select(_db.tags, distinct: true).join([
                 innerJoin(
                   _db.danceTags,
                   _db.danceTags.tagId.equalsExp(_db.tags.id),
+                  useColumns: false,
                 ),
                 innerJoin(
                   _db.dances,
                   _db.dances.id.equalsExp(_db.danceTags.danceId) &
                       _db.dances.deletedAt.isNull(),
+                  useColumns: false,
                 ),
               ])
               ..where(_db.tags.deletedAt.isNull())
@@ -319,12 +325,7 @@ class TagRepository {
                 OrderingTerm(expression: _db.tags.id),
               ]))
             .get();
-    final unique = <String, Tag>{};
-    for (final row in rows) {
-      final tag = _toModel(row.readTable(_db.tags));
-      unique[tag.id] = tag;
-    }
-    return unique.values.toList();
+    return [for (final row in rows) _toModel(row.readTable(_db.tags))];
   }
 
   Future<List<({Tag tag, bool deleted})>> listAllWithDeleted() async {
@@ -336,6 +337,95 @@ class TagRepository {
         (tag: _toModel(row), deleted: row.deletedAt != null),
     ];
   }
+
+  /// Every tombstoned tag with its deletion instant and the dances whose
+  /// retained `dance_tags` row still points at it, for a full backup.
+  ///
+  /// [delete] keeps those rows on purpose (a revived tag returns with its
+  /// dances) and dance hydration hides them, so a dance read cannot carry them:
+  /// this is the one read that can. Join rows of tombstoned dances are included
+  /// too, so restoring both records brings the association back. Ordered by
+  /// tag id, dances by id, so a backup is deterministic.
+  Future<List<({Tag tag, DateTime deletedAt, List<String> danceIds})>>
+  listTombstonesWithRetainedJoins() async {
+    final tagRows =
+        await (_db.select(_db.tags)
+              ..where((t) => t.deletedAt.isNotNull())
+              ..orderBy([(t) => OrderingTerm(expression: t.id)]))
+            .get();
+    if (tagRows.isEmpty) return const [];
+    final joinRows =
+        await (_db.select(_db.danceTags)..orderBy([
+              (t) => OrderingTerm(expression: t.tagId),
+              (t) => OrderingTerm(expression: t.danceId),
+            ]))
+            .get();
+    final dancesByTag = <String, List<String>>{};
+    for (final row in joinRows) {
+      (dancesByTag[row.tagId] ??= <String>[]).add(row.danceId);
+    }
+    return [
+      for (final row in tagRows)
+        (
+          tag: _toModel(row),
+          deletedAt: row.deletedAt!,
+          danceIds: dancesByTag[row.id] ?? const <String>[],
+        ),
+    ];
+  }
+
+  /// Writes a tombstoned tag from a full backup and returns the id it occupies,
+  /// or `null` when the archived tombstone must not be applied.
+  ///
+  /// * No row holds the id or the name: the tag is written and then tombstoned
+  ///   through [delete] at [at], so it gets an ordinary causal stamp.
+  /// * A tombstoned row already holds the id or the name: nothing is written
+  ///   and that row's id is returned, so retained joins attach to the one
+  ///   tombstone (the same adoption a live archived tag gets in [upsert]).
+  /// * A **live** row holds the id or the name: `null`. A backup's record that
+  ///   a tag was deleted never removes a tag the user has now, and the
+  ///   tombstone's retained joins are not applied to a live tag.
+  Future<String?> restoreArchivedTombstone(Tag tag, {required DateTime at}) =>
+      _db.transaction(() async {
+        final byId = await (_db.select(
+          _db.tags,
+        )..where((t) => t.id.equals(tag.id))).getSingleOrNull();
+        final heldByName = await idByName(tag.name, includeDeleted: true);
+        final byName = heldByName == null || heldByName == byId?.id
+            ? null
+            : await (_db.select(
+                _db.tags,
+              )..where((t) => t.id.equals(heldByName))).getSingle();
+        // Any live holder of the id or the name blocks the tombstone, whichever
+        // of the two it holds.
+        if ((byId != null && byId.deletedAt == null) ||
+            (byName != null && byName.deletedAt == null)) {
+          return null;
+        }
+        if (byId != null) return byId.id;
+        if (byName != null) return byName.id;
+        final id = await upsert(tag, at: at);
+        await delete(id, at: at);
+        return id;
+      });
+
+  /// Re-attaches [danceIds] to the tombstoned tag [tagId] from a full backup.
+  ///
+  /// Only dances that exist (live or tombstoned) get a row, and an existing
+  /// `(dance, tag)` row is left alone, so a repeated or partly-applied restore
+  /// is harmless.
+  Future<void> restoreRetainedJoins(String tagId, Iterable<String> danceIds) =>
+      _db.transaction(() async {
+        for (final danceId in danceIds.toSet()) {
+          if (!await danceExists(_db, danceId, includeDeleted: true)) continue;
+          await _db
+              .into(_db.danceTags)
+              .insert(
+                DanceTagsCompanion.insert(danceId: danceId, tagId: tagId),
+                mode: InsertMode.insertOrIgnore,
+              );
+        }
+      });
 
   /// Returns whether any dance still references [id].
   Future<bool> isInUse(String id) async {
@@ -393,21 +483,17 @@ class TagRepository {
   Future<void> delete(String id, {DateTime? at, bool permanent = false}) =>
       _db.transaction(() async {
         if (permanent) {
-          final liveUses =
-              await (_db.select(_db.danceTags).join([
-                    innerJoin(
-                      _db.dances,
-                      _db.dances.id.equalsExp(_db.danceTags.danceId),
-                    ),
-                  ])..where(
-                    _db.danceTags.tagId.equals(id) &
-                        _db.dances.deletedAt.isNull(),
-                  ))
-                  .get();
-          if (liveUses.isNotEmpty) {
+          final liveUses = await liveDanceCitationCount(
+            _db,
+            joinTable: _db.danceTags,
+            keyColumn: _db.danceTags.tagId,
+            danceIdColumn: _db.danceTags.danceId,
+            id: id,
+          );
+          if (liveUses > 0) {
             throw StateError(
               'cannot delete tag "$id": still applied to '
-              '${liveUses.length} dance(s)',
+              '$liveUses dance(s)',
             );
           }
           // Any surviving `dance_tags` row — necessarily a tombstoned dance's,

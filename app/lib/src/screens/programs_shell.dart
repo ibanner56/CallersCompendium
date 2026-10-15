@@ -151,7 +151,10 @@ class _EmptyEditorPane extends StatelessWidget {
               l10n.programsSelectBody,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.outlineVariant,
+                // Body text must clear the 4.5:1 WCAG AA threshold, so it uses
+                // onSurfaceVariant (a text role) rather than outlineVariant (a
+                // hairline/border role that falls below AA against the pane).
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],

@@ -88,7 +88,10 @@ B2: (8) Ladies chain to neighbor / (8) Star left 1
   `" "` spoken vs `' '` literal-from-source.
 - Rotation amounts: allemandes in quarters (`allemande left 1 & 1/2`), circles/
   stars in full turns (`Circle left 3/4`), heys in fractions with pass lists
-  (`Hey 1/2 (WR;PL;MR;N2L~)`).
+  (`Hey 1/2 (WR;PL;MR;N2L~)`). Thirds and eighths also occur (`Star left 7/8`,
+  `Ones allemande right 1 & 2/3`); the importer rounds these to the nearest
+  quarter and keeps the source amount as the figure's note
+  (`docs/design/imports.md`).
 - Formation vocabulary (controlled, complete list on the search form): Duple Minor
   {Improper, Becket, Proper, Indecent, Reverse-progression improper, Progressed
   improper, Cross, Other}, Triple Minor, Three/Four Facing, Solo/Singlet/Doublet/
@@ -383,6 +386,34 @@ Substring search on title/author; controlled formation + progression filters;
 positive/negative figure-line matching with any/all modes; **per-phrase (A1..B2)
 figure search** (2023). Matches our roadmap search requirements almost 1:1.
 
+### Title punctuation and query encoding (verified live 2026-10-08)
+
+Title search matches punctuation exactly, and the catalogue stores only ASCII
+`'` and `"`: `?title='` matches 2,713 dances and `?title="` 38, while `’` `‘`
+`“` `”` `–` `—` `…` `` ` `` and `´` each match **0**, whether sent as UTF-8
+or as their windows-1252 bytes. Ellipses are spelled `...` (13 matches).
+`buildCallersBoxSearchUrl` therefore folds typographic punctuation to ASCII
+(`foldTitlePunctuation`) before sending, so `Rory O’More` finds `Rory O'More`.
+
+Accented letters are matched as **windows-1252** bytes: `?title=%E9` matches
+5 dances (`Déjà vu`, `PokéCon`, …) and the UTF-8 `%C3%A9` matches 0. Case-folding
+is ASCII-only: `d%E9j%E0` finds `Déjà vu` but `D%C9J%C0` finds nothing (ASCII
+title, author and figure-line matching ignore case: `GENE HUBERT` and
+`gene hubert` both match 178, `SWING` and `swing` both 14,657). Every accented
+letter TCB stores is lower-case: probing all 34 accented capitals and 35
+accented small letters of windows-1252 as `title=` and `author=` matched no
+capital at all; titles use `à á ä æ è é î ñ ö ø ü ß` (33 matches) and authors
+only `é ö` (7). So
+`buildCallersBoxSearchUrl` lower-cases title, author and figure lines and
+form-encodes them in windows-1252, the page's charset, rather than the UTF-8
+`Uri.https` would produce. A character windows-1252 lacks is sent as `&#N;`,
+which is what a browser submits through TCB's own form.
+
+Neither TCB nor ContraDB folds accents: `Deja vu` does not find `Déjà vu`, and
+ContraDB's `malort` does not find `Rory Malört`. ContraDB does case-fold
+accented letters (`MALÖRT` finds it) and accepts UTF-8, so it needs no
+encoding change.
+
 ### Results-page markers and paging (verified live 2026-08-06, issue #845)
 
 The HTML results table carries three leading icon `<td>`s per row, whose legend
@@ -482,9 +513,12 @@ centre/sides model ContraDB's ocean wave already uses. Long waves use
 `(<relationship-code><Hand>, <role> face in)`: 858 `women face in`, 568 `men face
 in`, 64 `twos face in`, 13 `ones face in`.
 
-Adjacency (why the mapping is safe): ~44% of these lines are followed by a move
-the existing forward balance-merge already claims (swing, petronella, rory,
-box the gnat, box circulate, slide); 1,091 are preceded by a wave-forming clause
+Adjacency (why the mapping is safe): ~44% of these lines are followed by a swing,
+petronella, rory, box the gnat, box circulate or slide. Of those, the forward
+balance-merge claims only the wave moves (box circulate, and slide via the
+Rory O'More fold); a balance wave before a swing / box the gnat / petronella is
+left to the promotion, because folding it would hand the wave's balance to the
+move's pair (see design/imports.md, "Fold 1"); 1,091 are preceded by a wave-forming clause
 (`Pass the ocean` ×395, `form wave of four …` ×~480, `form long wave …` ×~130);
 the remainder is the implicit case, dominated by allemandes.
 
@@ -538,9 +572,12 @@ were each checked in context and are genuine timing: dance 2957 writes
 `(3) Neighbor courtesy turn`, dance 14823 `(10) Star left 1 & 1/4` +
 `(6) Partner courtesy turn`.
 
-**`direction`:** stated on 10 lines; **all 10 say `clockwise`**.
-`counterclockwise` is unattested — consistent with the figure's mechanics (the
-couple wheels as a unit), so `clockwise` is a real default rather than a guess.
+**`direction`:** stated on 10 lines; **all 10 say `clockwise`**, and
+`counterclockwise` is unattested. A source names the rotation only when it is
+the unusual one, so those 10 lines are the mirrored turn (chiefly after a
+role1s' chain); the ordinary turn, and the taxonomy default since v37, is
+`counterclockwise`. (v23 read this census the other way and defaulted to
+`clockwise`.)
 
 **⚠️ The ending facing is a DANCER, not a direction.** Every in-line ending
 facing is a neighbor relationship — `, face N2` x8, `, face N3` x4, `, face N0`

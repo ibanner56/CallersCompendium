@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -29,15 +32,30 @@ import '../support/l10n_harness.dart';
 class _CommitGate extends drift.QueryInterceptor {
   Completer<void>? _gate;
 
-  /// Arms the interceptor so the next data write awaits [gate] before running.
-  void arm(Completer<void> gate) => _gate = gate;
+  int? _danceInsertsToLetThrough;
 
-  Future<void> _maybeBlock() async {
+  /// Arms the interceptor so the next data write awaits [gate] before running.
+  /// With [afterDanceInserts], that many dance-row inserts run first and the
+  /// gate holds the next one instead, so the commit stops part-way through its
+  /// batch with the earlier records fully handled.
+  void arm(Completer<void> gate, {int? afterDanceInserts}) {
+    _gate = gate;
+    _danceInsertsToLetThrough = afterDanceInserts;
+  }
+
+  Future<void> _maybeBlock(String? statement) async {
     final gate = _gate;
-    if (gate != null && !gate.isCompleted) {
-      _gate = null; // Block only the first write of the armed commit.
-      await gate.future;
+    if (gate == null || gate.isCompleted) return;
+    final letThrough = _danceInsertsToLetThrough;
+    if (letThrough != null) {
+      if (statement == null || !statement.contains('INTO "dances"')) return;
+      if (letThrough > 0) {
+        _danceInsertsToLetThrough = letThrough - 1;
+        return;
+      }
     }
+    _gate = null; // Block only the first write of the armed commit.
+    await gate.future;
   }
 
   @override
@@ -46,7 +64,7 @@ class _CommitGate extends drift.QueryInterceptor {
     String statement,
     List<Object?> args,
   ) async {
-    await _maybeBlock();
+    await _maybeBlock(statement);
     return executor.runInsert(statement, args);
   }
 
@@ -55,7 +73,7 @@ class _CommitGate extends drift.QueryInterceptor {
     drift.QueryExecutor executor,
     drift.BatchedStatements statements,
   ) async {
-    await _maybeBlock();
+    await _maybeBlock(null);
     return executor.runBatched(statements);
   }
 }
@@ -235,7 +253,103 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('import-file-too-large')), findsOneWidget);
-    expect(find.text('That file is too large to import.'), findsOneWidget);
+    expect(
+      find.text(
+        'That file is larger than the 25 MB limit. Choose a smaller file and try again.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  /// Presses Import with the commit held at the second dance's insert, then
+  /// expects the committing view to read "1 / 3": one record handled.
+  Future<void> expectCommitCountAdvances(
+    WidgetTester tester,
+    _CommitGate gate,
+  ) async {
+    final l10n = lookupAppLocalizations(const Locale('en'));
+    final commitGate = Completer<void>();
+    gate.arm(commitGate, afterDanceInserts: 1);
+    await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+    await tester.pump();
+    await tester.pump();
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('import-commit-progress')))
+          .data,
+      l10n.importReviewCommitProgress(1, 3),
+    );
+    commitGate.complete();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('import-result-dialog')), findsOneWidget);
+  }
+
+  CompendiumRepositories gatedRepos(_CommitGate gate) => CompendiumRepositories(
+    openWidgetTestDatabase(
+      executor: NativeDatabase.memory().interceptWith(gate),
+    ),
+    contraTaxonomy,
+  );
+
+  testWidgets('a generic-JSON commit count advances as records are written', (
+    tester,
+  ) async {
+    // Each of the screen's three commit calls must forward its progress; this
+    // one covers the generic pipeline path.
+    final gate = _CommitGate();
+    await _pump(
+      tester,
+      gatedRepos(gate),
+      payload: _archivePayload([
+        _dance('d1', 'First Reel'),
+        _dance('d2', 'Second Reel'),
+        _dance('d3', 'Third Reel'),
+      ]),
+    );
+    await _toReview(tester);
+    await expectCommitCountAdvances(tester, gate);
+  });
+
+  testWidgets('a published-collection commit count advances as records are '
+      'written', (tester) async {
+    final gate = _CommitGate();
+    const metadata = PublishedCollectionMetadata(
+      collectionId: 'published',
+      collectionVersion: '1.0.0',
+      archiveDigest: 'digest',
+      permission: 'author-granted',
+      license: 'CC0',
+    );
+    await tester.binding.setSurfaceSize(const Size(1000, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: RepositoriesScope(
+          repositories: gatedRepos(gate),
+          child: ImportReviewScreen(
+            sources: [
+              ImportSource(
+                kind: ImportSourceKind.publishedCollection,
+                adapterFactory: () => PublishedCollectionAdapter(metadata),
+                preselected: true,
+              ),
+            ],
+            publishedCollection: PublishedCollectionSeed(
+              json: _archivePayload([
+                _dance('d1', 'First Reel'),
+                _dance('d2', 'Second Reel'),
+                _dance('d3', 'Third Reel'),
+              ]),
+              metadata: metadata,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectCommitCountAdvances(tester, gate);
   });
 
   testWidgets('standalone published seed cannot fall back to editable input', (
@@ -314,6 +428,50 @@ void main() {
 
     final all = await repos.dances.listAll();
     expect(all.map((d) => d.title), contains('Brand New Reel'));
+  });
+
+  testWidgets('a collection import tags new dances with the default import '
+      'tags (#1476), and undo leaves the tag itself alone', (tester) async {
+    final repos = openTestRepositories();
+    final tagId = await repos.tags.upsert(Tag(id: 'no-card', name: 'No card'));
+    await repos.settings.set(
+      kDefaultImportTagNamesKey,
+      encodeDefaultImportTagNames(['No card', 'Deleted tag']),
+    );
+    await _pump(
+      tester,
+      repos,
+      payload: _archivePayload([_dance('d1', 'Tagged On Import')]),
+    );
+    await _toReview(tester);
+    await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+    await tester.pumpAndSettle();
+
+    final imported = (await repos.dances.listAll()).single;
+    expect(imported.tagIds, [tagId]);
+
+    await tester.tap(find.byKey(const ValueKey('import-undo-button')));
+    await tester.pumpAndSettle();
+
+    expect(await repos.dances.listAll(), isEmpty);
+    expect(await repos.tags.getById(tagId), isNotNull);
+  });
+
+  testWidgets('with no default import tags a new dance stays untagged', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final _ = await repos.tags.upsert(Tag(id: 'no-card', name: 'No card'));
+    await _pump(
+      tester,
+      repos,
+      payload: _archivePayload([_dance('d1', 'Plain Import')]),
+    );
+    await _toReview(tester);
+    await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+    await tester.pumpAndSettle();
+
+    expect((await repos.dances.listAll()).single.tagIds, isEmpty);
   });
 
   testWidgets('reimport row updates the matched dance in place', (
@@ -590,7 +748,7 @@ void main() {
       find.byKey(const ValueKey('import-row-0-duplicate')),
       findsOneWidget,
     );
-    expect(find.textContaining('Link to'), findsOneWidget);
+    expect(find.textContaining('Same dance — replace'), findsOneWidget);
     expect(find.text('0 of 1 will be imported'), findsOneWidget);
     // Commit is disabled while everything is skipped (no misleading control).
     final commit = tester.widget<FilledButton>(
@@ -609,6 +767,31 @@ void main() {
     expect(all.length, 2);
   });
 
+  testWidgets('skip all possible matches sets every ambiguous row to skip', (
+    tester,
+  ) async {
+    final l10n = lookupAppLocalizations(const Locale('en'));
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('existing', "Sackett's Harbor"));
+
+    await _pump(
+      tester,
+      repos,
+      payload: _archivePayload([_dance('incoming', 'Sacketts Harbor')]),
+    );
+    await _toReview(tester);
+    // Only possible matches here, so only that bulk control is offered.
+    expect(find.byKey(const ValueKey('import-bulk-reimport')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('import-row-0-duplicate')));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.importReviewWillImport(1, 1)), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('import-bulk-skip-ambiguous')));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.importReviewWillImport(0, 1)), findsOneWidget);
+  });
+
   testWidgets('linking an ambiguous row updates the chosen candidate', (
     tester,
   ) async {
@@ -624,6 +807,13 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('import-row-0-link-cand')));
     await tester.pumpAndSettle();
+    // Link rewrites the matched dance with the incoming content, exactly like
+    // re-import, so it must raise the same overwrite warning before commit.
+    expect(
+      find.byKey(const ValueKey('import-overwrite-warning')),
+      findsOneWidget,
+    );
+    expect(find.text('1 existing dance will be overwritten'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('import-commit-button')));
     await tester.pumpAndSettle();
 
@@ -694,6 +884,105 @@ void main() {
     await _pump(tester, repos, payload: 'not json at all');
     await _toReview(tester);
     expect(find.text("Couldn't read the import"), findsOneWidget);
+    final l10n = lookupAppLocalizations(const Locale('en'));
+    // The reason is named; the stage-only "not found" is gone (IMP-01).
+    expect(find.text(l10n.importRecordErrorDiscover), findsNothing);
+    expect(
+      find.text(l10n.importRecordErrorNotCompendiumArchive),
+      findsOneWidget,
+    );
+    expect(find.textContaining("Caller's Compendium file"), findsOneWidget);
+    // A file source still offers to pick another file.
+    expect(find.text(l10n.importReviewTryAnother), findsOneWidget);
+  });
+
+  group('the back-to-input label follows the input method (CS-05)', () {
+    // The Compendium JSON source takes a file, a paste and a URL. The label
+    // names what the user can actually redo: a paste or a URL has no file to
+    // swap, so it reads "Try again"; only a picked file reads "Try another
+    // file" (backupimport-5).
+    Finder backLabel(String text) => find.descendant(
+      of: find.byKey(const ValueKey('import-back-to-input')),
+      matching: find.text(text),
+    );
+
+    testWidgets('pasted invalid text offers Try again', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, payload: 'unused');
+      await tester.enterText(
+        find.byKey(const ValueKey('import-paste-field')),
+        'hello',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      expect(find.text("Couldn't read the import"), findsOneWidget);
+      expect(backLabel(l10n.commonTryAgain), findsOneWidget);
+      expect(find.text(l10n.importReviewTryAnother), findsNothing);
+    });
+
+    testWidgets('an invalid URL body offers Try again', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        fetcher: (url) async => 'hello',
+      );
+      await _fetch(tester, 'https://example.com/bad.json');
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      expect(find.text("Couldn't read the import"), findsOneWidget);
+      expect(backLabel(l10n.commonTryAgain), findsOneWidget);
+      expect(find.text(l10n.importReviewTryAnother), findsNothing);
+    });
+
+    testWidgets('a bad file after a paste still offers Try another file', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, payload: 'not json at all');
+      await tester.enterText(
+        find.byKey(const ValueKey('import-paste-field')),
+        'hello',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      expect(backLabel(l10n.commonTryAgain), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('import-back-to-input')));
+      await tester.pumpAndSettle();
+      await _toReview(tester);
+
+      expect(find.text("Couldn't read the import"), findsOneWidget);
+      expect(backLabel(l10n.importReviewTryAnother), findsOneWidget);
+      expect(find.text(l10n.commonTryAgain), findsNothing);
+    });
+
+    testWidgets('a hand edit after a file pick counts as a paste', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, payload: 'not json at all');
+      await tester.tap(find.byKey(const ValueKey('import-choose-file')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('import-paste-field')),
+        'hello',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      expect(backLabel(l10n.commonTryAgain), findsOneWidget);
+    });
   });
 
   group('figure-variation diff prompt (issue #686)', () {
@@ -765,10 +1054,10 @@ void main() {
           find.byKey(const ValueKey('import-row-0-link-local-1')),
           findsOneWidget,
         );
-        // The plain scored "Link to Money Musk (NN%)" row is NOT offered for
+        // The plain scored "… with this version (NN% match)" row is NOT offered for
         // a confident+differing candidate — it's replaced by the richer pair
         // above.
-        expect(find.textContaining('Link to "Money Musk"'), findsNothing);
+        expect(find.textContaining('with this version ('), findsNothing);
       },
     );
 
@@ -819,7 +1108,7 @@ void main() {
           find.byKey(const ValueKey('import-row-0-link-local-1')),
           findsOneWidget,
         );
-        expect(find.textContaining('Link to "Money Musk"'), findsOneWidget);
+        expect(find.textContaining('with this version ('), findsOneWidget);
       },
     );
 
@@ -955,7 +1244,7 @@ void main() {
     );
 
     testWidgets(
-      'choosing "Same dance (link/update)" behaves like the existing link '
+      'choosing "Same dance — replace" behaves like the existing link '
       'option',
       (tester) async {
         final repos = openTestRepositories();
@@ -995,6 +1284,14 @@ void main() {
           find.byKey(const ValueKey('import-row-0-link-local-1')),
         );
         await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('import-overwrite-warning')),
+          findsOneWidget,
+        );
+        expect(
+          find.text('1 existing dance will be overwritten'),
+          findsOneWidget,
+        );
         await tester.tap(find.byKey(const ValueKey('import-commit-button')));
         await tester.pumpAndSettle();
 
@@ -1108,7 +1405,14 @@ void main() {
       await _fetch(tester, 'https://example.com/missing.json');
 
       expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
-      expect(find.text('The server responded with HTTP 404.'), findsOneWidget);
+      // A 404 on a generic URL no longer shows the raw status (IMP-06).
+      expect(
+        find.text(
+          'Nothing was found at that address. Check the URL, then try again.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('HTTP'), findsNothing);
       // Still on the input phase; nothing crashed and no review list appeared.
       expect(find.byKey(const ValueKey('import-review-list')), findsNothing);
       expect(tester.takeException(), isNull);
@@ -1127,7 +1431,12 @@ void main() {
       await _fetch(tester, 'https://example.com/empty.json');
 
       expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
-      expect(find.text('The URL returned an empty response.'), findsOneWidget);
+      expect(
+        find.text(
+          'The URL returned an empty response. Check that the link points to the data you want to import, then try again.',
+        ),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     });
 
@@ -1172,6 +1481,96 @@ void main() {
       await tester.tap(find.text("The Caller's Box").last);
       await tester.pumpAndSettle();
     }
+
+    // IMP-06: the generic fetcher only reports httpStatus / unreachable; the
+    // screen attributes them to the selected source so an id gets id wording.
+    Future<void> failFetchWith(
+      WidgetTester tester,
+      UrlFetchException error,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(),
+        fetcher: (url) async => throw error,
+      );
+      await selectCallersBox(tester);
+      await _fetch(tester, '999999');
+    }
+
+    Text inlineError(WidgetTester tester) => tester.widget<Text>(
+      find.descendant(
+        of: find.byKey(const ValueKey('import-url-error')),
+        matching: find.byType(Text),
+      ),
+    );
+
+    testWidgets('a 404 for an id says there is no dance with that id, not '
+        'HTTP 404', (tester) async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      await failFetchWith(
+        tester,
+        const UrlFetchException(
+          UrlFetchFailureReason.httpStatus,
+          statusCode: 404,
+        ),
+      );
+
+      final message = inlineError(tester).data!;
+      expect(message, l10n.importErrorCallersBoxHttpNotFound);
+      expect(message, isNot(contains('HTTP')));
+      expect(message, isNot(contains('404')));
+    });
+
+    testWidgets('a 429 for an id says it is busy, not HTTP 429', (
+      tester,
+    ) async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      await failFetchWith(
+        tester,
+        const UrlFetchException(
+          UrlFetchFailureReason.httpStatus,
+          statusCode: 429,
+        ),
+      );
+
+      final message = inlineError(tester).data!;
+      expect(message, l10n.importErrorCallersBoxHttpBusy);
+      expect(message, isNot(contains('HTTP')));
+    });
+
+    testWidgets('offline for an id names The Caller\'s Box, not "the URL"', (
+      tester,
+    ) async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      await failFetchWith(
+        tester,
+        const UrlFetchException(UrlFetchFailureReason.unreachable),
+      );
+
+      final message = inlineError(tester).data!;
+      expect(message, l10n.importErrorCallersBoxUnreachable);
+      expect(message, isNot(contains('Check the URL')));
+    });
+
+    testWidgets('a transport error that is not a UrlFetchException is also '
+        'worded for the selected source', (tester) async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(),
+        fetcher: (url) async => throw StateError('socket'),
+      );
+      await selectCallersBox(tester);
+      await _fetch(tester, '999999');
+
+      expect(inlineError(tester).data, l10n.importErrorCallersBoxUnreachable);
+    });
 
     testWidgets('a bare id is resolved to the &format=JSON endpoint and '
         'parsed by CallersBoxAdapter', (tester) async {
@@ -1619,7 +2018,7 @@ void main() {
     // (external ids 4/7 → "Simplicity Swing", "Petronella"), one set whose
     // Location becomes the program title ("Grange Hall"), and a SetItem
     // referencing an absent dance (99) so a program note is produced.
-    Uint8List ccUsrBytes() => buildFmp12Fixture([
+    Uint8List ccUsrBytes({bool thirdDance = false}) => buildFmp12Fixture([
       FmpFixtureTable(
         index: 1,
         name: 'Dance',
@@ -1627,6 +2026,7 @@ void main() {
         rows: [
           MapEntry(10, {1: '4', 2: 'Simplicity Swing', 3: 'Becky Hill'}),
           MapEntry(11, {1: '7', 2: 'Petronella', 3: 'Trad'}),
+          if (thirdDance) MapEntry(12, {1: '9', 2: 'Chorus Jig', 3: 'Trad'}),
         ],
       ),
       FmpFixtureTable(
@@ -1721,6 +2121,56 @@ void main() {
       expect(find.byKey(const ValueKey('import-choose-file')), findsNothing);
     });
 
+    testWidgets('a file that is not a .USR names the problem (IMP-01)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final random = Uint8List.fromList(List<int>.generate(256, (i) => i));
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => random),
+        bytePicker: () async => random,
+      );
+
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      expect(find.text(l10n.importRecordErrorNotUsrDatabase), findsOneWidget);
+      expect(find.text(l10n.importRecordErrorDiscover), findsNothing);
+      expect(find.text(l10n.importReviewTryAnother), findsOneWidget);
+    });
+
+    testWidgets('a .USR over the resource limits says it is too large '
+        '(IMP-01)', (tester) async {
+      final repos = openTestRepositories();
+      List<ImportSource> sources() => [
+        ImportSource(
+          kind: ImportSourceKind.callersCompanionUsr,
+          adapterFactory: () => CallersCompanionUsrAdapter(
+            reader: (bytes, limits) =>
+                throw const FmpResourceLimitException('too many records'),
+          ),
+          bytePicker: () async => ccUsrBytes(),
+        ),
+      ];
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sources(),
+        bytePicker: () async => ccUsrBytes(),
+      );
+
+      await chooseAndReview(tester);
+
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      expect(find.text(l10n.importRecordErrorFileTooLarge), findsOneWidget);
+      expect(find.text(l10n.importRecordErrorDiscover), findsNothing);
+    });
+
     testWidgets('an oversized .USR is rejected with a friendly SnackBar and '
         'nothing is loaded', (tester) async {
       final repos = openTestRepositories();
@@ -1743,7 +2193,12 @@ void main() {
         find.byKey(const ValueKey('import-file-too-large')),
         findsOneWidget,
       );
-      expect(find.text('That file is too large to import.'), findsOneWidget);
+      expect(
+        find.text(
+          'That file is larger than the 25 MB limit. Choose a smaller file and try again.',
+        ),
+        findsOneWidget,
+      );
       // The oversized file was refused before reading, so no payload loaded.
       expect(find.byKey(const ValueKey('import-usr-chosen')), findsNothing);
     });
@@ -1764,6 +2219,173 @@ void main() {
       expect(find.text('Simplicity Swing'), findsOneWidget);
       expect(find.text('Petronella'), findsOneWidget);
       expect(find.text('2 of 2 will be imported'), findsOneWidget);
+    });
+
+    testWidgets(
+      're-import all sets every matched dance to Re-import in one tap, '
+      'and Skip puts them back',
+      (tester) async {
+        final l10n = lookupAppLocalizations(const Locale('en'));
+        final repos = openTestRepositories();
+        final bytes = ccUsrBytes(thirdDance: true);
+        await _pump(
+          tester,
+          repos,
+          payload: 'unused',
+          sources: sourcesFor(() async => bytes),
+          bytePicker: () async => bytes,
+        );
+        await selectUsr(tester);
+        await chooseAndReview(tester);
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+        expect(repos.dances.listAll(), completion(hasLength(3)));
+
+        // Open the same file again: every row now matches a local dance.
+        await tester.pumpWidget(const SizedBox.shrink());
+        await _pump(
+          tester,
+          repos,
+          payload: 'unused',
+          sources: sourcesFor(() async => bytes),
+          bytePicker: () async => bytes,
+        );
+        await selectUsr(tester);
+        await chooseAndReview(tester);
+        expect(find.text(l10n.importReviewWillImport(0, 3)), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('import-overwrite-warning')),
+          findsNothing,
+        );
+
+        await tester.tap(find.byKey(const ValueKey('import-bulk-reimport')));
+        await tester.pumpAndSettle();
+        expect(find.text(l10n.importReviewWillImport(3, 3)), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('import-overwrite-warning')),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.byKey(const ValueKey('import-bulk-skip')));
+        await tester.pumpAndSettle();
+        expect(find.text(l10n.importReviewWillImport(0, 3)), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('import-overwrite-warning')),
+          findsNothing,
+        );
+
+        // Per-row choices stay editable after a bulk change.
+        await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
+        await tester.pumpAndSettle();
+        expect(find.text(l10n.importReviewWillImport(1, 3)), findsOneWidget);
+      },
+    );
+
+    testWidgets('a batch with no match shows no bulk controls', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => ccUsrBytes()),
+        bytePicker: () async => ccUsrBytes(),
+      );
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+      expect(find.byKey(const ValueKey('import-bulk-reimport')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('import-bulk-skip-ambiguous')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('the commit shows how many dances have been written', (
+      tester,
+    ) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final gate = _CommitGate();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(gate),
+        ),
+        contraTaxonomy,
+      );
+      final bytes = ccUsrBytes(thirdDance: true);
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => bytes),
+        bytePicker: () async => bytes,
+      );
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+
+      final commitGate = Completer<void>();
+      gate.arm(commitGate);
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('import-committing')), findsOneWidget);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('import-commit-progress')))
+            .data,
+        l10n.importReviewCommitProgress(0, 3),
+      );
+
+      commitGate.complete();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('import-committing')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('import-result-dialog')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the commit count advances as records are written', (
+      tester,
+    ) async {
+      // The test above only sees the pre-commit seed, which is shown whether
+      // or not the screen listens to the commit's progress. Holding the second
+      // dance's insert means exactly one record has been handled, so the screen
+      // can only read "1 / 3" if every commit path forwards its progress.
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final gate = _CommitGate();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(gate),
+        ),
+        contraTaxonomy,
+      );
+      final bytes = ccUsrBytes(thirdDance: true);
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => bytes),
+        bytePicker: () async => bytes,
+      );
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+
+      final commitGate = Completer<void>();
+      gate.arm(commitGate, afterDanceInserts: 1);
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pump();
+      await tester.pump();
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('import-commit-progress')))
+            .data,
+        l10n.importReviewCommitProgress(1, 3),
+      );
+
+      commitGate.complete();
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('import-result-dialog')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('the file is released once planning succeeds, kept when it '
@@ -2017,6 +2639,150 @@ void main() {
       expect(await repos.dances.listAll(), isEmpty);
       expect(await repos.programs.listAll(), isEmpty);
     });
+
+    group('incomplete file (IMP-02)', () {
+      // Many small sectors, so cutting the bytes short really does lose rows
+      // the way an incomplete copy of a real file does.
+      Uint8List fullUsr() => buildFmp12FixtureMultiSector([
+        FmpFixtureTable(
+          index: 1,
+          name: 'Dance',
+          columnNames: ['zk_Dance_ID', 'Name', 'Author1'],
+          rows: [
+            for (var i = 1; i <= 60; i++)
+              MapEntry(1000 + i, {1: '$i', 2: 'Dance number $i', 3: 'Trad'}),
+          ],
+        ),
+        FmpFixtureTable(
+          index: 2,
+          name: 'Set',
+          columnNames: ['zk_Set_ID', 'Location'],
+          rows: [
+            MapEntry(1, {1: '1', 2: 'Grange Hall'}),
+          ],
+        ),
+        FmpFixtureTable(
+          index: 3,
+          name: 'SetItem',
+          columnNames: ['zk_Set_ID', 'zk_Dance_ID'],
+          rows: [
+            MapEntry(1, {1: '1', 2: '1'}),
+          ],
+        ),
+        FmpFixtureTable(
+          index: 4,
+          name: 'Dance_Related',
+          columnNames: ['zk_Dance1_ID', 'zk_Dance2_ID'],
+          rows: const [],
+        ),
+      ], options: const FmpMultiSectorOptions(sectorBudget: 300));
+
+      Future<void> reviewBytes(WidgetTester tester, Uint8List bytes) async {
+        final repos = openTestRepositories();
+        await _pump(
+          tester,
+          repos,
+          payload: 'unused',
+          sources: sourcesFor(() async => bytes),
+          bytePicker: () async => bytes,
+        );
+        await selectUsr(tester);
+        await chooseAndReview(tester);
+      }
+
+      testWidgets('a complete file shows no incomplete-file warning', (
+        tester,
+      ) async {
+        await reviewBytes(tester, fullUsr());
+
+        expect(
+          find.byKey(const ValueKey('import-batch-warnings')),
+          findsNothing,
+        );
+        expect(find.text('60 of 60 will be imported'), findsOneWidget);
+      });
+
+      testWidgets('a file cut in half warns before commit while some dances '
+          'were read', (tester) async {
+        final full = fullUsr();
+        await reviewBytes(
+          tester,
+          Uint8List.sublistView(full, 0, full.length ~/ 2),
+        );
+
+        final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+        expect(
+          find.byKey(const ValueKey('import-batch-warnings')),
+          findsOneWidget,
+        );
+        expect(find.text(l10n.importIssueUsrFileTruncated), findsOneWidget);
+        // Some dances survived, so this is the normal review with a banner.
+        expect(
+          find.byKey(const ValueKey('import-commit-button')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('import-message')), findsNothing);
+      });
+
+      testWidgets('a file that lost every dance still says why', (
+        tester,
+      ) async {
+        final full = fullUsr();
+        // Header, the first body sector and little else: no Dance rows survive.
+        await reviewBytes(tester, Uint8List.sublistView(full, 0, 4096 * 3));
+
+        final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+        expect(find.byKey(const ValueKey('import-message')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('import-batch-warnings')),
+          findsOneWidget,
+        );
+        expect(find.text(l10n.importIssueUsrFileTruncated), findsOneWidget);
+      });
+    });
+  });
+
+  group('file from a newer version (IMP-10)', () {
+    String patchedVersion(int version) {
+      final json =
+          jsonDecode(_archivePayload([_dance('a', 'Alpha')]))
+              as Map<String, Object?>;
+      json['schemaVersion'] = version;
+      return jsonEncode(json);
+    }
+
+    testWidgets('shows one update-first banner and no per-row decoding note', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: patchedVersion(archiveSchemaVersion + 1),
+      );
+      await _toReview(tester);
+
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      expect(
+        find.byKey(const ValueKey('import-batch-warnings')),
+        findsOneWidget,
+      );
+      expect(find.text(l10n.importIssueArchiveNewerSchema), findsOneWidget);
+      expect(find.text(l10n.importIssueArchiveReadWarning), findsNothing);
+      // The dance itself is still importable.
+      expect(
+        find.byKey(const ValueKey('import-commit-button')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('an archive from this version shows no banner', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, payload: patchedVersion(archiveSchemaVersion));
+      await _toReview(tester);
+
+      expect(find.byKey(const ValueKey('import-batch-warnings')), findsNothing);
+    });
   });
 
   group('fetchImportUrl (default seam)', () {
@@ -2151,6 +2917,176 @@ void main() {
       expect(titles.where((t) => t == 'First Reel'), hasLength(1));
     });
 
+    group('Import and edit on a matched row', () {
+      Future<CompendiumRepositories> pumpMatched(WidgetTester tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(
+          _dance(
+            'existing',
+            'Old Title',
+            provenance: Provenance(
+              source: ProvenanceSource.json,
+              externalId: 'ext1',
+              importedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ),
+        );
+        await _pumpForEdit(
+          tester,
+          repos,
+          payload: _archivePayload([
+            _dance(
+              'incoming',
+              'Refreshed Title',
+              provenance: Provenance(
+                source: ProvenanceSource.json,
+                externalId: 'ext1',
+                importedAt: DateTime.utc(2026, 6, 1),
+              ),
+            ),
+          ]),
+        );
+        await _toReview(tester);
+        await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
+        await tester.pumpAndSettle();
+        return repos;
+      }
+
+      testWidgets('asks first, names the matched dance, and Cancel writes '
+          'nothing', (tester) async {
+        final l10n = lookupAppLocalizations(const Locale('en'));
+        final repos = await pumpMatched(tester);
+
+        await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('import-edit-overwrite-confirm')),
+          findsOneWidget,
+        );
+        expect(find.text(l10n.importReviewEditOverwriteTitle), findsOneWidget);
+        expect(
+          find.text(l10n.importReviewEditOverwriteBody('Old Title')),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.text(l10n.commonCancel));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('import-edit-overwrite-confirm')),
+          findsNothing,
+        );
+        expect(find.byType(DanceEditorScreen), findsNothing);
+        expect(
+          find.byKey(const ValueKey('import-row-0-imported')),
+          findsNothing,
+        );
+        final existing = await repos.dances.getById('existing');
+        expect(existing!.title, 'Old Title');
+      });
+
+      testWidgets('Continue replaces the matched dance and opens the editor', (
+        tester,
+      ) async {
+        final repos = await pumpMatched(tester);
+
+        await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('import-edit-overwrite-continue')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(DanceEditorScreen), findsOneWidget);
+        final existing = await repos.dances.getById('existing');
+        expect(existing!.title, 'Refreshed Title');
+
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('import-row-0-imported')),
+          findsOneWidget,
+        );
+      });
+    });
+
+    group('Import and edit on a Link row', () {
+      Future<CompendiumRepositories> pumpLinked(WidgetTester tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance('cand', "Sackett's Harbor"));
+        await _pumpForEdit(
+          tester,
+          repos,
+          payload: _archivePayload([_dance('incoming', 'Sacketts Harbor')]),
+        );
+        await _toReview(tester);
+        await tester.tap(find.byKey(const ValueKey('import-row-0-link-cand')));
+        await tester.pumpAndSettle();
+        return repos;
+      }
+
+      testWidgets('asks first, names the linked dance, and Cancel writes '
+          'nothing', (tester) async {
+        final l10n = lookupAppLocalizations(const Locale('en'));
+        final repos = await pumpLinked(tester);
+
+        await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('import-edit-overwrite-confirm')),
+          findsOneWidget,
+        );
+        expect(
+          find.text(l10n.importReviewEditOverwriteBody("Sackett's Harbor")),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.text(l10n.commonCancel));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(DanceEditorScreen), findsNothing);
+        expect(
+          find.byKey(const ValueKey('import-row-0-imported')),
+          findsNothing,
+        );
+        final existing = await repos.dances.getById('cand');
+        expect(existing!.title, "Sackett's Harbor");
+      });
+
+      testWidgets('Continue replaces the linked dance and opens the editor', (
+        tester,
+      ) async {
+        final repos = await pumpLinked(tester);
+
+        await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('import-edit-overwrite-continue')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(DanceEditorScreen), findsOneWidget);
+        final existing = await repos.dances.getById('cand');
+        expect(existing!.title, 'Sacketts Harbor');
+      });
+    });
+
+    testWidgets('the row button reads "Import and edit"', (tester) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final repos = openTestRepositories();
+      await _pumpForEdit(
+        tester,
+        repos,
+        payload: _archivePayload([_dance('d1', 'Parsed Reel')]),
+      );
+      await _toReview(tester);
+
+      expect(find.text(l10n.importReviewImportAndEdit), findsOneWidget);
+      expect(find.text(l10n.commonEdit), findsNothing);
+    });
+
     testWidgets('Edit is disabled when the row is set to Skip', (tester) async {
       final repos = openTestRepositories();
       await _pumpForEdit(
@@ -2256,6 +3192,76 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('open-review')));
       await tester.pumpAndSettle();
     }
+
+    // Rewrites the bundle's `schemaVersion` to one this build has not seen,
+    // as a bundle exported by a newer app would carry.
+    SharedBundleImport newerBundleFor(CompendiumArchive archive) {
+      final json = jsonDecode(encodeArchive(archive)) as Map<String, Object?>;
+      json['schemaVersion'] = archiveSchemaVersion + 1;
+      final text = jsonEncode(json);
+      return SharedBundleImport(
+        json: text,
+        archive: archive,
+        entityCount: compendiumArchiveEntityCount(archive),
+      );
+    }
+
+    // The same update-first banner the pasted-file path shows (IMP-10): once,
+    // for the whole bundle, with no per-row decoding note beside it.
+    void expectNewerVersionBannerOnly(AppLocalizations l10n) {
+      expect(
+        find.byKey(const ValueKey('import-batch-warnings')),
+        findsOneWidget,
+      );
+      expect(find.text(l10n.importIssueArchiveNewerSchema), findsOneWidget);
+      expect(find.text(l10n.importIssueArchiveReadWarning), findsNothing);
+    }
+
+    testWidgets('a dance + program bundle from a newer version shows the '
+        'update-first banner once', (tester) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final repos = openTestRepositories();
+
+      await pumpShared(
+        tester,
+        repos,
+        newerBundleFor(danceProgramVenueArchive()),
+      );
+
+      expect(find.byKey(const ValueKey('import-row-0')), findsOneWidget);
+      expectNewerVersionBannerOnly(l10n);
+    });
+
+    testWidgets('a programs-only bundle from a newer version shows the '
+        'update-first banner', (tester) async {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final repos = openTestRepositories();
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        programs: [
+          Program(
+            id: 'p1',
+            title: 'Announcements Only',
+            slots: [ProgramSlot(id: 's1', position: 0, text: 'Welcome')],
+            createdAt: DateTime.utc(2026, 4, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+          ),
+        ],
+      );
+
+      await pumpShared(tester, repos, newerBundleFor(archive));
+
+      expect(find.byKey(const ValueKey('import-row-0')), findsNothing);
+      expectNewerVersionBannerOnly(l10n);
+    });
+
+    testWidgets('a bundle from this version shows no banner', (tester) async {
+      final repos = openTestRepositories();
+
+      await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+
+      expect(find.byKey(const ValueKey('import-batch-warnings')), findsNothing);
+    });
 
     testWidgets(
       'lands directly on the review list and commits NOTHING until Import',
@@ -2758,12 +3764,12 @@ void main() {
   //   (dance-only), the program is never committed, and the assertions on
   //   repos.programs.listAll() fail.
   // - The staleness test (overwrite paste field with dance-only payload): mutate-out
-  //   _onPasteChanged's bundle-detection logic so it always leaves
+  //   _refreshPickedBundle's bundle-detection logic so it always leaves
   //   _cachedPickedBundle null. The hazard is that _commit could route on a
   //   stale cache; the mutate-out restores that path. A revert is wrong here
   //   because the hazard only exists in code introduced by this PR.
   // - The harmless-edit test (trailing-newline edit keeps programs): also
-  //   mutate-out. With the listener-based cache, a harmless edit to an archive
+  //   mutate-out. With plan-time detection, a harmless edit to an archive
   //   re-decodes and keeps the bundle — but a stale-equality check (the round-3
   //   approach) would drop it. Mutate-out restores that stale check.
 
@@ -2999,8 +4005,8 @@ void main() {
         // action — changed the text, cleared the check, and silently dropped
         // the program. Issue #852 recurring via a trivial edit.
         //
-        // The listener-based cache (_onPasteChanged) re-decodes on every
-        // change, so a trailing newline that still decodes to an archive with
+        // The plan-time detection (_refreshPickedBundle) re-decodes the text at each
+        // Continue, so a trailing newline that still decodes to an archive with
         // programs updates the cache with the new decode rather than clearing
         // it. Both the dance and the program must commit.
         //
@@ -3056,12 +4062,12 @@ void main() {
         // only what is in the paste field — the program from the originally
         // picked archive must not bleed through.
         //
-        // With the listener-based cache, _onPasteChanged re-decodes on each
-        // change and updates _cachedPickedBundle to match the current text.
+        // With plan-time detection, _refreshPickedBundle re-decodes at each
+        // Continue and updates _cachedPickedBundle to match the current text.
         // An overwrite with dance-only JSON produces a cache miss (no programs),
         // and _commit falls through to GenericJsonAdapter.
         //
-        // Mutate-out target: disable program detection in _onPasteChanged so
+        // Mutate-out target: disable program detection in _refreshPickedBundle so
         // _cachedPickedBundle is always null. The round-3 stale-equality check
         // had the same surface — with it, the cache is set at pick time and
         // cleared when the text changes; with its absence, the cache stays set
@@ -3179,6 +4185,165 @@ void main() {
       expect(find.byKey(const ValueKey('import-programs-label')), findsNothing);
     },
   );
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Bundle routing is decided once per plan, from decoded JSON keys
+  // (local audit issue 13: findings 22 and 23)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  group('bundle detection runs once per plan on decoded keys', () {
+    Future<void> pumpCounting(
+      WidgetTester tester,
+      CompendiumRepositories repos,
+      String payload,
+      List<int> calls,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1000, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: RepositoriesScope(
+            repositories: repos,
+            child: ImportReviewScreen(
+              sources: [
+                ImportSource(
+                  kind: ImportSourceKind.genericJson,
+                  adapterFactory: GenericJsonAdapter.new,
+                ),
+              ],
+              picker: () async => payload,
+              archiveDecoder: (root) {
+                calls.add(1);
+                return archiveFromJson(root);
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    // One dance carrying one tag: a metadata bundle, which only the archive
+    // importer route stages.
+    String taggedPayload() => encodeArchive(
+      CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        tags: [Tag(id: 't1', name: 'Escaped Tag')],
+        dances: [
+          Dance(
+            id: 'd1',
+            title: 'Tagged Reel',
+            tagIds: const ['t1'],
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        ],
+      ),
+    );
+
+    Future<void> edit(WidgetTester tester, String text) async {
+      await tester.enterText(
+        find.byKey(const ValueKey('import-paste-field')),
+        text,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('picking and editing does not decode; Continue decodes once', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final calls = <int>[];
+      final payload = taggedPayload();
+      await pumpCounting(tester, repos, payload, calls);
+
+      await tester.tap(find.byKey(const ValueKey('import-choose-file')));
+      await tester.pumpAndSettle();
+      for (var i = 0; i < 5; i++) {
+        await edit(tester, '$payload${' ' * (i + 1)}');
+      }
+      expect(calls, isEmpty, reason: 'no decode while editing');
+
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+      expect(calls, hasLength(1));
+    });
+
+    testWidgets('an escaped "dances" key with a tag routes as a bundle', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final calls = <int>[];
+      final literal = taggedPayload();
+      final escaped = literal.replaceFirst(
+        '"dances"',
+        '"${String.fromCharCode(0x5c)}u0064ances"',
+      );
+      expect(escaped, isNot(literal), reason: 'fixture must contain the key');
+      expect(escaped.contains('"dances"'), isFalse);
+      await pumpCounting(tester, repos, escaped, calls);
+
+      await _toReview(tester);
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      expect((await repos.tags.listAll()).map((t) => t.name), ['Escaped Tag']);
+      // The archive-importer route reports through the Undo snackbar, never the
+      // dance-only result dialog.
+      expect(find.byKey(const ValueKey('import-result-dialog')), findsNothing);
+    });
+
+    testWidgets('unrelated JSON and a dances-less object skip the archive '
+        'decode', (tester) async {
+      final repos = openTestRepositories();
+      final calls = <int>[];
+      await pumpCounting(tester, repos, '{"foo": 1}', calls);
+      await _toReview(tester);
+      expect(calls, isEmpty);
+    });
+
+    testWidgets('a malformed dances value leaves the bundle null and does not '
+        'throw', (tester) async {
+      final repos = openTestRepositories();
+      final calls = <int>[];
+      await pumpCounting(tester, repos, '{"dances": "x"}', calls);
+      await _toReview(tester);
+      expect(tester.takeException(), isNull);
+      expect(
+        find.byKey(const ValueKey('shared-import-undo-snackbar')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('re-planning unchanged text does not decode again; changed '
+        'text does', (tester) async {
+      final repos = openTestRepositories();
+      final calls = <int>[];
+      // Zero dances and no programs → the "nothing to import" message, which
+      // offers "Try another" back to the input step.
+      await pumpCounting(tester, repos, '{"dances": []}', calls);
+      await _toReview(tester);
+      expect(calls, hasLength(1));
+
+      await tester.tap(find.byKey(const ValueKey('import-back-to-input')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+      expect(calls, hasLength(1), reason: 'unchanged text is memoised');
+
+      await tester.tap(find.byKey(const ValueKey('import-back-to-input')));
+      await tester.pumpAndSettle();
+      await edit(tester, taggedPayload());
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+      expect(calls, hasLength(2), reason: 'changed text is decoded again');
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+      expect(await repos.tags.listAll(), hasLength(1));
+    });
+  });
 }
 
 /// A [SourceAdapter] that records the [ImportRequest] it was planned with, so a

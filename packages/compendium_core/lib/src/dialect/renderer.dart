@@ -11,6 +11,18 @@ import 'substitution.dart';
 const Set<String> roleTokens = {'role1', 'role2', 'role1s', 'role2s'};
 
 final RegExp _placeholder = RegExp(r'\{(\w+)\}');
+
+/// Placeholder syntax of a USER-authored wording template. A leading `!`
+/// (`{!hand}`) forces the slot to display even when it would otherwise be
+/// hidden; the captured key keeps the `!` so it is its own slot key.
+final RegExp _wordingPlaceholder = RegExp(r'\{(!?\w+)\}');
+
+String _slotBase(String key) => key.startsWith('!') ? key.substring(1) : key;
+
+Set<String> _wordingSlotNames(String wording) => _wordingPlaceholder
+    .allMatches(wording)
+    .map((match) => _slotBase(match[1]!))
+    .toSet();
 final RegExp _camelBoundary = RegExp(r'(?<=[a-z])(?=[A-Z])');
 
 /// Shape of the single-dancer identity tokens ([ParamVocab.singleDancers]) —
@@ -51,8 +63,14 @@ String _assembleDisplayTemplate(_DisplayTemplate displayTemplate) {
   final template = displayTemplate.template;
   var index = 0;
 
-  String substitute(String source) =>
-      source.replaceAllMapped(_placeholder, (match) => slots[match[1]!] ?? '');
+  // A `!name` key falls back to the plain slot when nothing was forced (e.g.
+  // slots owned by a display base renderer).
+  String valueOf(String key) => slots[key] ?? slots[_slotBase(key)] ?? '';
+
+  String substitute(String source) => source.replaceAllMapped(
+    _wordingPlaceholder,
+    (match) => valueOf(match[1]!),
+  );
 
   _AssembledTemplate parse({required bool stopAtClose}) {
     final output = StringBuffer();
@@ -67,7 +85,7 @@ String _assembleDisplayTemplate(_DisplayTemplate displayTemplate) {
         names.addAll(group.slots);
         final allEmpty =
             group.slots.isNotEmpty &&
-            group.slots.every((name) => (slots[name] ?? '').isEmpty);
+            group.slots.every((name) => valueOf(name).isEmpty);
         if (!allEmpty) output.write(group.text);
         continue;
       }
@@ -79,7 +97,9 @@ String _assembleDisplayTemplate(_DisplayTemplate displayTemplate) {
           : next.reduce((a, b) => a < b ? a : b);
       final literal = template.substring(index, end);
       output.write(substitute(literal));
-      names.addAll(_placeholder.allMatches(literal).map((match) => match[1]!));
+      names.addAll(
+        _wordingPlaceholder.allMatches(literal).map((match) => match[1]!),
+      );
       index = end;
     }
     return (slots: names, text: output.toString());
@@ -468,6 +488,32 @@ class FigureRenderer {
           forCanonical: false,
           includeSilencedDefaults: true,
         );
+        // `{!name}` slots: recompute with every hiding rule lifted and expose
+        // the result under the `!name` key. Slots owned by a display base
+        // renderer have no forced form and read as their plain slot.
+        final forcedNames = _wordingPlaceholder
+            .allMatches(wording!)
+            .map((match) => match[1]!)
+            .where((key) => key.startsWith('!'))
+            .map(_slotBase)
+            .toSet();
+        if (forcedNames.isNotEmpty) {
+          final forcedSlots = _renderTemplateSlots(
+            figure,
+            def,
+            params,
+            dialect,
+            verbose,
+            decimals,
+            forCanonical: false,
+            includeSilencedDefaults: true,
+            forceAll: true,
+          );
+          for (final name in forcedNames) {
+            final value = forcedSlots[name];
+            if (value != null) wordingSlots['!$name'] = value;
+          }
+        }
         final displayTemplate = displayBase != null
             ? _displayTemplate({
                 ...wordingSlots,
@@ -479,8 +525,8 @@ class FigureRenderer {
                   verbose,
                   decimals,
                 ).slots,
-              }, wording!)
-            : _displayTemplate(wordingSlots, wording!);
+              }, wording)
+            : _displayTemplate(wordingSlots, wording);
         final line = _assembleDisplayTemplate((
           slots: displayTemplate.slots,
           template: wording,
@@ -787,6 +833,7 @@ class FigureRenderer {
       'box_circulate': 'circulating the box',
       'butterfly_whirl': 'doing a butterfly whirl',
       'california_twirl': 'doing a California twirl',
+      'circular_hey': 'doing a circular hey',
       'contra_corners': 'doing contra corners',
       'cross_trails': 'crossing trails',
       'dolphin_hey': 'doing a dolphin hey',
@@ -865,6 +912,7 @@ class FigureRenderer {
     bool decimals, {
     required bool forCanonical,
     bool includeSilencedDefaults = false,
+    bool forceAll = false,
   }) {
     final alias = taxonomy.aliases[figure.move];
     final displayName = alias?.displayName ?? def.displayName;
@@ -900,7 +948,7 @@ class FigureRenderer {
         );
         continue;
       }
-      if (pinned.containsKey(name)) {
+      if (!forceAll && pinned.containsKey(name)) {
         slots[name] = '';
         continue;
       }
@@ -922,7 +970,11 @@ class FigureRenderer {
         }
         final who = params['who'];
         final impliedHand = who is String ? chainHandForWho(who) : null;
-        slots[name] = rawHand == impliedHand ? '' : '$rawHand-hand';
+        // `forceAll` (a `{!hand}` slot in a custom wording) shows the stored
+        // hand even when the role already implies it.
+        slots[name] = !forceAll && rawHand == impliedHand
+            ? ''
+            : '$rawHand-hand';
         continue;
       }
       // Display-only omission of a param whose value equals its silenced
@@ -975,7 +1027,7 @@ class FigureRenderer {
         final close = trimmed.indexOf('}', i + 1);
         if (close < 0) return false;
         final name = trimmed.substring(i + 1, close);
-        if (!RegExp(r'^\w+$').hasMatch(name)) return false;
+        if (!RegExp(r'^!?\w+$').hasMatch(name)) return false;
         i = close;
       } else if (char == '}') {
         return false;
@@ -1034,10 +1086,7 @@ class FigureRenderer {
     if (!_isUsableMoveWording(wording)) return false;
     final required = _moveWordingBranchSlots[moveId]?[branch];
     if (required == null) return false;
-    final used = _placeholder
-        .allMatches(wording!)
-        .map((match) => match[1]!)
-        .toSet();
+    final used = _wordingSlotNames(wording!);
     return required.every(used.contains);
   }
 
@@ -1097,10 +1146,7 @@ class FigureRenderer {
     String branch,
     String wording,
   ) {
-    final used = _placeholder
-        .allMatches(wording)
-        .map((match) => match[1]!)
-        .toSet();
+    final used = _wordingSlotNames(wording);
     return moveWordingBranchSlots(moveId, branch).difference(used);
   }
 
@@ -1142,10 +1188,7 @@ class FigureRenderer {
 
   /// Returns the available slots omitted by a custom wording template.
   Set<String> moveWordingMissingSlots(String moveId, String wording) {
-    final used = _placeholder
-        .allMatches(wording)
-        .map((match) => match[1]!)
-        .toSet();
+    final used = _wordingSlotNames(wording);
     final missing = moveWordingSlots(moveId).difference(used);
     if (moveId == 'hey' &&
         (used.contains('shoulder') || used.contains('shoulder_clause'))) {
@@ -1568,6 +1611,8 @@ class FigureRenderer {
       return _formatFractionVerbose(value);
     }
     if (spec?.kind == ParamKind.places && value is int) {
+      // `circular_hey.changes` counts changes, not places around a ring.
+      if (name == 'changes') return value == 1 ? '1 change' : '$value changes';
       return _formatPlaces(value);
     }
     if (value is num) return _formatNumber(value);
@@ -1603,50 +1648,50 @@ class FigureRenderer {
 
   /// Free-text (notes, hooks, custom figures): apply role-term substitution
   /// with case preservation. Move-name substitution does not apply to prose.
+  /// The compiled substitutor is cached per [Dialect] value (see
+  /// [_displaySubstitutors]), so repeated renders do not recompile it.
   ///
   /// To also convert known discouraged spellings at display time, use
   /// [renderFreeTextWithCanonicalDiscouragedTerms]. Stored text is never
   /// changed.
-  String renderFreeText(String text, Dialect dialect) {
-    final map = <String, String>{};
-    for (final entry in dialect.roles.entries) {
-      map[entry.key] = entry.value.singular; // role1 -> Lark
-      map['${entry.key}s'] = entry.value.plural; // role1s -> Larks
-    }
-    return Substitutor(
-      map,
-      caseInsensitive: true,
-      preserveCase: true,
-    ).apply(text);
-  }
+  String renderFreeText(String text, Dialect dialect) =>
+      _substitutorsFor(dialect).roles.apply(text);
 
   /// Converts only the supported discouraged terms, without applying role-token
   /// substitution.
-  String renderDiscouragedTerms(String text, Dialect dialect) => Substitutor(
-    _discouragedDisplayTerms(dialect),
-    caseInsensitive: true,
-    preserveCase: true,
-  ).apply(text);
+  String renderDiscouragedTerms(String text, Dialect dialect) =>
+      _substitutorsFor(dialect).discouraged.apply(text);
 
   /// Applies discouraged-term conversion and the existing role-token display
   /// substitution to free text in one display-only operation.
   String renderFreeTextWithCanonicalDiscouragedTerms(
     String text,
     Dialect dialect,
-  ) {
-    final map = <String, String>{
-      for (final entry in dialect.roles.entries) ...{
-        entry.key: entry.value.singular,
-        '${entry.key}s': entry.value.plural,
-      },
-      ..._discouragedDisplayTerms(dialect),
-    };
-    return Substitutor(
-      map,
-      caseInsensitive: true,
-      preserveCase: true,
-    ).apply(text);
+  ) => _substitutorsFor(dialect).merged.apply(text);
+
+  /// Display substitutors per [Dialect] value. Callers build a fresh
+  /// [FigureRenderer] (and often an equal [Dialect]) per call, so the memo is
+  /// static and keyed by value rather than held on an instance. Per isolate.
+  /// Cleared when it passes [_maxDisplaySubstitutors] so editing a custom
+  /// dialect cannot grow it without bound.
+  static final Map<Dialect, _DisplaySubstitutors> _displaySubstitutors = {};
+  static const int _maxDisplaySubstitutors = 16;
+
+  static _DisplaySubstitutors _substitutorsFor(Dialect dialect) {
+    final cached = _displaySubstitutors[dialect];
+    if (cached != null) return cached;
+    if (_displaySubstitutors.length >= _maxDisplaySubstitutors) {
+      _displaySubstitutors.clear();
+    }
+    return _displaySubstitutors[dialect] = _DisplaySubstitutors(dialect);
   }
+
+  static Map<String, String> _roleDisplayTerms(Dialect dialect) => {
+    for (final entry in dialect.roles.entries) ...{
+      entry.key: entry.value.singular, // role1 -> Lark
+      '${entry.key}s': entry.value.plural, // role1s -> Larks
+    },
+  };
 
   static Map<String, String> _discouragedDisplayTerms(Dialect dialect) => {
     'gypsy': 'shoulder round',
@@ -2008,18 +2053,20 @@ class FigureRenderer {
     // stated wording, verbatim:
     //   {who} courtesy turn {whom, when present} {direction, when not
     //   clockwise} {"to face" + endFacing, when set}
+    // That was v23's reading; since v37 the silenced direction is the new
+    // default, `counterclockwise` (see below).
     // A `renderTemplate` cannot express those conditionals, so the canonical
     // (dedupe/FTS) render keeps expanding the flat template — byte-stability of
     // the canonical text is therefore untouched by anything here — and the
     // conditional wording lives on this DISPLAY-ONLY path, exactly as the
     // merged `gate`'s "to face …" clause does.
     //
-    // `clockwise` is silenced because a courtesy turn wheels clockwise by
-    // construction: all 10 corpus lines that state a direction say `clockwise`,
-    // so printing it would add a word to nearly every courtesy turn while
-    // distinguishing nothing. `counterclockwise` — unattested in the corpus but
-    // authorable — is genuinely surprising and always shown. An unexpected
-    // value is surfaced rather than silently vanishing, mirroring `gate`.
+    // `counterclockwise` is silenced because it is the ordinary courtesy turn
+    // (the taxonomy default since v37), so printing it would add a word to
+    // nearly every courtesy turn while distinguishing nothing. `clockwise` —
+    // the mirrored turn, chiefly after a role1s' chain — is the unusual one
+    // and always shown. An unexpected value is surfaced rather than silently
+    // vanishing, mirroring `gate`.
     //
     // `endFacing` renders in ContraDB's "to face …" idiom, but the value it
     // names is a DANCER (`face N2` → "to face next neighbors"), not one of the
@@ -2034,7 +2081,7 @@ class FigureRenderer {
           ? r._displaySubject(whomRaw, dialect)
           : '';
       final directionRaw = params['direction'];
-      final direction = (directionRaw == 'clockwise')
+      final direction = (directionRaw == 'counterclockwise')
           ? ''
           : _displayChoice(directionRaw);
       final facingRaw = params['endFacing'];
@@ -2494,6 +2541,31 @@ class FigureRenderer {
         '[ - {until}]'
         '[ - {ricochets}]',
       );
+    },
+    // `circular_hey` (v36): "3/4 circular hey, neighbors pass right across".
+    // The fraction counts changes out of the four of a full circuit and is
+    // dropped for the full four changes, the default. `who` is the group that passes first, so it reads
+    // as the plural group noun the verb agrees with ("neighbors pass"). A
+    // other count reads as its quarter-fraction ("1/4", "5/4").
+    'circular_hey': (r, def, params, dialect, verbose, decimals) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final who = params['who'];
+      final changes = params['changes'];
+      final swho = who is String
+          ? r._displayGroup(who, dialect)
+          : r._displaySubject(who, dialect);
+      return _displayTemplate({
+        'move': move,
+        'fraction': changes is! int || changes == 4
+            ? ''
+            : verbose
+            ? _spokenChanges(changes)
+            : '$changes/4',
+        'who': swho,
+        'shoulder': _displayScalar(params['shoulder']),
+        'where': _displayScalar(params['where']),
+        'second': _circularHeySecondPass(r, params, dialect),
+      }, '[{fraction} ]{move}, {who} pass {shoulder} {where}[, {second}]');
     },
     // ContraDB `dolphinHeyWords`: words(smove, "- start with", swho, "passing",
     // swhom, "by", sshoulder). `whom` is a single-dancer identity, rendered via
@@ -2968,6 +3040,43 @@ class FigureRenderer {
   static String _formatNumber(num n) =>
       n == n.roundToDouble() ? n.toInt().toString() : n.toString();
 
+  /// Spoken form of a circular hey's extent ("three changes of a"), so the
+  /// verbose line carries no ASCII fraction a screen reader would misread.
+  static String _spokenChanges(int changes) {
+    const words = [
+      'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
+      'eight', 'nine', 'ten', //
+    ];
+    final word = changes >= 0 && changes < words.length
+        ? words[changes]
+        : '$changes';
+    return '$word ${changes == 1 ? 'change' : 'changes'} of a';
+  }
+
+  /// The second pass of a circular hey ("partners pass left"), or '' when
+  /// `who2` is unstated (the `unspecified` default, or a v36 figure without
+  /// it), so the display line ends after the first pass as it always has.
+  /// The shoulder is the other one from the first pass: a circular hey
+  /// alternates shoulders.
+  static String _circularHeySecondPass(
+    FigureRenderer r,
+    Map<String, Object?> params,
+    Dialect dialect,
+  ) {
+    final who2 = params['who2'];
+    if (who2 == null || who2 == ParamVocab.unspecified) return '';
+    final sh = params['shoulder'];
+    final other = sh == 'right'
+        ? 'left'
+        : sh == 'left'
+        ? 'right'
+        : _displayScalar(sh);
+    final swho2 = who2 is String
+        ? r._displayGroup(who2, dialect)
+        : r._displaySubject(who2, dialect);
+    return '$swho2 pass $other';
+  }
+
   /// Formats a places count using caller vocabulary ("1 place", "4 places").
   static String _formatPlaces(int places) =>
       places == 1 ? '1 place' : '$places places';
@@ -3075,4 +3184,28 @@ class FigureRenderer {
     ];
     return (n >= 0 && n < words.length) ? words[n] : n.toString();
   }
+}
+
+/// The three free-text substitutors for one [Dialect], each compiled on first
+/// use. The rules are the same maps the renderer always built per call.
+class _DisplaySubstitutors {
+  _DisplaySubstitutors(this._dialect);
+
+  final Dialect _dialect;
+
+  late final Substitutor roles = _compile(
+    FigureRenderer._roleDisplayTerms(_dialect),
+  );
+
+  late final Substitutor discouraged = _compile(
+    FigureRenderer._discouragedDisplayTerms(_dialect),
+  );
+
+  late final Substitutor merged = _compile({
+    ...FigureRenderer._roleDisplayTerms(_dialect),
+    ...FigureRenderer._discouragedDisplayTerms(_dialect),
+  });
+
+  static Substitutor _compile(Map<String, String> terms) =>
+      Substitutor(terms, caseInsensitive: true, preserveCase: true);
 }

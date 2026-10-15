@@ -9,7 +9,7 @@ details.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Settings**, **Appearance**, and **Defaults**. The
-> first time a dance term appears it links to the [Glossary](./glossary.md), so
+> first time a dance term appears it links to [App terms](./glossary.md), so
 > you can get a plain-language definition without losing your place.
 
 *The Settings Dialect section with the section list beside controls for the
@@ -47,6 +47,12 @@ The **General** section gathers everyday behavior into small groups.
 - **Ignore leading articles when sorting** (on by default) — alphabetizes titles
   by their first meaningful word. With this on, "The Nice Combination" files under
   **N**, not **T**.
+- **Capitalize figures** (off by default) — starts each
+  [figure](./glossary.md#figure) in the dance view, [Perform mode](./perform.md) and
+  the figure editor with a capital letter. Off, figures are shown as written
+  (built-in figures start in lower case, as in ContraDB). Only the look in those
+  places changes; exports, search, sync comparisons and screen-reader wording are
+  unaffected.
 
 ### Accessibility
 
@@ -70,37 +76,6 @@ the full picture.
   (default is **30 days**). Deleted dances are held for this long and
   then purged. For how soft-delete and restore work, see
   [Collection & search](./collection.md).
-
-### Sync decisions
-
-- **Sync decisions** — review conflicts that [Device Sync](#device-sync)
-  couldn't settle on its own, and choose how each one is resolved. Three kinds of
-  conflict offer a decision:
-  - **A device deleted something another device still has.** One of your
-    devices deleted a choreographer, tag, custom field, or difficulty level
-    that this device had already created on its own under the same name,
-    before either device had seen the other's copy. **Merge** accepts the
-    deletion, so this device's copy goes too. **Keep both** gives this
-    device's record a new, distinct name so it survives alongside the
-    deletion. Dances never enter this decision; they use the dance one below.
-  - **Another device renamed a record onto a name this device already uses.**
-    Both records already exist here — they may well be two different people or
-    two different tags — so nothing is merged behind your back. **Merge** keeps
-    one record and points everything that referred to the other at it.
-    **Keep both** asks you for a new name for the record that currently holds
-    the name, and then applies the other device's rename. Until you choose, the
-    other device's change is not applied.
-
-    Merging two choreographers is the one case that loses something: an email
-    address, location, and deceased marker are kept only on your own device and
-    are never sent to your other devices, so the ones on the record that is not
-    kept cannot be recovered. The app asks you to confirm before this happens.
-  - **Two devices independently created dances with the same title but
-    different choreography.** This turns up when a device first connects to a
-    store that already has dances in it. **Merge** combines the two dances into
-    one. **Keep both** renames one of the dances so both are kept separately.
-  Any other kind of conflict is listed and kept as it is, with no action to
-  choose.
 
 ### Import
 
@@ -340,6 +315,8 @@ The **Language & region** section handles formats and localization.
 - **App language** — choose **System default** or one of the bundled languages
   (currently English, German, French, Japanese, Danish, and Dutch). Changing it
   re-renders the app immediately and is remembered next time you open the app.
+  With **System default**, the app follows your device's language when it is one
+  of those bundled languages and otherwise uses English.
   Your dance content — figure and call wording — is governed by your chosen
   [dialect](./dialects.md), independent of the interface language.
 
@@ -385,6 +362,26 @@ Select **Program defaults** to open this group.
   program in the editor; imports, duplicates, and “create with this dance” keep
   their own slots.
 
+### Import defaults
+
+Select **Import defaults** to open this group.
+
+- **Tags for imported dances** — tick the tags you want added to each new dance
+  you import on its own: from the import screen (including a pasted list of
+  titles), from an online search (including the one in the program editor's
+  dance picker), or from a shared dance link. It applies only
+  to dances the import creates. A dance an import updates in place, a dance
+  created for a program slot while importing a program (from a file, from a
+  title list, or from ContraDB), and dances restored
+  from a Compendium archive keep whatever tags they already have. A program in
+  a Caller's Companion file or a published collection is still imported, but
+  only its dances receive the tags. You can choose up to 50 tags. The choice is remembered by tag name, so it
+  survives a sync or a merge restore. If you later delete one of the tags,
+  imports simply skip it. Dances you create in the editor are not tagged either.
+  Choosing tags here does not change dances already in your collection, and
+  **Undo** on an import removes the dances it created along with their tags
+  (the tags themselves stay).
+
 ### Dance-authoring defaults
 
 These help if you write your own dances. Select **Dance-authoring defaults** to
@@ -419,7 +416,8 @@ open this group. You can override any of them per dance, and
 - **Aggressively recompute figure beats** (off by default) — when on, changing a
   figure's move or a parameter that affects timing recalculates its beat count
   immediately, even overwriting a beat count you typed in by hand. When off, a
-  beat count you've edited is never changed automatically.
+  beat count you've edited is only changed automatically when you switch a
+  balance option on or off, which adds or removes 4 beats.
 
 ## Updates
 
@@ -442,12 +440,25 @@ without you choosing to.
 When an update is available, a dismissible banner points you to the release so you
 can read what's new before deciding.
 
+Occasionally a version of the app reaches the end of its support, for example
+when a later release changes something older versions can't keep up with. If an
+update check finds that your version has an end-of-support date, a banner tells
+you the date you need to update by. On that date and afterward it says that
+support has ended. **Get update** opens the newer release. **Later** hides the banner until you
+next open the app. It comes back after that, because you can't skip an end of
+support the way you can skip one update. The notice is also shown at the top of
+the **Updates** section. The app remembers it, so it still appears when you're
+offline. Once you've updated, the notice goes away. Versions up to and including
+0.6.0-beta were released before these notices existed and can't show them.
+
 On **desktop**, once an update is found you can **Download & install update**: the
 app downloads it, verifies it hasn't been tampered with, then hands it to your
 system's installer to finish — it never replaces itself in place. On **macOS**,
-you first choose where to save the disk image. After it is verified, choose
-**Update now** to open the image and close the app; you can then replace the app
-in **Applications**. Choose **Not now** to keep working and use **Update and
+you first choose where to save the disk image. If you pick an existing file and
+confirm **Replace**, the new download replaces it; if a folder or a symbolic link
+already has that name, the app asks you to choose another name or folder. After
+it is verified, choose **Update now** to open the image and close the app; you
+can then replace the app in **Applications**. Choose **Not now** to keep working and use **Update and
 restart** from the banner or Updates section later. On **Windows**, clicking
 **Download & install update** authorizes the verified installer to run; it handles
 closing and replacing the existing installation. On **Linux**, the verified
@@ -478,16 +489,26 @@ still lets you try to export or clear it.
 ### Export
 
 - **Include full detail (may contain your content)** — **off by default**. Left
-  off, the export removes your content, file paths, email addresses, and phone
-  numbers. Turn it on only when you mean to share the full, unredacted log.
+  off, the export removes the text of error messages, your content, file paths,
+  email addresses, and phone numbers. Turn it on only when you mean to share the
+  full, unredacted log.
 - **Export / share log** — hands the log to your system's share or save dialog.
   The row tells you which kind you're about to send: a scrubbed copy safe to
   attach to a bug report, or the full unredacted log. If the app can't prepare a
   safe scrubbed copy it saves nothing and tells you, rather than sending more than
   you asked for.
 
-If there is nothing in the log, the app says **No diagnostics to export** instead
-of producing an empty file.
+If Device Sync is on or has done anything since the app opened, the export
+ends with a short **Device Sync** part: how the last sync went (the same short
+code **Copy details** gives, plus the step and HTTP status), how full the store
+is if the app knows, and which kinds of notice are showing with how many of
+each and for which kinds of record. It never includes your sync phrase, the
+server's address, titles, or anything that identifies a device or a record, so
+it's in the scrubbed copy too. This part is always in English, like the rest
+of the export.
+
+If there is nothing in the log and Device Sync has nothing to report, the app
+says **No diagnostics to export** instead of producing an empty file.
 
 ### Clear log
 
@@ -501,9 +522,29 @@ useful thing you can send.
 ## Experimental
 
 The **Experimental** section holds features that are still in development —
-today, that's **Device Sync**. Anything here can change before it becomes a
-regular setting. Each feature sits in its own section: select its heading to
+today, that's the **Glossary** and **Device Sync**. Anything here can change
+before it becomes a regular setting. Each feature sits in its own section: select its heading to
 open or close it.
+
+### Glossary
+
+**Show Glossary** adds a **Glossary** destination to the navigation, between
+**Programs** and **Settings**. It is **off by default**, and the section starts
+closed while it is off.
+
+The Glossary is a read-only reference to the figures built into the app. Search
+it by a figure's name, an older name for it, or a word from its definition.
+Select a figure to see:
+
+- a one-line definition and a short description of how it's danced
+- an **Example** of how the figure is written
+- its **Parameters**, the details you can set on it in the dance editor
+- other names it is **Also known as**, with discouraged terms struck through
+
+Names, definitions and examples follow your active
+[dialect](dialects.md), so role words read the way you call them. The Glossary
+comes with the app: nothing in it is stored with your data, and turning it off
+only removes it from the navigation.
 
 ### Device Sync
 
@@ -517,7 +558,8 @@ Sync is off and open while it is on.
   sync waits, and pressing **Sync now** tells you why. In this section it points
   at this setting; from the sync icon on **Collection** or **Programs** it tells
   you to turn the setting off here in Settings.
-  A pass that was skipped runs the next time sync is triggered; you do not need
+  A pass that was skipped runs the next time sync is triggered — when you
+  change something, open the app, or come back to it — and you do not need
   to do anything.
 - **Skip unused imported dances** is off by default. If you have a large
   imported collection, turning it on cuts what this device uploads — but a
@@ -552,21 +594,90 @@ Sync is off and open while it is on.
   a store that goes unused for 30 days is removed, so keep making file backups.
   From three weeks of disuse the status also warns that the store is close to
   expiring.
+- **When a sync can't finish for a reason that sorts itself out** — the sync
+  server couldn't be reached or took too long, the server had a problem of its
+  own, or it asked this device to slow down — the status calmly says **Waiting
+  to sync. Your changes are saved here.** Nothing is wrong with your library,
+  and you don't need to do anything: the app tries again by itself, waiting a
+  little longer each time (from a minute up to half an hour, and never sooner
+  than the server asked), and also tries when you come back to the app. The
+  server limits how quickly one device can send and fetch. The app fetches
+  records from your other devices and sends its own in batches, so connecting
+  a device to a large library usually finishes in one try, or a few for a very
+  large one. With a self-hosted server that hasn't been updated for batches,
+  fetching or sending goes one record at a time and can take several of these
+  tries: roughly a minute for every few hundred records, or for every sixty
+  against an older server still. Each try keeps what it got through, so while it is
+  still getting further the app tries again every minute rather than waiting
+  longer, and nothing it hasn't fetched yet is reported as skipped. If the
+  server has a problem sending another device's latest list, changes to
+  records your devices already share wait until it can, so the status says
+  **Waiting to sync** even though anything new still arrived. A small
+  **Details** line still names the step that stopped and the HTTP status, if
+  you're curious. If this goes on for weeks, the expiry warning below is what
+  tells you.
+- **When a sync fails for a reason you need to deal with**, the status shows a
+  warning and says why: your store is out of space, something was too large to
+  upload, the server refused what was sent or didn't accept the sync phrase, it
+  sent a reply the app couldn't use, another device's latest list was missing
+  or unreadable during a first connection (a problem on the server's side
+  while fetching it is the calm kind above), or something went wrong inside
+  the app. Each
+  comes with what you can do about it, and — where it's known — a **Details**
+  line naming the step that stopped and the HTTP status the server answered
+  with. If the server refused what was sent, the advice depends on the server:
+  on the Caller's Compendium server it means this version of the app is newer
+  than the server, your changes are saved here, and they'll sync once the
+  server is updated; on a server you run yourself, it asks you to update that
+  server. These are not retried by themselves, because waiting won't fix
+  them. The **Sync now** button on the Collection and Programs pages reports a
+  failed sync the same way — calmly or with the reason — so you don't need to
+  come here to find out.
+- **Copy details** sits beside every warning. It puts a short code on the
+  clipboard — something like `SYNC-STORE-FULL upload 507` — that you can paste
+  into a message to whoever helps you. The code names the problem and nothing
+  else: no phrase, no titles, nothing about your devices. Nothing is sent
+  anywhere; you choose where to paste it.
+- **When your store is almost full** — 80% or more of the space or the number
+  of items the server allows — the status warns **Your sync store is almost
+  full.** If **Skip unused imported dances** is still off, the warning offers
+  **Stop syncing imported dances**, which turns it on, since imported dances
+  are usually most of what a store holds.
 - **Notices** appear under that last-synced line when a sync had something to
   report. A sync can finish successfully and still leave one of these standing,
   which is the point of them: the conditions they name are ones the app will
   not guess its way out of. You'll see a notice when the same record was
-  changed on two devices in the same moment and neither copy could be chosen
-  (edit either one to settle it); when something created here was kept rather
+  changed on two devices in the same moment and isn't something you can pick
+  a version of here (if it's listed under **Sync decisions**, choose there;
+  otherwise edit either one to settle it); when something created here was kept rather
   than removed by a device that had never seen it; when something on *this*
   device has a date the app can't trust, so it isn't being sent anywhere
   (check this device's clock); when some dances here have saved figures or
   tunes the app can't read, so they aren't being sent (nothing is deleted —
-  enter those figures or tunes again to send them); when records from another
-  device couldn't be used and were skipped; when another device's clock looks far off; when an
+  enter those figures or tunes again to send them); when another device is
+  using a newer version of the app, so this device can't read some of what it
+  shared — either in a newer format, or with details this version can't keep,
+  such as new details inside a dance's figures (those dances are marked as
+  having figures only a newer version can read). That one is a warning, says
+  how many of each kind of record are waiting when it can tell (for example "2
+  programs, 1 setting"), lists only those records, and is fixed by updating the
+  app on this device; when records here carry other details a newer version
+  of the app added, which this version keeps and shares back unchanged so they
+  aren't lost when you edit the record here — that one is information only, the
+  records still sync, and updating the app shows the details; when records from
+  another device couldn't be used and were skipped; when another device's clock
+  looks far off; when an
   update arrived while you were editing the same record, so it waits for the
-  next sync; and when changes from this device still haven't reached your
-  other devices after several syncs. A notice is only ever a message — it
+  next sync; and when another device is syncing but isn't taking changes from
+  this one. Each notice lists the records it is
+  about, the first few individually and the rest as a count, so you know
+  which ones to look at. Dances, programs, choreographers, tags and venues are
+  named by the title or name this device has for them, and one this device
+  doesn't have is listed as not on this device; other kinds of record —
+  settings, custom fields, difficulty levels, published sources — are listed
+  by kind only. A notice about records
+  from other devices also says how many devices they came from. A notice is
+  only ever a message — it
   never blocks an edit, never holds up a sync, and there is nothing to dismiss.
   It stays until a sync no longer finds the condition, then goes away on its
   own. One kind is deliberately stickier: a record refused from another device
@@ -574,6 +685,19 @@ Sync is off and open while it is on.
   of that run rather than disappearing at the next sync and leaving you with
   nothing. Notices are not kept when you close the app; anything still true is
   reported again by the next sync.
+- **"Needs you"** marks the notices that ask you to do something, and each
+  has **Copy details** beside it. One is the newer-version notice above, which
+  you fix by updating the app on this device. The other is a device that is
+  syncing — it has shared its own changes at least twice since this device
+  shared some — but still hasn't taken them. It names that device
+  by its tag from **Other devices**, says how many changes it isn't taking,
+  and has a button to open that list. Your changes are safe on this device
+  either way. The usual causes are that the other device needs an app update,
+  or that this device's date and time are wrong, so the other device refuses
+  its changes as coming from the future. A device that simply hasn't been
+  opened since doesn't raise this notice: it just shows changes waiting for it
+  under **Other devices**. Like every notice, it never blocks anything and goes
+  away on its own once the other device catches up.
 - These settings belong to this device. They are not synced to your other
   devices, and they are not included in a backup, so restoring a backup never
   turns sync on.
@@ -619,19 +743,28 @@ skipping it doesn't change what connecting does.
 
 When connecting finishes, the app says so and tells you what actually happened
 to the first sync: that it has finished, that it didn't finish and will try
-again, or that it's waiting — for WiFi if **Sync only on WiFi** is on and
+again (with the reason, as on the status), or that it's waiting — for WiFi if **Sync only on WiFi** is on and
 you're on mobile data, or for a connection if you're offline. It never claims a
 sync is running while you read it. It repeats there that sync is not a backup,
 and reports any duplicate dances the first connection merged.
 
 **Disconnecting.** To stop syncing on this device without turning Device Sync
 off, choose **Disconnect this device** and confirm. The device forgets its phrase
-and the server it was using, and stops syncing, but nothing else changes: your
-library here stays as it is, the store keeps everything, and your other devices
-carry on syncing. Nothing is sent when you disconnect. To reconnect — to the
+and the server it was using, and stops syncing: your library here stays as it
+is, and your other devices carry on syncing with everything they have.
+Disconnecting removes this device from the sync store if your other devices
+already have everything from it. If they don't, it stays listed under **Other
+devices** until you remove it there. That removal is one quick try made just
+after the phrase is forgotten, and only on a connection that **Sync only on
+WiFi** would allow; it never holds up disconnecting, and if it can't be made it
+isn't tried again. To reconnect — to the
 same store or a different one — choose **Connect** again; you'll need the phrase,
 so keep it somewhere safe, along with the server address if you changed it.
-Disconnecting really does forget it, so copy it from **Your sync phrase**
+Each time this device connects, it makes up a new identifier for itself
+rather than reusing the one from its last connection, so if an entry from an
+earlier connection was left under **Other devices**, it stays there until you
+remove it.
+Disconnecting really does forget the phrase, so copy it from **Your sync phrase**
 first if it isn't written down anywhere else. Turning **Device Sync** off and on again, by contrast, keeps this device
 connected.
 
@@ -650,10 +783,25 @@ the next time it syncs and reappear in this list, and any device can connect to
 this store again with the phrase. To stop a device syncing you have to
 disconnect it on that device.
 
-The list shows the identifiers the server made up for each device, because
-that's all the server knows — there are no device names, and this device isn't
-in the list. If you can't tell which is which, it's safe to leave them: the
-only cost of an extra entry is one of the 32 places.
+Each device makes up its own random identifier, and a new one every time it
+connects, so the list shows each device as a short tag from that identifier —
+"Device 7c02Lm", say — never a name. This device isn't in the list, but its own
+tag is shown above it ("This device: k7mQ2x"), so you can look it up in the list
+on your other devices. Under each device you'll see when it last shared changes
+— today, a number of days ago, or roughly how many weeks — rounded to the day,
+never a time; and, if some changes from this device haven't reached it yet, how
+many are waiting for it. Those lines come from this device's last sync, so a
+device that sync couldn't see, or one that connected since, shows its tag only
+until the next one.
+
+A device that disconnected and connected again can appear twice: once for its
+earlier connection, which no longer changes and so never shares anything new,
+and once for its current one. If you can't tell which is which, it's safe to
+leave them, but an extra entry isn't free. It takes one of the 32 places, and
+the store keeps the items it shared until it's removed. Because it still has
+everything this device had shared before it disconnected, its "waiting" line
+counts only what changed since. Removing an entry you know is an old connection
+avoids all of that.
 
 **Deleting the store.** **Disconnect all devices and delete the store** removes
 everything the store holds from the server, for every device at once, and it
@@ -691,6 +839,125 @@ address and contact fields are blank, naming exactly those fields. (Notes
 does sync — if you've put contact information there, it travels with the
 note.)
 
+#### Choosing which version to keep
+
+Sometimes the same item is changed on two of your devices before they've
+synced — the same setting changed in the same second, say, or your dialects
+edited on both a laptop and a phone. The app can't tell which change you meant
+to keep, so it doesn't pick one: both versions stay as they are, and it asks
+you.
+
+It only asks when the versions differ in something you can see. When they look
+exactly the same — the same choreographer added on two devices before they
+synced, say — the app keeps one of them for you, the same one on every device,
+and doesn't ask.
+
+- On the **Collection** and **Programs** pages, the **Sync now** button shows a
+  number badge while anything is waiting for your choice. When a sync you
+  started finds something new to choose, the choice opens straight away.
+- In **Device Sync**, **Choose which version to keep** lists everything that's
+  waiting.
+
+For each item you see **This device** and **Another device**, with a short
+description of each version and, when they were changed at different times,
+when each was last changed. Under them, a line sums up what differs — for
+example "1 only on this device · 1 only on the other device" for a list such
+as your shorthands, or "Differs in: Figures, Calling notes" for a dance.
+
+To see exactly what's different, look at the comparison. With one item it's
+shown straight away; with several, choose **Show differences** on an item. The
+comparison shows:
+
+- for a list such as dialects, themes, shorthands or walkthrough snippets: what
+  is only on this device, what is only on the other device, and what both have
+  but differently — with the two versions side by side. For a dialect, that
+  means the terms that differ in each section; for a theme, whether it's light
+  or dark and each colour that differs;
+- for a dance: each detail that differs, with both versions. Figures are
+  compared line by line under the part of the dance they start in (A1, A2, B1,
+  B2), and figures that match aren't repeated; when a figure reads the same in
+  both, its note, its own walkthrough or wording, or its beats show what
+  differs. Links show where they go, what kind they are and whether they join
+  the related-dance group; published sources show their page and number; and
+  **Origin** shows where the dance came from and its licence;
+- for a program: each detail that differs, then the dances only one version
+  has (a dance is matched by which dance it is, not its title, and repeats are
+  counted), whether the dances they share are in a different order, and
+  whether their timings, alternates or other details differ;
+- for a tag, venue or choreographer: each detail that differs, such as a tag's
+  colour or a venue's sponsor, schedule or price.
+
+Nothing is selected for you. Pick the version you want for each item, then
+choose **Keep selected**; with several items, **Keep all
+from this device** or **Keep all from the other device** fills in every choice
+at once, and you still confirm. **Decide later** closes the list and changes
+nothing.
+
+The version you keep becomes the newest edit, so your other devices take it
+the next time they sync and stop asking — with one exception for the sets
+described next. If you choose on two devices before
+either has synced, the later choice wins — unless you made different choices
+in the same second, in which case you're asked again.
+
+Your dialects, custom themes, figure shorthands and walkthrough snippets are
+each one whole set. If both devices changed one, you can keep either device's
+set, or choose **Combine both** to keep everything from both. If both devices
+have the same item — the same dialect, say — but changed it differently, the
+app asks you which version of that item to keep before it saves. **Combine
+both** isn't offered when the combined list would be longer than the app keeps
+(128 dialects, 500 shorthands or 2,000 snippets); it says so instead.
+
+Once you choose for one of these sets, the device where you chose stops asking
+about it, even if the other device hasn't synced yet. The other device, if it
+also changed that set, asks you once more the next time it syncs, because it
+can't tell your choice apart from an ordinary change. That doesn't happen if you
+kept that device's set. When it asks:
+
+- keep the version you chose on the first device, and neither device asks
+  again;
+- keep that device's own set, and it saves that set as a new version, which
+  your first device hasn't chosen against, so the first device asks you again.
+
+**Changing your mind.** After you save your choices, a message offers **Undo**
+for a few seconds. It reopens the items you just decided with the versions you
+chose between, and nothing changes until you choose again and save — closing it
+leaves your earlier choice in place. If something newer has arrived from
+another device in the meantime, Undo tells you so and leaves things as they
+are.
+
+#### Sync decisions
+
+- **Sync decisions**, under **Device Sync** while a store is connected — review
+  conflicts that Device Sync couldn't settle on its own, and choose how each one is resolved. Three kinds of
+  conflict offer a decision:
+  - **A device deleted something another device still has.** One of your
+    devices deleted a choreographer, tag, custom field, or difficulty level
+    that this device had already created on its own under the same name,
+    before either device had seen the other's copy. **Merge** accepts the
+    deletion, so this device's copy goes too. **Keep both** gives this
+    device's record a new, distinct name so it survives alongside the
+    deletion. Dances never enter this decision; they use the dance one below.
+  - **Another device renamed a record onto a name this device already uses.**
+    Both records already exist here — they may well be two different people or
+    two different tags — so nothing is merged behind your back. **Merge** keeps
+    one record and points everything that referred to the other at it.
+    **Keep both** asks you for a new name for the record that currently holds
+    the name, and then applies the other device's rename. Until you choose, the
+    other device's change is not applied.
+
+    Merging two choreographers is the one case that loses something: an email
+    address, location, and deceased marker are kept only on your own device and
+    are never sent to your other devices, so the ones on the record that is not
+    kept cannot be recovered. The app asks you to confirm before this happens.
+  - **Two devices independently created dances with the same title but
+    different choreography.** This turns up when a device first connects to a
+    store that already has dances in it. **Merge** combines the two dances into
+    one. **Keep both** renames one of the dances so both are kept separately.
+  Any other kind of conflict is listed and kept as it is, with no action to
+  choose. When the same item was simply changed differently on two devices,
+  you choose between the versions instead — see
+  [Choosing which version to keep](#choosing-which-version-to-keep).
+
 ## About
 
 The **About** section tells you what you're running and where it comes from.
@@ -706,8 +973,10 @@ The **About** section tells you what you're running and where it comes from.
   (CC BY-NC).
 - **View licenses** — the full license texts, including the bundled fonts,
   `fmptools` (MIT), the project the Caller's Companion importer is ported from,
-  the EFF long wordlist (CC BY 3.0 US) that generated sync IDs are drawn from, and
-  ContraDB (AGPL-3.0), whose figure wording the dance-text renderer follows.
+  the EFF long wordlist (CC BY 3.0 US) that generated sync IDs are drawn from,
+  ContraDB (AGPL-3.0), whose figure wording the dance-text renderer follows, and,
+  on Linux and Windows, PDFium (BSD-3-Clause, with the notices of the libraries
+  built into it), which the app uses there to print and preview PDFs.
 
 ## Where to go next
 

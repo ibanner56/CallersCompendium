@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:compendium_app/src/data/backup_document.dart';
+import 'package:compendium_app/src/data/backup_io.dart'
+    show BackupExportTooLargeException, kMaxBackupFileBytes;
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
@@ -627,6 +629,134 @@ void main() {
     expect(dances.map((d) => d.id), ['d1']);
   });
 
+  test('export refuses a backup larger than the restore cap', () async {
+    final source = openTestRepositories();
+    await _seed(source);
+    final service = BackupService(source);
+    // Pin the stamp: DateTime.toIso8601String prints 3 or 6 fractional digits
+    // depending on whether the microseconds are zero, so two separate
+    // wall-clock exports can differ by 3 bytes and the size comparison flakes.
+    // The stamp covers both the envelope and the nested archive's exportedAt.
+    final createdAt = DateTime.utc(2026, 1, 2, 3, 4, 5, 6, 7);
+    final full = await service.exportToJson(createdAt: createdAt);
+    expect(
+      (await service.buildDocument(createdAt: createdAt)).core.exportedAt,
+      createdAt,
+      reason: 'the nested archive must carry the pinned stamp, not the clock',
+    );
+
+    await expectLater(
+      service.exportToJson(maxBytes: 64, createdAt: createdAt),
+      throwsA(
+        isA<BackupExportTooLargeException>()
+            .having((e) => e.maxBytes, 'maxBytes', 64)
+            .having((e) => e.sizeBytes, 'sizeBytes', utf8.encode(full).length),
+      ),
+    );
+    // Exactly at the cap is allowed (the restore refuses only above it).
+    expect(
+      await service.exportToJson(
+        maxBytes: utf8.encode(full).length,
+        createdAt: createdAt,
+      ),
+      isNotEmpty,
+    );
+  });
+
+  test('export defaults its cap to the restore cap', () async {
+    final source = openTestRepositories();
+    await _seed(source);
+    expect(
+      utf8.encode(await BackupService(source).exportToJson()).length,
+      lessThan(kMaxBackupFileBytes),
+    );
+  });
+
+  test(
+    'export refuses past the default cap, which is the restore cap',
+    () async {
+      // A real export is far under 50 MiB, so only an injected codec can reach
+      // the default cap. The runner reports one byte past it for the encode.
+      final source = openTestRepositories();
+      await _seed(source);
+      Future<T> oversized<T>(T Function() work) async {
+        final result = work();
+        if (result is ({String json, int byteLength})) {
+          return (json: result.json, byteLength: kMaxBackupFileBytes + 1) as T;
+        }
+        return result;
+      }
+
+      await expectLater(
+        BackupService(source, codecRunner: oversized).exportToJson(),
+        throwsA(
+          isA<BackupExportTooLargeException>()
+              .having((e) => e.maxBytes, 'maxBytes', kMaxBackupFileBytes)
+              .having((e) => e.sizeBytes, 'sizeBytes', kMaxBackupFileBytes + 1),
+        ),
+      );
+    },
+  );
+
+  test('export at exactly the restore cap is allowed', () async {
+    final source = openTestRepositories();
+    await _seed(source);
+    Future<T> atCap<T>(T Function() work) async {
+      final result = work();
+      if (result is ({String json, int byteLength})) {
+        return (json: result.json, byteLength: kMaxBackupFileBytes) as T;
+      }
+      return result;
+    }
+
+    expect(
+      await BackupService(source, codecRunner: atCap).exportToJson(),
+      isNotEmpty,
+    );
+  });
+
+  test(
+    'restoreFromJson with a decoded result does not decode the text',
+    () async {
+      final source = openTestRepositories();
+      await _seed(source);
+      final json = await BackupService(source).exportToJson();
+      final read = await decodeBackupOnIsolate(json);
+
+      // The text is garbage: only the handed-in decode can make this restore.
+      final target = openTestRepositories();
+      final outcome = await BackupService(
+        target,
+      ).restoreFromJson('not a backup', decoded: read);
+
+      expect(outcome.applied, isTrue);
+      expect(
+        (await target.dances.listAll()).map((d) => d.id),
+        (await source.dances.listAll()).map((d) => d.id),
+      );
+    },
+  );
+
+  test('retryApplySettings reuses the decoded document', () async {
+    final source = openTestRepositories();
+    await _seed(source);
+    final json = await BackupService(source).exportToJson();
+
+    final target = openTestRepositoriesWithFailingSettings();
+    await BackupService(target.repos).restoreFromJson(json);
+    target.settings.failWrites = false;
+
+    // No JSON is handed in: the retry works from the already-decoded result.
+    final read = await decodeBackupOnIsolate(json);
+    final retried = await BackupService(
+      target.repos,
+    ).retryApplySettingsFrom(read);
+
+    expect(retried.applied, isTrue);
+    expect(retried.settingsFailed, isFalse);
+    expect(await target.repos.settings.get(kSortIgnoreArticlesKey), false);
+  });
+
   test('retryApplySettings is idempotent — running it twice converges to the '
       'same state (#608)', () async {
     final source = openTestRepositories();
@@ -729,4 +859,160 @@ void main() {
       expect(await repos.settings.get(kSortIgnoreArticlesKey), true);
     },
   );
+
+  group('replace preflight: incomplete or newer backups', () {
+    const stamp = '"createdAt":"2026-07-15T00:00:00.000Z"';
+    const backupDance =
+        '{"id":"b1","title":"Backup Dance",'
+        '"createdAt":"2026-01-01T00:00:00.000Z",'
+        '"updatedAt":"2026-01-01T00:00:00.000Z"}';
+
+    Future<CompendiumRepositories> seeded() async {
+      final repos = openTestRepositories();
+      await _seed(repos);
+      return repos;
+    }
+
+    Future<void> expectSettingsIntact(CompendiumRepositories repos) async {
+      expect(await repos.settings.get(kSortIgnoreArticlesKey), false);
+      expect(await repos.settings.get(kActiveCustomThemeKey), 'custom-1');
+      expect(await repos.settings.get(kActiveDialectRefKey), 'My Dialect');
+      expect(await repos.settings.get(kCustomThemesKey) as List, hasLength(1));
+      expect(
+        await repos.settings.get(kCustomDialectsKey) as List,
+        hasLength(1),
+      );
+    }
+
+    Future<void> expectLiveIntact(CompendiumRepositories repos) async {
+      expect((await repos.dances.listAll()).map((d) => d.id), ['d1']);
+      await expectSettingsIntact(repos);
+    }
+
+    test('REPLACE refuses a backup with no app section', () async {
+      final repos = await seeded();
+      const json =
+          '{"backupVersion":1,$stamp,"core":{"dances":[$backupDance]}}';
+
+      final outcome = await BackupService(repos).restoreFromJson(json);
+
+      expect(outcome.applied, isFalse);
+      expect(outcome.missingAppSection, isTrue);
+      await expectLiveIntact(repos);
+    });
+
+    test('REPLACE refuses a non-object app section', () async {
+      final repos = await seeded();
+      const json =
+          '{"backupVersion":1,$stamp,"core":{"dances":[$backupDance]},'
+          '"app":5}';
+
+      final outcome = await BackupService(repos).restoreFromJson(json);
+
+      expect(outcome.applied, isFalse);
+      expect(outcome.missingAppSection, isTrue);
+      await expectLiveIntact(repos);
+    });
+
+    test('REPLACE refuses a newer backupVersion', () async {
+      final repos = await seeded();
+      const json =
+          '{"backupVersion":999,$stamp,"core":{"dances":[$backupDance]},'
+          '"app":{}}';
+
+      final outcome = await BackupService(repos).restoreFromJson(json);
+
+      expect(outcome.applied, isFalse);
+      expect(outcome.newerSchema, isTrue);
+      await expectLiveIntact(repos);
+    });
+
+    test('REPLACE refuses a newer core schemaVersion', () async {
+      final repos = await seeded();
+      final json =
+          '{"backupVersion":1,$stamp,'
+          '"core":{"schemaVersion":${archiveSchemaVersion + 1},'
+          '"dances":[$backupDance]},"app":{}}';
+
+      final outcome = await BackupService(repos).restoreFromJson(json);
+
+      expect(outcome.applied, isFalse);
+      expect(outcome.newerSchema, isTrue);
+      await expectLiveIntact(repos);
+    });
+
+    test('MERGE with no app section applies core and leaves settings, '
+        'themes and dialects intact', () async {
+      final repos = await seeded();
+      const json =
+          '{"backupVersion":1,$stamp,"core":{"dances":[$backupDance]}}';
+
+      final outcome = await BackupService(
+        repos,
+      ).restoreFromJson(json, mode: RestoreMode.merge);
+
+      expect(outcome.applied, isTrue);
+      expect((await repos.dances.listAll()).map((d) => d.id).toSet(), {
+        'd1',
+        'b1',
+      });
+      await expectSettingsIntact(repos);
+    });
+
+    test('MERGE of a newer backupVersion stays best-effort', () async {
+      final repos = await seeded();
+      const json =
+          '{"backupVersion":999,$stamp,"core":{"dances":[$backupDance]},'
+          '"app":{}}';
+
+      final outcome = await BackupService(
+        repos,
+      ).restoreFromJson(json, mode: RestoreMode.merge);
+
+      expect(outcome.applied, isTrue);
+      expect(outcome.warnings, isNotEmpty);
+    });
+
+    test('REPLACE with an empty app object restores core but leaves every '
+        'undescribed settings section alone', () async {
+      final repos = await seeded();
+      const json =
+          '{"backupVersion":1,$stamp,"core":{"dances":[$backupDance]},'
+          '"app":{}}';
+
+      final outcome = await BackupService(repos).restoreFromJson(json);
+
+      expect(outcome.applied, isTrue);
+      expect((await repos.dances.listAll()).map((d) => d.id), ['b1']);
+      await expectSettingsIntact(repos);
+    });
+
+    test('REPLACE applies only the app sections the backup describes', () async {
+      final repos = await seeded();
+      const json =
+          '{"backupVersion":1,$stamp,"core":{"dances":[$backupDance]},'
+          '"app":{"settings":{}}}';
+
+      final outcome = await BackupService(repos).restoreFromJson(json);
+
+      expect(outcome.applied, isTrue);
+      // The described (empty) settings section replaces the stale preference...
+      expect(await repos.settings.get(kSortIgnoreArticlesKey), isNull);
+      // ...but themes and dialects, which the backup never mentioned, stay.
+      expect(await repos.settings.get(kActiveCustomThemeKey), 'custom-1');
+      expect(await repos.settings.get(kActiveDialectRefKey), 'My Dialect');
+      expect(await repos.settings.get(kCustomThemesKey) as List, hasLength(1));
+    });
+
+    test('retryApplySettings with no app section clears nothing', () async {
+      final repos = await seeded();
+      const json =
+          '{"backupVersion":1,$stamp,"core":{"dances":[$backupDance]}}';
+
+      final outcome = await BackupService(repos).retryApplySettings(json);
+
+      expect(outcome.settingsFailed, isFalse);
+      await expectLiveIntact(repos);
+    });
+  });
 }

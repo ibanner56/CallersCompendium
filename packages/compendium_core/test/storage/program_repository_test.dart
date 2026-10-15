@@ -284,6 +284,65 @@ void main() {
       expect(loaded, program);
     });
 
+    test('round-trips dialectName, and clears it', () async {
+      const name = 'Leads/Follows';
+      final program = sampleProgram().copyWith(dialectName: name);
+      await repo.create(program);
+      final loaded = await repo.getById(program.id);
+      expect(loaded!.dialectName, name);
+      expect(loaded, program);
+
+      await repo.update(loaded.copyWith(clearDialectName: true));
+      expect((await repo.getById(program.id))!.dialectName, isNull);
+    });
+
+    test('round-trips pay, and clears it (issue #1418)', () async {
+      final program = sampleProgram().copyWith(
+        payMinorUnits: 25050,
+        payCurrency: 'USD',
+      );
+      await repo.create(program);
+      final loaded = await repo.getById(program.id);
+      expect(loaded!.payMinorUnits, 25050);
+      expect(loaded.payCurrency, 'USD');
+      expect(loaded, program);
+
+      await repo.update(loaded.copyWith(payMinorUnits: 0, payCurrency: 'JPY'));
+      final zero = (await repo.getById(program.id))!;
+      expect(zero.payMinorUnits, 0);
+      expect(zero.payCurrency, 'JPY');
+
+      await repo.update(zero.copyWith(clearPay: true));
+      final cleared = (await repo.getById(program.id))!;
+      expect(cleared.payMinorUnits, isNull);
+      expect(cleared.payCurrency, isNull);
+    });
+
+    test('pay defaults to null when unset', () async {
+      await repo.create(sampleProgram());
+      final loaded = (await repo.getById('p1'))!;
+      expect(loaded.payMinorUnits, isNull);
+      expect(loaded.payCurrency, isNull);
+    });
+
+    test('dialectName defaults to null when unset', () async {
+      final program = sampleProgram();
+      await repo.create(program);
+      expect((await repo.getById(program.id))!.dialectName, isNull);
+    });
+
+    test('duplicate keeps dialectName', () async {
+      final program = sampleProgram().copyWith(dialectName: 'Leads/Follows');
+      await repo.create(program);
+      final copy = await repo.duplicate(
+        id: program.id,
+        newId: 'dup',
+        newSlotId: () => 'dup-slot',
+        now: DateTime.utc(2026, 2, 1),
+      );
+      expect(copy.dialectName, 'Leads/Follows');
+    });
+
     test('hideAlternates defaults to false when unset', () async {
       final program = sampleProgram();
       await repo.create(program);
@@ -478,6 +537,107 @@ void main() {
       expect(loaded!.deletedAt, beforeRollback!.deletedAt);
       expect(loaded.updatedAt, beforeRollback.updatedAt);
       expect(loaded.slots.single.performedAt, actionAt);
+    });
+  });
+
+  group('updateAndReadBack / replaceIfUnchanged (flows-1)', () {
+    final adjustedAt = DateTime.utc(2026, 2, 1, 12, 0, 0, 100);
+
+    Future<(Program previous, Program stored)> adjust() async {
+      final previous = sampleProgram(
+        slots: [ProgramSlot(id: 's1', position: 0, text: 'Break')],
+      );
+      await repo.create(previous);
+      final stored = await repo.updateAndReadBack(
+        previous.copyWith(title: 'Adjusted', updatedAt: adjustedAt),
+      );
+      return (previous, stored);
+    }
+
+    test('updateAndReadBack returns the program as stored', () async {
+      final (_, stored) = await adjust();
+      expect(stored, await repo.getById('p1'));
+      expect(stored.updatedAt, DateTime.utc(2026, 2, 1, 12));
+    });
+
+    test('restores when nothing changed, with an advanced stamp', () async {
+      final (previous, stored) = await adjust();
+      final now = DateTime.utc(2026, 2, 1, 12, 5);
+      final restored = await repo.replaceIfUnchanged(
+        expected: stored,
+        replacement: previous,
+        updatedAt: now,
+      );
+      expect(restored, isTrue);
+      final live = (await repo.getById('p1'))!;
+      expect(live.title, previous.title);
+      expect(live.updatedAt, now);
+    });
+
+    test('a restore stamp never goes back past the stored one', () async {
+      final (previous, stored) = await adjust();
+      final restored = await repo.replaceIfUnchanged(
+        expected: stored,
+        replacement: previous,
+        updatedAt: DateTime.utc(2020),
+      );
+      expect(restored, isTrue);
+      final live = (await repo.getById('p1'))!;
+      expect(live.updatedAt.isAfter(stored.updatedAt), isTrue);
+    });
+
+    test(
+      'refuses an edit within the same stored second, and keeps it',
+      () async {
+        final (previous, stored) = await adjust();
+        await repo.update(
+          stored.copyWith(
+            title: 'Renamed',
+            updatedAt: DateTime.utc(2026, 2, 1, 12, 0, 0, 900),
+          ),
+        );
+        expect((await repo.getById('p1'))!.updatedAt, stored.updatedAt);
+
+        final restored = await repo.replaceIfUnchanged(
+          expected: stored,
+          replacement: previous,
+          updatedAt: DateTime.utc(2026, 2, 1, 12, 5),
+        );
+        expect(restored, isFalse);
+        expect((await repo.getById('p1'))!.title, 'Renamed');
+      },
+    );
+
+    test('refuses a slot-only change', () async {
+      final (previous, stored) = await adjust();
+      await repo.update(
+        stored.copyWith(
+          slots: [ProgramSlot(id: 's1', position: 0, text: 'Long break')],
+        ),
+      );
+      expect(
+        await repo.replaceIfUnchanged(
+          expected: stored,
+          replacement: previous,
+          updatedAt: DateTime.utc(2026, 2, 1, 12, 5),
+        ),
+        isFalse,
+      );
+      expect((await repo.getById('p1'))!.slots.single.text, 'Long break');
+    });
+
+    test('refuses a soft-deleted program', () async {
+      final (previous, stored) = await adjust();
+      await repo.softDelete('p1', at: DateTime.utc(2026, 2, 1, 12, 1));
+      expect(
+        await repo.replaceIfUnchanged(
+          expected: stored,
+          replacement: previous,
+          updatedAt: DateTime.utc(2026, 2, 1, 12, 5),
+        ),
+        isFalse,
+      );
+      expect(await repo.getById('p1'), isNull);
     });
   });
 

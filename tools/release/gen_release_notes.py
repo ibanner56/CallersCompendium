@@ -14,8 +14,7 @@ Behaviour:
 * For a bare beta (``--channel beta``) a clear **Beta / pre-release** banner is
   prepended so ``-beta`` never produces misleading stable wording.
 * A short footer is always appended: it states the per-platform signing
-  posture, tells users to verify against ``SHA256SUMS``, and notes that a
-  maintainer publishes the draft after review. The Windows and macOS sentences
+  posture and tells users to verify against ``SHA256SUMS``. The Windows and macOS sentences
   are **each conditional on the actual signing outcome** (``--windows-signing`` /
   ``--macos-signing``): Windows is described as **signed via Azure Trusted
   Signing** only when the pipeline actually signed it (the five ``AZURE_*``
@@ -46,8 +45,7 @@ from pathlib import Path
 # (Azure Trusted Signing) and macOS on the Apple secrets (ADR-002 §6); when a
 # leg's credentials are absent it ships UNSIGNED and the footer says exactly that.
 _VERIFY_LINE = (
-    "Verify downloads against `SHA256SUMS`. A maintainer publishes this draft "
-    "after review."
+    "Verify downloads against `SHA256SUMS`."
 )
 _ADR_REF = "see ADR-002 §6"
 _CORE = r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)"
@@ -138,8 +136,8 @@ def validate_release(*, version: str, tag: str, channel: str) -> str:
 def _beta_banner(tag: str) -> str:
     return (
         f"> ⚠️ **Beta / pre-release (`beta` channel).** This is a pre-release "
-        f"build (`{tag}`) intended for testing and may be unstable. Use the "
-        f"stable channel for production."
+        f"build (`{tag}`) intended for testing and may be unstable; back up "
+        f"before upgrading."
     )
 
 

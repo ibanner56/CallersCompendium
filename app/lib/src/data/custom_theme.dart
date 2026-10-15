@@ -162,7 +162,8 @@ class CustomTheme {
   };
 }
 
-/// A single editable color role, with a human label for the editor.
+/// A single editable color role. [label] is the stable English fallback; the
+/// editor shows `themeEditorRoleLabel` (`app_theme_labels_l10n.dart`).
 @immutable
 class ColorRole {
   const ColorRole(this.key, this.label);
@@ -171,6 +172,7 @@ class ColorRole {
 }
 
 /// A foreground/background pair whose WCAG contrast the editor badges live.
+/// [label] is the English fallback; see `themeEditorPairLabel`.
 @immutable
 class ContrastPair {
   const ContrastPair({
@@ -188,7 +190,8 @@ class ContrastPair {
   final bool largeOrNonText;
 }
 
-/// A labeled group of roles shown together in the editor.
+/// A group of roles shown together in the editor. [label] is the English
+/// fallback and the key `themeEditorGroupLabel` resolves from.
 @immutable
 class RoleGroup {
   const RoleGroup({

@@ -1,14 +1,14 @@
 import 'package:compendium_core/compendium_core.dart'
     show MatrixColumnConfig, shareableTextNormalisationScopeKey;
 
-import '../screens/perform_card.dart' show kPerformMinScale;
-import '../screens/settings/settings_keys.dart';
 import '../update/update_config.dart'
     show kUpdateAutoCheckKey, kUpdateBetaChannelKey, kUpdateDismissedVersionKey;
 import 'aggressive_beats_update_scope.dart' show kAggressiveBeatsUpdateKey;
 import 'backup_reminder.dart' show kBackupReminderCadenceKey;
 import 'confirm_before_delete_scope.dart' show kConfirmBeforeDeleteKey;
+import 'capitalize_figures_scope.dart' show kCapitalizeFiguresKey;
 import 'decimal_turns_scope.dart' show kDecimalTurnsKey;
+import 'show_glossary_scope.dart' show kShowGlossaryKey;
 import 'display_defaults.dart'
     show
         kCanonicalDiscouragedTermsKey,
@@ -25,19 +25,23 @@ import 'display_defaults.dart'
         kDefaultMoveParamOverridesKey,
         kDefaultProgramBandKey,
         kDefaultProgramCallerKey,
+        kDefaultImportTagNamesKey,
         kDefaultProgramSortKey,
         kDefaultStartingProgramKey,
         kLastUsedCollectionSortDirectionKey,
         kLastUsedCollectionSortKey,
         kLastUsedProgramSortDirectionKey,
         kLastUsedProgramSortKey,
+        tryDecodeDefaultImportTagNames,
         tryDecodeStartingProgramTemplate;
 import 'formation_colors_controller.dart' show kFormationColorOverridesKey;
 import 'locale_scope.dart' show kLocaleKey;
 import 'reduce_motion_scope.dart' show kReduceMotionKey;
+import 'perform_text_scale.dart' show kPerformMinScale;
 import 'regional_formats.dart'
     show kDateFormatCustomPatternKey, kDateFormatKey, kFirstDayOfWeekKey;
 import 'seed_service.dart' show kInitialSeedCompletedKey;
+import 'settings_keys.dart';
 import 'set_list_color_coding_scope.dart' show kSetListColorCodingKey;
 import 'shorthand_mappings_controller.dart' show kShorthandMappingsKey;
 import 'soft_delete_retention.dart' show kSoftDeleteRetentionKey;
@@ -86,6 +90,8 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kReduceMotionKey,
     kVerboseFigureRenderingKey,
     kDecimalTurnsKey,
+    kCapitalizeFiguresKey,
+    kShowGlossaryKey,
     kConfirmBeforeDeleteKey,
     kSetListColorCodingKey,
     kUpdateAutoCheckKey,
@@ -140,6 +146,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // The starting-program template is a JSON string with an invariant-checked
   // semantic codec, not merely an arbitrary string.
   kDefaultStartingProgramKey: _isValidStartingProgramTemplate,
+  kDefaultImportTagNamesKey: _isValidDefaultImportTagNames,
 
   // Numbers. The in-Perform manual text scale is used for layout sizing, so a
   // non-finite (NaN/Infinity) value is rejected outright rather than flowing
@@ -186,6 +193,9 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
 
 bool _isBool(Object? v) => v is bool;
 bool _isString(Object? v) => v is String;
+bool _isValidDefaultImportTagNames(Object? v) =>
+    tryDecodeDefaultImportTagNames(v) != null;
+
 bool _isValidStartingProgramTemplate(Object? v) =>
     tryDecodeStartingProgramTemplate(v) != null;
 bool _isNonNegativeInt(Object? v) => v is int && v >= 0;

@@ -11,9 +11,12 @@ export 'src/analysis/program_matrix.dart';
 export 'src/diagnostics/crash_log_record.dart';
 export 'src/diagnostics/crash_redactor.dart';
 export 'src/dialect/canonicalize.dart';
+export 'src/dialect/role_canonicalizer.dart';
 export 'src/dialect/dialect.dart';
 export 'src/dialect/renderer.dart';
 export 'src/dialect/substitution.dart' show Substitutor;
+export 'src/export/dance_card_content.dart';
+export 'src/export/dance_card_fields.dart';
 export 'src/export/dance_share_fields.dart';
 export 'src/export/dance_text.dart';
 export 'src/export/export_labels.dart';
@@ -56,6 +59,7 @@ export 'src/imports/shorthand_mappings.dart';
 export 'src/imports/share_metadata_import.dart';
 export 'src/imports/source_adapter.dart';
 export 'src/imports/structured_draft.dart';
+export 'src/imports/title_punctuation.dart';
 export 'src/imports/venue_dedupe.dart';
 export 'src/imports/while_container.dart';
 export 'src/model/choreographer.dart';
@@ -86,6 +90,7 @@ export 'src/search/filter.dart';
 export 'src/storage/calling_history_scope.dart'
     show normalizeCallingHistoryCaller;
 export 'src/storage/duplicate_natural_key.dart' show DuplicateNaturalKeyError;
+export 'src/storage/figure_reparse.dart';
 export 'src/storage/shareable_text.dart';
 export 'src/search/filter_compiler.dart';
 export 'src/search/fts_query.dart';
@@ -94,6 +99,7 @@ export 'src/serialization/archive_codec.dart';
 export 'src/serialization/archive_service.dart';
 export 'src/serialization/compendium_archive.dart';
 export 'src/serialization/figure_codec.dart';
+export 'src/sync/blob_batch_frames.dart';
 export 'src/sync/canonical_json.dart';
 export 'src/sync/sync_record_kind.dart';
 export 'src/sync/sync_codec.dart';
@@ -116,9 +122,11 @@ export 'src/sync/sync_merge.dart';
 export 'src/sync/sync_quarantine.dart';
 export 'src/sync/sync_reconciliation.dart';
 export 'src/sync/sync_report.dart';
+export 'src/sync/sync_retained_fields.dart';
 export 'src/sync/sync_apply.dart';
 export 'src/sync/sync_admission.dart';
 export 'src/sync/sync_review.dart';
+export 'src/sync/sync_conflict_compare.dart';
 export 'src/sync/sync_review_resolver.dart';
 export 'src/sync/sync_storage.dart';
 export 'src/sync/server/sync_id_server.dart';
@@ -141,6 +149,7 @@ export 'src/storage/database.dart'
         taxonomyV33CanonicalRebuildDoneKey,
         taxonomyV34CanonicalRebuildDoneKey,
         taxonomyV35FigureNormalizationDoneKey,
+        taxonomyV37CanonicalRebuildDoneKey,
         callersBoxRollAwayRoleRepairDoneKey,
         shareableTextNormalisationScopeKey,
         normalisationDerivedIndexRepairDoneKey,
@@ -169,9 +178,11 @@ export 'src/storage/repositories/collection_import_event_repository.dart';
 export 'src/storage/repositories/custom_field_repository.dart'
     show
         CustomFieldDefRepository,
+        CustomFieldInUseException,
         decodeCustomFieldValue,
         encodeCustomFieldValue;
 export 'src/storage/repositories/dance_repository.dart';
+export 'src/storage/repositories/difficulty_level_errors.dart';
 export 'src/storage/repositories/difficulty_level_repository.dart';
 export 'src/storage/repositories/program_repository.dart';
 export 'src/storage/repositories/published_source_repository.dart';
@@ -181,6 +192,7 @@ export 'src/storage/repositories/sync_local_repository.dart';
 export 'src/storage/repositories/tag_repository.dart';
 export 'src/storage/repositories/venue_repository.dart';
 export 'src/taxonomy/contra_taxonomy.dart';
+export 'src/taxonomy/figure_glossary.dart';
 export 'src/taxonomy/gate_facing.dart';
 export 'src/taxonomy/move_def.dart';
 export 'src/taxonomy/offerable_dancer_sets.dart';
@@ -189,6 +201,7 @@ export 'src/taxonomy/taxonomy.dart';
 export 'src/util/argb.dart';
 export 'src/util/colour_name_seed.dart';
 export 'src/util/inline_emphasis.dart';
+export 'src/util/pay_format.dart';
 export 'src/util/text_sanitizer.dart';
 export 'src/util/uuid.dart';
 export 'src/validation/validation.dart';

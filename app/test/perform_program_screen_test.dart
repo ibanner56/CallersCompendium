@@ -1,13 +1,16 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show SemanticsNode;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/perform_text_scale.dart';
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/perform_walkthrough_overlay.dart';
@@ -21,6 +24,7 @@ import 'package:compendium_app/src/screens/settings_screen.dart'
         kShowProgramSlotCallerNotesKey;
 import 'package:compendium_app/src/search/collection_data.dart';
 import 'package:compendium_app/src/theme/color_schemes.dart';
+import 'package:compendium_app/src/theme/wcag.dart';
 
 import 'support/test_repositories.dart';
 import 'support/fake_wakelock.dart';
@@ -99,6 +103,8 @@ Future<void> _pumpProgram(
   DialectLibraryController? dialectLibrary,
   Map<String, Dance> danceOverrides = const {},
   Map<String, String> authorNameOverrides = const {},
+  int? initialWalkthroughEndedAtSlotSeconds,
+  String? initialWalkthroughEndedSlotId,
 }) async {
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -130,6 +136,9 @@ Future<void> _pumpProgram(
         danceOverrides: danceOverrides,
         authorNameOverrides: authorNameOverrides,
         initialGroup: initialGroup,
+        initialWalkthroughEndedAtSlotSeconds:
+            initialWalkthroughEndedAtSlotSeconds,
+        initialWalkthroughEndedSlotId: initialWalkthroughEndedSlotId,
       ),
     ),
   );
@@ -375,7 +384,17 @@ void main() {
           // content the FittedBox scale-down is there to protect at 360–430px.
           // Without it the readout is short and the scale-down path (and thus
           // this regression guard) would never be exercised (issue #433).
-          _slot(id: 's1', position: 0, danceId: 'd1', danceMinutes: 45),
+          //
+          // It also carries a walkthrough so the dance-start toggle (issue
+          // #1659) is part of the bar being measured; without one the button
+          // never renders and this guard could not notice it overflowing.
+          _slot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            walkthroughMinutes: 10,
+            danceMinutes: 45,
+          ),
           _slot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
         ]),
         surfaceSize: size,
@@ -418,6 +437,17 @@ void main() {
           // setup can't silently regress to the short readout and let a future
           // overflow slip through unnoticed.
           expect(find.byKey(const ValueKey('perform-planned')), findsOneWidget);
+
+          // The dance-start toggle (issue #1659) is present and keeps its full
+          // 44px target: it lives outside both FittedBoxes, so the readout's
+          // scale-down cannot shrink it.
+          expect(
+            // getRect (not getSize) so a FittedBox paint transform would show.
+            tester
+                .getRect(find.byKey(const ValueKey('perform-dance-start')))
+                .size,
+            const Size(44, 44),
+          );
 
           // Primary actions stay inline and reachable.
           expect(
@@ -620,6 +650,32 @@ void main() {
     'unresolved dance-linked caller notes use the display preference',
     (tester) async {
       final data = await _dataWith(const []);
+      final program = _program([
+        _slot(
+          id: 's1',
+          position: 0,
+          danceId: 'missing-dance',
+          text: 'Gypsy with the gents',
+          isPurgedDance: null,
+        ),
+      ]);
+      await _pumpProgram(tester, data: data, program: program);
+
+      // The card headlines "Dance unavailable"; the converted note is only a
+      // secondary line (PRF-02 — it used to be the whole card).
+      final card = tester.widget<PerformTextCard>(find.byType(PerformTextCard));
+      expect(card.text, startsWith('Dance unavailable'));
+      expect(
+        find.textContaining('Shoulder round with the larks'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'unresolved dance-linked slot hides the note when notes are off',
+    (tester) async {
+      final data = await _dataWith(const []);
       await _pumpProgram(
         tester,
         data: data,
@@ -632,9 +688,107 @@ void main() {
             isPurgedDance: null,
           ),
         ]),
+        showProgramSlotCallerNotes: false,
       );
 
-      expect(find.text('Shoulder round with the larks'), findsOneWidget);
+      expect(find.text('Dance unavailable'), findsOneWidget);
+      expect(find.textContaining('Shoulder round'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'a soft-deleted slot dance still shows its figures and is marked deleted',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Gone Dance'));
+      await repos.dances.softDelete('d1', at: _now);
+      final data = await CollectionData.load(repos);
+      final program = _program([
+        _slot(
+          id: 's1',
+          position: 0,
+          danceId: 'd1',
+          text: 'Remember to teach the shoulder round slowly',
+        ),
+      ]);
+      expect(data.dancesById.containsKey('d1'), isFalse);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: program,
+        danceOverrides: (await resolveDeletedSlotDances(
+          repos.dances,
+          repos.choreographers,
+          program,
+          data,
+        )).dances,
+      );
+
+      expect(find.byType(PerformCard), findsOneWidget);
+      expect(find.byKey(const ValueKey('perform-text')), findsNothing);
+      // The card itself carries the deleted marker and the dance's figures.
+      expect(find.text('Gone Dance (deleted dance)'), findsOneWidget);
+      expect(find.text('robins chain'), findsOneWidget);
+      expect(find.text('Untitled slot'), findsNothing);
+      expect(find.text('Dance unavailable'), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('perform-jump')));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('perform-jump-list')),
+          matching: find.text('Gone Dance (deleted dance)'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'an unresolvable slot dance shows Dance unavailable, not Untitled slot',
+    (tester) async {
+      final data = await _dataWith(const []);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([_slot(id: 's1', position: 0, danceId: 'gone')]),
+      );
+
+      expect(find.text('Dance unavailable'), findsOneWidget);
+      expect(find.text('Untitled slot'), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('perform-jump')));
+      await tester.pumpAndSettle();
+      expect(find.text('Dance unavailable'), findsNWidgets(2));
+      expect(find.text('Untitled slot'), findsNothing);
+    },
+  );
+
+  test(
+    'resolveDeletedSlotDances includes deleted, skips live and missing',
+    () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'live', title: 'Live Dance'));
+      await repos.dances.create(_dance(id: 'dead', title: 'Dead Dance'));
+      await repos.dances.softDelete('dead', at: _now);
+      final data = await CollectionData.load(repos);
+      final program = _program([
+        _slot(id: 's1', position: 0, danceId: 'live'),
+        _slot(id: 's2', position: 1, danceId: 'dead'),
+        _slot(id: 's3', position: 2, danceId: 'dead', isAlt: true),
+        _slot(id: 's4', position: 3, danceId: 'purged'),
+        _slot(id: 's5', position: 4, text: 'Break'),
+      ]);
+
+      final resolved = (await resolveDeletedSlotDances(
+        repos.dances,
+        repos.choreographers,
+        program,
+        data,
+      )).dances;
+
+      expect(resolved.keys, ['dead']);
+      expect(resolved['dead']!.isDeleted, isTrue);
     },
   );
 
@@ -1952,5 +2106,906 @@ void main() {
         expect(find.text('Slot 2 of 2'), findsOneWidget);
       },
     );
+  });
+
+  group('Perform bottom bar and Undo (CS-36)', () {
+    Future<List<Program>> pumpPushed(
+      WidgetTester tester, {
+      required Program program,
+      required CollectionData data,
+      Size size = const Size(412, 800),
+      double textScale = 1.0,
+      Future<bool> Function(Program previous, Program adjusted)?
+      restoreIfUnchanged,
+    }) async {
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+      addTearDown(notifier.dispose);
+      final repos = openTestRepositories();
+      final changed = <Program>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(textScale)),
+            child: RepositoriesScope(
+              repositories: repos,
+              child: ActiveDialectScope(notifier: notifier, child: child!),
+            ),
+          ),
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                key: const ValueKey('open-perform'),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => PerformProgramScreen(
+                      program: program,
+                      data: data,
+                      renderer: _renderer,
+                      onProgramChanged: (p) async => changed.add(p),
+                      restoreIfUnchanged: restoreIfUnchanged,
+                    ),
+                  ),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('open-perform')));
+      await tester.pumpAndSettle();
+      return changed;
+    }
+
+    /// Adjusts, leaves Perform, and taps the surviving "Program adjusted"
+    /// Undo; returns the localizations of the screen underneath.
+    Future<AppLocalizations> adjustLeaveAndUndo(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsNothing);
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byKey(const ValueKey('open-perform'))),
+      );
+      await tester.tap(find.text(l10n.commonUndo));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      return l10n;
+    }
+
+    /// Whether [finder]'s semantics node, or an ancestor, is a live region
+    /// (what makes a screen reader announce a SnackBar when it appears).
+    bool inLiveRegion(WidgetTester tester, Finder finder) {
+      SemanticsNode? node = tester.getSemantics(finder);
+      while (node != null) {
+        if (node.getSemanticsData().flagsCollection.isLiveRegion) return true;
+        node = node.parent;
+      }
+      return false;
+    }
+
+    testWidgets(
+      'Undo on "Program adjusted" after leaving Perform hands the owner the '
+      'previous and adjusted programs and shows nothing when it restores',
+      (tester) async {
+        final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+        final program = _program([_slot(id: 's1', position: 0, danceId: 'd1')]);
+        final asked = <(Program, Program)>[];
+        final changed = await pumpPushed(
+          tester,
+          program: program,
+          data: data,
+          size: const Size(1200, 2000),
+          restoreIfUnchanged: (previous, adjusted) async {
+            asked.add((previous, adjusted));
+            return true;
+          },
+        );
+
+        final l10n = await adjustLeaveAndUndo(tester);
+
+        // The restore is the owner's one atomic step; the screen does not
+        // also write the snapshot through onProgramChanged.
+        expect(changed, hasLength(1));
+        expect(changed.single, isNot(equals(program)));
+        expect(asked, hasLength(1));
+        expect(asked.single.$1, equals(program));
+        expect(asked.single.$2, same(changed.single));
+        expect(find.text(l10n.performUndoNoLongerAvailable), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'Undo on "Program adjusted" after leaving Perform is refused, with an '
+      'announced message, when the owner reports the program changed since',
+      (tester) async {
+        final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+        final program = _program([_slot(id: 's1', position: 0, danceId: 'd1')]);
+        final changed = await pumpPushed(
+          tester,
+          program: program,
+          data: data,
+          size: const Size(1200, 2000),
+          restoreIfUnchanged: (_, _) async => false,
+        );
+
+        final l10n = await adjustLeaveAndUndo(tester);
+
+        expect(changed, hasLength(1), reason: 'the snapshot is not written');
+        final message = find.text(l10n.performUndoNoLongerAvailable);
+        expect(message, findsOneWidget);
+        expect(inLiveRegion(tester, message), isTrue);
+      },
+    );
+
+    testWidgets(
+      'Undo on "Program adjusted" after leaving Perform is refused when the '
+      'owner cannot say whether the program changed',
+      (tester) async {
+        final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+        final program = _program([_slot(id: 's1', position: 0, danceId: 'd1')]);
+        final changed = await pumpPushed(
+          tester,
+          program: program,
+          data: data,
+          size: const Size(1200, 2000),
+        );
+
+        final l10n = await adjustLeaveAndUndo(tester);
+
+        expect(changed, hasLength(1));
+        expect(find.text(l10n.performUndoNoLongerAvailable), findsOneWidget);
+      },
+    );
+
+    testWidgets('an adjust-sheet edit that keeps the slot on screen keeps the '
+        'dance-start mark (issue #1659)', (tester) async {
+      final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+      await pumpPushed(
+        tester,
+        program: _program([
+          _slot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            walkthroughMinutes: 3,
+            danceMinutes: 8,
+          ),
+        ]),
+        data: data,
+        size: const Size(1200, 2000),
+      );
+      final danceStart = find.byKey(const ValueKey('perform-dance-start'));
+      await tester.tap(danceStart);
+      await tester.pump();
+      expect(tester.widget<IconButton>(danceStart).isSelected, isTrue);
+
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<IconButton>(danceStart).isSelected, isTrue);
+    });
+
+    for (final scale in const [1.3, 2.0, 3.0]) {
+      testWidgets(
+        'the bottom bar shows the clock inside its bounds at $scale× system '
+        'text',
+        (tester) async {
+          final data = await _dataWith([
+            _dance(id: 'd1', title: 'First Dance'),
+          ]);
+          await pumpPushed(
+            tester,
+            program: _program([
+              _slot(
+                id: 's1',
+                position: 0,
+                danceId: 'd1',
+                walkthroughMinutes: 3,
+                danceMinutes: 8,
+              ),
+            ]),
+            data: data,
+            textScale: scale,
+          );
+
+          expect(tester.takeException(), isNull);
+          final bar = tester.getRect(find.byType(BottomAppBar));
+          // The bar itself grows with the system text size (A11Y-01), up to a
+          // 200 px cap, rather than leaning on the FittedBox below to shrink
+          // the position/timing lines into the fixed 80 px. At these scales
+          // the lines are shrunk to fit the bar's *width* either way, so the
+          // containment checks below pass with a fixed-height bar; the height
+          // is what pins the fix.
+          expect(bar.height, (80 * scale).clamp(80.0, 200.0));
+          final clock = tester.getRect(
+            find.byKey(const ValueKey('perform-clock')),
+          );
+          expect(bar.contains(clock.topLeft), isTrue);
+          expect(bar.contains(clock.bottomRight), isTrue);
+        },
+      );
+    }
+  });
+
+  group('dance-start toggle (issue #1659)', () {
+    final danceStart = find.byKey(const ValueKey('perform-dance-start'));
+    final complete = find.byKey(const ValueKey('perform-walkthrough-complete'));
+    final over = find.byKey(const ValueKey('perform-over'));
+    final actual = find.byKey(const ValueKey('perform-walkthrough-actual'));
+
+    // One slot, 1 min walkthrough + 1 min dance; both thresholds are reachable
+    // with a few `pump`s of the fake 1s timer.
+    Future<void> pumpTimed(
+      WidgetTester tester, {
+      int? walkthroughMinutes = 1,
+      int? danceMinutes = 1,
+      bool second = false,
+    }) async {
+      final data = await _dataWith([
+        _dance(id: 'd1', title: 'Timed Dance'),
+        _dance(id: 'd2', title: 'Second Dance'),
+      ]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([
+          _slot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            walkthroughMinutes: walkthroughMinutes,
+            danceMinutes: danceMinutes,
+          ),
+          if (second)
+            _slot(
+              id: 's2',
+              position: 1,
+              danceId: 'd2',
+              walkthroughMinutes: 1,
+              danceMinutes: 1,
+            ),
+        ]),
+      );
+    }
+
+    testWidgets('is offered only when the slot has a walkthrough duration', (
+      tester,
+    ) async {
+      await pumpTimed(tester);
+      expect(danceStart, findsOneWidget);
+      // Independent of elapsed time: still there well past the target.
+      await tester.pump(const Duration(seconds: 200));
+      expect(danceStart, findsOneWidget);
+    });
+
+    for (final w in const <int?>[null, 0]) {
+      testWidgets('is absent when walkthrough minutes are $w', (tester) async {
+        await pumpTimed(tester, walkthroughMinutes: w);
+        expect(danceStart, findsNothing);
+      });
+    }
+
+    testWidgets(
+      'marking early makes "walkthrough complete" follow the mark and measures '
+      '"over" from it; the readout shows the delta to plan',
+      (tester) async {
+        await pumpTimed(tester);
+        await tester.pump(const Duration(seconds: 30));
+        expect(complete, findsNothing);
+        await tester.tap(danceStart);
+        await tester.pump();
+
+        expect(complete, findsOneWidget);
+        expect(actual, findsOneWidget);
+        expect(
+          _textOf(tester, 'perform-walkthrough-actual'),
+          'walkthrough 0:30 (−0:30)',
+        );
+        // Clock-derived "over" would fire at 120s; from the mark it is 90s.
+        await tester.pump(const Duration(seconds: 60));
+        expect(over, findsNothing);
+        await tester.pump(const Duration(seconds: 1));
+        expect(over, findsOneWidget);
+        expect(complete, findsNothing);
+      },
+    );
+
+    testWidgets('marking late reports how far the walkthrough ran over', (
+      tester,
+    ) async {
+      await pumpTimed(tester);
+      await tester.pump(const Duration(seconds: 90));
+      await tester.tap(danceStart);
+      await tester.pump();
+      expect(
+        _textOf(tester, 'perform-walkthrough-actual'),
+        'walkthrough 1:30 (+0:30)',
+      );
+      // Dance minutes run from the mark (90s), so 90 + 60 = 150s, not 120s.
+      await tester.pump(const Duration(seconds: 59));
+      expect(over, findsNothing);
+      await tester.pump(const Duration(seconds: 1));
+      expect(over, findsNothing);
+      await tester.pump(const Duration(seconds: 1));
+      expect(over, findsOneWidget);
+    });
+
+    testWidgets(
+      'a second tap undoes the mark and restores the automatic cues',
+      (tester) async {
+        await pumpTimed(tester);
+        await tester.pump(const Duration(seconds: 30));
+        await tester.tap(danceStart);
+        await tester.pump();
+        expect(complete, findsOneWidget);
+        await tester.tap(danceStart);
+        await tester.pump();
+        expect(complete, findsNothing);
+        expect(actual, findsNothing);
+        // Back on the clock: walkthrough cue at 61s, "over" at 121s.
+        await tester.pump(const Duration(seconds: 31));
+        expect(complete, findsOneWidget);
+        await tester.pump(const Duration(seconds: 60));
+        expect(over, findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'pressing after "over" clears it; undo brings it straight back',
+      (tester) async {
+        await pumpTimed(tester);
+        await tester.pump(const Duration(seconds: 125));
+        expect(over, findsOneWidget);
+        await tester.tap(danceStart);
+        await tester.pump();
+        expect(over, findsNothing);
+        expect(complete, findsOneWidget);
+        // Re-measured from the mark: over again 60s (+1) after pressing.
+        await tester.pump(const Duration(seconds: 60));
+        expect(over, findsNothing);
+        await tester.pump(const Duration(seconds: 1));
+        expect(over, findsOneWidget);
+        await tester.tap(danceStart);
+        await tester.pump();
+        expect(over, findsOneWidget);
+        expect(actual, findsNothing);
+      },
+    );
+
+    testWidgets('can be pressed while the timers are paused', (tester) async {
+      await pumpTimed(tester);
+      await tester.pump(const Duration(seconds: 40));
+      await tester.tap(find.byKey(const ValueKey('perform-timer-pause')));
+      await tester.pump();
+      await tester.tap(danceStart);
+      await tester.pump();
+      // Records the frozen slot time, not zero and not a later one.
+      expect(
+        _textOf(tester, 'perform-walkthrough-actual'),
+        'walkthrough 0:40 (−0:20)',
+      );
+      await tester.pump(const Duration(seconds: 30));
+      expect(
+        _textOf(tester, 'perform-walkthrough-actual'),
+        'walkthrough 0:40 (−0:20)',
+      );
+    });
+
+    testWidgets('resets with the per-slot timer on next, prev and alt-swap '
+        'navigation', (tester) async {
+      await pumpTimed(tester, second: true);
+      await tester.tap(danceStart);
+      await tester.pump();
+      expect(actual, findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pump();
+      expect(actual, findsNothing);
+      expect(
+        tester.widget<IconButton>(danceStart).isSelected,
+        isFalse,
+        reason: 'the new slot starts unused',
+      );
+      await tester.tap(danceStart);
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('perform-prev')));
+      await tester.pump();
+      expect(actual, findsNothing);
+    });
+
+    for (final width in const [360.0]) {
+      testWidgets('keeps a 44px target beside the widest (marked) readout at '
+          '${width.toInt()}px with no overflow', (tester) async {
+        final data = await _dataWith([_dance(id: 'd1', title: 'Timed Dance')]);
+        await _pumpProgram(
+          tester,
+          data: data,
+          surfaceSize: Size(width, 900),
+          program: _program([
+            _slot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              walkthroughMinutes: 10,
+              danceMinutes: 45,
+            ),
+          ]),
+        );
+        await tester.pump(const Duration(seconds: 100));
+        await tester.tap(danceStart);
+        await tester.pump();
+        // Marked adds the delta text and the walkthrough-complete cue: the
+        // longest the readout gets, so the scale-down path is certainly taken.
+        expect(actual, findsOneWidget);
+        expect(complete, findsOneWidget);
+        expect(tester.takeException(), isNull);
+        expect(tester.getRect(danceStart).size, const Size(44, 44));
+        // The readout is squeezed into what is left beside the button.
+        final bar = tester.getRect(find.byType(BottomAppBar));
+        final clock = tester.getRect(
+          find.byKey(const ValueKey('perform-clock')),
+        );
+        expect(clock.right, lessThanOrEqualTo(tester.getRect(danceStart).left));
+        expect(bar.contains(tester.getRect(danceStart).bottomRight), isTrue);
+      });
+    }
+
+    for (final c in const [
+      (id: 's1', applied: true, name: 'the slot it was set on'),
+      (id: 's2', applied: false, name: 'a different slot (alternate/edited)'),
+      (id: null, applied: false, name: 'no slot id'),
+    ]) {
+      testWidgets('a resumed mark is applied only to ${c.name}', (
+        tester,
+      ) async {
+        final data = await _dataWith([_dance(id: 'd1', title: 'Timed Dance')]);
+        await _pumpProgram(
+          tester,
+          data: data,
+          program: _program([
+            _slot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              walkthroughMinutes: 1,
+              danceMinutes: 1,
+            ),
+          ]),
+          initialWalkthroughEndedAtSlotSeconds: 20,
+          initialWalkthroughEndedSlotId: c.id,
+        );
+        expect(tester.widget<IconButton>(danceStart).isSelected, c.applied);
+        expect(actual, c.applied ? findsOneWidget : findsNothing);
+      });
+    }
+
+    testWidgets(
+      're-entry after marking an ALTERNATE does not move the mark onto the '
+      'primary',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1200, 2000));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Primary Dance'));
+        await repos.dances.create(_dance(id: 'd2', title: 'Alternate Dance'));
+        await repos.programs.create(
+          _program([
+            _slot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              walkthroughMinutes: 1,
+              danceMinutes: 1,
+            ),
+            _slot(
+              id: 's2',
+              position: 1,
+              danceId: 'd2',
+              isAlt: true,
+              walkthroughMinutes: 1,
+              danceMinutes: 1,
+            ),
+          ]),
+        );
+        final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+        addTearDown(notifier.dispose);
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            builder: (context, child) => RepositoriesScope(
+              repositories: repos,
+              child: ActiveDialectScope(notifier: notifier, child: child!),
+            ),
+            home: const ProgramEditorScreen(programId: 'p1'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-program')));
+        await tester.pumpAndSettle();
+
+        // Swap to the alternate, then mark it.
+        await tester.tap(find.byKey(const ValueKey('perform-alt-swap')));
+        await tester.pump();
+        await tester.tap(danceStart);
+        await tester.pump();
+        expect(tester.widget<IconButton>(danceStart).isSelected, isTrue);
+
+        await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+        await tester.pumpAndSettle();
+
+        // Re-entry shows the primary: the alternate's mark must not follow.
+        await tester.tap(find.byKey(const ValueKey('perform-program')));
+        await tester.pumpAndSettle();
+        expect(find.text('Primary Dance'), findsWidgets);
+        expect(tester.widget<IconButton>(danceStart).isSelected, isFalse);
+        expect(actual, findsNothing);
+      },
+    );
+
+    testWidgets('records slot-elapsed time, not the program clock', (
+      tester,
+    ) async {
+      await pumpTimed(tester, second: true);
+      await tester.pump(const Duration(seconds: 20));
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 10));
+      await tester.tap(danceStart);
+      await tester.pump();
+      // Program clock is ~0:30 here; the slot has only run ~0:10.
+      expect(
+        _textOf(tester, 'perform-walkthrough-actual'),
+        'walkthrough ${_textOf(tester, 'perform-slot-elapsed')} (−0:50)',
+      );
+    });
+
+    testWidgets('exposes toggled state, tooltip and label to AT', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pumpTimed(tester);
+      expect(
+        tester.getSemantics(danceStart),
+        isSemantics(
+          isButton: true,
+          isFocusable: true,
+          hasTapAction: true,
+          hasToggledState: true,
+          isToggled: false,
+          tooltip: 'Walkthrough done — start the dance',
+        ),
+      );
+      await tester.tap(danceStart);
+      await tester.pump();
+      expect(
+        tester.getSemantics(danceStart),
+        isSemantics(
+          isButton: true,
+          isFocusable: true,
+          hasTapAction: true,
+          hasToggledState: true,
+          isToggled: true,
+          tooltip: 'Dance started — tap to undo',
+        ),
+      );
+      final button = tester.widget<IconButton>(danceStart);
+      expect(button.isSelected, isTrue);
+      expect(
+        (button.icon as Icon).icon != (button.selectedIcon as Icon).icon,
+        isTrue,
+        reason: 'filled vs outlined glyph: colour is never the only signal',
+      );
+      handle.dispose();
+    });
+
+    testWidgets('the timing line label voices the mark and its delta', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pumpTimed(tester);
+      await tester.pump(const Duration(seconds: 90));
+      await tester.tap(danceStart);
+      await tester.pump();
+      expect(
+        find.bySemanticsLabel(
+          RegExp('walkthrough ended at 1:30, 0:30 over plan'),
+        ),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
+
+    for (final scheme in {
+      'light': AppColorSchemes.light,
+      'dark': AppColorSchemes.dark,
+      'stage (high contrast)': AppColorSchemes.highContrast,
+    }.entries) {
+      test('active and idle colours meet contrast in ${scheme.key}', () {
+        final c = scheme.value;
+        // Glyph on its filled circle (used) and on the bar (unused).
+        expect(Wcag.meetsAA(c.onTertiary, c.tertiary), isTrue);
+        expect(Wcag.meetsAA(c.onSurface, c.surface), isTrue);
+        // The circle itself must read against the bar (non-text, 3:1).
+        expect(
+          Wcag.meetsAA(c.tertiary, c.surface, largeOrNonText: true),
+          isTrue,
+        );
+        expect(
+          Wcag.meetsAA(c.outline, c.surface, largeOrNonText: true),
+          isTrue,
+        );
+      });
+    }
+
+    testWidgets('re-entry through the editor launcher keeps the mark', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 2000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+      await repos.programs.create(
+        _program([
+          _slot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            walkthroughMinutes: 1,
+            danceMinutes: 1,
+          ),
+        ]),
+      );
+      final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+      addTearDown(notifier.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => RepositoriesScope(
+            repositories: repos,
+            child: ActiveDialectScope(notifier: notifier, child: child!),
+          ),
+          home: const ProgramEditorScreen(programId: 'p1'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+
+      await tester.pump(const Duration(seconds: 20));
+      await tester.tap(danceStart);
+      await tester.pump();
+      // `pumpAndSettle` on entry may have ticked the fake clock, so capture the
+      // exact text rather than hard-coding the second.
+      final before = _textOf(tester, 'perform-walkthrough-actual');
+      expect(before, startsWith('walkthrough 0:2'));
+
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      expect(tester.widget<IconButton>(danceStart).isSelected, isTrue);
+      expect(_textOf(tester, 'perform-walkthrough-actual'), before);
+    });
+  });
+
+  group('program dialect override (issue #1554)', () {
+    Future<DialectLibraryController> library() async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      final controller = DialectLibraryController(repos.settings);
+      await controller.load();
+      addTearDown(controller.dispose);
+      return controller;
+    }
+
+    Future<void> pumpWithProgramDialect(
+      WidgetTester tester,
+      DialectLibraryController controller, {
+      String? programDialect,
+    }) async {
+      final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'd1'),
+        ]).copyWith(dialectName: programDialect),
+        // The app dialect is Larks/Robins; the program asks for another.
+        activeDialect: Dialect.larksRobins,
+        dialectLibrary: controller,
+      );
+    }
+
+    Future<void> pickInQuickSwitch(WidgetTester tester, String name) async {
+      await tester.tap(find.byKey(const ValueKey('dialect-quick-switch')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey('dialect-quick-switch-$name')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('renders the program dialect, not the app dialect', (
+      tester,
+    ) async {
+      final controller = await library();
+      final before = controller.activeName;
+      await pumpWithProgramDialect(
+        tester,
+        controller,
+        programDialect: 'Leads/Follows',
+      );
+
+      expect(find.text('follows chain'), findsOneWidget);
+      expect(find.text('robins chain'), findsNothing);
+      expect(controller.activeName, before);
+    });
+
+    testWidgets('the jump list and the adjust sheet use the program dialect '
+        'too', (tester) async {
+      // A free-text slot is labelled through the dialect (discouraged terms
+      // become the dialect's roles). The dance slot comes first so the label
+      // only appears inside the two sheets, which read the dialect at two
+      // different places from the card.
+      final controller = await library();
+      final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'd1'),
+          _slot(id: 's2', position: 1, text: 'Gypsy with the gents'),
+        ]).copyWith(dialectName: 'Leads/Follows'),
+        activeDialect: Dialect.larksRobins,
+        dialectLibrary: controller,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('perform-jump')));
+      await tester.pumpAndSettle();
+      expect(find.text('Shoulder round with the leads'), findsOneWidget);
+      expect(find.text('Shoulder round with the larks'), findsNothing);
+      await tester.tapAt(const Offset(10, 10)); // dismiss the sheet
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      expect(find.text('Shoulder round with the leads'), findsOneWidget);
+      expect(find.text('Shoulder round with the larks'), findsNothing);
+    });
+
+    testWidgets('a program with no dialect follows the app dialect', (
+      tester,
+    ) async {
+      final controller = await library();
+      await pumpWithProgramDialect(tester, controller);
+
+      expect(find.text('robins chain'), findsOneWidget);
+      expect(find.text('follows chain'), findsNothing);
+    });
+
+    testWidgets('a name that resolves to no dialect silently follows the app '
+        'dialect, and the quick-switch stays app-wide', (tester) async {
+      final controller = await library();
+      await pumpWithProgramDialect(
+        tester,
+        controller,
+        programDialect: 'No Such Dialect',
+      );
+
+      expect(find.text('robins chain'), findsOneWidget);
+
+      await pickInQuickSwitch(tester, 'Leads/Follows');
+      expect(
+        controller.activeName,
+        'Leads/Follows',
+        reason: 'with no program dialect in force the switch is app-wide',
+      );
+    });
+
+    testWidgets('the quick-switch under an override is session-local and never '
+        'changes the app dialect', (tester) async {
+      final controller = await library();
+      final before = controller.activeName;
+      await pumpWithProgramDialect(
+        tester,
+        controller,
+        programDialect: 'Leads/Follows',
+      );
+
+      await pickInQuickSwitch(tester, 'Larks/Robins');
+
+      expect(find.text('robins chain'), findsOneWidget);
+      expect(find.text('follows chain'), findsNothing);
+      expect(
+        controller.activeName,
+        before,
+        reason: 'setActive must not run while a program dialect is in force',
+      );
+
+      // The menu now checks the effective (session) dialect.
+      await tester.tap(find.byKey(const ValueKey('dialect-quick-switch')));
+      await tester.pumpAndSettle();
+      final checked = tester.widget<CheckedPopupMenuItem<String>>(
+        find.byKey(const ValueKey('dialect-quick-switch-Larks/Robins')),
+      );
+      expect(checked.checked, isTrue);
+    });
+
+    testWidgets('re-entering Perform starts from the program dialect again', (
+      tester,
+    ) async {
+      final controller = await library();
+      await pumpWithProgramDialect(
+        tester,
+        controller,
+        programDialect: 'Leads/Follows',
+      );
+      await pickInQuickSwitch(tester, 'Larks/Robins');
+      expect(find.text('robins chain'), findsOneWidget);
+
+      // A fresh screen (a new State), as after leaving and re-entering.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await pumpWithProgramDialect(
+        tester,
+        controller,
+        programDialect: 'Leads/Follows',
+      );
+      expect(find.text('follows chain'), findsOneWidget);
+    });
+
+    testWidgets('deleting the dialect while Perform is open falls back to the '
+        'app dialect live', (tester) async {
+      final controller = await library();
+      await controller.upsert(Dialect.leadsFollows.copyWith(name: 'Mine'));
+      await pumpWithProgramDialect(tester, controller, programDialect: 'Mine');
+      expect(find.text('follows chain'), findsOneWidget);
+
+      await controller.delete('Mine');
+      await tester.pumpAndSettle();
+
+      expect(find.text('robins chain'), findsOneWidget);
+      expect(find.text('follows chain'), findsNothing);
+    });
+
+    testWidgets('matches a dialect whose in-memory name is not yet '
+        'NFC-normalized', (tester) async {
+      final controller = await library();
+      // The program stores the NFC name (the repository normalizes it); the
+      // in-memory library can still hold the decomposed spelling until reload.
+      await controller.upsert(
+        Dialect.leadsFollows.copyWith(name: 'Café Calls'),
+      );
+      await pumpWithProgramDialect(
+        tester,
+        controller,
+        programDialect: 'Café Calls',
+      );
+
+      expect(find.text('follows chain'), findsOneWidget);
+    });
   });
 }

@@ -57,10 +57,6 @@ const int kMaxModifierFigures = kMaxMeanwhileSides;
 /// rejected by the model and dropped defensively by tolerant decoders.
 const int kMaxContainerDepth = 2;
 
-/// Legacy name retained for callers that only need a defensive recursive bound.
-@Deprecated('Use kMaxContainerDepth for structural figure nesting.')
-const int kMaxMeanwhileDepth = 4;
-
 const DeepCollectionEquality _paramsEquality = DeepCollectionEquality();
 
 /// How a [customMove] [Figure] came to exist. Only meaningful when

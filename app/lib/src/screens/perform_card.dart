@@ -2,8 +2,11 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/formation_colors_scope.dart';
+import '../data/capitalize_figures_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
+import '../data/perform_text_scale.dart'
+    show kPerformMaxAutoScale, kPerformMinAutoScale;
 import '../data/reduce_motion_scope.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
@@ -22,35 +25,6 @@ import '../widgets/import_gap_badge.dart';
 /// The dance card reuses the same correctness path as the detail card — core
 /// [deriveSections] for phrase grouping and [FigureRenderer.render] for the
 /// dialect-applied figure text.
-
-/// Default in-view scale so the card reads from across a room on first open.
-const double kPerformDefaultScale = 1.8;
-
-/// A sensible lower bound (below the app's normal text size the "large-print"
-/// intent is lost). There is deliberately no practical upper bound.
-const double kPerformMinScale = 1.0;
-
-/// Lower bound for the *auto-size* fit search only (ROADMAP G.1). Unlike manual
-/// mode — which must never drop below the large-print [kPerformMinScale] — the
-/// whole point of auto-size is "the full dance or slot fits the screen without
-/// scrolling", so on a window smaller than the card's natural large-print
-/// height the fit must be allowed to shrink *below* 1.0 to make the card fit.
-/// Flooring the auto-fit search at [kPerformMinScale] (issue #527) left the card
-/// unable to shrink enough for a smaller-than-fullscreen window, so trailing
-/// sections (e.g. B1, calling notes) fell off the viewport. This is a generous
-/// floor: below it text is unreadably small, at which point the scroll fallback
-/// keeps content reachable rather than clipping it.
-const double kPerformMinAutoScale = 0.2;
-
-/// Upper bound for the *auto-size* fit search only (ROADMAP G.1). Manual mode
-/// keeps its "no practical upper bound" behaviour; auto-size is naturally
-/// bounded by what fits the viewport, but the binary search needs a finite
-/// ceiling. This is generous enough that short slots ("break", a title-only
-/// card) grow to fill the screen.
-const double kPerformMaxAutoScale = 12.0;
-
-/// Step for the A-/A+ size control.
-const double kPerformScaleStep = 0.2;
 
 /// Composes the in-view large-print [scale] *on top of* the user's existing
 /// system / accessibility text scaling rather than replacing it, so we never
@@ -1210,6 +1184,7 @@ class _FigureRow extends StatelessWidget {
       noteText.isNotEmpty ? 'yes' : 'no',
       noteText,
     );
+    final capitalize = CapitalizeFiguresScope.of(context);
     final textStyle = theme.textTheme.headlineSmall?.merge(
       AppTypography.performBody,
     );
@@ -1248,9 +1223,15 @@ class _FigureRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (mainSpans != null)
-                    Text.rich(_emphasisSpan(mainSpans!), style: textStyle)
+                    Text.rich(
+                      _emphasisSpan(_capitalizedLead(mainSpans!, capitalize)),
+                      style: textStyle,
+                    )
                   else
-                    Text(text, style: textStyle),
+                    Text(
+                      capitalizeFirstLetter(text, capitalize: capitalize),
+                      style: textStyle,
+                    ),
                   if (noteText.isNotEmpty)
                     Text.rich(_emphasisSpan(noteSpans!), style: noteStyle),
                 ],
@@ -1273,6 +1254,25 @@ class _FigureRow extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// [spans] with the first letter of the first span capitalized when
+  /// [capitalize] is set (the "Capitalize figures" setting). Only the visible
+  /// text changes; the semantics label is built from the unmodified spans.
+  static List<EmphasisSpan> _capitalizedLead(
+    List<EmphasisSpan> spans,
+    bool capitalize,
+  ) {
+    if (!capitalize || spans.isEmpty) return spans;
+    final lead = spans.first;
+    return [
+      EmphasisSpan(
+        text: capitalizeFirstLetter(lead.text, capitalize: true),
+        bold: lead.bold,
+        underline: lead.underline,
+      ),
+      ...spans.skip(1),
+    ];
   }
 
   /// Builds a `TextSpan` tree from parsed [EmphasisSpan]s, applying bold and/or

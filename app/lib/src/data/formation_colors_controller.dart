@@ -76,14 +76,16 @@ class FormationColorsController extends ChangeNotifier {
 
   /// Loads persisted overrides from storage. Safe to call once at startup;
   /// malformed payloads degrade to "no overrides" rather than throwing.
+  ///
+  /// Transactional: the read finishes before the overrides are replaced, so a
+  /// failing read leaves the previous overrides untouched.
   Future<void> load() async {
+    final loaded = formationColorOverridesFromStored(
+      await _settings.get(kFormationColorOverridesKey),
+    );
     _overrides
       ..clear()
-      ..addAll(
-        formationColorOverridesFromStored(
-          await _settings.get(kFormationColorOverridesKey),
-        ),
-      );
+      ..addAll(loaded);
     notifyListeners();
   }
 

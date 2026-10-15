@@ -19,7 +19,7 @@ eight rounds while nineteen findings accumulated: `GET /pulls/<N>/comments`,
 thread state, and unresolved count are all blind to suppressed findings by
 construction. The review **body** is their only surface.
 
-Rule: [code-review.md](code-review.md#reading-a-review).
+Rule: [code-review.md](code-review.md#reading-a-copilot-review).
 
 ## The mismatched reviewer-login filter
 
@@ -33,7 +33,7 @@ wrong conclusion — a real inline security finding had come through the normal
 thread channel and the mismatched filter made it invisible. A surprising zero is
 evidence about your query before it is evidence about the world.
 
-Rule: [code-review.md](code-review.md#reading-a-review).
+Rule: [code-review.md](code-review.md#reading-a-copilot-review).
 
 ## #842: review freshness read as PASS on a stale review
 
@@ -142,6 +142,9 @@ of trust for update authenticity rather than a preference; it is excluded **by
 name, with a reason**, so that the next non-settings `…Key` constant still fails
 loudly. A cleverer pattern would have dropped both silently — do not narrow a
 ratchet's detection pattern to make a false positive go away.
+(The update key later became the list `kUpdateManifestPublicKeys` (security-2),
+which the pattern does not match; `kPublishedCollectionPublicKey` is the
+exclusion that remains.)
 
 Rule: [`.github/instructions/privacy-registry.instructions.md`](../../../.github/instructions/privacy-registry.instructions.md).
 

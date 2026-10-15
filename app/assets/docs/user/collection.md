@@ -9,8 +9,8 @@ work.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Collection**, **Filters**, and **New dance**. The
-> first time a dance term appears it links to the
-> [Glossary](./glossary.md), so you can get a plain-language definition
+> first time a dance term appears it links to
+> [App terms](./glossary.md), so you can get a plain-language definition
 > without losing your place.
 
 If you are brand new here, start with the
@@ -108,7 +108,13 @@ written down.
 Clear the search bar to return to your whole collection.
 
 Use **Search in** to choose where your words are looked for: **All fields**,
-**Title**, **Author**, or **Figure**.
+**Title**, **Author**, or **Figure**. **All fields** looks at titles, authors,
+sources, custom field values, hooks and notes, and finds your words exactly as
+they were typed; it also looks at figures, which are matched by meaning, so a
+role word finds the figure however the role was worded when the dance was
+entered. (Custom figure text saved before role words were rewritten may not
+match a role word until you save the dance again; see
+[Write & edit dances](./authoring.md).)
 
 The same search bar can also search The Caller's Box or ContraDB directly: turn
 on **Online search** in the **Advanced** panel, and **Search in** offers
@@ -391,5 +397,5 @@ level, by tag — use the Collection search and filters above.
   [Accessibility guide](./accessibility.md) covers screen readers, text
   size, high contrast, and keyboard use.
 
-Not sure what a word means? The [Glossary](./glossary.md) has plain
+Not sure what a word means? [App terms](./glossary.md) has plain
 definitions for every term used across these guides.

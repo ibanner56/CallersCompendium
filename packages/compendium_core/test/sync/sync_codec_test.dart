@@ -170,6 +170,23 @@ void main() {
       );
     });
 
+    test('caches read-only canonical bytes equal to the string encoding', () {
+      final blob = SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: 'd1',
+        updatedAt: _stamp,
+        deletedAt: null,
+        existenceAt: _stamp,
+        body: const {'id': 'd1', 'title': 'Café ☃'},
+      );
+
+      final bytes = encodeSyncRecordBlobUtf8(blob);
+
+      expect(identical(bytes, encodeSyncRecordBlobUtf8(blob)), isTrue);
+      expect(utf8.decode(bytes), encodeSyncRecordBlob(blob));
+      expect(() => bytes[0] = 0, throwsUnsupportedError);
+    });
+
     test('rejects non-JSON body values at construction', () {
       for (final value in <Object?>[
         DateTime.utc(2026, 7, 15),
@@ -322,6 +339,229 @@ void main() {
   });
 
   group('strict decoding', () {
+    group('a newer wire version', () {
+      // A newer build may add envelope keys as well as bump `v`. The version
+      // has to be read first, or the added key fails the exact-key check and
+      // the newer envelope is indistinguishable from a broken one.
+      Map<String, Object?> newerBlob({bool extraKey = false}) => {
+        ..._danceBlob().toJson(),
+        'v': syncWireVersion + 1,
+        if (extraKey) 'addedInV2': true,
+      };
+      Map<String, Object?> newerManifest({bool extraKey = false}) => {
+        ..._manifest().toJson(),
+        'v': syncWireVersion + 1,
+        if (extraKey) 'addedInV2': true,
+      };
+      final isNewer = isA<SyncNewerWireVersionException>().having(
+        (e) => e.version,
+        'version',
+        syncWireVersion + 1,
+      );
+
+      test('a record blob is reported as newer, with or without new keys', () {
+        for (final extraKey in [false, true]) {
+          expect(
+            () => SyncRecordBlob.fromJson(newerBlob(extraKey: extraKey)),
+            throwsA(isNewer),
+            reason: 'extraKey: $extraKey',
+          );
+          expect(
+            () =>
+                decodeSyncRecordBlob(jsonEncode(newerBlob(extraKey: extraKey))),
+            throwsA(isNewer),
+            reason: 'decodeSyncRecordBlob, extraKey: $extraKey',
+          );
+        }
+      });
+
+      test('a manifest is reported as newer, with or without new keys', () {
+        for (final extraKey in [false, true]) {
+          expect(
+            () => SyncManifest.fromJson(newerManifest(extraKey: extraKey)),
+            throwsA(isNewer),
+            reason: 'extraKey: $extraKey',
+          );
+          expect(
+            () => decodeSyncManifest(
+              jsonEncode(newerManifest(extraKey: extraKey)),
+            ),
+            throwsA(isNewer),
+            reason: 'decodeSyncManifest, extraKey: $extraKey',
+          );
+        }
+      });
+
+      test('it is still a FormatException, so every existing caller that '
+          'treats it as malformed keeps doing so', () {
+        expect(
+          () => SyncManifest.fromJson(newerManifest(extraKey: true)),
+          throwsFormatException,
+        );
+      });
+
+      test(
+        'an older, unknown or malformed version is not reported as newer',
+        () {
+          for (final v in <Object?>[0, syncWireVersion - 1, '2', 2.0, null]) {
+            expect(
+              () => SyncRecordBlob.fromJson({..._danceBlob().toJson(), 'v': v}),
+              throwsA(
+                isA<FormatException>().having(
+                  (e) => e is SyncNewerWireVersionException,
+                  'is newer',
+                  isFalse,
+                ),
+              ),
+              reason: 'v: $v',
+            );
+          }
+        },
+      );
+    });
+
+    group('a field this build does not sync', () {
+      // What a newer build's added — or newly shared — field looks like to an
+      // older one. Since spec §6.7 keeps such fields, the blob is accepted; it
+      // is refused, as a newer version's, only where the field could not be
+      // put back exactly. A structurally broken body stays malformed.
+      Map<String, Object?> withBody(
+        SyncRecordBlob blob,
+        Map<String, Object?> Function(Map<String, Object?> body) edit,
+      ) => {
+        ...blob.toJson(),
+        'body': edit(Map<String, Object?>.from(blob.body)),
+      };
+      Matcher newerField(SyncRecordKind kind, String path) => throwsA(
+        isA<SyncNewerFieldException>()
+            .having((e) => e.kind, 'kind', kind)
+            .having((e) => e.path, 'path', path),
+      );
+      SyncRecordBlob programBlob() => syncRecordBlobForEntity(
+        SyncRecordKind.program,
+        _program(),
+        updatedAt: _stamp,
+        existenceAt: _stamp,
+      )!;
+      SyncRecordBlob choreographerBlob() => syncRecordBlobForEntity(
+        SyncRecordKind.choreographer,
+        _choreographer(),
+        updatedAt: _stamp,
+        existenceAt: _stamp,
+      )!;
+      SyncRecordBlob settingBlob(String key) => SyncRecordBlob.fromJson({
+        ...SyncSettingsRecord(
+          key: 'custom_dialects',
+          value: null,
+          updatedAt: _stamp,
+          deletedAt: null,
+          existenceAt: _stamp,
+        ).toBlob()!.toJson(),
+        'id': key,
+      });
+
+      test('is accepted wherever it can be kept', () {
+        final accepted = <String, Map<String, Object?>>{
+          'top level': withBody(
+            programBlob(),
+            (body) => body..['addedLater'] = 1,
+          ),
+          'inside an id-keyed list item': withBody(programBlob(), (body) {
+            final slots = [
+              for (final slot in body['slots']! as List)
+                {...(slot as Map<String, Object?>), 'addedLater': true},
+            ];
+            return body..['slots'] = slots;
+          }),
+          'a known private field': withBody(
+            choreographerBlob(),
+            (body) => body..['email'] = 'shared@example.com',
+          ),
+        };
+        for (final MapEntry(:key, :value) in accepted.entries) {
+          expect(
+            () => SyncRecordBlob.fromJson(value),
+            returnsNormally,
+            reason: key,
+          );
+        }
+        for (final key in [
+          'a_setting_added_later',
+          settingsClassifications.entries
+              .firstWhere(
+                (entry) =>
+                    entry.value.egress == EgressClass.deviceLocal ||
+                    entry.value.egress == EgressClass.deviceScoped,
+              )
+              .key,
+        ]) {
+          expect(() => settingBlob(key), returnsNormally, reason: key);
+        }
+      });
+
+      test('is refused as newer where it cannot be put back', () {
+        final dance = syncRecordBlobForEntity(
+          SyncRecordKind.dance,
+          _dance(),
+          updatedAt: _stamp,
+          existenceAt: _stamp,
+          allowedCustomFieldIds: {'cf'},
+        )!;
+        expect(
+          () => SyncRecordBlob.fromJson(
+            withBody(
+              dance,
+              (body) => body
+                ..['figures'] = [
+                  {'schemaVersion': 1, 'move': 'swing', 'handHold': 'x'},
+                ],
+            ),
+          ),
+          newerField(SyncRecordKind.dance, 'figures.handHold'),
+        );
+        expect(
+          () => SyncRecordBlob.fromJson(
+            withBody(programBlob(), (body) {
+              final slots = [
+                for (final slot in body['slots']! as List)
+                  {
+                    for (final entry in (slot as Map<String, Object?>).entries)
+                      if (entry.key != 'id') entry.key: entry.value,
+                    'addedLater': true,
+                  },
+              ];
+              return body..['slots'] = slots;
+            }),
+          ),
+          newerField(SyncRecordKind.program, 'slots.addedLater'),
+        );
+      });
+
+      test('a transport setting key is never kept', () {
+        for (final key in ['sync_id', 'sync_device_id']) {
+          expect(
+            () => settingBlob(key),
+            newerField(SyncRecordKind.setting, 'value'),
+            reason: key,
+          );
+        }
+      });
+
+      test('a structurally broken body is still malformed, not newer', () {
+        final blob = settingBlob('custom_dialects').toJson();
+        expect(
+          () => SyncRecordBlob.fromJson({...blob, 'body': <String, Object?>{}}),
+          throwsA(
+            isA<FormatException>().having(
+              (e) => e is SyncNewerFieldException,
+              'is newer field',
+              isFalse,
+            ),
+          ),
+        );
+      });
+    });
+
     test('rejects malformed required record envelope fields', () {
       final valid = _danceBlob().toJson();
       final missingFields = [
@@ -541,3 +781,12 @@ CustomFieldDef _customField({bool shareable = true}) => CustomFieldDef(
 DifficultyLevel _difficultyLevel() => DifficultyLevel.intermediate;
 
 Venue _venue() => Venue(id: 'v1', name: 'Hall', address1: 'private address');
+
+SyncManifest _manifest() => SyncManifest(
+  deviceId: 'device-1',
+  epoch: 'epoch-1',
+  writtenAt: _stamp,
+  records: {
+    SyncRecordKind.dance: {'d1': 'a' * 64},
+  },
+);

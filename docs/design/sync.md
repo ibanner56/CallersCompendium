@@ -34,7 +34,7 @@ disagree, that section wins.
 | **Device Sync** | The user-facing feature. |
 | **Athenaeum** | The store Device Sync talks to. Default `https://athenaeum.callerscompendium.com/`; user-editable. |
 | **sync ID** | Diceware passphrase naming one store — its address on the server. Classified `storeAddress`; not a credential or a secret. |
-| **device ID** | Random opaque base64url identifier minted per installation, on opt-in. Classified `protocolIdentifier`: it travels in manifest envelopes and request paths as an opaque routing key, and is **never adopted from a peer**. Not `deviceScoped`, which means never transmitted by any route. See "what `EgressClass` actually governs". |
+| **device ID** | Random opaque base64url identifier minted per attachment: on opt-in, and again on every later attach, because detach erases it (spec §3.3). Classified `protocolIdentifier`: it travels in manifest envelopes and request paths as an opaque routing key, and is **never adopted from a peer**. Not `deviceScoped`, which means never transmitted by any route. See "what `EgressClass` actually governs". |
 | **epoch** | Opaque 128-bit random value the server stamps on a sync ID at creation. |
 | **record** | One syncable row — a dance, program, tag, choreographer, published source, custom field def, difficulty level, venue, or a settings key. |
 | **blob** | One record, serialised and content-addressed. |
@@ -336,9 +336,11 @@ than solved.** A device that stops syncing without being removed keeps listing
 the losing id in its last-published manifest, and so keeps that alias alive
 indefinitely — there is no per-device aging, and `stores.last_seen` is refreshed
 by any device, so the store never expires while others use it. A client-side
-detach does not help either: it forgets the sync ID locally and leaves the
-manifest in place. Pruning is therefore bounded in practice by someone removing
-the devices that are genuinely gone — which Settings ▸ Device Sync ▸ *Other
+detach helps only sometimes: it forgets the sync ID locally, and its best-effort
+clean-up removes the manifest only when every entry is already carried by a
+peer (spec §3.3) — a device that stopped syncing out of step keeps its manifest
+in place. Pruning is therefore bounded in practice by someone removing the
+devices that are genuinely gone — which Settings ▸ Device Sync ▸ *Other
 devices* does, issuing `DELETE /v1/manifests/{deviceId}` for the peer the user
 picks (issue #1360).
 
@@ -507,9 +509,22 @@ a sixth, `storeAddress`, for the sync ID itself — recorded below the table.
 | --- | --- | --- | --- |
 | In a record blob | Never | Never | Never |
 | In a request path or envelope | Never | Yes, to the configured endpoint only | Yes, in `Authorization`, to that origin only |
-| Adopted from a peer | N/A | Never — each installation mints its own | Never — entered or generated locally |
-| Content | Any local value | Opaque random bytes, derived from nothing | May be user-chosen, so may carry personal content |
+| Adopted from a peer | N/A | Never taken as this device's own | Never — entered or generated locally |
+| Content | Any local value | Opaque, no user data by construction: random bytes a device minted, or a server-issued hash of data that server already holds | May be user-chosen, so may carry personal content |
 | Retention | Local only | Stated, bounded, and disclosed | By server/proxy: never retained recoverably; never logged. Local persistence follows the settings classification. |
+
+> **Amended 2026-10-14, by the maintainer's decision.** `protocolIdentifier` was
+> defined for this device's own id: "opaque random bytes, derived from nothing",
+> each installation minting its own, sent "for routing". Keeping peer manifests
+> across restarts (#1757) filed two more values under it, because each is sent
+> back to the store and `deviceScoped`'s "any route" is absolute:
+> `peer_manifests.peer_id`, an id another device minted, and
+> `peer_manifests.etag`, the server's content hash of a manifest, returned in
+> `If-None-Match`. The definition was widened to describe what the class holds
+> rather than to list them as exceptions. The guarantee it exists for is
+> unchanged: no user data by construction, never adopted as this device's own,
+> and sent only to the store it came from. A new class for server-issued
+> validators was the alternative not taken.
 
 A later Copilot round found that `sync_id` had the same defect the device ID
 had, one row down in the same table: it was `deviceScoped` while travelling on
@@ -620,6 +635,11 @@ it:
 | Deferred review items (`kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, nullable `local_hash`, `queued_at`) | `review_queue` | `deviceScoped` |
 | Records this device has selected for publication (`kind`, `record_id`) | `published_records` | `deviceScoped` |
 | Rows the normalisation pass could not repair (`table`, `column`, `record_id`) | `normalisation_skips` | `deviceScoped` |
+| This device's last published manifest — its hash and confirmation time | Baseline table | `deviceScoped` |
+| Each peer's last verified manifest — `epoch`, `body` | `peer_manifests` | `deviceScoped` |
+| Each peer's device id (`peer_id`) and the `ETag` its kept manifest was served with (`etag`), both sent back to the store | `peer_manifests` | `protocolIdentifier` |
+
+Writes to the sync bookkeeping tables above (`baseline_state`, `baseline_entries`, `id_aliases`, `pending_deletions`, `review_queue`, `published_records`, `retained_sync_fields`, `peer_manifests`) never schedule a sync pass: they are the engine's own state, not user edits. The app derives that set from the registry (`syncBookkeepingTables`).
 
 **Three of these are scoped to the store identity**, and `id_aliases` and
 `review_queue` are additionally scoped to the epoch and cleared with the
@@ -715,10 +735,12 @@ user's deletion is reversed, with nothing to report it — the shape of #903,
 reached through the detach path rather than the undo path.
 
 What makes it wrong is not that the rule was insufficiently cautious. It is that
-**detach does not un-publish anything.** Detach forgets the sync ID locally and
-leaves this device's manifest on the server; there is no `DELETE
-/v1/manifests/{self}`, and a successful publication stays reachable while any
-manifest for its store references it. The marker is retained because a failed
+**detach does not un-publish anything.** Detach forgets the sync ID locally. Its
+clean-up may then `DELETE /v1/manifests/{self}`, but only when every entry of
+that manifest is carried, at the identical hash, by a peer's manifest (spec
+§3.3, amended 2026-10-02; before that, detach sent nothing at all) — so a
+successful publication stays reachable while any manifest for its store
+references it, and the clean-up never removes the last one that does. The marker is retained because a failed
 attempt cannot later be distinguished from a publication that peers may have
 fetched. Clearing it would discard the conservative protection and every
 consequence follows from that one error.
@@ -735,7 +757,8 @@ once, never cleared by an epoch reset, a detach or a restore.
 That also settles retirement, which `id_aliases` gets and this deliberately does
 not. An alias retires once no current peer manifest lists the losing id; that
 bound is unavailable here, because *this device's own manifest* is one of the
-manifests keeping the record reachable and it outlives the detach. The failure
+manifests keeping the record reachable and it outlives the detach, unless a
+peer's manifest already carries everything it lists. The failure
 modes decide the rest: a wrongly-retired alias skips one record and reports it,
 whereas a wrongly-retired marker silently resurrects a deletion. Permanence is
 therefore required rather than merely tolerated, and the cost is small — though
@@ -1528,29 +1551,47 @@ device *created* is stored by no peer at all when its blob is refused, so there
 is no peer value to compare against — the case a trailing-value test cannot see,
 and exactly the case a user seeding a library on a fast device would hit.
 
-The report fires when **every** record this device published in a pass goes
-unreflected by every peer whose manifest it observed, across **three consecutive
-passes**, with **at least one peer observed** in each. Zero observed peers is not
-evidence, for the same reason it is not evidence of a slow clock.
+The report is judged **per peer**, from the manifest `writtenAt` a pass already
+fetches. A peer missing one of this device's hashes is in one of two states, and
+only one is a fault:
 
-**The streak counter is in-memory, per session, and that is a real limitation.**
-The per-record part is derived — reflection is already computed to advance the
-baseline — but "the last three passes were each fully unreflected" is a temporal
-aggregate that outlives a pass, and an earlier draft claimed the whole signal
-"needs no new state" by carrying over language that is true only of the derived
-half. It is state, and this design requires state that survives a restart to be
-named, placed and classified; rather than add a persisted counter for a
-diagnostic, the counter is scoped to the session and the cost is stated instead:
-**a device restarted between passes may never reach three, and may never surface
-the report at all.** That weakens exactly the dead-RTC case the signal exists for,
-since a phone rarely runs three uninterrupted passes in one session.
+- **asleep** — it has not published since this device published the record.
+  Its app is not running. That is the app's central usage pattern (a phone used
+  daily, a tablet opened before a dance), so it is never reported; the *Other
+  devices* list shows how many changes are waiting for it instead.
+- **refusing** — it has published at least twice since, with distinct
+  `writtenAt` values, and still lacks the hash. It is running and not taking
+  the record. That is reported, once per record and peer, naming the peer.
 
-It is kept anyway because the alternative is worse. Persisting it would mean new
-`deviceScoped` state, a migration and a classification for a warning message,
-where the same fault already surfaces through the records it poisons; and a
-single-pass trigger would fire on any transient network failure, which is the
-false positive that made the previous formulation useless. Three consecutive
-in-session passes is a compromise that is honest about being one.
+Twice rather than once because one publication since can come from a pass that
+was already under way when this device published, and that read its manifest
+first. "Since" is judged by **the order this device observed the values**, never
+by comparing the peer's `writtenAt` with this device's clock — and that is the
+choice this signal depends on most. A device whose own clock is fast publishes
+"later" than any `writtenAt` its peers will write; a clock comparison would
+classify every peer as asleep for exactly the device this section exists to
+warn. Ordering alone has one narrow false positive, a peer completing two whole
+passes while this device is between its manifest reads and its `PUT`, which
+reads as refusing until this device's next pass clears it. A peer that holds a
+version of the record no older than this device's (content at least as new, or
+a strictly newer existence transition) is not judged refusing: that
+is a disagreement owned by the tie, skip and quarantine notices, not a refusal.
+Zero observed peers is not evidence, as before.
+
+The evidence is session-scoped, and that remains a stated limitation rather
+than a solved one: a restart between passes discards it, so a device restarted
+before a peer has published twice since may need another session to report.
+Persisting it would mean new `deviceScoped` state, a migration and a
+classification for a warning message.
+
+*Amended 2026-10-02 (@ibanner56's ruling, from a planning session): this section
+used to fire when **every** record published in a pass went unreflected by
+every observed peer across **three consecutive passes**, from an in-memory
+streak counter. In practice that fired chiefly because another device had not
+been opened, which is the staleness this section argues against below; it named
+no device; and a restart reset its streak. The per-peer judgement replaces it.
+Its notice names both causes the user can act on — the other device's app
+version, and this device's date and time.*
 
 A draft instead required peer values to *trail* this device's by more than the
 acceptance window, across three records. That does not distinguish the fault from
@@ -1765,8 +1806,9 @@ So: for `kind: "setting"`, the **per-key classification in
 
 Note also that settings whose value is an entire collection —
 `custom_dialects`, `custom_themes`, `shorthand_mappings`,
-`walkthrough_snippets` — collide as a unit: a changed/changed conflict discards
-one device's whole set. Accepted; see ADR-004 consequences.
+`walkthrough_snippets` — collide as a unit, so a changed/changed conflict on
+one of them goes to the user's choice between the whole sets rather than to
+last-writer-wins (spec §6.3; ADR-004 consequences).
 
 This requires a schema change: `settings` is `(key, value_json)` with **no
 timestamp and no tombstone**, so neither the conflict rule nor deletion can reach
@@ -1788,8 +1830,9 @@ permanently.
 did, and both were wrong before review finished. The first called it v22; #748
 landed `dance_figures.group_idx` as v22 while the design was being written. The
 second called it v23; `main` reached 24 before the ADR was accepted. The number
-is whatever `kCompendiumSchemaVersion + 1` is on the day the migration lands, and
-that is the only form of the statement that cannot go stale — a design under
+is whatever the next unreleased schema version is on the day the migration lands
+(head itself if head has not shipped, else head + 1), and that is the only form
+of the statement that cannot go stale — a design under
 review for weeks has no business pinning a counter that other work increments.
 
 Whoever implements it reads the constant rather than this document. Nothing about
@@ -1951,6 +1994,10 @@ citation is removed. The inverse ordering is covered by the same rule: a device
 that tombstones a tag and then receives a dance citing it revives the row and
 re-marks the tombstone pending, rather than writing a join row against a
 tombstoned parent.
+
+Difficulty levels are the one kind whose guard also counts tombstoned dances (a
+deleted dance can be restored, and restore does not re-check its level), so a
+level tombstone is held pending while a dance in Recently Deleted still uses it.
 
 This preserves the property the guard exists for — no dance ever credits a
 tombstone — without achieving it by resurrecting deleted data. The cost is real
@@ -2974,20 +3021,60 @@ client's cryptography is therefore unchanged from what the app ships today.
 | `GET` | `/v1/blobs/{hash}` | Fetch one blob. Immutable; long `Cache-Control`. |
 | `PUT` | `/v1/blobs/{hash}` | Upload one blob. Idempotent. |
 | `POST` | `/v1/blobs/missing` | Given a list of hashes, return the subset the store lacks. |
+| `POST` | `/v1/blobs/batch` | Given up to 200 hashes, return their blobs in one streamed response. |
+| `PUT` | `/v1/blobs/batch` | Upload up to 50 blobs in one request; each is answered as its own `PUT` would be. |
 | `DELETE` | `/v1/manifests/{deviceId}` | Remove a device's manifest — for a lost or reinstalled device. Without it a dead device holds one of 32 slots forever and its unique blobs never GC, with a whole-store wipe the only remedy. |
 
-`POST /v1/blobs/missing` is the only non-REST-shaped call and it earns its place:
-without it, a device with 11,500 records issues 11,500 `HEAD` requests to find
-out what to upload.
+`POST /v1/blobs/missing` was the first non-REST-shaped call and it earns its
+place: without it, a device with 11,500 records issues 11,500 `HEAD` requests to
+find out what to upload.
 
-**Both of the endpoints that are not content-addressed carry a schema, and they
-did not always.** The blob and the manifest are specified to the byte because
+`POST /v1/blobs/batch` earns its place the same way, on the download side. With
+one `GET` per record, every request costs a token from the per-IP bucket (60 a
+minute, burst 120, when the route was added; spec §5.4 has the current rate), so
+a device's first connection to a 1,000-record
+library met the limit, stopped, and resumed a minute later — about 17 passes
+and 16 minutes, and for 5,000 records about 85. The records are small (a median
+dance is 1.7 KB of canonical JSON) and the request around them is not: measured
+in-process on the reference server, a single-blob `GET` spent 0.45–0.65 ms of
+handler time, nearly all of it paid once per request whatever it carries —
+request and response handling, authentication, the store lookup and its
+`last_seen` write (0.1–0.2 ms on its own) — against 35–55 µs for each further
+blob in a batch, or 50–75 µs with gzip. Two hundred hashes a request makes that first download
+five requests. The wire format, the caps and the fallback for a server without
+the route are in spec §5.2 and §5.4, with the case for a frame stream over JSON
+or multipart beside the rule. A batch of *n* hashes costs 1 + ⌈*n*/20⌉
+request tokens (spec §5.4, with the comparison that chose it): at that rate one
+token would have let a single address pull 12,000 records a minute and doubled the bytes a
+token buys, and exempting batches from the per-IP limit would have left nothing
+bounding one address.
+
+`PUT /v1/blobs/batch` is the same change on the upload side, where one `PUT`
+per record had the same effect on a device publishing a large library of its
+own. It reuses the read's frames, and answers each blob with the status its
+own `PUT` would get, so a client handles a refusal inside a batch exactly as it
+handled one before. An upload costs the server far more than a read — a single
+`PUT` measured 4–13 ms of handler time, most of it a quota check that scans the
+store's blob rows and a commit — and a batch shares one of each, but the
+reference server answers every request on one thread and stores a batch in one
+transaction, so a batch of 200 held every other user up for about a quarter of
+a second. Uploads therefore go 50 at a time (spec §5.4), and a batch of *n*
+costs 1 + ⌈*n*/10⌉ request tokens rather than the read's 1 + ⌈*n*/20⌉: per
+blob, storing costs far more than reading does (1.2–2.9 ms against 35–75 µs in
+a batch), and at 10 a token one
+address can spend no more of the server's one thread than single `PUT`s let it
+in the worst case. A 5,000-record first publish measured about 2.5 minutes,
+where one `PUT` a record took about 26.
+
+**The endpoints that are not content-addressed carry a schema, and the first
+two did not always.** The blob and the manifest are specified to the byte because
 they are *hashed* — canonicalisation is a correctness requirement there, so the
 document had no choice. `GET /v1/store` and `POST /v1/blobs/missing` are
 ordinary JSON, nothing forced their shape, and for several rounds they were
 described only in prose: "epoch, device list, quota usage". Two servers
 emitting `devices` and `deviceIds` would both have satisfied that sentence and
-only one would work with any given client.
+only one would work with any given client. `POST /v1/blobs/batch` came later and
+was specified to the byte from the start (spec §5.2).
 
 The pattern is worth naming because it is not laziness and will recur: rigour
 had accumulated wherever some other mechanism *demanded* it, and the places
@@ -3091,8 +3178,14 @@ General. It is the one feature that sends a user's collection off the device, so
 it is surfaced at the same level as the decision it represents, showing the
 endpoint URL, the sync ID, paired-device count and last-sync status in one place.
 
-Turning it off again stops all network activity and detaches. Detach forgets the
-sync ID entirely, so re-enabling is a fresh attach.
+Turning it off again stops all network activity but does **not** detach: the
+sync ID, endpoint and attachment are kept, so re-enabling resumes syncing the
+same store. Detaching is the separate *Disconnect this device* action, which
+forgets the sync ID entirely, so the next pairing is a fresh attach.
+
+*Amended 2026-10-02: this paragraph said turning sync off detaches. It never
+has: `SyncController.setEnabled` leaves the attachment in place, and only
+`SyncController.detach` and `wipeStore` clear it.*
 
 ### Attach
 
@@ -3518,19 +3611,26 @@ would break repair silently and without resembling a sync change at the point it
 was added. Any new write is checked against this the way new write paths are
 checked against the discriminator rule above.
 
-5. `GET /v1/blobs/{hash}` for each needed hash. **Verify the hash before
-   applying.**
+5. `POST /v1/blobs/batch` for each needed hash, up to 200 at a time
+   (`GET /v1/blobs/{hash}` against a server without the route). **Verify the
+   hash before applying.**
 6. Apply in one transaction, **read-modify-write** (below). Rebuild derived
    indexes.
 7. Recompute the local manifest from the post-apply state. Before any
    publication network request, record every address named by that final
    manifest in `published_records`; then `POST /v1/blobs/missing` and `PUT`
-   only what is missing from the final manifest. Attach-only blobs are not
+   only what is missing from the final manifest, 50 at a time with
+   `PUT /v1/blobs/batch` (one `PUT /v1/blobs/{hash}` per blob against a server
+   without the route). Attach-only blobs are not
    marked because attach writes no manifest and those blobs remain unreachable
-   until this continuation pass.
+   until this continuation pass. Hashes the last published manifest already
+   names are not asked about again for 12 hours (spec §6.3 step 7).
 8. `PUT /v1/manifests/{self}`. The pre-blob marker is retained before this
    request, so a failure between the marker and the request over-marks rather
-   than allowing a later hard delete to erase publication evidence.
+   than allowing a later hard delete to erase publication evidence. Skipped,
+   with step 7's requests, when the manifest is the one last published and that
+   publication is current (spec §6.3 step 8): an unchanged manifest rewritten
+   only for its `writtenAt` gets a new `ETag`, and every peer downloads it again.
 9. Store the new baseline. A record's entry advances only where a peer's
    manifest was observed to carry **this device's current content hash** — an
    upload not yet reflected by any peer is not agreement, and quarantine repair
@@ -3746,15 +3846,25 @@ failure after that transaction commits can therefore leave local data changed
 while the published manifest and baseline remain old, so the next attempt
 republishes and converges.
 
-- Network unreachable, DNS failure, TLS failure, `5xx` → retry with exponential
-  backoff and jitter, cap 6 hours.
-- `429` → honour `Retry-After`.
+- Network unreachable, DNS failure, TLS failure, a timeout, `5xx` other than
+  `507`, `429` → *transient*: shown as a calm "waiting to sync" status, and
+  retried by itself after 1, 2, 4, 8, 16 and then every 30 minutes, never
+  sooner than `Retry-After` (sync-spec.md §6.12). This list used to say
+  "exponential backoff and jitter, cap 6 hours"; the shipped schedule is
+  Isaac's (maintainer) decision of 2026-10-02 — a 30-minute cap, because a
+  phone user waiting half a day for a dropped connection to heal reads as sync
+  being broken. It has no jitter yet.
 - `401` / `403` → stop, surface to the user. Do not retry.
-- `422` → **stop and surface loudly.** A client bug tried to upload a
-  device-local field.
-- `507` → surface a **size breakdown by category**, with the *exclude imported
-  dances* toggle offered inline, since imports are usually the bulk and that
-  setting is the lever.
+- `400` / `415` / `422` → **stop and surface; never retried.** In practice this
+  is the app being newer than the server (ADR-004's release-ordering
+  consequence), so on the default server the user is told their changes are
+  safe and will sync once the server is updated, and on a self-hosted one they
+  are asked to update it.
+- `507` → surface it as needing the user, with the *exclude imported dances*
+  toggle described in the advice, since imports are usually the bulk and that
+  setting is the lever. Before it gets that far, the store's `quota` (§5.2)
+  raises an "almost full" warning at 80% that offers the toggle directly. The
+  size breakdown by category once planned here is not built.
 - Partial upload → harmless. Blobs are content-addressed and immutable; the
   manifest is written last, so a half-finished sync publishes no new manifest
   or baseline, while any already-committed local apply remains.
@@ -3766,7 +3876,10 @@ transaction that already committed locally.
 ### Triggers
 
 - On app start, once, after any pending migration completes.
+- When the app returns to the foreground, unless any pass started in the last
+  five minutes.
 - Debounced 30s after a local change.
+- After a transient failure, the automatic retry above.
 - Manually via "Sync now" — from Settings, or from the sync glyph on the
   Collection and Programs toolbars (shown only while sync is on and paired) —
   a **delta pass**, identical to an automatic one. A
@@ -3921,8 +4034,8 @@ the next pass's `POST /v1/blobs/missing` reports it present.
 The residual case is a pass that stalls past the grace period and then
 publishes, naming a blob that was collected. That resolves without a new rule:
 a peer that cannot fetch a blob treats it as an unresolved reference and skips
-and reports the record, and the origin device re-uploads on its next pass
-because `blobs/missing` reports it missing again. That downstream behaviour had
+and reports the record, and the origin device re-uploads on the first pass
+that asks `blobs/missing` about it again (within 12 hours, spec §6.3 step 7). That downstream behaviour had
 to be written down too — the spec said what a client does when a *record*
 reference cannot be resolved and said nothing about a failed blob fetch, and
 the dangerous default reading is that an unfetchable record has gone away.
@@ -4045,6 +4158,10 @@ On `PUT /v1/blobs/{hash}` the server:
    `kMaxContainerDepth` (2) guards structural figure nesting, not parse depth);
 6. **validates every key against a per-kind allow-list, rejecting anything not
    on it** with `422`.
+
+`PUT /v1/blobs/batch` applies steps 4–6 to each blob once the whole batch has
+been read within its caps, and answers each blob with the status these steps
+give it.
 
 #### Why an allow-list, and why the first attempt was worse than useless
 
@@ -4216,6 +4333,7 @@ Every limit is enforced **before** allocation, streaming-abort style, following
 | Devices per store | 32 | Generous for a person; bounds manifest fan-out. |
 | JSON parse depth | 32 | **New bound.** The codec has no general depth cap; `kMaxContainerDepth` (2) bounds *figure* nesting only, so the server needs its own guard against deeply-nested JSON. |
 | Decompressed size | 10x compressed, cap 32 MB | Decompression bomb. |
+| Encoded gzip size | Per route: decoded limit plus gzip framing slack, cap 32 MB | A stream of empty gzip members decodes to zero chunks and evades the decoded-size checks. |
 | Request rate | per-IP and per-store | Brute force. |
 
 Text arriving from a peer is passed through `sanitizeImportedText`, exactly as
@@ -4540,11 +4658,14 @@ must say this plainly rather than implying sync is opaque to us.
   `updatedAt` has no inbound rejection to stop it either.
 - **The fast-clock report fires on rejection, not on staleness** — a healthy
   device paired with a peer that has not synced in a month; assert it does *not*
-  report. Then refuse its uploads for three consecutive passes and assert it
-  does. Mutation-proved by testing whether peer values trail this device's by
-  more than the window, which fires on the healthy pairing — the app's central
-  usage pattern — and stays silent for a create-dominant device whose refused
-  records no peer stores at all.
+  report. Then have the peer publish twice without this device's records and
+  assert it does, naming that peer — with this device's clock days ahead of the
+  peer's. Mutation-proved three ways: by testing whether peer values trail this
+  device's by more than the window, which fires on the healthy pairing — the
+  app's central usage pattern — and stays silent for a create-dominant device
+  whose refused records no peer stores at all; by the three-pass streak this
+  replaced, which fires on the month-old peer; and by comparing the peer's
+  `writtenAt` with this device's clock, which never fires for the fast device.
 - **A poisoned `updatedAt` never enters circulation** — a device with a dead RTC
   makes an ordinary content edit, so its `existenceAt` is untouched and only its
   `updatedAt` is poisoned; assert peers refuse the blob rather than accepting it.
@@ -5028,7 +5149,7 @@ Recorded so the reasoning is not re-litigated.
 | `programs.venue` label | Stays `shareable` — a label the user typed, and a program is meaningless without it. |
 | "Sync now" | Delta pass; full re-verify behind a long-press or Settings action. |
 | Metered connections | *Sync only on WiFi*, default on; manual attempts route to the setting via a snackbar. |
-| Quota exhaustion | Size breakdown by category with the exclude-imports toggle inline. |
+| Quota exhaustion | An "almost full" warning from the store's `quota` at 80%, with the exclude-imports toggle inline; a `507` is surfaced with the toggle in its advice. (The size breakdown by category first decided here is not built.) |
 | Naming | **Athenaeum** — the earlier "Athanaeum" was a typo; DNS corrected and verified. |
 | Default state | **Off on every installation.** Opt-in only; an unconfigured app makes no sync network call at all. Device Sync gets its own top-level Settings blade. |
 | Access log | **Separate database**, holding a derived sync-ID key and a timestamp. Separate so reaping a store cannot destroy evidence of access to it. |
@@ -5615,6 +5736,12 @@ from a hundred addresses. The maintainer kept the strength floor advisory on
 those corrected numbers, so what the design owes the user who overrides the
 default is the cost in those terms rather than a warning they can read as
 cosmetic.
+
+> **Since 2026-10-12** the per-IP request rate is 5 a second rather than 60 a
+> minute (spec §5.4), so every guess rate above is five times larger: `2³³·⁹` at
+> a hundred addresses, `2³⁷·²` at a thousand, `2²⁷·²` for a single client, and
+> about 0.18 and 7 expected findings a year for the two cases. Spec §8 carries
+> the current figures; the figures above are those the ruling was made on.
 
 **The lesson is one step past round ten's, and the two together are the general
 form.** Round ten found that a rate limit bounds an attack only if the

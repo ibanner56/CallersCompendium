@@ -156,6 +156,25 @@ void main() {
       );
       expect(find.textContaining('Unknown slots are empty'), findsOneWidget);
       expect(
+        find.byKey(const ValueKey('dialect-wording-force-help')),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('like {!hand}, to always show'),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-wording-swing')),
+        '{!who} {move}',
+      );
+      await tester.pump();
+      expect(find.textContaining('Unknown slots are empty'), findsNothing);
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-wording-swing')),
+        '{who} {move} {future}',
+      );
+      await tester.pump();
+      expect(
         tester
             .widget<Text>(
               find.byKey(const ValueKey('dialect-wording-preview-swing')),

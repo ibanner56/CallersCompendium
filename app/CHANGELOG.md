@@ -19,24 +19,258 @@ from that tag, so new entries need no visible or manually maintained suffix.
   Play Store — ask about joining if you'd prefer that. The Play build and the
   `.apk` are signed with **different keys**, so you can't upgrade between them in
   place; pick one and stick with it (back up before switching).
-- **iOS** — delivered through **TestFlight** to invited testers; by design there is
-  no `.ipa` on this Releases page.
+- **iOS** — delivered through **TestFlight** (public open-beta link, see the
+  installation guide); by design there is no `.ipa` on this Releases page.
 - **macOS** (universal) — **signed with an Apple Developer ID and notarized**, you
   may see a confirmation on first launch.
 - **Linux** (x64) — desktop artifacts are **unsigned**, but Linux generally has no
   signing prompt:
   - The **`.tar.gz`** is the no-setup path — extract and run. The `.AppImage`
-    needs the **FUSE 2** runtime (`libfuse.so.2`) — package `libfuse2` on
-    Debian/Ubuntu, `fuse-libs` on Fedora — which some recent distros don't
-    preinstall; install it, or launch with
-    `./CallersCompendium-*.AppImage --appimage-extract-and-run`.
+    needs a `fusermount`/`fusermount3` binary (package `fuse3` on
+    Debian/Ubuntu/Fedora), which some recent distros don't preinstall — without
+    it you will see "No suitable fusermount binary found on the $PATH". Install
+    it, or launch with `./CallersCompendium-*.AppImage --appimage-extract-and-run`.
 - **Windows** (x64) — release artifacts are signed via Azure Trusted Signing but
   may show a **SmartScreen** warning; choose **More info → Run anyway** on the
   blue **Windows protected your PC** prompt.
 
 ## [Unreleased]
 
-_Nothing yet._
+## [0.7.0] - 2026-10-14
+
+### Added
+
+- Dances imported from The Caller's Box now recognize "two-hand turn" however it is written (hyphenated or not, partner before or after) and "Ones arch, twos dive", instead of keeping those lines as unrecognized text. A stated turn direction, which a two-hand turn has no setting for, is kept as a note.
+- A new Capitalize figures switch under Settings > General > Library starts each figure in the dance view, Perform mode and the figure editor with a capital letter. It is off by default, so figures are shown as written (built-in figures start in lower case, as in ContraDB).
+- Contra dances can now include a circular hey (also called a square hey): choose who passes first, which shoulder, across or along the set, and how many changes it runs (four is the full circuit, shown as "3/4 circular hey, neighbors pass right across" for three). Typing that same wording into a figure is recognized as a circular hey.
+- On macOS, opening the app straight from the disk image (instead of dragging it to Applications first) now shows a notice explaining how to install it.
+- When an update check finds that your version of the app has an announced end-of-support date, a banner tells you the date you need to update by. The notice also appears in Settings ▸ Updates and stays visible offline. Choosing "Later" hides the banner until you next open the app. Versions up to and including 0.6.0-beta cannot show these notices.
+- The version comparison shows where a dance was imported from and its licence.
+
+### Changed
+
+- Caller's Box imports now recognise same-role neighbor figures ("Same-role neighbor swing") and numbered shadows ("S1 shadow allemande left 1", "S2 shadow swing"), so about 200 more figure lines import as structured moves instead of free text.
+- Opening the macOS disk image now shows a laid-out installer window: the app and your Applications folder side by side, an arrow between them, and short instructions on what to drag and how to open the app afterwards.
+- Imported figures with a turn amount in thirds or eighths, such as "Star left 7/8" or "allemande right 1 & 2/3", now import as structured figures rounded to the nearest quarter, with the original amount kept in the figure's note.
+- Connecting a device to a large library with Device Sync now fetches records from your other devices in batches, so it usually finishes in one sync instead of carrying on minute by minute for a quarter of an hour or more. Against a self-hosted sync server that hasn't been updated yet, Device Sync carries on fetching one record at a time, as before.
+- Device Sync now sends a large library of this device's own records in batches, so the first sync of a well-stocked device takes far fewer tries instead of carrying on minute by minute. Against a self-hosted sync server that hasn't been updated yet, Device Sync carries on sending one record at a time, as before.
+- The first Device Sync after you open the app no longer downloads every other device's full list of records again. This device remembers each list and only fetches one that has changed since.
+- When another device runs a newer version of the app and shares records with details this version cannot keep in place, Device Sync now says so in the "update the app on this device" notice, with a count of each kind of record waiting (for example "2 programs, 1 setting"). Details this version can retain are kept and shown as information instead. Previously records with unrecognized details were listed in the general "records were skipped" notice alongside records skipped for unrelated reasons, which told you to check your other devices instead.
+- Sending a large library to an updated Device Sync server for the first time now takes a few minutes rather than a quarter of an hour or more: the server lets each device send several requests a second instead of one.
+- When another device runs a newer version of the app, Device Sync no longer skips records that carry details this version doesn't know about. It keeps those details, syncs the records, and shares them back unchanged, so editing a record on this device no longer loses what the newer version added. A notice lists these records as information. Records whose newer details this build cannot keep in place still wait for an update; the update notice marks any such record as containing fields only a newer version can read, including dances whose figures a newer version changed.
+- Device Sync sends much less when nothing has changed. A sync with nothing new to share no longer re-checks every record with the sync server or re-sends this device's list of records, which also spares your other devices from downloading that list again. A device that's in use still sends it in full at least every 12 hours.
+- Device Sync no longer downloads again records this device already has but doesn't share: imported dances that **Skip unused imported dances** keeps back, and records you've deleted whose deletion hasn't reached your other devices yet.
+
+### Fixed
+
+- A Caller's Box "Balance wave of four" line whose hand notation could not be read, such as "(C2R,WL)", is no longer merged into the preceding wave and lost; it stays as free text.
+- Caller's Box promenades written "around the major set" followed by a note in parentheses or brackets, such as "(backwards)", now keep that note and the "around the major set" wording instead of dropping both.
+- Caller's Box promenades that end at a named dancer, such as "Partner promenade clockwise around the major set to N2", now import as promenades with their destination instead of as custom text.
+- A Caller's Box figure that gives each role a different turn amount, such as "allemande left (M 1 & 1/2, W 2)", now stays as free text instead of importing with a turn amount neither role dances.
+- The figure editor's move picker no longer lists several identical "pull by" entries; aliases that read the same as a move already offered are hidden.
+- A program's pay now shows in its summary, alongside the band, caller and level.
+- Choosing which version to keep no longer asks about versions that look exactly the same, such as a choreographer added on two devices before they synced: one is kept for you, the same one on every device. Such choices already waiting are no longer listed.
+- A choice between versions of a record that sync had merged from two devices is now saved, instead of failing with "The saved peer change is no longer current" whichever version you picked.
+- When the sync server has a problem reading what one of your other devices shared, connecting a device no longer stops with a warning telling you to check your other devices. It shows "Waiting to sync" and tries again by itself.
+- The same server problem during an ordinary sync no longer shows the "records from another device couldn't be used and were skipped" notice. Changes to records your devices already share wait until the server can send that list again, so the status shows "Waiting to sync" and the app keeps trying by itself rather than saying everything is synced.
+- Connecting a device to a large library no longer reports most of it as "records from another device couldn't be used and were skipped". When the sync server asks the device to slow down part-way through, Device Sync keeps what it has fetched, shows "Waiting to sync", and carries on by itself every minute until everything is here.
+- A sync that loses its connection or times out while fetching from your other devices keeps what it had already fetched, instead of starting again from the beginning next time.
+- The Device Sync part of the diagnostics export now says which HTTP status each skipped-record notice came from, such as "[HTTP 404 ×3]".
+- Connecting a device that holds a large library of its own no longer slows to a crawl when the sync server asks it to slow down. Each try keeps what it sent, and while it is still getting further Device Sync tries again every minute instead of waiting longer each time.
+- A sync that loses its connection or times out while sending this device's changes now says it stopped while uploading, instead of not saying which step.
+- Importing from The Caller's Box no longer turns a balance in a wave or a ring, followed by a swing, into a "balance and swing" for the swinging pair. The wave or ring balance now stays its own figure, so the dancers who balance and the hands they hold are kept.
+- Online search and title import now find a dance whose title you typed with a curly apostrophe or quote (’ “ ”) or a dash (– —) when the archive spells it with a straight one, and the other way round. Previously "Rory O’More" found nothing in The Caller's Box, and "Eleanor's Reel" found nothing in ContraDB.
+- A Caller's Box search for a title or author with accented letters, such as "Déjà vu", now finds it. Previously any accented letter made the search find nothing.
+- Checking for updates now reaches the update server directly over HTTPS, so new releases are offered instead of the check quietly finding nothing.
+- On Windows, a cancelled or failed update download no longer leaves an empty download folder behind in the temp directory.
+
+### Removed
+
+- Support for collections last opened by v0.3.1-beta or earlier. Caller's Compendium will no longer open a collection file that old; it stops rather than upgrading it halfway, which would leave the file quietly incomplete. Every tester is on v0.4.0-beta ("Allemande Left") or later, so in practice no collection is affected. If you do still have an older file, open it once with v0.6.0-beta and it will be upgraded normally, after which this release can open it.
+
+### Data / Migrations
+
+- The database moves from schema v38 → 39 for Device Sync bookkeeping: it retains newer fields, remembers the last published manifest, and remembers each peer's last verified manifest; existing library data is preserved.
+- The Contra taxonomy moves from v35 → 36 to recognise circular hey figures and their canonical forms; this is a documentary marker only and does not rewrite the database.
+- This version's database update also keeps the record lists of your other devices for Device Sync (schema v39). Nothing in your library changes.
+- Adds a table that holds details from newer app versions alongside the records they belong to (schema v39).
+- This version's database update also remembers what this device last shared with Device Sync (schema v39). Nothing in your library changes.
+
+## [0.6.0] - 2026-10-06
+
+### Added
+
+- You can record what you are paid for a program (an amount and a currency) under More details in the program editor. Pay syncs between your devices and is included in your archive exports; it is not printed in the shared program text or PDF.
+- You can set a dialect on a program, under Perform dialect in its details, and Perform uses it for that program without you switching your active dialect first. The editor, summary and exports keep your active dialect. Switching dialect inside Perform then affects only that time in Perform, and if you rename or delete the dialect the program quietly goes back to your active dialect.
+- Perform now has a dance-start button on slots with a walkthrough length: tap it when the walkthrough really ends. "Walkthrough complete" and "over" then follow your mark for that slot, and the timing line shows how far the walkthrough ran from its plan. Tap again to undo. Slots you never mark behave exactly as before.
+- A progress bar while a backup is exported or restored.
+- When your chosen backup reminder is overdue, the app now shows a reminder with an Export backup button on the main screen once per launch, not only inside Settings.
+- In a move wording template, put a ! in front of a slot, like {!hand}, to always show it. A chain's hand, for example, is normally left out when the role implies it, but {who} {!hand} {move} still reads "robins right-hand chain".
+- Free-text entry recognises more everyday phrasings: a hey with a starting pair and shoulder ("half hey, ladies start by the right"), "N" and "neighbours" for neighbors, and "allemande left 1 1/2 with neighbor".
+- Import review: set every matched dance to Re-import or Skip in one tap, and skip all possible matches at once.
+- On Linux and Windows, Settings ▸ About ▸ View licenses now lists PDFium, the PDF library the app uses there to print and preview, with the notices of the libraries built into it.
+- When both devices changed your dialects, custom themes, figure shorthands or walkthrough snippets, you can now choose Combine both to keep everything from both devices, picking a version only of items both changed.
+- After you save sync choices, Undo reopens them with the versions you chose between, so you can choose again. Nothing changes until you do.
+- When Device Sync asks you to choose between versions, it now shows exactly what's different: which dialects, themes, shorthands or snippets are only on one device or differ, what differs inside a dialect or theme, which details of a dance, program, tag or venue differ (with figures compared line by line, and links and published sources shown in full), and which dances a program's versions don't share. With several items, choose Show differences on one to see its comparison. Each version also says when it was last changed.
+
+### Changed
+
+- The app opens faster on large libraries: the database integrity check now runs after the first screen appears instead of before it. A problem still shows the same warning banner.
+- Import review: the row button is now 'Import and edit', and it asks before replacing a matched dance; the guide explains that it imports immediately and is not covered by the batch Undo.
+- Choosing a backup file shows a summary (date, dances, programs, size) instead of pasting the whole file into the text box.
+- Turning a figure's balance option on now adds 4 beats to its timing, and turning it off takes 4 beats away, even if you had set the beats yourself.
+- When part of the app shows "Something went wrong here", Copy details now copies the error's type and its stack trace with folder names, email addresses and phone numbers removed, and leaves out the error's message, which could contain your own content. The full error is still saved to the on-device diagnostics log.
+- Importing a large batch now shows how many dances have been written so far instead of a spinner.
+- Linux: the installation guide now states the minimum system: glibc 2.35 or newer with GTK 3 (Ubuntu 22.04, Debian 12, Fedora 36 and later). Linux releases are now built on Ubuntu 22.04, so that minimum no longer moves up when the build machines are upgraded to a newer Ubuntu.
+- You can now set a program's event date up to 10 years in the past in the program editor, instead of 5, so you can record older events.
+
+### Fixed
+
+- The difficulty-level editor now explains in plain language why a level can't be deleted, renamed or left blank, in your language.
+- Search with the default title sort, and undoing a very large import, no longer fail on libraries with more than ~32,000 dances.
+- Restoring a backup no longer briefly switches the app to the default theme and language before applying yours.
+- A setting that can't be read at startup now falls back to its default instead of blocking the app on the error screen, and a restore that can't read one part of your saved data no longer leaves it half-applied.
+- Exporting or restoring a backup no longer freezes the app while the file is encoded or read.
+- The app no longer writes a backup larger than it can restore; export stops with a message instead.
+- Linux: sharing a program or dance file, or a JSON export, now saves the file through the system dialog instead of failing with 'Couldn't share'.
+- Setting a level, rating or tunes on many selected dances at once is much faster on large libraries.
+- Linux: after using Perform and switching windows, the screen can sleep and lock again as soon as you exit.
+- Search: a person's full name (for example 'Robin Hayden'), a source, a custom field value or a note is now found even when it contains a word the app treats as a dancer role.
+- Perform: Undo on 'Program adjusted' now works even after you have left Perform.
+- Perform: the clock and position line at the bottom fit at large system text sizes.
+- Importing a pasted title list while offline now stops after the first connection failure and says so once, instead of trying every title.
+- If copying a dance from the Export menu fails, you now see an error message instead of nothing happening.
+- Settings › Defaults no longer reloads your whole collection on every redraw after a failed load, and opens faster on large libraries.
+- Settings rows with a dropdown (Language, Date format, Defaults, Backup reminder, Venue call count and others) no longer clip or hide their label at larger text sizes on phones.
+- Sync no longer deletes a difficulty level that a dance in Recently Deleted still uses, so restoring that dance never leaves it un-editable.
+- A dance you import from an online search in the program editor's dance picker now gets your "Tags for imported dances".
+- On Linux, the third button in the JSON export dialog now says "Save as…" instead of "Share", because it saves the file through the system dialog.
+- Perform now shows the author line for a program dance that is in Recently deleted even when its choreographer was deleted too.
+- Linux AppImage: the app no longer looks for its system libraries in the folder you launched it from, so a library file saved next to the AppImage (for example in Downloads) can't be loaded into the app.
+- The 'too large' backup messages are now translated.
+- A dance's calling history shows the day you called it in your own time zone. An evening dance in the Americas was listed under the next day.
+- Saving a program or marking a dance performed no longer reloads your whole collection on large libraries, so the Collection and Perform screens stay responsive.
+- ContraDB pages imported from HTML now read corner, same-role, centre and single-dancer subjects the same way the JSON import does, so the two no longer look like different dances.
+- Custom figure text typed in the editor is now saved in the neutral role form and shown in your active dialect, and role searches find it. Existing custom text updates the next time the dance is saved with the same dialect active.
+- After moving your library out of Documents, the app leaves a folder with a note in its old place, so opening an older version shows an error instead of starting a new, empty library there.
+- If your library has not been moved yet and the Documents folder can't be found (for example a disconnected network folder or drive letter), the app now stops and says so instead of starting an empty library.
+- When saved data is found in more than one place, the startup screen now lists each copy's size and when it last changed, so you can tell which one is your library.
+- The one-time move of your library out of Documents now waits if another copy of the app is already moving it, and no longer moves it while another program (such as an older version of the app left running) still has it open; it stops and leaves the old copy untouched instead.
+- Large imports no longer freeze the app while matching incoming dances against your collection.
+- Free-text figure entry understands the role words of your active dialect, e.g. "Follows chain" under Leads/Follows.
+- Free-text entry no longer turns a line like "ladies chain over and back" or "neighbors swing 16" into a figure with the wrong beats and the rest hidden in a note: a leftover that is only another move, "and back" or a bare number is now marked unparsed. "give and take" still needs a giver and a target.
+- When a Caller's Compendium import can't be read, the button now says "Try again" for pasted text or a URL and "Try another file" only when you chose a file.
+- Importing from The Caller's Box or ContraDB by id or link no longer says "Check the URL" when the service is slow or sends back nothing: the message names the service and says what to do next.
+- Linux: the app window now shows the Caller's Compendium icon, and desktops that group windows under their launcher (such as GNOME) no longer show the running app as a separate entry with a generic icon.
+- Linux: the tar.gz download now includes a desktop launcher file and the app icon, so you can add the app to your applications menu. See Installation in the User Guide.
+- Importing a previewed online dance now always goes through the source the preview came from, even if you switched between The Caller's Box and ContraDB while the preview was open.
+- Section headers, text buttons and error text are now readable on every gallery theme.
+- "counter clockwise", "counter-clockwise", "anti-clockwise" and "ccw" are now understood for gates, facing stars and poussettes when you import or type a figure, and clockwise/counterclockwise are understood for circles (clockwise is a circle left, counterclockwise a circle right).
+- Perform timers no longer lose time while the app is in the background or the device is asleep, for example after switching to your music app on iPhone or iPad. Pause timers still stops them.
+- Perform opens even if a deleted dance in the program can't be read; that slot then shows as unavailable instead of Perform not opening.
+- Perform: tapping Undo on 'Program adjusted' after leaving Perform no longer overwrites changes made to the program since. If the program has changed, the undo is refused with a message instead.
+- If turning on screen keep-awake failed unexpectedly when Perform opened, the screen could stay awake after leaving Perform.
+- Changing the paper size in the print dialog for a program PDF no longer fails once the export menu has closed.
+- Figure notes and custom figure text keep the move name "mad robin" instead of saving it as a role (it read "mad follow" under Leads and Follows). It is saved in lower case, the same as imported text, so a typed "Mad Robin" comes back as "mad robin".
+- Under Leads and Follows, "lead" and "follow" used as verbs in figure notes and custom figure text ("Ones lead down the hall", "follow your partner") are kept as you typed them instead of being saved as roles. Text saved by an earlier version is not repaired automatically.
+- Searching for "mad robin" finds dances with a mad robin figure.
+- Ctrl-K (Cmd-K on macOS) now opens search from a dance's detail page and from the editors, not only from the main tabs. It stays off while you are performing a program or a single dance.
+- On Linux and Windows, launching the app while it is already running now brings the existing window to the front. Before, installed builds started a second copy on the same library: the check that prevents this stopped working about half a second after launch.
+- On macOS, saving an update over an earlier download and choosing Replace now works. It used to fail with a message blaming your connection. If a folder or a symbolic link already has that name, the app now asks you to choose another name or folder.
+- On Android, a web page can no longer ask the app to open a file. Opening a bundle with "Open with" from a file manager, or sending it from another app's Share menu, works as before.
+- When you choose which version of your dialects, custom themes, figure shorthands or walkthrough snippets to keep, the device where you chose no longer asks again, even before your other device syncs or when an old copy of this device is still listed under Other devices. Another device that also changed that set asks you once more, unless you kept its set.
+- If the app cannot read its saved Device Sync settings at startup, Settings now says so instead of leaving Device Sync silently off.
+- Theme names, theme descriptions and the custom-theme editor are now translated: Settings › Appearance and the colour-role, group and contrast labels in the theme editor follow the app language instead of staying in English.
+- Cancelling an update download while the disk is slow to write no longer reports that the install failed, and the partial download is removed on Windows too.
+- The Windows app now starts on PCs that don't have the Microsoft Visual C++ Redistributable installed. The installer and the portable zip now include the runtime files the app needs, instead of failing with "VCRUNTIME140_1.dll was not found".
+
+### Data / Migrations
+
+- Programs gain optional pay fields (schema 36 -> 38); existing programs are unchanged.
+- On Windows and Linux your library now lives in the app's own data folder instead of Documents, so OneDrive folder backup no longer syncs a live database and Linux no longer leaves it loose in your home folder. The first launch after updating moves it (and the automatic safety copies in its db_backups folder) once, deleting the old copy only after the new one is verified; if anything looks wrong the app stops and leaves both copies untouched. After the move, going back to an older version (0.5.4 or earlier on Windows, 0.5.3 or earlier on Linux) stops on its startup error screen: your data is still in the new folder.
+
+## [0.5.4] - 2026-10-02
+
+### Added
+
+- Settings ▸ Defaults ▸ Import defaults lets you choose tags that are added automatically to each new dance you import on its own, such as a "no card" tag. Dances created while importing a program, restored from a Compendium archive, or updated by a re-import are not tagged.
+- When the same item was changed differently on two of your devices and the app can't tell which change to keep, Device Sync now asks you: choose This device or Another device for each item, then Keep selected. Settings are shown by name with their values. The Sync now button shows how many items are waiting and opens the choice after a sync that finds new ones.
+- Device Sync tries again by itself after a dropped connection, a timeout or a server hiccup, waiting a little longer each time, and syncs when you come back to the app.
+- Device Sync warns you when your sync store is almost full, and offers to stop syncing imported dances.
+- When another device is using a newer version of the app, Device Sync says so and asks you to update this device, instead of reporting skipped records.
+- Every Device Sync warning has a Copy details button that copies a short code you can paste into a request for help. Nothing is sent anywhere.
+- The diagnostics export includes a short Device Sync section, without your sync phrase, titles or anything identifying a device or record.
+- Other devices now shows each device by a short tag, this device's own tag so you can match them up, when each one last shared changes (to the day), and how many of your changes are waiting for it.
+
+### Changed
+
+- If both devices changed your dialects, custom themes, figure shorthands or walkthrough snippets, you now choose which device's set to keep instead of the most recent edit silently replacing the other.
+- Sync decisions has moved from General to Device Sync settings.
+- When you disconnect a device from Device Sync, it only removes itself from the store if another connected device has shared everything it had since it last shared. An old entry from this device's own earlier connection no longer counts, so its changes can't end up held only by an entry you might remove next.
+- Each time a device connects to Device Sync, it makes up a new identifier for itself instead of reusing the one from its last connection, so moving to a new sync phrase no longer carries the same device identifier into your new store. The server can still see the content you sync, so this removes one link between your stores, not every link. If you disconnect and reconnect to the same store, the earlier connection can stay under Other devices until you remove it there.
+- A sync that can't finish for a reason that sorts itself out now reads "Waiting to sync. Your changes are saved here." instead of an error.
+- When the sync server refuses what this device sent, the advice now says whether you need to do anything: on the Caller's Compendium server your changes wait safely until the server is updated, and on your own server you're asked to update it.
+- Disconnecting a device now also removes it from the sync store, when your other devices already have everything from it, so it no longer stays behind under Other devices.
+- The notice about changes not reaching your other devices now appears only for a device that is syncing but not taking them, names that device by its tag, and is marked as needing you. A device that simply hasn't been opened no longer raises it.
+- Status icons use the outlined weight, and the English country dance form and dancer level have their own icons.
+
+### Fixed
+
+- Choosing a backup file that can't be read in Settings → Restore now shows a message instead of doing nothing.
+- Export no longer runs twice when tapped twice, and a failed export or restore always shows a message.
+- On phones, a failed Share, Copy or PDF export of a dance now shows a message instead of doing nothing.
+- Importing a Caller's Companion .USR file that was only partly copied now warns that the file looks incomplete, instead of reporting a successful import of whatever was readable. Files from a newer version of the app also show a single "update first" warning.
+- Importing the wrong kind of file, an empty file, text that isn't JSON, a file that is too large, or a Caller's Box id with no dance now says what was wrong and what to choose instead of "This record couldn't be found.". Online and pasted imports offer "Try again", and an unexpected import failure no longer shows raw error text.
+- Import review now warns that choosing "Same dance" on a possible match overwrites the existing dance, and the option is labelled "Same dance — replace" instead of "Link to".
+- Import network errors now say what to do. A Caller's Box or ContraDB id that doesn't exist says there is no dance with that id, a busy or rate-limited server says to try again in a minute, going offline names the source instead of "that URL", and raw "HTTP 404" codes are gone. A file that is too large now names the size limit.
+- On Linux systems without xdg-user-dirs, the app now starts instead of stopping at "Could not prepare the collection." It keeps your library in its own data folder.
+- If your device language isn't one the app is translated into, it now opens in English instead of Danish.
+- A failed matrix PDF export now shows a message instead of doing nothing.
+- Typing straight after New dance now goes into the title.
+- PDF export now draws Japanese text (set-list headings and labels in Japanese, and Japanese program or dance titles) instead of empty boxes.
+- PDF export no longer fails on very long program notes, dance calling notes, walkthroughs or slot notes; they continue onto the next page.
+- Perform now shows the figures for a program slot whose dance was deleted (it is still in Recently deleted) and marks it "(deleted dance)" in Jump to slot, instead of showing only your teaching note. A dance that no longer exists at all now says "Dance unavailable" rather than showing the note or "Untitled slot".
+- Sharing or exporting a program as JSON no longer fails when "Hide alternates" hides the only dance with a custom difficulty level.
+- When the app can't prepare your collection at startup, the error screen now shows the kind of error, offers Copy details, and points to the diagnostics log. The failure is recorded in the log, and Retry now reopens the database so it recovers once the cause is fixed, without relaunching the app.
+- When the first sync with a store stopped near the end, Device Sync now says why it stopped, instead of only that it failed.
+- Dutch, German and Japanese wording: Dutch now says "notitie" for notes (not the musical "noot") and "Hook" for the Hook field, German calls the Perform settings section "Perform-Modus", and Japanese editor and Settings text no longer mixes in English "Modifier", "Figure" and "Perform".
+- The hint on the Programs tab when no program is selected is now readable (contrast).
+
+## [0.5.3] - 2026-10-02
+
+### Changed
+
+- When Device Sync fails, Settings now tells you why — the server couldn't be reached or took too long, had a problem of its own, your store is full, the server refused what was sent or your sync phrase, and so on — with what you can do about it and a Details line (the step that stopped and the server's HTTP status) you can quote when reporting it.
+- Connecting a device, loading Other devices, removing a device and deleting the store now say why they failed instead of a generic "not available right now".
+- The Sync now button on the Collection and Programs pages now tells you when a sync didn't finish, and why.
+- Device Sync notices now list the records they are about — dances, programs, choreographers, tags and venues by name, so "edit one of them" tells you which — and say how many other devices skipped records came from.
+
+## [0.5.2] - 2026-10-01
+
+### Changed
+
+- Importing dances is much faster: figure text is now read several times faster, and a Caller's Companion library with thousands of dances that took tens of seconds to prepare for review now takes a few.
+- You can now import a Caller's Companion file of up to 256 MB (up from 64 MB), enough for a library of around 20,000 dances.
+- Importing a large Caller's Companion file no longer freezes the app while it reads, and the import screen now shows real progress instead of an endless spinner.
+- Importing a very large Caller's Companion library (tens of thousands of dances) is several times faster and uses far less memory.
+
+### Fixed
+
+- Restoring a backup can no longer quietly wipe your preferences, themes or dialects. A restore that replaces your data now refuses a backup made by a newer version of the app, or one with no app-settings section, and leaves everything unchanged. Any part of a backup's settings, themes or dialects that the file doesn't describe is left as it is.
+- Saving a dance no longer reports "Couldn't save the dance" when the dance was saved but tidying up its autosaved draft failed. Previously the editor stayed open and saving again created a second copy of a new dance; now the editor closes and the dance is saved once.
+- A dance whose figure line had a note after a walk-forward and a later figure could fail to import; it now imports, and such a note stays with the figure it follows.
+- When a dance in an import or re-import can't be saved, the authors it would have added are no longer left behind in your author list, and a variation whose link back to the original can't be saved no longer leaves the new dance behind.
+- Editing a large pasted or picked archive in the import screen no longer stalls on every keystroke; the archive is read once when you review the import.
+- An archive whose `dances` key is written with JSON Unicode escapes now imports its tags, custom fields, and difficulty levels like any other archive.
+- Sharing or opening a very large file, or sharing a very long piece of text to the iOS Share Extension, is now refused once it crosses the size limit, instead of being copied or read in full first (the iOS Share Extension still has to load shared text into memory before it can measure it). A file that is too large now shows the "too large to import" message on Android, iOS and macOS.
+- Typing or importing an absurdly large phrase structure (for example `100000000*1*1`) no longer freezes the app or exhausts memory. Phrase structures are now limited to 1,000 phrases, and a Caller's Box import with a structure beyond that falls back to the standard one with a warning (other import formats skip the affected dance as unreadable).
+- Sharing a program no longer includes custom-field values you turned "Include in sharing" off for. The shared file now also carries the tags, sources, and shareable custom fields its dances use, so the recipient can import those dances completely.
+- Adding a new option to a choice custom field from the dance editor no longer turns its "Include in sharing" setting back on.
+- The scrubbed diagnostics export no longer includes the text of error messages, so a value that was never saved or was later deleted can't appear in it. Error types, sources and file names are still included.
+- Making a custom field private or shareable on one device now reaches your other synced devices: dances that use the field are updated there instead of staying out of step with a sync conflict.
+- If you delete a tag, edit a dance that had it, and then restore the tag, the dance now has the tag again instead of losing it when it was edited.
+- A full backup now keeps tags you have deleted, so restoring the backup and then restoring a deleted tag brings back the dances it was on.
+- Downloading an update to a slow disk no longer builds up a large amount of memory, and a download that fails while saving now closes and removes its partial file, including on Windows.
 
 ## [0.5.1] - 2026-09-29
 

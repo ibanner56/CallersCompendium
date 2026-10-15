@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart' show rootBundle;
@@ -191,5 +192,51 @@ void main() {
         expect(glyphs.containsKey(0x2713), isTrue);
       },
     );
+  });
+  group('Program PDF CJK fallback font (PRG-01)', () {
+    const asset = 'assets/fonts/NotoSansJP-Regular-Subset.ttf';
+
+    test('$asset has no fvar (variable font) table', () async {
+      final bytes = await rootBundle.load(asset);
+      expect(
+        _sfntTableTags(bytes),
+        isNot(contains('fvar')),
+        reason:
+            '$asset must be a static, single-instance TTF — the pdf package '
+            'cannot resolve variable-font axes.',
+      );
+    });
+
+    test(
+      '$asset covers every CJK rune in app_ja.arb and a Japanese title',
+      () async {
+        final glyphs = TtfParser(
+          await rootBundle.load(asset),
+        ).charToGlyphIndexMap;
+        // U+2E80 is where the CJK radicals begin: everything from there up is
+        // beyond what Roboto can draw. (Latin such as the Æ/ø in the title is
+        // Roboto's job and is deliberately not asserted here.)
+        final wanted = <int>{
+          ...File('lib/l10n/app_ja.arb').readAsStringSync().runes,
+          ...'春のコントラ Ærø Søndag'.runes,
+        }.where((r) => r >= 0x2E80);
+        final missing = [
+          for (final r in wanted)
+            if (!glyphs.containsKey(r))
+              'U+${r.toRadixString(16).toUpperCase()}',
+        ];
+        expect(wanted, isNotEmpty);
+        expect(
+          missing,
+          isEmpty,
+          reason: '$asset must map every rune the UI uses',
+        );
+      },
+    );
+
+    test('loadProgramPdfTheme falls back to the CJK subset', () async {
+      final theme = await loadProgramPdfTheme();
+      expect(theme.defaultTextStyle.fontFallback, isNotEmpty);
+    });
   });
 }

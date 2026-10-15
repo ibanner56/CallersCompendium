@@ -245,7 +245,11 @@ instead, and states the override's cost as expected findings per year — about
 1.4 a year against five hundred stores at the warned 2⁴⁰ reference from a
 hundred attacking addresses, against 0.035 at the generated 2⁵² from ten
 thousand. Maintainer's ruling, put a third time on those corrected numbers and
-kept: the floor stays advisory and the cost is disclosed.
+kept: the floor stays advisory and the cost is disclosed. Those figures assume
+the per-IP request rate of 60 a minute. On 2026-10-12 the maintainer raised it
+to 5 a second (spec §5.4), which makes them about 7 and 0.18, choosing that
+rate with those figures in front of them; the advisory ruling itself was not
+put again.
 
 This argument originally carried a third leg: that the server could not tell
 creating from joining, because `GET /v1/store` created the store when absent, so
@@ -266,6 +270,44 @@ collection if they choose (below) — a user is *expected* to hand the phrase to
 someone they want to sync with. It is therefore not a secret, and must not be
 described as one. It also means there is no recovery if it is lost and no
 revocation if it leaks.
+
+> **Amended 2026-10-02.** **A device ID belongs to one attachment, not to one
+> installation** (@ibanner56's ruling, recorded with the change that implements
+> it). It was minted once and kept across detach, so it followed a device into
+> every store it ever joined and to every server, self-hosted ones included.
+> That defeated this design's own remedy for a leaked phrase: moving every
+> device to a new sync ID left their device IDs unchanged, so anyone able to
+> read the server could link the abandoned store to its replacement. Detach and
+> wipe now erase the device ID with the sync ID, pairing erases any value an
+> earlier attachment left behind, and every attach mints a new one (spec §3.3).
+>
+> Two paths keep the identifier, and that exemption is a judgement I proposed
+> and @ibanner56 approved: confirming a replacement store, and the automatic
+> rejoin on a changed epoch. Both re-use the same sync ID, and its `id_key`
+> already links them, so a new device ID there would buy no unlinkability while
+> requiring the coordinator — which holds the pending-replacement state — to be
+> rebuilt mid-decision.
+>
+> The store key alone does not identify a person: the server cannot tell one
+> caller with three devices from three callers sharing a phrase. What a stable
+> device ID added was the link *across* stores and servers, and that is what
+> this removes. It removes the identifier as a link, not every link: the
+> operator can still read synced content, and identical records hash to
+> identical blobs, so two stores holding the same library remain matchable by
+> what they contain.
+
+> **Amended 2026-10-02.** **Devices are shown to the user only by a short tag
+> of their random identifier and a "last shared changes" day** (@ibanner56's
+> ruling, from a planning session). *Other devices* shows the first six
+> characters of each device ID, lengthened only where two would otherwise be
+> equal, and this device's own tag so the user can match entries across
+> devices; beside each, the day that device last published its manifest
+> (rounded to the day, never a time — data minimisation) and how many of this
+> device's changes are waiting for it. Both come from manifests a pass already
+> fetches, so nothing extra is requested or stored. There are deliberately no
+> names, nicknames, platforms or device types: two people can share a store, so
+> a name one of them typed could be the other's personal data, and the server
+> would learn it.
 
 ### What the server holds
 
@@ -317,6 +359,29 @@ local record's**, not merely different from the baseline. Comparing hashes alone
 cannot distinguish "the peer edited this" from "the peer has not caught up yet",
 and the latter would roll a newer local record backwards. With N peers, the
 newest `updatedAt` wins.
+
+> **Amended 2026-10-02.** **When the newest `updatedAt` is shared by differing
+> live bodies, the user chooses** (@ibanner56's ruling). Timestamps have
+> one-second precision, so this is ordinary — two devices that each change the
+> same setting before syncing reach it. It used to be reported on every pass
+> and left unresolved, with the advice to edit one side, which the user could
+> not act on: the report named no setting and the devices stayed different.
+> A convergent automatic rule — keep whichever body hashes lower — was
+> considered and rejected: it would settle the tie, but by discarding one
+> device's edit without asking, which may undo something the user meant.
+> Instead every distinct version is queued in `review_queue` and offered to the
+> user; the kept version is re-stamped one tick past the tie and reaches every
+> other device as an ordinary newer edit (spec §6.3, §6.6 *Conflict choices*).
+> Keeping this device's own version re-stamps an unchanged body, the one write
+> spec invariant I2 now permits for that reason (§6.5).
+>
+> *Amended 2026-10-11:* a tie in which nothing the user is shown differs —
+> the same record under a merged-away id, say, or differing only in import
+> details — is no longer offered: choosing there is arbitrary, so the
+> lower-hash rule settles it (spec §6.3). The ruling above still holds
+> wherever the user could tell the versions apart. Requested in
+> [PR #1729](https://github.com/ibanner56/CallersCompendium/pull/1729); not
+> part of the ruling.
 
 **Absence never means deletion.** Deletions travel as `deletedAt` tombstones.
 `Dances` and `Programs` carry `deletedAt` today; the sync migration adds it to the other
@@ -681,6 +746,15 @@ and walkthrough snippets represent real work a user would hate to redo.
   that obliges a stated retention wherever the server records it, logs included,
   because `{deviceId}` sits in a request path and lands in ordinary access logs
   by default. Spec §3.3 and §7.3.
+
+  > **Amended 2026-10-14, by the maintainer's decision.** No longer only the
+  > sync device ID: keeping peer manifests across restarts (#1757) adds a
+  > peer's device id as the store lists it and the `ETag` a peer manifest was
+  > served with, both sent back only to that store. The class definition was
+  > widened to "random bytes a device minted, or a server-issued hash of data
+  > that server already holds", never taken as this device's own. Its guarantee
+  > — no user data by construction — is unchanged. See the class table in
+  > `docs/design/sync.md`.
 - `storeAddress` → **a sixth class this programme adds**, for the sync ID
   itself. The sync ID names *where* a shared store lives — in effect a path on
   the sync server, which is how the server handles it — and it is Other User
@@ -847,7 +921,9 @@ requirements, not deployment taste, and each has a concrete failure mode:
   socket peer is loopback: trusting a spoofable forwarding header is strictly
   worse than having no limit at all, because an attacker sets a fresh value per
   request and buys unlimited guesses while an honest shared-NAT user is still
-  throttled. Both failure directions are silent. See spec §7.5, requirement 6.
+  throttled. Both failure directions are silent. As defence in depth the server
+  reads only the rightmost entry of the header, so an appending proxy cannot
+  let a client choose its own key. See spec §7.5, requirement 6.
 
 **On the backend port.** `127.0.0.1:33333` sits inside Linux's default ephemeral
 range (`32768–60999`), so the kernel may transiently assign it as an outbound
@@ -1062,6 +1138,28 @@ makes self-hosting materially harder, which constraint 4 forbids.
   retried. This binds release ordering for every future schema change, and it
   applies to self-hosters too: their upgrade has to lead the app's, which is a
   real obligation to document rather than a deployment detail.
+
+  > **Amended 2026-10-02.** The rejection is still surfaced and never retried,
+  > but it now says which side has to act, because the client knows whether it
+  > is on the default server. On the default server it tells the user this
+  > version of the app is newer than the server, that their changes are saved
+  > on the device, and that they will sync once the server is updated; on a
+  > self-hosted server it asks the user to update that server. Previously both
+  > got one generic "different versions" message that told the user to update
+  > the app, which on the default server is the side already ahead. Decided by
+  > Isaac (maintainer) in planning; the wording is in sync-spec.md §6.12.
+  > Separately, a peer whose envelope `v` is newer than this device's is now
+  > reported as its own condition, `newerWireVersion`, asking the user to update
+  > *this* device (sync-spec.md §6.9).
+  > **Amended 2026-10-12.** An older build no longer refuses a record because a
+  > newer one added a field: it keeps the fields it does not sync beside the
+  > record and shares them back unchanged, so they survive its own edits
+  > (sync-spec.md §6.7, schema v39 `retained_sync_fields`). It still refuses a
+  > record it could not put back exactly — new keys inside a dance's figures —
+  > and leaves to a newer device any tie it cannot judge. Decided by Isaac
+  > (maintainer) in planning the change: kept parts are classified the most
+  > cautious way that can still travel, a known-but-private field is kept like
+  > an unknown one, and a setting this build does not sync is kept whole.
 - **Settings sync requires a schema migration, and it should ship first.**
   `settings` is `(key, value_json)` with no timestamp, so the `updatedAt`
   conflict rule cannot reach it. The sync migration adds `updated_at`, stamping existing
@@ -1361,8 +1459,11 @@ makes self-hosting materially harder, which constraint 4 forbids.
   `deviceScoped` and beyond the sync migration like the others, but it is
   **not** scoped to the store and is never cleared: it records that bytes left
   this device, which a detach does not undo — detach forgets the sync ID
-  locally and leaves this device's manifest on the server, keeping the record
-  downloadable by every peer.
+  locally, and every record this device published stays downloadable by every
+  peer. Its manifest stays on the server unless the detach clean-up removes it,
+  which it does only when every entry is already carried, at the identical
+  hash, by another device's manifest (spec §3.3) — so either way some manifest
+  still names the record.
 
   A device holding a deletion pending advertises the entity as a **tombstone**
   rather than omitting it. Omitting it stops the resurrection but leaves the
@@ -1398,12 +1499,73 @@ makes self-hosting materially harder, which constraint 4 forbids.
   blob carries. The serialiser hazard and this deserialiser hazard are
   symmetric, and the second is the more dangerous: it destroys the user's own
   data rather than exposing it.
-- **Settings whose value is a whole collection collide destructively.**
+- **Settings whose value is a whole collection collide as a unit.**
   `custom_dialects`, `custom_themes`, `shorthand_mappings` and
-  `walkthrough_snippets` each hold an entire set behind one key, so a
-  changed/changed conflict discards one device's complete set with no review
-  queue. Accepted, and it belongs beside "sharing is not collaboration": the
-  first pairing of two long-established devices is the case that loses work.
+  `walkthrough_snippets` each hold an entire set behind one key, so
+  last-writer-wins on a changed/changed conflict would discard one device's
+  complete set.
+
+  > **Amended 2026-10-02.** This was accepted with no review queue. It is now
+  > routed to the user's choice whatever the two timestamps
+  > (@ibanner56's ruling; spec §6.3), because the first pairing of two
+  > long-established devices is exactly the case that would lose work. What
+  > remains accepted is that the choice is between whole sets: the user
+  > keeps one device's dialects, say, not a merge of both.
+  >
+  > **Amended 2026-10-05.** That remaining limitation is withdrawn
+  > (@ibanner56's ruling): the user may also **combine both**, keeping every
+  > entry from each device's set and choosing a version only of entries both
+  > changed (spec §6.6, *Conflict choices*). A combination longer than the
+  > library keeps is refused rather than truncated. Any choice can also be
+  > undone by reconsidering it between the same earlier versions, held in
+  > memory only; because a written choice is already the newest version
+  > everywhere, undo cannot restore "undecided", so it reopens the choice and
+  > writes only when the user chooses again.
+- **Re-attaching to the same store can leave the previous attachment behind
+  as an inactive device.** Because each attachment has its own device ID, an
+  old manifest left on the server stays under the old identifier. It shows
+  under *Other devices*, occupies one of the store's 32 device slots, keeps its
+  blobs reachable, and — since it lists this device's own hashes — counts as a
+  peer that already carries them in the baseline advance. It lasts until a user
+  removes it there or the store is reaped. Recognising it as this device's
+  would need the very link between attachments the per-attachment identifier
+  removes, so it is mitigated rather than fixed.
+
+  > **Amended 2026-10-02.** Mitigated by the detach clean-up (@ibanner56's
+  > ruling, from a planning session): after the local clear has committed,
+  > detach makes one best-effort, background attempt to
+  > `DELETE /v1/manifests/{self}`, and only when every entry of that manifest
+  > is carried, at the identical hash, by another device's manifest (spec
+  > §3.3). This changes a guarantee this ADR used to state — that detach sends
+  > no request — and it is safe because of that condition: the removal makes no
+  > publication unreachable, since another manifest still names every one, so
+  > nothing a peer could still fetch is lost. When the condition does not hold,
+  > when the device is offline or on mobile data with *Sync only on WiFi* on, or
+  > when the attempt fails, the old entry remains as described above and is
+  > removed under *Other devices*. A new pairing cancels the attempt, so the old
+  > and new identifiers are never used side by side, as does turning Device
+  > Sync off, and it is never retried.
+  >
+  > A leftover manifest reads as *asleep* in the per-peer judgement (spec §6.9),
+  > so it no longer hides a warning: the warning is now raised per device that
+  > is publishing but not taking changes. What it still does is under-count the
+  > *Other devices* "waiting" line for itself, by every record unchanged since
+  > it was left behind.
+  >
+  > **Amended 2026-10-02, later the same day** (@ibanner56's ruling). A
+  > carrier must also have been written strictly later than this device's own
+  > manifest (spec §3.3, condition 5). The ruling was "no earlier than";
+  > strictly later is my narrowing of it, made in review, because
+  > `writtenAt` is stored to the whole second and a leftover from an
+  > attachment replaced within one second would otherwise read as equal and
+  > still count. Without that, this device's own
+  > leftover from an earlier attachment — the same hashes, written earlier —
+  > could be the only carrier, and removing the current manifest would leave
+  > those records only there, one *Other devices* removal away from existing
+  > nowhere but this detached device. The floor compares two devices' clocks,
+  > so a live peer with a slow clock, or one that published in the same
+  > second, can also fail it; the clean-up then skips, which costs one
+  > leftover entry, never data.
 - **Any holder of the sync ID can impersonate a device or wipe the store.**
   Manifest `PUT` accepts a caller-chosen device id, and the same bearer
   authorises `DELETE /v1/store`. This is inherent to the bearer model rather than

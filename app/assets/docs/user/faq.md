@@ -6,7 +6,7 @@ has more — this page links out to each one.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Settings**, **General**, and **Collection**. The
-> first time a dance term appears it links to the [Glossary](./glossary.md), so
+> first time a dance term appears it links to [App terms](./glossary.md), so
 > you can get a plain-language definition without losing your place.
 
 ## The basics
@@ -24,7 +24,55 @@ turned on Device Sync.
 
 ### Where is my data stored?
 
-On your device. Nothing is uploaded anywhere unless you choose to turn on
+On your device, in a single database file named `compendium.sqlite`:
+
+- **Windows:** `%LOCALAPPDATA%\org.callerscompendium\Caller's Compendium` (type
+  that into the File Explorer address bar). It is deliberately not in
+  `Documents`, so OneDrive's folder backup does not sync a live database.
+- **Linux:** `$XDG_DATA_HOME/org.callerscompendium.compendiumApp/` (by default
+  `~/.local/share/org.callerscompendium.compendiumApp/`).
+- **Android, iOS and macOS:** the app's own documents folder (on macOS, inside
+  the app's sandbox container).
+
+Earlier versions kept the file in your `Documents` folder on Windows and Linux
+(on Linux without a Documents folder configured, that is your home folder). A
+few Windows installs instead have it in the Roaming folder,
+`%APPDATA%\org.callerscompendium\Caller's Compendium`. The first time you open
+the app after updating, it moves your library (and the automatic safety copies
+in its `db_backups` folder) to the location above and deletes the old copy only
+after the new one is verified.
+
+After the move, the app leaves a *folder* named `compendium.sqlite` where the
+old file was, with a `README.txt` inside that says where your library went. An
+older version (0.5.4 or earlier on Windows, 0.5.3 or earlier on Linux) does not
+look in the new location and cannot open that folder as a library, so going back
+to one stops on its startup error screen instead of opening. Your data is not
+lost: it is still in the location above. Keep the folder while you might open an
+older version. If you delete it, an older version starts a new, empty library in
+`Documents`, and when you update again the app reports data in both places; move
+the copy in `Documents` out of the way, as described below.
+
+If the app finds data files in the new location *and* in an old one, or in more than
+one old location (for example both `Documents` and the Roaming folder), or it
+cannot finish the move (the disk is full, the folder is not writable, or another
+program is using the file), it stops without changing anything and tells you.
+When there is more than one copy, the screen lists each one's size and when it
+last changed; the larger, more recently changed copy is usually your library.
+Keep the copy you want, move the others out of the way, and reopen the app.
+
+If there is no library in the new location yet and your `Documents` folder
+can't be found (for example it is on a network folder or a drive letter that
+isn't connected), the app also stops without creating anything, rather than
+starting an empty library while yours may still be in `Documents`. Reconnect it
+and reopen the app; if you have no `Documents` folder at all, create an empty
+one. The app can only tell that the folder is missing: if `Documents` lives on
+a drive that is mounted into an empty folder (common on Linux), make sure that
+drive is connected before the first launch after updating.
+
+Safety copies the app makes before updating the database go in a `db_backups`
+folder beside it.
+
+Nothing is uploaded anywhere unless you choose to turn on
 [Device Sync](./settings.md#device-sync) — an optional, experimental feature that
 keeps your library in step across your own devices. It is off until you turn it
 on. Because your library lives with you, *you* keep the safety copy; see
@@ -37,7 +85,8 @@ license, and a link to the source under **Settings › About**.
 
 ### Which devices does it run on?
 
-Desktop (Linux, macOS, Windows) and mobile (Android, iOS/iPadOS). Desktop and
+Desktop (Linux, macOS, Windows) and mobile (Android, iOS/iPadOS). On Linux it
+needs glibc 2.35 or newer (Ubuntu 22.04, Debian 12, Fedora 36 or later). Desktop and
 Android builds are on the [Releases page](https://github.com/ibanner56/CallersCompendium/releases),
 and Android is also available through a Google Play closed test. iPhone and iPad
 builds are delivered through TestFlight, and it's an open beta — join straight
@@ -101,6 +150,27 @@ too — otherwise the check won't find them. See
 
 ## Troubleshooting
 
+### The app shows "Could not prepare the collection."
+
+The app couldn't open or get your collection ready at startup. Try, in order:
+
+1. **Fix the likely cause, then choose Retry.** Retry reopens the database from
+   scratch, so it works without relaunching the app once the cause is gone —
+   for example, free some disk space, or make sure the folder holding the
+   database (see [Where is my data stored?](#where-is-my-data-stored)) exists and
+   is writable.
+2. **Use Copy details** to copy the error type and its stack trace (the error's message is left out)
+   if you want to report the problem. The stack trace can still contain file
+   paths, so look it over before you share it.
+3. **Look at the diagnostics log.** The app also writes the failure to a
+   `diagnostics/crash.log` file in its support folder, which is available even
+   when the database can't be opened. On Linux that is
+   `~/.local/share/org.callerscompendium.compendiumApp/diagnostics/crash.log`.
+
+On Linux the database lives in the app's support folder whether or not your
+machine has a `Documents` folder (for example, one without `xdg-user-dirs`); see
+[Where is my data stored?](#where-is-my-data-stored).
+
 ### Why can't I find a dance I imported?
 
 A few things to check:
@@ -158,4 +228,4 @@ export a fresh backup first if there's anything you haven't saved.)
 - [Settings](./settings.md) — every option, section by section.
 - [Accessibility](./accessibility.md) — text size, contrast, screen readers, and
   keyboard use.
-- [Glossary](./glossary.md) — plain definitions of the terms used here.
+- [App terms](./glossary.md) — plain definitions of the terms used here.

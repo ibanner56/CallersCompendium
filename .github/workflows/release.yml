@@ -277,9 +277,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Built inside an ubuntu:22.04 container: the shipped binaries need
+          # the glibc of the system that built them, so this image sets the
+          # minimum Linux (glibc 2.35, Ubuntu 22.04) that
+          # docs/user/installation.md states. The glibc comes from the
+          # container, not the runner, so the runner can move with
+          # ubuntu-latest. Pinned by digest (bump it in ci.yml too);
+          # tools/ci/check_linux_build_runner.py enforces all of this.
           - platform: linux
             arch: x64
             os: ubuntu-latest
+            container: ubuntu:22.04@sha256:5ec03bb3441e8b0bf3b4f9cd4629a1ae763010dc3035bb8da3ae6cf026486401
           - platform: macos
             arch: universal
             os: macos-latest
@@ -305,14 +313,63 @@ jobs:
           - platform: ios
             arch: universal
             os: macos-latest
+          # Windows signs with Azure Trusted Signing over GitHub OIDC (see the
+          # release-signing environment and `id-token: write` below).
+          - platform: windows
+            arch: x64
+            os: windows-latest
     runs-on: ${{ matrix.os }}
+    # Only the Linux leg sets matrix.container. For the others it evaluates to
+    # an empty string, which the runner treats as no container at all.
+    container: ${{ matrix.container }}
+    # Every leg of the matrix waits on the release-signing approval gate, not
+    # just the ones that sign, so nothing is built until it is approved.
+    environment: release-signing
     permissions:
       contents: read
+      id-token: write  # Windows: Azure Trusted Signing uses GitHub OIDC
     env:
       VERSION: ${{ needs.meta.outputs.version }}
       ANDROID_VERSION_CODE: ${{ needs.meta.outputs.android_version_code }}
       CODENAME: ${{ needs.meta.outputs.codename }}
+      # The MSVC runtime DLLs the x64 Windows bundle imports (platform-4). Shipped
+      # app-local, next to compendium_app.exe, so the app starts on a PC that
+      # has no Visual C++ Redistributable. The Windows staging step fails the
+      # job if any bundled binary imports a runtime DLL missing from this list.
+      MSVC_RUNTIME_DLLS: vcruntime140.dll vcruntime140_1.dll msvcp140.dll
     steps:
+      # The container starts with only the base system and runs as root (no
+      # sudo). This runs before checkout because actions/checkout needs git
+      # 2.18 or later, or it downloads a tarball with no .git instead.
+      # Keep the package list the same as ci.yml's.
+      - name: Install Linux build dependencies (ubuntu:22.04 container)
+        if: matrix.platform == 'linux'
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          # git, curl, jq, unzip, xz-utils, zip: actions/checkout,
+          #   subosito/flutter-action and the Flutter tool.
+          # clang, cmake, ninja-build, pkg-config, libgtk-3-dev: Flutter's
+          #   Linux toolchain.
+          # libstdc++-12-dev: clang builds against the newest GCC installation
+          #   it finds. On its own it pulls in GCC 11; this makes it GCC 12,
+          #   as on the runner images these legs used to build on, so the C++
+          #   runtime the binaries need is unchanged.
+          # No JDK, deliberately. The jni plugin (pulled in by
+          #   path_provider_android) builds lib/libdartjni.so only when CMake
+          #   finds one. Builds on the runner images did, and shipped a file
+          #   no Linux code loads and that cannot load anyway: it needs
+          #   libjvm.so through a RUNPATH into the build machine's JDK.
+          # binutils, python3: tools/ci/check_linux_glibc_floor.py.
+          # file: appimagetool refuses to run without it.
+          # desktop-file-utils: appimagetool validates the .desktop file with it.
+          apt-get install -y --no-install-recommends \
+            ca-certificates git curl jq unzip xz-utils zip \
+            clang cmake ninja-build pkg-config libgtk-3-dev libstdc++-12-dev \
+            binutils python3 \
+            file desktop-file-utils
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.meta.outputs.source_sha }}
@@ -345,8 +402,8 @@ jobs:
       # via `env:` and export a plain `signing=configured|missing` output that
       # the macOS sign/package steps below gate on. `signing=configured` ONLY
       # when the full Developer ID cert set AND all three notarytool credentials
-      # are present; otherwise `signing=missing` and the macOS leg builds exactly
-      # as today (UNSIGNED zip + dmg, no failure) until the maintainer adds the
+      # are present; otherwise `signing=missing` and the macOS leg builds the
+      # UNSIGNED zip + dmg (no failure) until the maintainer adds the
       # Apple secrets. Names are never interpolated into a `run:` line.
       - name: Determine macOS signing availability
         if: matrix.platform == 'macos'
@@ -421,12 +478,6 @@ jobs:
           echo "signing=$signing" >> "$GITHUB_OUTPUT"
           printf '%s\n' "$signing" > ios-testflight-status/signing
 
-      - name: Install Linux desktop dependencies
-        if: matrix.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build libgtk-3-dev
-
       # subosito/flutter-action does NOT install a JDK, and an Android Gradle
       # build needs one. We pin JDK 21 (not 17) specifically because the release
       # leg runs Android Lint's release-only `lintVitalAnalyzeRelease` task: AGP
@@ -454,6 +505,17 @@ jobs:
           channel: stable
           cache: true
 
+      # Two git repositories here belong to a user other than the
+      # container's root: the workspace (created by the runner's user) and
+      # the Flutter SDK (extracted by root, keeping the archive's own uid).
+      # git refuses to work in either ("detected dubious ownership"), and the
+      # flutter tool runs git in its SDK on every invocation.
+      - name: Trust the workspace and Flutter SDK repositories (container)
+        if: matrix.platform == 'linux'
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$FLUTTER_ROOT"
+
       - run: flutter pub get --enforce-lockfile
 
       # --- Linux: tar.gz (portable) + AppImage -----------------------------
@@ -469,6 +531,13 @@ jobs:
             --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
             "${codename_define[@]}"
 
+      # The binaries need at most the glibc of the container that built them;
+      # this reads what they actually need and fails above the floor, before
+      # anything is packaged.
+      - name: Check the Linux bundle's glibc floor
+        if: matrix.platform == 'linux'
+        run: python3 tools/ci/check_linux_glibc_floor.py app/build/linux/x64/release/bundle
+
       - name: Package Linux (tar.gz + AppImage)
         if: matrix.platform == 'linux'
         env:
@@ -481,10 +550,24 @@ jobs:
           bundle="app/build/linux/x64/release/bundle"
           mkdir -p dist
 
-          # Portable tar.gz: extraction yields a single named directory.
+          # Portable tar.gz: extraction yields a single named directory. The
+          # launcher and its icon sit at the top for a user who installs them;
+          # the bundle already holds data/compendium_app.png, the window icon.
+          # The launcher is named after the GtkApplication id (APPLICATION_ID in
+          # app/linux/CMakeLists.txt) and carries it as StartupWMClass, so a
+          # desktop shell pairs the running window with it (platform-8).
           stage="CallersCompendium-${VERSION}-linux-x64"
           rm -rf "$stage" && cp -r "$bundle" "$stage"
+          cp packaging/linux/org.callerscompendium.compendiumApp.desktop "$stage/org.callerscompendium.compendiumApp.desktop"
+          cp packaging/linux/icon.png "$stage/compendium_app.png"
           tar -czf "dist/${stage}.tar.gz" "$stage"
+          members="$(tar -tzf "dist/${stage}.tar.gz")"
+          for member in org.callerscompendium.compendiumApp.desktop compendium_app.png data/compendium_app.png; do
+            if ! grep -qxF "${stage}/${member}" <<<"$members"; then
+              echo "::error::${stage}.tar.gz is missing ${member}"
+              exit 1
+            fi
+          done
 
           # AppImage: build an AppDir from the committed recipe, then pack with a
           # pinned + checksummed appimagetool and a pinned runtime (no network
@@ -499,7 +582,7 @@ jobs:
           rm -rf "$appdir" && mkdir -p "$appdir/usr/bin"
           cp -r "$bundle"/. "$appdir/usr/bin/"
           install -m 0755 packaging/linux/AppRun "$appdir/AppRun"
-          cp packaging/linux/compendium_app.desktop "$appdir/compendium_app.desktop"
+          cp packaging/linux/org.callerscompendium.compendiumApp.desktop "$appdir/org.callerscompendium.compendiumApp.desktop"
           cp packaging/linux/icon.png "$appdir/compendium_app.png"
 
           # APPIMAGE_EXTRACT_AND_RUN lets appimagetool (itself an AppImage) run
@@ -524,8 +607,22 @@ jobs:
             --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
             "${codename_define[@]}"
 
-      # UNSIGNED path (secrets absent): byte-for-byte identical to the previous
-      # behaviour — a ditto zip + an hdiutil drag-to-Applications dmg, no deps.
+      # The installer disk image is laid out by dmgbuild (branded background,
+      # arrow + instructions, fixed icon positions, volume icon) via
+      # packaging/macos/build_dmg.sh. It is installed hash-pinned into a
+      # virtualenv, so the runner's externally-managed Python is untouched.
+      # Build-time only: nothing from it ships inside the app.
+      - name: Install DMG layout tool (dmgbuild, hash-pinned)
+        if: matrix.platform == 'macos'
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/dmgbuild-venv"
+          "$RUNNER_TEMP/dmgbuild-venv/bin/python" -m pip install --quiet \
+            --require-hashes -r packaging/macos/requirements-dmg.txt
+          echo "DMGBUILD_PYTHON=$RUNNER_TEMP/dmgbuild-venv/bin/python" >> "$GITHUB_ENV"
+
+      # UNSIGNED path (secrets absent): a ditto zip + the laid-out
+      # drag-to-Applications dmg, neither signed.
       - name: Package macOS (zip + dmg)
         if: matrix.platform == 'macos' && steps.macos_signing.outputs.signing == 'missing'
         run: |
@@ -540,13 +637,9 @@ jobs:
           ditto -c -k --keepParent "$app_path" \
             "dist/CallersCompendium-${VERSION}-macos-universal.zip"
 
-          # Drag-to-Applications style .dmg via the built-in hdiutil (no deps).
-          stage="dmg_stage"
-          rm -rf "$stage" && mkdir -p "$stage"
-          cp -R "$app_path" "$stage/"
-          ln -s /Applications "$stage/Applications"
-          hdiutil create -volname "Caller's Compendium" -srcfolder "$stage" \
-            -ov -format UDZO "dist/CallersCompendium-${VERSION}-macos-universal.dmg"
+          # Drag-to-Applications .dmg with the guided installer window.
+          packaging/macos/build_dmg.sh "$app_path" \
+            "dist/CallersCompendium-${VERSION}-macos-universal.dmg"
 
       # SIGNED path (secrets present): deep-codesign the .app with the hardened
       # runtime, build + sign the .dmg, notarize with notarytool, staple the
@@ -635,13 +728,10 @@ jobs:
           codesign --force --options runtime --timestamp \
             --entitlements "$entitlements" --sign "$identity" "$app_path"
 
-          # ---- 3. Build the .dmg (same hdiutil recipe) and sign it ----------
-          stage="dmg_stage"
-          rm -rf "$stage" && mkdir -p "$stage"
-          cp -R "$app_path" "$stage/"
-          ln -s /Applications "$stage/Applications"
-          hdiutil create -volname "Caller's Compendium" -srcfolder "$stage" \
-            -ov -format UDZO "$dmg"
+          # ---- 3. Build the .dmg (same recipe as unsigned) and sign it -----
+          # build_dmg.sh copies the signed .app with ditto and checks the copy
+          # matches it file for file.
+          packaging/macos/build_dmg.sh "$app_path" "$dmg"
           codesign --force --timestamp --sign "$identity" "$dmg"
 
           # ---- 4. Notarize the .dmg (registers the nested .app cdhash too) --
@@ -1103,7 +1193,7 @@ jobs:
       # as its own `android-aab` workflow artifact, so — exactly like the iOS
       # `ios-ipa` — it never lands in SHA256SUMS, the channel manifest, the SLSA
       # subject glob, or the public GitHub Release. The .aab is a store-upload
-      # input for the maintainer, not a sideloadable end-user download.
+      # input, not a sideloadable end-user download.
       - name: Build Android App Bundle (signed .aab)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
         working-directory: app
@@ -1126,55 +1216,6 @@ jobs:
           cp "$aab" "aab/CallersCompendium-${VERSION}.aab"
           ls -l aab
 
-      - name: List packaged artifacts
-        run: ls -l dist
-
-      - name: Upload packaged artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: dist-${{ matrix.platform }}
-          path: dist/
-          # Desktop legs must always stage binaries (error on empty). The android
-          # leg is a no-op when signing secrets are absent, and the ios leg never
-          # stages into dist/ (its signed .ipa is store-delivered to TestFlight
-          # and uploaded as the separate `ios-ipa` artifact), so both tolerate an
-          # empty dist/ (no dist-android/dist-ios artifact is uploaded, step still
-          # passes).
-          if-no-files-found: ${{ (matrix.platform == 'android' || matrix.platform == 'ios') && 'ignore' || 'error' }}
-          retention-days: 7
-
-      # Keep the signed .aab as its own workflow artifact for the Play upload.
-      # Like the iOS `ios-ipa` artifact, it is deliberately NOT staged into dist/,
-      # so it never enters SHA256SUMS, the channel manifest, the SLSA subject
-      # glob, or the GitHub Release. Download it from the run and upload it to the
-      # Play Console (see docs/dev/store-submission/google-play.md).
-      - name: Upload Android .aab artifact
-        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: android-aab
-          path: aab/CallersCompendium-*.aab
-          if-no-files-found: error
-          retention-days: 7
-
-  # Windows uses Azure Trusted Signing via GitHub OIDC, so keep it in its own job
-  # and grant `id-token: write` only here.
-  build_windows:
-    name: Build + package (windows)
-    needs: [meta, checks]
-    runs-on: windows-latest
-    permissions:
-      contents: read
-      id-token: write  # Azure Trusted Signing uses GitHub OIDC
-    env:
-      VERSION: ${{ needs.meta.outputs.version }}
-      CODENAME: ${{ needs.meta.outputs.codename }}
-    environment: release-signing
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ needs.meta.outputs.source_sha }}
-
       # Windows signing gate, mirroring the Android/macOS/iOS gates above. Read the
       # Azure configuration variables via `env:` here and export a plain step output
       # (`signing=configured|missing`) that the Windows build/package steps below
@@ -1183,6 +1224,7 @@ jobs:
       # and still succeeds. `mkdir -p dist` keeps the shared "List/Upload" steps
       # happy on that skip path.
       - name: Determine Windows signing availability
+        if: matrix.platform == 'windows'
         id: windows_signing
         shell: bash
         env:
@@ -1206,16 +1248,9 @@ jobs:
             echo "::notice::Windows Azure Trusted Signing not configured; producing UNSIGNED Windows artifacts (unchanged from today)."
           fi
 
-      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
-        with:
-          flutter-version-file: .fvmrc
-          channel: stable
-          cache: true
-
-      - run: flutter pub get --enforce-lockfile
-
       # --- Windows: zip (portable) + Inno Setup installer ------------------
       - name: Build Windows release bundle
+        if: matrix.platform == 'windows'
         working-directory: app
         run: |
           codename_define=()
@@ -1227,7 +1262,7 @@ jobs:
             "${codename_define[@]}"
 
       - name: Azure Login
-        if: steps.windows_signing.outputs.signing == 'configured'
+        if: matrix.platform == 'windows' && steps.windows_signing.outputs.signing == 'configured'
         uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
@@ -1235,7 +1270,7 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Sign Windows bundle binaries with Azure Artifact Signing
-        if: steps.windows_signing.outputs.signing == 'configured'
+        if: matrix.platform == 'windows' && steps.windows_signing.outputs.signing == 'configured'
         uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
         with:
           endpoint: https://wus2.codesigning.azure.net/
@@ -1244,7 +1279,114 @@ jobs:
           files-folder: ${{ github.workspace }}\app\build\windows\x64\runner\Release
           files-folder-filter: exe,dll
 
+      # The runner and plugin DLLs link the MSVC runtime dynamically (/MD, the
+      # CMake default), and Flutter's Release folder does not include it. Copy
+      # the redistributable DLLs from this runner's Visual Studio install into
+      # the Release folder so both the zip and the installer (whose [Files]
+      # copies that folder, and whose uninstaller removes what it installed)
+      # carry them. This runs AFTER the bundle-signing step on purpose: the
+      # DLLs are already Microsoft-signed and must not be re-signed as ours.
+      # These files are on Microsoft's Visual Studio redistributable list.
+      - name: Stage the MSVC runtime beside the app
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $release = "app/build/windows/x64/runner/Release"
+          $required = @($env:MSVC_RUNTIME_DLLS -split '\s+' | Where-Object { $_ })
+          if ($required.Count -eq 0) { throw "MSVC_RUNTIME_DLLS is empty" }
+
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path $vswhere)) { throw "vswhere.exe not found at $vswhere" }
+          $vs = @(& $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+          if ($LASTEXITCODE -ne 0 -or $vs.Count -ne 1 -or -not $vs[0]) {
+            throw "expected one Visual Studio install with the x64 C++ tools, vswhere returned: $($vs -join '; ')"
+          }
+          $vs = $vs[0]
+
+          # Read the redistributable version Visual Studio itself records; never
+          # hard-code a version folder, the runner image moves it.
+          $redistVersionFile = Join-Path $vs 'VC\Auxiliary\Build\Microsoft.VCRedistVersion.default.txt'
+          if (-not (Test-Path $redistVersionFile)) { throw "$redistVersionFile not found" }
+          $redistVersion = (Get-Content -Raw $redistVersionFile).Trim()
+          $redistRoot = Join-Path $vs "VC\Redist\MSVC\$redistVersion\x64"
+          $crtDirs = @(Get-ChildItem -Directory -Path $redistRoot -Filter 'Microsoft.VC14*.CRT' -ErrorAction SilentlyContinue)
+          if ($crtDirs.Count -ne 1) {
+            throw "expected exactly one Microsoft.VC14*.CRT folder under $redistRoot, found $($crtDirs.Count): $($crtDirs.Name -join ', ')"
+          }
+          $crt = $crtDirs[0].FullName
+          Write-Host "MSVC runtime source: $crt"
+
+          # Check what the bundle actually imports, so a binary that needs a
+          # runtime DLL outside the list fails here rather than on a user's PC.
+          $toolsVersionFile = Join-Path $vs 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt'
+          if (-not (Test-Path $toolsVersionFile)) { throw "$toolsVersionFile not found" }
+          $toolsVersion = (Get-Content -Raw $toolsVersionFile).Trim()
+          $dumpbin = Join-Path $vs "VC\Tools\MSVC\$toolsVersion\bin\Hostx64\x64\dumpbin.exe"
+          if (-not (Test-Path $dumpbin)) { throw "dumpbin.exe not found at $dumpbin" }
+          $runtimePattern = '^(vcruntime|msvcp|concrt|vccorlib)140(_[a-z0-9_]+)?\.dll$'
+          $imported = @{}
+          foreach ($bin in Get-ChildItem -Path $release -Recurse -File -Include *.exe, *.dll) {
+            $out = & $dumpbin /nologo /dependents $bin.FullName
+            if ($LASTEXITCODE -ne 0) { throw "dumpbin failed on $($bin.FullName)" }
+            foreach ($line in $out) {
+              $name = $line.Trim().ToLowerInvariant()
+              if ($name -match $runtimePattern) {
+                $imported[$name] = $true
+                Write-Host "$($bin.Name) imports $name"
+              }
+            }
+          }
+          $notShipped = @($imported.Keys | Where-Object { $required -notcontains $_ } | Sort-Object)
+          if ($notShipped.Count -gt 0) {
+            throw "the bundle imports MSVC runtime DLLs that are not shipped app-local: $($notShipped -join ', '). Add them to MSVC_RUNTIME_DLLS."
+          }
+          $unused = @($required | Where-Object { -not $imported.ContainsKey($_.ToLowerInvariant()) })
+          if ($unused.Count -gt 0) {
+            Write-Host "::warning::no bundled binary imports $($unused -join ', '); consider dropping it from MSVC_RUNTIME_DLLS."
+          }
+
+          foreach ($dll in $required) {
+            $source = Join-Path $crt $dll
+            if (-not (Test-Path $source)) { throw "$dll not found in $crt" }
+            Copy-Item -Path $source -Destination $release -Force
+            if (-not (Test-Path (Join-Path $release $dll))) { throw "$dll was not staged into $release" }
+            Write-Host "staged $dll"
+          }
+
+          # Record what was staged for the SBOM (platform-5). The SBOM is built
+          # on Linux in publish_draft, which cannot see this runner's Visual
+          # Studio, so it reads each DLL's file version and SHA-256 from here.
+          $entries = foreach ($dll in $required) {
+            $staged = Get-Item (Join-Path $release $dll)
+            $info = $staged.VersionInfo
+            [ordered]@{
+              name = $dll.ToLowerInvariant()
+              file_version = '{0}.{1}.{2}.{3}' -f $info.FileMajorPart, $info.FileMinorPart, $info.FileBuildPart, $info.FilePrivatePart
+              sha256 = (Get-FileHash -Algorithm SHA256 -Path $staged.FullName).Hash.ToLowerInvariant()
+            }
+          }
+          New-Item -ItemType Directory -Force -Path native-components | Out-Null
+          [ordered]@{
+            redist_version = $redistVersion
+            crt_folder = $crtDirs[0].Name
+            dlls = @($entries)
+          } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8NoBOM -Path native-components/msvc-runtime.json
+          Get-Content native-components/msvc-runtime.json
+
+      # Not a dist-* artifact: it feeds the SBOM in publish_draft and must not
+      # be merged into the release assets.
+      - name: Upload the MSVC runtime manifest for the SBOM
+        if: matrix.platform == 'windows'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: native-components-windows
+          path: native-components/msvc-runtime.json
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Package Windows (zip + installer)
+        if: matrix.platform == 'windows'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -1318,7 +1460,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed ($LASTEXITCODE)" }
 
       - name: Sign Windows installer with Azure Artifact Signing
-        if: steps.windows_signing.outputs.signing == 'configured'
+        if: matrix.platform == 'windows' && steps.windows_signing.outputs.signing == 'configured'
         uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
         with:
           endpoint: https://wus2.codesigning.azure.net/
@@ -1326,15 +1468,94 @@ jobs:
           certificate-profile-name: ${{ vars.AZURE_CERT_PROFILE_NAME }}
           files: ${{ github.workspace }}\dist\CallersCompendium-${{ needs.meta.outputs.version }}-windows-x64.exe
 
+      # The proof for the app-local MSVC runtime (platform-4): every required
+      # DLL must be in the staged folder, inside the portable zip, and in the
+      # tree the (signed) installer actually installs, and the uninstaller must
+      # remove it again. Windows-only, but deliberately not conditioned on signing
+      # availability: it runs for signed and unsigned Windows releases alike.
+      - name: Verify the MSVC runtime ships in the zip and the installer
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $required = @($env:MSVC_RUNTIME_DLLS -split '\s+' | Where-Object { $_ })
+          if ($required.Count -eq 0) { throw "MSVC_RUNTIME_DLLS is empty" }
+          $base = "CallersCompendium-$env:VERSION-windows-x64"
+
+          foreach ($dll in $required) {
+            if (-not (Test-Path (Join-Path $base $dll))) { throw "$dll is missing from the staged folder $base" }
+          }
+
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path "dist/$base.zip").Path)
+          try {
+            $entries = @($zip.Entries | ForEach-Object { $_.FullName.Replace('\', '/').ToLowerInvariant() })
+          } finally {
+            $zip.Dispose()
+          }
+          foreach ($dll in $required) {
+            if ($entries -notcontains "$base/$dll".ToLowerInvariant()) { throw "$dll is missing from dist/$base.zip" }
+          }
+          Write-Host "zip carries: $($required -join ', ')"
+
+          $installDir = Join-Path $env:RUNNER_TEMP 'msvc-runtime-install-check'
+          $log = Join-Path $env:RUNNER_TEMP 'msvc-runtime-install-check.log'
+          $setup = (Resolve-Path "dist/$base.exe").Path
+          $install = Start-Process -FilePath $setup -Wait -PassThru -ArgumentList @(
+            '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=`"$installDir`"", "/LOG=`"$log`"")
+          if ($install.ExitCode -ne 0) {
+            Get-Content $log -ErrorAction SilentlyContinue
+            throw "installer exited with $($install.ExitCode)"
+          }
+          foreach ($file in @('compendium_app.exe') + $required) {
+            if (-not (Test-Path (Join-Path $installDir $file))) { throw "the installer did not install $file" }
+          }
+          Write-Host "installer installs: $($required -join ', ')"
+
+          $uninstaller = Join-Path $installDir 'unins000.exe'
+          if (-not (Test-Path $uninstaller)) { throw "unins000.exe not found in $installDir" }
+          $uninstall = Start-Process -FilePath $uninstaller -Wait -PassThru -ArgumentList @(
+            '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART')
+          if ($uninstall.ExitCode -ne 0) { throw "uninstaller exited with $($uninstall.ExitCode)" }
+          # The uninstaller hands off to a temporary copy of itself, so poll.
+          $deadline = (Get-Date).AddSeconds(120)
+          do {
+            $left = @($required | Where-Object { Test-Path (Join-Path $installDir $_) })
+            if ($left.Count -eq 0) { break }
+            Start-Sleep -Seconds 2
+          } while ((Get-Date) -lt $deadline)
+          if ($left.Count -gt 0) { throw "the uninstaller left $($left -join ', ') in $installDir" }
+          Write-Host "uninstaller removes: $($required -join ', ')"
+
       - name: List packaged artifacts
-        shell: bash
         run: ls -l dist
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: dist-windows
+          name: dist-${{ matrix.platform }}
           path: dist/
+          # Desktop legs must always stage binaries (error on empty). The android
+          # leg is a no-op when signing secrets are absent, and the ios leg never
+          # stages into dist/ (its signed .ipa is store-delivered to TestFlight
+          # and uploaded as the separate `ios-ipa` artifact), so both tolerate an
+          # empty dist/ (no dist-android/dist-ios artifact is uploaded, step still
+          # passes).
+          if-no-files-found: ${{ (matrix.platform == 'android' || matrix.platform == 'ios') && 'ignore' || 'error' }}
+          retention-days: 7
+
+      # Keep the signed .aab as its own workflow artifact for the Play upload.
+      # Like the iOS `ios-ipa` artifact, it is deliberately NOT staged into dist/,
+      # so it never enters SHA256SUMS, the channel manifest, the SLSA subject
+      # glob, or the GitHub Release. The approval-gated `publish_mobile` job
+      # downloads it and uploads it to Google Play when the Play service-account
+      # secret is configured (see docs/dev/releasing.md#upload-to-google-play).
+      - name: Upload Android .aab artifact
+        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-aab
+          path: aab/CallersCompendium-*.aab
           if-no-files-found: error
           retention-days: 7
 
@@ -1342,7 +1563,7 @@ jobs:
   # tag push or an explicit existing-tag recovery, never a dispatch dry run.
   publish_draft:
     name: Create draft release
-    needs: [meta, build, build_windows]
+    needs: [meta, build]
     if: >-
       github.repository == 'ibanner56/CallersCompendium' &&
       needs.meta.outputs.is_release == 'true'
@@ -1383,12 +1604,21 @@ jobs:
 
       - run: flutter pub get --enforce-lockfile
 
+      # The MSVC runtime manifest the Windows build leg wrote; gen_sbom.py lists those
+      # DLLs. pdfium comes from packaging/pdfium/pdfium.cmake in the checkout.
+      - name: Download the MSVC runtime manifest
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: native-components-windows
+          path: ${{ runner.temp }}/native-components
+
       - name: Generate CycloneDX SBOM
         run: |
           set -euo pipefail
           dart pub deps --json > "$RUNNER_TEMP/deps.json"
           python3 tools/release/gen_sbom.py \
             --deps "$RUNNER_TEMP/deps.json" \
+            --msvc-runtime "$RUNNER_TEMP/native-components/msvc-runtime.json" \
             --version "${{ needs.meta.outputs.version }}" \
             --output "dist/sbom-${{ needs.meta.outputs.version }}.cdx.json"
 
@@ -1413,6 +1643,13 @@ jobs:
           fi
           if grep -Fq -- "--codename" <<<"$metadata_help"; then
             metadata_args+=(--codename "$RELEASE_CODENAME")
+          fi
+          # End-of-life announcements (ADR-002 §2 `retirements`), read from the
+          # tag's checkout and copied into every refreshed manifest. Guarded
+          # like --codename so a recovery run of a tag that predates the option
+          # still generates its manifests.
+          if grep -Fq -- "--retirements" <<<"$metadata_help"; then
+            metadata_args+=(--retirements tools/release/retirements.json)
           fi
           metadata_args+=(
             --extra-file
@@ -1554,7 +1791,7 @@ jobs:
 
       # Release notes come from app/CHANGELOG.md (A12): gen_release_notes.py
       # extracts the required `## [x.y.z]` section, adds a beta banner for a
-      # bare beta tag, and appends the signing/verify/maintainer footer. The
+      # bare beta tag, and appends the signing/verify footer. The
       # meta job rejects a missing section before any build begins.
       #
       # The footer's Windows and macOS lines must match what actually happened in
@@ -1713,9 +1950,13 @@ jobs:
           done
           echo "All ${#artifacts[@]} artifact(s) passed provenance + SBOM verification."
 
-  # Publish mobile artifacts to their respective app stores. Handles publication
-  # to TestFlight/App Store Connect for iOS today and later will handle 
-  # publication to Google Play for Android once that onboarding is complete.
+  # Publish mobile artifacts to their respective app stores: the iOS .ipa to
+  # TestFlight/App Store Connect and the Android .aab to Google Play. Each store
+  # is a clean no-op until its credentials exist, and each is attempted
+  # independently (a failed TestFlight upload does not stop the Play upload, or
+  # the reverse). Re-running a failed job re-attempts BOTH stores, and a store
+  # that already accepted this build rejects the duplicate (same build number /
+  # versionCode); see docs/dev/releasing.md#upload-to-google-play.
   publish_mobile:
     name: Publish mobile artifacts
     needs: [meta, verify]
@@ -1723,8 +1964,10 @@ jobs:
       github.repository == 'ibanner56/CallersCompendium' &&
       needs.meta.outputs.is_release == 'true' &&
       needs.meta.outputs.recovery != 'true'
-    # TestFlight upload is irreversible. The protected environment provides the
-    # same human approval gate that controls Windows Trusted Signing.
+    # TestFlight and Play uploads are not undoable (a build number / versionCode
+    # can never be reused). The protected environment provides the same human
+    # approval gate that controls Windows Trusted Signing, and is where the Play
+    # service-account secret should live so only this approved job can read it.
     runs-on: macos-latest
     environment: release-publication
     permissions:
@@ -1754,6 +1997,32 @@ jobs:
           else
             echo "upload=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Skipping TestFlight upload (event=$EVENT_NAME ref=$REF iOS signing=$signing)."
+          fi
+
+      # Google Play gate, mirroring the TestFlight gate above. The `secrets`
+      # context can't be used in a step-level `if:`, so read the service-account
+      # key via `env:` and export a plain `upload=true|false` output. Real tag
+      # pushes only: a workflow_dispatch dry run never uploads. The default
+      # track is `internal` and the default release status is `draft`, so an
+      # upload only lands the bundle in the Play Console for a human to review
+      # and roll out; set the PLAY_TRACK / PLAY_RELEASE_STATUS repository
+      # variables to change that. This step must never fail on its own: it runs
+      # before the TestFlight upload, so a failure here would skip iOS too. Any
+      # bad variable value is rejected later, by the Play API, in the upload step.
+      - name: Determine Google Play upload availability
+        id: play
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "push" ] && [[ "$REF" == refs/tags/v* ]] \
+            && [ -n "${PLAY_SERVICE_ACCOUNT_JSON:-}" ]; then
+            echo "upload=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "upload=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping Google Play upload (event=$EVENT_NAME ref=$REF service account configured=$([ -n "${PLAY_SERVICE_ACCOUNT_JSON:-}" ] && echo yes || echo no))."
           fi
 
       - name: Download signed iOS .ipa
@@ -1795,12 +2064,34 @@ jobs:
             --apiKey "$key_id" \
             --apiIssuer "${APPLE_API_ISSUER_ID:?missing App Store Connect API issuer id}"
 
+      # `!cancelled()` lets this run even when the TestFlight upload above
+      # failed, so one store's outage doesn't block the other.
+      - name: Download signed Android .aab
+        if: ${{ !cancelled() && steps.play.outputs.upload == 'true' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          # Only produced when the Android signing secrets are configured. If a
+          # Play service account exists without them this fails loudly, which is
+          # intended: a configured upload must not skip silently.
+          name: android-aab
+          path: android-aab
+
+      - name: Upload Android .aab to Google Play
+        if: ${{ !cancelled() && steps.play.outputs.upload == 'true' }}
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: org.callerscompendium.compendiumApp
+          releaseFiles: android-aab/CallersCompendium-*.aab
+          tracks: ${{ vars.PLAY_TRACK || 'internal' }}
+          status: ${{ vars.PLAY_RELEASE_STATUS || 'draft' }}
+
   # Publish refreshed manifests (stable.json / beta.json) to the persistent
   # `gh-pages` branch so the client's fixed URL resolves (A11c / ADR-002 §1):
   #   https://ibanner56.github.io/CallersCompendium/<channel>.json
   #
   # ORDERING: the update channel advances only after verification and public
-  # release. It is NOT ordered against `publish_mobile` (TestFlight): both run
+  # release. It is NOT ordered against `publish_mobile` (TestFlight / Play): both run
   # after `verify` and the desktop channel does not wait on the mobile upload.
   # This job (1) needs `verify`, so no manifest is published unless every
   # binary's provenance + SBOM attestation verified; (2) runs behind the

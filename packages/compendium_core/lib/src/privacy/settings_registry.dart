@@ -73,6 +73,8 @@ final Map<String, DataClassification> settingsClassifications = {
   'active_dialect_ref': _preference,
   'verbose_figure_rendering': _preference,
   'decimal_turns': _preference,
+  'capitalize_figures': _preference,
+  'show_glossary': _preference,
   'free_text_entry': _preference,
   'aggressive_beats_update': _preference,
   'canonical_figure_text': _preference,
@@ -130,7 +132,7 @@ final Map<String, DataClassification> settingsClassifications = {
 
   // Device Sync transport values are not ordinary preferences. The sync ID is
   // the address of a shared store and may contain personal information; the
-  // device ID is an opaque per-installation routing identifier.
+  // device ID is an opaque per-attachment routing identifier.
   'sync_id': const DataClassification(
     term: DpvTerm.unclassifiedPersonal,
     subject: DataSubject.appUser,
@@ -157,9 +159,12 @@ final Map<String, DataClassification> settingsClassifications = {
     subject: DataSubject.none,
     egress: EgressClass.protocolIdentifier,
     note:
-        'Opaque per-installation routing identifier. It must travel in '
-        'protocol metadata but must never be adopted from another device or '
-        'restored from a backup.',
+        'Opaque per-attachment routing identifier, minted anew each time the '
+        'device attaches so that the identifier itself never links one '
+        'attachment to the next. Synced content and its blob hashes can '
+        'still be correlated by the operator; this removes only the '
+        'identifier as a link. It must travel in protocol metadata but must '
+        'never be adopted from another device or restored from a backup.',
   ),
   'sync_last_used_fingerprint': const DataClassification(
     term: DpvTerm.unclassifiedPersonal,
@@ -229,6 +234,16 @@ final Map<String, DataClassification> settingsClassifications = {
         'themselves. Personal data, shareable for the same reason as '
         'programs.caller.',
   ),
+  'default_import_tag_names': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'User-chosen list of tag names added to dances imported on their own. '
+        "The names reference the user's own tags by their natural key, so it "
+        'survives tag re-identification on sync and merge restore; names with '
+        'no live tag are ignored.',
+  ),
   'default_starting_program': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.appUser,
@@ -272,6 +287,13 @@ final Map<String, DataClassification> settingsClassifications = {
   'update_auto_check': _backupLocalState,
   'update_beta_channel': _backupLocalState,
   'update_dismissed_version': _backupLocalState,
+  // The end-of-life date the update manifest announced for *this build*. It
+  // describes the binary installed here, so on another install (or after a
+  // restore onto a different build) it would warn about a version that is not
+  // running — device-scoped, and denylisted from backups. The value is a
+  // release version and a date from the project's own manifest: nothing
+  // personal.
+  'update_retirement_notice': _installState,
   // A user preference (off / weekly / monthly), not backup bookkeeping: the
   // reminder itself fires from `last_backup_at`, which is what must stay
   // local. The backup denylist refused this key from G.5 (#167) until the 2026
@@ -303,6 +325,7 @@ final Map<String, DataClassification> settingsClassifications = {
   '__taxonomy_v33_canonical_rebuild_done__': _installState,
   '__taxonomy_v34_canonical_rebuild_done__': _installState,
   '__modifier_container_canonical_rebuild_done__': _installState,
+  '__taxonomy_v37_canonical_rebuild_done__': _installState,
   '__taxonomy_v35_figure_normalization_done__': _installState,
   '__callersbox_roll_away_role_repair_done__': _installState,
   '__normalisation_derived_index_repair_done__': _installState,

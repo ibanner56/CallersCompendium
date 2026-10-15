@@ -73,6 +73,16 @@ class SyncBaselineEntry {
   final SyncBaselineBodyHashVersion bodyHashVersion;
 }
 
+/// What this device last published (sync-spec §6.3 step 8): the hash of its
+/// manifest encoded with `writtenAt` fixed, and when the store last confirmed
+/// every blob that manifest names.
+typedef SyncPublishedManifest = ({String hash, DateTime verifiedAt});
+
+/// A peer's last verified manifest as this device keeps it (sync-spec §5.2):
+/// the epoch it was fetched in, the server's `ETag` for it, and its canonical
+/// encoding.
+typedef SyncStoredPeerManifest = ({String epoch, String etag, String body});
+
 /// Local-only state for the Device Sync protocol.
 ///
 /// Public mutating methods each run in one transaction. Call [transaction]
@@ -125,6 +135,87 @@ class SyncLocalRepository {
   }) => transaction(
     (tx) => tx.advanceBaseline(epoch: epoch, entries: entries, drop: drop),
   );
+
+  /// The manifest this device last published in [epoch] (sync-spec §6.3 step
+  /// 8), or null when none is recorded for that epoch.
+  Future<SyncPublishedManifest?> publishedManifest({
+    required String epoch,
+  }) async {
+    final state = await getBaselineState();
+    final hash = state?.publishedManifestHash;
+    final verifiedAt = state?.publishedVerifiedAt;
+    if (state == null ||
+        state.epoch != epoch ||
+        hash == null ||
+        verifiedAt == null) {
+      return null;
+    }
+    return (
+      hash: hash,
+      verifiedAt: DateTime.fromMillisecondsSinceEpoch(verifiedAt, isUtc: true),
+    );
+  }
+
+  /// Records [published] as what this device's manifest in [epoch] now is, or
+  /// forgets what was recorded when it is null. A no-op when the stored
+  /// baseline belongs to another epoch, or there is none: the record is only
+  /// ever read back against the epoch it was written for.
+  Future<void> setPublishedManifest({
+    required String epoch,
+    required SyncPublishedManifest? published,
+  }) async {
+    await (_db.update(
+      _db.baselineState,
+    )..where((row) => row.id.equals(1) & row.epoch.equals(epoch))).write(
+      BaselineStateCompanion(
+        publishedManifestHash: Value(published?.hash),
+        publishedVerifiedAt: Value(
+          published?.verifiedAt.toUtc().millisecondsSinceEpoch,
+        ),
+      ),
+    );
+  }
+
+  /// The manifest last kept for [peerId], or null when none is.
+  Future<SyncStoredPeerManifest?> peerManifest(String peerId) async {
+    final row = await (_db.select(
+      _db.peerManifests,
+    )..where((row) => row.peerId.equals(peerId))).getSingleOrNull();
+    if (row == null) return null;
+    return (epoch: row.epoch, etag: row.etag, body: row.body);
+  }
+
+  /// Keeps [manifest] as [peerId]'s, replacing whatever was kept for it.
+  Future<void> putPeerManifest(
+    String peerId,
+    SyncStoredPeerManifest manifest,
+  ) => _db
+      .into(_db.peerManifests)
+      .insertOnConflictUpdate(
+        PeerManifestsCompanion.insert(
+          peerId: peerId,
+          epoch: manifest.epoch,
+          etag: manifest.etag,
+          body: manifest.body,
+        ),
+      );
+
+  /// Forgets what was kept for [peerId].
+  Future<void> removePeerManifest(String peerId) => (_db.delete(
+    _db.peerManifests,
+  )..where((row) => row.peerId.equals(peerId))).go();
+
+  /// Keeps only the manifests of [peerIds] fetched in [epoch]: a peer the
+  /// store no longer lists, or one cached in another epoch, is forgotten.
+  Future<void> retainPeerManifests({
+    required String epoch,
+    required Set<String> peerIds,
+  }) =>
+      (_db.delete(_db.peerManifests)..where(
+            (row) =>
+                row.epoch.equals(epoch).not() | row.peerId.isNotIn(peerIds),
+          ))
+          .go();
 
   Future<void> resetEpoch({
     required String epoch,
@@ -192,6 +283,35 @@ class SyncLocalRepository {
     required String recordId,
   }) => transaction(
     (tx) => tx.deletePendingDeletion(kind: kind, recordId: recordId),
+  );
+
+  /// Every record this device keeps parts of for a newer version of the app
+  /// (spec §6.7).
+  Future<List<RetainedSyncFieldsRow>> listRetainedSyncFields() =>
+      _db.select(_db.retainedSyncFields).get();
+
+  Future<RetainedSyncFieldsRow?> getRetainedSyncFields({
+    required SyncRecordKind kind,
+    required String recordId,
+  }) =>
+      (_db.select(_db.retainedSyncFields)..where(
+            (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+          ))
+          .getSingleOrNull();
+
+  /// Replaces what is kept of a record; a null [payload] keeps nothing.
+  Future<void> setRetainedSyncFields({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String? payload,
+    bool wholeRecord = false,
+  }) => transaction(
+    (tx) => tx.setRetainedSyncFields(
+      kind: kind,
+      recordId: recordId,
+      payload: payload,
+      wholeRecord: wholeRecord,
+    ),
   );
 
   Future<List<ReviewQueueRow>> listReviewQueue() =>
@@ -370,6 +490,7 @@ class SyncLocalTransaction {
   Future<void> clearBaseline() async {
     await _db.delete(_db.baselineState).go();
     await _db.delete(_db.baselineEntries).go();
+    await _db.delete(_db.peerManifests).go();
     await _db.delete(_db.idAliases).go();
     await _db.delete(_db.reviewQueue).go();
   }
@@ -384,6 +505,10 @@ class SyncLocalTransaction {
     bool revalidatePending = true,
   }) async {
     await clearBaseline();
+    // A restore replaces the records these parts were kept for; what the
+    // restored records carry for a newer version, if anything, arrives again
+    // from a peer.
+    await _db.delete(_db.retainedSyncFields).go();
     if (revalidatePending) {
       await revalidatePendingDeletions(restoredRecords: restoredRecords);
     }
@@ -454,6 +579,62 @@ class SyncLocalTransaction {
             (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
           ))
           .go();
+
+  Future<void> setRetainedSyncFields({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String? payload,
+    bool wholeRecord = false,
+  }) async {
+    if (payload == null) {
+      await (_db.delete(_db.retainedSyncFields)..where(
+            (row) => row.kind.equals(kind.name) & row.recordId.equals(recordId),
+          ))
+          .go();
+      return;
+    }
+    await _db
+        .into(_db.retainedSyncFields)
+        .insertOnConflictUpdate(
+          RetainedSyncFieldsCompanion.insert(
+            kind: kind,
+            recordId: recordId,
+            wholeRecord: Value(wholeRecord),
+            payload: payload,
+          ),
+        );
+  }
+
+  /// Moves what is kept of [losingId] onto [survivingId] when two records
+  /// become one, unless the survivor already keeps its own parts.
+  Future<void> moveRetainedSyncFields({
+    required SyncRecordKind kind,
+    required String losingId,
+    required String survivingId,
+  }) async {
+    if (losingId == survivingId) return;
+    final losing =
+        await (_db.select(_db.retainedSyncFields)..where(
+              (row) =>
+                  row.kind.equals(kind.name) & row.recordId.equals(losingId),
+            ))
+            .getSingleOrNull();
+    if (losing == null) return;
+    await setRetainedSyncFields(kind: kind, recordId: losingId, payload: null);
+    final surviving =
+        await (_db.select(_db.retainedSyncFields)..where(
+              (row) =>
+                  row.kind.equals(kind.name) & row.recordId.equals(survivingId),
+            ))
+            .getSingleOrNull();
+    if (surviving != null) return;
+    await setRetainedSyncFields(
+      kind: kind,
+      recordId: survivingId,
+      payload: losing.payload,
+      wholeRecord: losing.wholeRecord,
+    );
+  }
 
   Future<void> enqueueReview({
     required SyncRecordKind kind,
@@ -553,6 +734,11 @@ class SyncLocalTransaction {
           .write(IdAliasesCompanion(survivingId: Value(target)));
     }
     await upsertAlias(kind: kind, losingId: losingId, survivingId: target);
+    await moveRetainedSyncFields(
+      kind: kind,
+      losingId: losingId,
+      survivingId: target,
+    );
 
     final publishedIds = {...rewrittenIds, target};
     for (final chunk in _chunked(publishedIds, 500)) {

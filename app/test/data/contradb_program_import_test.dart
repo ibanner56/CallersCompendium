@@ -71,6 +71,7 @@ class _FakeService implements OnlineSearchService {
     ImportRecordPlan plan, {
     DateTime? now,
     DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
   }) async {
     final title = plan.draft.dance.title;
     importedTitles.add(title);

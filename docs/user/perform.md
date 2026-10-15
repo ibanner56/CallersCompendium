@@ -8,8 +8,8 @@ losing your place.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Perform this dance** and **Perform this program**.
-> The first time a dance term appears it links to the
-> [Glossary](./glossary.md), so you can get a plain-language definition
+> The first time a dance term appears it links to
+> [App terms](./glossary.md), so you can get a plain-language definition
 > without losing your place.
 
 New to the app? Start with the [Getting started guide](./getting-started.md).
@@ -44,8 +44,9 @@ progression happens is marked with an icon labelled *Progression*. Break and
 note slots in a program get a card of their own, with the text in the same
 large type.
 
-Your [dialect](./dialects.md) is applied, so the card speaks in your words (see
-**Show canonical terms** below for a quick look at the shared wording). Figure
+Your [dialect](./dialects.md) is applied — or the program's own dialect, if you
+gave it one (see [Programs](./programs.md)) — so the card speaks in your words
+(see **Show canonical terms** below for a quick look at the shared wording). Figure
 detail you recorded shows here too: when a swing ends facing somewhere other
 than the usual "in"/across — up or down the hall, or out of the set — the card
 notes that ending so you can cue it.
@@ -60,8 +61,10 @@ same thing, and every toggle says which state it is in rather than relying on
 how it looks.
 
 **Switch dialect.** Changes your active dialect for the whole app — handy when
-tonight's hall uses different role names. See
-[Dialect](./dialects.md#switch-dialect-on-the-fly).
+tonight's hall uses different role names. If the program has its own dialect,
+the switch changes the wording for this time in Perform only: your active
+dialect stays as it was, and the program's dialect is back the next time you open
+Perform. See [Dialect](./dialects.md#switch-dialect-on-the-fly).
 
 **Stage theme.** Perform opens on a **high-contrast dark-stage theme** by default,
 built for strong legibility (a contrast ratio of at least 7 to 1) under stage
@@ -132,6 +135,12 @@ if plans change mid-evening. When the current slot has an
 through any others, then back to the primary). This only changes what you are
 looking at; the program itself stays as it is.
 
+If a dance in your program has been deleted, its slot still shows the figures
+as long as the dance is in Recently deleted, and both the card title and
+**Jump to slot** mark it "(deleted dance)". A dance that no longer exists at all shows "Dance
+unavailable" instead; your note for that slot, if you have notes turned on,
+appears underneath.
+
 ## Keep time through the evening
 
 Perform mode shows timing in a status area so you can pace yourself. For a
@@ -151,7 +160,39 @@ For a program, the status area additionally shows:
 - once the walkthrough and dance minutes together have passed, the word
   **over**, with a timer icon; and
 - a **Pause timers** button (**Resume timers** while paused) that freezes both
-  clocks for interruptions.
+  clocks for interruptions; and
+- when the slot has a walkthrough length, a round **dance-start** button (a
+  music note) at the end of the readout.
+
+### Mark when the walkthrough really ended
+
+Walkthroughs rarely run to the clock. When a slot has a walkthrough length, tap
+the dance-start button the moment the dancers actually start dancing. Its tooltip
+reads "Walkthrough done — start the dance"; once marked it becomes a filled
+circle and reads "Dance started — tap to undo". Tap it again to undo a
+mis-tap. You can press it early or late, while paused, or after **over** is
+already showing.
+
+While a slot is marked:
+
+- **walkthrough complete** follows your mark instead of the clock;
+- **over** is counted from your mark plus the dance minutes, not from the start
+  of the slot; and
+- the readout adds how long the walkthrough actually took against its plan, for
+  example **walkthrough 4:10 (+1:10)** (ran over), **(−0:50)** (finished early)
+  or **(on plan)**.
+
+If you never tap the button, nothing changes: the cues follow the clock exactly
+as described above. The mark belongs to the slot you are on, so it clears when
+you move to another slot, swap in an alternate or jump to a slot (the same
+moments the per-slot timer restarts), and it survives reordering or inserting
+slots around the one you are reading. It is session-only: it is kept when you
+leave and re-enter Perform within the same session, but it is never saved to
+your program or your dances.
+
+While Perform is open, the timers keep counting when you switch to another
+app, such as your music player, or when the device sleeps: coming back shows
+the full time that passed. Only **Pause timers** stops them.
 
 Timing is display-only — it helps you keep an eye on the clock but never changes
 your program or your dances. The single-dance timer is on by default; to hide
@@ -172,7 +213,11 @@ From it you can:
 
 An inserted dance and an ad-hoc note both land right after the current slot, so
 "play this next" is one action away. Every change offers **Undo**, and changes
-to a saved program are saved with it. If you have set calling history to count
+to a saved program are saved with it. The Undo is still offered for a moment
+after you leave Perform (for as long as you need with a screen reader), but it
+puts back the whole program as it was before the change. So if the program has
+been changed since, for example edited in the builder, Undo does nothing except
+tell you it can no longer undo, and the later change is kept. If you have set calling history to count
 only slots marked performed, this is where you mark them — see
 [Programs & matrix](./programs.md#track-what-you-have-called).
 
@@ -222,5 +267,5 @@ and the export follows your active dialect. See
   [Accessibility guide](./accessibility.md) and
   [Settings](./settings.md)
 
-Not sure what a word means? The [Glossary](./glossary.md) has plain
+Not sure what a word means? [App terms](./glossary.md) has plain
 definitions for every term used across these guides.

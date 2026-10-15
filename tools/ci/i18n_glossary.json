@@ -91,6 +91,21 @@
     },
     "longways": {
       "note": "A formation of couples in two long facing lines. Dance formation name."
+    },
+    "note": {
+      "note": "Context-sensitive. For a caller's note (free text on a program slot, figure or dance) use the everyday word for a written note: nl 'notitie', de 'Notiz'; NOT the musical note (nl 'noot', de 'Note'). In diagnostics or import-warning text a 'note' is a short message or remark; translate it as that, not as a musical note."
+    },
+    "hook": {
+      "note": "A dance's one-line hook: why you would call this dance. NOT a coat hook or fishing hook; keep the English loanword where no established local term exists (nl 'Hook', not 'Haak')."
+    },
+    "modifier": {
+      "note": "A group in the dance editor made of a core figure plus ordered modifying figures. Dance-technical term, not a generic 'modifier'; localise it rather than leaving it in English."
+    },
+    "perform": {
+      "note": "Perform mode: the large-print live view a caller uses while calling a dance or program. NOT 'performance' as speed/efficiency (de 'Leistung'); the Settings header 'Performance' means Perform-mode display preferences."
+    },
+    "performance": {
+      "note": "In the Settings header 'Performance' means Perform-mode display preferences (see 'perform'), NOT speed or efficiency (de 'Leistung')."
     }
   }
 }

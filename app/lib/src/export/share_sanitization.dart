@@ -137,11 +137,11 @@ Venue sanitizeVenueForShare(
 /// every other entry is preserved. A `null` [venueId], or one that is not in
 /// the map, returns [venuesById] unchanged.
 ///
-/// This is the funnel the **PDF export** path uses to hand its renderer a venue
-/// whose contact PII is *physically absent* unless the user opted in. Both the
-/// share-bundle and the PDF paths therefore redact through the single
-/// [sanitizeVenueForShare] primitive — the PDF renderer never needs (and must
-/// not grow) its own parallel redaction; it simply draws whatever survives.
+/// The rule is one primitive, [sanitizeVenueForShare], called by whoever
+/// renders — never a second redaction implementation. The share bundle and
+/// `buildProgramPdf` each call it themselves on the venue they draw, so a
+/// caller passes the raw venue; this map-level wrapper exists for label
+/// resolution ([resolveSanitizedVenueLabelParts]).
 Map<String, Venue> venuesWithSanitizedContact(
   Map<String, Venue> venuesById,
   String? venueId, {

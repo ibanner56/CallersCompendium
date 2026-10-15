@@ -54,12 +54,60 @@ error paths, and edge cases. UI changes include widget tests where practical
 and must satisfy the [accessibility baseline](docs/research/accessibility-baseline.md)
 (semantics, keyboard, contrast) — a11y is an acceptance criterion, not polish.
 
+### Versioned formats: bank changes in the unreleased vNext
+Three version numbers mark formats other installs depend on:
+
+| Version | Declared in | Process |
+| --- | --- | --- |
+| `kCompendiumSchemaVersion` | `packages/compendium_core/lib/src/storage/database.dart` | [Database schema migrations](#database-schema-migrations) |
+| `contraTaxonomyVersion` | `packages/compendium_core/lib/src/taxonomy/contra_taxonomy.dart` | [Taxonomy version history](docs/design/figure-taxonomy.md#taxonomy-version-history) |
+| `syncWireVersion` | `packages/compendium_core/lib/src/sync/sync_codec.dart` | [sync-spec §7.2](docs/design/sync-spec.md#72-allow-list-validation), "An unreleased `v`" |
+
+A version is only worth a number once something outside `main` carries it.
+If the latest release tag carries an older value than `main`, that value is
+the unreleased *vNext*. Add your change to vNext rather than bumping again, so
+that every unreleased change ships together under one number (the maintainer's
+direction, 2026-10-13). Bump only when the tag's value matches `main`'s.
+Check all three at once with:
+
+```sh
+git fetch --tags origin
+tag=$(git for-each-ref --sort=-creatordate --count=1 \
+  --format='%(refname:short)' 'refs/tags/v*')
+for ref in "$tag" origin/main; do
+  echo "$ref:"
+  git show "$ref":packages/compendium_core/lib/src/storage/database.dart \
+    | grep -o 'kCompendiumSchemaVersion = [0-9]*'
+  git show "$ref":packages/compendium_core/lib/src/taxonomy/contra_taxonomy.dart \
+    | grep -o 'contraTaxonomyVersion = [0-9]*'
+  git show "$ref":packages/compendium_core/lib/src/sync/sync_codec.dart \
+    | grep -o 'syncWireVersion = [0-9]*'
+done
+```
+
+The wire version needs one more step. The Athenaeum server is deployed ahead
+of app releases and validates manifests with this same codec, so a server
+image built after a wire bump already enforces vNext. That doesn't make vNext
+shipped: amend it all the same, and redeploy the server before any client
+emits the amended form, as for any manifest change. Ask the maintainer what is
+deployed if you can't tell.
+
+When you amend vNext rather than bump, the CI version gates
+(`check_schema_migration.py`, `check_version_history.py`) do not notice,
+because the constant does not move. Amending vNext's ledger entry and tests is
+on you. Anything run from source at vNext before your change (a dev database,
+a dev sync store) does not see it again. Recreate it rather than bumping.
+
 ### Database schema migrations
 The local database schema is versioned by `schemaVersion` in
 [`packages/compendium_core/lib/src/storage/database.dart`](packages/compendium_core/lib/src/storage/database.dart).
 When you change the schema:
 
-- Bump `schemaVersion`, add the matching `MigrationStrategy` step, and ship a
+- **First check whether head has shipped**, as
+  [above](#versioned-formats-bank-changes-in-the-unreleased-vnext). If it has
+  not, add your change to vNext instead of bumping: see
+  [Adding to an unreleased version](#adding-to-an-unreleased-version) below.
+- When you do bump, bump `schemaVersion`, add the matching `MigrationStrategy` step, and ship a
   migration test/fixture (`test/storage/migration_test.dart` and/or a
   `test/storage/fixtures/` fixture). CI **fails** a PR that bumps
   `schemaVersion` without adding or changing such a test/fixture.
@@ -72,6 +120,35 @@ When you change the schema:
   workspace and is driven from a throwaway project.
 - **Never bump `schemaVersion` in a PATCH release.** A schema change is a
   data-format change and rides at least a MINOR version bump.
+
+#### Adding to an unreleased version
+
+When head is vNext, a change joins it rather than following it:
+
+- Put the DDL in the existing `if (from < N)` step for vNext, beside what is
+  already there. Guard it on the live schema (`pragma_table_info`,
+  `sqlite_master`) as the neighbouring steps do, so the step stays idempotent.
+- Extend vNext's group in `migration_test.dart` (upgrading from the last
+  *shipped* version), and amend vNext's entry in the
+  [schema version history](docs/design/storage.md#schema-version-history)
+  rather than adding one.
+- Regenerate vNext's dump and schema class as the
+  [drift_schemas README](packages/compendium_core/drift_schemas/README.md#amending-the-unreleased-head)
+  describes. `schema_verification_test.dart` fails while the committed dump
+  is stale.
+- Add a `data_migrations` entry to your own `changelog.d/` fragment. The
+  release notes give the schema range once, from the version the previous
+  release shipped to vNext.
+
+CI checks less here than for a bump. The constant does not move, so neither
+`check_schema_migration.py` nor `check_version_history.py` notices the change.
+The migration test and the ledger entry are on you.
+
+Only someone running `main` from source can have a database already stamped
+vNext. It does not re-run the step, so it lacks what you added, and the app
+fails on the first query that reads the new column or table. That is accepted:
+recreate such a database, or apply the DDL to it by hand. It is never a reason
+to bump.
 
 Old schema versions are **retired** once they fall below the oldest supported
 release: `kMinSupportedSchemaVersion` is the floor, a database stamped below it
@@ -166,7 +243,9 @@ catch body or a stray brace inside a string can't mis-count. Its `catch`/
 `on Type { }` detection is exact; its `.catchError`/`onError:` detection walks
 to the first unnested comma or closing bracket, which is correct for every
 shape in this codebase today but is a narrower guarantee — see the script's own
-docstring before assuming it can't be fooled by an unusual call shape.
+docstring before assuming it can't be fooled by an unusual call shape. Each
+`catch`/`on` clause is checked on its own: a log call in the `try` body, or the
+marker of an earlier clause, does not cover a later one.
 
 ### Architecture decisions
 Non-trivial, hard-to-reverse choices are recorded as ADRs in
@@ -177,7 +256,10 @@ by opening a PR adding a `Proposed` ADR.
 - Stored data is always **canonical** (role IDs, canonical move names);
   user-facing terms go through the [dialect system](docs/design/dialect.md).
 - The figure taxonomy is versioned data — changes to it follow the process in
-  [docs/design/figure-taxonomy.md](docs/design/figure-taxonomy.md).
+  [docs/design/figure-taxonomy.md](docs/design/figure-taxonomy.md). A change
+  made while `contraTaxonomyVersion` is unreleased joins that version rather
+  than bumping it (see
+  [Versioned formats](#versioned-formats-bank-changes-in-the-unreleased-vnext)).
 
 ### User documentation
 The guides under [docs/user/](docs/user/) are the source of truth **and** ship
@@ -313,6 +395,40 @@ symlink you can point your editor/PATH at — see the FVM docs.)
    (cd app && fvm flutter test)                        # app / widget tests
    ```
 
+   The native Swift tests (`app/ios/RunnerTests`, `app/macos/RunnerTests`)
+   need a macOS host with Xcode and are not part of `preflight.py`. CI's
+   `Build (ios)` and `Build (macos)` jobs run both suites when
+   `tools/ci/classify_changes.py` sets `apple_native_changed`: the diff it
+   classifies changes a path under `app/ios/` or `app/macos/`, or `.fvmrc`,
+   **and** is not Markdown-only (it has at least one path that is not `.md`,
+   or one of the few Markdown files the classifier treats as code). An
+   all-Markdown change under `app/ios/` does not run them. For a PR update
+   after a green Merge gate, only the commits pushed since are classified.
+   They also run on every push to `main`, except a push whose files are all
+   Markdown, which `ci.yml`'s `paths-ignore: ['**.md']` filters out. To run
+   them locally:
+
+   ```sh
+   (cd app && fvm flutter build macos --config-only --debug)
+   xcodebuild test -workspace app/macos/Runner.xcworkspace -scheme Runner \
+     -destination 'platform=macOS'
+   (cd app && fvm flutter build ios --config-only --debug --simulator)
+   xcodebuild test -workspace app/ios/Runner.xcworkspace -scheme Runner \
+     -destination 'platform=iOS Simulator,name=<an installed iPhone>' \
+     CODE_SIGNING_ALLOWED=NO
+   ```
+
+   The Kotlin JVM unit tests for the Android share intake
+   (`app/android/app/src/test/`) are not run by preflight or `flutter test`:
+   they need the Android SDK and run in CI's Android build leg, after the
+   build. To run them by hand, build once (which writes the Gradle wrapper),
+   then:
+
+   ```sh
+   (cd app && fvm flutter build apk --debug)
+   (cd app/android && ./gradlew :app:testDebugUnitTest)
+   ```
+
 4. Open a PR; it must pass CI (build, tests, lint, formatting) before review.
    Before merging, run the merge-readiness gates:
 
@@ -320,8 +436,9 @@ symlink you can point your editor/PATH at — see the FVM docs.)
    python3 tools/ci/check_pr_review_gates.py all <PR> --closes <ISSUE>...
    ```
 
-   which checks review freshness against the reviewer's own latest entry,
-   unresolved threads (with `totalCount`, so a truncated page is visible),
+   which checks review freshness against the reviewer's own latest entry
+   (Copilot by default; add `--reviewer claude` if you requested a Claude
+   review with the `review: claude` label), unresolved threads (with `totalCount`, so a truncated page is visible),
    checks on the current head, and that the PR closes exactly the issues you
    named — a branch name or a sentence containing a closing verb can create a
    link on its own. See

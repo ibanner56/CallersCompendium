@@ -5,8 +5,12 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../sync/sync_controller.dart';
+import '../../sync/sync_coordinator.dart' show SyncPeerSummary;
+import '../../sync/sync_failure.dart';
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
+import 'sync_device_labels.dart';
+import 'sync_failure_labels.dart';
 
 /// Pushes the list of the *other* devices attached to this store.
 ///
@@ -55,11 +59,33 @@ Future<void> confirmAndWipeStore(
       messenger?.showSnackBar(
         SnackBar(
           key: const ValueKey('sync-wipe-failed'),
-          content: Text(l10n.settingsSyncWipeFailed),
+          content: Text(
+            _withReason(
+              l10n,
+              l10n.settingsSyncWipeFailed,
+              controller.lastAdminFailure,
+            ),
+          ),
         ),
       );
   }
 }
+
+/// [message] followed by why the action failed, when that is known.
+///
+/// The reason only, not the advice: these snackbars already say what state
+/// the device was left in and what to do next, and the generic advice would
+/// contradict them (a wipe's "check your other devices before trying again").
+String _withReason(
+  AppLocalizations l10n,
+  String message,
+  SyncFailure? failure,
+) => failure == null
+    ? message
+    : l10n.settingsSyncAdminFailedBecause(
+        message,
+        syncFailureReason(l10n, failure.cause),
+      );
 
 /// The strongest confirmation in the app. Returns true only on an explicit
 /// confirm. The destructive styling is not decoration: this is the one Device
@@ -102,7 +128,11 @@ Future<bool> _confirmSyncWipe(BuildContext context) async {
 }
 
 class SyncDevicesScreen extends StatefulWidget {
-  const SyncDevicesScreen({super.key});
+  const SyncDevicesScreen({super.key, this.now});
+
+  /// The clock "last shared changes" is measured against; the wall clock when
+  /// null. A parameter so a test can pin the day.
+  final DateTime Function()? now;
 
   @override
   State<SyncDevicesScreen> createState() => _SyncDevicesScreenState();
@@ -176,7 +206,13 @@ class _SyncDevicesScreenState extends State<SyncDevicesScreen> {
       messenger?.showSnackBar(
         SnackBar(
           key: const ValueKey('sync-device-remove-failed'),
-          content: Text(l10n.settingsSyncDeviceRemoveFailed),
+          content: Text(
+            _withReason(
+              l10n,
+              l10n.settingsSyncDeviceRemoveFailed,
+              controller.lastAdminFailure,
+            ),
+          ),
         ),
       );
     }
@@ -203,8 +239,15 @@ class _SyncDevicesScreenState extends State<SyncDevicesScreen> {
     }
     final result = _result;
     if (result == null || result.outcome != SyncAdminOutcome.done) {
-      return _failure(context, l10n, result?.outcome);
+      return _failure(context, l10n, result);
     }
+    final summaries = SyncScope.of(context).peerSummaries;
+    final self = result.selfDeviceId;
+    // Computed over every identifier on the screen, this device's included,
+    // so no two tags shown together are equal.
+    final tags = syncDeviceTags([...result.devices, ?self]);
+    final now = (widget.now ?? DateTime.now)();
+    final theme = Theme.of(context);
     return ListView(
       children: [
         Padding(
@@ -212,9 +255,23 @@ class _SyncDevicesScreenState extends State<SyncDevicesScreen> {
           child: Text(
             l10n.settingsSyncDevicesCaution,
             key: const ValueKey('sync-devices-caution'),
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: theme.textTheme.bodyMedium,
           ),
         ),
+        if (self != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              0,
+              AppSpacing.md,
+              AppSpacing.md,
+            ),
+            child: Text(
+              l10n.settingsSyncDevicesThisDevice(tags[self]!),
+              key: const ValueKey('sync-devices-self'),
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
         if (result.devices.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -224,32 +281,74 @@ class _SyncDevicesScreenState extends State<SyncDevicesScreen> {
             ),
           ),
         for (final deviceId in result.devices)
-          ListTile(
-            key: ValueKey('sync-device-$deviceId'),
-            leading: const Icon(Icons.devices_other_outlined),
-            // The identifier is the only thing the server knows about a
-            // device, so it is shown verbatim rather than abbreviated into
-            // something that could collide with another device's prefix.
-            title: Text(deviceId),
-            trailing: IconButton(
-              key: ValueKey('sync-device-remove-$deviceId'),
-              icon: const Icon(Icons.delete_outline),
-              tooltip: l10n.settingsSyncDeviceRemoveTooltip,
-              onPressed: _busy ? null : () => _confirmRemove(deviceId),
-            ),
+          _deviceTile(
+            l10n,
+            deviceId,
+            tags[deviceId]!,
+            summaries[deviceId],
+            now,
           ),
       ],
+    );
+  }
+
+  /// One other device: its tag, and — when the last completed pass read its
+  /// manifest — when it last shared changes and how many of this device's are
+  /// waiting for it. A device that pass did not see gets the tag alone rather
+  /// than a guess.
+  Widget _deviceTile(
+    AppLocalizations l10n,
+    String deviceId,
+    String tag,
+    SyncPeerSummary? summary,
+    DateTime now,
+  ) {
+    final lines = [
+      if (summary != null)
+        Text(
+          syncLastSharedText(l10n, summary.writtenAt, now),
+          key: ValueKey('sync-device-last-shared-$deviceId'),
+        ),
+      if (summary != null && summary.waitingCount > 0)
+        Text(
+          l10n.settingsSyncDeviceWaiting(summary.waitingCount),
+          key: ValueKey('sync-device-waiting-$deviceId'),
+        ),
+    ];
+    return ListTile(
+      key: ValueKey('sync-device-$deviceId'),
+      leading: const Icon(Icons.devices_other_outlined),
+      // A short tag rather than the whole identifier: the identifier is all
+      // the server knows about a device, but 24 random characters are not
+      // something a person can compare across two screens, and the tag is
+      // what this device's own line and the notices name it by. It is
+      // lengthened wherever two would otherwise read the same, so shortening
+      // cannot make two devices look like one.
+      title: Text(l10n.settingsSyncDeviceTag(tag)),
+      subtitle: lines.isEmpty
+          ? null
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: lines,
+            ),
+      trailing: IconButton(
+        key: ValueKey('sync-device-remove-$deviceId'),
+        icon: const Icon(Icons.delete_outline),
+        tooltip: l10n.settingsSyncDeviceRemoveTooltip,
+        onPressed: _busy ? null : () => _confirmRemove(deviceId),
+      ),
     );
   }
 
   Widget _failure(
     BuildContext context,
     AppLocalizations l10n,
-    SyncAdminOutcome? outcome,
+    SyncDeviceListResult? result,
   ) {
     // A store that has gone is a different fact from a request that failed,
     // and only one of them is worth retrying.
-    final storeMissing = outcome == SyncAdminOutcome.storeMissing;
+    final storeMissing = result?.outcome == SyncAdminOutcome.storeMissing;
+    final failure = result?.failure;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -259,10 +358,31 @@ class _SyncDevicesScreenState extends State<SyncDevicesScreen> {
             Text(
               storeMissing
                   ? l10n.settingsSyncDevicesStoreMissing
-                  : l10n.settingsSyncDevicesFailed,
+                  : failure == null
+                  ? l10n.settingsSyncDevicesFailed
+                  : l10n.settingsSyncDevicesFailedBecause(
+                      syncFailureExplanation(
+                        l10n,
+                        failure,
+                        customServer: syncUsesCustomServer(
+                          SyncScope.of(context).endpoint,
+                        ),
+                      ),
+                    ),
               key: const ValueKey('sync-devices-failed'),
               textAlign: TextAlign.center,
             ),
+            if (!storeMissing && failure != null)
+              if (syncFailureDetails(l10n, failure) case final details?)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.xs),
+                  child: Text(
+                    details,
+                    key: const ValueKey('sync-devices-failed-details'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
             if (!storeMissing)
               Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.md),

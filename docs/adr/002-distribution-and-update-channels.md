@@ -48,7 +48,7 @@ because later Wave-1 PRs will *produce* it (a `release.yml` workflow) and
 GitHub Releases is the **sole artifact host**. Each release publishes a **static
 update manifest** — `stable.json` and `beta.json`, one document per channel —
 as a **release asset** and mirrors it to **GitHub Pages** for a stable
-per-channel URL (`https://ibanner56.github.io/CallersCompendium/<channel>.json`),
+per-channel URL (`https://callerscompendium.com/<channel>.json`, the Pages custom domain),
 which is what the in-app client actually fetches. (The Pages hosting is wired in
 A11c — see [releasing.md](../dev/releasing.md#publishing-the-update-manifest-github-pages).)
 The in-app update check is a plain HTTPS `GET` of that manifest.
@@ -86,6 +86,12 @@ it. Fields:
       "size": 12345678,                // bytes, int, required.
       "minOsVersion": "11.0"           // optional. Per-platform OS floor for this artifact.
     }
+  ],
+  "retirements": [                     // optional. End-of-life announcements; absent = none.
+    {
+      "through": "0.7.0",              // SemVer, required. Every build at or below this is covered.
+      "endOfLife": "2027-01-31"        // YYYY-MM-DD calendar date, required. First unsupported day.
+    }
   ]
 }
 ```
@@ -112,6 +118,19 @@ Field rules:
 - `artifacts[]` — at least one entry; each is
   `{platform, arch, url, sha256, size, minOsVersion?}`. The client selects the
   entry matching the running platform+arch.
+- `retirements[]` — optional, additive (no `manifestSchemaVersion` bump: a
+  client that predates it ignores it). Each entry is `{through, endOfLife}` and
+  announces that every build whose release identity is **at or below**
+  `through` by SemVer precedence — so `0.7.0-beta` is covered by `0.7.0` —
+  stops being supported on `endOfLife`. When several entries cover a build the
+  earliest date applies. The client applies it to its own `kUpdaterVersion`
+  whether or not the manifest's `version` is newer, so a build whose channel
+  has nothing newer is still warned. A present-but-malformed list refuses the
+  whole manifest, like any other malformed field. The release workflow copies
+  it from the checked-in `tools/release/retirements.json` into every manifest
+  it refreshes; `gen_release_metadata.py` refuses an entry that would retire the
+  build being released. Builds up to and including **0.6.0-beta** predate the
+  field and never read it.
 
 **Deterministic asset naming:**
 
@@ -216,6 +235,16 @@ The check is a **plain HTTPS `GET` of the static manifest** and nothing more:
   given version it is not shown again (no nagging) until a newer one appears.
 - The check uses a **short timeout and fails silently offline** — a missing
   network is a no-op, never an error dialog.
+- An **end-of-life notice** (§2 `retirements`) is learned only from a check
+  that runs under these rules — manual, or the opt-in automatic check — never
+  from an extra request. Once an authenticated manifest names a date for the
+  running build, the client stores it on the device and shows a **non-modal
+  banner** on every launch, offline included, until a later authenticated
+  manifest stops announcing it or the app is updated. Unlike an update, it is
+  **not** gated by `dismissedVersion`: "Later" hides it for the current session
+  only, because an end of support is not something the user can decline. A
+  failed check leaves a stored notice in place. Consequence accepted: an
+  install that never checks never learns of its end of life.
 
 ### 6. Per-platform distribution + signing dependency table
 

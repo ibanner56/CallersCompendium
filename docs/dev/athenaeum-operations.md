@@ -11,6 +11,46 @@ the loopback-only forwarded-address trust boundary.
 
 1. Install Docker, Apache 2.4.40 or newer, and the Apache modules `ssl`,
    `headers`, `proxy`, `proxy_http`, `reqtimeout`, and `rewrite`.
+
+   Then check that the root filesystem is not mounted with `discard`:
+
+   ```sh
+   findmnt -no OPTIONS /
+   ```
+
+   Some VPS images set it (Hostinger's Ubuntu 26 image did). With it, ext4 sends
+   the disk a discard for the freed blocks after every large deletion, and on a
+   slow virtual disk the journal then waits behind it: on the reference KVM
+   host, synced 4 KB writes fell from about 700 a second to about 5 for over
+   half an hour after one `rm -rf` of a large directory. The server's
+   hourly sweep deletes expired stores' blob directories, so production hits
+   this too. If the output contains `discard`, turn it off now and in
+   `/etc/fstab`, and let the weekly `fstrim.timer` trim in one batch at a quiet
+   hour instead:
+
+   ```sh
+   sudo mount -o remount,nodiscard /
+   sudo sed -i.bak -e '/[[:space:]]\/[[:space:]]/ s/discard,//' \
+     -e '/[[:space:]]\/[[:space:]]/ s/,discard\([[:space:]]\)/\1/' \
+     -e '/[[:space:]]\/[[:space:]]/ s/\([[:space:]]\)discard\([[:space:]]\)/\1defaults\2/' /etc/fstab
+   sudo systemctl daemon-reload && sudo findmnt --verify
+   sudo install -d /etc/systemd/system/fstrim.timer.d
+   printf '%s\n' '[Timer]' 'OnCalendar=' 'OnCalendar=Sun 04:00' \
+     'RandomizedDelaySec=0' 'Persistent=false' |
+     sudo tee /etc/systemd/system/fstrim.timer.d/override.conf >/dev/null
+   sudo systemctl daemon-reload && sudo systemctl enable --now fstrim.timer
+   ```
+
+   Check the root line of `/etc/fstab` afterwards: a reboot with `discard`
+   still there turns it back on. A remount does not cancel discards already
+   queued; a reboot drops them. To check the disk, time 200 synced writes
+   before and after deleting a large directory; on a healthy disk each run
+   takes well under a second:
+
+   ```sh
+   sudo dd if=/dev/zero of=/var/lib/dd-sync-test bs=4k count=200 oflag=dsync
+   sudo rm -f /var/lib/dd-sync-test
+   ```
 2. Create a dedicated directory owned by the container user for the three
    SQLite databases and blob directory:
 
@@ -91,19 +131,56 @@ the loopback-only forwarded-address trust boundary.
    Verify the reservation before every first start with the range-aware
    `port_reserved` check from step 2 (not an exact-token grep). Port `33333`
    must not be published or exposed on a non-loopback interface.
+6. Install the alert forwarder, which emails each alert line the container
+   writes (see *Alerts* under Operations). It needs a working `mail` command;
+   with msmtp:
+
+   ```sh
+   sudo apt install msmtp msmtp-mta bsd-mailx
+   sudo install -m 755 server/deploy/athenaeum-alert-email \
+     /usr/local/sbin/athenaeum-alert-email
+   sudo install -m 644 server/deploy/athenaeum-alert-email.service \
+     /etc/systemd/system/athenaeum-alert-email.service
+   ```
+
+   Set `ATHENAEUM_ALERT_TO` in the unit to the on-call address. Configure
+   `/etc/msmtprc` (mode 600) for the SMTP account and keep its password in a
+   separate mode-600 file read with `passwordeval`, never in the unit. Answer
+   **No** when the msmtp package asks about AppArmor: its profile stops
+   `passwordeval` from running `cat` on a file under `/root`, and sending then
+   fails with `cat: Permission denied` and sendmail exit 78. Then enable the
+   unit and send a test through the same path:
+
+   ```sh
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now athenaeum-alert-email.service
+   printf '%s\n' '{"alert":{"kind":"sweep_failure","source":"manual_test","errorType":"Test"}}' |
+     sudo ATHENAEUM_ALERT_TO=on-call@example.invalid /usr/local/sbin/athenaeum-alert-email
+   ```
+
+   The forwarder reads the container log from its end, so an alert written
+   while it is not running is never sent: install it before the service takes
+   traffic, and on a move to a new host, before cutover. While the container
+   is stopped the unit restarts every five seconds; that is expected.
 
 ## Proxy and security contract
 
 The vhost must preserve `Authorization`, allow a 32 MiB wire body (the
-application enforces the 16 MiB decoded manifest limit), avoid decompressing
+application enforces the 16 MiB decoded manifest limit and also caps gzip
+bytes on the wire per route, so `LimitRequestBody` is defence in depth), avoid decompressing
 request bodies, overwrite `X-Forwarded-For` with the connecting client
 address, and proxy only over loopback. The application trusts that header only
-when the socket peer is loopback; Apache derives it from the underlying
+when the socket peer is loopback, and then reads only the rightmost entry, so a
+client-supplied prefix cannot choose the rate-limit key even behind a proxy that
+appends instead of overwriting; Apache derives it from the underlying
 connection peer (`CONN_REMOTE_ADDR`) even if host-level `mod_remoteip` is
 enabled, and the application otherwise uses its peer address. The
-limits are independent: 10 failures per IP per minute, a burst of 20 failures
-per IP, 1,000 failures per minute server-wide, and 60 store creations per
-minute. A saturated server-wide failure budget must not block authenticated
+limits are independent: 5 requests per IP per second with a burst of 300, 15
+requests per store per second with a burst of 600, 10 failures per IP per
+minute, a burst of 20 failures per IP, 1,000 failures per minute server-wide,
+and 60 store creations per minute. There is deliberately no server-wide
+request limit (spec §5.4); `server/tool/load_test.dart` measures what the host
+sustains. A saturated server-wide failure budget must not block authenticated
 access to an existing store.
 
 Use a no-redirect probe after every Apache change in a direct-origin or staging
@@ -366,7 +443,10 @@ curl --noproxy '*' --silent --show-error --max-time 15 \
   excludes request targets and headers, so sync IDs and credentials are not
   written. Restrict log access to operators.
 - **Alerts:** route JSON lines with `alert.kind` of `quota_exhaustion` or
-  `sweep_failure` from container stderr to the on-call notification path.
+  `sweep_failure` from container stderr to the on-call notification path. The
+  reference path is the email forwarder installed in step 6 of the first
+  deployment (`server/deploy/athenaeum-alert-email` and its unit); a failed
+  send is logged to the unit's journal and skipped.
   Repeated alerts with the same kind, source, and exception type are limited to
   one notification per minute; the next notification includes the aggregate
   count. Payloads contain only a category, source, exception type, and optional

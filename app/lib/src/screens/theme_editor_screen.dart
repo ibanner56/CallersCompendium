@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/app_theme_labels_l10n.dart';
 import '../data/custom_theme.dart';
 import '../theme/wcag.dart';
 import '../widgets/color_edit_dialog.dart';
@@ -52,10 +53,11 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
   Color _colorOf(String key) => Color(_resolved[key]!);
 
   Future<void> _editRole(ColorRole role) async {
+    final title = themeEditorRoleLabel(AppLocalizations.of(context), role);
     final picked = await showDialog<Color>(
       context: context,
       builder: (_) =>
-          ColorEditDialog(title: role.label, initial: _colorOf(role.key)),
+          ColorEditDialog(title: title, initial: _colorOf(role.key)),
     );
     if (picked != null) {
       setState(() => _setTheme(_theme.withColor(role.key, picked)));
@@ -109,7 +111,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
             Row(
               children: [
                 Icon(
-                  Icons.check_circle,
+                  Icons.check_circle_outline,
                   size: 18,
                   color: theme.colorScheme.primary,
                 ),
@@ -194,13 +196,14 @@ class _RoleGroupSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 20, bottom: 8),
           child: Text(
-            group.label,
+            themeEditorGroupLabel(l10n, group),
             style: theme.textTheme.titleSmall?.copyWith(
               color: theme.colorScheme.primary,
             ),
@@ -208,7 +211,7 @@ class _RoleGroupSection extends StatelessWidget {
         ),
         for (final pair in group.pairs)
           _ContrastBadge(
-            label: pair.label,
+            label: themeEditorPairLabel(l10n, pair),
             ratio: Wcag.contrastRatio(
               colorOf(pair.foreground),
               colorOf(pair.background),
@@ -253,7 +256,7 @@ class _ContrastBadge extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            passes ? Icons.check_circle : Icons.error,
+            passes ? Icons.check_circle_outline : Icons.error_outline,
             size: 16,
             color: color,
           ),
@@ -309,7 +312,7 @@ class _RoleTile extends StatelessWidget {
           border: Border.all(color: theme.colorScheme.outlineVariant),
         ),
       ),
-      title: Text(role.label),
+      title: Text(themeEditorRoleLabel(AppLocalizations.of(context), role)),
       subtitle: Text(hex),
       trailing: const Icon(Icons.edit_outlined, size: 18),
     );

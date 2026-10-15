@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_app/src/update/artifact_downloader.dart';
+import 'package:compendium_app/src/update/update_config.dart';
 import 'package:compendium_app/src/update/update_manifest.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -497,6 +499,468 @@ void main() {
       expect(await dest.exists(), isFalse);
     },
   );
+
+  group('sink lifecycle', () {
+    test('a flush failure still closes the sink, reports networkError and '
+        'deletes the partial file', () async {
+      final sink = _FakeSink(flushError: StateError('disk full'));
+      final file = _SinkFile(dest, sink);
+
+      final outcome = await downloadArtifact(
+        _artifact(size: 4),
+        destination: file,
+        client: _streamingClient([utf8.encode('AAAA')], contentLength: 4),
+      );
+
+      expect(outcome.kind, DownloadResultKind.networkError);
+      expect(outcome.message, contains('could not finish writing'));
+      expect(sink.closeCalls, 1, reason: 'the handle must be released');
+      expect(dest.existsSync(), isFalse);
+    });
+
+    test('a flush failure after a failed transfer keeps the original outcome '
+        'and still closes the sink', () async {
+      final sink = _FakeSink(flushError: StateError('disk full'));
+      final file = _SinkFile(dest, sink);
+
+      // Manifest promises 100 bytes, stream delivers 4: sizeMismatch.
+      final outcome = await downloadArtifact(
+        _artifact(size: 100),
+        destination: file,
+        client: _streamingClient([utf8.encode('AAAA')], contentLength: 100),
+      );
+
+      expect(outcome.kind, DownloadResultKind.sizeMismatch);
+      expect(sink.closeCalls, 1);
+      expect(dest.existsSync(), isFalse);
+    });
+
+    test('a close failure while recovering from a flush failure is swallowed '
+        'and does not mask the flush failure', () async {
+      final sink = _FakeSink(
+        flushError: StateError('disk full'),
+        closeError: StateError('close boom'),
+      );
+      final file = _SinkFile(dest, sink);
+
+      final outcome = await downloadArtifact(
+        _artifact(size: 4),
+        destination: file,
+        client: _streamingClient([utf8.encode('AAAA')], contentLength: 4),
+      );
+
+      expect(outcome.kind, DownloadResultKind.networkError);
+      expect(outcome.message, contains('disk full'));
+      expect(
+        sink.closeCalls,
+        1,
+        reason: 'close is attempted once, not retried',
+      );
+      expect(dest.existsSync(), isFalse);
+    });
+  });
+
+  group('write backpressure', () {
+    const half = kDownloadWriteHighWaterBytes ~/ 2;
+    List<int> bytes(int n) => List<int>.filled(n, 0x41);
+
+    // A client whose body is [body], with a known length so the size check
+    // matches.
+    MockClient bodyClient(StreamController<List<int>> body, int length) =>
+        MockClient.streaming(
+          (request, _) async =>
+              http.StreamedResponse(body.stream, 200, contentLength: length),
+        );
+
+    Future<void> pump() => Future<void>.delayed(Duration.zero);
+
+    // Waits until the engine has subscribed to [body] (it first creates the
+    // destination file), so `isPaused` is about the subscription.
+    Future<void> listening(StreamController<List<int>> body) async {
+      while (!body.hasListener) {
+        await pump();
+      }
+    }
+
+    test('pauses the response while a flush is outstanding and resumes when '
+        'it completes', () async {
+      final flushGate = Completer<void>();
+      final sink = _FakeSink(flushGate: flushGate);
+      final body = StreamController<List<int>>();
+      const total = half * 2 + 10;
+
+      final result = downloadArtifact(
+        _artifact(size: total),
+        destination: _SinkFile(dest, sink),
+        client: bodyClient(body, total),
+      );
+      await listening(body);
+
+      body.add(bytes(half));
+      await pump();
+      expect(body.isPaused, isFalse, reason: 'below the high-water mark');
+
+      body.add(bytes(half));
+      await pump();
+      expect(sink.flushCalls, 1);
+      expect(body.isPaused, isTrue, reason: 'flush outstanding: reads paced');
+
+      flushGate.complete();
+      await pump();
+      expect(body.isPaused, isFalse, reason: 'flush done: reading resumes');
+
+      body.add(bytes(10));
+      await body.close();
+      final outcome = await result;
+      expect(outcome.kind, DownloadResultKind.success);
+      expect(sink.addedBytes, total);
+    });
+
+    test('bytes handed to the sink between flushes stay bounded', () async {
+      final sink = _FakeSink();
+      final body = StreamController<List<int>>();
+      const chunks = 40;
+      const total = half * chunks;
+
+      final result = downloadArtifact(
+        _artifact(size: total),
+        destination: _SinkFile(dest, sink),
+        client: bodyClient(body, total),
+      );
+      await listening(body);
+      for (var i = 0; i < chunks; i++) {
+        body.add(bytes(half));
+        await pump();
+      }
+      await body.close();
+
+      expect((await result).kind, DownloadResultKind.success);
+      // One flush per high-water's worth of data (plus the final flush).
+      expect(sink.flushCalls, chunks ~/ 2 + 1);
+      expect(sink.maxUnflushedBytes, lessThanOrEqualTo(2 * half));
+    });
+
+    test('a flush failure mid-stream fails the download, closes the sink and '
+        'deletes the file', () async {
+      final sink = _FakeSink(flushError: StateError('disk full'));
+      final body = StreamController<List<int>>();
+      const total = half * 4;
+
+      final result = downloadArtifact(
+        _artifact(size: total),
+        destination: _SinkFile(dest, sink),
+        client: bodyClient(body, total),
+      );
+      await listening(body);
+      body.add(bytes(half));
+      body.add(bytes(half));
+      await pump();
+
+      final outcome = await result;
+      expect(outcome.kind, DownloadResultKind.networkError);
+      expect(outcome.message, contains('disk full'));
+      expect(sink.closeCalls, 1);
+      expect(dest.existsSync(), isFalse);
+    });
+
+    test('cancelling while reads are paced deletes the partial file and '
+        'closes the sink', () async {
+      final flushGate = Completer<void>();
+      final sink = _FakeSink(flushGate: flushGate);
+      final body = StreamController<List<int>>();
+      final token = DownloadCancelToken();
+      const total = half * 4;
+
+      final result = downloadArtifact(
+        _artifact(size: total),
+        destination: _SinkFile(dest, sink),
+        client: bodyClient(body, total),
+        cancelToken: token,
+      );
+      await listening(body);
+      body.add(bytes(half));
+      body.add(bytes(half));
+      await pump();
+      expect(body.isPaused, isTrue);
+
+      token.cancel();
+      body.add(bytes(half)); // observed once reading resumes
+      flushGate.complete();
+
+      final outcome = await result;
+      expect(outcome.kind, DownloadResultKind.cancelled);
+      expect(sink.closeCalls, 1);
+      expect(dest.existsSync(), isFalse);
+    });
+
+    test(
+      'cancelling while a flush never settles still resolves promptly',
+      () async {
+        final flushGate = Completer<void>(); // never completed
+        final sink = _FakeSink(flushGate: flushGate);
+        final body = StreamController<List<int>>();
+        final token = DownloadCancelToken();
+        const total = half * 4;
+
+        final result = downloadArtifact(
+          _artifact(size: total),
+          destination: _SinkFile(dest, sink),
+          client: bodyClient(body, total),
+          cancelToken: token,
+        );
+        await listening(body);
+        body.add(bytes(half));
+        body.add(bytes(half));
+        await pump();
+        expect(body.isPaused, isTrue);
+
+        token.cancel();
+        final outcome = await result.timeout(
+          kDownloadCancelPollInterval * 10,
+          onTimeout: () => fail('cancel hung behind a stuck flush'),
+        );
+        expect(outcome.kind, DownloadResultKind.cancelled);
+        // A real IOSink cannot be closed while its flush is outstanding, so
+        // the close waits for a flush that never settles (see the real-IOSink
+        // tests below); the file is still deleted.
+        expect(sink.closeCalls, 0);
+        expect(dest.existsSync(), isFalse);
+      },
+    );
+
+    // The fakes above accept close() during a flush; dart:io's IOSink does
+    // not (it throws "StreamSink is bound to a stream" synchronously), so
+    // these two drive a real IOSink over a consumer whose writes are gated.
+    test('cancelling during a flush on a real IOSink reports cancelled and '
+        'closes the sink once the flush settles', () async {
+      final consumer = _GatedConsumer();
+      final body = StreamController<List<int>>();
+      final token = DownloadCancelToken();
+      const total = half * 4;
+
+      final result = downloadArtifact(
+        _artifact(size: total),
+        destination: _SinkFile(dest, IOSink(consumer)),
+        client: bodyClient(body, total),
+        cancelToken: token,
+      );
+      await listening(body);
+      body.add(bytes(half));
+      body.add(bytes(half));
+      await pump();
+      expect(body.isPaused, isTrue, reason: 'flush outstanding');
+
+      token.cancel();
+      final outcome = await result.timeout(
+        kDownloadCancelPollInterval * 10,
+        onTimeout: () => fail('cancel hung behind a stuck flush'),
+      );
+      expect(outcome.kind, DownloadResultKind.cancelled);
+      expect(dest.existsSync(), isFalse);
+      expect(consumer.closeCalls, 0, reason: 'cannot close mid-flush');
+      expect(
+        outcome.released,
+        isNotNull,
+        reason: 'returned with the file still open',
+      );
+
+      consumer.gate.complete();
+      await outcome.released!.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => fail('released never completed'),
+      );
+      expect(consumer.closeCalls, 1, reason: 'handle released after flush');
+      expect(consumer.closed, isTrue);
+    });
+
+    test('a cancelled download whose file closed before returning has no '
+        'pending release', () async {
+      final consumer = _GatedConsumer()..gate.complete();
+      final body = StreamController<List<int>>();
+      final token = DownloadCancelToken();
+      const total = half * 4;
+
+      final result = downloadArtifact(
+        _artifact(size: total),
+        destination: _WindowsLikeFile(dest, IOSink(consumer), consumer),
+        client: bodyClient(body, total),
+        cancelToken: token,
+      );
+      await listening(body);
+      body.add(bytes(half ~/ 2));
+      await pump();
+      token.cancel();
+      body.add(bytes(half ~/ 2)); // onData observes the cancel
+
+      final outcome = await result;
+      expect(outcome.kind, DownloadResultKind.cancelled);
+      expect(outcome.released, isNull);
+      expect(consumer.closed, isTrue, reason: 'closed before returning');
+      expect(dest.existsSync(), isFalse, reason: 'deleted before returning');
+    });
+
+    test('the deferred cleanup never deletes a file that replaced the '
+        'cancelled one at the same path', () async {
+      final consumer = _GatedConsumer();
+      final body = StreamController<List<int>>();
+      final token = DownloadCancelToken();
+      const total = half * 4;
+
+      final result = downloadArtifact(
+        _artifact(size: total),
+        destination: _SinkFile(dest, IOSink(consumer)),
+        client: bodyClient(body, total),
+        cancelToken: token,
+      );
+      await listening(body);
+      body.add(bytes(half));
+      body.add(bytes(half));
+      await pump();
+      expect(body.isPaused, isTrue, reason: 'flush outstanding');
+
+      token.cancel();
+      expect((await result).kind, DownloadResultKind.cancelled);
+      expect(dest.existsSync(), isFalse);
+
+      // A new Save As download now owns the same path.
+      dest.writeAsStringSync('replacement');
+      consumer.gate.complete();
+      for (var i = 0; i < 20 && !consumer.closed; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(consumer.closed, isTrue);
+      expect(dest.existsSync(), isTrue, reason: 'replacement was deleted');
+      expect(dest.readAsStringSync(), 'replacement');
+    });
+
+    test('a cancelled download deletes its file only after the sink has '
+        'closed (an open handle blocks the delete on Windows)', () async {
+      final consumer = _GatedConsumer()..gate.complete();
+      final body = StreamController<List<int>>();
+      final token = DownloadCancelToken();
+      const total = half * 4;
+
+      final result = downloadArtifact(
+        _artifact(size: total),
+        destination: _WindowsLikeFile(dest, IOSink(consumer), consumer),
+        client: bodyClient(body, total),
+        cancelToken: token,
+      );
+      await listening(body);
+      body.add(bytes(half ~/ 2));
+      await pump();
+      token.cancel();
+      body.add(bytes(half ~/ 2)); // onData observes the cancel
+
+      expect((await result).kind, DownloadResultKind.cancelled);
+      for (var i = 0; i < 20 && dest.existsSync(); i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      expect(consumer.closeCalls, 1);
+      expect(dest.existsSync(), isFalse, reason: 'partial file left behind');
+    });
+  });
+}
+
+/// A [StreamConsumer] behind a real dart:io [IOSink]: each write batch
+/// completes only once [gate] completes, standing in for a stalled disk.
+class _GatedConsumer implements StreamConsumer<List<int>> {
+  final gate = Completer<void>();
+  int closeCalls = 0;
+
+  /// Whether a [close] has finished; releasing a real handle is itself
+  /// asynchronous I/O, so it lags the call.
+  bool closed = false;
+
+  @override
+  Future<void> addStream(Stream<List<int>> stream) async {
+    await stream.drain<void>();
+    await gate.future;
+  }
+
+  @override
+  Future<void> close() async {
+    closeCalls++;
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    closed = true;
+  }
+}
+
+/// An [IOSink] test double: records calls and lets a test fail or gate
+/// `flush()` / fail `close()`. Anything unused by the downloader is unsupported.
+class _FakeSink implements IOSink {
+  _FakeSink({this.flushError, this.closeError, this.flushGate});
+
+  final Object? flushError;
+  final Object? closeError;
+  final Completer<void>? flushGate;
+
+  int closeCalls = 0;
+  int flushCalls = 0;
+  int addedBytes = 0;
+  int maxUnflushedBytes = 0;
+  int _unflushed = 0;
+
+  @override
+  void add(List<int> data) {
+    addedBytes += data.length;
+    _unflushed += data.length;
+    if (_unflushed > maxUnflushedBytes) maxUnflushedBytes = _unflushed;
+  }
+
+  @override
+  Future<void> flush() async {
+    flushCalls++;
+    if (flushError != null) throw flushError!;
+    await flushGate?.future;
+    _unflushed = 0;
+  }
+
+  @override
+  Future<void> close() async {
+    closeCalls++;
+    if (closeError != null) throw closeError!;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('_FakeSink.${invocation.memberName}');
+}
+
+/// A [File] that behaves as [_inner] except that `openWrite()` returns [_sink].
+/// Only the members `downloadArtifact` uses are forwarded.
+class _SinkFile implements File {
+  _SinkFile(this._inner, this._sink);
+
+  final File _inner;
+  final IOSink _sink;
+
+  @override
+  String get path => _inner.path;
+
+  @override
+  Future<File> create({bool recursive = false, bool exclusive = false}) async {
+    await _inner.create(recursive: recursive, exclusive: exclusive);
+    return this;
+  }
+
+  @override
+  Future<bool> exists() => _inner.exists();
+
+  @override
+  Future<FileSystemEntity> delete({bool recursive = false}) =>
+      _inner.delete(recursive: recursive);
+
+  @override
+  IOSink openWrite({
+    FileMode mode = FileMode.write,
+    Encoding encoding = utf8,
+  }) => _sink;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('_SinkFile.${invocation.memberName}');
 }
 
 /// A stand-in transport error (avoids importing `dart:io`'s `SocketException`
@@ -507,4 +971,20 @@ class SocketExceptionLike implements Exception {
   final String message;
   @override
   String toString() => 'SocketExceptionLike: $message';
+}
+
+/// A [_SinkFile] with Windows delete semantics: deleting fails while the
+/// file's write handle ([consumer]) is still open.
+class _WindowsLikeFile extends _SinkFile {
+  _WindowsLikeFile(super.inner, super.sink, this.consumer);
+
+  final _GatedConsumer consumer;
+
+  @override
+  Future<FileSystemEntity> delete({bool recursive = false}) async {
+    if (!consumer.closed) {
+      throw FileSystemException('file is open in another process', path);
+    }
+    return super.delete(recursive: recursive);
+  }
 }

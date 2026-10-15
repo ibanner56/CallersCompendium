@@ -166,6 +166,12 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get navSettings;
 
+  /// Bottom/rail navigation label for the Glossary destination (shown only when Settings > Experimental > Show Glossary is on).
+  ///
+  /// In en, this message translates to:
+  /// **'Glossary'**
+  String get navGlossary;
+
   /// Bottom/rail navigation label for the in-app user guide destination.
   ///
   /// In en, this message translates to:
@@ -214,11 +220,93 @@ abstract class AppLocalizations {
   /// **'Could not prepare the collection.'**
   String get appBootstrapError;
 
+  /// Detail line on the startup error screen naming the kind of failure (the error's type name only, never its message).
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {errorType}'**
+  String appBootstrapErrorType(String errorType);
+
+  /// Button on the startup error screen that copies the error type and stack trace (not the message) to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy details'**
+  String get appBootstrapCopyDetails;
+
+  /// Label of the startup error screen's Copy details button after the details were copied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get appBootstrapCopiedDetails;
+
+  /// Hint on the startup error screen that the failure was recorded in the on-device diagnostics (crash) log.
+  ///
+  /// In en, this message translates to:
+  /// **'Details were also written to the diagnostics log in the app’s support folder.'**
+  String get appBootstrapLogHint;
+
   /// Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered.
   ///
   /// In en, this message translates to:
   /// **'This data was created by a newer version of Caller’s Compendium — please update the app.'**
   String get migrationDowngradeMessage;
+
+  /// Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Retry is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller’s Compendium didn’t start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.'**
+  String get migrationRelocationBothExist;
+
+  /// Terminal startup-screen message shown when the one-time move of the database found saved data in more than one old location (Windows: Documents and the Roaming fallback) and none in the new location. Nothing is deleted. No Retry is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller’s Compendium didn’t start because it found saved data in more than one folder used by earlier versions. Nothing was changed or deleted. Keep the copy you want, move the others out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.'**
+  String get migrationRelocationMultipleLegacy;
+
+  /// Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Retry is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller’s Compendium didn’t start because it couldn’t finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.'**
+  String get migrationRelocationFailed;
+
+  /// Terminal startup-screen message shown when there is no database in the new location yet and the Documents folder (where earlier versions kept the database) cannot be reached, so the app cannot tell whether a library is waiting there. Nothing is created. No Retry is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller’s Compendium didn’t start because it couldn’t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry “Where is my data stored?” has more.'**
+  String get migrationRelocationLegacyUnreachable;
+
+  /// Heading above the list of database copies on the terminal startup screen shown when saved data was found in more than one place. Each line below it names a folder, the copy's size and its last-changed date and time.
+  ///
+  /// In en, this message translates to:
+  /// **'Each copy’s size and when it last changed (the larger, more recently changed copy is usually your library):'**
+  String get migrationRelocationCopiesHeading;
+
+  /// Name of the folder a database copy is in, on the terminal startup screen listing conflicting copies: the app's current data folder. Used as {location} in migrationRelocationCopyDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'New location'**
+  String get migrationRelocationCopyNewLocation;
+
+  /// Name of the folder a database copy is in, on the terminal startup screen listing conflicting copies: the user's Documents folder, which earlier versions used. Used as {location} in migrationRelocationCopyDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Documents folder'**
+  String get migrationRelocationCopyDocuments;
+
+  /// Name of the folder a database copy is in, on the terminal startup screen listing conflicting copies: another app data folder an earlier version used (on Windows, the Roaming folder). Used as {location} in migrationRelocationCopyDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier app data folder'**
+  String get migrationRelocationCopyEarlierAppFolder;
+
+  /// One line per database copy on the terminal startup screen shown when saved data was found in more than one place, so the user can tell which copy is their library. {location} is the folder name (for example 'Documents folder'), {kilobytes} the copy's size in kilobytes, {date} its last-changed date and time. 'KB' is the kilobyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'{location}: {kilobytes} KB, last changed {date}'**
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  );
 
   /// Terminal startup-screen message shown when a pre-migration backup could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.
   ///
@@ -436,6 +524,84 @@ abstract class AppLocalizations {
   /// **'New features may appear here while they are still in development.'**
   String get settingsExperimentalPlaceholder;
 
+  /// App bar title of the Glossary screen, a read-only reference of the app's built-in dance figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Glossary'**
+  String get glossaryTitle;
+
+  /// Hint text in the Glossary screen's search field, which filters the list of dance figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Search figures'**
+  String get glossarySearchHint;
+
+  /// Shown in the Glossary when no dance figure matches the search text.
+  ///
+  /// In en, this message translates to:
+  /// **'No figures match “{query}”.'**
+  String glossaryNoMatches(String query);
+
+  /// Shown in the empty detail pane of the wide Glossary layout before a figure is selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a figure to see its definition.'**
+  String get glossarySelectPrompt;
+
+  /// Shown on a Glossary figure's detail when the app does not yet ship a definition for that figure.
+  ///
+  /// In en, this message translates to:
+  /// **'No definition yet.'**
+  String get glossaryNoDefinition;
+
+  /// Shown on a Glossary figure that is a named variant of another figure (for example, see saw is a variant of do-si-do).
+  ///
+  /// In en, this message translates to:
+  /// **'A variant of {figure}.'**
+  String glossaryVariantOf(String figure);
+
+  /// A Glossary figure name followed by what tells it apart from a figure with the same name, e.g. the values a variant fixes: 'pull by (neighbors)'.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ({detail})'**
+  String glossaryNameWithDetail(String name, String detail);
+
+  /// Heading above an example of how a figure is written, on a Glossary figure's detail.
+  ///
+  /// In en, this message translates to:
+  /// **'Example'**
+  String get glossaryExample;
+
+  /// Heading above the list of a figure's adjustable details (such as hand or direction), on a Glossary figure's detail.
+  ///
+  /// In en, this message translates to:
+  /// **'Parameters'**
+  String get glossaryParameters;
+
+  /// Heading above other names for a figure, on a Glossary figure's detail.
+  ///
+  /// In en, this message translates to:
+  /// **'Also known as'**
+  String get glossaryAlsoKnownAs;
+
+  /// Header of the Glossary group in the Experimental settings section.
+  ///
+  /// In en, this message translates to:
+  /// **'Glossary'**
+  String get settingsExperimentalGlossaryHeader;
+
+  /// Title of the switch that adds the Glossary destination to the app's navigation.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Glossary'**
+  String get settingsExperimentalShowGlossaryTitle;
+
+  /// Subtitle of the Show Glossary switch in the Experimental settings section.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds a Glossary of the built-in figures to the navigation, between Programs and Settings.'**
+  String get settingsExperimentalShowGlossarySubtitle;
+
   /// Header of the Device Sync group in the Experimental settings section.
   ///
   /// In en, this message translates to:
@@ -580,6 +746,336 @@ abstract class AppLocalizations {
   /// **'Last sync failed.'**
   String get settingsSyncStatusFailed;
 
+  /// Shown in the Device Sync section when the app failed to read its stored Device Sync settings. At startup, Device Sync stays off for that launch although the saved setting may say on. After restoring a backup, the app keeps the Device Sync state it had before the restore (which may be on), so what is shown may not match the restored settings. In both cases the user must be told rather than left to assume the screen is current. Not a sync failure: nothing was sent or lost.
+  ///
+  /// In en, this message translates to:
+  /// **'Device Sync\'s settings couldn\'t be read, so the settings shown here may be out of date, and Device Sync may be off even if you turned it on. Restart the app to try again.'**
+  String get settingsSyncStatusSettingsUnreadable;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the transport could not connect at all: DNS failure, refused or dropped connection, or a failed secure (TLS) handshake.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the sync server.'**
+  String get settingsSyncFailureUnreachable;
+
+  /// What the user can do about settingsSyncFailureUnreachable, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Check that this device is online. If you run your own server, check that it\'s running and that its address is right.'**
+  String get settingsSyncFailureUnreachableAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when a request did not finish within the transport deadline.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server took too long to answer.'**
+  String get settingsSyncFailureTimedOut;
+
+  /// What the user can do about settingsSyncFailureTimedOut, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'A slow or unsteady connection is the usual cause. Try again when the connection is stronger.'**
+  String get settingsSyncFailureTimedOutAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered with a 5xx status: a fault on the server's side.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server ran into a problem of its own.'**
+  String get settingsSyncFailureServerError;
+
+  /// What the user can do about settingsSyncFailureServerError, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing is wrong with this device or your library. Wait a while and try again. If it keeps happening, let whoever runs the server know, and quote the details shown here.'**
+  String get settingsSyncFailureServerErrorAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 429 Too Many Requests.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server asked this device to slow down.'**
+  String get settingsSyncFailureRateLimited;
+
+  /// What the user can do about settingsSyncFailureRateLimited, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'It has had too many requests in a short time. Wait a few minutes before trying again.'**
+  String get settingsSyncFailureRateLimitedAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 507: the store's storage quota is exhausted. Must not suggest deleting the store (spec §5.3 forbids offering a wipe as the first response to a 507). 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your store has used all the space the sync server allows.'**
+  String get settingsSyncFailureStoreFull;
+
+  /// What the user can do about settingsSyncFailureStoreFull, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Changes from this device can\'t be stored until there is room. Turning on Skip unused imported dances cuts what this device uploads. If you run your own server, raise its storage limit.'**
+  String get settingsSyncFailureStoreFullAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 413 Payload Too Large. 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Something this device tried to upload is larger than the sync server accepts.'**
+  String get settingsSyncFailureTooLarge;
+
+  /// What the user can do about settingsSyncFailureTooLarge, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'If you have a large imported collection, turning on Skip unused imported dances may bring it under the limit. If you run your own server, check its upload size limit.'**
+  String get settingsSyncFailureTooLargeAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 400, 415 or 422: it refused the request as invalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server refused what this device sent.'**
+  String get settingsSyncFailureRejected;
+
+  /// What the user can do about settingsSyncFailureRejected when this device uses the project's own sync server: the app is ahead of the server, nothing is lost, and nothing needs doing on the device. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'This version of the app is newer than the sync server. Your changes are saved here and will sync once the server is updated.'**
+  String get settingsSyncFailureRejectedAdviceDefaultServer;
+
+  /// What the user can do about settingsSyncFailureRejected when this device uses a sync server the user chose (self-hosted): the server needs updating. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Update your sync server to match this version of the app.'**
+  String get settingsSyncFailureRejectedAdviceCustomServer;
+
+  /// Calm Device Sync status line after a sync attempt that failed for a reason that clears by itself (no connection, a timeout, a server fault, or a request to slow down). The app retries on its own, so this is not shown as an error. Also the snackbar text when the toolbar Sync now button hits such a failure. Must not say when the next try is.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting to sync. Your changes are saved here.'**
+  String get settingsSyncStatusWaiting;
+
+  /// Warning on the Device Sync status surface when the store has used 80% or more of the space or record count the sync server allows. 'Store' is the shared place devices sync through, as elsewhere in Device Sync.
+  ///
+  /// In en, this message translates to:
+  /// **'Your sync store is almost full.'**
+  String get settingsSyncQuotaNearlyFull;
+
+  /// Button under settingsSyncQuotaNearlyFull. Turns on the setting titled settingsSyncExcludeImportsTitle, which stops this device uploading imported dances nothing else uses. Shown only while that setting is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop syncing imported dances'**
+  String get settingsSyncQuotaExcludeImports;
+
+  /// Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version cannot keep (for example new figure details). {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example "3 programs, 1 setting". The remedy is always updating the app on THIS device.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device is using a newer version of the app. Update the app on this device to receive {items}.'**
+  String settingsSyncNoticeNewerVersionItems(String items);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many dances are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance} other{{count} dances}}'**
+  String settingsSyncNoticeCountDance(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many programs are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 program} other{{count} programs}}'**
+  String settingsSyncNoticeCountProgram(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many choreographers are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 choreographer} other{{count} choreographers}}'**
+  String settingsSyncNoticeCountChoreographer(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many tags are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 tag} other{{count} tags}}'**
+  String settingsSyncNoticeCountTag(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many custom fields are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 custom field} other{{count} custom fields}}'**
+  String settingsSyncNoticeCountCustomField(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many difficulty levels are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 difficulty level} other{{count} difficulty levels}}'**
+  String settingsSyncNoticeCountDifficulty(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many published sources are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 published source} other{{count} published sources}}'**
+  String settingsSyncNoticeCountPublishedSource(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many venues are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 venue} other{{count} venues}}'**
+  String settingsSyncNoticeCountVenue(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many settings are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 setting} other{{count} settings}}'**
+  String settingsSyncNoticeCountSetting(int count);
+
+  /// Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting, because the other device's list of what it shares is itself in the newer format.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device is using a newer version of the app. Update the app on this device to receive its changes.'**
+  String get settingsSyncNoticeNewerVersionUncounted;
+
+  /// Informational Device Sync notice (not a problem): records on this device carry details that a newer version of the app added. This version keeps those details and syncs them back unchanged, but cannot display them. {items} is a list of counts by kind built from the settingsSyncNoticeCount* strings, for example "3 programs, 1 setting".
+  ///
+  /// In en, this message translates to:
+  /// **'Kept for a newer version of the app: {items}. These still sync, with details this version can\'t show. Update the app on this device to see them.'**
+  String settingsSyncNoticeKeptNewerItems(String items);
+
+  /// Tooltip of the button on a Device Sync problem that copies a short code describing it (for example SYNC-STORE-FULL), so the user can paste it into a message asking for help. Nothing is sent anywhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy details'**
+  String get settingsSyncCopyDetails;
+
+  /// Snackbar confirming the short Device Sync problem code was copied to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Details copied.'**
+  String get settingsSyncDetailsCopied;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 401 or 403.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server didn\'t accept this device\'s sync phrase.'**
+  String get settingsSyncFailureAccessDenied;
+
+  /// What the user can do about settingsSyncFailureAccessDenied, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Check the phrase against the one on your other device, and check that the server address is right.'**
+  String get settingsSyncFailureAccessDeniedAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when an unexpected status, a redirect the app will not follow, or a malformed or oversized response body.
+  ///
+  /// In en, this message translates to:
+  /// **'The sync server sent a reply this app couldn\'t use.'**
+  String get settingsSyncFailureUnexpectedResponse;
+
+  /// What the user can do about settingsSyncFailureUnexpectedResponse, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'If you run your own server, check its address and that it\'s a version this app supports. Otherwise, update the app and try again later.'**
+  String get settingsSyncFailureUnexpectedResponseAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when a first connection to a store needs every peer's manifest and at least one could not be read. 'Other devices' is the exact title of the settingsSyncDevicesTitle row.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read what one of your other devices last shared.'**
+  String get settingsSyncFailurePeerUnavailable;
+
+  /// What the user can do about settingsSyncFailurePeerUnavailable, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting to a store needs the latest list from every device on it. Open the app on your other devices and let them sync, then try again. If a device is gone for good, remove it under Other devices.'**
+  String get settingsSyncFailurePeerUnavailableAdvice;
+
+  /// Device Sync failure reason, one sentence, shown under "Last sync failed." on the status surface and in pairing, device-list and toolbar errors. Used when a failure inside the app rather than on the network. 'Diagnostics' is the exact title of the settingsDiagnosticsTitle section.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong inside the app while syncing.'**
+  String get settingsSyncFailureInternal;
+
+  /// What the user can do about settingsSyncFailureInternal, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions ("above", "below").
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a problem with your connection or the server. Try again. If it keeps happening, export the log from Settings ▸ Diagnostics and include it when you report the problem.'**
+  String get settingsSyncFailureInternalAdvice;
+
+  /// Part of the technical details line under a Device Sync failure, naming the step that failed so the user can describe the problem. The select values are internal identifiers and must not be translated.
+  ///
+  /// In en, this message translates to:
+  /// **'{step, select, lookup{Stopped while looking up the store.} download{Stopped while downloading from your other devices.} upload{Stopped while uploading this device\'s changes.} publish{Stopped while publishing this device\'s changes.} createStore{Stopped while creating the store.} other{Stopped partway through.}}'**
+  String settingsSyncFailureStep(String step);
+
+  /// Part of the technical details line under a Device Sync failure: the HTTP status code the server answered with, for the user to quote when reporting the problem.
+  ///
+  /// In en, this message translates to:
+  /// **'The server answered with HTTP status {code}.'**
+  String settingsSyncFailureStatusCode(int code);
+
+  /// Technical details line under a Device Sync failure. {details} is settingsSyncFailureStep and/or settingsSyncFailureStatusCode joined by a space.
+  ///
+  /// In en, this message translates to:
+  /// **'Details: {details}'**
+  String settingsSyncFailureDetails(String details);
+
+  /// Snackbar shown when the toolbar Sync now button on the Collection or Programs page ran a pass that did not complete. {explanation} is the failure reason and advice (settingsSyncFailure* strings) or a status line such as settingsSyncStatusStoreUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync didn\'t finish. {explanation}'**
+  String commonSyncFailed(String explanation);
+
+  /// Second line of a Device Sync notice listing the records it is about, so the user knows which ones to look at. {records} is a list of settingsSyncNoticeRecordNamed / settingsSyncNoticeRecordNotHere / kind labels joined by settingsSyncNoticeListSeparator, optionally ending with settingsSyncNoticeAffectedMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Affects: {records}'**
+  String settingsSyncNoticeAffected(String records);
+
+  /// Separator between items in a Device Sync notice's lists: the records in settingsSyncNoticeAffected, and the counts by kind in settingsSyncNoticeNewerVersionItems (for example "3 programs, 1 setting"). Include any spacing your language uses.
+  ///
+  /// In en, this message translates to:
+  /// **', '**
+  String get settingsSyncNoticeListSeparator;
+
+  /// One record in the settingsSyncNoticeAffected list: its kind (a syncReviewKind* label such as "Dance") and its title or name as stored on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} “{name}”'**
+  String settingsSyncNoticeRecordNamed(String kind, String name);
+
+  /// One record in the settingsSyncNoticeAffected list that this device does not have, so there is no name to show — typically a record from another device that was skipped. {kind} is a syncReviewKind* label such as "Dance".
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} not on this device'**
+  String settingsSyncNoticeRecordNotHere(String kind);
+
+  /// Variant of settingsSyncNoticeRecordNamed for a record another device shared that this version refused because a newer version of the app added something to its figures (the dance's steps). Tells the user what this version does not understand.
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} “{name}” (has figures only a newer version can read)'**
+  String settingsSyncNoticeRecordNewerFigures(String kind, String name);
+
+  /// Variant of settingsSyncNoticeRecordNotHere for a record this device does not have yet because it was refused: a newer version of the app added something to its figures (the dance's steps).
+  ///
+  /// In en, this message translates to:
+  /// **'{kind} not on this device (has figures only a newer version can read)'**
+  String settingsSyncNoticeRecordNotHereNewerFigures(String kind);
+
+  /// Ends the settingsSyncNoticeAffected list when it names only the first few records.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{and {count} more}}'**
+  String settingsSyncNoticeAffectedMore(int count);
+
+  /// Line on a Device Sync notice saying how many other devices the records it is about came from.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{From 1 other device.} other{From {count} other devices.}}'**
+  String settingsSyncNoticeFromDevices(int count);
+
+  /// Shown on the Other devices screen when the device list could not be loaded and the reason is known. {explanation} is a settingsSyncFailure* reason and its advice.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the device list. {explanation}'**
+  String settingsSyncDevicesFailedBecause(String explanation);
+
+  /// Joins a Device Sync action failure (settingsSyncDeviceRemoveFailed or settingsSyncWipeFailed) with the reason it failed (a settingsSyncFailure* reason). Reorder if your language puts the reason first.
+  ///
+  /// In en, this message translates to:
+  /// **'{message} {explanation}'**
+  String settingsSyncAdminFailedBecause(String message, String explanation);
+
   /// Status shown when the last sync attempt found the connected store had moved on to a new epoch (another device confirmed a replacement). No action is needed: the next pass attaches to the replaced store on its own.
   ///
   /// In en, this message translates to:
@@ -604,11 +1100,383 @@ abstract class AppLocalizations {
   /// **'Sync is paused because the store this device used no longer exists. Tap Sync now to decide again.'**
   String get settingsSyncStatusPaused;
 
-  /// Non-blocking notice on the Device Sync status surface for an equal-updatedAt conflict (spec §6.3). Neither body wins and neither is applied; only a human edit resolves it, so the copy asks for one. Needs no dismissal and blocks nothing.
+  /// Non-blocking notice for an equal-updatedAt conflict (spec §6.3) that the conflict choice does not cover: two dances that share a title, which Sync decisions lists, or two tombstones, which an edit settles. Ordinary ties go to the conflict choice instead and raise no notice. Needs no dismissal and blocks nothing.
   ///
   /// In en, this message translates to:
-  /// **'Some records were changed on two devices at the same moment. Neither copy was chosen, so your devices still differ. Edit one of them to settle it.'**
+  /// **'Some items were changed on two devices at the same moment and still differ. If they\'re listed under Sync decisions, choose there; otherwise edit one of them to settle it.'**
   String get settingsSyncNoticeDivergence;
+
+  /// Title of the conflict choice (sync-spec §6.3): a dialog on wide windows, a bottom sheet on phones, listing items changed on more than one device whose versions only the user can choose between.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which version to keep'**
+  String get syncConflictTitle;
+
+  /// Intro under the conflict choice title. Must reassure: nothing is lost before the user chooses, and nothing is chosen for them.
+  ///
+  /// In en, this message translates to:
+  /// **'These were changed on more than one device, and the app can\'t tell which change should win. Both versions are kept until you choose.'**
+  String get syncConflictIntro;
+
+  /// Option label for keeping this device's version of an item in the conflict choice.
+  ///
+  /// In en, this message translates to:
+  /// **'This device'**
+  String get syncConflictThisDevice;
+
+  /// Option label for keeping the other device's version when only one other version is on offer. Devices are never named, by design.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device'**
+  String get syncConflictOtherDevice;
+
+  /// Option label when more than one other version is on offer; {number} tells them apart. Devices are never named, by design.
+  ///
+  /// In en, this message translates to:
+  /// **'Another device ({number})'**
+  String syncConflictOtherDeviceNumbered(int number);
+
+  /// Selects this device's version for every item in the conflict choice; the user still confirms with the apply button.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep all from this device'**
+  String get syncConflictKeepAllThisDevice;
+
+  /// Selects the other device's version for every item, offered only when each item has exactly one other version; the user still confirms.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep all from the other device'**
+  String get syncConflictKeepAllOtherDevice;
+
+  /// Button that saves the chosen versions. Each chosen version then reaches the other devices as an ordinary newer edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep selected'**
+  String get syncConflictApply;
+
+  /// Closes the conflict choice without changing anything; the items stay listed until decided.
+  ///
+  /// In en, this message translates to:
+  /// **'Decide later'**
+  String get syncConflictDecideLater;
+
+  /// Button on one item in the conflict choice that opens the full comparison of its versions. Shown when several items are listed; a single item shows the comparison directly.
+  ///
+  /// In en, this message translates to:
+  /// **'Show differences'**
+  String get syncConflictShowDifferences;
+
+  /// Second line under a version in the conflict choice: when that version was last changed. Shown only when the versions were changed at different times.
+  ///
+  /// In en, this message translates to:
+  /// **'Changed {when}'**
+  String syncConflictChangedAt(String when);
+
+  /// Heading in the comparison listing entries (dialects, shorthands, a program's dances…) that only this device's version has.
+  ///
+  /// In en, this message translates to:
+  /// **'Only on this device'**
+  String get syncConflictOnlyHereHeader;
+
+  /// Heading in the comparison listing entries that only the other device's version has.
+  ///
+  /// In en, this message translates to:
+  /// **'Only on the other device'**
+  String get syncConflictOnlyThereHeader;
+
+  /// Heading in the comparison listing entries both versions have but with different contents.
+  ///
+  /// In en, this message translates to:
+  /// **'Different on each device'**
+  String get syncConflictDifferentHeader;
+
+  /// Note at the end of a collection comparison: how many entries are identical in both versions.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 more is the same on both} other{{count} more are the same on both}}'**
+  String syncConflictSameCount(int count);
+
+  /// Part of the one-line summary of a collection conflict: how many entries only this device has. Joined with the other parts by " · ".
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 only on this device} other{{count} only on this device}}'**
+  String syncConflictSummaryOnlyHere(int count);
+
+  /// Part of the one-line summary of a collection conflict: how many entries only the other device has.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 only on the other device} other{{count} only on the other device}}'**
+  String syncConflictSummaryOnlyThere(int count);
+
+  /// Part of the one-line summary of a collection conflict: how many entries both have with different contents.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 different} other{{count} different}}'**
+  String syncConflictSummaryChanged(int count);
+
+  /// One-line summary of a conflicted dance, program or other item: the names of the fields that differ, e.g. "Figures, Calling notes".
+  ///
+  /// In en, this message translates to:
+  /// **'Differs in: {fields}'**
+  String syncConflictDiffersInFields(String fields);
+
+  /// Heading in the comparison when more than one other version is on offer; {version} is e.g. "Another device (2)".
+  ///
+  /// In en, this message translates to:
+  /// **'Compared with {version}'**
+  String syncConflictComparedWith(String version);
+
+  /// Shown in the comparison when the versions differ only in fields that are never shown here.
+  ///
+  /// In en, this message translates to:
+  /// **'These versions differ only in details this view doesn\'t show.'**
+  String get syncConflictNothingToShow;
+
+  /// Shown in the comparison when either version's figures cannot be read.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures can\'t be compared here.'**
+  String get syncConflictFiguresUnreadable;
+
+  /// Shown in a program comparison when both versions list the same dances but in a different order.
+  ///
+  /// In en, this message translates to:
+  /// **'The same dances, in a different order.'**
+  String get syncConflictSlotsReordered;
+
+  /// Shown in a program comparison when both versions list the same dances but slot details differ.
+  ///
+  /// In en, this message translates to:
+  /// **'The same dances, with different details such as timings or alternates.'**
+  String get syncConflictSlotsDetailsDiffer;
+
+  /// Shown in the comparison in place of a name for something a version refers to that this device doesn't have (a tag, choreographer or dance).
+  ///
+  /// In en, this message translates to:
+  /// **'Not on this device'**
+  String get syncConflictUnknownItem;
+
+  /// One version's value in the comparison, e.g. "This device: Dark". {device} is "This device" or "Another device".
+  ///
+  /// In en, this message translates to:
+  /// **'{device}: {value}'**
+  String syncConflictVersionLine(String device, String value);
+
+  /// A name and its value in the comparison, e.g. "Source book: Zesty Contras" for a custom field, or "My dialect: Move substitutions" for a part of a dialect.
+  ///
+  /// In en, this message translates to:
+  /// **'{field}: {value}'**
+  String syncConflictFieldValue(String field, String value);
+
+  /// Label for the name field of a choreographer, tag or venue in the comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get syncConflictFieldName;
+
+  /// Third option for a list such as dialects or shorthands that both devices changed: keep every entry from both instead of one device's whole list.
+  ///
+  /// In en, this message translates to:
+  /// **'Combine both'**
+  String get syncConflictCombineBoth;
+
+  /// Subtitle of Combine both: how many entries the combined list would hold.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Keeps the 1 item from both devices} other{Keeps all {count} items from both devices}}'**
+  String syncConflictCombineSummary(int count);
+
+  /// Subtitle of a disabled Combine both: the combined list would be longer than the app keeps, so some entries would be lost.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t combine: together these would be {count}, and this list holds at most {limit}.'**
+  String syncConflictCombineOverLimit(int count, int limit);
+
+  /// Shown under Combine both when some entries exist on both devices with different contents; the user picks a version of each before saving.
+  ///
+  /// In en, this message translates to:
+  /// **'Both devices changed these. For each, choose which to keep:'**
+  String get syncConflictCombinePickEach;
+
+  /// Shown when Combine both was chosen for something that cannot be combined.
+  ///
+  /// In en, this message translates to:
+  /// **'These can\'t be combined, so nothing was changed.'**
+  String get syncConflictCombineUnavailable;
+
+  /// Shown when saving a combination failed because it would exceed the list's limit.
+  ///
+  /// In en, this message translates to:
+  /// **'Together these would be more than this list can hold, so nothing was changed.'**
+  String get syncConflictCombineOverLimitError;
+
+  /// Snackbar after saving conflict choices; its action reopens them to choose again.
+  ///
+  /// In en, this message translates to:
+  /// **'Your choices are saved.'**
+  String get syncConflictSaved;
+
+  /// Snackbar action after saving conflict choices: reopens those items with the versions you chose between. Nothing changes until you choose again and save.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get syncConflictUndo;
+
+  /// Intro of the conflict choice when reopened by Undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose again between the versions you had. Nothing changes until you save.'**
+  String get syncConflictReconsiderIntro;
+
+  /// Shown when an undo cannot be saved because the item changed since the original choice (for example, a newer edit arrived from another device).
+  ///
+  /// In en, this message translates to:
+  /// **'Something newer arrived after you chose, so nothing was changed.'**
+  String get syncConflictUndoChanged;
+
+  /// Label in the sync conflict comparison for where a dance came from (its import source and licence), shown as the dance page's provenance line.
+  ///
+  /// In en, this message translates to:
+  /// **'Origin'**
+  String get syncConflictFieldProvenance;
+
+  /// Label for a tag's colour in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour'**
+  String get syncConflictFieldColour;
+
+  /// Label for whether a custom theme is light or dark, in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Light or dark'**
+  String get syncConflictThemeBrightness;
+
+  /// A figure's own walkthrough text, shown after the figure in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'walkthrough: {text}'**
+  String syncConflictFigureWalkthrough(String text);
+
+  /// A figure's own calling wording, shown after the figure in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'wording: {text}'**
+  String syncConflictFigureWording(String text);
+
+  /// A figure in the conflict comparison whose words are the same on both versions but whose other saved details differ.
+  ///
+  /// In en, this message translates to:
+  /// **'{figure} (other details differ)'**
+  String syncConflictFigureDetailsDiffer(String figure);
+
+  /// Marks a link that joins the related-dance group, in the conflict comparison.
+  ///
+  /// In en, this message translates to:
+  /// **'in the related-dance group'**
+  String get syncConflictLinkInGroup;
+
+  /// Shown for a version of a setting that has no value.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get syncConflictValueNotSet;
+
+  /// Shown for a version of an on/off setting that is on.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get syncConflictValueOn;
+
+  /// Shown for a version of an on/off setting that is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get syncConflictValueOff;
+
+  /// Summary of a version of a setting whose value is a collection whose entries have no names.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{None} =1{1 item} other{{count} items}}'**
+  String syncConflictValueItems(int count);
+
+  /// Summary of a version of a collection setting: the first few entry names, then how many more there are.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} and {count} more'**
+  String syncConflictValueNamesAndMore(String names, int count);
+
+  /// Shown in the conflict choice when no item is waiting for a choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing needs choosing right now.'**
+  String get syncConflictNone;
+
+  /// Shown when a choice could not be stamped later than every version without leaving this device's clock window: the fix is this device's clock.
+  ///
+  /// In en, this message translates to:
+  /// **'This device\'s date and time look wrong, so your choice couldn\'t be saved. Correct the date and time, then try again.'**
+  String get syncConflictClockWrong;
+
+  /// Shown when saving a conflict choice failed for an unexpected reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Your choice couldn\'t be saved. Try again.'**
+  String get syncConflictFailed;
+
+  /// Name of the synced setting that records which custom theme is active, shown when the user must choose between two versions of it.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom theme in use'**
+  String get syncSettingActiveCustomTheme;
+
+  /// Name of the synced setting that records which dialect is active, shown when the user must choose between two versions of it.
+  ///
+  /// In en, this message translates to:
+  /// **'Dialect in use'**
+  String get syncSettingActiveDialect;
+
+  /// Name of the synced setting that remembers the last sort chosen on the Collection page.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection sort (last used)'**
+  String get syncSettingLastCollectionSort;
+
+  /// Name of the synced setting that remembers the last sort direction chosen on the Collection page.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection sort direction (last used)'**
+  String get syncSettingLastCollectionSortDirection;
+
+  /// Name of the synced setting that remembers the last sort chosen on the Programs page.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs sort (last used)'**
+  String get syncSettingLastProgramSort;
+
+  /// Name of the synced setting that remembers the last sort direction chosen on the Programs page.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs sort direction (last used)'**
+  String get syncSettingLastProgramSortDirection;
+
+  /// Name of the synced setting that turns on the dark stage theme in Perform.
+  ///
+  /// In en, this message translates to:
+  /// **'Stage theme in Perform'**
+  String get syncSettingPerformStageTheme;
+
+  /// Subtitle of the Device Sync entry that opens the conflict choice; shown only while at least one item is waiting.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 item was changed on two devices and needs your choice.} other{{count} items were changed on two devices and need your choice.}}'**
+  String settingsSyncConflictsSubtitle(int count);
+
+  /// Tooltip of the toolbar Sync now button while items await a conflict choice; the button also shows the count as a badge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Sync now (1 item needs your choice)} other{Sync now ({count} items need your choice)}}'**
+  String commonSyncNowConflictsTooltip(int count);
 
   /// Non-blocking notice for spec §6.4: a record created locally and never observed by any peer must be reported rather than resolved out of existence. Informational — the record is safe and no action is required.
   ///
@@ -646,11 +1514,23 @@ abstract class AppLocalizations {
   /// **'An update from another device arrived while you were editing the same record, so it wasn\'t applied. The next sync picks it up.'**
   String get settingsSyncNoticeDeferredInbound;
 
-  /// Non-blocking notice raised when records this device published have been absent from every observed peer manifest for three consecutive passes, which usually means another device has stopped syncing.
+  /// Needs-you Device Sync notice, one per other device: that device has synced at least twice since this one shared some changes and still doesn't have them. The two usual causes are named: that device runs an older app version that refuses them, or this device's clock is far ahead so the other device refuses them as dated in the future. {tag} is the device's short random tag, exactly as on the Other devices screen (settingsSyncDeviceTag); never a name. Says the user's work is safe on this device before what to check.
   ///
   /// In en, this message translates to:
-  /// **'Changes from this device haven\'t appeared on your other devices after several syncs. Open the app on them and sync.'**
-  String get settingsSyncNoticeUnreflectedPublication;
+  /// **'{count, plural, =1{Device {tag} is syncing but isn\'t taking 1 change from this device. The change is safe here. That device may need an app update, or this device\'s date and time may be wrong.} other{Device {tag} is syncing but isn\'t taking {count} changes from this device. They\'re safe here. That device may need an app update, or this device\'s date and time may be wrong.}}'**
+  String settingsSyncNoticePeerNotTaking(int count, String tag);
+
+  /// Short label beside the warning icon on a Device Sync notice that needs the user to do something, so the urgency is not carried by colour alone.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs you'**
+  String get settingsSyncNoticeNeedsYou;
+
+  /// Button on the settingsSyncNoticePeerNotTaking notice that opens the Other devices screen (settingsSyncDevicesScreenTitle), where the device it names is listed by the same tag.
+  ///
+  /// In en, this message translates to:
+  /// **'See other devices'**
+  String get settingsSyncNoticeSeeDevices;
 
   /// Disclosure that sync does not replace a file backup. Spec §6.14 item 3 requires it wherever the UI reports success, so it is shown both on the Device Sync status surface and in the dialog shown when pairing completes; a third success report would need it too.
   ///
@@ -670,16 +1550,16 @@ abstract class AppLocalizations {
   /// **'Sync now'**
   String get settingsSyncNowTitle;
 
-  /// Status-surface action that detaches this device from its Device Sync store (spec: detach). Local only.
+  /// Status-surface action that detaches this device from its Device Sync store (spec: detach). Forgets the sync phrase on this device; afterwards the app may remove this device's entry from the store if the other devices already have everything it shared.
   ///
   /// In en, this message translates to:
   /// **'Disconnect this device'**
   String get settingsSyncDisconnectTitle;
 
-  /// Subtitle under the Device Sync disconnect action.
+  /// Subtitle under the Device Sync disconnect action. Must not say the store is unchanged: disconnecting may remove this device's entry from it (settingsSyncDisconnectConfirmBody).
   ///
   /// In en, this message translates to:
-  /// **'Stop syncing here. The store and your other devices are not changed.'**
+  /// **'Stop syncing here. Your library stays as it is, here and on your other devices.'**
   String get settingsSyncDisconnectSubtitle;
 
   /// Title of the confirmation dialog before detaching this device from its Device Sync store.
@@ -688,10 +1568,10 @@ abstract class AppLocalizations {
   /// **'Disconnect this device?'**
   String get settingsSyncDisconnectConfirmTitle;
 
-  /// Body of the Device Sync disconnect confirmation: local-only, keeps the library, needs the phrase to reconnect (spec §6.14 item 2: no recovery).
+  /// Body of the Device Sync disconnect confirmation: keeps the library, removes this device's entry from the store only when the other devices already have everything from it (otherwise it stays under Other devices, the exact title of settingsSyncDevicesTitle), and needs the phrase to reconnect (spec §6.14 item 2: no recovery).
   ///
   /// In en, this message translates to:
-  /// **'This device will stop syncing and forget its sync phrase. Your library on this device stays as it is, and the store and your other devices aren\'t affected. To reconnect later you\'ll need the phrase, so make sure you have it.'**
+  /// **'This device will stop syncing and forget its sync phrase. Your library on this device stays as it is, and so do your other devices. Disconnecting removes this device from the sync store if your other devices already have everything from it. If they don\'t, it stays listed under Other devices until you remove it there. To reconnect later you\'ll need the phrase, so make sure you have it.'**
   String get settingsSyncDisconnectConfirmBody;
 
   /// Confirm button of the Device Sync disconnect dialog.
@@ -724,11 +1604,47 @@ abstract class AppLocalizations {
   /// **'Other devices'**
   String get settingsSyncDevicesScreenTitle;
 
-  /// Explains that the Device Sync device list shows opaque identifiers only, excludes this device, and that removal is reversible by re-pairing.
+  /// Explains that the Device Sync device list shows each device by a short tag of the random identifier that device made up for itself (a new one at every connection), never a name; that this device is not listed but its own tag is shown below (settingsSyncDevicesThisDevice); and that removal is reversible by re-pairing.
   ///
   /// In en, this message translates to:
-  /// **'The server only knows each device by an identifier it made up, so there are no device names here, and this device isn\'t listed. If you aren\'t sure which one to remove, it\'s safe to leave it: a device you remove can connect again with the sync phrase.'**
+  /// **'Each device makes up its own random identifier, and a new one every time it connects, so devices are shown here by a short tag from that identifier rather than by name. This device isn\'t in the list; its own tag is below, so you can find it on your other devices. If you aren\'t sure which one to remove, it\'s safe to leave it: a device you remove can connect again with the sync phrase.'**
   String get settingsSyncDevicesCaution;
+
+  /// Line on the Other devices screen giving this device's own short tag, so the user can tell which entry is this device when looking at the list on another device.
+  ///
+  /// In en, this message translates to:
+  /// **'This device: {tag}'**
+  String settingsSyncDevicesThisDevice(String tag);
+
+  /// Title of one entry on the Other devices screen. {tag} is a short, random, case-sensitive tag cut from the device's identifier; never a name.
+  ///
+  /// In en, this message translates to:
+  /// **'Device {tag}'**
+  String settingsSyncDeviceTag(String tag);
+
+  /// Line under a device on the Other devices screen: that device last published its list of changes today. Rounded to the day on purpose; never a time.
+  ///
+  /// In en, this message translates to:
+  /// **'Last shared changes today'**
+  String get settingsSyncDeviceLastSharedToday;
+
+  /// Line under a device on the Other devices screen: how many calendar days ago that device last published its list of changes, from 1 to 13.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Last shared changes yesterday} other{Last shared changes {count} days ago}}'**
+  String settingsSyncDeviceLastSharedDays(int count);
+
+  /// Line under a device on the Other devices screen: roughly how many weeks ago that device last published its list of changes, used from two weeks on.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Last shared changes about a week ago} other{Last shared changes about {count} weeks ago}}'**
+  String settingsSyncDeviceLastSharedWeeks(int count);
+
+  /// Line under a device on the Other devices screen when that device doesn't yet have some of this device's changes, usually because it hasn't been opened since. Calm status, not a warning.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 change from this device is waiting for it.} other{{count} changes from this device are waiting for it.}}'**
+  String settingsSyncDeviceWaiting(int count);
 
   /// Empty state when this is the only device with a manifest in the Device Sync store.
   ///
@@ -988,12 +1904,6 @@ abstract class AppLocalizations {
   /// **'That phrase is already in use by another store. Generate a different one.'**
   String get settingsSyncPairingAlreadyInUse;
 
-  /// Error shown when the pairing request fails for a reason other than 404/409 (network, server).
-  ///
-  /// In en, this message translates to:
-  /// **'Device Sync isn\'t available right now. Check your connection and try again.'**
-  String get settingsSyncPairingUnreachable;
-
   /// Heading of the warning shown during pairing when the server address is not the default Device Sync server (spec §8).
   ///
   /// In en, this message translates to:
@@ -1149,12 +2059,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'System default'**
   String get commonSystemDefault;
-
-  /// Trailing badge on a settings control whose feature is not available yet.
-  ///
-  /// In en, this message translates to:
-  /// **'Coming soon'**
-  String get commonComingSoon;
 
   /// Label of the Settings section that groups app-language and regional-format preferences.
   ///
@@ -1701,6 +2605,576 @@ abstract class AppLocalizations {
   /// **'Custom themes'**
   String get settingsAppearanceCustomThemesHeader;
 
+  /// Section heading above the "System" themes in the Appearance theme gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get appThemeGroupSystem;
+
+  /// Section heading above the "Default" themes in the Appearance theme gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get appThemeGroupDefault;
+
+  /// Section heading above the "Light" themes in the Appearance theme gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get appThemeGroupLight;
+
+  /// Section heading above the "Dark" themes in the Appearance theme gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get appThemeGroupDark;
+
+  /// Name of the built-in "System" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get appThemeLabelSystem;
+
+  /// Name of the built-in "Light" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get appThemeLabelLight;
+
+  /// Name of the built-in "Dark" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get appThemeLabelDark;
+
+  /// Name of the built-in "Soft Dark" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft Dark'**
+  String get appThemeLabelSoftDark;
+
+  /// Name of the built-in "High contrast" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'High contrast'**
+  String get appThemeLabelHighContrast;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Match the device light/dark setting'**
+  String get appThemeDescriptionSystem;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm light palette'**
+  String get appThemeDescriptionLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm dark palette'**
+  String get appThemeDescriptionDark;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm dark on a softer, lighter canvas'**
+  String get appThemeDescriptionSoftDark;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum contrast for dim rooms and low vision'**
+  String get appThemeDescriptionHighContrast;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Crisp cool-neutral canvas with vivid jewel tones'**
+  String get appThemeDescriptionBlulocoLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'One Dark Pro, the popular editor theme'**
+  String get appThemeDescriptionOneDarkPro;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'One Monokai — Monokai syntax on charcoal'**
+  String get appThemeDescriptionMonokai;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'The original deep teal Noctis night'**
+  String get appThemeDescriptionNoctis;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub’s clean neutral light'**
+  String get appThemeDescriptionGithubLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft pastel light, community favorite'**
+  String get appThemeDescriptionCatppuccinLatte;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm retro cream and earth tones'**
+  String get appThemeDescriptionGruvboxLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Gentle green, easy on the eyes'**
+  String get appThemeDescriptionEverforestLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Muted rose and iris on warm paper'**
+  String get appThemeDescriptionRosePineDawn;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Bright, minimal light with amber accents'**
+  String get appThemeDescriptionAyuLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Crisp indigo daylight, Tokyo Night’s day'**
+  String get appThemeDescriptionTokyoNightLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Cool arctic snow-storm neutrals'**
+  String get appThemeDescriptionNordLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm sumi-e paper with ink accents'**
+  String get appThemeDescriptionKanagawaLotus;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'The classic purple-on-charcoal favorite'**
+  String get appThemeDescriptionDracula;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Cool arctic blues, understated'**
+  String get appThemeDescriptionNord;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Neon indigo city-at-night palette'**
+  String get appThemeDescriptionTokyoNight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm retro amber on charcoal'**
+  String get appThemeDescriptionGruvboxDark;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Cozy pastel dark, community favorite'**
+  String get appThemeDescriptionCatppuccinMocha;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'GitHub’s neutral dark'**
+  String get appThemeDescriptionGithubDark;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft forest green, low fatigue'**
+  String get appThemeDescriptionEverforestDark;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Muted rose and iris in the dark'**
+  String get appThemeDescriptionRosePine;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Smooth slate with amber accents'**
+  String get appThemeDescriptionAyuMirage;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Cute af dark pastel, pink-forward'**
+  String get appThemeDescriptionCutiePro;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Unapologetic hot pink on berry'**
+  String get appThemeDescriptionPinkAsHeck;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Modern muted sage, teal and rose'**
+  String get appThemeDescriptionVitesseLight;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'The classic low-contrast warm grey'**
+  String get appThemeDescriptionZenburn;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold gold on deep indigo'**
+  String get appThemeDescriptionShadesOfPurple;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Lighter blue-gray pastel Catppuccin'**
+  String get appThemeDescriptionCatppuccinFrappe;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Glowing neon on retro purple'**
+  String get appThemeDescriptionSynthwave84;
+
+  /// One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'Gentle lilac Noctis daylight'**
+  String get appThemeDescriptionNoctisLilac;
+
+  /// Heading of the "Primary" group of colour roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary'**
+  String get themeEditorGroupPrimary;
+
+  /// Heading of the "Secondary" group of colour roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary'**
+  String get themeEditorGroupSecondary;
+
+  /// Heading of the "Tertiary" group of colour roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Tertiary'**
+  String get themeEditorGroupTertiary;
+
+  /// Heading of the "Error" group of colour roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get themeEditorGroupError;
+
+  /// Heading of the "Surface & text" group of colour roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Surface & text'**
+  String get themeEditorGroupSurfaceText;
+
+  /// Heading of the "Surface containers" group of colour roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Surface containers'**
+  String get themeEditorGroupSurfaceContainers;
+
+  /// Heading of the "Outline & effects" group of colour roles in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Outline & effects'**
+  String get themeEditorGroupOutlineEffects;
+
+  /// Label of the "Primary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Primary'**
+  String get themeEditorRolePrimary;
+
+  /// Label of the "On primary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On primary'**
+  String get themeEditorRoleOnPrimary;
+
+  /// Label of the "Primary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Primary container'**
+  String get themeEditorRolePrimaryContainer;
+
+  /// Label of the "On primary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On primary container'**
+  String get themeEditorRoleOnPrimaryContainer;
+
+  /// Label of the "Secondary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary'**
+  String get themeEditorRoleSecondary;
+
+  /// Label of the "On secondary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On secondary'**
+  String get themeEditorRoleOnSecondary;
+
+  /// Label of the "Secondary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary container'**
+  String get themeEditorRoleSecondaryContainer;
+
+  /// Label of the "On secondary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On secondary container'**
+  String get themeEditorRoleOnSecondaryContainer;
+
+  /// Label of the "Tertiary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Tertiary'**
+  String get themeEditorRoleTertiary;
+
+  /// Label of the "On tertiary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On tertiary'**
+  String get themeEditorRoleOnTertiary;
+
+  /// Label of the "Tertiary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Tertiary container'**
+  String get themeEditorRoleTertiaryContainer;
+
+  /// Label of the "On tertiary container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On tertiary container'**
+  String get themeEditorRoleOnTertiaryContainer;
+
+  /// Label of the "Error" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get themeEditorRoleError;
+
+  /// Label of the "On error" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On error'**
+  String get themeEditorRoleOnError;
+
+  /// Label of the "Error container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Error container'**
+  String get themeEditorRoleErrorContainer;
+
+  /// Label of the "On error container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On error container'**
+  String get themeEditorRoleOnErrorContainer;
+
+  /// Label of the "Surface" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Surface'**
+  String get themeEditorRoleSurface;
+
+  /// Label of the "On surface" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On surface'**
+  String get themeEditorRoleOnSurface;
+
+  /// Label of the "On surface variant" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On surface variant'**
+  String get themeEditorRoleOnSurfaceVariant;
+
+  /// Label of the "Inverse surface" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Inverse surface'**
+  String get themeEditorRoleInverseSurface;
+
+  /// Label of the "On inverse surface" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'On inverse surface'**
+  String get themeEditorRoleOnInverseSurface;
+
+  /// Label of the "Inverse primary" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Inverse primary'**
+  String get themeEditorRoleInversePrimary;
+
+  /// Label of the "Container lowest" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Container lowest'**
+  String get themeEditorRoleSurfaceContainerLowest;
+
+  /// Label of the "Container low" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Container low'**
+  String get themeEditorRoleSurfaceContainerLow;
+
+  /// Label of the "Container" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Container'**
+  String get themeEditorRoleSurfaceContainer;
+
+  /// Label of the "Container high" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Container high'**
+  String get themeEditorRoleSurfaceContainerHigh;
+
+  /// Label of the "Container highest" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Container highest'**
+  String get themeEditorRoleSurfaceContainerHighest;
+
+  /// Label of the "Outline" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Outline'**
+  String get themeEditorRoleOutline;
+
+  /// Label of the "Outline variant" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Outline variant'**
+  String get themeEditorRoleOutlineVariant;
+
+  /// Label of the "Surface tint" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Surface tint'**
+  String get themeEditorRoleSurfaceTint;
+
+  /// Label of the "Shadow" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Shadow'**
+  String get themeEditorRoleShadow;
+
+  /// Label of the "Scrim" colour role in the custom-theme editor (a Material colour-scheme role, e.g. "On primary" is the text/icon colour drawn on top of "Primary").
+  ///
+  /// In en, this message translates to:
+  /// **'Scrim'**
+  String get themeEditorRoleScrim;
+
+  /// Label of the live WCAG contrast badge for the "Text on primary" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on primary'**
+  String get themeEditorPairOnPrimary;
+
+  /// Label of the live WCAG contrast badge for the "Text on primary container" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on primary container'**
+  String get themeEditorPairOnPrimaryContainer;
+
+  /// Label of the live WCAG contrast badge for the "Text on secondary" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on secondary'**
+  String get themeEditorPairOnSecondary;
+
+  /// Label of the live WCAG contrast badge for the "Text on secondary container" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on secondary container'**
+  String get themeEditorPairOnSecondaryContainer;
+
+  /// Label of the live WCAG contrast badge for the "Text on tertiary" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on tertiary'**
+  String get themeEditorPairOnTertiary;
+
+  /// Label of the live WCAG contrast badge for the "Text on tertiary container" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on tertiary container'**
+  String get themeEditorPairOnTertiaryContainer;
+
+  /// Label of the live WCAG contrast badge for the "Text on error" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on error'**
+  String get themeEditorPairOnError;
+
+  /// Label of the live WCAG contrast badge for the "Text on error container" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on error container'**
+  String get themeEditorPairOnErrorContainer;
+
+  /// Label of the live WCAG contrast badge for the "Body text on surface" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Body text on surface'**
+  String get themeEditorPairOnSurface;
+
+  /// Label of the live WCAG contrast badge for the "Secondary text on surface" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary text on surface'**
+  String get themeEditorPairOnSurfaceVariant;
+
+  /// Label of the live WCAG contrast badge for the "Text on inverse surface" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Text on inverse surface'**
+  String get themeEditorPairOnInverseSurface;
+
+  /// Label of the live WCAG contrast badge for the "Outline on surface" colour pair in the custom-theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Outline on surface'**
+  String get themeEditorPairOutline;
+
   /// Section header for playful optional visual features in Appearance settings.
   ///
   /// In en, this message translates to:
@@ -1851,24 +3325,6 @@ abstract class AppLocalizations {
   /// **'Add a dance'**
   String get settingsDefaultsStartingProgramPickerTitle;
 
-  /// Button to add a dance to the starting program template.
-  ///
-  /// In en, this message translates to:
-  /// **'Dance'**
-  String get settingsDefaultsStartingProgramAddDance;
-
-  /// Button to add a text note to the starting program template.
-  ///
-  /// In en, this message translates to:
-  /// **'Note'**
-  String get settingsDefaultsStartingProgramAddText;
-
-  /// Tooltip for adding a break to the starting program template.
-  ///
-  /// In en, this message translates to:
-  /// **'Add break'**
-  String get settingsDefaultsStartingProgramAddBreak;
-
   /// Input label for a new text note in the starting program template.
   ///
   /// In en, this message translates to:
@@ -1898,6 +3354,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unavailable dance ({id})'**
   String settingsDefaultsStartingProgramUnavailableDance(String id);
+
+  /// Snackbar in Settings > Defaults > Difficulty levels when a level's name is cleared or left blank. The raw exception is logged, never shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'A difficulty level needs a name.'**
+  String get settingsDefaultsDifficultyLevelEmpty;
+
+  /// Snackbar when a difficulty level is added or renamed to a name another level already has (compared ignoring case). {label} is the name the person typed, plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'A level named \"{label}\" already exists.'**
+  String settingsDefaultsDifficultyLevelDuplicate(String label);
+
+  /// Snackbar when deleting a difficulty level that dances (including deleted ones that can be restored) still use. {label} is the level's display name, never its id; {count} is the number of dances.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance uses {label}. Change it first.} other{{count} dances use {label}. Change them first.}}'**
+  String settingsDefaultsDifficultyLevelInUse(String label, int count);
+
+  /// Generic fallback snackbar when adding, renaming, deleting or reordering a difficulty level fails for a reason with no specific message. The raw exception is logged, never shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the difficulty levels. Try again.'**
+  String get settingsDefaultsDifficultyLevelActionFailed;
 
   /// Text-field label for the default band prefilled into new programs.
   ///
@@ -2091,6 +3571,30 @@ abstract class AppLocalizations {
   /// **'Choose which filters appear when you filter the Collection and when you pick dances for a program. All filters are shown by default. Hiding a filter clears its selection.'**
   String get settingsDefaultsCollectionFiltersSubtitle;
 
+  /// Section header for defaults applied to dances imported on their own.
+  ///
+  /// In en, this message translates to:
+  /// **'Import defaults'**
+  String get settingsDefaultsImportHeader;
+
+  /// Title of the Import defaults setting that picks the tags added to newly imported dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags for imported dances'**
+  String get settingsDefaultsImportTagsTitle;
+
+  /// Explains which imports the default import tags apply to and which they skip.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to each new dance you import on its own. Dances created while importing a program, and dances restored from a Compendium archive, are not tagged.'**
+  String get settingsDefaultsImportTagsSubtitle;
+
+  /// Shown in place of the tag chips when the user has no tags.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no tags yet. Add one to a dance in the editor, then pick it here.'**
+  String get settingsDefaultsImportTagsEmpty;
+
   /// Section header for defaults applied when authoring a new dance.
   ///
   /// In en, this message translates to:
@@ -2118,7 +3622,7 @@ abstract class AppLocalizations {
   /// Explanatory subtitle for the aggressive-beats-update setting, explicitly warning that a manually entered beat count can be overwritten when the toggle is on (issue #689 guardrail).
   ///
   /// In en, this message translates to:
-  /// **'When on, changing a figure\'s move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you\'ve edited is never changed automatically.'**
+  /// **'When on, changing a figure\'s move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you\'ve edited is only changed automatically when you switch a balance option on or off, which adds or removes 4 beats.'**
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle;
 
   /// Title of the Defaults settings row that opens the figure-shorthand mappings editor (#420).
@@ -2763,6 +4267,18 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Don\'t show} =1{1 venue} other{{count} venues}}'**
   String settingsProgramVenueCallCountOption(num count);
 
+  /// Title of the General settings Library toggle that capitalizes the first letter of each figure shown on screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Capitalize figures'**
+  String get settingsGeneralCapitalizeFiguresTitle;
+
+  /// Subtitle explaining the capitalize figures toggle. ContraDB is a product name and stays untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (“Neighbors allemande left”). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.'**
+  String get settingsGeneralCapitalizeFiguresSubtitle;
+
   /// General settings section header for accessibility preferences.
   ///
   /// In en, this message translates to:
@@ -3141,6 +4657,12 @@ abstract class AppLocalizations {
   /// **'This backup contains items this version of the app can\'t read (it may be from a newer version), so the restore was cancelled. Your data is unchanged.'**
   String get backupRestoreIncompatibleVersion;
 
+  /// Snackbar shown when a replace restore is refused because the backup file has no app section (an older, hand-edited or incomplete file), so restoring it would clear preferences, themes and dialects it never described. Existing data is unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup doesn\'t include your app settings, themes or dialects, so it can\'t replace your current data. The restore was cancelled and your data is unchanged.'**
+  String get backupRestoreMissingAppSection;
+
   /// Snackbar shown when the selected restore file is not a valid backup. Existing data is unchanged.
   ///
   /// In en, this message translates to:
@@ -3261,6 +4783,24 @@ abstract class AppLocalizations {
   /// **'It\'s been a while since your last backup — consider exporting one now.'**
   String get backupOverdueHint;
 
+  /// Text of the once-per-launch banner on the main screen shown when the user's chosen backup reminder cadence says a backup is overdue.
+  ///
+  /// In en, this message translates to:
+  /// **'Your backup is overdue. Export one now to keep your collection safe.'**
+  String get backupReminderBannerText;
+
+  /// Banner action that exports a backup immediately, from the overdue-backup reminder banner.
+  ///
+  /// In en, this message translates to:
+  /// **'Export backup'**
+  String get backupReminderBannerExport;
+
+  /// Banner action that dismisses the overdue-backup reminder banner for this launch.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get backupReminderBannerNotNow;
+
   /// Warning text in the restore-from-backup dialog explaining that restore destructively replaces current app data.
   ///
   /// In en, this message translates to:
@@ -3273,6 +4813,12 @@ abstract class AppLocalizations {
   /// **'Choose file…'**
   String get backupChooseFileAction;
 
+  /// Snackbar shown in the restore-from-backup dialog when the chosen file could not be read for a reason other than being too large or not a valid backup.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read that file.'**
+  String get backupChooseFileFailed;
+
   /// Text field label in the restore-from-backup dialog for pasting raw backup JSON.
   ///
   /// In en, this message translates to:
@@ -3284,6 +4830,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Replace all data'**
   String get backupReplaceAllDataAction;
+
+  /// Summary of the backup file chosen in the restore-from-backup dialog, shown instead of pasting the file into the text box: when it was made, how many dances and programs it holds, and its size in megabytes. 'MB' is the megabyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup from {date}: {dances, plural, one {{dances} dance} other {{dances} dances}}, {programs, plural, one {{programs} program} other {{programs} programs}}, {size} MB'**
+  String backupFileSummary(String date, int dances, int programs, String size);
+
+  /// Summary shown in the restore-from-backup dialog for a chosen file that could not be read as a backup (not valid, or failed its integrity check). The Replace button stays enabled; the restore itself explains the refusal and leaves data unchanged. 'MB' is the megabyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'This file doesn\'t look like a readable backup ({size} MB). Replacing will tell you why if it can\'t be restored.'**
+  String backupFileUnreadable(String size);
+
+  /// Button in the restore-from-backup dialog that forgets the chosen backup file so another file can be chosen or text pasted.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get backupFileClearAction;
+
+  /// Snackbar shown in the restore-from-backup dialog when the chosen file is larger than the size limit; the file was not read and data is unchanged. 'MB' is the megabyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'That file is too large to be a Caller’s Compendium backup ({sizeMb} MB; limit {limitMb} MB). Your data is unchanged.'**
+  String backupFileTooLarge(String sizeMb, String limitMb);
+
+  /// Snackbar shown when exporting a backup is refused because the encoded backup would exceed the size limit that restore can read; nothing is saved. 'MB' is the megabyte unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Your collection is too large to export as a single backup ({sizeMb} MB; limit {limitMb} MB), so nothing was saved. Your data is unchanged.'**
+  String backupExportTooLarge(String sizeMb, String limitMb);
+
+  /// Text in the progress dialog shown while a backup is being built and saved. No percentage is shown.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing your backup…'**
+  String get backupExportInProgress;
+
+  /// Text in the restore progress dialog while the backup is being read, before the count of restored items is known.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the backup…'**
+  String get backupRestorePreparing;
+
+  /// Text in the restore progress dialog: how many items (dances, tags, programs and so on) have been restored out of the total.
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring {done} of {total}…'**
+  String backupRestoreProgress(int done, int total);
 
   /// Snackbar shown when the user tries to export diagnostics but the local diagnostics log is empty.
   ///
@@ -3944,12 +5538,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search titles, authors, figures, notes…'**
   String get collectionSearchFieldHint;
-
-  /// Hint text of the collection picker search field, listing what is searched.
-  ///
-  /// In en, this message translates to:
-  /// **'Search titles, figures, notes…'**
-  String get collectionPickerSearchFieldHint;
 
   /// Hint text of the collection picker when its online search is limited to titles.
   ///
@@ -4688,12 +6276,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create tag'**
   String get collectionCreateTagButton;
-
-  /// Snackbar shown when creating a tag fails.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not create tag. Try again.'**
-  String get collectionCreateTagError;
 
   /// Snackbar shown when applying a batch tag operation fails.
   ///
@@ -5539,6 +7121,30 @@ abstract class AppLocalizations {
   /// **'Notes'**
   String get programsNotesLabel;
 
+  /// Field label for the amount the caller is paid for the program, in the program editor's More details section.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay'**
+  String get programsPayLabel;
+
+  /// Hint text for the program pay amount field: an example amount.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 250.00'**
+  String get programsPayHint;
+
+  /// Label of the currency selector next to the program pay amount field.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get programsPayCurrencyLabel;
+
+  /// Validation error shown under the program pay amount field when the text is not a valid amount for the selected currency.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an amount like 250 or 250.50 in this currency.'**
+  String get programsPayInvalid;
+
   /// Field label for the program status dropdown in the editor.
   ///
   /// In en, this message translates to:
@@ -5556,6 +7162,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Omits ALT slots from the summary, PDF, and exported set list. The builder still shows every slot.'**
   String get programsHideAlternatesSubtitle;
+
+  /// Label of the program editor field that picks the dialect Perform uses for this program.
+  ///
+  /// In en, this message translates to:
+  /// **'Perform dialect'**
+  String get programsDialectFieldLabel;
+
+  /// Dropdown option that clears the program's dialect so Perform follows the app dialect.
+  ///
+  /// In en, this message translates to:
+  /// **'Use app dialect'**
+  String get programsDialectUseApp;
+
+  /// Dropdown entry for a stored dialect name that no longer matches any dialect in the library (renamed, deleted or not synced here yet). {name} is the stored dialect name.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} (unavailable)'**
+  String programsDialectUnavailable(String name);
+
+  /// Helper text under the program dialect field: where the dialect applies.
+  ///
+  /// In en, this message translates to:
+  /// **'Used only in this program\'s Perform view. The editor, summary and exports keep the app dialect.'**
+  String get programsDialectHelper;
 
   /// Count of non-blocking validation warnings shown on the program editor's warnings card.
   ///
@@ -5676,6 +7306,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Level: {level}'**
   String programsSummaryLevel(String level);
+
+  /// Summary row showing what the caller is paid for the program: the amount followed by its ISO 4217 currency code.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay: {amount}'**
+  String programsSummaryPay(String amount);
 
   /// Heading of the program's set list, with the number of slots.
   ///
@@ -6025,18 +7661,6 @@ abstract class AppLocalizations {
   /// **'Show presence glyphs'**
   String get programsMatrixHidePhrasesSemantic;
 
-  /// Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.
-  ///
-  /// In en, this message translates to:
-  /// **'{alt, select, yes{{half, select, first{Alternate dance: {title}, first half} second{Alternate dance: {title}, second half} other{Alternate dance: {title}}}} other{{half, select, first{Dance: {title}, first half} second{Dance: {title}, second half} other{Dance: {title}}}}}'**
-  String programsMatrixRowHeaderSemantic(String title, String alt, String half);
-
-  /// Short program-half badge label (1st or 2nd half).
-  ///
-  /// In en, this message translates to:
-  /// **'{half, select, first{1st} other{2nd}}'**
-  String programsMatrixHalfShort(String half);
-
   /// Short localized ordinal label for a numbered program section (for example, 1st, 2nd, or 3rd). sectionKey selects listed ordinals; sectionNumber is the raw number used above the listed ordinals.
   ///
   /// In en, this message translates to:
@@ -6087,16 +7711,6 @@ abstract class AppLocalizations {
     String collision,
     String debut,
     String first,
-  );
-
-  /// Dance name with its alternate-dance and program-half qualifiers, used by the compact matrix dance chip's screen-reader label.
-  ///
-  /// In en, this message translates to:
-  /// **'{alt, select, yes{{half, select, first{{title} (alternate dance, first half)} second{{title} (alternate dance, second half)} other{{title} (alternate dance)}}} other{{half, select, first{{title} (first half)} second{{title} (second half)} other{{title}}}}}'**
-  String programsMatrixChipQualifiedTitle(
-    String title,
-    String alt,
-    String half,
   );
 
   /// Screen-reader label for a compact-matrix move header, stating how many of the program's dances use the move.
@@ -6411,6 +8025,12 @@ abstract class AppLocalizations {
   /// **'Adjustment undone'**
   String get performAdjustmentUndone;
 
+  /// Snackbar shown when the user taps Undo on a live program adjustment after leaving Perform, but the program was edited in the meantime, so the undo is refused to keep that later edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t undo: the program has changed since.'**
+  String get performUndoNoLongerAvailable;
+
   /// Snackbar message shown after applying a live program adjustment.
   ///
   /// In en, this message translates to:
@@ -6465,10 +8085,10 @@ abstract class AppLocalizations {
   /// **'Pause timers'**
   String get performPauseTimers;
 
-  /// Screen-reader label for the perform-mode timing line: elapsed program and slot times, optional split timing, walkthrough-transition and over-plan cues, and paused state.
+  /// Screen-reader label for the perform-mode timing line: elapsed program and slot times, optional split timing, manual walkthrough-end mark (with how far it ran from plan), walkthrough-transition and over-plan cues, and paused state.
   ///
   /// In en, this message translates to:
-  /// **'Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}: {walkthrough} walkthrough and {dance} dance} other{}}{walkthroughComplete, select, yes{, walkthrough complete} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}'**
+  /// **'Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}: {walkthrough} walkthrough and {dance} dance} other{}}{manual, select, yes{, walkthrough ended at {actual}{direction, select, over{, {delta} over plan} under{, {delta} under plan} other{, on plan}}} other{}}{walkthroughComplete, select, yes{, walkthrough complete} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}'**
   String performTimingSemantic(
     String programTime,
     String slotTime,
@@ -6479,6 +8099,10 @@ abstract class AppLocalizations {
     String walkthroughComplete,
     String over,
     String paused,
+    String manual,
+    String actual,
+    String direction,
+    String delta,
   );
 
   /// Screen-reader label for the individual Perform elapsed-timer line.
@@ -6492,6 +8116,28 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'planned {planned} min ({walkthrough}:{dance})'**
   String performPlannedSplit(int planned, int walkthrough, int dance);
+
+  /// Tooltip and screen-reader label of the icon-only dance-start toggle in program Perform while the walkthrough has not been marked as ended.
+  ///
+  /// In en, this message translates to:
+  /// **'Walkthrough done — start the dance'**
+  String get performDanceStartUnused;
+
+  /// Tooltip and screen-reader label of the icon-only dance-start toggle once the caller has marked the walkthrough as ended; tapping again clears the mark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance started — tap to undo'**
+  String get performDanceStartUsed;
+
+  /// Visible readout shown after a manual walkthrough-end mark: the slot time at which the walkthrough ended, and in parentheses how far that ran over or under the planned walkthrough minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'walkthrough {actual}{direction, select, over{ (+{delta})} under{ (−{delta})} other{ (on plan)}}'**
+  String performWalkthroughActual(
+    String actual,
+    String direction,
+    String delta,
+  );
 
   /// Visible suffix, with a leading space, shown after the split planned-duration label once a positive walkthrough duration has elapsed.
   ///
@@ -6663,6 +8309,12 @@ abstract class AppLocalizations {
   /// **'Share dance file'**
   String get exportShareDanceBundle;
 
+  /// Export-menu item shown instead of 'Share dance file' on Linux, where the OS share sheet cannot carry files: save the dance and its referenced metadata as a .ccshare file through the system Save As dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Save dance file…'**
+  String get exportSaveDanceBundle;
+
   /// Export-menu item: copy the dance's plain-text card to the clipboard.
   ///
   /// In en, this message translates to:
@@ -6711,6 +8363,12 @@ abstract class AppLocalizations {
   /// **'Share (program + dances)'**
   String get exportShareProgramBundle;
 
+  /// Program export-menu item shown instead of 'Share (program + dances)' on Linux, where the OS share sheet cannot carry files: save a bundle file containing the program and its dances through the system Save As dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Save program file…'**
+  String get exportSaveProgramBundle;
+
   /// Program export-menu item: copy the set list text to the clipboard.
   ///
   /// In en, this message translates to:
@@ -6758,6 +8416,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Share'**
   String get exportJsonShare;
+
+  /// JSON export delivery-choice button shown instead of 'Share' on Linux, where the OS share sheet cannot carry files: it saves the file through the system Save As dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as…'**
+  String get exportJsonSaveAs;
 
   /// JSON export delivery-choice button that produces no output.
   ///
@@ -7142,12 +8806,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search {source}'**
   String onlineSearchFieldLabel(String source);
-
-  /// Hint text for the online search field.
-  ///
-  /// In en, this message translates to:
-  /// **'Search online dances by title or author…'**
-  String get onlineSearchFieldHint;
 
   /// Hint text for the Collection screen online search field; the CollectionPicker remains title-oriented.
   ///
@@ -7695,6 +9353,12 @@ abstract class AppLocalizations {
   /// **'Searching {done} of {total}…'**
   String importReviewTitleListProgress(int done, int total);
 
+  /// Progress line beside the spinner while an import is being written, as dances written so far over the total to write.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} / {total}'**
+  String importReviewCommitProgress(int done, int total);
+
   /// Heading of the review summary banner, naming how many titles were pasted.
   ///
   /// In en, this message translates to:
@@ -7797,6 +9461,18 @@ abstract class AppLocalizations {
   /// **'Couldn\'t reach The Caller\'s Box for this title.'**
   String get importTitleListReasonFetchError;
 
+  /// Reason under a not-found row: the online lookup could not reach The Caller's Box (offline, timed out, or the search page answered with an error status). Shown for the title whose lookup failed and for every later title that was then skipped without a request; accompanied by the batch banner. The raw error is never shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach The Caller\'s Box — check your connection.'**
+  String get importTitleListReasonConnectionFailed;
+
+  /// Banner above the title-list review groups when a connection failure ended the online lookups early, so the remaining titles were not searched.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped looking up titles after a connection failure. The titles already in your collection are listed; try the rest once you\'re online.'**
+  String get importTitleListConnectionBanner;
+
   /// Reason under a not-found row: the pasted line exceeded the per-title length cap, so it was reported rather than turned into a search query.
   ///
   /// In en, this message translates to:
@@ -7821,11 +9497,11 @@ abstract class AppLocalizations {
   /// **'Not found: {count}'**
   String importReviewSummaryNotFound(int count);
 
-  /// Error shown when a chosen import file exceeds the maximum allowed size.
+  /// Error shown when a chosen import file exceeds the maximum allowed size. Names the limit that applies to the chosen source and says what to do next.
   ///
   /// In en, this message translates to:
-  /// **'That file is too large to import.'**
-  String get importErrorFileTooLarge;
+  /// **'That file is larger than the {megabytes} MB limit. Choose a smaller file and try again.'**
+  String importErrorFileTooLarge(int megabytes);
 
   /// Rejection shown when a shared/AirDropped archive file exceeds the size cap. Generic; never echoes the path or size.
   ///
@@ -7890,7 +9566,7 @@ abstract class AppLocalizations {
   /// Error shown when fetching an import URL exceeded the redirect limit.
   ///
   /// In en, this message translates to:
-  /// **'That URL redirected too many times.'**
+  /// **'That URL redirected too many times. Open it in a browser to find its final address, then use that instead.'**
   String get importErrorTooManyRedirects;
 
   /// Error shown when a fetched import response exceeded the maximum allowed size.
@@ -7920,13 +9596,25 @@ abstract class AppLocalizations {
   /// Error shown when an import URL returned a non-success HTTP status.
   ///
   /// In en, this message translates to:
-  /// **'The server responded with HTTP {status}.'**
+  /// **'The server sent an unexpected response (code {status}). Check the URL and try again.'**
   String importErrorHttpStatus(int status);
+
+  /// Error shown when a generic import URL returned HTTP 404. Deliberately omits the status code; says what to check.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing was found at that address. Check the URL, then try again.'**
+  String get importErrorHttpNotFound;
+
+  /// Error shown when a generic import URL returned HTTP 429 or a 5xx status. Deliberately omits the status code; retrying is the next step.
+  ///
+  /// In en, this message translates to:
+  /// **'That server is busy or having trouble. Try again in a minute.'**
+  String get importErrorHttpBusy;
 
   /// Error shown when an import URL returned an empty body.
   ///
   /// In en, this message translates to:
-  /// **'The URL returned an empty response.'**
+  /// **'The URL returned an empty response. Check that the link points to the data you want to import, then try again.'**
   String get importErrorEmptyResponse;
 
   /// Error shown when the Caller's Box dance URL/id field is empty.
@@ -7971,22 +9659,40 @@ abstract class AppLocalizations {
   /// **'Couldn\'t reach The Caller\'s Box. Check your connection, then try again.'**
   String get importErrorCallersBoxUnreachable;
 
+  /// Error shown when fetching a dance from The Caller's Box (by id or link) timed out. Names the service, never the URL. {seconds} is how long the app waited, in whole seconds; keep the 's' unit abbreviation or use your language's equivalent.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box didn\'t respond within {seconds}s. Check your connection, then try again.'**
+  String importErrorCallersBoxTimeout(int seconds);
+
   /// Error shown when The Caller's Box returned a non-success HTTP status.
   ///
   /// In en, this message translates to:
-  /// **'The Caller\'s Box responded with HTTP {status}.'**
+  /// **'The Caller\'s Box sent an unexpected response (code {status}). Try again in a minute.'**
   String importErrorCallersBoxHttpStatus(int status);
 
-  /// Error shown when a Caller's Box search returned no page content.
+  /// Error shown when The Caller's Box returned HTTP 404 for the id or link the user entered. Deliberately omits the status code.
   ///
   /// In en, this message translates to:
-  /// **'The Caller\'s Box returned an empty page.'**
+  /// **'The Caller\'s Box has no dance with that id. Check the number or link, then try again.'**
+  String get importErrorCallersBoxHttpNotFound;
+
+  /// Error shown when The Caller's Box returned HTTP 429 or a 5xx status. Deliberately omits the status code; retrying is the next step.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box is busy right now. Try again in a minute.'**
+  String get importErrorCallersBoxHttpBusy;
+
+  /// Error shown when The Caller's Box returned no page content, for a search or for a dance fetched by id or link. The next step is to wait briefly and retry.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box returned an empty page. Try again in a minute.'**
   String get importErrorCallersBoxEmptyPage;
 
   /// Error shown when a Caller's Box fetch parsed no importable dance. Generic by design; underlying parse detail is not shown.
   ///
   /// In en, this message translates to:
-  /// **'The Caller\'s Box returned no importable dance.'**
+  /// **'The Caller\'s Box returned no importable dance. Check the id or link, then try again.'**
   String get importErrorCallersBoxNoDance;
 
   /// Error shown when committing a Caller's Box dance failed. Generic by design; underlying error detail is not shown.
@@ -8061,22 +9767,40 @@ abstract class AppLocalizations {
   /// **'Couldn\'t reach ContraDB. Check your connection, then try again.'**
   String get importErrorContraDbUnreachable;
 
+  /// Error shown when fetching a dance from ContraDB (by id or link) timed out. Names the service, never the URL. {seconds} is how long the app waited, in whole seconds; keep the 's' unit abbreviation or use your language's equivalent.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB didn\'t respond within {seconds}s. Check your connection, then try again.'**
+  String importErrorContraDbTimeout(int seconds);
+
   /// Error shown when ContraDB returned a non-success HTTP status.
   ///
   /// In en, this message translates to:
-  /// **'ContraDB responded with HTTP {status}.'**
+  /// **'ContraDB sent an unexpected response (code {status}). Try again in a minute.'**
   String importErrorContraDbHttpStatus(int status);
 
-  /// Error shown when ContraDB returned an empty body.
+  /// Error shown when ContraDB returned HTTP 404 for the id or link the user entered. Deliberately omits the status code.
   ///
   /// In en, this message translates to:
-  /// **'ContraDB returned an empty response.'**
+  /// **'ContraDB has no dance with that id. Check the number or link, then try again.'**
+  String get importErrorContraDbHttpNotFound;
+
+  /// Error shown when ContraDB returned HTTP 429 or a 5xx status. Deliberately omits the status code; retrying is the next step.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB is busy right now. Try again in a minute.'**
+  String get importErrorContraDbHttpBusy;
+
+  /// Error shown when ContraDB returned an empty body, for a search or for a dance fetched by id or link. The next step is to wait briefly and retry.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB returned an empty response. Try again in a minute.'**
   String get importErrorContraDbEmptyResponse;
 
   /// Error shown when a ContraDB fetch parsed no importable dance. Generic by design; underlying parse detail is not shown.
   ///
   /// In en, this message translates to:
-  /// **'ContraDB returned no importable dance.'**
+  /// **'ContraDB returned no importable dance. Check the id or link, then try again.'**
   String get importErrorContraDbNoDance;
 
   /// Error shown when committing a ContraDB dance failed. Generic by design; underlying error detail is not shown.
@@ -8120,6 +9844,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The shared file reported a warning while decoding.'**
   String get importIssueArchiveReadWarning;
+
+  /// Import review warning: the shared file was written by a newer app version than this one, so fields the newer version added are dropped. Tells the user to update first. Shown once for the whole file.
+  ///
+  /// In en, this message translates to:
+  /// **'This file was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.'**
+  String get importIssueArchiveNewerSchema;
+
+  /// Import review warning: a Caller's Companion .USR file ends early (an incomplete copy), so some dances were never read. Tells the user to recopy the original. Shown once for the whole file.
+  ///
+  /// In en, this message translates to:
+  /// **'This file looks incomplete — only part of it could be read. Copy it again from the original and re-import.'**
+  String get importIssueUsrFileTruncated;
+
+  /// Import review warning: the .USR Phrase table (where figures live) couldn't be read, so figures came from the Dance rows, which are usually empty.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures couldn\'t be read from this file, so dances may arrive without figures. Check the original file, or re-export it from Caller\'s Companion.'**
+  String get importIssueUsrFiguresFromDanceRows;
+
+  /// Import review warning: some .USR Phrase rows had no matching dance (or no dance id), so their figures were skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Some figures couldn\'t be matched to a dance and were left out. Check that your dances arrived complete, or copy the file again from the original.'**
+  String get importIssueUsrPhraseGroupsOrphaned;
+
+  /// Import review warning: .USR figure lines over the safe length were dropped; everything else was imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Some very long figure lines were left out. The rest of each dance was imported.'**
+  String get importIssueUsrLinesDropped;
+
+  /// Import review warning: the .USR Set or SetItem table was missing, so programs (or their items) were not imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs couldn\'t be fully read from this file, so some may be missing or arrive without their dances. Check them after importing.'**
+  String get importIssueUsrSetsSkipped;
+
+  /// Import review warning: .USR Dance_Related rows with a missing or self-referential dance id were skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Some related-dance links in this file were invalid and were skipped.'**
+  String get importIssueUsrRelatedRowsSkipped;
 
   /// Import note: a Becket rotation direction wasn't 'CW' or 'CCW' and was defaulted to clockwise.
   ///
@@ -8295,6 +10061,54 @@ abstract class AppLocalizations {
   /// **'This record couldn\'t be found.'**
   String get importRecordErrorDiscover;
 
+  /// Import review: the file or pasted text was empty (ImportErrorCode.emptyFile). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'That file or text is empty. Choose a file that has content, or paste the text again.'**
+  String get importRecordErrorEmptyFile;
+
+  /// Import review: the content was not valid JSON (ImportErrorCode.notJson). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a JSON file. Choose the .json file the source exported, or paste its JSON again.'**
+  String get importRecordErrorNotJson;
+
+  /// Import review: the content is not a Caller's Compendium archive (ImportErrorCode.notCompendiumArchive). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a Caller\'s Compendium file. Choose a .json exported from this app.'**
+  String get importRecordErrorNotCompendiumArchive;
+
+  /// Import review: the content is not a Caller's Box dance export (ImportErrorCode.notCallersBoxDance). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a Caller\'s Box dance. Check that you copied a dance from The Caller\'s Box, then try again.'**
+  String get importRecordErrorNotCallersBoxDance;
+
+  /// Import review: the content is not a ContraDB dance export or page (ImportErrorCode.notContraDbDance). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a ContraDB dance. Check that you copied a dance page from ContraDB, then try again.'**
+  String get importRecordErrorNotContraDbDance;
+
+  /// Import review: the file is not a readable Caller's Companion .USR database (ImportErrorCode.notUsrDatabase). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This isn\'t a Caller\'s Companion library file (.USR). In Caller\'s Companion, find the .USR file in its data folder.'**
+  String get importRecordErrorNotUsrDatabase;
+
+  /// Import review: the file exceeds the import size or structure limits (ImportErrorCode.fileTooLarge). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'That file is too large to import. Choose a smaller file, or split it into parts.'**
+  String get importRecordErrorFileTooLarge;
+
+  /// Import review: the Caller's Box response contained no dance (ImportErrorCode.noDanceAtId). Typed; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'No dance was found there. Check the Caller\'s Box dance id or link, then try again.'**
+  String get importRecordErrorNoDanceAtId;
+
   /// Import review: a per-record error at the fetch stage. Generic; raw error detail is not shown (CWE-209).
   ///
   /// In en, this message translates to:
@@ -8409,6 +10223,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t read the import'**
   String get importReviewCouldNotRead;
 
+  /// Body text shown when planning the import threw an unexpected error. Generic; the error text is never shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong reading this import. Try again; if it keeps happening, the file may be damaged.'**
+  String get importReviewPlanFailedBody;
+
   /// Title shown when the import payload parsed but contained no dances.
   ///
   /// In en, this message translates to:
@@ -8433,6 +10253,12 @@ abstract class AppLocalizations {
   /// **'Imported'**
   String get importReviewImported;
 
+  /// Per-row button on the import review screen. It imports that one dance into the collection immediately (outside the batch Undo) and opens it in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Import and edit'**
+  String get importReviewImportAndEdit;
+
   /// Quality chip showing how many of a dance's figures parsed as structured.
   ///
   /// In en, this message translates to:
@@ -8450,6 +10276,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New dance'**
   String get importReviewOptionNewDance;
+
+  /// Label above the bulk controls in the import review that set every dance already in the collection (a re-import match) to the same choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Set all matched dances to:'**
+  String get importReviewBulkSetAllLabel;
+
+  /// Bulk control: set every matched dance to re-import onto its existing local dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-import'**
+  String get importReviewBulkReimport;
+
+  /// Bulk control: set every matched dance to skip, keeping the local dances as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get importReviewBulkSkip;
+
+  /// Bulk button: set every row marked as a possible match to skip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip all possible matches'**
+  String get importReviewBulkSkipAmbiguous;
 
   /// Per-record option: skip this record (do not import it).
   ///
@@ -8475,10 +10325,10 @@ abstract class AppLocalizations {
   /// **'Possible match — choose how to import:'**
   String get importReviewPossibleMatch;
 
-  /// Per-record option: link to a candidate existing dance with a match percentage. The title is an untrusted local value rendered as plain text.
+  /// Per-record option: treat this record as the same dance as a candidate existing dance, with a match percentage. The existing dance keeps its identity but its content is replaced by the imported version, so the label says so. The title is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Link to \"{title}\" ({percent}% match)'**
+  /// **'Same dance — replace \"{title}\" with this version ({percent}% match)'**
   String importReviewOptionLink(String title, int percent);
 
   /// Pre-commit warning stating how many existing local dances a commit will overwrite.
@@ -8607,6 +10457,18 @@ abstract class AppLocalizations {
   /// **'Couldn\'t import that dance to edit.'**
   String get importReviewEditError;
 
+  /// Title of the confirmation shown when Import and edit is pressed on a row set to Re-import or Link, because the matched dance is replaced immediately.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace the existing dance now?'**
+  String get importReviewEditOverwriteTitle;
+
+  /// Body of the Import and edit overwrite confirmation. The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing to edit replaces \"{title}\" in your collection immediately. The batch Undo will not restore it.'**
+  String importReviewEditOverwriteBody(String title);
+
   /// Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209).
   ///
   /// In en, this message translates to:
@@ -8631,10 +10493,10 @@ abstract class AppLocalizations {
   /// **'Import as a variation of \"{title}\"'**
   String importReviewOptionVariation(String title);
 
-  /// Per-record option in the issue #686 variation block: treat this record as the same dance as the matched candidate (equivalent to the ordinary link option). The title is an untrusted local value rendered as plain text.
+  /// Per-record option in the issue #686 variation block: treat this record as the same dance as the matched candidate (equivalent to the ordinary link option): the existing dance keeps its identity but its content is replaced by the imported version. The title is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Same dance as \"{title}\" (link/update)'**
+  /// **'Same dance — replace \"{title}\" with this version'**
   String importReviewOptionSameDance(String title);
 
   /// Checkbox label controlling whether choosing "import as a variation" also creates a symmetric relatedDance link back to the matched dance (issue #686). Defaults on. The title is an untrusted local value rendered as plain text.
@@ -10140,6 +12002,12 @@ abstract class AppLocalizations {
   /// **'Could not choose a place to download the update.'**
   String get updateDownloadFailureDestination;
 
+  /// macOS assisted-download error shown when the place chosen in the Save panel holds a folder, a symbolic link, or a file that could not be removed, so the update was not saved there. The user can start the download again and pick another name or folder. "View release" must match the translation of updateBannerViewRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'Something is already at that location. Choose another name or folder, or use \"View release\".'**
+  String get updateDownloadFailureDestinationOccupied;
+
   /// Assisted-download error shown when the downloaded file's size did not match the update manifest, so it was deleted. "View release" must match the translation of updateBannerViewRelease, the button that opens the release page for a manual download.
   ///
   /// In en, this message translates to:
@@ -10229,6 +12097,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A newer version of {appName} ({version}) is available.'**
   String updateBannerAvailable(String appName, String version);
+
+  /// End-of-support notice (banner and Settings ▸ Updates) before the announced end-of-life date. {date} is already formatted per the user's date-format setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Support for this version of {appName} ({version}) ends on {date}. Update to a later version before then.'**
+  String retirementNoticeUpcoming(String appName, String version, String date);
+
+  /// End-of-support notice (banner and Settings ▸ Updates) on or after the announced end-of-life date. {date} is already formatted per the user's date-format setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Support for this version of {appName} ({version}) ended on {date}. Update to a later version now.'**
+  String retirementNoticePast(String appName, String version, String date);
+
+  /// End-of-support banner action that opens the page for the newer release (or the list of releases).
+  ///
+  /// In en, this message translates to:
+  /// **'Get update'**
+  String get retirementBannerGetUpdate;
+
+  /// End-of-support banner action that hides the banner until the app is next launched.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get retirementBannerLater;
+
+  /// macOS-only app-wide banner shown when the app was opened from inside the mounted .dmg (or a quarantined, translocated copy) instead of from Applications. 'Applications' is the macOS folder name; use the localized Finder name.
+  ///
+  /// In en, this message translates to:
+  /// **'{appName} isn\'t installed yet: it is running from the downloaded disk image or archive. Quit it, drag it to your Applications folder, then open it from there.'**
+  String installLocationBannerMessage(String appName);
+
+  /// Action on the not-installed banner that hides it until the app is next launched.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get installLocationBannerDismiss;
+
+  /// Settings ▸ Updates tile title shown when this version has an announced end-of-life date.
+  ///
+  /// In en, this message translates to:
+  /// **'End of support'**
+  String get settingsUpdatesRetirementTitle;
 
   /// Update banner action that opens the release notes web page.
   ///
@@ -10788,12 +12698,6 @@ abstract class AppLocalizations {
   /// **'A field with the key \"{key}\" already exists. The new field wasn\'t created.'**
   String customFieldsKeyDuplicateNew(String key);
 
-  /// Snackbar when deleting a custom field still set on dances but the exact count is unknown. The raw exception is logged (debugPrint), never shown (CWE-209). {label} is plain text.
-  ///
-  /// In en, this message translates to:
-  /// **'Can\'t delete \"{label}\": still used by some dances. Remove the value from all dances first.'**
-  String customFieldsDeleteInUseUnknown(String label);
-
   /// App-bar title for the custom-fields manager.
   ///
   /// In en, this message translates to:
@@ -11094,18 +12998,6 @@ abstract class AppLocalizations {
   /// **'Plural'**
   String get dialectEditorPlural;
 
-  /// Collapsed header/empty state for the move-substitutions section.
-  ///
-  /// In en, this message translates to:
-  /// **'Add move substitutions'**
-  String get dialectEditorMoveSubsAdd;
-
-  /// Header showing how many move substitutions are defined.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 move substitution} other{{count} move substitutions}}'**
-  String dialectEditorMoveSubsCount(int count);
-
   /// Hint for a move-substitution input; %S is a literal handedness token the user types.
   ///
   /// In en, this message translates to:
@@ -11117,18 +13009,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add a move…'**
   String get dialectEditorAddMove;
-
-  /// Collapsed header/empty state for the dancer-substitutions section.
-  ///
-  /// In en, this message translates to:
-  /// **'Add dancer substitutions'**
-  String get dialectEditorDancerSubsAdd;
-
-  /// Header showing how many dancer substitutions are defined.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 dancer substitution} other{{count} dancer substitutions}}'**
-  String dialectEditorDancerSubsCount(int count);
 
   /// Hint for a dancer-substitution input.
   ///
@@ -11760,6 +13640,12 @@ abstract class AppLocalizations {
   /// **'Conditional move templates are selected by the figure\'s parameters. Complete every listed slot; unfinished conditional templates are ignored.'**
   String get dialectEditorMoveWordingsConditionalHelp;
 
+  /// Helper text explaining that a leading ! forces a move wording slot to display. The example placeholder is a sample slot such as {!hand}.
+  ///
+  /// In en, this message translates to:
+  /// **'Some slots are left out when they add nothing, such as a chain\'s hand when the role already implies it. Put a ! in front of a slot, like {example}, to always show it.'**
+  String dialectEditorMoveWordingsForceHelp(String example);
+
   /// Header for a move's parameter-dependent wording templates.
   ///
   /// In en, this message translates to:
@@ -11801,18 +13687,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Single file'**
   String get dialectEditorMoveWordingBranchSingleFile;
-
-  /// Collapsed header/empty state for the move wording template section.
-  ///
-  /// In en, this message translates to:
-  /// **'Add move wording templates'**
-  String get dialectEditorMoveWordingsAdd;
-
-  /// Header showing how many move wording templates are defined.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 move wording template} other{{count} move wording templates}}'**
-  String dialectEditorMoveWordingsCount(int count);
 
   /// Placeholder for the dropdown that adds a move wording template.
   ///

@@ -3,28 +3,8 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/main.dart';
-import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/locale_scope.dart';
-import 'package:compendium_app/src/data/window_service.dart';
-import 'support/test_repositories.dart';
-
-/// A [WindowService] whose restore is a no-op: the plugin glue is untestable
-/// under `flutter test`, and these tests only care about the running app.
-class _NoopWindowService extends WindowService {
-  _NoopWindowService(super.settings);
-
-  @override
-  Future<void> initialize() async {}
-
-  @override
-  void dispose() {}
-}
-
-AppData _openAppData() {
-  final appData = AppData(openWidgetTestDatabase(closeOnTearDown: false));
-  addTearDown(appData.close);
-  return appData;
-}
+import 'support/full_app_harness.dart';
 
 Locale? _appLocale(WidgetTester tester) =>
     tester.widget<MaterialApp>(find.byType(MaterialApp)).locale;
@@ -43,11 +23,11 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
         ),
       );
       await tester.pumpAndSettle();
@@ -83,4 +63,68 @@ void main() {
       expect(await appData.repositories.settings.get(kLocaleKey), '');
     },
   );
+
+  // `_appLocale` reads the stored preference (null = follow system); the locale
+  // the UI actually resolved to is only visible through Localizations.
+  group('System default resolution', () {
+    Future<Locale> resolvedFor(
+      WidgetTester tester,
+      List<Locale> deviceLocales,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      tester.platformDispatcher.localesTestValue = deviceLocales;
+      addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+
+      final appData = openTestAppData();
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(_appLocale(tester), isNull);
+      return Localizations.localeOf(
+        tester.element(find.byType(Scaffold).first),
+      );
+    }
+
+    testWidgets('system locale es_ES falls back to English', (tester) async {
+      expect(
+        await resolvedFor(tester, const [Locale('es', 'ES')]),
+        const Locale('en'),
+      );
+    });
+
+    testWidgets('an undetermined (C/POSIX) locale falls back to English', (
+      tester,
+    ) async {
+      expect(
+        await resolvedFor(tester, const [Locale('und')]),
+        const Locale('en'),
+      );
+    });
+
+    testWidgets('a later supported entry in the preference list wins', (
+      tester,
+    ) async {
+      expect(
+        await resolvedFor(tester, const [
+          Locale('es', 'ES'),
+          Locale('de', 'DE'),
+        ]),
+        const Locale('de'),
+      );
+    });
+
+    testWidgets('a regional English locale still resolves to English', (
+      tester,
+    ) async {
+      expect(
+        await resolvedFor(tester, const [Locale('en', 'GB')]),
+        const Locale('en'),
+      );
+    });
+  });
 }

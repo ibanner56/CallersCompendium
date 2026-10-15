@@ -169,7 +169,8 @@ icon+text by `program_status_chip.dart`; tokens add theme-driven color):
 
 - `statusActive` → no chip (default)
 - `statusDeprecated` → onSurfaceVariant + `history_toggle_off` "Deprecated"
-- `statusBroken` → error + `report_problem_outlined` "Broken"
+- `statusBroken` → error, eased toward the surface only as far as the chip label needs to stay AA
+  (`AppThemeExtension._chipSafe`) + `report_problem_outlined` "Broken"
 - `draft` → statusDeprecated + `edit_note_outlined` "Draft"
 - `variation` → statusDeprecated + `alt_route` "Variation"
 
@@ -231,8 +232,8 @@ enum AppThemeSelection { system, light, dark, highContrast }
   other data scopes.
 - Persist via `repos.settings.set(kAppThemeKey, …)`, load on boot — mirrors
   `kActiveDialectKey` + `_onDialectChanged`. Define a `const String kAppThemeKey =
-  'theme_mode';` next to `kActiveDialectKey` in `settings_screen.dart` rather than
-  a bare string literal.
+  'theme_mode';` in `src/data/settings_keys.dart` rather than a bare string
+  literal.
 - `main.dart` `MaterialApp`:
   ```dart
   theme: AppTheme.light,

@@ -1,24 +1,33 @@
 // Part of the Settings screen: the Device Sync group of the Experimental pane.
 import 'dart:async';
 
-import 'package:compendium_core/compendium_core.dart' show syncIdWordCount;
+import 'package:compendium_core/compendium_core.dart'
+    show SyncReport, syncIdWordCount;
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:intl/intl.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/backup_io.dart';
+import '../../data/repositories_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../sync/sync_controller.dart';
-import '../../sync/sync_coordinator.dart' show SyncPassStatus;
+import '../../sync/sync_coordinator.dart'
+    show SyncFailureCauseTier, SyncPassResult, SyncPassStatus;
 import '../../sync/sync_http_client.dart' show isDefaultSyncEndpoint;
 import '../../sync/sync_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/collapsible_section.dart';
 import '../../widgets/section_header.dart';
+import '../sync_conflict_sheet.dart';
+import '../sync_review_screen.dart';
+import 'sync_device_labels.dart';
 import 'sync_devices_screen.dart';
+import 'sync_failure_labels.dart';
 import 'sync_notice_labels.dart';
 import 'sync_pairing_screen.dart';
+import 'sync_support_codes.dart';
 
 /// Device Sync settings and status (spec §6.1, §6.12, §6.14).
 ///
@@ -40,6 +49,29 @@ class DeviceSyncSection extends StatefulWidget {
 class _DeviceSyncSectionState extends State<DeviceSyncSection> {
   final _wifiTileKey = GlobalKey();
   SyncController? _controller;
+
+  /// The conflict count, re-read when a pass ends or the choice closes.
+  Future<int>? _conflictCount;
+  Object? _conflictCountFor;
+  int _conflictGeneration = 0;
+
+  Future<int> _conflictsFor(SyncController controller) {
+    final key = (
+      controller.running,
+      controller.lastResult,
+      _conflictGeneration,
+    );
+    if (_conflictCount == null || key != _conflictCountFor) {
+      _conflictCountFor = key;
+      _conflictCount = syncConflictCount(RepositoriesScope.of(context));
+    }
+    return _conflictCount!;
+  }
+
+  Future<void> _openConflicts() async {
+    await showSyncConflictSheet(context);
+    if (mounted) setState(() => _conflictGeneration++);
+  }
 
   bool _replacementDialogShowing = false;
 
@@ -238,6 +270,21 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     );
   }
 
+  /// Copies a Device Sync problem's support code ([syncPassSupportCode] and
+  /// its siblings) for the user to paste into a request for help. Only the
+  /// code: it carries no phrase, title or identifier, and nothing is sent.
+  Future<void> _copySupportCode(String code) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final l10n = AppLocalizations.of(context);
+    await Clipboard.setData(ClipboardData(text: code));
+    messenger?.showSnackBar(
+      SnackBar(
+        key: const ValueKey('sync-details-copied'),
+        content: Text(l10n.settingsSyncDetailsCopied),
+      ),
+    );
+  }
+
   /// A manual attempt on a metered connection is routed to the setting rather
   /// than failing (spec §6.12).
   void _routeToWifiSetting() {
@@ -248,14 +295,26 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
   Future<void> _syncNow(SyncController controller) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
     final l10n = AppLocalizations.of(context);
-    final message = _gateMessage(l10n, await controller.syncNow());
+    final repositories = RepositoriesScope.of(context);
+    final before = await syncConflictCount(repositories);
+    final outcome = await controller.syncNow();
+    final message = _gateMessage(l10n, outcome);
     if (message != null) {
       messenger?.showSnackBar(SnackBar(content: Text(message)));
     }
+    // A manual pass that found new conflicts opens the choice, as the
+    // toolbar button does, unless the user has left this page meanwhile.
+    if (outcome != SyncGateOutcome.ran || !mounted) return;
+    final after = await syncConflictCount(repositories);
+    if (!mounted || after <= before) return;
+    if (ModalRoute.of(context)?.isCurrent ?? true) await _openConflicts();
   }
 
-  /// Detach is purely local and reversible only by re-entering the phrase, so
-  /// it is confirmed first and says what it does and does not touch.
+  /// Detach forgets the phrase, and is reversible only by re-entering it, so
+  /// it is confirmed first and says what it does and does not touch —
+  /// including the one thing it may send: removing this device's own entry
+  /// from the store when the other devices already have everything from it
+  /// (`SyncController.detach`).
   Future<void> _confirmDisconnect(SyncController controller) async {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
@@ -301,10 +360,16 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
 
     // Starts open while sync is on, so its status and any failure stay in
     // view; folds away otherwise to keep the Experimental pane uncluttered.
+    //
+    // `expanded` only feeds the tile's `initiallyExpanded`, which is read once,
+    // so the section is keyed on [SyncController.settingsUnreadable]: when a
+    // later load (after a backup restore) fails, the tile is rebuilt open and
+    // the notice is not hidden inside an already-collapsed section.
     return CollapsibleSection(
+      key: ValueKey('sync-section-unreadable-${controller.settingsUnreadable}'),
       sectionKey: const ValueKey('sync-section'),
       title: l10n.settingsSyncHeader,
-      expanded: controller.enabled,
+      expanded: controller.enabled || controller.settingsUnreadable,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -317,6 +382,18 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
             value: controller.enabled,
             onChanged: controller.setEnabled,
           ),
+          // Shown whether or not sync is on: a failed settings read leaves it
+          // off for the launch although the stored setting may say on, and the
+          // status block below only exists while it is on.
+          if (controller.settingsUnreadable)
+            ListTile(
+              key: const ValueKey('sync-settings-unreadable'),
+              leading: Icon(
+                Icons.error_outline,
+                color: theme.colorScheme.error,
+              ),
+              title: Text(l10n.settingsSyncStatusSettingsUnreadable),
+            ),
           if (controller.enabled) ...[
             SwitchListTile(
               key: _wifiTileKey,
@@ -348,53 +425,171 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
               ),
             Builder(
               builder: (tileContext) {
-                final failureText = _failureText(l10n, controller);
+                final problem = _problem(controller);
+                final failureText = problem == null
+                    ? null
+                    : syncPassProblemText(l10n, problem.status);
+                // A transient failure clears by itself and is retried by
+                // itself (spec §6.12), so it is a calm status rather than a
+                // problem: no error colour, no reason or advice, and nothing
+                // to copy. Its Details line stays, small, for anyone who
+                // wants it.
+                final transient = problem?.failure?.cause.isTransient ?? false;
+                final needsYou = failureText != null && !transient;
                 final lastSuccess = controller.lastSuccessAt;
+                // Only a `failed` pass has a structured cause; the other
+                // failure lines are already explanations in their own right.
+                final failure = problem?.failure;
+                final details = failure == null
+                    ? null
+                    : syncFailureDetails(l10n, failure);
+                final subtitleLines = [
+                  if (failure != null && !transient)
+                    Text(
+                      syncFailureExplanation(
+                        l10n,
+                        failure,
+                        customServer: syncUsesCustomServer(controller.endpoint),
+                      ),
+                      key: const ValueKey('sync-status-failure-explanation'),
+                    ),
+                  if (failureText != null && lastSuccess != null)
+                    Text(
+                      l10n.settingsSyncStatusLastSynced(
+                        _formatWhen(tileContext, lastSuccess),
+                      ),
+                      key: const ValueKey('sync-status-last-success'),
+                    ),
+                  if (details != null)
+                    Text(
+                      details,
+                      key: const ValueKey('sync-status-failure-details'),
+                      style: theme.textTheme.bodySmall,
+                    ),
+                ];
+                final supportCode = needsYou
+                    ? syncPassSupportCode(problem!)
+                    : null;
                 return ListTile(
                   key: const ValueKey('sync-status'),
                   leading: Icon(
-                    failureText != null
-                        ? Icons.error_outline
-                        : Icons.info_outline,
-                    color: failureText != null ? theme.colorScheme.error : null,
+                    needsYou ? Icons.error_outline : Icons.info_outline,
+                    key: ValueKey(
+                      needsYou ? 'sync-status-needs-you' : 'sync-status-calm',
+                    ),
+                    color: needsYou ? theme.colorScheme.error : null,
                   ),
                   title: Text(
-                    failureText ?? _statusText(tileContext, controller),
+                    transient
+                        ? l10n.settingsSyncStatusWaiting
+                        : failureText ?? _statusText(tileContext, controller),
                   ),
-                  subtitle: failureText != null && lastSuccess != null
-                      ? Text(
-                          l10n.settingsSyncStatusLastSynced(
-                            _formatWhen(tileContext, lastSuccess),
-                          ),
-                          key: const ValueKey('sync-status-last-success'),
-                        )
-                      : null,
-                  trailing: controller.paired
+                  subtitle: subtitleLines.isEmpty
                       ? null
-                      : FilledButton(
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (final (i, line) in subtitleLines.indexed)
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  top: i == 0 ? 0 : AppSpacing.xxs,
+                                ),
+                                child: line,
+                              ),
+                          ],
+                        ),
+                  trailing: !controller.paired
+                      ? FilledButton(
                           key: const ValueKey('sync-connect'),
                           onPressed: () => showSyncPairingScreen(
                             tileContext,
                             backupSaver: widget.backupSaver,
                           ),
                           child: Text(l10n.settingsSyncConnectTitle),
+                        )
+                      : supportCode == null
+                      ? null
+                      : _CopyDetailsButton(
+                          key: const ValueKey('sync-status-copy-details'),
+                          onPressed: () => _copySupportCode(supportCode),
                         ),
                 );
               },
             ),
-            // The conditions the last pass to raise any had to report (spec
-            // §2 *report*): non-blocking, no dismissal, nothing to tap. They
-            // sit beside the status rather than in it because a pass can
-            // complete successfully and still have something to say.
-            for (final group in syncNoticeGroups(controller.notices))
+            // Spec §5.2 echoes the store's limits "so a client can warn before
+            // hitting them rather than discovering a `507`". Needs you, so it
+            // offers the one thing this device can do about it — stop
+            // uploading imported dances nothing uses — only while that is
+            // still off; never a wipe (spec §5.3).
+            if (controller.quotaNearlyFull)
               ListTile(
-                key: ValueKey('sync-notice-${group.name}'),
+                key: const ValueKey('sync-quota-warning'),
                 leading: Icon(
-                  Icons.info_outline,
-                  color: theme.colorScheme.tertiary,
+                  Icons.error_outline,
+                  color: theme.colorScheme.error,
                 ),
-                title: Text(syncNoticeText(l10n, group)),
+                title: Text(l10n.settingsSyncQuotaNearlyFull),
+                subtitle: controller.excludeImports
+                    ? null
+                    : Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: TextButton(
+                          key: const ValueKey('sync-quota-exclude-imports'),
+                          onPressed: () => controller.setExcludeImports(true),
+                          child: Text(l10n.settingsSyncQuotaExcludeImports),
+                        ),
+                      ),
+                trailing: _CopyDetailsButton(
+                  key: const ValueKey('sync-quota-copy-details'),
+                  onPressed: () => _copySupportCode(
+                    syncQuotaSupportCode(controller.storeQuota!),
+                  ),
+                ),
               ),
+            // The conditions the last pass to raise any had to report (spec
+            // §2 *report*): non-blocking and with no dismissal. They sit
+            // beside the status rather than in it because a pass can complete
+            // successfully and still have something to say. A per-device
+            // group is one tile per device, each naming it by the tag the
+            // *Other devices* list shows it under. A needs-you group adds
+            // Copy details, which copies a code and clears nothing.
+            for (final group in syncNoticeGroups(controller.notices))
+              if (syncNoticeIsPerDevice(group))
+                for (final peerId in syncNoticePeerIds(
+                  group,
+                  controller.notices,
+                ))
+                  _SyncNoticeTile(
+                    key: ValueKey((group, peerId)),
+                    group: group,
+                    reports: [
+                      for (final report in controller.notices)
+                        if (report.peerId == peerId) report,
+                    ],
+                    peerTag: syncDeviceTags({
+                      ...controller.peerSummaries.keys,
+                      ...syncNoticePeerIds(group, controller.notices),
+                    })[peerId],
+                    onCopyDetails: syncNoticeNeedsYou(group)
+                        ? () => _copySupportCode(
+                            syncNoticeSupportCode(group, [
+                              for (final report in controller.notices)
+                                if (report.peerId == peerId) report,
+                            ]),
+                          )
+                        : null,
+                  )
+              else
+                _SyncNoticeTile(
+                  key: ValueKey(group),
+                  group: group,
+                  reports: controller.notices,
+                  onCopyDetails: syncNoticeNeedsYou(group)
+                      ? () => _copySupportCode(
+                          syncNoticeSupportCode(group, controller.notices),
+                        )
+                      : null,
+                ),
             // What this device merged when it last fresh-attached, for the rest
             // of this app session — the latch is in memory, so it does not
             // outlive a restart. ADR-004 makes the count the mitigation
@@ -477,6 +672,38 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
                 onTap: controller.running ? null : () => _syncNow(controller),
               ),
             if (controller.paired)
+              FutureBuilder<int>(
+                future: _conflictsFor(controller),
+                builder: (context, snapshot) {
+                  final count = snapshot.data ?? 0;
+                  if (count == 0) return const SizedBox.shrink();
+                  return ListTile(
+                    key: const ValueKey('sync-conflicts'),
+                    leading: Icon(
+                      Icons.call_split,
+                      color: theme.colorScheme.tertiary,
+                    ),
+                    title: Text(l10n.syncConflictTitle),
+                    subtitle: Text(l10n.settingsSyncConflictsSubtitle(count)),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _openConflicts,
+                  );
+                },
+              ),
+            if (controller.paired)
+              ListTile(
+                key: const ValueKey('sync-review-button'),
+                leading: const Icon(Icons.rule),
+                title: Text(l10n.syncReviewSettingsTitle),
+                subtitle: Text(l10n.syncReviewSettingsSubtitle),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const SyncReviewScreen(),
+                  ),
+                ),
+              ),
+            if (controller.paired)
               ListTile(
                 key: const ValueKey('sync-disconnect'),
                 leading: const Icon(Icons.link_off),
@@ -532,40 +759,229 @@ class _DeviceSyncSectionState extends State<DeviceSyncSection> {
     Localizations.localeOf(context).toString(),
   ).add_jm().format(when.toLocal());
 
-  /// The line for the last completed trigger attempt when it was not a
-  /// success, or null when the last attempt succeeded, nothing has run yet in
-  /// this session, or a pass is currently running (the syncing status on
-  /// [_statusText] takes priority over a stale failure from an earlier pass).
-  ///
-  /// The two missing-store outcomes are deliberately kept apart, as spec §6.2
-  /// and the pairing flow keep them apart: `replacementRequired` is a store
-  /// this device *had* used and that has since gone, so it may have expired
-  /// or been removed — never claimed as either, per §6.14 item 6 — and the
-  /// replacement dialog owns the decision; `firstTimeStoreRequired` is a
-  /// stored phrase no store has ever answered to, which is the mistyped or
-  /// never-created case, and saying "expired" there would explain a store
-  /// that never existed. A stale epoch needs no action: the next pass
-  /// fresh-attaches to the replaced store on its own.
-  String? _failureText(AppLocalizations l10n, SyncController controller) {
+  /// The last completed trigger attempt when it was not a success, or null
+  /// when the last attempt succeeded, nothing has run yet in this session, or
+  /// a pass is currently running (the syncing status on [_statusText] takes
+  /// priority over a stale failure from an earlier pass). Which line each
+  /// status gets is [syncPassProblemText]'s decision.
+  SyncPassResult? _problem(SyncController controller) {
     if (controller.running || !controller.paired) return null;
-    return switch (controller.lastResult?.status) {
-      SyncPassStatus.failed => l10n.settingsSyncStatusFailed,
-      SyncPassStatus.staleEpoch => l10n.settingsSyncStatusStaleStore,
-      SyncPassStatus.replacementRequired =>
-        l10n.settingsSyncStatusStoreUnavailable,
-      SyncPassStatus.firstTimeStoreRequired =>
-        l10n.settingsSyncStatusStoreNotFound,
-      // Declining a replacement leaves sync configured but paused so a later
-      // action can reconsider (spec §6.3 step 1, §6.14 item 6). Every
-      // automatic trigger then answers `paused` without running a pass, so
-      // without this arm the surface fell back to the last success — a date
-      // belonging to a store that no longer exists. `declineReplacement` is
-      // the only thing that pauses the coordinator, so naming the missing
-      // store here claims nothing the pause does not already mean.
-      SyncPassStatus.paused => l10n.settingsSyncStatusPaused,
-      _ => null,
-    };
+    final result = controller.lastResult;
+    if (result == null) return null;
+    return syncPassProblemText(AppLocalizations.of(context), result.status) ==
+            null
+        ? null
+        : result;
   }
+}
+
+/// One notice group, with the records it is about.
+///
+/// A notice that says "some records" and asks the user to edit "one of them"
+/// gives them nothing to look for, so the tile lists the records, looked up
+/// here because a report carries only a kind and an id. Only the kinds
+/// [lookupSyncNoticeRecordName] looks up are named, and only those can be said
+/// to be absent from this device; every other kind is listed by kind alone.
+/// Nothing is left out, so the count stays honest.
+class _SyncNoticeTile extends StatefulWidget {
+  const _SyncNoticeTile({
+    super.key,
+    required this.group,
+    required this.reports,
+    this.peerTag,
+    this.onCopyDetails,
+  });
+
+  final SyncNoticeGroup group;
+  final List<SyncReport> reports;
+
+  /// The tag of the one device a per-device notice is about; null otherwise.
+  final String? peerTag;
+
+  /// Copies the notice's support code; set for a needs-you group only.
+  final VoidCallback? onCopyDetails;
+
+  @override
+  State<_SyncNoticeTile> createState() => _SyncNoticeTileState();
+}
+
+class _SyncNoticeTileState extends State<_SyncNoticeTile> {
+  List<SyncNoticeRecord> _records = const [];
+  Future<List<(SyncNoticeRecord, SyncNoticeRecordName)>>? _names;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _resolve();
+  }
+
+  @override
+  void didUpdateWidget(_SyncNoticeTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.reports, widget.reports) ||
+        oldWidget.group != widget.group) {
+      _resolve();
+    }
+  }
+
+  void _resolve() {
+    final records = syncNoticeRecords(widget.group, widget.reports);
+    // The controller notifies at the start and end of every pass, and each
+    // notification rebuilds this tile; looking the names up again when the
+    // records have not changed would flash the line away and back.
+    if (_names != null && listEquals(records, _records)) return;
+    _records = records;
+    // Optional rather than required: a host without a repository scope still
+    // gets the notice and its record kinds, just not their names.
+    final repositories = context
+        .getInheritedWidgetOfExactType<RepositoriesScope>()
+        ?.repositories;
+    final shown = records.take(kSyncNoticeNamedLimit).toList();
+    _names = Future(() async {
+      final named = <(SyncNoticeRecord, SyncNoticeRecordName)>[];
+      for (final record in shown) {
+        SyncNoticeRecordName name = const SyncNoticeRecordUnnamed();
+        if (repositories != null) {
+          try {
+            name = await lookupSyncNoticeRecordName(repositories, record);
+          } on Object catch (e, st) {
+            // The notice itself is what matters; a lookup that fails degrades
+            // this record to its kind rather than hiding the whole line.
+            logCaughtErrorTypeOnly(e, st, source: 'sync_notice_tile.lookup');
+          }
+        }
+        named.add((record, name));
+      }
+      return named;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final perDevice = syncNoticeIsPerDevice(widget.group);
+    // A per-device notice already names its one device in its text.
+    final peers = perDevice
+        ? 0
+        : syncNoticePeerCount(widget.group, widget.reports);
+    final total = _records.length;
+    final needsYou = syncNoticeNeedsYou(widget.group);
+    final peerTag = widget.peerTag;
+    final keyName = perDevice && peerTag != null
+        ? '${widget.group.name}-$peerTag'
+        : widget.group.name;
+    final text = Text(
+      syncNoticeText(
+        l10n,
+        widget.group,
+        countedRecords: syncNoticeCountableRecords(
+          widget.group,
+          widget.reports,
+        ),
+        device: perDevice ? (tag: peerTag ?? '', count: total) : null,
+      ),
+    );
+    return ListTile(
+      key: ValueKey('sync-notice-$keyName'),
+      // Needs-you is carried by the icon *and* a text label, never by colour
+      // alone.
+      leading: needsYou
+          ? Icon(Icons.warning_amber_outlined, color: theme.colorScheme.error)
+          : Icon(Icons.info_outline, color: theme.colorScheme.tertiary),
+      title: needsYou
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.settingsSyncNoticeNeedsYou,
+                  key: ValueKey('sync-notice-$keyName-needs-you'),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+                text,
+              ],
+            )
+          : text,
+      trailing: switch (widget.onCopyDetails) {
+        final onCopy? => _CopyDetailsButton(
+          key: ValueKey('sync-notice-$keyName-copy-details'),
+          onPressed: onCopy,
+        ),
+        null => null,
+      },
+      subtitle: total == 0 && peers == 0 && !(needsYou && perDevice)
+          ? null
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (total > 0)
+                  FutureBuilder(
+                    future: _names,
+                    builder: (context, snapshot) {
+                      final named = snapshot.data;
+                      // Until the names arrive, the kinds alone still say
+                      // what to look for.
+                      final shown =
+                          named ??
+                          [
+                            for (final record in _records.take(
+                              kSyncNoticeNamedLimit,
+                            ))
+                              (record, const SyncNoticeRecordUnnamed()),
+                          ];
+                      return Text(
+                        syncNoticeAffectedText(
+                          l10n,
+                          shown,
+                          total,
+                          newerFigures: syncNoticeNewerFigureRecords(
+                            widget.reports,
+                          ),
+                        ),
+                        key: ValueKey(
+                          'sync-notice-${widget.group.name}-records',
+                        ),
+                      );
+                    },
+                  ),
+                if (peers > 0)
+                  Text(
+                    l10n.settingsSyncNoticeFromDevices(peers),
+                    key: ValueKey('sync-notice-${widget.group.name}-peers'),
+                  ),
+                // A per-device notice's one action: the list where that
+                // device is shown by the same tag, with what is waiting for
+                // it. A newer-version notice's remedy is updating this app,
+                // which nothing on this screen does, so it has none here.
+                if (needsYou && perDevice)
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton(
+                      key: ValueKey('sync-notice-$keyName-action'),
+                      onPressed: () => showSyncDevicesScreen(context),
+                      child: Text(l10n.settingsSyncNoticeSeeDevices),
+                    ),
+                  ),
+              ],
+            ),
+    );
+  }
+}
+
+/// The "Copy details" action on a needs-you Device Sync item.
+class _CopyDetailsButton extends StatelessWidget {
+  const _CopyDetailsButton({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    icon: const Icon(Icons.content_copy_outlined),
+    tooltip: AppLocalizations.of(context).settingsSyncCopyDetails,
+    onPressed: onPressed,
+  );
 }
 
 /// The sync phrase this device is attached to, on the status surface so the

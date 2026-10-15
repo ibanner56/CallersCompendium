@@ -231,6 +231,14 @@ Map<String, Object?> archiveProgramToJson(
   'status': p.status.name,
   if (includeOptionalFields || p.hideAlternates)
     'hideAlternates': p.hideAlternates,
+  // Emitted only when set, in every mode — unlike `venueId` above. Sync bodies
+  // pass includeOptionalFields, and a null-valued key there would change the
+  // wire hash of every program that has no dialect.
+  if (p.dialectName != null) 'dialectName': p.dialectName,
+  // Same rule, same reason: only when set, so a program without pay keeps its
+  // wire hash. The two keys travel together.
+  if (p.payMinorUnits != null) 'payMinorUnits': p.payMinorUnits,
+  if (p.payCurrency != null) 'payCurrency': p.payCurrency,
   'slots': [
     for (final s in p.slots)
       archiveProgramSlotToJson(s, includeOptionalFields: includeOptionalFields),

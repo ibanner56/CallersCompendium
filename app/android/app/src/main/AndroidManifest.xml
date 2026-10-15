@@ -29,11 +29,13 @@
             <!-- Receive-side share import (issue #298): open a shared
                  CompendiumArchive .json bundle handed over by another app / a
                  file manager ("Open with") or a share. Dart validates the file
-                 as untrusted input before importing. -->
+                 as untrusted input before importing. Deliberately not
+                 BROWSABLE: MainActivity reads the URI with the app's own
+                 identity, so a web page must not be able to pick it
+                 (security-6; tools/ci/check_android_intent_filters.py). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="content"/>
                 <data android:scheme="file"/>
                 <data android:mimeType="application/json"/>

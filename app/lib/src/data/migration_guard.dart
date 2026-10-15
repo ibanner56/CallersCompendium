@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart'
@@ -6,7 +7,10 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sql;
 
+import '../diagnostics/error_log.dart';
 import 'app_database.dart';
+import 'single_instance_guard.dart'
+    show AdvisoryFileLock, InstanceLockHandle, InstanceLockPrimitive;
 
 /// Directory name (under the database's own directory) holding automatic
 /// pre-migration snapshots.
@@ -62,12 +66,15 @@ class DatabaseBelowFloorError implements Exception {
 /// raise.
 /// **[bridgeTag]** — the release tag of the newest release that predates the
 /// raise and can therefore still open *and* migrate any database below the new
-/// floor up to a supported version. Specifically, it is the tag whose schema
-/// version is the highest version still below [floor] after the raise.
+/// floor up to a supported version. Specifically, it is the newest release that
+/// still carries the `onUpgrade` steps for the newly retired version band and
+/// whose own schema version is at or above [floor] — so it lands the file on a
+/// supported version in one hop. (A release whose schema is *below* [floor]
+/// cannot qualify: it would leave the file still refused.)
 ///
 /// When [kMinSupportedSchemaVersion] is next raised, add one entry here:
-/// the new floor value and the tag of the release whose schema is the last one
-/// below it. That is part of the floor-raise checklist.
+/// the new floor value and the tag of that release. That is part of the
+/// floor-raise checklist.
 ///
 /// Uses [int] floors and [String] tags so the list is encodable without
 /// importing the database package.
@@ -81,6 +88,12 @@ const List<({int floor, String bridgeTag})> kBelowFloorBridgeTags = [
   // still the newest release that can open a v11–v19 database and migrate it
   // through the now-retired steps, landing at v25 — comfortably above v20.
   (floor: 20, bridgeTag: 'v0.1.0-beta.7'),
+  // Floor raised to 35 once every release before v0.4.0-beta ("Allemande
+  // Left") was retired. v0.6.0-beta (schema v38) is the newest release that
+  // predates this raise, so it still carries the steps that migrate a v20–v34
+  // database to head — landing at v38, comfortably above v35. (v0.3.1-beta,
+  // the last release below the floor, would NOT do: it tops out at v32.)
+  (floor: 35, bridgeTag: 'v0.6.0-beta'),
 ];
 
 /// Returns the [bridgeTag] for a database at [fileVersion] — the release tag
@@ -339,18 +352,652 @@ SnapshotFailureCause classifySnapshotFailure(Object error) {
   return SnapshotFailureCause.unknown;
 }
 
+/// Why [relocateLegacyDatabase] refused to move (or could not finish moving) a
+/// database, as a typed discriminator the presentation layer localizes.
+enum DatabaseRelocationFailure {
+  /// Data files already exist at the new location (the database or a stray
+  /// `-wal`/`-shm`) *and* a database exists at a legacy location. Which is
+  /// current is not for the app to guess, so every file is left exactly as
+  /// found.
+  bothExist,
+
+  /// The new location is empty but more than one legacy location holds a
+  /// database (on Windows: Documents and the Roaming fallback directory). Left
+  /// exactly as found for the user to choose.
+  multipleLegacy,
+
+  /// Another process has the legacy database open (the WAL could not be
+  /// checkpointed, or it could not be taken out of WAL mode), another process
+  /// held the relocation lock past the timeout, the lock could not be taken at
+  /// all, or copying, verifying or removing the legacy files failed (disk
+  /// full, unwritable directory, a file locked by another process). Anything
+  /// the attempt wrote at the new location is removed and any legacy file it
+  /// had already deleted is restored from the verified copy, so the next
+  /// launch starts again from the original state, with one exception: if the
+  /// legacy database file is no longer there, the new copy is kept.
+  moveFailed,
+
+  /// No database exists at the new location yet, and the Documents folder
+  /// earlier builds used does not exist (for example a redirected folder on a
+  /// disconnected network share or drive letter), or on Windows could not be
+  /// resolved at all. Whether a library is waiting there cannot be known, so
+  /// nothing is created that would start an empty library beside it. Only a
+  /// missing path is detected: an unmounted volume whose empty mount-point
+  /// folder is still there looks like an empty Documents.
+  legacyUnreachable,
+}
+
+/// Which folder a [DatabaseCopy] is in, as a typed discriminator the
+/// presentation layer localizes (the screen never shows a path).
+enum DatabaseCopyLocation {
+  /// The current database directory.
+  newLocation,
+
+  /// The Documents folder earlier builds used.
+  documents,
+
+  /// Another folder an earlier build used (on Windows, the Roaming app data
+  /// fallback directory).
+  earlierAppFolder,
+}
+
+/// Size and age of one database copy found by [relocateLegacyDatabase], shown
+/// on the terminal screen so the user can tell which copy is their library.
+@immutable
+class DatabaseCopy {
+  const DatabaseCopy({
+    required this.location,
+    required this.bytes,
+    required this.modified,
+  });
+
+  final DatabaseCopyLocation location;
+
+  /// Combined size of the database file and its `-wal`/`-shm` sidecars.
+  final int bytes;
+
+  /// The most recent modification time among those files.
+  final DateTime modified;
+}
+
+/// Thrown by [relocateLegacyDatabase] when it cannot safely complete the move.
+///
+/// Fail-closed like [MigrationSnapshotAborted] (issue #442): startup stops with
+/// a terminal screen and no database is opened, so no second, empty database is
+/// created beside the real one. Nothing is deleted on the way out.
+class DatabaseRelocationBlocked implements Exception {
+  const DatabaseRelocationBlocked(
+    this.reason, {
+    this.error,
+    this.copies = const [],
+  });
+
+  final DatabaseRelocationFailure reason;
+
+  /// For [DatabaseRelocationFailure.bothExist] and
+  /// [DatabaseRelocationFailure.multipleLegacy]: each conflicting copy's
+  /// location, size and modification time. Empty when they could not be read.
+  final List<DatabaseCopy> copies;
+
+  /// The underlying error for [DatabaseRelocationFailure.moveFailed], for
+  /// diagnostics only: it can embed absolute paths and is never rendered.
+  final Object? error;
+
+  @override
+  String toString() => 'DatabaseRelocationBlocked($reason, error: $error)';
+}
+
+const String _relocatingSuffix = '.relocating';
+
+/// File name of the advisory lock [relocateLegacyDatabase] holds, in the
+/// target's directory, for the whole move.
+const String kRelocationLockFileName = '.relocation.lock';
+
+/// Name of the note [relocateLegacyDatabase] leaves inside the breadcrumb
+/// folder at each earlier location after a successful move.
+const String kRelocationBreadcrumbNoteName = 'README.txt';
+const List<String> _sidecarSuffixes = ['-wal', '-shm'];
+
+/// Moves a database left in a legacy location (Documents, or an earlier
+/// fallback directory) to [target], once, before anything opens either file.
+///
+/// Returns `true` when a database was moved and `false` when there was nothing
+/// to do (no legacy database exists, which is every launch after the first).
+///
+/// Moves `compendium.sqlite`, its `-wal`/`-shm` sidecars and the pre-migration
+/// snapshots from the legacy directory's [kDatabaseBackupsDirName] folder. Only
+/// files matching the snapshot naming are moved from that folder (Documents is
+/// the user's own folder), and the folder is removed only if that leaves it
+/// empty.
+///
+/// Rules, in the order they bite:
+/// - **No library is not the same as an unreachable Documents.** When
+///   no database exists at [target] yet and either [documentsDirectory] is
+///   given but does not exist, or [documentsUnresolvable] is set (Windows could
+///   not resolve Documents), throw
+///   [DatabaseRelocationFailure.legacyUnreachable] and create nothing: a
+///   missing Documents path (a redirected folder on a disconnected share or
+///   drive letter) would otherwise look like "no legacy database", and drift
+///   would start an empty library beside the real one. Only a missing path is
+///   detected; an unmounted volume that leaves an empty mount-point folder
+///   behind is not. Once [target] holds a database this check is skipped (an
+///   empty library can no longer be started by mistake). A `null`
+///   [documentsDirectory] without [documentsUnresolvable] means Linux without
+///   `xdg-user-dirs`, where no earlier build could have kept a database.
+/// - **One mover at a time.** The whole move runs under an exclusive advisory
+///   lock on [kRelocationLockFileName] in the target's directory (the same
+///   [AdvisoryFileLock] the single-instance guard uses), plus an in-process
+///   queue because POSIX record locks never contend within one process. Every
+///   precondition below is checked only once the lock is held, so a second
+///   process that waited sees the finished move (no legacy database) and does
+///   nothing. If the lock is still held after [lockTimeout], or cannot be
+///   taken at all, nothing is touched ([DatabaseRelocationFailure.moveFailed]).
+/// - **Never overwrite.** If the target database (or a sidecar) exists, or more
+///   than one legacy database exists, throw [DatabaseRelocationBlocked]
+///   ([DatabaseRelocationFailure.bothExist] or
+///   [DatabaseRelocationFailure.multipleLegacy]) and touch nothing; the error
+///   carries each copy's location, size and age
+///   ([DatabaseRelocationBlocked.copies]) so the user can choose.
+/// - **Checkpoint first** (`wal_checkpoint(TRUNCATE)`, as the pre-migration
+///   snapshot does), and require it to report not busy: a busy result means
+///   another connection holds the WAL, so the main file is not yet a complete
+///   database and nothing is copied ([DatabaseRelocationFailure.moveFailed]).
+/// - **Never move a database someone has open, and keep everyone out until it
+///   is gone.** A not-busy checkpoint only proves no other connection is
+///   *reading*; an idle one (an older build left running) would lose whatever
+///   it writes after the copy. The checking connection stays open with an
+///   exclusive SQLite lock from the check until the main file is deleted
+///   (`_LegacyHold`): a WAL database must leave WAL mode first, which SQLite
+///   refuses while any other connection has the file open
+///   ([DatabaseRelocationFailure.moveFailed]); after that every other reader
+///   or writer, in any process, gets SQLITE_BUSY. The database is copied in
+///   rollback-journal mode; drift's setup puts it back in WAL mode on open,
+///   and a move that gives up restores WAL mode on the old file. Limits:
+///   - A database still in rollback-journal mode (written by a build before
+///     WAL) cannot be probed for an *idle* connection, which holds no lock; it
+///     is locked out from the check on, but on POSIX a write it makes after the
+///     unlink goes to the deleted file.
+///   - Windows cannot delete an open file, so the lock is released just before
+///     the main file is deleted. A process opening it in that gap keeps it
+///     open (SQLite does not share delete access), so the delete fails and the
+///     move rolls back; one that opens, writes and closes inside the gap is not
+///     caught.
+///   - On Windows SQLite's lock bytes sit at the 1 GiB offset, so copying a
+///     database larger than 1 GiB through a second handle fails
+///     ([DatabaseRelocationFailure.moveFailed], nothing deleted).
+/// - **Copy, fsync, verify size, then rename into place**: every file is copied
+///   to `<name>.relocating` beside its destination, flushed to disk and its
+///   length compared with the source; only when all of them verify are they
+///   renamed to their final names. A crash before that leaves only `.relocating`
+///   files, which the next launch discards and redoes.
+/// - **Delete the source last.** Sidecars and snapshots first, the main database
+///   file last. Any failure before or during this step is rolled back: legacy
+///   files already deleted are restored from the verified copy and what this
+///   attempt wrote at the target is removed, so the legacy files are exactly as
+///   found. The target copy is kept instead if that restore fails, or if the
+///   legacy database file is no longer there when the attempt gives up (data
+///   is never left in fewer places than before).
+///
+/// The **breadcrumb** at the source path is made inside the delete step, right
+/// after the main file is deleted (on Windows, after the exclusive hold was
+/// released for that delete; on POSIX, while it is still held); if it cannot
+/// be made the move rolls back like any other delete failure. (A crash in the instant between that delete
+/// and the breadcrumb leaves the path free, and nothing repairs it later.)
+/// Breadcrumbs at the other legacy paths whose folder exists are best-effort.
+/// A breadcrumb is a *folder* named
+/// `compendium.sqlite` holding a [kRelocationBreadcrumbNoteName] that says
+/// where the library went. Every earlier build (v0.1.0 to v0.5.4) skips its
+/// preflight because `File.exists()` is false for a folder, then asks SQLite to
+/// open the path, which cannot open a folder; it shows its startup error
+/// screen instead of creating a new, empty library there. This function, for
+/// the same reason, never sees a breadcrumb as a legacy database.
+///
+/// A *crash* (not a reported failure) between the rename and the last delete
+/// leaves both copies; the next launch reports
+/// [DatabaseRelocationFailure.bothExist] rather than overwriting either: a user
+/// (not the app) decides which to delete, see `docs/user/faq.md`.
+///
+/// [deleter] is injectable so tests can fail the source cleanup part-way; the
+/// production default deletes via [File]. A legacy file in
+/// [documentsDirectory] is reported as [DatabaseCopyLocation.documents], any
+/// other as [DatabaseCopyLocation.earlierAppFolder]. [lockPrimitive] (default
+/// [AdvisoryFileLock]), [lockTimeout] and [afterRename] (called after each
+/// file is renamed into place) are test seams.
+Future<bool> relocateLegacyDatabase({
+  required File target,
+  required List<File> legacy,
+  Future<void> Function(File file)? deleter,
+  Directory? documentsDirectory,
+  bool documentsUnresolvable = false,
+  @visibleForTesting InstanceLockPrimitive? lockPrimitive,
+  @visibleForTesting Duration lockTimeout = const Duration(seconds: 30),
+  @visibleForTesting Future<void> Function(File renamed)? afterRename,
+}) async {
+  // Checked before the lock, because it must also bite when no legacy
+  // database is visible: that is exactly what an unreachable Documents looks
+  // like.
+  if (!target.existsSync() &&
+      (documentsUnresolvable ||
+          (documentsDirectory != null && !documentsDirectory.existsSync()))) {
+    throw const DatabaseRelocationBlocked(
+      DatabaseRelocationFailure.legacyUnreachable,
+    );
+  }
+  // Every launch after the first ends here, without creating anything.
+  if (_existingLegacy(target, legacy).isEmpty) return false;
+  return _whileHoldingRelocationLock(
+    target.parent,
+    lockPrimitive ?? const AdvisoryFileLock(),
+    lockTimeout,
+    () => _relocateWhileLocked(
+      target: target,
+      legacy: legacy,
+      delete: deleter ?? (file) => file.delete(),
+      afterRename: afterRename,
+      documentsDirectory: documentsDirectory,
+    ),
+  );
+}
+
+List<File> _existingLegacy(File target, List<File> legacy) => [
+  for (final file in legacy)
+    if (p.canonicalize(file.path) != p.canonicalize(target.path) &&
+        file.existsSync())
+      file,
+];
+
+/// The relocation running in this process, if any; see
+/// [_whileHoldingRelocationLock].
+Future<void>? _relocationInProgress;
+
+/// Runs [body] holding the relocation lock in [dir]: first this process's own
+/// queue (an OS advisory lock is per-process on POSIX, so it would not keep two
+/// attempts in one process apart), then the OS lock, polled until [timeout].
+/// Any failure to take the lock is [DatabaseRelocationFailure.moveFailed]
+/// before anything is touched.
+Future<bool> _whileHoldingRelocationLock(
+  Directory dir,
+  InstanceLockPrimitive primitive,
+  Duration timeout,
+  Future<bool> Function() body,
+) async {
+  while (_relocationInProgress != null) {
+    await _relocationInProgress;
+  }
+  final done = Completer<void>();
+  _relocationInProgress = done.future;
+  try {
+    final InstanceLockHandle handle;
+    try {
+      handle = await _acquireRelocationLock(dir, primitive, timeout);
+    } on Object catch (error) {
+      // diagnostics: silent — fail-closed; the typed error carries the cause.
+      throw DatabaseRelocationBlocked(
+        DatabaseRelocationFailure.moveFailed,
+        error: error,
+      );
+    }
+    try {
+      return await body();
+    } finally {
+      await handle.release();
+    }
+  } finally {
+    _relocationInProgress = null;
+    done.complete();
+  }
+}
+
+Future<InstanceLockHandle> _acquireRelocationLock(
+  Directory dir,
+  InstanceLockPrimitive primitive,
+  Duration timeout,
+) async {
+  final lockFile = File(p.join(dir.path, kRelocationLockFileName));
+  final waited = Stopwatch()..start();
+  while (true) {
+    final handle = await primitive.tryAcquire(lockFile);
+    if (handle != null) return handle;
+    if (waited.elapsed >= timeout) {
+      throw FileSystemException(
+        'relocation lock is held by another process',
+        lockFile.path,
+      );
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+  }
+}
+
+Future<bool> _relocateWhileLocked({
+  required File target,
+  required List<File> legacy,
+  required Future<void> Function(File file) delete,
+  required Future<void> Function(File renamed)? afterRename,
+  required Directory? documentsDirectory,
+}) async {
+  // Re-checked under the lock: another process may have finished (or begun
+  // and failed) the move while this one waited.
+  final sources = _existingLegacy(target, legacy);
+  if (sources.isEmpty) return false;
+
+  DatabaseCopyLocation locationOf(File file) =>
+      documentsDirectory != null &&
+          p.canonicalize(file.parent.path) ==
+              p.canonicalize(documentsDirectory.path)
+      ? DatabaseCopyLocation.documents
+      : DatabaseCopyLocation.earlierAppFolder;
+  final targetOccupied = [
+    target,
+    for (final suffix in _sidecarSuffixes) File('${target.path}$suffix'),
+  ].any((file) => file.existsSync());
+  if (targetOccupied) {
+    throw DatabaseRelocationBlocked(
+      DatabaseRelocationFailure.bothExist,
+      copies: _describeCopies([
+        // Only a database file is a copy to choose; stray sidecars are not.
+        if (target.existsSync()) (target, DatabaseCopyLocation.newLocation),
+        for (final source in sources) (source, locationOf(source)),
+      ]),
+    );
+  }
+  if (sources.length > 1) {
+    throw DatabaseRelocationBlocked(
+      DatabaseRelocationFailure.multipleLegacy,
+      copies: _describeCopies([
+        for (final source in sources) (source, locationOf(source)),
+      ]),
+    );
+  }
+  final source = sources.single;
+
+  final moves = <(File, File)>[];
+  final temps = <File>[];
+  final finals = <File>[];
+  _LegacyHold? hold;
+  try {
+    await _moveWhileHolding(
+      source: source,
+      target: target,
+      moves: moves,
+      temps: temps,
+      finals: finals,
+      delete: delete,
+      afterRename: afterRename,
+      onHold: (held) => hold = held,
+    );
+  } finally {
+    // Idempotent: on Windows the hold was already released before the delete.
+    await hold?.release();
+  }
+  // The source path's breadcrumb was made inside the move; the others (and
+  // every crumb's note) are best-effort.
+  for (final file in legacy) {
+    await _leaveBreadcrumb(file, target);
+  }
+  return true;
+}
+
+Future<bool> _moveWhileHolding({
+  required File source,
+  required File target,
+  required List<(File, File)> moves,
+  required List<File> temps,
+  required List<File> finals,
+  required Future<void> Function(File file) delete,
+  required Future<void> Function(File renamed)? afterRename,
+  required void Function(_LegacyHold hold) onHold,
+}) async {
+  final _LegacyHold hold;
+  try {
+    hold = await _LegacyHold.acquire(source);
+    onHold(hold);
+    moves.add((source, target));
+    for (final suffix in _sidecarSuffixes) {
+      final sidecar = File('${source.path}$suffix');
+      if (sidecar.existsSync()) {
+        moves.add((sidecar, File('${target.path}$suffix')));
+      }
+    }
+    final legacyBackups = Directory(
+      p.join(source.parent.path, kDatabaseBackupsDirName),
+    );
+    final targetBackups = Directory(
+      p.join(target.parent.path, kDatabaseBackupsDirName),
+    );
+    if (legacyBackups.existsSync()) {
+      for (final entry in legacyBackups.listSync(followLinks: false)) {
+        if (entry is File && _isSnapshot(p.basename(entry.path))) {
+          moves.add((
+            entry,
+            File(p.join(targetBackups.path, p.basename(entry.path))),
+          ));
+        }
+      }
+    }
+    if (moves.any((move) => move.$2.existsSync())) {
+      throw const DatabaseRelocationBlocked(
+        DatabaseRelocationFailure.bothExist,
+      );
+    }
+
+    await target.parent.create(recursive: true);
+    if (moves.any(
+      (move) => p.basename(move.$2.parent.path) == kDatabaseBackupsDirName,
+    )) {
+      await targetBackups.create(recursive: true);
+    }
+    for (final (from, to) in moves) {
+      final temp = File('${to.path}$_relocatingSuffix');
+      temps.add(temp);
+      // The database file is copied through the hold's own handle: on POSIX,
+      // closing *any* descriptor this process has on the file would drop the
+      // SQLite lock that keeps other processes out.
+      if (from.path == source.path) {
+        await hold.copyTo(temp);
+      } else {
+        await from.copy(temp.path);
+      }
+      final handle = await temp.open(mode: FileMode.append);
+      try {
+        await handle.flush();
+      } finally {
+        await handle.close();
+      }
+      if (await temp.length() != await from.length()) {
+        throw FileSystemException('relocated copy has the wrong size', to.path);
+      }
+    }
+    for (final (index, (_, to)) in moves.indexed) {
+      await temps[index].rename(to.path);
+      finals.add(to);
+      await afterRename?.call(to);
+    }
+  } on DatabaseRelocationBlocked {
+    // diagnostics: silent — typed fail-closed outcome, thrown before anything
+    // was written; the caller routes it to the terminal screen.
+    rethrow;
+  } on Object catch (error) {
+    // diagnostics: silent — fail-closed; the typed error carries the cause.
+    await _discard(temps);
+    // The renamed copy goes only while the legacy database is still there:
+    // if something else removed it, the copy may be the only one left.
+    if (source.existsSync()) await _discard(finals);
+    throw DatabaseRelocationBlocked(
+      DatabaseRelocationFailure.moveFailed,
+      error: error,
+    );
+  }
+
+  final deleted = <(File, File)>[];
+  try {
+    // Main database file last: until it is gone the legacy library is intact.
+    for (final move in moves.reversed) {
+      // Windows cannot delete a file this process still has open; release the
+      // lock just before. Another process opening it in that gap keeps it open
+      // (SQLite never shares delete access), so the delete fails and is rolled
+      // back below; on POSIX the file is unlinked while still locked.
+      if (move.$1.path == source.path && Platform.isWindows) {
+        await hold.release();
+      }
+      await delete(move.$1);
+      deleted.add(move);
+    }
+    // The breadcrumb at the old path is part of the move: if it cannot be
+    // made (something took the freed path), the move rolls back below rather
+    // than leave the path for an older build to start an empty library in.
+    await Directory(source.path).create();
+    if (FileSystemEntity.typeSync(source.path, followLinks: false) !=
+        FileSystemEntityType.directory) {
+      throw FileSystemException('breadcrumb could not be made', source.path);
+    }
+  } on Object catch (error) {
+    // diagnostics: silent — rolled back below; the typed error carries the cause.
+    var restored = true;
+    for (final (from, to) in deleted) {
+      try {
+        await to.copy(from.path);
+      } on Object {
+        // diagnostics: silent — the target copy is kept below.
+        restored = false;
+      }
+    }
+    // Only a fully restored legacy library lets the target copy go: otherwise
+    // (a restore failed, or the legacy database file is gone, deleted by
+    // something other than this attempt) keep it, so the data is never left
+    // in fewer places than before.
+    if (restored && source.existsSync()) await _discard(finals);
+    throw DatabaseRelocationBlocked(
+      DatabaseRelocationFailure.moveFailed,
+      error: error,
+    );
+  }
+  // Best-effort: an emptied legacy folder is cosmetic.
+  try {
+    final legacyBackups = Directory(
+      p.join(source.parent.path, kDatabaseBackupsDirName),
+    );
+    if (legacyBackups.existsSync() && legacyBackups.listSync().isEmpty) {
+      await legacyBackups.delete();
+    }
+  } on FileSystemException {
+    // diagnostics: silent — cosmetic cleanup of an empty folder.
+  }
+  return true;
+}
+
+/// Size and age of each `(database file, location)` pair, counting its
+/// `-wal`/`-shm` sidecars. Empty if any of them cannot be read: the details
+/// help the user choose, and their absence must not hide the blocking message.
+List<DatabaseCopy> _describeCopies(List<(File, DatabaseCopyLocation)> found) {
+  try {
+    return [
+      for (final (file, location) in found)
+        () {
+          final present = [
+            file,
+            for (final suffix in _sidecarSuffixes) File('${file.path}$suffix'),
+          ].where((f) => f.existsSync()).toList();
+          return DatabaseCopy(
+            location: location,
+            bytes: present.fold(0, (sum, f) => sum + f.lengthSync()),
+            modified: present
+                .map((f) => f.lastModifiedSync())
+                .reduce((a, b) => a.isAfter(b) ? a : b),
+          );
+        }(),
+    ];
+  } on Object catch (error, stackTrace) {
+    logCaughtErrorTypeOnly(
+      error,
+      stackTrace,
+      source: 'migration_guard.describeCopies',
+    );
+    return const [];
+  }
+}
+
+/// Leaves a folder named like the database at [legacyFile]'s path, with a note
+/// inside, so an earlier build fails to open it rather than creating an empty
+/// library there (see [relocateLegacyDatabase]). Only where the path is free
+/// and its folder exists; best-effort, since the move itself has succeeded.
+Future<void> _leaveBreadcrumb(File legacyFile, File target) async {
+  if (p.canonicalize(legacyFile.path) == p.canonicalize(target.path)) return;
+  try {
+    if (!legacyFile.parent.existsSync()) return;
+    final type = FileSystemEntity.typeSync(legacyFile.path, followLinks: false);
+    // A file or link there is someone else's; a folder is already a crumb
+    // (the moved database's own, made as part of the move).
+    if (type != FileSystemEntityType.notFound &&
+        type != FileSystemEntityType.directory) {
+      return;
+    }
+    final crumb = await Directory(legacyFile.path).create();
+    final note = File(p.join(crumb.path, kRelocationBreadcrumbNoteName));
+    if (note.existsSync()) return;
+    await note.writeAsString(
+      "Caller's Compendium moved your library out of this folder, to:\n"
+      '\n'
+      '    ${target.parent.path}\n'
+      '\n'
+      'This folder stays here so that an older version of the app, if you\n'
+      'open one, shows an error instead of starting a new, empty library.\n'
+      'Current versions ignore it. You can delete it if you will not open an\n'
+      'older version again.\n',
+      flush: true,
+    );
+  } on Object catch (error, stackTrace) {
+    logCaughtErrorTypeOnly(
+      error,
+      stackTrace,
+      source: 'migration_guard.leaveBreadcrumb',
+    );
+  }
+}
+
+/// Best-effort removal of files this relocation attempt itself created.
+Future<void> _discard(List<File> files) async {
+  for (final file in files) {
+    try {
+      if (file.existsSync()) await file.delete();
+    } on FileSystemException {
+      // diagnostics: silent — a leftover `.relocating` file is discarded by the
+      // next attempt; a leftover final file is reported as bothExist.
+    }
+  }
+}
+
 /// App-facing entry point: resolves the real database file + snapshot directory
-/// (via `path_provider`) and runs [runMigrationPreflight]. Wired into
+/// (via `path_provider`), moves a database an earlier build left in a legacy
+/// location into place ([relocateLegacyDatabase]), and runs
+/// [runMigrationPreflight]. Wired into
 /// `main.dart`'s startup sequence. [onSnapshotFailure] is the consent seam
 /// invoked only when the pre-migration snapshot fails (see
 /// [runMigrationPreflight]); `main.dart` supplies an implementation that
 /// surfaces a blocking dialog. Left `null` only by callers that intentionally
 /// opt out, in which case a snapshot failure fails closed.
+///
+/// [operatingSystem] overrides the running platform, as in
+/// [resolveDatabaseLocations], so tests can drive each platform's relocation.
 Future<void> runMigrationPreflightForApp({
   required int runningSchemaVersion,
   SnapshotFailureDecision? onSnapshotFailure,
+  String? operatingSystem,
 }) async {
-  final dbFile = await resolveDatabaseFile();
+  final locations = await resolveDatabaseLocations(
+    operatingSystem: operatingSystem,
+  );
+  const fileName = '$kDatabaseName.sqlite';
+  final dbFile = File(p.join(locations.primary.path, fileName));
+  // Before any open: drift would otherwise create a new, empty database beside
+  // the library an earlier build left in Documents.
+  await relocateLegacyDatabase(
+    target: dbFile,
+    legacy: [
+      for (final dir in locations.legacy) File(p.join(dir.path, fileName)),
+    ],
+    documentsDirectory: locations.documents,
+    documentsUnresolvable: locations.documentsUnresolvable,
+  );
   final snapshotDir = Directory(
     p.join(dbFile.parent.path, kDatabaseBackupsDirName),
   );
@@ -420,6 +1067,119 @@ void _checkpoint(String path) {
     db.close();
   }
 }
+
+/// An exclusive SQLite lock on the legacy database, held from the in-use
+/// check until it is deleted (or the move gives up), so no other connection,
+/// in this process or another, can read or write it in between.
+///
+/// [acquire] checkpoints the WAL and requires it not busy (a reader pins it),
+/// sets `locking_mode = EXCLUSIVE`, takes a WAL database out of WAL mode
+/// (`journal_mode = DELETE`, which SQLite refuses while any other connection,
+/// even an idle one, has the file open), then opens `BEGIN EXCLUSIVE`. From
+/// then on every other connection gets SQLITE_BUSY. A rollback-journal
+/// database (from a build before WAL) is not probed for idle connections: one
+/// holds no lock, so it cannot be seen; it is still locked out from here on.
+///
+/// The copy goes through [_raf], opened after the lock and closed only after
+/// the connection: POSIX record locks are per process, and closing any other
+/// descriptor on the file would release SQLite's.
+class _LegacyHold {
+  _LegacyHold._(this._file, this._db, this._wasWal, this._raf);
+
+  final File _file;
+  final bool _wasWal;
+  sql.Database? _db;
+  RandomAccessFile? _raf;
+
+  static Future<_LegacyHold> acquire(File file) async {
+    final db = sql.sqlite3.open(file.path);
+    final bool wasWal;
+    try {
+      final row = db.select('PRAGMA wal_checkpoint(TRUNCATE)').first;
+      if (row.values.first != 0) {
+        throw FileSystemException(
+          'WAL checkpoint is blocked (database busy)',
+          file.path,
+        );
+      }
+      wasWal = _journalMode(db) == 'wal';
+      db.execute('PRAGMA locking_mode = EXCLUSIVE');
+      if (wasWal) {
+        db.execute('PRAGMA journal_mode = DELETE');
+        if (_journalMode(db) != 'delete') {
+          throw FileSystemException(
+            'database is open in another connection (cannot leave WAL mode)',
+            file.path,
+          );
+        }
+      }
+      db.execute('BEGIN EXCLUSIVE');
+    } on Object {
+      // diagnostics: silent — rethrown; the caller reports moveFailed.
+      db.close();
+      rethrow;
+    }
+    final RandomAccessFile raf;
+    try {
+      raf = await file.open();
+    } on Object {
+      // diagnostics: silent — rethrown; the caller reports moveFailed.
+      db
+        ..execute('ROLLBACK')
+        ..close();
+      rethrow;
+    }
+    return _LegacyHold._(file, db, wasWal, raf);
+  }
+
+  /// Copies the held database file to [to] through the held handle.
+  Future<void> copyTo(File to) async {
+    final from = _raf!;
+    await from.setPosition(0);
+    final out = await to.open(mode: FileMode.write);
+    try {
+      final buffer = Uint8List(1 << 20);
+      while (true) {
+        final read = await from.readInto(buffer);
+        if (read == 0) break;
+        await out.writeFrom(buffer, 0, read);
+      }
+    } finally {
+      await out.close();
+    }
+  }
+
+  /// Ends the transaction and closes the connection, then the copy handle.
+  /// If the file is still there (the move gave up) it is put back in WAL mode
+  /// when it was found in it. Idempotent; never throws.
+  Future<void> release() async {
+    final db = _db;
+    final raf = _raf;
+    _db = null;
+    _raf = null;
+    if (db != null) {
+      try {
+        db.execute('ROLLBACK');
+        if (_wasWal && _file.existsSync()) {
+          db.execute('PRAGMA journal_mode = WAL');
+        }
+      } on Object {
+        // diagnostics: silent — best effort; drift's setup re-enables WAL on
+        // the next open.
+      } finally {
+        db.close();
+      }
+    }
+    try {
+      await raf?.close();
+    } on Object {
+      // diagnostics: silent — a read-only handle; nothing to flush.
+    }
+  }
+}
+
+String _journalMode(sql.Database db) =>
+    '${db.select('PRAGMA journal_mode').single.values.single}'.toLowerCase();
 
 /// Filename-safe, lexicographically-sortable UTC timestamp with microsecond
 /// resolution (`YYYYMMDDTHHMMSSmmmuuuZ`).

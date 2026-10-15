@@ -275,6 +275,25 @@ class Programs extends Table {
       text().map(const EnumNameConverter(ProgramStatus.values))();
   BoolColumn get hideAlternates =>
       boolean().withDefault(const Constant(false))();
+
+  /// Name of the dialect Perform uses for this program (schema v37). `null`
+  /// (the default, and every program before v37) means Perform follows the
+  /// application dialect. A soft reference by **name** — dialects are
+  /// identified only by name (`Dialect.resolveByName`) — and deliberately not
+  /// validated at write time: a name that no longer resolves (the dialect was
+  /// renamed or deleted, or has not synced to this device yet) falls back to
+  /// the application dialect when Perform resolves it, so dialect rename and
+  /// delete never write to programs.
+  TextColumn get dialectName => text().nullable()();
+
+  /// What the caller is paid for this program, in the currency's minor units
+  /// (schema v38). `null` (every program before v38) means no pay is recorded.
+  /// Set together with [payCurrency] or not at all; never negative.
+  IntColumn get payMinorUnits => integer().nullable()();
+
+  /// ISO 4217 code for [payMinorUnits] (three uppercase letters); `null`
+  /// exactly when [payMinorUnits] is.
+  TextColumn get payCurrency => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
@@ -652,6 +671,19 @@ class BaselineState extends Table {
   IntColumn get id => integer().customConstraint('NOT NULL CHECK (id = 1)')();
   TextColumn get epoch => text()();
 
+  /// SHA-256 of the manifest this device last published in [epoch], encoded
+  /// with its `writtenAt` fixed, so it names exactly the device id, epoch and
+  /// records the server holds for this device (sync-spec §6.3 step 8). Null
+  /// until a publication succeeds, and cleared before every manifest `PUT`, so
+  /// a `PUT` whose outcome is unknown is never mistaken for one that landed.
+  TextColumn get publishedManifestHash => text().nullable()();
+
+  /// When the store last confirmed every blob that manifest names, as
+  /// milliseconds since the Unix epoch, UTC. Set with
+  /// [publishedManifestHash]; a pass older than the refresh interval checks
+  /// every blob again and republishes even an unchanged manifest.
+  IntColumn get publishedVerifiedAt => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -695,6 +727,28 @@ class PendingDeletions extends Table {
   Set<Column> get primaryKey => {kind, recordId};
 }
 
+/// What this device keeps of a synced record for a newer version of the app
+/// (spec §6.7): the parts of a peer's body it does not sync, put back verbatim
+/// whenever it shares the record again, so the newer field survives this
+/// device's own edits.
+///
+/// [payload] is canonical JSON. For an ordinary record it is the kept-parts
+/// tree from `partitionInboundRecordBody`; for a [wholeRecord] — a setting
+/// whose key this build does not sync — it is the peer's encoded blob itself,
+/// republished as it came.
+@DataClassName('RetainedSyncFieldsRow')
+class RetainedSyncFields extends Table {
+  TextColumn get kind =>
+      text().map(const EnumNameConverter(SyncRecordKind.values))();
+  TextColumn get recordId => text()();
+  BoolColumn get wholeRecord =>
+      boolean().named('whole_record').withDefault(const Constant(false))();
+  TextColumn get payload => text()();
+
+  @override
+  Set<Column> get primaryKey => {kind, recordId};
+}
+
 /// Immutable candidates awaiting a user's conflict decision.
 @DataClassName('ReviewQueueRow')
 class ReviewQueue extends Table {
@@ -730,3 +784,27 @@ class PublishedRecords extends Table {
 // is marked superseded: the app imports directly from the source instead).
 // The table, its repository and its test were dropped in #782; nothing ever
 // wrote a row.
+
+/// The last verified manifest fetched from each peer, kept so the first pass
+/// after a restart can send `If-None-Match` and be answered `304` instead of
+/// downloading every peer's manifest again (sync-spec §5.2). A cache: any row
+/// can be dropped at any time and the next pass fetches that manifest in full.
+@DataClassName('PeerManifestRow')
+class PeerManifests extends Table {
+  /// The peer's per-attachment device id, as the store lists it.
+  TextColumn get peerId => text()();
+
+  /// The store epoch the manifest was fetched in. A row from another epoch is
+  /// never used.
+  TextColumn get epoch => text()();
+
+  /// The strong validator the server sent with the manifest, verbatim.
+  TextColumn get etag => text()();
+
+  /// The manifest as this device verified and decoded it, re-encoded
+  /// canonically.
+  TextColumn get body => text()();
+
+  @override
+  Set<Column> get primaryKey => {peerId};
+}

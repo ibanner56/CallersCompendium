@@ -126,4 +126,19 @@ void main() {
     // Both status chips delegate to the one shared construction.
     expect(find.byType(StatusChip), findsNWidgets(2));
   });
+
+  test(
+    'statusBroken keeps the error token when no tint can satisfy the label',
+    () {
+      // A custom theme may save an onSurface that fails against its own surface;
+      // the chip-safe derivation must not fade the icon into the surface.
+      final scheme = ColorScheme.fromSeed(seedColor: Colors.red).copyWith(
+        surface: const Color(0xFFFFFFFF),
+        onSurface: const Color(0xFFFAFAFA),
+        error: const Color(0xFFB3261E),
+      );
+      final ext = AppThemeExtension.fromColorScheme(scheme);
+      expect(ext.statusBroken, scheme.error);
+    },
+  );
 }

@@ -40,6 +40,10 @@
   "@navSettings": {
     "x-sourceSha256": "74a883a037bc227f91891ab654a753d3a99f31ab06ae5b5d2b6e594a692b41f8"
   },
+  "navGlossary": "Glossaire",
+  "@navGlossary": {
+    "x-sourceSha256": "4c4e436f9a453c776dbf011f98d932d615988bb08bddec6051625340e88d012f"
+  },
   "navGuide": "Guide",
   "@navGuide": {
     "x-sourceSha256": "8dd65d0952ed144ccf6e76ebf8aa45644afb2b9236762c414d07e813d42f588e"
@@ -72,9 +76,61 @@
   "@appBootstrapError": {
     "x-sourceSha256": "4c6db492b2ae5913888a1822b01dfe0ea7da9c0d85da2cb746e260b410f159c4"
   },
+  "appBootstrapErrorType": "Erreur : {errorType}",
+  "@appBootstrapErrorType": {
+    "x-sourceSha256": "fa82b1e0dcd1f6fd18ce1944824c75cfc31d6744e7d9a14026f29e2e478f919f"
+  },
+  "appBootstrapCopyDetails": "Copier les détails",
+  "@appBootstrapCopyDetails": {
+    "x-sourceSha256": "ec7ee2826c849564576c1de2ff4bb666e39c191c746d2325d0ab110921491a96"
+  },
+  "appBootstrapCopiedDetails": "Copié",
+  "@appBootstrapCopiedDetails": {
+    "x-sourceSha256": "8d525e5f158b9afe05f3122af363ac67763bdc4e1395b46597b320c289766ce3"
+  },
+  "appBootstrapLogHint": "Les détails ont aussi été écrits dans le journal de diagnostic, dans le dossier de support de l’application.",
+  "@appBootstrapLogHint": {
+    "x-sourceSha256": "24e159922c67836b22a4a64e83817e471c51035d6ef0943eff679c60039d4399"
+  },
   "migrationDowngradeMessage": "Ces données ont été créées avec une version plus récente de Caller’s Compendium — veuillez mettre à jour l'application.",
   "@migrationDowngradeMessage": {
     "x-sourceSha256": "5cc72c824106a61526d695c3a2f0bca5287d5a97935ec78445ef6a34891372b6"
+  },
+  "migrationRelocationBothExist": "Caller’s Compendium ne s’est pas lancé, car des fichiers de données enregistrées ont été trouvés à la fois au nouvel emplacement et dans un dossier utilisé par une version précédente. Rien n’a été modifié ni supprimé. Conservez la copie souhaitée, déplacez l’autre ailleurs, puis rouvrez l’application. L’entrée « Où sont stockées mes données ? » de la FAQ indique les emplacements.",
+  "@migrationRelocationBothExist": {
+    "x-sourceSha256": "cad53d54c7447308b20e3c9780d595b1e708718c46738a1f0af5913ba7affebd"
+  },
+  "migrationRelocationMultipleLegacy": "Caller’s Compendium ne s’est pas lancé, car des données enregistrées ont été trouvées dans plusieurs dossiers utilisés par des versions précédentes. Rien n’a été modifié ni supprimé. Conservez la copie souhaitée, déplacez les autres ailleurs, puis rouvrez l’application. L’entrée « Où sont stockées mes données ? » de la FAQ indique les emplacements.",
+  "@migrationRelocationMultipleLegacy": {
+    "x-sourceSha256": "7d8dee5a9bba016f5ebf6a74248ffdc5f2f87fc251ff1e2063944dfc900b6ea2"
+  },
+  "migrationRelocationFailed": "Caller’s Compendium ne s’est pas lancé, car il n’a pas pu terminer le déplacement de vos données enregistrées vers leur nouvel emplacement. Rien n’a été supprimé. Libérez de l’espace, fermez les autres programmes qui les utilisent peut-être, ou vérifiez les autorisations du dossier, puis rouvrez l’application pour réessayer.",
+  "@migrationRelocationFailed": {
+    "x-sourceSha256": "92053efe3d799c18cb1d651dfbde58bc0807ba270c55cbdc4f148ff0389c4dfa"
+  },
+  "migrationRelocationLegacyUnreachable": "Caller’s Compendium ne s’est pas lancé, car votre dossier Documents, où les versions précédentes conservaient vos données enregistrées, est inaccessible. Rien n’a été modifié ni créé. Si Documents se trouve sur un autre disque ou dans un dossier réseau, reconnectez-le, puis rouvrez l’application. Si vous n’avez pas de dossier Documents, créez-en un vide, puis rouvrez l’application. L’entrée « Où sont stockées mes données ? » de la FAQ en dit plus.",
+  "@migrationRelocationLegacyUnreachable": {
+    "x-sourceSha256": "acf7948e37ecea717a061da9e09b3b4b9b269e3d840cb3f5fba7970ca8faa69e"
+  },
+  "migrationRelocationCopiesHeading": "Taille et dernière modification de chaque copie (la copie la plus grande et la plus récemment modifiée est généralement votre bibliothèque) :",
+  "@migrationRelocationCopiesHeading": {
+    "x-sourceSha256": "c7cce717f97498558b82549a61e9a8c9cbfec71e6390273bfddf78eb8bd84267"
+  },
+  "migrationRelocationCopyNewLocation": "Nouvel emplacement",
+  "@migrationRelocationCopyNewLocation": {
+    "x-sourceSha256": "9a234df4269ae19523bf1a1cae73cbcc70fdf5734c051c078dfd0f2068930766"
+  },
+  "migrationRelocationCopyDocuments": "Dossier Documents",
+  "@migrationRelocationCopyDocuments": {
+    "x-sourceSha256": "151e70e0308240be28effaa269027e307b348b1296f012d3ed5e56fdd7e8ada8"
+  },
+  "migrationRelocationCopyEarlierAppFolder": "Ancien dossier de données de l’application",
+  "@migrationRelocationCopyEarlierAppFolder": {
+    "x-sourceSha256": "68abc7b4c9b0d2bab54acccb1d35e60e4fa2e50b72baf2aa0064fc77fc84231d"
+  },
+  "migrationRelocationCopyDetails": "{location} : {kilobytes} Ko, modifiée le {date}",
+  "@migrationRelocationCopyDetails": {
+    "x-sourceSha256": "26e7cdb8f7afe2d471212d37420ffa8e966adf5a0462a26ad7f411bd473f9c18"
   },
   "migrationSnapshotAbortedMessage": "Caller’s Compendium n'a pas démarré car une sauvegarde automatique n'a pas pu être créée avant la mise à niveau de vos données enregistrées. {cause}Libérez de l'espace (ou réparez le dossier de sauvegardes), puis rouvrez l'application — ou rouvrez-la et choisissez de continuer sans sauvegarde.",
   "@migrationSnapshotAbortedMessage": {
@@ -220,6 +276,58 @@
   "@settingsExperimentalPlaceholder": {
     "x-sourceSha256": "a268657b05fd60bc06b7df9f6abc968d3f880d899c7599cf0c000ff6dce634f5"
   },
+  "glossaryTitle": "Glossaire",
+  "@glossaryTitle": {
+    "x-sourceSha256": "4c4e436f9a453c776dbf011f98d932d615988bb08bddec6051625340e88d012f"
+  },
+  "glossarySearchHint": "Rechercher des figures",
+  "@glossarySearchHint": {
+    "x-sourceSha256": "0936aaf6b4dbbaac4665de2cf98f0163d536c42925b58aef8801814ab4cf9a60"
+  },
+  "glossaryNoMatches": "Aucune figure ne correspond à « {query} ».",
+  "@glossaryNoMatches": {
+    "x-sourceSha256": "f52d4b33c03650afa3f2c74c834f662d7ef42734c353a004d488dd147bf19a67"
+  },
+  "glossarySelectPrompt": "Sélectionnez une figure pour voir sa définition.",
+  "@glossarySelectPrompt": {
+    "x-sourceSha256": "d97b02adc2d0a840ea30bc0fb3695c2814ff88387e9e4738d206dea39297e7a8"
+  },
+  "glossaryNoDefinition": "Pas encore de définition.",
+  "@glossaryNoDefinition": {
+    "x-sourceSha256": "5a97ad24f6d76f144e5f2008ca1291720b18e718c28f36afb8014dd089028959"
+  },
+  "glossaryVariantOf": "Une variante de {figure}.",
+  "@glossaryVariantOf": {
+    "x-sourceSha256": "8b30de361f0cdd3e65c535d7c2ae00e2757911496f993f7be5d466d8df32cbcb"
+  },
+  "glossaryNameWithDetail": "{name} ({detail})",
+  "@glossaryNameWithDetail": {
+    "x-sourceSha256": "27511a9915d0041981129b054a95a5c1fc5a16a41c4811cd2576b43cee523678"
+  },
+  "glossaryExample": "Exemple",
+  "@glossaryExample": {
+    "x-sourceSha256": "d029f87e3d80f8fd9b1be67c7426b4cc1ff47b4a9d0a8461c826a59d8c5eb6cd"
+  },
+  "glossaryParameters": "Paramètres",
+  "@glossaryParameters": {
+    "x-sourceSha256": "e68b36b17cbd990802f57741cb75cf3a73fa66a61999b0cd70e3cf7d26cfb25f"
+  },
+  "glossaryAlsoKnownAs": "Également appelée",
+  "@glossaryAlsoKnownAs": {
+    "x-sourceSha256": "4f8c470505d11f7da49d382956a128ebf4c524ac56893030dc0839da7fcad4f0"
+  },
+  "settingsExperimentalGlossaryHeader": "Glossaire",
+  "@settingsExperimentalGlossaryHeader": {
+    "x-sourceSha256": "4c4e436f9a453c776dbf011f98d932d615988bb08bddec6051625340e88d012f"
+  },
+  "settingsExperimentalShowGlossaryTitle": "Afficher le glossaire",
+  "@settingsExperimentalShowGlossaryTitle": {
+    "x-sourceSha256": "b9b74a82200a2f6733532a1fe14429332eeb4729de42060ef0b1f213a62fce80"
+  },
+  "settingsExperimentalShowGlossarySubtitle": "Ajoute à la navigation, entre Programmes et Paramètres, un glossaire des figures intégrées.",
+  "@settingsExperimentalShowGlossarySubtitle": {
+    "x-sourceSha256": "32b69c6f973eca67d40ab920cd4a4e1936711550d1cfa90abe21ca1423732075"
+  },
   "settingsSyncHeader": "Synchronisation des appareils",
   "@settingsSyncHeader": {
     "x-sourceSha256": "ee5820500cbfd273ba87eb1b5096235bc96c5e960e83eeaecb4b9eb339537bdf"
@@ -316,6 +424,226 @@
   "@settingsSyncStatusFailed": {
     "x-sourceSha256": "53fa99d78ec8627b66d1f608b171626f6d73f1d7d70a1c3eab42afa83106af14"
   },
+  "settingsSyncStatusSettingsUnreadable": "Les réglages de la synchronisation des appareils n'ont pas pu être lus ; les réglages affichés ici peuvent donc être obsolètes, et la synchronisation peut être désactivée même si vous l'avez activée. Redémarrez l'application pour réessayer.",
+  "@settingsSyncStatusSettingsUnreadable": {
+    "x-sourceSha256": "ca37e41b6ed2d11c6b10cc81f386b054608b46b292f35d4b47ef8a395e84576b"
+  },
+  "settingsSyncFailureUnreachable": "Impossible de joindre le serveur de synchronisation.",
+  "@settingsSyncFailureUnreachable": {
+    "x-sourceSha256": "1fec844573d970b89ddae666fddb4c01cf8065fb587bcb5fa4de0e8f4fcce1c7"
+  },
+  "settingsSyncFailureUnreachableAdvice": "Vérifiez que cet appareil est en ligne. Si vous utilisez votre propre serveur, vérifiez qu’il fonctionne et que son adresse est correcte.",
+  "@settingsSyncFailureUnreachableAdvice": {
+    "x-sourceSha256": "ea38a758f977c2fdbc84b142090e2473515b8590f8c60e28d8c6583c60b09948"
+  },
+  "settingsSyncFailureTimedOut": "Le serveur de synchronisation a mis trop de temps à répondre.",
+  "@settingsSyncFailureTimedOut": {
+    "x-sourceSha256": "464ebebc445aaff574f2eaa11829ded903602b89cab69d5307f81121b90aa490"
+  },
+  "settingsSyncFailureTimedOutAdvice": "Une connexion lente ou instable en est généralement la cause. Réessayez quand la connexion sera meilleure.",
+  "@settingsSyncFailureTimedOutAdvice": {
+    "x-sourceSha256": "0c81f465ce533eb89de05aa483e1a26cc6e3e4a44ba247a4c53ec6d22149bf8f"
+  },
+  "settingsSyncFailureServerError": "Le serveur de synchronisation a lui-même rencontré un problème.",
+  "@settingsSyncFailureServerError": {
+    "x-sourceSha256": "bcd7f14f51fab6da5c554f1af0b283fba58d90746158bcfc15e1dad5d15a7c94"
+  },
+  "settingsSyncFailureServerErrorAdvice": "Cet appareil et votre bibliothèque n’ont aucun problème. Patientez un moment, puis réessayez. Si cela se reproduit, prévenez la personne qui gère le serveur en lui indiquant les détails affichés ici.",
+  "@settingsSyncFailureServerErrorAdvice": {
+    "x-sourceSha256": "e375d5052be6afb964cdf1b43d9e1a8c77257c75025caa3a710ba20dad7bdeb4"
+  },
+  "settingsSyncFailureRateLimited": "Le serveur de synchronisation a demandé à cet appareil de ralentir.",
+  "@settingsSyncFailureRateLimited": {
+    "x-sourceSha256": "80e0d4ffb219e4f8871bfb1deab9f03ac4c9ead3df2076c8ed7929232fde5a5e"
+  },
+  "settingsSyncFailureRateLimitedAdvice": "Il a reçu trop de requêtes en peu de temps. Attendez quelques minutes avant de réessayer.",
+  "@settingsSyncFailureRateLimitedAdvice": {
+    "x-sourceSha256": "66f91724ff9a8ff9962da293dd168113c17ab48d52ea4ddebda07803709cd530"
+  },
+  "settingsSyncFailureStoreFull": "Votre espace a utilisé toute la place autorisée par le serveur de synchronisation.",
+  "@settingsSyncFailureStoreFull": {
+    "x-sourceSha256": "18dea407dfb731dd13ec988fd58ef55a6711674a25fd2c59b07439bd365c5f92"
+  },
+  "settingsSyncFailureStoreFullAdvice": "Les modifications de cet appareil ne pourront pas être enregistrées tant qu’il n’y aura pas de place. Activer Ignorer les danses importées inutilisées réduit ce que cet appareil envoie. Si vous utilisez votre propre serveur, augmentez sa limite de stockage.",
+  "@settingsSyncFailureStoreFullAdvice": {
+    "x-sourceSha256": "8118c7463bdf1d540145735a494d7b6c9748386039bda9c0f6789e3403b86548"
+  },
+  "settingsSyncFailureTooLarge": "Un élément que cet appareil a tenté d’envoyer dépasse la taille acceptée par le serveur de synchronisation.",
+  "@settingsSyncFailureTooLarge": {
+    "x-sourceSha256": "0f5b2479a4a67fcc162a38d2a6259b45a4bfe2cb5a9367558777657492a4d100"
+  },
+  "settingsSyncFailureTooLargeAdvice": "Si vous avez une grande collection importée, activer Ignorer les danses importées inutilisées peut la faire passer sous la limite. Si vous utilisez votre propre serveur, vérifiez sa limite de taille d’envoi.",
+  "@settingsSyncFailureTooLargeAdvice": {
+    "x-sourceSha256": "f30c59fd533ca30a49e5a82ccf7040955fe1a9190357e5ae5d7e3e04ceb98cf6"
+  },
+  "settingsSyncFailureRejected": "Le serveur de synchronisation a refusé ce que cet appareil a envoyé.",
+  "@settingsSyncFailureRejected": {
+    "x-sourceSha256": "61dd076ba854551584746708a144209da7a34dd5345d897952357542e5dbfc50"
+  },
+  "settingsSyncFailureRejectedAdviceDefaultServer": "Cette version de l’application est plus récente que le serveur de synchronisation. Vos modifications sont enregistrées ici et seront synchronisées dès que le serveur sera mis à jour.",
+  "@settingsSyncFailureRejectedAdviceDefaultServer": {
+    "x-sourceSha256": "b97fec109c98321048e0752ad2bcabb5973a0c668589b453e242bd7486949738"
+  },
+  "settingsSyncFailureRejectedAdviceCustomServer": "Mettez à jour votre serveur de synchronisation pour qu’il corresponde à cette version de l’application.",
+  "@settingsSyncFailureRejectedAdviceCustomServer": {
+    "x-sourceSha256": "b93ae9124bf62a93b837b22683fbca46e87e2ca5a745e0ca78a7fd7502088437"
+  },
+  "settingsSyncStatusWaiting": "En attente de synchronisation. Vos modifications sont enregistrées ici.",
+  "@settingsSyncStatusWaiting": {
+    "x-sourceSha256": "9094e5e7a92ad9b12fa90cf7ecfb6357e7da8e03376a319b9a5f7f8532ea6e99"
+  },
+  "settingsSyncQuotaNearlyFull": "Votre espace est presque plein.",
+  "@settingsSyncQuotaNearlyFull": {
+    "x-sourceSha256": "ee9eeab2d4546db0aff91e5d1a4ac537b1e9e94b19418e1797d5f6e318445d29"
+  },
+  "settingsSyncQuotaExcludeImports": "Ne plus synchroniser les danses importées",
+  "@settingsSyncQuotaExcludeImports": {
+    "x-sourceSha256": "57f9dc81543868c93b67c796229b979d9d5d2ed0e78ffacf318e6df67f043f0c"
+  },
+  "settingsSyncNoticeNewerVersionItems": "Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir {items}.",
+  "@settingsSyncNoticeNewerVersionItems": {
+    "x-sourceSha256": "c061cd9ea119307dd18d17b41b95b3b27ccb4d893770063dd44683589422d5bb"
+  },
+  "settingsSyncNoticeCountDance": "{count, plural, =1{1 danse} other{{count} danses}}",
+  "@settingsSyncNoticeCountDance": {
+    "x-sourceSha256": "494f9853fc3774e0f786711a47fd9eadd58c8bb7368cc1b789ad71cb16de9db3"
+  },
+  "settingsSyncNoticeCountProgram": "{count, plural, =1{1 programme} other{{count} programmes}}",
+  "@settingsSyncNoticeCountProgram": {
+    "x-sourceSha256": "a7b7d768632c302855b92c62c230f4bec8af1fd58ced4388e2407d9ecfd42e06"
+  },
+  "settingsSyncNoticeCountChoreographer": "{count, plural, =1{1 chorégraphe} other{{count} chorégraphes}}",
+  "@settingsSyncNoticeCountChoreographer": {
+    "x-sourceSha256": "d4018182e6a23e51891a0f4bb6a3265cb8a3c9119923e6f7cb62c47efb4f3e42"
+  },
+  "settingsSyncNoticeCountTag": "{count, plural, =1{1 étiquette} other{{count} étiquettes}}",
+  "@settingsSyncNoticeCountTag": {
+    "x-sourceSha256": "bff87bc7807598d089f0add825fc26ceaf1a3466bc048283b66b1445a36e4f29"
+  },
+  "settingsSyncNoticeCountCustomField": "{count, plural, =1{1 champ personnalisé} other{{count} champs personnalisés}}",
+  "@settingsSyncNoticeCountCustomField": {
+    "x-sourceSha256": "65fe8a7695ca928fc1d0a7fa5480f19f68d93ed5e594ec9a74a5fec649afa01b"
+  },
+  "settingsSyncNoticeCountDifficulty": "{count, plural, =1{1 niveau de difficulté} other{{count} niveaux de difficulté}}",
+  "@settingsSyncNoticeCountDifficulty": {
+    "x-sourceSha256": "04d40f392386c4bca2cc6ca506866b734028e4bc16c2f5abbef99af999cd5658"
+  },
+  "settingsSyncNoticeCountPublishedSource": "{count, plural, =1{1 source publiée} other{{count} sources publiées}}",
+  "@settingsSyncNoticeCountPublishedSource": {
+    "x-sourceSha256": "5fd35655aeb3a7d41d9d815865997b7d085898256ddd11194eea5263b2c393ba"
+  },
+  "settingsSyncNoticeCountVenue": "{count, plural, =1{1 lieu} other{{count} lieux}}",
+  "@settingsSyncNoticeCountVenue": {
+    "x-sourceSha256": "620c1fe04640cc57244f44a579d1c934cbf47edff3a59a7facc8cc3d9f5f877a"
+  },
+  "settingsSyncNoticeCountSetting": "{count, plural, =1{1 paramètre} other{{count} paramètres}}",
+  "@settingsSyncNoticeCountSetting": {
+    "x-sourceSha256": "ff0a50b131bbe8edcf51dc54d23235e5089d53704d6a548605bf9b6f132da4c5"
+  },
+  "settingsSyncNoticeNewerVersionUncounted": "Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir ses modifications.",
+  "@settingsSyncNoticeNewerVersionUncounted": {
+    "x-sourceSha256": "ca371c7f36b6a2ca97e5fb9d8cd18cc2909af04e2973dec1a999d4e7a50fb339"
+  },
+  "settingsSyncNoticeKeptNewerItems": "Conservé pour une version plus récente de l’application : {items}. Ces éléments restent synchronisés, avec des détails que cette version ne peut pas afficher. Mettez à jour l’application sur cet appareil pour les voir.",
+  "@settingsSyncNoticeKeptNewerItems": {
+    "x-sourceSha256": "3217182e37c99c9a4d37ec173da3a608e206a4edb771bba48803bf68f2dd334a"
+  },
+  "settingsSyncCopyDetails": "Copier les détails",
+  "@settingsSyncCopyDetails": {
+    "x-sourceSha256": "ec7ee2826c849564576c1de2ff4bb666e39c191c746d2325d0ab110921491a96"
+  },
+  "settingsSyncDetailsCopied": "Détails copiés.",
+  "@settingsSyncDetailsCopied": {
+    "x-sourceSha256": "e0e4dc7ff134b574f0a71a29b8a005570ea3454b8008a40e2721763a7c2defe2"
+  },
+  "settingsSyncFailureAccessDenied": "Le serveur de synchronisation n’a pas accepté la phrase de synchronisation de cet appareil.",
+  "@settingsSyncFailureAccessDenied": {
+    "x-sourceSha256": "807c859e76ad3cbc3b441faa54c32f0850840ee9d8b37370ff031933b0fa427f"
+  },
+  "settingsSyncFailureAccessDeniedAdvice": "Comparez la phrase avec celle de votre autre appareil, et vérifiez que l’adresse du serveur est correcte.",
+  "@settingsSyncFailureAccessDeniedAdvice": {
+    "x-sourceSha256": "d8aee437fcba68b92d16a6026b98d8c5806ce4e2571e35060540d7ed26d92108"
+  },
+  "settingsSyncFailureUnexpectedResponse": "Le serveur de synchronisation a envoyé une réponse que cette application n’a pas pu utiliser.",
+  "@settingsSyncFailureUnexpectedResponse": {
+    "x-sourceSha256": "384f76375dc8203ecad0f82054f085908ffbaaeccd72e549277612cba79b327b"
+  },
+  "settingsSyncFailureUnexpectedResponseAdvice": "Si vous utilisez votre propre serveur, vérifiez son adresse et qu’il s’agit d’une version prise en charge par cette application. Sinon, mettez à jour l’application et réessayez plus tard.",
+  "@settingsSyncFailureUnexpectedResponseAdvice": {
+    "x-sourceSha256": "28d5baae4557d1f5ac4ac1e9e2eb730e090d9b4c97c3c494fd8425953b86d9e8"
+  },
+  "settingsSyncFailurePeerUnavailable": "Impossible de lire ce qu’un de vos autres appareils a partagé en dernier.",
+  "@settingsSyncFailurePeerUnavailable": {
+    "x-sourceSha256": "58814e7e830bb6b7942a74fe19642750e35d0414cb7ae53a238ecf74dc1e226a"
+  },
+  "settingsSyncFailurePeerUnavailableAdvice": "Pour se connecter à un espace, il faut la liste la plus récente de chaque appareil qui l’utilise. Ouvrez l’application sur vos autres appareils et laissez-les se synchroniser, puis réessayez. Si un appareil a disparu pour de bon, retirez-le dans Autres appareils.",
+  "@settingsSyncFailurePeerUnavailableAdvice": {
+    "x-sourceSha256": "68d34d85a75b3b0d989123c0c9c38d0948e5bca6b0be66bff443752f489d904a"
+  },
+  "settingsSyncFailureInternal": "Un problème est survenu dans l’application pendant la synchronisation.",
+  "@settingsSyncFailureInternal": {
+    "x-sourceSha256": "2f7c0cd517e44bc340727aac932a0a74ed7996a5529cb78f9c6655f730a24ee4"
+  },
+  "settingsSyncFailureInternalAdvice": "Ce n’est pas un problème de connexion ni de serveur. Réessayez. Si cela se reproduit, exportez le journal depuis Paramètres ▸ Diagnostic et joignez-le lorsque vous signalez le problème.",
+  "@settingsSyncFailureInternalAdvice": {
+    "x-sourceSha256": "9fd02ba66ee20762e3ee342f194caa3d0190cbdf1f05819de589b069ec9e9a90"
+  },
+  "settingsSyncFailureStep": "{step, select, lookup{Interrompu pendant la recherche de l’espace.} download{Interrompu pendant le téléchargement depuis vos autres appareils.} upload{Interrompu pendant l’envoi des modifications de cet appareil.} publish{Interrompu pendant la publication des modifications de cet appareil.} createStore{Interrompu pendant la création de l’espace.} other{Interrompu en cours de route.}}",
+  "@settingsSyncFailureStep": {
+    "x-sourceSha256": "4575bcef920388d21598add9216203979f69d89156d31d48e93db37a15726059"
+  },
+  "settingsSyncFailureStatusCode": "Le serveur a répondu avec le statut HTTP {code}.",
+  "@settingsSyncFailureStatusCode": {
+    "x-sourceSha256": "e145850e452c3d909edf069be12cbbe898ffc96f24c7d22d9ab4641d7866cb9b"
+  },
+  "settingsSyncFailureDetails": "Détails : {details}",
+  "@settingsSyncFailureDetails": {
+    "x-sourceSha256": "0090e7573cf43b828736bd9e94d6a913087cb4bdcc827324b24ce5900bdcf1dc"
+  },
+  "commonSyncFailed": "La synchronisation n’est pas allée au bout. {explanation}",
+  "@commonSyncFailed": {
+    "x-sourceSha256": "40aeb0f078a33c257860357bb350ed3e4251f5fac4ddc02ee1c39136f2ecbe61"
+  },
+  "settingsSyncNoticeAffected": "Concerne : {records}",
+  "@settingsSyncNoticeAffected": {
+    "x-sourceSha256": "85c7e77a5f09410e426b8a246c94f222f2cb41a185a5b1e3f1f220a622dacfa0"
+  },
+  "settingsSyncNoticeListSeparator": ", ",
+  "@settingsSyncNoticeListSeparator": {
+    "x-sourceSha256": "0a07f659461970d8d8dcefe4fff96a1745599810dc7d47391e95c803b7b2072c"
+  },
+  "settingsSyncNoticeRecordNamed": "{kind} « {name} »",
+  "@settingsSyncNoticeRecordNamed": {
+    "x-sourceSha256": "31cac53311e22d47a6a18fccbb1fc1e9dd687d7afb1f5e75f21c71940e57712b"
+  },
+  "settingsSyncNoticeRecordNotHere": "{kind} absent de cet appareil",
+  "@settingsSyncNoticeRecordNotHere": {
+    "x-sourceSha256": "26cb94ed02bbe50614443d20b73107a471d16600fe41f3425c65f60cded6a9e0"
+  },
+  "settingsSyncNoticeRecordNewerFigures": "{kind} « {name} » (contient des figures que seule une version plus récente peut lire)",
+  "@settingsSyncNoticeRecordNewerFigures": {
+    "x-sourceSha256": "8afc7ad25fad0c20ebd934e217ad05533a8a66f609193512af489b4f45a1484d"
+  },
+  "settingsSyncNoticeRecordNotHereNewerFigures": "{kind} absent de cet appareil (contient des figures que seule une version plus récente peut lire)",
+  "@settingsSyncNoticeRecordNotHereNewerFigures": {
+    "x-sourceSha256": "f59ed5b584b43c2ebf01a65ce1ebc3b997669ff7ad4b5b083ecace816328e86e"
+  },
+  "settingsSyncNoticeAffectedMore": "{count, plural, other{et {count} de plus}}",
+  "@settingsSyncNoticeAffectedMore": {
+    "x-sourceSha256": "8dc9d0f45df2d0a3db76ebea5523ebe0c6c39caf7c19393565ab989263ef4433"
+  },
+  "settingsSyncNoticeFromDevices": "{count, plural, =1{Provenant d’un autre appareil.} other{Provenant de {count} autres appareils.}}",
+  "@settingsSyncNoticeFromDevices": {
+    "x-sourceSha256": "aad552755d7cc30b4282db05b93d127a3e46e698078bb3700d1f18a9ca4a38e4"
+  },
+  "settingsSyncDevicesFailedBecause": "Impossible de charger la liste des appareils. {explanation}",
+  "@settingsSyncDevicesFailedBecause": {
+    "x-sourceSha256": "ede437d835d23937abd0a5d23d431af2bffacf6f400cc7d34e7ca41c33b2d484"
+  },
+  "settingsSyncAdminFailedBecause": "{message} {explanation}",
+  "@settingsSyncAdminFailedBecause": {
+    "x-sourceSha256": "26ba3e687fa63fbd44788c06935392fca46497d643f608dcc6f5a773f1afd450"
+  },
   "settingsSyncStatusStaleStore": "Cet espace a été remplacé par un autre appareil depuis votre dernière synchronisation. La prochaine synchronisation rejoindra le nouveau.",
   "@settingsSyncStatusStaleStore": {
     "x-sourceSha256": "7e0535051294ba8f0749e72c2fd6b08430fedf9cddd44531793bb00c568c7f4f"
@@ -332,9 +660,257 @@
   "@settingsSyncStatusPaused": {
     "x-sourceSha256": "9951cbd96bc1256a19254ff7c403db58f67549cbd3fbb716b1aba6a650e29150"
   },
-  "settingsSyncNoticeDivergence": "Certaines fiches ont été modifiées sur deux appareils au même instant. Aucune version n’a été retenue, vos appareils restent donc différents. Modifiez l’une d’elles pour trancher.",
+  "settingsSyncNoticeDivergence": "Certains éléments ont été modifiés sur deux appareils au même instant et restent différents. S’ils figurent dans Décisions de synchronisation, faites votre choix là ; sinon, modifiez l’un d’eux pour trancher.",
   "@settingsSyncNoticeDivergence": {
-    "x-sourceSha256": "c7fb96371231c93b42bf20abb1d074d0f48d0d361314ee2e9cc66b0de4325f37"
+    "x-sourceSha256": "60da106ed68c71ed1abf23ea5199c9e8f14a3d3e3cc7c4b1d78921dede108136"
+  },
+  "syncConflictTitle": "Choisissez la version à conserver",
+  "@syncConflictTitle": {
+    "x-sourceSha256": "69b6a12956b4b679555a5fb04c7353020074145a06f6c278b74386296f78b28a"
+  },
+  "syncConflictIntro": "Ces éléments ont été modifiés sur plusieurs appareils, et l’application ne peut pas savoir quelle modification doit l’emporter. Les deux versions sont conservées jusqu’à votre choix.",
+  "@syncConflictIntro": {
+    "x-sourceSha256": "1e54a85a858728395b6613988d17ef50e730c97d513831dfeb3aaf1aaea0ee95"
+  },
+  "syncConflictThisDevice": "Cet appareil",
+  "@syncConflictThisDevice": {
+    "x-sourceSha256": "d052579c6a317b1b81f020a5ba300deafc57dc64ef56cb04e755a1d3fbe884ce"
+  },
+  "syncConflictOtherDevice": "Un autre appareil",
+  "@syncConflictOtherDevice": {
+    "x-sourceSha256": "0d557cdf264a5c813ef57d29200df60b242ece8b3d38fb24868ad045f1c57c91"
+  },
+  "syncConflictOtherDeviceNumbered": "Un autre appareil ({number})",
+  "@syncConflictOtherDeviceNumbered": {
+    "x-sourceSha256": "f72aefab49a9be96bb0cf977b7d0ba17442b65bcb56c4e719f9f09b92f23686a"
+  },
+  "syncConflictKeepAllThisDevice": "Tout conserver de cet appareil",
+  "@syncConflictKeepAllThisDevice": {
+    "x-sourceSha256": "f029e455730554d093853bb00c5260f5fcbe59fad0585532ce37e91bd3bc55d3"
+  },
+  "syncConflictKeepAllOtherDevice": "Tout conserver de l’autre appareil",
+  "@syncConflictKeepAllOtherDevice": {
+    "x-sourceSha256": "87f7ab9c18e483faea681bfcc5c9abd0438c75887bd8fa1b20ebe1de4fd568d8"
+  },
+  "syncConflictApply": "Conserver la sélection",
+  "@syncConflictApply": {
+    "x-sourceSha256": "41ee079dc6efd0bab1a19db4dd86b886f15e395320b8298bbdda231344eebc96"
+  },
+  "syncConflictDecideLater": "Décider plus tard",
+  "@syncConflictDecideLater": {
+    "x-sourceSha256": "892c45a22edb0db9ba0cd725f06f38d7860c7867e1615ec6826f1f5bcbf057c8"
+  },
+  "syncConflictShowDifferences": "Afficher les différences",
+  "@syncConflictShowDifferences": {
+    "x-sourceSha256": "9d5acd90f1743601d3ddf06f787672d3f8b3675a4942432ab053c3cb4ff052a2"
+  },
+  "syncConflictChangedAt": "Modifié le {when}",
+  "@syncConflictChangedAt": {
+    "x-sourceSha256": "a85e04a97d40f25ba0a0784a9eaffe9758241db4cc7d607d45b6f85c3eed3add"
+  },
+  "syncConflictOnlyHereHeader": "Uniquement sur cet appareil",
+  "@syncConflictOnlyHereHeader": {
+    "x-sourceSha256": "040f8f2e203d42ce5562f25989856c577664299eaf14cea0e1f5048478a29d3f"
+  },
+  "syncConflictOnlyThereHeader": "Uniquement sur l’autre appareil",
+  "@syncConflictOnlyThereHeader": {
+    "x-sourceSha256": "9461b2bd258ae6bce85f891ab7d3796c198d8438b5510847ac9ffa69d975b0bd"
+  },
+  "syncConflictDifferentHeader": "Différent sur chaque appareil",
+  "@syncConflictDifferentHeader": {
+    "x-sourceSha256": "84d6e0002322ad146264f381230162338ea145bfb764fddd711a2bee34f6d8e6"
+  },
+  "syncConflictSameCount": "{count, plural, =1{1 autre est identique sur les deux} other{{count} autres sont identiques sur les deux}}",
+  "@syncConflictSameCount": {
+    "x-sourceSha256": "fcf52610012bbf88d2e76fff98fc39cfe4c7db92d70548c0bd3979679d338499"
+  },
+  "syncConflictSummaryOnlyHere": "{count, plural, =1{1 uniquement sur cet appareil} other{{count} uniquement sur cet appareil}}",
+  "@syncConflictSummaryOnlyHere": {
+    "x-sourceSha256": "c6ede9b997fd8434dcd71d7de1f695358a5c9f20a3873477855a8363ec408247"
+  },
+  "syncConflictSummaryOnlyThere": "{count, plural, =1{1 uniquement sur l’autre appareil} other{{count} uniquement sur l’autre appareil}}",
+  "@syncConflictSummaryOnlyThere": {
+    "x-sourceSha256": "bc95d781f8e6b538fdb271846536bccf10e3f33970ad52d5713862ef97275b38"
+  },
+  "syncConflictSummaryChanged": "{count, plural, =1{1 différent} other{{count} différents}}",
+  "@syncConflictSummaryChanged": {
+    "x-sourceSha256": "64391f3fa1178a475b7dc823360ab90a5810cbc7c53c63c0fa6ce06d9c59b830"
+  },
+  "syncConflictDiffersInFields": "Diffère par : {fields}",
+  "@syncConflictDiffersInFields": {
+    "x-sourceSha256": "db5abf2c1b8fbc6d31a22e98e9d3f986f1b9ee8444cbb80fb6944f523350fe23"
+  },
+  "syncConflictComparedWith": "Comparé avec {version}",
+  "@syncConflictComparedWith": {
+    "x-sourceSha256": "4e63094edb0223ae4cbfdbafdcfc6c9e3d7ca82f52f703467a9c8d17db6f4e7e"
+  },
+  "syncConflictNothingToShow": "Ces versions ne diffèrent que par des détails qui ne sont pas affichés ici.",
+  "@syncConflictNothingToShow": {
+    "x-sourceSha256": "bd8ac43291e14b3061e593e6c5784ec3186c6acfbe26e9252192dee3dfaf0a29"
+  },
+  "syncConflictFiguresUnreadable": "Les figures ne peuvent pas être comparées ici.",
+  "@syncConflictFiguresUnreadable": {
+    "x-sourceSha256": "a6da953c0f15c3e6022421e50f079bab716503e876c3c3d4bd571fc813f184c5"
+  },
+  "syncConflictSlotsReordered": "Les mêmes danses, dans un autre ordre.",
+  "@syncConflictSlotsReordered": {
+    "x-sourceSha256": "a11dcf8ce10fb0a8738fd4e857feee7747db6f4d3360a3ab81bd7cffd964a53e"
+  },
+  "syncConflictSlotsDetailsDiffer": "Les mêmes danses, avec d’autres détails comme les durées ou les alternatives.",
+  "@syncConflictSlotsDetailsDiffer": {
+    "x-sourceSha256": "1a6a50605cd16e15a9fde788887f983dda0999db5ed5dbc91c10e335537b9397"
+  },
+  "syncConflictUnknownItem": "Absent de cet appareil",
+  "@syncConflictUnknownItem": {
+    "x-sourceSha256": "bcbf339f46394b2d6f35e73452b3532a2477e878a495b86f9beed3b471334229"
+  },
+  "syncConflictVersionLine": "{device} : {value}",
+  "@syncConflictVersionLine": {
+    "x-sourceSha256": "4b3e5ee67f36114ab8f3d896ac32e86c15ee3c93d04bba4c223194dc17c5925d"
+  },
+  "syncConflictFieldValue": "{field} : {value}",
+  "@syncConflictFieldValue": {
+    "x-sourceSha256": "d3ba5ccd5a5fb39ef6e9fff0582fbef871d2952d1fa9e1e2b454753407c5e043"
+  },
+  "syncConflictFieldName": "Nom",
+  "@syncConflictFieldName": {
+    "x-sourceSha256": "dcd1d5223f73b3a965c07e3ff5dbee3eedcfedb806686a05b9b3868a2c3d6d50"
+  },
+  "syncConflictCombineBoth": "Combiner les deux",
+  "@syncConflictCombineBoth": {
+    "x-sourceSha256": "8017d383bfbdc52bb9f107f52e10ab4b2dac54983175f7e9e0c6eabad7f1155e"
+  },
+  "syncConflictCombineSummary": "{count, plural, =1{Conserve l’élément des deux appareils} other{Conserve les {count} éléments des deux appareils}}",
+  "@syncConflictCombineSummary": {
+    "x-sourceSha256": "2208c32919b0b421c5b90c75d4a54c3de99a5e199ec5f64be5eef78c24b9d142"
+  },
+  "syncConflictCombineOverLimit": "Combinaison impossible : ensemble, cela ferait {count}, et cette liste en contient au plus {limit}.",
+  "@syncConflictCombineOverLimit": {
+    "x-sourceSha256": "8fe3d554da71b26402ff9d3913a93ad8a8ee092586fafb6ef027a6cccafe79b0"
+  },
+  "syncConflictCombinePickEach": "Les deux appareils ont modifié ceux-ci. Pour chacun, choisissez la version à conserver :",
+  "@syncConflictCombinePickEach": {
+    "x-sourceSha256": "2f2aabf8a65c0af3f835767a0f4234ec51a15e0584413fe746ba87e9a605d299"
+  },
+  "syncConflictCombineUnavailable": "Ces éléments ne peuvent pas être combinés ; rien n’a été modifié.",
+  "@syncConflictCombineUnavailable": {
+    "x-sourceSha256": "c9b1bf15e8e01d03075aafa3dfc84559be3d097991f9333c2d6b3c1ca52fde34"
+  },
+  "syncConflictCombineOverLimitError": "Ensemble, cela dépasserait ce que cette liste peut contenir ; rien n’a été modifié.",
+  "@syncConflictCombineOverLimitError": {
+    "x-sourceSha256": "db88271a77fc1dec70c5d8beb99cb99710a3b132bf1af43a077784175716650e"
+  },
+  "syncConflictSaved": "Vos choix sont enregistrés.",
+  "@syncConflictSaved": {
+    "x-sourceSha256": "0807e986007d5e9d684dddd2d8e8a1daa8b9eaca4e021361713fa8ae1310c6ff"
+  },
+  "syncConflictUndo": "Annuler",
+  "@syncConflictUndo": {
+    "x-sourceSha256": "a8283ade31856f71220db0e6f60a257c6889dc4dad0f275f66ad44b9ed9bf8d5"
+  },
+  "syncConflictReconsiderIntro": "Choisissez à nouveau entre les versions que vous aviez. Rien ne change tant que vous n’enregistrez pas.",
+  "@syncConflictReconsiderIntro": {
+    "x-sourceSha256": "2df0aed512050fc5fce295cc644d828502dba52e9830bc5f854b11fb85324a1f"
+  },
+  "syncConflictUndoChanged": "Une version plus récente est arrivée après votre choix ; rien n’a été modifié.",
+  "@syncConflictUndoChanged": {
+    "x-sourceSha256": "f67b95c5117c22c183cf37f66d2a3fdfbf574157d9fa7efdbf60314b632db5eb"
+  },
+  "syncConflictFieldProvenance": "Origine",
+  "@syncConflictFieldProvenance": {
+    "x-sourceSha256": "d3e1c5f8a6e240fc97f057908e6f99feebc73acb865b641a38e28d6ae9b1264c"
+  },
+  "syncConflictFieldColour": "Couleur",
+  "@syncConflictFieldColour": {
+    "x-sourceSha256": "3a9dfa58df63e0dda962a147a6cea86cc5294a5e859d89ddfa8e74a977fedf5d"
+  },
+  "syncConflictThemeBrightness": "Clair ou sombre",
+  "@syncConflictThemeBrightness": {
+    "x-sourceSha256": "9c259901979dc2195dc36e59bf07ea998c75f090cbd266614bb4b3bcffe04333"
+  },
+  "syncConflictFigureWalkthrough": "explication : {text}",
+  "@syncConflictFigureWalkthrough": {
+    "x-sourceSha256": "4a2db98e253ea43f885a5a9d12b184164bc47cc0e99632f4be5b51c3fe3186a8"
+  },
+  "syncConflictFigureWording": "formulation : {text}",
+  "@syncConflictFigureWording": {
+    "x-sourceSha256": "374ef857ff128ceeb05b02102e309a97eafbf24b226e406598d5b8a2f0648d81"
+  },
+  "syncConflictFigureDetailsDiffer": "{figure} (d’autres détails diffèrent)",
+  "@syncConflictFigureDetailsDiffer": {
+    "x-sourceSha256": "0310ffd75bd0fa6d73fd1dda7f3a9b7644f36f80c99ed146ac164a5b8c4d097e"
+  },
+  "syncConflictLinkInGroup": "dans le groupe de danses liées",
+  "@syncConflictLinkInGroup": {
+    "x-sourceSha256": "d1a359338ea194360c70271351bd658b2f4aab0dd6483a2612677283c80c3ddc"
+  },
+  "syncConflictValueNotSet": "Non défini",
+  "@syncConflictValueNotSet": {
+    "x-sourceSha256": "4895f73177ab5d67c30c183a49d2477e014a2ef69b65150762d17e877f4f5b95"
+  },
+  "syncConflictValueOn": "Activé",
+  "@syncConflictValueOn": {
+    "x-sourceSha256": "130011756125313c72f2cab730db4347e2841526d236a89cb25f38789fa49229"
+  },
+  "syncConflictValueOff": "Désactivé",
+  "@syncConflictValueOff": {
+    "x-sourceSha256": "ca7981b46ecf2c1787b6d76d81d9fd7fa0ca95842e2fcc2a452869891a9334d1"
+  },
+  "syncConflictValueItems": "{count, plural, =0{Aucun} =1{1 élément} other{{count} éléments}}",
+  "@syncConflictValueItems": {
+    "x-sourceSha256": "181547f9e08a60180051b917e9478dbfe12da6d0f88211564a5a2cc73c9258c5"
+  },
+  "syncConflictValueNamesAndMore": "{names} et {count} autres",
+  "@syncConflictValueNamesAndMore": {
+    "x-sourceSha256": "b9c56c1be9164bcc189a5b162c3683c7bcb490a0caeca53b5d3777b35d5d4cbc"
+  },
+  "syncConflictNone": "Il n’y a rien à choisir pour le moment.",
+  "@syncConflictNone": {
+    "x-sourceSha256": "aafccaa65dc78789057af4dbe88df70d476a36d665b57331b1f728698a895a8d"
+  },
+  "syncConflictClockWrong": "La date et l’heure de cet appareil semblent incorrectes, votre choix n’a donc pas pu être enregistré. Corrigez la date et l’heure, puis réessayez.",
+  "@syncConflictClockWrong": {
+    "x-sourceSha256": "c297ebf0099100f881eff0675cd10fd53d7411403406b340c1fa0f1c1efcfa89"
+  },
+  "syncConflictFailed": "Votre choix n’a pas pu être enregistré. Réessayez.",
+  "@syncConflictFailed": {
+    "x-sourceSha256": "fe05c22b547cfe63b104fb6370c0e329c70b832e501a96ff3792ec195205777d"
+  },
+  "syncSettingActiveCustomTheme": "Thème personnalisé utilisé",
+  "@syncSettingActiveCustomTheme": {
+    "x-sourceSha256": "8f849f242d97d54eaa93eb4758ee2409c469fcd442721080d9a978eb8a3d608c"
+  },
+  "syncSettingActiveDialect": "Dialecte utilisé",
+  "@syncSettingActiveDialect": {
+    "x-sourceSha256": "dc6bdaeb55d04a7142cf245b2d11e5f3627e1ddfcc1362969882303059f8d24e"
+  },
+  "syncSettingLastCollectionSort": "Tri de la collection (dernier utilisé)",
+  "@syncSettingLastCollectionSort": {
+    "x-sourceSha256": "5676b1a7f3ae09749c74c471bac9b959b685012209eb565b6d1ba00d178d6807"
+  },
+  "syncSettingLastCollectionSortDirection": "Sens du tri de la collection (dernier utilisé)",
+  "@syncSettingLastCollectionSortDirection": {
+    "x-sourceSha256": "4643d230499a4ed1184195eb58277f531e95003c98a7b4730f057a503e180f57"
+  },
+  "syncSettingLastProgramSort": "Tri des programmes (dernier utilisé)",
+  "@syncSettingLastProgramSort": {
+    "x-sourceSha256": "d3530d529ed3610c0dd92b607fa12f42f9f8e8c86da7ab537bf8aff45b6f8883"
+  },
+  "syncSettingLastProgramSortDirection": "Sens du tri des programmes (dernier utilisé)",
+  "@syncSettingLastProgramSortDirection": {
+    "x-sourceSha256": "5a4f0099f2621a3fcef84cf43e172910e2dc32ad516e3a1854b203ed2875f431"
+  },
+  "syncSettingPerformStageTheme": "Thème scène dans Perform",
+  "@syncSettingPerformStageTheme": {
+    "x-sourceSha256": "54bfa2402ef66801c0f8fc5f7696b44b2a5569d030a58591c70043e990dcc45b"
+  },
+  "settingsSyncConflictsSubtitle": "{count, plural, =1{1 élément a été modifié sur deux appareils et attend votre choix.} other{{count} éléments ont été modifiés sur deux appareils et attendent votre choix.}}",
+  "@settingsSyncConflictsSubtitle": {
+    "x-sourceSha256": "fda77cdb41bdca627b9072e4fd6eb1104fd8e1fdeb8b45a41a83a14cd07b6d01"
+  },
+  "commonSyncNowConflictsTooltip": "{count, plural, =1{Synchroniser maintenant (1 élément attend votre choix)} other{Synchroniser maintenant ({count} éléments attendent votre choix)}}",
+  "@commonSyncNowConflictsTooltip": {
+    "x-sourceSha256": "9f484617ad8c5c7b7f348011989c3612a4c229fe322d59ff138f9d8a769a66d4"
   },
   "settingsSyncNoticeKeptLocalCreation": "Un élément créé sur cet appareil aurait été supprimé par un autre appareil qui ne l’avait jamais vu. Il a été conservé ici à la place.",
   "@settingsSyncNoticeKeptLocalCreation": {
@@ -360,9 +936,17 @@
   "@settingsSyncNoticeDeferredInbound": {
     "x-sourceSha256": "395ee35f765d5cec102c6a529736ec0a86de8c5af7835967f616210a342acde2"
   },
-  "settingsSyncNoticeUnreflectedPublication": "Les modifications faites sur cet appareil ne sont pas apparues sur vos autres appareils après plusieurs synchronisations. Ouvrez-y l’application et synchronisez.",
-  "@settingsSyncNoticeUnreflectedPublication": {
-    "x-sourceSha256": "678de9e942bee2b75e03cae7f00ac44553303acf61ee0bbb27663a90f5aa5037"
+  "settingsSyncNoticePeerNotTaking": "{count, plural, =1{L’appareil {tag} se synchronise mais n’accepte pas 1 modification de cet appareil. Elle est en sécurité ici. L’autre appareil a peut-être besoin d’une mise à jour de l’application, ou la date et l’heure de cet appareil-ci sont peut-être fausses.} other{L’appareil {tag} se synchronise mais n’accepte pas {count} modifications de cet appareil. Elles sont en sécurité ici. L’autre appareil a peut-être besoin d’une mise à jour de l’application, ou la date et l’heure de cet appareil-ci sont peut-être fausses.}}",
+  "@settingsSyncNoticePeerNotTaking": {
+    "x-sourceSha256": "23d0a5d9e3852253a55eaf588f9a609c8082b70652fe7c8a1556438d0683bfe0"
+  },
+  "settingsSyncNoticeNeedsYou": "Action requise",
+  "@settingsSyncNoticeNeedsYou": {
+    "x-sourceSha256": "74b6abdf59690fdffec2059089487cd63658249da5301cbf065e9977518fbd8f"
+  },
+  "settingsSyncNoticeSeeDevices": "Voir les autres appareils",
+  "@settingsSyncNoticeSeeDevices": {
+    "x-sourceSha256": "7dfff4069880913086af6f2b4047af66c461b42ffa9997e3a0e41519c23b97dd"
   },
   "settingsSyncNotBackup": "La synchronisation n’est pas une sauvegarde. Un espace inutilisé pendant 30 jours est supprimé : continuez à faire des sauvegardes de fichiers.",
   "@settingsSyncNotBackup": {
@@ -380,17 +964,17 @@
   "@settingsSyncDisconnectTitle": {
     "x-sourceSha256": "5b0463da95797a1078c49e57743fa8e7ece0b2101bae8d4f6f5b64794c3dd159"
   },
-  "settingsSyncDisconnectSubtitle": "Arrêter la synchronisation ici. L'espace et vos autres appareils ne sont pas modifiés.",
+  "settingsSyncDisconnectSubtitle": "Arrêter la synchronisation ici. Votre bibliothèque reste telle quelle, ici et sur vos autres appareils.",
   "@settingsSyncDisconnectSubtitle": {
-    "x-sourceSha256": "66b3c050d9b3ce7bfaf6ab7c42b26081e8bc2ea6e0cb31c67a91e4c3b99ed2b9"
+    "x-sourceSha256": "cd7f33537ebd50b08b4a510f2d92a3d42b29f90a54d657770f44dc0f9df831d6"
   },
   "settingsSyncDisconnectConfirmTitle": "Déconnecter cet appareil ?",
   "@settingsSyncDisconnectConfirmTitle": {
     "x-sourceSha256": "368f30952240db8e8850a97232ef46e89fc0d0ec2facc04576d0c33d946f9fdd"
   },
-  "settingsSyncDisconnectConfirmBody": "Cet appareil arrêtera de se synchroniser et oubliera sa phrase de synchronisation. Votre bibliothèque sur cet appareil reste telle quelle, et l'espace ainsi que vos autres appareils ne sont pas affectés. Pour vous reconnecter plus tard, vous aurez besoin de la phrase : assurez-vous de l'avoir.",
+  "settingsSyncDisconnectConfirmBody": "Cet appareil arrêtera de se synchroniser et oubliera sa phrase de synchronisation. Votre bibliothèque sur cet appareil reste telle quelle, de même que sur vos autres appareils. La déconnexion retire cet appareil de l’espace de synchronisation si vos autres appareils ont déjà tout ce qui vient de lui. Sinon, il reste listé dans « Autres appareils » jusqu’à ce que vous l’y retiriez. Pour vous reconnecter plus tard, vous aurez besoin de la phrase : assurez-vous de l’avoir.",
   "@settingsSyncDisconnectConfirmBody": {
-    "x-sourceSha256": "ef8fe8eddad993cbb235762e998a058f013d6d39a888d9561b3e8abbfd2dfc9b"
+    "x-sourceSha256": "a614391804916146f733c07452ad5b40e3bc4a8ff86a47b6f9be9809cce428df"
   },
   "settingsSyncDisconnectConfirmAction": "Déconnecter",
   "@settingsSyncDisconnectConfirmAction": {
@@ -412,9 +996,33 @@
   "@settingsSyncDevicesScreenTitle": {
     "x-sourceSha256": "4e027dbb70b262fc7f99d829e4b5627a44811381c5f630afbdb415bb9e688514"
   },
-  "settingsSyncDevicesCaution": "Le serveur ne connaît chaque appareil que par un identifiant qu'il a lui-même attribué : il n'y a donc pas de noms d'appareils ici, et cet appareil n'est pas listé. Si vous ne savez pas lequel retirer, vous pouvez sans risque le laisser : un appareil retiré peut se reconnecter avec la phrase de synchronisation.",
+  "settingsSyncDevicesCaution": "Chaque appareil invente son propre identifiant aléatoire, et un nouveau à chaque connexion : les appareils sont donc présentés ici par une courte étiquette tirée de cet identifiant, et non par un nom. Cet appareil n’est pas listé ; sa propre étiquette figure ci-dessous pour que vous puissiez le retrouver sur vos autres appareils. Si vous ne savez pas lequel retirer, vous pouvez sans risque le laisser : un appareil retiré peut se reconnecter avec la phrase de synchronisation.",
   "@settingsSyncDevicesCaution": {
-    "x-sourceSha256": "88b8e650ef9354688da2a359b0300257622ba39c1f88eca6b34d489fb276ca0d"
+    "x-sourceSha256": "06095cd7672928619860e48460c6b02e586391aeccd04a7734f82c92ce67bba9"
+  },
+  "settingsSyncDevicesThisDevice": "Cet appareil : {tag}",
+  "@settingsSyncDevicesThisDevice": {
+    "x-sourceSha256": "744526618d198b5d7991b6fc9d3287633e1d9d4adbe8620fdced7384476e5db3"
+  },
+  "settingsSyncDeviceTag": "Appareil {tag}",
+  "@settingsSyncDeviceTag": {
+    "x-sourceSha256": "b21e98404043fc2ee91ec8515bcdf70ab2fb5c17fed6801bfca09ec512f1efea"
+  },
+  "settingsSyncDeviceLastSharedToday": "Dernières modifications partagées aujourd’hui",
+  "@settingsSyncDeviceLastSharedToday": {
+    "x-sourceSha256": "5e3f46323fb0881c0d847cde65ea32c3ccb3141e783d93eeb66021f39d1c675f"
+  },
+  "settingsSyncDeviceLastSharedDays": "{count, plural, =1{Dernières modifications partagées hier} other{Dernières modifications partagées il y a {count} jours}}",
+  "@settingsSyncDeviceLastSharedDays": {
+    "x-sourceSha256": "5130df4cb0edfceee6e54eaee5ce1cfad1d51c50ee88ae649b2ab7efb2b0bb4f"
+  },
+  "settingsSyncDeviceLastSharedWeeks": "{count, plural, =1{Dernières modifications partagées il y a environ une semaine} other{Dernières modifications partagées il y a environ {count} semaines}}",
+  "@settingsSyncDeviceLastSharedWeeks": {
+    "x-sourceSha256": "813cea14ea49014db851c80007f10b72d5a2a42fc61055b5def2c2f36988f3c1"
+  },
+  "settingsSyncDeviceWaiting": "{count, plural, =1{1 modification de cet appareil l’attend encore.} other{{count} modifications de cet appareil l’attendent encore.}}",
+  "@settingsSyncDeviceWaiting": {
+    "x-sourceSha256": "95b500fa9476a659caa02623419394239d7e50a8ff5311d7d9e7a355db42c042"
   },
   "settingsSyncDevicesEmpty": "Aucun autre appareil n'est connecté à cet espace.",
   "@settingsSyncDevicesEmpty": {
@@ -588,10 +1196,6 @@
   "@settingsSyncPairingAlreadyInUse": {
     "x-sourceSha256": "a36988588079609c9bf3ae1c4c6d9f3195f235b388f61041b990c2bb47099f1c"
   },
-  "settingsSyncPairingUnreachable": "La synchronisation des appareils n'est pas disponible pour le moment. Vérifiez votre connexion et réessayez.",
-  "@settingsSyncPairingUnreachable": {
-    "x-sourceSha256": "6b46c1f7e1eaefe2de8cff490ba510bd32a56d8978f101b56f17263fd184ce00"
-  },
   "settingsSyncPairingCustomEndpointTitle": "Serveur personnalisé : {host}",
   "@settingsSyncPairingCustomEndpointTitle": {
     "x-sourceSha256": "0506cfa48e1f72133db4d2a81b9154a905c14e711bc813bd2e44454594bc4328"
@@ -695,10 +1299,6 @@
   "commonSystemDefault": "Défaut du système",
   "@commonSystemDefault": {
     "x-sourceSha256": "b0459211f9f76871059135050a2afd9a01e7e41dc32ea58006c51483b9ceab6d"
-  },
-  "commonComingSoon": "Bientôt disponible",
-  "@commonComingSoon": {
-    "x-sourceSha256": "4f7d64017689437e6d93f5724f3f797054f3935d98a13148025b616b8db8fb2c"
   },
   "settingsLanguageRegionTitle": "Langue et région",
   "@settingsLanguageRegionTitle": {
@@ -1060,6 +1660,386 @@
   "@settingsAppearanceCustomThemesHeader": {
     "x-sourceSha256": "343cee86594115cca8ccfc399c3c2568d16b8a11b7462bd7e1b8c82052eb7b36"
   },
+  "appThemeGroupSystem": "Système",
+  "@appThemeGroupSystem": {
+    "x-sourceSha256": "6725e7bbcd28f3a8a586fa34bf191fd72dde8b61756932cd3237c17a6f196f1a"
+  },
+  "appThemeGroupDefault": "Par défaut",
+  "@appThemeGroupDefault": {
+    "x-sourceSha256": "21b111cbfe6e8fca2d181c43f53ad548b22e38aca955b9824706a504b0a07a2d"
+  },
+  "appThemeGroupLight": "Clair",
+  "@appThemeGroupLight": {
+    "x-sourceSha256": "dbcd5e7bb7a0f538810de44c3efbd813037ee3fa358747bb71fa58e157af45f7"
+  },
+  "appThemeGroupDark": "Sombre",
+  "@appThemeGroupDark": {
+    "x-sourceSha256": "60acc53f13a5d1bf115878c4a785e9a43e8286c4139a8402a6ac7d23966f9153"
+  },
+  "appThemeLabelSystem": "Système",
+  "@appThemeLabelSystem": {
+    "x-sourceSha256": "6725e7bbcd28f3a8a586fa34bf191fd72dde8b61756932cd3237c17a6f196f1a"
+  },
+  "appThemeLabelLight": "Clair",
+  "@appThemeLabelLight": {
+    "x-sourceSha256": "dbcd5e7bb7a0f538810de44c3efbd813037ee3fa358747bb71fa58e157af45f7"
+  },
+  "appThemeLabelDark": "Sombre",
+  "@appThemeLabelDark": {
+    "x-sourceSha256": "60acc53f13a5d1bf115878c4a785e9a43e8286c4139a8402a6ac7d23966f9153"
+  },
+  "appThemeLabelSoftDark": "Sombre doux",
+  "@appThemeLabelSoftDark": {
+    "x-sourceSha256": "a1d6e637a8d9be9f105e29966e53aae07800bdab367b773f1950484e196fd0c6"
+  },
+  "appThemeLabelHighContrast": "Contraste élevé",
+  "@appThemeLabelHighContrast": {
+    "x-sourceSha256": "415a8336713e6a3bb61660818c7ae7691e2246b94bcbc61a3f92dd33408d5488"
+  },
+  "appThemeDescriptionSystem": "Suit le réglage clair/sombre de l’appareil",
+  "@appThemeDescriptionSystem": {
+    "x-sourceSha256": "73151d13926dcd43b2aad98215c5f98153012fdadee88f5fe2da8fc0988c02e9"
+  },
+  "appThemeDescriptionLight": "Palette claire et chaleureuse",
+  "@appThemeDescriptionLight": {
+    "x-sourceSha256": "0522ae15d56d78fcfa70ab4297e02cb4a7d0bc961568286dd194465c16a3da96"
+  },
+  "appThemeDescriptionDark": "Palette sombre et chaleureuse",
+  "@appThemeDescriptionDark": {
+    "x-sourceSha256": "b84d4b63a0fe30b1d8eca043d4997c52cc69673a7c49942564fb47faeff91a2b"
+  },
+  "appThemeDescriptionSoftDark": "Sombre chaleureux sur un fond plus doux et plus clair",
+  "@appThemeDescriptionSoftDark": {
+    "x-sourceSha256": "dd92ad0d0024de7eac3e0ada6e06461e4d4fade502ed7a8587b7ffa6b6cefb98"
+  },
+  "appThemeDescriptionHighContrast": "Contraste maximal pour les pièces sombres et la basse vision",
+  "@appThemeDescriptionHighContrast": {
+    "x-sourceSha256": "436563219de95bc4c26f6314c5292f52a77a28fecd0a2a5d241679a14a9d6ca1"
+  },
+  "appThemeDescriptionBlulocoLight": "Fond neutre et froid, net, avec des tons de joyau éclatants",
+  "@appThemeDescriptionBlulocoLight": {
+    "x-sourceSha256": "0cf2c563fed17cf0b5a48ff9e1b2b4d6b7990006e135ce0343380fb0737bdc46"
+  },
+  "appThemeDescriptionOneDarkPro": "One Dark Pro, le thème d’éditeur très apprécié",
+  "@appThemeDescriptionOneDarkPro": {
+    "x-sourceSha256": "3d66c0a549829ac2c86715d91f53517fa393c91f746d752e798cec40d318a7ff"
+  },
+  "appThemeDescriptionMonokai": "One Monokai – syntaxe Monokai sur fond anthracite",
+  "@appThemeDescriptionMonokai": {
+    "x-sourceSha256": "42a71302289f9b4a20d33d17880926050cfb25113c21ca2e9f5242d27948b02e"
+  },
+  "appThemeDescriptionNoctis": "La nuit Noctis originale, d’un bleu-vert profond",
+  "@appThemeDescriptionNoctis": {
+    "x-sourceSha256": "65c6b6c8402cab7468d1f6a63a1059558b7e61d83436954fe119b1ac85664a6a"
+  },
+  "appThemeDescriptionGithubLight": "Le clair neutre et net de GitHub",
+  "@appThemeDescriptionGithubLight": {
+    "x-sourceSha256": "17c66c0577067c22814f35aa8ab0849a6f3d85de4069d801bb856b1e63188ec3"
+  },
+  "appThemeDescriptionCatppuccinLatte": "Clair pastel doux, favori de la communauté",
+  "@appThemeDescriptionCatppuccinLatte": {
+    "x-sourceSha256": "afb2ffa622bba0fc18e2ebb5f22482f7a4aca8d8cc94b9b5d69830134f935e0c"
+  },
+  "appThemeDescriptionGruvboxLight": "Crème rétro chaleureuse et tons terreux",
+  "@appThemeDescriptionGruvboxLight": {
+    "x-sourceSha256": "6c9f5702c90cb0e2fb8e3ba375584be7b816f096b9614d7ae1b9784b19970cfe"
+  },
+  "appThemeDescriptionEverforestLight": "Vert doux, reposant pour les yeux",
+  "@appThemeDescriptionEverforestLight": {
+    "x-sourceSha256": "a4aa0fb5f5ea9d83c876c83e1000d6ac51d6c5b47ca5df174ce20c840303871a"
+  },
+  "appThemeDescriptionRosePineDawn": "Rose et iris atténués sur papier chaud",
+  "@appThemeDescriptionRosePineDawn": {
+    "x-sourceSha256": "98f7c45e0a9cc2db12bdd4028579d2d9ff83dac9f1980e12c295a08c9c0877f3"
+  },
+  "appThemeDescriptionAyuLight": "Clair lumineux et minimal avec des accents ambrés",
+  "@appThemeDescriptionAyuLight": {
+    "x-sourceSha256": "add88085dc8c899de7075bd63e2ea598cdf674d30ef05a80d27ff432de082e4f"
+  },
+  "appThemeDescriptionTokyoNightLight": "Lumière du jour indigo nette, le jour de Tokyo Night",
+  "@appThemeDescriptionTokyoNightLight": {
+    "x-sourceSha256": "f1730a93880cb5e53916dfbd19f954b0eda809dcf95794ff13097acb7e6a1113"
+  },
+  "appThemeDescriptionNordLight": "Neutres arctiques froids, tempête de neige",
+  "@appThemeDescriptionNordLight": {
+    "x-sourceSha256": "26fb410d1fcc004c8824c3d317fe80b7971767df4d87449d507c795f4ad4a9df"
+  },
+  "appThemeDescriptionKanagawaLotus": "Papier sumi-e chaleureux avec des accents d’encre",
+  "@appThemeDescriptionKanagawaLotus": {
+    "x-sourceSha256": "96712c0fda23344a1756eaa87dfbdaa04bb88287c08b170e370e5447500a9db8"
+  },
+  "appThemeDescriptionDracula": "Le grand classique : violet sur anthracite",
+  "@appThemeDescriptionDracula": {
+    "x-sourceSha256": "0e280fae7219a870d5160b99abff280a225ffb0b97d20b7faab28f49eda08898"
+  },
+  "appThemeDescriptionNord": "Bleus arctiques froids, discrets",
+  "@appThemeDescriptionNord": {
+    "x-sourceSha256": "0428e37590a4e7fb582bd49424a4faae47d34ea1fefd8d5c804e3d43acf2338b"
+  },
+  "appThemeDescriptionTokyoNight": "Palette indigo néon d’une ville la nuit",
+  "@appThemeDescriptionTokyoNight": {
+    "x-sourceSha256": "fc348fd5a1b1b1dc3ff182dc8c9dd2a47884a6ddc59a0b91b0301a5a73a0468d"
+  },
+  "appThemeDescriptionGruvboxDark": "Ambre rétro chaleureux sur anthracite",
+  "@appThemeDescriptionGruvboxDark": {
+    "x-sourceSha256": "ada0e2aaf877bbdcd4e6f7b44cc4d201d1abb158d8c1e0730b26b6fb7d56f2f3"
+  },
+  "appThemeDescriptionCatppuccinMocha": "Sombre pastel cosy, favori de la communauté",
+  "@appThemeDescriptionCatppuccinMocha": {
+    "x-sourceSha256": "31493edc84a012a80e1bd4755f4451b27136d3d9a5c524ad58f3546fb37e3ac0"
+  },
+  "appThemeDescriptionGithubDark": "Le sombre neutre de GitHub",
+  "@appThemeDescriptionGithubDark": {
+    "x-sourceSha256": "26a0934cc46b014ced2a9c1a92a532252ff4d2db8c785ffd725c75795307580c"
+  },
+  "appThemeDescriptionEverforestDark": "Vert forêt doux, peu fatigant",
+  "@appThemeDescriptionEverforestDark": {
+    "x-sourceSha256": "31097600a7fb09b1a6fe2abe9edfb98b1f74746f7f8551aa9ea509574651a463"
+  },
+  "appThemeDescriptionRosePine": "Rose et iris atténués dans le noir",
+  "@appThemeDescriptionRosePine": {
+    "x-sourceSha256": "4ff75f44de41b4d3b3f0178aa9b1725046ac3cc65ad789ac06d10538830f173b"
+  },
+  "appThemeDescriptionAyuMirage": "Ardoise douce avec des accents ambrés",
+  "@appThemeDescriptionAyuMirage": {
+    "x-sourceSha256": "7c23da42889ecc6a43908f8a76e843eec3359990c9d0b4b841fe6c5b7d0235f5"
+  },
+  "appThemeDescriptionCutiePro": "Pastel sombre ultra mignon, dominante rose",
+  "@appThemeDescriptionCutiePro": {
+    "x-sourceSha256": "061d6ce8faa75b2d5c38cc20c632c5d33e8fe15a8fab401e1e1eec08a8a719a3"
+  },
+  "appThemeDescriptionPinkAsHeck": "Rose vif sans complexe sur fond baie",
+  "@appThemeDescriptionPinkAsHeck": {
+    "x-sourceSha256": "55f80d245333565ef834b95a02cfcd6d3b75045c561daee2d9d3a8794e7126c6"
+  },
+  "appThemeDescriptionVitesseLight": "Sauge, bleu-vert et rose modernes et atténués",
+  "@appThemeDescriptionVitesseLight": {
+    "x-sourceSha256": "d00184a3aff9e5fa9fe55a434a4c12c256a7039632c5a1367fcba8866ac676a3"
+  },
+  "appThemeDescriptionZenburn": "Le grand classique : gris chaud à faible contraste",
+  "@appThemeDescriptionZenburn": {
+    "x-sourceSha256": "8eed33d5cf01f8faaf8ba8185596ce8d269eaf39b7c3cde4658117f0d57eb302"
+  },
+  "appThemeDescriptionShadesOfPurple": "Or éclatant sur indigo profond",
+  "@appThemeDescriptionShadesOfPurple": {
+    "x-sourceSha256": "735bb079dcedcb2d0ac260e7bf696aeed10047805ac52a0ab08dfcd51b58ab98"
+  },
+  "appThemeDescriptionCatppuccinFrappe": "Catppuccin pastel gris-bleu plus clair",
+  "@appThemeDescriptionCatppuccinFrappe": {
+    "x-sourceSha256": "5f6ae7e2ffe43b2dedb7a65cdfaeda4ab4c205f2fa539c52c4f4b0fbb458a16b"
+  },
+  "appThemeDescriptionSynthwave84": "Néon lumineux sur violet rétro",
+  "@appThemeDescriptionSynthwave84": {
+    "x-sourceSha256": "d3ad954d3f7c26c107bd982751b50d2adec5f0ee73fe6d072312a5c1d4153ee2"
+  },
+  "appThemeDescriptionNoctisLilac": "Lumière du jour lilas douce de Noctis",
+  "@appThemeDescriptionNoctisLilac": {
+    "x-sourceSha256": "d39470a5a25cfb9ed445bfbd9701fbe47ee4812bdcea0e32a8573df7a9c23e01"
+  },
+  "themeEditorGroupPrimary": "Primaire",
+  "@themeEditorGroupPrimary": {
+    "x-sourceSha256": "efe10c80ec8a9f38624cbb47103010a8cf32488a503e4b4bfe4f92307a9cefa7"
+  },
+  "themeEditorGroupSecondary": "Secondaire",
+  "@themeEditorGroupSecondary": {
+    "x-sourceSha256": "62f2ccfffcc5103eabb193172833e6d95db890898849ea1ce84b8d7843997539"
+  },
+  "themeEditorGroupTertiary": "Tertiaire",
+  "@themeEditorGroupTertiary": {
+    "x-sourceSha256": "af3ddd815af84ae581f631295b763f729697b8a8dc36e4b49b301ea423bc1500"
+  },
+  "themeEditorGroupError": "Erreur",
+  "@themeEditorGroupError": {
+    "x-sourceSha256": "54a0e8c17ebb21a11f8a25b8042786ef7efe52441e6cc87e92c67e0c4c0c6e78"
+  },
+  "themeEditorGroupSurfaceText": "Surface et texte",
+  "@themeEditorGroupSurfaceText": {
+    "x-sourceSha256": "c2d412de1ddab66102457ff85c349d20891fb2506d6284c5d67913c0c94adf21"
+  },
+  "themeEditorGroupSurfaceContainers": "Conteneurs de surface",
+  "@themeEditorGroupSurfaceContainers": {
+    "x-sourceSha256": "7b1f3eb3e6a80bcabb8367027c44ebb47374f636a5ce3c28414d13c852eef67d"
+  },
+  "themeEditorGroupOutlineEffects": "Contour et effets",
+  "@themeEditorGroupOutlineEffects": {
+    "x-sourceSha256": "62b15f9015a365974ae2ee0e225c82592f75cecada905476dc01d5c313e1f89c"
+  },
+  "themeEditorRolePrimary": "Primaire",
+  "@themeEditorRolePrimary": {
+    "x-sourceSha256": "efe10c80ec8a9f38624cbb47103010a8cf32488a503e4b4bfe4f92307a9cefa7"
+  },
+  "themeEditorRoleOnPrimary": "Sur primaire",
+  "@themeEditorRoleOnPrimary": {
+    "x-sourceSha256": "dae7d8f32cd8148515645ec62c028005be41c4c46dc2ad86e28cfecb8c9030dd"
+  },
+  "themeEditorRolePrimaryContainer": "Conteneur primaire",
+  "@themeEditorRolePrimaryContainer": {
+    "x-sourceSha256": "9e6596e7ba36d418be8593f51da38aa46391f5716f0a7e80251653413d4a85a6"
+  },
+  "themeEditorRoleOnPrimaryContainer": "Sur conteneur primaire",
+  "@themeEditorRoleOnPrimaryContainer": {
+    "x-sourceSha256": "a391d34321dbfd7517cb93b432c437fe45fa6caa70333b1113b4809b8b5f9f06"
+  },
+  "themeEditorRoleSecondary": "Secondaire",
+  "@themeEditorRoleSecondary": {
+    "x-sourceSha256": "62f2ccfffcc5103eabb193172833e6d95db890898849ea1ce84b8d7843997539"
+  },
+  "themeEditorRoleOnSecondary": "Sur secondaire",
+  "@themeEditorRoleOnSecondary": {
+    "x-sourceSha256": "fd73808427c14d94b4a7e7d541ecb431d482051bf60eb96c49c292dbc315aead"
+  },
+  "themeEditorRoleSecondaryContainer": "Conteneur secondaire",
+  "@themeEditorRoleSecondaryContainer": {
+    "x-sourceSha256": "bc8ee523ab960a2ff80f9b6602ac72bb396a4ca7c415826a6efe82e8279b5b3c"
+  },
+  "themeEditorRoleOnSecondaryContainer": "Sur conteneur secondaire",
+  "@themeEditorRoleOnSecondaryContainer": {
+    "x-sourceSha256": "ed3f96e2423a93c030879d694338fe8bdddfb6ca6cfa4640e468c0d9a070d2ea"
+  },
+  "themeEditorRoleTertiary": "Tertiaire",
+  "@themeEditorRoleTertiary": {
+    "x-sourceSha256": "af3ddd815af84ae581f631295b763f729697b8a8dc36e4b49b301ea423bc1500"
+  },
+  "themeEditorRoleOnTertiary": "Sur tertiaire",
+  "@themeEditorRoleOnTertiary": {
+    "x-sourceSha256": "b445d512ab0ce2600cd56dbcf4d9a8f11378f0804f8f5d653f955d4e7c2b2ed7"
+  },
+  "themeEditorRoleTertiaryContainer": "Conteneur tertiaire",
+  "@themeEditorRoleTertiaryContainer": {
+    "x-sourceSha256": "c488f64085533deaaf211aa6fef6be3d3f96ec371b22c105b5347d89ec81292d"
+  },
+  "themeEditorRoleOnTertiaryContainer": "Sur conteneur tertiaire",
+  "@themeEditorRoleOnTertiaryContainer": {
+    "x-sourceSha256": "dc44ae519732318d102f61a6def204e3682e67755d0dbaac06513a65720c5358"
+  },
+  "themeEditorRoleError": "Erreur",
+  "@themeEditorRoleError": {
+    "x-sourceSha256": "54a0e8c17ebb21a11f8a25b8042786ef7efe52441e6cc87e92c67e0c4c0c6e78"
+  },
+  "themeEditorRoleOnError": "Sur erreur",
+  "@themeEditorRoleOnError": {
+    "x-sourceSha256": "817fc01c9fd571ac01adbeb12e441ef40344ce8f3a4dae71c6452a4273d6696c"
+  },
+  "themeEditorRoleErrorContainer": "Conteneur d’erreur",
+  "@themeEditorRoleErrorContainer": {
+    "x-sourceSha256": "421d350a1bd5580ccf10eb12dda0700ba791abc2648e3005d9d4b4f0ad8e64b3"
+  },
+  "themeEditorRoleOnErrorContainer": "Sur conteneur d’erreur",
+  "@themeEditorRoleOnErrorContainer": {
+    "x-sourceSha256": "e3b32e422e7cde24da3d2e3197e591e0637a299e412f8dbb414a48251c59ee76"
+  },
+  "themeEditorRoleSurface": "Surface",
+  "@themeEditorRoleSurface": {
+    "x-sourceSha256": "0905f7f59021c2a85f1c0a50d7c252a3e6c6ee006514f01d7264097f1fd4337a"
+  },
+  "themeEditorRoleOnSurface": "Sur surface",
+  "@themeEditorRoleOnSurface": {
+    "x-sourceSha256": "40e1cf2854c570ba58ead0baededb0a1423c9fd5feb9e8c5f9d1100220f6bacb"
+  },
+  "themeEditorRoleOnSurfaceVariant": "Sur variante de surface",
+  "@themeEditorRoleOnSurfaceVariant": {
+    "x-sourceSha256": "0ed2808e1a6207c3f794abe432600f06af856b54418af3dfc19ed35287c0e410"
+  },
+  "themeEditorRoleInverseSurface": "Surface inversée",
+  "@themeEditorRoleInverseSurface": {
+    "x-sourceSha256": "849d58834dec7fc0168e2dbe952fd301c6234c0015612eaa3856e3c17c375fc1"
+  },
+  "themeEditorRoleOnInverseSurface": "Sur surface inversée",
+  "@themeEditorRoleOnInverseSurface": {
+    "x-sourceSha256": "6155170e83a20e77cbbc52864a48e7e9a90e34cc70c3ade5947b05803f2178cf"
+  },
+  "themeEditorRoleInversePrimary": "Primaire inversée",
+  "@themeEditorRoleInversePrimary": {
+    "x-sourceSha256": "5ec1fbcfbc98b7631d6f180f981283ab990b4ce19961767d624eb7982fc4a316"
+  },
+  "themeEditorRoleSurfaceContainerLowest": "Conteneur (le plus bas)",
+  "@themeEditorRoleSurfaceContainerLowest": {
+    "x-sourceSha256": "a8c158fb86fb4ee807c1af6bae0adb7e64e4f6a8c9184ce53b5b5c925c9c168e"
+  },
+  "themeEditorRoleSurfaceContainerLow": "Conteneur (bas)",
+  "@themeEditorRoleSurfaceContainerLow": {
+    "x-sourceSha256": "47c377542e0bc1d3b2b7a07d501e97aa87aff20960c57d4983d7ea13e3aeac86"
+  },
+  "themeEditorRoleSurfaceContainer": "Conteneur",
+  "@themeEditorRoleSurfaceContainer": {
+    "x-sourceSha256": "0c7823e8c759af7d0d04bea22a6d64fb56065c7168977b5f19ad2225a2986178"
+  },
+  "themeEditorRoleSurfaceContainerHigh": "Conteneur (élevé)",
+  "@themeEditorRoleSurfaceContainerHigh": {
+    "x-sourceSha256": "b54e46a9fe50df951f282e7d9e3d3500b2f2a50372c74d206b02250b8b146f67"
+  },
+  "themeEditorRoleSurfaceContainerHighest": "Conteneur (le plus élevé)",
+  "@themeEditorRoleSurfaceContainerHighest": {
+    "x-sourceSha256": "bc4d36f458848e80d5f8567942e5cc3ccbe6c28233f4297ca310505c2f9945a8"
+  },
+  "themeEditorRoleOutline": "Contour",
+  "@themeEditorRoleOutline": {
+    "x-sourceSha256": "eabbf3abaf8d98abb9763d83f29b04716524a9d697dfdd06ae3ed77bdd12c929"
+  },
+  "themeEditorRoleOutlineVariant": "Variante de contour",
+  "@themeEditorRoleOutlineVariant": {
+    "x-sourceSha256": "f2b95d59af5eec6fb6cc8b00ff66e828312a399ba57436cfcf8ceb29d676db55"
+  },
+  "themeEditorRoleSurfaceTint": "Teinte de surface",
+  "@themeEditorRoleSurfaceTint": {
+    "x-sourceSha256": "50fc3498c23aee91a9588c9b2048c627db90bd4725c3ba3abf1b49ae8126c510"
+  },
+  "themeEditorRoleShadow": "Ombre",
+  "@themeEditorRoleShadow": {
+    "x-sourceSha256": "4c764cb6248ef9337fc1c8769d4b74fc1d4c1fff6a9e8d00ca6753a560b3e74b"
+  },
+  "themeEditorRoleScrim": "Voile",
+  "@themeEditorRoleScrim": {
+    "x-sourceSha256": "b72b765b11de350fbefc015e56962ec035642aa8b3edcf3061b4ac94aa412a62"
+  },
+  "themeEditorPairOnPrimary": "Texte sur primaire",
+  "@themeEditorPairOnPrimary": {
+    "x-sourceSha256": "0607c072e37dc5486d8c3e2848217cd24fa959eeaf08071f49af21fc294363f4"
+  },
+  "themeEditorPairOnPrimaryContainer": "Texte sur conteneur primaire",
+  "@themeEditorPairOnPrimaryContainer": {
+    "x-sourceSha256": "8818e6dd1e545914b5d895722e79a82cbf0475fe03d6d32cce52e3dbd98021a4"
+  },
+  "themeEditorPairOnSecondary": "Texte sur secondaire",
+  "@themeEditorPairOnSecondary": {
+    "x-sourceSha256": "28d8b08671c91539e3ae28dae8201c574a32b1da9878368d39d231d69b5b6a37"
+  },
+  "themeEditorPairOnSecondaryContainer": "Texte sur conteneur secondaire",
+  "@themeEditorPairOnSecondaryContainer": {
+    "x-sourceSha256": "7d4bc15246953d3991379b58763a726226ed941270dc4d7b5db32a8c7c8be2bf"
+  },
+  "themeEditorPairOnTertiary": "Texte sur tertiaire",
+  "@themeEditorPairOnTertiary": {
+    "x-sourceSha256": "7b3f0c45e82fa675451b9bca343b0d39ecb6b9b2ea12bca7678703ccc119ebf8"
+  },
+  "themeEditorPairOnTertiaryContainer": "Texte sur conteneur tertiaire",
+  "@themeEditorPairOnTertiaryContainer": {
+    "x-sourceSha256": "5ecd7fcedff3902e43a5ec61fd30d4009c1bd621038320a10af4a6f36a2905cb"
+  },
+  "themeEditorPairOnError": "Texte sur erreur",
+  "@themeEditorPairOnError": {
+    "x-sourceSha256": "72e5ace23e83772a87540e83b392ef6d25155c92eb7e08771d667a84764d6b8c"
+  },
+  "themeEditorPairOnErrorContainer": "Texte sur conteneur d’erreur",
+  "@themeEditorPairOnErrorContainer": {
+    "x-sourceSha256": "dc4696846d9678599dd6932dfa9cb6d30dc7bd539da7c7f517f7b3e890e9565e"
+  },
+  "themeEditorPairOnSurface": "Texte courant sur surface",
+  "@themeEditorPairOnSurface": {
+    "x-sourceSha256": "1a8eaa9e0d7b55451edca7fb7ed2f348485761e73e3bd2a3deed8aa2fbd3ff6f"
+  },
+  "themeEditorPairOnSurfaceVariant": "Texte secondaire sur surface",
+  "@themeEditorPairOnSurfaceVariant": {
+    "x-sourceSha256": "44164a61acc50bc2a829dfc7c87f90ec8709b712d0fe27e69f3eac609c194819"
+  },
+  "themeEditorPairOnInverseSurface": "Texte sur surface inversée",
+  "@themeEditorPairOnInverseSurface": {
+    "x-sourceSha256": "a4574fb9ec5459f80d68c21fbb2a4e9b83fe561ed67ea09f098da12692730866"
+  },
+  "themeEditorPairOutline": "Contour sur surface",
+  "@themeEditorPairOutline": {
+    "x-sourceSha256": "99b7bdbf2e12071cf313ae0bc216ed066e8d70a77db51c118ba1d01e9ab99060"
+  },
   "settingsAppearanceEasterEggsHeader": "Easter eggs",
   "@settingsAppearanceEasterEggsHeader": {
     "x-sourceSha256": "1a420070d362964df352f37d1b6c07e5c3ceeb52372cc9e6848f1dd0741f0a59"
@@ -1160,18 +2140,6 @@
   "@settingsDefaultsStartingProgramPickerTitle": {
     "x-sourceSha256": "162eb23854f7ecaf9a9fe6662f96f732bace7ea5999b540e4b6e4b189d0a01b1"
   },
-  "settingsDefaultsStartingProgramAddDance": "Danse",
-  "@settingsDefaultsStartingProgramAddDance": {
-    "x-sourceSha256": "23d2d73543f9d7d92ac704296e5ee744037f5f4c938e21abf2c17002c4e9ba71"
-  },
-  "settingsDefaultsStartingProgramAddText": "Note",
-  "@settingsDefaultsStartingProgramAddText": {
-    "x-sourceSha256": "d8da2c49df39d91df7ecd199b92da7bf264f026242ccc69b08daeadfe587c45b"
-  },
-  "settingsDefaultsStartingProgramAddBreak": "Ajouter une pause",
-  "@settingsDefaultsStartingProgramAddBreak": {
-    "x-sourceSha256": "7d6ad44637b1bd724b5c7defdab64e78e25805878c2326c5ba4a81e1b48bb50c"
-  },
   "settingsDefaultsStartingProgramTextLabel": "Texte de la note",
   "@settingsDefaultsStartingProgramTextLabel": {
     "x-sourceSha256": "369e75791f2d58551e3a06b30954568b580ba9c5871e07481d9b9c8a61abacfb"
@@ -1191,6 +2159,22 @@
   "settingsDefaultsStartingProgramUnavailableDance": "Danse indisponible ({id})",
   "@settingsDefaultsStartingProgramUnavailableDance": {
     "x-sourceSha256": "122b8b4b37adce5ff3e76dd2a1ae9e43e0654d93954e1b9d698af939d849fcd7"
+  },
+  "settingsDefaultsDifficultyLevelEmpty": "Un niveau de difficulté doit avoir un nom.",
+  "@settingsDefaultsDifficultyLevelEmpty": {
+    "x-sourceSha256": "73b344eaf69d212da60fbfcbd492b38de4422eab6082d304d2db3b5f3878055e"
+  },
+  "settingsDefaultsDifficultyLevelDuplicate": "Un niveau nommé « {label} » existe déjà.",
+  "@settingsDefaultsDifficultyLevelDuplicate": {
+    "x-sourceSha256": "299b0ac11fd2f4ec4a83777cb99396136360e43ecea80e3a74a20d7321b3458d"
+  },
+  "settingsDefaultsDifficultyLevelInUse": "{count, plural, =1{1 danse utilise {label}. Modifiez-la d’abord.} other{{count} danses utilisent {label}. Modifiez-les d’abord.}}",
+  "@settingsDefaultsDifficultyLevelInUse": {
+    "x-sourceSha256": "2bce31580a02cfe0023e6f49e9b4bf9ec1419fcc46343bb9a762dc3e6d4eeff7"
+  },
+  "settingsDefaultsDifficultyLevelActionFailed": "Impossible d’enregistrer les niveaux de difficulté. Réessayez.",
+  "@settingsDefaultsDifficultyLevelActionFailed": {
+    "x-sourceSha256": "2f406423b231a20a613444e2a66a85fa3f5d95c6776a82203ad64d4d4e2b0282"
   },
   "settingsDefaultsBandLabel": "Orchestre par défaut",
   "@settingsDefaultsBandLabel": {
@@ -1320,6 +2304,22 @@
   "@settingsDefaultsCollectionFiltersSubtitle": {
     "x-sourceSha256": "fe9b11fa483a593aae54741b5b3cb3abc94b60c4f1575d98df4c16d55b9b5022"
   },
+  "settingsDefaultsImportHeader": "Paramètres par défaut de l'import",
+  "@settingsDefaultsImportHeader": {
+    "x-sourceSha256": "dc7da5fd80477b92351f03109e1ca729aff1eff5bf548b10c4b0a9159e124de7"
+  },
+  "settingsDefaultsImportTagsTitle": "Tags des danses importées",
+  "@settingsDefaultsImportTagsTitle": {
+    "x-sourceSha256": "b1dd2d836caef6fe35201a4a9633de08a139ef06a2d899cf238a707968aff9b3"
+  },
+  "settingsDefaultsImportTagsSubtitle": "Ajoutés à chaque nouvelle danse que vous importez seule. Les danses créées lors de l'import d'un programme et celles restaurées depuis une archive Compendium ne reçoivent pas de tags.",
+  "@settingsDefaultsImportTagsSubtitle": {
+    "x-sourceSha256": "bd3b68ca22a52c38aa563a2777ac99a8624ec843d438cebd52f12aaec06833db"
+  },
+  "settingsDefaultsImportTagsEmpty": "Vous n'avez pas encore de tags. Ajoutez-en un à une danse dans l'éditeur, puis choisissez-le ici.",
+  "@settingsDefaultsImportTagsEmpty": {
+    "x-sourceSha256": "5217ace699ce1f4987a89eaa2d027105d4520ea841355d8cfd89223f41730ae6"
+  },
   "settingsDefaultsAuthoringHeader": "Paramètres par défaut de création de danse",
   "@settingsDefaultsAuthoringHeader": {
     "x-sourceSha256": "482854f4cc0c72562a4c8a593046db1f9154cbc2787f0474b4a866f28685f347"
@@ -1336,9 +2336,9 @@
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
     "x-sourceSha256": "1d163c476d946d3bcc7fa0c001b99114d7f53588e73341294a86e20043e32357"
   },
-  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Lorsque cette option est activée, la modification du mouvement d'une figure ou d'un paramètre affectant le tempo recalcule immédiatement son nombre de temps — même en écrasant un nombre de temps que vous avez saisi manuellement. Lorsqu'elle est désactivée (par défaut), un nombre de temps que vous avez modifié n'est jamais changé automatiquement.",
+  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "Lorsque cette option est activée, la modification du mouvement d'une figure ou d'un paramètre affectant le tempo recalcule immédiatement son nombre de temps — même en écrasant un nombre de temps que vous avez saisi manuellement. Lorsqu'elle est désactivée (par défaut), un nombre de temps que vous avez modifié n'est changé automatiquement que lorsque vous activez ou désactivez une option d'équilibre, ce qui ajoute ou retire 4 temps.",
   "@settingsDefaultsAggressiveBeatsUpdateSubtitle": {
-    "x-sourceSha256": "9eaa0c9c2894b5f582b38219c90c32010320c3f307f85dbc76359959e8c0d81d"
+    "x-sourceSha256": "7ee476b3ea2b7dd326088903cfc362916fb09b7f97f971fe513b538252ce2934"
   },
   "settingsDefaultsFigureShorthandsTitle": "Abréviations de figures",
   "@settingsDefaultsFigureShorthandsTitle": {
@@ -1768,6 +2768,14 @@
   "@settingsProgramVenueCallCountOption": {
     "x-sourceSha256": "1c0cfc72e21f8c2822ac39f1e745a46fad5fe0ec3d19811be896910962f1925b"
   },
+  "settingsGeneralCapitalizeFiguresTitle": "Mettre une majuscule aux figures",
+  "@settingsGeneralCapitalizeFiguresTitle": {
+    "x-sourceSha256": "c841b9d27fa36cfe2705a7247038669178a9773692bbb78c7886cfcdeff5d6d0"
+  },
+  "settingsGeneralCapitalizeFiguresSubtitle": "Activé : chaque figure dans la vue de la danse, le mode Perform et l’éditeur de figures commence par une majuscule (« Neighbors allemande left »). Désactivé : les figures s’affichent telles qu’elles sont écrites ; les figures intégrées commencent par une minuscule, comme dans ContraDB. Seul l’aspect des figures à ces endroits change ; les exports, la recherche, les comparaisons de synchronisation et le texte lu par les lecteurs d’écran restent identiques.",
+  "@settingsGeneralCapitalizeFiguresSubtitle": {
+    "x-sourceSha256": "7f240fb961d598881097268169b7eafcb32a2e8b4698331673904b34b1f95a09"
+  },
   "settingsGeneralAccessibilityHeader": "Accessibilité",
   "@settingsGeneralAccessibilityHeader": {
     "x-sourceSha256": "d3368cbffe23c98da887d279a1b5c74b7618ba5c0488cbed30cf304f8f9398a1"
@@ -2020,6 +3028,10 @@
   "@backupRestoreIncompatibleVersion": {
     "x-sourceSha256": "4cca4f4742b1bcd00ac4a601911f0c19d6796b9029987531919994b579d25f26"
   },
+  "backupRestoreMissingAppSection": "Cette sauvegarde n’inclut pas les réglages, thèmes ou dialectes de l’application, elle ne peut donc pas remplacer vos données actuelles. La restauration a été annulée et vos données sont inchangées.",
+  "@backupRestoreMissingAppSection": {
+    "x-sourceSha256": "b55cd0d43e0c720326340fc6ca5c699881b6c66fee51287d9efcd49ef3da7424"
+  },
   "backupRestoreInvalidFile": "Impossible de restaurer : le fichier n’est pas une sauvegarde valide. Vos données sont inchangées.",
   "@backupRestoreInvalidFile": {
     "x-sourceSha256": "0c5e97241e94cd45d0deaa203216594b06f2561c8f017282adcefc77dcab19d4"
@@ -2100,6 +3112,18 @@
   "@backupOverdueHint": {
     "x-sourceSha256": "4ad654a10e666f795dc18c962c83cf76605c5ed9239968decc5b91107cb976e8"
   },
+  "backupReminderBannerText": "Votre sauvegarde est en retard. Exportez-en une maintenant pour protéger votre collection.",
+  "@backupReminderBannerText": {
+    "x-sourceSha256": "3f308d39a35ee1c3e19650a4ef61f6d17518668fe67b3a51c20697698b55c23c"
+  },
+  "backupReminderBannerExport": "Exporter une sauvegarde",
+  "@backupReminderBannerExport": {
+    "x-sourceSha256": "d6dfd0f0828004b8d9b5e268ba72d41106f93ae2800d18e3ce78bbfde25f601d"
+  },
+  "backupReminderBannerNotNow": "Pas maintenant",
+  "@backupReminderBannerNotNow": {
+    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
+  },
   "backupRestoreDialogBody": "La restauration remplace tout le contenu actuel de l’application — votre collection, programmes, dialectes, thèmes et paramètres — par le contenu de la sauvegarde. Cette action est irréversible.",
   "@backupRestoreDialogBody": {
     "x-sourceSha256": "ff51802a21a8219092f0aaebcde7ad04aebb7aa77bf34404915dc4e39b24b83e"
@@ -2108,6 +3132,10 @@
   "@backupChooseFileAction": {
     "x-sourceSha256": "5c6623857cc7b764cdf1eecad5b2f0f54184bebca4aa2d7f3bbdcedf6a8929d1"
   },
+  "backupChooseFileFailed": "Impossible de lire ce fichier.",
+  "@backupChooseFileFailed": {
+    "x-sourceSha256": "800f84ec1a61e01c5a4477e3c3850128f0d522d38c2982d8c3a94ed491632ed3"
+  },
   "backupPasteJsonLabel": "Ou collez le JSON de sauvegarde",
   "@backupPasteJsonLabel": {
     "x-sourceSha256": "3523099f6364b6277b63bb16fe6a631089907f35637110337ed8aa211375ffdf"
@@ -2115,6 +3143,38 @@
   "backupReplaceAllDataAction": "Remplacer toutes les données",
   "@backupReplaceAllDataAction": {
     "x-sourceSha256": "b8667a4cafecbe0b101c651e98c27c2c2a8d7bf668b95aa6038f07629029bb39"
+  },
+  "backupFileSummary": "Sauvegarde du {date} : {dances, plural, one {{dances} danse} other {{dances} danses}}, {programs, plural, one {{programs} programme} other {{programs} programmes}}, {size} Mo",
+  "@backupFileSummary": {
+    "x-sourceSha256": "d3ca7f78a56484717b1cbd4241cfaccd2f4218c5a2fa31aef25f4a04498a15f6"
+  },
+  "backupFileUnreadable": "Ce fichier ne ressemble pas à une sauvegarde lisible ({size} Mo). Le remplacement vous dira pourquoi s’il ne peut pas être restauré.",
+  "@backupFileUnreadable": {
+    "x-sourceSha256": "04a82a832fe8002275a7c27c5f3547dc0a009e0ed8c5f4d66eedd819dcee2dbc"
+  },
+  "backupFileClearAction": "Effacer",
+  "@backupFileClearAction": {
+    "x-sourceSha256": "83b12c2216efb4fdc924e1deb5182e905e4926ed0c1c324d467107f46d5a26a9"
+  },
+  "backupFileTooLarge": "Ce fichier est trop volumineux pour être une sauvegarde de Caller’s Compendium ({sizeMb} Mo ; limite {limitMb} Mo). Vos données sont inchangées.",
+  "@backupFileTooLarge": {
+    "x-sourceSha256": "3e9ac5f6ca85f6efe2676e53a0d0460c736dc1cb76c50731257083782748d37c"
+  },
+  "backupExportTooLarge": "Votre collection est trop volumineuse pour être exportée en une seule sauvegarde ({sizeMb} Mo ; limite {limitMb} Mo) ; rien n’a été enregistré. Vos données sont inchangées.",
+  "@backupExportTooLarge": {
+    "x-sourceSha256": "1416959a2f449b0558cc843bfa3dbd39209ae1069307cb905582625594368e3e"
+  },
+  "backupExportInProgress": "Préparation de votre sauvegarde…",
+  "@backupExportInProgress": {
+    "x-sourceSha256": "9174795f8bf8199c1a9f40bd555b24c33361d0c752e5f0d07215277151a36101"
+  },
+  "backupRestorePreparing": "Lecture de la sauvegarde…",
+  "@backupRestorePreparing": {
+    "x-sourceSha256": "19ca1b5b4e8e8354382be47c93d1485d89d0282e12155b8392ad84b1c76390ef"
+  },
+  "backupRestoreProgress": "Restauration de {done} sur {total}…",
+  "@backupRestoreProgress": {
+    "x-sourceSha256": "399de1a943b7134dfed9179444eed01ab33c2e94a72a792f1833075a8d5ae880"
   },
   "diagnosticsNoDiagnosticsToExport": "Aucun diagnostic à exporter.",
   "@diagnosticsNoDiagnosticsToExport": {
@@ -2555,10 +3615,6 @@
   "collectionSearchFieldHint": "Titres, auteurs, figures, notes…",
   "@collectionSearchFieldHint": {
     "x-sourceSha256": "3316ce957d763fd3d3fa139ab42e7736d82431aa9416c2a6195085f9d1222861"
-  },
-  "collectionPickerSearchFieldHint": "Titres, figures, notes…",
-  "@collectionPickerSearchFieldHint": {
-    "x-sourceSha256": "7d4dc44ffc70ef07a637b21c1ab753ce6dac7d81af0554a06e15232186a89985"
   },
   "collectionPickerOnlineSearchFieldHint": "Rechercher des danses en ligne par titre…",
   "@collectionPickerOnlineSearchFieldHint": {
@@ -3051,10 +4107,6 @@
   "collectionCreateTagButton": "Créer le tag",
   "@collectionCreateTagButton": {
     "x-sourceSha256": "7af189a2b3f0301757248acea86d89ab39ef285715f6abdef3bd6e06f9e7b94d"
-  },
-  "collectionCreateTagError": "Impossible de créer le tag. Réessayez.",
-  "@collectionCreateTagError": {
-    "x-sourceSha256": "57b158c1d625d53d262633ec7332809ba4d0a058e1b1ea036a0fd874f3f5cd1e"
   },
   "collectionBatchApplyError": "Impossible d'appliquer les modifications groupées. Réessayez.",
   "@collectionBatchApplyError": {
@@ -3616,6 +4668,22 @@
   "@programsNotesLabel": {
     "x-sourceSha256": "8a7525b1492fb84833f5c4a69b30f4bfbb134f9b666b61a2c1872d63d234c085"
   },
+  "programsPayLabel": "Cachet",
+  "@programsPayLabel": {
+    "x-sourceSha256": "723afa394daeea97f5db0ca8be09fd8e43e1c22fcc209057b89d2a1fd12114f6"
+  },
+  "programsPayHint": "p. ex. 250.00",
+  "@programsPayHint": {
+    "x-sourceSha256": "9dac3fb83261e1b192b908e299d52cdb9ac19ad163546d4b1cb3516a7a715285"
+  },
+  "programsPayCurrencyLabel": "Devise",
+  "@programsPayCurrencyLabel": {
+    "x-sourceSha256": "3ac1a9ec4fa7a9fa612a30803f3d88fa479a45431f644190ebcc18d3eaafdb3a"
+  },
+  "programsPayInvalid": "Saisissez un montant comme 250 ou 250.50 dans cette devise.",
+  "@programsPayInvalid": {
+    "x-sourceSha256": "f7e744867967bec656bbfe43ffe944c899acdeb54bd5a0ed819baddafc1cb0bf"
+  },
   "programsStatusFieldLabel": "Statut",
   "@programsStatusFieldLabel": {
     "x-sourceSha256": "920e413c7d411b61ef3e8c63b1cb6ad058d5f95f8b481dbafe60248387d8c355"
@@ -3627,6 +4695,32 @@
   "programsHideAlternatesSubtitle": "Omet les créneaux ALT du résumé, du PDF et de la liste de sets exportée. Le constructeur affiche toujours tous les créneaux.",
   "@programsHideAlternatesSubtitle": {
     "x-sourceSha256": "3a81a878fda6e77deb31302774e7d9b34c87a4f8f425caf5ceac7abf6eedaec3"
+  },
+  "programsDialectFieldLabel": "Dialecte pour Perform",
+  "@programsDialectFieldLabel": {
+    "description": "Label of the program editor field that picks the dialect Perform uses for this program.",
+    "x-sourceSha256": "b1b99c1bf4dfe979032dc75d4dda29ceca9ed615be49cb0e9d2cbd36ae1df4b4"
+  },
+  "programsDialectUseApp": "Utiliser le dialecte de l'app",
+  "@programsDialectUseApp": {
+    "description": "Dropdown option that clears the program's dialect so Perform follows the app dialect.",
+    "x-sourceSha256": "3d4f7fe762f516964bc4604434b32ef0f03469e521b4fbc9393d22fff730f1f1"
+  },
+  "programsDialectUnavailable": "{name} (indisponible)",
+  "@programsDialectUnavailable": {
+    "description": "Dropdown entry for a stored dialect name that no longer matches any dialect in the library (renamed, deleted or not synced here yet). {name} is the stored dialect name.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Leads/Follows"
+      }
+    },
+    "x-sourceSha256": "da395d8f45efc28a2cf1da9c04d45e23d72965116f73d1eb8637e291a1a9bbe3"
+  },
+  "programsDialectHelper": "Utilisé uniquement dans la vue Perform de ce programme. L'éditeur, le résumé et les exports gardent le dialecte de l'app.",
+  "@programsDialectHelper": {
+    "description": "Helper text under the program dialect field: where the dialect applies.",
+    "x-sourceSha256": "053dc45b3b342b8f0263f73b3afd2df5a98b4ec74a5d6bb0c24eabf088484d14"
   },
   "programsWarningCount": "{count, plural, =1{1 avertissement} other{{count} avertissements}}",
   "@programsWarningCount": {
@@ -3707,6 +4801,10 @@
   "programsSummaryLevel": "Niveau : {level}",
   "@programsSummaryLevel": {
     "x-sourceSha256": "98fa630e4ed7099e8afcf92e5db97e571879e0b08920ba1ef64b412786028210"
+  },
+  "programsSummaryPay": "Cachet : {amount}",
+  "@programsSummaryPay": {
+    "x-sourceSha256": "edb750f88d3e102e12c717b828d27067d77e472f20bd2854687d637c09d4df1d"
   },
   "programsSetListHeader": "Liste de sets ({count})",
   "@programsSetListHeader": {
@@ -3940,14 +5038,6 @@
   "@programsMatrixHidePhrasesSemantic": {
     "x-sourceSha256": "dff330e2dd809cc55cb0196897e737da19254425109a4cf84064e31f6f7d2373"
   },
-  "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Danse alternative : {title}, première partie} second{Danse alternative : {title}, deuxième partie} other{Danse alternative : {title}}}} other{{half, select, first{Danse : {title}, première partie} second{Danse : {title}, deuxième partie} other{Danse : {title}}}}}",
-  "@programsMatrixRowHeaderSemantic": {
-    "x-sourceSha256": "1814b7ab4c9a33455160418f04c015f1d7e1368c467f15c39e2306bc6652f94b"
-  },
-  "programsMatrixHalfShort": "{half, select, first{1ère} other{2ème}}",
-  "@programsMatrixHalfShort": {
-    "x-sourceSha256": "1f792188e97d7a185052805c4a6815fbdbf3121dd93044ed7e2d6c6244d0e503"
-  },
   "programsMatrixSectionShort": "{sectionKey, select, s1{1er} s2{2e} s3{3e} s4{4e} s5{5e} s6{6e} s7{7e} s8{8e} s9{9e} other{{sectionNumber}}}",
   "@programsMatrixSectionShort": {
     "x-sourceSha256": "68a28048786bc047b332d33dedbfe0848b16beb883e24f7cad66b9ebec4a1ecb"
@@ -3971,10 +5061,6 @@
   "programsMatrixCellSemantic": "{dance}, {move} : {present, select, no{absent} other{présent{collision, select, phrase{, se répète dans la même phrase qu'une danse voisine} beats{, partage des temps avec une danse voisine} other{}}{debut, select, yes{, introduit ici} other{}}{first, select, yes{, première figure de la danse} other{}}}}{phrases, select, none{} other{, phrase(s) : {phrases}}}",
   "@programsMatrixCellSemantic": {
     "x-sourceSha256": "37e128f48a2b4849bf86f14831698b7ecce8014421f0819ff4c774f258a7f8ac"
-  },
-  "programsMatrixChipQualifiedTitle": "{alt, select, yes{{half, select, first{{title} (danse alternative, première partie)} second{{title} (danse alternative, deuxième partie)} other{{title} (danse alternative)}}} other{{half, select, first{{title} (première partie)} second{{title} (deuxième partie)} other{{title}}}}}",
-  "@programsMatrixChipQualifiedTitle": {
-    "x-sourceSha256": "cfb82f04f0f1ff5616528524973ec36d027016be2ac6248a06bd3243ec6ed74a"
   },
   "programsMatrixMoveUsedInSemantic": "Mouvement : {label}, utilisé dans {count} danse(s) sur {total}",
   "@programsMatrixMoveUsedInSemantic": {
@@ -4184,6 +5270,10 @@
   "@performAdjustmentUndone": {
     "x-sourceSha256": "794a3e536fe9589f43585a6f275f77458eb859e939b2b1da590c89ec7eabe623"
   },
+  "performUndoNoLongerAvailable": "Annulation impossible : le programme a été modifié depuis.",
+  "@performUndoNoLongerAvailable": {
+    "x-sourceSha256": "b3e205dcae09a94dc4693a675f528a7f6aad490523457c362ed13b6d48e7f9c9"
+  },
   "performProgramAdjustedSnack": "Programme ajusté.",
   "@performProgramAdjustedSnack": {
     "x-sourceSha256": "958c4298dfa182469d54d3054459d95cab8783f62751368c716442af29839251"
@@ -4220,9 +5310,9 @@
   "@performPauseTimers": {
     "x-sourceSha256": "18b85c0574b83bcd592f1959021cfd910c460a5bfccd2c80a7280d81fb4fe196"
   },
-  "performTimingSemantic": "Temps du programme {programTime}, temps du créneau {slotTime}{hasPlanned, select, yes{, prévu {planned, plural, =1{1 minute} other{{planned} minutes}} : {walkthrough} minutes de déroulé et {dance} minutes de danse} other{}}{walkthroughComplete, select, yes{, déroulé terminé} other{}}{over, select, yes{, dépassement du temps prévu} other{}}{paused, select, yes{, en pause} other{}}",
+  "performTimingSemantic": "Temps du programme {programTime}, temps du créneau {slotTime}{hasPlanned, select, yes{, prévu {planned, plural, =1{1 minute} other{{planned} minutes}} : {walkthrough} minutes de déroulé et {dance} minutes de danse} other{}}{manual, select, yes{, déroulé terminé à {actual}{direction, select, over{, {delta} de plus que prévu} under{, {delta} de moins que prévu} other{, comme prévu}}} other{}}{walkthroughComplete, select, yes{, déroulé terminé} other{}}{over, select, yes{, dépassement du temps prévu} other{}}{paused, select, yes{, en pause} other{}}",
   "@performTimingSemantic": {
-    "x-sourceSha256": "b481989b8c0ed66ecd58941fca432d33516d0823d5f434b055030c5479c96682"
+    "x-sourceSha256": "01bd1a6f6039355065cf9bfeda8e220c463f9738472835c5838843737801f3dc"
   },
   "performIndividualTimingSemantic": "Temps écoulé {elapsedTime}{paused, select, yes{, en pause} other{}}",
   "@performIndividualTimingSemantic": {
@@ -4231,6 +5321,18 @@
   "performPlannedSplit": "prévu {planned} min ({walkthrough}:{dance})",
   "@performPlannedSplit": {
     "x-sourceSha256": "f00ce488a307637ede1d33c0e91658a79b9b0b960eb86ac8aa541367cd79684b"
+  },
+  "performDanceStartUnused": "Déroulé terminé — lancer la danse",
+  "@performDanceStartUnused": {
+    "x-sourceSha256": "e92edca90964e4b477d200ef6be8b84b06caf7bc6a0d2051de249ec49663623c"
+  },
+  "performDanceStartUsed": "Danse lancée — touchez pour annuler",
+  "@performDanceStartUsed": {
+    "x-sourceSha256": "df3731aa1e3f5c58ae6888723a837fcd8e88af4f6475c48b3ce532aa30605d37"
+  },
+  "performWalkthroughActual": "déroulé {actual}{direction, select, over{ (+{delta})} under{ (−{delta})} other{ (comme prévu)}}",
+  "@performWalkthroughActual": {
+    "x-sourceSha256": "4d138a6ae37bcfc37f09fe98c77ece2550ab866dceefb42b44815fb7a1c40aab"
   },
   "performWalkthroughCompleteSuffix": " déroulé terminé",
   "@performWalkthroughCompleteSuffix": {
@@ -4340,6 +5442,10 @@
   "@exportShareDanceBundle": {
     "x-sourceSha256": "29c9786e0737eac3cd1c9154fb88a22b635b7d0f7af5d9bd9c5ea50842fde6f0"
   },
+  "exportSaveDanceBundle": "Enregistrer le fichier de danse…",
+  "@exportSaveDanceBundle": {
+    "x-sourceSha256": "09e808c7c50eb5ca371424b818a64ba45450b29a5ae7b5522c6deb4994b3eed1"
+  },
   "exportCopyDance": "Copier la danse",
   "@exportCopyDance": {
     "x-sourceSha256": "2ffac8a5b092603538cd48f6dc8841ab41879f471ad6fea998797ecdc824c1d5"
@@ -4372,6 +5478,10 @@
   "@exportShareProgramBundle": {
     "x-sourceSha256": "aa291fc9f8e91d5ec3a4403f0ad10989880d96eca5c8d274776ec8ef6e699516"
   },
+  "exportSaveProgramBundle": "Enregistrer le fichier de programme…",
+  "@exportSaveProgramBundle": {
+    "x-sourceSha256": "7d34d57e448e90bdf0518ea47d313bd2f6bc109053d33b64bfa2eca1b08a003e"
+  },
   "exportCopySetList": "Copier la liste de sets",
   "@exportCopySetList": {
     "x-sourceSha256": "173fe1cd0559625675744964b89ffcb16350518ca788414e5a02b8cc40c893d1"
@@ -4403,6 +5513,10 @@
   "exportJsonShare": "Partager",
   "@exportJsonShare": {
     "x-sourceSha256": "29887a5ff9846ccc23327565a07e17fa6dcaea6211f1898ae825f84ae38f4223"
+  },
+  "exportJsonSaveAs": "Enregistrer sous…",
+  "@exportJsonSaveAs": {
+    "x-sourceSha256": "06359c03b085b86f1189c396647ef1b5dafee568af02ff4374f0ac13652ccd2c"
   },
   "exportJsonCancel": "Annuler",
   "@exportJsonCancel": {
@@ -4659,10 +5773,6 @@
   "onlineSearchFieldLabel": "Rechercher sur {source}",
   "@onlineSearchFieldLabel": {
     "x-sourceSha256": "580102ecff085a6380121462762b7f671cd143e923d49db39788bad56e3ee95f"
-  },
-  "onlineSearchFieldHint": "Rechercher des danses en ligne par titre ou auteur…",
-  "@onlineSearchFieldHint": {
-    "x-sourceSha256": "c7c8810fd4064a5490bb0279304af15ab4b75ae47e39631b64db57ec7636bb2c"
   },
   "collectionOnlineSearchFieldHint": "Rechercher des danses en ligne par titre, auteur ou figure…",
   "@collectionOnlineSearchFieldHint": {
@@ -5028,6 +6138,10 @@
   "@importReviewTitleListProgress": {
     "x-sourceSha256": "4d697b38f938dc5c3c2fd2924fd76c5db907d130fb751ece19dd992ab8dde896"
   },
+  "importReviewCommitProgress": "{done} / {total}",
+  "@importReviewCommitProgress": {
+    "x-sourceSha256": "638a82e1af18343b000eb7a1690db38a44a87a31536ccb6b4496c6ae9265759d"
+  },
   "importReviewTitleListPasted": "{count, plural, =1{1 titre collé} other{{count} titres collés}}",
   "@importReviewTitleListPasted": {
     "x-sourceSha256": "e524b5247662541304b96807c83d4083646529514f126b7c2fca33e917ac08b9"
@@ -5096,6 +6210,14 @@
   "@importTitleListReasonFetchError": {
     "x-sourceSha256": "ecae5ed3ce32059d5c7945d151090682262a6333f9d6b37db20b09d683223f23"
   },
+  "importTitleListReasonConnectionFailed": "Impossible d’atteindre The Caller's Box – vérifiez votre connexion.",
+  "@importTitleListReasonConnectionFailed": {
+    "x-sourceSha256": "b2f14ee793acdd3ebc63858fbbced0521fd7b93e2ef88468e55c83b72f16c82c"
+  },
+  "importTitleListConnectionBanner": "La recherche des titres s’est arrêtée après une erreur de connexion. Les titres déjà dans votre collection sont listés ; essayez les autres une fois en ligne.",
+  "@importTitleListConnectionBanner": {
+    "x-sourceSha256": "8d7abfdefdb0a4afe928e30565457f26e95c48bdcc55b5a77dc1a6efe93a2524"
+  },
   "importTitleListReasonLineTooLong": "Trop long pour un titre de danse, la recherche n’a donc pas été lancée.",
   "@importTitleListReasonLineTooLong": {
     "x-sourceSha256": "2e83f669234c65baeae1145f525ec623f4537bdc02ee680f78f20594d4e3c52d"
@@ -5112,9 +6234,9 @@
   "@importReviewSummaryNotFound": {
     "x-sourceSha256": "a658a2cf71fcefd9a21232220c6359b409285b680caf4a2638238c2597e919b2"
   },
-  "importErrorFileTooLarge": "Ce fichier est trop volumineux pour être importé.",
+  "importErrorFileTooLarge": "Ce fichier dépasse la limite de {megabytes} Mo. Choisissez un fichier plus petit, puis réessayez.",
   "@importErrorFileTooLarge": {
-    "x-sourceSha256": "27561070b4835d4de2dfe26ee4858606712273f436ef4b0c2150ac2dd103d283"
+    "x-sourceSha256": "a6a1b89f26d0a94639f9d7be61e1d044667eeb39a97439aa3d7b97e51ac24e09"
   },
   "archiveIntakeRejectedTooLarge": "Ce fichier est trop volumineux pour être importé.",
   "@archiveIntakeRejectedTooLarge": {
@@ -5156,9 +6278,9 @@
   "@importErrorUnsupportedSharedLink": {
     "x-sourceSha256": "e9aa5483ef48bad5bbe043ff4eb792f2808d548b017c557e40b9da634263220f"
   },
-  "importErrorTooManyRedirects": "Cette URL a effectué trop de redirections.",
+  "importErrorTooManyRedirects": "Cette URL a été redirigée trop de fois. Ouvrez-la dans un navigateur pour trouver son adresse finale, puis utilisez-la à la place.",
   "@importErrorTooManyRedirects": {
-    "x-sourceSha256": "849e5da3dea6d013f85c5965eef38b9202f621b4e0c2545e3b6647dd9fea1f7d"
+    "x-sourceSha256": "27ff194bd853e2a3b69c8ee2f1d28d833af3f778e360d07df42a33ffacbb4d4e"
   },
   "importErrorResponseTooLarge": "Cette réponse est trop volumineuse pour être importée.",
   "@importErrorResponseTooLarge": {
@@ -5176,13 +6298,21 @@
   "@importErrorUnreachable": {
     "x-sourceSha256": "4ff73e66000d3cb577a1030f0c711e303fbe17ee653f5fa99a2eb24cd13313e6"
   },
-  "importErrorHttpStatus": "Le serveur a répondu avec HTTP {status}.",
+  "importErrorHttpStatus": "Le serveur a envoyé une réponse inattendue (code {status}). Vérifiez l’URL, puis réessayez.",
   "@importErrorHttpStatus": {
-    "x-sourceSha256": "3967687167982af35ddcf77b4277e7ea6abbb1da8db50852c5cb447b3a12ae94"
+    "x-sourceSha256": "d715f5158f6bd8fa30f8c229bd5399d31c3f58e410f55d6af83b6d795ddfb640"
   },
-  "importErrorEmptyResponse": "L’URL a renvoyé une réponse vide.",
+  "importErrorHttpNotFound": "Rien n’a été trouvé à cette adresse. Vérifiez l’URL, puis réessayez.",
+  "@importErrorHttpNotFound": {
+    "x-sourceSha256": "cf5585489bba75ba3b41e367615410f6f6e71954601ab06dfb9b2d5112499d7d"
+  },
+  "importErrorHttpBusy": "Ce serveur est occupé ou rencontre un problème. Réessayez dans une minute.",
+  "@importErrorHttpBusy": {
+    "x-sourceSha256": "cd5dacb33010b3a35f2d93fff910b4574b7973956786e47c3de9e465830886ec"
+  },
+  "importErrorEmptyResponse": "L’URL a renvoyé une réponse vide. Vérifiez que le lien pointe vers les données à importer, puis réessayez.",
   "@importErrorEmptyResponse": {
-    "x-sourceSha256": "f29fdcf4e00b818168f51a4619bcddd8a7c7e389a807ec72b4a8a9cac2eca6b1"
+    "x-sourceSha256": "e4ebf590be59fc1c96250e01b1de6c9c868d171db953062cff138dda7d27d8a9"
   },
   "importErrorCallersBoxEmptyInput": "Saisissez une URL ou un identifiant de danse Caller's Box pour importer.",
   "@importErrorCallersBoxEmptyInput": {
@@ -5212,17 +6342,29 @@
   "@importErrorCallersBoxUnreachable": {
     "x-sourceSha256": "f140c354812d376da6d72cf268e505b4657f1081aacf9a0fb754263af7f8a8ad"
   },
-  "importErrorCallersBoxHttpStatus": "The Caller's Box a répondu avec HTTP {status}.",
+  "importErrorCallersBoxTimeout": "The Caller's Box n’a pas répondu dans les {seconds} s. Vérifiez votre connexion, puis réessayez.",
+  "@importErrorCallersBoxTimeout": {
+    "x-sourceSha256": "9d7846853da91e8277a64ca524ade77a3693f216aa515f63ff765ada4ccee1d8"
+  },
+  "importErrorCallersBoxHttpStatus": "The Caller's Box a envoyé une réponse inattendue (code {status}). Réessayez dans une minute.",
   "@importErrorCallersBoxHttpStatus": {
-    "x-sourceSha256": "34e856cf63547960beb23744a9977864dd6f396cac50bba09ef3d58aa61aea88"
+    "x-sourceSha256": "b3f7c0b4214ce8134864c95f5b46449073251df4514a4e53a2487515992bcb96"
   },
-  "importErrorCallersBoxEmptyPage": "The Caller's Box a renvoyé une page vide.",
+  "importErrorCallersBoxHttpNotFound": "The Caller's Box n’a aucune danse avec cet identifiant. Vérifiez le numéro ou le lien, puis réessayez.",
+  "@importErrorCallersBoxHttpNotFound": {
+    "x-sourceSha256": "5c0fca4555523554af37924604d4925fb297fd770112d0c38b994ab3a996adb7"
+  },
+  "importErrorCallersBoxHttpBusy": "The Caller's Box est occupé en ce moment. Réessayez dans une minute.",
+  "@importErrorCallersBoxHttpBusy": {
+    "x-sourceSha256": "ef9121c399cb511f779ceb91e4d81f4a7ed45218ddd9ba53307adfddb5af194e"
+  },
+  "importErrorCallersBoxEmptyPage": "The Caller's Box a renvoyé une page vide. Réessayez dans une minute.",
   "@importErrorCallersBoxEmptyPage": {
-    "x-sourceSha256": "d86d0f42565528063ef25ee4f81ef3a778de6833643bab57b5882cc97ccd48e0"
+    "x-sourceSha256": "9fba7474fa1b6258006abf1acf072787f11554498664d4bb62194726a50b26ce"
   },
-  "importErrorCallersBoxNoDance": "The Caller's Box n’a renvoyé aucune danse importable.",
+  "importErrorCallersBoxNoDance": "The Caller's Box n’a renvoyé aucune danse importable. Vérifiez l’identifiant ou le lien, puis réessayez.",
   "@importErrorCallersBoxNoDance": {
-    "x-sourceSha256": "8d2b7b20a119530de3f26932899e845e40d54140b37d587fb3514b0f09e8471e"
+    "x-sourceSha256": "69b4b9c5e620a36ae8e0f964a15acd814b17a24c3c5ffb5bffebc3082031cdc0"
   },
   "importErrorCallersBoxImportFailed": "Impossible d’importer la danse Caller's Box.",
   "@importErrorCallersBoxImportFailed": {
@@ -5272,17 +6414,29 @@
   "@importErrorContraDbUnreachable": {
     "x-sourceSha256": "244e23d8cd2f627e2bc5c60af4e9d9a3d5bcf43152d28f683fc07065e72e5215"
   },
-  "importErrorContraDbHttpStatus": "ContraDB a répondu avec HTTP {status}.",
+  "importErrorContraDbTimeout": "ContraDB n’a pas répondu dans les {seconds} s. Vérifiez votre connexion, puis réessayez.",
+  "@importErrorContraDbTimeout": {
+    "x-sourceSha256": "d4aadc1ceede37108fa57deef785079fe132c4df86a3c9a917afe6af7d5133f7"
+  },
+  "importErrorContraDbHttpStatus": "ContraDB a envoyé une réponse inattendue (code {status}). Réessayez dans une minute.",
   "@importErrorContraDbHttpStatus": {
-    "x-sourceSha256": "e3770dc519988d27b5753aa2b99a6db1f52bd606c2dda47b151307baaf9cc428"
+    "x-sourceSha256": "ec8a61907d7f12028ab1d0237a8f3cb417fce327e342ef38ca8c63840d7ca3d8"
   },
-  "importErrorContraDbEmptyResponse": "ContraDB a renvoyé une réponse vide.",
+  "importErrorContraDbHttpNotFound": "ContraDB n’a aucune danse avec cet identifiant. Vérifiez le numéro ou le lien, puis réessayez.",
+  "@importErrorContraDbHttpNotFound": {
+    "x-sourceSha256": "3ba27cd63d8a86ee41d992b2e969cbeb9ea9b55540ca11fbb4751801c147bc69"
+  },
+  "importErrorContraDbHttpBusy": "ContraDB est occupé en ce moment. Réessayez dans une minute.",
+  "@importErrorContraDbHttpBusy": {
+    "x-sourceSha256": "923274ccd7fb39ac46b2245d51f2f34c8ce4d6aab066c8de342148315ab7e1c6"
+  },
+  "importErrorContraDbEmptyResponse": "ContraDB a renvoyé une réponse vide. Réessayez dans une minute.",
   "@importErrorContraDbEmptyResponse": {
-    "x-sourceSha256": "6678f83618b54a5af22b99065f524a3da8e059fc80756b09c78cfdcf0c2b3997"
+    "x-sourceSha256": "f5c8c3340f0e8fb2dc09beba859d7a07117129830ee607df9a2af687b3941e11"
   },
-  "importErrorContraDbNoDance": "ContraDB n’a renvoyé aucune danse importable.",
+  "importErrorContraDbNoDance": "ContraDB n’a renvoyé aucune danse importable. Vérifiez l’identifiant ou le lien, puis réessayez.",
   "@importErrorContraDbNoDance": {
-    "x-sourceSha256": "2bcdfb5ed404ce1b5d10f9980bacdcad7b0179c5bd4aada34735dcb3863037cc"
+    "x-sourceSha256": "91da0d90fa3c2d68e6337c5e9cc943420670c6922daa786c2a2f9b6acfd3a815"
   },
   "importErrorContraDbImportFailed": "Impossible d’importer la danse ContraDB.",
   "@importErrorContraDbImportFailed": {
@@ -5311,6 +6465,34 @@
   "importIssueArchiveReadWarning": "Le fichier partagé a signalé un avertissement lors du décodage.",
   "@importIssueArchiveReadWarning": {
     "x-sourceSha256": "fe85dd330b19b95b4d3576c70949c46fe4cd90ad9f04668ad5c5f7e35d08043b"
+  },
+  "importIssueArchiveNewerSchema": "Ce fichier a été créé avec une version plus récente de Caller's Compendium. Mettez l'application à jour avant d'importer, sinon certains détails risquent d'être omis.",
+  "@importIssueArchiveNewerSchema": {
+    "x-sourceSha256": "55b8932da3e9592c9bf8da0f1b79c8728970f80ff2204193a6db17fbe1bc61df"
+  },
+  "importIssueUsrFileTruncated": "Ce fichier semble incomplet : seule une partie a pu être lue. Copiez-le de nouveau depuis l'original, puis réimportez-le.",
+  "@importIssueUsrFileTruncated": {
+    "x-sourceSha256": "4927a27ef23f58466c5d7037d86f2e3003ab27cf31d3bb0b83ea9c77673f823d"
+  },
+  "importIssueUsrFiguresFromDanceRows": "Les figures n'ont pas pu être lues dans ce fichier ; des danses risquent donc d'arriver sans figures. Vérifiez le fichier d'origine ou réexportez-le depuis Caller's Companion.",
+  "@importIssueUsrFiguresFromDanceRows": {
+    "x-sourceSha256": "6c18376b09271433d25af248c6d15da9aec1b217c0f056cfc9ff053e28f13446"
+  },
+  "importIssueUsrPhraseGroupsOrphaned": "Certaines figures n'ont pas pu être associées à une danse et ont été omises. Vérifiez que vos danses sont bien arrivées en entier, ou copiez de nouveau le fichier depuis l'original.",
+  "@importIssueUsrPhraseGroupsOrphaned": {
+    "x-sourceSha256": "2a9645753f955b8aa89c8e5fcecd40286bfa28f3ba75d2ce548a3f9256f6bcf4"
+  },
+  "importIssueUsrLinesDropped": "Certaines lignes de figures très longues ont été omises. Le reste de chaque danse a été importé.",
+  "@importIssueUsrLinesDropped": {
+    "x-sourceSha256": "9c14c55dcd5917dfc9dcae75ffb3912b52be6aa4ba2a66b2afa51c1de06b934c"
+  },
+  "importIssueUsrSetsSkipped": "Les programmes n'ont pas pu être lus en entier dans ce fichier ; certains peuvent manquer ou arriver sans leurs danses. Vérifiez-les après l'import.",
+  "@importIssueUsrSetsSkipped": {
+    "x-sourceSha256": "5f5400d8510ba5ebe48553f47bcf44943b6d8315388ec8c5d4a3f658fe0c0429"
+  },
+  "importIssueUsrRelatedRowsSkipped": "Certains liens entre danses de ce fichier étaient invalides et ont été ignorés.",
+  "@importIssueUsrRelatedRowsSkipped": {
+    "x-sourceSha256": "35f91356e72f9ee0df050fbf3bf9315f36f031b59b2f8e26b953ba95cbfb8c5b"
   },
   "importIssueDirectionUnmapped": "Une direction Becket n'a pas été reconnue ; sens horaire par défaut.",
   "@importIssueDirectionUnmapped": {
@@ -5428,6 +6610,38 @@
   "@importRecordErrorDiscover": {
     "x-sourceSha256": "edd03867cafb43bbd83109e83f2fba75ed6caf82dd2fa5bdb4f41813369b032a"
   },
+  "importRecordErrorEmptyFile": "Ce fichier ou ce texte est vide. Choisissez un fichier qui a du contenu, ou collez à nouveau le texte.",
+  "@importRecordErrorEmptyFile": {
+    "x-sourceSha256": "864910073cbdd31979a1b09d2efea78caef549e877a561a87bad61eabbf0842c"
+  },
+  "importRecordErrorNotJson": "Ce n'est pas un fichier JSON. Choisissez le fichier .json exporté par la source, ou collez à nouveau son JSON.",
+  "@importRecordErrorNotJson": {
+    "x-sourceSha256": "9b1a830696880db88b8a5bcb4cb3cbeaa9215b51fce0a0946cc8d1281a5a213d"
+  },
+  "importRecordErrorNotCompendiumArchive": "Ce n'est pas un fichier Caller's Compendium. Choisissez un fichier .json exporté depuis cette application.",
+  "@importRecordErrorNotCompendiumArchive": {
+    "x-sourceSha256": "fde17c6a25893b79eb3c400e684ba4ee44623ce32f0fb9409311b9e054ba9f30"
+  },
+  "importRecordErrorNotCallersBoxDance": "Ce n'est pas une danse Caller's Box. Vérifiez que vous avez copié une danse depuis The Caller's Box, puis réessayez.",
+  "@importRecordErrorNotCallersBoxDance": {
+    "x-sourceSha256": "6efd6c09d2cc77e9173282bb11b4de074b57fb8775252322920759633c1ee068"
+  },
+  "importRecordErrorNotContraDbDance": "Ce n'est pas une danse ContraDB. Vérifiez que vous avez copié une page de danse depuis ContraDB, puis réessayez.",
+  "@importRecordErrorNotContraDbDance": {
+    "x-sourceSha256": "cd1146fd8ebf89b31b249c722894dae4f34c98bace1f556215f989bb14740539"
+  },
+  "importRecordErrorNotUsrDatabase": "Ce n'est pas un fichier de bibliothèque Caller's Companion (.USR). Dans Caller's Companion, cherchez le fichier .USR dans son dossier de données.",
+  "@importRecordErrorNotUsrDatabase": {
+    "x-sourceSha256": "367e55689a35b7545bc44a12edfa651512a8d4b7fb94a007e2d8bbbf0c96175b"
+  },
+  "importRecordErrorFileTooLarge": "Ce fichier est trop volumineux pour être importé. Choisissez un fichier plus petit, ou découpez-le en plusieurs parties.",
+  "@importRecordErrorFileTooLarge": {
+    "x-sourceSha256": "79a5829b484be175af4b564873c42fe35b20fbd232e786d533b1c3d0dc782bb4"
+  },
+  "importRecordErrorNoDanceAtId": "Aucune danse n'a été trouvée à cet endroit. Vérifiez l'identifiant ou le lien de la danse Caller's Box, puis réessayez.",
+  "@importRecordErrorNoDanceAtId": {
+    "x-sourceSha256": "3d20fe24fc592ad202aee09934afd0ae65b9bed77af1a7473232977d81a74e2d"
+  },
   "importRecordErrorFetch": "Impossible de récupérer cet enregistrement.",
   "@importRecordErrorFetch": {
     "x-sourceSha256": "27c4a90b1314c204a20073e5a7a0930557490d55d3612393de27957a72da417a"
@@ -5504,6 +6718,10 @@
   "@importReviewCouldNotRead": {
     "x-sourceSha256": "b81447962e16b8fd7ca12c4f1879d6f9486e25d61f56ff0574da84e1409b603a"
   },
+  "importReviewPlanFailedBody": "Un problème est survenu pendant la lecture de cet import. Réessayez ; si le problème persiste, le fichier est peut-être endommagé.",
+  "@importReviewPlanFailedBody": {
+    "x-sourceSha256": "2968cbc6fd8c52529a2fd7ebb1beffdd7464ad9d17070a5386ee22befd1a79a0"
+  },
   "importReviewNoDancesTitle": "Aucune danse trouvée",
   "@importReviewNoDancesTitle": {
     "x-sourceSha256": "55668acfa12d6a237fc22bcc1d165d06295c21d1a1dfcc723cf2d508c04fe248"
@@ -5520,6 +6738,10 @@
   "@importReviewImported": {
     "x-sourceSha256": "321f179c80ba93ea58db0c591591c517d2e86d83420855aeb271dcef81614616"
   },
+  "importReviewImportAndEdit": "Importer et modifier",
+  "@importReviewImportAndEdit": {
+    "x-sourceSha256": "1e272da8a0700b181ce164467a7ecdc97d0ed31f5ca5eb9c776d6afc2dbcc396"
+  },
   "importReviewStructured": "{structured}/{total} structurées",
   "@importReviewStructured": {
     "x-sourceSha256": "06028336a07bcfcb3f584ae2cd7df8354e4c8c198d6daa981cdbfc6f996e4be6"
@@ -5531,6 +6753,22 @@
   "importReviewOptionNewDance": "Nouvelle danse",
   "@importReviewOptionNewDance": {
     "x-sourceSha256": "c1e50f8630ba63be7971930aab740a917fb1fb614e5cfb1ca8e06fe390cb15d2"
+  },
+  "importReviewBulkSetAllLabel": "Définir toutes les danses correspondantes sur :",
+  "@importReviewBulkSetAllLabel": {
+    "x-sourceSha256": "0fa7851ee4630625fca02bf8cf2e2962d44f16016254b24cceecce384eed5297"
+  },
+  "importReviewBulkReimport": "Ré-importer",
+  "@importReviewBulkReimport": {
+    "x-sourceSha256": "7106b896e2e83c3467dd1c9f8f1b473cd23997f40cabc0cce3a04163340cc129"
+  },
+  "importReviewBulkSkip": "Ignorer",
+  "@importReviewBulkSkip": {
+    "x-sourceSha256": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06"
+  },
+  "importReviewBulkSkipAmbiguous": "Ignorer toutes les correspondances possibles",
+  "@importReviewBulkSkipAmbiguous": {
+    "x-sourceSha256": "4bc24b8ce49795beab0f18435118138036e4ef73e1ff9dce45bc98a06c064909"
   },
   "importReviewOptionSkip": "Ignorer",
   "@importReviewOptionSkip": {
@@ -5548,9 +6786,9 @@
   "@importReviewPossibleMatch": {
     "x-sourceSha256": "7ee5b6b8742356f4ce77e8ee288919c91abd3a8f38aa3769aebd59c349c5bde6"
   },
-  "importReviewOptionLink": "Lier à « {title} » ({percent} % de correspondance)",
+  "importReviewOptionLink": "Même danse – remplacer « {title} » par cette version ({percent} % de correspondance)",
   "@importReviewOptionLink": {
-    "x-sourceSha256": "0d663120ac03b53028de2ea65567ad8e395416e7d2fdbaa08d5b4bb3cfcbf181"
+    "x-sourceSha256": "1810b96d67888bc8245f7786dc3583508c6180055b2fe28922df8ec4d13baf05"
   },
   "importReviewOverwriteWarning": "{count, plural, =1{1 danse existante sera écrasée} other{{count} danses existantes seront écrasées}}",
   "@importReviewOverwriteWarning": {
@@ -5636,6 +6874,14 @@
   "@importReviewEditError": {
     "x-sourceSha256": "efa938acdf31d4dcd903bb981c6319d8b7a56f59d2922faf6078d2826413c32f"
   },
+  "importReviewEditOverwriteTitle": "Remplacer la danse existante maintenant ?",
+  "@importReviewEditOverwriteTitle": {
+    "x-sourceSha256": "e385088f8dff9057c9f8e095e3ba24809af85c95e5b9e72e91bd1cdbeb51b765"
+  },
+  "importReviewEditOverwriteBody": "L’importation pour modification remplace immédiatement « {title} » dans votre collection. L’annulation de l’import groupé ne la restaurera pas.",
+  "@importReviewEditOverwriteBody": {
+    "x-sourceSha256": "87c2b58d9ba05743231066492919a0091c15c3aabceb593e3d6a6f78624b81b4"
+  },
   "importReviewImportError": "Impossible de terminer l’import.",
   "@importReviewImportError": {
     "x-sourceSha256": "468698ddc233d06e939d5d5ca36ce259909e31cd8374a8de9b8c449a63eb6d54"
@@ -5652,9 +6898,9 @@
   "@importReviewOptionVariation": {
     "x-sourceSha256": "5d50d82194529cf0f6214e60d3c0cf62db2795ffe0c8d3b6fa0ac2c243649a77"
   },
-  "importReviewOptionSameDance": "Même danse que « {title} » (lier/mettre à jour)",
+  "importReviewOptionSameDance": "Même danse – remplacer « {title} » par cette version",
   "@importReviewOptionSameDance": {
-    "x-sourceSha256": "7ffa1631a6694720e69a94226366528316a7ba97a8107a855252156a8a805c7d"
+    "x-sourceSha256": "4c97cd9489f823bb5b64caf129c802d63b316f64ae2b468f056198e0e722f32b"
   },
   "importReviewOptionLinkBack": "Aussi relier à « {title} » comme danse associée",
   "@importReviewOptionLinkBack": {
@@ -6648,6 +7894,10 @@
   "@updateDownloadFailureDestination": {
     "x-sourceSha256": "623af0043c02285ccf6b203be680ed0926d08b1223e7edd0d02c7fd15ee31c82"
   },
+  "updateDownloadFailureDestinationOccupied": "Un élément se trouve déjà à cet emplacement. Choisissez un autre nom ou un autre dossier, ou utilisez « Voir la version ».",
+  "@updateDownloadFailureDestinationOccupied": {
+    "x-sourceSha256": "6e229e0b5a454738aa5ed4b7c9be061458a5b9cc33a75efcd7151e50c8c8c82e"
+  },
   "updateDownloadFailureIncomplete": "Le téléchargement était incomplet et a été supprimé. Veuillez réessayer ou utiliser « Voir la version ».",
   "@updateDownloadFailureIncomplete": {
     "x-sourceSha256": "0cd1b8b90a1aa7b567458a9eaaf5edcea68b720fdae43c7d57e5820c64a9c1b7"
@@ -6707,6 +7957,34 @@
   "updateBannerAvailable": "Une nouvelle version de {appName} ({version}) est disponible.",
   "@updateBannerAvailable": {
     "x-sourceSha256": "b2629b4df990988fe59d8935dcfcbd5f764d98a3d395cf45c050d82fa94e6e6f"
+  },
+  "retirementNoticeUpcoming": "La prise en charge de cette version de {appName} ({version}) prend fin le {date}. Passez à une version plus récente d'ici là.",
+  "@retirementNoticeUpcoming": {
+    "x-sourceSha256": "c08b3ac0d966569ef11bd96fd47a308b00bda2dc665908230695887e35fa2b56"
+  },
+  "retirementNoticePast": "La prise en charge de cette version de {appName} ({version}) a pris fin le {date}. Passez dès maintenant à une version plus récente.",
+  "@retirementNoticePast": {
+    "x-sourceSha256": "1904acfb650816a52f384d1fdf81a2766a83131ab7af142c98d208796ba2a398"
+  },
+  "retirementBannerGetUpdate": "Obtenir la mise à jour",
+  "@retirementBannerGetUpdate": {
+    "x-sourceSha256": "d164c847efdf4db63556a6e0a99523b7b66f83db21bda3716547563a27965dab"
+  },
+  "retirementBannerLater": "Plus tard",
+  "@retirementBannerLater": {
+    "x-sourceSha256": "73b6e48a1b552d112502d37a7b7870436efc5ea1de0bca58ccf12d6ae15d3a0c"
+  },
+  "installLocationBannerMessage": "{appName} n'est pas encore installé : l'app s'exécute depuis l'image disque ou l'archive téléchargée. Quittez-la, faites-la glisser dans le dossier Applications, puis ouvrez-la depuis ce dossier.",
+  "@installLocationBannerMessage": {
+    "x-sourceSha256": "12c4548b3d19d088333888d7b32255d0bbea9beb23584cc08ffca881d395df8b"
+  },
+  "installLocationBannerDismiss": "Ignorer",
+  "@installLocationBannerDismiss": {
+    "x-sourceSha256": "48845bff334a50a59aaecf499f28a7a24c3b4b891b8b18a9f1169ad8e8a6b261"
+  },
+  "settingsUpdatesRetirementTitle": "Fin de la prise en charge",
+  "@settingsUpdatesRetirementTitle": {
+    "x-sourceSha256": "8cca4b298b63a46fc1125f8904e43f49ef8510fb1811accac8fa2771e20bb360"
   },
   "updateBannerViewRelease": "Voir la version",
   "@updateBannerViewRelease": {
@@ -7080,10 +8358,6 @@
   "@customFieldsKeyDuplicateNew": {
     "x-sourceSha256": "59837cf3c2001b2ebf5607e77a4fb242f4e7a045479f4f12d092bc4200c39b8d"
   },
-  "customFieldsDeleteInUseUnknown": "Impossible de supprimer « {label} » : encore utilisé par certaines danses. Supprimez d’abord la valeur de toutes les danses.",
-  "@customFieldsDeleteInUseUnknown": {
-    "x-sourceSha256": "b5852947f44cdcc466df2740301d27ddc3c651174d3ed1640872413fbd33e63f"
-  },
   "customFieldsTitle": "Champs personnalisés",
   "@customFieldsTitle": {
     "x-sourceSha256": "5566db49faf3cfcec9576e3e90ce5f58b029ea5c7b48d8e4508eb56c951e3433"
@@ -7284,14 +8558,6 @@
   "@dialectEditorPlural": {
     "x-sourceSha256": "18fb6be3366c80c25a86199df82c9980ecc0b5730337647e8053f0f9bbac3287"
   },
-  "dialectEditorMoveSubsAdd": "Ajouter des substitutions de mouvements",
-  "@dialectEditorMoveSubsAdd": {
-    "x-sourceSha256": "700257bd34176119858001d4125f64f925ae77b753d26589fda2e842d89cd8d5"
-  },
-  "dialectEditorMoveSubsCount": "{count, plural, =1{1 substitution de mouvement} other{{count} substitutions de mouvements}}",
-  "@dialectEditorMoveSubsCount": {
-    "x-sourceSha256": "ce71b3589451f885debb19d2147c68a9eb5f8b5ef0f3f127238b3b2f43a53e5b"
-  },
   "dialectEditorMoveSubHint": "substitution (utilisez %S pour la latéralité)",
   "@dialectEditorMoveSubHint": {
     "x-sourceSha256": "84b26f13f88b120ad27d8525d2bd777fc71b4d2d6f9c5895f1f89bafc1873c5b"
@@ -7299,14 +8565,6 @@
   "dialectEditorAddMove": "Ajouter un mouvement…",
   "@dialectEditorAddMove": {
     "x-sourceSha256": "034659a0ae3822dd06fbac089d031cb06e4727f425229778c706d9ad57fad543"
-  },
-  "dialectEditorDancerSubsAdd": "Ajouter des substitutions de danseurs",
-  "@dialectEditorDancerSubsAdd": {
-    "x-sourceSha256": "8b1b0674324596c072df831ffa02d57abea399d5779f573e79fdf8e614914f2b"
-  },
-  "dialectEditorDancerSubsCount": "{count, plural, =1{1 substitution de danseur} other{{count} substitutions de danseurs}}",
-  "@dialectEditorDancerSubsCount": {
-    "x-sourceSha256": "6d722bf88ee91e5b4bf2baf7e607007fad3d77cba824bec6b3ef581ab9fb44f2"
   },
   "dialectEditorDancerSubHint": "substitution",
   "@dialectEditorDancerSubHint": {
@@ -7724,6 +8982,10 @@
   "@dialectEditorMoveWordingsConditionalHelp": {
     "x-sourceSha256": "ba57af9dcdc3deb6400d85b49bb8995e8400dff7fbb53c64b7b94c3ab35808ff"
   },
+  "dialectEditorMoveWordingsForceHelp": "Certains champs sont omis lorsqu'ils n'apportent rien, comme la main d'une chaîne quand le rôle l'implique déjà. Place un ! devant un champ, comme {example}, pour qu'il s'affiche toujours.",
+  "@dialectEditorMoveWordingsForceHelp": {
+    "x-sourceSha256": "7ff86d75ca24413a4ac82dc32947404c1154e041d46c204040701f21d4770ec1"
+  },
   "dialectEditorMoveWordingsConditionalLabel": "{move} (conditionnel)",
   "@dialectEditorMoveWordingsConditionalLabel": {
     "x-sourceSha256": "e1b698fe9873272c260a19c673da431f630c0196f34b94835cbddc7793855c37"
@@ -7751,14 +9013,6 @@
   "dialectEditorMoveWordingBranchSingleFile": "File simple",
   "@dialectEditorMoveWordingBranchSingleFile": {
     "x-sourceSha256": "c8bfd38b98637807f9121e7f44305b993c4d6119075b994d966654a79ed3d503"
-  },
-  "dialectEditorMoveWordingsAdd": "Ajouter des modèles de formulation",
-  "@dialectEditorMoveWordingsAdd": {
-    "x-sourceSha256": "572c7331f1927051d65a5b8aad3901bbfca57eb16b7552303a562358bad7fa8f"
-  },
-  "dialectEditorMoveWordingsCount": "{count, plural, =1{1 modèle de formulation} other{{count} modèles de formulation}}",
-  "@dialectEditorMoveWordingsCount": {
-    "x-sourceSha256": "485175faa3ea285d529c9c0bdacbb7ab13fed23c22e9db1a74119f9d8372c478"
   },
   "dialectEditorAddMoveWording": "Ajouter un modèle de formulation…",
   "@dialectEditorAddMoveWording": {

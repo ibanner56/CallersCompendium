@@ -44,18 +44,49 @@ const _jsonTypeGroup = XTypeGroup(
 );
 
 /// Maximum size, in bytes, of a backup file the restore path will read into
-/// memory (~50 MiB).
+/// memory (50 MiB).
 ///
-/// Backups are JSON text and even a very large collection serializes to a few
-/// megabytes, so this is generous headroom for legitimate files while refusing
-/// one large enough to exhaust memory. The restore reads the whole file into a
-/// `String`, so an unbounded read of an untrusted/corrupt file is an
-/// uncontrolled resource-consumption risk (OWASP A04/A05); this ceiling caps it.
+/// What it protects: the restore reads the whole file into a `String`, so an
+/// unbounded read of an untrusted or corrupt file is an uncontrolled
+/// resource-consumption risk (OWASP A04/A05).
+///
+/// It is not "a few megabytes of headroom": a lean 20,000-dance library encodes
+/// to roughly 30 MiB, and the cap is reached somewhere around 30,000-40,000
+/// dances (audit figures; v7 tombstoned tags make the real number lower).
+/// Export therefore refuses to write past it ([BackupExportTooLargeException]),
+/// so the app never produces a backup its own restore would reject.
 const int kMaxBackupFileBytes = 50 * 1024 * 1024;
 
+/// Thrown by `BackupService.exportToJson` when the encoded backup would exceed
+/// the restore cap, so the app never writes a file its own restore refuses.
+/// Nothing is handed to the saver. No user-facing text: the export flow builds
+/// its translated message from [sizeBytes] and [maxBytes]; [toString] is for
+/// logs only.
+class BackupExportTooLargeException implements Exception {
+  const BackupExportTooLargeException({
+    required this.sizeBytes,
+    required this.maxBytes,
+  });
+
+  /// The encoded backup's size in bytes.
+  final int sizeBytes;
+
+  /// The enforced ceiling ([kMaxBackupFileBytes] by default) in bytes.
+  final int maxBytes;
+
+  @override
+  String toString() =>
+      'BackupExportTooLargeException: backup is $sizeBytes bytes; '
+      'limit $maxBytes bytes';
+}
+
+/// A byte count as mebibytes with one decimal ("60.0"), the figure the "too
+/// large" messages quote beside the "MB" unit in their translations.
+String backupMegabytes(int bytes) => (bytes / (1024 * 1024)).toStringAsFixed(1);
+
 /// Thrown by [pickBackupFile] when the chosen file exceeds
-/// [kMaxBackupFileBytes]. Carries a friendly, user-facing [message] so the UI
-/// can explain the refusal without surfacing internals or a stack trace.
+/// [kMaxBackupFileBytes]. No user-facing text: the restore dialog builds its
+/// translated message from [sizeBytes] and [maxBytes]; [toString] is for logs.
 class BackupFileTooLargeException implements Exception {
   const BackupFileTooLargeException({
     required this.sizeBytes,
@@ -68,16 +99,10 @@ class BackupFileTooLargeException implements Exception {
   /// The enforced ceiling ([kMaxBackupFileBytes]) in bytes.
   final int maxBytes;
 
-  /// User-facing explanation (no stack traces / internals).
-  String get message =>
-      'That file is too large to be a Caller\u2019s Compendium backup '
-      '(${_mib(sizeBytes)} MB; limit ${_mib(maxBytes)} MB). '
-      'Your data is unchanged.';
-
   @override
-  String toString() => 'BackupFileTooLargeException: $message';
-
-  static String _mib(int bytes) => (bytes / (1024 * 1024)).toStringAsFixed(1);
+  String toString() =>
+      'BackupFileTooLargeException: file is ${backupMegabytes(sizeBytes)} MB; '
+      'limit ${backupMegabytes(maxBytes)} MB';
 }
 
 /// Atomically writes [contents] to [path].

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:compendium_app/src/update/update_config.dart';
 import 'package:compendium_app/src/update/update_signature.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -38,7 +39,7 @@ void main() {
       final ok = await verifyManifestSignatureWith(
         f.message,
         f.signatureBase64,
-        publicKeyBase64: f.publicKeyBase64,
+        publicKeysBase64: [f.publicKeyBase64],
       );
       expect(ok, isTrue);
     });
@@ -49,7 +50,7 @@ void main() {
       final ok = await verifyManifestSignatureWith(
         f.message,
         f.signatureBase64,
-        publicKeyBase64: other.publicKeyBase64,
+        publicKeysBase64: [other.publicKeyBase64],
       );
       expect(ok, isFalse);
     });
@@ -59,7 +60,7 @@ void main() {
       final ok = await verifyManifestSignatureWith(
         utf8.encode('the-real-manifest-TAMPERED'),
         f.signatureBase64,
-        publicKeyBase64: f.publicKeyBase64,
+        publicKeysBase64: [f.publicKeyBase64],
       );
       expect(ok, isFalse);
     });
@@ -69,7 +70,7 @@ void main() {
       final ok = await verifyManifestSignatureWith(
         f.message,
         f.signatureBase64,
-        publicKeyBase64: '',
+        publicKeysBase64: [''],
       );
       expect(ok, isFalse);
     });
@@ -79,7 +80,7 @@ void main() {
       final ok = await verifyManifestSignatureWith(
         f.message,
         null,
-        publicKeyBase64: f.publicKeyBase64,
+        publicKeysBase64: [f.publicKeyBase64],
       );
       expect(ok, isFalse);
     });
@@ -90,7 +91,7 @@ void main() {
         await verifyManifestSignatureWith(
           f.message,
           '',
-          publicKeyBase64: f.publicKeyBase64,
+          publicKeysBase64: [f.publicKeyBase64],
         ),
         isFalse,
       );
@@ -98,7 +99,7 @@ void main() {
         await verifyManifestSignatureWith(
           f.message,
           '   \n',
-          publicKeyBase64: f.publicKeyBase64,
+          publicKeysBase64: [f.publicKeyBase64],
         ),
         isFalse,
       );
@@ -109,7 +110,7 @@ void main() {
       final ok = await verifyManifestSignatureWith(
         f.message,
         'not*valid*base64!!',
-        publicKeyBase64: f.publicKeyBase64,
+        publicKeysBase64: [f.publicKeyBase64],
       );
       expect(ok, isFalse);
     });
@@ -119,7 +120,7 @@ void main() {
       final ok = await verifyManifestSignatureWith(
         f.message,
         f.signatureBase64,
-        publicKeyBase64: 'not*valid*base64!!',
+        publicKeysBase64: ['not*valid*base64!!'],
       );
       expect(ok, isFalse);
     });
@@ -133,7 +134,7 @@ void main() {
         await verifyManifestSignatureWith(
           f.message,
           short,
-          publicKeyBase64: f.publicKeyBase64,
+          publicKeysBase64: [f.publicKeyBase64],
         ),
         isFalse,
       );
@@ -141,7 +142,7 @@ void main() {
         await verifyManifestSignatureWith(
           f.message,
           long,
-          publicKeyBase64: f.publicKeyBase64,
+          publicKeysBase64: [f.publicKeyBase64],
         ),
         isFalse,
       );
@@ -153,7 +154,7 @@ void main() {
       final ok = await verifyManifestSignatureWith(
         f.message,
         f.signatureBase64,
-        publicKeyBase64: wrongKey,
+        publicKeysBase64: [wrongKey],
       );
       expect(ok, isFalse);
     });
@@ -163,9 +164,142 @@ void main() {
       final ok = await verifyManifestSignatureWith(
         f.message,
         '  ${f.signatureBase64}\n',
-        publicKeyBase64: f.publicKeyBase64,
+        publicKeysBase64: [f.publicKeyBase64],
       );
       expect(ok, isTrue);
+    });
+  });
+
+  // security-2: the client pins a SET of keys (current + next) so a signing-key
+  // rotation never strands an install. A manifest is accepted when its
+  // signature verifies against ANY pinned key; everything else fails closed.
+  group('verifyManifestSignatureWith — pinned key set', () {
+    test(
+      'accepts a signature made by the SECOND key of a two-key set',
+      () async {
+        final current = await _sign('{"manifestSchemaVersion":1}');
+        final next = await _sign('{"manifestSchemaVersion":1}');
+        final ok = await verifyManifestSignatureWith(
+          next.message,
+          next.signatureBase64,
+          publicKeysBase64: [current.publicKeyBase64, next.publicKeyBase64],
+        );
+        expect(ok, isTrue);
+      },
+    );
+
+    test(
+      'accepts a signature made by the FIRST key of a two-key set',
+      () async {
+        final current = await _sign('payload');
+        final next = await _sign('payload');
+        final ok = await verifyManifestSignatureWith(
+          current.message,
+          current.signatureBase64,
+          publicKeysBase64: [current.publicKeyBase64, next.publicKeyBase64],
+        );
+        expect(ok, isTrue);
+      },
+    );
+
+    test('rejects a signature made by a key outside the set', () async {
+      final current = await _sign('payload');
+      final next = await _sign('payload');
+      final outsider = await _sign('payload');
+      final ok = await verifyManifestSignatureWith(
+        outsider.message,
+        outsider.signatureBase64,
+        publicKeysBase64: [current.publicKeyBase64, next.publicKeyBase64],
+      );
+      expect(ok, isFalse);
+    });
+
+    test('an invalid entry in the set does not break verification against a '
+        'valid one', () async {
+      final f = await _sign('payload');
+      for (final bad in <String>[
+        '',
+        '   ',
+        'not*valid*base64!!',
+        base64.encode(List<int>.filled(31, 0)),
+        base64.encode(List<int>.filled(33, 0)),
+      ]) {
+        expect(
+          await verifyManifestSignatureWith(
+            f.message,
+            f.signatureBase64,
+            publicKeysBase64: [bad, f.publicKeyBase64],
+          ),
+          isTrue,
+          reason: 'invalid entry ${jsonEncode(bad)} before the valid key',
+        );
+        expect(
+          await verifyManifestSignatureWith(
+            f.message,
+            f.signatureBase64,
+            publicKeysBase64: [f.publicKeyBase64, bad],
+          ),
+          isTrue,
+          reason: 'invalid entry ${jsonEncode(bad)} after the valid key',
+        );
+      }
+    });
+
+    test('a set of only invalid entries fails closed', () async {
+      final f = await _sign('payload');
+      final ok = await verifyManifestSignatureWith(
+        f.message,
+        f.signatureBase64,
+        publicKeysBase64: ['', 'not*valid*base64!!'],
+      );
+      expect(ok, isFalse);
+    });
+
+    test('an empty set fails closed', () async {
+      final f = await _sign('payload');
+      final ok = await verifyManifestSignatureWith(
+        f.message,
+        f.signatureBase64,
+        publicKeysBase64: const [],
+      );
+      expect(ok, isFalse);
+    });
+
+    test('tampered bytes fail against every key in the set', () async {
+      final current = await _sign('the-real-manifest');
+      final next = await _sign('the-real-manifest');
+      final ok = await verifyManifestSignatureWith(
+        utf8.encode('the-real-manifest-TAMPERED'),
+        next.signatureBase64,
+        publicKeysBase64: [current.publicKeyBase64, next.publicKeyBase64],
+      );
+      expect(ok, isFalse);
+    });
+  });
+
+  group('kUpdateManifestPublicKeys (pinned set)', () {
+    test('is non-empty and every entry is a 32-byte Ed25519 key', () {
+      // A malformed entry would be skipped silently by the fail-closed
+      // verifier, so a typo in a newly added "next" key would only surface at
+      // rotation time — when that key is the one CI signs with. Catch it here.
+      expect(kUpdateManifestPublicKeys, isNotEmpty);
+      for (final key in kUpdateManifestPublicKeys) {
+        expect(base64.decode(key.trim()), hasLength(32), reason: key);
+      }
+      expect(
+        kUpdateManifestPublicKeys.toSet(),
+        hasLength(kUpdateManifestPublicKeys.length),
+        reason: 'duplicate pinned key',
+      );
+    });
+
+    test('still pins the key the current releases are signed with', () {
+      // Removing this key before CI has switched UPDATE_SIGNING_KEY to the
+      // next key would make every install reject every manifest.
+      expect(
+        kUpdateManifestPublicKeys,
+        contains('/39VzhfG58PnR5RlMzDB5ertil945PWRgA+usAj4qvw='),
+      );
     });
   });
 

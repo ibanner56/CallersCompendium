@@ -393,6 +393,54 @@ void main() {
       );
     });
 
+    test('editing a dance keeps the join to a tombstoned tag', () async {
+      // The tombstone deliberately keeps `dance_tags` so a revived tag comes
+      // back with its dances. Hydration hides the tombstoned tag, so the
+      // edited `Dance` no longer lists it; the write must not read that
+      // absence as "the user removed the tag".
+      await seedDanceWithEverything();
+      await repos.tags.delete('t1', at: t0.add(const Duration(minutes: 1)));
+
+      final edited = (await repos.dances.getById('d1'))!;
+      await repos.dances.update(
+        edited.copyWith(title: 'Renamed'),
+        localUserEdit: true,
+      );
+      await repos.tags.restore('t1', at: t0.add(const Duration(minutes: 2)));
+
+      expect((await repos.dances.getById('d1'))!.tagIds, ['t1']);
+    });
+
+    test('editing a dance still removes a live tag the user dropped', () async {
+      // Counterpart of the test above: the retention is for tombstoned tags
+      // only, so an ordinary tag removal must still delete the join.
+      await seedDanceWithEverything();
+
+      final edited = (await repos.dances.getById('d1'))!;
+      await repos.dances.update(edited.copyWith(tagIds: const []));
+
+      expect((await repos.dances.getById('d1'))!.tagIds, isEmpty);
+      final joins = await db
+          .customSelect('SELECT COUNT(*) AS n FROM dance_tags')
+          .get();
+      expect(joins.single.read<int>('n'), 0);
+    });
+
+    test('a sync-applied body keeps a locally tombstoned tag join', () async {
+      // `writeFromSync` shares `_upsert`; the peer body cannot name a tag this
+      // device has tombstoned, so its absence is not a removal either.
+      await seedDanceWithEverything();
+      await repos.tags.delete('t1', at: t0.add(const Duration(minutes: 1)));
+
+      final incoming = (await repos.dances.getById(
+        'd1',
+      ))!.copyWith(title: 'From peer');
+      await repos.dances.writeFromSync(incoming);
+      await repos.tags.restore('t1', at: t0.add(const Duration(minutes: 2)));
+
+      expect((await repos.dances.getById('d1'))!.tagIds, ['t1']);
+    });
+
     test('a tag search stops matching once the tag is deleted', () async {
       await seedDanceWithEverything();
       expect(await repos.dances.search(TagFilter('t1')), hasLength(1));
@@ -973,6 +1021,52 @@ void main() {
         greaterThan(deleted!),
       );
       expect(await repos.programs.getById('p1'), isNotNull);
+    });
+  });
+
+  group('a soft-deleted dance credited to a soft-deleted choreographer', () {
+    setUp(() async {
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Author'),
+        at: t0,
+      );
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Gone',
+          authorIds: const ['c1'],
+          figures: [
+            Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
+          ],
+          status: DanceStatus.active,
+          createdAt: t0,
+          updatedAt: t0,
+        ),
+      );
+      final at = t0.add(const Duration(minutes: 1));
+      await repos.dances.softDelete('d1', at: at);
+      await repos.choreographers.delete('c1', at: at);
+    });
+
+    test('hides the deleted author by default (issue #1648)', () async {
+      final dance = await repos.dances.getById('d1', includeDeleted: true);
+      expect(dance!.authorIds, isEmpty);
+    });
+
+    test('keeps it with includeDeletedAuthors', () async {
+      final dance = await repos.dances.getById(
+        'd1',
+        includeDeleted: true,
+        includeDeletedAuthors: true,
+      );
+      expect(dance!.authorIds, ['c1']);
+      expect(
+        (await repos.choreographers.listAll(
+          includeDeleted: true,
+        )).map((c) => c.name),
+        ['Author'],
+      );
     });
   });
 }

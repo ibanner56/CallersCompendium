@@ -25,11 +25,15 @@ const _normalisationExemptions = <String, String>{
   'program_provenance.source': 'enum value',
   'venue_provenance.source': 'enum value',
   'programs.status': 'enum value',
+  'programs.pay_currency': 'validated ISO 4217 code (three uppercase letters)',
   'custom_field_defs.type': 'enum value',
   'custom_field_defs.choices_json':
       'choice strings are normalized before JSON encoding',
   'pending_deletions.tombstone_blob':
       'opaque hash-addressed sync payload; bytes must remain unchanged',
+  'retained_sync_fields.payload':
+      'kept parts of a peer body, put back verbatim so the wire hash matches; '
+      'admission already refused any body that is not canonical (§6.9)',
 };
 
 typedef _ShareableFields = Map<String, Map<String, Set<String>>>;

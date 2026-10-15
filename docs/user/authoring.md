@@ -9,7 +9,7 @@ how the app keeps your work safe while you type.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **New dance**, **Save**, and **Figures**. The first
-> time a dance term appears it links to the [Glossary](./glossary.md), so you can
+> time a dance term appears it links to [App terms](./glossary.md), so you can
 > get a plain-language definition without losing your place.
 
 If you have not entered a dance before, the
@@ -24,9 +24,10 @@ There are three ways in:
   dance. The screen is titled **New dance**.
 - **Edit**, from a dance's detail view — opens that dance. The screen is titled
   **Edit dance**.
-- **Edit**, on a row in the [import review](./imports.md) list — brings that one
-  dance in straight away and opens it, so you can fix a stubborn figure while the
-  rest of the import waits for you.
+- **Import and edit**, on a row in the [import review](./imports.md) list — brings
+  that one dance in straight away and opens it, so you can fix a stubborn figure
+  while the rest of the import waits for you. It is not covered by the import's
+  **Undo**.
 
 The editor is a full screen with **Save** in the corner. The **title** is the only
 required field; everything else can stay empty until you know it.
@@ -46,8 +47,9 @@ one and it is added with that move's default settings. Typing `sw` and pressing
 Enter, for example, gives you a swing.
 
 Anything the app cannot recognise is still kept — it becomes a **custom figure**,
-holding your text exactly as you typed it. Nothing you type is ever thrown away
-because the app did not understand it.
+holding your text. Nothing you type is ever thrown away because the app did not
+understand it; the only change is that role words are saved as role terms and
+shown in your own dialect (see below).
 
 *The dance editor while entering figures, with recognized rows and the running
 beat total visible below the list.*
@@ -66,6 +68,14 @@ instead of one move at a time. Type `neighbor balance & swing` and you get both
 figures; type `16 circle left 3/4` and you get a sixteen-beat circle left
 three-quarters. The app tells you how many figures it added and invites you to
 type another.
+
+It also understands common phrasings such as `N swing`, `neighbours balance and
+swing`, `half hey, ladies start by the right` and
+`allemande left 1 1/2 with neighbor`. A line whose leftover is only another
+move, `and back` or a bare number (`neighbors swing 16`) is kept as a custom
+figure, marked unparsed, rather than becoming a figure with the wrong beats; use
+the leading `16 neighbors swing` form to set the beats. `give and take` still
+needs a giver and a target.
 
 As always, anything it cannot parse is kept as a custom figure rather than
 dropped.
@@ -120,8 +130,27 @@ for both:
 
 As you type, the app styles what it recognises: move names get a dotted
 underline, role terms are underlined, and
-[discouraged terms](./dialects.md) are struck through. It is a hint, not a
-correction — nothing is changed for you.
+[discouraged terms](./dialects.md) are struck through. The styling is only a
+hint: it does not change your text while you type. Role words are rewritten
+when you save, as described next.
+
+Role words you type here (such as "Larks" or "Leads") are saved in a neutral
+form, shown in your own [dialect](./dialects.md), and found by role searches.
+They come back in lower case: "Larks chain wide" shows as "larks chain wide",
+and "LADIES chain" shows as "robins chain" under Larks and Robins.
+(If you turn on **Capitalize figures** in [Settings](./settings.md), the first
+letter is shown capitalized.)
+Custom text saved before this change updates the next time you save the dance
+while the same dialect is active; text typed in a different dialect may need a
+manual edit. The same rewriting applies to the everyday words "man", "men",
+"lady" and "ladies" inside custom figure text (for example, "the man and lady
+swing"), which are saved as role terms and shown in your dialect's words.
+Words that are also move words are not turned into role terms, here and in
+figure notes. The move name "mad robin" is kept as the move name and saved in
+lower case, so "Mad Robin twice" comes back as "mad robin twice". If your
+dialect uses Leads and Follows, "lead" and "follow" used as verbs ("Ones lead
+down the hall", "follow your partner up the hall") are kept exactly as you
+typed them. "Leads chain" and "the lead on the left" still use the role. Text saved by an earlier version is not repaired automatically.
 
 ### Reorder, cut, and duplicate
 
@@ -334,7 +363,8 @@ as:
   that move. These override the move's built-in defaults, and you can still change
   any parameter on the figure afterwards.
 - **Aggressively recompute figure beats** — off by default, so a beat count you
-  typed yourself is never changed for you. Turn it on and changing a figure's
+  typed yourself is left alone, except that switching a balance option on or off
+  adds or removes 4 beats. Turn it on and changing a figure's
   move, or an option that affects its timing, recalculates its beats straight
   away, even over a count you typed.
 
@@ -374,5 +404,5 @@ tells you when its figures cannot be read.
   [Accessibility guide](./accessibility.md) covers screen readers, text size,
   high contrast, and keyboard use.
 
-Not sure what a word means? The [Glossary](./glossary.md) has plain definitions
+Not sure what a word means? [App terms](./glossary.md) has plain definitions
 for every term used across these guides.

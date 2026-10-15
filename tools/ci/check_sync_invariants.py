@@ -77,6 +77,17 @@ APPLY_UNDO_EXCLUSION_RE = re.compile(
     r"sync-invariant-exclusion:\s*apply-undo\b[^\n]*",
     re.IGNORECASE,
 )
+# Raw `UPDATE ... SET updated_at` on a sync-record table whose body changed
+# through a *join*, not through a column of that row: a dance's wire body
+# carries a custom-field value only while its definition is live and shareable,
+# so the definition's write changes the dance without touching the dance's row.
+# I2's column check cannot see that. Its own pattern for the same reason as
+# `apply-undo` above: it is consulted by the raw-SQL I2 check alone, so it
+# excuses nothing about I1 and nothing about the typed-write boundary.
+JOIN_HYDRATED_BODY_RE = re.compile(
+    r"sync-invariant-exclusion:\s*join-hydrated-body\b[^\n]*",
+    re.IGNORECASE,
+)
 SOFT_JOIN_EXCEPTION_RE = re.compile(
     r"sync-invariant-exception:\s*soft-delete-join\b[^\n]*",
     re.IGNORECASE,
@@ -178,6 +189,20 @@ EXPORT_RE = re.compile(
     r"^\s*export\s+['\"](?P<uri>[^'\"]+)['\"](?P<clause>[^;]*)\s*;",
     re.MULTILINE,
 )
+
+
+# Title helpers allowed to exist beside `normalizeTitle`, by file and by name.
+# Each must say why it is not an identity key. Naming the functions (not just
+# the file) keeps a third normalizer added to an exempt file a violation.
+ALTERNATE_TITLE_EXEMPTIONS: dict[str, frozenset[str]] = {
+    # Online-source query text and exact-title matching (`lookupUniqueExactTitle`).
+    # They fold only typographic punctuation and keep articles and ASCII
+    # punctuation, so an unattended program import never treats `Archive` as
+    # `The Archive`. Neither is a sync or dedupe key; those use `normalizeTitle`.
+    "packages/compendium_core/lib/src/imports/title_punctuation.dart": frozenset(
+        {"foldTitlePunctuation", "titleMatchKey"}
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -557,6 +582,7 @@ def _write_violations(source: str, path: str) -> list[Violation]:
                 and not content_columns
                 and not has_existence
                 and not _exception_on_line(source, line, NON_SYNC_WRITE_EXCLUSION_RE)
+                and not _exception_on_line(source, line, JOIN_HYDRATED_BODY_RE)
             ):
                 violations.append(
                     Violation(
@@ -570,9 +596,43 @@ def _write_violations(source: str, path: str) -> list[Violation]:
 
 
 SYNC_WRITE_PATH = "packages/compendium_core/lib/src/sync/sync_storage.dart"
+SYNC_WRITE_DIR = "packages/compendium_core/lib/src/sync/"
+# Any `upsert*` member reached through `.` or `..` (call or tear-off), on any
+# receiver -- `repositories.x`, a local alias, a cascade -- or a bare
+# `upsert*(` / `_upsert*(` call.
 INTERACTIVE_UPSERT_RE = re.compile(
-    r"\brepositories\s*\.\s*[A-Za-z_][A-Za-z0-9_]*\s*\.\s*upsert\s*\("
+    r"\.\s*\.?\s*_?upsert[A-Za-z0-9_$]*\b"
+    r"|(?<![A-Za-z0-9_$.])_?upsert[A-Za-z0-9_$]*\s*(?:<[^>;()]*>\s*)?\("
 )
+# A deliberate exception: the line directly above the call is a comment line
+#   // sync-invariant-exclusion: upsert — <reason>
+# The reason is mandatory. Anchored to a line that *is* a comment, so a string
+# literal or a trailing comment on code that spells the marker does not count.
+UPSERT_EXCLUSION_RE = re.compile(
+    r"^\s*//+\s*sync-invariant-exclusion:\s*upsert\s*[—–-]+\s*\S"
+)
+WRITE_FROM_SYNC_DECL_RE = re.compile(r"\bwriteFromSync[A-Za-z0-9_]*\s*\(")
+
+
+def _write_from_sync_bodies(masked: str) -> list[tuple[int, int]]:
+    """`(start, end)` of every `writeFromSync*` function body in [masked]."""
+
+    spans: list[tuple[int, int]] = []
+    for match in WRITE_FROM_SYNC_DECL_RE.finditer(masked):
+        close = _balanced_call_end(masked, match.end() - 1)
+        if close is None:
+            continue
+        rest = masked[close + 1 :]
+        body = re.match(r"\s*(?:async\*?|sync\*)?\s*(\{|=>)", rest)
+        if body is None:
+            continue  # a call, not a declaration
+        open_at = close + 1 + body.start(1)
+        if body.group(1) == "=>":
+            end = masked.find(";", open_at)
+        else:
+            end = _balanced_block_end(masked, open_at)
+        spans.append((open_at, len(masked) if end is None or end < 0 else end))
+    return spans
 
 
 def _interactive_upsert_violations(source: str, path: str) -> list[Violation]:
@@ -588,21 +648,43 @@ def _interactive_upsert_violations(source: str, path: str) -> list[Violation]:
 
     Auditing today's behaviour would not hold: the point is that a future edit
     to the editor's path must not silently change what an inbound apply does.
+
+    The rule covers every Dart file under the core `sync/` directory (including
+    `server/`), not only `SYNC_WRITE_PATH`, so moving write-path code out of
+    `sync_storage.dart` cannot exempt it. The app-side `app/lib/src/sync/` is
+    not the inbound write path and is not scanned.
+
+    It flags *any* `upsert*` call or tear-off there, on any receiver (a local
+    alias, a cascade, `upsertInTransaction`), not only
+    `repositories.<kind>.upsert(`, so the rule cannot be stepped around by
+    spelling. A `writeFromSync*` body declared there is exempt; any other
+    deliberate use carries `// sync-invariant-exclusion: upsert — <reason>` on
+    the line directly above.
     """
 
-    if path != SYNC_WRITE_PATH:
+    if not path.startswith(SYNC_WRITE_DIR):
         return []
     masked = "\n".join(mask_source(source))
-    return [
-        Violation(
-            "sync-interactive-upsert",
-            path,
-            _line_number(source, match.start()),
-            "inbound sync write must use writeFromSync, not the interactive "
-            "upsert path (sync-spec.md §6.7)",
+    exempt = _write_from_sync_bodies(masked)
+    violations: list[Violation] = []
+    for match in INTERACTIVE_UPSERT_RE.finditer(masked):
+        if any(start <= match.start() < end for start, end in exempt):
+            continue
+        name_at = match.start() + masked[match.start() : match.end()].find("upsert")
+        line = _line_number(source, name_at)
+        if _exception_on_line(source, line, UPSERT_EXCLUSION_RE):
+            continue
+        violations.append(
+            Violation(
+                "sync-interactive-upsert",
+                path,
+                line,
+                "inbound sync write must use writeFromSync, not the interactive "
+                "upsert path (sync-spec.md §6.7); mark a deliberate exception "
+                "`// sync-invariant-exclusion: upsert — <reason>` on the line above",
+            )
         )
-        for match in INTERACTIVE_UPSERT_RE.finditer(masked)
-    ]
+    return violations
 
 
 def _drift_write_violations(source: str, path: str) -> list[Violation]:
@@ -731,14 +813,16 @@ def _function_body(source: str, match: re.Match[str]) -> str:
     return masked[body_at:] if end is None else masked[body_at : end + 1]
 
 
-def _alternate_title_definitions(source: str) -> list[int]:
+def _alternate_title_definitions(
+    source: str, exempt: frozenset[str] = frozenset()
+) -> list[int]:
     """Find functions that implement title normalization under another name."""
 
     masked = "\n".join(mask_source(source))
     definitions: list[int] = []
     for match in FUNCTION_DEF_RE.finditer(masked):
         name = match.group("name")
-        if name == "normalizeTitle":
+        if name == "normalizeTitle" or name in exempt:
             continue
         signature = match.group("parameters")
         title_relevant = "title" in name.lower() or re.search(
@@ -923,7 +1007,9 @@ def scan(root: Path = REPO_ROOT) -> ScanResult:
         title_definitions += len(title_matches)
         if title_matches:
             title_definition_paths.extend([path] * len(title_matches))
-        for offset in _alternate_title_definitions(source):
+        for offset in _alternate_title_definitions(
+            source, ALTERNATE_TITLE_EXEMPTIONS.get(relative, frozenset())
+        ):
             violations.append(
                 Violation(
                     "normalizeTitle",

@@ -7,7 +7,7 @@ shows the first time you open it, and how to keep the app up to date.
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Settings**, **Assets**, and **Open**. File names
 > and anything you type appear in `monospace`. The first time a dance term
-> appears it links to the [Glossary](./glossary.md), so you can get a
+> appears it links to [App terms](./glossary.md), so you can get a
 > plain-language definition without losing your place.
 
 ## Before you start
@@ -49,14 +49,22 @@ device from the sections below.
 
 Alongside the app downloads you'll also see a `SHA256SUMS` file. It's optional —
 see [Verify your download](#verify-your-download-optional) if you'd like to
-double-check a file — and a couple of files the app itself uses that you can
-ignore.
+double-check a file — and three files that you can ignore: `beta.json` and
+`beta.json.sig` (which the app uses to check for updates) and
+`sbom-<version>.cdx.json` (a technical list of what's inside the app).
 
 ## Install on Linux
 
 There are two downloads for Linux (x64); either works.
 
-- **AppImage** (`...-linux-x64.AppImage`) — a single self-contained file.
+**What you need:** a 64-bit Linux with glibc 2.35 or newer and the GTK 3
+desktop libraries. Ubuntu 22.04, Debian 12, Fedora 36 and later releases of
+each meet this, as do distributions based on them (such as Linux Mint 21). If
+the app won't start and a terminal shows a message that a `GLIBC_` version was
+"not found", your system is older than this.
+
+- **AppImage** (`...-linux-x64.AppImage`) — a single file. It uses the system
+  libraries above rather than carrying its own.
   1. Download the AppImage.
   2. Mark it as runnable. In your file manager, open the file's
      **Properties**, find the permissions, and allow it to run as a program. If
@@ -65,23 +73,39 @@ There are two downloads for Linux (x64); either works.
   3. Open the AppImage to launch the app.
 - **Archive** (`...-linux-x64.tar.gz`) — no setup needed.
   1. Extract the archive to a folder you like.
-  2. Open the app binary inside that folder.
+  2. Open `compendium_app` inside that folder.
+  3. Optional: to add the app to your applications menu, copy
+     `org.callerscompendium.compendiumApp.desktop` from that folder into
+     `~/.local/share/applications/`, and `compendium_app.png` into
+     `~/.local/share/icons/hicolor/512x512/apps/`. Then edit the copied
+     `.desktop` file so its `Exec=` line gives the full path to
+     `compendium_app` in the folder where you extracted it.
 
-> **AppImage won't open?** AppImages need the **FUSE 2** runtime, which some
-> recent distributions don't install by default. Install your distribution's
-> FUSE 2 package (`libfuse2` on Debian and Ubuntu, `fuse-libs` on Fedora), or use
-> the archive instead.
+> **AppImage won't open?** The AppImage needs a `fusermount` (or `fusermount3`)
+> program, which some recent distributions don't install by default. If you see
+> "No suitable fusermount binary found on the $PATH", install your
+> distribution's `fuse3` package (`fuse3` on Debian, Ubuntu and Fedora). You can
+> also run it without FUSE by typing
+> `./CallersCompendium-*.AppImage --appimage-extract-and-run` in a terminal, or
+> use the archive instead.
 
 ## Install on macOS
 
 macOS has one universal download that runs on both Intel and Apple Silicon Macs.
 
 - **Disk image** (`...-macos-universal.dmg`) — the usual way.
-  1. Open the downloaded `.dmg`.
-  2. Drag the Caller's Compendium app onto your **Applications** folder.
+  1. Open the downloaded `.dmg`. A window opens with the app on the left and
+     your **Applications** folder on the right.
+  2. Drag the Caller's Compendium app onto the **Applications** folder,
+     following the arrow.
   3. Open the app from **Applications**. Because the macOS build is signed and
      notarized, it opens normally — you may just see a single confirmation the
      first time.
+
+  If you open the app straight from the disk image window instead, it shows a
+  notice that it isn't installed yet: the disk image can't be ejected while the
+  app is open, and the app is gone once it is. Quit, drag the app to
+  **Applications**, and open it from there; the notice stops appearing.
 - **Archive** (`...-macos-universal.zip`) — unzip it and move the app wherever
   you keep your applications, then open it the same way.
 
@@ -97,7 +121,7 @@ There are two downloads for Windows (x64).
   3. Follow the installer, then open Caller's Compendium from your Start menu.
 - **Portable copy** (`...-windows-x64.zip`) — no installer needed.
   1. Unzip the folder somewhere convenient.
-  2. Open the app inside that folder to run it.
+  2. Open `compendium_app.exe` inside that folder to run it.
 
 ## Install on Android
 
@@ -223,5 +247,5 @@ You're ready to open the app and start calling.
   covers moving your [collection](./glossary.md#collection) onto this device.
 - **Hit a snag?** The [FAQ & troubleshooting guide](./faq.md) has fixes for the
   most common bumps.
-- **Not sure what a word means?** The [Glossary](./glossary.md) has plain
+- **Not sure what a word means?** [App terms](./glossary.md) has plain
   definitions for every term used across these guides.

@@ -91,6 +91,7 @@ void main() {
     // adapters (as of this PR). If core adds a code, this list — and the mapper
     // — must grow, or the code will silently render the generic fallback.
     const producedCodes = {
+      'archive_newer_schema',
       'archive_program_empty_slot',
       'archive_program_unresolved_dance',
       'archive_program_unresolved_venue',
@@ -125,6 +126,12 @@ void main() {
       'contradb_param_unmapped',
       'cc_related_dance_unresolved',
       'duplicate_external_id_in_batch',
+      'usr_file_truncated',
+      'usr_figures_from_dance_rows',
+      'usr_phrase_groups_orphaned',
+      'usr_lines_dropped',
+      'usr_sets_skipped',
+      'usr_related_rows_skipped',
     };
 
     test('every produced code is mapped (no silent English leak)', () {
@@ -282,6 +289,53 @@ void main() {
   });
 
   group('importRecordErrorMessage (CWE-209)', () {
+    test('every ImportErrorCode maps to a non-generic string', () {
+      final generic = {
+        for (final stage in ImportStage.values)
+          importRecordErrorMessage(
+            l10n,
+            ImportError(
+              stage: stage,
+              source: ProvenanceSource.contradb,
+              message: 'x',
+            ),
+          ),
+      };
+      final seen = <String>{};
+      for (final code in ImportErrorCode.values) {
+        if (code == ImportErrorCode.unknown) continue;
+        for (final stage in ImportStage.values) {
+          final msg = importRecordErrorMessage(
+            l10n,
+            ImportError(
+              stage: stage,
+              source: ProvenanceSource.contradb,
+              message: 'SECRET /Users/isaac/private.json',
+              code: code,
+            ),
+          );
+          expect(msg, isNotEmpty, reason: code.name);
+          expect(generic, isNot(contains(msg)), reason: code.name);
+          expect(msg, isNot(contains('SECRET')), reason: code.name);
+          if (stage == ImportStage.discover) {
+            expect(seen.add(msg), isTrue, reason: '${code.name} is distinct');
+          }
+        }
+      }
+    });
+
+    test('an unknown code falls back to the stage message', () {
+      const error = ImportError(
+        stage: ImportStage.discover,
+        source: ProvenanceSource.contradb,
+        message: 'x',
+      );
+      expect(
+        importRecordErrorMessage(l10n, error),
+        l10n.importRecordErrorDiscover,
+      );
+    });
+
     test('never surfaces the raw error message, whatever the stage', () {
       for (final stage in ImportStage.values) {
         final error = ImportError(

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
@@ -18,12 +19,21 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/test_repositories.dart';
 
 void main() {
+  // Passes that reach a real `CompendiumSyncCoordinatorStore` mark identities
+  // used; run the PBKDF2 derivation at a lowered count (the real one is pinned
+  // in compendium_core's sync_identity_kdf_test.dart).
+  final productionKdfIterations = syncIdentityKdfIterations;
+  setUpAll(() => syncIdentityKdfIterations = 1000);
+  tearDownAll(() => syncIdentityKdfIterations = productionKdfIterations);
+
   test('isolated peer cache namespaces peer ids from diagnostic fields', () {
     final peerManifest = _manifest(deviceId: 'peer', records: const {});
     final diagnosticAddress = (
       kind: SyncRecordKind.setting,
       recordId: 'custom_dialects',
     );
+    final publication = (hash: _hash('c'), pass: 3);
+    final seen = [(writtenAt: DateTime.utc(2026, 7, 15, 13), pass: 4)];
     final cache = SyncPeerManifestCache(
       entries: {
         '_rejectedHashes': SyncPeerManifestCacheEntry(
@@ -31,62 +41,363 @@ void main() {
           etag: '"peer"',
           manifest: peerManifest,
         ),
-        '_unreflectedPasses': SyncPeerManifestCacheEntry(
+        '_publications': SyncPeerManifestCacheEntry(
           epoch: 'epoch-1',
           etag: '"diagnostic"',
           manifest: peerManifest,
         ),
       },
       rejectedHashes: {'rejected-hash'},
-      unreflectedPasses: {diagnosticAddress: 2},
-      unreflectedEpoch: 'epoch-1',
+      publications: {diagnosticAddress: publication},
+      peerPublications: {'_publications': seen},
+      passSequence: 4,
+      publicationEpoch: 'epoch-1',
     );
 
     final restored = SyncPeerManifestCache.fromMessage(cache.toMessage());
 
     expect(restored['_rejectedHashes']?.etag, '"peer"');
-    expect(restored['_unreflectedPasses']?.etag, '"diagnostic"');
+    expect(restored['_publications']?.etag, '"diagnostic"');
     expect(restored.rejectedHashes, {'rejected-hash'});
-    expect(restored.unreflectedPasses, {diagnosticAddress: 2});
-    expect(restored.unreflectedEpoch, 'epoch-1');
+    expect(restored.publications, {diagnosticAddress: publication});
+    expect(restored.peerPublications, {'_publications': seen});
+    expect(restored.passSequence, 4);
+    expect(restored.publicationEpoch, 'epoch-1');
 
-    restored.beginUnreflectedEpoch('epoch-1');
-    expect(restored.unreflectedPasses, {diagnosticAddress: 2});
-    restored.beginUnreflectedEpoch('epoch-2');
-    expect(restored.unreflectedPasses, isEmpty);
+    restored.beginPublicationEpoch('epoch-1');
+    expect(restored.publications, {diagnosticAddress: publication});
+    restored.beginPublicationEpoch('epoch-2');
+    expect(restored.publications, isEmpty);
+    expect(restored.peerPublications, isEmpty);
   });
 
-  test(
-    'resets an unreflected publication streak when the store epoch changes',
-    () async {
-      final candidate = SyncMergeCandidate.fromBlob(
+  test('restarts the unreflected-publication evidence when the store epoch '
+      'changes', () async {
+    final candidate = SyncMergeCandidate.fromBlob(
+      _setting('custom_dialects', 'local'),
+    );
+    final cache = SyncPeerManifestCache(
+      publications: {candidate.address: (hash: candidate.wireHash, pass: 1)},
+      peerPublications: {
+        'peer': [
+          (writtenAt: DateTime.utc(2026, 7, 15, 11, 30), pass: 2),
+          (writtenAt: DateTime.utc(2026, 7, 15, 11, 45), pass: 3),
+        ],
+      },
+      passSequence: 3,
+      publicationEpoch: 'epoch-old',
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(local: {candidate.address: candidate}),
+      transport: _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(deviceId: 'peer', records: const {}),
+      ),
+      peerManifestCache: cache,
+      now: () => DateTime.utc(2026, 7, 15, 12, 30),
+    );
+    addTearDown(coordinator.dispose);
+
+    final result = await coordinator.syncNow();
+
+    expect(
+      result.reports.map((report) => report.code),
+      isNot(contains(SyncReportCode.unreflectedPublication)),
+      reason:
+          'the two later publications were seen in another epoch, so they '
+          'say nothing about this one',
+    );
+    expect(cache.publications[candidate.address]?.pass, 4);
+    expect(cache.peerPublications['peer'], [
+      (writtenAt: DateTime.utc(2026, 7, 15, 12), pass: 4),
+    ]);
+  });
+
+  group('per-peer reflection (spec §6.9)', () {
+    final t0 = DateTime.utc(2026, 7, 15, 12);
+    late SyncMergeCandidate candidate;
+    late SyncMergeCandidate other;
+
+    setUp(() {
+      candidate = SyncMergeCandidate.fromBlob(
         _setting('custom_dialects', 'local'),
       );
-      final cache = SyncPeerManifestCache(
-        unreflectedPasses: {candidate.address: 2},
-        unreflectedEpoch: 'epoch-old',
+      other = SyncMergeCandidate.fromBlob(
+        _setting('shorthand_mappings', 'local'),
       );
+    });
+
+    SyncManifest peerAt(
+      DateTime writtenAt, {
+      Map<SyncRecordKind, Map<String, String>> records = const {},
+    }) => SyncManifest(
+      deviceId: 'peer',
+      epoch: 'epoch-1',
+      writtenAt: writtenAt,
+      records: records,
+    );
+
+    /// Runs one pass per step: the peer's manifest as written at
+    /// `step.peerWrittenAt`, with this device's clock at `step.clock`.
+    Future<List<SyncPassResult>> passes(
+      List<({DateTime peerWrittenAt, DateTime clock})> steps, {
+      Map<SyncRecordKind, Map<String, String>> peerRecords = const {},
+      Map<String, SyncHttpResponse> blobResponses = const {},
+    }) async {
+      final local = {candidate.address: candidate, other.address: other};
+      final peers = <String, SyncManifest>{};
+      var clock = t0;
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(
+          local: local,
+          snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+            epoch: 'epoch-1',
+            previouslyUsed: false,
+            local: local,
+            publication: local,
+            baseline: const {},
+          ),
+        ),
+        transport: _FakeTransport(
+          devices: ['device-a', 'peer'],
+          peerManifests: peers,
+          blobResponses: blobResponses,
+        ),
+        now: () => clock,
+      );
+      addTearDown(coordinator.dispose);
+      final results = <SyncPassResult>[];
+      for (final step in steps) {
+        peers['peer'] = peerAt(step.peerWrittenAt, records: peerRecords);
+        clock = step.clock;
+        final result = await coordinator.syncNow();
+        expect(result.status, SyncPassStatus.completed);
+        results.add(result);
+      }
+      return results;
+    }
+
+    Iterable<SyncReport> unreflected(SyncPassResult result) =>
+        result.reports.where(
+          (report) => report.code == SyncReportCode.unreflectedPublication,
+        );
+
+    test('a peer that has not published since is asleep: never a notice, '
+        'and the summary counts what is waiting for it', () async {
+      final asleepAt = t0.subtract(const Duration(hours: 1));
+      final results = await passes(
+        [
+          for (var minute = 0; minute < 5; minute++)
+            (peerWrittenAt: asleepAt, clock: t0.add(Duration(minutes: minute))),
+        ],
+        peerRecords: {
+          SyncRecordKind.setting: {'shorthand_mappings': other.wireHash},
+        },
+      );
+
+      for (final result in results) {
+        expect(unreflected(result), isEmpty);
+      }
+      final summary = results.last.peers!.single;
+      expect(summary.peerId, 'peer');
+      expect(summary.writtenAt, asleepAt);
+      expect(
+        summary.waitingCount,
+        1,
+        reason: 'the peer carries one of the two records at this hash',
+      );
+    });
+
+    test('a peer that published twice since without the record is named as '
+        'not taking it', () async {
+      final results = await passes([
+        (peerWrittenAt: t0.subtract(const Duration(hours: 1)), clock: t0),
+        (
+          peerWrittenAt: t0.add(const Duration(minutes: 1)),
+          clock: t0.add(const Duration(minutes: 2)),
+        ),
+        (
+          peerWrittenAt: t0.add(const Duration(minutes: 3)),
+          clock: t0.add(const Duration(minutes: 4)),
+        ),
+      ]);
+
+      expect(unreflected(results[0]), isEmpty);
+      expect(
+        unreflected(results[1]),
+        isEmpty,
+        reason:
+            'one publication since can be a pass that started before this '
+            'device published and never read its manifest',
+      );
+      final reports = unreflected(results[2]).toList();
+      expect(
+        {for (final report in reports) report.recordId},
+        {'custom_dialects', 'shorthand_mappings'},
+      );
+      expect(reports.map((report) => report.peerId).toSet(), {
+        'peer',
+      }, reason: 'the notice names the device by its tag, so it needs the id');
+      expect(results[2].peers!.single.waitingCount, 2);
+    });
+
+    test('a peer whose clock runs fast is not judged on what it wrote before '
+        'this device published', () async {
+      final results = await passes([
+        (peerWrittenAt: t0.add(const Duration(hours: 1)), clock: t0),
+        (
+          peerWrittenAt: t0.add(const Duration(hours: 2)),
+          clock: t0.add(const Duration(minutes: 1)),
+        ),
+        (
+          peerWrittenAt: t0.add(const Duration(hours: 3)),
+          clock: t0.add(const Duration(minutes: 2)),
+        ),
+      ]);
+
+      expect(
+        unreflected(results[1]),
+        isEmpty,
+        reason:
+            'the first manifest was fetched before this device published, '
+            'however late its clock says it was written',
+      );
+      expect(unreflected(results[2]), isNotEmpty);
+    });
+
+    test('a device whose own clock runs fast is still told its changes are '
+        'not being taken', () async {
+      // The case §6.9 introduced this signal for: peers refuse this device's
+      // records as future-dated, and every `writtenAt` they write is earlier
+      // than this device's idea of now. A judgement that compared the two
+      // clocks would never fire here.
+      final fast = t0.add(const Duration(days: 3));
+      final results = await passes([
+        (peerWrittenAt: t0.subtract(const Duration(hours: 1)), clock: fast),
+        (
+          peerWrittenAt: t0.add(const Duration(minutes: 1)),
+          clock: fast.add(const Duration(minutes: 2)),
+        ),
+        (
+          peerWrittenAt: t0.add(const Duration(minutes: 3)),
+          clock: fast.add(const Duration(minutes: 4)),
+        ),
+      ]);
+
+      expect(unreflected(results[1]), isEmpty);
+      expect(unreflected(results[2]), isNotEmpty);
+    });
+
+    test('a peer holding a newer version of the record is not refusing '
+        'it', () async {
+      final newer = _setting('custom_dialects', 'theirs', seconds: 30);
+      final newerCandidate = SyncMergeCandidate.fromBlob(newer);
+      final results = await passes(
+        [
+          (peerWrittenAt: t0.subtract(const Duration(hours: 1)), clock: t0),
+          (
+            peerWrittenAt: t0.add(const Duration(minutes: 1)),
+            clock: t0.add(const Duration(minutes: 2)),
+          ),
+          (
+            peerWrittenAt: t0.add(const Duration(minutes: 3)),
+            clock: t0.add(const Duration(minutes: 4)),
+          ),
+        ],
+        peerRecords: {
+          SyncRecordKind.setting: {
+            'custom_dialects': newerCandidate.wireHash,
+            'shorthand_mappings': other.wireHash,
+          },
+        },
+        blobResponses: {
+          newerCandidate.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(newer)),
+          ),
+        },
+      );
+
+      expect(
+        unreflected(results[2]),
+        isEmpty,
+        reason:
+            'a disagreement is resolving towards the peer, or has a notice '
+            'of its own; "it may need an app update" would be false',
+      );
+    });
+
+    test('a peer holding an older edit of the record is refusing it, though '
+        'an edit leaves existenceAt where it was', () async {
+      // An ordinary content edit advances `updatedAt` and leaves
+      // `existenceAt` alone, so the peer's stale copy shares this device's
+      // `existenceAt`. Equal is not newer. A choreographer, not a setting:
+      // a whole-collection setting that differs is a queued conflict choice,
+      // which is judged neither asleep nor refusing.
+      final edited = _choreographer(
+        'author-1',
+        'Edited name',
+        updatedAt: t0.add(const Duration(seconds: 30)),
+        existenceAt: t0,
+      );
+      candidate = SyncMergeCandidate.fromBlob(edited);
+      final stale = _choreographer('author-1', 'Old name', updatedAt: t0);
+      final staleCandidate = SyncMergeCandidate.fromBlob(stale);
+      expect(staleCandidate.existenceAt, candidate.existenceAt);
+      final results = await passes(
+        [
+          (peerWrittenAt: t0.subtract(const Duration(hours: 1)), clock: t0),
+          (
+            peerWrittenAt: t0.add(const Duration(minutes: 1)),
+            clock: t0.add(const Duration(minutes: 2)),
+          ),
+          (
+            peerWrittenAt: t0.add(const Duration(minutes: 3)),
+            clock: t0.add(const Duration(minutes: 4)),
+          ),
+        ],
+        peerRecords: {
+          SyncRecordKind.choreographer: {'author-1': staleCandidate.wireHash},
+          SyncRecordKind.setting: {'shorthand_mappings': other.wireHash},
+        },
+        blobResponses: {
+          staleCandidate.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(stale)),
+          ),
+        },
+      );
+
+      expect(unreflected(results[2]).map((report) => report.recordId), [
+        'author-1',
+      ]);
+    });
+
+    test('zero observed peers judges nothing and is an empty survey, not '
+        'a missing one', () async {
+      var clock = t0;
       final coordinator = SyncCoordinator(
         syncId: 'configured',
         deviceId: 'device-a',
         store: _FakeStore(local: {candidate.address: candidate}),
-        transport: _FakeTransport(
-          devices: ['peer'],
-          peerManifest: _manifest(deviceId: 'peer', records: const {}),
-        ),
-        peerManifestCache: cache,
+        transport: _FakeTransport(devices: ['device-a']),
+        now: () => clock,
       );
       addTearDown(coordinator.dispose);
 
-      final result = await coordinator.syncNow();
-
-      expect(
-        result.reports.map((report) => report.code),
-        isNot(contains(SyncReportCode.unreflectedPublication)),
-      );
-      expect(cache.unreflectedPasses, {candidate.address: 1});
-    },
-  );
+      for (var minute = 0; minute < 4; minute++) {
+        clock = t0.add(Duration(minutes: minute));
+        final result = await coordinator.syncNow();
+        expect(unreflected(result), isEmpty);
+        expect(result.peers, isEmpty);
+        expect(result.peers, isNotNull);
+      }
+    });
+  });
 
   test(
     'coordinator store dispatches inbound reconciliation before apply',
@@ -172,6 +483,575 @@ void main() {
 
     expect(result.status, SyncPassStatus.completed);
     expect(store.advancedEntries, [canonical]);
+  });
+
+  test('normalisation resolves aliases from one aliasMap per step', () async {
+    Future<int> aliasMapLoads(int aliased) async {
+      final locals = <SyncRecordAddress, SyncMergeCandidate?>{};
+      final baseline = <SyncRecordAddress, SyncBaselineEntry>{};
+      final aliases = <SyncRecordAddress, SyncRecordAddress>{};
+      for (var i = 0; i < aliased; i++) {
+        final candidate = SyncMergeCandidate.fromBlob(
+          _tag('canonical-$i', 'Tag $i'),
+        );
+        final legacy = (kind: SyncRecordKind.tag, recordId: 'legacy-$i');
+        locals[candidate.address] = candidate;
+        baseline[legacy] = SyncBaselineEntry(
+          kind: legacy.kind,
+          recordId: legacy.recordId,
+          wireHash: candidate.wireHash,
+          bodyHash: candidate.bodyHash,
+        );
+        aliases[legacy] = candidate.address;
+      }
+      final store = _FakeStore(
+        local: locals,
+        baseline: baseline,
+        aliases: aliases,
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(deviceId: 'peer', records: const {}),
+        ),
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      return store.aliasMapCalls;
+    }
+
+    final few = await aliasMapLoads(3);
+    final many = await aliasMapLoads(30);
+
+    expect(few, greaterThan(0));
+    // One load per normalisation call, however many addresses it resolves:
+    // a per-item load would grow with the library.
+    expect(many, few);
+    // Independence from N cannot see a helper that loads twice per call, which
+    // is still a constant. The count for this pass is exactly one load per
+    // `_normalize*` / `_resolveReferenceAliases` call it makes, plus the one
+    // the merge plan reads to compare references by the records they name
+    // (15 on an empty peer manifest). A pass that gains or loses a
+    // normalisation step changes it deliberately; update the number with the
+    // step, never to absorb an extra load inside a helper.
+    expect(few, 15);
+  });
+
+  group('a pass with nothing new to share (spec §6.3 steps 7 and 8)', () {
+    late SyncMergeCandidate first;
+    late SyncMergeCandidate second;
+    late DateTime clock;
+
+    setUp(() {
+      first = SyncMergeCandidate.fromBlob(_setting('first', 'one'));
+      second = SyncMergeCandidate.fromBlob(_setting('second', 'two'));
+      clock = DateTime.utc(2026, 7, 15, 12, 30);
+    });
+
+    _FakeTransport transportFor(
+      Iterable<SyncMergeCandidate> peerHolds, {
+      List<String> devices = const ['device-a', 'peer'],
+      List<int>? putManifestStatuses,
+    }) => _FakeTransport(
+      devices: devices,
+      peerManifest: _manifest(
+        deviceId: 'peer',
+        records: {
+          SyncRecordKind.setting: {
+            for (final candidate in peerHolds)
+              candidate.blob.id: candidate.wireHash,
+          },
+        },
+      ),
+      putManifestStatuses: putManifestStatuses,
+    );
+
+    SyncCoordinator coordinatorFor(
+      _FakeStore store,
+      _FakeTransport transport, {
+      SyncPeerManifestCache? cache,
+    }) {
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        peerManifestCache: cache,
+        now: () => clock,
+      );
+      addTearDown(coordinator.dispose);
+      return coordinator;
+    }
+
+    test('sends neither the blob check nor the manifest again', () async {
+      final store = _FakeStore(
+        local: {first.address: first, second.address: second},
+      );
+      final transport = transportFor([first, second]);
+      final coordinator = coordinatorFor(store, transport);
+
+      expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
+      expect(transport.postMissingCalls, 1);
+      expect(transport.manifestPuts, 1);
+      expect(store.published?.record.verifiedAt, clock);
+
+      clock = clock.add(const Duration(hours: 1));
+      final again = await coordinator.syncNow();
+
+      expect(again.status, SyncPassStatus.completed);
+      expect(transport.postMissingCalls, 1, reason: 'nothing new to check');
+      expect(transport.manifestPuts, 1, reason: 'nothing new to publish');
+      expect(
+        store.published?.record.verifiedAt,
+        DateTime.utc(2026, 7, 15, 12, 30),
+        reason: 'a pass that sends nothing confirms nothing',
+      );
+    });
+
+    test('asks only about the blobs the last manifest did not name', () async {
+      final store = _FakeStore(local: {first.address: first});
+      final transport = transportFor([first]);
+      final coordinator = coordinatorFor(store, transport);
+      await coordinator.syncNow();
+      final firstPublished = store.published!.record;
+
+      store.local[second.address] = second;
+      clock = clock.add(const Duration(hours: 1));
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(transport.postMissingBatches, [
+        [first.wireHash],
+        [second.wireHash],
+      ]);
+      expect(transport.manifestPuts, 2);
+      final manifest = decodeSyncManifest(
+        utf8.decode(transport.manifestBodies.last),
+      );
+      expect(manifest.records[SyncRecordKind.setting]!.keys, {
+        'first',
+        'second',
+      });
+      expect(store.published!.record.hash, isNot(firstPublished.hash));
+      expect(
+        store.published!.record.verifiedAt,
+        firstPublished.verifiedAt,
+        reason: 'the first blob was last confirmed by the first pass',
+      );
+    });
+
+    test('checks and publishes everything once the interval passes', () async {
+      final store = _FakeStore(local: {first.address: first});
+      final transport = transportFor([first]);
+      final coordinator = coordinatorFor(store, transport);
+      await coordinator.syncNow();
+
+      clock = clock.add(kSyncPublicationRefreshInterval);
+      await coordinator.syncNow();
+
+      expect(transport.postMissingBatches, [
+        [first.wireHash],
+        [first.wireHash],
+      ]);
+      expect(transport.manifestPuts, 2);
+      expect(store.published!.record.verifiedAt, clock);
+    });
+
+    test('a clock set back does not stretch the interval', () async {
+      final store = _FakeStore(local: {first.address: first});
+      final transport = transportFor([first]);
+      final coordinator = coordinatorFor(store, transport);
+      await coordinator.syncNow();
+
+      clock = clock.subtract(const Duration(minutes: 1));
+      await coordinator.syncNow();
+
+      expect(transport.manifestPuts, 2);
+    });
+
+    test('publishes again when the store no longer lists it', () async {
+      // Another device removed this one (§5.3): its manifest is gone, and
+      // nothing keeps its blobs from collection (§7.3).
+      final store = _FakeStore(local: {first.address: first});
+      final transport = transportFor([first], devices: const ['peer']);
+      final coordinator = coordinatorFor(store, transport);
+      await coordinator.syncNow();
+      await coordinator.syncNow();
+
+      expect(transport.postMissingCalls, 2);
+      expect(transport.manifestPuts, 2);
+    });
+
+    test('a manifest whose PUT failed is published again in full', () async {
+      final store = _FakeStore(local: {first.address: first});
+      final transport = transportFor([first], putManifestStatuses: [200, 500]);
+      final coordinator = coordinatorFor(store, transport);
+      await coordinator.syncNow();
+
+      store.local[second.address] = second;
+      final failed = await coordinator.syncNow();
+      expect(failed.status, SyncPassStatus.failed);
+      expect(
+        store.published,
+        isNull,
+        reason: 'the failed PUT may still have replaced the manifest',
+      );
+
+      store.local.remove(second.address);
+      await coordinator.syncNow();
+
+      expect(transport.manifestPuts, 3);
+      expect(transport.postMissingBatches.last, [first.wireHash]);
+    });
+
+    test('a new session relies on the stored record, not its own', () async {
+      final store = _FakeStore(local: {first.address: first});
+      final transport = transportFor([first]);
+      await coordinatorFor(store, transport).syncNow();
+
+      // The app restarts: a new coordinator, and a cache that knows nothing.
+      final restarted = coordinatorFor(
+        store,
+        transport,
+        cache: SyncPeerManifestCache(),
+      );
+      await restarted.syncNow();
+      expect(transport.postMissingCalls, 1);
+      expect(transport.manifestPuts, 1);
+
+      // What the unchanged pass learned is enough for the next change.
+      store.local[second.address] = second;
+      await restarted.syncNow();
+      expect(transport.postMissingBatches.last, [second.wireHash]);
+      expect(transport.manifestPuts, 2);
+    });
+
+    test('a changed manifest after a restart checks every blob', () async {
+      final store = _FakeStore(local: {first.address: first});
+      final transport = transportFor([first]);
+      await coordinatorFor(store, transport).syncNow();
+      final verifiedAt = store.published!.record.verifiedAt;
+
+      store.local[second.address] = second;
+      clock = clock.add(const Duration(hours: 1));
+      await coordinatorFor(
+        store,
+        transport,
+        cache: SyncPeerManifestCache(),
+      ).syncNow();
+
+      expect(transport.postMissingBatches.last, [
+        first.wireHash,
+        second.wireHash,
+      ]);
+      expect(store.published!.record.verifiedAt, isNot(verifiedAt));
+      expect(store.published!.record.verifiedAt, clock);
+    });
+
+    test('a pass that cannot take a peer record still publishes', () async {
+      // §6.9: a peer is judged to be refusing a record only once it has
+      // published twice since, so a device refusing something must not go
+      // quiet. Here the peer lists a record whose blob the store lacks.
+      final missing = SyncMergeCandidate.fromBlob(_setting('gone', 'x'));
+      final store = _FakeStore(local: {first.address: first});
+      final transport = transportFor([first, missing]);
+      final coordinator = coordinatorFor(store, transport);
+      await coordinator.syncNow();
+      final again = await coordinator.syncNow();
+
+      expect(
+        again.reports.map((report) => report.code),
+        contains(SyncReportCode.unresolvedBlob),
+      );
+      expect(transport.manifestPuts, 2);
+      expect(
+        transport.postMissingCalls,
+        1,
+        reason: 'the blobs it already published are still known',
+      );
+    });
+
+    test(
+      'a pass that refused a peer record at apply still publishes',
+      () async {
+        // The peer's record downloads and is admitted, then storage refuses it
+        // (here as an unresolved reference): refused all the same (§6.9).
+        final peerOnly = SyncMergeCandidate.fromBlob(
+          _setting('peer-only', 'p'),
+        );
+        final store = _FakeStore(local: {first.address: first})
+          ..refuseWrite = (record) => record.address == peerOnly.address;
+        final transport = _FakeTransport(
+          devices: const ['device-a', 'peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.setting: {
+                first.blob.id: first.wireHash,
+                peerOnly.blob.id: peerOnly.wireHash,
+              },
+            },
+          ),
+          blobResponses: _blobs([peerOnly]),
+        );
+        final coordinator = coordinatorFor(store, transport);
+        await coordinator.syncNow();
+        final again = await coordinator.syncNow();
+
+        expect(
+          again.reports.map((report) => report.code),
+          contains(SyncReportCode.unresolvedReference),
+        );
+        expect(store.writes, isEmpty);
+        expect(transport.manifestPuts, 2);
+      },
+    );
+
+    test('a stale-epoch PUT leaves nothing recorded', () async {
+      final store = _FakeStore(local: {first.address: first});
+      final transport = transportFor([first], putManifestStatuses: [200, 409]);
+      final coordinator = coordinatorFor(store, transport);
+      await coordinator.syncNow();
+
+      store.local[second.address] = second;
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.staleEpoch);
+      expect(store.published, isNull);
+      expect(store.publishedWrites.last, isNull);
+    });
+
+    test('a PUT that throws leaves nothing recorded', () async {
+      final store = _FakeStore(local: {first.address: first});
+      var puts = 0;
+      final transport = _FakeTransport(
+        devices: const ['device-a', 'peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.setting: {first.blob.id: first.wireHash},
+          },
+        ),
+        onManifestPut: (_) {
+          if (++puts == 2) throw const SocketException('reset');
+        },
+      );
+      final coordinator = coordinatorFor(store, transport);
+      await coordinator.syncNow();
+
+      store.local[second.address] = second;
+      await expectLater(coordinator.syncNow(), throwsA(isA<SocketException>()));
+
+      expect(puts, 2);
+      expect(store.published, isNull);
+    });
+
+    test('a fresh attach records what its continuation published', () async {
+      final store = _FakeStore(epoch: null, local: {first.address: first});
+      final transport = transportFor([first]);
+      final coordinator = coordinatorFor(store, transport);
+
+      expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
+      expect(store.baselineReplacements, 1);
+      expect(
+        store.published,
+        isNotNull,
+        reason: 'recorded after the baseline that starts the epoch',
+      );
+
+      final puts = transport.manifestPuts;
+      await coordinator.syncNow();
+      expect(transport.manifestPuts, puts);
+    });
+
+    test('what it knows crosses the isolate boundary', () {
+      final cache = SyncPeerManifestCache(
+        ownManifest: (hash: 'manifest', blobHashes: {first.wireHash}),
+      );
+
+      final copy = SyncPeerManifestCache.fromMessage(cache.toMessage());
+
+      expect(copy.ownManifest?.hash, 'manifest');
+      expect(copy.ownManifest?.blobHashes, {first.wireHash});
+      expect(
+        SyncPeerManifestCache.fromMessage(
+          SyncPeerManifestCache().toMessage(),
+        ).ownManifest,
+        isNull,
+      );
+    });
+  });
+
+  group('records this device already holds (spec §6.3 step 5)', () {
+    test(
+      'an imported dance kept back from publication is not downloaded',
+      () async {
+        final imported = SyncMergeCandidate.fromBlob(
+          _dance('imported', updatedAt: DateTime.utc(2026, 7, 15, 12)),
+        );
+        final store = _FakeStore(
+          snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+            epoch: 'epoch-1',
+            previouslyUsed: false,
+            local: {imported.address: imported},
+            baseline: const {},
+            // `sync_exclude_imports` withholds it from publication only.
+            publication: {imported.address: null},
+          ),
+        );
+        final transport = _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.dance: {'imported': imported.wireHash},
+            },
+          ),
+          blobResponses: _blobs([imported]),
+        );
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: store,
+          transport: transport,
+        );
+        addTearDown(coordinator.dispose);
+
+        final result = await coordinator.syncNow();
+
+        expect(result.status, SyncPassStatus.completed);
+        expect(transport.blobHashes, isEmpty);
+        expect(transport.batchRequests, isEmpty);
+      },
+    );
+
+    test('the live row behind a pending tombstone is not downloaded', () async {
+      final updatedAt = DateTime.utc(2026, 7, 15, 12);
+      final live = SyncMergeCandidate.fromBlob(
+        _dance('deleted', updatedAt: updatedAt),
+      );
+      final tombstone = SyncMergeCandidate.fromBlob(
+        SyncRecordBlob(
+          kind: SyncRecordKind.dance,
+          id: 'deleted',
+          updatedAt: updatedAt,
+          deletedAt: updatedAt.add(const Duration(minutes: 5)),
+          existenceAt: updatedAt.add(const Duration(minutes: 5)),
+          body: live.blob.body,
+        ),
+      );
+      final store = _FakeStore(
+        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
+          epoch: 'epoch-1',
+          previouslyUsed: false,
+          local: const {},
+          baseline: const {},
+          publication: {tombstone.address: tombstone},
+          pendingLive: {live.address: live},
+          pending: {live.address},
+        ),
+      );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.dance: {'deleted': live.wireHash},
+          },
+        ),
+        blobResponses: _blobs([live]),
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(transport.blobHashes, isEmpty);
+      expect(transport.batchRequests, isEmpty);
+    });
+  });
+
+  group('SyncAliasMap resolves as the repository does', () {
+    const kind = SyncRecordKind.dance;
+
+    Future<SyncAliasMap> loaded(
+      CompendiumRepositories repositories,
+      List<(String, String)> links,
+    ) async {
+      for (final (losing, surviving) in links) {
+        await repositories.syncLocal.upsertAlias(
+          kind: kind,
+          losingId: losing,
+          survivingId: surviving,
+        );
+      }
+      return CompendiumSyncCoordinatorStore(repositories).aliasMap();
+    }
+
+    test('follows a chain to the surviving id', () async {
+      final repositories = openTestRepositories();
+      final aliases = await loaded(repositories, [('a', 'b'), ('b', 'c')]);
+
+      for (final id in ['a', 'b', 'c', 'unaliased']) {
+        expect(
+          aliases.resolve((kind: kind, recordId: id)).recordId,
+          await repositories.syncLocal.resolveAlias(kind: kind, recordId: id),
+          reason: id,
+        );
+      }
+      expect(aliases.resolve((kind: kind, recordId: 'a')).recordId, 'c');
+    });
+
+    test('does not resolve across record kinds', () async {
+      final repositories = openTestRepositories();
+      final aliases = await loaded(repositories, [('a', 'b')]);
+
+      expect(aliases.resolve((kind: SyncRecordKind.tag, recordId: 'a')), (
+        kind: SyncRecordKind.tag,
+        recordId: 'a',
+      ));
+    });
+
+    test('throws a StateError on a cycle, like resolveAlias', () async {
+      final repositories = openTestRepositories();
+      final aliases = await loaded(repositories, [('a', 'b'), ('b', 'a')]);
+
+      await expectLater(
+        repositories.syncLocal.resolveAlias(kind: kind, recordId: 'a'),
+        throwsStateError,
+      );
+      expect(
+        () => aliases.resolve((kind: kind, recordId: 'a')),
+        throwsStateError,
+      );
+    });
+
+    test('a cycle only fails the addresses whose chain reaches it', () async {
+      final repositories = openTestRepositories();
+      final aliases = await loaded(repositories, [
+        ('a', 'b'),
+        ('b', 'a'),
+        ('x', 'y'),
+      ]);
+
+      expect(
+        await repositories.syncLocal.resolveAlias(kind: kind, recordId: 'x'),
+        'y',
+      );
+      expect(aliases.resolve((kind: kind, recordId: 'x')).recordId, 'y');
+    });
   });
 
   test(
@@ -1313,53 +2193,6 @@ void main() {
     },
   );
 
-  test(
-    'reports an unreflected publication on the third observed pass',
-    () async {
-      final candidate = SyncMergeCandidate.fromBlob(
-        _setting('custom_dialects', 'local'),
-      );
-      final store = _FakeStore(
-        local: {candidate.address: candidate},
-        snapshotBuilder: (_) => SyncCoordinatorSnapshot(
-          epoch: 'epoch-1',
-          previouslyUsed: false,
-          local: {candidate.address: candidate},
-          publication: {candidate.address: candidate},
-          baseline: const {},
-        ),
-      );
-      final coordinator = SyncCoordinator(
-        syncId: 'configured',
-        deviceId: 'device-a',
-        store: store,
-        transport: _FakeTransport(
-          devices: ['peer'],
-          peerManifest: _manifest(deviceId: 'peer', records: const {}),
-        ),
-        now: () => DateTime.utc(2026, 7, 15, 12),
-      );
-      addTearDown(coordinator.dispose);
-
-      final first = await coordinator.syncNow();
-      final second = await coordinator.syncNow();
-      final third = await coordinator.syncNow();
-
-      expect(
-        first.reports.map((report) => report.code),
-        isNot(contains(SyncReportCode.unreflectedPublication)),
-      );
-      expect(
-        second.reports.map((report) => report.code),
-        isNot(contains(SyncReportCode.unreflectedPublication)),
-      );
-      expect(
-        third.reports.map((report) => report.code),
-        contains(SyncReportCode.unreflectedPublication),
-      );
-    },
-  );
-
   test('unconfigured triggers make no transport calls', () async {
     final transport = _FakeTransport();
     final coordinator = SyncCoordinator(
@@ -1616,6 +2449,15 @@ void main() {
 
     final background = await coordinator.onDebouncedChange();
     expect(background.status, SyncPassStatus.paused);
+    // The automatic retry and the resume trigger are automatic too: neither
+    // may lift a pause the user chose.
+    for (final trigger in [SyncTrigger.retry, SyncTrigger.resume]) {
+      expect(
+        (await coordinator.trigger(trigger)).status,
+        SyncPassStatus.paused,
+        reason: trigger.name,
+      );
+    }
     expect(transport.storeCalls, 1);
 
     final reconsidered = await coordinator.syncNow();
@@ -1719,6 +2561,343 @@ void main() {
     expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
     expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
     expect(transport.manifestEtags, [null, '"peer-v1"']);
+  });
+
+  group('peer manifests kept across restarts (spec §5.2)', () {
+    final peerManifest = _manifest(deviceId: 'peer', records: const {});
+    final encodedManifest = encodeSyncManifestUtf8(peerManifest);
+    SyncHttpResponse full(String etag) => SyncHttpResponse(
+      statusCode: 200,
+      kind: SyncResponseKind.success,
+      headers: {'etag': etag},
+      body: encodedManifest,
+    );
+    const notModified = SyncHttpResponse(
+      statusCode: 304,
+      kind: SyncResponseKind.notModified,
+      headers: {},
+      body: [],
+    );
+
+    SyncCoordinator restarted(_FakeStore store, _FakeTransport transport) {
+      // A new coordinator with a cache of its own: what the app has after a
+      // restart.
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        peerManifestCache: SyncPeerManifestCache(),
+      );
+      addTearDown(coordinator.dispose);
+      return coordinator;
+    }
+
+    test('a restart asks with the kept ETag and takes the 304', () async {
+      final store = _FakeStore();
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [full('"peer-v1"'), notModified],
+        },
+      );
+      await restarted(store, transport).syncNow();
+      expect(store.peerManifests['peer'], (
+        epoch: 'epoch-1',
+        etag: '"peer-v1"',
+        body: utf8.decode(encodedManifest),
+      ));
+
+      final result = await restarted(store, transport).syncNow();
+
+      expect(transport.manifestEtags, [null, '"peer-v1"']);
+      expect(result.status, SyncPassStatus.completed);
+      expect(
+        result.reports.map((report) => report.code),
+        isNot(contains(SyncReportCode.malformedRecord)),
+        reason: 'the 304 is answered from the kept manifest',
+      );
+      expect(result.peers?.map((peer) => peer.peerId), ['peer']);
+    });
+
+    test('a 304 leaves the kept copy as it was', () async {
+      final store = _FakeStore();
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [full('"peer-v1"'), notModified],
+        },
+      );
+      final coordinator = restarted(store, transport);
+      await coordinator.syncNow();
+      store.peerManifests['peer'] = (
+        epoch: 'epoch-1',
+        etag: '"peer-v1"',
+        body: 'left alone',
+      );
+
+      await coordinator.syncNow();
+
+      expect(store.peerManifests['peer']!.body, 'left alone');
+    });
+
+    test('a kept copy that does not decode is dropped and refetched', () async {
+      final store = _FakeStore()
+        ..peerManifests['peer'] = (
+          epoch: 'epoch-1',
+          etag: '"peer-v1"',
+          body: '{not a manifest',
+        );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [full('"peer-v2"')],
+        },
+      );
+
+      final result = await restarted(store, transport).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(transport.manifestEtags, [null]);
+      expect(store.peerManifests['peer']!.etag, '"peer-v2"');
+    });
+
+    test(
+      'an undecodable kept copy is dropped even when the refetch fails',
+      () async {
+        final store = _FakeStore()
+          ..peerManifests['peer'] = (
+            epoch: 'epoch-1',
+            etag: '"peer-v1"',
+            body: '{not a manifest',
+          );
+        final transport = _FakeTransport(
+          devices: ['peer'],
+          manifestResponses: {
+            'peer': [_FakeTransport.response(500)],
+          },
+        );
+
+        await restarted(store, transport).syncNow();
+
+        expect(store.peerManifests, isEmpty);
+      },
+    );
+
+    String bodyFor({required String deviceId, required String epoch}) =>
+        encodeSyncManifest(
+          SyncManifest(
+            deviceId: deviceId,
+            epoch: epoch,
+            writtenAt: DateTime.utc(2026, 7, 15, 12),
+            records: const {},
+          ),
+        );
+
+    test('a kept copy that names another device is not used', () async {
+      final store = _FakeStore()
+        ..peerManifests['peer'] = (
+          epoch: 'epoch-1',
+          etag: '"other-v1"',
+          body: bodyFor(deviceId: 'other', epoch: 'epoch-1'),
+        );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [full('"peer-v1"')],
+        },
+      );
+
+      await restarted(store, transport).syncNow();
+
+      expect(transport.manifestEtags, [null]);
+      expect(store.peerManifests['peer']!.etag, '"peer-v1"');
+    });
+
+    test('a kept copy whose epoch disagrees with its row is not used', () {
+      final store = _FakeStore()
+        ..peerManifests['peer'] = (
+          epoch: 'epoch-1',
+          etag: '"peer-old"',
+          body: bodyFor(deviceId: 'peer', epoch: 'epoch-0'),
+        );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [full('"peer-v1"')],
+        },
+      );
+
+      return restarted(store, transport).syncNow().then((_) {
+        expect(transport.manifestEtags, [null]);
+        expect(store.peerManifests['peer']!.etag, '"peer-v1"');
+      });
+    });
+
+    test('a 304 puts back a kept copy a restore cleared', () async {
+      final store = _FakeStore();
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          // The first pass, then a fresh attach and its continuation.
+          'peer': [full('"peer-v1"'), notModified, notModified],
+        },
+      );
+      final coordinator = restarted(store, transport);
+      await coordinator.syncNow();
+      // A restore clears the baseline, and the kept manifests with it, while
+      // this session still holds them in memory.
+      await store.clearEpochState();
+      expect(store.peerManifests, isEmpty);
+
+      await coordinator.syncNow();
+
+      expect(transport.manifestEtags, [null, '"peer-v1"', '"peer-v1"']);
+      expect(store.peerManifests['peer']?.etag, '"peer-v1"');
+    });
+
+    test('a device that leaves the list and returns is kept again', () async {
+      final store = _FakeStore();
+      final devices = ['peer'];
+      final transport = _FakeTransport(
+        devices: devices,
+        manifestResponses: {
+          'peer': [full('"peer-v1"'), notModified],
+        },
+      );
+      final coordinator = restarted(store, transport);
+      await coordinator.syncNow();
+      devices.clear();
+      await coordinator.syncNow();
+      expect(store.peerManifests, isEmpty);
+
+      devices.add('peer');
+      await coordinator.syncNow();
+
+      expect(transport.manifestEtags, [null, '"peer-v1"']);
+      expect(store.peerManifests['peer']?.etag, '"peer-v1"');
+    });
+
+    test('a malformed answer forgets the kept copy', () async {
+      final store = _FakeStore()
+        ..peerManifests['peer'] = (
+          epoch: 'epoch-1',
+          etag: '"peer-v1"',
+          body: utf8.decode(encodedManifest),
+        );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [
+            SyncHttpResponse(
+              statusCode: 200,
+              kind: SyncResponseKind.success,
+              headers: const {'etag': '"peer-v2"'},
+              body: utf8.encode('{not a manifest'),
+            ),
+          ],
+        },
+      );
+
+      await restarted(store, transport).syncNow();
+
+      expect(transport.manifestEtags, ['"peer-v1"']);
+      expect(store.peerManifests, isEmpty);
+    });
+
+    test('whether a manifest is kept crosses the isolate boundary', () {
+      final cache = SyncPeerManifestCache(
+        entries: {
+          'peer': SyncPeerManifestCacheEntry(
+            epoch: 'epoch-1',
+            etag: '"peer-v1"',
+            manifest: peerManifest,
+            stored: true,
+          ),
+        },
+      );
+
+      final copy = SyncPeerManifestCache.fromMessage(cache.toMessage());
+
+      expect(copy['peer']?.stored, isTrue);
+      copy.markUnstored();
+      expect(copy['peer']?.stored, isFalse);
+      expect(copy['peer']?.etag, '"peer-v1"');
+    });
+
+    test('a copy kept in another epoch is not used', () async {
+      final store = _FakeStore()
+        ..peerManifests['peer'] = (
+          epoch: 'epoch-0',
+          etag: '"peer-old"',
+          body: utf8.decode(
+            encodeSyncManifestUtf8(
+              SyncManifest(
+                deviceId: 'peer',
+                epoch: 'epoch-0',
+                writtenAt: DateTime.utc(2026, 7, 15, 12),
+                records: const {},
+              ),
+            ),
+          ),
+        );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [full('"peer-v1"')],
+        },
+      );
+
+      await restarted(store, transport).syncNow();
+
+      expect(transport.manifestEtags, [null]);
+      expect(store.peerManifests['peer']!.epoch, 'epoch-1');
+    });
+
+    test('a device the store no longer lists is forgotten', () async {
+      final store = _FakeStore()
+        ..peerManifests['gone'] = (
+          epoch: 'epoch-1',
+          etag: '"gone-v1"',
+          body: '{}',
+        );
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [full('"peer-v1"')],
+        },
+      );
+
+      await restarted(store, transport).syncNow();
+
+      expect(store.peerManifests.keys, ['peer']);
+    });
+
+    test('a manifest that stops being usable is forgotten', () async {
+      final store = _FakeStore();
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        manifestResponses: {
+          'peer': [
+            full('"peer-v1"'),
+            // A full answer with no validator: nothing to ask with next time.
+            SyncHttpResponse(
+              statusCode: 200,
+              kind: SyncResponseKind.success,
+              headers: const {},
+              body: encodedManifest,
+            ),
+          ],
+        },
+      );
+      final coordinator = restarted(store, transport);
+      await coordinator.syncNow();
+      expect(store.peerManifests, contains('peer'));
+
+      await coordinator.syncNow();
+
+      expect(store.peerManifests, isEmpty);
+    });
   });
 
   test(
@@ -1832,7 +3011,10 @@ void main() {
 
       expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
       expect((await coordinator.syncNow()).status, SyncPassStatus.completed);
-      expect(transport.blobCalls, 2);
+      // One download in all: peer-b's duplicate entry reuses peer-a's blob
+      // within the first pass, and the second pass reuses the body the
+      // session already verified (`SyncPeerManifestCache.fetchedBlob`).
+      expect(transport.blobCalls, 1);
     },
   );
 
@@ -2319,7 +3501,9 @@ void main() {
       transport: _FakeTransport(
         devices: ['peer'],
         manifestResponses: {
-          'peer': [_FakeTransport.response(500)],
+          // A 404, which still completes the pass. A 5xx, which ends it as a
+          // temporary failure, is covered with the other server faults.
+          'peer': [_FakeTransport.response(404)],
         },
       ),
     );
@@ -2424,6 +3608,45 @@ void main() {
       expect(store.baselineAdvances, 0);
       expect(store.epochStateClears, 1);
       expect(postMissingCall, 2);
+    },
+  );
+
+  test(
+    'a fresh attach reports what its steady continuation saw of each peer',
+    () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final store = _FakeStore(
+        epoch: null,
+        local: {candidate.address: candidate},
+        snapshotEpochs: [null, null, 'epoch-1'],
+      );
+      final peerWrittenAt = DateTime.utc(2026, 7, 14, 9);
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: _FakeTransport(
+          devices: ['device-a', 'peer'],
+          peerManifest: SyncManifest(
+            deviceId: 'peer',
+            epoch: 'epoch-1',
+            writtenAt: peerWrittenAt,
+            records: const {},
+          ),
+        ),
+      );
+      addTearDown(coordinator.dispose);
+
+      final result = await coordinator.syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(store.epochStateClears, 1, reason: 'this was a fresh attach');
+      final summary = result.peers!.single;
+      expect(summary.peerId, 'peer');
+      expect(summary.writtenAt, peerWrittenAt);
+      expect(summary.waitingCount, 1);
     },
   );
 
@@ -3402,14 +4625,16 @@ void main() {
   test(
     'skips a remote winner when its local address changed mid-pass',
     () async {
+      // An ordinary preference: a whole-collection key changed on both
+      // sides would go to review, never reaching the apply this test guards.
       final local = SyncMergeCandidate.fromBlob(
-        _setting('custom_dialects', 'local'),
+        _setting('theme_mode', 'local'),
       );
       final concurrent = SyncMergeCandidate.fromBlob(
-        _setting('custom_dialects', 'concurrent', seconds: 1),
+        _setting('theme_mode', 'concurrent', seconds: 1),
       );
       final remote = SyncMergeCandidate.fromBlob(
-        _setting('custom_dialects', 'remote', seconds: 2),
+        _setting('theme_mode', 'remote', seconds: 2),
       );
       final store = _FakeStore(
         local: {local.address: local},
@@ -3452,7 +4677,7 @@ void main() {
         utf8.decode(transport.manifestBodies.single),
       );
       expect(
-        manifest.records[SyncRecordKind.setting]!['custom_dialects'],
+        manifest.records[SyncRecordKind.setting]!['theme_mode'],
         concurrent.wireHash,
       );
     },
@@ -3728,7 +4953,8 @@ void main() {
     },
   );
 
-  test('an equal-time peer tie does not advance the baseline', () async {
+  test('an equal-time peer tie is queued for the user and does not advance '
+      'the baseline', () async {
     final local = SyncMergeCandidate.fromBlob(
       _setting('custom_dialects', 'local'),
     );
@@ -3771,12 +4997,101 @@ void main() {
 
     expect(
       result.reports.map((report) => report.code),
-      contains(SyncReportCode.equalUpdatedAt),
+      isNot(contains(SyncReportCode.equalUpdatedAt)),
+      reason: 'a queued choice replaces the report raised every pass',
     );
+    final queued = store.conflictReviewCalls.single;
+    expect(queued.single.address, local.address);
+    expect(queued.single.conflict!.candidates.single.wireHash, remote.wireHash);
     expect(store.freshAttachDedupeCalls, 0);
     expect(store.steadyStateReviewRefreshCalls, 1);
     expect(store.advancedEntries, isEmpty);
   });
+
+  test('a choice queued in an earlier pass is not reported as unreflected '
+      'even when this pass raises no conflict for it', () async {
+    // The peer never carries this device's version; what keeps the record
+    // out of the count is the queued choice alone, as when its peer blob was
+    // unreadable this pass and the merge skipped it.
+    final local = SyncMergeCandidate.fromBlob(_setting('theme_mode', 'local'));
+    final other = SyncMergeCandidate.fromBlob(
+      _setting('reduce_motion', 'other'),
+    );
+    final store = _FakeStore(local: {local.address: local})
+      ..queuedConflicts = {local.address};
+    final transport = _FakeTransport(
+      devices: ['peer'],
+      peerManifest: _manifest(
+        deviceId: 'peer',
+        records: {
+          SyncRecordKind.setting: {other.blob.id: other.wireHash},
+        },
+      ),
+      blobResponses: {
+        other.wireHash: _FakeTransport.response(
+          200,
+          body: utf8.encode(encodeSyncRecordBlob(other.blob)),
+        ),
+      },
+    );
+    final coordinator = SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+    );
+
+    final codes = <SyncReportCode>[];
+    for (var pass = 0; pass < 4; pass++) {
+      final result = await coordinator.syncNow();
+      codes.addAll(result.reports.map((report) => report.code));
+    }
+
+    expect(codes, isNot(contains(SyncReportCode.unreflectedPublication)));
+  });
+
+  test(
+    "a record awaiting the user's choice is not reported as unreflected",
+    () async {
+      final local = SyncMergeCandidate.fromBlob(
+        _setting('theme_mode', 'local'),
+      );
+      final remote = SyncMergeCandidate.fromBlob(
+        _setting('theme_mode', 'remote'),
+      );
+      final store = _FakeStore(local: {local.address: local});
+      final transport = _FakeTransport(
+        devices: ['peer'],
+        peerManifest: _manifest(
+          deviceId: 'peer',
+          records: {
+            SyncRecordKind.setting: {remote.blob.id: remote.wireHash},
+          },
+        ),
+        blobResponses: {
+          remote.wireHash: _FakeTransport.response(
+            200,
+            body: utf8.encode(encodeSyncRecordBlob(remote.blob)),
+          ),
+        },
+      );
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+      );
+
+      final codes = <SyncReportCode>[];
+      for (var pass = 0; pass < 4; pass++) {
+        final result = await coordinator.syncNow();
+        codes.addAll(result.reports.map((report) => report.code));
+      }
+
+      expect(store.conflictReviewCalls, hasLength(4));
+      expect(codes, isNot(contains(SyncReportCode.unreflectedPublication)));
+    },
+  );
 
   test('filters noncanonical peer candidates before merge planning', () async {
     final noncanonical = SyncRecordBlob(
@@ -4020,6 +5335,1777 @@ void main() {
     expect(store.advancedEntries, isEmpty);
     expect(transport.blobCalls, 0);
   });
+
+  // A failed pass says why, at the step it stopped, so the status surface can
+  // explain it instead of saying only that it failed.
+  group('failure causes', () {
+    SyncCoordinator coordinatorFor(
+      _FakeStore store,
+      _FakeTransport transport,
+    ) => SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: store,
+      transport: transport,
+    );
+
+    test(
+      'a refused manifest publication names the publish step and status',
+      () async {
+        final result = await coordinatorFor(
+          _FakeStore(),
+          _FakeTransport(putManifestStatus: 500),
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.failed);
+        expect(result.failure?.cause, SyncFailureCause.serverError);
+        expect(result.failure?.step, SyncFailureStep.publish);
+        expect(result.failure?.statusCode, 500);
+      },
+    );
+
+    test('a refused upload names the upload step and status', () async {
+      final candidate = SyncMergeCandidate.fromBlob(
+        _setting('custom_dialects', 'local'),
+      );
+      final result = await coordinatorFor(
+        _FakeStore(local: {candidate.address: candidate}),
+        _FakeTransport(postMissingStatuses: [500]),
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.serverError);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.statusCode, 500);
+    });
+
+    test(
+      'a fresh attach missing a peer manifest blames the peer, not the server',
+      () async {
+        // A `404` is the store saying it has no list for that device: the
+        // peer's to fix, and the user's to chase. A `5xx` is the server's
+        // own fault and retries quietly instead (spec §6.3 step 3).
+        final result = await coordinatorFor(
+          _FakeStore(epoch: null),
+          _FakeTransport(
+            devices: ['peer'],
+            peerManifest: _manifest(deviceId: 'peer', records: const {}),
+            manifestResponses: {
+              'peer': [_FakeTransport.response(404)],
+            },
+          ),
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.failed);
+        expect(result.failure?.cause, SyncFailureCause.peerUnavailable);
+        expect(result.failure?.step, SyncFailureStep.download);
+        expect(result.failure?.statusCode, 404);
+      },
+    );
+
+    test('a completed pass carries no failure', () async {
+      final result = await coordinatorFor(
+        _FakeStore(),
+        _FakeTransport(),
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.failure, isNull);
+    });
+  });
+
+  test('a fresh attach whose continuation fails keeps the continuation\'s '
+      'failure', () async {
+    // The fresh-attach branch rebuilds its result from the continuation's,
+    // and once rebuilt it without `failure`: the status line then had a
+    // failed pass and nothing to explain it with.
+    final result = await SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(epoch: null),
+      transport: _FakeTransport(putManifestStatus: 500),
+    ).syncNow();
+
+    expect(result.status, SyncPassStatus.failed);
+    expect(result.failure?.cause, SyncFailureCause.serverError);
+    expect(result.failure?.step, SyncFailureStep.publish);
+    expect(result.failure?.statusCode, 500);
+  });
+
+  group('store quota (spec §5.2)', () {
+    const quota = {
+      'blobs': 900,
+      'bytes': 1000,
+      'maxBlobs': 1000,
+      'maxBytes': 100000,
+    };
+    SyncCoordinator coordinatorFor(_FakeTransport transport) => SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(),
+      transport: transport,
+    );
+
+    test('a completed pass carries the quota its store lookup read', () async {
+      final result = await coordinatorFor(
+        _FakeTransport(storeQuota: quota),
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.quota?.blobs, 900);
+      expect(result.quota?.maxBlobs, 1000);
+      expect(result.quota?.bytes, 1000);
+      expect(result.quota?.maxBytes, 100000);
+      expect(result.quota?.nearlyFull, isTrue);
+    });
+
+    test(
+      'a pass that fails after its lookup still carries the quota',
+      () async {
+        final result = await coordinatorFor(
+          _FakeTransport(storeQuota: quota, putManifestStatus: 500),
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.failed);
+        expect(result.quota?.blobs, 900);
+      },
+    );
+
+    test('a fresh attach carries the quota', () async {
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(epoch: null),
+        transport: _FakeTransport(storeQuota: quota),
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.quota?.blobs, 900);
+    });
+
+    for (final (name, value) in <(String, Object)>[
+      ('a quota with a missing member', {'blobs': 1, 'bytes': 1}),
+      ('a quota with a zero cap', {...quota, 'maxBytes': 0}),
+      ('a quota with a negative count', {...quota, 'blobs': -1}),
+      ('a quota that is not an object', 'full'),
+    ]) {
+      test('$name costs only the warning, never the pass', () async {
+        final result = await coordinatorFor(
+          _FakeTransport(storeQuota: value),
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.completed);
+        expect(result.quota, isNull);
+      });
+    }
+
+    test('a server that sends no quota leaves it null', () async {
+      final result = await coordinatorFor(_FakeTransport()).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.quota, isNull);
+    });
+  });
+
+  test('the warning threshold is at 80% of either limit, not before', () {
+    SyncStoreQuota q(int blobs, int bytes) => SyncStoreQuota(
+      blobs: blobs,
+      bytes: bytes,
+      maxBlobs: 100,
+      maxBytes: 1000,
+    );
+    expect(q(79, 799).nearlyFull, isFalse);
+    expect(q(80, 0).nearlyFull, isTrue);
+    expect(q(0, 800).nearlyFull, isTrue);
+  });
+
+  // sync-1: a choice on a whole-collection setting must stop the deciding
+  // device asking, even though the other version is still published (by a
+  // peer that has not synced yet, or by a leftover manifest that never will).
+  // Another device that changed the set too is asked once more; that is the
+  // documented limit of a choice recorded only on this device (sync-spec §6.6).
+  group('a whole-collection conflict choice (spec §6.6)', () {
+    const dialects = (
+      kind: SyncRecordKind.setting,
+      recordId: 'custom_dialects',
+    );
+    final t0 = DateTime.utc(2026, 7, 15, 12);
+
+    Future<SyncMergeCandidate> current(CompendiumRepositories repos) async =>
+        (await CompendiumSyncStorage(repos).snapshot()).local[dialects]!;
+
+    /// The wire hash of each version this device is asking about.
+    Future<List<String>> choices(CompendiumRepositories repos) async => [
+      for (final row in await repos.syncLocal.listReviewQueue())
+        if (row.reason == syncConflictChoiceReason) row.candidateHash,
+    ];
+
+    /// One pass on [repos] (as `deviceId`) against [peers], each of which
+    /// publishes exactly the given copy of the dialects setting.
+    Future<void> pass(
+      CompendiumRepositories repos, {
+      required String deviceId,
+      required Map<String, SyncMergeCandidate> peers,
+    }) async {
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: deviceId,
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: _FakeTransport(
+          devices: [deviceId, ...peers.keys],
+          peerManifests: {
+            for (final entry in peers.entries)
+              entry.key: _manifest(
+                deviceId: entry.key,
+                records: {
+                  SyncRecordKind.setting: {
+                    dialects.recordId: entry.value.wireHash,
+                  },
+                },
+              ),
+          },
+          blobResponses: {
+            for (final peer in peers.values)
+              peer.wireHash: _FakeTransport.response(
+                200,
+                body: utf8.encode(encodeSyncRecordBlob(peer.blob)),
+              ),
+          },
+        ),
+      );
+      addTearDown(coordinator.dispose);
+      final result = await coordinator.syncNow();
+      expect(result.status, SyncPassStatus.completed);
+    }
+
+    /// A device attached to `epoch-1`, holding [value] set at [at], with
+    /// [agreed] (if any) as the last version every device carried.
+    Future<CompendiumRepositories> device(
+      Object value, {
+      required DateTime at,
+      SyncMergeCandidate? agreed,
+    }) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(dialects.recordId, value, at: at);
+      await repos.syncLocal.resetEpoch(
+        epoch: 'epoch-1',
+        entries: [
+          if (agreed != null)
+            SyncBaselineEntry(
+              kind: dialects.kind,
+              recordId: dialects.recordId,
+              wireHash: agreed.wireHash,
+            ),
+        ],
+      );
+      return repos;
+    }
+
+    Future<SyncMergeCandidate> agreedSet() async => current(
+      await device(const [
+        {'name': 'Agreed'},
+      ], at: t0),
+    );
+
+    test('the deciding device is not asked again while the other device '
+        'still publishes the version it chose against', () async {
+      final agreed = await agreedSet();
+      final a = await device(
+        const [
+          {'name': 'Mine'},
+        ],
+        at: t0.add(const Duration(seconds: 1)),
+        agreed: agreed,
+      );
+      final b = await device(
+        const [
+          {'name': 'Theirs'},
+        ],
+        at: t0.add(const Duration(seconds: 2)),
+        agreed: agreed,
+      );
+      final bVersion = await current(b);
+
+      await pass(a, deviceId: 'device-a', peers: {'device-b': bVersion});
+      expect(await choices(a), hasLength(1));
+
+      await CompendiumSyncStorage(a).resolveConflicts(const [
+        SyncConflictDecision(
+          kind: SyncRecordKind.setting,
+          recordId: 'custom_dialects',
+        ),
+      ]);
+      expect(await choices(a), isEmpty);
+
+      await pass(a, deviceId: 'device-a', peers: {'device-b': bVersion});
+      expect(
+        await choices(a),
+        isEmpty,
+        reason:
+            'device B has not synced since, so it still publishes the set '
+            'the user chose against; that must not raise the choice again',
+      );
+      expect(await a.settings.get(dialects.recordId), [
+        {'name': 'Mine'},
+      ]);
+    });
+
+    test('every copy of a version chosen against counts as chosen against, '
+        'not only the copy that was shown', () async {
+      // Two other devices hold the same set under different stamps, so two
+      // wire hashes. The choice shows that body once, as its newest copy; the
+      // older copy must not raise the choice again.
+      final agreed = await agreedSet();
+      final a = await device(
+        const [
+          {'name': 'Mine'},
+        ],
+        at: t0.add(const Duration(seconds: 1)),
+        agreed: agreed,
+      );
+      const theirs = [
+        {'name': 'Theirs'},
+      ];
+      final older = await current(
+        await device(theirs, at: t0.add(const Duration(seconds: 2))),
+      );
+      final newer = await current(
+        await device(theirs, at: t0.add(const Duration(seconds: 3))),
+      );
+      expect(older.wireHash, isNot(newer.wireHash));
+      final peers = {'device-b': older, 'device-c': newer};
+
+      await pass(a, deviceId: 'device-a', peers: peers);
+      expect(await choices(a), [newer.wireHash]);
+
+      await CompendiumSyncStorage(a).resolveConflicts(const [
+        SyncConflictDecision(
+          kind: SyncRecordKind.setting,
+          recordId: 'custom_dialects',
+        ),
+      ]);
+
+      await pass(a, deviceId: 'device-a', peers: peers);
+      expect(await choices(a), isEmpty);
+    });
+
+    test('a leftover manifest re-offering the version chosen against asks '
+        'nothing, on every later pass', () async {
+      // A detach and re-attach leaves the earlier attachment's manifest on
+      // the server. It never republishes, and with no baseline after the
+      // fresh attach its old set counts as changed.
+      final ghost = await current(
+        await device(const [
+          {'name': 'Before detach'},
+        ], at: t0),
+      );
+      final a = await device(const [
+        {'name': 'After re-attach'},
+      ], at: t0.add(const Duration(seconds: 1)));
+
+      await pass(a, deviceId: 'device-a', peers: {'device-a-old': ghost});
+      expect(await choices(a), hasLength(1));
+
+      await CompendiumSyncStorage(a).resolveConflicts(const [
+        SyncConflictDecision(
+          kind: SyncRecordKind.setting,
+          recordId: 'custom_dialects',
+        ),
+      ]);
+
+      for (var later = 0; later < 3; later++) {
+        await pass(a, deviceId: 'device-a', peers: {'device-a-old': ghost});
+        expect(await choices(a), isEmpty, reason: 'pass ${later + 1}');
+      }
+    });
+
+    test('another device that also changed the set is asked once more, and '
+        'taking the chosen version settles both', () async {
+      final agreed = await agreedSet();
+      final a = await device(
+        const [
+          {'name': 'Mine'},
+        ],
+        at: t0.add(const Duration(seconds: 1)),
+        agreed: agreed,
+      );
+      final b = await device(
+        const [
+          {'name': 'Theirs'},
+        ],
+        at: t0.add(const Duration(seconds: 2)),
+        agreed: agreed,
+      );
+      await pass(
+        a,
+        deviceId: 'device-a',
+        peers: {'device-b': await current(b)},
+      );
+      await CompendiumSyncStorage(a).resolveConflicts(const [
+        SyncConflictDecision(
+          kind: SyncRecordKind.setting,
+          recordId: 'custom_dialects',
+        ),
+      ]);
+      final decided = await current(a);
+
+      // The choice is recorded only on device A, so device B — whose own
+      // change the choice went against — cannot tell it from a concurrent
+      // edit, and asks (sync-spec §6.6, docs/user/settings.md).
+      await pass(b, deviceId: 'device-b', peers: {'device-a': decided});
+      final asked = await choices(b);
+      expect(asked, hasLength(1));
+      expect(asked.single, decided.wireHash);
+
+      await CompendiumSyncStorage(b).resolveConflicts([
+        SyncConflictDecision(
+          kind: SyncRecordKind.setting,
+          recordId: 'custom_dialects',
+          keepCandidateHash: decided.wireHash,
+        ),
+      ]);
+      final taken = await current(b);
+      await pass(b, deviceId: 'device-b', peers: {'device-a': decided});
+      await pass(a, deviceId: 'device-a', peers: {'device-b': taken});
+      expect(await choices(b), isEmpty);
+      expect(await choices(a), isEmpty);
+      expect(await b.settings.get(dialects.recordId), [
+        {'name': 'Mine'},
+      ]);
+    });
+  });
+
+  // A `429` or `5xx` on a record download is about the server, not the record:
+  // every request after a `429` fails the same way until the limit refills. It
+  // ends the pass's downloads as a temporary failure, and the records not yet
+  // fetched are waiting rather than skipped (spec §6.3 step 5). Reported per
+  // record, as they were, a large first download raised a skipped-records
+  // notice listing most of the library and re-fetched it into the same limit
+  // on every later pass.
+  group('a record download the server refuses for now (spec §6.3 step 5)', () {
+    final at = DateTime.utc(2026, 7, 15, 12);
+
+    /// What a peer publishes for three tags and three dances that cite them,
+    /// in apply order: every tag before any dance. With [linkAcross],
+    /// dance-0 also links to dance-2, a citation within one kind that no kind
+    /// order can put first.
+    Future<List<SyncMergeCandidate>> peerLibrary({
+      bool linkAcross = false,
+    }) async {
+      final peer = openTestRepositories();
+      for (var i = 0; i < 3; i++) {
+        final _ = await peer.tags.upsert(
+          Tag(id: 'tag-$i', name: 'Tag $i'),
+          at: at,
+        );
+      }
+      // Created last-first, so a linked dance exists before its link.
+      for (var i = 2; i >= 0; i--) {
+        await peer.dances.create(
+          Dance(
+            id: 'dance-$i',
+            title: 'Dance $i',
+            tagIds: ['tag-$i'],
+            links: [
+              if (linkAcross && i == 0)
+                DanceLink(
+                  id: 'link-0',
+                  kind: LinkKind.relatedDance,
+                  targetDanceId: 'dance-2',
+                ),
+            ],
+            createdAt: at,
+            updatedAt: at,
+          ),
+        );
+      }
+      final publication = (await CompendiumSyncStorage(
+        peer,
+      ).snapshot()).publication;
+      final candidates = [
+        for (final candidate in publication.values)
+          if (candidate != null &&
+              (candidate.address.kind == SyncRecordKind.tag ||
+                  candidate.address.kind == SyncRecordKind.dance))
+            candidate,
+      ];
+      expect(candidates, hasLength(6));
+      return candidates;
+    }
+
+    String hashOf(List<SyncMergeCandidate> library, String recordId) =>
+        library.singleWhere((c) => c.address.recordId == recordId).wireHash;
+
+    _FakeTransport transportFor(List<SyncMergeCandidate> library) =>
+        _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              for (final kind in {for (final c in library) c.address.kind})
+                kind: {
+                  for (final c in library)
+                    if (c.address.kind == kind) c.address.recordId: c.wireHash,
+                },
+            },
+          ),
+          blobResponses: _blobs(library),
+        );
+
+    for (final freshAttach in [false, true]) {
+      final label = freshAttach ? 'a fresh attach' : 'a steady-state pass';
+      test('$label stops at a 429, applies what it fetched, reports nothing, '
+          'and the next pass fetches only the rest', () async {
+        final repositories = openTestRepositories();
+        if (!freshAttach) {
+          await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
+        }
+        final library = await peerLibrary();
+        final transport = transportFor(library);
+        // The fifth download meets the limit, and so would every one after.
+        var limited = true;
+        transport.onBlob = (call, _) =>
+            limited && call >= 5 ? _FakeTransport.rateLimited : null;
+        final store = CompendiumSyncCoordinatorStore(repositories);
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: store,
+          transport: transport,
+        );
+        addTearDown(coordinator.dispose);
+
+        final first = await coordinator.syncNow();
+
+        expect(first.status, SyncPassStatus.failed);
+        expect(first.failure?.cause, SyncFailureCause.rateLimited);
+        expect(first.failure?.cause.isTransient, isTrue);
+        expect(first.failure?.step, SyncFailureStep.download);
+        expect(first.failure?.statusCode, 429);
+        expect(first.failure?.retryAfter, const Duration(seconds: 60));
+        expect(first.failure?.progressed, isTrue);
+        expect(
+          first.reports,
+          isEmpty,
+          reason:
+              'nothing was skipped: no unresolvedBlob for the records not '
+              'fetched, and no unresolvedReference for a fetched dance whose '
+              'tag was not fetched yet',
+        );
+        // Every tag first, then dances: the stop came at dance-1.
+        expect(transport.blobHashes, [
+          for (final id in ['tag-0', 'tag-1', 'tag-2', 'dance-0', 'dance-1'])
+            hashOf(library, id),
+        ]);
+        for (var i = 0; i < 3; i++) {
+          expect(await repositories.tags.getById('tag-$i'), isNotNull);
+        }
+        expect(await repositories.dances.getById('dance-0'), isNotNull);
+        expect(await repositories.dances.getById('dance-1'), isNull);
+        expect(await repositories.dances.getById('dance-2'), isNull);
+        // Nothing was published, so nothing can have been baselined: the
+        // records not fetched were decided by nothing.
+        expect(transport.manifestPuts, 0);
+        final afterFirst = await store.snapshot();
+        expect(afterFirst.baseline, isEmpty);
+        expect(afterFirst.epoch, freshAttach ? isNull : 'epoch-1');
+
+        limited = false;
+        transport.blobHashes.clear();
+        final second = await coordinator.syncNow();
+
+        expect(second.status, SyncPassStatus.completed);
+        expect(second.reports, isEmpty);
+        expect(transport.blobHashes, [
+          hashOf(library, 'dance-1'),
+          hashOf(library, 'dance-2'),
+        ], reason: 'the next pass resumes where downloads stopped');
+        expect(await repositories.dances.getById('dance-2'), isNotNull);
+        final afterSecond = await store.snapshot();
+        expect(afterSecond.epoch, 'epoch-1');
+        expect(afterSecond.baseline.keys.toSet(), {
+          for (final c in library) c.address,
+        });
+      });
+    }
+
+    test('a fetched dance linking to one not fetched yet waits with it, '
+        'unreported', () async {
+      // Kind order cannot help here: the link is dance to dance. Applied
+      // alone, dance-0 would be refused as citing an unavailable related
+      // dance — a skipped-record notice about a record merely not fetched.
+      final repositories = openTestRepositories();
+      await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
+      final library = await peerLibrary(linkAcross: true);
+      final transport = transportFor(library);
+      var limited = true;
+      transport.onBlob = (call, _) =>
+          limited && call >= 5 ? _FakeTransport.rateLimited : null;
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: CompendiumSyncCoordinatorStore(repositories),
+        transport: transport,
+      );
+      addTearDown(coordinator.dispose);
+
+      final first = await coordinator.syncNow();
+
+      expect(first.failure?.cause, SyncFailureCause.rateLimited);
+      expect(first.reports, isEmpty);
+      expect(await repositories.dances.getById('dance-0'), isNull);
+      expect(await repositories.tags.getById('tag-0'), isNotNull);
+
+      limited = false;
+      transport.blobHashes.clear();
+      final second = await coordinator.syncNow();
+
+      expect(second.status, SyncPassStatus.completed);
+      expect(second.reports, isEmpty);
+      expect(transport.blobHashes, [
+        hashOf(library, 'dance-1'),
+        hashOf(library, 'dance-2'),
+      ], reason: 'dance-0 waited in the session cache, not on the server');
+      final linked = await repositories.dances.getById('dance-0');
+      expect(linked?.links.single.targetDanceId, 'dance-2');
+    });
+
+    test('a 503 stops downloads as a server fault, not a skip', () async {
+      final library = await peerLibrary();
+      final transport = transportFor(library)
+        ..onBlob = (call, _) => call >= 2 ? _FakeTransport.response(503) : null;
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(),
+        transport: transport,
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.serverError);
+      expect(result.failure?.step, SyncFailureStep.download);
+      expect(result.failure?.statusCode, 503);
+      expect(result.reports, isEmpty);
+      expect(transport.blobCalls, 2, reason: 'no request after the 503');
+      expect(transport.manifestPuts, 0);
+    });
+
+    for (final error in <Object>[
+      const SyncTransportException('request timed out'),
+      const SocketException('connection reset'),
+    ]) {
+      test('a ${error.runtimeType} mid-download keeps what was fetched and '
+          'fails as temporary', () async {
+        final library = await peerLibrary();
+        final store = _FakeStore();
+        final transport = transportFor(library)
+          ..onBlob = (call, _) => call == 4 ? throw error : null;
+        final result = await SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: store,
+          transport: transport,
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.failed);
+        expect(result.failure?.cause.isTransient, isTrue);
+        expect(result.failure?.step, SyncFailureStep.download);
+        expect(result.failure?.progressed, isTrue);
+        expect(result.reports, isEmpty);
+        expect(transport.blobCalls, 4);
+        expect(store.writes.map((w) => w.address.recordId).toSet(), {
+          'tag-0',
+          'tag-1',
+          'tag-2',
+        });
+        expect(store.baselineAdvances, 0);
+      });
+    }
+
+    test('a 404 is still a skipped record, and carries its status', () async {
+      final library = await peerLibrary();
+      final missing = hashOf(library, 'dance-2');
+      final transport = transportFor(library)
+        ..onBlob = (_, hash) =>
+            hash == missing ? _FakeTransport.response(404) : null;
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(),
+        transport: transport,
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      final report = result.reports.singleWhere(
+        (r) => r.code == SyncReportCode.unresolvedBlob,
+      );
+      expect(report.recordId, 'dance-2');
+      expect(report.httpStatus, 404);
+    });
+
+    // A `5xx` on a peer's manifest is the server failing, not the peer
+    // (spec §6.3 step 3). On a fresh attach, which cannot finish without every
+    // peer's list, it is a temporary failure that retries by itself; it was
+    // `peerUnavailable`, a needs-you warning sending the user to their other
+    // devices. In steady state the pass carries on as before — baselined
+    // records wait, and only records new to this device arrive from the
+    // readable peers — but without the skipped-records notice, whose advice
+    // (check the other device's app version) is false here.
+    for (final status in [500, 503]) {
+      test('a $status on a peer manifest during a fresh attach is a '
+          'temporary failure', () async {
+        final transport = _FakeTransport(
+          devices: ['peer'],
+          manifestResponses: {
+            'peer': [_FakeTransport.response(status)],
+          },
+        );
+        final result = await SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: _FakeStore(epoch: null),
+          transport: transport,
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.failed);
+        expect(result.failure?.cause, SyncFailureCause.serverError);
+        expect(result.failure?.cause.isTransient, isTrue);
+        expect(result.failure?.step, SyncFailureStep.download);
+        expect(result.failure?.statusCode, status);
+        expect(result.reports, isEmpty);
+        expect(transport.manifestPuts, 0);
+      });
+
+      test('a $status on one peer manifest in steady state finishes the pass '
+          'quietly, then ends it as a temporary failure', () async {
+        final other = SyncMergeCandidate.fromBlob(
+          _setting('default_program_band', 'from other'),
+        );
+        final transport = _FakeTransport(
+          devices: ['broken', 'other'],
+          manifestResponses: {
+            'broken': [_FakeTransport.response(status)],
+          },
+          peerManifests: {
+            'other': _manifest(
+              deviceId: 'other',
+              records: {
+                SyncRecordKind.setting: {other.blob.id: other.wireHash},
+              },
+            ),
+          },
+          blobResponses: _blobs([other]),
+        );
+        final store = _FakeStore();
+        final result = await SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: store,
+          transport: transport,
+        ).syncNow();
+
+        expect(
+          result.status,
+          SyncPassStatus.failed,
+          reason:
+              'reported as completed, the pass cancels the retry and advances '
+              'the last-success clock while shared edits are held back',
+        );
+        expect(result.failure?.cause, SyncFailureCause.serverError);
+        expect(result.failure?.cause.isTransient, isTrue);
+        expect(result.failure?.step, SyncFailureStep.download);
+        expect(result.failure?.statusCode, status);
+        expect(
+          result.failure?.progressed,
+          isFalse,
+          reason:
+              'a persistent fault backs off rather than retrying each minute',
+        );
+        expect(
+          result.reports,
+          isEmpty,
+          reason: 'no skipped-records notice for a server fault',
+        );
+        expect(
+          transport.manifestPuts,
+          1,
+          reason: 'the pass still publishes before it reports the fault',
+        );
+        expect(store.baselineAdvances, 1);
+        expect(
+          store.writes.map((w) => w.address.recordId),
+          contains('default_program_band'),
+          reason:
+              'a record new to this device still arrives from the readable '
+              'peer; baselined records wait, since none is decidable without '
+              'every peer list',
+        );
+        expect(
+          store.retiredPeerAddresses,
+          isEmpty,
+          reason: 'an unread peer list still blocks alias retirement',
+        );
+      });
+    }
+
+    test('with several peer manifests failing in steady state, the pass '
+        'keeps the longest Retry-After', () async {
+      SyncHttpResponse serverError(int status, int? seconds) =>
+          SyncHttpResponse(
+            statusCode: status,
+            kind: SyncResponseKind.serverError,
+            headers: {if (seconds != null) 'retry-after': '$seconds'},
+            body: const [],
+            retryAfter: seconds == null ? null : Duration(seconds: seconds),
+          );
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(),
+        transport: _FakeTransport(
+          devices: ['none', 'short', 'long', 'later-short'],
+          manifestResponses: {
+            'none': [serverError(503, null)],
+            'short': [serverError(503, 30)],
+            'long': [serverError(500, 120)],
+            'later-short': [serverError(503, 60)],
+          },
+        ),
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(
+        result.failure?.retryAfter,
+        const Duration(seconds: 120),
+        reason: 'the retry must not come sooner than any answer allowed',
+      );
+      expect(result.failure?.statusCode, 500);
+      expect(result.reports, isEmpty);
+    });
+
+    test(
+      'a 404 on one peer manifest in steady state is still reported',
+      () async {
+        final result = await SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: _FakeStore(),
+          transport: _FakeTransport(
+            devices: ['peer'],
+            manifestResponses: {
+              'peer': [_FakeTransport.response(404)],
+            },
+          ),
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.completed);
+        final report = result.reports.single;
+        expect(report.code, SyncReportCode.malformedRecord);
+        expect(report.peerId, 'peer');
+        expect(report.httpStatus, 404);
+      },
+    );
+
+    test('a 429 on a peer manifest is a temporary failure, not an '
+        'unreadable peer', () async {
+      for (final epoch in ['epoch-1', null]) {
+        final transport = _FakeTransport(
+          devices: ['peer'],
+          manifestResponses: {
+            'peer': [_FakeTransport.rateLimited],
+          },
+        );
+        final result = await SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: _FakeStore(epoch: epoch),
+          transport: transport,
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.failed, reason: '$epoch');
+        expect(result.failure?.cause, SyncFailureCause.rateLimited);
+        expect(result.failure?.retryAfter, const Duration(seconds: 60));
+        expect(result.reports, isEmpty, reason: '$epoch');
+        expect(transport.manifestPuts, 0);
+      }
+    });
+
+    test('downloads are kind-major across peers, so a tag only another peer '
+        'lists is fetched before the dance that cites it', () async {
+      final library = await peerLibrary();
+      final tags = [
+        for (final c in library)
+          if (c.address.kind == SyncRecordKind.tag) c,
+      ];
+      final dances = [
+        for (final c in library)
+          if (c.address.kind == SyncRecordKind.dance) c,
+      ];
+      SyncManifest manifestOf(String id, List<SyncMergeCandidate> records) =>
+          _manifest(
+            deviceId: id,
+            records: {
+              records.first.address.kind: {
+                for (final c in records) c.address.recordId: c.wireHash,
+              },
+            },
+          );
+      final transport = _FakeTransport(
+        devices: ['peer-a', 'peer-b'],
+        peerManifests: {
+          'peer-a': manifestOf('peer-a', dances),
+          'peer-b': manifestOf('peer-b', tags),
+        },
+        blobResponses: _blobs(library),
+      );
+      await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(),
+        transport: transport,
+      ).syncNow();
+
+      expect(transport.blobHashes, [
+        for (final c in [...tags, ...dances]) c.wireHash,
+      ]);
+    });
+  });
+
+  group('batched record downloads (spec §6.3 step 5)', () {
+    final at = DateTime.utc(2026, 7, 15, 12);
+
+    // Zero-padded, so a manifest's canonical (sorted) order is numeric order.
+    String tagId(int i) => 'tag-${i.toString().padLeft(4, '0')}';
+    String danceId(int i) => 'dance-${i.toString().padLeft(4, '0')}';
+
+    SyncManifest manifestOf(List<SyncMergeCandidate> library) => _manifest(
+      deviceId: 'peer',
+      records: {
+        for (final kind in {for (final c in library) c.address.kind})
+          kind: {
+            for (final c in library)
+              if (c.address.kind == kind) c.address.recordId: c.wireHash,
+          },
+      },
+    );
+
+    /// A peer's [tags] tags and [dances] dances, each dance citing a tag, in
+    /// apply order: every tag before any dance.
+    Future<List<SyncMergeCandidate>> peerLibrary({
+      required int tags,
+      required int dances,
+    }) async {
+      final peer = openTestRepositories();
+      for (var i = 0; i < tags; i++) {
+        final _ = await peer.tags.upsert(
+          Tag(id: tagId(i), name: 'Tag $i'),
+          at: at,
+        );
+      }
+      for (var i = 0; i < dances; i++) {
+        await peer.dances.create(
+          Dance(
+            id: danceId(i),
+            title: 'Dance $i',
+            tagIds: [tagId(i % tags)],
+            createdAt: at,
+            updatedAt: at,
+          ),
+        );
+      }
+      final publication = (await CompendiumSyncStorage(
+        peer,
+      ).snapshot()).publication;
+      final library = [
+        for (final candidate in publication.values)
+          if (candidate != null &&
+              (candidate.address.kind == SyncRecordKind.tag ||
+                  candidate.address.kind == SyncRecordKind.dance))
+            candidate,
+      ];
+      expect(library, hasLength(tags + dances));
+      return library;
+    }
+
+    /// The order a pass needs the library's hashes in: tags, then dances,
+    /// each in manifest order.
+    List<String> fetchOrder(List<SyncMergeCandidate> library) {
+      // As the client reads it: decoded from its canonical encoding.
+      final manifest = decodeSyncManifest(
+        encodeSyncManifest(manifestOf(library)),
+      );
+      return [
+        for (final kind in [SyncRecordKind.tag, SyncRecordKind.dance])
+          ...?manifest.records[kind]?.values,
+      ];
+    }
+
+    _FakeTransport transportFor(
+      List<SyncMergeCandidate> library, {
+      Map<String, SyncHttpResponse>? blobs,
+    }) => _FakeTransport(
+      devices: ['peer'],
+      peerManifest: manifestOf(library),
+      blobResponses: blobs ?? _blobs(library),
+      batchSupported: true,
+    );
+
+    SyncCoordinator coordinatorFor(
+      CompendiumRepositories repositories,
+      _FakeTransport transport, {
+      SyncPeerManifestCache? cache,
+    }) {
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: CompendiumSyncCoordinatorStore(repositories),
+        transport: transport,
+        peerManifestCache: cache,
+      );
+      addTearDown(coordinator.dispose);
+      return coordinator;
+    }
+
+    test('a 1,000-record fresh attach completes in one pass, '
+        'one batch per $syncBlobBatchMaxHashes records', () async {
+      final library = await peerLibrary(tags: 400, dances: 600);
+      final transport = transportFor(library);
+      final repositories = openTestRepositories();
+
+      final result = await coordinatorFor(repositories, transport).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.reports, isEmpty);
+      expect(
+        transport.batchCalls,
+        (library.length / syncBlobBatchMaxHashes).ceil(),
+      );
+      expect(transport.blobCalls, 0, reason: 'no single-blob request');
+      for (final batch in transport.batchRequests) {
+        expect(batch.length, lessThanOrEqualTo(syncBlobBatchMaxHashes));
+      }
+      // Every tag a dance cites is asked for before the dance.
+      expect([
+        for (final batch in transport.batchRequests) ...batch,
+      ], fetchOrder(library));
+      final snapshot = await CompendiumSyncCoordinatorStore(
+        repositories,
+      ).snapshot();
+      expect(snapshot.epoch, 'epoch-1');
+      expect(snapshot.baseline.keys.toSet(), {
+        for (final c in library) c.address,
+      });
+    });
+
+    for (final (status, refusal) in [
+      (429, _FakeTransport.rateLimited),
+      (503, _FakeTransport.response(503)),
+    ]) {
+      test('a $status on the second batch stops downloads with no reports, '
+          'and the next pass fetches only the rest', () async {
+        final library = await peerLibrary(tags: 300, dances: 200);
+        final order = fetchOrder(library);
+        final transport = transportFor(library);
+        var refusing = true;
+        transport.onBatch = (call, _) => refusing && call == 2 ? refusal : null;
+        final repositories = openTestRepositories();
+        final coordinator = coordinatorFor(repositories, transport);
+
+        final first = await coordinator.syncNow();
+
+        expect(first.status, SyncPassStatus.failed);
+        expect(first.failure?.cause.isTransient, isTrue);
+        expect(first.failure?.step, SyncFailureStep.download);
+        expect(first.failure?.statusCode, status);
+        expect(first.failure?.progressed, isTrue);
+        expect(first.reports, isEmpty, reason: 'nothing was skipped');
+        expect(transport.batchCalls, 2, reason: 'no request after the stop');
+        expect(transport.blobCalls, 0);
+        expect(transport.manifestPuts, 0);
+        // The first batch was applied; nothing after it was.
+        expect(await repositories.tags.getById(tagId(199)), isNotNull);
+        expect(await repositories.tags.getById(tagId(200)), isNull);
+
+        refusing = false;
+        transport.batchRequests.clear();
+        final second = await coordinator.syncNow();
+
+        expect(second.status, SyncPassStatus.completed);
+        expect(second.reports, isEmpty);
+        expect([
+          for (final batch in transport.batchRequests) ...batch,
+        ], order.sublist(syncBlobBatchMaxHashes));
+        expect(await repositories.dances.getById(danceId(199)), isNotNull);
+      });
+    }
+
+    test('a hash the batch lists as missing is reported as a 404', () async {
+      final library = await peerLibrary(tags: 3, dances: 0);
+      final gone = library[1];
+      final transport = transportFor(
+        library,
+        blobs: _blobs([library[0], library[2]]),
+      );
+      final repositories = openTestRepositories();
+      await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
+
+      final result = await coordinatorFor(repositories, transport).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      final report = result.reports.single;
+      expect(report.code, SyncReportCode.unresolvedBlob);
+      expect(report.recordId, gone.address.recordId);
+      expect(report.httpStatus, 404);
+      expect(transport.batchCalls, 1);
+      expect(transport.blobCalls, 0);
+      expect(
+        await repositories.tags.getById(library[0].address.recordId),
+        isNotNull,
+      );
+    });
+
+    // `400` is what an Athenaeum from before the route answers; `413` stands
+    // for any refusal a proxy in front of the server gives a POST that a
+    // single GET would not meet; `501` is a 5xx that says "no such route".
+    for (final status in [400, 404, 405, 413, 501]) {
+      test('a $status on the batch route falls back to single requests for '
+          'the rest of the session, with no notice', () async {
+        final library = await peerLibrary(tags: 4, dances: 0);
+        final transport = transportFor(library)
+          // As `SyncHttpClient` reads it: a 501 is a `serverError`.
+          ..onBatch = (_, _) => status == 501
+              ? const SyncHttpResponse(
+                  statusCode: 501,
+                  kind: SyncResponseKind.serverError,
+                  headers: {},
+                  body: [],
+                )
+              : _FakeTransport.response(status);
+        // The third single request meets the limit, so the session needs a
+        // second pass, which must not ask for a batch again.
+        var limited = true;
+        transport.onBlob = (call, _) =>
+            limited && call == 3 ? _FakeTransport.rateLimited : null;
+        final cache = SyncPeerManifestCache();
+        final repositories = openTestRepositories();
+        final coordinator = coordinatorFor(
+          repositories,
+          transport,
+          cache: cache,
+        );
+
+        final first = await coordinator.syncNow();
+
+        expect(first.status, SyncPassStatus.failed);
+        expect(first.failure?.cause, SyncFailureCause.rateLimited);
+        expect(first.reports, isEmpty, reason: 'the fallback raises nothing');
+        expect(transport.batchCalls, 1);
+        expect(transport.blobCalls, 3);
+        expect(cache.blobBatchUnsupported, isTrue);
+
+        limited = false;
+        final second = await coordinator.syncNow();
+
+        expect(second.status, SyncPassStatus.completed);
+        expect(second.reports, isEmpty);
+        expect(transport.batchCalls, 1, reason: 'not asked again');
+        expect(
+          transport.blobHashes,
+          fetchOrder(library).sublist(0, 3) + fetchOrder(library).sublist(2),
+        );
+      });
+    }
+
+    test('a 200 that is not a batch falls back too', () async {
+      final library = await peerLibrary(tags: 2, dances: 0);
+      final transport = transportFor(library)
+        ..onBatch = (_, _) => const SyncHttpResponse(
+          statusCode: 200,
+          kind: SyncResponseKind.unexpectedStatus,
+          headers: {},
+          body: [],
+        );
+
+      final result = await coordinatorFor(
+        openTestRepositories(),
+        transport,
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(transport.blobCalls, 2);
+    });
+
+    test('a malformed batch keeps the blobs that arrived and falls back to '
+        'single requests for the rest, with no notice', () async {
+      final library = await peerLibrary(tags: 5, dances: 0);
+      final order = fetchOrder(library);
+      final transport = transportFor(library)
+        ..cutBatch = (_, index) => index == 2
+            ? const SyncEndpointException('malformed blob batch response')
+            : null;
+      final repositories = openTestRepositories();
+      final cache = SyncPeerManifestCache();
+
+      final result = await coordinatorFor(
+        repositories,
+        transport,
+        cache: cache,
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(result.reports, isEmpty);
+      expect(transport.batchCalls, 1);
+      expect(transport.blobHashes, order.sublist(2));
+      expect(cache.blobBatchUnsupported, isTrue);
+      for (final candidate in library) {
+        expect(
+          await repositories.tags.getById(candidate.address.recordId),
+          isNotNull,
+        );
+      }
+    });
+
+    test('a new store epoch asks for batches again', () {
+      final cache = SyncPeerManifestCache()
+        ..beginPublicationEpoch('epoch-1')
+        ..blobBatchUnsupported = true
+        ..beginPublicationEpoch('epoch-1');
+      expect(cache.blobBatchUnsupported, isTrue, reason: 'same epoch');
+      cache.beginPublicationEpoch('epoch-2');
+      expect(cache.blobBatchUnsupported, isFalse);
+    });
+
+    test('a stream cut mid-batch keeps and applies the blobs that arrived, '
+        'and the next pass fetches only the rest', () async {
+      final library = await peerLibrary(tags: 5, dances: 0);
+      final order = fetchOrder(library);
+      final transport = transportFor(library);
+      var cutting = true;
+      transport.cutBatch = (call, index) => cutting && index == 3
+          ? const SocketException('connection reset')
+          : null;
+      final repositories = openTestRepositories();
+      final coordinator = coordinatorFor(repositories, transport);
+
+      final first = await coordinator.syncNow();
+
+      expect(first.status, SyncPassStatus.failed);
+      expect(first.failure?.cause, SyncFailureCause.unreachable);
+      expect(first.failure?.step, SyncFailureStep.download);
+      expect(first.failure?.progressed, isTrue);
+      expect(first.reports, isEmpty);
+      for (final candidate in library) {
+        final present = await repositories.tags.getById(
+          candidate.address.recordId,
+        );
+        expect(
+          present,
+          order.indexOf(candidate.wireHash) < 3 ? isNotNull : isNull,
+          reason: candidate.address.recordId,
+        );
+      }
+
+      cutting = false;
+      transport.batchRequests.clear();
+      final second = await coordinator.syncNow();
+
+      expect(second.status, SyncPassStatus.completed);
+      expect(transport.batchRequests, [order.sublist(3)]);
+    });
+  });
+
+  group('batched uploads (spec §6.3 step 7)', () {
+    List<SyncMergeCandidate> localLibrary(int count) => [
+      for (var i = 0; i < count; i++)
+        SyncMergeCandidate.fromBlob(
+          _dance(
+            'dance-${i.toString().padLeft(4, '0')}',
+            updatedAt: DateTime.utc(2026, 7, 15, 12),
+          ),
+        ),
+    ];
+
+    _FakeTransport transportFor(List<SyncMergeCandidate> local) =>
+        _FakeTransport(
+          missingResponses: [
+            [for (final c in local) c.wireHash],
+          ],
+          uploadBatchSupported: true,
+        );
+
+    SyncCoordinator coordinatorFor(
+      List<SyncMergeCandidate> local,
+      _FakeTransport transport, {
+      SyncPeerManifestCache? cache,
+    }) {
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(local: {for (final c in local) c.address: c}),
+        transport: transport,
+        peerManifestCache: cache,
+      );
+      addTearDown(coordinator.dispose);
+      return coordinator;
+    }
+
+    test('uploads what the store is missing $syncBlobBatchMaxUploadBlobs to a '
+        'request, and publishes', () async {
+      final local = localLibrary(120);
+      final transport = transportFor(local);
+
+      final result = await coordinatorFor(local, transport).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(
+        [for (final batch in transport.putBatchRequests) batch.length],
+        [50, 50, 20],
+      );
+      expect(
+        {for (final batch in transport.putBatchRequests) ...batch},
+        {for (final c in local) c.wireHash},
+      );
+      expect(transport.putBlobHashes, isEmpty, reason: 'no single upload');
+      expect(transport.manifestPuts, 1);
+    });
+
+    for (final (status, refusal) in [
+      (429, _FakeTransport.rateLimited),
+      (503, _FakeTransport.response(503)),
+    ]) {
+      test('a $status on the second batch is a temporary failure that made '
+          'progress', () async {
+        final local = localLibrary(120);
+        final transport = transportFor(local)
+          ..onPutBatch = (call, _) => call == 2 ? refusal : null;
+
+        final result = await coordinatorFor(local, transport).syncNow();
+
+        expect(result.status, SyncPassStatus.failed);
+        expect(result.failure?.cause.isTransient, isTrue);
+        expect(result.failure?.step, SyncFailureStep.upload);
+        expect(result.failure?.statusCode, status);
+        expect(result.failure?.progressed, isTrue);
+        expect(transport.putBatchCalls, 2);
+        expect(transport.manifestPuts, 0);
+      });
+    }
+
+    for (final (status, cause) in [
+      (507, SyncFailureCause.storeFull),
+      (422, SyncFailureCause.rejected),
+    ]) {
+      test(
+        'a blob the store refuses with $status fails the pass as that '
+        'single upload would, keeping the progress of the ones it stored',
+        () async {
+          final local = localLibrary(10);
+          final refusedHash = local[4].wireHash;
+          final transport = transportFor(local)
+            ..putBatchStatus = (hash) => hash == refusedHash ? status : null;
+
+          final result = await coordinatorFor(local, transport).syncNow();
+
+          expect(result.status, SyncPassStatus.failed);
+          expect(result.failure?.cause, cause);
+          expect(result.failure?.step, SyncFailureStep.upload);
+          expect(result.failure?.statusCode, status);
+          expect(result.failure?.progressed, isTrue);
+          expect(transport.manifestPuts, 0);
+        },
+      );
+    }
+
+    for (final status in [400, 404, 405, 413, 501]) {
+      test('a $status on the batch route falls back to single uploads for the '
+          'rest of the session', () async {
+        final local = localLibrary(3);
+        final transport = transportFor(local)
+          ..onPutBatch = (_, _) => status == 501
+              ? const SyncHttpResponse(
+                  statusCode: 501,
+                  kind: SyncResponseKind.serverError,
+                  headers: {},
+                  body: [],
+                )
+              : _FakeTransport.response(status);
+        final cache = SyncPeerManifestCache();
+
+        final result = await coordinatorFor(
+          local,
+          transport,
+          cache: cache,
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.completed);
+        expect(result.reports, isEmpty);
+        expect(transport.putBatchCalls, 1);
+        expect(transport.putBlobHashes, {for (final c in local) c.wireHash});
+        expect(cache.blobUploadBatchUnsupported, isTrue);
+      });
+    }
+
+    test('a 200 that is not the route\'s answer falls back too', () async {
+      final local = localLibrary(3);
+      final transport = transportFor(local)
+        ..onPutBatch = (_, _) =>
+            _FakeTransport.response(200, body: utf8.encode('<html></html>'));
+
+      final result = await coordinatorFor(local, transport).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(transport.putBlobHashes, hasLength(3));
+    });
+
+    test('a blob over the size cap goes alone, and batches carry on', () async {
+      final local = localLibrary(3);
+      final big = SyncMergeCandidate.fromBlob(
+        _tag('big-tag', 'x' * (syncMaxBlobResponseBytes + 1)),
+      );
+      final all = [...local, big];
+      final transport = transportFor(all);
+      final cache = SyncPeerManifestCache();
+
+      final result = await coordinatorFor(
+        all,
+        transport,
+        cache: cache,
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(transport.putBlobHashes, [big.wireHash]);
+      expect(
+        {for (final batch in transport.putBatchRequests) ...batch},
+        {for (final c in local) c.wireHash},
+      );
+      expect(cache.blobUploadBatchUnsupported, isFalse);
+    });
+
+    test('a batch carries at most 2 MB of blobs', () async {
+      final large = [
+        for (var i = 0; i < 3; i++)
+          SyncMergeCandidate.fromBlob(_tag('large-$i', '$i' * 800000)),
+      ];
+      final transport = transportFor(large);
+
+      final result = await coordinatorFor(large, transport).syncNow();
+
+      expect(result.status, SyncPassStatus.completed);
+      expect(transport.putBlobHashes, isEmpty);
+      expect(
+        [for (final batch in transport.putBatchRequests) batch.length],
+        [2, 1],
+      );
+    });
+
+    test('a new store epoch asks for upload batches again', () {
+      final cache = SyncPeerManifestCache()
+        ..beginPublicationEpoch('epoch-1')
+        ..blobUploadBatchUnsupported = true;
+      expect(
+        SyncPeerManifestCache.fromMessage(
+          cache.toMessage(),
+        ).blobUploadBatchUnsupported,
+        isTrue,
+      );
+      cache.beginPublicationEpoch('epoch-2');
+      expect(cache.blobUploadBatchUnsupported, isFalse);
+    });
+  });
+
+  // The upload side of the same problem: against a server without
+  // `PUT /v1/blobs/batch` (the fake's default), a device with a large library
+  // of its own uploads one blob a request, so its first publication meets the
+  // per-IP limit too; the batched equivalents are in `batched uploads (spec
+  // §6.3 step 7)`. That already failed as a temporary `rateLimited`, never
+  // as skipped records; what it lacked was saying it had moved on, so every
+  // such pass doubled the wait before the next (spec §6.12).
+  group('an upload the server refuses for now (spec §6.12)', () {
+    final local = [
+      for (final key in [
+        'default_program_band',
+        'default_program_caller',
+        'default_import_tag_names',
+        'custom_dialects',
+      ])
+        SyncMergeCandidate.fromBlob(_setting(key, 'local $key')),
+    ];
+
+    _FakeTransport transportMissingAll() => _FakeTransport(
+      missingResponses: [
+        [for (final c in local) c.wireHash],
+      ],
+    );
+
+    Future<SyncPassResult> pass(_FakeTransport transport) => SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(local: {for (final c in local) c.address: c}),
+      transport: transport,
+    ).syncNow();
+
+    test('a 429 after some uploads is a temporary failure that made '
+        'progress', () async {
+      final transport = transportMissingAll()
+        ..onPutBlob = (call, _) =>
+            call >= 3 ? _FakeTransport.rateLimited : null;
+
+      final result = await pass(transport);
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.rateLimited);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.retryAfter, const Duration(seconds: 60));
+      expect(result.failure?.progressed, isTrue);
+      expect(result.reports, isEmpty);
+      expect(transport.putBlobHashes, hasLength(3));
+      expect(transport.manifestPuts, 0);
+    });
+
+    test('a 429 on the first upload made no progress, so the wait still '
+        'grows', () async {
+      final transport = transportMissingAll()
+        ..onPutBlob = (_, _) => _FakeTransport.rateLimited;
+
+      final result = await pass(transport);
+
+      expect(result.failure?.cause, SyncFailureCause.rateLimited);
+      expect(result.failure?.progressed, isFalse);
+    });
+
+    test('a network failure mid-upload is a temporary result, not a throw, '
+        'and says how far it got', () async {
+      final transport = transportMissingAll()
+        ..onPutBlob = (call, _) =>
+            call == 2 ? throw const SocketException('connection reset') : null;
+
+      final result = await pass(transport);
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.unreachable);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.progressed, isTrue);
+      expect(transport.manifestPuts, 0);
+    });
+
+    test('a network failure asking which blobs are missing is a temporary '
+        'result at the upload step, not a throw', () async {
+      final transport = transportMissingAll();
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(local: {for (final c in local) c.address: c}),
+        transport: _FakeTransport(
+          missingResponses: transport.missingResponses,
+          onPostMissing: (_) async =>
+              throw const SyncTransportException('request timed out'),
+        ),
+      ).syncNow();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.timedOut);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.progressed, isFalse);
+    });
+
+    test('a later missing-blob batch that fails keeps the progress of the '
+        'batches before it', () async {
+      // `POST /v1/blobs/missing` takes at most 10,000 hashes, so a library
+      // this size asks twice. The first batch's uploads all land; the second
+      // request drops. Those uploads are still progress.
+      final many = [
+        for (var i = 0; i <= 10000; i++)
+          SyncMergeCandidate.fromBlob(
+            _dance('dance-$i', updatedAt: DateTime.utc(2026, 7, 15, 12)),
+          ),
+      ];
+      var asks = 0;
+      final transport = _FakeTransport(
+        missingResponses: [
+          [for (final c in many) c.wireHash],
+        ],
+        onPostMissing: (_) async {
+          if (++asks == 2) throw const SocketException('connection reset');
+        },
+      );
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: _FakeStore(local: {for (final c in many) c.address: c}),
+        transport: transport,
+      ).syncNow();
+
+      expect(asks, 2);
+      expect(transport.putBlobHashes, isNotEmpty);
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.unreachable);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(result.failure?.progressed, isTrue);
+    });
+  });
+
+  group('a peer running a newer app version (spec §6.9)', () {
+    SyncCoordinator coordinatorFor(_FakeTransport transport) => SyncCoordinator(
+      syncId: 'configured',
+      deviceId: 'device-a',
+      store: _FakeStore(),
+      transport: transport,
+    );
+
+    test('a newer blob is reported as newerWireVersion, naming its record, '
+        'not as a malformed record', () async {
+      final newer = utf8.encode(
+        jsonEncode({
+          ..._tag('t-new', 'Newer').toJson(),
+          'v': syncWireVersion + 1,
+          'addedInV2': true,
+        }),
+      );
+      final hash = sha256Hex(newer);
+      final result = await coordinatorFor(
+        _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.tag: {'t-new': hash},
+            },
+          ),
+          blobResponses: {hash: _FakeTransport.response(200, body: newer)},
+        ),
+      ).syncNow();
+
+      final report = result.reports.singleWhere(
+        (report) => report.recordId == 't-new',
+      );
+      expect(report.code, SyncReportCode.newerWireVersion);
+      expect(report.kind, SyncRecordKind.tag);
+      expect(report.peerId, 'peer');
+    });
+
+    test('a blob carrying a field this build does not sync is applied, not '
+        'reported (spec §6.7)', () async {
+      // The envelope `v` is unchanged: a newer build added a body field, as
+      // #1714 added a program's pay. This build keeps it rather than refusing
+      // the record.
+      final tag = _tag('t-new', 'Newer').toJson();
+      final newer = utf8.encode(
+        jsonEncode({
+          ...tag,
+          'body': {...(tag['body']! as Map<String, Object?>), 'addedLater': 1},
+        }),
+      );
+      final hash = sha256Hex(newer);
+      final result = await coordinatorFor(
+        _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.tag: {'t-new': hash},
+            },
+          ),
+          blobResponses: {hash: _FakeTransport.response(200, body: newer)},
+        ),
+      ).syncNow();
+
+      expect(
+        result.reports.where((report) => report.recordId == 't-new'),
+        isEmpty,
+      );
+    });
+
+    test('a dance whose figures a newer build extended is reported as '
+        'newerFigures, naming its record', () async {
+      final dance = SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: 'd-new',
+        updatedAt: DateTime.utc(2026, 7, 15, 12),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 7, 15, 12),
+        body: const {'id': 'd-new', 'title': 'Newer'},
+      ).toJson();
+      final newer = utf8.encode(
+        jsonEncode({
+          ...dance,
+          'body': {
+            ...(dance['body']! as Map<String, Object?>),
+            'figures': [
+              {'schemaVersion': 1, 'move': 'swing', 'handHold': 'cross'},
+            ],
+          },
+        }),
+      );
+      final hash = sha256Hex(newer);
+      final result = await coordinatorFor(
+        _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.dance: {'d-new': hash},
+            },
+          ),
+          blobResponses: {hash: _FakeTransport.response(200, body: newer)},
+        ),
+      ).syncNow();
+
+      final report = result.reports.singleWhere(
+        (report) => report.recordId == 'd-new',
+      );
+      expect(report.code, SyncReportCode.newerFigures);
+      expect(report.kind, SyncRecordKind.dance);
+      expect(report.peerId, 'peer');
+    });
+
+    test('a newer manifest is reported as newerWireVersion for the peer, '
+        'naming no record', () async {
+      final newer = utf8.encode(
+        jsonEncode({
+          ..._manifest(deviceId: 'peer', records: const {}).toJson(),
+          'v': syncWireVersion + 1,
+          'addedInV2': true,
+        }),
+      );
+      final result = await coordinatorFor(
+        _FakeTransport(
+          devices: ['peer'],
+          manifestResponses: {
+            'peer': [_FakeTransport.response(200, body: newer)],
+          },
+        ),
+      ).syncNow();
+
+      final report = result.reports.singleWhere(
+        (report) => report.peerId == 'peer',
+      );
+      expect(report.code, SyncReportCode.newerWireVersion);
+      expect(report.kind, isNull);
+      expect(report.recordId, isNull);
+    });
+
+    test('a genuinely malformed blob is still malformedRecord', () async {
+      final broken = utf8.encode(jsonEncode({'v': syncWireVersion}));
+      final hash = sha256Hex(broken);
+      final result = await coordinatorFor(
+        _FakeTransport(
+          devices: ['peer'],
+          peerManifest: _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.tag: {'t-bad': hash},
+            },
+          ),
+          blobResponses: {hash: _FakeTransport.response(200, body: broken)},
+        ),
+      ).syncNow();
+
+      expect(
+        result.reports.singleWhere((r) => r.recordId == 't-bad').code,
+        SyncReportCode.malformedRecord,
+      );
+    });
+  });
 }
 
 final class _SnapshotInterleavingStore
@@ -4061,8 +7147,7 @@ final class _SnapshotInterleavingStore
       _delegate.snapshotCandidates();
 
   @override
-  Future<SyncRecordAddress> resolveAlias(SyncRecordAddress address) =>
-      _delegate.resolveAlias(address);
+  Future<SyncAliasMap> aliasMap() => _delegate.aliasMap();
 
   @override
   Future<void> markSyncUsed(String syncId) => _delegate.markSyncUsed(syncId);
@@ -4090,6 +7175,20 @@ final class _SnapshotInterleavingStore
       _delegate.refreshDanceAmbiguityReviews();
 
   @override
+  Future<int> refreshConflictReviews(
+    Iterable<SyncMergeDecision> reviews, {
+    Set<SyncRecordAddress> unevaluated = const {},
+  }) => _delegate.refreshConflictReviews(reviews, unevaluated: unevaluated);
+
+  @override
+  Future<Set<SyncRecordAddress>> queuedConflictAddresses() =>
+      _delegate.queuedConflictAddresses();
+
+  @override
+  Future<Map<SyncRecordAddress, Set<String>>> decidedAgainstHashes() =>
+      _delegate.decidedAgainstHashes();
+
+  @override
   Future<void> replaceBaseline({
     required String epoch,
     required Iterable<SyncBaselineEntry> entries,
@@ -4097,6 +7196,36 @@ final class _SnapshotInterleavingStore
 
   @override
   Future<void> clearEpochState() => _delegate.clearEpochState();
+
+  @override
+  Future<SyncPublishedManifest?> publishedManifest({required String epoch}) =>
+      _delegate.publishedManifest(epoch: epoch);
+
+  @override
+  Future<void> setPublishedManifest({
+    required String epoch,
+    required SyncPublishedManifest? published,
+  }) => _delegate.setPublishedManifest(epoch: epoch, published: published);
+
+  @override
+  Future<SyncStoredPeerManifest?> storedPeerManifest(String peerId) =>
+      _delegate.storedPeerManifest(peerId);
+
+  @override
+  Future<void> storePeerManifest(
+    String peerId,
+    SyncStoredPeerManifest manifest,
+  ) => _delegate.storePeerManifest(peerId, manifest);
+
+  @override
+  Future<void> forgetPeerManifest(String peerId) =>
+      _delegate.forgetPeerManifest(peerId);
+
+  @override
+  Future<void> retainPeerManifests({
+    required String epoch,
+    required Set<String> peerIds,
+  }) => _delegate.retainPeerManifests(epoch: epoch, peerIds: peerIds);
 
   @override
   Future<void> advanceBaseline({
@@ -4259,9 +7388,17 @@ final class _FakeStore implements SyncCoordinatorStore {
   final List<SyncApplyRecord> writes = [];
   final List<Set<SyncRecordAddress>> retiredPeerAddresses = [];
   int snapshotCalls = 0;
+  int aliasMapCalls = 0;
   int baselineAdvances = 0;
   int baselineReplacements = 0;
   int epochStateClears = 0;
+
+  /// What this device last published, as storage records it, and the epoch
+  /// it was recorded for.
+  ({String epoch, SyncPublishedManifest record})? published;
+
+  /// Every [setPublishedManifest] call, in order; null for a clear.
+  final List<SyncPublishedManifest?> publishedWrites = [];
   int freshAttachDedupeCalls = 0;
   int steadyStateReviewRefreshCalls = 0;
   final List<SyncRecordAddress> replacedEntries = [];
@@ -4290,15 +7427,14 @@ final class _FakeStore implements SyncCoordinatorStore {
   snapshotCandidates() async => currentCandidatesBuilder?.call() ?? local;
 
   @override
-  Future<SyncRecordAddress> resolveAlias(SyncRecordAddress address) async {
-    final visited = <SyncRecordAddress>{};
-    var current = address;
-    while (visited.add(current)) {
-      final next = aliases[current];
-      if (next == null) return current;
-      current = next;
+  Future<SyncAliasMap> aliasMap() async {
+    aliasMapCalls++;
+    final byKind = <SyncRecordKind, Map<String, String>>{};
+    for (final entry in aliases.entries) {
+      byKind.putIfAbsent(entry.key.kind, () => {})[entry.key.recordId] =
+          entry.value.recordId;
     }
-    return current;
+    return SyncAliasMap(byKind);
   }
 
   @override
@@ -4325,8 +7461,15 @@ final class _FakeStore implements SyncCoordinatorStore {
     return null;
   }
 
+  /// Refuses, as storage does for a reference to data this device lacks, the
+  /// records for which it returns true.
+  bool Function(SyncApplyRecord record)? refuseWrite;
+
   @override
   Future<void> write(SyncApplyRecord record) async {
+    if (refuseWrite?.call(record) ?? false) {
+      throw StateError('scripted refusal');
+    }
     writes.add(record);
   }
 
@@ -4382,12 +7525,36 @@ final class _FakeStore implements SyncCoordinatorStore {
     return const SyncFreshAttachDedupeResult(duplicateCount: 0, reports: []);
   }
 
+  /// Every pass's conflict reviews, in call order.
+  final List<List<SyncMergeDecision>> conflictReviewCalls = [];
+
+  @override
+  Future<int> refreshConflictReviews(
+    Iterable<SyncMergeDecision> reviews, {
+    Set<SyncRecordAddress> unevaluated = const {},
+  }) async {
+    conflictReviewCalls.add(reviews.toList());
+    return 0;
+  }
+
+  /// Conflict choices already queued, as storage would return them.
+  Set<SyncRecordAddress> queuedConflicts = {};
+
+  @override
+  Future<Set<SyncRecordAddress>> queuedConflictAddresses() async =>
+      queuedConflicts;
+
+  @override
+  Future<Map<SyncRecordAddress, Set<String>>> decidedAgainstHashes() async =>
+      const {};
+
   @override
   Future<void> replaceBaseline({
     required String epoch,
     required Iterable<SyncBaselineEntry> entries,
   }) async {
     _storedEpoch = epoch;
+    published = null;
     baselineReplacements++;
     final addresses = entries.map(
       (entry) => (kind: entry.kind, recordId: entry.recordId),
@@ -4400,8 +7567,57 @@ final class _FakeStore implements SyncCoordinatorStore {
   Future<void> clearEpochState() async {
     _storedEpoch = null;
     baseline.clear();
+    published = null;
+    peerManifests.clear();
     epochStateClears++;
     lifecycle.add('clearEpochState');
+  }
+
+  /// Peer manifests kept on disk (spec §5.2), as storage would hold them.
+  final Map<String, SyncStoredPeerManifest> peerManifests = {};
+
+  @override
+  Future<SyncStoredPeerManifest?> storedPeerManifest(String peerId) async =>
+      peerManifests[peerId];
+
+  @override
+  Future<void> storePeerManifest(
+    String peerId,
+    SyncStoredPeerManifest manifest,
+  ) async {
+    peerManifests[peerId] = manifest;
+  }
+
+  @override
+  Future<void> forgetPeerManifest(String peerId) async {
+    peerManifests.remove(peerId);
+  }
+
+  @override
+  Future<void> retainPeerManifests({
+    required String epoch,
+    required Set<String> peerIds,
+  }) async {
+    peerManifests.removeWhere(
+      (peerId, kept) => kept.epoch != epoch || !peerIds.contains(peerId),
+    );
+  }
+
+  @override
+  Future<SyncPublishedManifest?> publishedManifest({
+    required String epoch,
+  }) async => published?.epoch == epoch ? published!.record : null;
+
+  @override
+  Future<void> setPublishedManifest({
+    required String epoch,
+    required SyncPublishedManifest? published,
+  }) async {
+    lifecycle.add('setPublishedManifest');
+    publishedWrites.add(published);
+    this.published = published == null
+        ? null
+        : (epoch: epoch, record: published);
   }
 
   @override
@@ -4436,6 +7652,9 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     this.onManifestGet,
     this.onPostMissing,
     List<int>? postMissingStatuses,
+    this.storeQuota,
+    this.batchSupported = false,
+    this.uploadBatchSupported = false,
   }) : createResponses = [...createResponses ?? const []],
        storeEpochs = [
          ...storeEpochs ?? const ['epoch-1'],
@@ -4454,6 +7673,9 @@ final class _FakeTransport implements SyncCoordinatorTransport {
        };
 
   final SyncStoreMissingKind? missingKind;
+
+  /// The `quota` member of every store answer, verbatim; omitted when null.
+  final Object? storeQuota;
   final Completer<void>? _storeReadGate;
   final List<String> devices;
   final List<String> storeEpochs;
@@ -4462,6 +7684,43 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   final List<SyncHttpResponse> createResponses;
   final Map<String, List<SyncHttpResponse>> manifestResponses;
   final Map<String, SyncHttpResponse> blobResponses;
+
+  /// Answers the [call]th blob request (1-based) for [hash] in place of
+  /// [blobResponses] when it returns non-null; may throw, as a transport does.
+  /// Assigned after construction, so a test can lift a limit between passes.
+  SyncHttpResponse? Function(int call, String hash)? onBlob;
+
+  /// Whether [postBlobBatch] is a route this server has. Off by default, as
+  /// for an Athenaeum from before it: a test written against single requests
+  /// then exercises the fallback that keeps them, and sees only `getBlob`.
+  final bool batchSupported;
+
+  /// Answers the [call]th batch request (1-based) in place of the frames it
+  /// would otherwise serve, when it returns non-null.
+  SyncHttpResponse? Function(int call, List<String> hashes)? onBatch;
+
+  /// Throws, before the frame at [index] of the [call]th batch, what it
+  /// returns when non-null: the stream breaking with earlier frames sent.
+  Object? Function(int call, int index)? cutBatch;
+  int batchCalls = 0;
+  final batchRequests = <List<String>>[];
+
+  /// Whether [putBlobBatch] is a route this server has; off by default, for
+  /// the same reason as [batchSupported].
+  final bool uploadBatchSupported;
+
+  /// Answers the [call]th batch upload (1-based) in place of storing it, when
+  /// it returns non-null.
+  SyncHttpResponse? Function(int call, List<String> hashes)? onPutBatch;
+
+  /// The status the store gives one blob of a batch upload; `201` when null.
+  int? Function(String hash)? putBatchStatus;
+  int putBatchCalls = 0;
+  final putBatchRequests = <List<String>>[];
+
+  /// Answers the [call]th blob upload (1-based) in place of a `201` when it
+  /// returns non-null; may throw, as a transport does.
+  SyncHttpResponse? Function(int call, String hash)? onPutBlob;
   final List<List<String>> missingResponses;
   final int putManifestStatus;
   final List<int> putManifestStatuses;
@@ -4478,6 +7737,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   final manifestEtags = <String?>[];
   int manifestPuts = 0;
   int blobCalls = 0;
+  final blobHashes = <String>[];
   int postMissingCalls = 0;
   final putBlobHashes = <String>[];
   final postMissingBatches = <List<String>>[];
@@ -4502,7 +7762,11 @@ final class _FakeTransport implements SyncCoordinatorTransport {
             : storeEpochs.length - 1];
     final response = _response(
       missingKind == null || storeCalls > 1 ? 200 : 404,
-      body: jsonEncode({'epoch': epoch, 'devices': devices}),
+      body: jsonEncode({
+        'epoch': epoch,
+        'devices': devices,
+        'quota': ?storeQuota,
+      }),
     );
     return SyncStoreResult(
       response: response,
@@ -4568,18 +7832,82 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   @override
   Future<SyncHttpResponse> getBlob(String hash) async {
     blobCalls++;
+    blobHashes.add(hash);
     requestLog.add('blob');
-    return blobResponses[hash] ?? _response(404);
+    return onBlob?.call(blobCalls, hash) ??
+        blobResponses[hash] ??
+        _response(404);
+  }
+
+  /// Serves a batch from [blobResponses]: a `200` there is the blob, anything
+  /// else is `missing`, as the server answers a hash it cannot serve.
+  @override
+  Future<SyncHttpResponse> postBlobBatch(
+    List<String> hashes, {
+    required void Function(SyncBlobBatchFrame frame) onFrame,
+  }) async {
+    batchCalls++;
+    batchRequests.add([...hashes]);
+    if (!batchSupported) return _response(404);
+    requestLog.add('batch');
+    final scripted = onBatch?.call(batchCalls, hashes);
+    if (scripted != null) return scripted;
+    for (final (index, hash) in hashes.indexed) {
+      final cut = cutBatch?.call(batchCalls, index);
+      if (cut != null) throw cut;
+      final blob = blobResponses[hash];
+      onFrame(
+        blob != null && blob.isSuccess
+            ? SyncBlobBatchFrame(
+                SyncBlobBatchFrameStatus.blob,
+                hash,
+                Uint8List.fromList(blob.body),
+              )
+            : SyncBlobBatchFrame(SyncBlobBatchFrameStatus.missing, hash),
+      );
+    }
+    return _response(200);
   }
 
   @override
   Future<SyncHttpResponse> putBlob(String hash, List<int> body) async {
     putBlobHashes.add(hash);
-    return _response(201);
+    return onPutBlob?.call(putBlobHashes.length, hash) ?? _response(201);
+  }
+
+  @override
+  Future<SyncHttpResponse> putBlobBatch(
+    List<({String hash, List<int> body})> blobs,
+  ) async {
+    putBatchCalls++;
+    final hashes = [for (final blob in blobs) blob.hash];
+    putBatchRequests.add(hashes);
+    if (!uploadBatchSupported) return _response(404);
+    requestLog.add('put-batch');
+    final scripted = onPutBatch?.call(putBatchCalls, hashes);
+    if (scripted != null) return scripted;
+    return _response(
+      200,
+      body: jsonEncode({
+        'results': [
+          for (final hash in hashes)
+            {'hash': hash, 'status': putBatchStatus?.call(hash) ?? 201},
+        ],
+      }),
+    );
   }
 
   static SyncHttpResponse response(int status, {List<int>? body}) =>
       _response(status, body: body == null ? null : utf8.decode(body));
+
+  /// The server's `429`, exactly as `SyncHttpClient` reads it.
+  static const rateLimited = SyncHttpResponse(
+    statusCode: 429,
+    kind: SyncResponseKind.rateLimited,
+    headers: {'retry-after': '60'},
+    body: [],
+    retryAfter: Duration(seconds: 60),
+  );
 
   static SyncHttpResponse _response(
     int status, {
@@ -4592,7 +7920,8 @@ final class _FakeTransport implements SyncCoordinatorTransport {
       201 => SyncResponseKind.created,
       404 => SyncResponseKind.notFound,
       409 => SyncResponseKind.conflict,
-      500 => SyncResponseKind.serverError,
+      403 => SyncResponseKind.invalidSyncId,
+      500 || 503 => SyncResponseKind.serverError,
       _ => SyncResponseKind.unexpectedStatus,
     },
     headers: headers,

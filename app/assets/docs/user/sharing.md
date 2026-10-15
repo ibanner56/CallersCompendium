@@ -7,7 +7,7 @@ caller — and, just as importantly, what the app deliberately leaves behind.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Export**, **Copy set list**, and **Continue**. The
-> first time a dance term appears it links to the [Glossary](./glossary.md), so
+> first time a dance term appears it links to [App terms](./glossary.md), so
 > you can get a plain-language definition without losing your place.
 
 Looking for a copy of *everything* — your whole collection, your settings, your
@@ -31,6 +31,9 @@ the dance's **More actions** menu.) There are five actions:
 operating system's own dialog opens, and from there you can send it to a printer,
 save it as a PDF, or cancel. This works on every platform the app runs on,
 including Linux.
+
+A PDF can print Japanese text (hiragana, katakana and the everyday kanji). Rarer
+kanji, Chinese-only characters and Korean may still show as empty boxes.
 
 ### Which words a dance export uses
 
@@ -61,6 +64,10 @@ sources it cites, and its [custom fields](./glossary.md#custom-field). The only
 difference is the name — `.ccshare` or `.json`. Choreographers' private details
 are removed (see [What stays private](#what-stays-private)), and custom fields
 with **Include in sharing** turned off are left out.
+
+On Linux the system has no file share sheet, so **Share dance file** is
+labelled **Save dance file…** and saves the file through the system dialog
+instead; choosing **Share** in the JSON dialog does the same.
 
 Opening either file in Caller's Compendium goes through import review before
 anything is added. Tags, sources, and custom fields the recipient already has are
@@ -129,8 +136,18 @@ evening to another caller. It builds a single self-contained file — a
 
 - the program itself;
 - every dance the program's slots refer to;
-- the choreographers credited on those dances; and
+- the choreographers credited on those dances;
+- the tags, published sources, and [custom fields](./glossary.md#custom-field)
+  those dances use, so the recipient can import them completely; and
 - the program's linked [venue](./glossary.md#venue), if it has one.
+
+On Linux the system has no file share sheet, so this action is labelled **Save
+program file…** and saves the file through the system dialog instead.
+
+Custom fields with **Include in sharing** turned off are left out, values
+included, exactly as they are for a single dance. If a definition one of the
+dances depends on cannot be found, the share stops with an error instead of
+sending the file.
 
 The file goes to your system's share sheet, so how it travels is up to you —
 AirDrop, email, a messaging app, a USB stick.
@@ -160,7 +177,9 @@ itself is the name: `.json` instead of `.ccshare`. A
 [JSON file](./glossary.md#json-file) is a plain-text format that almost any
 device can open.
 
-On desktop, **Save** opens a native file-save dialog. On Android and iOS it
+On Linux, the third button reads **Save as…** instead of **Share** and saves the
+file through the system dialog, because there is no file share sheet to open. On desktop, **Save** opens a native
+file-save dialog. On Android and iOS it
 opens the platform's document-save flow so you can choose a user-accessible
 location. If the platform reports the destination, the confirmation names it.
 The native save flow handles an existing filename rather than silently
@@ -218,8 +237,10 @@ leave, and one thing asks you first.
   country, and postcode of a saved venue record are left out of everything you
   share, print, or copy — the `.ccshare` file, the JSON file, the PDF, and the
   text set list alike. There is no tick box for these: they are never sent. What
-  does travel is the venue's **name**, plus its website, time, schedule, price,
-  sponsor, event name, and notes, so a recipient still knows which hall you mean.
+  does travel is the venue's **name**, so a recipient still knows which hall you
+  mean; the `.ccshare` and JSON files also carry its website, time, schedule,
+  price, sponsor, event name, and notes, and the PDF prints all of those except
+  the notes.
 
   Your own copy is untouched — the address is still there in the venue record,
   and a [backup](./backup-portability.md) still contains it. This is only about
@@ -248,8 +269,10 @@ contacts, each with a name, phone, and email. **Every box starts unticked.**
 
 Whatever you leave unticked is genuinely absent from the file, not hidden inside
 it. The venue's other details — its name, website, time, schedule, price, sponsor,
-event name, and notes — are not personal contact details and are always
-included. Its street address is always left out; see **Never included** above.
+event name, and notes — are not personal contact details, so they are not part
+of this choice: the `.ccshare` and JSON files carry all of them, and the PDF
+prints all of them except the notes. Its street address is always left out; see
+**Never included** above.
 
 You will not see this dialog when there is nothing to ask about: a program with no
 linked venue, or a venue with no contact people recorded, exports straight away.
@@ -291,5 +314,5 @@ your own address book — it is for you, not for sharing.
 - **Record the details that travel with a dance:**
   [Write & edit dances](./authoring.md)
 
-Not sure what a word means? The [Glossary](./glossary.md) has plain definitions
+Not sure what a word means? [App terms](./glossary.md) has plain definitions
 for every term used across these guides.

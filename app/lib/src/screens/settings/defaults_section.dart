@@ -11,6 +11,7 @@ import '../../data/collection_facets_scope.dart';
 import '../../data/collection_tile_fields_scope.dart';
 import '../../data/dance_share_fields_scope.dart';
 import '../../data/display_defaults.dart';
+import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
 import '../../diagnostics/error_log.dart';
@@ -28,6 +29,8 @@ import '../../widgets/figure_param_editors.dart';
 import '../../widgets/move_autocomplete.dart';
 import '../../widgets/collection_picker.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/settings_dropdown_row.dart';
+import 'default_import_tags_editor.dart';
 import 'settings_keys.dart';
 
 /// The Defaults settings section: owns all Display/Program/Dance-authoring
@@ -118,6 +121,12 @@ class _DefaultsSectionState extends State<DefaultsSection> {
 
   final List<StartingProgramTemplateEntry> _startingProgramTemplate = [];
   bool _startingProgramTemplateUserSet = false;
+
+  /// Dance titles for the starting-program list, from the titles-only
+  /// projection (`null` until it resolves, and for good if it failed). The full
+  /// [CollectionData] is loaded only when the picker opens.
+  Map<String, String>? _danceTitles;
+  bool _danceTitlesRequested = false;
   CollectionData? _collectionData;
   Future<CollectionData?>? _collectionDataLoad;
 
@@ -140,246 +149,240 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     if (_defaultsRequested) return;
     _defaultsRequested = true;
     final repos = RepositoriesScope.of(context);
-    repos.settings
-        .get(kDefaultCollectionSortKey)
-        .then((stored) {
-          if (!mounted || _defaultSortUserSet) return;
-          setState(() {
-            _defaultCollectionSort = sortDefaultSettingFromStored(
-              stored,
-              collectionSortFromName,
-              CollectionSort.title,
-            );
-          });
-        })
-        .catchError((_) {
-          // diagnostics: silent — default-collection-sort read failed; falls
-          // back to the built-in title/ascending default.
-          if (!mounted || _defaultSortUserSet) return;
-          setState(
-            () => _defaultCollectionSort = const SortDefaultSetting.concrete(
-              CollectionSort.title,
-            ),
-          );
-        });
-    repos.settings
-        .get(kDefaultProgramSortKey)
-        .then((stored) {
-          if (!mounted || _defaultProgramSortUserSet) return;
-          setState(() {
-            _defaultProgramSort = sortDefaultSettingFromStored(
-              stored,
-              programSortFromName,
-              ProgramSort.title,
-            );
-          });
-        })
-        .catchError((_) {
-          // diagnostics: silent — default-program-sort read failed; falls
-          // back to the built-in title/ascending default.
-          if (!mounted || _defaultProgramSortUserSet) return;
-          setState(
-            () => _defaultProgramSort = const SortDefaultSetting.concrete(
-              ProgramSort.title,
-            ),
-          );
-        });
-    repos.settings
-        .get(kDefaultProgramCallerKey)
-        .then((stored) {
-          if (!mounted || _defaultCallerUserSet) return;
-          final value = stored is String ? stored.trim() : '';
-          if (value.isNotEmpty) {
-            _defaultProgramCaller.text = value;
-          }
-        })
-        .catchError((_) {
-          /* diagnostics: silent — fall back to a blank caller field */
-        });
-    repos.settings
-        .get(kDefaultProgramBandKey)
-        .then((stored) {
-          if (!mounted || _defaultBandUserSet) return;
-          final value = stored is String ? stored.trim() : '';
-          if (value.isNotEmpty) {
-            _defaultProgramBand.text = value;
-          }
-        })
-        .catchError((_) {
-          /* diagnostics: silent — fall back to a blank band field */
-        });
-    repos.settings
-        .get(kDefaultDanceFormKey)
-        .then((stored) {
-          if (!mounted || _defaultDanceFormUserSet) return;
-          setState(() => _defaultDanceForm = danceFormFromStored(stored));
-        })
-        .catchError((_) {
-          // diagnostics: silent — default-dance-form read failed; falls back
-          // to the built-in contra default.
-          if (!mounted || _defaultDanceFormUserSet) return;
-          setState(() => _defaultDanceForm = DanceForm.contra);
-        });
-    repos.settings
-        .get(kDefaultDanceFormationShapeKey)
-        .then((stored) {
-          if (!mounted || _defaultDanceFormationShapeUserSet) return;
-          setState(
-            () =>
-                _defaultDanceFormationShape = formationShapeFromStored(stored),
-          );
-        })
-        .catchError((_) {
-          // diagnostics: silent — default-formation-shape read failed; falls
-          // back to the built-in duple-improper default.
-          if (!mounted || _defaultDanceFormationShapeUserSet) return;
-          setState(
-            () => _defaultDanceFormationShape = FormationShape.dupleImproper,
-          );
-        });
-    repos.settings
-        .get(kDefaultDanceProgressionKey)
-        .then((stored) {
-          if (!mounted || _defaultDanceProgressionUserSet) return;
-          setState(
-            () => _defaultDanceProgression = progressionFromStored(stored),
-          );
-        })
-        .catchError((_) {
-          // diagnostics: silent — default-progression read failed; falls back
-          // to the built-in single-progression default.
-          if (!mounted || _defaultDanceProgressionUserSet) return;
-          setState(() => _defaultDanceProgression = Progression.single);
-        });
-    repos.settings
-        .get(kDefaultDancePhraseStructureKey)
-        .then((stored) {
-          if (!mounted || _defaultDancePhraseUserSet) return;
-          final raw = dancePhraseStructureRawFromStored(stored);
-          if (raw.isNotEmpty) {
-            _defaultDancePhrase.text = raw;
-          }
-        })
-        .catchError((_) {
-          /* diagnostics: silent — fall back to a blank (standard) phrase field */
-        });
-    repos.settings
-        .get(kDefaultDanceFiguresTemplateKey)
-        .then((stored) {
-          if (!mounted || _defaultDanceFiguresUserSet) return;
-          setState(() {
+    unawaited(
+      Future.wait([
+        _loadSetting<SortDefaultSetting<CollectionSort>>(
+          key: kDefaultCollectionSortKey,
+          decode: (stored) => sortDefaultSettingFromStored(
+            stored,
+            collectionSortFromName,
+            CollectionSort.title,
+          ),
+          userSet: () => _defaultSortUserSet,
+          apply: (value) => setState(() => _defaultCollectionSort = value),
+          fallback: const SortDefaultSetting.concrete(CollectionSort.title),
+        ),
+        _loadSetting<SortDefaultSetting<ProgramSort>>(
+          key: kDefaultProgramSortKey,
+          decode: (stored) => sortDefaultSettingFromStored(
+            stored,
+            programSortFromName,
+            ProgramSort.title,
+          ),
+          userSet: () => _defaultProgramSortUserSet,
+          apply: (value) => setState(() => _defaultProgramSort = value),
+          fallback: const SortDefaultSetting.concrete(ProgramSort.title),
+        ),
+        // A failed read of a free-text default keeps the blank field.
+        _loadSetting<String>(
+          key: kDefaultProgramCallerKey,
+          decode: (stored) => stored is String ? stored.trim() : '',
+          userSet: () => _defaultCallerUserSet,
+          apply: (value) {
+            if (value.isNotEmpty) _defaultProgramCaller.text = value;
+          },
+        ),
+        _loadSetting<String>(
+          key: kDefaultProgramBandKey,
+          decode: (stored) => stored is String ? stored.trim() : '',
+          userSet: () => _defaultBandUserSet,
+          apply: (value) {
+            if (value.isNotEmpty) _defaultProgramBand.text = value;
+          },
+        ),
+        _loadSetting<DanceForm>(
+          key: kDefaultDanceFormKey,
+          decode: danceFormFromStored,
+          userSet: () => _defaultDanceFormUserSet,
+          apply: (value) => setState(() => _defaultDanceForm = value),
+          fallback: DanceForm.contra,
+        ),
+        _loadSetting<FormationShape>(
+          key: kDefaultDanceFormationShapeKey,
+          decode: formationShapeFromStored,
+          userSet: () => _defaultDanceFormationShapeUserSet,
+          apply: (value) => setState(() => _defaultDanceFormationShape = value),
+          fallback: FormationShape.dupleImproper,
+        ),
+        _loadSetting<Progression>(
+          key: kDefaultDanceProgressionKey,
+          decode: progressionFromStored,
+          userSet: () => _defaultDanceProgressionUserSet,
+          apply: (value) => setState(() => _defaultDanceProgression = value),
+          fallback: Progression.single,
+        ),
+        _loadSetting<String>(
+          key: kDefaultDancePhraseStructureKey,
+          decode: dancePhraseStructureRawFromStored,
+          userSet: () => _defaultDancePhraseUserSet,
+          apply: (value) {
+            if (value.isNotEmpty) _defaultDancePhrase.text = value;
+          },
+        ),
+        // The three figure templates keep their pre-seeded defaults on a
+        // failed read.
+        _loadSetting<List<Figure>>(
+          key: kDefaultDanceFiguresTemplateKey,
+          decode: danceFiguresTemplateFromStored,
+          userSet: () => _defaultDanceFiguresUserSet,
+          apply: (figures) => setState(() {
             _defaultDanceFigureDrafts
               ..clear()
-              ..addAll(
-                danceFiguresTemplateFromStored(
-                  stored,
-                ).map(FigureDraft.fromFigure),
-              );
-          });
-        })
-        .catchError((_) {
-          /* diagnostics: silent — keep the pre-seeded default `stand_still × 8` template */
-        });
-    repos.settings
-        .get(kDefaultMeanwhileSideFiguresKey)
-        .then((stored) {
-          if (!mounted || _defaultMeanwhileSidesUserSet) return;
-          setState(() {
+              ..addAll(figures.map(FigureDraft.fromFigure));
+          }),
+        ),
+        _loadSetting<List<Figure>>(
+          key: kDefaultMeanwhileSideFiguresKey,
+          decode: meanwhileSideFiguresFromStored,
+          userSet: () => _defaultMeanwhileSidesUserSet,
+          apply: (figures) => setState(() {
             _defaultMeanwhileSideDrafts
               ..clear()
-              ..addAll(
-                meanwhileSideFiguresFromStored(
-                  stored,
-                ).map(FigureDraft.fromFigure),
-              );
-          });
-        })
-        .catchError((_) {
-          /* diagnostics: silent — keep the safe two-side stand-still default */
-        });
-    repos.settings
-        .get(kDefaultModifierFiguresKey)
-        .then((stored) {
-          if (!mounted || _defaultModifierUserSet) return;
-          setState(() {
+              ..addAll(figures.map(FigureDraft.fromFigure));
+          }),
+        ),
+        _loadSetting<List<Figure>>(
+          key: kDefaultModifierFiguresKey,
+          decode: modifierFiguresFromStored,
+          userSet: () => _defaultModifierUserSet,
+          apply: (figures) => setState(() {
             _defaultModifierDrafts
               ..clear()
-              ..addAll(
-                modifierFiguresFromStored(stored).map(FigureDraft.fromFigure),
-              );
-          });
-        })
-        .catchError((_) {
-          /* diagnostics: silent — keep the safe two-figure modifier default */
-        });
-    repos.settings
-        .get(kDefaultMoveParamOverridesKey)
-        .then((stored) {
-          if (!mounted || _defaultMoveParamOverridesUserSet) return;
-          setState(() {
-            _defaultMoveParamOverrides = moveParamOverridesFromStored(stored);
+              ..addAll(figures.map(FigureDraft.fromFigure));
+          }),
+        ),
+        // A failed read keeps the empty override map (pure taxonomy defaults).
+        _loadSetting<Map<String, Map<String, Object?>>>(
+          key: kDefaultMoveParamOverridesKey,
+          decode: moveParamOverridesFromStored,
+          userSet: () => _defaultMoveParamOverridesUserSet,
+          apply: (overrides) => setState(() {
+            _defaultMoveParamOverrides = overrides;
             // Merge (don't clear): a move the user added before this read
             // resolves isn't persisted yet, so clearing would make it vanish.
-            for (final moveId in _defaultMoveParamOverrides.keys) {
+            for (final moveId in overrides.keys) {
               if (!_moveDefaultsShown.contains(moveId)) {
                 _moveDefaultsShown.add(moveId);
               }
             }
-          });
-        })
-        .catchError((_) {
-          /* diagnostics: silent — keep the empty override map (pure taxonomy defaults) */
-        });
-    repos.customFieldDefs
-        .listAll()
-        .then((defs) {
-          if (!mounted) return;
-          setState(
-            () => _filterFieldDefs = [
-              for (final def in defs)
-                if (def.searchable) def,
-            ],
-          );
-        })
-        .catchError((_) {
-          /* diagnostics: silent — no custom-field filter checkboxes are offered */
-        });
-    repos.settings
-        .get(kFreeTextEntryKey)
-        .then((stored) {
-          if (!mounted) return;
-          setState(() => _freeTextEntry = stored is bool ? stored : false);
-        })
-        .catchError((_) {
-          // diagnostics: silent — free-text-entry read failed; falls back to
-          // the built-in off default.
-          if (!mounted) return;
-          setState(() => _freeTextEntry = false);
-        });
-    repos.settings
-        .get(kDefaultStartingProgramKey)
-        .then((stored) {
-          if (!mounted || _startingProgramTemplateUserSet) return;
-          setState(() {
+          }),
+        ),
+        // Not a settings key, but the same guarded shape: a failed read offers
+        // no custom-field filter checkboxes.
+        _guardedRead<List<CustomFieldDef>, List<CustomFieldDef>>(
+          read: repos.customFieldDefs.listAll,
+          decode: (defs) => [
+            for (final def in defs)
+              if (def.searchable) def,
+          ],
+          apply: (defs) => setState(() => _filterFieldDefs = defs),
+        ),
+        _loadSetting<bool>(
+          key: kFreeTextEntryKey,
+          decode: (stored) => stored is bool ? stored : false,
+          apply: (value) => setState(() => _freeTextEntry = value),
+          fallback: false,
+        ),
+        // A failed read keeps the empty starting-program template.
+        _loadSetting<List<StartingProgramTemplateEntry>>(
+          key: kDefaultStartingProgramKey,
+          decode: startingProgramTemplateFromStored,
+          userSet: () => _startingProgramTemplateUserSet,
+          apply: (entries) => setState(() {
             _startingProgramTemplate
               ..clear()
-              ..addAll(startingProgramTemplateFromStored(stored));
-          });
-        })
-        .catchError((_) {
-          /* diagnostics: silent — keep the empty starting-program template */
-        });
+              ..addAll(entries);
+          }),
+        ),
+      ]),
+    );
+  }
+
+  /// Reads settings [key] once and hands the decoded value to [apply].
+  ///
+  /// The read is dropped when the section has gone or when [userSet] reports
+  /// that the user edited *this* control first, so a slow read can never
+  /// clobber an edit. [userSet] is a per-key callback, never shared: one key's
+  /// edit must not suppress another key's read. A failed read applies
+  /// [fallback] under the same two guards; with no [fallback] the control keeps
+  /// the value it was pre-seeded with.
+  Future<void> _loadSetting<T>({
+    required String key,
+    required T Function(Object?) decode,
+    required void Function(T) apply,
+    bool Function()? userSet,
+    T? fallback,
+  }) {
+    final settings = RepositoriesScope.of(context).settings;
+    return _guardedRead<Object?, T>(
+      read: () => settings.get(key),
+      decode: decode,
+      apply: apply,
+      userSet: userSet,
+      fallback: fallback,
+    );
+  }
+
+  /// The one guarded read behind every Defaults control, whether its source is
+  /// a settings key or a repository query; see [_loadSetting] for the rules.
+  Future<void> _guardedRead<S, T>({
+    required Future<S> Function() read,
+    required T Function(S) decode,
+    required void Function(T) apply,
+    bool Function()? userSet,
+    T? fallback,
+  }) async {
+    bool superseded() => !mounted || (userSet?.call() ?? false);
+    try {
+      final stored = await read();
+      if (superseded()) return;
+      apply(decode(stored));
+    } catch (_) {
+      // diagnostics: silent — a failed Defaults read leaves the control on its
+      // built-in default (or the supplied fallback); there is nothing to retry.
+      if (superseded() || fallback == null) return;
+      apply(fallback);
+    }
   }
 
   Future<void> _persistStartingProgramTemplate() async {
     _startingProgramTemplateUserSet = true;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(
+    await persistSetting(
+      repos.settings,
       kDefaultStartingProgramKey,
       encodeStartingProgramTemplate(_startingProgramTemplate),
     );
   }
 
+  /// Loads the dance titles the starting-program list prints, once per section
+  /// lifetime. A failure is logged once and not retried: [build] calls this on
+  /// every rebuild, so retrying here would reload and re-log each time.
+  void _ensureDanceTitlesLoaded(BuildContext context) {
+    if (_danceTitlesRequested) return;
+    _danceTitlesRequested = true;
+    final dances = RepositoriesScope.of(context).dances;
+    unawaited(_loadDanceTitles(dances));
+  }
+
+  Future<void> _loadDanceTitles(DanceRepository dances) async {
+    try {
+      final rows = await dances.listIdsAndTitles();
+      if (!mounted) return;
+      setState(
+        () => _danceTitles = {for (final row in rows) row.id: row.title},
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'defaults_section.starting_program_titles',
+      );
+    }
+  }
+
+  /// The full collection snapshot, for the dance picker only — [build] never
+  /// calls this. Each explicit tap on "add dance" retries a failed load.
   Future<CollectionData?> _ensureCollectionDataLoaded(
     BuildContext context,
   ) async {
@@ -390,7 +393,15 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     final load = () async {
       try {
         final data = await CollectionData.load(repos);
-        if (mounted) setState(() => _collectionData = data);
+        if (mounted) {
+          setState(() {
+            _collectionData = data;
+            _danceTitles = {
+              for (final entry in data.dancesById.entries)
+                entry.key: entry.value.title,
+            };
+          });
+        }
         return data;
       } catch (error, stackTrace) {
         logCaughtError(
@@ -455,13 +466,17 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   Future<void> _onDefaultProgramCallerChanged(String value) async {
     _defaultCallerUserSet = true;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultProgramCallerKey, value.trim());
+    await persistSetting(
+      repos.settings,
+      kDefaultProgramCallerKey,
+      value.trim(),
+    );
   }
 
   Future<void> _onDefaultProgramBandChanged(String value) async {
     _defaultBandUserSet = true;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultProgramBandKey, value.trim());
+    await persistSetting(repos.settings, kDefaultProgramBandKey, value.trim());
   }
 
   Future<void> _onDefaultDanceFormChanged(DanceForm value) async {
@@ -470,7 +485,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       _defaultDanceForm = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultDanceFormKey, value.name);
+    await persistSetting(repos.settings, kDefaultDanceFormKey, value.name);
   }
 
   Future<void> _onDefaultDanceFormationShapeChanged(
@@ -481,7 +496,11 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       _defaultDanceFormationShape = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultDanceFormationShapeKey, value.name);
+    await persistSetting(
+      repos.settings,
+      kDefaultDanceFormationShapeKey,
+      value.name,
+    );
   }
 
   Future<void> _onDefaultDanceProgressionChanged(Progression value) async {
@@ -490,13 +509,21 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       _defaultDanceProgression = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultDanceProgressionKey, value.name);
+    await persistSetting(
+      repos.settings,
+      kDefaultDanceProgressionKey,
+      value.name,
+    );
   }
 
   Future<void> _onDefaultDancePhraseChanged(String value) async {
     _defaultDancePhraseUserSet = true;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultDancePhraseStructureKey, value.trim());
+    await persistSetting(
+      repos.settings,
+      kDefaultDancePhraseStructureKey,
+      value.trim(),
+    );
   }
 
   /// Persists the current starting-figures template as a `figures_json` string
@@ -509,7 +536,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       for (final draft in _defaultDanceFigureDrafts) ?draft.toFigure(),
     ];
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(
+    await persistSetting(
+      repos.settings,
       kDefaultDanceFiguresTemplateKey,
       encodeFigures(figures),
     );
@@ -523,7 +551,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       for (final draft in _defaultMeanwhileSideDrafts) ?draft.toFigure(),
     ];
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(
+    await persistSetting(
+      repos.settings,
       kDefaultMeanwhileSideFiguresKey,
       encodeMeanwhileSideFigures(figures),
     );
@@ -538,9 +567,11 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     final figures = [
       for (final draft in _defaultModifierDrafts) ?draft.toFigure(),
     ];
-    await RepositoriesScope.of(
-      context,
-    ).settings.set(kDefaultModifierFiguresKey, encodeModifierFigures(figures));
+    await persistSetting(
+      RepositoriesScope.of(context).settings,
+      kDefaultModifierFiguresKey,
+      encodeModifierFigures(figures),
+    );
   }
 
   void _groupDefaultDanceFigures(FigureDraft draft) {
@@ -577,7 +608,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   Future<void> _persistMoveParamOverrides() async {
     _defaultMoveParamOverridesUserSet = true;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(
+    await persistSetting(
+      repos.settings,
       kDefaultMoveParamOverridesKey,
       encodeMoveParamOverrides(_defaultMoveParamOverrides),
     );
@@ -644,7 +676,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       _defaultCollectionSort = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(
+    await persistSetting(
+      repos.settings,
       kDefaultCollectionSortKey,
       encodeSortDefaultSetting(value),
     );
@@ -658,7 +691,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       _defaultProgramSort = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(
+    await persistSetting(
+      repos.settings,
       kDefaultProgramSortKey,
       encodeSortDefaultSetting(value),
     );
@@ -667,7 +701,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   @override
   Widget build(BuildContext context) {
     _ensureDefaultsLoaded(context);
-    unawaited(_ensureCollectionDataLoaded(context));
+    _ensureDanceTitlesLoaded(context);
     return _DefaultsView(
       programCallerController: _defaultProgramCaller,
       onDefaultProgramCallerChanged: _onDefaultProgramCallerChanged,
@@ -682,7 +716,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           const SortDefaultSetting.concrete(ProgramSort.title),
       onDefaultProgramSortChanged: _onDefaultProgramSortChanged,
       startingProgramTemplate: _startingProgramTemplate,
-      startingProgramDances: _collectionData?.dancesById ?? const {},
+      startingProgramDanceTitles: _danceTitles ?? const {},
       onAddStartingProgramDance: _addStartingProgramDance,
       onAddStartingProgramText: (text) {
         _startingProgramTemplate.add(StartingProgramTemplateEntry(text: text));
@@ -924,11 +958,39 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     });
   }
 
-  void _report(Object error) {
+  void _say(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text(error.toString())));
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Shows [error] as a localized sentence. A caught exception is logged by its
+  /// caller (`logCaughtError`); either way the raw text is never rendered: it
+  /// is English and names internal ids (CWE-209). [_delete]'s pre-check passes
+  /// a synthesized [DifficultyLevelInUse], which has nothing further to log.
+  void _report(Object error) {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    String? inUseLabel(DifficultyLevelInUse error) {
+      if (error.label != null) return error.label;
+      for (final level in _levels) {
+        if (level.id == error.id) return level.label;
+      }
+      return null;
+    }
+
+    _say(switch (error) {
+      DifficultyLevelLabelEmpty() => l10n.settingsDefaultsDifficultyLevelEmpty,
+      DifficultyLevelLabelDuplicate(:final label) =>
+        l10n.settingsDefaultsDifficultyLevelDuplicate(label),
+      DifficultyLevelInUse() when inUseLabel(error) != null =>
+        l10n.settingsDefaultsDifficultyLevelInUse(
+          inUseLabel(error)!,
+          error.count,
+        ),
+      _ => l10n.settingsDefaultsDifficultyLevelActionFailed,
+    });
   }
 
   Future<void> _add() async {
@@ -985,7 +1047,7 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     final label = value.trim();
     if (label.isEmpty) {
       _labelControllers[level.id]?.text = level.label;
-      _report(ArgumentError('difficulty level label must not be empty'));
+      _say(AppLocalizations.of(context).settingsDefaultsDifficultyLevelEmpty);
       return;
     }
     if (label == level.label) return;
@@ -1012,7 +1074,19 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
 
   Future<void> _delete(DifficultyLevel level) async {
     try {
-      await RepositoriesScope.of(context).difficultyLevels.delete(level.id);
+      final levels = RepositoriesScope.of(context).difficultyLevels;
+      final references = await levels.referenceCount(level.id);
+      if (references > 0) {
+        _report(
+          DifficultyLevelInUse(
+            id: level.id,
+            count: references,
+            label: level.label,
+          ),
+        );
+        return;
+      }
+      await levels.delete(level.id);
       await _reload();
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'defaults_section._delete');
@@ -1123,7 +1197,7 @@ class _DefaultsView extends StatelessWidget {
     required this.defaultProgramSort,
     required this.onDefaultProgramSortChanged,
     required this.startingProgramTemplate,
-    required this.startingProgramDances,
+    required this.startingProgramDanceTitles,
     required this.onAddStartingProgramDance,
     required this.onAddStartingProgramText,
     required this.onUpdateStartingProgramText,
@@ -1182,7 +1256,7 @@ class _DefaultsView extends StatelessWidget {
   final ValueChanged<SortDefaultSetting<ProgramSort>>
   onDefaultProgramSortChanged;
   final List<StartingProgramTemplateEntry> startingProgramTemplate;
-  final Map<String, Dance> startingProgramDances;
+  final Map<String, String> startingProgramDanceTitles;
   final VoidCallback onAddStartingProgramDance;
   final ValueChanged<String> onAddStartingProgramText;
   final void Function(int index, String text) onUpdateStartingProgramText;
@@ -1285,49 +1359,53 @@ class _DefaultsView extends StatelessWidget {
       keyboardDismissBehavior: kTextEntryKeyboardDismiss,
       children: [
         SectionHeader(title: l10n.settingsDefaultsDisplayHeader),
-        ListTile(
+        SettingsDropdownRow(
           title: Text(l10n.settingsDefaultsSortTitle),
           subtitle: Text(l10n.settingsDefaultsSortSubtitle),
-          trailing: DropdownButton<SortDefaultSetting<CollectionSort>>(
-            key: const ValueKey('defaults-collection-sort'),
-            value: defaultCollectionSort,
-            onChanged: (value) {
-              if (value != null) onDefaultCollectionSortChanged(value);
-            },
-            items: [
-              for (final sort in _collectionSortOptions)
-                DropdownMenuItem(
-                  value: SortDefaultSetting.concrete(sort),
-                  child: Text(collectionSortLabel(l10n, sort)),
-                ),
-              DropdownMenuItem(
-                value: SortDefaultSetting.lastUsed(CollectionSort.title),
-                child: Text(l10n.settingsDefaultsSortLastUsed),
+          dropdownBuilder: (expanded) =>
+              DropdownButton<SortDefaultSetting<CollectionSort>>(
+                isExpanded: expanded,
+                key: const ValueKey('defaults-collection-sort'),
+                value: defaultCollectionSort,
+                onChanged: (value) {
+                  if (value != null) onDefaultCollectionSortChanged(value);
+                },
+                items: [
+                  for (final sort in _collectionSortOptions)
+                    DropdownMenuItem(
+                      value: SortDefaultSetting.concrete(sort),
+                      child: Text(collectionSortLabel(l10n, sort)),
+                    ),
+                  DropdownMenuItem(
+                    value: SortDefaultSetting.lastUsed(CollectionSort.title),
+                    child: Text(l10n.settingsDefaultsSortLastUsed),
+                  ),
+                ],
               ),
-            ],
-          ),
         ),
-        ListTile(
+        SettingsDropdownRow(
           title: Text(l10n.settingsDefaultsProgramSortTitle),
           subtitle: Text(l10n.settingsDefaultsProgramSortSubtitle),
-          trailing: DropdownButton<SortDefaultSetting<ProgramSort>>(
-            key: const ValueKey('defaults-program-sort'),
-            value: defaultProgramSort,
-            onChanged: (value) {
-              if (value != null) onDefaultProgramSortChanged(value);
-            },
-            items: [
-              for (final sort in _programSortOptions)
-                DropdownMenuItem(
-                  value: SortDefaultSetting.concrete(sort),
-                  child: Text(programSortLabel(l10n, sort)),
-                ),
-              DropdownMenuItem(
-                value: SortDefaultSetting.lastUsed(ProgramSort.title),
-                child: Text(l10n.settingsDefaultsSortLastUsed),
+          dropdownBuilder: (expanded) =>
+              DropdownButton<SortDefaultSetting<ProgramSort>>(
+                isExpanded: expanded,
+                key: const ValueKey('defaults-program-sort'),
+                value: defaultProgramSort,
+                onChanged: (value) {
+                  if (value != null) onDefaultProgramSortChanged(value);
+                },
+                items: [
+                  for (final sort in _programSortOptions)
+                    DropdownMenuItem(
+                      value: SortDefaultSetting.concrete(sort),
+                      child: Text(programSortLabel(l10n, sort)),
+                    ),
+                  DropdownMenuItem(
+                    value: SortDefaultSetting.lastUsed(ProgramSort.title),
+                    child: Text(l10n.settingsDefaultsSortLastUsed),
+                  ),
+                ],
               ),
-            ],
-          ),
         ),
         SectionHeader(title: l10n.settingsDefaultsCollectionCardHeader),
         Padding(
@@ -1362,7 +1440,8 @@ class _DefaultsView extends StatelessWidget {
                 updated.remove(field);
               }
               notifier.value = updated;
-              await settings.set(
+              await persistSetting(
+                settings,
                 kCollectionTileVisibleFieldsKey,
                 updated.map((f) => f.toJson()).toList(),
               );
@@ -1467,7 +1546,8 @@ class _DefaultsView extends StatelessWidget {
                 updated.remove(field);
               }
               notifier.value = updated;
-              await settings.set(
+              await persistSetting(
+                settings,
                 kProgramDanceShareFieldsKey,
                 updated.map((f) => f.toJson()).toList(),
               );
@@ -1571,7 +1651,8 @@ class _DefaultsView extends StatelessWidget {
               final updated = Set.of(notifier.value);
               shown ? updated.remove(id) : updated.add(id);
               notifier.value = updated;
-              await settings.set(
+              await persistSetting(
+                settings,
                 kCollectionHiddenFacetsKey,
                 CollectionFacetsScope.encode(updated),
               );
@@ -1661,7 +1742,7 @@ class _DefaultsView extends StatelessWidget {
             ),
             _StartingProgramTemplateEditor(
               entries: startingProgramTemplate,
-              dancesById: startingProgramDances,
+              danceTitles: startingProgramDanceTitles,
               onAddDance: onAddStartingProgramDance,
               onAddText: onAddStartingProgramText,
               onUpdateText: onUpdateStartingProgramText,
@@ -1670,6 +1751,14 @@ class _DefaultsView extends StatelessWidget {
               onReorder: onReorderStartingProgramEntry,
             ),
           ],
+        ),
+        ExpansionTile(
+          key: const ValueKey('defaults-import-group'),
+          title: Text(
+            l10n.settingsDefaultsImportHeader,
+            style: sectionTitleStyle,
+          ),
+          children: const [DefaultImportTagsEditor()],
         ),
         ExpansionTile(
           key: const ValueKey('defaults-authoring-group'),
@@ -1684,10 +1773,11 @@ class _DefaultsView extends StatelessWidget {
               initiallyExpanded: false,
               children: const [DifficultyLevelsEditor()],
             ),
-            ListTile(
+            SettingsDropdownRow(
               title: Text(l10n.settingsDefaultsFormTitle),
               subtitle: Text(l10n.settingsDefaultsFormSubtitle),
-              trailing: DropdownButton<DanceForm>(
+              dropdownBuilder: (expanded) => DropdownButton<DanceForm>(
+                isExpanded: expanded,
                 key: const ValueKey('defaults-dance-form'),
                 value: defaultDanceForm,
                 onChanged: (value) {
@@ -1702,10 +1792,11 @@ class _DefaultsView extends StatelessWidget {
                 ],
               ),
             ),
-            ListTile(
+            SettingsDropdownRow(
               title: Text(l10n.settingsDefaultsFormationTitle),
               subtitle: Text(l10n.settingsDefaultsFormationSubtitle),
-              trailing: DropdownButton<FormationShape>(
+              dropdownBuilder: (expanded) => DropdownButton<FormationShape>(
+                isExpanded: expanded,
                 key: const ValueKey('defaults-dance-formation'),
                 value: defaultDanceFormationShape,
                 onChanged: (value) {
@@ -1720,10 +1811,11 @@ class _DefaultsView extends StatelessWidget {
                 ],
               ),
             ),
-            ListTile(
+            SettingsDropdownRow(
               title: Text(l10n.settingsDefaultsProgressionTitle),
               subtitle: Text(l10n.settingsDefaultsProgressionSubtitle),
-              trailing: DropdownButton<Progression>(
+              dropdownBuilder: (expanded) => DropdownButton<Progression>(
+                isExpanded: expanded,
                 key: const ValueKey('defaults-dance-progression'),
                 value: defaultDanceProgression,
                 onChanged: (value) {
@@ -1937,7 +2029,11 @@ class _DefaultsView extends StatelessWidget {
                     AggressiveBeatsUpdateScope.notifierOf(context).value =
                         value;
                     final repos = RepositoriesScope.of(context);
-                    await repos.settings.set(kAggressiveBeatsUpdateKey, value);
+                    await persistSetting(
+                      repos.settings,
+                      kAggressiveBeatsUpdateKey,
+                      value,
+                    );
                   },
                   title: Text(l10n.settingsDefaultsAggressiveBeatsUpdateTitle),
                   subtitle: Text(
@@ -1957,7 +2053,7 @@ class _DefaultsView extends StatelessWidget {
 class _StartingProgramTemplateEditor extends StatefulWidget {
   const _StartingProgramTemplateEditor({
     required this.entries,
-    required this.dancesById,
+    required this.danceTitles,
     required this.onAddDance,
     required this.onAddText,
     required this.onUpdateText,
@@ -1967,7 +2063,7 @@ class _StartingProgramTemplateEditor extends StatefulWidget {
   });
 
   final List<StartingProgramTemplateEntry> entries;
-  final Map<String, Dance> dancesById;
+  final Map<String, String> danceTitles;
   final VoidCallback onAddDance;
   final ValueChanged<String> onAddText;
   final void Function(int index, String text) onUpdateText;
@@ -2043,7 +2139,7 @@ class _StartingProgramTemplateEditorState
                   title: Text(
                     entry.danceId == null
                         ? entry.text ?? ''
-                        : widget.dancesById[entry.danceId]?.title ??
+                        : widget.danceTitles[entry.danceId] ??
                               l10n.settingsDefaultsStartingProgramUnavailableDance(
                                 entry.danceId!,
                               ),

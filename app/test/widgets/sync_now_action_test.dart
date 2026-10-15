@@ -16,6 +16,7 @@ import 'package:compendium_app/src/screens/collection_shell.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
+import 'package:compendium_app/src/screens/sync_conflict_sheet.dart';
 import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_network.dart';
@@ -68,9 +69,10 @@ Future<void> _loadAppFonts() async {
 /// What a screen under test is hosted in: the controller, the network the
 /// controller consults, and the passes the coordinator has been asked to run.
 class _Host {
-  _Host(this.controller, this.network, this.passes, this.gate);
+  _Host(this.controller, this.network, this.passes, this.gate, this.repos);
 
   final SyncController controller;
+  final CompendiumRepositories repos;
   final _Network network;
 
   /// One entry per pass the coordinator actually ran.
@@ -94,6 +96,8 @@ Future<_Host> _pump(
   Size size = const Size(600, 1200),
   ThemeData? theme,
   Future<void> Function(CompendiumRepositories repos)? seed,
+  SyncPassResult passResult = const SyncPassResult(SyncPassStatus.completed),
+  Future<void> Function(CompendiumRepositories repos)? duringPass,
 }) async {
   final repos = openTestRepositories();
   await seed?.call(repos);
@@ -110,9 +114,10 @@ Future<_Host> _pump(
     transport: NoopSyncCoordinatorTransport(),
     passOperation: ({initialStore}) async {
       passes.add(1);
+      await duringPass?.call(repos);
       final gate = host.gate;
       if (gate != null) await gate.future;
-      return const SyncPassResult(SyncPassStatus.completed);
+      return passResult;
     },
   );
   addTearDown(coordinator.dispose);
@@ -126,7 +131,7 @@ Future<_Host> _pump(
   addTearDown(controller.dispose);
   await controller.load();
   if (enabled) await controller.setEnabled(true);
-  host = _Host(controller, network, passes, null);
+  host = _Host(controller, network, passes, null, repos);
 
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -158,6 +163,28 @@ Future<_Host> _pump(
   );
   await tester.pumpAndSettle();
   return host;
+}
+
+/// Queues a conflict choice for setting [key] as a pass would.
+Future<void> _queueConflict(CompendiumRepositories repos, String key) async {
+  final blob = SyncRecordBlob(
+    kind: SyncRecordKind.setting,
+    id: key,
+    updatedAt: DateTime.utc(2026, 9, 30, 12),
+    deletedAt: null,
+    existenceAt: DateTime.utc(2026, 9, 30, 12),
+    body: const {'value': 'light'},
+  );
+  final hash = SyncMergeCandidate.fromBlob(blob).wireHash;
+  await repos.syncLocal.enqueueReview(
+    kind: SyncRecordKind.setting,
+    recordId: key,
+    counterpartId: hash,
+    reason: syncConflictChoiceReason,
+    candidateBlob: encodeSyncRecordBlob(blob),
+    candidateHash: hash,
+    queuedAt: DateTime.utc(2026, 9, 30, 12),
+  );
 }
 
 void main() {
@@ -215,6 +242,103 @@ void main() {
         expect(find.byKey(_glyph), findsNothing);
       });
 
+      testWidgets('badges the glyph with how many items await a choice', (
+        tester,
+      ) async {
+        final host = await _pump(tester, build());
+        await tester.runAsync(() => _queueConflict(host.repos, 'theme_mode'));
+        // A pass ending is what re-reads the count.
+        await tester.runAsync(() async {
+          await tester.tap(find.byKey(_glyph));
+          await tester.pump();
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
+        // The conflict was already waiting before the tap, so the choice
+        // stays closed and the badge shows it.
+        expect(find.byType(SyncConflictChoice), findsNothing);
+
+        expect(
+          find.byTooltip('Sync now (1 item needs your choice)'),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('sync-now-conflict-badge')),
+            matching: find.text('1'),
+          ),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('a manual pass that finds a new conflict opens the '
+          'choice', (tester) async {
+        await _pump(
+          tester,
+          build(),
+          duringPass: (repos) => _queueConflict(repos, 'theme_mode'),
+        );
+
+        await tester.runAsync(() async {
+          await tester.tap(find.byKey(_glyph));
+          await tester.pump();
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
+
+        expect(find.byType(SyncConflictChoice), findsOneWidget);
+      });
+
+      testWidgets('a conflict already waiting when the badge has not caught up '
+          'is not mistaken for a new one', (tester) async {
+        final host = await _pump(tester, build());
+        // Queued with no pass ending, so the badge still reads zero.
+        await tester.runAsync(() => _queueConflict(host.repos, 'theme_mode'));
+
+        await tester.runAsync(() async {
+          await tester.tap(find.byKey(_glyph));
+          await tester.pump();
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
+
+        expect(find.byType(SyncConflictChoice), findsNothing);
+      });
+
+      testWidgets('a manual pass that finds nothing new leaves the choice '
+          'closed', (tester) async {
+        // The first pass queues a conflict, which opens the choice; the
+        // second finds nothing new.
+        var queued = false;
+        await _pump(
+          tester,
+          build(),
+          duringPass: (repos) async {
+            if (queued) return;
+            queued = true;
+            await _queueConflict(repos, 'theme_mode');
+          },
+        );
+        await tester.runAsync(() async {
+          await tester.tap(find.byKey(_glyph));
+          await tester.pump();
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
+        expect(find.byType(SyncConflictChoice), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('sync-conflict-later')));
+        await tester.pumpAndSettle();
+
+        await tester.runAsync(() async {
+          await tester.tap(find.byKey(_glyph));
+          await tester.pump();
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
+
+        expect(find.byType(SyncConflictChoice), findsNothing);
+      });
+
       testWidgets('a tap runs exactly one pass', (tester) async {
         final host = await _pump(tester, build());
 
@@ -223,6 +347,57 @@ void main() {
 
         expect(host.passes, hasLength(1));
         expect(find.byType(SnackBar), findsNothing, reason: 'a pass ran');
+      });
+
+      // The Settings status line is several screens away; a tap that spins
+      // and then shows nothing reads as a success.
+      testWidgets('a pass that fails for a reason the user must act on says '
+          'why', (tester) async {
+        await _pump(
+          tester,
+          build(),
+          passResult: const SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(SyncFailureCause.storeFull),
+          ),
+        );
+
+        await tester.tap(find.byKey(_glyph));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.textContaining(
+            "Sync didn't finish. Your store has used all the space the sync "
+            'server allows.',
+          ),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('a pass that fails for a reason that clears by itself reads '
+          'calmly, without the reason or advice', (tester) async {
+        final host = await _pump(
+          tester,
+          build(),
+          passResult: const SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(SyncFailureCause.unreachable),
+          ),
+        );
+
+        await tester.tap(find.byKey(_glyph));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Waiting to sync. Your changes are saved here.'),
+          findsOneWidget,
+        );
+        expect(find.textContaining("Couldn't reach"), findsNothing);
+        expect(find.textContaining("Sync didn't finish"), findsNothing);
+        // The failure armed the automatic retry; turning sync off cancels it,
+        // as it would for a user, so no timer outlives the test.
+        expect(host.controller.pendingRetryDelay, isNotNull);
+        await host.controller.setEnabled(false);
       });
 
       testWidgets('shows a spinner and ignores taps while a pass is running', (

@@ -25,7 +25,9 @@ import '../util/text_sanitizer.dart';
 ///    [canonicalizeText] with [Dialect.canonical], whose always-on
 ///    substitutions map gendered role terms to canonical `role1`/`role2`
 ///    tokens; the renderer later re-expresses those in the reader's active
-///    dialect.
+///    dialect. A role word inside a move name is not a role: "Mad Robin" is
+///    written as the move name `mad robin`, in lowercase, exactly as the
+///    editor stores it.
 /// 3. Runs of whitespace are collapsed to a single space and the result is
 ///    trimmed, so text extracted from wrapped/inline markup (e.g. the ContraDB
 ///    HTML page) does not leave doubled spaces or stray newlines. Inputs
@@ -60,28 +62,13 @@ String _scrubFigureTextUncached(String text) {
       .replaceAllMapped(_gypsiesTerm, (_) => 'shoulder rounds')
       .replaceAllMapped(_gypsyTerm, (_) => 'shoulder round')
       .replaceAllMapped(_doSiDoTerm, (_) => 'do si do')
-      .replaceAllMapped(_seeSawTerm, (_) => 'see saw')
-      // Protect the move name "mad robin(s)" from role canonicalization: the
-      // canonical dialect maps `robin(s)` → `role2(s)` (larks/robins), which
-      // would otherwise mangle "mad robin" into "mad role2". Collapsing it to a
-      // single non-role token first (no interior word boundary before `robin`)
-      // hides it from the substitution; it is restored after canonicalization.
-      .replaceAllMapped(_madRobinsTerm, (_) => _madRobinsSentinel)
-      .replaceAllMapped(_madRobinTerm, (_) => _madRobinSentinel);
+      .replaceAllMapped(_seeSawTerm, (_) => 'see saw');
   final canonical = canonicalizeText(normalizedMoves, Dialect.canonical);
-  final restored = canonical
-      .replaceAll(_madRobinsSentinel, 'mad robins')
-      .replaceAll(_madRobinSentinel, 'mad robin');
-  return restored.replaceAll(_whitespace, ' ').trim();
+  return canonical.replaceAll(_whitespace, ' ').trim();
 }
-
-const String _madRobinSentinel = 'madrobin';
-const String _madRobinsSentinel = 'madrobins';
 
 final RegExp _gypsyTerm = RegExp(r'\bgypsy\b', caseSensitive: false);
 final RegExp _gypsiesTerm = RegExp(r'\bgypsies\b', caseSensitive: false);
 final RegExp _doSiDoTerm = RegExp(r'\bdo-si-do\b', caseSensitive: false);
 final RegExp _seeSawTerm = RegExp(r'\bsee-saw\b', caseSensitive: false);
-final RegExp _madRobinsTerm = RegExp(r'\bmad robins\b', caseSensitive: false);
-final RegExp _madRobinTerm = RegExp(r'\bmad robin\b', caseSensitive: false);
 final RegExp _whitespace = RegExp(r'\s+');

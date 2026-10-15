@@ -2,25 +2,133 @@ import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/foundation.dart' show immutable;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+
+import '../diagnostics/error_log.dart';
 
 /// Base file name (without extension) of the on-device database. drift_flutter
 /// stores the file as `$kDatabaseName.sqlite`; the migration preflight reuses
 /// this so both agree on the exact file.
 const String kDatabaseName = 'compendium';
 
-/// Resolves the on-device [CompendiumDatabase] file, mirroring drift_flutter's
-/// default location (`<applicationDocumentsDirectory>/compendium.sqlite`).
+/// Where the on-device database lives, and where earlier builds left it.
+@immutable
+class DatabaseLocations {
+  const DatabaseLocations({
+    required this.primary,
+    required this.legacy,
+    this.documents,
+    this.documentsUnresolvable = false,
+  });
+
+  /// The directory holding `compendium.sqlite` (and its `db_backups/`).
+  final Directory primary;
+
+  /// Directories earlier builds may have left a database in, never including
+  /// [primary]. [relocateLegacyDatabase] moves such a database into [primary]
+  /// during the migration preflight, before anything opens it.
+  final List<Directory> legacy;
+
+  /// The Documents folder when it is one of [legacy] (Windows and Linux, when
+  /// it resolves). [relocateLegacyDatabase] requires it to be reachable before
+  /// concluding there is no library to move.
+  final Directory? documents;
+
+  /// Windows only: Documents could not be resolved. Unlike Linux without
+  /// `xdg-user-dirs` (where no earlier build could have kept a library in
+  /// Documents), an earlier Windows build may have, so [relocateLegacyDatabase]
+  /// treats this as unreachable rather than as "no library".
+  final bool documentsUnresolvable;
+}
+
+/// Resolves the directory the database lives in on [operatingSystem] (the
+/// running platform by default; injectable so tests can cover every platform).
 ///
-/// Resolving the path in the app — rather than letting drift_flutter compute it
-/// opaquely — lets the migration preflight (downgrade guard + pre-migration
-/// snapshot, see `migration_guard.dart`) read and copy the *same* file drift
-/// will open. `compendium_core` stays Flutter-free (ADR-001), so this bit of
-/// platform wiring lives in the app.
-Future<File> resolveDatabaseFile() async {
-  final dir = await getApplicationDocumentsDirectory();
-  return File(p.join(dir.path, '$kDatabaseName.sqlite'));
+/// - **Windows**: the per-app folder under `%LOCALAPPDATA%`. `path_provider`
+///   exposes LocalAppData only as the application *cache* directory
+///   (`getApplicationCacheDirectory`, which is
+///   `%LOCALAPPDATA%\<company>\<product>`; nothing evicts it). The application
+///   *support* directory is Roaming AppData, which roaming profiles copy: a poor
+///   home for a live WAL database. Roaming is used only if LocalAppData cannot
+///   be resolved. Earlier builds used Documents (which OneDrive's folder backup
+///   syncs) and, in a rare fallback, Roaming.
+/// - **Linux**: the application support directory (`$XDG_DATA_HOME/<app id>`).
+///   Earlier builds used Documents, which is `$HOME` itself when
+///   `XDG_DOCUMENTS_DIR` is unset, so the files landed loose in the home
+///   directory; and, when Documents could not be resolved at all
+///   (`MissingPlatformDirectoryException`), this same support directory.
+/// - **Everything else** (macOS is sandboxed; Android and iOS Documents are
+///   app-private): the application documents directory, unchanged.
+Future<DatabaseLocations> resolveDatabaseLocations({
+  String? operatingSystem,
+}) async {
+  switch (operatingSystem ?? Platform.operatingSystem) {
+    case 'windows':
+      final support = await getApplicationSupportDirectory();
+      final documents = await _tryDocumentsDirectory();
+      Directory primary;
+      try {
+        primary = await getApplicationCacheDirectory();
+      } on MissingPlatformDirectoryException catch (e, st) {
+        logCaughtErrorTypeOnly(
+          e,
+          st,
+          source: 'app_database.resolveDatabaseLocations',
+        );
+        primary = support;
+      }
+      return DatabaseLocations(
+        primary: primary,
+        documents: documents,
+        documentsUnresolvable: documents == null,
+        legacy: [
+          ?documents,
+          if (p.canonicalize(support.path) != p.canonicalize(primary.path))
+            support,
+        ],
+      );
+    case 'linux':
+      final documents = await _tryDocumentsDirectory();
+      return DatabaseLocations(
+        primary: await getApplicationSupportDirectory(),
+        documents: documents,
+        legacy: [?documents],
+      );
+    default:
+      return DatabaseLocations(
+        primary: await getApplicationDocumentsDirectory(),
+        legacy: const [],
+      );
+  }
+}
+
+Future<Directory?> _tryDocumentsDirectory() async {
+  try {
+    return await getApplicationDocumentsDirectory();
+  } on MissingPlatformDirectoryException catch (e, st) {
+    // Linux without xdg-user-dirs: no Documents folder, so no legacy database.
+    logCaughtErrorTypeOnly(e, st, source: 'app_database.documentsDirectory');
+    return null;
+  }
+}
+
+/// Resolves the on-device [CompendiumDatabase] file: `compendium.sqlite` in the
+/// [DatabaseLocations.primary] directory (see [resolveDatabaseLocations]).
+///
+/// Resolving the path in the app, rather than letting drift_flutter compute it
+/// opaquely, lets the migration preflight (relocation, downgrade guard and
+/// pre-migration snapshot, see `migration_guard.dart`) read and copy the *same*
+/// file drift will open. The preflight runs before drift opens anything, so a
+/// database found in a legacy location is already in the primary directory by
+/// the time this is used to open it. `compendium_core` stays Flutter-free
+/// (ADR-001), so this bit of platform wiring lives in the app.
+Future<File> resolveDatabaseFile({String? operatingSystem}) async {
+  final locations = await resolveDatabaseLocations(
+    operatingSystem: operatingSystem,
+  );
+  return File(p.join(locations.primary.path, '$kDatabaseName.sqlite'));
 }
 
 /// Opens the on-device [CompendiumDatabase] via drift_flutter's platform helper.

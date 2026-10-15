@@ -16,7 +16,7 @@ import '../data/reduce_motion_scope.dart';
 /// * **No auto-detection** — tempo comes only from the caller's taps.
 ///
 /// The pulse is driven by a single reused [AnimationController] (a [Ticker]),
-/// independent of the Perform screens' elapsed-clock `Timer.periodic`. The
+/// independent of the Perform screens' elapsed-clock refresh timer. The
 /// controller is created once and only *rescheduled* (duration changed +
 /// restarted) when the BPM changes, so mid-run tempo changes never leak
 /// tickers. It is disposed with the widget.

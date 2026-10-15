@@ -47,6 +47,11 @@ class ProgramEditorDraft {
     required this.notes,
     required this.status,
     required this.hideAlternates,
+    this.dialectName,
+    this.hasDialectName = true,
+    this.payText = '',
+    this.payCurrency,
+    this.hasPay = true,
     required this.slots,
   });
 
@@ -80,6 +85,34 @@ class ProgramEditorDraft {
   /// Whether alternates are hidden from output.
   final bool hideAlternates;
 
+  /// The stored dialect name Perform uses for the program; `null` follows the
+  /// application dialect. Only meaningful when [hasDialectName] is true.
+  final String? dialectName;
+
+  /// Whether this draft recorded the dialect at all. Drafts written before
+  /// issue #1554 carry no `dialectName` key, which must read as "this draft
+  /// never captured the field" (restoring it keeps the program's current
+  /// dialect), not as "the user cleared it". Drafts written now always carry
+  /// the key, with `null` meaning an explicit clear. Decoded from the key's
+  /// presence, so it needs no draft version bump.
+  final bool hasDialectName;
+
+  /// The pay amount as typed (issue #1418), empty when no pay is entered. Kept
+  /// as text, not minor units, so a half-typed or invalid amount survives a
+  /// restore instead of being silently dropped. Only meaningful when [hasPay]
+  /// is true.
+  final String payText;
+
+  /// The ISO 4217 code selected for [payText]; `null` means the locale
+  /// default. Only meaningful when [hasPay] is true.
+  final String? payCurrency;
+
+  /// Whether this draft recorded the pay fields at all. Drafts written before
+  /// issue #1418 carry neither key, which must read as "never captured"
+  /// (restoring keeps the program's current pay), not as "the user cleared
+  /// it". Decoded from key presence, so it needs no draft version bump.
+  final bool hasPay;
+
   /// The in-progress slot list (position-ordered).
   final List<ProgramSlot> slots;
 }
@@ -101,6 +134,9 @@ class ProgramEditorDraft {
 ///   "notes": "...",
 ///   "status": "draft",
 ///   "hideAlternates": false,
+///   "dialectName": null,    // key always written; null = explicitly "use app dialect"
+///   "payText": "250.00",    // as typed; "" = no pay. Absent in older drafts
+///   "payCurrency": "USD",   // omitted when the locale default applies
 ///   "slots": [
 ///     {"id":"...", "position":0, "danceId":"...", "isAlt":false},
 ///     {"id":"...", "position":1, "text":"Break", "isPurgedDance":false, "isAlt":false}
@@ -124,6 +160,10 @@ String encodeProgramDraft(ProgramEditorDraft draft) {
     'notes': draft.notes,
     'status': draft.status.name,
     'hideAlternates': draft.hideAlternates,
+    if (draft.hasDialectName) 'dialectName': draft.dialectName,
+    if (draft.hasPay) 'payText': draft.payText,
+    if (draft.hasPay && draft.payCurrency != null)
+      'payCurrency': draft.payCurrency,
     'slots': [for (final s in draft.slots) _slotToJson(s)],
   });
 }
@@ -193,6 +233,11 @@ ProgramEditorDraft decodeProgramDraft(Object? value) {
     notes: _str(json, 'notes'),
     status: _parseEnum(ProgramStatus.values, _str(json, 'status')),
     hideAlternates: _bool(json, 'hideAlternates'),
+    dialectName: _strOrNull(json, 'dialectName'),
+    hasDialectName: json.containsKey('dialectName'),
+    payText: _str(json, 'payText'),
+    payCurrency: _strOrNull(json, 'payCurrency'),
+    hasPay: json.containsKey('payText'),
     slots: _parseSlots(json['slots']),
   );
 }

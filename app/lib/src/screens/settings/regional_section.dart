@@ -1,13 +1,16 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:flutter/material.dart';
+
 import '../../data/date_format_scope.dart';
 import '../../data/custom_date_pattern.dart';
 import '../../data/first_day_of_week_scope.dart';
 import '../../data/locale_scope.dart';
 import '../../data/regional_formats.dart';
+import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/settings_dropdown_row.dart';
 
 /// The Language & region settings section (ROADMAP G.8): the app-language
 /// selector, the date-format preference, and the first-day-of-week preference.
@@ -64,9 +67,10 @@ class _RegionalSectionState extends State<RegionalSection> {
   Future<void> _applySetting(DateFormatSetting setting) async {
     DateFormatScope.notifierOf(context).value = setting;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDateFormatKey, setting.pref.token);
+    await persistSetting(repos.settings, kDateFormatKey, setting.pref.token);
     if (setting.pref == DateFormatPref.custom) {
-      await repos.settings.set(
+      await persistSetting(
+        repos.settings,
         kDateFormatCustomPatternKey,
         setting.customPattern ?? '',
       );
@@ -100,7 +104,7 @@ class _RegionalSectionState extends State<RegionalSection> {
     final repos = RepositoriesScope.of(context);
     // Persist the BCP-47 tag; empty string means "follow system" and is
     // validated back to null on load (see localeFromStored).
-    await repos.settings.set(kLocaleKey, localeToTag(value));
+    await persistSetting(repos.settings, kLocaleKey, localeToTag(value));
   }
 
   // Same instant-notifier-then-persist shape as date format / locale above:
@@ -110,7 +114,7 @@ class _RegionalSectionState extends State<RegionalSection> {
   Future<void> _onFirstDayOfWeekPrefChanged(FirstDayOfWeekPref pref) async {
     FirstDayOfWeekScope.notifierOf(context).value = pref;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kFirstDayOfWeekKey, pref.token);
+    await persistSetting(repos.settings, kFirstDayOfWeekKey, pref.token);
   }
 
   @override
@@ -210,11 +214,12 @@ class _RegionalView extends StatelessWidget {
     return ListView(
       children: [
         SectionHeader(title: l10n.settingsRegionalLanguageHeader),
-        ListTile(
+        SettingsDropdownRow(
           title: Text(l10n.settingsAppLanguageTitle),
           subtitle: Text(l10n.settingsAppLanguageSubtitle),
           isThreeLine: true,
-          trailing: DropdownButton<Locale?>(
+          dropdownBuilder: (expanded) => DropdownButton<Locale?>(
+            isExpanded: expanded,
             key: const ValueKey('regional-language'),
             value: locale,
             // A null value (System default) is not matched to the null-valued
@@ -233,11 +238,12 @@ class _RegionalView extends StatelessWidget {
           ),
         ),
         SectionHeader(title: l10n.settingsRegionalFormatsHeader),
-        ListTile(
+        SettingsDropdownRow(
           title: Text(l10n.settingsDateFormatTitle),
           subtitle: Text(l10n.settingsDateFormatSubtitle(example)),
           isThreeLine: true,
-          trailing: DropdownButton<DateFormatPref>(
+          dropdownBuilder: (expanded) => DropdownButton<DateFormatPref>(
+            isExpanded: expanded,
             key: const ValueKey('regional-date-format'),
             value: dateFormat.pref,
             onChanged: (value) {
@@ -291,12 +297,13 @@ class _RegionalView extends StatelessWidget {
         // Live control (ROADMAP G.8): honored by the Programs list's "this
         // week" header strip (WeekdayHeaderStrip), which reorders its columns
         // to match the chosen first day of week.
-        ListTile(
-          key: const ValueKey('regional-first-day-of-week'),
+        SettingsDropdownRow(
+          tileKey: const ValueKey('regional-first-day-of-week'),
           title: Text(l10n.settingsFirstDayOfWeekTitle),
           subtitle: Text(l10n.settingsFirstDayOfWeekSubtitle),
           isThreeLine: true,
-          trailing: DropdownButton<FirstDayOfWeekPref>(
+          dropdownBuilder: (expanded) => DropdownButton<FirstDayOfWeekPref>(
+            isExpanded: expanded,
             key: const ValueKey('regional-first-day-of-week-dropdown'),
             value: firstDayOfWeek,
             onChanged: (value) {

@@ -262,6 +262,7 @@ class FmpDatabase {
     required this.creator,
     required this.tables,
     required this.warnings,
+    this.truncated = false,
   });
 
   final int versionNum;
@@ -272,6 +273,11 @@ class FmpDatabase {
 
   /// Non-fatal anomalies encountered while parsing (parse-never-fails).
   final List<String> warnings;
+
+  /// True when the sector chain claimed more sectors than the file holds — an
+  /// incomplete copy. Typed beside the prose in [warnings] so callers need not
+  /// match on text.
+  final bool truncated;
 
   /// The table named [name] (case-sensitive), or null.
   FmpTable? tableNamed(String name) {
@@ -374,6 +380,7 @@ class _FmpReader {
   final FmpColumnFilter? _columnFilter;
   final bool _prune;
   final List<String> _warnings = [];
+  bool _truncated = false;
 
   late final List<_Block> _blocks; // body sectors, 0-based
   int _versionNum = 12;
@@ -434,6 +441,7 @@ class _FmpReader {
       creator: _creator,
       tables: tables,
       warnings: _warnings,
+      truncated: _truncated,
     );
   }
 
@@ -472,6 +480,9 @@ class _FmpReader {
     // lives at offset (N+1)*4096. blocks[0].nextId reports the body count.
     final firstOffset = _sectorSize;
     if (firstOffset + _sectorSize > _bytes.length) {
+      // A valid header with no complete body sector after it is a file cut
+      // short, not an empty database.
+      _truncated = true;
       _warnings.add('File has no body sectors.');
       _blocks = const [];
       return;
@@ -487,6 +498,7 @@ class _FmpReader {
     for (var index = 1; index < numBlocks; index++) {
       final offset = (index + 1) * _sectorSize;
       if (offset + _sectorSize > _bytes.length) {
+        _truncated = true;
         _warnings.add(
           'Sector chain claims $numBlocks sectors but the file ends early '
           'at sector $index; reading the ${blocks.length} available.',

@@ -392,7 +392,9 @@ void main() {
           reason: 'the row under test must actually be unreadable',
         );
 
-        final previews = await repos.dances.previewImportGapReparse();
+        final previews = await repos.dances.previewImportGapReparse(
+          reparse: reparseImportGapFigures,
+        );
 
         // Positive half: the readable dance is still offered. A tolerance that
         // abandoned the scan on the first bad row would satisfy "does not
@@ -426,11 +428,18 @@ void main() {
       await repos.ensureMigrated();
       await _storeRawFigures(db, 'broken', '[{"move":""}]');
 
-      expect(await repos.dances.previewImportGapReparse(), isEmpty);
+      expect(
+        await repos.dances.previewImportGapReparse(
+          reparse: reparseImportGapFigures,
+        ),
+        isEmpty,
+      );
 
-      final changed = await repos.dances.reparseImportGapFiguresForMany(const [
-        'broken',
-      ], now: DateTime.utc(2026, 6, 1));
+      final changed = await repos.dances.reparseImportGapFiguresForMany(
+        const ['broken'],
+        reparse: reparseImportGapFigures,
+        now: DateTime.utc(2026, 6, 1),
+      );
 
       expect(changed, 0, reason: 'preview and apply agree on the same row');
       expect(

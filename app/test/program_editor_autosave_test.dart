@@ -35,6 +35,7 @@ ProgramEditorDraft _draft({
   String notes = '',
   ProgramStatus status = ProgramStatus.draft,
   bool hideAlternates = false,
+  String? dialectName,
   List<ProgramSlot> slots = const [],
 }) => ProgramEditorDraft(
   title: title,
@@ -47,6 +48,7 @@ ProgramEditorDraft _draft({
   notes: notes,
   status: status,
   hideAlternates: hideAlternates,
+  dialectName: dialectName,
   slots: slots,
 );
 
@@ -147,6 +149,7 @@ void main() {
         notes: 'Doors at 7',
         status: ProgramStatus.finalized,
         hideAlternates: true,
+        dialectName: 'Leads/Follows',
         slots: [
           _danceSlot('s1', 0, 'dance-a'),
           _textSlot('s2', 1, 'Waltz interlude'),
@@ -176,6 +179,7 @@ void main() {
       expect(decoded.notes, 'Doors at 7');
       expect(decoded.status, ProgramStatus.finalized);
       expect(decoded.hideAlternates, isTrue);
+      expect(decoded.dialectName, 'Leads/Follows');
       expect(decoded.slots, hasLength(4));
       expect(decoded.slots[0].danceId, 'dance-a');
       expect(decoded.slots[1].text, 'Waltz interlude');
@@ -204,6 +208,28 @@ void main() {
       expect(decoded.band, isNull);
       expect(decoded.caller, isNull);
       expect(decoded.dancerLevel, isNull);
+    });
+
+    test('a draft with no dialectName key never captured the field, and a '
+        'cleared one says so explicitly (issue #1554)', () {
+      // Written before the field existed: no key, so restoring it must not
+      // read as "the user cleared the dialect".
+      final legacy = decodeProgramDraft(
+        '{"v":1,"title":"x","notes":"","status":"draft",'
+        '"hideAlternates":false,"slots":[]}',
+      );
+      expect(legacy.hasDialectName, isFalse);
+      expect(legacy.dialectName, isNull);
+      expect(
+        encodeProgramDraft(legacy),
+        isNot(contains('dialectName')),
+        reason: 're-encoding must not invent a clear',
+      );
+
+      final cleared = decodeProgramDraft(encodeProgramDraft(_draft()));
+      expect(cleared.hasDialectName, isTrue);
+      expect(cleared.dialectName, isNull);
+      expect(encodeProgramDraft(_draft()), contains('"dialectName":null'));
     });
 
     test('rejects a future schema version', () {
@@ -399,6 +425,45 @@ void main() {
         expect(
           await repos.settings.contains('program_editor_draft:new'),
           isTrue,
+        );
+      },
+    );
+
+    testWidgets(
+      'restoring a draft written before the dialect existed keeps the '
+      'program\'s dialect, while an explicit clear clears it '
+      '(issue #1554)',
+      (tester) async {
+        Future<String?> restoreAndSave(String draftJson) async {
+          final repos = openTestRepositories();
+          await repos.programs.create(
+            _program(id: 'p1').copyWith(dialectName: 'Leads/Follows'),
+          );
+          await repos.settings.set('program_editor_draft:p1', draftJson);
+          await _pumpEditor(tester, repos, programId: 'p1');
+          await tester.tap(find.byKey(const ValueKey('program-draft-restore')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('save-program')));
+          await tester.pumpAndSettle();
+          return (await repos.programs.getById('p1'))!.dialectName;
+        }
+
+        // No dialectName key: a draft from before the field existed.
+        expect(
+          await restoreAndSave(
+            '{"v":1,"title":"Recovered","notes":"","status":"draft",'
+            '"hideAlternates":false,"slots":[]}',
+          ),
+          'Leads/Follows',
+        );
+        // Explicit null: the user chose "use app dialect" before the draft.
+        await tester.pumpWidget(const SizedBox.shrink());
+        expect(
+          await restoreAndSave(
+            '{"v":1,"title":"Recovered","notes":"","status":"draft",'
+            '"hideAlternates":false,"dialectName":null,"slots":[]}',
+          ),
+          isNull,
         );
       },
     );

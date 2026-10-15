@@ -175,14 +175,14 @@ class ShareMetadataImporter {
     for (final id in result.insertedFieldIds) {
       try {
         await customFields.delete(id, permanent: true);
-      } on StateError {
+      } on CustomFieldInUseException {
         // A surviving local dance may now use this imported definition.
       }
     }
     for (final id in result.restoredFieldIds) {
       try {
         await customFields.delete(id);
-      } on StateError {
+      } on CustomFieldInUseException {
         // A surviving local dance may now use this restored definition.
       }
     }

@@ -80,8 +80,9 @@ Deliberate exceptions
 repositories.dart performs a hard DELETE FROM settings WHERE key = ? to
 clear the rebuild marker. That is intentionally a DELETE, not a SELECT.
 _SELECT_FROM_SETTINGS_RE requires SELECT, so the DELETE never matches.
-_NOTED_EXCEPTIONS documents this by name per the kUpdateManifestPublicKey
-precedent in AGENTS.md: name exceptions rather than narrowing patterns.
+_NOTED_EXCEPTIONS documents this by name per the trust-anchor precedent in
+.github/instructions/privacy-registry.instructions.md: name exceptions rather
+than narrowing patterns.
 
 The same file also reads one settings row **by key without the filter, on
 purpose** (#1346): the normalisation pass's retry re-attempts a recorded
@@ -116,8 +117,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # repositories.dart contains a hard DELETE of the rebuild marker with no
 # deleted_at IS NULL filter — correct for a DELETE statement. Because
 # _SELECT_FROM_SETTINGS_RE requires SELECT, the DELETE never matches.
-# This dict names the exception explicitly (per the kUpdateManifestPublicKey
-# precedent in AGENTS.md: name exceptions rather than narrowing patterns)
+# This dict names the exception explicitly (per the trust-anchor precedent in
+# .github/instructions/privacy-registry.instructions.md: name exceptions rather
+# than narrowing patterns)
 # and is validated at startup: if the file no longer exists, main() fails
 # loudly so a rename cannot silently orphan this documentation.
 _NOTED_EXCEPTIONS: dict[str, str] = {

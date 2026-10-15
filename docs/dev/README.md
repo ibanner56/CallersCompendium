@@ -79,6 +79,7 @@ reproducible generated files.
 | Privacy registry | `packages/compendium_core/lib/src/privacy/` |
 | Schema and migrations | `packages/compendium_core/lib/src/storage/` |
 | UI | `app/lib/src/screens/`, `app/lib/src/widgets/` |
+| Android share intake (size cap, staging, cold vs warm) | `app/android/app/src/main/kotlin/.../IncomingFileStager.kt`; JVM tests in `app/android/app/src/test/` |
 | CI ratchets | `tools/ci/` (each `check_*.py` / `report_*.py` should have a matching `test_*.py`; `check_l10n_drift.py`, a thin wrapper, has none. `tools/test_preflight.py` asserts every `test_*.py` under `tools/` is run by a workflow and by preflight) |
 | Release tooling | `tools/release/` |
 | Site rendering | `tools/site/` |

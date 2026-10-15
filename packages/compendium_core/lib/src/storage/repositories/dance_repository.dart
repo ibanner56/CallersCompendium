@@ -13,8 +13,8 @@ import '../../model/figure_source.dart';
 import '../../model/tunes_source.dart';
 import '../../model/figure.dart';
 import '../../model/formation.dart';
-import '../../imports/reparse_custom_figures.dart';
 import '../../model/partial_date.dart';
+import '../../model/phrase_structure.dart';
 import '../../model/provenance.dart' as model;
 import '../../model/source_citation.dart';
 import '../../search/search_sort.dart';
@@ -24,6 +24,7 @@ import '../../search/filter_compiler.dart';
 import '../../search/search_enrichment.dart';
 import '../../search/fts_query.dart';
 import '../../serialization/figure_codec.dart';
+import '../figure_reparse.dart';
 import '../../sync/sync_record_kind.dart';
 import '../../taxonomy/param_types.dart';
 import '../../taxonomy/taxonomy.dart';
@@ -711,13 +712,31 @@ class DanceRepository {
             );
       }
 
-      await (_db.delete(
-        _db.danceTags,
-      )..where((t) => t.danceId.equals(dance.id))).go();
+      // Joins to a tombstoned tag are kept. `TagRepository.delete` leaves them
+      // so a revived tag returns with its dances, and `_tagsForMany` hides the
+      // tombstoned tag, so `dance.tagIds` never lists it: clearing every row
+      // here would read that absence as a removal and destroy the association
+      // on any unrelated edit (a peer body cannot list it either, so this holds
+      // for the sync-applied paths too). A join to a live or missing tag is
+      // replaced by `dance.tagIds` as before.
+      final tombstonedTagIds = _db.selectOnly(_db.tags)
+        ..addColumns([_db.tags.id])
+        ..where(_db.tags.deletedAt.isNotNull());
+      await (_db.delete(_db.danceTags)..where(
+            (t) =>
+                t.danceId.equals(dance.id) &
+                t.tagId.isNotInQuery(tombstonedTagIds),
+          ))
+          .go();
       for (final tagId in dance.tagIds) {
+        // `insertOrIgnore`: a retained tombstoned join may already hold this
+        // (dance, tag) primary key, which is the intended outcome, not an error.
         await _db
             .into(_db.danceTags)
-            .insert(DanceTagsCompanion.insert(danceId: dance.id, tagId: tagId));
+            .insert(
+              DanceTagsCompanion.insert(danceId: dance.id, tagId: tagId),
+              mode: InsertMode.insertOrIgnore,
+            );
       }
 
       await (_db.delete(
@@ -950,6 +969,21 @@ class DanceRepository {
       await _db.customStatement('DELETE FROM $table WHERE dance_id = ?', [
         danceId,
       ]);
+    }
+  }
+
+  /// [_deleteFtsRows] for many dances. `dance_id` is an `UNINDEXED` FTS column,
+  /// so every statement is a full scan of the index; one `IN` per chunk (see
+  /// [_chunkIds]) keeps a large [hardDelete] from scanning twice per dance.
+  Future<void> _deleteFtsRowsFor(List<String> danceIds) async {
+    for (final chunk in _chunkIds(danceIds)) {
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      for (final table in const ['dance_fts', 'dance_substring_fts']) {
+        await _db.customStatement(
+          'DELETE FROM $table WHERE dance_id IN ($placeholders)',
+          chunk,
+        );
+      }
     }
   }
 
@@ -1265,7 +1299,15 @@ class DanceRepository {
     }
   }
 
-  Future<Dance?> getById(String id, {bool includeDeleted = false}) async {
+  /// [includeDeletedAuthors] keeps soft-deleted choreographers in the returned
+  /// `authorIds`, which every other read hides (see [_authorsForMany]). Off by
+  /// default; it exists for the one reader that shows a soft-deleted dance with
+  /// its credit line (Perform, issue #1648) and resolves the names itself.
+  Future<Dance?> getById(
+    String id, {
+    bool includeDeleted = false,
+    bool includeDeletedAuthors = false,
+  }) async {
     final row =
         await (_db.select(_db.dances)..where(
               (t) =>
@@ -1276,7 +1318,7 @@ class DanceRepository {
             ))
             .getSingleOrNull();
     if (row == null) return null;
-    return _toModel(row);
+    return _toModel(row, includeDeletedAuthors: includeDeletedAuthors);
   }
 
   /// Returns the soft-delete state for [id] without hydrating child
@@ -1297,15 +1339,19 @@ class DanceRepository {
     if (!includeDeleted) {
       query.where((t) => t.deletedAt.isNull());
     }
-    final rows = await query.get();
+    return _hydrateRows(await query.get());
+  }
+
+  /// Assembles [Dance]s from fetched [rows]: batch-loads every child relation
+  /// in a bounded number of `dance_id IN (…)` queries, then hydrates in memory
+  /// — instead of the per-row [_toModel] fan-out (six child queries each) that
+  /// made a full load O(1 + 6N) queries (~120k at 20k dances). Mirrors the
+  /// batched `_slotsForMany` / `_provenanceForMany` approach ProgramRepository
+  /// already uses. The `IN` lists are chunked (see [_chunkIds]) so the
+  /// collection can grow past the SQLite bound-variable limit. Shared by
+  /// [listAll] and [_updateMany] so the two cannot assemble a dance differently.
+  Future<List<Dance>> _hydrateRows(List<DanceRow> rows) async {
     final ids = [for (final row in rows) row.id];
-    // Batch-load every child relation in a bounded number of `dance_id IN (…)`
-    // queries, then hydrate in memory — instead of the per-row [_toModel]
-    // fan-out (six child queries each) that made a full load O(1 + 6N) queries
-    // (~120k at 20k dances). Mirrors the batched `_slotsForMany` /
-    // `_provenanceForMany` approach ProgramRepository already uses. The `IN`
-    // lists are chunked (see [_chunkIds]) so the collection can grow past the
-    // SQLite bound-variable limit.
     final authors = await _authorsForMany(ids);
     final tags = await _tagsForMany(ids);
     final links = await _linksForMany(ids);
@@ -1847,9 +1893,14 @@ class DanceRepository {
     final list = ids.toList();
     if (list.isEmpty) return Future.value();
     return _db.transaction(() async {
-      final rows = await (_db.select(
-        _db.dances,
-      )..where((t) => t.id.isIn(list))).get();
+      // Chunked (see [_chunkIds]): an import undo can exceed SQLite's
+      // bound-variable limit.
+      final rows = <DanceRow>[];
+      for (final chunk in _chunkIds(list)) {
+        rows.addAll(
+          await (_db.select(_db.dances)..where((t) => t.id.isIn(chunk))).get(),
+        );
+      }
       final publishedIds = await publishedSyncRecordIds(
         _db,
         kind: SyncRecordKind.dance,
@@ -1877,13 +1928,76 @@ class DanceRepository {
       await _cleanupDanglingReferences([
         for (final r in erasableRows) (id: r.id, title: r.title),
       ]);
-      for (final id in erasableIds) {
-        await _deleteFtsRows(id);
+      await _deleteFtsRowsFor(erasableIds);
+      // Chunked (see [_chunkIds]), inside the enclosing transaction.
+      for (final chunk in _chunkIds(erasableIds)) {
+        await (_db.delete(_db.dances)..where((t) => t.id.isIn(chunk))).go();
       }
-      await (_db.delete(_db.dances)..where((t) => t.id.isIn(erasableIds))).go();
       if (orphanCandidates != null) {
         await _garbageCollectOrphanedRefs(orphanCandidates);
       }
+    });
+  }
+
+  /// Applies [edit] to each live dance in [ids] inside one transaction and
+  /// returns how many it changed. [edit] returns the replacement dance, or
+  /// `null` to leave that dance alone (unchanged, or one the caller refuses to
+  /// touch); only a non-null result is written, through [_upsert] with the
+  /// defaults a single-dance [update] uses plus [localUserEdit].
+  ///
+  /// Dances are read [_idChunkSize] at a time with the same batched assembly
+  /// [listAll] uses ([_hydrateRows]), not one `getById` per id, so the read cost
+  /// is a fixed number of statements per chunk instead of ~7 per dance. Unknown
+  /// and soft-deleted ids are skipped, as `getById` skipped them; a repeated id
+  /// is edited once, as it was when each pass re-read the row the last one wrote.
+  ///
+  /// [rebuildDerived] is whether each write rewrites the dance's derived
+  /// `dance_figures`/`dance_fts`/`dance_substring_fts` rows. It is safe to pass
+  /// `false` only for an edit that changes none of the inputs to
+  /// [_insertDerivedRows]: id, title, resolved authors, hook, calling notes, the
+  /// figures (their rows and canonical text), custom-field values and source
+  /// texts. Difficulty level, rating and tunes are none of those, so the three
+  /// batch methods over them skip the rebuild — it deletes by scanning both FTS
+  /// tables, which dominates a large batch. A custom-field edit changes
+  /// `custom_values`, so those pass `true`. **Adding a column to the FTS insert
+  /// in [_insertDerivedRows] means re-checking every caller passing `false`.**
+  /// A write that skips the rebuild also skips taxonomy normalisation, so the
+  /// stored figures stay exactly what the derived rows were built from.
+  Future<int> _updateMany(
+    Iterable<String> ids,
+    Dance? Function(Dance dance) edit, {
+    required bool rebuildDerived,
+    bool localUserEdit = true,
+  }) {
+    final list = ids.toSet().toList();
+    if (list.isEmpty) return Future.value(0);
+    return _db.transaction(() async {
+      var changed = 0;
+      for (final chunk in _chunkIds(list)) {
+        final rows = await (_db.select(
+          _db.dances,
+        )..where((t) => t.id.isIn(chunk) & t.deletedAt.isNull())).get();
+        final byId = {
+          for (final dance in await _hydrateRows(rows)) dance.id: dance,
+        };
+        for (final id in chunk) {
+          final dance = byId[id];
+          if (dance == null) continue;
+          final updated = edit(dance);
+          if (updated == null) continue;
+          await _upsert(
+            updated,
+            // Normalising rewrites `figures_json`; without the rebuild the
+            // derived rows would keep the pre-normalisation moves (a sync-
+            // written dance keeps legacy ids), so the two would disagree.
+            normalizeTaxonomy: rebuildDerived,
+            rebuildDerived: rebuildDerived,
+            localUserEdit: localUserEdit,
+          );
+          changed++;
+        }
+      }
+      return changed;
     });
   }
 
@@ -1934,24 +2048,14 @@ class DanceRepository {
     final target = clearDifficultyLevel ? null : difficultyLevelId;
     final list = ids.toList();
     if (list.isEmpty) return Future.value(0);
-    return _db.transaction(() async {
-      var changed = 0;
-      for (final id in list) {
-        final dance = await getById(id);
-        if (dance == null) continue;
-        if (dance.difficultyLevelId == target) continue;
-        await _upsert(
-          dance.copyWith(
-            difficultyLevelId: target,
-            clearDifficultyLevel: target == null,
-            updatedAt: now,
-          ),
-          localUserEdit: true,
-        );
-        changed++;
-      }
-      return changed;
-    });
+    return _updateMany(list, (dance) {
+      if (dance.difficultyLevelId == target) return null;
+      return dance.copyWith(
+        difficultyLevelId: target,
+        clearDifficultyLevel: target == null,
+        updatedAt: now,
+      );
+    }, rebuildDerived: false);
   }
 
   /// Sets the curatorial star [rating] on many dances at once, in a single
@@ -2003,24 +2107,14 @@ class DanceRepository {
     final target = clearRating ? null : rating;
     final list = ids.toList();
     if (list.isEmpty) return Future.value(0);
-    return _db.transaction(() async {
-      var changed = 0;
-      for (final id in list) {
-        final dance = await getById(id);
-        if (dance == null) continue;
-        if (dance.rating == target) continue;
-        await _upsert(
-          dance.copyWith(
-            rating: target,
-            clearRating: target == null,
-            updatedAt: now,
-          ),
-          localUserEdit: true,
-        );
-        changed++;
-      }
-      return changed;
-    });
+    return _updateMany(list, (dance) {
+      if (dance.rating == target) return null;
+      return dance.copyWith(
+        rating: target,
+        clearRating: target == null,
+        updatedAt: now,
+      );
+    }, rebuildDerived: false);
   }
 
   /// Merges [tunes] into the tune set of many dances at once (additive union),
@@ -2051,35 +2145,25 @@ class DanceRepository {
     }
     final list = ids.toList();
     if (list.isEmpty || additions.isEmpty) return Future.value(0);
-    return _db.transaction(() async {
-      var changed = 0;
-      for (final id in list) {
-        final dance = await getById(id);
-        if (dance == null) continue;
-        // Skipped rather than appended to: `current` would be an empty list,
-        // so writing back would replace the stored text with just the
-        // additions — destroying a tune list this device merely cannot read.
-        final current = switch (dance.tunesSource) {
-          DecodedTunes(:final tunes) => tunes,
-          UnreadableTunes() => null,
-        };
-        if (current == null) continue;
-        final next = [
-          ...current,
-          for (final tune in additions)
-            if (!current.contains(tune)) tune,
-        ];
-        // Append-only: an unchanged length means every addition was already
-        // present, so there is nothing to write.
-        if (next.length == current.length) continue;
-        await _upsert(
-          dance.copyWith(tunes: next, updatedAt: now),
-          localUserEdit: true,
-        );
-        changed++;
-      }
-      return changed;
-    });
+    return _updateMany(list, (dance) {
+      // Skipped rather than appended to: `current` would be an empty list,
+      // so writing back would replace the stored text with just the
+      // additions — destroying a tune list this device merely cannot read.
+      final current = switch (dance.tunesSource) {
+        DecodedTunes(:final tunes) => tunes,
+        UnreadableTunes() => null,
+      };
+      if (current == null) return null;
+      final next = [
+        ...current,
+        for (final tune in additions)
+          if (!current.contains(tune)) tune,
+      ];
+      // Append-only: an unchanged length means every addition was already
+      // present, so there is nothing to write.
+      if (next.length == current.length) return null;
+      return dance.copyWith(tunes: next, updatedAt: now);
+    }, rebuildDerived: false);
   }
 
   /// Removes *all* tunes from many dances at once, in a single transaction, for
@@ -2093,31 +2177,21 @@ class DanceRepository {
     assertUtc(now, 'now');
     final list = ids.toList();
     if (list.isEmpty) return Future.value(0);
-    return _db.transaction(() async {
-      var changed = 0;
-      for (final id in list) {
-        final dance = await getById(id);
-        if (dance == null) continue;
-        // Skipped, like the append path. Clearing is the user's intent, but a
-        // BATCH clear would destroy stored text this device cannot read, and
-        // the undo that should put it back cannot: the caller's snapshot is a
-        // `List<String>`, so it captures an empty list and restores an empty
-        // list. Refusing to act on a row it cannot read is the same call made
-        // for the unattended import resolver. Clearing one dance deliberately
-        // is a per-dance action, and belongs with surfacing the state.
-        final hasTunes = switch (dance.tunesSource) {
-          DecodedTunes(:final tunes) => tunes.isNotEmpty,
-          UnreadableTunes() => null,
-        };
-        if (hasTunes == null || !hasTunes) continue;
-        await _upsert(
-          dance.copyWith(tunes: const [], updatedAt: now),
-          localUserEdit: true,
-        );
-        changed++;
-      }
-      return changed;
-    });
+    return _updateMany(list, (dance) {
+      // Skipped, like the append path. Clearing is the user's intent, but a
+      // BATCH clear would destroy stored text this device cannot read, and
+      // the undo that should put it back cannot: the caller's snapshot is a
+      // `List<String>`, so it captures an empty list and restores an empty
+      // list. Refusing to act on a row it cannot read is the same call made
+      // for the unattended import resolver. Clearing one dance deliberately
+      // is a per-dance action, and belongs with surfacing the state.
+      final hasTunes = switch (dance.tunesSource) {
+        DecodedTunes(:final tunes) => tunes.isNotEmpty,
+        UnreadableTunes() => null,
+      };
+      if (hasTunes == null || !hasTunes) return null;
+      return dance.copyWith(tunes: const [], updatedAt: now);
+    }, rebuildDerived: false);
   }
 
   /// Upserts a single custom-field key→[value] across many dances at once, in a
@@ -2151,29 +2225,19 @@ class DanceRepository {
     }
     final list = ids.toList();
     if (list.isEmpty) return Future.value(0);
-    return _db.transaction(() async {
-      var changed = 0;
-      for (final id in list) {
-        final dance = await getById(id);
-        if (dance == null) continue;
-        final current = dance.customFields;
-        final alreadySet = current.any(
-          (f) => f.fieldId == def.id && f.value == value,
-        );
-        if (alreadySet) continue;
-        final next = [
-          for (final f in current)
-            if (f.fieldId != def.id) f,
-          incoming,
-        ];
-        await _upsert(
-          dance.copyWith(customFields: next, updatedAt: now),
-          localUserEdit: true,
-        );
-        changed++;
-      }
-      return changed;
-    });
+    return _updateMany(list, (dance) {
+      final current = dance.customFields;
+      final alreadySet = current.any(
+        (f) => f.fieldId == def.id && f.value == value,
+      );
+      if (alreadySet) return null;
+      final next = [
+        for (final f in current)
+          if (f.fieldId != def.id) f,
+        incoming,
+      ];
+      return dance.copyWith(customFields: next, updatedAt: now);
+    }, rebuildDerived: true);
   }
 
   /// Clears a single custom-field key (identified by [fieldId]) across many
@@ -2193,25 +2257,15 @@ class DanceRepository {
     assertUtc(now, 'now');
     final list = ids.toList();
     if (list.isEmpty) return Future.value(0);
-    return _db.transaction(() async {
-      var changed = 0;
-      for (final id in list) {
-        final dance = await getById(id);
-        if (dance == null) continue;
-        final current = dance.customFields;
-        if (!current.any((f) => f.fieldId == fieldId)) continue;
-        final next = [
-          for (final f in current)
-            if (f.fieldId != fieldId) f,
-        ];
-        await _upsert(
-          dance.copyWith(customFields: next, updatedAt: now),
-          localUserEdit: true,
-        );
-        changed++;
-      }
-      return changed;
-    });
+    return _updateMany(list, (dance) {
+      final current = dance.customFields;
+      if (!current.any((f) => f.fieldId == fieldId)) return null;
+      final next = [
+        for (final f in current)
+          if (f.fieldId != fieldId) f,
+      ];
+      return dance.copyWith(customFields: next, updatedAt: now);
+    }, rebuildDerived: true);
   }
 
   /// Read-only dry-run for the #417 "re-check custom figures" flow: scans every
@@ -2237,7 +2291,13 @@ class DanceRepository {
   /// row, so the dry-run and the apply agree — and the row is absent from the
   /// list rather than shown with a zero count, which would read as "nothing to
   /// upgrade here" about a transcription that was never read at all.
-  Future<List<CustomReparsePreview>> previewImportGapReparse() async {
+  ///
+  /// [reparse] is the same caller-supplied re-parse
+  /// [reparseImportGapFiguresForMany] applies, so the dry-run cannot disagree
+  /// with the apply about what upgrades.
+  Future<List<CustomReparsePreview>> previewImportGapReparse({
+    required FigureReparser reparse,
+  }) async {
     final rows =
         await (_db.selectOnly(_db.dances)
               ..addColumns([
@@ -2263,7 +2323,7 @@ class DanceRepository {
         UnreadableFigures() => null,
       };
       if (figures == null) continue;
-      final outcome = reparseImportGapFigures(figures, taxonomy: _taxonomy);
+      final outcome = reparse(figures, taxonomy: _taxonomy);
       if (outcome.upgradedCount > 0) {
         previews.add(
           CustomReparsePreview(
@@ -2294,37 +2354,39 @@ class DanceRepository {
   /// number of dances changed. An empty [ids] is a no-op returning `0`. The
   /// whole batch runs in one transaction, so an error leaves the collection
   /// untouched rather than half-updated.
+  ///
+  /// [reparse] is the re-parse to apply (`reparseImportGapFigures`); the caller
+  /// supplies it so this layer does not import `imports/`.
   Future<int> reparseImportGapFiguresForMany(
     Iterable<String> ids, {
+    required FigureReparser reparse,
     required DateTime now,
   }) {
     assertUtc(now, 'now');
-    final list = ids.toList();
-    if (list.isEmpty) return Future.value(0);
-    return _db.transaction(() async {
-      var changed = 0;
-      for (final id in list) {
-        final dance = await getById(id);
-        if (dance == null) continue;
+    return _updateMany(
+      ids,
+      (dance) {
         final figures = switch (dance.figuresSource) {
           DecodedFigures(:final figures) => figures,
           // Nothing to reparse, and nothing may be written for this dance:
           // skipping leaves the stored bytes untouched.
           UnreadableFigures() => null,
         };
-        if (figures == null) continue;
-        final outcome = reparseImportGapFigures(figures, taxonomy: _taxonomy);
-        if (outcome.upgradedCount == 0) continue;
-        // Deliberately no `localUserEdit`, unlike every sibling batch method
-        // here. The user asks for the reparse, but what it writes is a pure
-        // re-derivation of existing stored content — the same class as the
-        // normalisation passes §6.8 excludes from cancelling a pending
-        // tombstone. Nothing here is content the user authored.
-        await _upsert(dance.copyWith(figures: outcome.figures, updatedAt: now));
-        changed++;
-      }
-      return changed;
-    });
+        if (figures == null) return null;
+        final outcome = reparse(figures, taxonomy: _taxonomy);
+        if (outcome.upgradedCount == 0) return null;
+        return dance.copyWith(figures: outcome.figures, updatedAt: now);
+      },
+      // Figures text is an input to the derived FTS rows, so they are rebuilt
+      // (and the figures normalised, as before).
+      rebuildDerived: true,
+      // Deliberately not a local user edit, unlike every sibling batch method
+      // here. The user asks for the reparse, but what it writes is a pure
+      // re-derivation of existing stored content — the same class as the
+      // normalisation passes §6.8 excludes from cancelling a pending
+      // tombstone. Nothing here is content the user authored.
+      localUserEdit: false,
+    );
   }
 
   /// [Dance.duplicate] (fresh identity, no provenance) and persists it.
@@ -2446,33 +2508,6 @@ class DanceRepository {
     }
   }
 
-  /// Like [search] but returns hydrated [Dance]s in the same order. Convenience
-  /// for callers that immediately need the full objects; the id-returning
-  /// [search] is the primary contract.
-  Future<List<Dance>> searchDances(
-    DanceFilter filter, {
-    SearchSort sort = SearchSort.title,
-    SortDirection? direction,
-    Dialect? dialect,
-    SearchEnrichment? enrichment,
-    bool ignoreLeadingArticles = false,
-  }) async {
-    final ids = await search(
-      filter,
-      sort: sort,
-      direction: direction,
-      dialect: dialect,
-      enrichment: enrichment,
-      ignoreLeadingArticles: ignoreLeadingArticles,
-    );
-    final result = <Dance>[];
-    for (final id in ids) {
-      final dance = await getById(id);
-      if (dance != null) result.add(dance);
-    }
-    return result;
-  }
-
   /// Alphabetizes [ids] by title with a leading article ignored (see
   /// [titleSortKey]). [ids] arrive in SQL title (base) order, kept as a stable
   /// tiebreak for equal keys (e.g. "Rose" vs "The Rose" both key to "rose").
@@ -2485,15 +2520,21 @@ class DanceRepository {
     bool descending = false,
   }) async {
     if (ids.isEmpty) return ids;
-    final rows =
-        await (_db.selectOnly(_db.dances)
-              ..addColumns([_db.dances.id, _db.dances.title])
-              ..where(_db.dances.id.isIn(ids)))
-            .get();
-    final keys = {
-      for (final row in rows)
-        row.read(_db.dances.id)!: titleSortKey(row.read(_db.dances.title)!),
-    };
+    // Chunked (see [_chunkIds]) so a result past SQLite's bound-variable limit
+    // still sorts.
+    final keys = <String, String>{};
+    for (final chunk in _chunkIds(ids)) {
+      final rows =
+          await (_db.selectOnly(_db.dances)
+                ..addColumns([_db.dances.id, _db.dances.title])
+                ..where(_db.dances.id.isIn(chunk)))
+              .get();
+      for (final row in rows) {
+        keys[row.read(_db.dances.id)!] = titleSortKey(
+          row.read(_db.dances.title)!,
+        );
+      }
+    }
     final baseOrder = {for (var i = 0; i < ids.length; i++) ids[i]: i};
     final sorted = [...ids]
       ..sort((a, b) {
@@ -2614,6 +2655,7 @@ class DanceRepository {
   }) async {
     final query =
         _db.select(_db.danceFigures).join([
+          // join-columns: needed — the loop reads readTable(_db.dances).id
           innerJoin(
             _db.dances,
             _db.dances.id.equalsExp(_db.danceFigures.danceId),
@@ -2642,12 +2684,17 @@ class DanceRepository {
     return ids.toList();
   }
 
-  Future<Dance> _toModel(DanceRow row) async {
+  Future<Dance> _toModel(
+    DanceRow row, {
+    bool includeDeletedAuthors = false,
+  }) async {
     // Single-dance hydration reuses the same batched child loaders as
     // [listAll] (each becomes a one-`id` `IN (…)` query), so the two paths
     // stay byte-for-byte consistent in field ordering and decoding.
     final id = row.id;
-    final authors = await _authorsForMany([id]);
+    final authors = await _authorsForMany([
+      id,
+    ], includeDeletedChoreographers: includeDeletedAuthors);
     final tags = await _tagsForMany([id]);
     final links = await _linksForMany([id]);
     final sources = await _sourcesForMany([id]);
@@ -2751,7 +2798,9 @@ class DanceRepository {
       form: row.form,
       formation: Formation(row.formationShape, detail: row.formationDetail),
       progression: row.progression,
-      phraseStructure: row.phraseStructure,
+      // Tolerant: the editor and importers once accepted unbounded counts, so
+      // a stored value may be out of bounds; it must not block loading.
+      phraseStructure: PhraseStructure.parseOrStandard(row.phraseStructure).raw,
       figuresSource: _figureSourceFor(row.figuresJson),
       hook: row.hook,
       callingNotes: row.callingNotes,
@@ -2793,7 +2842,13 @@ class DanceRepository {
   }
 
   /// First-author-first `dance_id → [choreographerId]` in position order.
-  Future<Map<String, List<String>>> _authorsForMany(List<String> ids) async {
+  ///
+  /// Soft-deleted choreographers are skipped unless
+  /// [includeDeletedChoreographers] (only [getById]'s opt-in sets it).
+  Future<Map<String, List<String>>> _authorsForMany(
+    List<String> ids, {
+    bool includeDeletedChoreographers = false,
+  }) async {
     if (ids.isEmpty) return const {};
     final byDance = <String, List<String>>{};
     for (final chunk in _chunkIds(ids)) {
@@ -2806,7 +2861,9 @@ class DanceRepository {
                   _db.choreographers.id.equalsExp(
                         _db.danceAuthors.choreographerId,
                       ) &
-                      _db.choreographers.deletedAt.isNull(),
+                      (includeDeletedChoreographers
+                          ? const Constant(true)
+                          : _db.choreographers.deletedAt.isNull()),
                 ),
               ])..orderBy([
                 OrderingTerm(expression: _db.danceAuthors.danceId),

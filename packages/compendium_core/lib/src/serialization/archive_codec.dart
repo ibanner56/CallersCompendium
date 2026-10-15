@@ -78,13 +78,18 @@ Map<String, Object?> archiveToJson(
     for (final f in archive.customFields)
       if (mode == ArchiveSerializationMode.share && !f.shareable) f.id,
   };
+  // Share mode never writes `deletedTags`, so they must not raise the stamp.
+  final requiredVersion = requiredSchemaVersion(
+    archive,
+    includeDeletedTags: mode == ArchiveSerializationMode.backup,
+  );
   return {
     // Stamp at least the version the content requires so an older reader warns
     // rather than silently dropping fields, while honoring an explicitly
     // higher requested version.
-    'schemaVersion': archive.schemaVersion > requiredSchemaVersion(archive)
+    'schemaVersion': archive.schemaVersion > requiredVersion
         ? archive.schemaVersion
-        : requiredSchemaVersion(archive),
+        : requiredVersion,
     'exportedAt': archiveIso(archive.exportedAt),
     'choreographers': [
       for (final c in _sortedById(archive.choreographers, (c) => c.id))
@@ -98,6 +103,18 @@ Map<String, Object?> archiveToJson(
       for (final t in _sortedById(archive.tags, (t) => t.id))
         archiveTagToJson(t),
     ],
+    // Tombstoned tags and their retained dance joins are a full-backup concern
+    // only: a shared archive must not reveal what the owner deleted.
+    if (mode == ArchiveSerializationMode.backup &&
+        archive.deletedTags.isNotEmpty)
+      'deletedTags': [
+        for (final d in _sortedById(archive.deletedTags, (d) => d.tag.id))
+          {
+            ...archiveTagToJson(d.tag),
+            'deletedAt': archiveIso(d.deletedAt),
+            'danceIds': [...d.danceIds]..sort(),
+          },
+      ],
     // Difficulty levels are an ordered vocabulary, not an unordered entity
     // collection: position (and then id from repository reads) defines display
     // order, so preserve the caller's supplied sequence.
@@ -238,6 +255,18 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
     warnings,
     dropped,
   );
+  final deletedTags = _decodeList(
+    root['deletedTags'],
+    'deletedTag',
+    (m) => ArchivedDeletedTag(
+      tag: _tagFromJson(m),
+      deletedAt: _dt(m, 'deletedAt'),
+      danceIds: _stringList(m, 'danceIds'),
+    ),
+    errors,
+    warnings,
+    dropped,
+  );
   final customFields = _decodeList(
     root['customFields'],
     'customField',
@@ -326,6 +355,7 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
       tags: tags,
       venues: venues,
       difficultyLevels: difficultyLevels,
+      deletedTags: deletedTags,
     ),
     errors: errors,
     warnings: warnings,
@@ -861,6 +891,12 @@ Program _programFromJson(Map<String, Object?> m) => Program(
     'status',
   ),
   hideAlternates: _boolOr(m, 'hideAlternates', false),
+  // Not clamped: the dialect library imposes no name cap, so truncating would
+  // rewrite a valid reference into a different name (and could split a
+  // surrogate pair, which canonical sync JSON rejects).
+  dialectName: _strOrNull(m, 'dialectName'),
+  payMinorUnits: _payMinorUnitsOrNull(m),
+  payCurrency: _payCurrencyOrNull(m),
   slots: _programSlotsFromJson(m['slots']),
   provenance: m['provenance'] == null
       ? null
@@ -983,6 +1019,32 @@ String _clampLength(String value, int max) =>
 int _int(Map<String, Object?> m, String key) {
   final v = m[key];
   if (v is! int) throw FormatException('missing or non-integer "$key"');
+  return v;
+}
+
+/// `payMinorUnits`, which must be a non-negative integer and present only
+/// together with `payCurrency` (the [Program] invariant), so a body that breaks
+/// it is rejected as malformed rather than reaching the constructor.
+int? _payMinorUnitsOrNull(Map<String, Object?> m) {
+  final v = _intOrNull(m, 'payMinorUnits');
+  if (v != null && v < 0) {
+    throw const FormatException('"payMinorUnits" must not be negative');
+  }
+  if ((v == null) != (m['payCurrency'] == null)) {
+    throw const FormatException(
+      '"payMinorUnits" and "payCurrency" must appear together',
+    );
+  }
+  return v;
+}
+
+String? _payCurrencyOrNull(Map<String, Object?> m) {
+  final v = _strOrNull(m, 'payCurrency');
+  if (v != null && !Program.isValidPayCurrency(v)) {
+    throw const FormatException(
+      '"payCurrency" must be three uppercase letters (ISO 4217)',
+    );
+  }
   return v;
 }
 

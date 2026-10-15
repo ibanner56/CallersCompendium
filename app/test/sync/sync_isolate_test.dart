@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
+import 'package:compendium_app/src/sync/sync_failure.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_app/src/sync/sync_isolate.dart';
 import 'package:compendium_app/src/sync/sync_invalidation.dart';
@@ -90,11 +92,121 @@ void main() {
     final result = await resultFuture;
 
     expect(result.status, SyncPassStatus.completed);
+    // The store answered without a quota. That the worker read it must still
+    // reach the parent, or an old "almost full" reading would stand (§5.2).
+    expect(result.storeRead, isTrue);
+    expect(result.quota, isNull);
     expect(requests, [
       'GET /v1/store',
       'POST /v1/blobs/missing',
       'PUT /v1/manifests/device-a',
     ]);
+  });
+
+  // A failure's cause must survive the port back to the parent: the status
+  // surface can explain only what reaches it.
+  test(
+    "carries a failed pass's cause, step, status, Retry-After and the store's "
+    'quota across the isolate',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'compendium-sync-isolate-',
+      );
+      final database = CompendiumDatabase(
+        NativeDatabase(File('${directory.path}/compendium.sqlite')),
+      );
+      final repositories = CompendiumRepositories(database, contraTaxonomy);
+      await repositories.ensureMigrated();
+      await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
+
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        await request.drain<void>();
+        request.response.headers.contentType = ContentType.json;
+        if (request.method == 'GET' && request.uri.path == '/v1/store') {
+          request.response.write(
+            jsonEncode({
+              'epoch': 'epoch-1',
+              'devices': <String>[],
+              'quota': {
+                'blobs': 85,
+                'bytes': 10,
+                'maxBlobs': 100,
+                'maxBytes': 1000,
+              },
+            }),
+          );
+        } else if (request.method == 'POST' &&
+            request.uri.path == '/v1/blobs/missing') {
+          request.response.write(jsonEncode({'missing': <String>[]}));
+        } else {
+          request.response
+            ..statusCode = HttpStatus.serviceUnavailable
+            ..headers.set('retry-after', '120')
+            ..write('{}');
+        }
+        await request.response.close();
+      });
+      addTearDown(() async {
+        await server.close(force: true);
+        await database.close();
+        await directory.delete(recursive: true);
+      });
+
+      final result = await IsolatedSyncPassOperation(
+        databasePath: '${directory.path}/compendium.sqlite',
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
+        syncId: 'alpha-beta-gamma-delta',
+        deviceId: 'device-a',
+      ).call();
+
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.cause, SyncFailureCause.serverError);
+      expect(result.failure?.step, SyncFailureStep.publish);
+      expect(result.failure?.statusCode, 503);
+      expect(result.failure?.retryAfter, const Duration(seconds: 120));
+      expect(result.quota?.blobs, 85);
+      expect(result.quota?.maxBlobs, 100);
+      expect(result.quota?.nearlyFull, isTrue);
+    },
+  );
+
+  // A connection failure is thrown inside the worker and reaches the parent as
+  // text, so the worker has to classify it before it is flattened.
+  test('classifies a worker throw before it crosses the isolate', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'compendium-sync-isolate-',
+    );
+    final database = CompendiumDatabase(
+      NativeDatabase(File('${directory.path}/compendium.sqlite')),
+    );
+    final repositories = CompendiumRepositories(database, contraTaxonomy);
+    await repositories.ensureMigrated();
+    await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
+    // A port that was just listening and now is not: connection refused.
+    final closed = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    final port = closed.port;
+    await closed.close(force: true);
+    addTearDown(() async {
+      await database.close();
+      await directory.delete(recursive: true);
+    });
+
+    await expectLater(
+      IsolatedSyncPassOperation(
+        databasePath: '${directory.path}/compendium.sqlite',
+        endpoint: Uri.parse('http://127.0.0.1:$port'),
+        syncId: 'alpha-beta-gamma-delta',
+        deviceId: 'device-a',
+      ).call(),
+      throwsA(
+        isA<SyncWorkerFailure>().having(
+          (failure) => failure.cause,
+          'cause',
+          SyncFailureCause.unreachable,
+        ),
+      ),
+    );
   });
 
   test(
@@ -186,6 +298,406 @@ void main() {
     },
   );
 
+  test(
+    'a rate-limited pass crosses the isolate as a temporary failure, and the '
+    'next pass reuses the blob it fetched but did not apply',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'compendium-sync-isolate-rate-limited-',
+      );
+      final databasePath = '${directory.path}/compendium.sqlite';
+      final database = CompendiumDatabase(NativeDatabase(File(databasePath)));
+      final repositories = CompendiumRepositories(database, contraTaxonomy);
+      await repositories.ensureMigrated();
+      await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
+      // Newer here than on the peer, so the peer's copy is fetched and then
+      // loses the merge: nothing but the session's blob cache can spare the
+      // next pass from fetching it again.
+      await repositories.settings.set(
+        'default_program_band',
+        'Local band',
+        at: DateTime.utc(2026, 7, 15, 13),
+      );
+
+      SyncRecordBlob setting(String id, String value) => SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: id,
+        updatedAt: DateTime.utc(2026, 7, 15, 12),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 7, 15, 12),
+        body: {'value': value},
+      );
+      final losing = encodeSyncRecordBlobUtf8(
+        setting('default_program_band', 'Peer band'),
+      );
+      final pending = encodeSyncRecordBlobUtf8(
+        setting('default_program_caller', 'Peer caller'),
+      );
+      final losingHash = sha256Hex(losing);
+      final pendingHash = sha256Hex(pending);
+      final manifest = SyncManifest(
+        deviceId: 'peer',
+        epoch: 'epoch-1',
+        writtenAt: DateTime.utc(2026, 7, 15, 12),
+        records: {
+          SyncRecordKind.setting: {
+            'default_program_band': losingHash,
+            'default_program_caller': pendingHash,
+          },
+        },
+      );
+
+      // First pass: the second blob meets the limit. Second pass: it is gone
+      // from the store, so its report must carry the 404 across the isolate.
+      var pass = 1;
+      final blobRequests = <String>[];
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        final path = request.uri.path;
+        await request.drain<void>();
+        if (request.method == 'GET' && path.startsWith('/v1/blobs/')) {
+          final hash = path.substring('/v1/blobs/'.length);
+          blobRequests.add(hash);
+          if (hash == losingHash) {
+            request.response.add(losing);
+          } else if (pass == 1) {
+            request.response
+              ..statusCode = HttpStatus.tooManyRequests
+              ..headers.set('retry-after', '60')
+              ..headers.contentType = ContentType.json
+              ..write('{"error":"rate limited"}');
+          } else {
+            request.response
+              ..statusCode = HttpStatus.notFound
+              ..headers.contentType = ContentType.json
+              ..write('{}');
+          }
+        } else if (request.method == 'GET' && path == '/v1/store') {
+          request.response.headers.contentType = ContentType.json;
+          request.response.write(
+            jsonEncode({
+              'epoch': 'epoch-1',
+              'devices': ['peer'],
+            }),
+          );
+        } else if (request.method == 'GET' && path == '/v1/manifests/peer') {
+          request.response.headers.contentType = ContentType.json;
+          request.response.write(encodeSyncManifest(manifest));
+        } else if (request.method == 'POST' && path == '/v1/blobs/missing') {
+          request.response.headers.contentType = ContentType.json;
+          request.response.write(jsonEncode({'missing': <String>[]}));
+        } else if (request.method == 'PUT' &&
+            path == '/v1/manifests/device-a') {
+          request.response.headers.contentType = ContentType.json;
+          request.response.write('{}');
+        } else {
+          request.response
+            ..statusCode = HttpStatus.notFound
+            ..headers.contentType = ContentType.json
+            ..write('{}');
+        }
+        await request.response.close();
+      });
+      addTearDown(() async {
+        await server.close(force: true);
+        await database.close();
+        await directory.delete(recursive: true);
+      });
+
+      final cache = SyncPeerManifestCache();
+      final operation = IsolatedSyncPassOperation(
+        databasePath: databasePath,
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
+        syncId: 'alpha-beta-gamma-delta',
+        deviceId: 'device-a',
+        peerManifestCache: cache,
+      );
+
+      final first = await operation.call();
+
+      expect(first.status, SyncPassStatus.failed);
+      expect(first.failure?.cause, SyncFailureCause.rateLimited);
+      expect(first.failure?.retryAfter, const Duration(seconds: 60));
+      expect(first.failure?.progressed, isTrue);
+      expect(first.reports, isEmpty);
+      expect(blobRequests, [losingHash, pendingHash]);
+      expect(cache.fetchedBlob(losingHash), losing);
+
+      pass = 2;
+      blobRequests.clear();
+      final second = await operation.call();
+
+      expect(blobRequests, [pendingHash]);
+      expect(second.status, SyncPassStatus.completed);
+      final report = second.reports.singleWhere(
+        (r) => r.code == SyncReportCode.unresolvedBlob,
+      );
+      expect(report.recordId, 'default_program_caller');
+      expect(report.httpStatus, 404);
+    },
+  );
+
+  test(
+    'batches cross a real isolate and loopback server: gzip frames, a 429 on '
+    'the second batch, and the next pass asks only for the rest',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'compendium-sync-isolate-batch-',
+      );
+      final databasePath = '${directory.path}/compendium.sqlite';
+      final database = CompendiumDatabase(NativeDatabase(File(databasePath)));
+      final repositories = CompendiumRepositories(database, contraTaxonomy);
+      await repositories.ensureMigrated();
+      await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
+
+      final at = DateTime.utc(2026, 7, 15, 12);
+      // Past one batch, so the second batch request is the one refused.
+      final blobs = <String, List<int>>{};
+      final tags = <String, String>{};
+      for (var i = 0; i < syncBlobBatchMaxHashes + 50; i++) {
+        final id = 'tag-${i.toString().padLeft(4, '0')}';
+        final bytes = encodeSyncRecordBlobUtf8(
+          SyncRecordBlob(
+            kind: SyncRecordKind.tag,
+            id: id,
+            updatedAt: at,
+            deletedAt: null,
+            existenceAt: at,
+            body: {'id': id, 'name': 'Tag $i', 'color': null},
+          ),
+        );
+        final hash = sha256Hex(bytes);
+        blobs[hash] = bytes;
+        tags[id] = hash;
+      }
+      final manifest = SyncManifest(
+        deviceId: 'peer',
+        epoch: 'epoch-1',
+        writtenAt: at,
+        records: {SyncRecordKind.tag: tags},
+      );
+
+      var pass = 1;
+      final batches = <List<String>>[];
+      final acceptEncodings = <String?>[];
+      var singleRequests = 0;
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        final path = request.uri.path;
+        final body = await utf8.decodeStream(request);
+        final response = request.response;
+        if (request.method == 'POST' && path == '/v1/blobs/batch') {
+          final hashes = [
+            for (final hash in (jsonDecode(body) as Map)['hashes'] as List)
+              hash as String,
+          ];
+          batches.add(hashes);
+          acceptEncodings.add(request.headers.value('accept-encoding'));
+          if (pass == 1 && batches.length == 2) {
+            response
+              ..statusCode = HttpStatus.tooManyRequests
+              ..headers.set('retry-after', '60')
+              ..headers.contentType = ContentType.json
+              ..write('{"error":"rate limited"}');
+          } else {
+            final frames = BytesBuilder(copy: false);
+            for (final hash in hashes) {
+              final bytes = blobs[hash]!;
+              frames
+                ..add(
+                  encodeSyncBlobBatchFrameHead(
+                    SyncBlobBatchFrameStatus.blob,
+                    hash,
+                    length: bytes.length,
+                  ),
+                )
+                ..add(bytes);
+            }
+            response.headers
+              ..set('content-type', syncBlobBatchMediaType)
+              ..set('content-encoding', 'gzip');
+            response.add(gzip.encode(frames.takeBytes()));
+          }
+        } else if (request.method == 'GET' && path.startsWith('/v1/blobs/')) {
+          singleRequests++;
+          response.statusCode = HttpStatus.notFound;
+        } else if (request.method == 'GET' && path == '/v1/store') {
+          response.headers.contentType = ContentType.json;
+          response.write(
+            jsonEncode({
+              'epoch': 'epoch-1',
+              'devices': ['peer'],
+            }),
+          );
+        } else if (request.method == 'GET' && path == '/v1/manifests/peer') {
+          response.headers.contentType = ContentType.json;
+          response.write(encodeSyncManifest(manifest));
+        } else if (request.method == 'POST' && path == '/v1/blobs/missing') {
+          response.headers.contentType = ContentType.json;
+          response.write(jsonEncode({'missing': <String>[]}));
+        } else if (request.method == 'PUT' &&
+            path == '/v1/manifests/device-a') {
+          response.headers.contentType = ContentType.json;
+          response.write('{}');
+        } else {
+          response.statusCode = HttpStatus.notFound;
+        }
+        await response.close();
+      });
+      addTearDown(() async {
+        await server.close(force: true);
+        await database.close();
+        await directory.delete(recursive: true);
+      });
+
+      final operation = IsolatedSyncPassOperation(
+        databasePath: databasePath,
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
+        syncId: 'alpha-beta-gamma-delta',
+        deviceId: 'device-a',
+        peerManifestCache: SyncPeerManifestCache(),
+      );
+
+      final first = await operation.call();
+
+      expect(first.status, SyncPassStatus.failed);
+      expect(first.failure?.cause, SyncFailureCause.rateLimited);
+      expect(first.failure?.retryAfter, const Duration(seconds: 60));
+      expect(first.failure?.progressed, isTrue);
+      expect(first.reports, isEmpty);
+      expect(batches, hasLength(2));
+      expect(batches.first, hasLength(syncBlobBatchMaxHashes));
+      expect(acceptEncodings.first, contains('gzip'));
+      expect(singleRequests, 0);
+      final ordered = tags.values.toList();
+      expect(batches.first, ordered.sublist(0, syncBlobBatchMaxHashes));
+      expect(await repositories.tags.getById('tag-0199'), isNotNull);
+      expect(await repositories.tags.getById('tag-0200'), isNull);
+
+      pass = 2;
+      batches.clear();
+      final second = await operation.call();
+
+      expect(second.status, SyncPassStatus.completed);
+      expect(second.reports, isEmpty);
+      expect(batches, [ordered.sublist(syncBlobBatchMaxHashes)]);
+      expect(await repositories.tags.getById('tag-0249'), isNotNull);
+    },
+  );
+
+  test('a server without the batch route is remembered across the isolate for '
+      'the rest of the session', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'compendium-sync-isolate-no-batch-',
+    );
+    final databasePath = '${directory.path}/compendium.sqlite';
+    final database = CompendiumDatabase(NativeDatabase(File(databasePath)));
+    final repositories = CompendiumRepositories(database, contraTaxonomy);
+    await repositories.ensureMigrated();
+    await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
+
+    final at = DateTime.utc(2026, 7, 15, 12);
+    final blob = encodeSyncRecordBlobUtf8(
+      SyncRecordBlob(
+        kind: SyncRecordKind.setting,
+        id: 'default_program_caller',
+        updatedAt: at,
+        deletedAt: null,
+        existenceAt: at,
+        body: {'value': 'Peer caller'},
+      ),
+    );
+    final hash = sha256Hex(blob);
+    final manifest = SyncManifest(
+      deviceId: 'peer',
+      epoch: 'epoch-1',
+      writtenAt: at,
+      records: {
+        SyncRecordKind.setting: {'default_program_caller': hash},
+      },
+    );
+    final requests = <String>[];
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      final path = request.uri.path;
+      await request.drain<void>();
+      requests.add('${request.method} $path');
+      final response = request.response;
+      response.headers.contentType = ContentType.json;
+      if (path == '/v1/blobs/batch') {
+        // What an Athenaeum from before the route answers: `batch` is not a
+        // hash.
+        response
+          ..statusCode = HttpStatus.badRequest
+          ..write('{"error":"invalid blob hash"}');
+      } else if (path == '/v1/blobs/$hash') {
+        response.headers.contentType = ContentType.binary;
+        response.add(blob);
+      } else if (path == '/v1/store') {
+        response.write(
+          jsonEncode({
+            'epoch': 'epoch-1',
+            'devices': ['peer'],
+          }),
+        );
+      } else if (path == '/v1/manifests/peer') {
+        response.write(encodeSyncManifest(manifest));
+      } else if (path == '/v1/blobs/missing') {
+        response.write(jsonEncode({'missing': <String>[]}));
+      } else {
+        response.write('{}');
+      }
+      await response.close();
+    });
+    addTearDown(() async {
+      await server.close(force: true);
+      await database.close();
+      await directory.delete(recursive: true);
+    });
+
+    final cache = SyncPeerManifestCache();
+    final operation = IsolatedSyncPassOperation(
+      databasePath: databasePath,
+      endpoint: Uri.parse('http://127.0.0.1:${server.port}'),
+      syncId: 'alpha-beta-gamma-delta',
+      deviceId: 'device-a',
+      peerManifestCache: cache,
+    );
+
+    final first = await operation.call();
+
+    expect(first.status, SyncPassStatus.completed);
+    expect(first.reports, isEmpty);
+    expect(requests, contains('POST /v1/blobs/batch'));
+    expect(requests, contains('GET /v1/blobs/$hash'));
+    expect(cache.blobBatchUnsupported, isTrue);
+    expect(
+      SyncPeerManifestCache.fromMessage(cache.toMessage()).blobBatchUnsupported,
+      isTrue,
+    );
+    cache.clear();
+    expect(cache.blobBatchUnsupported, isFalse, reason: 'a new session');
+  });
+
+  test('the session blob cache crosses the isolate and holds a byte cap', () {
+    final cache = SyncPeerManifestCache();
+    final small = List<int>.filled(16, 1);
+    cache.rememberFetchedBlob('small', small);
+    final restored = SyncPeerManifestCache.fromMessage(cache.toMessage());
+    expect(restored.fetchedBlob('small'), small);
+
+    // Two blobs of more than half the cap cannot both be kept: the older goes.
+    final half = SyncPeerManifestCache.fetchedBlobBytesKept ~/ 2 + 1;
+    restored
+      ..rememberFetchedBlob('first', List<int>.filled(half, 2))
+      ..rememberFetchedBlob('second', List<int>.filled(half, 3));
+    expect(restored.fetchedBlob('first'), isNull);
+    expect(restored.fetchedBlob('second'), hasLength(half));
+
+    restored.clear();
+    expect(restored.fetchedBlob('second'), isNull);
+  });
+
   test('propagates a nonzero fresh-attach duplicate count', () async {
     final directory = await Directory.systemTemp.createTemp(
       'compendium-sync-isolate-dedupe-',
@@ -265,6 +777,10 @@ void main() {
       final repositories = CompendiumRepositories(database, contraTaxonomy);
       await repositories.ensureMigrated();
       const syncId = 'alpha-beta-gamma-delta';
+      // Deliberately the real derivation, with no `syncIdentityKdfIterations`
+      // override: the pass runs in a spawned isolate whose copy of that global
+      // is still 600,000, so a marker written at a lowered count would be
+      // skipped there as a mismatch.
       await CompendiumSyncStorage(repositories).markSyncUsed(syncId);
 
       final requests = <String>[];
@@ -370,10 +886,18 @@ void main() {
       recordId: 'difficulty-beginner',
     );
     final rejectedHash = List.filled(64, 'f').join();
+    // Evidence from earlier in the session: a publication under a hash the
+    // store no longer has for that record, and one observation of the peer.
     final peerManifestCache = SyncPeerManifestCache(
       rejectedHashes: {rejectedHash},
-      unreflectedPasses: {diagnosticAddress: 2},
-      unreflectedEpoch: 'epoch-1',
+      publications: {
+        diagnosticAddress: (hash: List.filled(64, 'e').join(), pass: 7),
+      },
+      peerPublications: {
+        'peer': [(writtenAt: DateTime.utc(2026, 7, 15, 11), pass: 7)],
+      },
+      passSequence: 7,
+      publicationEpoch: 'epoch-1',
     );
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {
@@ -423,13 +947,30 @@ void main() {
       peerManifestCache: peerManifestCache,
     );
 
-    expect((await operation.call()).status, SyncPassStatus.completed);
+    final first = await operation.call();
+    expect(first.status, SyncPassStatus.completed);
     expect((await operation.call()).status, SyncPassStatus.completed);
     expect(manifestEtags, [null, '"peer-v1"']);
     expect(peerManifestCache.rejectedHashes, {rejectedHash});
-    expect(peerManifestCache.unreflectedPasses[diagnosticAddress], 4);
+    // The peer summary crosses the boundary with the result: the peer lists
+    // nothing, so everything this device publishes is waiting for it.
+    final summary = first.peers!.single;
+    expect(summary.peerId, 'peer');
+    expect(summary.writtenAt, DateTime.utc(2026, 7, 15, 12));
+    expect(summary.waitingCount, peerManifestCache.publications.length);
+    expect(summary.waitingCount, greaterThan(0));
+    // Both passes' evidence came back across the boundary: the sequence
+    // advanced once per pass from where the session left it, the peer's new
+    // `writtenAt` was recorded beside the older one on the first pass and
+    // not again on the second, and the publications the first pass recorded
+    // were still there — unrenumbered — after the second.
+    expect(peerManifestCache.passSequence, 9);
+    expect(peerManifestCache.peerPublications['peer'], [
+      (writtenAt: DateTime.utc(2026, 7, 15, 11), pass: 7),
+      (writtenAt: DateTime.utc(2026, 7, 15, 12), pass: 8),
+    ]);
     expect(
-      peerManifestCache.unreflectedPasses.keys,
+      peerManifestCache.publications.keys,
       containsAll([
         diagnosticAddress,
         (
@@ -439,6 +980,14 @@ void main() {
         (kind: SyncRecordKind.difficultyLevel, recordId: 'difficulty-advanced'),
       ]),
     );
+    expect(
+      peerManifestCache.publications[diagnosticAddress]?.pass,
+      8,
+      reason: 'a changed hash restarts the evidence for that record',
+    );
+    expect(peerManifestCache.publications.values.map((p) => p.pass).toSet(), {
+      8,
+    });
   }, timeout: const Timeout(Duration(minutes: 2)));
 
   test('refreshes a main-isolate watch after inbound worker write', () async {
@@ -450,13 +999,13 @@ void main() {
     final repositories = CompendiumRepositories(database, contraTaxonomy);
     await repositories.ensureMigrated();
     await repositories.settings.set(
-      'custom_dialects',
+      'theme_mode',
       'before-first',
       at: DateTime.utc(2026, 7, 15, 11),
     );
     await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
 
-    final incoming = _setting('custom_dialects', 'after-first', seconds: 1);
+    final incoming = _setting('theme_mode', 'after-first', seconds: 1);
     final incomingHash = sha256Hex(encodeSyncRecordBlobUtf8(incoming));
     final peerManifest = SyncManifest(
       deviceId: 'peer',
@@ -500,7 +1049,7 @@ void main() {
     final changes = StreamIterator(
       (database.select(
         database.settings,
-      )..where((table) => table.key.equals('custom_dialects'))).watch(),
+      )..where((table) => table.key.equals('theme_mode'))).watch(),
     );
     addTearDown(() async {
       await changes.cancel();
@@ -528,7 +1077,7 @@ void main() {
 
     final persisted = await (database.select(
       database.settings,
-    )..where((table) => table.key.equals('custom_dialects'))).getSingle();
+    )..where((table) => table.key.equals('theme_mode'))).getSingle();
     expect(jsonDecode(persisted.valueJson), 'after-first');
     expect(appliedKinds, {SyncRecordKind.setting});
     expect(
@@ -547,7 +1096,7 @@ void main() {
     final repositories = CompendiumRepositories(database, contraTaxonomy);
     await repositories.ensureMigrated();
     await repositories.settings.set(
-      'custom_dialects',
+      'theme_mode',
       'before-first',
       at: DateTime.utc(2026, 7, 15, 11),
     );
@@ -559,7 +1108,7 @@ void main() {
     await repositories.syncLocal.replaceBaseline(epoch: 'epoch-1');
     await database.close();
 
-    final first = _setting('custom_dialects', 'after-first', seconds: 1);
+    final first = _setting('theme_mode', 'after-first', seconds: 1);
     final second = _setting('default_program_band', 'after-second', seconds: 2);
     final firstHash = sha256Hex(encodeSyncRecordBlobUtf8(first));
     final secondHash = sha256Hex(encodeSyncRecordBlobUtf8(second));
@@ -644,15 +1193,13 @@ void main() {
       contraTaxonomy,
     );
     final values = {
-      'custom_dialects': await verificationRepositories.settings.get(
-        'custom_dialects',
-      ),
+      'theme_mode': await verificationRepositories.settings.get('theme_mode'),
       'default_program_band': await verificationRepositories.settings.get(
         'default_program_band',
       ),
     };
     expect(values, {
-      'custom_dialects': 'before-first',
+      'theme_mode': 'before-first',
       'default_program_band': 'before-second',
     });
     expect(

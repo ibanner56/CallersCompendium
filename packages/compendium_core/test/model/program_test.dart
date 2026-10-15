@@ -298,6 +298,104 @@ void main() {
       );
     });
 
+    test('Program.copyWith sets and clears dialectName via its flag', () {
+      final p = Program(
+        id: 'p1',
+        title: 'T',
+        dialectName: 'Leads/Follows',
+        createdAt: now,
+        updatedAt: now,
+      );
+      expect(p.copyWith(title: 'U').dialectName, 'Leads/Follows');
+      expect(
+        p.copyWith(dialectName: 'Larks/Robins').dialectName,
+        'Larks/Robins',
+      );
+      expect(p.copyWith(clearDialectName: true).dialectName, isNull);
+      // A set clear flag wins over a passed value.
+      expect(
+        p.copyWith(dialectName: 'X', clearDialectName: true).dialectName,
+        isNull,
+      );
+      // `==` distinguishes programs that differ only by dialectName.
+      expect(p == p.copyWith(clearDialectName: true), isFalse);
+      expect(p == p.copyWith(), isTrue);
+    });
+
+    group('pay (issue #1418)', () {
+      Program make({int? minor, String? currency}) => Program(
+        id: 'p1',
+        title: 'T',
+        payMinorUnits: minor,
+        payCurrency: currency,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      test('defaults to no pay', () {
+        final p = make();
+        expect(p.payMinorUnits, isNull);
+        expect(p.payCurrency, isNull);
+      });
+
+      test('amount and currency must be set together', () {
+        expect(() => make(minor: 100), throwsArgumentError);
+        expect(() => make(currency: 'USD'), throwsArgumentError);
+        expect(make(minor: 0, currency: 'USD').payMinorUnits, 0);
+      });
+
+      test('rejects a negative amount and a malformed currency', () {
+        expect(() => make(minor: -1, currency: 'USD'), throwsArgumentError);
+        for (final bad in ['usd', 'US', 'USDX', 'U\$D', '']) {
+          expect(() => make(minor: 1, currency: bad), throwsArgumentError);
+        }
+      });
+
+      test('copyWith sets, keeps and clears via clearPay', () {
+        final p = make(minor: 25000, currency: 'USD');
+        expect(p.copyWith(title: 'U').payMinorUnits, 25000);
+        final changed = p.copyWith(payMinorUnits: 30000, payCurrency: 'EUR');
+        expect(changed.payMinorUnits, 30000);
+        expect(changed.payCurrency, 'EUR');
+        final cleared = p.copyWith(clearPay: true);
+        expect(cleared.payMinorUnits, isNull);
+        expect(cleared.payCurrency, isNull);
+        expect(
+          p.copyWith(payMinorUnits: 1, payCurrency: 'EUR', clearPay: true),
+          cleared,
+        );
+        expect(p == p.copyWith(clearPay: true), isFalse);
+        expect(p == p.copyWith(payCurrency: 'EUR'), isFalse);
+        expect(p == p.copyWith(), isTrue);
+        expect(p.hashCode, p.copyWith().hashCode);
+      });
+
+      test('duplicate does not carry pay', () {
+        final copy = make(
+          minor: 25000,
+          currency: 'USD',
+        ).duplicate(newId: 'p2', newSlotId: () => 'ns1', now: now);
+        expect(copy.payMinorUnits, isNull);
+        expect(copy.payCurrency, isNull);
+      });
+    });
+
+    test('duplicate carries dialectName through', () {
+      final original = Program(
+        id: 'p1',
+        title: 'Night',
+        dialectName: 'Leads/Follows',
+        createdAt: now,
+        updatedAt: now,
+      );
+      final copy = original.duplicate(
+        newId: 'p2',
+        newSlotId: () => 'ns1',
+        now: now,
+      );
+      expect(copy.dialectName, 'Leads/Follows');
+    });
+
     test('duplicate carries the new fields through', () {
       final original = Program(
         id: 'p1',

@@ -84,3 +84,20 @@ abstract interface class SourceAdapter {
   /// content; unparseable figures fall back to custom.
   StructuredDraft parse(RawRecord raw);
 }
+
+/// Implemented by an adapter whose most recent [SourceAdapter.discover] can
+/// raise concerns about the *whole file* rather than one record — a truncated
+/// `.USR`, an archive from a newer app version. [ImportPipeline.plan] reads
+/// [batchWarnings] right after a successful discover and carries them on
+/// [ImportBatchResult.warnings].
+///
+/// A separate interface rather than a member of [SourceAdapter]: adapters
+/// `implements` that class, so a default would not be inherited and every
+/// adapter (and test double) would have to restate it.
+abstract interface class BatchWarningSource {
+  /// Warnings from the most recent discover; empty before one has run and
+  /// reset by the next. Each [ImportIssue.code] is mapped to localized copy by
+  /// the app (`import_diagnostic_labels.dart`); [ImportIssue.message] is for
+  /// logs only.
+  List<ImportIssue> get batchWarnings;
+}

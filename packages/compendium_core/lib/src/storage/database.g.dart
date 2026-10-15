@@ -3356,6 +3356,39 @@ class $ProgramsTable extends Programs
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _dialectNameMeta = const VerificationMeta(
+    'dialectName',
+  );
+  @override
+  late final GeneratedColumn<String> dialectName = GeneratedColumn<String>(
+    'dialect_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payMinorUnitsMeta = const VerificationMeta(
+    'payMinorUnits',
+  );
+  @override
+  late final GeneratedColumn<int> payMinorUnits = GeneratedColumn<int>(
+    'pay_minor_units',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payCurrencyMeta = const VerificationMeta(
+    'payCurrency',
+  );
+  @override
+  late final GeneratedColumn<String> payCurrency = GeneratedColumn<String>(
+    'pay_currency',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -3413,6 +3446,9 @@ class $ProgramsTable extends Programs
     notes,
     status,
     hideAlternates,
+    dialectName,
+    payMinorUnits,
+    payCurrency,
     createdAt,
     updatedAt,
     deletedAt,
@@ -3494,6 +3530,33 @@ class $ProgramsTable extends Programs
         hideAlternates.isAcceptableOrUnknown(
           data['hide_alternates']!,
           _hideAlternatesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dialect_name')) {
+      context.handle(
+        _dialectNameMeta,
+        dialectName.isAcceptableOrUnknown(
+          data['dialect_name']!,
+          _dialectNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('pay_minor_units')) {
+      context.handle(
+        _payMinorUnitsMeta,
+        payMinorUnits.isAcceptableOrUnknown(
+          data['pay_minor_units']!,
+          _payMinorUnitsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('pay_currency')) {
+      context.handle(
+        _payCurrencyMeta,
+        payCurrency.isAcceptableOrUnknown(
+          data['pay_currency']!,
+          _payCurrencyMeta,
         ),
       );
     }
@@ -3583,6 +3646,18 @@ class $ProgramsTable extends Programs
         DriftSqlType.bool,
         data['${effectivePrefix}hide_alternates'],
       )!,
+      dialectName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dialect_name'],
+      ),
+      payMinorUnits: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}pay_minor_units'],
+      ),
+      payCurrency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pay_currency'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -3647,6 +3722,25 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   final String notes;
   final ProgramStatus status;
   final bool hideAlternates;
+
+  /// Name of the dialect Perform uses for this program (schema v37). `null`
+  /// (the default, and every program before v37) means Perform follows the
+  /// application dialect. A soft reference by **name** — dialects are
+  /// identified only by name (`Dialect.resolveByName`) — and deliberately not
+  /// validated at write time: a name that no longer resolves (the dialect was
+  /// renamed or deleted, or has not synced to this device yet) falls back to
+  /// the application dialect when Perform resolves it, so dialect rename and
+  /// delete never write to programs.
+  final String? dialectName;
+
+  /// What the caller is paid for this program, in the currency's minor units
+  /// (schema v38). `null` (every program before v38) means no pay is recorded.
+  /// Set together with [payCurrency] or not at all; never negative.
+  final int? payMinorUnits;
+
+  /// ISO 4217 code for [payMinorUnits] (three uppercase letters); `null`
+  /// exactly when [payMinorUnits] is.
+  final String? payCurrency;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -3667,6 +3761,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     required this.notes,
     required this.status,
     required this.hideAlternates,
+    this.dialectName,
+    this.payMinorUnits,
+    this.payCurrency,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -3702,6 +3799,15 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       );
     }
     map['hide_alternates'] = Variable<bool>(hideAlternates);
+    if (!nullToAbsent || dialectName != null) {
+      map['dialect_name'] = Variable<String>(dialectName);
+    }
+    if (!nullToAbsent || payMinorUnits != null) {
+      map['pay_minor_units'] = Variable<int>(payMinorUnits);
+    }
+    if (!nullToAbsent || payCurrency != null) {
+      map['pay_currency'] = Variable<String>(payCurrency);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
@@ -3736,6 +3842,15 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       notes: Value(notes),
       status: Value(status),
       hideAlternates: Value(hideAlternates),
+      dialectName: dialectName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dialectName),
+      payMinorUnits: payMinorUnits == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payMinorUnits),
+      payCurrency: payCurrency == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payCurrency),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
@@ -3766,6 +3881,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
         serializer.fromJson<String>(json['status']),
       ),
       hideAlternates: serializer.fromJson<bool>(json['hideAlternates']),
+      dialectName: serializer.fromJson<String?>(json['dialectName']),
+      payMinorUnits: serializer.fromJson<int?>(json['payMinorUnits']),
+      payCurrency: serializer.fromJson<String?>(json['payCurrency']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
@@ -3789,6 +3907,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
         $ProgramsTable.$converterstatus.toJson(status),
       ),
       'hideAlternates': serializer.toJson<bool>(hideAlternates),
+      'dialectName': serializer.toJson<String?>(dialectName),
+      'payMinorUnits': serializer.toJson<int?>(payMinorUnits),
+      'payCurrency': serializer.toJson<String?>(payCurrency),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
@@ -3808,6 +3929,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     String? notes,
     ProgramStatus? status,
     bool? hideAlternates,
+    Value<String?> dialectName = const Value.absent(),
+    Value<int?> payMinorUnits = const Value.absent(),
+    Value<String?> payCurrency = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
@@ -3824,6 +3948,11 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     notes: notes ?? this.notes,
     status: status ?? this.status,
     hideAlternates: hideAlternates ?? this.hideAlternates,
+    dialectName: dialectName.present ? dialectName.value : this.dialectName,
+    payMinorUnits: payMinorUnits.present
+        ? payMinorUnits.value
+        : this.payMinorUnits,
+    payCurrency: payCurrency.present ? payCurrency.value : this.payCurrency,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -3846,6 +3975,15 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       hideAlternates: data.hideAlternates.present
           ? data.hideAlternates.value
           : this.hideAlternates,
+      dialectName: data.dialectName.present
+          ? data.dialectName.value
+          : this.dialectName,
+      payMinorUnits: data.payMinorUnits.present
+          ? data.payMinorUnits.value
+          : this.payMinorUnits,
+      payCurrency: data.payCurrency.present
+          ? data.payCurrency.value
+          : this.payCurrency,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
@@ -3869,6 +4007,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           ..write('notes: $notes, ')
           ..write('status: $status, ')
           ..write('hideAlternates: $hideAlternates, ')
+          ..write('dialectName: $dialectName, ')
+          ..write('payMinorUnits: $payMinorUnits, ')
+          ..write('payCurrency: $payCurrency, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -3890,6 +4031,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     notes,
     status,
     hideAlternates,
+    dialectName,
+    payMinorUnits,
+    payCurrency,
     createdAt,
     updatedAt,
     deletedAt,
@@ -3910,6 +4054,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           other.notes == this.notes &&
           other.status == this.status &&
           other.hideAlternates == this.hideAlternates &&
+          other.dialectName == this.dialectName &&
+          other.payMinorUnits == this.payMinorUnits &&
+          other.payCurrency == this.payCurrency &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
@@ -3928,6 +4075,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
   final Value<String> notes;
   final Value<ProgramStatus> status;
   final Value<bool> hideAlternates;
+  final Value<String?> dialectName;
+  final Value<int?> payMinorUnits;
+  final Value<String?> payCurrency;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
@@ -3945,6 +4095,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.notes = const Value.absent(),
     this.status = const Value.absent(),
     this.hideAlternates = const Value.absent(),
+    this.dialectName = const Value.absent(),
+    this.payMinorUnits = const Value.absent(),
+    this.payCurrency = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -3963,6 +4116,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.notes = const Value.absent(),
     required ProgramStatus status,
     this.hideAlternates = const Value.absent(),
+    this.dialectName = const Value.absent(),
+    this.payMinorUnits = const Value.absent(),
+    this.payCurrency = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
@@ -3985,6 +4141,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Expression<String>? notes,
     Expression<String>? status,
     Expression<bool>? hideAlternates,
+    Expression<String>? dialectName,
+    Expression<int>? payMinorUnits,
+    Expression<String>? payCurrency,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
@@ -4003,6 +4162,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       if (notes != null) 'notes': notes,
       if (status != null) 'status': status,
       if (hideAlternates != null) 'hide_alternates': hideAlternates,
+      if (dialectName != null) 'dialect_name': dialectName,
+      if (payMinorUnits != null) 'pay_minor_units': payMinorUnits,
+      if (payCurrency != null) 'pay_currency': payCurrency,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
@@ -4023,6 +4185,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Value<String>? notes,
     Value<ProgramStatus>? status,
     Value<bool>? hideAlternates,
+    Value<String?>? dialectName,
+    Value<int?>? payMinorUnits,
+    Value<String?>? payCurrency,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
@@ -4041,6 +4206,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       notes: notes ?? this.notes,
       status: status ?? this.status,
       hideAlternates: hideAlternates ?? this.hideAlternates,
+      dialectName: dialectName ?? this.dialectName,
+      payMinorUnits: payMinorUnits ?? this.payMinorUnits,
+      payCurrency: payCurrency ?? this.payCurrency,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
@@ -4087,6 +4255,15 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     if (hideAlternates.present) {
       map['hide_alternates'] = Variable<bool>(hideAlternates.value);
     }
+    if (dialectName.present) {
+      map['dialect_name'] = Variable<String>(dialectName.value);
+    }
+    if (payMinorUnits.present) {
+      map['pay_minor_units'] = Variable<int>(payMinorUnits.value);
+    }
+    if (payCurrency.present) {
+      map['pay_currency'] = Variable<String>(payCurrency.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -4119,6 +4296,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
           ..write('notes: $notes, ')
           ..write('status: $status, ')
           ..write('hideAlternates: $hideAlternates, ')
+          ..write('dialectName: $dialectName, ')
+          ..write('payMinorUnits: $payMinorUnits, ')
+          ..write('payCurrency: $payCurrency, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -11828,8 +12008,34 @@ class $BaselineStateTable extends BaselineState
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _publishedManifestHashMeta =
+      const VerificationMeta('publishedManifestHash');
   @override
-  List<GeneratedColumn> get $columns => [id, epoch];
+  late final GeneratedColumn<String> publishedManifestHash =
+      GeneratedColumn<String>(
+        'published_manifest_hash',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _publishedVerifiedAtMeta =
+      const VerificationMeta('publishedVerifiedAt');
+  @override
+  late final GeneratedColumn<int> publishedVerifiedAt = GeneratedColumn<int>(
+    'published_verified_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    epoch,
+    publishedManifestHash,
+    publishedVerifiedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -11853,6 +12059,24 @@ class $BaselineStateTable extends BaselineState
     } else if (isInserting) {
       context.missing(_epochMeta);
     }
+    if (data.containsKey('published_manifest_hash')) {
+      context.handle(
+        _publishedManifestHashMeta,
+        publishedManifestHash.isAcceptableOrUnknown(
+          data['published_manifest_hash']!,
+          _publishedManifestHashMeta,
+        ),
+      );
+    }
+    if (data.containsKey('published_verified_at')) {
+      context.handle(
+        _publishedVerifiedAtMeta,
+        publishedVerifiedAt.isAcceptableOrUnknown(
+          data['published_verified_at']!,
+          _publishedVerifiedAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -11870,6 +12094,14 @@ class $BaselineStateTable extends BaselineState
         DriftSqlType.string,
         data['${effectivePrefix}epoch'],
       )!,
+      publishedManifestHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}published_manifest_hash'],
+      ),
+      publishedVerifiedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}published_verified_at'],
+      ),
     );
   }
 
@@ -11883,17 +12115,50 @@ class BaselineStateRow extends DataClass
     implements Insertable<BaselineStateRow> {
   final int id;
   final String epoch;
-  const BaselineStateRow({required this.id, required this.epoch});
+
+  /// SHA-256 of the manifest this device last published in [epoch], encoded
+  /// with its `writtenAt` fixed, so it names exactly the device id, epoch and
+  /// records the server holds for this device (sync-spec §6.3 step 8). Null
+  /// until a publication succeeds, and cleared before every manifest `PUT`, so
+  /// a `PUT` whose outcome is unknown is never mistaken for one that landed.
+  final String? publishedManifestHash;
+
+  /// When the store last confirmed every blob that manifest names, as
+  /// milliseconds since the Unix epoch, UTC. Set with
+  /// [publishedManifestHash]; a pass older than the refresh interval checks
+  /// every blob again and republishes even an unchanged manifest.
+  final int? publishedVerifiedAt;
+  const BaselineStateRow({
+    required this.id,
+    required this.epoch,
+    this.publishedManifestHash,
+    this.publishedVerifiedAt,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['epoch'] = Variable<String>(epoch);
+    if (!nullToAbsent || publishedManifestHash != null) {
+      map['published_manifest_hash'] = Variable<String>(publishedManifestHash);
+    }
+    if (!nullToAbsent || publishedVerifiedAt != null) {
+      map['published_verified_at'] = Variable<int>(publishedVerifiedAt);
+    }
     return map;
   }
 
   BaselineStateCompanion toCompanion(bool nullToAbsent) {
-    return BaselineStateCompanion(id: Value(id), epoch: Value(epoch));
+    return BaselineStateCompanion(
+      id: Value(id),
+      epoch: Value(epoch),
+      publishedManifestHash: publishedManifestHash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(publishedManifestHash),
+      publishedVerifiedAt: publishedVerifiedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(publishedVerifiedAt),
+    );
   }
 
   factory BaselineStateRow.fromJson(
@@ -11904,6 +12169,12 @@ class BaselineStateRow extends DataClass
     return BaselineStateRow(
       id: serializer.fromJson<int>(json['id']),
       epoch: serializer.fromJson<String>(json['epoch']),
+      publishedManifestHash: serializer.fromJson<String?>(
+        json['publishedManifestHash'],
+      ),
+      publishedVerifiedAt: serializer.fromJson<int?>(
+        json['publishedVerifiedAt'],
+      ),
     );
   }
   @override
@@ -11912,15 +12183,38 @@ class BaselineStateRow extends DataClass
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'epoch': serializer.toJson<String>(epoch),
+      'publishedManifestHash': serializer.toJson<String?>(
+        publishedManifestHash,
+      ),
+      'publishedVerifiedAt': serializer.toJson<int?>(publishedVerifiedAt),
     };
   }
 
-  BaselineStateRow copyWith({int? id, String? epoch}) =>
-      BaselineStateRow(id: id ?? this.id, epoch: epoch ?? this.epoch);
+  BaselineStateRow copyWith({
+    int? id,
+    String? epoch,
+    Value<String?> publishedManifestHash = const Value.absent(),
+    Value<int?> publishedVerifiedAt = const Value.absent(),
+  }) => BaselineStateRow(
+    id: id ?? this.id,
+    epoch: epoch ?? this.epoch,
+    publishedManifestHash: publishedManifestHash.present
+        ? publishedManifestHash.value
+        : this.publishedManifestHash,
+    publishedVerifiedAt: publishedVerifiedAt.present
+        ? publishedVerifiedAt.value
+        : this.publishedVerifiedAt,
+  );
   BaselineStateRow copyWithCompanion(BaselineStateCompanion data) {
     return BaselineStateRow(
       id: data.id.present ? data.id.value : this.id,
       epoch: data.epoch.present ? data.epoch.value : this.epoch,
+      publishedManifestHash: data.publishedManifestHash.present
+          ? data.publishedManifestHash.value
+          : this.publishedManifestHash,
+      publishedVerifiedAt: data.publishedVerifiedAt.present
+          ? data.publishedVerifiedAt.value
+          : this.publishedVerifiedAt,
     );
   }
 
@@ -11928,46 +12222,71 @@ class BaselineStateRow extends DataClass
   String toString() {
     return (StringBuffer('BaselineStateRow(')
           ..write('id: $id, ')
-          ..write('epoch: $epoch')
+          ..write('epoch: $epoch, ')
+          ..write('publishedManifestHash: $publishedManifestHash, ')
+          ..write('publishedVerifiedAt: $publishedVerifiedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, epoch);
+  int get hashCode =>
+      Object.hash(id, epoch, publishedManifestHash, publishedVerifiedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is BaselineStateRow &&
           other.id == this.id &&
-          other.epoch == this.epoch);
+          other.epoch == this.epoch &&
+          other.publishedManifestHash == this.publishedManifestHash &&
+          other.publishedVerifiedAt == this.publishedVerifiedAt);
 }
 
 class BaselineStateCompanion extends UpdateCompanion<BaselineStateRow> {
   final Value<int> id;
   final Value<String> epoch;
+  final Value<String?> publishedManifestHash;
+  final Value<int?> publishedVerifiedAt;
   const BaselineStateCompanion({
     this.id = const Value.absent(),
     this.epoch = const Value.absent(),
+    this.publishedManifestHash = const Value.absent(),
+    this.publishedVerifiedAt = const Value.absent(),
   });
   BaselineStateCompanion.insert({
     this.id = const Value.absent(),
     required String epoch,
+    this.publishedManifestHash = const Value.absent(),
+    this.publishedVerifiedAt = const Value.absent(),
   }) : epoch = Value(epoch);
   static Insertable<BaselineStateRow> custom({
     Expression<int>? id,
     Expression<String>? epoch,
+    Expression<String>? publishedManifestHash,
+    Expression<int>? publishedVerifiedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (epoch != null) 'epoch': epoch,
+      if (publishedManifestHash != null)
+        'published_manifest_hash': publishedManifestHash,
+      if (publishedVerifiedAt != null)
+        'published_verified_at': publishedVerifiedAt,
     });
   }
 
-  BaselineStateCompanion copyWith({Value<int>? id, Value<String>? epoch}) {
+  BaselineStateCompanion copyWith({
+    Value<int>? id,
+    Value<String>? epoch,
+    Value<String?>? publishedManifestHash,
+    Value<int?>? publishedVerifiedAt,
+  }) {
     return BaselineStateCompanion(
       id: id ?? this.id,
       epoch: epoch ?? this.epoch,
+      publishedManifestHash:
+          publishedManifestHash ?? this.publishedManifestHash,
+      publishedVerifiedAt: publishedVerifiedAt ?? this.publishedVerifiedAt,
     );
   }
 
@@ -11980,6 +12299,14 @@ class BaselineStateCompanion extends UpdateCompanion<BaselineStateRow> {
     if (epoch.present) {
       map['epoch'] = Variable<String>(epoch.value);
     }
+    if (publishedManifestHash.present) {
+      map['published_manifest_hash'] = Variable<String>(
+        publishedManifestHash.value,
+      );
+    }
+    if (publishedVerifiedAt.present) {
+      map['published_verified_at'] = Variable<int>(publishedVerifiedAt.value);
+    }
     return map;
   }
 
@@ -11987,7 +12314,9 @@ class BaselineStateCompanion extends UpdateCompanion<BaselineStateRow> {
   String toString() {
     return (StringBuffer('BaselineStateCompanion(')
           ..write('id: $id, ')
-          ..write('epoch: $epoch')
+          ..write('epoch: $epoch, ')
+          ..write('publishedManifestHash: $publishedManifestHash, ')
+          ..write('publishedVerifiedAt: $publishedVerifiedAt')
           ..write(')'))
         .toString();
   }
@@ -13743,6 +14072,650 @@ class PublishedRecordsCompanion extends UpdateCompanion<PublishedRecordRow> {
   }
 }
 
+class $RetainedSyncFieldsTable extends RetainedSyncFields
+    with TableInfo<$RetainedSyncFieldsTable, RetainedSyncFieldsRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RetainedSyncFieldsTable(this.attachedDatabase, [this._alias]);
+  @override
+  late final GeneratedColumnWithTypeConverter<SyncRecordKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<SyncRecordKind>($RetainedSyncFieldsTable.$converterkind);
+  static const VerificationMeta _recordIdMeta = const VerificationMeta(
+    'recordId',
+  );
+  @override
+  late final GeneratedColumn<String> recordId = GeneratedColumn<String>(
+    'record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _wholeRecordMeta = const VerificationMeta(
+    'wholeRecord',
+  );
+  @override
+  late final GeneratedColumn<bool> wholeRecord = GeneratedColumn<bool>(
+    'whole_record',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("whole_record" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [kind, recordId, wholeRecord, payload];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'retained_sync_fields';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RetainedSyncFieldsRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('record_id')) {
+      context.handle(
+        _recordIdMeta,
+        recordId.isAcceptableOrUnknown(data['record_id']!, _recordIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordIdMeta);
+    }
+    if (data.containsKey('whole_record')) {
+      context.handle(
+        _wholeRecordMeta,
+        wholeRecord.isAcceptableOrUnknown(
+          data['whole_record']!,
+          _wholeRecordMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {kind, recordId};
+  @override
+  RetainedSyncFieldsRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RetainedSyncFieldsRow(
+      kind: $RetainedSyncFieldsTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      recordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_id'],
+      )!,
+      wholeRecord: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}whole_record'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+    );
+  }
+
+  @override
+  $RetainedSyncFieldsTable createAlias(String alias) {
+    return $RetainedSyncFieldsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<SyncRecordKind, String, String> $converterkind =
+      const EnumNameConverter(SyncRecordKind.values);
+}
+
+class RetainedSyncFieldsRow extends DataClass
+    implements Insertable<RetainedSyncFieldsRow> {
+  final SyncRecordKind kind;
+  final String recordId;
+  final bool wholeRecord;
+  final String payload;
+  const RetainedSyncFieldsRow({
+    required this.kind,
+    required this.recordId,
+    required this.wholeRecord,
+    required this.payload,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    {
+      map['kind'] = Variable<String>(
+        $RetainedSyncFieldsTable.$converterkind.toSql(kind),
+      );
+    }
+    map['record_id'] = Variable<String>(recordId);
+    map['whole_record'] = Variable<bool>(wholeRecord);
+    map['payload'] = Variable<String>(payload);
+    return map;
+  }
+
+  RetainedSyncFieldsCompanion toCompanion(bool nullToAbsent) {
+    return RetainedSyncFieldsCompanion(
+      kind: Value(kind),
+      recordId: Value(recordId),
+      wholeRecord: Value(wholeRecord),
+      payload: Value(payload),
+    );
+  }
+
+  factory RetainedSyncFieldsRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RetainedSyncFieldsRow(
+      kind: $RetainedSyncFieldsTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
+      recordId: serializer.fromJson<String>(json['recordId']),
+      wholeRecord: serializer.fromJson<bool>(json['wholeRecord']),
+      payload: serializer.fromJson<String>(json['payload']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'kind': serializer.toJson<String>(
+        $RetainedSyncFieldsTable.$converterkind.toJson(kind),
+      ),
+      'recordId': serializer.toJson<String>(recordId),
+      'wholeRecord': serializer.toJson<bool>(wholeRecord),
+      'payload': serializer.toJson<String>(payload),
+    };
+  }
+
+  RetainedSyncFieldsRow copyWith({
+    SyncRecordKind? kind,
+    String? recordId,
+    bool? wholeRecord,
+    String? payload,
+  }) => RetainedSyncFieldsRow(
+    kind: kind ?? this.kind,
+    recordId: recordId ?? this.recordId,
+    wholeRecord: wholeRecord ?? this.wholeRecord,
+    payload: payload ?? this.payload,
+  );
+  RetainedSyncFieldsRow copyWithCompanion(RetainedSyncFieldsCompanion data) {
+    return RetainedSyncFieldsRow(
+      kind: data.kind.present ? data.kind.value : this.kind,
+      recordId: data.recordId.present ? data.recordId.value : this.recordId,
+      wholeRecord: data.wholeRecord.present
+          ? data.wholeRecord.value
+          : this.wholeRecord,
+      payload: data.payload.present ? data.payload.value : this.payload,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RetainedSyncFieldsRow(')
+          ..write('kind: $kind, ')
+          ..write('recordId: $recordId, ')
+          ..write('wholeRecord: $wholeRecord, ')
+          ..write('payload: $payload')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(kind, recordId, wholeRecord, payload);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RetainedSyncFieldsRow &&
+          other.kind == this.kind &&
+          other.recordId == this.recordId &&
+          other.wholeRecord == this.wholeRecord &&
+          other.payload == this.payload);
+}
+
+class RetainedSyncFieldsCompanion
+    extends UpdateCompanion<RetainedSyncFieldsRow> {
+  final Value<SyncRecordKind> kind;
+  final Value<String> recordId;
+  final Value<bool> wholeRecord;
+  final Value<String> payload;
+  final Value<int> rowid;
+  const RetainedSyncFieldsCompanion({
+    this.kind = const Value.absent(),
+    this.recordId = const Value.absent(),
+    this.wholeRecord = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RetainedSyncFieldsCompanion.insert({
+    required SyncRecordKind kind,
+    required String recordId,
+    this.wholeRecord = const Value.absent(),
+    required String payload,
+    this.rowid = const Value.absent(),
+  }) : kind = Value(kind),
+       recordId = Value(recordId),
+       payload = Value(payload);
+  static Insertable<RetainedSyncFieldsRow> custom({
+    Expression<String>? kind,
+    Expression<String>? recordId,
+    Expression<bool>? wholeRecord,
+    Expression<String>? payload,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (kind != null) 'kind': kind,
+      if (recordId != null) 'record_id': recordId,
+      if (wholeRecord != null) 'whole_record': wholeRecord,
+      if (payload != null) 'payload': payload,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RetainedSyncFieldsCompanion copyWith({
+    Value<SyncRecordKind>? kind,
+    Value<String>? recordId,
+    Value<bool>? wholeRecord,
+    Value<String>? payload,
+    Value<int>? rowid,
+  }) {
+    return RetainedSyncFieldsCompanion(
+      kind: kind ?? this.kind,
+      recordId: recordId ?? this.recordId,
+      wholeRecord: wholeRecord ?? this.wholeRecord,
+      payload: payload ?? this.payload,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $RetainedSyncFieldsTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (recordId.present) {
+      map['record_id'] = Variable<String>(recordId.value);
+    }
+    if (wholeRecord.present) {
+      map['whole_record'] = Variable<bool>(wholeRecord.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RetainedSyncFieldsCompanion(')
+          ..write('kind: $kind, ')
+          ..write('recordId: $recordId, ')
+          ..write('wholeRecord: $wholeRecord, ')
+          ..write('payload: $payload, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PeerManifestsTable extends PeerManifests
+    with TableInfo<$PeerManifestsTable, PeerManifestRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PeerManifestsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _peerIdMeta = const VerificationMeta('peerId');
+  @override
+  late final GeneratedColumn<String> peerId = GeneratedColumn<String>(
+    'peer_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _epochMeta = const VerificationMeta('epoch');
+  @override
+  late final GeneratedColumn<String> epoch = GeneratedColumn<String>(
+    'epoch',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _etagMeta = const VerificationMeta('etag');
+  @override
+  late final GeneratedColumn<String> etag = GeneratedColumn<String>(
+    'etag',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
+  @override
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+    'body',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [peerId, epoch, etag, body];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'peer_manifests';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PeerManifestRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('peer_id')) {
+      context.handle(
+        _peerIdMeta,
+        peerId.isAcceptableOrUnknown(data['peer_id']!, _peerIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_peerIdMeta);
+    }
+    if (data.containsKey('epoch')) {
+      context.handle(
+        _epochMeta,
+        epoch.isAcceptableOrUnknown(data['epoch']!, _epochMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_epochMeta);
+    }
+    if (data.containsKey('etag')) {
+      context.handle(
+        _etagMeta,
+        etag.isAcceptableOrUnknown(data['etag']!, _etagMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_etagMeta);
+    }
+    if (data.containsKey('body')) {
+      context.handle(
+        _bodyMeta,
+        body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bodyMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {peerId};
+  @override
+  PeerManifestRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PeerManifestRow(
+      peerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}peer_id'],
+      )!,
+      epoch: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}epoch'],
+      )!,
+      etag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}etag'],
+      )!,
+      body: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}body'],
+      )!,
+    );
+  }
+
+  @override
+  $PeerManifestsTable createAlias(String alias) {
+    return $PeerManifestsTable(attachedDatabase, alias);
+  }
+}
+
+class PeerManifestRow extends DataClass implements Insertable<PeerManifestRow> {
+  /// The peer's per-attachment device id, as the store lists it.
+  final String peerId;
+
+  /// The store epoch the manifest was fetched in. A row from another epoch is
+  /// never used.
+  final String epoch;
+
+  /// The strong validator the server sent with the manifest, verbatim.
+  final String etag;
+
+  /// The manifest as this device verified and decoded it, re-encoded
+  /// canonically.
+  final String body;
+  const PeerManifestRow({
+    required this.peerId,
+    required this.epoch,
+    required this.etag,
+    required this.body,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['peer_id'] = Variable<String>(peerId);
+    map['epoch'] = Variable<String>(epoch);
+    map['etag'] = Variable<String>(etag);
+    map['body'] = Variable<String>(body);
+    return map;
+  }
+
+  PeerManifestsCompanion toCompanion(bool nullToAbsent) {
+    return PeerManifestsCompanion(
+      peerId: Value(peerId),
+      epoch: Value(epoch),
+      etag: Value(etag),
+      body: Value(body),
+    );
+  }
+
+  factory PeerManifestRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PeerManifestRow(
+      peerId: serializer.fromJson<String>(json['peerId']),
+      epoch: serializer.fromJson<String>(json['epoch']),
+      etag: serializer.fromJson<String>(json['etag']),
+      body: serializer.fromJson<String>(json['body']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'peerId': serializer.toJson<String>(peerId),
+      'epoch': serializer.toJson<String>(epoch),
+      'etag': serializer.toJson<String>(etag),
+      'body': serializer.toJson<String>(body),
+    };
+  }
+
+  PeerManifestRow copyWith({
+    String? peerId,
+    String? epoch,
+    String? etag,
+    String? body,
+  }) => PeerManifestRow(
+    peerId: peerId ?? this.peerId,
+    epoch: epoch ?? this.epoch,
+    etag: etag ?? this.etag,
+    body: body ?? this.body,
+  );
+  PeerManifestRow copyWithCompanion(PeerManifestsCompanion data) {
+    return PeerManifestRow(
+      peerId: data.peerId.present ? data.peerId.value : this.peerId,
+      epoch: data.epoch.present ? data.epoch.value : this.epoch,
+      etag: data.etag.present ? data.etag.value : this.etag,
+      body: data.body.present ? data.body.value : this.body,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PeerManifestRow(')
+          ..write('peerId: $peerId, ')
+          ..write('epoch: $epoch, ')
+          ..write('etag: $etag, ')
+          ..write('body: $body')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(peerId, epoch, etag, body);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PeerManifestRow &&
+          other.peerId == this.peerId &&
+          other.epoch == this.epoch &&
+          other.etag == this.etag &&
+          other.body == this.body);
+}
+
+class PeerManifestsCompanion extends UpdateCompanion<PeerManifestRow> {
+  final Value<String> peerId;
+  final Value<String> epoch;
+  final Value<String> etag;
+  final Value<String> body;
+  final Value<int> rowid;
+  const PeerManifestsCompanion({
+    this.peerId = const Value.absent(),
+    this.epoch = const Value.absent(),
+    this.etag = const Value.absent(),
+    this.body = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PeerManifestsCompanion.insert({
+    required String peerId,
+    required String epoch,
+    required String etag,
+    required String body,
+    this.rowid = const Value.absent(),
+  }) : peerId = Value(peerId),
+       epoch = Value(epoch),
+       etag = Value(etag),
+       body = Value(body);
+  static Insertable<PeerManifestRow> custom({
+    Expression<String>? peerId,
+    Expression<String>? epoch,
+    Expression<String>? etag,
+    Expression<String>? body,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (peerId != null) 'peer_id': peerId,
+      if (epoch != null) 'epoch': epoch,
+      if (etag != null) 'etag': etag,
+      if (body != null) 'body': body,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PeerManifestsCompanion copyWith({
+    Value<String>? peerId,
+    Value<String>? epoch,
+    Value<String>? etag,
+    Value<String>? body,
+    Value<int>? rowid,
+  }) {
+    return PeerManifestsCompanion(
+      peerId: peerId ?? this.peerId,
+      epoch: epoch ?? this.epoch,
+      etag: etag ?? this.etag,
+      body: body ?? this.body,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (peerId.present) {
+      map['peer_id'] = Variable<String>(peerId.value);
+    }
+    if (epoch.present) {
+      map['epoch'] = Variable<String>(epoch.value);
+    }
+    if (etag.present) {
+      map['etag'] = Variable<String>(etag.value);
+    }
+    if (body.present) {
+      map['body'] = Variable<String>(body.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PeerManifestsCompanion(')
+          ..write('peerId: $peerId, ')
+          ..write('epoch: $epoch, ')
+          ..write('etag: $etag, ')
+          ..write('body: $body, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$CompendiumDatabase extends GeneratedDatabase {
   _$CompendiumDatabase(QueryExecutor e) : super(e);
   $CompendiumDatabaseManager get managers => $CompendiumDatabaseManager(this);
@@ -13791,6 +14764,9 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
   late final $PublishedRecordsTable publishedRecords = $PublishedRecordsTable(
     this,
   );
+  late final $RetainedSyncFieldsTable retainedSyncFields =
+      $RetainedSyncFieldsTable(this);
+  late final $PeerManifestsTable peerManifests = $PeerManifestsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -13823,6 +14799,8 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
     pendingDeletions,
     reviewQueue,
     publishedRecords,
+    retainedSyncFields,
+    peerManifests,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -14222,7 +15200,9 @@ class $$DifficultyLevelsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DifficultyLevelsTable, DifficultyLevelRow>(
+                    table,
+                  ),
                   $$DifficultyLevelsTableReferences(db, table, e),
                 ),
               )
@@ -15530,8 +16510,10 @@ class $$DancesTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) =>
-                    (e.readTable(table), $$DancesTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable<$DancesTable, DanceRow>(table),
+                  $$DancesTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback:
@@ -16173,7 +17155,7 @@ class $$ChoreographersTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ChoreographersTable, ChoreographerRow>(table),
                   $$ChoreographersTableReferences(db, table, e),
                 ),
               )
@@ -16525,7 +17507,7 @@ class $$DanceAuthorsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DanceAuthorsTable, DanceAuthorRow>(table),
                   $$DanceAuthorsTableReferences(db, table, e),
                 ),
               )
@@ -16944,7 +17926,7 @@ class $$DanceFiguresTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DanceFiguresTable, DanceFigureRow>(table),
                   $$DanceFiguresTableReferences(db, table, e),
                 ),
               )
@@ -17021,6 +18003,9 @@ typedef $$ProgramsTableCreateCompanionBuilder =
       Value<String> notes,
       required ProgramStatus status,
       Value<bool> hideAlternates,
+      Value<String?> dialectName,
+      Value<int?> payMinorUnits,
+      Value<String?> payCurrency,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<DateTime?> deletedAt,
@@ -17040,6 +18025,9 @@ typedef $$ProgramsTableUpdateCompanionBuilder =
       Value<String> notes,
       Value<ProgramStatus> status,
       Value<bool> hideAlternates,
+      Value<String?> dialectName,
+      Value<int?> payMinorUnits,
+      Value<String?> payCurrency,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
@@ -17157,6 +18145,21 @@ class $$ProgramsTableFilterComposer
 
   ColumnFilters<bool> get hideAlternates => $composableBuilder(
     column: $table.hideAlternates,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dialectName => $composableBuilder(
+    column: $table.dialectName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get payMinorUnits => $composableBuilder(
+    column: $table.payMinorUnits,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payCurrency => $composableBuilder(
+    column: $table.payCurrency,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17295,6 +18298,21 @@ class $$ProgramsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get dialectName => $composableBuilder(
+    column: $table.dialectName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get payMinorUnits => $composableBuilder(
+    column: $table.payMinorUnits,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payCurrency => $composableBuilder(
+    column: $table.payCurrency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -17359,6 +18377,21 @@ class $$ProgramsTableAnnotationComposer
 
   GeneratedColumn<bool> get hideAlternates => $composableBuilder(
     column: $table.hideAlternates,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get dialectName => $composableBuilder(
+    column: $table.dialectName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get payMinorUnits => $composableBuilder(
+    column: $table.payMinorUnits,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get payCurrency => $composableBuilder(
+    column: $table.payCurrency,
     builder: (column) => column,
   );
 
@@ -17470,6 +18503,9 @@ class $$ProgramsTableTableManager
                 Value<String> notes = const Value.absent(),
                 Value<ProgramStatus> status = const Value.absent(),
                 Value<bool> hideAlternates = const Value.absent(),
+                Value<String?> dialectName = const Value.absent(),
+                Value<int?> payMinorUnits = const Value.absent(),
+                Value<String?> payCurrency = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -17487,6 +18523,9 @@ class $$ProgramsTableTableManager
                 notes: notes,
                 status: status,
                 hideAlternates: hideAlternates,
+                dialectName: dialectName,
+                payMinorUnits: payMinorUnits,
+                payCurrency: payCurrency,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
@@ -17506,6 +18545,9 @@ class $$ProgramsTableTableManager
                 Value<String> notes = const Value.absent(),
                 required ProgramStatus status,
                 Value<bool> hideAlternates = const Value.absent(),
+                Value<String?> dialectName = const Value.absent(),
+                Value<int?> payMinorUnits = const Value.absent(),
+                Value<String?> payCurrency = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -17523,6 +18565,9 @@ class $$ProgramsTableTableManager
                 notes: notes,
                 status: status,
                 hideAlternates: hideAlternates,
+                dialectName: dialectName,
+                payMinorUnits: payMinorUnits,
+                payCurrency: payCurrency,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
@@ -17532,7 +18577,7 @@ class $$ProgramsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ProgramsTable, ProgramRow>(table),
                   $$ProgramsTableReferences(db, table, e),
                 ),
               )
@@ -18072,7 +19117,7 @@ class $$ProgramSlotsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ProgramSlotsTable, ProgramSlotRow>(table),
                   $$ProgramSlotsTableReferences(db, table, e),
                 ),
               )
@@ -18535,7 +19580,7 @@ class $$CustomFieldDefsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$CustomFieldDefsTable, CustomFieldDefRow>(table),
                   $$CustomFieldDefsTableReferences(db, table, e),
                 ),
               )
@@ -18912,7 +19957,9 @@ class $$CustomFieldValuesTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$CustomFieldValuesTable, CustomFieldValueRow>(
+                    table,
+                  ),
                   $$CustomFieldValuesTableReferences(db, table, e),
                 ),
               )
@@ -19261,8 +20308,10 @@ class $$TagsTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) =>
-                    (e.readTable(table), $$TagsTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable<$TagsTable, TagRow>(table),
+                  $$TagsTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback: ({danceTagsRefs = false}) {
@@ -19574,7 +20623,7 @@ class $$DanceTagsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DanceTagsTable, DanceTagRow>(table),
                   $$DanceTagsTableReferences(db, table, e),
                 ),
               )
@@ -20019,7 +21068,7 @@ class $$DanceLinksTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DanceLinksTable, DanceLinkRow>(table),
                   $$DanceLinksTableReferences(db, table, e),
                 ),
               )
@@ -20397,7 +21446,7 @@ class $$ProvenanceTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ProvenanceTable, ProvenanceRow>(table),
                   $$ProvenanceTableReferences(db, table, e),
                 ),
               )
@@ -20799,7 +21848,9 @@ class $$PublishedSourcesTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$PublishedSourcesTable, PublishedSourceRow>(
+                    table,
+                  ),
                   $$PublishedSourcesTableReferences(db, table, e),
                 ),
               )
@@ -21186,7 +22237,7 @@ class $$DanceSourcesTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$DanceSourcesTable, DanceSourceRow>(table),
                   $$DanceSourcesTableReferences(db, table, e),
                 ),
               )
@@ -21441,7 +22492,16 @@ class $$SettingsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$SettingsTable, SettingRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $SettingsTable,
+                    SettingRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -21779,7 +22839,9 @@ class $$ProgramProvenanceTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$ProgramProvenanceTable, ProgramProvenanceRow>(
+                    table,
+                  ),
                   $$ProgramProvenanceTableReferences(db, table, e),
                 ),
               )
@@ -22493,8 +23555,10 @@ class $$VenuesTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) =>
-                    (e.readTable(table), $$VenuesTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable<$VenuesTable, VenueRow>(table),
+                  $$VenuesTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback: ({venueProvenanceRefs = false}) {
@@ -22857,7 +23921,7 @@ class $$VenueProvenanceTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$VenueProvenanceTable, VenueProvenanceRow>(table),
                   $$VenueProvenanceTableReferences(db, table, e),
                 ),
               )
@@ -23101,7 +24165,19 @@ class $$CollectionImportEventsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<
+                    $CollectionImportEventsTable,
+                    CollectionImportEventRow
+                  >(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $CollectionImportEventsTable,
+                    CollectionImportEventRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -23280,7 +24356,18 @@ class $$NormalisationSkipsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$NormalisationSkipsTable, NormalisationSkipRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $NormalisationSkipsTable,
+                    NormalisationSkipRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -23309,9 +24396,19 @@ typedef $$NormalisationSkipsTableProcessedTableManager =
       PrefetchHooks Function()
     >;
 typedef $$BaselineStateTableCreateCompanionBuilder =
-    BaselineStateCompanion Function({Value<int> id, required String epoch});
+    BaselineStateCompanion Function({
+      Value<int> id,
+      required String epoch,
+      Value<String?> publishedManifestHash,
+      Value<int?> publishedVerifiedAt,
+    });
 typedef $$BaselineStateTableUpdateCompanionBuilder =
-    BaselineStateCompanion Function({Value<int> id, Value<String> epoch});
+    BaselineStateCompanion Function({
+      Value<int> id,
+      Value<String> epoch,
+      Value<String?> publishedManifestHash,
+      Value<int?> publishedVerifiedAt,
+    });
 
 class $$BaselineStateTableFilterComposer
     extends Composer<_$CompendiumDatabase, $BaselineStateTable> {
@@ -23329,6 +24426,16 @@ class $$BaselineStateTableFilterComposer
 
   ColumnFilters<String> get epoch => $composableBuilder(
     column: $table.epoch,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get publishedManifestHash => $composableBuilder(
+    column: $table.publishedManifestHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get publishedVerifiedAt => $composableBuilder(
+    column: $table.publishedVerifiedAt,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -23351,6 +24458,16 @@ class $$BaselineStateTableOrderingComposer
     column: $table.epoch,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get publishedManifestHash => $composableBuilder(
+    column: $table.publishedManifestHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get publishedVerifiedAt => $composableBuilder(
+    column: $table.publishedVerifiedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$BaselineStateTableAnnotationComposer
@@ -23367,6 +24484,16 @@ class $$BaselineStateTableAnnotationComposer
 
   GeneratedColumn<String> get epoch =>
       $composableBuilder(column: $table.epoch, builder: (column) => column);
+
+  GeneratedColumn<String> get publishedManifestHash => $composableBuilder(
+    column: $table.publishedManifestHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get publishedVerifiedAt => $composableBuilder(
+    column: $table.publishedVerifiedAt,
+    builder: (column) => column,
+  );
 }
 
 class $$BaselineStateTableTableManager
@@ -23408,12 +24535,37 @@ class $$BaselineStateTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> epoch = const Value.absent(),
-              }) => BaselineStateCompanion(id: id, epoch: epoch),
+                Value<String?> publishedManifestHash = const Value.absent(),
+                Value<int?> publishedVerifiedAt = const Value.absent(),
+              }) => BaselineStateCompanion(
+                id: id,
+                epoch: epoch,
+                publishedManifestHash: publishedManifestHash,
+                publishedVerifiedAt: publishedVerifiedAt,
+              ),
           createCompanionCallback:
-              ({Value<int> id = const Value.absent(), required String epoch}) =>
-                  BaselineStateCompanion.insert(id: id, epoch: epoch),
+              ({
+                Value<int> id = const Value.absent(),
+                required String epoch,
+                Value<String?> publishedManifestHash = const Value.absent(),
+                Value<int?> publishedVerifiedAt = const Value.absent(),
+              }) => BaselineStateCompanion.insert(
+                id: id,
+                epoch: epoch,
+                publishedManifestHash: publishedManifestHash,
+                publishedVerifiedAt: publishedVerifiedAt,
+              ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$BaselineStateTable, BaselineStateRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $BaselineStateTable,
+                    BaselineStateRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -23605,7 +24757,16 @@ class $$BaselineEntriesTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$BaselineEntriesTable, BaselineEntryRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $BaselineEntriesTable,
+                    BaselineEntryRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -23774,7 +24935,16 @@ class $$IdAliasesTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$IdAliasesTable, IdAliasRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $IdAliasesTable,
+                    IdAliasRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -23987,7 +25157,18 @@ class $$PendingDeletionsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$PendingDeletionsTable, PendingDeletionRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $PendingDeletionsTable,
+                    PendingDeletionRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -24261,7 +25442,16 @@ class $$ReviewQueueTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$ReviewQueueTable, ReviewQueueRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $ReviewQueueTable,
+                    ReviewQueueRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -24411,7 +25601,18 @@ class $$PublishedRecordsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$PublishedRecordsTable, PublishedRecordRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $PublishedRecordsTable,
+                    PublishedRecordRow
+                  >(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: null,
         ),
@@ -24437,6 +25638,414 @@ typedef $$PublishedRecordsTableProcessedTableManager =
         >,
       ),
       PublishedRecordRow,
+      PrefetchHooks Function()
+    >;
+typedef $$RetainedSyncFieldsTableCreateCompanionBuilder =
+    RetainedSyncFieldsCompanion Function({
+      required SyncRecordKind kind,
+      required String recordId,
+      Value<bool> wholeRecord,
+      required String payload,
+      Value<int> rowid,
+    });
+typedef $$RetainedSyncFieldsTableUpdateCompanionBuilder =
+    RetainedSyncFieldsCompanion Function({
+      Value<SyncRecordKind> kind,
+      Value<String> recordId,
+      Value<bool> wholeRecord,
+      Value<String> payload,
+      Value<int> rowid,
+    });
+
+class $$RetainedSyncFieldsTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $RetainedSyncFieldsTable> {
+  $$RetainedSyncFieldsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnWithTypeConverterFilters<SyncRecordKind, SyncRecordKind, String>
+  get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get wholeRecord => $composableBuilder(
+    column: $table.wholeRecord,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RetainedSyncFieldsTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $RetainedSyncFieldsTable> {
+  $$RetainedSyncFieldsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get wholeRecord => $composableBuilder(
+    column: $table.wholeRecord,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RetainedSyncFieldsTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $RetainedSyncFieldsTable> {
+  $$RetainedSyncFieldsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumnWithTypeConverter<SyncRecordKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get recordId =>
+      $composableBuilder(column: $table.recordId, builder: (column) => column);
+
+  GeneratedColumn<bool> get wholeRecord => $composableBuilder(
+    column: $table.wholeRecord,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+}
+
+class $$RetainedSyncFieldsTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $RetainedSyncFieldsTable,
+          RetainedSyncFieldsRow,
+          $$RetainedSyncFieldsTableFilterComposer,
+          $$RetainedSyncFieldsTableOrderingComposer,
+          $$RetainedSyncFieldsTableAnnotationComposer,
+          $$RetainedSyncFieldsTableCreateCompanionBuilder,
+          $$RetainedSyncFieldsTableUpdateCompanionBuilder,
+          (
+            RetainedSyncFieldsRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $RetainedSyncFieldsTable,
+              RetainedSyncFieldsRow
+            >,
+          ),
+          RetainedSyncFieldsRow,
+          PrefetchHooks Function()
+        > {
+  $$RetainedSyncFieldsTableTableManager(
+    _$CompendiumDatabase db,
+    $RetainedSyncFieldsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RetainedSyncFieldsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RetainedSyncFieldsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RetainedSyncFieldsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<SyncRecordKind> kind = const Value.absent(),
+                Value<String> recordId = const Value.absent(),
+                Value<bool> wholeRecord = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RetainedSyncFieldsCompanion(
+                kind: kind,
+                recordId: recordId,
+                wholeRecord: wholeRecord,
+                payload: payload,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required SyncRecordKind kind,
+                required String recordId,
+                Value<bool> wholeRecord = const Value.absent(),
+                required String payload,
+                Value<int> rowid = const Value.absent(),
+              }) => RetainedSyncFieldsCompanion.insert(
+                kind: kind,
+                recordId: recordId,
+                wholeRecord: wholeRecord,
+                payload: payload,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$RetainedSyncFieldsTable, RetainedSyncFieldsRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $RetainedSyncFieldsTable,
+                    RetainedSyncFieldsRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RetainedSyncFieldsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $RetainedSyncFieldsTable,
+      RetainedSyncFieldsRow,
+      $$RetainedSyncFieldsTableFilterComposer,
+      $$RetainedSyncFieldsTableOrderingComposer,
+      $$RetainedSyncFieldsTableAnnotationComposer,
+      $$RetainedSyncFieldsTableCreateCompanionBuilder,
+      $$RetainedSyncFieldsTableUpdateCompanionBuilder,
+      (
+        RetainedSyncFieldsRow,
+        BaseReferences<
+          _$CompendiumDatabase,
+          $RetainedSyncFieldsTable,
+          RetainedSyncFieldsRow
+        >,
+      ),
+      RetainedSyncFieldsRow,
+      PrefetchHooks Function()
+    >;
+typedef $$PeerManifestsTableCreateCompanionBuilder =
+    PeerManifestsCompanion Function({
+      required String peerId,
+      required String epoch,
+      required String etag,
+      required String body,
+      Value<int> rowid,
+    });
+typedef $$PeerManifestsTableUpdateCompanionBuilder =
+    PeerManifestsCompanion Function({
+      Value<String> peerId,
+      Value<String> epoch,
+      Value<String> etag,
+      Value<String> body,
+      Value<int> rowid,
+    });
+
+class $$PeerManifestsTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $PeerManifestsTable> {
+  $$PeerManifestsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get peerId => $composableBuilder(
+    column: $table.peerId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get epoch => $composableBuilder(
+    column: $table.epoch,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get etag => $composableBuilder(
+    column: $table.etag,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PeerManifestsTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $PeerManifestsTable> {
+  $$PeerManifestsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get peerId => $composableBuilder(
+    column: $table.peerId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get epoch => $composableBuilder(
+    column: $table.epoch,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get etag => $composableBuilder(
+    column: $table.etag,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PeerManifestsTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $PeerManifestsTable> {
+  $$PeerManifestsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get peerId =>
+      $composableBuilder(column: $table.peerId, builder: (column) => column);
+
+  GeneratedColumn<String> get epoch =>
+      $composableBuilder(column: $table.epoch, builder: (column) => column);
+
+  GeneratedColumn<String> get etag =>
+      $composableBuilder(column: $table.etag, builder: (column) => column);
+
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
+}
+
+class $$PeerManifestsTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $PeerManifestsTable,
+          PeerManifestRow,
+          $$PeerManifestsTableFilterComposer,
+          $$PeerManifestsTableOrderingComposer,
+          $$PeerManifestsTableAnnotationComposer,
+          $$PeerManifestsTableCreateCompanionBuilder,
+          $$PeerManifestsTableUpdateCompanionBuilder,
+          (
+            PeerManifestRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $PeerManifestsTable,
+              PeerManifestRow
+            >,
+          ),
+          PeerManifestRow,
+          PrefetchHooks Function()
+        > {
+  $$PeerManifestsTableTableManager(
+    _$CompendiumDatabase db,
+    $PeerManifestsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PeerManifestsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PeerManifestsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PeerManifestsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> peerId = const Value.absent(),
+                Value<String> epoch = const Value.absent(),
+                Value<String> etag = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PeerManifestsCompanion(
+                peerId: peerId,
+                epoch: epoch,
+                etag: etag,
+                body: body,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String peerId,
+                required String epoch,
+                required String etag,
+                required String body,
+                Value<int> rowid = const Value.absent(),
+              }) => PeerManifestsCompanion.insert(
+                peerId: peerId,
+                epoch: epoch,
+                etag: etag,
+                body: body,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$PeerManifestsTable, PeerManifestRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $PeerManifestsTable,
+                    PeerManifestRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PeerManifestsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $PeerManifestsTable,
+      PeerManifestRow,
+      $$PeerManifestsTableFilterComposer,
+      $$PeerManifestsTableOrderingComposer,
+      $$PeerManifestsTableAnnotationComposer,
+      $$PeerManifestsTableCreateCompanionBuilder,
+      $$PeerManifestsTableUpdateCompanionBuilder,
+      (
+        PeerManifestRow,
+        BaseReferences<
+          _$CompendiumDatabase,
+          $PeerManifestsTable,
+          PeerManifestRow
+        >,
+      ),
+      PeerManifestRow,
       PrefetchHooks Function()
     >;
 
@@ -24499,4 +26108,8 @@ class $CompendiumDatabaseManager {
       $$ReviewQueueTableTableManager(_db, _db.reviewQueue);
   $$PublishedRecordsTableTableManager get publishedRecords =>
       $$PublishedRecordsTableTableManager(_db, _db.publishedRecords);
+  $$RetainedSyncFieldsTableTableManager get retainedSyncFields =>
+      $$RetainedSyncFieldsTableTableManager(_db, _db.retainedSyncFields);
+  $$PeerManifestsTableTableManager get peerManifests =>
+      $$PeerManifestsTableTableManager(_db, _db.peerManifests);
 }

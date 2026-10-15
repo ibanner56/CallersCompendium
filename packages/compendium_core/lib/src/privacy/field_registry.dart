@@ -97,6 +97,48 @@ const _syncBookkeeping = DataClassification(
   note: 'Device Sync bookkeeping; never exported or synchronized.',
 );
 
+/// Another device's per-attachment id, as the store lists it. Kept only so the
+/// manifest cached under it can be asked for again by `If-None-Match`.
+const _syncPeerDeviceId = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.protocolIdentifier,
+  note:
+      "A peer's random per-attachment routing id, read from the store's "
+      'device list and sent back to the same store in a manifest request '
+      'path. It names no person and carries no user data, and it is never '
+      "adopted as this device's own id. Kept only beside that peer's cached "
+      'manifest; never backed up, exported or synchronized.',
+);
+
+/// The `ETag` a peer manifest was served with. The protocol sends it back in
+/// `If-None-Match`, so it is not `deviceScoped`, whose "any route" is absolute.
+const _syncPeerManifestEtag = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.protocolIdentifier,
+  note:
+      "The server's content hash of a peer manifest: an opaque validator the "
+      'protocol returns, in If-None-Match, only to the server that issued it. '
+      'It carries no user data — it is a hash of a body that server already '
+      'holds — and it is never adopted as anything of this device\'s. Not '
+      'deviceScoped, because that class is never transmitted by any route; a '
+      'value the protocol must put on the wire takes this class instead '
+      '(EgressClass.deviceScoped). Never backed up, exported or synchronized.',
+);
+
+/// A peer's last verified manifest, kept so a restart need not fetch it again.
+const _syncPeerManifestBody = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.deviceScoped,
+  note:
+      "Record ids and content hashes another device published, as this device "
+      "verified them, and that device's per-attachment id. It is never sent "
+      'anywhere: it is the cached copy of what the server already serves. '
+      'Never backed up, exported or synchronized.',
+);
+
 /// An opaque pending sync candidate. Its serialized record may contain
 /// third-party data, but it is held locally until a user resolves the review.
 const _syncCandidatePayload = DataClassification(
@@ -116,6 +158,27 @@ const _syncTombstonePayload = DataClassification(
   note:
       'Opaque serialized tombstone may contain third-party record content; '
       'shareable because pending deletion retransmits it to sync peers.',
+);
+
+/// What a device keeps of a peer's record for a newer version of the app, and
+/// shares back unchanged (spec §6.7).
+///
+/// Classified the most cautious way that can still travel: its content is
+/// unknown to this build by definition — a field a newer version added, or one
+/// it reclassified to share — so it may hold anything a record can, including
+/// third-party data, and it must reach the sync store because sharing it back
+/// is its whole purpose. Decided by Isaac (maintainer) in planning this
+/// change: "if it was synced up, it can be synced down". It never leaves by
+/// any other route: it is not part of a backup or an export.
+const _syncRetainedPayload = DataClassification(
+  term: DpvTerm.unclassifiedPersonal,
+  subject: DataSubject.thirdParty,
+  egress: EgressClass.shareable,
+  note:
+      'Opaque record content a newer app version added; unknown to this build, '
+      'so it may contain third-party data. Shareable only because it is '
+      'shared back to the sync store it came from, verbatim (maintainer '
+      'decision, sync-spec §6.7); never backed up or exported.',
 );
 
 /// A soft-delete tombstone (`deleted_at`) on a syncable kind.
@@ -356,6 +419,37 @@ final Map<String, DataClassification> fieldClassifications = {
   'programs.notes': _programNote,
   'programs.status': _choreography,
   'programs.hide_alternates': _choreography,
+  'programs.dialect_name': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'Name of a dialect from the caller\'s own library (user-authored '
+        'text, like custom_dialects and active_dialect_ref, which are '
+        'classified the same way). It names the caller\'s wording choice, '
+        'not a venue contact or choreographer, so the subject is the app '
+        'user. A soft by-name reference: a name that does not resolve on '
+        'another device silently falls back to that device\'s app dialect.',
+  ),
+  'programs.pay_minor_units': const DataClassification(
+    term: DpvTerm.income,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'What the caller is paid for the program (DPV pd:Income). The '
+        'subject is the app user: it is their own earnings, not a fact about '
+        'the venue, band or any other third party. Shareable so it follows '
+        'the caller to their other devices and into their own archive '
+        'export; it is not part of the shared program text or PDF.',
+  ),
+  'programs.pay_currency': const DataClassification(
+    term: DpvTerm.income,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'ISO 4217 code that programs.pay_minor_units is denominated in; '
+        'meaningless without it, so it carries the same classification.',
+  ),
   'programs.created_at': _recordStamp,
   'programs.updated_at': _recordStamp,
   'programs.deleted_at': const DataClassification(
@@ -602,6 +696,8 @@ final Map<String, DataClassification> fieldClassifications = {
   'normalisation_skips.record_id': _normalisationRepairState,
   'baseline_state.id': _syncBookkeeping,
   'baseline_state.epoch': _syncBookkeeping,
+  'baseline_state.published_manifest_hash': _syncBookkeeping,
+  'baseline_state.published_verified_at': _syncBookkeeping,
   'baseline_entries.kind': _syncBookkeeping,
   'baseline_entries.record_id': _syncBookkeeping,
   'baseline_entries.wire_hash': _syncBookkeeping,
@@ -614,6 +710,14 @@ final Map<String, DataClassification> fieldClassifications = {
   'pending_deletions.tombstoned_at': _syncBookkeeping,
   'pending_deletions.tombstone_hash': _syncBookkeeping,
   'pending_deletions.tombstone_blob': _syncTombstonePayload,
+  'retained_sync_fields.kind': _syncBookkeeping,
+  'retained_sync_fields.record_id': _syncBookkeeping,
+  'retained_sync_fields.whole_record': _syncBookkeeping,
+  'retained_sync_fields.payload': _syncRetainedPayload,
+  'peer_manifests.peer_id': _syncPeerDeviceId,
+  'peer_manifests.epoch': _syncBookkeeping,
+  'peer_manifests.etag': _syncPeerManifestEtag,
+  'peer_manifests.body': _syncPeerManifestBody,
   'review_queue.kind': _syncBookkeeping,
   'review_queue.record_id': _syncBookkeeping,
   'review_queue.counterpart_id': _syncBookkeeping,
@@ -624,6 +728,19 @@ final Map<String, DataClassification> fieldClassifications = {
   'review_queue.queued_at': _syncBookkeeping,
   'published_records.kind': _syncBookkeeping,
   'published_records.record_id': _syncBookkeeping,
+};
+
+/// Tables with at least one column classified as Device Sync bookkeeping.
+///
+/// Writes to these tables are the sync engine's own state, not user edits, so
+/// they must never schedule a sync pass. "Any column", not "every column":
+/// `pending_deletions` and `review_queue` also hold payload columns with their
+/// own classification. Derived by identity with the private classification, so
+/// a table gains or loses membership by changing the registry alone.
+final Set<String> syncBookkeepingTables = {
+  for (final entry in fieldClassifications.entries)
+    if (identical(entry.value, _syncBookkeeping))
+      entry.key.substring(0, entry.key.indexOf('.')),
 };
 
 const _contactStreet = DataClassification(
@@ -651,18 +768,39 @@ const _contactPostal = DataClassification(
   subject: DataSubject.thirdParty,
   egress: EgressClass.deviceLocal,
 );
+
+/// Shared by the six `venues.contact*` columns: the one recorded exception to
+/// [EgressClass.deviceLocal], kept as a note rather than a new egress class
+/// (post-audit finding flows-9; the maintainer stated no preference, and the
+/// note was the sweep's call because it changes no behaviour).
+const _venueContactConsentNote =
+    'One exception to device-local: when the user exports or shares a program '
+    '(PDF, JSON or .ccshare) whose venue has contacts, a dialog lists each '
+    'populated contact field unticked, and only the fields ticked there go to '
+    'the recipient, with the user\'s explicit consent for that one export '
+    '(sanitizeVenueForShare). Nothing is remembered for the next export, and '
+    'the field still never reaches Device Sync or other project-operated '
+    'infrastructure. Allowed because a program handed to another organiser '
+    'is often unusable without the hall contact, and only the user knows '
+    'whether that person expects to be passed on. The tick is the user\'s '
+    'consent, not the contact\'s, which is why the subject stays third-party '
+    'and nothing is ticked by default.';
+
 const _contactName = DataClassification(
   term: DpvTerm.name,
   subject: DataSubject.thirdParty,
   egress: EgressClass.deviceLocal,
+  note: _venueContactConsentNote,
 );
 const _contactPhone = DataClassification(
   term: DpvTerm.telephoneNumber,
   subject: DataSubject.thirdParty,
   egress: EgressClass.deviceLocal,
+  note: _venueContactConsentNote,
 );
 const _contactEmail = DataClassification(
   term: DpvTerm.emailAddress,
   subject: DataSubject.thirdParty,
   egress: EgressClass.deviceLocal,
+  note: _venueContactConsentNote,
 );

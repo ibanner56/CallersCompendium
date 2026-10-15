@@ -104,9 +104,14 @@ void main() {
         '(id IN (SELECT dance_id FROM dance_substring_fts '
         'WHERE dance_substring_fts MATCH ?) '
         'OR id IN (SELECT dance_id FROM dance_substring_fts '
-        'WHERE title MATCH ?))',
+        'WHERE dance_substring_fts MATCH ?))',
       );
-      expect(c.binds, ['"swing"', '"swing"']);
+      // Canonical bind first, then the raw bind restricted to the verbatim
+      // columns (never figures_text).
+      expect(c.binds, [
+        '"swing"',
+        '{title authors sources custom_values hook notes} : ("swing")',
+      ]);
     });
 
     test('Author', () {
@@ -626,7 +631,9 @@ void main() {
         'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL '
         'ORDER BY bm25(dance_fts)',
       );
-      expect(c.binds, ['("re"* OR title : "re"*)']);
+      expect(c.binds, [
+        '("re"* OR {title authors sources custom_values hook notes} : ("re"*))',
+      ]);
     });
 
     test(

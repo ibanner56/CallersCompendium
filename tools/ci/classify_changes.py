@@ -113,12 +113,20 @@ CHANGELOG_EXACT_PATHS = {
     b".github/workflows/ci.yml",
 }
 
+# What the native Swift tests (app/ios/RunnerTests, app/macos/RunnerTests)
+# compile against: the two Xcode trees, and the pinned Flutter version, which
+# decides the Flutter.framework / FlutterMacOS.framework they link and the
+# Xcode build phases the Flutter tool generates. Post-audit finding platform-7.
+APPLE_NATIVE_PATH_PREFIXES = (b"app/ios/", b"app/macos/")
+APPLE_NATIVE_EXACT_PATHS = {b".fvmrc"}
+
 OUTPUT_KEYS = (
     "validation_changed",
     "core_tests_changed",
     "app_tests_changed",
     "server_tests_changed",
     "builds_changed",
+    "apple_native_changed",
     "docs_bundle_changed",
     "changelog_changed",
 )
@@ -194,6 +202,18 @@ def classify(paths):
         validation_changed
         and any(path.startswith(b"packaging/") for path in paths)
     )
+    # Runs `xcodebuild test` on ci.yml's ios and macos build legs. Those tests
+    # are steps of the `build` job, so this must imply builds_changed or they
+    # could never run; every path here is under app/ or in
+    # SHARED_RUNTIME_PATHS, which app_source_changed already covers, and the
+    # `builds_changed and` makes the implication hold by construction rather
+    # than by the two path lists happening to agree. A ci.yml-only edit does
+    # not set it (that would also run all five platform builds);
+    # tools/ci/check_apple_native_tests.py guards the step's shape instead.
+    apple_native_changed = builds_changed and any(
+        path.startswith(APPLE_NATIVE_PATH_PREFIXES) or path in APPLE_NATIVE_EXACT_PATHS
+        for path in paths
+    )
     # These two are deliberately NOT gated on validation_changed: their whole
     # reason for existing is that a Markdown-only diff (docs/user/**.md,
     # CHANGELOG.md) can set validation_changed=false, and that is exactly the
@@ -212,6 +232,7 @@ def classify(paths):
         "app_tests_changed": app_tests_changed,
         "server_tests_changed": server_tests_changed,
         "builds_changed": builds_changed,
+        "apple_native_changed": apple_native_changed,
         "docs_bundle_changed": docs_bundle_changed,
         "changelog_changed": changelog_changed,
     }

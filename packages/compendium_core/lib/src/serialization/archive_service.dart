@@ -15,7 +15,9 @@ import 'compendium_archive.dart';
 ///
 /// This is the export half of the canonical codec: it aggregates every
 /// user-content entity (dances, programs, choreographers, published sources,
-/// custom-field definitions, tags) via the repositories' `listAll` reads.
+/// custom-field definitions, tags) via the repositories' `listAll` reads. A full
+/// backup also reads the tombstoned tags and their retained dance joins, which
+/// `listAll` and a dance's hydrated `tagIds` both hide (archive v7).
 /// Serialize the result with `encodeArchive` from `archive_codec.dart`.
 class ArchiveExporter {
   ArchiveExporter(this._repos);
@@ -29,7 +31,7 @@ class ArchiveExporter {
   /// backup is a faithful, restorable snapshot including items still within the
   /// retention window.
   ///
-  /// All eight reads run inside a single [CompendiumRepositories.db]
+  /// All the reads run inside a single [CompendiumRepositories.db]
   /// transaction so the export sees one consistent snapshot of the dataset —
   /// without it, a write landing between two reads could produce a
   /// cross-entity-inconsistent archive (e.g. a dance referencing a
@@ -53,6 +55,20 @@ class ArchiveExporter {
         publishedSources: await _repos.publishedSources.listAll(),
         customFields: await _repos.customFieldDefs.listAll(),
         tags: await _repos.tags.listAll(),
+        // A tombstoned tag and its retained dance joins are not reachable
+        // through `listAll` or through a dance's hydrated `tagIds`, so a
+        // backup that is meant to be faithful reads them here.
+        deletedTags: includeDeleted
+            ? [
+                for (final t
+                    in await _repos.tags.listTombstonesWithRetainedJoins())
+                  ArchivedDeletedTag(
+                    tag: t.tag,
+                    deletedAt: t.deletedAt,
+                    danceIds: t.danceIds,
+                  ),
+              ]
+            : const [],
         venues: await _repos.venues.listAll(),
         difficultyLevels: await _repos.difficultyLevels.listAll(),
       ),
@@ -88,9 +104,17 @@ class ArchiveRestorer {
 
   final CompendiumRepositories _repos;
 
+  /// Restores [archive] into the live repositories.
+  ///
+  /// [onProgress], when given, is called with `(done, total)` as entities are
+  /// written: first `(0, total)` once the work is counted, then once after each
+  /// entity (or retained-join pass) so `done` climbs by one to `total`. It is
+  /// advisory (a progress bar): `done` also advances past an entity that failed
+  /// or was skipped, and a replace that rolls back still ends at `total`.
   Future<ArchiveRestoreResult> restore(
     CompendiumArchive archive, {
     RestoreMode mode = RestoreMode.replace,
+    void Function(int done, int total)? onProgress,
   }) async {
     final errors = <ArchiveError>[];
     final causalAt = DateTime.now().toUtc();
@@ -118,6 +142,7 @@ class ArchiveRestorer {
             archive,
             errors,
             causalAt: causalAt,
+            onProgress: onProgress,
           );
           if (errors.isNotEmpty) {
             abortedForRollback = true;
@@ -132,6 +157,7 @@ class ArchiveRestorer {
             archive,
             errors,
             causalAt: causalAt,
+            onProgress: onProgress,
           );
           await _repos.syncLocal.clearForRestore(
             restoredRecords: restoredRecords,
@@ -203,6 +229,7 @@ class ArchiveRestorer {
     CompendiumArchive archive,
     List<ArchiveError> errors, {
     required DateTime causalAt,
+    void Function(int done, int total)? onProgress,
   }) async {
     final restoredRecords = <SyncRecordAddress>{};
     // archiveId -> writtenId for the three entity kinds that dance references.
@@ -216,36 +243,61 @@ class ArchiveRestorer {
     // restorable without overwriting local labels, order, or tombstones during
     // a merge. A v3 archive is authoritative, including an intentionally empty
     // vocabulary after a replace.
+    final seededLevels = <DifficultyLevel>[];
     if (archive.schemaVersion < archiveSchemaVersionDifficultyLevels) {
       final existingLevels = await _repos.difficultyLevels.listAllWithDeleted();
       final existingIds = {for (final row in existingLevels) row.level.id};
       for (final level in DifficultyLevel.shipped) {
-        if (existingIds.contains(level.id)) continue;
-        final errorsBefore = errors.length;
-        await _guard('difficultyLevel', level.id, errors, () async {
-          await _repos.difficultyLevels.upsert(level);
-        });
-        if (errors.length == errorsBefore) {
-          restoredRecords.add((
-            kind: SyncRecordKind.difficultyLevel,
-            recordId: level.id,
-          ));
-        }
+        if (!existingIds.contains(level.id)) seededLevels.add(level);
       }
     }
-    if (archive.schemaVersion >= archiveSchemaVersionDifficultyLevels) {
-      for (final level in archive.difficultyLevels) {
-        final errorsBefore = errors.length;
-        await _guard('difficultyLevel', level.id, errors, () async {
-          await _repos.difficultyLevels.upsert(level);
-        });
-        if (errors.length == errorsBefore) {
-          restoredRecords.add((
-            kind: SyncRecordKind.difficultyLevel,
-            recordId: level.id,
-          ));
-        }
+    final levelsToLoad =
+        archive.schemaVersion >= archiveSchemaVersionDifficultyLevels
+        ? archive.difficultyLevels
+        : const <DifficultyLevel>[];
+
+    // One step per `_guard` site below; a tombstoned tag has two (its row, then
+    // its retained-join pass, which counts even when skipped).
+    final total =
+        seededLevels.length +
+        levelsToLoad.length +
+        archive.publishedSources.length +
+        archive.choreographers.length +
+        archive.tags.length +
+        archive.deletedTags.length * 2 +
+        archive.customFields.length +
+        archive.dances.length +
+        archive.venues.length +
+        archive.programs.length;
+    var done = 0;
+    void step() => onProgress?.call(++done, total);
+    onProgress?.call(0, total);
+
+    for (final level in seededLevels) {
+      final errorsBefore = errors.length;
+      await _guard('difficultyLevel', level.id, errors, () async {
+        await _repos.difficultyLevels.upsert(level);
+      });
+      if (errors.length == errorsBefore) {
+        restoredRecords.add((
+          kind: SyncRecordKind.difficultyLevel,
+          recordId: level.id,
+        ));
       }
+      step();
+    }
+    for (final level in levelsToLoad) {
+      final errorsBefore = errors.length;
+      await _guard('difficultyLevel', level.id, errors, () async {
+        await _repos.difficultyLevels.upsert(level);
+      });
+      if (errors.length == errorsBefore) {
+        restoredRecords.add((
+          kind: SyncRecordKind.difficultyLevel,
+          recordId: level.id,
+        ));
+      }
+      step();
     }
     for (final s in archive.publishedSources) {
       final errorsBefore = errors.length;
@@ -261,6 +313,7 @@ class ArchiveRestorer {
           recordId: s.id,
         ));
       }
+      step();
     }
     for (final c in archive.choreographers) {
       final errorsBefore = errors.length;
@@ -274,6 +327,7 @@ class ArchiveRestorer {
           recordId: choreoRemap[c.id] ?? c.id,
         ));
       }
+      step();
     }
     for (final t in archive.tags) {
       final errorsBefore = errors.length;
@@ -287,6 +341,27 @@ class ArchiveRestorer {
           recordId: tagRemap[t.id] ?? t.id,
         ));
       }
+      step();
+    }
+    // Tombstoned tags (v7). Written after the live tags so a name a live tag
+    // holds wins, and before dances so a dance never meets a missing tag.
+    final deletedTagIds = <String, String>{};
+    for (final d in archive.deletedTags) {
+      final errorsBefore = errors.length;
+      await _guard('deletedTag', d.tag.id, errors, () async {
+        final writtenId = await _repos.tags.restoreArchivedTombstone(
+          d.tag,
+          at: causalAt,
+        );
+        if (writtenId != null) deletedTagIds[d.tag.id] = writtenId;
+      });
+      if (errors.length == errorsBefore && deletedTagIds[d.tag.id] != null) {
+        restoredRecords.add((
+          kind: SyncRecordKind.tag,
+          recordId: deletedTagIds[d.tag.id]!,
+        ));
+      }
+      step();
     }
     for (final f in archive.customFields) {
       final errorsBefore = errors.length;
@@ -300,6 +375,7 @@ class ArchiveRestorer {
           recordId: fieldRemap[f.id] ?? f.id,
         ));
       }
+      step();
     }
     for (final d in archive.dances) {
       final errorsBefore = errors.length;
@@ -347,6 +423,18 @@ class ArchiveRestorer {
       if (errors.length == errorsBefore) {
         restoredRecords.add((kind: SyncRecordKind.dance, recordId: d.id));
       }
+      step();
+    }
+    // Retained joins to the tombstoned tags, now that the dances exist. A tag
+    // that was skipped (a live tag holds its id or name) gets none.
+    for (final d in archive.deletedTags) {
+      final tagId = deletedTagIds[d.tag.id];
+      if (tagId != null && d.danceIds.isNotEmpty) {
+        await _guard('deletedTag', d.tag.id, errors, () async {
+          await _repos.tags.restoreRetainedJoins(tagId, d.danceIds);
+        });
+      }
+      step();
     }
     // Venues before programs: a program's `venueId` soft-references a venue, so
     // the referenced record must land first for the link to resolve.
@@ -358,6 +446,7 @@ class ArchiveRestorer {
       if (errors.length == errorsBefore) {
         restoredRecords.add((kind: SyncRecordKind.venue, recordId: v.id));
       }
+      step();
     }
     // Load the set of known venue ids **once** for the whole programs phase:
     // both the dangling-ref resolve-or-null below and the repository's
@@ -418,6 +507,7 @@ class ArchiveRestorer {
       if (errors.length == errorsBefore) {
         restoredRecords.add((kind: SyncRecordKind.program, recordId: p.id));
       }
+      step();
     }
     return restoredRecords;
   }

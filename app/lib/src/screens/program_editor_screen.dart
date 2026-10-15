@@ -16,6 +16,7 @@ import '../data/editor_draft_shutdown_scope.dart';
 import '../data/matrix_collision_mode_scope.dart';
 import '../data/program_matrix_column_config_scope.dart';
 import '../data/program_auto_commit_scope.dart';
+import '../data/program_dialect.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
@@ -28,6 +29,7 @@ import '../data/validation_issue_labels.dart';
 import '../data/venue_entity_mode_scope.dart';
 import '../diagnostics/error_log.dart';
 
+import '../editor/pay_currency.dart';
 import '../editor/program_editor_draft_codec.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_matrix_pdf.dart';
@@ -45,7 +47,9 @@ import '../widgets/venue_picker.dart';
 import 'dance_editor_screen.dart';
 import 'dance_detail_screen.dart';
 import 'dance_reimport_flow.dart';
+import '../widgets/command_palette.dart';
 import 'perform_program_screen.dart';
+import '../widgets/export_guard.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_matrix_table.dart';
 import '../widgets/program_slot_list_editor.dart';
@@ -117,6 +121,7 @@ class ProgramEditorScreen extends StatefulWidget {
     this.callersBoxOnline,
     this.contraDbOnline,
     this.reimportPicker,
+    this.pdfLayouter,
   });
 
   final String? programId;
@@ -136,6 +141,10 @@ class ProgramEditorScreen extends StatefulWidget {
   final OnlineSearchService? contraDbOnline;
   final ImportPicker? reimportPicker;
 
+  /// Print/share seam for the Matrix tab's PDF export; defaults to
+  /// [Printing.layoutPdf]. Supplied by widget tests.
+  final PdfLayouter? pdfLayouter;
+
   /// Width (of the builder's own constraints) at/above which the picker shows
   /// as a persistent right pane instead of a modal sheet.
   static const double twoPaneBreakpoint = 820;
@@ -151,6 +160,10 @@ class ProgramEditorScreen extends StatefulWidget {
 class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     with SingleTickerProviderStateMixin {
   late CompendiumRepositories _repos;
+
+  /// True while [_performProgram] resolves deleted dances, so a double tap
+  /// cannot push two Perform screens.
+  bool _resolvingPerform = false;
   late DanceReimportCoordinator _reimport;
   late final TabController _tabController;
   final _formKey = GlobalKey<FormState>();
@@ -161,6 +174,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   final _callerController = TextEditingController();
   final _levelController = TextEditingController();
   final _notesController = TextEditingController();
+
+  /// The pay amount as typed (a plain decimal in [_payCurrency]); empty means
+  /// no pay is recorded (issue #1418).
+  final _payController = TextEditingController();
+
+  /// The ISO 4217 code chosen for the pay; `null` until the person or a loaded
+  /// program picks one, in which case the locale's default applies.
+  String? _payCurrency;
 
   bool _loaded = false;
   void Function()? _unregisterShutdownFlush;
@@ -174,6 +195,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   DateTime? _eventDate;
   ProgramStatus _status = ProgramStatus.draft;
   bool _hideAlternates = false;
+
+  /// The stored dialect name Perform uses for this program; `null` follows the
+  /// application dialect. May name a dialect that no longer exists, which the
+  /// picker shows as unavailable instead of dropping (issue #1554).
+  String? _dialectName;
   List<ProgramSlot> _slotsBacking = const [];
 
   /// Live view of [_danceSlotCounts] for the modal picker sheet, which does not
@@ -210,6 +236,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   int? _pendingBulkUndoEditGeneration;
   int _bulkUndoGeneration = 0;
   int _editGeneration = 0;
+
+  /// The last program Perform handed to its `onProgramChanged` and the
+  /// [_editGeneration] once this builder had applied it. The "Program
+  /// adjusted" Undo after leaving Perform restores only while both still
+  /// hold, i.e. no edit has been made here since (flows-1).
+  Program? _performAdjusted;
+  int? _performAdjustedGeneration;
+
+  /// [_performAdjusted] as the repository stored it (read back in the same
+  /// transaction as the write); null for an unsaved program. The post-exit
+  /// Undo restores only while the stored program still equals this.
+  Program? _performStored;
   int _collectionDataGeneration = 0;
 
   bool get _pickerImporting => _pickerImportOwners.isNotEmpty;
@@ -571,6 +609,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         );
       }
     }
+    _defaultPayCurrency = defaultPayCurrency(Localizations.localeOf(context));
     // Read the active dialect if a scope is present; tolerate its absence
     // (e.g. narrow embedded tests) with a sensible default.
     final scope = context
@@ -855,6 +894,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _venueId = program?.venueId;
         _status = program?.status ?? ProgramStatus.draft;
         _hideAlternates = program?.hideAlternates ?? false;
+        _dialectName = program?.dialectName;
         _slots = program?.slots.toList() ?? newProgramSlots;
         _difficultyLevels = difficultyLevels;
         _loaded = true;
@@ -879,18 +919,40 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
   }
 
-  void _applyProgramToEditor(Program program) {
+  /// Whether the pay input differs from what [baseline] would display: typed
+  /// text (valid or not) or a chosen currency the program does not carry.
+  bool _payEditedSince(Program baseline) {
+    final units = baseline.payMinorUnits;
+    final currency = baseline.payCurrency;
+    final baselineText = units == null || currency == null
+        ? ''
+        : formatPayMinorUnits(units, currency);
+    final baselineCurrency = units == null ? null : currency;
+    return _payController.text.trim() != baselineText ||
+        _payCurrency != baselineCurrency;
+  }
+
+  /// Loads [program] into the editor. When [payBaseline] is given (an Undo
+  /// rebase of a live editor) and the person has changed the pay input since
+  /// that baseline, the raw pay text and currency are kept: [program] carries a
+  /// stored fallback for an unparseable amount, which must not overwrite what
+  /// was typed. Ordinary loads pass nothing and initialise the pay field.
+  void _applyProgramToEditor(Program program, {Program? payBaseline}) {
     _titleController.text = program.title;
     _venueController.text = program.venue ?? '';
     _bandController.text = program.band ?? '';
     _callerController.text = program.caller ?? '';
     _levelController.text = program.dancerLevel ?? '';
     _notesController.text = program.notes;
+    if (payBaseline == null || !_payEditedSince(payBaseline)) {
+      _setPayFrom(program);
+    }
     _existing = program;
     _eventDate = program.eventDate;
     _venueId = program.venueId;
     _status = program.status;
     _hideAlternates = program.hideAlternates;
+    _dialectName = program.dialectName;
     _slots = program.slots.toList();
   }
 
@@ -979,6 +1041,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _callerController.dispose();
     _levelController.dispose();
     _notesController.dispose();
+    _payController.dispose();
     super.dispose();
   }
 
@@ -1025,6 +1088,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       notes: _notesController.text,
       status: _status,
       hideAlternates: _hideAlternates,
+      dialectName: _dialectName,
+      payText: _payController.text.trim(),
+      payCurrency: _effectivePayCurrency,
       slots: List.unmodifiable(_renumber(_slots)),
     );
   }
@@ -1121,6 +1187,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       }
       final draft = _draftProgram;
       if (draft == null) return _AutoCommitOutcome.notCommitted(generation);
+      // `_draftProgram` substitutes the stored pay for an unparseable amount;
+      // committing that would drop the typed text and clear its recovery
+      // draft. Leave it dirty (and autosaved) until the amount is valid.
+      if (_parsedPay().isInvalid) {
+        return _AutoCommitOutcome.notCommitted(generation);
+      }
       final wasNew = _existing == null;
       final oldDraftKey = _draftKey;
       final bulkUndoEditGeneration = _pendingBulkUndoEditGeneration;
@@ -1321,12 +1393,28 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _callerController.text = draft.caller ?? '';
       _levelController.text = draft.dancerLevel ?? '';
       _notesController.text = draft.notes;
+      // A draft from before the field existed never captured it: keep the
+      // program's current pay instead of reading the absence as a clear.
+      if (draft.hasPay) {
+        _payController.text = draft.payText;
+        _payCurrency = draft.payCurrency;
+      } else if (_existing case final existing?) {
+        _setPayFrom(existing);
+      } else {
+        _payController.clear();
+        _payCurrency = null;
+      }
       setState(() {
         _eventDate = draft.eventDate;
         _venueId = draft.venueId;
         _linkedVenue = null;
         _status = draft.status;
         _hideAlternates = draft.hideAlternates;
+        // A draft from before the field existed never captured it: keep the
+        // program's current dialect instead of reading the absence as a clear.
+        _dialectName = draft.hasDialectName
+            ? draft.dialectName
+            : _existing?.dialectName;
         _slots = _renumber(draft.slots);
         _dirty = true;
       });
@@ -1429,6 +1517,20 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     hideAlternates: local.hideAlternates == atReadStart.hideAlternates
         ? live.hideAlternates
         : local.hideAlternates,
+    dialectName: local.dialectName == atReadStart.dialectName
+        ? live.dialectName
+        : local.dialectName,
+    // Amount and currency merge as one pair: half a pay is not a pay.
+    payMinorUnits:
+        local.payMinorUnits == atReadStart.payMinorUnits &&
+            local.payCurrency == atReadStart.payCurrency
+        ? live.payMinorUnits
+        : local.payMinorUnits,
+    payCurrency:
+        local.payMinorUnits == atReadStart.payMinorUnits &&
+            local.payCurrency == atReadStart.payCurrency
+        ? live.payCurrency
+        : local.payCurrency,
     slots: slots,
     createdAt: live.createdAt,
     updatedAt: live.updatedAt,
@@ -1490,7 +1592,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         live: live.slots,
       ),
     );
-    setState(() => _applyProgramToEditor(merged));
+    setState(() => _applyProgramToEditor(merged, payBaseline: storedBaseline));
     await _refreshLinkedVenueForId(merged.venueId);
     return true;
   }
@@ -1561,7 +1663,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ),
       );
       setState(() {
-        _applyProgramToEditor(merged);
+        _applyProgramToEditor(merged, payBaseline: baseline);
         _dirty = true;
       });
       await _refreshLinkedVenueForId(merged.venueId);
@@ -1754,6 +1856,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       return Program(
         id: _existing?.id ?? 'draft',
         title: l10n.programsFallbackTitle,
+        dialectName: _dialectName,
         slots: _renumber(_slots),
         createdAt: now,
         updatedAt: now,
@@ -1764,20 +1867,38 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
   }
 
-  void _performProgram() {
+  Future<void> _performProgram() async {
     if (_pickerImporting) return;
     final data = _data;
     final program = _programToPerform(AppLocalizations.of(context));
     if (data == null || program == null) return;
+    if (_resolvingPerform) return;
+    _resolvingPerform = true;
     _invalidateBulkUndo();
+    final DeletedSlotDances deletedDances;
+    try {
+      deletedDances = await resolveDeletedSlotDances(
+        _repos.dances,
+        _repos.choreographers,
+        program,
+        data,
+      );
+    } finally {
+      _resolvingPerform = false;
+    }
+    if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
+        // Ctrl-K is suppressed while this route is on top ([performRouteName]).
+        settings: const RouteSettings(name: performRouteName),
         builder: (_) => PerformProgramScreen(
           program: program,
           data: data,
-          danceOverrides: Map<String, Dance>.of(_createdDances),
+          // Created dances win over a resolved soft-deleted copy.
+          danceOverrides: {...deletedDances.dances, ..._createdDances},
           difficultyLevels: _difficultyLevels,
           authorNameOverrides: {
+            ...deletedDances.authorNames,
             for (final entry in _createdChoreographers.entries)
               entry.key: entry.value.name,
           },
@@ -1789,6 +1910,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           initialElapsedSeconds: _performResume?.elapsedSeconds ?? 0,
           initialSlotStartSeconds: _performResume?.slotStartSeconds ?? 0,
           initialPaused: _performResume?.paused ?? false,
+          initialWalkthroughEndedAtSlotSeconds:
+              _performResume?.walkthroughEndedAtSlotSeconds,
+          initialWalkthroughEndedSlotId: _performResume?.walkthroughEndedSlotId,
           onExit: (state) => _performResume = state,
           // In-event adjustments (`docs/design/ux.md` §5) fold back into the
           // builder's working slots. For an already-saved program this is the
@@ -1811,6 +1935,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               // auto-commit. Rebase the performed slots onto that working
               // snapshot and serialize the whole update with the same queue.
               final base = _draftProgram ?? existing;
+              // An unparseable pay was replaced by the stored one in `base`:
+              // persist the slots, but keep the typed text as unsaved work.
+              final payInvalid = _parsedPay().isInvalid;
               final persisted = base.copyWith(
                 slots: slots,
                 updatedAt: DateTime.now().toUtc(),
@@ -1818,8 +1945,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               _autoCommitTimer?.cancel();
               final generation = ++_editGeneration;
               final operation = _commitQueueTail.then((_) async {
-                await _repos.programs.update(persisted);
-                await _clearDraft(waitForCommits: false);
+                final stored = await _repos.programs.updateAndReadBack(
+                  persisted,
+                );
+                if (payInvalid) {
+                  await _saveDraft();
+                } else {
+                  await _clearDraft(waitForCommits: false);
+                }
+                return stored;
               });
               // Keep later commits usable if this live-gig write fails, while
               // still surfacing the failure to this callback.
@@ -1835,19 +1969,23 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 },
               );
               try {
-                await operation;
+                final stored = await operation;
                 if (!mounted) return;
                 setState(() {
                   _existing = persisted;
                   _slots = slots;
-                  _dirty = false;
+                  _dirty = payInvalid;
                 });
+                _performAdjusted = updated;
+                _performAdjustedGeneration = _editGeneration;
+                _performStored = stored;
                 // A mark-performed stamp changes the Collection's "called N
                 // times" badge and any mounted dance detail's calling history.
                 // Both watch `program_slots` directly now, so the write is the
                 // whole notification (issue #768).
                 return;
               } on Exception catch (_) {
+                // export-guard: exempt — mark-performed stamp, not an export
                 // diagnostics: silent — slot mark-performed stamp failed; keeps working state.
               }
             }
@@ -1856,10 +1994,89 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               _slots = slots;
             });
             _markDirty();
+            _performAdjusted = updated;
+            _performAdjustedGeneration = _editGeneration;
+            _performStored = null;
           },
+          // The "Program adjusted" Undo after leaving Perform puts back the
+          // pre-adjustment slots. It may run only while this builder's working
+          // copy is still what the adjustment left (no edit here since; checked
+          // synchronously, so no local edit can slip in before the restore is
+          // queued) and, for a saved program, only while the stored program
+          // still equals what the adjustment stored: the repository compares
+          // and writes in one transaction, so no write from elsewhere can land
+          // in between (flows-1). A closed builder cannot vouch for its working
+          // copy, so the Undo is refused.
+          restoreIfUnchanged: (previous, adjusted) =>
+              _restorePerformSnapshot(previous, adjusted),
         ),
       ),
     );
+  }
+
+  Future<bool> _restorePerformSnapshot(
+    Program previous,
+    Program adjusted,
+  ) async {
+    if (!mounted ||
+        !identical(_performAdjusted, adjusted) ||
+        _editGeneration != _performAdjustedGeneration) {
+      return false;
+    }
+    _performAdjusted = null;
+    final slots = _renumber(previous.slots.toList());
+    final existing = _existing;
+    if (existing == null) {
+      // Unsaved: the adjustment only ever lived in the working slots.
+      setState(() => _slots = slots);
+      _markDirty();
+      return true;
+    }
+    final expected = _performStored;
+    if (expected == null) return false;
+    // No edit since the Perform write, which left `_existing` equal to the
+    // working copy, so restoring onto it keeps every other field.
+    final replacement = existing.copyWith(slots: slots);
+    _autoCommitTimer?.cancel();
+    final generation = ++_editGeneration;
+    final operation = _commitQueueTail.then(
+      (_) => _repos.programs.replaceIfUnchanged(
+        expected: expected,
+        replacement: replacement,
+        updatedAt: DateTime.now().toUtc(),
+      ),
+    );
+    _commitQueueTail = operation.then<_AutoCommitOutcome>(
+      (_) => _AutoCommitOutcome.committed(generation),
+      onError: (Object error, StackTrace stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'program_editor_screen._restorePerformSnapshot',
+        );
+        return _AutoCommitOutcome.failed(generation);
+      },
+    );
+    final bool restored;
+    try {
+      restored = await operation;
+    } on Object catch (_) {
+      // diagnostics: silent — logged by the commit queue above; the Undo is refused.
+      return false;
+    }
+    if (!restored || !mounted) return restored;
+    final live = await _repos.programs.getById(existing.id);
+    // An edit made while the restore was in flight keeps its working copy;
+    // saving it will write that edit (and the adjusted slots) over the restore.
+    if (!mounted || live == null || _editGeneration != generation) {
+      return restored;
+    }
+    setState(() {
+      _existing = live;
+      _slots = live.slots.toList();
+      _dirty = false;
+    });
+    return restored;
   }
 
   // --- Slot mutations -------------------------------------------------------
@@ -2263,7 +2480,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   ),
                 )
               : live;
-          _applyProgramToEditor(restored);
+          _applyProgramToEditor(
+            restored,
+            payBaseline: _pendingBulkUndoBaseline ?? _existing!,
+          );
           await _refreshLinkedVenueForId(restored.venueId);
           if (!mounted) return;
           if (editedDuringRead || _editGeneration != undoEditGeneration) {
@@ -2324,6 +2544,43 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   /// The live program assembled from the current form + slots, used to drive
   /// warning-level validation (`orphaned_alt`) and export (share/copy/PDF).
+  /// The currency in effect for the pay field: the chosen one, else the
+  /// locale's default.
+  String get _effectivePayCurrency => _payCurrency ?? _defaultPayCurrency;
+
+  /// The locale's default currency, cached from [didChangeDependencies] so the
+  /// draft capture never reads an inherited widget from a defunct element.
+  String _defaultPayCurrency = 'USD';
+
+  void _setPayFrom(Program program) {
+    final units = program.payMinorUnits;
+    final currency = program.payCurrency;
+    if (units == null || currency == null) {
+      _payController.clear();
+      _payCurrency = null;
+    } else {
+      _payController.text = formatPayMinorUnits(units, currency);
+      _payCurrency = currency;
+    }
+  }
+
+  /// The pay field's state: empty (no pay), invalid (unparseable text), or a
+  /// parsed amount in [_effectivePayCurrency].
+  ({int? units, String currency, bool isEmpty, bool isInvalid}) _parsedPay() {
+    final currency = _effectivePayCurrency;
+    final text = _payController.text.trim();
+    if (text.isEmpty) {
+      return (units: null, currency: currency, isEmpty: true, isInvalid: false);
+    }
+    final units = parsePayMinorUnits(text, currency);
+    return (
+      units: units,
+      currency: currency,
+      isEmpty: false,
+      isInvalid: units == null,
+    );
+  }
+
   Program? get _draftProgram {
     final title = _titleController.text.trim();
     if (title.isEmpty) return null;
@@ -2341,6 +2598,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // through untouched so flipping the toggle is lossless (see _save).
       final enriched = VenueEntityModeScope.of(context);
       final venueText = nn(_venueController);
+      // An unparseable amount leaves the base's pay untouched: saving is
+      // blocked separately (see _save), and an export should not flicker to
+      // "no pay" while the person is mid-typing.
+      final pay = _parsedPay();
       return base.copyWith(
         title: title,
         eventDate: _eventDate,
@@ -2358,6 +2619,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         notes: _notesController.text,
         status: _status,
         hideAlternates: _hideAlternates,
+        dialectName: _dialectName,
+        clearDialectName: _dialectName == null,
+        payMinorUnits: pay.units,
+        payCurrency: pay.units == null ? null : pay.currency,
+        clearPay: pay.isEmpty,
         slots: _renumber(_slots),
       );
     } catch (_) {
@@ -2381,6 +2647,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       notes: draft.notes,
       status: draft.status,
       hideAlternates: draft.hideAlternates,
+      dialectName: draft.dialectName,
+      payMinorUnits: draft.payMinorUnits,
+      payCurrency: draft.payCurrency,
       slots: draft.slots,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
@@ -2397,6 +2666,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   Future<void> _save() async {
     if (_pickerImporting) return;
+    if (_parsedPay().isInvalid) {
+      // The pay field lives in the collapsed "More details" drawer, whose
+      // fields are not built (so not validated) while it is closed: open it and
+      // show the error there instead of silently saving without the value.
+      _moreDetailsController.expand();
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _formKey.currentState?.validate(),
+      );
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     final l10n = AppLocalizations.of(context);
     final restoreBulkUndoOnFailure = _bulkUndoSnackBar != null;
@@ -2654,6 +2933,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                     choreographerFor: (id) =>
                         _createdChoreographers[id] ??
                         _data?.choreographersById[id],
+                    tagFor: (id) => _data?.tagFor(id),
+                    publishedSourceFor: (id) => _data?.publishedSourceFor(id),
+                    customFieldFor: (id) => _data?.customFieldFor(id),
                     difficultyLevelFor: (id) {
                       final dance = _danceById(id);
                       if (dance == null) return null;
@@ -3003,8 +3285,21 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     Taxonomy taxonomy,
     int omittedFreeTextCount,
   ) async {
+    // Resolve every context- and state-dependent value up front: the layouter's
+    // `onLayout` callback can run after further internal awaits (font loading)
+    // or more than once, so a BuildContext read inside it can observe a
+    // different value than at tap time, or a disposed element. Mirrors
+    // DanceExportActions.exportPdf and
+    // program_export_menu.dart._exportPdf (issue #1434).
+    final messenger = ScaffoldMessenger.of(context);
     final localizations = MaterialLocalizations.of(context);
     final l10n = AppLocalizations.of(context);
+    final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
+    final dialect = _dialect;
+    final config = _matrixColumnConfig;
+    final eventDate = _eventDate;
     final title = _titleController.text.trim();
     // Prefer a linked venue's sanitized display label over free text. The
     // linked-record precedence matches the set-list export and screen.
@@ -3013,29 +3308,33 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _venueController.text,
       _exportVenuesById,
     );
-    await Printing.layoutPdf(
-      name: sanitizeExportName(title, fallback: l10n.exportMatrixPdfFilename),
-      onLayout: (format) => buildProgramMatrixPdf(
-        matrix,
-        taxonomy: taxonomy,
-        dialect: _dialect,
-        programTitle: title,
-        eventDate: _eventDate,
-        venue: venue,
-        omittedFreeTextCount: omittedFreeTextCount,
-        formatDate: localizations.formatMediumDate,
-        labels: programMatrixExportLabels(l10n),
-        formatFormation: (formation) => formationDisplayLabel(
-          l10n,
-          formation,
-          FigureRenderer(contraTaxonomy),
-          _dialect,
-          canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
-            context,
+    final layoutPdf = widget.pdfLayouter ?? Printing.layoutPdf;
+    await guardExport(
+      messenger,
+      l10n.exportSetListError,
+      () => layoutPdf(
+        name: sanitizeExportName(title, fallback: l10n.exportMatrixPdfFilename),
+        onLayout: (format) => buildProgramMatrixPdf(
+          matrix,
+          taxonomy: taxonomy,
+          dialect: dialect,
+          programTitle: title,
+          eventDate: eventDate,
+          venue: venue,
+          omittedFreeTextCount: omittedFreeTextCount,
+          formatDate: localizations.formatMediumDate,
+          labels: programMatrixExportLabels(l10n),
+          formatFormation: (formation) => formationDisplayLabel(
+            l10n,
+            formation,
+            FigureRenderer(contraTaxonomy),
+            dialect,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           ),
+          config: config,
         ),
-        config: _matrixColumnConfig,
       ),
+      source: 'program_editor_screen._exportMatrixPdf',
     );
   }
 
@@ -3603,6 +3902,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ),
         ),
         const SizedBox(height: AppSpacing.md),
+        _buildPayField(l10n),
+        const SizedBox(height: AppSpacing.md),
         DropdownButtonFormField<ProgramStatus>(
           key: const ValueKey('program-status'),
           initialValue: _status,
@@ -3636,6 +3937,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             }
           },
         ),
+        const SizedBox(height: AppSpacing.md),
+        _buildDialectField(l10n),
         const SizedBox(height: AppSpacing.xs),
         SwitchListTile(
           key: const ValueKey('program-hide-alternates'),
@@ -3654,6 +3957,120 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
+  /// Pay amount plus currency selector (issue #1418). The amount is a plain
+  /// decimal in the selected currency; invalid text shows an error and blocks
+  /// saving (see [_save]).
+  Widget _buildPayField(AppLocalizations l10n) {
+    final current = _effectivePayCurrency;
+    final choices = payCurrencyChoices(current);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: TextFormField(
+            key: const ValueKey('program-pay'),
+            controller: _payController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.next,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            onChanged: (_) => _markDirty(),
+            validator: (value) =>
+                (value == null ||
+                    value.trim().isEmpty ||
+                    parsePayMinorUnits(value, _effectivePayCurrency) != null)
+                ? null
+                : l10n.programsPayInvalid,
+            decoration: InputDecoration(
+              labelText: l10n.programsPayLabel,
+              hintText: l10n.programsPayHint,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        SizedBox(
+          width: 120,
+          child: DropdownButtonFormField<String>(
+            key: ValueKey('program-pay-currency:$current'),
+            initialValue: current,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: l10n.programsPayCurrencyLabel,
+              border: const OutlineInputBorder(),
+            ),
+            items: [
+              for (final code in choices)
+                DropdownMenuItem(
+                  key: ValueKey('program-pay-currency-option:$code'),
+                  value: code,
+                  child: Text(code),
+                ),
+            ],
+            onChanged: (code) {
+              if (code == null) return;
+              setState(() => _payCurrency = code);
+              _markDirty();
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// The picker for [_dialectName]: "use app dialect" plus every dialect in
+  /// the library, nothing typed freehand. A stored name that no longer matches
+  /// a dialect (renamed, deleted, or not synced here yet) stays visible as
+  /// "unavailable" instead of silently reading as "use app dialect", which is
+  /// what Perform does with it (issue #1554).
+  Widget _buildDialectField(AppLocalizations l10n) {
+    final library = DialectLibraryScope.maybeOf(context);
+    final stored = _dialectName;
+    final resolved = library == null
+        ? null
+        : resolveProgramDialect(stored, library);
+    final unavailable = stored != null && resolved == null;
+    final value = unavailable ? stored : resolved?.name;
+    return KeyedSubtree(
+      // `initialValue` only seeds the field, so rebuild it when the value
+      // changes from outside the picker (draft restore, Undo merge).
+      key: ValueKey('program-dialect-field:${value ?? ''}'),
+      child: DropdownButtonFormField<String?>(
+        key: const ValueKey('program-dialect'),
+        initialValue: value,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: l10n.programsDialectFieldLabel,
+          helperText: l10n.programsDialectHelper,
+          helperMaxLines: 3,
+          border: const OutlineInputBorder(),
+        ),
+        items: [
+          DropdownMenuItem<String?>(
+            key: const ValueKey('program-dialect-use-app'),
+            value: null,
+            child: Text(l10n.programsDialectUseApp),
+          ),
+          for (final dialect in library?.all ?? const <Dialect>[])
+            DropdownMenuItem<String?>(
+              key: ValueKey('program-dialect-option:${dialect.name}'),
+              value: dialect.name,
+              child: Text(dialect.name),
+            ),
+          if (unavailable)
+            DropdownMenuItem<String?>(
+              key: const ValueKey('program-dialect-unavailable'),
+              value: stored,
+              child: Text(l10n.programsDialectUnavailable(stored)),
+            ),
+        ],
+        onChanged: (name) {
+          setState(() => _dialectName = name);
+          _markDirty();
+        },
+      ),
+    );
+  }
+
   Future<void> _pickEventDate() async {
     final now = DateTime.now();
     final stored = _eventDate;
@@ -3665,7 +4082,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
-      firstDate: DateTime(now.year - 5),
+      firstDate: DateTime(now.year - 10),
       lastDate: DateTime(now.year + 10),
     );
     if (picked != null) {
@@ -3677,8 +4094,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 }
 
-/// Non-blocking warnings card mirroring the dance editor's `_WarningsCard`,
-/// surfacing `Program.validate()` issues (e.g. `orphaned_alt`) with icon+text.
+/// Non-blocking warnings card surfacing `Program.validate()` issues (e.g.
+/// `orphaned_alt`) with icon+text.
 class _ProgramWarningsCard extends StatelessWidget {
   const _ProgramWarningsCard({required this.warnings});
 

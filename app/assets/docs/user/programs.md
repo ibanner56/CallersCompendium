@@ -9,8 +9,8 @@ have called.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Programs**, **New program**, and **Matrix**. The
-> first time a dance term appears it links to the
-> [Glossary](./glossary.md), so you can get a plain-language definition
+> first time a dance term appears it links to
+> [App terms](./glossary.md), so you can get a plain-language definition
 > without losing your place.
 
 New to the app? The [Getting started guide](./getting-started.md) gives you the
@@ -205,10 +205,16 @@ A program carries the details of its event:
 
 - **Event date**, **Venue**, and **Notes**;
 - program-level **Band**, **Caller**, and **Dancer level**;
+- **Pay**, an amount and currency under **More details**, shown on the
+  program's summary but never in the shared program text or PDF;
 - a **Status** — **Draft**, **Finalized**, or **Performed** — shown on the
-  Programs list; and
+  Programs list;
 - **Hide alternates in set list**, which leaves alternates out of the summary,
-  the PDF, and exported set lists while the builder still shows every slot.
+  the PDF, and exported set lists while the builder still shows every slot; and
+- **Perform dialect**, the [dialect](./dialects.md#give-a-program-its-own-dialect)
+  [Perform mode](./glossary.md#perform-mode) uses for this program. Leave it on
+  **Use app dialect** to follow your active dialect. It affects Perform only: the
+  editor, the summary, the PDF, and exports keep your active dialect.
 
 The **venue** can be a simple free-text label, or — when you turn on **Use
 reusable venue records** in [Settings › Program › Venues](./settings.md#venues) —
@@ -436,5 +442,5 @@ yourself, and control the repeated-venues summary.
   [Settings](./settings.md) ·
   [Backup & portability](./backup-portability.md)
 
-Not sure what a word means? The [Glossary](./glossary.md) has plain
+Not sure what a word means? [App terms](./glossary.md) has plain
 definitions for every term used across these guides.

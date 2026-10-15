@@ -46,6 +46,124 @@ const Set<String> syncNaturalKeyRenameCollisionReasons = {
   syncShippedDifficultyRenameCollisionReason,
 };
 
+/// The reason for a record whose versions differ and which only the user can
+/// settle (sync-spec §6.3, §6.6): bodies at an equal `updatedAt`, or a
+/// changed/changed conflict on a whole-collection setting.
+///
+/// One row per offered version that is not this device's own, keyed by that
+/// version's wire hash as `counterpart_id`. `record_id` is the record itself,
+/// and `local_hash` is this device's wire hash when the row was queued, so a
+/// decision made against a copy that has since changed is refused rather than
+/// applied over the newer edit.
+const String syncConflictChoiceReason =
+    'versions of one record differ and need the user to choose which to keep';
+
+/// The reason for a copy of a version on offer in a conflict choice that the
+/// choice does not show: an older copy of a shown body, or another device's
+/// copy of this device's body, under its own wire hash
+/// ([SyncMergeConflict.copies]).
+///
+/// Not something to review: these rows are never listed. One row per such
+/// copy, keyed by its wire hash as `counterpart_id` (and `candidate_hash`),
+/// with an empty `candidate_blob` and `local_hash` as on the choice's own
+/// rows. They are kept in line with each pass's merge exactly as the choice's
+/// rows are, and exist so that deciding the choice records every copy it went
+/// against ([syncConflictDecidedAgainstReason]), not only the copies shown.
+const String syncConflictChoiceCopyReason =
+    'another copy of a version on offer in a conflict choice';
+
+/// The reason for a version of a whole-collection setting that the user
+/// chose against on this device (sync-spec §6.6, *Conflict choices*).
+///
+/// Not something to review: these rows are never listed. One row per version
+/// that was on offer when the choice was written — the other devices' (every
+/// copy, including those the choice did not show) and this device's own copy
+/// before the choice — keyed by that version's wire hash as
+/// `counterpart_id` (and `candidate_hash`), with an empty `candidate_blob`,
+/// since only the hash is needed. The merge drops a changed version whose hash
+/// is recorded here before deciding whether the setting is in conflict, so a
+/// device that has not synced since, or a leftover manifest that never will,
+/// cannot raise the choice again on this device. The record lives only here:
+/// another device cannot see it, so one that changed the set too is asked once
+/// more. Cleared with the rest of the queue when the store epoch resets or the
+/// device detaches.
+const String syncConflictDecidedAgainstReason =
+    'a version of a whole-collection setting the user chose against';
+
+/// One user choice in a conflict review: keep [keepCandidateHash]'s version
+/// of the record, or this device's own when it is null — or, when
+/// [combineTakingOther] is set, combine both versions of a whole-collection
+/// setting, taking the other device's version of each entry named in it and
+/// this device's for every other entry both have.
+class SyncConflictDecision {
+  const SyncConflictDecision({
+    required this.kind,
+    required this.recordId,
+    this.keepCandidateHash,
+    this.combineTakingOther,
+  });
+
+  final SyncRecordKind kind;
+  final String recordId;
+  final String? keepCandidateHash;
+  final Set<String>? combineTakingOther;
+}
+
+/// What one conflict choice replaced and wrote, so it can be reconsidered.
+///
+/// Held in memory only, for as long as the app offers to undo the choice. A
+/// reconsideration offers [before] and [offered] again; it is refused when
+/// this device's copy no longer matches [writtenWireHash] — something newer
+/// has arrived since, and the choice is no longer the one being undone.
+class SyncConflictReconsideration {
+  const SyncConflictReconsideration({
+    required this.kind,
+    required this.recordId,
+    required this.before,
+    required this.offered,
+    required this.writtenWireHash,
+    required this.writtenAt,
+  });
+
+  final SyncRecordKind kind;
+  final String recordId;
+
+  /// This device's version before the choice, or null when it had none.
+  final SyncRecordBlob? before;
+
+  /// The other versions that were on offer.
+  final List<SyncRecordBlob> offered;
+  final String writtenWireHash;
+  final DateTime writtenAt;
+}
+
+/// The outcome of a batch of conflict choices: the kinds written, and how to
+/// reconsider each choice.
+class SyncConflictResolution {
+  const SyncConflictResolution({
+    required this.kinds,
+    required this.reconsiderations,
+  });
+
+  final Set<SyncRecordKind> kinds;
+  final List<SyncConflictReconsideration> reconsiderations;
+}
+
+/// A new choice for a reconsidered record: keep the offered version whose
+/// wire hash is [keepVersionHash], this device's earlier version when it is
+/// null, or combine as in [SyncConflictDecision.combineTakingOther].
+class SyncConflictRechoice {
+  const SyncConflictRechoice({
+    required this.reconsideration,
+    this.keepVersionHash,
+    this.combineTakingOther,
+  });
+
+  final SyncConflictReconsideration reconsideration;
+  final String? keepVersionHash;
+  final Set<String>? combineTakingOther;
+}
+
 /// The decisions supported by the persisted sync review surface.
 enum SyncReviewAction { merge, keepBoth }
 
@@ -69,6 +187,19 @@ enum SyncReviewFailureCode {
   /// arises. Merging it with a live record would be an *existence* decision,
   /// and keep-both remains available.
   counterpartDeleted,
+
+  /// Combine both was asked for a record that cannot be combined: not a
+  /// whole-collection setting, or not exactly two versions to combine.
+  combineUnavailable,
+
+  /// The combined collection would hold more entries than its library keeps,
+  /// so loading it would quietly drop some.
+  combineOverLimit,
+
+  /// The decision could not be stamped later than every version on offer
+  /// without leaving this device's clock window (§6.9), so applying it would
+  /// only quarantine it. The fix is this device's date and time.
+  clockOutOfRange,
 }
 
 /// A failed review decision that left the queue row untouched.
@@ -107,6 +238,9 @@ class SyncReviewQueueItem {
 
   bool get isNaturalKeyRenameCollision =>
       syncNaturalKeyRenameCollisionReasons.contains(row.reason);
+
+  /// A version offered in a conflict review rather than a pair to merge.
+  bool get isConflictChoice => row.reason == syncConflictChoiceReason;
 
   /// The id of the record that exists only on this device.
   ///
@@ -183,10 +317,19 @@ class SyncReviewQueueItem {
     final wellFormedCandidate =
         value != null &&
         value.kind == row.kind &&
-        value.body['id'] == value.id &&
+        // A setting's body is its value; its id is the key, on the envelope.
+        (value.kind == SyncRecordKind.setting ||
+            value.body['id'] == value.id) &&
         sha256Hex(encodeSyncRecordBlobUtf8(value)) == row.candidateHash &&
         _hasValidEntityBody(value);
     if (!wellFormedCandidate) return false;
+    if (row.reason == syncConflictChoiceReason) {
+      // The candidate is another version of `record_id` itself, filed under
+      // its own wire hash.
+      return value.id == row.recordId &&
+          row.counterpartId == row.candidateHash &&
+          value.deletedAt == null;
+    }
     if (syncNaturalKeyRenameCollisionReasons.contains(row.reason)) {
       // Step 1: the candidate updates `record_id`, and `counterpart_id` is the
       // other local row that currently holds the natural key.
@@ -214,6 +357,9 @@ class SyncReviewQueueItem {
 }
 
 bool _hasValidEntityBody(SyncRecordBlob candidate) {
+  // A setting's body is a value, not an archive entity, and is validated by
+  // inbound admission instead (`resolveConflicts`).
+  if (candidate.kind == SyncRecordKind.setting) return true;
   try {
     validateSyncReviewCandidateBody(candidate.kind, candidate.body);
     return true;

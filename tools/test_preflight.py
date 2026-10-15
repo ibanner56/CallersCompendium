@@ -4,8 +4,12 @@
 from __future__ import annotations
 
 import contextlib
+import importlib.abc
+import importlib.machinery
 import importlib.util
 import io
+import re
+import subprocess
 import sys
 import tempfile
 import threading
@@ -306,6 +310,134 @@ def test_run_commands_from_text_ignores_non_run_mentions() -> None:
     assert "tools/ci/test_after_block.py" in joined
 
 
+_TEST_RUNNER = re.compile(r"\b(?:dart|flutter)\s+test\b")
+_TEST_CONCURRENCY = re.compile(r"(?:^|\s)(?:-j\s*\d+|--concurrency[= ]\d+)(?=\s|$)")
+
+
+def unbounded_test_commands(commands_text: str) -> list[str]:
+    """``dart test`` / ``flutter test`` commands with no explicit concurrency."""
+    return [
+        line.strip()
+        for line in commands_text.splitlines()
+        if _TEST_RUNNER.search(line) and not _TEST_CONCURRENCY.search(line)
+    ]
+
+
+def test_workflow_test_commands_set_explicit_concurrency() -> None:
+    """Left to the default, `flutter test` runs nproc/2 processes (2 on the
+    4-core runner) and `dart test` its own default; CI pins both."""
+    unbounded = unbounded_test_commands(run_commands_text())
+    assert not unbounded, f"dart/flutter test without -j/--concurrency: {unbounded}"
+
+
+def test_unbounded_test_commands_flags_missing_concurrency() -> None:
+    workflow = (
+        "      - run: flutter test\n"
+        "      - run: dart test test\n"
+        "      - run: flutter test --concurrency=4\n"
+        "      - run: dart test -j 4\n"
+        "      - run: python3 tools/ci/run_core_tests_with_coverage.py\n"
+    )
+    commands = "\n".join(run_commands_from_text(workflow))
+    assert unbounded_test_commands(commands) == ["flutter test", "dart test test"]
+
+
+class _Panic(BaseException):
+    """Stands in for pyo3's PanicException, which is not an Exception."""
+
+
+@contextlib.contextmanager
+def broken_submodule_package(name: str):
+    """A package that imports, whose submodule import panics."""
+    import types
+
+    package = types.ModuleType(name)
+    package.__path__ = []  # type: ignore[attr-defined]
+    submodule = f"{name}.sub"
+
+    class Finder:
+        def find_spec(self, fullname, path=None, target=None):
+            if fullname != submodule:
+                return None
+            loader = importlib.abc.Loader()
+            loader.create_module = lambda spec: None  # type: ignore[method-assign]
+
+            def exec_module(module):
+                raise _Panic("simulated pyo3 panic")
+
+            loader.exec_module = exec_module  # type: ignore[method-assign]
+            return importlib.machinery.ModuleSpec(fullname, loader)
+
+    finder = Finder()
+    sys.modules[name] = package
+    sys.meta_path.insert(0, finder)
+    try:
+        yield submodule
+    finally:
+        sys.meta_path.remove(finder)
+        sys.modules.pop(name, None)
+        sys.modules.pop(submodule, None)
+
+
+def test_broken_import_probe_reports_unavailable_not_fail() -> None:
+    with broken_submodule_package("preflight_stub_pkg") as submodule:
+        step = preflight.Step(
+            "stub", "test stub", (NOOP,), needs_import=submodule
+        )
+        reason = preflight._unavailable(step)
+    assert reason is not None
+    assert "_Panic" in reason
+
+
+def test_import_probe_does_not_swallow_keyboard_interrupt() -> None:
+    class Finder:
+        def find_spec(self, fullname, path=None, target=None):
+            if fullname == "preflight_stub_interrupt":
+                raise KeyboardInterrupt
+            return None
+
+    finder = Finder()
+    sys.meta_path.insert(0, finder)
+    try:
+        step = preflight.Step(
+            "stub", "test stub", (NOOP,), needs_import="preflight_stub_interrupt"
+        )
+        try:
+            preflight._unavailable(step)
+        except KeyboardInterrupt:
+            return
+        raise AssertionError("KeyboardInterrupt must propagate")
+    finally:
+        sys.meta_path.remove(finder)
+
+
+def test_release_tooling_probes_the_ed25519_submodule() -> None:
+    (step,) = [step for step in preflight.STEPS if step.name == "release-tooling"]
+    assert step.needs_import == "cryptography.hazmat.primitives.asymmetric.ed25519"
+
+
+def test_pdfium_pin_tests_are_split_across_two_steps() -> None:
+    """The cmake -P half must SKIP without cmake, not crash release-tooling,
+    and the two halves together must still run the whole file."""
+    steps = {step.name: step for step in preflight.STEPS}
+    pin = "tools/release/test_pdfium_pin.py"
+
+    def flags(name: str) -> list[tuple[str, ...]]:
+        # py() writes the script path with the host's separator.
+        posix = [tuple(PurePath(p).as_posix() for p in c) for c in steps[name].commands]
+        return [c[c.index(pin) + 1 :] for c in posix if pin in c]
+
+    assert flags("release-tooling") == [("--without-cmake",)]
+    assert flags("pdfium-verifier") == [("--cmake-only",)]
+    assert steps["pdfium-verifier"].needs_binary == "cmake"
+
+
+def test_core_tests_step_passes_preflight_jobs() -> None:
+    (step,) = [step for step in preflight.STEPS if step.name == "core-tests"]
+    (command,) = step.commands
+    assert command[-2:] == ("-j", str(preflight.TEST_JOBS))
+
+
 def test_every_python_test_file_is_a_preflight_step() -> None:
     """docs/dev/README.md calls preflight the local mirror of CI, and the
     mirror had holes in both directions: the changelog-fragment compiler's
@@ -337,6 +469,53 @@ def test_unavailable_toolchain_step_does_not_take_the_lock() -> None:
         assert code == 0
         assert "wait toolchain" not in output
         assert "skip slow" in output
+
+
+def _core_coverage_driver():
+    spec = importlib.util.spec_from_file_location(
+        "run_core_tests_with_coverage",
+        Path(__file__).resolve().parent / "ci" / "run_core_tests_with_coverage.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_core_coverage_driver_forwards_jobs_to_dart_test() -> None:
+    """CI runs the core suite through this driver with no `-j` of its own
+    (`_checks.yml`), so the driver's own `-j` is what pins core-test
+    concurrency there (CS-09 T1). Dropping it left every test green."""
+    driver = _core_coverage_driver()
+    commands: list[list[str]] = []
+
+    class _Done:
+        returncode = 0
+
+    def fake_run(command, **_kwargs):
+        commands.append(list(command))
+        return _Done()
+
+    # driver.subprocess is the process-wide module: restore it, or every later
+    # test that really runs a subprocess would get this fake instead.
+    real_run = driver.subprocess.run
+    driver.subprocess.run = fake_run
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            core = Path(tmp)
+            (core / "test").mkdir()
+            (core / "test" / "a_test.dart").write_text("", encoding="utf-8")
+            assert driver.run(core, jobs=3) == 0
+    finally:
+        driver.subprocess.run = real_run
+    assert subprocess.run is real_run
+    (command,) = commands
+    jobs_at = command.index("-j")
+    assert command[jobs_at + 1] == "3", command
+
+    seen: list[int] = []
+    driver.run = lambda core_dir=None, jobs=None: seen.append(jobs) or 0
+    assert driver.main([]) == 0
+    assert seen == [driver.DEFAULT_JOBS]
 
 
 def main() -> int:

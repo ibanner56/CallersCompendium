@@ -3,11 +3,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/main.dart';
-import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/archive_intake_service.dart';
 import 'package:compendium_app/src/data/incoming_file_channel.dart';
-import 'package:compendium_app/src/data/window_service.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/contradb_program_import_screen.dart';
@@ -23,16 +22,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'support/noop_sync_transport.dart';
 import 'support/sync_test_network.dart';
-import 'support/test_repositories.dart';
-
-/// A [WindowService] whose restore does nothing (no real window under test).
-class _NoopWindowService extends WindowService {
-  _NoopWindowService(super.settings);
-  @override
-  Future<void> initialize() async {}
-  @override
-  void dispose() {}
-}
+import 'support/full_app_harness.dart';
 
 /// A fake [IncomingFileChannel] that delivers a caller-chosen cold-start file
 /// path and/or shared URL — no real platform channel is touched.
@@ -115,12 +105,6 @@ String _validBundleJson() => encodeArchive(
   ),
 );
 
-AppData _openAppData() {
-  final appData = AppData(openWidgetTestDatabase(closeOnTearDown: false));
-  addTearDown(appData.close);
-  return appData;
-}
-
 /// An in-memory byte reader so intake runs without real file I/O — a real disk
 /// read would be started inside the test's faked-time zone and never complete.
 ArchiveByteReader _readerFor(String contents) =>
@@ -142,11 +126,11 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           incomingFileChannel: _FakeIncomingFileChannel(
             initialPath: '/shared/bundle.json',
           ),
@@ -173,7 +157,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final appData = _openAppData();
+    final appData = openTestAppData();
     final firstPassStarted = Completer<void>();
     final firstPassGate = Completer<void>();
     var factoryCalls = 0;
@@ -204,7 +188,7 @@ void main() {
     await tester.pumpWidget(
       CompendiumApp(
         appData: appData,
-        windowService: _NoopWindowService(appData.repositories.settings),
+        windowService: NoopWindowService(appData.repositories.settings),
         incomingFileChannel: _FakeIncomingFileChannel(
           initialPath: '/shared/bundle.json',
         ),
@@ -254,12 +238,12 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final appData = _openAppData();
+    final appData = openTestAppData();
 
     await tester.pumpWidget(
       CompendiumApp(
         appData: appData,
-        windowService: _NoopWindowService(appData.repositories.settings),
+        windowService: NoopWindowService(appData.repositories.settings),
         incomingFileChannel: _FakeIncomingFileChannel(
           initialPath: '/shared/bundle.json',
         ),
@@ -273,13 +257,53 @@ void main() {
     expect(await appData.repositories.programs.listAll(), isEmpty);
   });
 
+  testWidgets(
+    'a file native refused as too large shows the tooLarge snackbar without '
+    'reading or deleting anything',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = openTestAppData();
+      final readPaths = <String>[];
+      final deletedPaths = <String>[];
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialFileFuture: Future.value(
+              const IncomingFile.rejected(IncomingFileRejection.tooLarge),
+            ),
+          ),
+          incomingFileReader: (path) async {
+            readPaths.add(path);
+            return Uint8List(0);
+          },
+          incomingFileDeleter: (path) async => deletedPaths.add(path),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('shared-import-error')), findsOneWidget);
+      expect(
+        find.text(AppLocalizationsEn().archiveIntakeRejectedTooLarge),
+        findsOneWidget,
+      );
+      expect(readPaths, isEmpty);
+      expect(deletedPaths, isEmpty);
+      expect(find.byType(ImportReviewScreen), findsNothing);
+    },
+  );
+
   testWidgets('a rejected shared file removes its staging copy', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final appData = _openAppData();
+    final appData = openTestAppData();
     final tempDir = Directory.systemTemp.createTempSync(
       'incoming-share-guard-',
     );
@@ -292,7 +316,7 @@ void main() {
     await tester.pumpWidget(
       CompendiumApp(
         appData: appData,
-        windowService: _NoopWindowService(appData.repositories.settings),
+        windowService: NoopWindowService(appData.repositories.settings),
         incomingFileChannel: _FakeIncomingFileChannel(
           initialPath: stagedFile.path,
           initialFileOwned: true,
@@ -315,7 +339,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       final tempDir = Directory.systemTemp.createTempSync(
         'incoming-share-dismiss-',
       );
@@ -328,7 +352,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           incomingFileChannel: _FakeIncomingFileChannel(
             initialPath: stagedFile.path,
             initialFileOwned: true,
@@ -357,7 +381,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       final tempDir = Directory.systemTemp.createTempSync(
         'incoming-share-route-dispose-',
       );
@@ -370,7 +394,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           incomingFileChannel: _FakeIncomingFileChannel(
             initialPath: stagedFile.path,
             initialFileOwned: true,
@@ -399,7 +423,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final appData = _openAppData();
+    final appData = openTestAppData();
     final tempDir = Directory.systemTemp.createTempSync(
       'incoming-share-unowned-',
     );
@@ -413,7 +437,7 @@ void main() {
     await tester.pumpWidget(
       CompendiumApp(
         appData: appData,
-        windowService: _NoopWindowService(appData.repositories.settings),
+        windowService: NoopWindowService(appData.repositories.settings),
         incomingFileChannel: _FakeIncomingFileChannel(
           initialPath: stagedFile.path,
         ),
@@ -437,7 +461,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       final tempDir = Directory.systemTemp.createTempSync(
         'incoming-share-dispose-',
       );
@@ -452,7 +476,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           incomingFileChannel: _FakeIncomingFileChannel(
             initialPath: stagedFile.path,
             initialFileOwned: true,
@@ -485,7 +509,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       final tempDir = Directory.systemTemp.createTempSync(
         'incoming-share-initial-dispose-',
       );
@@ -499,7 +523,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           incomingFileChannel: _FakeIncomingFileChannel(
             initialFileFuture: initialFile.future,
           ),
@@ -526,12 +550,12 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
 
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           incomingFileChannel: _FakeIncomingFileChannel(
             initialSharedUrl: 'https://contradb.com/programs/33',
           ),
@@ -555,12 +579,12 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
 
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           incomingFileChannel: _FakeIncomingFileChannel(
             initialSharedUrl:
                 'A Lovely Contra Program\nhttps://contradb.com/programs/33',
@@ -587,11 +611,11 @@ void main() {
         'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10600&format=JSON',
         'https://contradb.com/dances/1',
       ]) {
-        final appData = _openAppData();
+        final appData = openTestAppData();
         await tester.pumpWidget(
           CompendiumApp(
             appData: appData,
-            windowService: _NoopWindowService(appData.repositories.settings),
+            windowService: NoopWindowService(appData.repositories.settings),
             incomingFileChannel: _FakeIncomingFileChannel(
               initialSharedUrl: sharedUrl,
             ),
@@ -622,12 +646,12 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
 
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           incomingFileChannel: _FakeIncomingFileChannel(
             initialSharedUrl: 'http://evil.com/programs/1',
           ),
@@ -650,12 +674,12 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
 
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           incomingFileChannel: _FakeIncomingFileChannel(
             initialSharedUrl: 'https://contradb.com/dances/not-a-numeric-id',
           ),
@@ -689,12 +713,12 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
 
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           incomingFileChannel: _FakeIncomingFileChannel(
             initialSharedUrl: 'http://evil.com/programs/1',
           ),

@@ -8,6 +8,7 @@ import 'matrix_column_editor_screen.dart';
 import 'settings_keys.dart';
 import '../../data/matrix_collision_mode_scope.dart';
 import '../../data/program_auto_commit_scope.dart';
+import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/require_performed_for_history_scope.dart';
 import '../../data/track_history_for_all_callers_scope.dart';
@@ -15,6 +16,7 @@ import '../../data/venue_call_count_scope.dart';
 import '../../data/venue_entity_mode_scope.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/settings_dropdown_row.dart';
 import '../venue_manager_screen.dart';
 
 /// The Program settings section: preferences that shape how programs are built,
@@ -44,12 +46,6 @@ class _ProgramSectionState extends State<ProgramSection> {
   bool? _showProgramSlotCallerNotes;
   bool _showProgramSlotCallerNotesRequested = false;
   bool _showProgramSlotCallerNotesUserSet = false;
-  bool? _autoCommitProgramChanges;
-  bool _autoCommitRequested = false;
-  bool _autoCommitUserSet = false;
-  int? _venueCallCount;
-  bool _venueCallCountRequested = false;
-  bool _venueCallCountUserSet = false;
 
   /// Lazily loads the persisted auto-size preference the first time this section
   /// is built (avoids reading settings in `initState`). A late read must not
@@ -63,12 +59,16 @@ class _ProgramSectionState extends State<ProgramSection> {
         .then((value) {
           // Don't overwrite a selection the user made before the read resolved.
           if (!mounted || _autoSizeUserSet) return;
-          setState(() => _autoSizePerform = value is bool ? value : true);
+          setState(
+            () => _autoSizePerform = value is bool
+                ? value
+                : kAutoSizePerformDefault,
+          );
         })
         .catchError((_) {
           // diagnostics: silent — auto-size setting read failed; falls back to on-by-default.
           if (!mounted || _autoSizeUserSet) return;
-          setState(() => _autoSizePerform = true);
+          setState(() => _autoSizePerform = kAutoSizePerformDefault);
         });
   }
 
@@ -78,7 +78,7 @@ class _ProgramSectionState extends State<ProgramSection> {
       _autoSizePerform = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kAutoSizePerformKey, value);
+    await persistSetting(repos.settings, kAutoSizePerformKey, value);
   }
 
   void _ensureIndividualTimerLoaded(BuildContext context) {
@@ -106,7 +106,7 @@ class _ProgramSectionState extends State<ProgramSection> {
       _showIndividualPerformTimer = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kShowIndividualPerformTimerKey, value);
+    await persistSetting(repos.settings, kShowIndividualPerformTimerKey, value);
   }
 
   void _ensureProgramSlotCallerNotesLoaded(BuildContext context) {
@@ -134,67 +134,25 @@ class _ProgramSectionState extends State<ProgramSection> {
       _showProgramSlotCallerNotes = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kShowProgramSlotCallerNotesKey, value);
+    await persistSetting(repos.settings, kShowProgramSlotCallerNotesKey, value);
   }
 
-  void _ensureAutoCommitLoaded(BuildContext context) {
-    if (_autoCommitRequested) return;
-    _autoCommitRequested = true;
-    final repos = RepositoriesScope.of(context);
-    repos.settings
-        .get(kAutoCommitProgramChangesKey)
-        .then((value) {
-          if (!mounted || _autoCommitUserSet) return;
-          setState(
-            () => _autoCommitProgramChanges = value is bool ? value : false,
-          );
-        })
-        .catchError((_) {
-          // diagnostics: silent — auto-commit preference read failed; stays off.
-          if (!mounted || _autoCommitUserSet) return;
-          setState(() => _autoCommitProgramChanges = false);
-        });
-  }
-
+  // Auto-commit and the venue call count are live app preferences: read their
+  // scopes in [build] (so a backup restore shows through) and flip the scope's
+  // notifier first, then persist.
   Future<void> _onAutoCommitChanged(bool value) async {
-    setState(() {
-      _autoCommitUserSet = true;
-      _autoCommitProgramChanges = value;
-    });
     final scoped = ProgramAutoCommitScope.maybeOf(context);
     if (scoped != null) {
       ProgramAutoCommitScope.notifierOf(context).value = value;
     }
-
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kAutoCommitProgramChangesKey, value);
-  }
-
-  void _ensureVenueCallCountLoaded(BuildContext context) {
-    if (_venueCallCountRequested) return;
-    _venueCallCountRequested = true;
-    final repos = RepositoriesScope.of(context);
-    repos.settings
-        .get(kVenueCallCountKey)
-        .then((value) {
-          if (!mounted || _venueCallCountUserSet) return;
-          setState(() => _venueCallCount = venueCallCountFromStored(value));
-        })
-        .catchError((_) {
-          // diagnostics: silent — invalid or unavailable preference uses default.
-          if (!mounted || _venueCallCountUserSet) return;
-          setState(() => _venueCallCount = kVenueCallCountDefault);
-        });
+    await persistSetting(repos.settings, kAutoCommitProgramChangesKey, value);
   }
 
   Future<void> _onVenueCallCountChanged(int value) async {
-    setState(() {
-      _venueCallCountUserSet = true;
-      _venueCallCount = value;
-    });
     VenueCallCountScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kVenueCallCountKey, value);
+    await persistSetting(repos.settings, kVenueCallCountKey, value);
   }
 
   /// Opens the venue manager (browse/create/edit/delete reusable venues).
@@ -212,7 +170,7 @@ class _ProgramSectionState extends State<ProgramSection> {
     // never clears the other mode's value.
     VenueEntityModeScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kVenueEntityModeKey, value);
+    await persistSetting(repos.settings, kVenueEntityModeKey, value);
   }
 
   Future<void> _onMatrixExactBeatCollisionChanged(bool value) async {
@@ -221,7 +179,7 @@ class _ProgramSectionState extends State<ProgramSection> {
     // immediately (issue #962), then persist in the background.
     MatrixCollisionModeScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kMatrixExactBeatCollisionKey, value);
+    await persistSetting(repos.settings, kMatrixExactBeatCollisionKey, value);
   }
 
   Future<void> _onRequirePerformedForHistoryChanged(bool value) async {
@@ -230,7 +188,7 @@ class _ProgramSectionState extends State<ProgramSection> {
     // rebuilds immediately, then persist in the background.
     RequirePerformedForHistoryScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kRequirePerformedForHistoryKey, value);
+    await persistSetting(repos.settings, kRequirePerformedForHistoryKey, value);
   }
 
   Future<void> _onTrackHistoryForAllCallersChanged(bool value) async {
@@ -239,7 +197,7 @@ class _ProgramSectionState extends State<ProgramSection> {
     // re-derives its scoped calling history/counts immediately, then persist.
     TrackHistoryForAllCallersScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kTrackHistoryForAllCallersKey, value);
+    await persistSetting(repos.settings, kTrackHistoryForAllCallersKey, value);
   }
 
   Future<void> _onConfigureMatrixColumns() async {
@@ -252,10 +210,7 @@ class _ProgramSectionState extends State<ProgramSection> {
   Widget build(BuildContext context) {
     _ensureAutoSizeLoaded(context);
     _ensureIndividualTimerLoaded(context);
-    _ensureVenueCallCountLoaded(context);
     _ensureProgramSlotCallerNotesLoaded(context);
-    final scopedAutoCommit = ProgramAutoCommitScope.maybeOf(context);
-    if (scopedAutoCommit == null) _ensureAutoCommitLoaded(context);
     return _ProgramView(
       venueEntityMode: VenueEntityModeScope.of(context),
       onVenueEntityModeChanged: _onVenueEntityModeChanged,
@@ -263,20 +218,19 @@ class _ProgramSectionState extends State<ProgramSection> {
       matrixExactBeatCollision: MatrixCollisionModeScope.of(context),
       onMatrixExactBeatCollisionChanged: _onMatrixExactBeatCollisionChanged,
       onConfigureMatrixColumns: _onConfigureMatrixColumns,
-      autoSizePerform: _autoSizePerform ?? true,
+      autoSizePerform: _autoSizePerform ?? kAutoSizePerformDefault,
       onAutoSizeChanged: _onAutoSizeChanged,
       showIndividualPerformTimer: _showIndividualPerformTimer ?? true,
       onShowIndividualPerformTimerChanged: _onIndividualTimerChanged,
       showProgramSlotCallerNotes: _showProgramSlotCallerNotes ?? true,
       onShowProgramSlotCallerNotesChanged: _onProgramSlotCallerNotesChanged,
-      autoCommitProgramChanges:
-          scopedAutoCommit ?? _autoCommitProgramChanges ?? false,
+      autoCommitProgramChanges: ProgramAutoCommitScope.of(context),
       onAutoCommitChanged: _onAutoCommitChanged,
       requirePerformedForHistory: RequirePerformedForHistoryScope.of(context),
       onRequirePerformedForHistoryChanged: _onRequirePerformedForHistoryChanged,
       trackHistoryForAllCallers: TrackHistoryForAllCallersScope.of(context),
       onTrackHistoryForAllCallersChanged: _onTrackHistoryForAllCallersChanged,
-      venueCallCount: _venueCallCount ?? kVenueCallCountDefault,
+      venueCallCount: VenueCallCountScope.of(context),
       onVenueCallCountChanged: _onVenueCallCountChanged,
     );
   }
@@ -428,12 +382,14 @@ class _ProgramView extends StatelessWidget {
           subtitle: Text(l10n.settingsGeneralTrackHistoryForAllCallersSubtitle),
           isThreeLine: true,
         ),
-        ListTile(
-          key: const ValueKey('general-venue-call-count'),
+        SettingsDropdownRow(
+          tileKey: const ValueKey('general-venue-call-count'),
           title: Text(l10n.settingsProgramVenueCallCountTitle),
           subtitle: Text(l10n.settingsProgramVenueCallCountSubtitle),
           isThreeLine: true,
-          trailing: DropdownButton<int>(
+          dropdownBuilder: (expanded) => DropdownButton<int>(
+            key: const ValueKey('program-venue-call-count'),
+            isExpanded: expanded,
             value: venueCallCount,
             onChanged: (value) {
               if (value != null) onVenueCallCountChanged(value);

@@ -914,8 +914,8 @@ class _Cell extends StatelessWidget {
 }
 
 /// Semantics phrasing shared by the grid and compact views is modelled directly
-/// in the `matrixCellSemantic` ICU message (a single message with select
-/// branches for present / introduced-here / dance's-first-figure), so no
+/// in the `programsMatrixCellSemantic` ICU message (a single message with
+/// select branches for present / introduced-here / dance's-first-figure), so no
 /// fragment concatenation happens in Dart.
 ///
 /// The `collision` argument for `programsMatrixCellSemantic` (issue #962): the
@@ -1328,8 +1328,8 @@ class _DanceChip extends StatelessWidget {
       sectionLabel,
     );
     // Formation (#663) is announced as a standalone composed fragment rather
-    // than folding into `programsMatrixChipQualifiedTitle`, so that message
-    // stays untouched (shared-file caution around #662/#669).
+    // than folding into `programsMatrixSectionChipQualifiedTitle`, so that
+    // message stays untouched (shared-file caution around #662/#669).
     final whoWithFormation = l10n.programsMatrixFormationSemantic(
       who,
       formationLabel,

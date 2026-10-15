@@ -213,6 +213,9 @@ class Program {
     this.notes = '',
     this.status = ProgramStatus.draft,
     this.hideAlternates = false,
+    this.dialectName,
+    this.payMinorUnits,
+    this.payCurrency,
     List<ProgramSlot> slots = const [],
     required this.createdAt,
     required this.updatedAt,
@@ -225,7 +228,30 @@ class Program {
     if (title.trim().isEmpty) {
       throw ArgumentError.value(title, 'title', 'must be non-empty');
     }
+    final pay = payMinorUnits;
+    final currency = payCurrency;
+    if ((pay == null) != (currency == null)) {
+      throw ArgumentError(
+        'payMinorUnits and payCurrency must be set together or not at all',
+      );
+    }
+    if (pay != null && pay < 0) {
+      throw ArgumentError.value(pay, 'payMinorUnits', 'must be >= 0');
+    }
+    if (currency != null && !isValidPayCurrency(currency)) {
+      throw ArgumentError.value(
+        currency,
+        'payCurrency',
+        'must be three uppercase ASCII letters (ISO 4217)',
+      );
+    }
   }
+
+  /// Whether [code] has the shape of an ISO 4217 currency code: exactly three
+  /// uppercase ASCII letters. Shape only — the list of assigned codes changes
+  /// and is not consulted, so a code this build has never heard of is kept.
+  static bool isValidPayCurrency(String code) =>
+      RegExp(r'^[A-Z]{3}$').hasMatch(code);
 
   final String id;
   final String title;
@@ -259,6 +285,27 @@ class Program {
   /// `SetList_HideALT`). The builder editor and Perform mode ignore this flag
   /// and always show every slot; the stored slots are never mutated.
   final bool hideAlternates;
+
+  /// Name of the dialect Perform uses for this program, or `null` to follow the
+  /// application dialect (the default, and every program before schema v37).
+  /// Applies to that program's Perform view only — the editor preview, summary
+  /// and exports keep the application dialect. A soft reference by name,
+  /// resolved with `Dialect.resolveByName` when Perform opens: a name that no
+  /// longer resolves silently falls back to the application dialect, so it is
+  /// never validated or cleared when a dialect is renamed or deleted.
+  final String? dialectName;
+
+  /// What the caller is paid for this program, in the currency's minor units
+  /// (cents for USD, whole yen for JPY), or `null` when no pay is recorded
+  /// (the default, and every program before schema v38). Never negative; set
+  /// together with [payCurrency] or not at all. Private to the caller's own
+  /// bookkeeping but shareable across their devices and in archives; it is not
+  /// part of the shared program text or PDF.
+  final int? payMinorUnits;
+
+  /// ISO 4217 code (three uppercase letters) that [payMinorUnits] is
+  /// denominated in; `null` exactly when [payMinorUnits] is.
+  final String? payCurrency;
 
   /// Slots, always ordered by position.
   final List<ProgramSlot> slots;
@@ -455,6 +502,9 @@ class Program {
     String? notes,
     ProgramStatus? status,
     bool? hideAlternates,
+    String? dialectName,
+    int? payMinorUnits,
+    String? payCurrency,
     List<ProgramSlot>? slots,
     DateTime? updatedAt,
     DateTime? deletedAt,
@@ -465,7 +515,9 @@ class Program {
     bool clearBand = false,
     bool clearCaller = false,
     bool clearDancerLevel = false,
+    bool clearDialectName = false,
     bool clearDeletedAt = false,
+    bool clearPay = false,
     bool clearProvenance = false,
   }) => Program(
     id: id,
@@ -479,6 +531,9 @@ class Program {
     notes: notes ?? this.notes,
     status: status ?? this.status,
     hideAlternates: hideAlternates ?? this.hideAlternates,
+    dialectName: clearDialectName ? null : (dialectName ?? this.dialectName),
+    payMinorUnits: clearPay ? null : (payMinorUnits ?? this.payMinorUnits),
+    payCurrency: clearPay ? null : (payCurrency ?? this.payCurrency),
     slots: slots ?? this.slots,
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -507,6 +562,9 @@ class Program {
     notes: notes,
     status: ProgramStatus.draft,
     hideAlternates: hideAlternates,
+    dialectName: dialectName,
+    // Pay is deliberately not copied: it belongs to one event, and a duplicate
+    // is for a different one.
     slots: [
       for (final s in slots)
         ProgramSlot(
@@ -578,6 +636,9 @@ class Program {
       other.notes == notes &&
       other.status == status &&
       other.hideAlternates == hideAlternates &&
+      other.dialectName == dialectName &&
+      other.payMinorUnits == payMinorUnits &&
+      other.payCurrency == payCurrency &&
       _listEq.equals(other.slots, slots) &&
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt &&

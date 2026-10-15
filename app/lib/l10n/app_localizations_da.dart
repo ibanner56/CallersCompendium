@@ -44,6 +44,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get navSettings => 'Indstillinger';
 
   @override
+  String get navGlossary => 'Ordliste';
+
+  @override
   String get navGuide => 'Vejledning';
 
   @override
@@ -72,8 +75,66 @@ class AppLocalizationsDa extends AppLocalizations {
   String get appBootstrapError => 'Kunne ikke forberede samlingen.';
 
   @override
+  String appBootstrapErrorType(String errorType) {
+    return 'Fejl: $errorType';
+  }
+
+  @override
+  String get appBootstrapCopyDetails => 'Kopiér detaljer';
+
+  @override
+  String get appBootstrapCopiedDetails => 'Kopieret';
+
+  @override
+  String get appBootstrapLogHint =>
+      'Detaljer blev også skrevet til diagnostiklogget i appens supportmappe.';
+
+  @override
   String get migrationDowngradeMessage =>
       'Disse data blev oprettet med en nyere version af Caller’s Compendium — opdatér appen.';
+
+  @override
+  String get migrationRelocationBothExist =>
+      'Caller’s Compendium blev ikke startet, fordi der blev fundet gemte datafiler både på den nye placering og i en mappe, en tidligere version brugte. Intet blev ændret eller slettet. Behold den kopi, du vil bruge, flyt den anden væk, og åbn derefter appen igen. Spørgsmålet “Hvor er mine data gemt?” i FAQ’en angiver placeringerne.';
+
+  @override
+  String get migrationRelocationMultipleLegacy =>
+      'Caller’s Compendium blev ikke startet, fordi der blev fundet gemte data i mere end én mappe, som tidligere versioner brugte. Intet blev ændret eller slettet. Behold den kopi, du vil bruge, flyt de andre væk, og åbn derefter appen igen. Spørgsmålet “Hvor er mine data gemt?” i FAQ’en angiver placeringerne.';
+
+  @override
+  String get migrationRelocationFailed =>
+      'Caller’s Compendium blev ikke startet, fordi det ikke kunne færdiggøre flytningen af dine gemte data til deres nye placering. Intet blev slettet. Frigør plads, luk andre programmer, der muligvis bruger dem, eller kontrollér mappens tilladelser, og åbn derefter appen igen for at prøve igen.';
+
+  @override
+  String get migrationRelocationLegacyUnreachable =>
+      'Caller’s Compendium blev ikke startet, fordi appen ikke kunne få adgang til din Dokumenter-mappe, hvor tidligere versioner gemte dine data. Intet blev ændret eller oprettet. Hvis Dokumenter ligger på et andet drev eller i en netværksmappe, så tilslut den igen, og åbn derefter appen igen. Hvis du ikke har en Dokumenter-mappe, så opret en tom mappe, og åbn derefter appen igen. Spørgsmålet “Hvor er mine data gemt?” i FAQ’en fortæller mere.';
+
+  @override
+  String get migrationRelocationCopiesHeading =>
+      'Hver kopis størrelse og hvornår den sidst blev ændret (den største og senest ændrede kopi er som regel dit bibliotek):';
+
+  @override
+  String get migrationRelocationCopyNewLocation => 'Ny placering';
+
+  @override
+  String get migrationRelocationCopyDocuments => 'Dokumenter-mappen';
+
+  @override
+  String get migrationRelocationCopyEarlierAppFolder =>
+      'Tidligere appdatamappe';
+
+  @override
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  ) {
+    final intl.NumberFormat kilobytesNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
+
+    return '$location: $kilobytesString KB, sidst ændret $date';
+  }
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
@@ -206,6 +267,52 @@ class AppLocalizationsDa extends AppLocalizations {
       'Nye funktioner vises muligvis her, mens de stadig er under udvikling.';
 
   @override
+  String get glossaryTitle => 'Ordliste';
+
+  @override
+  String get glossarySearchHint => 'Søg i figurer';
+
+  @override
+  String glossaryNoMatches(String query) {
+    return 'Ingen figurer matcher “$query”.';
+  }
+
+  @override
+  String get glossarySelectPrompt => 'Vælg en figur for at se dens definition.';
+
+  @override
+  String get glossaryNoDefinition => 'Ingen definition endnu.';
+
+  @override
+  String glossaryVariantOf(String figure) {
+    return 'En variant af $figure.';
+  }
+
+  @override
+  String glossaryNameWithDetail(String name, String detail) {
+    return '$name ($detail)';
+  }
+
+  @override
+  String get glossaryExample => 'Eksempel';
+
+  @override
+  String get glossaryParameters => 'Parametre';
+
+  @override
+  String get glossaryAlsoKnownAs => 'Også kendt som';
+
+  @override
+  String get settingsExperimentalGlossaryHeader => 'Ordliste';
+
+  @override
+  String get settingsExperimentalShowGlossaryTitle => 'Vis ordliste';
+
+  @override
+  String get settingsExperimentalShowGlossarySubtitle =>
+      'Tilføjer en ordliste over de indbyggede figurer til navigationen, mellem Programmer og Indstillinger.';
+
+  @override
   String get settingsSyncHeader => 'Enhedssynkronisering';
 
   @override
@@ -300,6 +407,319 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsSyncStatusFailed => 'Sidste synkronisering mislykkedes.';
 
   @override
+  String get settingsSyncStatusSettingsUnreadable =>
+      'Indstillingerne for enhedssynkronisering kunne ikke læses, så de indstillinger, der vises her, kan være forældede, og enhedssynkronisering kan være slået fra, selvom du har slået den til. Genstart appen for at prøve igen.';
+
+  @override
+  String get settingsSyncFailureUnreachable =>
+      'Synkroniseringsserveren kunne ikke nås.';
+
+  @override
+  String get settingsSyncFailureUnreachableAdvice =>
+      'Tjek, at denne enhed er online. Hvis du kører din egen server, så tjek, at den kører, og at dens adresse er rigtig.';
+
+  @override
+  String get settingsSyncFailureTimedOut =>
+      'Synkroniseringsserveren var for længe om at svare.';
+
+  @override
+  String get settingsSyncFailureTimedOutAdvice =>
+      'En langsom eller ustabil forbindelse er den sædvanlige årsag. Prøv igen, når forbindelsen er bedre.';
+
+  @override
+  String get settingsSyncFailureServerError =>
+      'Synkroniseringsserveren løb selv ind i et problem.';
+
+  @override
+  String get settingsSyncFailureServerErrorAdvice =>
+      'Der er intet galt med denne enhed eller dit bibliotek. Vent et stykke tid, og prøv igen. Hvis det bliver ved, så giv den, der driver serveren, besked, og oplys de detaljer, der vises her.';
+
+  @override
+  String get settingsSyncFailureRateLimited =>
+      'Synkroniseringsserveren bad denne enhed om at sætte tempoet ned.';
+
+  @override
+  String get settingsSyncFailureRateLimitedAdvice =>
+      'Den har fået for mange forespørgsler på kort tid. Vent et par minutter, før du prøver igen.';
+
+  @override
+  String get settingsSyncFailureStoreFull =>
+      'Dit lager har brugt al den plads, synkroniseringsserveren tillader.';
+
+  @override
+  String get settingsSyncFailureStoreFullAdvice =>
+      'Ændringer fra denne enhed kan ikke gemmes, før der er plads. Hvis du slår Spring ubrugte importerede danse over til, uploader denne enhed mindre. Hvis du kører din egen server, så hæv dens lagergrænse.';
+
+  @override
+  String get settingsSyncFailureTooLarge =>
+      'Noget, denne enhed forsøgte at uploade, er større, end synkroniseringsserveren accepterer.';
+
+  @override
+  String get settingsSyncFailureTooLargeAdvice =>
+      'Hvis du har en stor importeret samling, kan det bringe den under grænsen at slå Spring ubrugte importerede danse over til. Hvis du kører din egen server, så tjek dens grænse for uploadstørrelse.';
+
+  @override
+  String get settingsSyncFailureRejected =>
+      'Synkroniseringsserveren afviste det, denne enhed sendte.';
+
+  @override
+  String get settingsSyncFailureRejectedAdviceDefaultServer =>
+      'Denne version af appen er nyere end synkroniseringsserveren. Dine ændringer er gemt her og bliver synkroniseret, når serveren er opdateret.';
+
+  @override
+  String get settingsSyncFailureRejectedAdviceCustomServer =>
+      'Opdater din synkroniseringsserver, så den passer til denne version af appen.';
+
+  @override
+  String get settingsSyncStatusWaiting =>
+      'Venter på at synkronisere. Dine ændringer er gemt her.';
+
+  @override
+  String get settingsSyncQuotaNearlyFull => 'Dit lager er næsten fuldt.';
+
+  @override
+  String get settingsSyncQuotaExcludeImports =>
+      'Stop med at synkronisere importerede danse';
+
+  @override
+  String settingsSyncNoticeNewerVersionItems(String items) {
+    return 'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage $items.';
+  }
+
+  @override
+  String settingsSyncNoticeCountDance(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse',
+      one: '1 dans',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountProgram(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmer',
+      one: '1 program',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountChoreographer(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count koreografer',
+      one: '1 koreograf',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountTag(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mærker',
+      one: '1 mærke',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountCustomField(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count brugerdefinerede felter',
+      one: '1 brugerdefineret felt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountDifficulty(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sværhedsgrader',
+      one: '1 sværhedsgrad',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountPublishedSource(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count udgivne kilder',
+      one: '1 udgivet kilde',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountVenue(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count steder',
+      one: '1 sted',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountSetting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count indstillinger',
+      one: '1 indstilling',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeNewerVersionUncounted =>
+      'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage dens ændringer.';
+
+  @override
+  String settingsSyncNoticeKeptNewerItems(String items) {
+    return 'Gemt til en nyere version af appen: $items. De synkroniseres stadig, med detaljer denne version ikke kan vise. Opdater appen på denne enhed for at se dem.';
+  }
+
+  @override
+  String get settingsSyncCopyDetails => 'Kopiér detaljer';
+
+  @override
+  String get settingsSyncDetailsCopied => 'Detaljer kopieret.';
+
+  @override
+  String get settingsSyncFailureAccessDenied =>
+      'Synkroniseringsserveren accepterede ikke denne enheds synkroniseringssætning.';
+
+  @override
+  String get settingsSyncFailureAccessDeniedAdvice =>
+      'Tjek sætningen mod den på din anden enhed, og tjek, at serveradressen er rigtig.';
+
+  @override
+  String get settingsSyncFailureUnexpectedResponse =>
+      'Synkroniseringsserveren sendte et svar, som denne app ikke kunne bruge.';
+
+  @override
+  String get settingsSyncFailureUnexpectedResponseAdvice =>
+      'Hvis du kører din egen server, så tjek dens adresse, og at den har en version, som denne app understøtter. Ellers kan du opdatere appen og prøve igen senere.';
+
+  @override
+  String get settingsSyncFailurePeerUnavailable =>
+      'Det, en af dine andre enheder sidst delte, kunne ikke læses.';
+
+  @override
+  String get settingsSyncFailurePeerUnavailableAdvice =>
+      'For at forbinde til et lager skal den nyeste liste fra hver enhed på det bruges. Åbn appen på dine andre enheder, lad dem synkronisere, og prøv så igen. Hvis en enhed er væk for altid, så fjern den under Andre enheder.';
+
+  @override
+  String get settingsSyncFailureInternal =>
+      'Noget gik galt inde i appen under synkroniseringen.';
+
+  @override
+  String get settingsSyncFailureInternalAdvice =>
+      'Det er ikke et problem med din forbindelse eller serveren. Prøv igen. Hvis det bliver ved, så eksportér loggen fra Indstillinger ▸ Diagnostik, og vedhæft den, når du rapporterer problemet.';
+
+  @override
+  String settingsSyncFailureStep(String step) {
+    String _temp0 = intl.Intl.selectLogic(step, {
+      'lookup': 'Stoppede under opslag af lageret.',
+      'download': 'Stoppede under download fra dine andre enheder.',
+      'upload': 'Stoppede under upload af denne enheds ændringer.',
+      'publish': 'Stoppede under udgivelse af denne enheds ændringer.',
+      'createStore': 'Stoppede under oprettelse af lageret.',
+      'other': 'Stoppede undervejs.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncFailureStatusCode(int code) {
+    return 'Serveren svarede med HTTP-status $code.';
+  }
+
+  @override
+  String settingsSyncFailureDetails(String details) {
+    return 'Detaljer: $details';
+  }
+
+  @override
+  String commonSyncFailed(String explanation) {
+    return 'Synkroniseringen blev ikke færdig. $explanation';
+  }
+
+  @override
+  String settingsSyncNoticeAffected(String records) {
+    return 'Berører: $records';
+  }
+
+  @override
+  String get settingsSyncNoticeListSeparator => ', ';
+
+  @override
+  String settingsSyncNoticeRecordNamed(String kind, String name) {
+    return '$kind »$name«';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHere(String kind) {
+    return '$kind, ikke på denne enhed';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNewerFigures(String kind, String name) {
+    return '$kind »$name« (har figurer, som kun en nyere version kan læse)';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHereNewerFigures(String kind) {
+    return '$kind ikke på denne enhed (har figurer, som kun en nyere version kan læse)';
+  }
+
+  @override
+  String settingsSyncNoticeAffectedMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'og $count mere',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeFromDevices(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Fra $count andre enheder.',
+      one: 'Fra 1 anden enhed.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDevicesFailedBecause(String explanation) {
+    return 'Enhedslisten kunne ikke indlæses. $explanation';
+  }
+
+  @override
+  String settingsSyncAdminFailedBecause(String message, String explanation) {
+    return '$message $explanation';
+  }
+
+  @override
   String get settingsSyncStatusStaleStore =>
       'Dette lager er blevet erstattet af en anden enhed siden din sidste synkronisering. Næste synkronisering tilslutter sig det nye.';
 
@@ -317,7 +737,297 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeDivergence =>
-      'Nogle poster blev ændret på to enheder i samme øjeblik. Ingen af kopierne blev valgt, så dine enheder er stadig forskellige. Rediger en af dem for at afgøre det.';
+      'Nogle elementer blev ændret på to enheder i samme øjeblik og er stadig forskellige. Hvis de står under Synkroniseringsbeslutninger, så vælg der; ellers kan du redigere et af dem for at afgøre det.';
+
+  @override
+  String get syncConflictTitle => 'Vælg hvilken version du vil beholde';
+
+  @override
+  String get syncConflictIntro =>
+      'Disse blev ændret på mere end én enhed, og appen kan ikke afgøre, hvilken ændring der skal gælde. Begge versioner bevares, indtil du vælger.';
+
+  @override
+  String get syncConflictThisDevice => 'Denne enhed';
+
+  @override
+  String get syncConflictOtherDevice => 'En anden enhed';
+
+  @override
+  String syncConflictOtherDeviceNumbered(int number) {
+    return 'En anden enhed ($number)';
+  }
+
+  @override
+  String get syncConflictKeepAllThisDevice => 'Behold alle fra denne enhed';
+
+  @override
+  String get syncConflictKeepAllOtherDevice =>
+      'Behold alle fra den anden enhed';
+
+  @override
+  String get syncConflictApply => 'Behold valgte';
+
+  @override
+  String get syncConflictDecideLater => 'Beslut senere';
+
+  @override
+  String get syncConflictShowDifferences => 'Vis forskelle';
+
+  @override
+  String syncConflictChangedAt(String when) {
+    return 'Ændret $when';
+  }
+
+  @override
+  String get syncConflictOnlyHereHeader => 'Kun på denne enhed';
+
+  @override
+  String get syncConflictOnlyThereHeader => 'Kun på den anden enhed';
+
+  @override
+  String get syncConflictDifferentHeader => 'Forskellig på hver enhed';
+
+  @override
+  String syncConflictSameCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mere er ens på begge',
+      one: '1 mere er ens på begge',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictSummaryOnlyHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kun på denne enhed',
+      one: '1 kun på denne enhed',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictSummaryOnlyThere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kun på den anden enhed',
+      one: '1 kun på den anden enhed',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictSummaryChanged(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count forskellige',
+      one: '1 forskellig',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictDiffersInFields(String fields) {
+    return 'Forskelle i: $fields';
+  }
+
+  @override
+  String syncConflictComparedWith(String version) {
+    return 'Sammenlignet med $version';
+  }
+
+  @override
+  String get syncConflictNothingToShow =>
+      'Disse versioner er kun forskellige i detaljer, der ikke vises her.';
+
+  @override
+  String get syncConflictFiguresUnreadable =>
+      'Figurerne kan ikke sammenlignes her.';
+
+  @override
+  String get syncConflictSlotsReordered =>
+      'De samme danse i en anden rækkefølge.';
+
+  @override
+  String get syncConflictSlotsDetailsDiffer =>
+      'De samme danse med andre detaljer, fx tider eller alternativer.';
+
+  @override
+  String get syncConflictUnknownItem => 'Ikke på denne enhed';
+
+  @override
+  String syncConflictVersionLine(String device, String value) {
+    return '$device: $value';
+  }
+
+  @override
+  String syncConflictFieldValue(String field, String value) {
+    return '$field: $value';
+  }
+
+  @override
+  String get syncConflictFieldName => 'Navn';
+
+  @override
+  String get syncConflictCombineBoth => 'Kombinér begge';
+
+  @override
+  String syncConflictCombineSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Beholder alle $count elementer fra begge enheder',
+      one: 'Beholder det 1 element fra begge enheder',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictCombineOverLimit(int count, int limit) {
+    return 'Kan ikke kombineres: tilsammen ville det være $count, og denne liste kan højst rumme $limit.';
+  }
+
+  @override
+  String get syncConflictCombinePickEach =>
+      'Begge enheder har ændret disse. Vælg for hver, hvilken du vil beholde:';
+
+  @override
+  String get syncConflictCombineUnavailable =>
+      'Disse kan ikke kombineres, så intet blev ændret.';
+
+  @override
+  String get syncConflictCombineOverLimitError =>
+      'Tilsammen ville det være mere, end denne liste kan rumme, så intet blev ændret.';
+
+  @override
+  String get syncConflictSaved => 'Dine valg er gemt.';
+
+  @override
+  String get syncConflictUndo => 'Fortryd';
+
+  @override
+  String get syncConflictReconsiderIntro =>
+      'Vælg igen mellem de versioner, du havde. Intet ændres, før du gemmer.';
+
+  @override
+  String get syncConflictUndoChanged =>
+      'Der kom noget nyere efter dit valg, så intet blev ændret.';
+
+  @override
+  String get syncConflictFieldProvenance => 'Oprindelse';
+
+  @override
+  String get syncConflictFieldColour => 'Farve';
+
+  @override
+  String get syncConflictThemeBrightness => 'Lys eller mørk';
+
+  @override
+  String syncConflictFigureWalkthrough(String text) {
+    return 'gennemgang: $text';
+  }
+
+  @override
+  String syncConflictFigureWording(String text) {
+    return 'formulering: $text';
+  }
+
+  @override
+  String syncConflictFigureDetailsDiffer(String figure) {
+    return '$figure (andre detaljer er forskellige)';
+  }
+
+  @override
+  String get syncConflictLinkInGroup => 'i gruppen af beslægtede danse';
+
+  @override
+  String get syncConflictValueNotSet => 'Ikke angivet';
+
+  @override
+  String get syncConflictValueOn => 'Til';
+
+  @override
+  String get syncConflictValueOff => 'Fra';
+
+  @override
+  String syncConflictValueItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count elementer',
+      one: '1 element',
+      zero: 'Ingen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictValueNamesAndMore(String names, int count) {
+    return '$names og $count mere';
+  }
+
+  @override
+  String get syncConflictNone => 'Der er intet at vælge lige nu.';
+
+  @override
+  String get syncConflictClockWrong =>
+      'Dato og klokkeslæt på denne enhed ser forkerte ud, så dit valg kunne ikke gemmes. Ret dato og klokkeslæt, og prøv så igen.';
+
+  @override
+  String get syncConflictFailed => 'Dit valg kunne ikke gemmes. Prøv igen.';
+
+  @override
+  String get syncSettingActiveCustomTheme => 'Brugerdefineret tema i brug';
+
+  @override
+  String get syncSettingActiveDialect => 'Dialekt i brug';
+
+  @override
+  String get syncSettingLastCollectionSort =>
+      'Samlingens sortering (senest brugt)';
+
+  @override
+  String get syncSettingLastCollectionSortDirection =>
+      'Samlingens sorteringsretning (senest brugt)';
+
+  @override
+  String get syncSettingLastProgramSort =>
+      'Programmernes sortering (senest brugt)';
+
+  @override
+  String get syncSettingLastProgramSortDirection =>
+      'Programmernes sorteringsretning (senest brugt)';
+
+  @override
+  String get syncSettingPerformStageTheme => 'Scenetema i Fremfør';
+
+  @override
+  String settingsSyncConflictsSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count elementer blev ændret på to enheder og venter på dit valg.',
+      one: '1 element blev ændret på to enheder og venter på dit valg.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String commonSyncNowConflictsTooltip(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Synkronisér nu ($count elementer venter på dit valg)',
+      one: 'Synkronisér nu (1 element venter på dit valg)',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsSyncNoticeKeptLocalCreation =>
@@ -344,8 +1054,23 @@ class AppLocalizationsDa extends AppLocalizations {
       'En opdatering fra en anden enhed kom, mens du redigerede den samme post, så den blev ikke anvendt. Næste synkronisering tager den med.';
 
   @override
-  String get settingsSyncNoticeUnreflectedPublication =>
-      'Ændringer fra denne enhed er ikke dukket op på dine andre enheder efter flere synkroniseringer. Åbn appen på dem, og synkronisér.';
+  String settingsSyncNoticePeerNotTaking(int count, String tag) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Enheden $tag synkroniserer, men tager ikke imod $count ændringer fra denne enhed. De er i sikkerhed her. Den anden enhed skal måske have en opdatering af appen, eller også er dato og klokkeslæt forkert på denne enhed.',
+      one:
+          'Enheden $tag synkroniserer, men tager ikke imod 1 ændring fra denne enhed. Ændringen er i sikkerhed her. Den anden enhed skal måske have en opdatering af appen, eller også er dato og klokkeslæt forkert på denne enhed.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeNeedsYou => 'Kræver din handling';
+
+  @override
+  String get settingsSyncNoticeSeeDevices => 'Se andre enheder';
 
   @override
   String get settingsSyncNotBackup =>
@@ -364,7 +1089,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncDisconnectSubtitle =>
-      'Stop synkroniseringen her. Lageret og dine andre enheder ændres ikke.';
+      'Stop synkroniseringen her. Dit bibliotek forbliver, som det er, her og på dine andre enheder.';
 
   @override
   String get settingsSyncDisconnectConfirmTitle =>
@@ -372,7 +1097,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncDisconnectConfirmBody =>
-      'Denne enhed stopper med at synkronisere og glemmer sin synkroniseringssætning. Dit bibliotek på denne enhed forbliver, som det er, og lageret og dine andre enheder påvirkes ikke. For at forbinde igen senere skal du bruge sætningen, så sørg for, at du har den.';
+      'Denne enhed stopper med at synkronisere og glemmer sin synkroniseringssætning. Dit bibliotek på denne enhed forbliver, som det er, og det samme gør dine andre enheder. Når du afbryder forbindelsen, fjernes denne enhed fra synkroniseringslageret, hvis dine andre enheder allerede har alt fra den. Hvis de ikke har, bliver den stående under Andre enheder, indtil du fjerner den der. For at forbinde igen senere skal du bruge sætningen, så sørg for, at du har den.';
 
   @override
   String get settingsSyncDisconnectConfirmAction => 'Afbryd';
@@ -393,7 +1118,53 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncDevicesCaution =>
-      'Serveren kender kun hver enhed på en identifikator, den selv har fundet på, så der står ingen enhedsnavne her, og denne enhed er ikke med på listen. Hvis du er i tvivl om, hvilken du skal fjerne, er det trygt at lade den stå: En enhed, du fjerner, kan forbinde igen med synkroniseringssætningen.';
+      'Hver enhed finder selv på sin egen tilfældige identifikator og en ny, hver gang den forbinder, så enhederne vises her med et kort mærke fra identifikatoren i stedet for et navn. Denne enhed er ikke med på listen; dens eget mærke står nedenfor, så du kan finde den på dine andre enheder. Hvis du er i tvivl om, hvilken du skal fjerne, er det trygt at lade den stå: En enhed, du fjerner, kan forbinde igen med synkroniseringssætningen.';
+
+  @override
+  String settingsSyncDevicesThisDevice(String tag) {
+    return 'Denne enhed: $tag';
+  }
+
+  @override
+  String settingsSyncDeviceTag(String tag) {
+    return 'Enhed $tag';
+  }
+
+  @override
+  String get settingsSyncDeviceLastSharedToday => 'Delte sidst ændringer i dag';
+
+  @override
+  String settingsSyncDeviceLastSharedDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Delte sidst ændringer for $count dage siden',
+      one: 'Delte sidst ændringer i går',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDeviceLastSharedWeeks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Delte sidst ændringer for cirka $count uger siden',
+      one: 'Delte sidst ændringer for cirka en uge siden',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDeviceWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ændringer fra denne enhed venter på at nå frem til den.',
+      one: '1 ændring fra denne enhed venter på at nå frem til den.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsSyncDevicesEmpty =>
@@ -552,10 +1323,6 @@ class AppLocalizationsDa extends AppLocalizations {
       'Den sætning er allerede i brug af et andet lager. Generér en anden.';
 
   @override
-  String get settingsSyncPairingUnreachable =>
-      'Enhedssynkronisering er ikke tilgængelig lige nu. Tjek din forbindelse, og prøv igen.';
-
-  @override
   String settingsSyncPairingCustomEndpointTitle(String host) {
     return 'Brugerdefineret server: $host';
   }
@@ -649,9 +1416,6 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get commonSystemDefault => 'Systemstandard';
-
-  @override
-  String get commonComingSoon => 'Kommer snart';
 
   @override
   String get settingsLanguageRegionTitle => 'Sprog og region';
@@ -975,6 +1739,315 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsAppearanceCustomThemesHeader => 'Brugerdefinerede temaer';
 
   @override
+  String get appThemeGroupSystem => 'System';
+
+  @override
+  String get appThemeGroupDefault => 'Standard';
+
+  @override
+  String get appThemeGroupLight => 'Lys';
+
+  @override
+  String get appThemeGroupDark => 'Mørk';
+
+  @override
+  String get appThemeLabelSystem => 'System';
+
+  @override
+  String get appThemeLabelLight => 'Lys';
+
+  @override
+  String get appThemeLabelDark => 'Mørk';
+
+  @override
+  String get appThemeLabelSoftDark => 'Blød mørk';
+
+  @override
+  String get appThemeLabelHighContrast => 'Høj kontrast';
+
+  @override
+  String get appThemeDescriptionSystem =>
+      'Følger enhedens indstilling for lys/mørk';
+
+  @override
+  String get appThemeDescriptionLight => 'Varm lys palet';
+
+  @override
+  String get appThemeDescriptionDark => 'Varm mørk palet';
+
+  @override
+  String get appThemeDescriptionSoftDark =>
+      'Varm mørk på en blødere, lysere baggrund';
+
+  @override
+  String get appThemeDescriptionHighContrast =>
+      'Maksimal kontrast til svagt oplyste rum og nedsat syn';
+
+  @override
+  String get appThemeDescriptionBlulocoLight =>
+      'Knivskarp, kølig-neutral baggrund med levende juveltoner';
+
+  @override
+  String get appThemeDescriptionOneDarkPro =>
+      'One Dark Pro, det populære editortema';
+
+  @override
+  String get appThemeDescriptionMonokai =>
+      'One Monokai – Monokai-syntaks på trækul';
+
+  @override
+  String get appThemeDescriptionNoctis =>
+      'Den originale dybe turkisgrønne Noctis-nat';
+
+  @override
+  String get appThemeDescriptionGithubLight => 'GitHubs rene, neutrale lys';
+
+  @override
+  String get appThemeDescriptionCatppuccinLatte =>
+      'Blød pastellys, fællesskabets favorit';
+
+  @override
+  String get appThemeDescriptionGruvboxLight =>
+      'Varm retro-creme og jordfarver';
+
+  @override
+  String get appThemeDescriptionEverforestLight =>
+      'Mildt grønt, skånsomt for øjnene';
+
+  @override
+  String get appThemeDescriptionRosePineDawn =>
+      'Dæmpet rosa og iris på varmt papir';
+
+  @override
+  String get appThemeDescriptionAyuLight =>
+      'Lyst, minimalistisk lys med ravgule accenter';
+
+  @override
+  String get appThemeDescriptionTokyoNightLight =>
+      'Klart indigo dagslys, Tokyo Nights dag';
+
+  @override
+  String get appThemeDescriptionNordLight =>
+      'Kolde arktiske sneestorm-neutraler';
+
+  @override
+  String get appThemeDescriptionKanagawaLotus =>
+      'Varmt sumi-e-papir med blækaccenter';
+
+  @override
+  String get appThemeDescriptionDracula =>
+      'Den klassiske favorit: lilla på trækul';
+
+  @override
+  String get appThemeDescriptionNord => 'Kolde arktiske blå toner, afdæmpede';
+
+  @override
+  String get appThemeDescriptionTokyoNight =>
+      'Neonindigo-palet fra en by om natten';
+
+  @override
+  String get appThemeDescriptionGruvboxDark => 'Varm retro-rav på trækul';
+
+  @override
+  String get appThemeDescriptionCatppuccinMocha =>
+      'Hyggeligt pastelmørk, fællesskabets favorit';
+
+  @override
+  String get appThemeDescriptionGithubDark => 'GitHubs neutrale mørk';
+
+  @override
+  String get appThemeDescriptionEverforestDark =>
+      'Blødt skovgrønt, let for øjnene';
+
+  @override
+  String get appThemeDescriptionRosePine => 'Dæmpet rosa og iris i mørket';
+
+  @override
+  String get appThemeDescriptionAyuMirage => 'Blød skifer med ravgule accenter';
+
+  @override
+  String get appThemeDescriptionCutiePro =>
+      'Superlækker mørk pastel, med lyserød i front';
+
+  @override
+  String get appThemeDescriptionPinkAsHeck => 'Skamløs knaldpink på bærfarve';
+
+  @override
+  String get appThemeDescriptionVitesseLight =>
+      'Moderne dæmpet salvie, turkis og rosa';
+
+  @override
+  String get appThemeDescriptionZenburn =>
+      'Den klassiske varme gråtone med lav kontrast';
+
+  @override
+  String get appThemeDescriptionShadesOfPurple => 'Kraftigt guld på dyb indigo';
+
+  @override
+  String get appThemeDescriptionCatppuccinFrappe =>
+      'Lysere blågrå pastel-Catppuccin';
+
+  @override
+  String get appThemeDescriptionSynthwave84 => 'Glødende neon på retrolilla';
+
+  @override
+  String get appThemeDescriptionNoctisLilac => 'Blidt lilla dagslys fra Noctis';
+
+  @override
+  String get themeEditorGroupPrimary => 'Primær';
+
+  @override
+  String get themeEditorGroupSecondary => 'Sekundær';
+
+  @override
+  String get themeEditorGroupTertiary => 'Tertiær';
+
+  @override
+  String get themeEditorGroupError => 'Fejl';
+
+  @override
+  String get themeEditorGroupSurfaceText => 'Overflade og tekst';
+
+  @override
+  String get themeEditorGroupSurfaceContainers => 'Overfladebeholdere';
+
+  @override
+  String get themeEditorGroupOutlineEffects => 'Kontur og effekter';
+
+  @override
+  String get themeEditorRolePrimary => 'Primær';
+
+  @override
+  String get themeEditorRoleOnPrimary => 'På primær';
+
+  @override
+  String get themeEditorRolePrimaryContainer => 'Primær beholder';
+
+  @override
+  String get themeEditorRoleOnPrimaryContainer => 'På primær beholder';
+
+  @override
+  String get themeEditorRoleSecondary => 'Sekundær';
+
+  @override
+  String get themeEditorRoleOnSecondary => 'På sekundær';
+
+  @override
+  String get themeEditorRoleSecondaryContainer => 'Sekundær beholder';
+
+  @override
+  String get themeEditorRoleOnSecondaryContainer => 'På sekundær beholder';
+
+  @override
+  String get themeEditorRoleTertiary => 'Tertiær';
+
+  @override
+  String get themeEditorRoleOnTertiary => 'På tertiær';
+
+  @override
+  String get themeEditorRoleTertiaryContainer => 'Tertiær beholder';
+
+  @override
+  String get themeEditorRoleOnTertiaryContainer => 'På tertiær beholder';
+
+  @override
+  String get themeEditorRoleError => 'Fejl';
+
+  @override
+  String get themeEditorRoleOnError => 'På fejl';
+
+  @override
+  String get themeEditorRoleErrorContainer => 'Fejlbeholder';
+
+  @override
+  String get themeEditorRoleOnErrorContainer => 'På fejlbeholder';
+
+  @override
+  String get themeEditorRoleSurface => 'Overflade';
+
+  @override
+  String get themeEditorRoleOnSurface => 'På overflade';
+
+  @override
+  String get themeEditorRoleOnSurfaceVariant => 'På overfladevariant';
+
+  @override
+  String get themeEditorRoleInverseSurface => 'Omvendt overflade';
+
+  @override
+  String get themeEditorRoleOnInverseSurface => 'På omvendt overflade';
+
+  @override
+  String get themeEditorRoleInversePrimary => 'Omvendt primær';
+
+  @override
+  String get themeEditorRoleSurfaceContainerLowest => 'Beholder (lavest)';
+
+  @override
+  String get themeEditorRoleSurfaceContainerLow => 'Beholder (lav)';
+
+  @override
+  String get themeEditorRoleSurfaceContainer => 'Beholder';
+
+  @override
+  String get themeEditorRoleSurfaceContainerHigh => 'Beholder (høj)';
+
+  @override
+  String get themeEditorRoleSurfaceContainerHighest => 'Beholder (højest)';
+
+  @override
+  String get themeEditorRoleOutline => 'Kontur';
+
+  @override
+  String get themeEditorRoleOutlineVariant => 'Konturvariant';
+
+  @override
+  String get themeEditorRoleSurfaceTint => 'Overfladetone';
+
+  @override
+  String get themeEditorRoleShadow => 'Skygge';
+
+  @override
+  String get themeEditorRoleScrim => 'Scrim';
+
+  @override
+  String get themeEditorPairOnPrimary => 'Tekst på primær';
+
+  @override
+  String get themeEditorPairOnPrimaryContainer => 'Tekst på primær beholder';
+
+  @override
+  String get themeEditorPairOnSecondary => 'Tekst på sekundær';
+
+  @override
+  String get themeEditorPairOnSecondaryContainer =>
+      'Tekst på sekundær beholder';
+
+  @override
+  String get themeEditorPairOnTertiary => 'Tekst på tertiær';
+
+  @override
+  String get themeEditorPairOnTertiaryContainer => 'Tekst på tertiær beholder';
+
+  @override
+  String get themeEditorPairOnError => 'Tekst på fejl';
+
+  @override
+  String get themeEditorPairOnErrorContainer => 'Tekst på fejlbeholder';
+
+  @override
+  String get themeEditorPairOnSurface => 'Brødtekst på overflade';
+
+  @override
+  String get themeEditorPairOnSurfaceVariant => 'Sekundær tekst på overflade';
+
+  @override
+  String get themeEditorPairOnInverseSurface => 'Tekst på omvendt overflade';
+
+  @override
+  String get themeEditorPairOutline => 'Kontur på overflade';
+
+  @override
   String get settingsAppearanceEasterEggsHeader => 'Påskeæg';
 
   @override
@@ -1062,15 +2135,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDefaultsStartingProgramPickerTitle => 'Tilføj en dans';
 
   @override
-  String get settingsDefaultsStartingProgramAddDance => 'Dans';
-
-  @override
-  String get settingsDefaultsStartingProgramAddText => 'Note';
-
-  @override
-  String get settingsDefaultsStartingProgramAddBreak => 'Tilføj pause';
-
-  @override
   String get settingsDefaultsStartingProgramTextLabel => 'Notetekst';
 
   @override
@@ -1087,6 +2151,30 @@ class AppLocalizationsDa extends AppLocalizations {
   String settingsDefaultsStartingProgramUnavailableDance(String id) {
     return 'Utilgængelig dans ($id)';
   }
+
+  @override
+  String get settingsDefaultsDifficultyLevelEmpty =>
+      'Et sværhedsniveau skal have et navn.';
+
+  @override
+  String settingsDefaultsDifficultyLevelDuplicate(String label) {
+    return 'Et niveau med navnet \"$label\" findes allerede.';
+  }
+
+  @override
+  String settingsDefaultsDifficultyLevelInUse(String label, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse bruger $label. Ændr dem først.',
+      one: '1 dans bruger $label. Ændr den først.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsDefaultsDifficultyLevelActionFailed =>
+      'Sværhedsniveauerne kunne ikke gemmes. Prøv igen.';
 
   @override
   String get settingsDefaultsBandLabel => 'Standardband';
@@ -1194,6 +2282,20 @@ class AppLocalizationsDa extends AppLocalizations {
       'Vælg hvilke filtre der vises, når du filtrerer samlingen, og når du vælger danse til et program. Alle filtre vises som standard. Når du skjuler et filter, ryddes dets valg.';
 
   @override
+  String get settingsDefaultsImportHeader => 'Importstandarder';
+
+  @override
+  String get settingsDefaultsImportTagsTitle => 'Tags til importerede danse';
+
+  @override
+  String get settingsDefaultsImportTagsSubtitle =>
+      'Føjes til hver ny dans, du importerer på egen hånd. Danse, der oprettes under import af et program, og danse, der gendannes fra et Compendium-arkiv, får ikke tags.';
+
+  @override
+  String get settingsDefaultsImportTagsEmpty =>
+      'Du har endnu ingen tags. Føj et til en dans i editoren, og vælg det derefter her.';
+
+  @override
   String get settingsDefaultsAuthoringHeader => 'Standarder for dansforfatning';
 
   @override
@@ -1209,7 +2311,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'Når slået til, genberegner en ændring af en figurs bevægelse eller en parameter, der påvirker timing, straks dens taktantal — selv hvis det overskriver et taktantal, du selv har indtastet. Når slået fra (standard), ændres et taktantal, du har redigeret, aldrig automatisk.';
+      'Når slået til, genberegner en ændring af en figurs bevægelse eller en parameter, der påvirker timing, straks dens taktantal — selv hvis det overskriver et taktantal, du selv har indtastet. Når slået fra (standard), ændres et taktantal, du har redigeret, kun automatisk, når du slår en balance-indstilling til eller fra, hvilket tilføjer eller fjerner 4 takter.';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'Figurkortformer';
@@ -1604,6 +2706,14 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get settingsGeneralCapitalizeFiguresTitle =>
+      'Brug stort begyndelsesbogstav i figurer';
+
+  @override
+  String get settingsGeneralCapitalizeFiguresSubtitle =>
+      'Når aktiveret, begynder hver figur i dansevisningen, Perform-tilstand og figureditoren med et stort bogstav (“Neighbors allemande left”). Når deaktiveret, vises figurer som skrevet; indbyggede figurer begynder med lille bogstav, som i ContraDB. Kun figurernes udseende disse steder ændres; eksport, søgning, synkroniseringssammenligninger og skærmlæserens ordlyd er upåvirket.';
+
+  @override
   String get settingsGeneralAccessibilityHeader => 'Tilgængelighed';
 
   @override
@@ -1830,6 +2940,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Denne sikkerhedskopi indeholder elementer, som denne version af appen ikke kan læse (den kan stamme fra en nyere version), så gendannelsen blev annulleret. Dine data er uændret.';
 
   @override
+  String get backupRestoreMissingAppSection =>
+      'Denne sikkerhedskopi indeholder ikke dine appindstillinger, temaer eller dialekter, så den kan ikke erstatte dine nuværende data. Gendannelsen blev annulleret, og dine data er uændret.';
+
+  @override
   String get backupRestoreInvalidFile =>
       'Kunne ikke gendanne: filen er ikke en gyldig sikkerhedskopi. Dine data er uændret.';
 
@@ -1899,6 +3013,16 @@ class AppLocalizationsDa extends AppLocalizations {
       'Det er et stykke tid siden din seneste sikkerhedskopi – overvej at eksportere en nu.';
 
   @override
+  String get backupReminderBannerText =>
+      'Din sikkerhedskopi er forfalden. Eksportér en nu for at holde din samling sikker.';
+
+  @override
+  String get backupReminderBannerExport => 'Eksportér sikkerhedskopi';
+
+  @override
+  String get backupReminderBannerNotNow => 'Ikke nu';
+
+  @override
   String get backupRestoreDialogBody =>
       'Gendannelse erstatter alt i appen – din samling, programmer, dialekter, temaer og indstillinger – med indholdet af sikkerhedskopien. Dette kan ikke fortrydes.';
 
@@ -1906,10 +3030,59 @@ class AppLocalizationsDa extends AppLocalizations {
   String get backupChooseFileAction => 'Vælg fil…';
 
   @override
+  String get backupChooseFileFailed => 'Kunne ikke læse den fil.';
+
+  @override
   String get backupPasteJsonLabel => 'Eller indsæt sikkerhedskopi-JSON';
 
   @override
   String get backupReplaceAllDataAction => 'Erstat alle data';
+
+  @override
+  String backupFileSummary(String date, int dances, int programs, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      dances,
+      locale: localeName,
+      other: '$dances danse',
+      one: '$dances dans',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      programs,
+      locale: localeName,
+      other: '$programs programmer',
+      one: '$programs program',
+    );
+    return 'Sikkerhedskopi fra $date: $_temp0, $_temp1, $size MB';
+  }
+
+  @override
+  String backupFileUnreadable(String size) {
+    return 'Denne fil ligner ikke en læsbar sikkerhedskopi ($size MB). Hvis den ikke kan gendannes, får du at vide hvorfor, når du erstatter.';
+  }
+
+  @override
+  String get backupFileClearAction => 'Ryd';
+
+  @override
+  String backupFileTooLarge(String sizeMb, String limitMb) {
+    return 'Filen er for stor til at være en Caller’s Compendium-sikkerhedskopi ($sizeMb MB; grænse $limitMb MB). Dine data er uændrede.';
+  }
+
+  @override
+  String backupExportTooLarge(String sizeMb, String limitMb) {
+    return 'Din samling er for stor til at eksportere som én sikkerhedskopi ($sizeMb MB; grænse $limitMb MB), så intet blev gemt. Dine data er uændrede.';
+  }
+
+  @override
+  String get backupExportInProgress => 'Forbereder din sikkerhedskopi…';
+
+  @override
+  String get backupRestorePreparing => 'Læser sikkerhedskopien…';
+
+  @override
+  String backupRestoreProgress(int done, int total) {
+    return 'Gendanner $done af $total…';
+  }
 
   @override
   String get diagnosticsNoDiagnosticsToExport =>
@@ -2279,9 +3452,6 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get collectionSearchFieldHint =>
       'Søg titler, forfattere, figurer, noter…';
-
-  @override
-  String get collectionPickerSearchFieldHint => 'Søg titler, figurer, noter…';
 
   @override
   String get collectionPickerOnlineSearchFieldHint =>
@@ -2793,9 +3963,6 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get collectionCreateTagButton => 'Opret tag';
-
-  @override
-  String get collectionCreateTagError => 'Kunne ikke oprette tag. Prøv igen.';
 
   @override
   String get collectionBatchApplyError =>
@@ -3332,6 +4499,19 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsNotesLabel => 'Noter';
 
   @override
+  String get programsPayLabel => 'Honorar';
+
+  @override
+  String get programsPayHint => 'f.eks. 250.00';
+
+  @override
+  String get programsPayCurrencyLabel => 'Valuta';
+
+  @override
+  String get programsPayInvalid =>
+      'Angiv et beløb som 250 eller 250.50 i denne valuta.';
+
+  @override
   String get programsStatusFieldLabel => 'Status';
 
   @override
@@ -3340,6 +4520,21 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get programsHideAlternatesSubtitle =>
       'Udelader ALT-slots fra oversigten, PDF og eksporteret sætliste. Byggeren viser stadig alt.';
+
+  @override
+  String get programsDialectFieldLabel => 'Dialekt til Fremfør';
+
+  @override
+  String get programsDialectUseApp => 'Brug appens dialekt';
+
+  @override
+  String programsDialectUnavailable(String name) {
+    return '$name (ikke tilgængelig)';
+  }
+
+  @override
+  String get programsDialectHelper =>
+      'Bruges kun i dette programs Fremfør-visning. Editor, oversigt og eksport bruger stadig appens dialekt.';
 
   @override
   String programsWarningCount(int count) {
@@ -3426,6 +4621,11 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String programsSummaryLevel(String level) {
     return 'Niveau: $level';
+  }
+
+  @override
+  String programsSummaryPay(String amount) {
+    return 'Honorar: $amount';
   }
 
   @override
@@ -3662,35 +4862,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsMatrixHidePhrasesSemantic => 'Vis tilstedeværelsesglyffer';
 
   @override
-  String programsMatrixRowHeaderSemantic(
-    String title,
-    String alt,
-    String half,
-  ) {
-    String _temp0 = intl.Intl.selectLogic(half, {
-      'first': 'Alternativ dans: $title, første halvdel',
-      'second': 'Alternativ dans: $title, anden halvdel',
-      'other': 'Alternativ dans: $title',
-    });
-    String _temp1 = intl.Intl.selectLogic(half, {
-      'first': 'Dans: $title, første halvdel',
-      'second': 'Dans: $title, anden halvdel',
-      'other': 'Dans: $title',
-    });
-    String _temp2 = intl.Intl.selectLogic(alt, {
-      'yes': '$_temp0',
-      'other': '$_temp1',
-    });
-    return '$_temp2';
-  }
-
-  @override
-  String programsMatrixHalfShort(String half) {
-    String _temp0 = intl.Intl.selectLogic(half, {'first': '1.', 'other': '2.'});
-    return '$_temp0';
-  }
-
-  @override
   String programsMatrixSectionShort(String sectionKey, String sectionNumber) {
     String _temp0 = intl.Intl.selectLogic(sectionKey, {
       's1': '1.',
@@ -3789,29 +4960,6 @@ class AppLocalizationsDa extends AppLocalizations {
       'other': ', frase(r): $phrases',
     });
     return '$dance, $move: $_temp3$_temp4';
-  }
-
-  @override
-  String programsMatrixChipQualifiedTitle(
-    String title,
-    String alt,
-    String half,
-  ) {
-    String _temp0 = intl.Intl.selectLogic(half, {
-      'first': '$title (alternativ dans, første halvdel)',
-      'second': '$title (alternativ dans, anden halvdel)',
-      'other': '$title (alternativ dans)',
-    });
-    String _temp1 = intl.Intl.selectLogic(half, {
-      'first': '$title (første halvdel)',
-      'second': '$title (anden halvdel)',
-      'other': '$title',
-    });
-    String _temp2 = intl.Intl.selectLogic(alt, {
-      'yes': '$_temp0',
-      'other': '$_temp1',
-    });
-    return '$_temp2';
   }
 
   @override
@@ -4008,6 +5156,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get performAdjustmentUndone => 'Justering fortrudt.';
 
   @override
+  String get performUndoNoLongerAvailable =>
+      'Kan ikke fortrydes: programmet er ændret siden.';
+
+  @override
   String get performProgramAdjustedSnack => 'Program justeret.';
 
   @override
@@ -4045,6 +5197,10 @@ class AppLocalizationsDa extends AppLocalizations {
     String walkthroughComplete,
     String over,
     String paused,
+    String manual,
+    String actual,
+    String direction,
+    String delta,
   ) {
     String _temp0 = intl.Intl.pluralLogic(
       planned,
@@ -4057,19 +5213,28 @@ class AppLocalizationsDa extends AppLocalizations {
           ', planlagt $_temp0: $walkthrough minutters gennemgang og $dance minutters dans',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(walkthroughComplete, {
+    String _temp2 = intl.Intl.selectLogic(direction, {
+      'over': ', $delta over planen',
+      'under': ', $delta under planen',
+      'other': ', som planlagt',
+    });
+    String _temp3 = intl.Intl.selectLogic(manual, {
+      'yes': ', gennemgang sluttede ved $actual$_temp2',
+      'other': '',
+    });
+    String _temp4 = intl.Intl.selectLogic(walkthroughComplete, {
       'yes': ', gennemgang fuldført',
       'other': '',
     });
-    String _temp3 = intl.Intl.selectLogic(over, {
+    String _temp5 = intl.Intl.selectLogic(over, {
       'yes': ', over planlagt tid',
       'other': '',
     });
-    String _temp4 = intl.Intl.selectLogic(paused, {
+    String _temp6 = intl.Intl.selectLogic(paused, {
       'yes': ', sat på pause',
       'other': '',
     });
-    return 'Programtid $programTime, slottid $slotTime$_temp1$_temp2$_temp3$_temp4';
+    return 'Programtid $programTime, slottid $slotTime$_temp1$_temp3$_temp4$_temp5$_temp6';
   }
 
   @override
@@ -4084,6 +5249,26 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String performPlannedSplit(int planned, int walkthrough, int dance) {
     return 'planlagt $planned min. ($walkthrough:$dance)';
+  }
+
+  @override
+  String get performDanceStartUnused => 'Gennemgang færdig — start dansen';
+
+  @override
+  String get performDanceStartUsed => 'Dans startet — tryk for at fortryde';
+
+  @override
+  String performWalkthroughActual(
+    String actual,
+    String direction,
+    String delta,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(direction, {
+      'over': ' (+$delta)',
+      'under': ' (−$delta)',
+      'other': ' (som planlagt)',
+    });
+    return 'gennemgang $actual$_temp0';
   }
 
   @override
@@ -4201,6 +5386,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get exportShareDanceBundle => 'Del dansefil';
 
   @override
+  String get exportSaveDanceBundle => 'Gem dansefil…';
+
+  @override
   String get exportCopyDance => 'Kopiér dans';
 
   @override
@@ -4223,6 +5411,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get exportShareProgramBundle => 'Del (program + danse)';
+
+  @override
+  String get exportSaveProgramBundle => 'Gem programfil…';
 
   @override
   String get exportCopySetList => 'Kopiér sætliste';
@@ -4248,6 +5439,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get exportJsonShare => 'Del';
+
+  @override
+  String get exportJsonSaveAs => 'Gem som…';
 
   @override
   String get exportJsonCancel => 'Annuller';
@@ -4472,10 +5666,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String onlineSearchFieldLabel(String source) {
     return 'Søg $source';
   }
-
-  @override
-  String get onlineSearchFieldHint =>
-      'Søg online efter danse efter titel eller forfatter…';
 
   @override
   String get collectionOnlineSearchFieldHint =>
@@ -4901,6 +6091,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String importReviewCommitProgress(int done, int total) {
+    return '$done / $total';
+  }
+
+  @override
   String importReviewTitleListPasted(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -5011,6 +6206,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Kunne ikke nå The Caller\'s Box for denne titel.';
 
   @override
+  String get importTitleListReasonConnectionFailed =>
+      'Kunne ikke nå The Caller\'s Box – tjek din forbindelse.';
+
+  @override
+  String get importTitleListConnectionBanner =>
+      'Opslaget af titler blev stoppet efter en forbindelsesfejl. De titler, der allerede er i din samling, vises; prøv resten, når du er online igen.';
+
+  @override
   String get importTitleListReasonLineTooLong =>
       'For lang til at være en danstitel, så der blev ikke søgt.';
 
@@ -5029,7 +6232,9 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get importErrorFileTooLarge => 'Den fil er for stor til at importere.';
+  String importErrorFileTooLarge(int megabytes) {
+    return 'Filen er større end grænsen på $megabytes MB. Vælg en mindre fil, og prøv igen.';
+  }
 
   @override
   String get archiveIntakeRejectedTooLarge =>
@@ -5071,7 +6276,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importErrorTooManyRedirects =>
-      'Den URL omdirigerede for mange gange.';
+      'Den URL blev omdirigeret for mange gange. Åbn den i en browser for at finde den endelige adresse, og brug den i stedet.';
 
   @override
   String get importErrorResponseTooLarge =>
@@ -5091,11 +6296,20 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String importErrorHttpStatus(int status) {
-    return 'Serveren svarede med HTTP $status.';
+    return 'Serveren sendte et uventet svar (kode $status). Kontrollér URL\'en, og prøv igen.';
   }
 
   @override
-  String get importErrorEmptyResponse => 'URL\'en returnerede et tomt svar.';
+  String get importErrorHttpNotFound =>
+      'Der blev ikke fundet noget på den adresse. Kontrollér URL\'en, og prøv igen.';
+
+  @override
+  String get importErrorHttpBusy =>
+      'Serveren har travlt eller har problemer. Prøv igen om et øjeblik.';
+
+  @override
+  String get importErrorEmptyResponse =>
+      'URL\'en returnerede et tomt svar. Kontrollér, at linket peger på de data, du vil importere, og prøv igen.';
 
   @override
   String get importErrorCallersBoxEmptyInput =>
@@ -5127,17 +6341,30 @@ class AppLocalizationsDa extends AppLocalizations {
       'Kunne ikke nå The Caller\'s Box. Kontrollér din forbindelse, og prøv igen.';
 
   @override
-  String importErrorCallersBoxHttpStatus(int status) {
-    return 'The Caller\'s Box svarede med HTTP $status.';
+  String importErrorCallersBoxTimeout(int seconds) {
+    return 'The Caller\'s Box svarede ikke inden for ${seconds}s. Kontrollér din forbindelse, og prøv igen.';
   }
 
   @override
+  String importErrorCallersBoxHttpStatus(int status) {
+    return 'The Caller\'s Box sendte et uventet svar (kode $status). Prøv igen om et øjeblik.';
+  }
+
+  @override
+  String get importErrorCallersBoxHttpNotFound =>
+      'The Caller\'s Box har ingen dans med det id. Kontrollér nummeret eller linket, og prøv igen.';
+
+  @override
+  String get importErrorCallersBoxHttpBusy =>
+      'The Caller\'s Box har travlt lige nu. Prøv igen om et øjeblik.';
+
+  @override
   String get importErrorCallersBoxEmptyPage =>
-      'The Caller\'s Box returnerede en tom side.';
+      'The Caller\'s Box returnerede en tom side. Prøv igen om et øjeblik.';
 
   @override
   String get importErrorCallersBoxNoDance =>
-      'The Caller\'s Box returnerede ingen importerbar dans.';
+      'The Caller\'s Box returnerede ingen dans, der kan importeres. Kontrollér id\'et eller linket, og prøv igen.';
 
   @override
   String get importErrorCallersBoxImportFailed =>
@@ -5188,17 +6415,30 @@ class AppLocalizationsDa extends AppLocalizations {
       'Kunne ikke nå ContraDB. Kontrollér din forbindelse, og prøv igen.';
 
   @override
-  String importErrorContraDbHttpStatus(int status) {
-    return 'ContraDB svarede med HTTP $status.';
+  String importErrorContraDbTimeout(int seconds) {
+    return 'ContraDB svarede ikke inden for ${seconds}s. Kontrollér din forbindelse, og prøv igen.';
   }
 
   @override
+  String importErrorContraDbHttpStatus(int status) {
+    return 'ContraDB sendte et uventet svar (kode $status). Prøv igen om et øjeblik.';
+  }
+
+  @override
+  String get importErrorContraDbHttpNotFound =>
+      'ContraDB har ingen dans med det id. Kontrollér nummeret eller linket, og prøv igen.';
+
+  @override
+  String get importErrorContraDbHttpBusy =>
+      'ContraDB har travlt lige nu. Prøv igen om et øjeblik.';
+
+  @override
   String get importErrorContraDbEmptyResponse =>
-      'ContraDB returnerede et tomt svar.';
+      'ContraDB returnerede et tomt svar. Prøv igen om et øjeblik.';
 
   @override
   String get importErrorContraDbNoDance =>
-      'ContraDB returnerede ingen importerbar dans.';
+      'ContraDB returnerede ingen dans, der kan importeres. Kontrollér id\'et eller linket, og prøv igen.';
 
   @override
   String get importErrorContraDbImportFailed =>
@@ -5226,6 +6466,34 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get importIssueArchiveReadWarning =>
       'Den delte fil rapporterede en advarsel under afkodning.';
+
+  @override
+  String get importIssueArchiveNewerSchema =>
+      'Denne fil er lavet med en nyere version af Caller\'s Compendium. Opdater appen, før du importerer, ellers kan nogle detaljer mangle.';
+
+  @override
+  String get importIssueUsrFileTruncated =>
+      'Denne fil ser ufuldstændig ud – kun en del af den kunne læses. Kopiér den igen fra originalen, og importér den på ny.';
+
+  @override
+  String get importIssueUsrFiguresFromDanceRows =>
+      'Figurerne kunne ikke læses fra denne fil, så danse kan komme uden figurer. Tjek originalfilen, eller eksportér den igen fra Caller\'s Companion.';
+
+  @override
+  String get importIssueUsrPhraseGroupsOrphaned =>
+      'Nogle figurer kunne ikke knyttes til en dans og blev udeladt. Tjek, at dine danse kom helt med, eller kopiér filen igen fra originalen.';
+
+  @override
+  String get importIssueUsrLinesDropped =>
+      'Nogle meget lange figurlinjer blev udeladt. Resten af hver dans blev importeret.';
+
+  @override
+  String get importIssueUsrSetsSkipped =>
+      'Programmer kunne ikke læses helt fra denne fil, så nogle mangler måske eller kommer uden deres danse. Tjek dem efter importen.';
+
+  @override
+  String get importIssueUsrRelatedRowsSkipped =>
+      'Nogle relaterede dansekoblinger i denne fil var ugyldige og blev sprunget over.';
 
   @override
   String get importIssueDirectionUnmapped =>
@@ -5347,6 +6615,38 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importRecordErrorDiscover => 'Denne post kunne ikke findes.';
 
   @override
+  String get importRecordErrorEmptyFile =>
+      'Denne fil eller tekst er tom. Vælg en fil med indhold, eller indsæt teksten igen.';
+
+  @override
+  String get importRecordErrorNotJson =>
+      'Det er ikke en JSON-fil. Vælg den .json-fil, som kilden har eksporteret, eller indsæt dens JSON igen.';
+
+  @override
+  String get importRecordErrorNotCompendiumArchive =>
+      'Det er ikke en Caller\'s Compendium-fil. Vælg en .json-fil, der er eksporteret fra denne app.';
+
+  @override
+  String get importRecordErrorNotCallersBoxDance =>
+      'Det er ikke en Caller\'s Box-dans. Kontrollér, at du har kopieret en dans fra The Caller\'s Box, og prøv igen.';
+
+  @override
+  String get importRecordErrorNotContraDbDance =>
+      'Det er ikke en ContraDB-dans. Kontrollér, at du har kopieret en dansesiden fra ContraDB, og prøv igen.';
+
+  @override
+  String get importRecordErrorNotUsrDatabase =>
+      'Det er ikke en Caller\'s Companion-biblioteksfil (.USR). Find .USR-filen i Caller\'s Companions datamappe.';
+
+  @override
+  String get importRecordErrorFileTooLarge =>
+      'Filen er for stor til at blive importeret. Vælg en mindre fil, eller del den op i dele.';
+
+  @override
+  String get importRecordErrorNoDanceAtId =>
+      'Der blev ikke fundet nogen dans der. Kontrollér id\'et eller linket til Caller\'s Box-dansen, og prøv igen.';
+
+  @override
   String get importRecordErrorFetch => 'Denne post kunne ikke hentes.';
 
   @override
@@ -5419,6 +6719,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importReviewCouldNotRead => 'Kunne ikke læse importen';
 
   @override
+  String get importReviewPlanFailedBody =>
+      'Noget gik galt under læsningen af denne import. Prøv igen. Hvis det bliver ved, kan filen være beskadiget.';
+
+  @override
   String get importReviewNoDancesTitle => 'Ingen danse fundet';
 
   @override
@@ -5432,6 +6736,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importReviewImported => 'Importeret';
 
   @override
+  String get importReviewImportAndEdit => 'Importér og rediger';
+
+  @override
   String importReviewStructured(int structured, int total) {
     return '$structured/$total struktureret';
   }
@@ -5441,6 +6748,18 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importReviewOptionNewDance => 'Ny dans';
+
+  @override
+  String get importReviewBulkSetAllLabel => 'Sæt alle matchede danse til:';
+
+  @override
+  String get importReviewBulkReimport => 'Reimportér';
+
+  @override
+  String get importReviewBulkSkip => 'Spring over';
+
+  @override
+  String get importReviewBulkSkipAmbiguous => 'Spring alle mulige match over';
 
   @override
   String get importReviewOptionSkip => 'Spring over';
@@ -5459,7 +6778,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String importReviewOptionLink(String title, int percent) {
-    return 'Knyt til „$title“ ($percent% match)';
+    return 'Samme dans – erstat „$title“ med denne version ($percent% match)';
   }
 
   @override
@@ -5605,6 +6924,15 @@ class AppLocalizationsDa extends AppLocalizations {
       'Kunne ikke importere den dans til redigering.';
 
   @override
+  String get importReviewEditOverwriteTitle =>
+      'Erstat den eksisterende dans nu?';
+
+  @override
+  String importReviewEditOverwriteBody(String title) {
+    return 'Import til redigering erstatter „$title“ i din samling med det samme. Fortryd for hele importen gendanner den ikke.';
+  }
+
+  @override
   String get importReviewImportError => 'Kunne ikke fuldføre importen.';
 
   @override
@@ -5624,7 +6952,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String importReviewOptionSameDance(String title) {
-    return 'Samme dans som \"$title\" (link/opdater)';
+    return 'Samme dans – erstat „$title“ med denne version';
   }
 
   @override
@@ -6604,6 +7932,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Der kunne ikke vælges et sted at hente opdateringen til.';
 
   @override
+  String get updateDownloadFailureDestinationOccupied =>
+      'Der ligger allerede noget på den placering. Vælg et andet navn eller en anden mappe, eller brug „Se udgivelse“.';
+
+  @override
   String get updateDownloadFailureIncomplete =>
       'Overførslen var ufuldstændig og blev slettet. Prøv igen, eller brug „Se udgivelse“.';
 
@@ -6666,6 +7998,33 @@ class AppLocalizationsDa extends AppLocalizations {
   String updateBannerAvailable(String appName, String version) {
     return 'En nyere version af $appName ($version) er tilgængelig.';
   }
+
+  @override
+  String retirementNoticeUpcoming(String appName, String version, String date) {
+    return 'Supporten for denne version af $appName ($version) ophører den $date. Opdater til en nyere version inden da.';
+  }
+
+  @override
+  String retirementNoticePast(String appName, String version, String date) {
+    return 'Supporten for denne version af $appName ($version) ophørte den $date. Opdater til en nyere version nu.';
+  }
+
+  @override
+  String get retirementBannerGetUpdate => 'Hent opdatering';
+
+  @override
+  String get retirementBannerLater => 'Senere';
+
+  @override
+  String installLocationBannerMessage(String appName) {
+    return '$appName er ikke installeret endnu: det kører fra det downloadede diskbillede eller arkiv. Afslut det, træk det til mappen Programmer, og åbn det derfra.';
+  }
+
+  @override
+  String get installLocationBannerDismiss => 'Afvis';
+
+  @override
+  String get settingsUpdatesRetirementTitle => 'Ophør af support';
 
   @override
   String get updateBannerViewRelease => 'Se udgivelse';
@@ -7108,11 +8467,6 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String customFieldsDeleteInUseUnknown(String label) {
-    return 'Kan ikke slette „$label“: bruges stadig af nogle danse. Fjern værdien fra alle danse først.';
-  }
-
-  @override
   String get customFieldsTitle => 'Brugerdefinerede felter';
 
   @override
@@ -7282,38 +8636,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get dialectEditorPlural => 'Flertal';
 
   @override
-  String get dialectEditorMoveSubsAdd => 'Tilføj bevægelseserstatninger';
-
-  @override
-  String dialectEditorMoveSubsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count bevægelseserstatninger',
-      one: '1 bevægelseserstatning',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get dialectEditorMoveSubHint => 'erstatning (brug %S til håndretning)';
 
   @override
   String get dialectEditorAddMove => 'Tilføj en bevægelse…';
-
-  @override
-  String get dialectEditorDancerSubsAdd => 'Tilføj danser-erstatninger';
-
-  @override
-  String dialectEditorDancerSubsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count danser-erstatninger',
-      one: '1 danser-erstatning',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get dialectEditorDancerSubHint => 'erstatning';
@@ -7698,6 +9024,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Betingede bevægelsesskabeloner vælges ud fra figurens parametre. Udfyld alle viste pladsholdere; ufærdige betingede skabeloner ignoreres.';
 
   @override
+  String dialectEditorMoveWordingsForceHelp(String example) {
+    return 'Nogle felter udelades, når de ikke tilføjer noget, f.eks. en kædes hånd, når rollen allerede angiver den. Sæt et ! foran et felt, som $example, for altid at vise det.';
+  }
+
+  @override
   String dialectEditorMoveWordingsConditionalLabel(String move) {
     return '$move (betinget)';
   }
@@ -7719,21 +9050,6 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingBranchSingleFile => 'Enkelt række';
-
-  @override
-  String get dialectEditorMoveWordingsAdd =>
-      'Tilføj skabeloner til bevægelsesformulering';
-
-  @override
-  String dialectEditorMoveWordingsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count skabeloner til bevægelsesformulering',
-      one: '1 skabelon til bevægelsesformulering',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get dialectEditorAddMoveWording =>

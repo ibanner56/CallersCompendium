@@ -1,7 +1,9 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
@@ -110,6 +112,24 @@ Future<void> _pumpNarrow(
 }
 
 void main() {
+  testWidgets('empty-detail pane body text uses onSurfaceVariant (AA)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpWide(tester, repos);
+
+    final bodyText = AppLocalizationsEn().programsSelectBody;
+    final finder = find.text(bodyText);
+    expect(finder, findsOneWidget);
+
+    // Body text must use a text colour role (onSurfaceVariant, >=4.5:1), not
+    // the hairline outlineVariant role (~1.5:1 against the pane).
+    final textWidget = tester.widget<Text>(finder);
+    final scheme = Theme.of(tester.element(finder)).colorScheme;
+    expect(textWidget.style?.color, scheme.onSurfaceVariant);
+    expect(textWidget.style?.color, isNot(scheme.outlineVariant));
+  });
+
   testWidgets(
     'wide split-pane list and summary FABs coexist and survive a route '
     'transition without a duplicate hero-tag crash',
@@ -443,6 +463,62 @@ void main() {
         _perfSeconds(_perfText(tester, 'perform-clock')),
         greaterThanOrEqualTo(clockBefore),
       );
+    },
+  );
+
+  testWidgets(
+    'the summary Perform launcher keeps the dance-start mark on re-entry '
+    '(#1659)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: ProgramStatus.draft,
+          slots: [
+            ProgramSlot(
+              id: 's0',
+              position: 0,
+              danceId: 'd1',
+              walkthroughMinutes: 2,
+              danceMinutes: 3,
+            ),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      await _pumpWide(tester, repos);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+
+      await tester.pump(const Duration(seconds: 10));
+      await tester.tap(find.byKey(const ValueKey('perform-dance-start')));
+      await tester.pump();
+      final before = _perfText(tester, 'perform-walkthrough-actual');
+
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byKey(const ValueKey('perform-dance-start')),
+            )
+            .isSelected,
+        isTrue,
+      );
+      expect(_perfText(tester, 'perform-walkthrough-actual'), before);
     },
   );
 

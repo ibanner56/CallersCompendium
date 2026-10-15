@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/verbose_figure_rendering_scope.dart';
+import '../data/capitalize_figures_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../search/facet_labels.dart';
@@ -205,7 +206,10 @@ class _FigureRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    showVerbose ? verboseText : text,
+                    capitalizeFirstLetter(
+                      showVerbose ? verboseText : text,
+                      capitalize: CapitalizeFiguresScope.of(context),
+                    ),
                     style: theme.textTheme.bodyLarge,
                   ),
                   if (note != null && note!.trim().isNotEmpty)

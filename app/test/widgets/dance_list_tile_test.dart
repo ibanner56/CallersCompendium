@@ -102,6 +102,31 @@ DanceListEntry _richEntry() => DanceListEntry(
 );
 
 void main() {
+  testWidgets('selection checkbox toggles through the required onTap', (
+    tester,
+  ) async {
+    var taps = 0;
+    final entry = _entry();
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: DanceListTile(
+            entry: entry,
+            selectionMode: true,
+            onTap: () => taps++,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(ValueKey('batch-checkbox-${entry.dance.id}')));
+    expect(taps, 1);
+    await tester.tap(find.byType(ListTile));
+    expect(taps, 2);
+  });
+
   testWidgets('shows the drill-in chevron by default', (tester) async {
     await _pump(tester, _entry());
 
@@ -243,7 +268,10 @@ void main() {
     final avatar = find.byType(CircleAvatar);
     expect(avatar, findsOneWidget);
     expect(
-      find.descendant(of: avatar, matching: find.byIcon(Icons.groups_outlined)),
+      find.descendant(
+        of: avatar,
+        matching: find.byIcon(Icons.diversity_3_outlined),
+      ),
       findsOneWidget,
     );
     // ...and the meaning is not glyph-only: the form label is the tooltip.

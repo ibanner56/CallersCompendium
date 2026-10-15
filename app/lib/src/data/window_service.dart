@@ -80,6 +80,28 @@ class WindowCloseCoordinator {
   }
 }
 
+/// Forwards raise requests to whichever [WindowService] is current.
+///
+/// `main` builds the first service, but `CompendiumApp` replaces it (and
+/// disposes the old one) when a failed startup is retried or the database is
+/// reset. The single-instance listener outlives every such replacement, so it
+/// holds this forwarder, not a service; each newly built service is registered
+/// with [register].
+class WindowRaiseForwarder {
+  WindowService? _current;
+
+  /// Makes [service] the target of later [raise] calls, replacing any earlier
+  /// one. Returns [service] so it can wrap a constructor call.
+  WindowService register(WindowService service) => _current = service;
+
+  /// Asks the current service to raise its window; a no-op before the first
+  /// [register].
+  void raise() {
+    final service = _current;
+    if (service != null) unawaited(service.raise());
+  }
+}
+
 /// Desktop-only wiring around the `window_manager` plugin that restores the
 /// last-known window size/position on startup and persists changes as the user
 /// resizes/moves/maximizes the window.
@@ -135,6 +157,11 @@ class WindowService with WindowListener {
   /// restore so we don't immediately persist what we just applied.
   bool _restoring = false;
 
+  /// True once [initialize] has restored and shown the window. [raise] is a
+  /// no-op before then: the first launch shows the window itself, and raising
+  /// mid-restore would fight the programmatic bounds.
+  bool _shown = false;
+
   /// Initializes the plugin, restores the persisted frame (clamped to the
   /// active display and a sensible minimum), shows the window, and starts
   /// listening for user-driven geometry changes. No-ops entirely off desktop.
@@ -174,6 +201,7 @@ class WindowService with WindowListener {
       await windowManager.show();
     });
     _restoring = false;
+    _shown = true;
 
     windowManager.addListener(this);
     if (_closeCoordinator != null) {
@@ -186,6 +214,22 @@ class WindowService with WindowListener {
           source: 'window_service._enablePreventClose',
         );
       }
+    }
+  }
+
+  /// Brings the window to the front, un-minimizing it first, in response to a
+  /// second launch (see `handleSecondLaunch`). Best effort: on Linux/Wayland the
+  /// compositor may only flag the window as needing attention, and Windows
+  /// applies its foreground-lock rules. No-ops off desktop, before [initialize]
+  /// has shown the window, and while the persisted frame is being restored.
+  Future<void> raise() async {
+    if (!isDesktopWindowPlatform || !_shown || _restoring) return;
+    try {
+      if (await windowManager.isMinimized()) await windowManager.restore();
+      await windowManager.show();
+      await windowManager.focus();
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(error, stackTrace, source: 'window_service.raise');
     }
   }
 

@@ -250,6 +250,41 @@ void main() {
   });
 
   group('free-text rendering', () {
+    // An equal-but-not-identical copy of [larks]: callers build a fresh
+    // FigureRenderer/Dialect per call, so the cache must key on value.
+    Dialect larksCopy() => Dialect(
+      name: larks.name,
+      roles: Map.of(larks.roles),
+      moves: Map.of(larks.moves),
+      dancers: Map.of(larks.dancers),
+      moveWordings: Map.of(larks.moveWordings),
+      moveWordingBranches: Map.of(larks.moveWordingBranches),
+      discouragedTerms: List.of(larks.discouragedTerms),
+    );
+
+    test('a second render with the same dialect constructs no Substitutor', () {
+      final copy = larksCopy();
+      expect(copy, larks);
+      expect(identical(copy, larks), isFalse);
+      renderer.renderFreeText('role1s lead', larks); // warm
+      final before = Substitutor.debugConstructed;
+      expect(
+        renderer.renderFreeText('the role1s lead', copy),
+        'the larks lead',
+      );
+      expect(Substitutor.debugConstructed, before);
+    });
+
+    test('discouraged-term renders construct nothing on a second call', () {
+      final copy = larksCopy();
+      renderer.renderDiscouragedTerms('gents allemande', larks);
+      renderer.renderFreeTextWithCanonicalDiscouragedTerms('gents', larks);
+      final before = Substitutor.debugConstructed;
+      renderer.renderDiscouragedTerms('gents allemande', copy);
+      renderer.renderFreeTextWithCanonicalDiscouragedTerms('gents', copy);
+      expect(Substitutor.debugConstructed, before);
+    });
+
     test('substitutes role terms with case preservation', () {
       // Mid-sentence lowercase source token stays lowercase (the shipped
       // default term is lowercase, and case is carried from the source token).
@@ -3426,6 +3461,83 @@ void main() {
   });
 
   group('global move wording templates', () {
+    group('forced slots ({!name})', () {
+      Dialect wording(String template) =>
+          Dialect.larksRobins.copyWith(moveWordings: {'chain': template});
+      Figure chain(String hand) =>
+          testFigure(move: 'chain', params: {'who': 'role2s', 'hand': hand});
+
+      test('plain {hand} hides the role-implied hand', () {
+        expect(
+          renderer.render(chain('right'), wording('{who} {hand} {move}')),
+          'robins chain',
+        );
+      });
+
+      test('{!hand} shows the role-implied hand', () {
+        expect(
+          renderer.render(chain('right'), wording('{who} {!hand} {move}')),
+          'robins right-hand chain',
+        );
+        expect(
+          renderer.render(chain('right'), wording('{who} [{!hand} ]{move}')),
+          'robins right-hand chain',
+        );
+      });
+
+      test(
+        '{!hand} still shows a contradicting hand and skips unspecified',
+        () {
+          expect(
+            renderer.render(chain('left'), wording('{who} {!hand} {move}')),
+            'robins left-hand chain',
+          );
+          expect(
+            renderer.render(
+              testFigure(move: 'chain', params: {'who': 'role2s'}),
+              wording('{who} {!hand} {move}'),
+            ),
+            'robins chain',
+          );
+        },
+      );
+
+      test('{!prefix} shows an alias-pinned param', () {
+        // The alias bakes `prefix: meltdown` into its name, so the generic
+        // slot pass blanks it; only the forced pass may surface it.
+        final dialect = Dialect.canonical.copyWith(
+          moveWordings: const {'swing': '{!prefix}'},
+        );
+        expect(
+          renderer.render(Figure(move: 'meltdown_swing'), dialect),
+          'meltdown',
+        );
+      });
+
+      test('canonical text is unchanged', () {
+        expect(
+          renderer.renderCanonical(chain('right')),
+          renderer.renderCanonical(
+            testFigure(move: 'chain', params: {'who': 'role2s'}),
+          ),
+        );
+      });
+
+      test('validator and slot analysis accept the bang form', () {
+        expect(
+          FigureRenderer.isValidMoveWordingTemplate('{who} {!hand} {move}'),
+          isTrue,
+        );
+        for (final bad in ['{!}', '{!!hand}', '{! hand}']) {
+          expect(FigureRenderer.isValidMoveWordingTemplate(bad), isFalse);
+        }
+        expect(
+          renderer.moveWordingMissingSlots('chain', '{who} {!hand} {move}'),
+          isNot(contains('hand')),
+        );
+      });
+    });
+
     test('persisted branch registry matches renderer contracts', () {
       for (final entry in kMoveWordingBranchKeys.entries) {
         expect(

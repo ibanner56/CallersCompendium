@@ -7,6 +7,7 @@ import 'package:compendium_app/src/update/artifact_downloader.dart';
 import 'package:compendium_app/src/update/artifact_handoff.dart';
 import 'package:compendium_app/src/update/artifact_verifier.dart';
 import 'package:compendium_app/src/update/semver.dart';
+import 'package:compendium_app/src/update/update_config.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_manifest.dart';
 import 'package:compendium_app/src/update/update_scope.dart';
@@ -69,6 +70,34 @@ SwitchListTile _switch(WidgetTester tester, String key) =>
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
+  testWidgets('shows a cached end-of-support notice even after the banner '
+      'was hidden', (tester) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kUpdateRetirementNoticeKey, {
+      'build': '0.1.0',
+      'endOfLife': '2099-01-31',
+    });
+    final controller = _controller(repos, <UpdateChannel>[]);
+    addTearDown(controller.dispose);
+
+    await _pump(tester, controller);
+    expect(find.byKey(const ValueKey('updates-retirement')), findsOneWidget);
+    expect(find.textContaining('(0.1.0) ends on'), findsOneWidget);
+
+    controller.hideRetirementBanner();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('updates-retirement')), findsOneWidget);
+  });
+
+  testWidgets('shows no end-of-support tile without a notice', (tester) async {
+    final repos = openTestRepositories();
+    final controller = _controller(repos, <UpdateChannel>[]);
+    addTearDown(controller.dispose);
+
+    await _pump(tester, controller);
+    expect(find.byKey(const ValueKey('updates-retirement')), findsNothing);
+  });
 
   testWidgets('auto-check and beta are OFF by default', (tester) async {
     final repos = openTestRepositories();

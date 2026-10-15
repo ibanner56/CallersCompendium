@@ -93,8 +93,47 @@ void main() {
         updatedAt: DateTime.utc(2026),
       ),
     );
-    await expectLater(repo.delete('f1'), throwsA(isA<StateError>()));
+    await expectLater(
+      repo.delete('f1'),
+      throwsA(isA<CustomFieldInUseException>()),
+    );
   });
+
+  test(
+    'delete throws CustomFieldInUseException carrying the live count',
+    () async {
+      // ignore: unused_result
+      await repo.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'origin',
+          label: 'Origin',
+          type: CustomFieldType.text,
+        ),
+      );
+      for (final id in ['d1', 'd2', 'd3']) {
+        await dances.create(
+          Dance(
+            id: id,
+            title: 'Dance $id',
+            customFields: [CustomFieldValue(fieldId: 'f1', value: 'x')],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+      }
+      // A tombstoned dance keeps its value row but must not be counted.
+      await dances.softDelete('d3', at: DateTime.utc(2026, 2));
+      await expectLater(
+        repo.delete('f1'),
+        throwsA(
+          isA<CustomFieldInUseException>()
+              .having((e) => e.danceCount, 'danceCount', 2)
+              .having((e) => e.fieldId, 'fieldId', 'f1'),
+        ),
+      );
+    },
+  );
 
   test('delete succeeds once the referencing dance clears the value', () async {
     // ignore: unused_result

@@ -11,6 +11,11 @@ import 'package:compendium_core/compendium_core.dart';
 /// fully into memory, so a hostile or accidental multi-gigabyte file can't
 /// exhaust memory. 25 MiB is far above any realistic program+dances bundle
 /// (which is compact JSON) while still bounding the blast radius.
+///
+/// The Android, iOS and macOS staging code enforces the same limit while copying
+/// the file (so an oversize file is never fully staged) and reports it as
+/// [ArchiveIntakeRejectionReason.tooLarge]; this Dart check remains the backstop.
+/// `test/incoming_native_limits_test.dart` pins the native literals to this one.
 const int kMaxIncomingArchiveBytes = 25 * 1024 * 1024;
 
 /// Reads the bytes of a file at [path]. The default reads from disk (enforcing

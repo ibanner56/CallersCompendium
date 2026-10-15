@@ -315,42 +315,50 @@ void main() {
       },
     );
 
-    test(
-      'Single file promenade clockwise 1/3 — unmapped denominator declines to custom',
-      () {
-        // _placesRe matches `1/3` as a unit (general N/M arm), but `slashMap`
-        // doesn't know `1/3`, so _parsePlaces returns null. Owner ruling
-        // (2026-08-11): non-decodable fractions decline to custom, matching
-        // figure_parser.dart's _takePlaces precedent. Mechanism: the
-        // _declineSingleFileCircle veto fires BEFORE all pre-recognizers
-        // (including _promenadeAnnotation), matching the _declineStarPromenade
-        // pattern in contradb_figure_dialect.dart.
-        // Not a live corpus case (verified 2026-08-11 across 396 TCB lines).
-        final f = parseFigureLine(
-          'Single file promenade clockwise 1/3',
-          frontEnd: tcbFigureFrontEnd,
-        );
-        expect(f, isNotNull);
-        expect(f!.isCustom, isTrue);
-      },
-    );
+    // Maintainer ruling: non-quarter places fractions ROUND to the nearest
+    // quarter place (ties half up) rather than declining to custom, and the
+    // source amount leads the note so the rounded count is never silent. This
+    // supersedes the 2026-08-11 ruling these lines used to decline under.
+    final rounded = <String, ({int places, String note})>{
+      'Single file promenade clockwise 1/3': (places: 1, note: '1/3'),
+      'Single file promenade clockwise ⅓': (places: 1, note: '⅓'),
+      'Single file promenade clockwise 5/8': (places: 3, note: '5/8'),
+      'Single file promenade clockwise 3/8 places': (places: 2, note: '3/8'),
+      'Single file promenade clockwise 1⅔': (places: 7, note: '1⅔'),
+      'Single file promenade counterclockwise 2/3 (NL)': (
+        places: 3,
+        note: '2/3; (NL)',
+      ),
+    };
+    rounded.forEach((line, expected) {
+      test(
+        '$line — non-quarter amount rounds to ${expected.places} places',
+        () {
+          final f = parseFigureLine(line, frontEnd: tcbFigureFrontEnd);
+          expect(f, isNotNull);
+          expect(f!.isCustom, isFalse, reason: line);
+          expect(f.move, 'circle', reason: line);
+          expect(f.params['singleFile'], isTrue, reason: line);
+          expect(f.params['places'], expected.places, reason: line);
+          expect(f.note, expected.note, reason: line);
+        },
+      );
+    });
 
-    test(
-      'Single file promenade clockwise ⅓ — non-quarter glyph declines to custom',
-      () {
-        // ⅓ is not a quarter fraction and has no integer place count.
-        // Removed from _parsePlaces glyph map (owner ruling: quarters only).
-        // Declined via _declineSingleFileCircle veto (same mechanism as 1/3).
-        // Red-run target: before the fix this fabricated places:1 and returned
-        // a structured circle (isCustom=false). After fix: isCustom=true.
-        final f = parseFigureLine(
-          'Single file promenade clockwise ⅓',
-          frontEnd: tcbFigureFrontEnd,
-        );
+    // The _declineSingleFileCircle veto still guards amounts that match
+    // _placesRe but are not decodable fractions at all (improper, or a
+    // denominator past the rounding cap): without it `_promenadeAnnotation`
+    // would claim the line as a `promenade` — wrong move.
+    for (final line in [
+      'Single file promenade clockwise 5/3',
+      'Single file promenade clockwise 1/32',
+    ]) {
+      test('$line — undecodable amount declines to custom', () {
+        final f = parseFigureLine(line, frontEnd: tcbFigureFrontEnd);
         expect(f, isNotNull);
-        expect(f!.isCustom, isTrue);
-      },
-    );
+        expect(f!.isCustom, isTrue, reason: line);
+      });
+    }
 
     test(
       'Single file promenade clockwise 1½ — mixed-number glyph decoded as 6 places',

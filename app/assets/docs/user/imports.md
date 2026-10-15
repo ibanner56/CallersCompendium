@@ -9,7 +9,7 @@ and backing up and restoring everything you own.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Settings**, **Import…**, and **Choose file…**. The
-> first time a dance term appears it links to the [Glossary](./glossary.md), so
+> first time a dance term appears it links to [App terms](./glossary.md), so
 > you can get a plain-language definition without losing your place.
 
 ## Your data stays yours
@@ -69,7 +69,11 @@ keep.
    can also narrow by the figures a dance contains, using the same **By phrase**
    panel as a local search. The
    [Collection & search guide](./collection.md#search-across-your-dances)
-   explains how each option matches.
+   explains how each option matches. Curly and straight apostrophes and quotes
+   (`’` and `'`, `“”` and `"`) and the different dashes count as the same, so
+   type them however your keyboard does. Accented letters must still be typed
+   with their accents (`Déjà vu`, not `Deja vu`), but upper or lower case
+   doesn't matter.
 5. Select a result to open a **preview** of that dance.
 6. If it is the one you want, choose **Import** to add it to your collection.
 
@@ -115,6 +119,9 @@ A few honest notes about these online imports:
   online search leaves those out.
 - Figures come in as recognised moves where the app can read them and as
   plain-text figures otherwise, the same as every other import.
+- To have every dance you import on its own tagged automatically — a "no card"
+  tag, say — choose the tags under **Settings → Defaults → Import defaults**.
+  See [Settings](./settings.md#import-defaults).
 
 ### What the app will and won't fetch
 
@@ -206,6 +213,10 @@ A few honest notes:
 - It works through the list one title at a time, showing its progress, and you
   can **Cancel** at any point — nothing has been added yet, so cancelling costs
   you nothing.
+- If the app can't reach The Caller's Box (you're offline, or the connection
+  hangs), it **stops after the first failure** instead of trying every title, and
+  says so once at the top of the review. The titles already in your collection
+  are still listed; paste the rest again once you're online.
 - There is a limit of **100 titles** per import. A longer list is refused
   outright rather than partly imported, so you are never left thinking a list
   came in whole when it didn't.
@@ -228,6 +239,12 @@ library backup described next. Importing a file **adds to** your collection
 through the review queue; it does not replace what you already have. To move an
 entire library and replace what is on a device, use **Restore** instead — see
 below.
+
+A file made by a **newer version** of Caller's Compendium can still be reviewed
+and imported, but this version only understands the details it already knows
+about. The review then shows one warning, *"This file was made by a newer version
+of Caller's Compendium. Update the app before importing, or some details may be
+left out."* Update the app first if you want everything that file carries.
 
 ### Open a shared program someone sent you
 
@@ -265,7 +282,8 @@ Moving from **Caller's Companion**? Caller's Compendium can read its exported
 
 1. Open **Settings**, choose **General**, and choose **Import…**.
 2. In the source selector, choose **a Caller's Companion .USR file**.
-3. Choose your `.USR` file when the app asks for it.
+3. Choose your `.USR` file when the app asks for it. Files over **256 MiB** are
+   refused; a typical Caller's Companion library is around 20 MB, far below that.
 4. Review and commit, as described in
    [Review before anything changes](#review-before-anything-changes).
 
@@ -289,8 +307,19 @@ are switched on; with them off, the location is kept as plain text exactly as
 before. Dances that pointed at each other in Caller's Companion arrive linked as
 **related dances**.
 
-One thing does not come across yet: custom **glossary terms** stay behind, because
-the app has no glossary of its own to put them in.
+If the `.USR` file is an **incomplete copy** — cut short by an interrupted
+download or copy — the review shows a warning above the list: *"This file looks
+incomplete — only part of it could be read."* Dances after the cut are missing,
+and the count of dances to import only reflects what could be read, so the
+warning is the sign that something is absent. Copy the file again from the
+original and import it again; dances you already imported are recognised and
+offered as updates rather than duplicated. The same warning area
+also tells you when figures, programs or related-dance links in the file could
+not be read.
+
+One thing does not come across yet: custom **glossary terms** stay behind. The
+app's **Glossary** (an Experimental setting) lists only the figures built into
+the app, and has nowhere yet to keep terms of your own.
 
 ### Bring your call buttons across as shorthands
 
@@ -335,7 +364,9 @@ For step-by-step backup and restore, see
 ## Review before anything changes
 
 Importing from a file or a URL opens the **import review** screen, and nothing
-touches your collection until you commit there. It works the same whichever
+touches your collection until you commit there — except **Import and edit**,
+which imports that one dance right away (and replaces the matched dance if the
+row is a Re-import or Link; you are asked first). It works the same whichever
 source you pick:
 
 1. **Choose a source and give it something to read** — pick the source, then add
@@ -350,9 +381,13 @@ source you pick:
    dance, kept as a separate **duplicate**, or **skipped**. Anything the app is
    unsure about defaults to **skip**, so it never guesses its way into your
    library.
+   If something is wrong with the **whole file** — an incomplete `.USR`, or a
+   file from a newer version of the app — a warning at the top of the list says
+   so, and what to do about it.
 4. **Commit** — only now are the dances you accepted written to your collection.
 5. **Undo** — right after committing, the summary offers **Undo**, which removes
-   everything that import added. This is the review-and-undo queue for
+   everything the **Import** button added; dances brought in with **Import and
+   edit** are not undone by it. This is the review-and-undo queue for
    bringing in more than one dance at a time.
 
 *The import review screen lists each dance and the action available for its
@@ -382,14 +417,18 @@ watches for matches:
   batch review screen still marks the row for you to decide.
 - **Looks like something you already have.** If a dance closely matches one
   already in your collection by title and author but did not come from the same
-  source, the app marks it as **unsure** and asks you to choose: **link** the two,
-  keep both as a **duplicate**, or **skip** the new one. It never merges dances
-  on its own.
+  source, the review shows **Possible match — choose how to import:** and asks you
+  to choose: **Same dance — replace**, keep both as a **duplicate**, or **skip** the new
+  one. **Same dance — replace** keeps the existing dance's identity (its id,
+  created date and history) but replaces its content with the imported version,
+  including calling notes, rating, tags, custom fields, hook, walkthrough,
+  status, links and source citations. The review warns how many existing dances
+  will be overwritten before you commit.
 - **Same name, different choreography.** When the title and author match
   confidently but the *figures* differ, the app shows a **Variation?** block with
   an inline diff of exactly which lines changed, and offers **Import as a
   variation** — which keeps it as its own dance, optionally linked back to the
-  original as a related dance — or **Same dance (link/update)**. Two dances that
+  original as a related dance — or **Same dance — replace**. Two dances that
   differ only in timing or in which figure carries the progression count as the
   same dance and never raise the prompt.
 
@@ -408,13 +447,20 @@ doubt which one it will touch. Choose it and the incoming version updates the
 dance you already have instead of adding a second copy, which is how you pick up a
 correction an archive has made since you first imported.
 
-Dances already in your collection are marked **Imported** in the review list, and
-the commit summary counts them separately — **Re-imported: 4** — so you can see at
-a glance how much of an import was new material and how much was an update.
+Dances already in your collection show **Re-import** and **Skip** choices in the
+review list, and **Skip** is the default, so choose **Re-import** on the ones you
+want updated. When many dances match, use **Set all matched dances to:
+Re-import** or **Skip** at the top of the list to change every one in a single tap
+(you can still change individual rows afterwards), and **Skip all possible
+matches** to skip every row marked as a possible match. The commit summary counts re-imports separately — **Re-imported: 4**
+— so you can see at a glance how much of an import was new material and how much
+was an update. The **Imported** badge appears only on a row you brought in with **Import and
+edit** during review.
 
 Re-importing overwrites that dance with the incoming version, so if you have
 edited your copy, look before you commit. The **Undo** on the summary reverses the
-whole import if it was not what you wanted.
+whole batch import if it was not what you wanted (but not a dance you brought in
+with **Import and edit**).
 
 ### Refresh choreography on one saved dance
 
@@ -459,5 +505,5 @@ instead.
 - Want imported dances to read in your own words and role names? See
   [Dialect](./dialects.md).
 - Tidying up a dance after it lands: [Write & edit dances](./authoring.md).
-- Unsure about a term used here? The [Glossary](./glossary.md) has plain
+- Unsure about a term used here? [App terms](./glossary.md) has plain
   definitions.

@@ -30,8 +30,27 @@ class CommandResult {
   final IconData icon;
 }
 
+/// Requests the global search palette. Bound to Ctrl-K / Cmd-K by
+/// [searchShortcuts] on the root `MaterialApp`, so it fires from pushed routes
+/// as well as the main tabs.
+class OpenSearchIntent extends Intent {
+  const OpenSearchIntent();
+}
+
+/// The Ctrl-K / Cmd-K bindings for [OpenSearchIntent]; the only place `keyK` is
+/// bound.
+const Map<ShortcutActivator, Intent> searchShortcuts = {
+  SingleActivator(LogicalKeyboardKey.keyK, control: true): OpenSearchIntent(),
+  SingleActivator(LogicalKeyboardKey.keyK, meta: true): OpenSearchIntent(),
+};
+
+/// [RouteSettings.name] of the Perform route. Ctrl-K is suppressed while a route
+/// with this name is on top, so a keystroke mid-event cannot cover the card.
+const String performRouteName = 'perform';
+
 /// Opens the global search / command palette as a modal, returning the chosen
-/// [CommandResult] or `null` if dismissed. Wired to Ctrl/Cmd-K by the shell
+/// [CommandResult] or `null` if dismissed. Triggered by Ctrl/Cmd-K
+/// ([searchShortcuts]) and the shell's rail button
 /// (`docs/design/ux-modernization.md` §6). The palette itself only *selects*;
 /// the caller performs navigation so it can also switch the active section.
 Future<CommandResult?> showCommandPalette(BuildContext context) {

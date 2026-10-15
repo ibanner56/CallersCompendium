@@ -76,7 +76,8 @@ class FigureDraft {
   /// field directly (or the draft is seeded from a loaded figure that already
   /// carries an explicit `beats` via [FigureDraft.fromFigure]), this becomes
   /// `true` and the editor stops auto-filling beats so a manual override is
-  /// never silently overwritten.
+  /// never silently overwritten. (Exception: toggling a `balance` flag shifts
+  /// the count by 4 either way; see `_applyNonBeatsParamChange`.)
   bool beatsTouched;
 
   /// Whether this figure's subject was ASSUMED by the import parser (the source
@@ -207,13 +208,32 @@ class FigureDraft {
     return Figure(
       schemaVersion: schemaVersion,
       move: customMove,
-      params: Map<String, Object?>.of(params),
+      params: _canonicalParams(customMove, canonicalizeNote),
       note: trimmedNote.isEmpty ? null : trimmedNote,
       progression: progression,
       customOrigin: customOrigin,
       assumedSubject: false,
       walkthroughOverride: walkthroughOverride,
     );
+  }
+
+  /// Copy of [params] for persistence. A custom figure's `params['text']` is
+  /// figure-like (one line beside structured figures), so it goes through the
+  /// same [canonicalizeNote] chokepoint as [note], unlike the dance-level prose
+  /// fields, which stay verbatim (#613). Re-saving already-canonical text is
+  /// idempotent (DIA-02).
+  Map<String, Object?> _canonicalParams(
+    String moveId,
+    String Function(String) canonicalizeNote,
+  ) {
+    final copy = Map<String, Object?>.of(params);
+    if (moveId == customMove && copy['text'] is String) {
+      final text = copy['text']! as String;
+      if (text.isNotEmpty) {
+        copy['text'] = canonicalizeNote(text);
+      }
+    }
+    return copy;
   }
 
   /// Builds the immutable figure, or `null` when no move is chosen yet (or,
@@ -299,7 +319,7 @@ class FigureDraft {
     return Figure(
       schemaVersion: schemaVersion,
       move: id,
-      params: Map<String, Object?>.of(params),
+      params: _canonicalParams(id, canonicalizeNote),
       note: trimmedNote.isEmpty ? null : trimmedNote,
       progression: progression,
       assumedSubject: assumedSubject,

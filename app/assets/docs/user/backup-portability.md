@@ -9,8 +9,8 @@ replaced, or wiped.
 
 > **Finding your way around these words.** On-screen buttons and screens
 > are written in **bold** — like **Settings**, **Export**, and
-> **Restore**. The first time a dance term appears it links to the
-> [Glossary](./glossary.md), so you can get a plain-language
+> **Restore**. The first time a dance term appears it links to
+> [App terms](./glossary.md), so you can get a plain-language
 > definition without losing your place.
 
 ## Why back up
@@ -33,6 +33,10 @@ A few good moments to export a backup:
 1. Open **Settings**, then choose **General**.
 2. Find the **Backup & restore** section.
 3. Choose **Export** beside **Export a backup**.
+
+While the backup is prepared, a progress bar shows that the app is
+working. On a computer it closes once you have finished with the save
+sheet; on a phone or tablet it closes as soon as the share sheet opens.
 
 The app creates a single dated file — something like
 `callers-compendium-backup-2026-07-15.json` — and hands it to your
@@ -78,11 +82,12 @@ A backup holds **everything** you've built, including:
 
 A few device-specific things are left out on purpose, so a restored device
 doesn't inherit the old one's quirks: window size and position, any
-half-finished edits you hadn't saved yet, your backup-reminder setting and
-last-backup date, and everything about
+half-finished edits you hadn't saved yet, your last-backup date, and everything about
 [Device Sync](./settings.md#device-sync) — so restoring a backup never turns
 sync on or connects a device to a store. All your real content comes
-along.
+along, and so does your reminder cadence (off / weekly / monthly) — but the
+last-backup date does not travel, so restoring leaves this device's own
+last-backup date as it was.
 
 ## Restore from a backup
 
@@ -93,15 +98,22 @@ setting up a new device or recovering after a problem.
 2. Find the **Backup & restore** section.
 3. Choose **Restore** beside **Restore from a backup**.
 4. Either choose **Choose file…** (a picker that shows `.json` backups)
-   or paste the backup text into **Or paste backup JSON**.
-5. Confirm with **Replace all data**.
+   or paste the backup text into **Or paste backup JSON**. A chosen file is
+   shown as a short summary (its date, how many dances and programs it
+   holds, and its size) rather than as text in the box; the box is for
+   pasted text only. Choose **Clear** to forget the file.
+5. Confirm with **Replace all data**. A progress bar counts the restore
+   from start to finish; it can't be dismissed, so wait for it to close.
 
-On success, you'll see a **Backup restored.** confirmation. If a few
-items in the file couldn't be read, the app still restores everything
-else and tells you how many were skipped. If the file is invalid or
-corrupt, or comes from a newer version of the app that this one can't
-read, the restore stops *before* any of your current data is touched — so
-you never lose what you already have by trying.
+On success, you'll see a **Backup restored.** confirmation. If any
+dance, program or other core item in the file can't be read, the restore
+stops *before* anything changes and tells you; only optional extras (custom
+dialects and themes) can be skipped, and the app tells you how many. If the file is invalid or
+corrupt, comes from a newer version of the app that this one can't
+read, or has no app-settings section (an older, hand-edited or incomplete
+file that couldn't say what your settings, themes and dialects should
+become), the restore stops *before* any of your current data is touched —
+so you never lose what you already have by trying.
 
 > **If your settings don't come back, your dances still did.** Occasionally a
 > restore succeeds for your content but fails while re-applying your saved
@@ -158,7 +170,10 @@ includes a **Backup reminder** setting. You can choose:
 
 The setting also shows **Last backup: never** or the date of your most
 recent backup, so you always know where you stand. When a backup is
-overdue, a note under the setting suggests exporting one now.
+overdue, a note under the setting suggests exporting one now. The app also
+shows a reminder bar on the main screen, once each time you open the app,
+with **Export backup** and **Not now** buttons. **Not now** hides it until
+the next time you open the app.
 
 ## Backups happen automatically too
 

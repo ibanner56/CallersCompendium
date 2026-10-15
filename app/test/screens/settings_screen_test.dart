@@ -7,6 +7,11 @@ import 'package:flutter/services.dart' show SystemChannels;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/backup_document.dart'
+    show
+        defaultBackupCodecRunner,
+        runBackupCodecInline,
+        runBackupCodecOnIsolate;
 import 'package:compendium_app/src/data/backup_io.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_theme.dart';
@@ -20,6 +25,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
+import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart';
@@ -27,6 +33,8 @@ import 'package:compendium_app/src/data/walkthrough_snippet_library_scope.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/screens/settings/sync_notice_labels.dart'
+    show kSyncNoticeNamedLimit;
 import 'package:compendium_app/src/screens/settings/sync_pairing_screen.dart';
 import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
@@ -68,9 +76,27 @@ SyncCoordinator? _syncCoordinator;
 SyncPairingProbeFactory? _pairingProbeFactory;
 SyncDeviceAdminFactory? _deviceAdminFactory;
 
+/// A [SettingsRepository] whose reads of the Device Sync keys throw while
+/// [failing] is set, so a test can make `SyncController.load()` fail at startup
+/// or later (as after a backup restore).
+class _ControllableSyncSettings extends SettingsRepository {
+  _ControllableSyncSettings(super.db);
+
+  bool failing = false;
+
+  @override
+  Future<Object?> get(String key) async {
+    if (failing && key.startsWith('sync_')) {
+      throw StateError('unreadable: $key');
+    }
+    return super.get(key);
+  }
+}
+
 Future<
   ({
     CompendiumRepositories repos,
+    _ControllableSyncSettings syncSettings,
     ValueNotifier<Dialect> notifier,
     DialectLibraryController dialectLibrary,
     ValueNotifier<AppThemeSelection> themeNotifier,
@@ -94,6 +120,13 @@ _pumpSettings(
   /// test can make the local half of a wipe fail after the server half has
   /// already succeeded.
   SyncLocalRepository Function(CompendiumRepositories)? syncLocalOverride,
+
+  /// Makes the Device Sync controller's settings reads throw, as at a startup
+  /// where the settings table could not be read.
+  bool syncSettingsUnreadable = false,
+
+  /// Wires a [ShowGlossaryScope] around the screen when given.
+  ValueNotifier<bool>? showGlossary,
 }) async {
   final repos = openTestRepositories();
   await repos.ensureMigrated();
@@ -135,8 +168,10 @@ _pumpSettings(
   final canonicalDiscouragedTermsNotifier = ValueNotifier<bool>(true);
   final updateController = UpdateController(repos.settings);
   await updateController.load();
+  final syncSettings = _ControllableSyncSettings(repos.db)
+    ..failing = syncSettingsUnreadable;
   final syncController = SyncController(
-    settings: repos.settings,
+    settings: syncSettings,
     syncLocal: syncLocalOverride?.call(repos) ?? repos.syncLocal,
     coordinator: () => _syncCoordinator,
     reconfigure: ({bool startPass = true}) async {},
@@ -144,7 +179,12 @@ _pumpSettings(
     deviceAdminFactory: _deviceAdminFactory,
     classifier: _syncNetwork,
   );
-  await syncController.load();
+  try {
+    await syncController.load();
+  } on StateError {
+    // The injected unreadable-settings case; the controller records it.
+    if (!syncSettingsUnreadable) rethrow;
+  }
 
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -194,7 +234,12 @@ _pumpSettings(
                               controller: shorthandMappings,
                               child: WalkthroughSnippetLibraryScope(
                                 controller: walkthroughSnippets,
-                                child: child!,
+                                child: showGlossary == null
+                                    ? child!
+                                    : ShowGlossaryScope(
+                                        notifier: showGlossary,
+                                        child: child!,
+                                      ),
                               ),
                             ),
                           ),
@@ -214,6 +259,7 @@ _pumpSettings(
   await tester.pumpAndSettle();
   return (
     repos: repos,
+    syncSettings: syncSettings,
     notifier: notifier,
     dialectLibrary: dialectLibrary,
     themeNotifier: themeNotifier,
@@ -240,6 +286,11 @@ Future<void> _expandSyncSection(WidgetTester tester) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  // testWidgets' fake async never delivers a worker isolate's reply, so the
+  // backup codec runs inline here (production runs it on an isolate).
+  setUp(() => defaultBackupCodecRunner = runBackupCodecInline);
+  tearDown(() => defaultBackupCodecRunner = runBackupCodecOnIsolate);
 
   group('SettingsScreen — General & Program settings (G.2)', () {
     // Section content only shows once its sidebar entry is picked (side-by-side
@@ -1381,6 +1432,67 @@ void main() {
         expect(await harness.repos.settings.get('sync_enabled'), isNull);
       });
 
+      testWidgets('says so when the saved sync settings could not be read, '
+          'even though sync is off', (tester) async {
+        await _pumpSettings(tester, syncSettingsUnreadable: true);
+        await openExperimental(tester);
+
+        expect(
+          find.byKey(const ValueKey('sync-settings-unreadable')),
+          findsOneWidget,
+        );
+        expect(
+          tester
+              .widget<SwitchListTile>(
+                find.byKey(const ValueKey('sync-enabled-toggle')),
+              )
+              .value,
+          isFalse,
+        );
+      });
+
+      testWidgets(
+        'a load that fails later (a backup restore) expands a collapsed '
+        'section to show the notice',
+        (tester) async {
+          final harness = await _pumpSettings(tester);
+          // Navigate only: the section must still be collapsed (sync is off).
+          await tester.tap(
+            find.byKey(const ValueKey('settings-nav-experimental')),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.byKey(const ValueKey('sync-enabled-toggle')),
+            findsNothing,
+            reason: 'sync is off, so the section starts collapsed',
+          );
+
+          harness.syncSettings.failing = true;
+          final controller = SyncScope.of(
+            tester.element(find.byType(SettingsScreen)),
+          );
+          await expectLater(controller.load(), throwsStateError);
+          await tester.pumpAndSettle();
+
+          expect(
+            find.byKey(const ValueKey('sync-settings-unreadable')),
+            findsOneWidget,
+          );
+        },
+      );
+
+      testWidgets('shows no unreadable-settings notice when the read works', (
+        tester,
+      ) async {
+        await _pumpSettings(tester);
+        await openExperimental(tester);
+
+        expect(
+          find.byKey(const ValueKey('sync-settings-unreadable')),
+          findsNothing,
+        );
+      });
+
       testWidgets('turning it on persists consent and shows WiFi-only on', (
         tester,
       ) async {
@@ -1845,12 +1957,23 @@ void main() {
         /// pass returns whatever [result] currently holds, so a test can walk
         /// a sequence of passes through the real controller and widget rather
         /// than an inline fake of either.
-        Future<({SyncController controller, List<int> passes})> pumpPassing(
+        Future<
+          ({
+            SyncController controller,
+            List<int> passes,
+            CompendiumRepositories repos,
+          })
+        >
+        pumpPassing(
           WidgetTester tester,
-          SyncPassResult Function() result,
-        ) async {
+          SyncPassResult Function() result, {
+          String? endpoint,
+        }) async {
           final harness = await _pumpSettings(tester);
           await harness.repos.settings.set('sync_id', 'correct horse battery');
+          if (endpoint != null) {
+            await harness.repos.settings.set(kSyncEndpointKey, endpoint);
+          }
           final controller = SyncScope.of(
             tester.element(find.byType(SettingsScreen)),
           );
@@ -1869,7 +1992,7 @@ void main() {
           );
           addTearDown(_syncCoordinator!.dispose);
           await openExperimental(tester);
-          return (controller: controller, passes: passes);
+          return (controller: controller, passes: passes, repos: harness.repos);
         }
 
         Future<void> syncNow(WidgetTester tester) async {
@@ -2086,18 +2209,21 @@ void main() {
           );
         });
 
-        testWidgets('a publication no peer has reflected is surfaced', (
-          tester,
-        ) async {
-          var result = const SyncPassResult(
+        testWidgets('a device that is syncing but not taking changes gets '
+            'a needs-you notice of its own, naming it by tag', (tester) async {
+          SyncReport refused(String peerId, String recordId) => SyncReport(
+            code: SyncReportCode.unreflectedPublication,
+            kind: SyncRecordKind.dance,
+            recordId: recordId,
+            peerId: peerId,
+            message: 'Published twice since without the record.',
+          );
+          var result = SyncPassResult(
             SyncPassStatus.completed,
             reports: [
-              SyncReport(
-                code: SyncReportCode.unreflectedPublication,
-                kind: SyncRecordKind.dance,
-                recordId: 'dance-3',
-                message: 'Not reflected for three consecutive passes.',
-              ),
+              refused('7c02LmQx9aZ0', 'dance-3'),
+              refused('7c02LmQx9aZ0', 'dance-4'),
+              refused('Hk3pWq0aZZb1', 'dance-3'),
             ],
           );
           await pumpPassing(tester, () => result);
@@ -2105,7 +2231,52 @@ void main() {
 
           expect(
             find.byKey(const ValueKey('sync-notice-unreflectedPublication')),
+            findsNothing,
+            reason: 'one notice per device, never one for all of them',
+          );
+          const first = ValueKey('sync-notice-unreflectedPublication-7c02Lm');
+          expect(find.byKey(first), findsOneWidget);
+          expect(
+            find.byKey(
+              const ValueKey('sync-notice-unreflectedPublication-Hk3pWq'),
+            ),
             findsOneWidget,
+          );
+          expect(
+            find.text(
+              "Device 7c02Lm is syncing but isn't taking 2 changes from this "
+              "device. They're safe here. That device may need an app update, or this device's "
+              "date and time may be wrong.",
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(
+              const ValueKey(
+                'sync-notice-unreflectedPublication-7c02Lm-needs-you',
+              ),
+            ),
+            findsOneWidget,
+            reason: 'needs-you is a text label, not only a colour',
+          );
+          expect(
+            find.descendant(
+              of: find.byKey(first),
+              matching: find.byIcon(Icons.warning_amber_outlined),
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(
+              of: find.byKey(first),
+              matching: find.byKey(
+                const ValueKey(
+                  'sync-notice-unreflectedPublication-7c02Lm-peers',
+                ),
+              ),
+            ),
+            findsNothing,
+            reason: 'the text already names the one device',
           );
         });
 
@@ -2129,6 +2300,498 @@ void main() {
           expect(
             find.byKey(const ValueKey('sync-notice-clock')),
             findsOneWidget,
+          );
+        });
+
+        // "Edit one of them" is only actionable if the user can tell which
+        // ones: the notice names them as this device stores them, and says so
+        // when this device has no such record rather than dropping it.
+        testWidgets('a notice names the records it is about', (tester) async {
+          late SyncPassResult result;
+          final pumped = await pumpPassing(tester, () => result);
+          final tagId = await pumped.repos.tags.upsert(
+            Tag(id: 'tag-1', name: 'Contra corners'),
+          );
+          result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              SyncReport(
+                code: SyncReportCode.equalUpdatedAt,
+                kind: SyncRecordKind.tag,
+                recordId: tagId,
+                message: 'tie',
+              ),
+              const SyncReport(
+                code: SyncReportCode.equalUpdatedAt,
+                kind: SyncRecordKind.dance,
+                recordId: 'not-on-this-device',
+                message: 'tie',
+              ),
+            ],
+          );
+          await syncNow(tester);
+
+          expect(
+            tester
+                .widget<Text>(
+                  find.byKey(const ValueKey('sync-notice-divergence-records')),
+                )
+                .data,
+            'Affects: Tag “Contra corners”, Dance not on this device',
+          );
+        });
+
+        testWidgets('a notice counts the records it does not name', (
+          tester,
+        ) async {
+          final result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              for (var i = 0; i < kSyncNoticeNamedLimit + 2; i++)
+                SyncReport(
+                  code: SyncReportCode.malformedRecord,
+                  kind: SyncRecordKind.setting,
+                  recordId: 'setting-$i',
+                  peerId: i.isEven ? 'peer-a' : 'peer-b',
+                  message: 'skipped',
+                ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          final records = tester
+              .widget<Text>(
+                find.byKey(const ValueKey('sync-notice-skippedRecord-records')),
+              )
+              .data!;
+          expect(records, endsWith('and 2 more'));
+          expect(find.text('From 2 other devices.'), findsOneWidget);
+        });
+
+        // "Last sync failed." alone leaves the user nothing to act on or
+        // report; the cause, its advice and the step and status to quote do.
+        testWidgets('a failure the user must act on explains its cause and '
+            'what to quote, as a warning', (tester) async {
+          const result = SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(
+              SyncFailureCause.rejected,
+              step: SyncFailureStep.upload,
+              statusCode: 422,
+            ),
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(find.text('Last sync failed.'), findsOneWidget);
+          expect(
+            find.byKey(const ValueKey('sync-status-needs-you')),
+            findsOneWidget,
+          );
+          expect(
+            find.text(
+              'The sync server refused what this device sent. This version of '
+              'the app is newer than the sync server. Your changes are saved '
+              'here and will sync once the server is updated.',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.text(
+              "Details: Stopped while uploading this device's changes. The "
+              'server answered with HTTP status 422.',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-status-copy-details')),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('a refusal from a server the user runs asks them to update '
+            'it', (tester) async {
+          const result = SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(SyncFailureCause.rejected, statusCode: 400),
+          );
+          await pumpPassing(
+            tester,
+            () => result,
+            endpoint: 'https://sync.example.test/',
+          );
+          await syncNow(tester);
+
+          expect(
+            find.textContaining(
+              'Update your sync server to match this version of the app.',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.textContaining('newer than the sync server'),
+            findsNothing,
+          );
+        });
+
+        // A dropped connection used to look exactly like a refused one: the
+        // error icon and colour, a reason and advice. It clears by itself and
+        // is retried by itself, so it reads as a calm status instead.
+        testWidgets('a failure that clears by itself is a calm status, with '
+            'its details kept and nothing to copy', (tester) async {
+          const result = SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(
+              SyncFailureCause.serverError,
+              step: SyncFailureStep.publish,
+              statusCode: 503,
+            ),
+          );
+          final pumped = await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.text('Waiting to sync. Your changes are saved here.'),
+            findsOneWidget,
+          );
+          expect(find.text('Last sync failed.'), findsNothing);
+          expect(
+            find.byKey(const ValueKey('sync-status-calm')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-status-failure-explanation')),
+            findsNothing,
+          );
+          expect(
+            find.text(
+              "Details: Stopped while publishing this device's changes. The "
+              'server answered with HTTP status 503.',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-status-copy-details')),
+            findsNothing,
+          );
+          final icon = tester.widget<Icon>(
+            find.byKey(const ValueKey('sync-status-calm')),
+          );
+          expect(icon.color, isNull, reason: 'no error colour');
+          // The failure armed the automatic retry. Turning sync off cancels
+          // it, so no timer outlives the test.
+          await pumped.controller.setEnabled(false);
+        });
+
+        // A large first download meets the server's rate limit part-way
+        // (spec §6.3 step 5). It used to report every record not yet fetched
+        // as skipped, which read as a version mismatch between devices; now
+        // the pass stops as a temporary failure and says nothing was skipped.
+        testWidgets('a download stopped by the rate limit is the calm line, '
+            'with no skipped-records notice', (tester) async {
+          const result = SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(
+              SyncFailureCause.rateLimited,
+              step: SyncFailureStep.download,
+              statusCode: 429,
+              retryAfter: Duration(seconds: 60),
+              progressed: true,
+            ),
+          );
+          final pumped = await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.text('Waiting to sync. Your changes are saved here.'),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-status-calm')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-status-needs-you')),
+            findsNothing,
+          );
+          expect(
+            find.textContaining("couldn't be used and were skipped"),
+            findsNothing,
+          );
+          expect(
+            find.text(
+              'Details: Stopped while downloading from your other devices. '
+              'The server answered with HTTP status 429.',
+            ),
+            findsOneWidget,
+          );
+          expect(pumped.controller.notices, isEmpty);
+          expect(pumped.controller.pendingRetryDelay, isNotNull);
+          await pumped.controller.setEnabled(false);
+        });
+
+        testWidgets('Copy details copies the short code, and only the code', (
+          tester,
+        ) async {
+          String? clipboardText;
+          tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            (call) async {
+              if (call.method == 'Clipboard.setData') {
+                clipboardText = (call.arguments as Map)['text'] as String?;
+              }
+              return null;
+            },
+          );
+          addTearDown(
+            () => tester.binding.defaultBinaryMessenger
+                .setMockMethodCallHandler(SystemChannels.platform, null),
+          );
+          const result = SyncPassResult(
+            SyncPassStatus.failed,
+            failure: SyncFailure(
+              SyncFailureCause.storeFull,
+              step: SyncFailureStep.upload,
+              statusCode: 507,
+            ),
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          await tester.tap(
+            find.byKey(const ValueKey('sync-status-copy-details')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(clipboardText, 'SYNC-STORE-FULL upload 507');
+          expect(
+            find.byKey(const ValueKey('sync-details-copied')),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('a nearly full store warns, and offers to stop syncing '
+            'imported dances only while that is off', (tester) async {
+          const result = SyncPassResult(
+            SyncPassStatus.completed,
+            quota: SyncStoreQuota(
+              blobs: 81,
+              bytes: 0,
+              maxBlobs: 100,
+              maxBytes: 100,
+            ),
+          );
+          final pumped = await pumpPassing(tester, () => result);
+          expect(
+            find.byKey(const ValueKey('sync-quota-warning')),
+            findsNothing,
+          );
+          await syncNow(tester);
+
+          expect(find.text('Your sync store is almost full.'), findsOneWidget);
+          expect(
+            find.byKey(const ValueKey('sync-quota-copy-details')),
+            findsOneWidget,
+          );
+          final action = find.byKey(
+            const ValueKey('sync-quota-exclude-imports'),
+          );
+          expect(action, findsOneWidget);
+          expect(pumped.controller.excludeImports, isFalse);
+
+          await tester.ensureVisible(action);
+          await tester.tap(action);
+          await tester.pumpAndSettle();
+
+          expect(pumped.controller.excludeImports, isTrue);
+          expect(
+            find.byKey(const ValueKey('sync-quota-exclude-imports')),
+            findsNothing,
+          );
+          expect(find.text('Your sync store is almost full.'), findsOneWidget);
+        });
+
+        testWidgets('a store below the threshold shows no warning', (
+          tester,
+        ) async {
+          const result = SyncPassResult(
+            SyncPassStatus.completed,
+            quota: SyncStoreQuota(
+              blobs: 79,
+              bytes: 79,
+              maxBlobs: 100,
+              maxBytes: 100,
+            ),
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.byKey(const ValueKey('sync-quota-warning')),
+            findsNothing,
+          );
+        });
+
+        testWidgets('a newer-version notice that a peer\'s unreadable list also '
+            'raised gives no count, which would understate it', (tester) async {
+          const result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              SyncReport(
+                code: SyncReportCode.newerWireVersion,
+                kind: SyncRecordKind.dance,
+                recordId: 'd1',
+                peerId: 'peer-a',
+                message: 'Blob uses a newer wire version.',
+              ),
+              SyncReport(
+                code: SyncReportCode.newerWireVersion,
+                peerId: 'peer-b',
+                message: 'Peer manifest uses a newer wire version.',
+              ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.text(
+              'Another device is using a newer version of the app. Update the '
+              'app on this device to receive its changes.',
+            ),
+            findsOneWidget,
+          );
+          expect(find.textContaining('receive 1 dance'), findsNothing);
+        });
+
+        testWidgets('a peer on a newer app version is a needs-you notice that '
+            'counts what is waiting and can be copied', (tester) async {
+          final result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              for (final id in ['d1', 'd2', 'd3'])
+                SyncReport(
+                  code: SyncReportCode.newerWireVersion,
+                  kind: SyncRecordKind.dance,
+                  recordId: id,
+                  peerId: 'peer-a',
+                  message: 'Blob uses a newer wire version.',
+                ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.text(
+              'Another device is using a newer version of the app. Update the '
+              'app on this device to receive 3 dances.',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-notice-newerVersion-needs-you')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-notice-newerVersion-copy-details')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-notice-skippedRecord')),
+            findsNothing,
+            reason: 'not the generic "check your other devices" notice',
+          );
+        });
+
+        testWidgets('records refused for a field this build does not know '
+            'are counted by kind in the newer-version notice, apart from '
+            'records skipped for other reasons', (tester) async {
+          // The case that prompted it: a newer build added fields to programs,
+          // and the one notice this device showed listed every skipped
+          // record, dances included, under "check your other devices".
+          final result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              for (final id in ['p1', 'p2'])
+                SyncReport(
+                  code: SyncReportCode.newerRecordFields,
+                  kind: SyncRecordKind.program,
+                  recordId: id,
+                  peerId: 'peer-a',
+                  message: 'Blob carries a field this build does not know.',
+                ),
+              const SyncReport(
+                code: SyncReportCode.newerRecordFields,
+                kind: SyncRecordKind.setting,
+                recordId: 'a_new_setting',
+                peerId: 'peer-a',
+                message: 'Blob carries a field this build does not know.',
+              ),
+              const SyncReport(
+                code: SyncReportCode.unresolvedReference,
+                kind: SyncRecordKind.dance,
+                recordId: 'd1',
+                peerId: 'peer-a',
+                message: 'Reference could not be resolved.',
+              ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.text(
+              'Another device is using a newer version of the app. Update the '
+              'app on this device to receive 2 programs, 1 setting.',
+            ),
+            findsOneWidget,
+          );
+          final newerRecords = tester.widget<Text>(
+            find.byKey(const ValueKey('sync-notice-newerVersion-records')),
+          );
+          expect(newerRecords.data, isNot(contains('Dance')));
+          final skippedRecords = tester.widget<Text>(
+            find.byKey(const ValueKey('sync-notice-skippedRecord-records')),
+          );
+          expect(skippedRecords.data, contains('Dance'));
+          expect(skippedRecords.data, isNot(contains('Program')));
+        });
+
+        testWidgets('records carrying details kept for a newer version are '
+            'information, not a warning', (tester) async {
+          final result = SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              for (final id in ['p1', 'p2'])
+                SyncReport(
+                  code: SyncReportCode.keptNewerFields,
+                  kind: SyncRecordKind.program,
+                  recordId: id,
+                  message: 'Carries fields kept for a newer version.',
+                ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          expect(
+            find.text(
+              'Kept for a newer version of the app: 2 programs. These still '
+              "sync, with details this version can't show. Update the app on "
+              'this device to see them.',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-notice-keptNewerFields-needs-you')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const ValueKey('sync-notice-newerVersion')),
+            findsNothing,
+            reason: 'kept records are not waiting for anything',
           );
         });
 
@@ -2428,12 +3091,79 @@ void main() {
       });
 
       group('disconnect (spec glossary: detach)', () {
+        late List<String> requests;
+
+        // The peer published after this device did: only a manifest written
+        // strictly after this device's own counts as carrying its entries.
+        SyncManifest manifest(String deviceId) => SyncManifest(
+          deviceId: deviceId,
+          epoch: 'epoch-1',
+          writtenAt: deviceId == 'this_device'
+              ? DateTime.utc(2026, 9, 20)
+              : DateTime.utc(2026, 9, 21),
+          records: {
+            SyncRecordKind.setting: {'a': List.filled(64, '1').join()},
+          },
+        );
+
+        setUp(() {
+          requests = [];
+          _syncNetwork.kind = SyncNetworkKind.unmetered;
+          // Detach's clean-up talks to the store being left. Both devices
+          // carry the same entry, so it is safe to remove this one's.
+          _deviceAdminFactory = (syncId, endpoint, {requestTimeout}) =>
+              SyncDeviceAdmin(
+                getStore: ({required previouslyUsed}) async {
+                  requests.add('GET store');
+                  return SyncStoreResult(
+                    response: SyncHttpResponse(
+                      statusCode: 200,
+                      kind: SyncResponseKind.success,
+                      headers: const {},
+                      body: utf8.encode(
+                        jsonEncode({
+                          'epoch': 'epoch-1',
+                          'devices': ['this_device', 'peer_a'],
+                        }),
+                      ),
+                    ),
+                  );
+                },
+                getManifest: (deviceId) async {
+                  requests.add('GET $deviceId');
+                  return SyncHttpResponse(
+                    statusCode: 200,
+                    kind: SyncResponseKind.success,
+                    headers: const {},
+                    body: encodeSyncManifestUtf8(manifest(deviceId)),
+                  );
+                },
+                deleteManifest: (deviceId) async {
+                  requests.add('DELETE $deviceId');
+                  return const SyncHttpResponse(
+                    statusCode: 204,
+                    kind: SyncResponseKind.success,
+                    headers: {},
+                    body: [],
+                  );
+                },
+                deleteStore: () async => throw StateError('not a wipe'),
+              );
+        });
+
+        tearDown(() => _deviceAdminFactory = null);
+
         Future<CompendiumRepositories> pumpPaired(WidgetTester tester) async {
           final harness = await _pumpSettings(tester);
           await harness.repos.settings.set(
             'sync_id',
             'alpha-bravo-charlie-delta',
           );
+          await harness.repos.settings.set(
+            'sync_endpoint',
+            'https://sync.example.test/',
+          );
+          await harness.repos.settings.set('sync_device_id', 'this_device');
           final controller = SyncScope.of(
             tester.element(find.byType(SettingsScreen)),
           );
@@ -2487,12 +3217,44 @@ void main() {
           expect(await repos.settings.get('sync_enabled'), isTrue);
           expect(find.text('Not connected to a store yet.'), findsOneWidget);
         });
+
+        testWidgets('the dialog says when this device is removed from the '
+            'store, and confirming removes it once the others have '
+            'everything', (tester) async {
+          await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-disconnect')));
+          await tester.pumpAndSettle();
+          expect(
+            find.textContaining(
+              'Disconnecting removes this device from the sync store if your '
+              'other devices already have everything from it. If they '
+              "don't, it stays listed under Other devices until you remove "
+              'it there.',
+            ),
+            findsOneWidget,
+          );
+          expect(requests, isEmpty, reason: 'nothing is sent before confirm');
+
+          await tester.tap(
+            find.byKey(const ValueKey('sync-disconnect-confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(requests, [
+            'GET store',
+            'GET this_device',
+            'GET peer_a',
+            'DELETE this_device',
+          ]);
+        });
       });
 
       group('device management (spec §3.3, glossary wipe)', () {
         late List<String> removed;
         late int wipes;
         late SyncResponseKind wipeKind;
+        late SyncResponseKind listKind;
+        late SyncResponseKind removeKind;
 
         SyncHttpResponse response(SyncResponseKind kind, {String? body}) =>
             SyncHttpResponse(
@@ -2506,29 +3268,34 @@ void main() {
           removed = [];
           wipes = 0;
           wipeKind = SyncResponseKind.success;
+          listKind = SyncResponseKind.success;
+          removeKind = SyncResponseKind.success;
           _syncNetwork.kind = SyncNetworkKind.unmetered;
           _syncCoordinator = null;
           _pairingProbeFactory = null;
           // The server reports this device too; the surface must not.
-          _deviceAdminFactory = (syncId, endpoint) => SyncDeviceAdmin(
-            getStore: ({required previouslyUsed}) async => SyncStoreResult(
-              response: response(
-                SyncResponseKind.success,
-                body: jsonEncode({
-                  'epoch': 'epoch-1',
-                  'devices': ['this_device', 'peer_a'],
-                }),
-              ),
-            ),
-            deleteManifest: (deviceId) async {
-              removed.add(deviceId);
-              return response(SyncResponseKind.success);
-            },
-            deleteStore: () async {
-              wipes++;
-              return response(wipeKind);
-            },
-          );
+          _deviceAdminFactory = (syncId, endpoint, {requestTimeout}) =>
+              SyncDeviceAdmin(
+                getStore: ({required previouslyUsed}) async => SyncStoreResult(
+                  response: response(
+                    listKind,
+                    body: jsonEncode({
+                      'epoch': 'epoch-1',
+                      'devices': ['this_device', 'peer_a'],
+                    }),
+                  ),
+                ),
+                getManifest: (deviceId) async =>
+                    response(SyncResponseKind.notFound),
+                deleteManifest: (deviceId) async {
+                  removed.add(deviceId);
+                  return response(removeKind);
+                },
+                deleteStore: () async {
+                  wipes++;
+                  return response(wipeKind);
+                },
+              );
         });
 
         tearDown(() => _deviceAdminFactory = null);
@@ -2618,6 +3385,54 @@ void main() {
               reason: '${entry.key} must not be tappable mid-pass',
             );
           }
+        });
+
+        testWidgets('each device is shown by a short tag, with when it last '
+            'shared changes and what is waiting for it', (tester) async {
+          final repos = await pumpPaired(tester);
+          final writtenAt = DateTime.now().subtract(const Duration(days: 3));
+          _syncCoordinator = SyncCoordinator(
+            syncId: 'configured',
+            deviceId: 'this_device',
+            store: CompendiumSyncCoordinatorStore(repos),
+            transport: NoopSyncCoordinatorTransport(),
+            passOperation: ({initialStore}) async => SyncPassResult(
+              SyncPassStatus.completed,
+              peers: [
+                SyncPeerSummary(
+                  peerId: 'peer_a',
+                  writtenAt: writtenAt.toUtc(),
+                  waitingCount: 4,
+                ),
+              ],
+            ),
+          );
+          addTearDown(_syncCoordinator!.dispose);
+          await tester.tap(find.byKey(const ValueKey('sync-now')));
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.byKey(const ValueKey('sync-devices')));
+          await tester.pumpAndSettle();
+
+          expect(find.text('Device peer_a'), findsOneWidget);
+          expect(find.text('This device: this_d'), findsOneWidget);
+          expect(
+            tester
+                .widget<Text>(
+                  find.byKey(const ValueKey('sync-device-last-shared-peer_a')),
+                )
+                .data,
+            'Last shared changes 3 days ago',
+          );
+          expect(
+            find.text('4 changes from this device are waiting for it.'),
+            findsOneWidget,
+          );
+          expect(
+            find.textContaining(RegExp(r'\d:\d\d')),
+            findsNothing,
+            reason: 'rounded to the day: never a time of day',
+          );
         });
 
         testWidgets('the list shows the other devices and never this one', (
@@ -2755,6 +3570,62 @@ void main() {
             findsOneWidget,
           );
           expect(find.textContaining('Nothing was changed'), findsNothing);
+          // And why, so the user can tell a server fault from their own.
+          expect(
+            find.textContaining(
+              'The sync server ran into a problem of its own.',
+            ),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('a device list that fails to load says why, and what to '
+            'quote', (tester) async {
+          listKind = SyncResponseKind.serverError;
+          await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-devices')));
+          await tester.pumpAndSettle();
+
+          expect(
+            tester
+                .widget<Text>(find.byKey(const ValueKey('sync-devices-failed')))
+                .data,
+            startsWith(
+              "Couldn't load the device list. The sync server ran into a "
+              'problem of its own.',
+            ),
+          );
+          expect(
+            tester
+                .widget<Text>(
+                  find.byKey(const ValueKey('sync-devices-failed-details')),
+                )
+                .data,
+            'Details: The server answered with HTTP status 500.',
+          );
+        });
+
+        testWidgets('a removal the server refuses says why', (tester) async {
+          removeKind = SyncResponseKind.serverError;
+          await pumpPaired(tester);
+          await tester.tap(find.byKey(const ValueKey('sync-devices')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-device-remove-peer_a')),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byKey(const ValueKey('sync-device-remove-confirm')),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            find.text(
+              "Couldn't remove that device. It is still connected; try "
+              'again. The sync server ran into a problem of its own.',
+            ),
+            findsOneWidget,
+          );
         });
 
         testWidgets('a wipe whose local clear fails says the store is gone, '
@@ -3477,15 +4348,54 @@ void main() {
           await tester.pumpAndSettle();
 
           expect(tester.takeException(), isNull);
+          // Named as a timeout, not a generic outage: the remedy differs.
           expect(
             find.text(
-              "Device Sync isn't available right now. Check your "
-              "connection and try again.",
+              'The sync server took too long to answer. A slow or unsteady '
+              'connection is the usual cause. Try again when the connection '
+              'is stronger.',
             ),
             findsOneWidget,
           );
         },
       );
+
+      // A refused phrase used to read "isn't available right now", which no
+      // amount of waiting fixes; the step and status are there to quote.
+      testWidgets('a refused create names the cause, step and status', (
+        tester,
+      ) async {
+        _pairingProbeFactory = (syncId, endpoint) => SyncPairingProbe(
+          getStore: ({required previouslyUsed}) async =>
+              throw UnimplementedError(),
+          createStore: () async => const SyncHttpResponse(
+            statusCode: 403,
+            kind: SyncResponseKind.invalidSyncId,
+            headers: {},
+            body: [],
+          ),
+        );
+        await enableAndOpenPairing(tester);
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('sync-pairing-backup-skip')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-continue')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(
+            "The sync server didn't accept this device's sync phrase. Check "
+            'the phrase against the one on your other device, and check that '
+            'the server address is right.\n'
+            'Details: Stopped while creating the store. The server answered '
+            'with HTTP status 403.',
+          ),
+          findsOneWidget,
+        );
+      });
 
       testWidgets(
         'the backup offer never starts automatically: skip exports nothing, '
@@ -3635,14 +4545,18 @@ void main() {
         CompendiumRepositories repos, {
         SyncPassStatus status = SyncPassStatus.completed,
         int duplicateCount = 0,
+        SyncFailure? failure,
       }) {
         _syncCoordinator = SyncCoordinator(
           syncId: 'configured',
           deviceId: 'device',
           store: CompendiumSyncCoordinatorStore(repos),
           transport: NoopSyncCoordinatorTransport(),
-          passOperation: ({initialStore}) async =>
-              SyncPassResult(status, duplicateCount: duplicateCount),
+          passOperation: ({initialStore}) async => SyncPassResult(
+            status,
+            duplicateCount: duplicateCount,
+            failure: failure,
+          ),
         );
         addTearDown(_syncCoordinator!.dispose);
       }
@@ -3864,6 +4778,52 @@ void main() {
           },
         );
       }
+
+      // Pairing succeeded, but "it will try again" is no help when the cause
+      // is one retrying will not clear, so the dialog says what stopped the
+      // first sync — with the Details line its advice tells the user to quote.
+      testWidgets('the completion dialog says why a failed first pass failed', (
+        tester,
+      ) async {
+        stubCreateProbe();
+        final harness = await _pumpSettings(tester);
+        await openExperimental(tester);
+        await tester.tap(find.byKey(const ValueKey('sync-enabled-toggle')));
+        await tester.pumpAndSettle();
+        stubCoordinator(
+          harness.repos,
+          status: SyncPassStatus.failed,
+          failure: const SyncFailure(
+            SyncFailureCause.serverError,
+            step: SyncFailureStep.upload,
+            statusCode: 502,
+          ),
+        );
+        _syncNetwork.kind = SyncNetworkKind.unmetered;
+        await tester.tap(find.byKey(const ValueKey('sync-connect')));
+        await tester.pumpAndSettle();
+        await createToCompletion(tester);
+
+        expect(
+          tester
+              .widget<Text>(
+                find.byKey(const ValueKey('sync-pairing-complete-state')),
+              )
+              .data,
+          "Your library is connected, but the first sync didn't finish. It "
+          'will try again on its own. The sync server ran into a problem of '
+          'its own. Nothing is wrong with this device or your library. Wait '
+          'a while and try again. If it keeps happening, let whoever runs the '
+          'server know, and quote the details shown here. Details: Stopped '
+          "while uploading this device's changes. The server answered with "
+          'HTTP status 502.',
+        );
+        // The transient failure armed the automatic retry the dialog promises;
+        // turning sync off cancels it, so no timer outlives the test.
+        await SyncScope.of(
+          tester.element(find.byType(SettingsScreen, skipOffstage: false)),
+        ).setEnabled(false);
+      });
 
       testWidgets(
         'a pairing whose coordinator could not be built says nothing has '
@@ -4331,6 +5291,67 @@ void main() {
           );
         },
       );
+    });
+  });
+
+  group('SettingsScreen — Experimental ▸ Glossary (issue #695)', () {
+    Future<void> openGlossarySection(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('settings-nav-experimental')));
+      await tester.pumpAndSettle();
+      if (find
+          .byKey(const ValueKey('experimental-show-glossary'))
+          .evaluate()
+          .isEmpty) {
+        await tester.tap(find.byKey(const ValueKey('glossary-section')));
+        await tester.pumpAndSettle();
+      }
+    }
+
+    testWidgets('is off by default and starts collapsed', (tester) async {
+      final show = ValueNotifier<bool>(false);
+      addTearDown(show.dispose);
+      await _pumpSettings(tester, showGlossary: show);
+      await tester.tap(find.byKey(const ValueKey('settings-nav-experimental')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('GLOSSARY'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('experimental-show-glossary')),
+        findsNothing,
+        reason: 'collapsed while the Glossary is hidden',
+      );
+      await openGlossarySection(tester);
+      expect(
+        tester
+            .widget<SwitchListTile>(
+              find.byKey(const ValueKey('experimental-show-glossary')),
+            )
+            .value,
+        isFalse,
+      );
+    });
+
+    testWidgets('turning it on updates the live setting and persists it', (
+      tester,
+    ) async {
+      final show = ValueNotifier<bool>(false);
+      addTearDown(show.dispose);
+      final harness = await _pumpSettings(tester, showGlossary: show);
+      await openGlossarySection(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey('experimental-show-glossary')),
+      );
+      await tester.pumpAndSettle();
+      expect(show.value, isTrue);
+      expect(await harness.repos.settings.get(kShowGlossaryKey), isTrue);
+
+      await tester.tap(
+        find.byKey(const ValueKey('experimental-show-glossary')),
+      );
+      await tester.pumpAndSettle();
+      expect(show.value, isFalse);
+      expect(await harness.repos.settings.get(kShowGlossaryKey), isFalse);
     });
   });
 }

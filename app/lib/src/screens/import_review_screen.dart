@@ -16,6 +16,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/shorthand_mappings_scope.dart';
 import '../data/sync_writer_lifecycle_scope.dart';
+import '../data/default_import_tags.dart';
 import '../data/title_list_import.dart';
 import '../data/venue_entity_mode_scope.dart';
 import '../diagnostics/error_log.dart';
@@ -105,6 +106,7 @@ class ImportReviewScreen extends StatefulWidget {
     this.picker,
     this.bytePicker,
     this.fetcher,
+    this.archiveDecoder,
     this.onlineService,
     this.onClose,
     this.sharedBundle,
@@ -143,6 +145,13 @@ class ImportReviewScreen extends StatefulWidget {
   /// Companion `.USR`); overrides the selected [ImportSource.bytePicker] when
   /// provided. Widget tests inject canned bytes so no real picker plugin runs.
   final ImportBytePicker? bytePicker;
+
+  /// Test seam for the archive decode the screen runs once per plan to decide
+  /// whether the text is a shared bundle; defaults to [archiveFromJson]. Widget
+  /// tests inject a counting wrapper to assert the decode is not repeated per
+  /// edit.
+  @visibleForTesting
+  final ArchiveMapDecoder? archiveDecoder;
 
   /// Test seam for fetching a URL; defaults to [fetchImportUrl] (real HTTP
   /// GET). Widget tests inject canned text or a throwing fake so no real
@@ -203,6 +212,10 @@ class ImportReviewScreen extends StatefulWidget {
   @override
   State<ImportReviewScreen> createState() => _ImportReviewScreenState();
 }
+
+/// Decodes an already-parsed archive object; [archiveFromJson]'s shape.
+typedef ArchiveMapDecoder =
+    ArchiveReadResult Function(Map<String, Object?> root);
 
 enum _Phase { input, planning, review, committing }
 
@@ -272,7 +285,6 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       widget.sources.where((s) => s.preselected).length <= 1,
       'at most one import source may be preselected',
     );
-    _pasteController.addListener(_onPasteChanged);
   }
 
   /// Set once the user picks a source from the dropdown themselves. After that
@@ -297,24 +309,29 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// succeeds. Null for every other source, and reset with [_payloadBytes].
   CcUsrArchive? _usrArchive;
 
-  /// A [SharedBundleImport] decoded from the current paste-field text when
-  /// that text is a valid [CompendiumArchive] that carries programs, or a
-  /// standalone dance plus referenced metadata.
-  /// Maintained by [_onPasteChanged], which fires on every controller change
-  /// (programmatic or user). Null when the text is absent, not an archive,
-  /// or does not carry a shared-bundle payload.
+  /// A [SharedBundleImport] decoded from the paste-field text when that text is
+  /// a valid [CompendiumArchive] that carries programs, or a standalone dance
+  /// plus referenced metadata.
   ///
-  /// **Never write directly.** [_onPasteChanged] is the sole writer; it keeps
-  /// this in sync with [_pasteController.text] automatically.
+  /// Computed **once per plan** by [_refreshPickedBundle] — never per edit — so
+  /// typing into a large pasted or picked archive does not reparse it. Null
+  /// when the text is absent, not an archive, or does not carry a shared-bundle
+  /// payload. It is only read after [_plan] (review/commit phases), so it is
+  /// always in sync with the text that was planned.
+  ///
+  /// **Never write directly** outside [_refreshPickedBundle] and the seed paths
+  /// that reset it to null.
   SharedBundleImport? _cachedPickedBundle;
 
-  /// The text value that produced [_cachedPickedBundle]. Used by
-  /// [_onPasteChanged] to skip a re-decode when the text has not changed.
-  String _lastDecodedText = '';
+  /// The text [_cachedPickedBundle] was computed from (null before the first
+  /// plan). Lets a re-plan of unchanged text (e.g. the error screen's back
+  /// button, "Try again" or "Try another file", without an edit) skip the
+  /// decode.
+  String? _bundleMemoText;
 
-  /// Returns [_cachedPickedBundle], which is always in sync with the current
-  /// paste-field text. Non-null only when the paste field holds a valid
-  /// [CompendiumArchive] with programs, or standalone dances plus metadata.
+  /// Returns [_cachedPickedBundle]: non-null only when the planned text is a
+  /// valid [CompendiumArchive] with programs, or standalone dances plus
+  /// metadata.
   ///
   /// Manual-picker shared-bundle sites route through this accessor so they
   /// cannot diverge from each other.
@@ -330,7 +347,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// The immutable [widget.sharedBundle] is authoritative only while the text is
   /// still the JSON seeded by the share target. After "Try another" returns the
   /// user to the editable input and they change the text, routing must follow
-  /// the listener-maintained live decode instead of silently committing the
+  /// the decode [_plan] made for that text instead of silently committing the
   /// original shared bundle (issue #880).
   SharedBundleImport? get _effectiveSharedBundle {
     if (_isPublishedImport) return null;
@@ -341,26 +358,25 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     return _effectivePickedBundle;
   }
 
-  /// Listener registered on [_pasteController] in [initState]. Re-decodes the
-  /// paste-field text whenever it changes and updates [_cachedPickedBundle].
+  /// Re-derives [_cachedPickedBundle] for [text] at plan time.
   ///
-  /// A cheap pre-screen (`contains('"dances"')`) skips the full decode for
-  /// text that cannot possibly be an archive with dances — title lists and
-  /// unrelated plain JSON. It recognizes standalone archives when they carry
-  /// metadata; a metadata-free dance archive remains on the legacy dance
-  /// adapter path for compatibility. It does not guarantee that every text
-  /// that passes the screen is valid (a parse error leaves [bundle] null),
-  /// and it does not handle JSON with escaped key characters (`\u0064ances`),
-  /// which no [CompendiumArchive] serialiser produces but a conforming JSON
-  /// parser would accept. That edge is near-zero in practice and is not handled.
-  void _onPasteChanged() {
-    final text = _pasteController.text;
-    if (text == _lastDecodedText) return;
-    _lastDecodedText = text;
+  /// Routing follows the decoded JSON: the text is parsed once and is a bundle
+  /// candidate only if its root object has a `dances` key — so a key written
+  /// with Unicode escapes (`"\u0064ances"`) routes exactly like the literal,
+  /// and title lists / unrelated JSON never reach [archiveFromJson]. A
+  /// metadata-free dance archive remains on the legacy dance adapter path for
+  /// compatibility. A parse error leaves the bundle null; the adapter reports
+  /// it at plan time.
+  void _refreshPickedBundle(String text) {
+    if (text == _bundleMemoText) return;
+    _bundleMemoText = text;
     SharedBundleImport? bundle;
-    if (text.contains('"dances"')) {
-      try {
-        final result = decodeArchive(text);
+    try {
+      final root = jsonDecode(text);
+      if (root is Map && root.containsKey('dances')) {
+        final result = (widget.archiveDecoder ?? archiveFromJson)(
+          root.cast<String, Object?>(),
+        );
         final hasRootError = result.errors.any(
           (e) => e.entityType == 'archive' && e.kind == ArchiveErrorKind.read,
         );
@@ -379,22 +395,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             entityCount: compendiumArchiveEntityCount(archive),
           );
         }
-      } catch (_) {
-        // diagnostics: silent — not a decodable archive; leave bundle null,
-        // the dance-only path handles it unchanged and GenericJsonAdapter will
-        // report the error at plan time (which is logged there instead).
       }
+    } catch (_) {
+      // diagnostics: silent — not a decodable archive; leave bundle null,
+      // the dance-only path handles it unchanged and GenericJsonAdapter will
+      // report the error at plan time (which is logged there instead).
     }
-    // The listener fires synchronously inside TextEditingController.value =,
-    // which is called before the onChanged callback at the TextField. That
-    // callback calls setState(), which schedules a rebuild. Because the
-    // listener fires first, _cachedPickedBundle is already current by the time
-    // the rebuild reads it from the build-path sites (_buildReview,
-    // _showSoftCapWarning, _buildSoftCapWarning, _buildRow). Do not call
-    // setState here: the rebuild is already scheduled by onChanged, and calling
-    // it a second time from the listener would double-schedule unnecessarily.
-    // If the onChanged setState were ever removed, this listener would need its
-    // own setState to trigger a rebuild for the build-path reads.
     _cachedPickedBundle = bundle;
   }
 
@@ -434,6 +440,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// `null` when no title-list resolution is running.
   (int, int)? _titleListProgress;
 
+  /// How many records the running commit has handled, as `(done, total)`, or
+  /// `null` when none is running or the commit reports no progress (the Edit
+  /// single-dance commit, the shared-bundle commit).
+  (int, int)? _commitProgress;
+
   /// How far through parsing the file/paste [_plan] is, 0–1, or `null` before
   /// the first report (an indeterminate spinner). A large `.USR` takes tens of
   /// seconds to parse; a spinner that never moves reads as a hang.
@@ -457,6 +468,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   /// User-presentable message from the last failed URL fetch, or `null`.
   String? _fetchError;
+
+  /// Whether the text payload came from a file (a pick, or a file shared into
+  /// the app) rather than a paste or a URL fetch. Set by [_chooseFile] and the
+  /// share-target seed; cleared by a successful fetch and by any hand edit of
+  /// the paste field. It only chooses the back-to-input label in
+  /// [_tryAgainLabel], so it is never persisted.
+  bool _payloadFromFile = false;
 
   _Phase _phase = _Phase.input;
 
@@ -549,7 +567,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _fetchError = null;
       _titleListError = null;
       _cachedPickedBundle = null;
-      _lastDecodedText = seed.json;
+      _bundleMemoText = null;
       _pasteController.text = seed.json;
     });
     await _plan();
@@ -564,7 +582,6 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       final bundle = widget.sharedBundle;
       final published = widget.publishedCollection;
       if (published != null) {
-        _lastDecodedText = published.json;
         _pasteController.text = published.json;
         _sourceUri = null;
         _plan();
@@ -574,15 +591,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // on the review/consent list — skipping the manual input phase — with
         // nothing written until they confirm.
         //
-        // Prime _lastDecodedText before the controller write so _onPasteChanged
-        // short-circuits at the identity check and skips the redundant decode.
         // _cachedPickedBundle stays null, which is correct: while the text is
         // unchanged, _effectiveSharedBundle returns widget.sharedBundle without
-        // consulting the cache. If the user edits after "Try another", the
-        // listener decodes the new text and _effectiveSharedBundle follows it.
-        _lastDecodedText = bundle.json;
+        // consulting the cache. If the user edits after "Try another", the next
+        // _plan decodes the new text and _effectiveSharedBundle follows it.
         _pasteController.text = bundle.json;
         _sourceUri = null;
+        _payloadFromFile = true;
         _plan();
       } else if (widget.programAmbiguousImport != null) {
         // Program-import fallback ambiguity (issue #943): skip the manual
@@ -596,7 +611,6 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   @override
   void dispose() {
-    _pasteController.removeListener(_onPasteChanged);
     _pasteController.dispose();
     _urlController.dispose();
     super.dispose();
@@ -613,8 +627,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _pasteController.text = text;
       // A freshly picked file replaces any URL-sourced payload; drop stale
       // provenance so this import is recorded as file/paste (uri == null).
-      // _onPasteChanged fires synchronously and updates _cachedPickedBundle.
+      // The shared-bundle decision is made once, later, by _plan.
       _sourceUri = null;
+      _payloadFromFile = true;
     } on ImportFileTooLargeException catch (e, stackTrace) {
       // Untrusted input rejected before it was read into memory — tell the user
       // plainly (accessible SnackBar) and leave the input untouched.
@@ -668,6 +683,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final fetcher = widget.fetcher ?? fetchImportUrl;
     final l10n = AppLocalizations.of(context);
     final input = _urlController.text.trim();
+    // The source this request is for; the failure is worded for it. (The
+    // dropdown is disabled while fetching, so this is request-local by intent
+    // rather than because the selection can change mid-flight.)
+    final kind = _selected.kind;
     // Rewrite the typed input into the URL actually fetched (e.g. build the
     // Caller's Box &format=JSON endpoint). A null builder fetches as typed.
     final String target;
@@ -694,6 +713,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // Provenance is the URL actually fetched (the resolved endpoint), not
         // the human URL/id the user typed.
         _sourceUri = target;
+        _payloadFromFile = false;
       });
     } on UrlFetchException catch (e, stackTrace) {
       if (!mounted) return;
@@ -702,7 +722,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         stackTrace,
         source: 'import_review_screen._fetchFromUrl.fetch',
       );
-      setState(() => _fetchError = importErrorMessage(l10n, e));
+      setState(
+        () => _fetchError = importErrorMessage(
+          l10n,
+          attributeFetchFailure(e, kind),
+        ),
+      );
     } catch (e, stackTrace) {
       if (!mounted) return;
       // Never surface the raw error to the user (CWE-209); keep it for debug
@@ -718,7 +743,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         stackTrace,
         source: 'import_review_screen._fetchFromUrl.fetch',
       );
-      setState(() => _fetchError = l10n.importErrorUnreachable);
+      setState(
+        () => _fetchError = importErrorMessage(
+          l10n,
+          attributeFetchFailure(
+            const UrlFetchException(UrlFetchFailureReason.unreachable),
+            kind,
+          ),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _fetching = false);
     }
@@ -742,7 +775,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     } else if (payload.trim().isEmpty) {
       return;
     }
-    if (_isPastedTextSource) return _planTitleList(payload);
+    if (_isPastedTextSource) {
+      _cachedPickedBundle = null;
+      _bundleMemoText = null;
+      return _planTitleList(payload);
+    }
     setState(() {
       _phase = _Phase.planning;
       _planError = null;
@@ -760,6 +797,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       final request = _isByteSource
           ? ImportRequest(options: {'bytes': bytes!})
           : ImportRequest(payload: payload, uri: _sourceUri);
+      // Decide bundle routing once for this plan, from the decoded JSON keys.
+      // Byte sources and pasted title lists never carry an archive here.
+      if (_isByteSource || _isPublishedImport) {
+        _cachedPickedBundle = null;
+        _bundleMemoText = null;
+      } else if (widget.sharedBundle?.json != payload) {
+        _refreshPickedBundle(payload);
+      }
       final adapterFactory =
           _effectiveSharedBundle != null &&
               _selected.kind != ImportSourceKind.genericJson
@@ -906,7 +951,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// immediately before this method moves the screen to [_Phase.review], and
   /// there is no route from a *successful* review back to [_Phase.input] — the
   /// only returns are the cap refusal and the cancel (which clears it), plus the
-  /// error screen's "try another", which is unreachable after a success. So no
+  /// error screen's back-to-input button, which is unreachable after a success. So no
   /// plan can currently start with a stale value. Coupling the two assignments
   /// is deliberate precisely because that argument is incidental: adding a
   /// back-to-input affordance to the grouped review — a plausible next change —
@@ -1011,9 +1056,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     _ambiguousReview = null;
     _titleListProgress = null;
     _planError = null;
-    // _cachedPickedBundle is maintained by _onPasteChanged and does not need
-    // explicit clearing here; it stays valid as long as the paste text is
-    // unchanged, and will update if the text is later modified.
+    // _cachedPickedBundle does not need explicit clearing here; _plan
+    // re-derives it from the paste text it is about to plan (memoised on the
+    // text, so an unchanged text is not decoded again).
   }
 
   List<String?> _groupsForBatch(
@@ -1118,6 +1163,79 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       case DedupeKind.ambiguous:
         return _RowChoice(_ActionKind.skip);
     }
+  }
+
+  bool _hasBulkTargets(ImportBatchResult batch) => batch.records.any(
+    (r) => r.verdict.kind == DedupeKind.reimport || r.verdict.isAmbiguous,
+  );
+
+  /// Sets every not-yet-committed row whose verdict is [kind] in one pass.
+  /// Rows already committed through Edit are left alone. A re-import row keeps
+  /// its target id whichever way it is set, as [_defaultChoice] does.
+  void _setAllMatched(ImportBatchResult batch, _ActionKind action) {
+    setState(() {
+      _choices = [
+        for (var i = 0; i < _choices.length; i++)
+          if (_committed.contains(i))
+            _choices[i]
+          else if (batch.records[i].verdict.kind == DedupeKind.reimport)
+            _RowChoice(action, batch.records[i].verdict.targetDanceId)
+          else
+            _choices[i],
+      ];
+    });
+  }
+
+  void _skipAllAmbiguous(ImportBatchResult batch) {
+    setState(() {
+      _choices = [
+        for (var i = 0; i < _choices.length; i++)
+          if (!_committed.contains(i) && batch.records[i].verdict.isAmbiguous)
+            _RowChoice(_ActionKind.skip)
+          else
+            _choices[i],
+      ];
+    });
+  }
+
+  /// Bulk controls above the rows, so a large re-import is not one tap per row.
+  /// Shown only when the batch has a re-import match or a possible match. The
+  /// per-row defaults are unchanged (#446); these only rewrite the choices.
+  Widget _buildBulkControls(BuildContext context, ImportBatchResult batch) {
+    final l10n = AppLocalizations.of(context);
+    final hasReimport = batch.records.any(
+      (r) => r.verdict.kind == DedupeKind.reimport,
+    );
+    final hasAmbiguous = batch.records.any((r) => r.verdict.isAmbiguous);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          if (hasReimport) ...[
+            Text(l10n.importReviewBulkSetAllLabel),
+            OutlinedButton(
+              key: const ValueKey('import-bulk-reimport'),
+              onPressed: () => _setAllMatched(batch, _ActionKind.reimport),
+              child: Text(l10n.importReviewBulkReimport),
+            ),
+            OutlinedButton(
+              key: const ValueKey('import-bulk-skip'),
+              onPressed: () => _setAllMatched(batch, _ActionKind.skip),
+              child: Text(l10n.importReviewBulkSkip),
+            ),
+          ],
+          if (hasAmbiguous)
+            OutlinedButton(
+              key: const ValueKey('import-bulk-skip-ambiguous'),
+              onPressed: () => _skipAllAmbiguous(batch),
+              child: Text(l10n.importReviewBulkSkipAmbiguous),
+            ),
+        ],
+      ),
+    );
   }
 
   /// Builds the committed [ImportRecordPlan] for row [i] from its chosen
@@ -1238,6 +1356,29 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  Future<bool?> _confirmEditOverwrite(String matchedTitle) {
+    final l10n = AppLocalizations.of(context);
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const ValueKey('import-edit-overwrite-confirm'),
+        title: Text(l10n.importReviewEditOverwriteTitle),
+        content: Text(l10n.importReviewEditOverwriteBody(matchedTitle)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('import-edit-overwrite-continue'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.commonContinue),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Commits just row [i] on its own (honouring its chosen resolution) and then
   /// opens the freshly committed dance in the [DanceEditorScreen] — the
   /// one-click "import + edit" affordance (issue #266). The row is marked
@@ -1250,8 +1391,24 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (planned == null) return;
     final (plan, resolution) = planned;
 
+    // Re-import and Link replace the matched dance the moment this row is
+    // written, and that write is outside the batch Undo, so ask first. Asked
+    // before the phase changes so Cancel leaves the screen untouched.
+    final choice = _choices[i];
+    if (choice.kind == _ActionKind.reimport ||
+        choice.kind == _ActionKind.link) {
+      final targetId = choice.linkTargetId;
+      final confirmed = await _confirmEditOverwrite(
+        '${_titlesById[targetId] ?? targetId}',
+      );
+      if (confirmed != true || !mounted) return;
+    }
+
     widget.onCommitStateChanged?.call(true);
-    setState(() => _phase = _Phase.committing);
+    setState(() {
+      _commitProgress = null;
+      _phase = _Phase.committing;
+    });
     // Edit is a single-dance affordance, so it always uses the adapter-agnostic
     // dance commit path — even for the Caller's Companion `.USR` byte source,
     // whose programs remain the batch Import button's responsibility.
@@ -1268,6 +1425,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         resolutions: resolution == null
             ? const <int, DedupeResolution>{}
             : {0: resolution},
+        defaultTagIds: await resolveDefaultImportTagIds(_repos),
       );
       if (!mounted) return;
       final committed = session.records
@@ -1312,11 +1470,28 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     }
   }
 
+  /// Records the commit's progress for the committing view. Ignored once the
+  /// screen has gone, or has left the committing phase.
+  void _onCommitProgress(int done, int total) {
+    if (!mounted || _phase != _Phase.committing) return;
+    setState(() => _commitProgress = (done, total));
+  }
+
   Future<void> _commit() async {
     final (commitBatch, resolutions, skipped, actedRowIndices) =
         _buildCommitBatch();
+    // Read before the phase changes: a shared bundle commits through the
+    // archive importer, which reports no progress, so it keeps the spinner.
+    final sharedBundle = _effectiveSharedBundle;
     widget.onCommitStateChanged?.call(true);
-    setState(() => _phase = _Phase.committing);
+    setState(() {
+      // Determinate from the first frame: `0 / total` until the first record
+      // lands, instead of a spinner that only turns into a count later.
+      _commitProgress = sharedBundle == null
+          ? (0, commitBatch.records.length)
+          : null;
+      _phase = _Phase.committing;
+    });
     final pipeline = ImportPipeline(
       _repos.dances,
       _repos.choreographers,
@@ -1326,7 +1501,6 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // `_isByteSource` — so only Caller's Companion `.USR` persists/undoes
     // programs. A hypothetical future dance-only byte source would fall through
     // to the shared dance path and never touch programs.
-    final sharedBundle = _effectiveSharedBundle;
     try {
       final publishedEntry = _publishedEntry;
       final publishedBytes = _publishedArchiveBytes;
@@ -1372,6 +1546,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           newId: uuidV4,
           newSlotId: uuidV4,
           resolutions: resolutions,
+          defaultTagIds: await resolveDefaultImportTagIds(_repos),
+          onProgress: _onCommitProgress,
         );
         if (!mounted) return;
         setState(() => _phase = _Phase.review);
@@ -1395,6 +1571,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           now: DateTime.now().toUtc(),
           newId: uuidV4,
           resolutions: resolutions,
+          defaultTagIds: await resolveDefaultImportTagIds(_repos),
+          onProgress: _onCommitProgress,
         );
         try {
           await _repos.collectionImports.record(result.event);
@@ -1422,6 +1600,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           now: DateTime.now().toUtc(),
           newId: uuidV4,
           resolutions: resolutions,
+          // Only this generic dance path and the two importers above tag.
+          // The shared-bundle branch restores the sender's own tags, and no
+          // program path reaches here.
+          defaultTagIds: await resolveDefaultImportTagIds(_repos),
+          onProgress: _onCommitProgress,
         );
         if (!mounted) return;
         // Leave the progress phase before showing the (awaited) result dialog so
@@ -1874,10 +2057,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         body: switch (_phase) {
           _Phase.input => _buildInput(context),
           _Phase.planning => _buildPlanning(context),
-          _Phase.committing => const Center(
-            key: ValueKey('import-committing'),
-            child: CircularProgressIndicator(),
-          ),
+          _Phase.committing => _buildCommitting(context),
           _Phase.review => _buildReview(context),
         },
       ),
@@ -1925,6 +2105,39 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 ? null
                 : () => setState(() => _titleListCancelled = true),
             child: Text(l10n.commonCancel),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The committing view. Determinate (`n / total` beside the spinner) once the
+  /// commit reports progress; an indeterminate spinner until then, and for the
+  /// commits that report none (Edit's single dance, the shared-bundle commit).
+  Widget _buildCommitting(BuildContext context) {
+    final progress = _commitProgress;
+    if (progress == null) {
+      return const Center(
+        key: ValueKey('import-committing'),
+        child: CircularProgressIndicator(),
+      );
+    }
+    final (done, total) = progress;
+    return Center(
+      key: const ValueKey('import-committing'),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(value: total == 0 ? null : done / total),
+          const SizedBox(height: 16),
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              AppLocalizations.of(
+                context,
+              ).importReviewCommitProgress(done, total),
+              key: const ValueKey('import-commit-progress'),
+            ),
           ),
         ],
       ),
@@ -2241,6 +2454,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               // Editing the payload by hand drops any URL provenance so the
               // import is recorded as a paste (uri == null).
               _sourceUri = null;
+              _payloadFromFile = false;
               setState(() {});
             },
             decoration: InputDecoration(
@@ -2270,13 +2484,22 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         context,
         icon: Icons.error_outline,
         title: l10n.importReviewCouldNotRead,
-        detail: '$_planError',
+        // Never the exception text: `_planError` can be any object, including
+        // a programmer error that echoes pasted content (CWE-209). The shape is
+        // already logged by the catch sites.
+        detail: l10n.importReviewPlanFailedBody,
       );
     }
     if (batch == null) return const SizedBox.shrink();
 
     final unreadable = batch.errors;
     final titleList = _titleList;
+    // File-level concerns (an incomplete .USR, an archive from a newer app
+    // version). Shown on every outcome below, including "nothing importable":
+    // a file that lost all its dances is exactly where the user needs the why.
+    final batchWarnings = batch.warnings.isEmpty
+        ? null
+        : _buildBatchWarnings(context, batch.warnings);
     if (batch.records.isEmpty) {
       // A pasted title list with nothing importable is not a dead end (issue
       // #823): the whole point of listing every pasted title is that "you
@@ -2300,10 +2523,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         return _buildSharedProgramsOnlyReview(
           context,
           sharedBundle.archive.programs.length,
+          banner: batchWarnings,
         );
       }
       return _buildMessage(
         context,
+        banner: batchWarnings,
         icon: unreadable.isEmpty ? Icons.inbox_outlined : Icons.error_outline,
         title: unreadable.isEmpty
             ? l10n.importReviewNoDancesTitle
@@ -2329,20 +2554,39 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final programCount = effectiveBundle?.archive.programs.length ?? 0;
     final hasPrograms = programCount > 0;
     // How many *distinct* existing local dances a commit would overwrite (issue
-    // #446): the unique re-import target ids across rows the user has set to
-    // "Re-import onto …", excluding rows already committed on their own via
-    // Edit. Counting unique targets (not rows) is deliberate — planning reuses
-    // one DedupeIndex, so several incoming records that share a provenance key
-    // can all target the same local dance; only that one dance is overwritten.
+    // #446): the unique target ids across rows the user has set to "Re-import
+    // onto …" or to link to an existing dance (Link and the variation block's
+    // "Same dance" share `_ActionKind.link`; the pipeline rewrites the matched
+    // dance from the incoming record for both), excluding rows already
+    // committed on their own via Edit. Counting unique targets (not rows) is
+    // deliberate — planning reuses one DedupeIndex, so several incoming records
+    // that share a provenance key can all target the same local dance; only
+    // that one dance is overwritten. Mirrors [_buildCommitBatch]'s one-row-per-
+    // ambiguity-group backstop, so a row it would skip is not counted.
     // Surfaced as a warning before commit so an overwrite is always a
     // deliberate choice, never silent.
-    final overwriteTargets = <String>{
-      for (var i = 0; i < _choices.length; i++)
-        if (!_committed.contains(i) &&
-            _choices[i].kind == _ActionKind.reimport &&
-            _choices[i].linkTargetId != null)
-          _choices[i].linkTargetId!,
+    final decidedGroups = <String>{
+      for (var i = 0; i < _ambiguousGroupOfRow.length; i++)
+        if (_committed.contains(i) && _ambiguousGroupOfRow[i] != null)
+          _ambiguousGroupOfRow[i]!,
     };
+    final overwriteTargets = <String>{};
+    for (var i = 0; i < _choices.length; i++) {
+      if (_committed.contains(i) || _choices[i].kind == _ActionKind.skip) {
+        continue;
+      }
+      if (i < _ambiguousGroupOfRow.length &&
+          _ambiguousGroupOfRow[i] != null &&
+          !decidedGroups.add(_ambiguousGroupOfRow[i]!)) {
+        continue;
+      }
+      final kind = _choices[i].kind;
+      final target = _choices[i].linkTargetId;
+      if ((kind == _ActionKind.reimport || kind == _ActionKind.link) &&
+          target != null) {
+        overwriteTargets.add(target);
+      }
+    }
     final overwriteCount = overwriteTargets.length;
     return Column(
       children: [
@@ -2352,8 +2596,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             padding: const EdgeInsets.all(12),
             children: [
               if (_showSoftCapWarning) _buildSoftCapWarning(context),
+              ?batchWarnings,
               if (unreadable.isNotEmpty) _buildBatchErrors(context, unreadable),
+              if (_hasBulkTargets(batch)) _buildBulkControls(context, batch),
               if (titleList != null) _buildTitleListSummary(context, titleList),
+              if (titleList != null && titleList.stoppedAfterConnectionFailure)
+                _buildTitleListConnectionBanner(context),
               for (var i = 0; i < batch.records.length; i++) ...[
                 if (_isFirstRowOfAmbiguousGroup(i))
                   _buildAmbiguousGroupHeading(context, i),
@@ -2436,6 +2684,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       padding: const EdgeInsets.all(12),
       children: [
         _buildTitleListSummary(context, titleList),
+        if (titleList.stoppedAfterConnectionFailure)
+          _buildTitleListConnectionBanner(context),
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(
@@ -2603,8 +2853,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// on the OS share-target path ([widget.sharedBundle]) and also when the
   /// current paste-field text decodes to a bundle with programs
   /// ([_effectivePickedBundle], issue #852). The banner tracks the current
-  /// paste-field text via [_onPasteChanged], so it updates whenever the text
-  /// changes.
+  /// paste-field text as decoded by the last [_plan].
   bool get _showSoftCapWarning {
     final bundle = _effectiveSharedBundle;
     return bundle != null && bundle.entityCount > kSharedBundleSoftCapEntities;
@@ -2616,6 +2865,46 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// still proceed. Distinct from the overwrite warning (which uses the error
   /// palette) — this uses the tertiary palette so "unusually large" reads as
   /// caution, not error.
+  /// The single batch-level notice shown when a connection failure ended the
+  /// title lookups early ([TitleListResolution.stoppedAfterConnectionFailure]);
+  /// the per-row reasons then read "check your connection" instead of
+  /// repeating the explanation under every unsearched title.
+  Widget _buildTitleListConnectionBanner(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final message = l10n.importTitleListConnectionBanner;
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: l10n.importReviewWarningPrefix(message),
+      child: Container(
+        key: const ValueKey('import-titles-connection-banner'),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: scheme.tertiaryContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ExcludeSemantics(
+          child: Row(
+            children: [
+              Icon(Icons.wifi_off, color: scheme.onTertiaryContainer),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: scheme.onTertiaryContainer,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSoftCapWarning(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
@@ -2664,8 +2953,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// soft-cap warning if applicable and honors the same transient Undo.
   Widget _buildSharedProgramsOnlyReview(
     BuildContext context,
-    int programCount,
-  ) {
+    int programCount, {
+    Widget? banner,
+  }) {
     final l10n = AppLocalizations.of(context);
     return Column(
       children: [
@@ -2675,6 +2965,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             padding: const EdgeInsets.all(12),
             children: [
               if (_showSoftCapWarning) _buildSoftCapWarning(context),
+              ?banner,
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2743,6 +3034,62 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The file-level warnings from [ImportBatchResult.warnings], one bullet per
+  /// distinct code. Styled and announced like [_buildOverwriteWarning]; the copy
+  /// comes from [importIssueMessage], never the issue's English `message`.
+  Widget _buildBatchWarnings(BuildContext context, List<ImportIssue> warnings) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final seen = <String>{};
+    final messages = [
+      for (final w in warnings)
+        if (seen.add(w.code)) importIssueMessage(l10n, w),
+    ];
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: l10n.importReviewWarningPrefix(messages.join(' ')),
+      child: Card(
+        key: const ValueKey('import-batch-warnings'),
+        color: scheme.errorContainer,
+        child: ExcludeSemantics(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: scheme.onErrorContainer,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final message in messages)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            messages.length == 1 ? message : '• $message',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: scheme.onErrorContainer,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -2900,7 +3247,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                         ? null
                         : () => _editRow(i),
                     icon: const Icon(Icons.edit_outlined, size: 18),
-                    label: Text(l10n.commonEdit),
+                    label: Text(l10n.importReviewImportAndEdit),
                   ),
                 ),
               ],
@@ -3170,20 +3517,38 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  /// The back-to-input label, chosen by how the payload arrived rather than by
+  /// source kind (CS-05): a paste or a URL fetch has no file to swap, so it
+  /// reads "Try again"; a picked or shared file reads "Try another file". The
+  /// Compendium JSON source takes all three, so its kind alone cannot decide.
+  String _tryAgainLabel(AppLocalizations l10n) {
+    // A `.USR` is only ever a picked file; a published collection keeps the
+    // label it had before CS-05.
+    if (_isByteSource || _isPublishedImport) {
+      return l10n.importReviewTryAnother;
+    }
+    // The title list is typed or pasted, never picked.
+    if (_isPastedTextSource) return l10n.commonTryAgain;
+    return _payloadFromFile ? l10n.importReviewTryAnother : l10n.commonTryAgain;
+  }
+
   Widget _buildMessage(
     BuildContext context, {
     required IconData icon,
     required String title,
     required String detail,
+    Widget? banner,
   }) {
     final l10n = AppLocalizations.of(context);
     return Center(
       key: const ValueKey('import-message'),
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            ?banner,
+            if (banner != null) const SizedBox(height: 16),
             Icon(icon, size: 48),
             const SizedBox(height: 12),
             Text(title, style: Theme.of(context).textTheme.titleMedium),
@@ -3198,7 +3563,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               child: Text(
                 _isStandalonePublishedSeed
                     ? l10n.commonBack
-                    : l10n.importReviewTryAnother,
+                    : _tryAgainLabel(l10n),
               ),
             ),
           ],

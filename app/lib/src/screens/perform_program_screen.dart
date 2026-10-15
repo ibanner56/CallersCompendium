@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
+import '../diagnostics/error_log.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/dialect_library_scope.dart';
+import '../data/perform_text_scale.dart';
+import '../data/program_dialect.dart';
 import '../data/repositories_scope.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/collection_data.dart';
@@ -18,10 +21,14 @@ import '../widgets/tap_tempo_metronome.dart';
 import 'perform_a11y_prefs.dart';
 import 'perform_adjust_sheet.dart';
 import 'perform_card.dart';
+import 'perform_elapsed_clock.dart';
 import 'perform_wakelock.dart';
 import 'perform_walkthrough_overlay.dart';
 import 'settings_screen.dart'
-    show kAutoSizePerformKey, kShowProgramSlotCallerNotesKey;
+    show
+        kAutoSizePerformDefault,
+        kAutoSizePerformKey,
+        kShowProgramSlotCallerNotesKey;
 
 /// Full-screen, large-print performance view for a whole [Program]
 /// (`docs/design/ux.md` §5; ROADMAP 5.2 — program navigation).
@@ -56,6 +63,8 @@ class PerformResumeState {
     required this.elapsedSeconds,
     required this.slotStartSeconds,
     required this.paused,
+    this.walkthroughEndedAtSlotSeconds,
+    this.walkthroughEndedSlotId,
   });
 
   /// Navigable group index that was on screen.
@@ -71,17 +80,37 @@ class PerformResumeState {
   /// Whether the timers were paused when the view was left.
   final bool paused;
 
+  /// Slot-elapsed second at which the caller marked the current slot's
+  /// walkthrough as ended (issue #1659), or `null` when unmarked. Session-only,
+  /// like the rest of this snapshot: never written to the domain model.
+  final int? walkthroughEndedAtSlotSeconds;
+
+  /// Id of the slot (the selected alternate, not just its group) that
+  /// [walkthroughEndedAtSlotSeconds] belongs to. A re-entry restores only the
+  /// group index, so without this the mark would land on whichever slot is
+  /// shown first — the primary instead of a marked alternate, or a different
+  /// slot after the program was edited in between.
+  final String? walkthroughEndedSlotId;
+
   @override
   bool operator ==(Object other) =>
       other is PerformResumeState &&
       other.groupIndex == groupIndex &&
       other.elapsedSeconds == elapsedSeconds &&
       other.slotStartSeconds == slotStartSeconds &&
-      other.paused == paused;
+      other.paused == paused &&
+      other.walkthroughEndedAtSlotSeconds == walkthroughEndedAtSlotSeconds &&
+      other.walkthroughEndedSlotId == walkthroughEndedSlotId;
 
   @override
-  int get hashCode =>
-      Object.hash(groupIndex, elapsedSeconds, slotStartSeconds, paused);
+  int get hashCode => Object.hash(
+    groupIndex,
+    elapsedSeconds,
+    slotStartSeconds,
+    paused,
+    walkthroughEndedAtSlotSeconds,
+    walkthroughEndedSlotId,
+  );
 }
 
 class PerformProgramScreen extends StatefulWidget {
@@ -97,8 +126,11 @@ class PerformProgramScreen extends StatefulWidget {
     this.initialElapsedSeconds = 0,
     this.initialSlotStartSeconds = 0,
     this.initialPaused = false,
+    this.initialWalkthroughEndedAtSlotSeconds,
+    this.initialWalkthroughEndedSlotId,
     this.onExit,
     this.onProgramChanged,
+    this.restoreIfUnchanged,
   });
 
   final Program program;
@@ -127,6 +159,15 @@ class PerformProgramScreen extends StatefulWidget {
   /// Whether the timers open paused (preserved across a re-entry).
   final bool initialPaused;
 
+  /// Slot-elapsed second of the manual "walkthrough ended" mark on the
+  /// [initialGroup] slot, preserved across a re-entry (issue #1659).
+  final int? initialWalkthroughEndedAtSlotSeconds;
+
+  /// Slot id the [initialWalkthroughEndedAtSlotSeconds] mark belongs to; the
+  /// mark is applied only when that slot is the one shown on entry (issue
+  /// #1659), and dropped otherwise.
+  final String? initialWalkthroughEndedSlotId;
+
   /// Called as the view is torn down — via the guarded close control, a system
   /// back, or any other pop — with the live position + clock (issue #434). The
   /// launching screen stores this so re-entering Perform resumes where the
@@ -142,6 +183,23 @@ class PerformProgramScreen extends StatefulWidget {
   /// view reflects the change regardless.
   final Future<void> Function(Program updated)? onProgramChanged;
 
+  /// Performs the "Program adjusted" Undo once this screen has closed:
+  /// restores [previous] only if the owner's program is still exactly what
+  /// the adjustment [adjusted] left, and returns whether it restored.
+  ///
+  /// That Undo restores a whole-program snapshot taken before the adjustment.
+  /// The prompt can outlive this screen (indefinitely with accessible
+  /// navigation), and by the time it is tapped the program may have been
+  /// edited elsewhere; restoring the snapshot would overwrite that edit. The
+  /// check and the restore must therefore be one atomic step on the owner's
+  /// side (for a stored program, [ProgramRepository.replaceIfUnchanged]), so
+  /// that no write can land between them (flows-1). When this returns false,
+  /// throws, or is null, the Undo is refused with a "no longer available"
+  /// message. While this screen is open the Undo is applied directly through
+  /// [onProgramChanged], without asking.
+  final Future<bool> Function(Program previous, Program adjusted)?
+  restoreIfUnchanged;
+
   @override
   State<PerformProgramScreen> createState() => _PerformProgramScreenState();
 }
@@ -152,6 +210,10 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// persist through [PerformProgramScreen.onProgramChanged]; navigation and
   /// grouping recompute from it so the reading view reflects edits immediately.
   late Program _program = widget.program;
+
+  /// The latest [PerformProgramScreen.onProgramChanged] write, so an Undo
+  /// after exit checks the stored program only once that write has landed.
+  Future<void> _pendingPersist = Future<void>.value();
 
   /// Cached navigable groups. [Program.grouped] walks the whole slot list and
   /// allocates a fresh unmodifiable list on every call, and the build/helpers
@@ -179,6 +241,12 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// user's active dialect. Persisted across sessions (issue #449) and restored
   /// on entry.
   bool _canonicalView = false;
+
+  /// A dialect picked from the quick-switch **during this Perform session**,
+  /// while the program's own dialect is in force. Session-local on purpose: it
+  /// is never written to the program or to the application dialect, and it is
+  /// gone when this screen is (issue #1554).
+  String? _sessionDialectName;
 
   /// Whether the on-demand walkthrough overlay is currently shown for the active
   /// slot (issue #370). Session-scoped, default OFF, and NOT persisted across
@@ -212,7 +280,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   }
 
   /// Resolves the dance backing [slot], or `null` for a free-text-only slot or
-  /// an unresolved dance id.
+  /// an unresolved dance id (purged, or soft-deleted and not pre-resolved by
+  /// [resolveDeletedSlotDances]).
   Dance? _danceForSlot(ProgramSlot slot) => slot.danceId == null
       ? null
       : widget.danceOverrides[slot.danceId] ??
@@ -221,7 +290,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// Auto-size the card to fit the viewport (ROADMAP G.1). Initialised from the
   /// General setting (on by default) in [didChangeDependencies]; recomputes per
   /// slot as the shown dance/slot changes.
-  bool _autoSize = true;
+  bool _autoSize = kAutoSizePerformDefault;
 
   /// Guards the one-shot settings load in [didChangeDependencies] (auto-size
   /// plus the persisted Perform a11y prefs) so it runs exactly once.
@@ -250,26 +319,61 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// display-only aid for the caller during an event: never persisted and never
   /// written back to the program (that is 5.3 territory).
   ///
-  /// A single [Timer.periodic] (1s) drives both the running program clock and
-  /// the per-slot elapsed. We accumulate whole seconds in [_elapsed] rather than
-  /// diffing wall-clock time so the readouts advance deterministically under
-  /// `tester.pump(Duration(...))`. The timer is independent of
-  /// [PerformWakelockMixin] (which only toggles the wake-lock in initState/
-  /// dispose and re-asserts it on resume), so the two do not interfere.
+  /// The running program clock and the per-slot elapsed both derive from
+  /// [_clock], which measures elapsed time rather than counting timer ticks
+  /// (post-audit integrity-6), so time the app spends suspended in the
+  /// background or asleep, or ticks lost to jank, still count. [_timer] only
+  /// refreshes [_elapsed] from [_clock] about once a second, and
+  /// [didChangeAppLifecycleState] refreshes it as soon as the app resumes.
+  /// `package:clock` is what keeps this deterministic under
+  /// `tester.pump(Duration(...))`: `fake_async` controls it in tests.
   ///
   /// Elapsed lives in a [ValueNotifier] rather than plain state so the per-second
-  /// tick rebuilds only the timing line (via a [ValueListenableBuilder] in
+  /// refresh rebuilds only the timing line (via a [ValueListenableBuilder] in
   /// [_buildTimingLine]) — not the whole card/figures, which would otherwise
   /// re-run `deriveSections`/`renderSummary` for every figure each second.
+  late final PerformElapsedClock _clock = PerformElapsedClock(
+    initialSeconds: widget.initialElapsedSeconds,
+    paused: widget.initialPaused,
+  );
   Timer? _timer;
   late final ValueNotifier<int> _elapsed = ValueNotifier<int>(
     widget.initialElapsedSeconds,
   );
 
+  /// Re-reads [_clock] into [_elapsed] and schedules the next refresh for when
+  /// the displayed second turns over. No timer is kept while paused.
+  void _refreshElapsed() {
+    _timer?.cancel();
+    _timer = null;
+    _elapsed.value = _clock.seconds;
+    if (_clock.isRunning) {
+      _timer = Timer(_clock.untilNextSecond, () {
+        if (mounted) _refreshElapsed();
+      });
+    }
+  }
+
   /// Value of [_elapsed] when the current group was entered; the per-slot
   /// elapsed is the difference. Reset to "now" on every navigation.
   late int _slotStartSeconds = widget.initialSlotStartSeconds;
   late bool _paused = widget.initialPaused;
+
+  /// Slot-elapsed second at which the caller tapped the dance-start button
+  /// (issue #1659), or `null` while unmarked. Session-only UI state (ADR-001):
+  /// never persisted, handed back through [PerformResumeState]. Follows the
+  /// per-slot timer exactly — [_resetSlotTimer] clears it.
+  late int? _walkthroughEndedAt = _restoredWalkthroughMark();
+
+  /// The resumed mark, or `null` when the slot now on screen is not the one it
+  /// was set on (a marked alternate re-enters as its primary; edits between
+  /// entries can move or remove the slot).
+  int? _restoredWalkthroughMark() {
+    final seconds = widget.initialWalkthroughEndedAtSlotSeconds;
+    final slotId = widget.initialWalkthroughEndedSlotId;
+    if (seconds == null || slotId == null || _groups.isEmpty) return null;
+    return _currentSlot.id == slotId ? seconds : null;
+  }
 
   /// Dark-stage high-contrast theme, on by default (`docs/design/ux.md` §5).
   /// Persisted across sessions (issue #449) and restored on entry.
@@ -285,12 +389,17 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_paused || !mounted) return;
-      // Bump the notifier only — the [ValueListenableBuilder] in the timing
-      // line rebuilds the clock text without rebuilding the card/figures.
-      _elapsed.value++;
-    });
+    // Sets the notifier only — the [ValueListenableBuilder] in the timing
+    // line rebuilds the clock text without rebuilding the card/figures.
+    _refreshElapsed();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Timers may not have fired while the app was away; show the full
+    // interval now rather than at the next refresh.
+    if (state == AppLifecycleState.resumed && mounted) _refreshElapsed();
   }
 
   @override
@@ -302,9 +411,13 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     widget.onExit?.call(
       PerformResumeState(
         groupIndex: _groupIndex,
-        elapsedSeconds: _elapsed.value,
+        elapsedSeconds: _clock.seconds,
         slotStartSeconds: _slotStartSeconds,
         paused: _paused,
+        walkthroughEndedAtSlotSeconds: _walkthroughEndedAt,
+        walkthroughEndedSlotId: _walkthroughEndedAt == null || _groups.isEmpty
+            ? null
+            : _currentSlot.id,
       ),
     );
     _timer?.cancel();
@@ -325,7 +438,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         .then((v) {
           // Don't clobber an in-view choice the user made before the read resolved.
           if (!mounted || _autoSizeUserSet) return;
-          final enabled = v is bool ? v : true;
+          final enabled = v is bool ? v : kAutoSizePerformDefault;
           if (enabled != _autoSize) setState(() => _autoSize = enabled);
         })
         .catchError((_) {
@@ -387,9 +500,27 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   }
 
   /// Marks the current group as freshly entered, zeroing the per-slot elapsed.
-  void _resetSlotTimer() => _slotStartSeconds = _elapsed.value;
+  void _resetSlotTimer() {
+    _refreshElapsed();
+    _slotStartSeconds = _elapsed.value;
+    _walkthroughEndedAt = null;
+  }
 
-  void _togglePause() => setState(() => _paused = !_paused);
+  /// Marks the walkthrough as ended (dance started) at the current slot-elapsed
+  /// second, or clears the mark (issue #1659). While paused the clock is frozen,
+  /// so the mark records the frozen value.
+  void _toggleDanceStart() => setState(() {
+    _refreshElapsed();
+    _walkthroughEndedAt = _walkthroughEndedAt == null
+        ? _slotElapsedFrom(_elapsed.value)
+        : null;
+  });
+
+  void _togglePause() => setState(() {
+    _paused = !_paused;
+    _paused ? _clock.pause() : _clock.resume();
+    _refreshElapsed();
+  });
 
   // Re-entrancy guard (issue #666, parity with #612): true while the exit
   // confirmation dialog is showing.
@@ -549,21 +680,27 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     final l10n = AppLocalizations.of(context);
     SemanticsService.sendAnnouncement(
       View.of(context),
-      l10n.performShowingSlot(_slotLabel(l10n, slot)),
+      l10n.performShowingSlot(_slotLabel(l10n, slot, markDeleted: true)),
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
 
-  /// Display label for a slot: the dance title when it resolves, otherwise its
-  /// free text (or a neutral fallback).
+  /// Display label for a slot: the dance title when it resolves (suffixed with
+  /// the deleted marker when [markDeleted] and the dance is soft-deleted), "Dance
+  /// unavailable" for a dance id that resolves to nothing, otherwise its free
+  /// text (or a neutral fallback).
   String _slotLabel(
     AppLocalizations l10n,
     ProgramSlot slot, {
     bool convert = true,
+    bool markDeleted = false,
   }) {
     if (slot.danceId != null) {
       final dance = _danceForSlot(slot);
-      if (dance != null) return dance.title;
+      if (dance == null) return l10n.programsDanceUnavailable;
+      return markDeleted && dance.isDeleted
+          ? '${dance.title} ${l10n.programsDeletedDanceFallback}'
+          : dance.title;
     }
     final rawText = slot.text?.trim();
     final text =
@@ -574,7 +711,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         ? rawText
         : widget.renderer.renderFreeTextWithCanonicalDiscouragedTerms(
             rawText,
-            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            _effectiveDialect(context, strict: false),
           );
     if (text != null && text.isNotEmpty) return text;
     return l10n.performUntitledSlot;
@@ -615,7 +752,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               return ListTile(
                 key: ValueKey('perform-jump-slot-$index'),
                 leading: CircleAvatar(child: Text('${index + 1}')),
-                title: Text(_slotLabel(l10n, group.primary)),
+                title: Text(_slotLabel(l10n, group.primary, markDeleted: true)),
                 subtitle: subtitle == null ? null : Text(subtitle),
                 selected: index == _groupIndex,
                 onTap: () => Navigator.of(sheetContext).pop(index),
@@ -681,7 +818,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       );
     }
     final onChanged = widget.onProgramChanged;
-    if (onChanged != null) unawaited(onChanged(updated));
+    if (onChanged != null) {
+      final write = onChanged(updated);
+      _pendingPersist = write;
+      unawaited(write);
+    }
   }
 
   /// Applies [updated] and offers a one-tap SnackBar undo restoring the
@@ -695,14 +836,77 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     _applyProgram(updated, announce: announce);
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final unavailableMessage = l10n.performUndoNoLongerAvailable;
     showUndoSnackBar(
-      ScaffoldMessenger.of(context),
+      messenger,
       message: message,
       undoLabel: l10n.commonUndo,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
-      onUndo: () =>
-          _applyProgram(previous, announce: l10n.performAdjustmentUndone),
+      onUndo: () {
+        // The snackbar lives on the app-root messenger, so it can outlive this
+        // screen (PRF-03). After unmount there is no view to update, and the
+        // program may have been edited since, so leave `setState`/`context`
+        // alone and restore only if nothing changed (flows-1).
+        if (!mounted) {
+          if (widget.onProgramChanged == null) return;
+          unawaited(
+            _undoAfterExit(
+              messenger: messenger,
+              pendingPersist: _pendingPersist,
+              previous: previous,
+              adjusted: updated,
+              restoreIfUnchanged: widget.restoreIfUnchanged,
+              unavailableMessage: unavailableMessage,
+            ),
+          );
+          return;
+        }
+        _applyProgram(previous, announce: l10n.performAdjustmentUndone);
+      },
     );
+  }
+
+  /// The "Program adjusted" Undo once Perform has closed: asks the owner to
+  /// restore [previous] atomically if the program is still what [adjusted]
+  /// left; otherwise leaves the program alone and says the undo is no longer
+  /// available. Uses only values captured while mounted.
+  static Future<void> _undoAfterExit({
+    required ScaffoldMessengerState messenger,
+    required Future<void> pendingPersist,
+    required Program previous,
+    required Program adjusted,
+    required Future<bool> Function(Program previous, Program adjusted)?
+    restoreIfUnchanged,
+    required String unavailableMessage,
+  }) async {
+    var restored = false;
+    try {
+      // The adjustment's own write must land before the stored copy is
+      // compared with it.
+      await pendingPersist;
+      restored =
+          restoreIfUnchanged != null &&
+          await restoreIfUnchanged(previous, adjusted);
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'perform_program_screen._undoAfterExit',
+      );
+    }
+    if (restored) return;
+    // Same idiom as the program screens' failed-undo message: replace the
+    // spent prompt, then show the message on the next frame. A SnackBar is a
+    // live region, so screen readers announce it.
+    if (!messenger.mounted) return;
+    messenger
+      ..clearSnackBars()
+      ..removeCurrentSnackBar();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!messenger.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(unavailableMessage)));
+    });
   }
 
   /// Opens the non-destructive "adjust" sheet (`docs/design/ux.md` §5) over the
@@ -734,7 +938,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         authorNameOverrides: widget.authorNameOverrides,
         dialect: _canonicalView
             ? Dialect.canonical
-            : ActiveDialectScope.of(context),
+            : _effectiveDialect(context),
         enrichment: enrichment,
       ),
     );
@@ -761,9 +965,37 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     );
   }
 
+  /// The program's own dialect, or `null` when it has none or its name no
+  /// longer resolves. A `null` means Perform follows the application dialect
+  /// and the quick-switch keeps its app-wide behaviour. Listens to the library,
+  /// so renaming or deleting the dialect while Perform is open takes effect
+  /// live.
+  Dialect? _programDialect(BuildContext context) {
+    final library = DialectLibraryScope.maybeOf(context);
+    if (library == null) return null;
+    return resolveProgramDialect(_program.dialectName, library);
+  }
+
+  /// The dialect Perform renders with, before the canonical-view toggle: the
+  /// session pick, else the program's dialect, else the application dialect.
+  /// [strict] keeps the existing `ActiveDialectScope.of` behaviour (throws
+  /// without the scope) for the call sites that had it.
+  Dialect _effectiveDialect(BuildContext context, {bool strict = true}) {
+    final programDialect = _programDialect(context);
+    if (programDialect != null) {
+      final library = DialectLibraryScope.maybeOf(context)!;
+      return resolveProgramDialect(_sessionDialectName, library) ??
+          programDialect;
+    }
+    return strict
+        ? ActiveDialectScope.of(context)
+        : ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+  }
+
   Widget _buildContent(BuildContext context, {required bool wide}) {
     final l10n = AppLocalizations.of(context);
-    final activeDialect = ActiveDialectScope.of(context);
+    final programDialect = _programDialect(context);
+    final activeDialect = _effectiveDialect(context);
     final isCanonicalDialect = activeDialect == Dialect.canonical;
     final dialect = _canonicalView ? Dialect.canonical : activeDialect;
     final canDecrease =
@@ -824,7 +1056,13 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               // (and the per-gig dialect quick-switch) stay inline.
               actions: buildPerformAppBarActions(
                 wide: wide,
-                leadingPrimary: const DialectQuickSwitch(),
+                leadingPrimary: programDialect == null
+                    ? const DialectQuickSwitch()
+                    : DialectQuickSwitch(
+                        selectedName: activeDialect.name,
+                        onSelected: (name) =>
+                            setState(() => _sessionDialectName = name),
+                      ),
                 secondaryInline: [
                   IconButton(
                     key: const ValueKey('perform-adjust'),
@@ -1067,6 +1305,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               ),
             ),
             bottomNavigationBar: BottomAppBar(
+              // Grow with the system text size (A11Y-01): the fixed 80 px bar
+              // cannot hold the position + timing lines at large scales.
+              height: MediaQuery.textScalerOf(
+                context,
+              ).scale(80).clamp(80.0, 200.0),
               child: Row(
                 children: [
                   _buildPauseButton(),
@@ -1086,19 +1329,37 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                         // outer ambient theme.
                         builder: (context) {
                           final textTheme = Theme.of(context).textTheme;
-                          return Column(
+                          // Fallback for scales beyond the clamped bar height.
+                          final readout = FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  l10n.performSlotPosition(
+                                    _groupIndex + 1,
+                                    _groups.length,
+                                  ),
+                                  key: const ValueKey('perform-position'),
+                                  style: textTheme.titleMedium,
+                                ),
+                                const SizedBox(height: 2),
+                                _buildTimingLine(slot, textTheme),
+                              ],
+                            ),
+                          );
+                          if (!_hasSeparateWalkthrough(slot)) return readout;
+                          // The dance-start toggle sits *outside* both
+                          // [FittedBox]es (this one and the one inside
+                          // [_buildTimingLine]) so the readout's narrow-phone
+                          // scale-down (issue #433) can never shrink it below
+                          // its 44px tap target (issue #1659).
+                          return Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                l10n.performSlotPosition(
-                                  _groupIndex + 1,
-                                  _groups.length,
-                                ),
-                                key: const ValueKey('perform-position'),
-                                style: textTheme.titleMedium,
-                              ),
-                              const SizedBox(height: 2),
-                              _buildTimingLine(slot, textTheme),
+                              Flexible(child: readout),
+                              const SizedBox(width: 4),
+                              _buildDanceStartButton(context),
                             ],
                           );
                         },
@@ -1143,10 +1404,52 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     );
   }
 
+  /// Whether [slot] has a separate walkthrough duration, which is what offers
+  /// the dance-start toggle (issue #1659). Zero minutes is "no walkthrough",
+  /// matching the automatic walkthrough-complete cue's own gate.
+  static bool _hasSeparateWalkthrough(ProgramSlot slot) =>
+      (slot.walkthroughMinutes ?? 0) > 0;
+
+  /// Icon-only, 44px round toggle that marks the walkthrough as ended and the
+  /// dance as started (issue #1659). Pressed state is never colour-only: the
+  /// glyph goes outlined → filled, the tooltip/label flips, and the state is
+  /// exposed as toggled — same single-node pattern as [_buildPauseButton].
+  /// [context] must sit below the stage theme so the colours follow it.
+  Widget _buildDanceStartButton(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final marked = _walkthroughEndedAt != null;
+    return MergeSemantics(
+      child: Semantics(
+        toggled: marked,
+        child: IconButton(
+          key: const ValueKey('perform-dance-start'),
+          tooltip: marked
+              ? l10n.performDanceStartUsed
+              : l10n.performDanceStartUnused,
+          isSelected: marked,
+          icon: const Icon(Icons.music_note_outlined),
+          selectedIcon: const Icon(Icons.music_note),
+          style: IconButton.styleFrom(
+            fixedSize: const Size(44, 44),
+            minimumSize: const Size(44, 44),
+            padding: EdgeInsets.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: const CircleBorder(),
+            foregroundColor: marked ? scheme.onTertiary : scheme.onSurface,
+            backgroundColor: marked ? scheme.tertiary : Colors.transparent,
+            side: marked ? null : BorderSide(color: scheme.outline),
+          ),
+          onPressed: _toggleDanceStart,
+        ),
+      ),
+    );
+  }
+
   /// The running program clock, per-slot elapsed, and (when present) the
   /// split planned slot timing with walkthrough-transition and over-run cues.
   ///
-  /// Only this line rebuilds on each 1s tick: a [ValueListenableBuilder] listens
+  /// Only this line rebuilds on each per-second refresh: a [ValueListenableBuilder] listens
   /// to [_elapsed] so the clock/elapsed text updates without rebuilding the
   /// card/figures (which would re-run `deriveSections`/`renderSummary` per
   /// figure every second).
@@ -1166,14 +1469,31 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       valueListenable: _elapsed,
       builder: (context, elapsed, _) {
         final slotElapsed = _slotElapsedFrom(elapsed);
+        // A manual dance-start mark (issue #1659) replaces the clock-derived
+        // thresholds for this slot only: "walkthrough complete" follows the
+        // mark and "over" is measured from the mark plus the dance minutes.
+        // Unmarked slots keep exactly the elapsed-time rules.
+        final mark = _walkthroughEndedAt;
         final isOver =
             danceMinutes != null &&
-            slotElapsed > ((walkthroughMinutes ?? 0) + danceMinutes) * 60;
+            (mark == null
+                ? slotElapsed > ((walkthroughMinutes ?? 0) + danceMinutes) * 60
+                : slotElapsed > mark + danceMinutes * 60);
         final walkthroughComplete =
             !isOver &&
-            walkthroughMinutes != null &&
-            walkthroughMinutes > 0 &&
-            slotElapsed > walkthroughMinutes * 60;
+            (mark != null ||
+                (walkthroughMinutes != null &&
+                    walkthroughMinutes > 0 &&
+                    slotElapsed > walkthroughMinutes * 60));
+        // Expected-vs-actual: the slot time the walkthrough ended at against
+        // its planned minutes.
+        final plannedWalkthroughSeconds = (walkthroughMinutes ?? 0) * 60;
+        final markDelta = mark == null ? 0 : mark - plannedWalkthroughSeconds;
+        final markDirection = markDelta > 0
+            ? 'over'
+            : markDelta < 0
+            ? 'under'
+            : 'on';
 
         final label = l10n.performTimingSemantic(
           _formatDuration(elapsed),
@@ -1185,6 +1505,10 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           walkthroughComplete ? 'yes' : 'no',
           isOver ? 'yes' : 'no',
           _paused ? 'yes' : 'no',
+          mark != null ? 'yes' : 'no',
+          _formatDuration(mark ?? 0),
+          markDirection,
+          _formatDuration(markDelta.abs()),
         );
 
         return Semantics(
@@ -1223,6 +1547,18 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                       key: const ValueKey('perform-planned'),
                       style: style,
                     ),
+                    if (mark != null) ...[
+                      Text('  ·  ', style: style),
+                      Text(
+                        l10n.performWalkthroughActual(
+                          _formatDuration(mark),
+                          markDirection,
+                          _formatDuration(markDelta.abs()),
+                        ),
+                        key: const ValueKey('perform-walkthrough-actual'),
+                        style: style,
+                      ),
+                    ],
                     if (walkthroughComplete) ...[
                       const SizedBox(width: 4),
                       const Icon(Icons.directions_run, size: 16),
@@ -1253,8 +1589,16 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   Widget _buildCard(ProgramSlot slot, Dialect dialect) {
     if (slot.danceId != null) {
-      final dance = _danceForSlot(slot);
+      var dance = _danceForSlot(slot);
       if (dance != null) {
+        // A soft-deleted dance keeps its figures but says so in its title.
+        if (dance.isDeleted) {
+          dance = dance.copyWith(
+            title:
+                '${dance.title} '
+                '${AppLocalizations.of(context).programsDeletedDanceFallback}',
+          );
+        }
         return PerformCard(
           dance: dance,
           callerNote: _showProgramSlotCallerNotes == true ? slot.text : null,
@@ -1269,9 +1613,20 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       }
     }
     // Free-text-only slot (or an unresolved dance id): a simple large-print
-    // text card with no figures.
+    // text card with no figures. An unresolved id headlines "Dance unavailable";
+    // the caller's note rides underneath only when the display preference is on.
+    final l10n = AppLocalizations.of(context);
+    final note = slot.text?.trim();
     return PerformTextCard(
-      text: _slotLabel(AppLocalizations.of(context), slot, convert: false),
+      text: slot.danceId == null
+          ? _slotLabel(l10n, slot, convert: false)
+          : [
+              l10n.programsDanceUnavailable,
+              if (_showProgramSlotCallerNotes == true &&
+                  note != null &&
+                  note.isNotEmpty)
+                note,
+            ].join('\n'),
       textScale: _textScale,
       renderer: widget.renderer,
       dialect: dialect,
@@ -1294,4 +1649,73 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     }
     return null;
   }
+}
+
+/// What [resolveDeletedSlotDances] resolved for Perform's override parameters.
+class DeletedSlotDances {
+  const DeletedSlotDances({required this.dances, required this.authorNames});
+
+  /// For [PerformProgramScreen.danceOverrides].
+  final Map<String, Dance> dances;
+
+  /// For [PerformProgramScreen.authorNameOverrides]: names of the authors of
+  /// [dances], including choreographers that are soft-deleted themselves.
+  final Map<String, String> authorNames;
+}
+
+/// Soft-deleted dances behind [program]'s slots, keyed by id, with the names of
+/// their authors, for [PerformProgramScreen.danceOverrides] and
+/// [PerformProgramScreen.authorNameOverrides]. [CollectionData] excludes
+/// deleted dances, so without this a slot whose dance sits in Recently deleted
+/// would lose its figures mid-program; and it excludes deleted choreographers,
+/// so a deleted dance's deleted author would lose their credit line. Ids
+/// already in [data] are not duplicated, and purged ids are absent from the
+/// result. Authors already named by [data] are left to it.
+///
+/// Never throws: Perform opened without this lookup before CS-06, and a caller
+/// mid-gig must still reach it. A failed dance read gives no overrides (the
+/// pre-CS-06 behaviour); a failed author read keeps the dances without the
+/// extra names. Either failure is logged.
+Future<DeletedSlotDances> resolveDeletedSlotDances(
+  DanceRepository dances,
+  ChoreographerRepository choreographers,
+  Program program,
+  CollectionData data,
+) async {
+  const source = 'perform_program_screen.resolveDeletedSlotDances';
+  final resolved = <String, Dance>{};
+  final attempted = <String>{};
+  try {
+    for (final slot in program.slots) {
+      final id = slot.danceId;
+      if (id == null || data.dancesById.containsKey(id)) continue;
+      if (!attempted.add(id)) continue;
+      final dance = await dances.getById(
+        id,
+        includeDeleted: true,
+        includeDeletedAuthors: true,
+      );
+      if (dance != null) resolved[id] = dance;
+    }
+  } on Object catch (e, st) {
+    logCaughtError(e, st, source: source);
+    return const DeletedSlotDances(dances: {}, authorNames: {});
+  }
+  final authorNames = <String, String>{};
+  final missingAuthors = {
+    for (final dance in resolved.values)
+      for (final id in dance.authorIds)
+        if (!data.choreographerNames.containsKey(id)) id,
+  };
+  if (missingAuthors.isNotEmpty) {
+    try {
+      for (final c in await choreographers.listAll(includeDeleted: true)) {
+        if (missingAuthors.contains(c.id)) authorNames[c.id] = c.name;
+      }
+    } on Object catch (e, st) {
+      logCaughtError(e, st, source: source);
+      authorNames.clear();
+    }
+  }
+  return DeletedSlotDances(dances: resolved, authorNames: authorNames);
 }

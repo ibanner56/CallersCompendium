@@ -80,7 +80,7 @@ Adopted from ContraDB, with renames noted:
 allemande · arch & dive · balance · balance the ring ·
 box circulate · box the gnat (alias: swat the flea) · butterfly whirl ·
 California twirl · chain (role-parameterized, not "ladies chain") · circle ·
-contra corners · cross trails · **custom** · dosido (alias: seesaw) ·
+circular hey (alias: square hey; v36, not in ContraDB) · contra corners · cross trails · **custom** · dosido (alias: seesaw) ·
 dolphin hey · down the hall · up the hall · facing star · figure 8 ·
 form long wave / ocean wave / long waves · gate · give & take ·
 **shoulder round** (was gyre/gypsy; keyword-searchable under old names) ·
@@ -846,6 +846,15 @@ from `CompendiumDatabase.schemaVersion`: a taxonomy bump implies no database
 migration unless its own entry says so. `tools/ci/check_version_history.py`
 fails a PR that moves the constant without adding the matching entry.
 
+**Bump only when the current version has shipped.** While the latest release
+tag carries an older `contraTaxonomyVersion` than `main`, the head version is
+unreleased: a further taxonomy change joins it and amends its entry here,
+rather than adding a version no release will carry. CONTRIBUTING.md
+("Versioned formats") gives the check. The gate cannot see an amendment,
+because the constant does not move. A one-time rebuild pass that already ran
+on a dev database at that version (a `…DoneKey` marker) does not run again.
+If the amended change needs that pass to re-run, it needs a marker of its own.
+
 - v2: roadmap 2.4a PR2 (dancer-interaction moves).
 - v3: roadmap 2.4a PR3 (choice-enum moves + `centers`/single-dancer vocab).
 - v4: roadmap 2.4a PR4 (places family + `ParamKind.places`).
@@ -1602,6 +1611,52 @@ fails a PR that moves the constant without adding the matching entry.
   normalization. The container projection is also guarded by the
   `modifierContainerCanonicalRebuildDoneKey` one-shot sweep; stored figure JSON
   and the SQLite schema remain unchanged.
+- v36: adds `circular_hey`, the four-dancer hey passing by shoulders (alias
+    "square hey"), defined for contra on its own terms using
+    [ADR-006](../adr/006-english-country-dance-canonical-grammar.md) §7.4 as a
+    starting point; ADR-006 §2 keeps the ECD definition separate. Params: `who`
+    (default `neighbors`; the group that passes first, so there is no `whom`,
+    mirroring `square_through.who`), `changes` (`ParamKind.places`, any whole
+    number 1..10 like `circle.places`, default 4), `shoulder` (default
+    `right`), `where` (default `across`) and `beats`. `changes` drives
+    `paramBeats`: 1 -> 2, 2 -> 4, 3 -> 8, 4 -> 12 (default), 5 and above -> 16.
+    Above six changes 16 is a placeholder the user is expected to override.
+    Canonical text names the count ("3 changes"), not "places". The display
+    line is "3/4 circular hey, neighbors pass right across", showing `N/4` for
+    any count but four. The shared free-text recognizer reads that sentence for
+    every count but four (`1/4`..`10/4`, `1/2`, `full`, and "square hey"); the
+    full circuit's display omits the extent, so that line stays custom text
+    unless written with `full`. The recognizer requires the extent,
+    group, shoulder and direction rather than defaulting them. Purely
+    additive: no schema migration, no derived-index rebuild (no existing
+    figure changes).
+- v37: adds `circular_hey.who2`, the group passed second, by the other
+    shoulder — the counterpart of `hey.pass2`. It defaults to the
+    `unspecified` sentinel and draws from the same pair vocabulary as
+    `pass2`. When stated, the display line gains a second pass ("3/4 circular
+    hey, neighbors pass right across, shadows pass left"); unstated, it
+    renders exactly as v36 did. Like `pass2`, `who2` is not in the canonical
+    template, so no stored canonical text changes. The free-text recognizer
+    reads the second pass back and rejects a same-shoulder one. The Caller's
+    Box `Square through <n> without hands (<pass list>)` now imports as a
+    `circular_hey` with `who2` from the even cells. Purely additive: no schema
+    migration, no derived-index rebuild, and already-imported dances keep
+    their custom text (no backfill, maintainer decision).
+  v37 also changes the `courtesy_turn.direction` default from `clockwise` to
+    `counterclockwise`. The ordinary courtesy turn (after a role2s' chain, a
+    right and left through or a promenade across) wheels counterclockwise with
+    the left-hand dancer backing up (TCB glossary, "Courtesy turn"); clockwise
+    is the mirrored turn, chiefly after a role1s' chain (maintainer, on the PR
+    that made this change). v23's reading — "clockwise by construction", with
+    the 10 corpus lines that state `clockwise` taken as confirmations — was
+    wrong: a source names the rotation only when it is the unusual one, so
+    those lines are the mirrored case. The display now silences
+    `counterclockwise` and states `clockwise`. Source JSON is unchanged — a
+    stored courtesy turn without a stated direction now means the ordinary
+    turn, and one that states `clockwise` keeps it — but the canonical text of
+    every courtesy turn without a stated direction changes, so v37 owes a
+    one-time canonical/FTS rebuild, guarded by
+    `taxonomyV37CanonicalRebuildDoneKey`.
 
 ## Open questions (to resolve during implementation, with user input)
 

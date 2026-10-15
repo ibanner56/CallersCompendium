@@ -90,6 +90,68 @@ void main() {
       expect(ticksSeenAtParse.toSet().length, greaterThan(5));
     });
 
+    test('hands the event loop a turn while deduping a long batch', () async {
+      // The dedupe loop's only await (`_dedupeAuthorNames`) completes as a
+      // microtask when a draft carries author names, so without a real yield it
+      // runs start to finish. Each `verdictFor` records the ticks seen so far.
+      var ticks = 0;
+      final ticksSeenAtDedupe = <int>[];
+      final index = _TickRecordingIndex(
+        [
+          for (var i = 0; i < 2000; i++)
+            DedupeEntry(
+              danceId: 'existing-$i',
+              title: 'Existing Title $i',
+              authorNames: ['Author $i'],
+            ),
+        ],
+        () => ticks,
+        ticksSeenAtDedupe,
+      );
+      final timer = Timer.periodic(Duration.zero, (_) => ticks++);
+      addTearDown(timer.cancel);
+
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          for (var i = 0; i < 200; i++)
+            record(
+              'r$i',
+              'Incoming Dance $i',
+              authorNames: ['Incoming Author $i'],
+            ),
+        ]),
+        const ImportRequest(),
+        index: index,
+        yieldInterval: Duration.zero,
+      );
+
+      expect(batch.records, hasLength(200));
+      expect(ticksSeenAtDedupe, hasLength(200));
+      expect(ticksSeenAtDedupe.last, greaterThan(ticksSeenAtDedupe.first));
+      expect(ticksSeenAtDedupe.toSet().length, greaterThan(5));
+    });
+
+    test('dedupe does not yield with a long interval', () async {
+      var ticks = 0;
+      final seen = <int>[];
+      final index = _TickRecordingIndex(const [], () => ticks, seen);
+      final timer = Timer.periodic(Duration.zero, (_) => ticks++);
+      addTearDown(timer.cancel);
+
+      await pipeline.plan(
+        FakeSourceAdapter([
+          for (var i = 0; i < 40; i++)
+            record('r$i', 'Dance $i', authorNames: ['A $i']),
+        ]),
+        const ImportRequest(),
+        index: index,
+        yieldInterval: const Duration(hours: 1),
+      );
+
+      expect(seen, hasLength(40));
+      expect(seen.toSet(), {0});
+    });
+
     test('with a long interval it does not pay for yielding', () async {
       var ticks = 0;
       final seen = <int>[];
@@ -151,7 +213,24 @@ void main() {
     });
   });
 
-  group('commit writes provenance transactionally', () {
+  group('commit writes provenance per record', () {
+    test('commit reports progress per record, ending at the total', () async {
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          for (var i = 0; i < 3; i++) record('p$i', 'Progress Dance $i'),
+        ]),
+        const ImportRequest(),
+      );
+      final events = <(int, int)>[];
+      await pipeline.commit(
+        batch,
+        now: now,
+        newId: nextId,
+        onProgress: (done, total) => events.add((done, total)),
+      );
+      expect(events, [(1, 3), (2, 3), (3, 3), (3, 3)]);
+    });
+
     test('resolves a matching configured custom difficulty label', () async {
       final custom = await difficultyLevels.createCustom(
         label: 'Workshop',
@@ -322,6 +401,153 @@ void main() {
       final hits = await dances.searchText('basket');
       expect(hits, contains(id));
     });
+  });
+
+  group('defaultTagIds (issue #1476)', () {
+    late TagRepository tags;
+    late String smooth;
+    late String noCard;
+
+    setUp(() async {
+      tags = TagRepository(db);
+      smooth = await tags.upsert(Tag(id: 'tag-smooth', name: 'Smooth'));
+      noCard = await tags.upsert(Tag(id: 'tag-no-card', name: 'No card'));
+    });
+
+    Future<ImportBatchResult> planOne(String title) => pipeline.plan(
+      FakeSourceAdapter([record('fake-$title', title)]),
+      const ImportRequest(),
+    );
+
+    Future<int> joinRows(String danceId) async =>
+        (await db
+                .customSelect(
+                  'SELECT COUNT(*) AS n FROM dance_tags WHERE dance_id = ?',
+                  variables: [Variable<String>(danceId)],
+                )
+                .getSingle())
+            .read<int>('n');
+
+    test('a created dance receives them, in the given order', () async {
+      final session = await pipeline.commit(
+        await planOne('Fresh'),
+        now: now,
+        newId: nextId,
+        defaultTagIds: [noCard, smooth],
+      );
+      final dance = (await dances.getById(session.insertedDanceIds.single))!;
+      expect(dance.tagIds, [noCard, smooth]);
+    });
+
+    test('omitting them leaves the dance untagged (program and archive '
+        'callers rely on this default)', () async {
+      final session = await pipeline.commit(
+        await planOne('Fresh'),
+        now: now,
+        newId: nextId,
+      );
+      final dance = (await dances.getById(session.insertedDanceIds.single))!;
+      expect(dance.tagIds, isEmpty);
+    });
+
+    test(
+      'tags the draft already carries are kept, first and not duplicated',
+      () async {
+        final batch = await planOne('Fresh');
+        final plan = batch.records.single;
+        final withOwnTag = ImportBatchResult(
+          records: [
+            ImportRecordPlan(
+              draft: plan.draft.copyWith(
+                dance: plan.draft.dance.copyWith(tagIds: [smooth]),
+              ),
+              verdict: plan.verdict,
+            ),
+          ],
+        );
+        final session = await pipeline.commit(
+          withOwnTag,
+          now: now,
+          newId: nextId,
+          defaultTagIds: [noCard, smooth],
+        );
+        final dance = (await dances.getById(session.insertedDanceIds.single))!;
+        expect(dance.tagIds, [smooth, noCard]);
+      },
+    );
+
+    test('a variation (a new dance) receives them', () async {
+      final seed = await pipeline.commit(
+        await planOne('The Nice Combination'),
+        now: now,
+        newId: nextId,
+      );
+      final existingId = seed.insertedDanceIds.single;
+      final session = await pipeline.commit(
+        await planOne('Nice Combination'),
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.variation(existingId)},
+        defaultTagIds: [noCard],
+      );
+      final created = (await dances.getById(session.records.single.danceId!))!;
+      expect(created.tagIds, [noCard]);
+      // The target is only link-edited; it is not a new dance.
+      expect((await dances.getById(existingId))!.tagIds, isEmpty);
+    });
+
+    test('a re-import of an existing dance does not receive them', () async {
+      final first = await pipeline.commit(
+        await planOne('Fresh'),
+        now: now,
+        newId: nextId,
+      );
+      final id = first.insertedDanceIds.single;
+      final again = await planOne('Fresh');
+      expect(again.records.single.verdict.isReimport, isTrue);
+      final second = await pipeline.commit(
+        again,
+        now: now,
+        newId: nextId,
+        defaultTagIds: [noCard],
+      );
+      expect(second.insertedDanceIds, isEmpty);
+      expect((await dances.getById(id))!.tagIds, isEmpty);
+    });
+
+    test(
+      'undo removes the new dance and its tag joins, and keeps the tag',
+      () async {
+        final session = await pipeline.commit(
+          await planOne('Fresh'),
+          now: now,
+          newId: nextId,
+          defaultTagIds: [noCard],
+        );
+        final id = session.insertedDanceIds.single;
+        expect(await joinRows(id), 1);
+
+        await pipeline.undo(session);
+
+        expect(await dances.getById(id), isNull);
+        expect(await joinRows(id), 0);
+        expect(await tags.getById(noCard), isNotNull);
+      },
+    );
+
+    test(
+      'an id with no tag row fails that record and leaves no dance behind',
+      () async {
+        final session = await pipeline.commit(
+          await planOne('Fresh'),
+          now: now,
+          newId: nextId,
+          defaultTagIds: ['no-such-tag'],
+        );
+        expect(session.records.single.succeeded, isFalse);
+        expect(await dances.listAll(), isEmpty);
+      },
+    );
   });
 
   group('re-import by (source, externalId)', () {
@@ -1282,6 +1508,205 @@ void main() {
       expect(await countingChoreographers.listAll(), hasLength(2));
     });
   });
+
+  group('a record that fails leaves no dance or author writes', () {
+    late _FailingDanceRepository failing;
+    late ImportPipeline failingPipeline;
+
+    setUp(() {
+      failing = _FailingDanceRepository(db, contraTaxonomy);
+      failingPipeline = ImportPipeline(failing, choreographers);
+    });
+
+    Future<List<String>> liveAuthorNames() async => [
+      for (final c in await choreographers.listAll()) c.name,
+    ];
+
+    // Live and tombstoned rows: tells an erased author from a tombstoned one.
+    Future<List<String>> allAuthorNames() async => [
+      for (final c in await choreographers.listAll(includeDeleted: true))
+        c.name,
+    ];
+
+    Future<String> seedDance(String externalId, String title) async {
+      final s = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([record(externalId, title)]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+      return s.insertedDanceIds.single;
+    }
+
+    test('reimport onto a hard-deleted target creates no author', () async {
+      final target = await seedDance('fake-1', 'Original');
+      final batch = await failingPipeline.plan(
+        FakeSourceAdapter([
+          record('fake-1', 'Revised', authorNames: ['Fresh Author']),
+        ]),
+        const ImportRequest(),
+      );
+      expect(batch.records.single.verdict.isReimport, isTrue);
+      await dances.hardDelete([target]);
+
+      final session = await failingPipeline.commit(
+        batch,
+        now: now,
+        newId: nextId,
+      );
+
+      expect(
+        session.records.single.error?.message,
+        contains('no longer exists'),
+      );
+      expect(await liveAuthorNames(), isNot(contains('Fresh Author')));
+      expect(session.createdChoreographerIds, isEmpty);
+      expect(session.revivedChoreographerIds, isEmpty);
+    });
+
+    test('a throwing create rolls back the new author', () async {
+      failing.failTitles.add('Doomed');
+      final session = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([
+            record('fake-1', 'Doomed', authorNames: ['Fresh Author']),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+
+      expect(session.records.single.error, isNotNull);
+      // Across tombstones too: a created author is erased, not tombstoned —
+      // no peer ever saw it, so a deletion record would advertise nothing.
+      expect(await allAuthorNames(), isNot(contains('Fresh Author')));
+      expect(session.createdChoreographerIds, isEmpty);
+    });
+
+    test('a variation whose reciprocal target update throws leaves neither '
+        'the new dance nor its author', () async {
+      final target = await seedDance('fake-1', 'The Nice Combination');
+      final batch = await failingPipeline.plan(
+        FakeSourceAdapter([
+          record('fake-2', 'Nice Combination', authorNames: ['Fresh Author']),
+        ]),
+        const ImportRequest(),
+      );
+      expect(batch.records.single.verdict.isAmbiguous, isTrue);
+      // The new dance's create succeeds; only the target's link-back fails.
+      failing.failTitles.add('The Nice Combination');
+
+      final session = await failingPipeline.commit(
+        batch,
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.variation(target)},
+      );
+
+      expect(session.records.single.error, isNotNull);
+      expect([for (final d in await dances.listAll()) d.id], [target]);
+      expect((await dances.getById(target))!.links, isEmpty);
+      expect(session.insertedDanceIds, isEmpty);
+      expect(session.updatedDancePriorStates, isEmpty);
+      expect(await allAuthorNames(), isNot(contains('Fresh Author')));
+      expect(session.createdChoreographerIds, isEmpty);
+    });
+
+    test('a throwing reimport update rolls back the new author', () async {
+      final target = await seedDance('fake-1', 'Original');
+      failing.failTitles.add('Revised');
+      final session = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([
+            record('fake-1', 'Revised', authorNames: ['Fresh Author']),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+
+      expect(session.records.single.error, isNotNull);
+      expect(await liveAuthorNames(), isNot(contains('Fresh Author')));
+      expect((await dances.getById(target))!.title, 'Original');
+    });
+
+    test('a failed record puts a revived author back to tombstoned', () async {
+      // ignore: unused_result
+      await choreographers.upsert(Choreographer(id: 'old', name: 'Old Hand'));
+      await choreographers.delete('old');
+      expect(await liveAuthorNames(), isNot(contains('Old Hand')));
+
+      failing.failTitles.add('Doomed');
+      final session = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([
+            record('fake-1', 'Doomed', authorNames: ['Old Hand']),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+
+      expect(session.records.single.error, isNotNull);
+      expect(await liveAuthorNames(), isNot(contains('Old Hand')));
+      // Re-tombstoned, not erased: the row predates the import and stays
+      // restorable.
+      expect(await allAuthorNames(), contains('Old Hand'));
+      expect(session.revivedChoreographerIds, isEmpty);
+    });
+
+    test('a later record may credit the author a failed record rolled back '
+        '(no phantom id left in the batch name map)', () async {
+      failing.failTitles.add('Doomed');
+      final session = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([
+            record('fake-1', 'Doomed', authorNames: ['Shared Author']),
+            record('fake-2', 'Survivor', authorNames: ['Shared Author']),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+
+      expect(session.records[0].error, isNotNull);
+      expect(session.records[1].error, isNull);
+      final survivor = (await dances.getById(session.insertedDanceIds.single))!;
+      final authors = await choreographers.listAll();
+      expect(authors.where((c) => c.name == 'Shared Author'), hasLength(1));
+      expect(survivor.authorIds, [authors.single.id]);
+      expect(session.createdChoreographerIds, [authors.single.id]);
+    });
+
+    test('a failed record does not delete an author an earlier record in '
+        'the batch created and credited', () async {
+      failing.failTitles.add('Doomed');
+      final session = await failingPipeline.commit(
+        await failingPipeline.plan(
+          FakeSourceAdapter([
+            record('fake-1', 'Survivor', authorNames: ['Shared Author']),
+            record('fake-2', 'Doomed', authorNames: ['Shared Author']),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+      );
+
+      expect(session.records[1].error, isNotNull);
+      final survivor = (await dances.getById(session.insertedDanceIds.single))!;
+      final authors = await choreographers.listAll();
+      expect(authors.map((c) => c.name), ['Shared Author']);
+      expect(survivor.authorIds, [authors.single.id]);
+      expect(session.createdChoreographerIds, [authors.single.id]);
+    });
+  });
 }
 
 /// A [FakeSourceAdapter] that notes, at each `parse`, how many event-loop timer
@@ -1296,5 +1721,58 @@ class _TickRecordingAdapter extends FakeSourceAdapter {
   StructuredDraft parse(RawRecord raw) {
     _seen.add(_ticks());
     return super.parse(raw);
+  }
+}
+
+/// A [DedupeIndex] that records how many event-loop ticks had happened at each
+/// `verdictFor` call — the dedupe-side twin of [_TickRecordingAdapter].
+class _TickRecordingIndex extends DedupeIndex {
+  _TickRecordingIndex(super.entries, this._ticks, this._seen);
+
+  final int Function() _ticks;
+  final List<int> _seen;
+
+  @override
+  DedupeVerdict verdictFor({
+    required ProvenanceSource source,
+    String? externalId,
+    Iterable<String> priorExternalIds = const [],
+    required String title,
+    Iterable<String> authorNames = const [],
+    double threshold = DedupeIndex.defaultThreshold,
+  }) {
+    _seen.add(_ticks());
+    return super.verdictFor(
+      source: source,
+      externalId: externalId,
+      priorExternalIds: priorExternalIds,
+      title: title,
+      authorNames: authorNames,
+      threshold: threshold,
+    );
+  }
+}
+
+/// A [DanceRepository] whose `create`/`update` throw for chosen titles, to drive
+/// a failure after the pipeline has already resolved a record's authors.
+class _FailingDanceRepository extends DanceRepository {
+  _FailingDanceRepository(super.db, super.taxonomy);
+
+  final Set<String> failTitles = {};
+
+  @override
+  Future<void> create(Dance dance) {
+    if (failTitles.contains(dance.title)) {
+      throw StateError('injected create failure');
+    }
+    return super.create(dance);
+  }
+
+  @override
+  Future<void> update(Dance dance, {bool localUserEdit = false}) {
+    if (failTitles.contains(dance.title)) {
+      throw StateError('injected update failure');
+    }
+    return super.update(dance, localUserEdit: localUserEdit);
   }
 }

@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/program_pdf.dart';
+import 'package:compendium_app/src/export/share_sanitization.dart';
 import 'package:compendium_app/src/export/json_export.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
@@ -130,6 +131,7 @@ Widget _shareBundleMenu(
   JsonExportChoice? choice = JsonExportChoice.share,
   Future<JsonSaveResult?> Function(String json, String fileName)? saveInvoker,
   JsonClipboardWriter? clipboardWriter,
+  DifficultyLevel? Function(String danceId)? difficultyLevelFor,
 }) => MaterialApp(
   localizationsDelegates: testLocalizationsDelegates,
   supportedLocales: testSupportedLocales,
@@ -141,6 +143,7 @@ Widget _shareBundleMenu(
           titleFor: _titles,
           venuesById: venuesById,
           danceFor: _danceFor,
+          difficultyLevelFor: difficultyLevelFor,
           bundleFileWriter: (json, fileName) async {
             final file = File('${dir.path}/$fileName');
             file.writeAsStringSync(json);
@@ -186,6 +189,112 @@ Widget _pdfMenu(
 );
 
 void main() {
+  // Pin the platform seam: `Platform.isLinux` is true on a Linux runner, which
+  // would route every share below to Save As.
+  final realBundleShareUnsupported = isBundleShareUnsupported;
+  setUp(() => isBundleShareUnsupported = () => false);
+  tearDown(() => isBundleShareUnsupported = realBundleShareUnsupported);
+
+  group('ProgramExportMenu on Linux', () {
+    setUp(() => isBundleShareUnsupported = () => true);
+
+    Future<void> openMenu(WidgetTester tester, Widget menu) async {
+      await tester.pumpWidget(menu);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the program bundle action saves a file instead of sharing', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('linux_save_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final saved = <String>[];
+      await openMenu(
+        tester,
+        _shareBundleMenu(
+          _program(),
+          const {},
+          dir,
+          (_) => fail('share_plus cannot carry files on Linux'),
+          saveInvoker: (json, fileName) async {
+            saved.add(fileName);
+            return JsonSaveResult(
+              path: '${dir.path}/$fileName',
+              fileName: fileName,
+            );
+          },
+        ),
+      );
+      expect(find.text('Share (program + dances)'), findsNothing);
+      await tester.tap(find.text('Save program file…'));
+      await tester.pumpAndSettle();
+
+      expect(saved, ['Friday_Contra.ccshare']);
+      expect(
+        find.text(
+          '"Friday_Contra.ccshare" saved to ${dir.path}/Friday_Contra.ccshare.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a cancelled Save As shows no snackbar or error', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('linux_cancel_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      var saves = 0;
+      await openMenu(
+        tester,
+        _shareBundleMenu(
+          _program(),
+          const {},
+          dir,
+          (_) => fail('share_plus cannot carry files on Linux'),
+          saveInvoker: (json, fileName) async {
+            saves++;
+            return null;
+          },
+        ),
+      );
+      await tester.tap(find.text('Save program file…'));
+      await tester.pumpAndSettle();
+
+      expect(saves, 1);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('JSON › Share saves a file instead of sharing', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('linux_json_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final saved = <String>[];
+      await openMenu(
+        tester,
+        _shareBundleMenu(
+          _program(),
+          const {},
+          dir,
+          (_) => fail('share_plus cannot carry files on Linux'),
+          choice: JsonExportChoice.share,
+          saveInvoker: (json, fileName) async {
+            saved.add(fileName);
+            return JsonSaveResult(
+              path: '${dir.path}/$fileName',
+              fileName: fileName,
+            );
+          },
+        ),
+      );
+      await tester.tap(find.text('Export as JSON file'));
+      await tester.pumpAndSettle();
+
+      expect(saved, ['Friday_Contra.json']);
+      expect(find.byType(SnackBar), findsOneWidget);
+    });
+  });
+
   group('ProgramExportMenu', () {
     testWidgets('is present and labeled in an app bar', (tester) async {
       await _pumpMenu(tester, _program());
@@ -637,6 +746,97 @@ void main() {
       },
     );
 
+    group('private custom fields in the program bundle', () {
+      final privateField = CustomFieldDef(
+        id: 'f-private',
+        key: 'secret',
+        label: 'Secret',
+        type: CustomFieldType.text,
+        shareable: false,
+      );
+      final privateDance = Dance(
+        id: 'dp',
+        title: 'Has A Secret',
+        figures: [
+          Figure(move: 'swing', params: {'beats': 16, 'who': 'partners'}),
+        ],
+        sourceCitations: const [],
+        customFields: [
+          CustomFieldValue(fieldId: 'f-private', value: 'PRIVATE-VALUE'),
+        ],
+        createdAt: _now,
+        updatedAt: _now,
+      );
+
+      Future<({List<String> written, ShareParams? shared})> share(
+        WidgetTester tester, {
+        CustomFieldDef? Function(String)? customFieldFor,
+      }) async {
+        final written = <String>[];
+        ShareParams? shared;
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: _program(
+                      slots: [
+                        ProgramSlot(id: 's1', position: 0, danceId: 'dp'),
+                      ],
+                    ),
+                    titleFor: _titles,
+                    danceFor: (id) => id == 'dp' ? privateDance : null,
+                    customFieldFor: customFieldFor,
+                    bundleFileWriter: (json, fileName) async {
+                      written.add(json);
+                      return XFile.fromData(
+                        utf8.encode(json),
+                        mimeType: 'application/json',
+                        name: fileName,
+                      );
+                    },
+                    shareInvoker: (params) async => shared = params,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share (program + dances)'));
+        await tester.pumpAndSettle();
+        return (written: written, shared: shared);
+      }
+
+      testWidgets('a resolved private field is omitted from the file', (
+        tester,
+      ) async {
+        final result = await share(
+          tester,
+          customFieldFor: (id) => id == 'f-private' ? privateField : null,
+        );
+
+        expect(result.shared, isNotNull);
+        expect(result.written.single, isNot(contains('PRIVATE-VALUE')));
+        expect(result.written.single, contains('Has A Secret'));
+      });
+
+      testWidgets('without a definition resolver nothing is written', (
+        tester,
+      ) async {
+        final result = await share(tester);
+
+        expect(result.written, isEmpty);
+        expect(result.shared, isNull);
+        expect(find.text("Couldn't share this program"), findsOneWidget);
+      });
+    });
+
     testWidgets('surfaces a SnackBar when the bundle share throws', (
       tester,
     ) async {
@@ -678,6 +878,86 @@ void main() {
 
       expect(find.text("Couldn't share this program"), findsOneWidget);
     });
+
+    for (final jsonExport in [false, true]) {
+      testWidgets(
+        '${jsonExport ? 'Export as JSON file' : 'Share (program + dances)'} '
+        'carries a custom level that only an alternate uses, with '
+        'hideAlternates',
+        (tester) async {
+          final dir = Directory.systemTemp.createTempSync('alt_level_test');
+          addTearDown(() => dir.deleteSync(recursive: true));
+          final customLevel = DifficultyLevel(
+            id: 'custom-x',
+            label: 'Spicy',
+            position: 9,
+          );
+          _dances['d2x'] = Dance(
+            id: 'd2x',
+            title: 'Alt Only',
+            authorIds: const [],
+            figures: const [],
+            sourceCitations: const [],
+            customFields: const [],
+            difficultyLevelId: 'custom-x',
+            createdAt: _now,
+            updatedAt: _now,
+          );
+          addTearDown(() => _dances.remove('d2x'));
+
+          ShareParams? captured;
+          String? savedJson;
+          await tester.pumpWidget(
+            _shareBundleMenu(
+              _program(
+                hideAlternates: true,
+                slots: [
+                  ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+                  ProgramSlot(
+                    id: 's2',
+                    position: 1,
+                    danceId: 'd2x',
+                    isAlt: true,
+                  ),
+                ],
+              ),
+              const {},
+              dir,
+              (p) => captured = p,
+              choice: JsonExportChoice.save,
+              saveInvoker: (json, fileName) async {
+                savedJson = json;
+                return JsonSaveResult(
+                  path: '${dir.path}/$fileName',
+                  fileName: fileName,
+                );
+              },
+              difficultyLevelFor: (danceId) =>
+                  danceId == 'd2x' ? customLevel : null,
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.text(
+              jsonExport ? 'Export as JSON file' : 'Share (program + dances)',
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(find.text("Couldn't share this program"), findsNothing);
+          expect(find.textContaining("Couldn't"), findsNothing);
+          final json = jsonExport
+              ? savedJson
+              : File(captured!.files!.single.path).readAsStringSync();
+          expect(json, isNotNull);
+          final archive = decodeArchive(json!).archive;
+          expect(archive.dances.map((d) => d.id), containsAll(['d1', 'd2x']));
+          expect(archive.difficultyLevels.map((l) => l.id), ['custom-x']);
+        },
+      );
+    }
 
     testWidgets(
       'venue with contacts: consent dialog defaults off; contacts omitted',
@@ -1450,29 +1730,71 @@ void main() {
       expect(bytes, isNotEmpty);
     });
 
-    testWidgets('renders a linked venue without throwing', (tester) async {
-      final bytes = await buildProgramPdf(
-        _program(
-          venueId: 'v1',
-          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
-        ),
+    testWidgets('draws the linked venue into the document', (tester) async {
+      final program = _program(
+        venueId: 'v1',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      );
+      final withVenue = await buildProgramPdf(
+        program,
         titleFor: _titles,
         venuesById: {'v1': _venue},
       );
-      expect(bytes, isNotEmpty);
-      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+      final withoutVenue = await buildProgramPdf(program, titleFor: _titles);
+      expect(
+        withVenue.length,
+        greaterThan(withoutVenue.length),
+        reason:
+            'the venue block and header label must add content to the PDF; '
+            'equal length means the venue never reached the page',
+      );
     });
 
-    testWidgets('renders a linked venue with only a name (no detail fields)', (
-      tester,
-    ) async {
-      final bytes = await buildProgramPdf(
-        _program(venueId: 'v2'),
-        titleFor: _titles,
-        venuesById: {'v2': Venue(id: 'v2', name: 'Bare Hall')},
+    // The text is font-encoded inside the PDF, so the content check goes
+    // through the seam `buildProgramPdf` draws its venue text from.
+    test('buildProgramPdf renders a raw venue as its sanitised form', () {
+      final text = programPdfVenueText(_program(venueId: 'v1'), {
+        'v1': _venue,
+      }, const ProgramExportLabels());
+      final printed = [?text.headerLabel, ...text.blockLines].join('\n');
+
+      for (final leak in const [
+        '123 Main St',
+        'Room 2',
+        'Montpelier',
+        '05602',
+        'Pat Caller',
+        '555-0100',
+        'pat@example.com',
+      ]) {
+        expect(printed, isNot(contains(leak)), reason: leak);
+      }
+      expect(printed, contains('Grange Hall'));
+      expect(printed, contains('https://grange.example'));
+    });
+
+    test('buildProgramPdf prints only the consented contact field', () {
+      final text = programPdfVenueText(
+        _program(venueId: 'v1'),
+        {'v1': _venue},
+        const ProgramExportLabels(),
+        includeVenueContact: {VenueContactField.contact1Email},
       );
-      expect(bytes, isNotEmpty);
-      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+      final printed = text.blockLines.join('\n');
+
+      expect(printed, contains('pat@example.com'));
+      expect(printed, isNot(contains('555-0100')));
+      expect(printed, isNot(contains('Pat Caller')));
+      expect(printed, isNot(contains('123 Main St')));
+    });
+
+    test('a venue with only a name prints its name and no detail block', () {
+      final text = programPdfVenueText(_program(venueId: 'v2'), {
+        'v2': Venue(id: 'v2', name: 'Bare Hall'),
+      }, const ProgramExportLabels());
+
+      expect(text.headerLabel, contains('Bare Hall'));
+      expect(text.blockLines, isEmpty);
     });
 
     testWidgets(
@@ -1505,31 +1827,7 @@ void main() {
     );
   });
 
-  group('venueLocalityLine', () {
-    test('joins city/state with a comma and the postal with a space', () {
-      expect(venueLocalityLine(_venue), 'Montpelier, VT 05602-1234');
-    });
-
-    test('drops the state and postal when only a city is present', () {
-      expect(
-        venueLocalityLine(Venue(id: 'v', name: 'X', city: 'Montpelier')),
-        'Montpelier',
-      );
-    });
-
-    test('formats a bare ZIP with no +4', () {
-      expect(
-        venueLocalityLine(
-          Venue(id: 'v', name: 'X', city: 'Montpelier', postalCode: '05602'),
-        ),
-        'Montpelier 05602',
-      );
-    });
-
-    test('is empty when no locality parts are present', () {
-      expect(venueLocalityLine(Venue(id: 'v', name: 'X')), isEmpty);
-    });
-
+  group('buildProgramPdf with a purged dance', () {
     testWidgets('exports a program whose dance was purged, without corruption '
         '(#459 export coverage)', (tester) async {
       // End-to-end regression for the purge → export path (#429/#459): a
@@ -1984,6 +2282,66 @@ void main() {
               'PDF with figures must be larger than set-list-only PDF; '
               'equal length means appendDances was silently dropped',
         );
+      },
+    );
+
+    testWidgets(
+      'PDF path: onLayout still lays out the PDF after the export menu has '
+      'unmounted',
+      (tester) async {
+        // Printing.layoutPdf may call onLayout again later (a page-format
+        // change in the print dialog) after the menu has unmounted. Every
+        // inherited value must be resolved before onLayout is built, as
+        // _exportMatrixPdf does (CS-11). Mutation this test catches: reading any
+        // `Scope.of(context)` inside the onLayout closure, which throws
+        // "Looking up a deactivated widget's ancestor is unsafe" here.
+        final prog = _program(
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        );
+        LayoutCallback? captured;
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: prog,
+                    titleFor: _titles,
+                    danceFor: _danceFor,
+                    shareInvoker: (params) async {},
+                    pdfLayouter: ({required name, required onLayout}) async {
+                      captured = onLayout;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Export / print PDF'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(
+            const ValueKey('program-figures-prompt-set-list-and-figures'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-confirm')),
+        );
+        await tester.pumpAndSettle();
+        expect(captured, isNotNull);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
+
+        final bytes = await captured!(PdfPageFormat.letter);
+        expect(bytes, isNotEmpty);
       },
     );
 

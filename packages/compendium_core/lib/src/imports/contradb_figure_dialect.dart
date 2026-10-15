@@ -1,6 +1,7 @@
 import '../model/figure.dart';
 import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
+import 'contradb_dancer_vocab.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
 import 'while_container.dart';
@@ -2039,8 +2040,13 @@ class _Scan {
 /// change needed. The new entries begin with distinct numeral prefixes, so
 /// ordering relative to each other is not load-bearing, but they are kept
 /// above the bare entries to preserve the "longest phrase first" invariant.
-const List<MapEntry<String, String>> _subjectPhrases =
+final List<MapEntry<String, String>> _subjectPhrases =
     <MapEntry<String, String>>[
+      // Corners, same roles, centres and single-dancer subjects, derived from
+      // the table the JSON adapter reads (post-scrub spellings: `first
+      // gentlespoon` arrives as `first role1`). Multi-word, so ahead of the
+      // bare entries.
+      ...contradbRenderedSubjectEntries(scrubFigureText),
       MapEntry('next neighbors', 'nextNeighbors'),
       MapEntry('previous neighbors', 'prevNeighbors'),
       // ContraDB renders the previous-neighbors set as `prev neighbors`

@@ -84,6 +84,11 @@ enum DpvTerm {
   /// a person.
   unclassifiedPersonal('dpv:PersonalData', ['PersonalData']),
 
+  /// Information about financial income. DPV: `Financial → Transactional →
+  /// Income` (`pd:Income`, "Information about financial income e.g. for
+  /// individual or household or family"; verified in DPV v2.3 `pd`).
+  income('pd:Income', ['Financial', 'Transactional', 'Income']),
+
   /// Data that is not about an identifiable person: dance choreography,
   /// structural fields, app configuration.
   nonPersonal('dpv:NonPersonalData', ['NonPersonalData']),
@@ -151,6 +156,11 @@ enum EgressClass {
   /// Must never reach project-operated infrastructure. May leave only by a
   /// transfer the user deliberately initiates between their own devices, or in
   /// a local backup file they control.
+  ///
+  /// One recorded exception, kept in the entries' notes rather than as a class
+  /// of its own: the venue contact columns (`venues.contact*`) go to another
+  /// person when the user ticks them in the pre-share consent dialog for that
+  /// one export. See those entries in `field_registry.dart`.
   deviceLocal,
 
   /// Never transmitted by any route, because the value is meaningless or
@@ -177,8 +187,14 @@ enum EgressClass {
   /// sending it would be redundant as well as risky.
   derived,
 
-  /// An opaque identifier the protocol must transmit for routing, but which
-  /// must never be adopted from a peer.
+  /// An opaque value the protocol must transmit — for routing, or as a cache
+  /// validator — only to the store it came from, and which is never taken as
+  /// this device's own.
+  ///
+  /// Its members carry no user data by construction: random bytes a device
+  /// minted (this device's id, or a peer's as the store lists it), or a
+  /// server-issued hash of data that server already holds (a manifest's
+  /// `ETag`). See the class table in `docs/design/sync.md`.
   protocolIdentifier,
 
   /// The address of a shared store on the configured endpoint — in effect a

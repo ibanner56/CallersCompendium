@@ -159,9 +159,11 @@ implementation notes and deviations against each item — is in
       call buttons also seed figure shorthands (#562), and the ingestion is
       sanitized + fail-closed bounded (#561). One source table is confirmed
       present in the real file but not yet mapped:
-      - `Term` → glossary import remains **blocked** on the glossary browser,
-        which is not yet built (post-GA "later" scope). **Tracked in #695.**
-        It is now the only remaining unmapped CC table for 6.5.
+      - `Term` → glossary import remains **blocked**: the Glossary view
+        exists (Experimental, read-only), but user-added terms — the storage
+        a `Term` row would import into, which must sync — are not built yet.
+        **Tracked in #695.** It is now the only remaining unmapped CC table
+        for 6.5.
 - [x] 6.6 Generic import/export (JSON) for backup and inter-user sharing
   - Export/backup delivered under G.5 (whole-collection archive + restore/merge).
   - Inter-user-sharing **import** delivered: `GenericJsonAdapter` (pure-Dart CORE
@@ -187,7 +189,7 @@ implementation notes and deviations against each item — is in
   - Architecture — [ADR-002](adr/002-distribution-and-update-channels.md); release runbook — [releasing.md](dev/releasing.md). Box stays open: **Android release APKs are now signed** (upload keystore + four CI secrets configured, validated end-to-end on a release run), **macOS release builds are now signed with a Developer ID and notarized**, and **Windows release artifacts are signed via Azure Trusted Signing when configured**, while Linux remains unsigned. GitHub Pages is now enabled, so the per-channel update manifests are hosted and served (and a public landing page ships from `site/`); as of beta.4 the in-app update path also **verifies a signed (Ed25519) update manifest, restricts artifacts to a GitHub-owned host allowlist, and gates launch on that verification**. The **open beta is live** — releases from the legacy `v0.1.0-beta.1`–`v0.1.0-beta.9` series through the current `vX.Y.Z-beta` tags are published on the [Releases page](https://github.com/ibanner56/CallersCompendium/releases); each build ships signed + notarized macOS and signed Android and Windows artifacts alongside unsigned Linux, with iPhone/iPad delivered through a TestFlight **open beta** — anyone can join via the public link, no invitation needed — (see the CHANGELOG, including the one-time Android reinstall note for the unified application id).
   - **Delivered**
     - Reusable CI (`_checks.yml` via `workflow_call`) with a thin `ci.yml` caller (#228).
-    - Release pipeline `release.yml` (#230): a `v*` tag reuses the checks gate, then a build matrix produces a **draft** GitHub Release of desktop artifacts — Linux x64 (AppImage + tar.gz, unsigned), macOS universal (dmg + zip), and Windows x64 (installer + zip, signed via Azure Trusted Signing when the required repository variables and federated OIDC configuration are present, with an unsigned fallback) — under deterministic `CallersCompendium-<ver>-<platform>-<arch>.<ext>` names, plus a `SHA256SUMS` manifest, keyless SLSA build-provenance + artifact attestation, and the per-channel `stable.json` / `beta.json` update manifests. Least-privilege (global `contents: read`; only the publish job elevates), canonical-repo + tag guards, SHA-pinned actions.
+    - Release pipeline `release.yml` (#230): a `v*` tag reuses the checks gate, then a build matrix produces a **draft** GitHub Release of desktop artifacts — Linux x64 (AppImage + tar.gz, unsigned), macOS universal (dmg + zip), and Windows x64 (installer + zip, signed via Azure Trusted Signing when the required repository variables and federated OIDC configuration are present, with an unsigned fallback) — under deterministic `CallersCompendium-<ver>-<platform>-<arch>.<ext>` names, plus a `SHA256SUMS` manifest, keyless SLSA build-provenance + artifact attestation, and the per-channel `stable.json` / `beta.json` update manifests. Least-privilege (global `contents: read`; the build matrix runs behind the `release-signing` approval gate with `id-token: write` for Windows' Azure OIDC signing; only the publish job gets `contents: write`), canonical-repo + tag guards, SHA-pinned actions.
     - CHANGELOG-driven release notes (`tools/release/gen_release_notes.py`): both
       stable and the permitted bare-beta tag fail fast without their shared
       `## [x.y.z]` section.
@@ -217,8 +219,12 @@ implementation notes and deviations against each item — is in
       [releasing.md](dev/releasing.md#ios-testflight-via-app-store-connect-api)
       and [store-submission/app-store.md](dev/store-submission/app-store.md#4-open-beta--testflight-external-testing--done).
     - **macOS Developer ID signing + notarization delivered** (#311, notarization wait bounded in #329): the `release.yml` macOS leg signs the universal build with an Apple Developer ID and notarizes it (gated on the configured Apple secrets), so the macOS `.dmg`/`.zip` now open without the Gatekeeper right-click workaround. Shipped in beta.2.
-  - **Remaining (maintainer — one-time, $0)**
-    - Document Android upload-keystore custody (owner, secure backup, rotation policy) — the key is generated and wired into CI, so this is governance, not a build blocker (see [ADR-002](adr/002-distribution-and-update-channels.md) §6). **Tracked in #692**, which also records the sideload-vs-Play App Signing distinction (the sideload signing key is unrotatable; the Play upload key is resettable) and the cross-channel key decision that must be made before the first Play publication.
+  - **Resolved (maintainer ops)**
+    - Android signing-key custody, backup, and rotation policy — documented in the
+      [release runbook](dev/releasing.md#android-signing-key-custody-backup-and-rotation)
+      (#692, #1087). The cross-channel decision is made: the Play app-signing key
+      is **intentionally distinct** from the direct-APK key, so moving between
+      channels is a backup → uninstall → install → restore, not an in-place update.
   - **Deferred** (later signing wave — needs paid developer accounts / a decision; see [ADR-002](adr/002-distribution-and-update-channels.md) §6)
     - Windows Authenticode/Store (MSIX) signing — Azure Trusted Signing is wired for the Windows installer and portable bundle when configured; the Linux half is decided in ADR-003 and tracked in #491. (macOS is now signed + notarized and iOS is distributed via TestFlight — see **Delivered** above.)
     - Store distribution (Google Play, F-Droid, Flathub). **Google Play submission is now in preparation:** a release-workflow leg builds and stages a **signed Android App Bundle (`.aab`)** for Play (#535), a store-distribution **license exception** to the AGPL was added so managed marketplaces are permitted (#534), and **App Store & Google Play submission guides** plus listing copy, a privacy policy, and a contact address landed under [docs/dev/store-submission/](dev/store-submission/) (#532, #534). Actual store listing/publication is still pending. For Linux, the post-beta channel evaluation is decided in [ADR-003](adr/003-linux-native-distribution-channel.md): **Flathub-first** (auto-update + desktop integration + trusted-publisher signing, no self-run infra), with Snap/Launchpad PPA secondary and a self-hosted apt repo only on clear demand.
@@ -257,20 +263,36 @@ implementation notes and deviations against each item — is in
       (`site/`), and the store-submission listing/privacy docs. No personal
       maintainer address remains in the repo.
   - **In progress**
-    - Beta execution — recruit → run → interview → GA. Underway: builds ship for every platform (macOS signed + notarized, Android signed, Windows signed when configured, Linux unsigned; iPhone/iPad via an open TestFlight beta), the Getting Started guide is live, and beta callers are filing feedback against the current beta releases. Remaining is the run → interview → GA arc with more real callers.
+    - Beta execution with real callers. Underway: builds ship for every platform (macOS signed + notarized, Android signed, Windows signed when configured, Linux unsigned; iPhone/iPad via an open TestFlight beta), the Getting Started guide is live, and beta callers are filing feedback against the current beta releases. There are no formal exit criteria: the target audience is fewer than a thousand callers, too few for a numeric bar to mean much, so the first stable release is the maintainer's call once the beta feels ready (maintainer decision, #1754). Each release, stable included, still passes the per-tag gates in the [release checklist](dev/release-checklist.md).
 
 ## Later milestones
 
-- ECD and Squares support
+- ECD and Squares support — the ECD figure grammar is proposed in [ADR-006](adr/006-english-country-dance-canonical-grammar.md)
 - ~~Optional device-to-device sync, beyond Apple-native AirDrop support.~~ —
   **Cut**: [ADR-004](adr/004-device-sync-and-athenaeum.md) rules out local
   network discovery. Device-local data (venue addresses and contacts) moves by
   the existing JSON backup export/import, or AirDrop of that file; everything
   shareable syncs through Athenaeum instead.
 - **Glossary / terms** (CC `Term`: term + definition + source) — a browsable
-  reference of caller terminology, dialect-aware. **Tracked in #695**; today the
-  app ships only the static `docs/user/glossary.md` guide (no glossary entity),
-  which is why the CC `Term` mapping in 6.5 stays blocked.
+  reference of caller terminology, dialect-aware. **Tracked in #695.**
+  - **Delivered:** a read-only **Glossary** navigation destination, off by
+    default behind **Settings ▸ Experimental ▸ Show Glossary**, listing the
+    taxonomy's built-in figures in the active dialect. Its entries are derived
+    from the taxonomy at runtime, so nothing is stored or synced.
+  - **Delivered:** a shipped, read-only definition and description for every
+    built-in figure (`contra_figure_definitions.dart`), checked against The
+    Caller's Box glossary and the glossary of Larry Jennings's *Give and Take*
+    and written in the project's own words. A test requires every taxonomy
+    figure to have one.
+  - **Remaining.** Maintainer decisions (2026-10-14, recorded in the PR that
+    delivered the view): each built-in figure shows a read-only shipped
+    definition and description, with a user-editable notes field; the shipped
+    glossary does not sync, but any user additions (own terms, notes on
+    figures) must. Still to build: user additions, together with their sync;
+    then the CC `Term` mapping in 6.5.
+    The author's proposed order for sync — not yet a maintainer decision — is a
+    tolerant manifest reader released first, because older clients reject an
+    unknown sync record kind.
 - **User-defined quick-entry snippets** — CC's "Insert Call" buttons (per-user
   label → expansion text + beats + a gender-free alternate). **Accepted, reframed**
   over our structured model (see #401): a user shorthand maps to a fully-configured

@@ -4,7 +4,9 @@
 ///
 /// The on-device crash log keeps full/raw records — it never leaves the device
 /// unless the user explicitly exports it. [CrashRedactor] produces the scrubbed
-/// text used for the *default* export: it removes contact PII (emails, phone
+/// stack text used for the *default* export (the error message itself is
+/// withheld outright by `CrashLogRecord.scrubbed`, since no term list can cover
+/// a value that was never saved or was later purged): it removes contact PII (emails, phone
 /// numbers), collapses absolute filesystem paths to a placeholder (keeping the
 /// file basename so a stack frame stays diagnostically useful — unless the
 /// path ends at a home directory, where the "basename" is the username), and

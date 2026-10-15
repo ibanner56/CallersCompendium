@@ -8,8 +8,10 @@ same texts ship in the app under **Settings ▸ About ▸ View licenses**.
 
 Fonts bundled with the app are covered separately: their SIL Open Font License
 texts live beside them in [`app/assets/fonts/`](app/assets/fonts/) and appear on
-the same in-app license page. Third-party packages the app depends on carry
-their own licenses, which Flutter lists on that page automatically.
+the same in-app license page. Third-party Dart packages the app depends on
+carry their own licenses, which Flutter lists on that page automatically.
+Native libraries that do not come through pub are not listed automatically;
+their notices are bundled and registered by hand (see [pdfium](#pdfium) below).
 
 If you port code from another project, add its notice here, to the head of the
 ported file, and to the in-app license page (`app/lib/src/licenses.dart`).
@@ -17,6 +19,25 @@ The bundled asset under `app/assets/licenses/` is the reference copy;
 `app/test/licenses_notice_test.dart` compares every other copy against it, and
 fails when a source file that calls itself an MIT-licensed port carries no
 notice.
+
+## pdfium
+
+The Linux and Windows builds ship a prebuilt
+[pdfium](https://pdfium.googlesource.com/pdfium/) (PDFium 106.0.5200.0, from
+the [`bblanchon/pdfium-binaries`](https://github.com/bblanchon/pdfium-binaries)
+release `chromium/5200`), which the `printing` plugin uses to render PDF pages
+on those platforms. It is pinned and hash-checked by
+[`packaging/pdfium/pdfium.cmake`](packaging/pdfium/pdfium.cmake). The Android,
+iOS and macOS builds do not contain it.
+
+PDFium's own licence section carries BSD-3-Clause and Apache-2.0 texts, and the
+binary includes code from FreeType, libjpeg-turbo, the IJG JPEG library, lcms,
+OpenJPEG, zlib, libpng, LibTIFF, Anti-Grain Geometry and ICU, among others,
+each with its own notice. The release archive's `LICENSE` file carries all of
+them; we ship it verbatim (one Latin-1 byte re-encoded as UTF-8) as
+[`app/assets/licenses/pdfium-LICENSE.txt`](app/assets/licenses/pdfium-LICENSE.txt),
+and the Linux and Windows apps show it under **Settings ▸ About ▸ View
+licenses**. At about 1,300 lines it is not repeated here.
 
 ## fmptools
 

@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_app/src/screens/theme_editor_screen.dart';
 
+import 'package:compendium_app/l10n/app_localizations.dart';
+
 import '../support/l10n_harness.dart';
 
 /// A [CustomTheme] whose `Text on primary` pair is deliberately unreadable:
@@ -73,6 +75,33 @@ void main() {
         findsOneWidget,
       );
       expect(_liveRegions(), findsNothing);
+    });
+  });
+
+  group('ThemeEditorScreen labels are localized (CS-47)', () {
+    testWidgets('role, group and contrast-pair labels are German', (
+      tester,
+    ) async {
+      final de = lookupAppLocalizations(const Locale('de'));
+      await tester.binding.setSurfaceSize(const Size(900, 3000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('de'),
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: ThemeEditorScreen(initial: _passingTheme()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('On primary'), findsNothing);
+      expect(find.text('Primary container'), findsNothing);
+      expect(find.text('Surface & text'), findsNothing);
+      expect(find.text('Text on primary'), findsNothing);
+      expect(find.text(de.themeEditorRoleOnPrimary), findsOneWidget);
+      expect(find.text(de.themeEditorGroupSurfaceText), findsOneWidget);
+      expect(find.textContaining(de.themeEditorPairOnPrimary), findsWidgets);
     });
   });
 }

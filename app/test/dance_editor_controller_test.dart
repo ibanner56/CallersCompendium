@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart' show testFigure;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
@@ -15,9 +16,11 @@ import 'figures_support.dart';
 /// complements the widget-level `editor_autosave_undo_test.dart` by exercising
 /// the extracted controller in isolation.
 ///
-/// The controller's debounce timers are real 500 ms [Timer]s, so tests wait a
-/// little past that window (`settleDebounce`) to let them fire.
+/// The controller's debounce timers are real [Timer]s, so tests build it with a
+/// short [testDebounce] and wait a little past that window (`settleDebounce`)
+/// to let them fire.
 void main() {
+  const testDebounce = Duration(milliseconds: 10);
   final now = DateTime.utc(2026, 1, 1);
 
   Dance sampleDance({
@@ -41,16 +44,15 @@ void main() {
       repositories: repos,
       danceId: null,
       dialect: Dialect.larksRobins,
+      debounce: testDebounce,
     );
     await controller.load(dance: null, fieldDefs: const []);
     return controller;
   }
 
-  /// Waits past the 500 ms undo/autosave debounce window, then lets the async
-  /// draft write settle.
-  Future<void> settleDebounce() async {
-    await Future<void>.delayed(const Duration(milliseconds: 650));
-  }
+  /// Waits past the injected undo/autosave [testDebounce] window, then lets the
+  /// async draft write settle.
+  Future<void> settleDebounce() => Future<void>.delayed(testDebounce * 2);
 
   /// Polls until the autosave draft exists (or times out), tolerating the async
   /// db write kicked off by the debounce timer.
@@ -235,6 +237,27 @@ void main() {
     expect(controller.titleController.text, isEmpty);
   });
 
+  test('the injected debounce governs the autosave timer', () async {
+    final repos = openTestRepositories();
+    final controller = DanceEditorController(
+      repositories: repos,
+      danceId: null,
+      dialect: Dialect.larksRobins,
+      debounce: const Duration(milliseconds: 10),
+    );
+    await controller.load(dance: null, fieldDefs: const []);
+    addTearDown(controller.dispose);
+
+    controller.titleController.text = 'Quick';
+    controller.onTextEdited();
+    expect(await repos.settings.contains('editor_draft:new'), isFalse);
+
+    // Well inside the 500 ms default, so only the injected value can have
+    // fired the timer.
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    expect(await repos.settings.contains('editor_draft:new'), isTrue);
+  });
+
   group('initialTitle seed (issue #881 program-slot "create a dance")', () {
     test('seeds a new dance\'s title field', () async {
       final repos = openTestRepositories();
@@ -400,7 +423,7 @@ void main() {
     // right after starting, simulating a write already "in flight" when
     // cleanup runs.
     delayed.settings.holdNextWrite();
-    await Future<void>.delayed(const Duration(milliseconds: 650));
+    await settleDebounce();
     await delayed.settings.writeStarted;
 
     // Fire the cleanup while the autosave write is still suspended. If
@@ -480,7 +503,7 @@ void main() {
     controller.titleController.text = 'First Edit';
     controller.onTextEdited();
     delayed.settings.holdNextWrite();
-    await Future<void>.delayed(const Duration(milliseconds: 650));
+    await settleDebounce();
     await delayed.settings.writeStarted;
 
     // While the first write is still suspended, make a second edit. Its
@@ -491,7 +514,7 @@ void main() {
     controller.titleController.text = 'Second Edit';
     controller.onTextEdited();
     delayed.settings.holdNextWrite();
-    await Future<void>.delayed(const Duration(milliseconds: 650));
+    await settleDebounce();
 
     // The second write is queued behind the still-suspended first write,
     // so it hasn't started yet.
@@ -772,6 +795,117 @@ void main() {
     expect(figuresOf(dance).last.note, 'role2s chain to neighbor');
   });
 
+  // parser-1 / #715: role words that are also move words are not rewritten
+  // in figure notes and custom text — the move name "mad robin" in every
+  // dialect, and the verbs "lead"/"follow" under Leads/Follows — while the
+  // same words used as roles are still canonicalised.
+  group('move words in notes and custom text survive a save (parser-1)', () {
+    Future<DanceEditorController> controllerIn(Dialect dialect) async {
+      final controller = DanceEditorController(
+        repositories: openTestRepositories(),
+        danceId: null,
+        dialect: dialect,
+        debounce: testDebounce,
+      );
+      await controller.load(dance: null, fieldDefs: const []);
+      return controller;
+    }
+
+    for (final (dialect, typed, stored) in [
+      (Dialect.larksRobins, 'then mad robin twice', 'then mad robin twice'),
+      (Dialect.leadsFollows, 'then mad robin twice', 'then mad robin twice'),
+      (
+        Dialect.leadsFollows,
+        'Ones lead down the hall, leads turn alone',
+        'Ones lead down the hall, role1s turn alone',
+      ),
+      (
+        Dialect.leadsFollows,
+        'Twos follow the ones down',
+        'Twos follow the ones down',
+      ),
+    ]) {
+      test('note "$typed" in ${dialect.name}', () async {
+        final controller = await controllerIn(dialect);
+        addTearDown(controller.dispose);
+        controller.addFigure();
+        final draft = controller.figureDrafts.last;
+        draft.move = 'allemande';
+        draft.note = typed;
+        controller.titleController.text = 'Some Dance';
+        controller.onTextEdited();
+        expect(figuresOf(controller.buildDance()).last.note, stored);
+      });
+    }
+
+    test('custom "Ones lead down the hall" keeps the verb under '
+        'Leads/Follows and reads the same under Larks/Robins', () async {
+      final controller = await controllerIn(Dialect.leadsFollows);
+      addTearDown(controller.dispose);
+      controller.addFigure();
+      final draft = controller.figureDrafts.last;
+      draft.move = customMove;
+      draft.params['text'] = 'Ones lead down the hall four abreast';
+      controller.titleController.text = 'Some Dance';
+      controller.onTextEdited();
+      final saved = figuresOf(controller.buildDance()).last;
+      expect(saved.params['text'], 'Ones lead down the hall four abreast');
+
+      final again = DanceEditorController(
+        repositories: openTestRepositories(),
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+      );
+      addTearDown(again.dispose);
+      await again.load(
+        dance: sampleDance(id: 'd1').copyWith(figures: [saved]),
+        fieldDefs: const [],
+      );
+      expect(
+        again.figureDrafts.first.params['text'],
+        'Ones lead down the hall four abreast',
+      );
+    });
+  });
+
+  // Copilot review of #1699: a custom dialect whose move substitution holds a
+  // role word ("robins chain") must not shield that word on a no-edit save,
+  // so the text still follows a later dialect switch.
+  test('a no-edit save under a custom move substitution keeps custom text '
+      'canonical across a dialect switch', () async {
+    final custom = Dialect.larksRobins.copyWith(
+      name: 'Custom',
+      moves: {'chain': 'robins chain'},
+    );
+    final stored = sampleDance(id: 'd1').copyWith(
+      figures: [
+        testFigure(move: 'custom', params: {'text': 'role2s chain wide'}),
+      ],
+    );
+    final controller = DanceEditorController(
+      repositories: openTestRepositories(),
+      danceId: 'd1',
+      dialect: custom,
+    );
+    addTearDown(controller.dispose);
+    await controller.load(dance: stored, fieldDefs: const []);
+    expect(controller.figureDrafts.first.params['text'], 'robins chain wide');
+    final saved = figuresOf(controller.buildDance()).first;
+    expect(saved.params['text'], 'role2s chain wide');
+
+    final again = DanceEditorController(
+      repositories: openTestRepositories(),
+      danceId: 'd1',
+      dialect: Dialect.leadsFollows,
+    );
+    addTearDown(again.dispose);
+    await again.load(
+      dance: sampleDance(id: 'd1').copyWith(figures: [saved]),
+      fieldDefs: const [],
+    );
+    expect(again.figureDrafts.first.params['text'], 'follows chain wide');
+  });
+
   test('a figure note round-trips canonical -> render -> canonicalize '
       'idempotently (#715)', () async {
     final repos = openTestRepositories();
@@ -875,6 +1009,219 @@ void main() {
 
     expect(controller.figureDrafts.last.note, 'robins allemande right 1/2');
   });
+
+  group(
+    'custom figure text is canonical on save, dialect on read (DIA-02)',
+    () {
+      Dance customDance() => sampleDance(id: 'd1').copyWith(
+        figures: [
+          Figure(move: 'custom', params: const {'text': 'role1s chain wide'}),
+          Figure.meanwhile(
+            figures: [
+              Figure(move: 'custom', params: const {'text': 'role2s wait'}),
+              Figure(move: 'swing'),
+            ],
+            beats: 8,
+          ),
+        ],
+      );
+
+      for (final (dialect, first, nested) in [
+        (Dialect.larksRobins, 'larks chain wide', 'robins wait'),
+        (Dialect.leadsFollows, 'leads chain wide', 'follows wait'),
+      ]) {
+        test('load renders stored text in ${dialect.name}', () async {
+          final controller = DanceEditorController(
+            repositories: openTestRepositories(),
+            danceId: 'd1',
+            dialect: dialect,
+          );
+          addTearDown(controller.dispose);
+          await controller.load(dance: customDance(), fieldDefs: const []);
+          expect(controller.figureDrafts.first.params['text'], first);
+          expect(
+            controller.figureDrafts.last.meanwhileSides!.first.params['text'],
+            nested,
+          );
+          // Saving round-trips to the canonical form.
+          final rebuilt = figuresOf(controller.buildDance());
+          expect(rebuilt.first.params['text'], 'role1s chain wide');
+          expect(rebuilt.last.subFigures.first.params['text'], 'role2s wait');
+        });
+      }
+
+      test('typed custom text is saved canonically', () async {
+        final controller = await newDanceController(openTestRepositories());
+        addTearDown(controller.dispose);
+        controller.addFigure();
+        final draft = controller.figureDrafts.last;
+        draft.move = customMove;
+        draft.params['text'] = 'Larks chain wide';
+        controller.titleController.text = 'Some Dance';
+        controller.onTextEdited();
+        expect(
+          figuresOf(controller.buildDance()).last.params['text'],
+          'role1s chain wide',
+        );
+      });
+
+      // Role words in typed custom text are stored lowercase, whatever case
+      // they were typed in. This is the accepted behaviour (parser-2,
+      // maintainer decision 2026-10-06): imports already store `role1s`, and
+      // preserving the caller's case (`Role1s`, `ROLE2S`) would give the same
+      // words different canonical bytes, so `figureCanonicalKey` — the
+      // line-level dedupe/diff identity — would split a typed figure from the
+      // identical imported one.
+      //
+      // The import side is the real import scrub (`scrubFigureText`), not the
+      // editor's own expected bytes. It agrees for role words and for the
+      // move name "mad robin", which both sides store in lowercase
+      // (maintainer choice B, 2026-10-06), so an all-caps "MAD ROBIN" line
+      // dedupes with its imported twin too.
+      for (final (typed, stored, shown, matchesImport) in [
+        ('Larks chain wide', 'role1s chain wide', 'larks chain wide', true),
+        ('LADIES chain', 'role2s chain', 'robins chain', true),
+        (
+          'MAD ROBIN, LADIES IN',
+          'mad robin, role2s IN',
+          'mad robin, robins IN',
+          true,
+        ),
+      ]) {
+        test('typed "$typed" stores role words lowercase (parser-2)', () async {
+          final controller = await newDanceController(openTestRepositories());
+          addTearDown(controller.dispose);
+          controller.addFigure();
+          final draft = controller.figureDrafts.last;
+          draft.move = customMove;
+          draft.params['text'] = typed;
+          controller.titleController.text = 'Some Dance';
+          controller.onTextEdited();
+          final saved = figuresOf(controller.buildDance()).last;
+          expect(saved.params['text'], stored);
+          // Dedupe identity against what an import of the same text stores.
+          final imported = testFigure(
+            move: 'custom',
+            params: {'text': scrubFigureText(typed)},
+          );
+          final sameKey =
+              figureCanonicalKey(saved, contraTaxonomy) ==
+              figureCanonicalKey(imported, contraTaxonomy);
+          expect(sameKey, matchesImport);
+          // Read back in the dialect: role words come back lowercase.
+          final again = DanceEditorController(
+            repositories: openTestRepositories(),
+            danceId: 'd1',
+            dialect: Dialect.larksRobins,
+          );
+          addTearDown(again.dispose);
+          await again.load(
+            dance: sampleDance(id: 'd1').copyWith(figures: [saved]),
+            fieldDefs: const [],
+          );
+          expect(again.figureDrafts.first.params['text'], shown);
+        });
+      }
+
+      // "mad robin" is a move name, not the role, so saving custom text must
+      // not rewrite it to "mad role2" (which reads "mad follow" under
+      // Leads/Follows). It is stored in lowercase, as the import scrub stores
+      // it, so typed and imported text deduplicate (maintainer choice B,
+      // 2026-10-06; this reverses #1678's "kept as typed").
+      for (final dialect in [Dialect.larksRobins, Dialect.leadsFollows]) {
+        test(
+          'the move name "mad robin" survives a save in ${dialect.name}',
+          () async {
+            final controller = DanceEditorController(
+              repositories: openTestRepositories(),
+              danceId: null,
+              dialect: dialect,
+              debounce: testDebounce,
+            );
+            await controller.load(dance: null, fieldDefs: const []);
+            addTearDown(controller.dispose);
+            controller.addFigure();
+            final draft = controller.figureDrafts.last;
+            draft.move = customMove;
+            draft.params['text'] = 'Mad robin twice, then MAD ROBINS';
+            controller.titleController.text = 'Some Dance';
+            controller.onTextEdited();
+            final saved = figuresOf(
+              controller.buildDance(),
+            ).last.params['text'];
+            expect(saved, 'mad robin twice, then mad robins');
+            // And it stays put on the next load and save.
+            final again = DanceEditorController(
+              repositories: openTestRepositories(),
+              danceId: 'd1',
+              dialect: dialect,
+            );
+            addTearDown(again.dispose);
+            await again.load(
+              dance: sampleDance(id: 'd1').copyWith(
+                figures: [
+                  testFigure(move: 'custom', params: {'text': saved}),
+                ],
+              ),
+              fieldDefs: const [],
+            );
+            expect(again.figureDrafts.first.params['text'], saved);
+            expect(figuresOf(again.buildDance()).first.params['text'], saved);
+          },
+        );
+      }
+
+      // The shield swaps each "mad robin" for a placeholder and swaps it
+      // back afterwards; text that already contains placeholder-shaped
+      // words must come through untouched rather than be rewritten or crash.
+      test('placeholder-shaped text beside "mad robin" is kept', () async {
+        final controller = await newDanceController(openTestRepositories());
+        addTearDown(controller.dispose);
+        controller.addFigure();
+        final draft = controller.figureDrafts.last;
+        draft.move = customMove;
+        const text = 'xmadrobinx1x, mad robin, XMADROBINX0X';
+        draft.params['text'] = text;
+        controller.titleController.text = 'Some Dance';
+        controller.onTextEdited();
+        expect(figuresOf(controller.buildDance()).last.params['text'], text);
+      });
+
+      test('role words beside "mad robin" are still canonicalized', () async {
+        final controller = await newDanceController(openTestRepositories());
+        addTearDown(controller.dispose);
+        controller.addFigure();
+        final draft = controller.figureDrafts.last;
+        draft.move = customMove;
+        draft.params['text'] = 'mad robin, larks in the middle';
+        controller.titleController.text = 'Some Dance';
+        controller.onTextEdited();
+        expect(
+          figuresOf(controller.buildDance()).last.params['text'],
+          'mad robin, role1s in the middle',
+        );
+      });
+
+      test(
+        'insertFreeTextFigures shows custom text in the active dialect',
+        () async {
+          final controller = await newDanceController(openTestRepositories());
+          addTearDown(controller.dispose);
+          controller.insertFreeTextFigures([
+            Figure(
+              move: 'custom',
+              params: const {'text': 'role1s chain wide'},
+              customOrigin: CustomOrigin.importGap,
+            ),
+          ]);
+          expect(
+            controller.figureDrafts.last.params['text'],
+            'larks chain wide',
+          );
+        },
+      );
+    },
+  );
 
   test('duplicateFigure preserves the assumed-subject marker on the copy '
       '(#460)', () async {
@@ -1348,6 +1695,40 @@ void main() {
       // Persisted to the repository so it round-trips like any other option.
       final stored = await repos.customFieldDefs.getById('adj');
       expect(stored!.choices, ['driving', 'lyrical']);
+    });
+
+    test('keeps every other flag, including a private field private', () async {
+      final repos = openTestRepositories();
+      // Every flag off its constructor default, so a property dropped from the
+      // rebuilt definition shows up as a difference.
+      final def = CustomFieldDef(
+        id: 'adj',
+        key: 'adjectives',
+        label: 'Adjectives',
+        type: CustomFieldType.choice,
+        choices: const ['driving'],
+        showInList: true,
+        searchable: false,
+        shareable: false,
+      );
+      final controller = await controllerWith(repos, def);
+      addTearDown(controller.dispose);
+
+      final result = await controller.addChoiceOption('adj', 'lyrical');
+
+      expect(result, AddChoiceResult.added);
+      final expected = CustomFieldDef(
+        id: 'adj',
+        key: 'adjectives',
+        label: 'Adjectives',
+        type: CustomFieldType.choice,
+        choices: const ['driving', 'lyrical'],
+        showInList: true,
+        searchable: false,
+        shareable: false,
+      );
+      expect(controller.fieldDefs.single, expected);
+      expect(await repos.customFieldDefs.getById('adj'), expected);
     });
 
     test('rejects a case-sensitive duplicate without persisting', () async {

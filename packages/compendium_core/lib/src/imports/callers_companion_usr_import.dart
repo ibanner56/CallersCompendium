@@ -228,6 +228,8 @@ class CallersCompanionUsrImporter {
     String Function()? newId,
     String Function()? newSlotId,
     Map<int, DedupeResolution> resolutions = const {},
+    List<String> defaultTagIds = const [],
+    void Function(int done, int total)? onProgress,
   }) async {
     final mintId = newId ?? uuidV4;
     final danceSession = await _pipeline.commit(
@@ -235,6 +237,9 @@ class CallersCompanionUsrImporter {
       now: now,
       newId: mintId,
       resolutions: resolutions,
+      // Dances only: programs carry no tags.
+      defaultTagIds: defaultTagIds,
+      onProgress: onProgress,
     );
 
     final danceIdByCcRowId = _danceIdByCcRowId(danceSession);
@@ -483,8 +488,9 @@ class CallersCompanionUsrImporter {
       // `discover` failed. The pipeline turns that into an error batch instead
       // of rethrowing, and decoding the file again here would only fail the same
       // way — after a second full scan of a file that may be hundreds of MiB.
-      // Surface the error it already captured, unwrapped to the adapter's own
-      // (the pipeline prefixes it with "Discovery failed:").
+      // Surface the error it already captured. The pipeline returns an
+      // adapter's own ImportError as-is; the `cause` unwrap covers any other
+      // failure it wrapped.
       final captured = batch.errors.firstWhere(
         (e) => e.stage == ImportStage.discover,
         orElse: () => ImportError(

@@ -17,6 +17,10 @@
 /// the whole row — contact names, street address, locality — into the crash
 /// record's `errorMessage`, and the export scrubs only what it has terms for.
 ///
+/// (Superseded for the message itself: `CrashLogRecord.scrubbed` now withholds
+/// `errorMessage` entirely, so this list is defence in depth for the stack and
+/// other redacted text, not the only barrier.)
+///
 /// Shape follows `share_bundle_egress_test.dart` and the coverage ratchet in
 /// `packages/compendium_core/test/privacy/`: derive the required set from the
 /// real artefact (every TEXT column whose registry subject is `thirdParty` or
@@ -73,6 +77,9 @@ const Map<String, String> _sources = {
   // -- performer credits (thirdParty) --
   'programs.band': 'TERMSRC program band',
   'programs.caller': 'TERMSRC program caller',
+  // An ISO-shaped code ('XTS' is the reserved testing currency) because the
+  // Program constructor rejects anything else.
+  'programs.pay_currency': 'XTS',
   'program_slots.guest_caller': 'TERMSRC guest caller',
   // -- published sources (thirdParty) --
   'published_sources.author': 'TERMSRC source author',
@@ -80,6 +87,7 @@ const Map<String, String> _sources = {
   // -- Device Sync queues: whole serialized records (thirdParty) --
   'review_queue.candidate_blob': '{"TERMSRC":"review candidate blob"}',
   'pending_deletions.tombstone_blob': '{"TERMSRC":"tombstone blob"}',
+  'retained_sync_fields.payload': '{"TERMSRC":{"v":"kept newer field"}}',
   // -- not required by the registry; user content all the same --
   'venues.name': 'TERMSRC venue name',
   'venues.sponsor': 'TERMSRC venue sponsor',
@@ -238,6 +246,8 @@ Future<void> _populate(CompendiumRepositories repos) async {
       title: 'Fixture Program',
       band: _v('programs.band'),
       caller: _v('programs.caller'),
+      payMinorUnits: 12345,
+      payCurrency: _v('programs.pay_currency'),
       slots: [
         ProgramSlot(
           id: 'ps1',
@@ -265,6 +275,11 @@ Future<void> _populate(CompendiumRepositories repos) async {
     tombstonedAt: _now,
     tombstoneHash: 'tombstone-hash',
     tombstoneBlob: _v('pending_deletions.tombstone_blob'),
+  );
+  await repos.syncLocal.setRetainedSyncFields(
+    kind: SyncRecordKind.program,
+    recordId: 'p1',
+    payload: _v('retained_sync_fields.payload'),
   );
 }
 

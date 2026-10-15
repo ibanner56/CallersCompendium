@@ -5,12 +5,38 @@ import 'package:meta/meta.dart';
 
 import '../../model/custom_field.dart';
 import '../../model/enums.dart';
+import '../../model/stored_timestamp.dart';
 import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../duplicate_natural_key.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
+import '../utc_datetime.dart';
 import 'sync_local_repository.dart';
+
+/// Thrown by [CustomFieldDefRepository.delete] when live dances still hold a
+/// value for the field.
+///
+/// Carries the count so a screen can pluralise its own localised sentence
+/// instead of parsing a message. [toString] names the field id and is for logs
+/// only: screens MUST NOT surface it (CWE-209).
+class CustomFieldInUseException implements Exception {
+  const CustomFieldInUseException({
+    required this.fieldId,
+    required this.danceCount,
+  });
+
+  /// The id of the field definition that could not be deleted.
+  final String fieldId;
+
+  /// How many **live** dances still hold a value for [fieldId].
+  final int danceCount;
+
+  @override
+  String toString() =>
+      'cannot delete custom field "$fieldId": still set on '
+      '$danceCount dance(s)';
+}
 
 /// CRUD for [CustomFieldDef] rows (the user-defined field schema).
 ///
@@ -136,6 +162,7 @@ class CustomFieldDefRepository {
                   joinColumn: 'field_id',
                 ) ??
                 def.id;
+      final heldBefore = fromSync ? null : await _publishesValues(id);
       await _db
           .into(_db.customFieldDefs)
           .insertOnConflictUpdate(
@@ -168,6 +195,9 @@ class CustomFieldDefRepository {
           key: id,
           at: now,
         );
+        // The upsert leaves the row live, so it publishes values exactly when
+        // it is shareable.
+        if (heldBefore != def.shareable) await _restampDancesHolding(id, now);
       }
       if (localUserEdit) {
         await cancelPendingSyncDeletionForLocalEdit(
@@ -181,6 +211,45 @@ class CustomFieldDefRepository {
       }
       return id;
     });
+  }
+
+  /// Whether definition [id] currently lets its values onto the wire: a live,
+  /// shareable row. This is the per-field term of `allowedCustomFieldIds` in
+  /// `CompendiumSyncStorage.snapshot`, and the two must stay in step.
+  Future<bool> _publishesValues(String id) async {
+    final row = await (_db.select(
+      _db.customFieldDefs,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    return row != null && row.deletedAt == null && row.shareable;
+  }
+
+  /// Advances `updated_at` on every dance holding a value for [fieldId], live or
+  /// tombstoned, to [at] (sync-spec §6.5 I1). A dance already stamped at or
+  /// after [at] moves one stored tick past its own stamp instead, so the stamp
+  /// never ties or moves backward.
+  ///
+  /// A dance's wire body carries a custom-field value only while its definition
+  /// is live and shareable, so a change to that state changes the body of every
+  /// dance holding a value while touching none of their rows. Without a stamp
+  /// two devices then carry the same `updatedAt` over different bodies, which
+  /// the merge reports as `equalUpdatedAt` and never resolves. Tombstoned dances
+  /// are included: they publish the same body shape and keep their values.
+  ///
+  /// Callers stamp only on a real change to that state, so the stamp always
+  /// accompanies a body change (I2). Inbound writes never call this: §6.7 keeps
+  /// them off the editor's path.
+  Future<void> _restampDancesHolding(String fieldId, DateTime at) {
+    assertUtc(at, 'at');
+    // normalization-structure-exempt: writes `updated_at` only, no shareable
+    // text.
+    return _db.customUpdate(
+      // sync-invariant-exclusion: join-hydrated-body the dance body changes with its field definition's wire eligibility.
+      'UPDATE dances SET updated_at = MAX(updated_at + 1, ?) '
+      'WHERE id IN (SELECT dance_id FROM custom_field_values WHERE field_id = ?)',
+      variables: [Variable<int>(unixSeconds(at)), Variable<String>(fieldId)],
+      updates: {_db.dances},
+      updateKind: UpdateKind.update,
+    );
   }
 
   Future<CustomFieldDef?> getById(String id) async {
@@ -258,7 +327,8 @@ class CustomFieldDefRepository {
     };
   }
 
-  /// Throws if any dance still has a value for [id] — deleting a field
+  /// Throws [CustomFieldInUseException] if any live dance still has a value for
+  /// [id] (counted by `liveDanceCitationCount`) — deleting a field
   /// definition out from under populated data would silently strand values
   /// that can no longer be decoded (their type is only known via the def).
   /// The "still used?" check and the delete run inside a single transaction
@@ -282,24 +352,18 @@ class CustomFieldDefRepository {
       // Live dances only; a soft-deleted dance keeps its `custom_field_values`
       // rows because the tombstone fires no FK cascade. See the note in
       // `ChoreographerRepository.delete`.
-      final stillUsed =
-          await (_db.select(_db.customFieldValues).join([
-                innerJoin(
-                  _db.dances,
-                  _db.dances.id.equalsExp(_db.customFieldValues.danceId),
-                ),
-              ])..where(
-                _db.customFieldValues.fieldId.equals(id) &
-                    _db.dances.deletedAt.isNull(),
-              ))
-              .get();
-      if (stillUsed.isNotEmpty) {
-        throw StateError(
-          'cannot delete custom field "$id": still set on '
-          '${stillUsed.length} dance(s)',
-        );
+      final stillUsed = await liveDanceCitationCount(
+        _db,
+        joinTable: _db.customFieldValues,
+        keyColumn: _db.customFieldValues.fieldId,
+        danceIdColumn: _db.customFieldValues.danceId,
+        id: id,
+      );
+      if (stillUsed > 0) {
+        throw CustomFieldInUseException(fieldId: id, danceCount: stillUsed);
       }
 
+      final publishedBefore = await _publishesValues(id);
       if (permanent) {
         // Any surviving `custom_field_values` row — necessarily a tombstoned
         // dance's, since a live one threw above — downgrades the erase to a
@@ -324,6 +388,7 @@ class CustomFieldDefRepository {
             at: now,
             deleted: true,
           );
+          if (publishedBefore) await _restampDancesHolding(id, now);
           return;
         }
         await (_db.delete(
@@ -339,6 +404,7 @@ class CustomFieldDefRepository {
         at: now,
         deleted: true,
       );
+      if (publishedBefore) await _restampDancesHolding(id, now);
     });
   }
 
@@ -347,6 +413,9 @@ class CustomFieldDefRepository {
     required DateTime at,
     bool clearPending = true,
   }) => _db.transaction(() async {
+    final row = await (_db.select(
+      _db.customFieldDefs,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
     await stampExistenceTransition(
       _db,
       table: _db.customFieldDefs,
@@ -355,6 +424,9 @@ class CustomFieldDefRepository {
       at: at,
       deleted: false,
     );
+    if (row != null && row.deletedAt != null && row.shareable) {
+      await _restampDancesHolding(id, at);
+    }
     if (clearPending) {
       await clearPendingSyncDeletionForRestore(
         _db,

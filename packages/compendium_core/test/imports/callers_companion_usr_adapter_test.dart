@@ -218,6 +218,7 @@ void main() {
           throwsA(
             isA<ImportError>()
                 .having((e) => e.stage, 'stage', ImportStage.parse)
+                .having((e) => e.code, 'code', ImportErrorCode.fileTooLarge)
                 .having(
                   (e) => e.message,
                   'message',

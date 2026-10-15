@@ -40,6 +40,10 @@
   "@navSettings": {
     "description": "Bottom/rail navigation label for the settings destination."
   },
+  "navGlossary": "Glossary",
+  "@navGlossary": {
+    "description": "Bottom/rail navigation label for the Glossary destination (shown only when Settings > Experimental > Show Glossary is on)."
+  },
   "navGuide": "Guide",
   "@navGuide": {
     "description": "Bottom/rail navigation label for the in-app user guide destination."
@@ -84,9 +88,82 @@
   "@appBootstrapError": {
     "description": "Error message shown on the startup screen when preparing the collection fails; accompanied by a Retry button."
   },
+  "appBootstrapErrorType": "Error: {errorType}",
+  "@appBootstrapErrorType": {
+    "description": "Detail line on the startup error screen naming the kind of failure (the error's type name only, never its message).",
+    "placeholders": {
+      "errorType": {
+        "type": "String",
+        "example": "StateError"
+      }
+    }
+  },
+  "appBootstrapCopyDetails": "Copy details",
+  "@appBootstrapCopyDetails": {
+    "description": "Button on the startup error screen that copies the error type and stack trace (not the message) to the clipboard."
+  },
+  "appBootstrapCopiedDetails": "Copied",
+  "@appBootstrapCopiedDetails": {
+    "description": "Label of the startup error screen's Copy details button after the details were copied."
+  },
+  "appBootstrapLogHint": "Details were also written to the diagnostics log in the app’s support folder.",
+  "@appBootstrapLogHint": {
+    "description": "Hint on the startup error screen that the failure was recorded in the on-device diagnostics (crash) log."
+  },
   "migrationDowngradeMessage": "This data was created by a newer version of Caller’s Compendium — please update the app.",
   "@migrationDowngradeMessage": {
     "description": "Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered."
+  },
+  "migrationRelocationBothExist": "Caller’s Compendium didn’t start because it found saved data files in the new location and also in a folder an earlier version used. Nothing was changed or deleted. Keep the copy you want, move the other one out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.",
+  "@migrationRelocationBothExist": {
+    "description": "Terminal startup-screen message shown when the one-time move of the database out of the old folder found data files in both the new location and an old location. Nothing is deleted. No Retry is offered."
+  },
+  "migrationRelocationMultipleLegacy": "Caller’s Compendium didn’t start because it found saved data in more than one folder used by earlier versions. Nothing was changed or deleted. Keep the copy you want, move the others out of the way, then reopen the app. The FAQ entry “Where is my data stored?” lists the locations.",
+  "@migrationRelocationMultipleLegacy": {
+    "description": "Terminal startup-screen message shown when the one-time move of the database found saved data in more than one old location (Windows: Documents and the Roaming fallback) and none in the new location. Nothing is deleted. No Retry is offered."
+  },
+  "migrationRelocationFailed": "Caller’s Compendium didn’t start because it couldn’t finish moving your saved data to its new location. Nothing was deleted. Free up space, close other programs that may be using it, or check the folder permissions, then reopen the app to try again.",
+  "@migrationRelocationFailed": {
+    "description": "Terminal startup-screen message shown when the one-time move of the database out of the Documents folder failed (disk full, unwritable folder, locked file). Nothing is deleted. No Retry is offered."
+  },
+  "migrationRelocationLegacyUnreachable": "Caller’s Compendium didn’t start because it couldn’t reach your Documents folder, where earlier versions kept your saved data. Nothing was changed or created. If Documents is on another drive or a network folder, reconnect it, then reopen the app. If you have no Documents folder, create an empty one, then reopen the app. The FAQ entry “Where is my data stored?” has more.",
+  "@migrationRelocationLegacyUnreachable": {
+    "description": "Terminal startup-screen message shown when there is no database in the new location yet and the Documents folder (where earlier versions kept the database) cannot be reached, so the app cannot tell whether a library is waiting there. Nothing is created. No Retry is offered."
+  },
+  "migrationRelocationCopiesHeading": "Each copy’s size and when it last changed (the larger, more recently changed copy is usually your library):",
+  "@migrationRelocationCopiesHeading": {
+    "description": "Heading above the list of database copies on the terminal startup screen shown when saved data was found in more than one place. Each line below it names a folder, the copy's size and its last-changed date and time."
+  },
+  "migrationRelocationCopyNewLocation": "New location",
+  "@migrationRelocationCopyNewLocation": {
+    "description": "Name of the folder a database copy is in, on the terminal startup screen listing conflicting copies: the app's current data folder. Used as {location} in migrationRelocationCopyDetails."
+  },
+  "migrationRelocationCopyDocuments": "Documents folder",
+  "@migrationRelocationCopyDocuments": {
+    "description": "Name of the folder a database copy is in, on the terminal startup screen listing conflicting copies: the user's Documents folder, which earlier versions used. Used as {location} in migrationRelocationCopyDetails."
+  },
+  "migrationRelocationCopyEarlierAppFolder": "Earlier app data folder",
+  "@migrationRelocationCopyEarlierAppFolder": {
+    "description": "Name of the folder a database copy is in, on the terminal startup screen listing conflicting copies: another app data folder an earlier version used (on Windows, the Roaming folder). Used as {location} in migrationRelocationCopyDetails."
+  },
+  "migrationRelocationCopyDetails": "{location}: {kilobytes} KB, last changed {date}",
+  "@migrationRelocationCopyDetails": {
+    "description": "One line per database copy on the terminal startup screen shown when saved data was found in more than one place, so the user can tell which copy is their library. {location} is the folder name (for example 'Documents folder'), {kilobytes} the copy's size in kilobytes, {date} its last-changed date and time. 'KB' is the kilobyte unit.",
+    "placeholders": {
+      "location": {
+        "type": "String",
+        "example": "Documents folder"
+      },
+      "kilobytes": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "4312"
+      },
+      "date": {
+        "type": "String",
+        "example": "Oct 6, 2026 3:14 PM"
+      }
+    }
   },
   "migrationSnapshotAbortedMessage": "Caller’s Compendium didn’t start because it couldn’t create an automatic backup before upgrading your saved data. {cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.",
   "@migrationSnapshotAbortedMessage": {
@@ -268,6 +345,80 @@
   "@settingsExperimentalPlaceholder": {
     "description": "Placeholder text explaining that the Experimental settings section will contain features still in development."
   },
+  "glossaryTitle": "Glossary",
+  "@glossaryTitle": {
+    "description": "App bar title of the Glossary screen, a read-only reference of the app's built-in dance figures."
+  },
+  "glossarySearchHint": "Search figures",
+  "@glossarySearchHint": {
+    "description": "Hint text in the Glossary screen's search field, which filters the list of dance figures."
+  },
+  "glossaryNoMatches": "No figures match “{query}”.",
+  "@glossaryNoMatches": {
+    "description": "Shown in the Glossary when no dance figure matches the search text.",
+    "placeholders": {
+      "query": {
+        "type": "String",
+        "example": "hey"
+      }
+    }
+  },
+  "glossarySelectPrompt": "Select a figure to see its definition.",
+  "@glossarySelectPrompt": {
+    "description": "Shown in the empty detail pane of the wide Glossary layout before a figure is selected."
+  },
+  "glossaryNoDefinition": "No definition yet.",
+  "@glossaryNoDefinition": {
+    "description": "Shown on a Glossary figure's detail when the app does not yet ship a definition for that figure."
+  },
+  "glossaryVariantOf": "A variant of {figure}.",
+  "@glossaryVariantOf": {
+    "description": "Shown on a Glossary figure that is a named variant of another figure (for example, see saw is a variant of do-si-do).",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "do-si-do"
+      }
+    }
+  },
+  "glossaryNameWithDetail": "{name} ({detail})",
+  "@glossaryNameWithDetail": {
+    "description": "A Glossary figure name followed by what tells it apart from a figure with the same name, e.g. the values a variant fixes: 'pull by (neighbors)'.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "pull by"
+      },
+      "detail": {
+        "type": "String",
+        "example": "neighbors"
+      }
+    }
+  },
+  "glossaryExample": "Example",
+  "@glossaryExample": {
+    "description": "Heading above an example of how a figure is written, on a Glossary figure's detail."
+  },
+  "glossaryParameters": "Parameters",
+  "@glossaryParameters": {
+    "description": "Heading above the list of a figure's adjustable details (such as hand or direction), on a Glossary figure's detail."
+  },
+  "glossaryAlsoKnownAs": "Also known as",
+  "@glossaryAlsoKnownAs": {
+    "description": "Heading above other names for a figure, on a Glossary figure's detail."
+  },
+  "settingsExperimentalGlossaryHeader": "Glossary",
+  "@settingsExperimentalGlossaryHeader": {
+    "description": "Header of the Glossary group in the Experimental settings section."
+  },
+  "settingsExperimentalShowGlossaryTitle": "Show Glossary",
+  "@settingsExperimentalShowGlossaryTitle": {
+    "description": "Title of the switch that adds the Glossary destination to the app's navigation."
+  },
+  "settingsExperimentalShowGlossarySubtitle": "Adds a Glossary of the built-in figures to the navigation, between Programs and Settings.",
+  "@settingsExperimentalShowGlossarySubtitle": {
+    "description": "Subtitle of the Show Glossary switch in the Experimental settings section."
+  },
   "settingsSyncHeader": "Device Sync",
   "@settingsSyncHeader": {
     "description": "Header of the Device Sync group in the Experimental settings section."
@@ -388,6 +539,382 @@
   "@settingsSyncStatusFailed": {
     "description": "Status shown when the most recent sync attempt did not complete. The time of the last successful sync, if any, is shown separately below this line."
   },
+  "settingsSyncStatusSettingsUnreadable": "Device Sync's settings couldn't be read, so the settings shown here may be out of date, and Device Sync may be off even if you turned it on. Restart the app to try again.",
+  "@settingsSyncStatusSettingsUnreadable": {
+    "description": "Shown in the Device Sync section when the app failed to read its stored Device Sync settings. At startup, Device Sync stays off for that launch although the saved setting may say on. After restoring a backup, the app keeps the Device Sync state it had before the restore (which may be on), so what is shown may not match the restored settings. In both cases the user must be told rather than left to assume the screen is current. Not a sync failure: nothing was sent or lost."
+  },
+  "settingsSyncFailureUnreachable": "Couldn't reach the sync server.",
+  "@settingsSyncFailureUnreachable": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the transport could not connect at all: DNS failure, refused or dropped connection, or a failed secure (TLS) handshake."
+  },
+  "settingsSyncFailureUnreachableAdvice": "Check that this device is online. If you run your own server, check that it's running and that its address is right.",
+  "@settingsSyncFailureUnreachableAdvice": {
+    "description": "What the user can do about settingsSyncFailureUnreachable, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureTimedOut": "The sync server took too long to answer.",
+  "@settingsSyncFailureTimedOut": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when a request did not finish within the transport deadline."
+  },
+  "settingsSyncFailureTimedOutAdvice": "A slow or unsteady connection is the usual cause. Try again when the connection is stronger.",
+  "@settingsSyncFailureTimedOutAdvice": {
+    "description": "What the user can do about settingsSyncFailureTimedOut, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureServerError": "The sync server ran into a problem of its own.",
+  "@settingsSyncFailureServerError": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the server answered with a 5xx status: a fault on the server's side."
+  },
+  "settingsSyncFailureServerErrorAdvice": "Nothing is wrong with this device or your library. Wait a while and try again. If it keeps happening, let whoever runs the server know, and quote the details shown here.",
+  "@settingsSyncFailureServerErrorAdvice": {
+    "description": "What the user can do about settingsSyncFailureServerError, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureRateLimited": "The sync server asked this device to slow down.",
+  "@settingsSyncFailureRateLimited": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 429 Too Many Requests."
+  },
+  "settingsSyncFailureRateLimitedAdvice": "It has had too many requests in a short time. Wait a few minutes before trying again.",
+  "@settingsSyncFailureRateLimitedAdvice": {
+    "description": "What the user can do about settingsSyncFailureRateLimited, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureStoreFull": "Your store has used all the space the sync server allows.",
+  "@settingsSyncFailureStoreFull": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 507: the store's storage quota is exhausted. Must not suggest deleting the store (spec §5.3 forbids offering a wipe as the first response to a 507). 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle."
+  },
+  "settingsSyncFailureStoreFullAdvice": "Changes from this device can't be stored until there is room. Turning on Skip unused imported dances cuts what this device uploads. If you run your own server, raise its storage limit.",
+  "@settingsSyncFailureStoreFullAdvice": {
+    "description": "What the user can do about settingsSyncFailureStoreFull, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureTooLarge": "Something this device tried to upload is larger than the sync server accepts.",
+  "@settingsSyncFailureTooLarge": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 413 Payload Too Large. 'Skip unused imported dances' is the exact title of the setting settingsSyncExcludeImportsTitle."
+  },
+  "settingsSyncFailureTooLargeAdvice": "If you have a large imported collection, turning on Skip unused imported dances may bring it under the limit. If you run your own server, check its upload size limit.",
+  "@settingsSyncFailureTooLargeAdvice": {
+    "description": "What the user can do about settingsSyncFailureTooLarge, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureRejected": "The sync server refused what this device sent.",
+  "@settingsSyncFailureRejected": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 400, 415 or 422: it refused the request as invalid."
+  },
+  "settingsSyncFailureRejectedAdviceDefaultServer": "This version of the app is newer than the sync server. Your changes are saved here and will sync once the server is updated.",
+  "@settingsSyncFailureRejectedAdviceDefaultServer": {
+    "description": "What the user can do about settingsSyncFailureRejected when this device uses the project's own sync server: the app is ahead of the server, nothing is lost, and nothing needs doing on the device. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureRejectedAdviceCustomServer": "Update your sync server to match this version of the app.",
+  "@settingsSyncFailureRejectedAdviceCustomServer": {
+    "description": "What the user can do about settingsSyncFailureRejected when this device uses a sync server the user chose (self-hosted): the server needs updating. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncStatusWaiting": "Waiting to sync. Your changes are saved here.",
+  "@settingsSyncStatusWaiting": {
+    "description": "Calm Device Sync status line after a sync attempt that failed for a reason that clears by itself (no connection, a timeout, a server fault, or a request to slow down). The app retries on its own, so this is not shown as an error. Also the snackbar text when the toolbar Sync now button hits such a failure. Must not say when the next try is."
+  },
+  "settingsSyncQuotaNearlyFull": "Your sync store is almost full.",
+  "@settingsSyncQuotaNearlyFull": {
+    "description": "Warning on the Device Sync status surface when the store has used 80% or more of the space or record count the sync server allows. 'Store' is the shared place devices sync through, as elsewhere in Device Sync."
+  },
+  "settingsSyncQuotaExcludeImports": "Stop syncing imported dances",
+  "@settingsSyncQuotaExcludeImports": {
+    "description": "Button under settingsSyncQuotaNearlyFull. Turns on the setting titled settingsSyncExcludeImportsTitle, which stops this device uploading imported dances nothing else uses. Shown only while that setting is off."
+  },
+  "settingsSyncNoticeNewerVersionItems": "Another device is using a newer version of the app. Update the app on this device to receive {items}.",
+  "@settingsSyncNoticeNewerVersionItems": {
+    "description": "Device Sync notice when another device shared items this version of the app cannot read: in a newer format, or carrying details this version cannot keep (for example new figure details). {items} is a list of counts by kind, built from the settingsSyncNoticeCount* strings joined with settingsSyncNoticeListSeparator, for example \"3 programs, 1 setting\". The remedy is always updating the app on THIS device.",
+    "placeholders": {
+      "items": {
+        "type": "String",
+        "example": "3 programs, 1 setting"
+      }
+    }
+  },
+  "settingsSyncNoticeCountDance": "{count, plural, =1{1 dance} other{{count} dances}}",
+  "@settingsSyncNoticeCountDance": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many dances are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountProgram": "{count, plural, =1{1 program} other{{count} programs}}",
+  "@settingsSyncNoticeCountProgram": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many programs are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountChoreographer": "{count, plural, =1{1 choreographer} other{{count} choreographers}}",
+  "@settingsSyncNoticeCountChoreographer": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many choreographers are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountTag": "{count, plural, =1{1 tag} other{{count} tags}}",
+  "@settingsSyncNoticeCountTag": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many tags are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountCustomField": "{count, plural, =1{1 custom field} other{{count} custom fields}}",
+  "@settingsSyncNoticeCountCustomField": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many custom fields are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountDifficulty": "{count, plural, =1{1 difficulty level} other{{count} difficulty levels}}",
+  "@settingsSyncNoticeCountDifficulty": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many difficulty levels are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountPublishedSource": "{count, plural, =1{1 published source} other{{count} published sources}}",
+  "@settingsSyncNoticeCountPublishedSource": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many published sources are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountVenue": "{count, plural, =1{1 venue} other{{count} venues}}",
+  "@settingsSyncNoticeCountVenue": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many venues are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeCountSetting": "{count, plural, =1{1 setting} other{{count} settings}}",
+  "@settingsSyncNoticeCountSetting": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many settings are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeNewerVersionUncounted": "Another device is using a newer version of the app. Update the app on this device to receive its changes.",
+  "@settingsSyncNoticeNewerVersionUncounted": {
+    "description": "Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting, because the other device's list of what it shares is itself in the newer format."
+  },
+  "settingsSyncNoticeKeptNewerItems": "Kept for a newer version of the app: {items}. These still sync, with details this version can't show. Update the app on this device to see them.",
+  "@settingsSyncNoticeKeptNewerItems": {
+    "description": "Informational Device Sync notice (not a problem): records on this device carry details that a newer version of the app added. This version keeps those details and syncs them back unchanged, but cannot display them. {items} is a list of counts by kind built from the settingsSyncNoticeCount* strings, for example \"3 programs, 1 setting\".",
+    "placeholders": {
+      "items": {
+        "type": "String",
+        "example": "3 programs, 1 setting"
+      }
+    }
+  },
+  "settingsSyncCopyDetails": "Copy details",
+  "@settingsSyncCopyDetails": {
+    "description": "Tooltip of the button on a Device Sync problem that copies a short code describing it (for example SYNC-STORE-FULL), so the user can paste it into a message asking for help. Nothing is sent anywhere."
+  },
+  "settingsSyncDetailsCopied": "Details copied.",
+  "@settingsSyncDetailsCopied": {
+    "description": "Snackbar confirming the short Device Sync problem code was copied to the clipboard."
+  },
+  "settingsSyncFailureAccessDenied": "The sync server didn't accept this device's sync phrase.",
+  "@settingsSyncFailureAccessDenied": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when the server answered 401 or 403."
+  },
+  "settingsSyncFailureAccessDeniedAdvice": "Check the phrase against the one on your other device, and check that the server address is right.",
+  "@settingsSyncFailureAccessDeniedAdvice": {
+    "description": "What the user can do about settingsSyncFailureAccessDenied, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureUnexpectedResponse": "The sync server sent a reply this app couldn't use.",
+  "@settingsSyncFailureUnexpectedResponse": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when an unexpected status, a redirect the app will not follow, or a malformed or oversized response body."
+  },
+  "settingsSyncFailureUnexpectedResponseAdvice": "If you run your own server, check its address and that it's a version this app supports. Otherwise, update the app and try again later.",
+  "@settingsSyncFailureUnexpectedResponseAdvice": {
+    "description": "What the user can do about settingsSyncFailureUnexpectedResponse, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailurePeerUnavailable": "Couldn't read what one of your other devices last shared.",
+  "@settingsSyncFailurePeerUnavailable": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when a first connection to a store needs every peer's manifest and at least one could not be read. 'Other devices' is the exact title of the settingsSyncDevicesTitle row."
+  },
+  "settingsSyncFailurePeerUnavailableAdvice": "Connecting to a store needs the latest list from every device on it. Open the app on your other devices and let them sync, then try again. If a device is gone for good, remove it under Other devices.",
+  "@settingsSyncFailurePeerUnavailableAdvice": {
+    "description": "What the user can do about settingsSyncFailurePeerUnavailable, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureInternal": "Something went wrong inside the app while syncing.",
+  "@settingsSyncFailureInternal": {
+    "description": "Device Sync failure reason, one sentence, shown under \"Last sync failed.\" on the status surface and in pairing, device-list and toolbar errors. Used when a failure inside the app rather than on the network. 'Diagnostics' is the exact title of the settingsDiagnosticsTitle section."
+  },
+  "settingsSyncFailureInternalAdvice": "This isn't a problem with your connection or the server. Try again. If it keeps happening, export the log from Settings ▸ Diagnostics and include it when you report the problem.",
+  "@settingsSyncFailureInternalAdvice": {
+    "description": "What the user can do about settingsSyncFailureInternal, shown right after it. Must make sense both on the Device Sync status surface and on the pairing screen, so it does not point at screen positions (\"above\", \"below\")."
+  },
+  "settingsSyncFailureStep": "{step, select, lookup{Stopped while looking up the store.} download{Stopped while downloading from your other devices.} upload{Stopped while uploading this device's changes.} publish{Stopped while publishing this device's changes.} createStore{Stopped while creating the store.} other{Stopped partway through.}}",
+  "@settingsSyncFailureStep": {
+    "description": "Part of the technical details line under a Device Sync failure, naming the step that failed so the user can describe the problem. The select values are internal identifiers and must not be translated.",
+    "placeholders": {
+      "step": {
+        "type": "String",
+        "example": "upload"
+      }
+    }
+  },
+  "settingsSyncFailureStatusCode": "The server answered with HTTP status {code}.",
+  "@settingsSyncFailureStatusCode": {
+    "description": "Part of the technical details line under a Device Sync failure: the HTTP status code the server answered with, for the user to quote when reporting the problem.",
+    "placeholders": {
+      "code": {
+        "type": "int",
+        "example": "503"
+      }
+    }
+  },
+  "settingsSyncFailureDetails": "Details: {details}",
+  "@settingsSyncFailureDetails": {
+    "description": "Technical details line under a Device Sync failure. {details} is settingsSyncFailureStep and/or settingsSyncFailureStatusCode joined by a space.",
+    "placeholders": {
+      "details": {
+        "type": "String",
+        "example": "Stopped while uploading this device's changes. The server answered with HTTP status 503."
+      }
+    }
+  },
+  "commonSyncFailed": "Sync didn't finish. {explanation}",
+  "@commonSyncFailed": {
+    "description": "Snackbar shown when the toolbar Sync now button on the Collection or Programs page ran a pass that did not complete. {explanation} is the failure reason and advice (settingsSyncFailure* strings) or a status line such as settingsSyncStatusStoreUnavailable.",
+    "placeholders": {
+      "explanation": {
+        "type": "String",
+        "example": "Couldn't reach the sync server. Check that this device is online."
+      }
+    }
+  },
+  "settingsSyncNoticeAffected": "Affects: {records}",
+  "@settingsSyncNoticeAffected": {
+    "description": "Second line of a Device Sync notice listing the records it is about, so the user knows which ones to look at. {records} is a list of settingsSyncNoticeRecordNamed / settingsSyncNoticeRecordNotHere / kind labels joined by settingsSyncNoticeListSeparator, optionally ending with settingsSyncNoticeAffectedMore.",
+    "placeholders": {
+      "records": {
+        "type": "String",
+        "example": "Dance “Petronella”, Program “Saturday social”"
+      }
+    }
+  },
+  "settingsSyncNoticeListSeparator": ", ",
+  "@settingsSyncNoticeListSeparator": {
+    "description": "Separator between items in a Device Sync notice's lists: the records in settingsSyncNoticeAffected, and the counts by kind in settingsSyncNoticeNewerVersionItems (for example \"3 programs, 1 setting\"). Include any spacing your language uses."
+  },
+  "settingsSyncNoticeRecordNamed": "{kind} “{name}”",
+  "@settingsSyncNoticeRecordNamed": {
+    "description": "One record in the settingsSyncNoticeAffected list: its kind (a syncReviewKind* label such as \"Dance\") and its title or name as stored on this device.",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "Dance"
+      },
+      "name": {
+        "type": "String",
+        "example": "Petronella"
+      }
+    }
+  },
+  "settingsSyncNoticeRecordNotHere": "{kind} not on this device",
+  "@settingsSyncNoticeRecordNotHere": {
+    "description": "One record in the settingsSyncNoticeAffected list that this device does not have, so there is no name to show — typically a record from another device that was skipped. {kind} is a syncReviewKind* label such as \"Dance\".",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "Dance"
+      }
+    }
+  },
+  "settingsSyncNoticeRecordNewerFigures": "{kind} “{name}” (has figures only a newer version can read)",
+  "@settingsSyncNoticeRecordNewerFigures": {
+    "description": "Variant of settingsSyncNoticeRecordNamed for a record another device shared that this version refused because a newer version of the app added something to its figures (the dance's steps). Tells the user what this version does not understand.",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "Dance"
+      },
+      "name": {
+        "type": "String",
+        "example": "Petronella"
+      }
+    }
+  },
+  "settingsSyncNoticeRecordNotHereNewerFigures": "{kind} not on this device (has figures only a newer version can read)",
+  "@settingsSyncNoticeRecordNotHereNewerFigures": {
+    "description": "Variant of settingsSyncNoticeRecordNotHere for a record this device does not have yet because it was refused: a newer version of the app added something to its figures (the dance's steps).",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "Dance"
+      }
+    }
+  },
+  "settingsSyncNoticeAffectedMore": "{count, plural, other{and {count} more}}",
+  "@settingsSyncNoticeAffectedMore": {
+    "description": "Ends the settingsSyncNoticeAffected list when it names only the first few records.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncNoticeFromDevices": "{count, plural, =1{From 1 other device.} other{From {count} other devices.}}",
+  "@settingsSyncNoticeFromDevices": {
+    "description": "Line on a Device Sync notice saying how many other devices the records it is about came from.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "settingsSyncDevicesFailedBecause": "Couldn't load the device list. {explanation}",
+  "@settingsSyncDevicesFailedBecause": {
+    "description": "Shown on the Other devices screen when the device list could not be loaded and the reason is known. {explanation} is a settingsSyncFailure* reason and its advice.",
+    "placeholders": {
+      "explanation": {
+        "type": "String",
+        "example": "The sync server took too long to answer. Try again when the connection is stronger."
+      }
+    }
+  },
+  "settingsSyncAdminFailedBecause": "{message} {explanation}",
+  "@settingsSyncAdminFailedBecause": {
+    "description": "Joins a Device Sync action failure (settingsSyncDeviceRemoveFailed or settingsSyncWipeFailed) with the reason it failed (a settingsSyncFailure* reason). Reorder if your language puts the reason first.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "Couldn't remove that device. It is still connected; try again."
+      },
+      "explanation": {
+        "type": "String",
+        "example": "Couldn't reach the sync server."
+      }
+    }
+  },
   "settingsSyncStatusStaleStore": "This store was replaced by another device since your last sync. The next sync will join the new one.",
   "@settingsSyncStatusStaleStore": {
     "description": "Status shown when the last sync attempt found the connected store had moved on to a new epoch (another device confirmed a replacement). No action is needed: the next pass attaches to the replaced store on its own."
@@ -404,9 +931,387 @@
   "@settingsSyncStatusPaused": {
     "description": "Status shown after the user declined to replace a store that had gone missing. Per spec §6.3 step 1 declining leaves sync configured but paused; a manual 'Sync now' reopens the replacement decision. Automatic syncs do nothing while paused."
   },
-  "settingsSyncNoticeDivergence": "Some records were changed on two devices at the same moment. Neither copy was chosen, so your devices still differ. Edit one of them to settle it.",
+  "settingsSyncNoticeDivergence": "Some items were changed on two devices at the same moment and still differ. If they're listed under Sync decisions, choose there; otherwise edit one of them to settle it.",
   "@settingsSyncNoticeDivergence": {
-    "description": "Non-blocking notice on the Device Sync status surface for an equal-updatedAt conflict (spec §6.3). Neither body wins and neither is applied; only a human edit resolves it, so the copy asks for one. Needs no dismissal and blocks nothing."
+    "description": "Non-blocking notice for an equal-updatedAt conflict (spec §6.3) that the conflict choice does not cover: two dances that share a title, which Sync decisions lists, or two tombstones, which an edit settles. Ordinary ties go to the conflict choice instead and raise no notice. Needs no dismissal and blocks nothing."
+  },
+  "syncConflictTitle": "Choose which version to keep",
+  "@syncConflictTitle": {
+    "description": "Title of the conflict choice (sync-spec §6.3): a dialog on wide windows, a bottom sheet on phones, listing items changed on more than one device whose versions only the user can choose between."
+  },
+  "syncConflictIntro": "These were changed on more than one device, and the app can't tell which change should win. Both versions are kept until you choose.",
+  "@syncConflictIntro": {
+    "description": "Intro under the conflict choice title. Must reassure: nothing is lost before the user chooses, and nothing is chosen for them."
+  },
+  "syncConflictThisDevice": "This device",
+  "@syncConflictThisDevice": {
+    "description": "Option label for keeping this device's version of an item in the conflict choice."
+  },
+  "syncConflictOtherDevice": "Another device",
+  "@syncConflictOtherDevice": {
+    "description": "Option label for keeping the other device's version when only one other version is on offer. Devices are never named, by design."
+  },
+  "syncConflictOtherDeviceNumbered": "Another device ({number})",
+  "@syncConflictOtherDeviceNumbered": {
+    "description": "Option label when more than one other version is on offer; {number} tells them apart. Devices are never named, by design.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "syncConflictKeepAllThisDevice": "Keep all from this device",
+  "@syncConflictKeepAllThisDevice": {
+    "description": "Selects this device's version for every item in the conflict choice; the user still confirms with the apply button."
+  },
+  "syncConflictKeepAllOtherDevice": "Keep all from the other device",
+  "@syncConflictKeepAllOtherDevice": {
+    "description": "Selects the other device's version for every item, offered only when each item has exactly one other version; the user still confirms."
+  },
+  "syncConflictApply": "Keep selected",
+  "@syncConflictApply": {
+    "description": "Button that saves the chosen versions. Each chosen version then reaches the other devices as an ordinary newer edit."
+  },
+  "syncConflictDecideLater": "Decide later",
+  "@syncConflictDecideLater": {
+    "description": "Closes the conflict choice without changing anything; the items stay listed until decided."
+  },
+  "syncConflictShowDifferences": "Show differences",
+  "@syncConflictShowDifferences": {
+    "description": "Button on one item in the conflict choice that opens the full comparison of its versions. Shown when several items are listed; a single item shows the comparison directly."
+  },
+  "syncConflictChangedAt": "Changed {when}",
+  "@syncConflictChangedAt": {
+    "description": "Second line under a version in the conflict choice: when that version was last changed. Shown only when the versions were changed at different times.",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "example": "Oct 3, 2026 2:14 PM"
+      }
+    }
+  },
+  "syncConflictOnlyHereHeader": "Only on this device",
+  "@syncConflictOnlyHereHeader": {
+    "description": "Heading in the comparison listing entries (dialects, shorthands, a program's dances…) that only this device's version has."
+  },
+  "syncConflictOnlyThereHeader": "Only on the other device",
+  "@syncConflictOnlyThereHeader": {
+    "description": "Heading in the comparison listing entries that only the other device's version has."
+  },
+  "syncConflictDifferentHeader": "Different on each device",
+  "@syncConflictDifferentHeader": {
+    "description": "Heading in the comparison listing entries both versions have but with different contents."
+  },
+  "syncConflictSameCount": "{count, plural, =1{1 more is the same on both} other{{count} more are the same on both}}",
+  "@syncConflictSameCount": {
+    "description": "Note at the end of a collection comparison: how many entries are identical in both versions.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "syncConflictSummaryOnlyHere": "{count, plural, =1{1 only on this device} other{{count} only on this device}}",
+  "@syncConflictSummaryOnlyHere": {
+    "description": "Part of the one-line summary of a collection conflict: how many entries only this device has. Joined with the other parts by \" · \".",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "syncConflictSummaryOnlyThere": "{count, plural, =1{1 only on the other device} other{{count} only on the other device}}",
+  "@syncConflictSummaryOnlyThere": {
+    "description": "Part of the one-line summary of a collection conflict: how many entries only the other device has.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "syncConflictSummaryChanged": "{count, plural, =1{1 different} other{{count} different}}",
+  "@syncConflictSummaryChanged": {
+    "description": "Part of the one-line summary of a collection conflict: how many entries both have with different contents.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "syncConflictDiffersInFields": "Differs in: {fields}",
+  "@syncConflictDiffersInFields": {
+    "description": "One-line summary of a conflicted dance, program or other item: the names of the fields that differ, e.g. \"Figures, Calling notes\".",
+    "placeholders": {
+      "fields": {
+        "type": "String",
+        "example": "Figures, Calling notes"
+      }
+    }
+  },
+  "syncConflictComparedWith": "Compared with {version}",
+  "@syncConflictComparedWith": {
+    "description": "Heading in the comparison when more than one other version is on offer; {version} is e.g. \"Another device (2)\".",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "Another device (2)"
+      }
+    }
+  },
+  "syncConflictNothingToShow": "These versions differ only in details this view doesn't show.",
+  "@syncConflictNothingToShow": {
+    "description": "Shown in the comparison when the versions differ only in fields that are never shown here."
+  },
+  "syncConflictFiguresUnreadable": "The figures can't be compared here.",
+  "@syncConflictFiguresUnreadable": {
+    "description": "Shown in the comparison when either version's figures cannot be read."
+  },
+  "syncConflictSlotsReordered": "The same dances, in a different order.",
+  "@syncConflictSlotsReordered": {
+    "description": "Shown in a program comparison when both versions list the same dances but in a different order."
+  },
+  "syncConflictSlotsDetailsDiffer": "The same dances, with different details such as timings or alternates.",
+  "@syncConflictSlotsDetailsDiffer": {
+    "description": "Shown in a program comparison when both versions list the same dances but slot details differ."
+  },
+  "syncConflictUnknownItem": "Not on this device",
+  "@syncConflictUnknownItem": {
+    "description": "Shown in the comparison in place of a name for something a version refers to that this device doesn't have (a tag, choreographer or dance)."
+  },
+  "syncConflictVersionLine": "{device}: {value}",
+  "@syncConflictVersionLine": {
+    "description": "One version's value in the comparison, e.g. \"This device: Dark\". {device} is \"This device\" or \"Another device\".",
+    "placeholders": {
+      "device": {
+        "type": "String",
+        "example": "This device"
+      },
+      "value": {
+        "type": "String",
+        "example": "Dark"
+      }
+    }
+  },
+  "syncConflictFieldValue": "{field}: {value}",
+  "@syncConflictFieldValue": {
+    "description": "A name and its value in the comparison, e.g. \"Source book: Zesty Contras\" for a custom field, or \"My dialect: Move substitutions\" for a part of a dialect.",
+    "placeholders": {
+      "field": {
+        "type": "String",
+        "example": "Source book"
+      },
+      "value": {
+        "type": "String",
+        "example": "Zesty Contras"
+      }
+    }
+  },
+  "syncConflictFieldName": "Name",
+  "@syncConflictFieldName": {
+    "description": "Label for the name field of a choreographer, tag or venue in the comparison."
+  },
+  "syncConflictCombineBoth": "Combine both",
+  "@syncConflictCombineBoth": {
+    "description": "Third option for a list such as dialects or shorthands that both devices changed: keep every entry from both instead of one device's whole list."
+  },
+  "syncConflictCombineSummary": "{count, plural, =1{Keeps the 1 item from both devices} other{Keeps all {count} items from both devices}}",
+  "@syncConflictCombineSummary": {
+    "description": "Subtitle of Combine both: how many entries the combined list would hold.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "14"
+      }
+    }
+  },
+  "syncConflictCombineOverLimit": "Can't combine: together these would be {count}, and this list holds at most {limit}.",
+  "@syncConflictCombineOverLimit": {
+    "description": "Subtitle of a disabled Combine both: the combined list would be longer than the app keeps, so some entries would be lost.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "130"
+      },
+      "limit": {
+        "type": "int",
+        "example": "128"
+      }
+    }
+  },
+  "syncConflictCombinePickEach": "Both devices changed these. For each, choose which to keep:",
+  "@syncConflictCombinePickEach": {
+    "description": "Shown under Combine both when some entries exist on both devices with different contents; the user picks a version of each before saving."
+  },
+  "syncConflictCombineUnavailable": "These can't be combined, so nothing was changed.",
+  "@syncConflictCombineUnavailable": {
+    "description": "Shown when Combine both was chosen for something that cannot be combined."
+  },
+  "syncConflictCombineOverLimitError": "Together these would be more than this list can hold, so nothing was changed.",
+  "@syncConflictCombineOverLimitError": {
+    "description": "Shown when saving a combination failed because it would exceed the list's limit."
+  },
+  "syncConflictSaved": "Your choices are saved.",
+  "@syncConflictSaved": {
+    "description": "Snackbar after saving conflict choices; its action reopens them to choose again."
+  },
+  "syncConflictUndo": "Undo",
+  "@syncConflictUndo": {
+    "description": "Snackbar action after saving conflict choices: reopens those items with the versions you chose between. Nothing changes until you choose again and save."
+  },
+  "syncConflictReconsiderIntro": "Choose again between the versions you had. Nothing changes until you save.",
+  "@syncConflictReconsiderIntro": {
+    "description": "Intro of the conflict choice when reopened by Undo."
+  },
+  "syncConflictUndoChanged": "Something newer arrived after you chose, so nothing was changed.",
+  "@syncConflictUndoChanged": {
+    "description": "Shown when an undo cannot be saved because the item changed since the original choice (for example, a newer edit arrived from another device)."
+  },
+  "syncConflictFieldProvenance": "Origin",
+  "@syncConflictFieldProvenance": {
+    "description": "Label in the sync conflict comparison for where a dance came from (its import source and licence), shown as the dance page's provenance line."
+  },
+  "syncConflictFieldColour": "Colour",
+  "@syncConflictFieldColour": {
+    "description": "Label for a tag's colour in the conflict comparison."
+  },
+  "syncConflictThemeBrightness": "Light or dark",
+  "@syncConflictThemeBrightness": {
+    "description": "Label for whether a custom theme is light or dark, in the conflict comparison."
+  },
+  "syncConflictFigureWalkthrough": "walkthrough: {text}",
+  "@syncConflictFigureWalkthrough": {
+    "description": "A figure's own walkthrough text, shown after the figure in the conflict comparison.",
+    "placeholders": {
+      "text": {
+        "type": "String",
+        "example": "Walk it slowly first"
+      }
+    }
+  },
+  "syncConflictFigureWording": "wording: {text}",
+  "@syncConflictFigureWording": {
+    "description": "A figure's own calling wording, shown after the figure in the conflict comparison.",
+    "placeholders": {
+      "text": {
+        "type": "String",
+        "example": "Neighbours, balance and swing"
+      }
+    }
+  },
+  "syncConflictFigureDetailsDiffer": "{figure} (other details differ)",
+  "@syncConflictFigureDetailsDiffer": {
+    "description": "A figure in the conflict comparison whose words are the same on both versions but whose other saved details differ.",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "Neighbour balance and swing"
+      }
+    }
+  },
+  "syncConflictLinkInGroup": "in the related-dance group",
+  "@syncConflictLinkInGroup": {
+    "description": "Marks a link that joins the related-dance group, in the conflict comparison."
+  },
+  "syncConflictValueNotSet": "Not set",
+  "@syncConflictValueNotSet": {
+    "description": "Shown for a version of a setting that has no value."
+  },
+  "syncConflictValueOn": "On",
+  "@syncConflictValueOn": {
+    "description": "Shown for a version of an on/off setting that is on."
+  },
+  "syncConflictValueOff": "Off",
+  "@syncConflictValueOff": {
+    "description": "Shown for a version of an on/off setting that is off."
+  },
+  "syncConflictValueItems": "{count, plural, =0{None} =1{1 item} other{{count} items}}",
+  "@syncConflictValueItems": {
+    "description": "Summary of a version of a setting whose value is a collection whose entries have no names.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "syncConflictValueNamesAndMore": "{names} and {count} more",
+  "@syncConflictValueNamesAndMore": {
+    "description": "Summary of a version of a collection setting: the first few entry names, then how many more there are.",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "Larks/Robins, Leads/Follows"
+      },
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "syncConflictNone": "Nothing needs choosing right now.",
+  "@syncConflictNone": {
+    "description": "Shown in the conflict choice when no item is waiting for a choice."
+  },
+  "syncConflictClockWrong": "This device's date and time look wrong, so your choice couldn't be saved. Correct the date and time, then try again.",
+  "@syncConflictClockWrong": {
+    "description": "Shown when a choice could not be stamped later than every version without leaving this device's clock window: the fix is this device's clock."
+  },
+  "syncConflictFailed": "Your choice couldn't be saved. Try again.",
+  "@syncConflictFailed": {
+    "description": "Shown when saving a conflict choice failed for an unexpected reason."
+  },
+  "syncSettingActiveCustomTheme": "Custom theme in use",
+  "@syncSettingActiveCustomTheme": {
+    "description": "Name of the synced setting that records which custom theme is active, shown when the user must choose between two versions of it."
+  },
+  "syncSettingActiveDialect": "Dialect in use",
+  "@syncSettingActiveDialect": {
+    "description": "Name of the synced setting that records which dialect is active, shown when the user must choose between two versions of it."
+  },
+  "syncSettingLastCollectionSort": "Collection sort (last used)",
+  "@syncSettingLastCollectionSort": {
+    "description": "Name of the synced setting that remembers the last sort chosen on the Collection page."
+  },
+  "syncSettingLastCollectionSortDirection": "Collection sort direction (last used)",
+  "@syncSettingLastCollectionSortDirection": {
+    "description": "Name of the synced setting that remembers the last sort direction chosen on the Collection page."
+  },
+  "syncSettingLastProgramSort": "Programs sort (last used)",
+  "@syncSettingLastProgramSort": {
+    "description": "Name of the synced setting that remembers the last sort chosen on the Programs page."
+  },
+  "syncSettingLastProgramSortDirection": "Programs sort direction (last used)",
+  "@syncSettingLastProgramSortDirection": {
+    "description": "Name of the synced setting that remembers the last sort direction chosen on the Programs page."
+  },
+  "syncSettingPerformStageTheme": "Stage theme in Perform",
+  "@syncSettingPerformStageTheme": {
+    "description": "Name of the synced setting that turns on the dark stage theme in Perform."
+  },
+  "settingsSyncConflictsSubtitle": "{count, plural, =1{1 item was changed on two devices and needs your choice.} other{{count} items were changed on two devices and need your choice.}}",
+  "@settingsSyncConflictsSubtitle": {
+    "description": "Subtitle of the Device Sync entry that opens the conflict choice; shown only while at least one item is waiting.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "commonSyncNowConflictsTooltip": "{count, plural, =1{Sync now (1 item needs your choice)} other{Sync now ({count} items need your choice)}}",
+  "@commonSyncNowConflictsTooltip": {
+    "description": "Tooltip of the toolbar Sync now button while items await a conflict choice; the button also shows the count as a badge.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
   },
   "settingsSyncNoticeKeptLocalCreation": "Something created on this device would have been removed by another device that had never seen it. It was kept here instead.",
   "@settingsSyncNoticeKeptLocalCreation": {
@@ -432,9 +1337,27 @@
   "@settingsSyncNoticeDeferredInbound": {
     "description": "Non-blocking notice for an inbound update held back because the local row changed while the pass was preparing it. Self-resolving: the copy must not send the user to fix anything."
   },
-  "settingsSyncNoticeUnreflectedPublication": "Changes from this device haven't appeared on your other devices after several syncs. Open the app on them and sync.",
-  "@settingsSyncNoticeUnreflectedPublication": {
-    "description": "Non-blocking notice raised when records this device published have been absent from every observed peer manifest for three consecutive passes, which usually means another device has stopped syncing."
+  "settingsSyncNoticePeerNotTaking": "{count, plural, =1{Device {tag} is syncing but isn't taking 1 change from this device. The change is safe here. That device may need an app update, or this device's date and time may be wrong.} other{Device {tag} is syncing but isn't taking {count} changes from this device. They're safe here. That device may need an app update, or this device's date and time may be wrong.}}",
+  "@settingsSyncNoticePeerNotTaking": {
+    "description": "Needs-you Device Sync notice, one per other device: that device has synced at least twice since this one shared some changes and still doesn't have them. The two usual causes are named: that device runs an older app version that refuses them, or this device's clock is far ahead so the other device refuses them as dated in the future. {tag} is the device's short random tag, exactly as on the Other devices screen (settingsSyncDeviceTag); never a name. Says the user's work is safe on this device before what to check.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      },
+      "tag": {
+        "type": "String",
+        "example": "7c02Lm"
+      }
+    }
+  },
+  "settingsSyncNoticeNeedsYou": "Needs you",
+  "@settingsSyncNoticeNeedsYou": {
+    "description": "Short label beside the warning icon on a Device Sync notice that needs the user to do something, so the urgency is not carried by colour alone."
+  },
+  "settingsSyncNoticeSeeDevices": "See other devices",
+  "@settingsSyncNoticeSeeDevices": {
+    "description": "Button on the settingsSyncNoticePeerNotTaking notice that opens the Other devices screen (settingsSyncDevicesScreenTitle), where the device it names is listed by the same tag."
   },
   "settingsSyncNotBackup": "Sync is not a backup. A store that goes unused for 30 days is removed, so keep making file backups.",
   "@settingsSyncNotBackup": {
@@ -450,19 +1373,19 @@
   },
   "settingsSyncDisconnectTitle": "Disconnect this device",
   "@settingsSyncDisconnectTitle": {
-    "description": "Status-surface action that detaches this device from its Device Sync store (spec: detach). Local only."
+    "description": "Status-surface action that detaches this device from its Device Sync store (spec: detach). Forgets the sync phrase on this device; afterwards the app may remove this device's entry from the store if the other devices already have everything it shared."
   },
-  "settingsSyncDisconnectSubtitle": "Stop syncing here. The store and your other devices are not changed.",
+  "settingsSyncDisconnectSubtitle": "Stop syncing here. Your library stays as it is, here and on your other devices.",
   "@settingsSyncDisconnectSubtitle": {
-    "description": "Subtitle under the Device Sync disconnect action."
+    "description": "Subtitle under the Device Sync disconnect action. Must not say the store is unchanged: disconnecting may remove this device's entry from it (settingsSyncDisconnectConfirmBody)."
   },
   "settingsSyncDisconnectConfirmTitle": "Disconnect this device?",
   "@settingsSyncDisconnectConfirmTitle": {
     "description": "Title of the confirmation dialog before detaching this device from its Device Sync store."
   },
-  "settingsSyncDisconnectConfirmBody": "This device will stop syncing and forget its sync phrase. Your library on this device stays as it is, and the store and your other devices aren't affected. To reconnect later you'll need the phrase, so make sure you have it.",
+  "settingsSyncDisconnectConfirmBody": "This device will stop syncing and forget its sync phrase. Your library on this device stays as it is, and so do your other devices. Disconnecting removes this device from the sync store if your other devices already have everything from it. If they don't, it stays listed under Other devices until you remove it there. To reconnect later you'll need the phrase, so make sure you have it.",
   "@settingsSyncDisconnectConfirmBody": {
-    "description": "Body of the Device Sync disconnect confirmation: local-only, keeps the library, needs the phrase to reconnect (spec §6.14 item 2: no recovery)."
+    "description": "Body of the Device Sync disconnect confirmation: keeps the library, removes this device's entry from the store only when the other devices already have everything from it (otherwise it stays under Other devices, the exact title of settingsSyncDevicesTitle), and needs the phrase to reconnect (spec §6.14 item 2: no recovery)."
   },
   "settingsSyncDisconnectConfirmAction": "Disconnect",
   "@settingsSyncDisconnectConfirmAction": {
@@ -484,9 +1407,63 @@
   "@settingsSyncDevicesScreenTitle": {
     "description": "App bar title of the screen listing the other devices in the Device Sync store."
   },
-  "settingsSyncDevicesCaution": "The server only knows each device by an identifier it made up, so there are no device names here, and this device isn't listed. If you aren't sure which one to remove, it's safe to leave it: a device you remove can connect again with the sync phrase.",
+  "settingsSyncDevicesCaution": "Each device makes up its own random identifier, and a new one every time it connects, so devices are shown here by a short tag from that identifier rather than by name. This device isn't in the list; its own tag is below, so you can find it on your other devices. If you aren't sure which one to remove, it's safe to leave it: a device you remove can connect again with the sync phrase.",
   "@settingsSyncDevicesCaution": {
-    "description": "Explains that the Device Sync device list shows opaque identifiers only, excludes this device, and that removal is reversible by re-pairing."
+    "description": "Explains that the Device Sync device list shows each device by a short tag of the random identifier that device made up for itself (a new one at every connection), never a name; that this device is not listed but its own tag is shown below (settingsSyncDevicesThisDevice); and that removal is reversible by re-pairing."
+  },
+  "settingsSyncDevicesThisDevice": "This device: {tag}",
+  "@settingsSyncDevicesThisDevice": {
+    "description": "Line on the Other devices screen giving this device's own short tag, so the user can tell which entry is this device when looking at the list on another device.",
+    "placeholders": {
+      "tag": {
+        "type": "String",
+        "example": "k7mQ2x"
+      }
+    }
+  },
+  "settingsSyncDeviceTag": "Device {tag}",
+  "@settingsSyncDeviceTag": {
+    "description": "Title of one entry on the Other devices screen. {tag} is a short, random, case-sensitive tag cut from the device's identifier; never a name.",
+    "placeholders": {
+      "tag": {
+        "type": "String",
+        "example": "7c02Lm"
+      }
+    }
+  },
+  "settingsSyncDeviceLastSharedToday": "Last shared changes today",
+  "@settingsSyncDeviceLastSharedToday": {
+    "description": "Line under a device on the Other devices screen: that device last published its list of changes today. Rounded to the day on purpose; never a time."
+  },
+  "settingsSyncDeviceLastSharedDays": "{count, plural, =1{Last shared changes yesterday} other{Last shared changes {count} days ago}}",
+  "@settingsSyncDeviceLastSharedDays": {
+    "description": "Line under a device on the Other devices screen: how many calendar days ago that device last published its list of changes, from 1 to 13.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncDeviceLastSharedWeeks": "{count, plural, =1{Last shared changes about a week ago} other{Last shared changes about {count} weeks ago}}",
+  "@settingsSyncDeviceLastSharedWeeks": {
+    "description": "Line under a device on the Other devices screen: roughly how many weeks ago that device last published its list of changes, used from two weeks on.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "settingsSyncDeviceWaiting": "{count, plural, =1{1 change from this device is waiting for it.} other{{count} changes from this device are waiting for it.}}",
+  "@settingsSyncDeviceWaiting": {
+    "description": "Line under a device on the Other devices screen when that device doesn't yet have some of this device's changes, usually because it hasn't been opened since. Calm status, not a warning.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
   },
   "settingsSyncDevicesEmpty": "No other devices are connected to this store.",
   "@settingsSyncDevicesEmpty": {
@@ -660,10 +1637,6 @@
   "@settingsSyncPairingAlreadyInUse": {
     "description": "Error shown when creating a store whose ID is already taken (409)."
   },
-  "settingsSyncPairingUnreachable": "Device Sync isn't available right now. Check your connection and try again.",
-  "@settingsSyncPairingUnreachable": {
-    "description": "Error shown when the pairing request fails for a reason other than 404/409 (network, server)."
-  },
   "settingsSyncPairingCustomEndpointTitle": "Custom server: {host}",
   "@settingsSyncPairingCustomEndpointTitle": {
     "description": "Heading of the warning shown during pairing when the server address is not the default Device Sync server (spec §8).",
@@ -773,10 +1746,6 @@
   "commonSystemDefault": "System default",
   "@commonSystemDefault": {
     "description": "Generic option meaning 'follow the device/platform setting'. Shared by the date-format and app-language controls."
-  },
-  "commonComingSoon": "Coming soon",
-  "@commonComingSoon": {
-    "description": "Trailing badge on a settings control whose feature is not available yet."
   },
   "settingsLanguageRegionTitle": "Language & region",
   "@settingsLanguageRegionTitle": {
@@ -1208,6 +2177,386 @@
   "@settingsAppearanceCustomThemesHeader": {
     "description": "Section header above the user's saved custom themes in Appearance settings."
   },
+  "appThemeGroupSystem": "System",
+  "@appThemeGroupSystem": {
+    "description": "Section heading above the \"System\" themes in the Appearance theme gallery."
+  },
+  "appThemeGroupDefault": "Default",
+  "@appThemeGroupDefault": {
+    "description": "Section heading above the \"Default\" themes in the Appearance theme gallery."
+  },
+  "appThemeGroupLight": "Light",
+  "@appThemeGroupLight": {
+    "description": "Section heading above the \"Light\" themes in the Appearance theme gallery."
+  },
+  "appThemeGroupDark": "Dark",
+  "@appThemeGroupDark": {
+    "description": "Section heading above the \"Dark\" themes in the Appearance theme gallery."
+  },
+  "appThemeLabelSystem": "System",
+  "@appThemeLabelSystem": {
+    "description": "Name of the built-in \"System\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+  },
+  "appThemeLabelLight": "Light",
+  "@appThemeLabelLight": {
+    "description": "Name of the built-in \"Light\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+  },
+  "appThemeLabelDark": "Dark",
+  "@appThemeLabelDark": {
+    "description": "Name of the built-in \"Dark\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+  },
+  "appThemeLabelSoftDark": "Soft Dark",
+  "@appThemeLabelSoftDark": {
+    "description": "Name of the built-in \"Soft Dark\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+  },
+  "appThemeLabelHighContrast": "High contrast",
+  "@appThemeLabelHighContrast": {
+    "description": "Name of the built-in \"High contrast\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+  },
+  "appThemeDescriptionSystem": "Match the device light/dark setting",
+  "@appThemeDescriptionSystem": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionLight": "Warm light palette",
+  "@appThemeDescriptionLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionDark": "Warm dark palette",
+  "@appThemeDescriptionDark": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionSoftDark": "Warm dark on a softer, lighter canvas",
+  "@appThemeDescriptionSoftDark": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionHighContrast": "Maximum contrast for dim rooms and low vision",
+  "@appThemeDescriptionHighContrast": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionBlulocoLight": "Crisp cool-neutral canvas with vivid jewel tones",
+  "@appThemeDescriptionBlulocoLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionOneDarkPro": "One Dark Pro, the popular editor theme",
+  "@appThemeDescriptionOneDarkPro": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionMonokai": "One Monokai — Monokai syntax on charcoal",
+  "@appThemeDescriptionMonokai": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionNoctis": "The original deep teal Noctis night",
+  "@appThemeDescriptionNoctis": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionGithubLight": "GitHub’s clean neutral light",
+  "@appThemeDescriptionGithubLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionCatppuccinLatte": "Soft pastel light, community favorite",
+  "@appThemeDescriptionCatppuccinLatte": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionGruvboxLight": "Warm retro cream and earth tones",
+  "@appThemeDescriptionGruvboxLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionEverforestLight": "Gentle green, easy on the eyes",
+  "@appThemeDescriptionEverforestLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionRosePineDawn": "Muted rose and iris on warm paper",
+  "@appThemeDescriptionRosePineDawn": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionAyuLight": "Bright, minimal light with amber accents",
+  "@appThemeDescriptionAyuLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionTokyoNightLight": "Crisp indigo daylight, Tokyo Night’s day",
+  "@appThemeDescriptionTokyoNightLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionNordLight": "Cool arctic snow-storm neutrals",
+  "@appThemeDescriptionNordLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionKanagawaLotus": "Warm sumi-e paper with ink accents",
+  "@appThemeDescriptionKanagawaLotus": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionDracula": "The classic purple-on-charcoal favorite",
+  "@appThemeDescriptionDracula": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionNord": "Cool arctic blues, understated",
+  "@appThemeDescriptionNord": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionTokyoNight": "Neon indigo city-at-night palette",
+  "@appThemeDescriptionTokyoNight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionGruvboxDark": "Warm retro amber on charcoal",
+  "@appThemeDescriptionGruvboxDark": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionCatppuccinMocha": "Cozy pastel dark, community favorite",
+  "@appThemeDescriptionCatppuccinMocha": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionGithubDark": "GitHub’s neutral dark",
+  "@appThemeDescriptionGithubDark": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionEverforestDark": "Soft forest green, low fatigue",
+  "@appThemeDescriptionEverforestDark": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionRosePine": "Muted rose and iris in the dark",
+  "@appThemeDescriptionRosePine": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionAyuMirage": "Smooth slate with amber accents",
+  "@appThemeDescriptionAyuMirage": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionCutiePro": "Cute af dark pastel, pink-forward",
+  "@appThemeDescriptionCutiePro": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionPinkAsHeck": "Unapologetic hot pink on berry",
+  "@appThemeDescriptionPinkAsHeck": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionVitesseLight": "Modern muted sage, teal and rose",
+  "@appThemeDescriptionVitesseLight": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionZenburn": "The classic low-contrast warm grey",
+  "@appThemeDescriptionZenburn": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionShadesOfPurple": "Bold gold on deep indigo",
+  "@appThemeDescriptionShadesOfPurple": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionCatppuccinFrappe": "Lighter blue-gray pastel Catppuccin",
+  "@appThemeDescriptionCatppuccinFrappe": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionSynthwave84": "Glowing neon on retro purple",
+  "@appThemeDescriptionSynthwave84": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "appThemeDescriptionNoctisLilac": "Gentle lilac Noctis daylight",
+  "@appThemeDescriptionNoctisLilac": {
+    "description": "One-line description of this theme. It is not shown on screen: it is read aloud by screen readers after the theme name when the theme card is focused. Keep brand and palette names (Catppuccin, Nord, GitHub, …) untranslated."
+  },
+  "themeEditorGroupPrimary": "Primary",
+  "@themeEditorGroupPrimary": {
+    "description": "Heading of the \"Primary\" group of colour roles in the custom-theme editor."
+  },
+  "themeEditorGroupSecondary": "Secondary",
+  "@themeEditorGroupSecondary": {
+    "description": "Heading of the \"Secondary\" group of colour roles in the custom-theme editor."
+  },
+  "themeEditorGroupTertiary": "Tertiary",
+  "@themeEditorGroupTertiary": {
+    "description": "Heading of the \"Tertiary\" group of colour roles in the custom-theme editor."
+  },
+  "themeEditorGroupError": "Error",
+  "@themeEditorGroupError": {
+    "description": "Heading of the \"Error\" group of colour roles in the custom-theme editor."
+  },
+  "themeEditorGroupSurfaceText": "Surface & text",
+  "@themeEditorGroupSurfaceText": {
+    "description": "Heading of the \"Surface & text\" group of colour roles in the custom-theme editor."
+  },
+  "themeEditorGroupSurfaceContainers": "Surface containers",
+  "@themeEditorGroupSurfaceContainers": {
+    "description": "Heading of the \"Surface containers\" group of colour roles in the custom-theme editor."
+  },
+  "themeEditorGroupOutlineEffects": "Outline & effects",
+  "@themeEditorGroupOutlineEffects": {
+    "description": "Heading of the \"Outline & effects\" group of colour roles in the custom-theme editor."
+  },
+  "themeEditorRolePrimary": "Primary",
+  "@themeEditorRolePrimary": {
+    "description": "Label of the \"Primary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnPrimary": "On primary",
+  "@themeEditorRoleOnPrimary": {
+    "description": "Label of the \"On primary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRolePrimaryContainer": "Primary container",
+  "@themeEditorRolePrimaryContainer": {
+    "description": "Label of the \"Primary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnPrimaryContainer": "On primary container",
+  "@themeEditorRoleOnPrimaryContainer": {
+    "description": "Label of the \"On primary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSecondary": "Secondary",
+  "@themeEditorRoleSecondary": {
+    "description": "Label of the \"Secondary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnSecondary": "On secondary",
+  "@themeEditorRoleOnSecondary": {
+    "description": "Label of the \"On secondary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSecondaryContainer": "Secondary container",
+  "@themeEditorRoleSecondaryContainer": {
+    "description": "Label of the \"Secondary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnSecondaryContainer": "On secondary container",
+  "@themeEditorRoleOnSecondaryContainer": {
+    "description": "Label of the \"On secondary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleTertiary": "Tertiary",
+  "@themeEditorRoleTertiary": {
+    "description": "Label of the \"Tertiary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnTertiary": "On tertiary",
+  "@themeEditorRoleOnTertiary": {
+    "description": "Label of the \"On tertiary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleTertiaryContainer": "Tertiary container",
+  "@themeEditorRoleTertiaryContainer": {
+    "description": "Label of the \"Tertiary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnTertiaryContainer": "On tertiary container",
+  "@themeEditorRoleOnTertiaryContainer": {
+    "description": "Label of the \"On tertiary container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleError": "Error",
+  "@themeEditorRoleError": {
+    "description": "Label of the \"Error\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnError": "On error",
+  "@themeEditorRoleOnError": {
+    "description": "Label of the \"On error\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleErrorContainer": "Error container",
+  "@themeEditorRoleErrorContainer": {
+    "description": "Label of the \"Error container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnErrorContainer": "On error container",
+  "@themeEditorRoleOnErrorContainer": {
+    "description": "Label of the \"On error container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSurface": "Surface",
+  "@themeEditorRoleSurface": {
+    "description": "Label of the \"Surface\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnSurface": "On surface",
+  "@themeEditorRoleOnSurface": {
+    "description": "Label of the \"On surface\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnSurfaceVariant": "On surface variant",
+  "@themeEditorRoleOnSurfaceVariant": {
+    "description": "Label of the \"On surface variant\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleInverseSurface": "Inverse surface",
+  "@themeEditorRoleInverseSurface": {
+    "description": "Label of the \"Inverse surface\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOnInverseSurface": "On inverse surface",
+  "@themeEditorRoleOnInverseSurface": {
+    "description": "Label of the \"On inverse surface\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleInversePrimary": "Inverse primary",
+  "@themeEditorRoleInversePrimary": {
+    "description": "Label of the \"Inverse primary\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSurfaceContainerLowest": "Container lowest",
+  "@themeEditorRoleSurfaceContainerLowest": {
+    "description": "Label of the \"Container lowest\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSurfaceContainerLow": "Container low",
+  "@themeEditorRoleSurfaceContainerLow": {
+    "description": "Label of the \"Container low\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSurfaceContainer": "Container",
+  "@themeEditorRoleSurfaceContainer": {
+    "description": "Label of the \"Container\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSurfaceContainerHigh": "Container high",
+  "@themeEditorRoleSurfaceContainerHigh": {
+    "description": "Label of the \"Container high\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSurfaceContainerHighest": "Container highest",
+  "@themeEditorRoleSurfaceContainerHighest": {
+    "description": "Label of the \"Container highest\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOutline": "Outline",
+  "@themeEditorRoleOutline": {
+    "description": "Label of the \"Outline\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleOutlineVariant": "Outline variant",
+  "@themeEditorRoleOutlineVariant": {
+    "description": "Label of the \"Outline variant\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleSurfaceTint": "Surface tint",
+  "@themeEditorRoleSurfaceTint": {
+    "description": "Label of the \"Surface tint\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleShadow": "Shadow",
+  "@themeEditorRoleShadow": {
+    "description": "Label of the \"Shadow\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorRoleScrim": "Scrim",
+  "@themeEditorRoleScrim": {
+    "description": "Label of the \"Scrim\" colour role in the custom-theme editor (a Material colour-scheme role, e.g. \"On primary\" is the text/icon colour drawn on top of \"Primary\")."
+  },
+  "themeEditorPairOnPrimary": "Text on primary",
+  "@themeEditorPairOnPrimary": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on primary\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnPrimaryContainer": "Text on primary container",
+  "@themeEditorPairOnPrimaryContainer": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on primary container\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnSecondary": "Text on secondary",
+  "@themeEditorPairOnSecondary": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on secondary\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnSecondaryContainer": "Text on secondary container",
+  "@themeEditorPairOnSecondaryContainer": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on secondary container\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnTertiary": "Text on tertiary",
+  "@themeEditorPairOnTertiary": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on tertiary\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnTertiaryContainer": "Text on tertiary container",
+  "@themeEditorPairOnTertiaryContainer": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on tertiary container\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnError": "Text on error",
+  "@themeEditorPairOnError": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on error\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnErrorContainer": "Text on error container",
+  "@themeEditorPairOnErrorContainer": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on error container\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnSurface": "Body text on surface",
+  "@themeEditorPairOnSurface": {
+    "description": "Label of the live WCAG contrast badge for the \"Body text on surface\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnSurfaceVariant": "Secondary text on surface",
+  "@themeEditorPairOnSurfaceVariant": {
+    "description": "Label of the live WCAG contrast badge for the \"Secondary text on surface\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOnInverseSurface": "Text on inverse surface",
+  "@themeEditorPairOnInverseSurface": {
+    "description": "Label of the live WCAG contrast badge for the \"Text on inverse surface\" colour pair in the custom-theme editor."
+  },
+  "themeEditorPairOutline": "Outline on surface",
+  "@themeEditorPairOutline": {
+    "description": "Label of the live WCAG contrast badge for the \"Outline on surface\" colour pair in the custom-theme editor."
+  },
   "settingsAppearanceEasterEggsHeader": "Easter eggs",
   "@settingsAppearanceEasterEggsHeader": {
     "description": "Section header for playful optional visual features in Appearance settings."
@@ -1320,18 +2669,6 @@
   "@settingsDefaultsStartingProgramPickerTitle": {
     "description": "Title for the dance picker used by the starting program template."
   },
-  "settingsDefaultsStartingProgramAddDance": "Dance",
-  "@settingsDefaultsStartingProgramAddDance": {
-    "description": "Button to add a dance to the starting program template."
-  },
-  "settingsDefaultsStartingProgramAddText": "Note",
-  "@settingsDefaultsStartingProgramAddText": {
-    "description": "Button to add a text note to the starting program template."
-  },
-  "settingsDefaultsStartingProgramAddBreak": "Add break",
-  "@settingsDefaultsStartingProgramAddBreak": {
-    "description": "Tooltip for adding a break to the starting program template."
-  },
   "settingsDefaultsStartingProgramTextLabel": "Note text",
   "@settingsDefaultsStartingProgramTextLabel": {
     "description": "Input label for a new text note in the starting program template."
@@ -1356,6 +2693,35 @@
         "type": "String"
       }
     }
+  },
+  "settingsDefaultsDifficultyLevelEmpty": "A difficulty level needs a name.",
+  "@settingsDefaultsDifficultyLevelEmpty": {
+    "description": "Snackbar in Settings > Defaults > Difficulty levels when a level's name is cleared or left blank. The raw exception is logged, never shown (CWE-209)."
+  },
+  "settingsDefaultsDifficultyLevelDuplicate": "A level named \"{label}\" already exists.",
+  "@settingsDefaultsDifficultyLevelDuplicate": {
+    "description": "Snackbar when a difficulty level is added or renamed to a name another level already has (compared ignoring case). {label} is the name the person typed, plain text.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsDefaultsDifficultyLevelInUse": "{count, plural, =1{1 dance uses {label}. Change it first.} other{{count} dances use {label}. Change them first.}}",
+  "@settingsDefaultsDifficultyLevelInUse": {
+    "description": "Snackbar when deleting a difficulty level that dances (including deleted ones that can be restored) still use. {label} is the level's display name, never its id; {count} is the number of dances.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsDefaultsDifficultyLevelActionFailed": "Couldn't save the difficulty levels. Try again.",
+  "@settingsDefaultsDifficultyLevelActionFailed": {
+    "description": "Generic fallback snackbar when adding, renaming, deleting or reordering a difficulty level fails for a reason with no specific message. The raw exception is logged, never shown (CWE-209)."
   },
   "settingsDefaultsBandLabel": "Default band",
   "@settingsDefaultsBandLabel": {
@@ -1485,6 +2851,22 @@
   "@settingsDefaultsCollectionFiltersSubtitle": {
     "description": "Subtitle describing the filter-visibility checkboxes (#1419)."
   },
+  "settingsDefaultsImportHeader": "Import defaults",
+  "@settingsDefaultsImportHeader": {
+    "description": "Section header for defaults applied to dances imported on their own."
+  },
+  "settingsDefaultsImportTagsTitle": "Tags for imported dances",
+  "@settingsDefaultsImportTagsTitle": {
+    "description": "Title of the Import defaults setting that picks the tags added to newly imported dances."
+  },
+  "settingsDefaultsImportTagsSubtitle": "Added to each new dance you import on its own. Dances created while importing a program, and dances restored from a Compendium archive, are not tagged.",
+  "@settingsDefaultsImportTagsSubtitle": {
+    "description": "Explains which imports the default import tags apply to and which they skip."
+  },
+  "settingsDefaultsImportTagsEmpty": "You have no tags yet. Add one to a dance in the editor, then pick it here.",
+  "@settingsDefaultsImportTagsEmpty": {
+    "description": "Shown in place of the tag chips when the user has no tags."
+  },
   "settingsDefaultsAuthoringHeader": "Dance-authoring defaults",
   "@settingsDefaultsAuthoringHeader": {
     "description": "Section header for defaults applied when authoring a new dance."
@@ -1501,7 +2883,7 @@
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
     "description": "Title of the opt-in setting that makes the figure editor always recompute a figure's beat count from its move/params, even overriding a manually entered value (issue #689)."
   },
-  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "When on, changing a figure's move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you've edited is never changed automatically.",
+  "settingsDefaultsAggressiveBeatsUpdateSubtitle": "When on, changing a figure's move or a param that affects timing recalculates its beat count immediately — even overwriting a beat count you typed in by hand. When off (default), a beat count you've edited is only changed automatically when you switch a balance option on or off, which adds or removes 4 beats.",
   "@settingsDefaultsAggressiveBeatsUpdateSubtitle": {
     "description": "Explanatory subtitle for the aggressive-beats-update setting, explicitly warning that a manually entered beat count can be overwritten when the toggle is on (issue #689 guardrail)."
   },
@@ -1956,6 +3338,14 @@
   "@settingsProgramVenueCallCountOption": {
     "description": "Dropdown option for the number of repeated venues shown in calling history."
   },
+  "settingsGeneralCapitalizeFiguresTitle": "Capitalize figures",
+  "@settingsGeneralCapitalizeFiguresTitle": {
+    "description": "Title of the General settings Library toggle that capitalizes the first letter of each figure shown on screen."
+  },
+  "settingsGeneralCapitalizeFiguresSubtitle": "When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (“Neighbors allemande left”). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.",
+  "@settingsGeneralCapitalizeFiguresSubtitle": {
+    "description": "Subtitle explaining the capitalize figures toggle. ContraDB is a product name and stays untranslated."
+  },
   "settingsGeneralAccessibilityHeader": "Accessibility",
   "@settingsGeneralAccessibilityHeader": {
     "description": "General settings section header for accessibility preferences."
@@ -2226,6 +3616,10 @@
   "@backupRestoreIncompatibleVersion": {
     "description": "Snackbar shown when a valid backup contains data too new for this app version, so restore is refused without changing local data."
   },
+  "backupRestoreMissingAppSection": "This backup doesn't include your app settings, themes or dialects, so it can't replace your current data. The restore was cancelled and your data is unchanged.",
+  "@backupRestoreMissingAppSection": {
+    "description": "Snackbar shown when a replace restore is refused because the backup file has no app section (an older, hand-edited or incomplete file), so restoring it would clear preferences, themes and dialects it never described. Existing data is unchanged."
+  },
   "backupRestoreInvalidFile": "Couldn't restore: the file isn't a valid backup. Your data is unchanged.",
   "@backupRestoreInvalidFile": {
     "description": "Snackbar shown when the selected restore file is not a valid backup. Existing data is unchanged."
@@ -2318,6 +3712,18 @@
   "@backupOverdueHint": {
     "description": "Gentle hint shown under the backup reminder row when the selected cadence says a backup is overdue."
   },
+  "backupReminderBannerText": "Your backup is overdue. Export one now to keep your collection safe.",
+  "@backupReminderBannerText": {
+    "description": "Text of the once-per-launch banner on the main screen shown when the user's chosen backup reminder cadence says a backup is overdue."
+  },
+  "backupReminderBannerExport": "Export backup",
+  "@backupReminderBannerExport": {
+    "description": "Banner action that exports a backup immediately, from the overdue-backup reminder banner."
+  },
+  "backupReminderBannerNotNow": "Not now",
+  "@backupReminderBannerNotNow": {
+    "description": "Banner action that dismisses the overdue-backup reminder banner for this launch."
+  },
   "backupRestoreDialogBody": "Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup's contents. This cannot be undone.",
   "@backupRestoreDialogBody": {
     "description": "Warning text in the restore-from-backup dialog explaining that restore destructively replaces current app data."
@@ -2326,6 +3732,10 @@
   "@backupChooseFileAction": {
     "description": "Button label in the restore-from-backup dialog that opens a file chooser."
   },
+  "backupChooseFileFailed": "Couldn't read that file.",
+  "@backupChooseFileFailed": {
+    "description": "Snackbar shown in the restore-from-backup dialog when the chosen file could not be read for a reason other than being too large or not a valid backup."
+  },
   "backupPasteJsonLabel": "Or paste backup JSON",
   "@backupPasteJsonLabel": {
     "description": "Text field label in the restore-from-backup dialog for pasting raw backup JSON."
@@ -2333,6 +3743,92 @@
   "backupReplaceAllDataAction": "Replace all data",
   "@backupReplaceAllDataAction": {
     "description": "Destructive confirmation button in the restore-from-backup dialog."
+  },
+  "backupFileSummary": "Backup from {date}: {dances, plural, one {{dances} dance} other {{dances} dances}}, {programs, plural, one {{programs} program} other {{programs} programs}}, {size} MB",
+  "@backupFileSummary": {
+    "description": "Summary of the backup file chosen in the restore-from-backup dialog, shown instead of pasting the file into the text box: when it was made, how many dances and programs it holds, and its size in megabytes. 'MB' is the megabyte unit.",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "Jul 15, 2026"
+      },
+      "dances": {
+        "type": "int",
+        "example": "412"
+      },
+      "programs": {
+        "type": "int",
+        "example": "9"
+      },
+      "size": {
+        "type": "String",
+        "example": "5.3"
+      }
+    }
+  },
+  "backupFileUnreadable": "This file doesn't look like a readable backup ({size} MB). Replacing will tell you why if it can't be restored.",
+  "@backupFileUnreadable": {
+    "description": "Summary shown in the restore-from-backup dialog for a chosen file that could not be read as a backup (not valid, or failed its integrity check). The Replace button stays enabled; the restore itself explains the refusal and leaves data unchanged. 'MB' is the megabyte unit.",
+    "placeholders": {
+      "size": {
+        "type": "String",
+        "example": "5.3"
+      }
+    }
+  },
+  "backupFileClearAction": "Clear",
+  "@backupFileClearAction": {
+    "description": "Button in the restore-from-backup dialog that forgets the chosen backup file so another file can be chosen or text pasted."
+  },
+  "backupFileTooLarge": "That file is too large to be a Caller’s Compendium backup ({sizeMb} MB; limit {limitMb} MB). Your data is unchanged.",
+  "@backupFileTooLarge": {
+    "description": "Snackbar shown in the restore-from-backup dialog when the chosen file is larger than the size limit; the file was not read and data is unchanged. 'MB' is the megabyte unit.",
+    "placeholders": {
+      "sizeMb": {
+        "type": "String",
+        "example": "60.0"
+      },
+      "limitMb": {
+        "type": "String",
+        "example": "50.0"
+      }
+    }
+  },
+  "backupExportTooLarge": "Your collection is too large to export as a single backup ({sizeMb} MB; limit {limitMb} MB), so nothing was saved. Your data is unchanged.",
+  "@backupExportTooLarge": {
+    "description": "Snackbar shown when exporting a backup is refused because the encoded backup would exceed the size limit that restore can read; nothing is saved. 'MB' is the megabyte unit.",
+    "placeholders": {
+      "sizeMb": {
+        "type": "String",
+        "example": "52.3"
+      },
+      "limitMb": {
+        "type": "String",
+        "example": "50.0"
+      }
+    }
+  },
+  "backupExportInProgress": "Preparing your backup…",
+  "@backupExportInProgress": {
+    "description": "Text in the progress dialog shown while a backup is being built and saved. No percentage is shown."
+  },
+  "backupRestorePreparing": "Reading the backup…",
+  "@backupRestorePreparing": {
+    "description": "Text in the restore progress dialog while the backup is being read, before the count of restored items is known."
+  },
+  "backupRestoreProgress": "Restoring {done} of {total}…",
+  "@backupRestoreProgress": {
+    "description": "Text in the restore progress dialog: how many items (dances, tags, programs and so on) have been restored out of the total.",
+    "placeholders": {
+      "done": {
+        "type": "int",
+        "example": "120"
+      },
+      "total": {
+        "type": "int",
+        "example": "4200"
+      }
+    }
   },
   "diagnosticsNoDiagnosticsToExport": "No diagnostics to export.",
   "@diagnosticsNoDiagnosticsToExport": {
@@ -2827,10 +4323,6 @@
   "collectionSearchFieldHint": "Search titles, authors, figures, notes…",
   "@collectionSearchFieldHint": {
     "description": "Hint text of the local collection search field, listing what is searched."
-  },
-  "collectionPickerSearchFieldHint": "Search titles, figures, notes…",
-  "@collectionPickerSearchFieldHint": {
-    "description": "Hint text of the collection picker search field, listing what is searched."
   },
   "collectionPickerOnlineSearchFieldHint": "Search online dances by title…",
   "@collectionPickerOnlineSearchFieldHint": {
@@ -3511,10 +5003,6 @@
   "collectionCreateTagButton": "Create tag",
   "@collectionCreateTagButton": {
     "description": "Tooltip for the button that creates the typed tag in the batch add-tags dialog."
-  },
-  "collectionCreateTagError": "Could not create tag. Try again.",
-  "@collectionCreateTagError": {
-    "description": "Snackbar shown when creating a tag fails."
   },
   "collectionBatchApplyError": "Could not apply batch changes. Try again.",
   "@collectionBatchApplyError": {
@@ -4267,6 +5755,22 @@
   "@programsNotesLabel": {
     "description": "Field label for the program's free-form notes in the editor."
   },
+  "programsPayLabel": "Pay",
+  "@programsPayLabel": {
+    "description": "Field label for the amount the caller is paid for the program, in the program editor's More details section."
+  },
+  "programsPayHint": "e.g. 250.00",
+  "@programsPayHint": {
+    "description": "Hint text for the program pay amount field: an example amount."
+  },
+  "programsPayCurrencyLabel": "Currency",
+  "@programsPayCurrencyLabel": {
+    "description": "Label of the currency selector next to the program pay amount field."
+  },
+  "programsPayInvalid": "Enter an amount like 250 or 250.50 in this currency.",
+  "@programsPayInvalid": {
+    "description": "Validation error shown under the program pay amount field when the text is not a valid amount for the selected currency."
+  },
   "programsStatusFieldLabel": "Status",
   "@programsStatusFieldLabel": {
     "description": "Field label for the program status dropdown in the editor."
@@ -4278,6 +5782,28 @@
   "programsHideAlternatesSubtitle": "Omits ALT slots from the summary, PDF, and exported set list. The builder still shows every slot.",
   "@programsHideAlternatesSubtitle": {
     "description": "Explanatory subtitle for the hide-alternates toggle in the program editor."
+  },
+  "programsDialectFieldLabel": "Perform dialect",
+  "@programsDialectFieldLabel": {
+    "description": "Label of the program editor field that picks the dialect Perform uses for this program."
+  },
+  "programsDialectUseApp": "Use app dialect",
+  "@programsDialectUseApp": {
+    "description": "Dropdown option that clears the program's dialect so Perform follows the app dialect."
+  },
+  "programsDialectUnavailable": "{name} (unavailable)",
+  "@programsDialectUnavailable": {
+    "description": "Dropdown entry for a stored dialect name that no longer matches any dialect in the library (renamed, deleted or not synced here yet). {name} is the stored dialect name.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Leads/Follows"
+      }
+    }
+  },
+  "programsDialectHelper": "Used only in this program's Perform view. The editor, summary and exports keep the app dialect.",
+  "@programsDialectHelper": {
+    "description": "Helper text under the program dialect field: where the dialect applies."
   },
   "programsWarningCount": "{count, plural, =1{1 warning} other{{count} warnings}}",
   "@programsWarningCount": {
@@ -4392,6 +5918,16 @@
       "level": {
         "type": "String",
         "example": "All welcome"
+      }
+    }
+  },
+  "programsSummaryPay": "Pay: {amount}",
+  "@programsSummaryPay": {
+    "description": "Summary row showing what the caller is paid for the program: the amount followed by its ISO 4217 currency code.",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "250.00 USD"
       }
     }
   },
@@ -4739,34 +6275,6 @@
   "@programsMatrixHidePhrasesSemantic": {
     "description": "Accessible label/tooltip for the matrix control that restores comparable cell presence glyphs in the transient on-screen view."
   },
-  "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Alternate dance: {title}, first half} second{Alternate dance: {title}, second half} other{Alternate dance: {title}}}} other{{half, select, first{Dance: {title}, first half} second{Dance: {title}, second half} other{Dance: {title}}}}}",
-  "@programsMatrixRowHeaderSemantic": {
-    "description": "Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.",
-    "placeholders": {
-      "title": {
-        "type": "String",
-        "example": "Chorus Jig"
-      },
-      "alt": {
-        "type": "String",
-        "example": "yes"
-      },
-      "half": {
-        "type": "String",
-        "example": "first"
-      }
-    }
-  },
-  "programsMatrixHalfShort": "{half, select, first{1st} other{2nd}}",
-  "@programsMatrixHalfShort": {
-    "description": "Short program-half badge label (1st or 2nd half).",
-    "placeholders": {
-      "half": {
-        "type": "String",
-        "example": "first"
-      }
-    }
-  },
   "programsMatrixSectionShort": "{sectionKey, select, s1{1st} s2{2nd} s3{3rd} s4{4th} s5{5th} s6{6th} s7{7th} s8{8th} s9{9th} other{{sectionNumber}}}",
   "@programsMatrixSectionShort": {
     "description": "Short localized ordinal label for a numbered program section (for example, 1st, 2nd, or 3rd). sectionKey selects listed ordinals; sectionNumber is the raw number used above the listed ordinals.",
@@ -4866,24 +6374,6 @@
       "first": {
         "type": "String",
         "example": "no"
-      }
-    }
-  },
-  "programsMatrixChipQualifiedTitle": "{alt, select, yes{{half, select, first{{title} (alternate dance, first half)} second{{title} (alternate dance, second half)} other{{title} (alternate dance)}}} other{{half, select, first{{title} (first half)} second{{title} (second half)} other{{title}}}}}",
-  "@programsMatrixChipQualifiedTitle": {
-    "description": "Dance name with its alternate-dance and program-half qualifiers, used by the compact matrix dance chip's screen-reader label.",
-    "placeholders": {
-      "title": {
-        "type": "String",
-        "example": "Chorus Jig"
-      },
-      "alt": {
-        "type": "String",
-        "example": "no"
-      },
-      "half": {
-        "type": "String",
-        "example": "first"
       }
     }
   },
@@ -5187,6 +6677,10 @@
   "@performAdjustmentUndone": {
     "description": "Screen-reader announcement after undoing a live program adjustment."
   },
+  "performUndoNoLongerAvailable": "Can't undo: the program has changed since.",
+  "@performUndoNoLongerAvailable": {
+    "description": "Snackbar shown when the user taps Undo on a live program adjustment after leaving Perform, but the program was edited in the meantime, so the undo is refused to keep that later edit."
+  },
   "performProgramAdjustedSnack": "Program adjusted.",
   "@performProgramAdjustedSnack": {
     "description": "Snackbar message shown after applying a live program adjustment."
@@ -5223,9 +6717,9 @@
   "@performPauseTimers": {
     "description": "Tooltip for the button that pauses the running performance timers."
   },
-  "performTimingSemantic": "Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}: {walkthrough} walkthrough and {dance} dance} other{}}{walkthroughComplete, select, yes{, walkthrough complete} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}",
+  "performTimingSemantic": "Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}: {walkthrough} walkthrough and {dance} dance} other{}}{manual, select, yes{, walkthrough ended at {actual}{direction, select, over{, {delta} over plan} under{, {delta} under plan} other{, on plan}}} other{}}{walkthroughComplete, select, yes{, walkthrough complete} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}",
   "@performTimingSemantic": {
-    "description": "Screen-reader label for the perform-mode timing line: elapsed program and slot times, optional split timing, walkthrough-transition and over-plan cues, and paused state.",
+    "description": "Screen-reader label for the perform-mode timing line: elapsed program and slot times, optional split timing, manual walkthrough-end mark (with how far it ran from plan), walkthrough-transition and over-plan cues, and paused state.",
     "placeholders": {
       "programTime": {
         "type": "String",
@@ -5262,6 +6756,22 @@
       "paused": {
         "type": "String",
         "example": "no"
+      },
+      "manual": {
+        "type": "String",
+        "example": "no"
+      },
+      "actual": {
+        "type": "String",
+        "example": "4:10"
+      },
+      "direction": {
+        "type": "String",
+        "example": "over"
+      },
+      "delta": {
+        "type": "String",
+        "example": "1:10"
       }
     }
   },
@@ -5294,6 +6804,32 @@
       "dance": {
         "type": "int",
         "example": "5"
+      }
+    }
+  },
+  "performDanceStartUnused": "Walkthrough done — start the dance",
+  "@performDanceStartUnused": {
+    "description": "Tooltip and screen-reader label of the icon-only dance-start toggle in program Perform while the walkthrough has not been marked as ended."
+  },
+  "performDanceStartUsed": "Dance started — tap to undo",
+  "@performDanceStartUsed": {
+    "description": "Tooltip and screen-reader label of the icon-only dance-start toggle once the caller has marked the walkthrough as ended; tapping again clears the mark."
+  },
+  "performWalkthroughActual": "walkthrough {actual}{direction, select, over{ (+{delta})} under{ (−{delta})} other{ (on plan)}}",
+  "@performWalkthroughActual": {
+    "description": "Visible readout shown after a manual walkthrough-end mark: the slot time at which the walkthrough ended, and in parentheses how far that ran over or under the planned walkthrough minutes.",
+    "placeholders": {
+      "actual": {
+        "type": "String",
+        "example": "4:10"
+      },
+      "direction": {
+        "type": "String",
+        "example": "over"
+      },
+      "delta": {
+        "type": "String",
+        "example": "1:10"
       }
     }
   },
@@ -5435,6 +6971,10 @@
   "@exportShareDanceBundle": {
     "description": "Export-menu item: share the dance and its referenced metadata as a .ccshare file."
   },
+  "exportSaveDanceBundle": "Save dance file…",
+  "@exportSaveDanceBundle": {
+    "description": "Export-menu item shown instead of 'Share dance file' on Linux, where the OS share sheet cannot carry files: save the dance and its referenced metadata as a .ccshare file through the system Save As dialog."
+  },
   "exportCopyDance": "Copy dance",
   "@exportCopyDance": {
     "description": "Export-menu item: copy the dance's plain-text card to the clipboard."
@@ -5467,6 +7007,10 @@
   "@exportShareProgramBundle": {
     "description": "Program export-menu item: share a bundle file containing the program and its dances."
   },
+  "exportSaveProgramBundle": "Save program file…",
+  "@exportSaveProgramBundle": {
+    "description": "Program export-menu item shown instead of 'Share (program + dances)' on Linux, where the OS share sheet cannot carry files: save a bundle file containing the program and its dances through the system Save As dialog."
+  },
   "exportCopySetList": "Copy set list",
   "@exportCopySetList": {
     "description": "Program export-menu item: copy the set list text to the clipboard."
@@ -5498,6 +7042,10 @@
   "exportJsonShare": "Share",
   "@exportJsonShare": {
     "description": "JSON export delivery-choice button that invokes the existing OS share flow."
+  },
+  "exportJsonSaveAs": "Save as…",
+  "@exportJsonSaveAs": {
+    "description": "JSON export delivery-choice button shown instead of 'Share' on Linux, where the OS share sheet cannot carry files: it saves the file through the system Save As dialog."
   },
   "exportJsonCancel": "Cancel",
   "@exportJsonCancel": {
@@ -5802,10 +7350,6 @@
         "example": "Caller's Box"
       }
     }
-  },
-  "onlineSearchFieldHint": "Search online dances by title or author…",
-  "@onlineSearchFieldHint": {
-    "description": "Hint text for the online search field."
   },
   "collectionOnlineSearchFieldHint": "Search online dances by title, author, or figure…",
   "@collectionOnlineSearchFieldHint": {
@@ -6342,6 +7886,18 @@
       }
     }
   },
+  "importReviewCommitProgress": "{done} / {total}",
+  "@importReviewCommitProgress": {
+    "description": "Progress line beside the spinner while an import is being written, as dances written so far over the total to write.",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "importReviewTitleListPasted": "{count, plural, =1{1 pasted title} other{{count} pasted titles}}",
   "@importReviewTitleListPasted": {
     "description": "Heading of the review summary banner, naming how many titles were pasted.",
@@ -6470,6 +8026,14 @@
   "@importTitleListReasonFetchError": {
     "description": "Reason under a not-found row: the search or the per-dance fetch failed. Isolated per title so one failure never aborts the rest of the list. The raw error is logged, never shown (CWE-209)."
   },
+  "importTitleListReasonConnectionFailed": "Couldn't reach The Caller's Box — check your connection.",
+  "@importTitleListReasonConnectionFailed": {
+    "description": "Reason under a not-found row: the online lookup could not reach The Caller's Box (offline, timed out, or the search page answered with an error status). Shown for the title whose lookup failed and for every later title that was then skipped without a request; accompanied by the batch banner. The raw error is never shown (CWE-209)."
+  },
+  "importTitleListConnectionBanner": "Stopped looking up titles after a connection failure. The titles already in your collection are listed; try the rest once you're online.",
+  "@importTitleListConnectionBanner": {
+    "description": "Banner above the title-list review groups when a connection failure ended the online lookups early, so the remaining titles were not searched."
+  },
   "importTitleListReasonLineTooLong": "Too long to be a dance title, so it wasn't searched.",
   "@importTitleListReasonLineTooLong": {
     "description": "Reason under a not-found row: the pasted line exceeded the per-title length cap, so it was reported rather than turned into a search query."
@@ -6496,9 +8060,15 @@
       }
     }
   },
-  "importErrorFileTooLarge": "That file is too large to import.",
+  "importErrorFileTooLarge": "That file is larger than the {megabytes} MB limit. Choose a smaller file and try again.",
   "@importErrorFileTooLarge": {
-    "description": "Error shown when a chosen import file exceeds the maximum allowed size."
+    "description": "Error shown when a chosen import file exceeds the maximum allowed size. Names the limit that applies to the chosen source and says what to do next.",
+    "placeholders": {
+      "megabytes": {
+        "type": "int",
+        "example": "25"
+      }
+    }
   },
   "archiveIntakeRejectedTooLarge": "That file is too large to import.",
   "@archiveIntakeRejectedTooLarge": {
@@ -6540,7 +8110,7 @@
   "@importErrorUnsupportedSharedLink": {
     "description": "Error shown when an operating-system shared link is neither a supported program nor a supported dance."
   },
-  "importErrorTooManyRedirects": "That URL redirected too many times.",
+  "importErrorTooManyRedirects": "That URL redirected too many times. Open it in a browser to find its final address, then use that instead.",
   "@importErrorTooManyRedirects": {
     "description": "Error shown when fetching an import URL exceeded the redirect limit."
   },
@@ -6566,7 +8136,7 @@
   "@importErrorUnreachable": {
     "description": "Error shown when an import URL could not be reached. Never echoes the URL."
   },
-  "importErrorHttpStatus": "The server responded with HTTP {status}.",
+  "importErrorHttpStatus": "The server sent an unexpected response (code {status}). Check the URL and try again.",
   "@importErrorHttpStatus": {
     "description": "Error shown when an import URL returned a non-success HTTP status.",
     "placeholders": {
@@ -6576,7 +8146,15 @@
       }
     }
   },
-  "importErrorEmptyResponse": "The URL returned an empty response.",
+  "importErrorHttpNotFound": "Nothing was found at that address. Check the URL, then try again.",
+  "@importErrorHttpNotFound": {
+    "description": "Error shown when a generic import URL returned HTTP 404. Deliberately omits the status code; says what to check."
+  },
+  "importErrorHttpBusy": "That server is busy or having trouble. Try again in a minute.",
+  "@importErrorHttpBusy": {
+    "description": "Error shown when a generic import URL returned HTTP 429 or a 5xx status. Deliberately omits the status code; retrying is the next step."
+  },
+  "importErrorEmptyResponse": "The URL returned an empty response. Check that the link points to the data you want to import, then try again.",
   "@importErrorEmptyResponse": {
     "description": "Error shown when an import URL returned an empty body."
   },
@@ -6614,7 +8192,17 @@
   "@importErrorCallersBoxUnreachable": {
     "description": "Error shown when The Caller's Box could not be reached."
   },
-  "importErrorCallersBoxHttpStatus": "The Caller's Box responded with HTTP {status}.",
+  "importErrorCallersBoxTimeout": "The Caller's Box didn't respond within {seconds}s. Check your connection, then try again.",
+  "@importErrorCallersBoxTimeout": {
+    "description": "Error shown when fetching a dance from The Caller's Box (by id or link) timed out. Names the service, never the URL. {seconds} is how long the app waited, in whole seconds; keep the 's' unit abbreviation or use your language's equivalent.",
+    "placeholders": {
+      "seconds": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "importErrorCallersBoxHttpStatus": "The Caller's Box sent an unexpected response (code {status}). Try again in a minute.",
   "@importErrorCallersBoxHttpStatus": {
     "description": "Error shown when The Caller's Box returned a non-success HTTP status.",
     "placeholders": {
@@ -6624,11 +8212,19 @@
       }
     }
   },
-  "importErrorCallersBoxEmptyPage": "The Caller's Box returned an empty page.",
-  "@importErrorCallersBoxEmptyPage": {
-    "description": "Error shown when a Caller's Box search returned no page content."
+  "importErrorCallersBoxHttpNotFound": "The Caller's Box has no dance with that id. Check the number or link, then try again.",
+  "@importErrorCallersBoxHttpNotFound": {
+    "description": "Error shown when The Caller's Box returned HTTP 404 for the id or link the user entered. Deliberately omits the status code."
   },
-  "importErrorCallersBoxNoDance": "The Caller's Box returned no importable dance.",
+  "importErrorCallersBoxHttpBusy": "The Caller's Box is busy right now. Try again in a minute.",
+  "@importErrorCallersBoxHttpBusy": {
+    "description": "Error shown when The Caller's Box returned HTTP 429 or a 5xx status. Deliberately omits the status code; retrying is the next step."
+  },
+  "importErrorCallersBoxEmptyPage": "The Caller's Box returned an empty page. Try again in a minute.",
+  "@importErrorCallersBoxEmptyPage": {
+    "description": "Error shown when The Caller's Box returned no page content, for a search or for a dance fetched by id or link. The next step is to wait briefly and retry."
+  },
+  "importErrorCallersBoxNoDance": "The Caller's Box returned no importable dance. Check the id or link, then try again.",
   "@importErrorCallersBoxNoDance": {
     "description": "Error shown when a Caller's Box fetch parsed no importable dance. Generic by design; underlying parse detail is not shown."
   },
@@ -6680,7 +8276,17 @@
   "@importErrorContraDbUnreachable": {
     "description": "Error shown when ContraDB could not be reached."
   },
-  "importErrorContraDbHttpStatus": "ContraDB responded with HTTP {status}.",
+  "importErrorContraDbTimeout": "ContraDB didn't respond within {seconds}s. Check your connection, then try again.",
+  "@importErrorContraDbTimeout": {
+    "description": "Error shown when fetching a dance from ContraDB (by id or link) timed out. Names the service, never the URL. {seconds} is how long the app waited, in whole seconds; keep the 's' unit abbreviation or use your language's equivalent.",
+    "placeholders": {
+      "seconds": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "importErrorContraDbHttpStatus": "ContraDB sent an unexpected response (code {status}). Try again in a minute.",
   "@importErrorContraDbHttpStatus": {
     "description": "Error shown when ContraDB returned a non-success HTTP status.",
     "placeholders": {
@@ -6690,11 +8296,19 @@
       }
     }
   },
-  "importErrorContraDbEmptyResponse": "ContraDB returned an empty response.",
-  "@importErrorContraDbEmptyResponse": {
-    "description": "Error shown when ContraDB returned an empty body."
+  "importErrorContraDbHttpNotFound": "ContraDB has no dance with that id. Check the number or link, then try again.",
+  "@importErrorContraDbHttpNotFound": {
+    "description": "Error shown when ContraDB returned HTTP 404 for the id or link the user entered. Deliberately omits the status code."
   },
-  "importErrorContraDbNoDance": "ContraDB returned no importable dance.",
+  "importErrorContraDbHttpBusy": "ContraDB is busy right now. Try again in a minute.",
+  "@importErrorContraDbHttpBusy": {
+    "description": "Error shown when ContraDB returned HTTP 429 or a 5xx status. Deliberately omits the status code; retrying is the next step."
+  },
+  "importErrorContraDbEmptyResponse": "ContraDB returned an empty response. Try again in a minute.",
+  "@importErrorContraDbEmptyResponse": {
+    "description": "Error shown when ContraDB returned an empty body, for a search or for a dance fetched by id or link. The next step is to wait briefly and retry."
+  },
+  "importErrorContraDbNoDance": "ContraDB returned no importable dance. Check the id or link, then try again.",
   "@importErrorContraDbNoDance": {
     "description": "Error shown when a ContraDB fetch parsed no importable dance. Generic by design; underlying parse detail is not shown."
   },
@@ -6725,6 +8339,34 @@
   "importIssueArchiveReadWarning": "The shared file reported a warning while decoding.",
   "@importIssueArchiveReadWarning": {
     "description": "Import note: decoding a shared archive produced a non-fatal warning. Generic; the raw warning text is not shown."
+  },
+  "importIssueArchiveNewerSchema": "This file was made by a newer version of Caller's Compendium. Update the app before importing, or some details may be left out.",
+  "@importIssueArchiveNewerSchema": {
+    "description": "Import review warning: the shared file was written by a newer app version than this one, so fields the newer version added are dropped. Tells the user to update first. Shown once for the whole file."
+  },
+  "importIssueUsrFileTruncated": "This file looks incomplete — only part of it could be read. Copy it again from the original and re-import.",
+  "@importIssueUsrFileTruncated": {
+    "description": "Import review warning: a Caller's Companion .USR file ends early (an incomplete copy), so some dances were never read. Tells the user to recopy the original. Shown once for the whole file."
+  },
+  "importIssueUsrFiguresFromDanceRows": "The figures couldn't be read from this file, so dances may arrive without figures. Check the original file, or re-export it from Caller's Companion.",
+  "@importIssueUsrFiguresFromDanceRows": {
+    "description": "Import review warning: the .USR Phrase table (where figures live) couldn't be read, so figures came from the Dance rows, which are usually empty."
+  },
+  "importIssueUsrPhraseGroupsOrphaned": "Some figures couldn't be matched to a dance and were left out. Check that your dances arrived complete, or copy the file again from the original.",
+  "@importIssueUsrPhraseGroupsOrphaned": {
+    "description": "Import review warning: some .USR Phrase rows had no matching dance (or no dance id), so their figures were skipped."
+  },
+  "importIssueUsrLinesDropped": "Some very long figure lines were left out. The rest of each dance was imported.",
+  "@importIssueUsrLinesDropped": {
+    "description": "Import review warning: .USR figure lines over the safe length were dropped; everything else was imported."
+  },
+  "importIssueUsrSetsSkipped": "Programs couldn't be fully read from this file, so some may be missing or arrive without their dances. Check them after importing.",
+  "@importIssueUsrSetsSkipped": {
+    "description": "Import review warning: the .USR Set or SetItem table was missing, so programs (or their items) were not imported."
+  },
+  "importIssueUsrRelatedRowsSkipped": "Some related-dance links in this file were invalid and were skipped.",
+  "@importIssueUsrRelatedRowsSkipped": {
+    "description": "Import review warning: .USR Dance_Related rows with a missing or self-referential dance id were skipped."
   },
   "importIssueDirectionUnmapped": "A Becket direction wasn't recognized; defaulted to clockwise.",
   "@importIssueDirectionUnmapped": {
@@ -6886,6 +8528,38 @@
   "@importRecordErrorDiscover": {
     "description": "Import review: a per-record error at the discover stage. Generic; raw error detail is not shown (CWE-209)."
   },
+  "importRecordErrorEmptyFile": "That file or text is empty. Choose a file that has content, or paste the text again.",
+  "@importRecordErrorEmptyFile": {
+    "description": "Import review: the file or pasted text was empty (ImportErrorCode.emptyFile). Typed; raw error detail is not shown (CWE-209)."
+  },
+  "importRecordErrorNotJson": "This isn't a JSON file. Choose the .json file the source exported, or paste its JSON again.",
+  "@importRecordErrorNotJson": {
+    "description": "Import review: the content was not valid JSON (ImportErrorCode.notJson). Typed; raw error detail is not shown (CWE-209)."
+  },
+  "importRecordErrorNotCompendiumArchive": "This isn't a Caller's Compendium file. Choose a .json exported from this app.",
+  "@importRecordErrorNotCompendiumArchive": {
+    "description": "Import review: the content is not a Caller's Compendium archive (ImportErrorCode.notCompendiumArchive). Typed; raw error detail is not shown (CWE-209)."
+  },
+  "importRecordErrorNotCallersBoxDance": "This isn't a Caller's Box dance. Check that you copied a dance from The Caller's Box, then try again.",
+  "@importRecordErrorNotCallersBoxDance": {
+    "description": "Import review: the content is not a Caller's Box dance export (ImportErrorCode.notCallersBoxDance). Typed; raw error detail is not shown (CWE-209)."
+  },
+  "importRecordErrorNotContraDbDance": "This isn't a ContraDB dance. Check that you copied a dance page from ContraDB, then try again.",
+  "@importRecordErrorNotContraDbDance": {
+    "description": "Import review: the content is not a ContraDB dance export or page (ImportErrorCode.notContraDbDance). Typed; raw error detail is not shown (CWE-209)."
+  },
+  "importRecordErrorNotUsrDatabase": "This isn't a Caller's Companion library file (.USR). In Caller's Companion, find the .USR file in its data folder.",
+  "@importRecordErrorNotUsrDatabase": {
+    "description": "Import review: the file is not a readable Caller's Companion .USR database (ImportErrorCode.notUsrDatabase). Typed; raw error detail is not shown (CWE-209)."
+  },
+  "importRecordErrorFileTooLarge": "That file is too large to import. Choose a smaller file, or split it into parts.",
+  "@importRecordErrorFileTooLarge": {
+    "description": "Import review: the file exceeds the import size or structure limits (ImportErrorCode.fileTooLarge). Typed; raw error detail is not shown (CWE-209)."
+  },
+  "importRecordErrorNoDanceAtId": "No dance was found there. Check the Caller's Box dance id or link, then try again.",
+  "@importRecordErrorNoDanceAtId": {
+    "description": "Import review: the Caller's Box response contained no dance (ImportErrorCode.noDanceAtId). Typed; raw error detail is not shown (CWE-209)."
+  },
   "importRecordErrorFetch": "This record couldn't be fetched.",
   "@importRecordErrorFetch": {
     "description": "Import review: a per-record error at the fetch stage. Generic; raw error detail is not shown (CWE-209)."
@@ -6980,6 +8654,10 @@
   "@importReviewCouldNotRead": {
     "description": "Title shown when the import payload could not be parsed."
   },
+  "importReviewPlanFailedBody": "Something went wrong reading this import. Try again; if it keeps happening, the file may be damaged.",
+  "@importReviewPlanFailedBody": {
+    "description": "Body text shown when planning the import threw an unexpected error. Generic; the error text is never shown (CWE-209)."
+  },
   "importReviewNoDancesTitle": "No dances found",
   "@importReviewNoDancesTitle": {
     "description": "Title shown when the import payload parsed but contained no dances."
@@ -6995,6 +8673,10 @@
   "importReviewImported": "Imported",
   "@importReviewImported": {
     "description": "Per-row status shown after a single record has been committed via Edit."
+  },
+  "importReviewImportAndEdit": "Import and edit",
+  "@importReviewImportAndEdit": {
+    "description": "Per-row button on the import review screen. It imports that one dance into the collection immediately (outside the batch Undo) and opens it in the editor."
   },
   "importReviewStructured": "{structured}/{total} structured",
   "@importReviewStructured": {
@@ -7015,6 +8697,22 @@
   "importReviewOptionNewDance": "New dance",
   "@importReviewOptionNewDance": {
     "description": "Per-record option: import this record as a brand-new dance."
+  },
+  "importReviewBulkSetAllLabel": "Set all matched dances to:",
+  "@importReviewBulkSetAllLabel": {
+    "description": "Label above the bulk controls in the import review that set every dance already in the collection (a re-import match) to the same choice."
+  },
+  "importReviewBulkReimport": "Re-import",
+  "@importReviewBulkReimport": {
+    "description": "Bulk control: set every matched dance to re-import onto its existing local dance."
+  },
+  "importReviewBulkSkip": "Skip",
+  "@importReviewBulkSkip": {
+    "description": "Bulk control: set every matched dance to skip, keeping the local dances as they are."
+  },
+  "importReviewBulkSkipAmbiguous": "Skip all possible matches",
+  "@importReviewBulkSkipAmbiguous": {
+    "description": "Bulk button: set every row marked as a possible match to skip."
   },
   "importReviewOptionSkip": "Skip",
   "@importReviewOptionSkip": {
@@ -7038,9 +8736,9 @@
   "@importReviewPossibleMatch": {
     "description": "Prompt above the options for a record that ambiguously matches existing dances."
   },
-  "importReviewOptionLink": "Link to \"{title}\" ({percent}% match)",
+  "importReviewOptionLink": "Same dance — replace \"{title}\" with this version ({percent}% match)",
   "@importReviewOptionLink": {
-    "description": "Per-record option: link to a candidate existing dance with a match percentage. The title is an untrusted local value rendered as plain text.",
+    "description": "Per-record option: treat this record as the same dance as a candidate existing dance, with a match percentage. The existing dance keeps its identity but its content is replaced by the imported version, so the label says so. The title is an untrusted local value rendered as plain text.",
     "placeholders": {
       "title": {
         "type": "String",
@@ -7216,6 +8914,20 @@
   "@importReviewEditError": {
     "description": "Snackbar shown when committing a single record so it can be edited fails."
   },
+  "importReviewEditOverwriteTitle": "Replace the existing dance now?",
+  "@importReviewEditOverwriteTitle": {
+    "description": "Title of the confirmation shown when Import and edit is pressed on a row set to Re-import or Link, because the matched dance is replaced immediately."
+  },
+  "importReviewEditOverwriteBody": "Importing to edit replaces \"{title}\" in your collection immediately. The batch Undo will not restore it.",
+  "@importReviewEditOverwriteBody": {
+    "description": "Body of the Import and edit overwrite confirmation. The title is an untrusted local value rendered as plain text.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Money Musk"
+      }
+    }
+  },
   "importReviewImportError": "Couldn't complete the import.",
   "@importReviewImportError": {
     "description": "Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209)."
@@ -7250,9 +8962,9 @@
       }
     }
   },
-  "importReviewOptionSameDance": "Same dance as \"{title}\" (link/update)",
+  "importReviewOptionSameDance": "Same dance — replace \"{title}\" with this version",
   "@importReviewOptionSameDance": {
-    "description": "Per-record option in the issue #686 variation block: treat this record as the same dance as the matched candidate (equivalent to the ordinary link option). The title is an untrusted local value rendered as plain text.",
+    "description": "Per-record option in the issue #686 variation block: treat this record as the same dance as the matched candidate (equivalent to the ordinary link option): the existing dance keeps its identity but its content is replaced by the imported version. The title is an untrusted local value rendered as plain text.",
     "placeholders": {
       "title": {
         "type": "String",
@@ -8652,6 +10364,10 @@
   "@updateDownloadFailureDestination": {
     "description": "Assisted-download error (desktop update banner and Settings ▸ Updates) shown when no folder could be prepared to receive the update file."
   },
+  "updateDownloadFailureDestinationOccupied": "Something is already at that location. Choose another name or folder, or use \"View release\".",
+  "@updateDownloadFailureDestinationOccupied": {
+    "description": "macOS assisted-download error shown when the place chosen in the Save panel holds a folder, a symbolic link, or a file that could not be removed, so the update was not saved there. The user can start the download again and pick another name or folder. \"View release\" must match the translation of updateBannerViewRelease."
+  },
   "updateDownloadFailureIncomplete": "The download was incomplete and was deleted. Please try again, or use \"View release\".",
   "@updateDownloadFailureIncomplete": {
     "description": "Assisted-download error shown when the downloaded file's size did not match the update manifest, so it was deleted. \"View release\" must match the translation of updateBannerViewRelease, the button that opens the release page for a manual download."
@@ -8724,6 +10440,61 @@
         "type": "String"
       }
     }
+  },
+  "retirementNoticeUpcoming": "Support for this version of {appName} ({version}) ends on {date}. Update to a later version before then.",
+  "@retirementNoticeUpcoming": {
+    "description": "End-of-support notice (banner and Settings ▸ Updates) before the announced end-of-life date. {date} is already formatted per the user's date-format setting.",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "retirementNoticePast": "Support for this version of {appName} ({version}) ended on {date}. Update to a later version now.",
+  "@retirementNoticePast": {
+    "description": "End-of-support notice (banner and Settings ▸ Updates) on or after the announced end-of-life date. {date} is already formatted per the user's date-format setting.",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "retirementBannerGetUpdate": "Get update",
+  "@retirementBannerGetUpdate": {
+    "description": "End-of-support banner action that opens the page for the newer release (or the list of releases)."
+  },
+  "retirementBannerLater": "Later",
+  "@retirementBannerLater": {
+    "description": "End-of-support banner action that hides the banner until the app is next launched."
+  },
+  "installLocationBannerMessage": "{appName} isn't installed yet: it is running from the downloaded disk image or archive. Quit it, drag it to your Applications folder, then open it from there.",
+  "@installLocationBannerMessage": {
+    "description": "macOS-only app-wide banner shown when the app was opened from inside the mounted .dmg (or a quarantined, translocated copy) instead of from Applications. 'Applications' is the macOS folder name; use the localized Finder name.",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      }
+    }
+  },
+  "installLocationBannerDismiss": "Dismiss",
+  "@installLocationBannerDismiss": {
+    "description": "Action on the not-installed banner that hides it until the app is next launched."
+  },
+  "settingsUpdatesRetirementTitle": "End of support",
+  "@settingsUpdatesRetirementTitle": {
+    "description": "Settings ▸ Updates tile title shown when this version has an announced end-of-life date."
   },
   "updateBannerViewRelease": "View release",
   "@updateBannerViewRelease": {
@@ -9279,15 +11050,6 @@
       }
     }
   },
-  "customFieldsDeleteInUseUnknown": "Can't delete \"{label}\": still used by some dances. Remove the value from all dances first.",
-  "@customFieldsDeleteInUseUnknown": {
-    "description": "Snackbar when deleting a custom field still set on dances but the exact count is unknown. The raw exception is logged (debugPrint), never shown (CWE-209). {label} is plain text.",
-    "placeholders": {
-      "label": {
-        "type": "String"
-      }
-    }
-  },
   "customFieldsTitle": "Custom fields",
   "@customFieldsTitle": {
     "description": "App-bar title for the custom-fields manager."
@@ -9510,19 +11272,6 @@
   "@dialectEditorPlural": {
     "description": "Label for the plural form of a role term."
   },
-  "dialectEditorMoveSubsAdd": "Add move substitutions",
-  "@dialectEditorMoveSubsAdd": {
-    "description": "Collapsed header/empty state for the move-substitutions section."
-  },
-  "dialectEditorMoveSubsCount": "{count, plural, =1{1 move substitution} other{{count} move substitutions}}",
-  "@dialectEditorMoveSubsCount": {
-    "description": "Header showing how many move substitutions are defined.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "dialectEditorMoveSubHint": "substitution (use %S for handedness)",
   "@dialectEditorMoveSubHint": {
     "description": "Hint for a move-substitution input; %S is a literal handedness token the user types."
@@ -9530,19 +11279,6 @@
   "dialectEditorAddMove": "Add a move…",
   "@dialectEditorAddMove": {
     "description": "Placeholder for the dropdown that adds a move to substitute."
-  },
-  "dialectEditorDancerSubsAdd": "Add dancer substitutions",
-  "@dialectEditorDancerSubsAdd": {
-    "description": "Collapsed header/empty state for the dancer-substitutions section."
-  },
-  "dialectEditorDancerSubsCount": "{count, plural, =1{1 dancer substitution} other{{count} dancer substitutions}}",
-  "@dialectEditorDancerSubsCount": {
-    "description": "Header showing how many dancer substitutions are defined.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
   },
   "dialectEditorDancerSubHint": "substitution",
   "@dialectEditorDancerSubHint": {
@@ -10083,6 +11819,16 @@
   "@dialectEditorMoveWordingsConditionalHelp": {
     "description": "Helper text explaining branch-specific move wording templates and their required slots."
   },
+  "dialectEditorMoveWordingsForceHelp": "Some slots are left out when they add nothing, such as a chain's hand when the role already implies it. Put a ! in front of a slot, like {example}, to always show it.",
+  "@dialectEditorMoveWordingsForceHelp": {
+    "description": "Helper text explaining that a leading ! forces a move wording slot to display. The example placeholder is a sample slot such as {!hand}.",
+    "placeholders": {
+      "example": {
+        "type": "String",
+        "example": "{!hand}"
+      }
+    }
+  },
   "dialectEditorMoveWordingsConditionalLabel": "{move} (conditional)",
   "@dialectEditorMoveWordingsConditionalLabel": {
     "description": "Header for a move's parameter-dependent wording templates.",
@@ -10116,20 +11862,6 @@
   "dialectEditorMoveWordingBranchSingleFile": "Single file",
   "@dialectEditorMoveWordingBranchSingleFile": {
     "description": "Label for the single-file branch."
-  },
-  "dialectEditorMoveWordingsAdd": "Add move wording templates",
-  "@dialectEditorMoveWordingsAdd": {
-    "description": "Collapsed header/empty state for the move wording template section."
-  },
-  "dialectEditorMoveWordingsCount": "{count, plural, =1{1 move wording template} other{{count} move wording templates}}",
-  "@dialectEditorMoveWordingsCount": {
-    "description": "Header showing how many move wording templates are defined.",
-    "placeholders": {
-      "count": {
-        "type": "int",
-        "example": "2"
-      }
-    }
   },
   "dialectEditorAddMoveWording": "Add a move wording template…",
   "@dialectEditorAddMoveWording": {

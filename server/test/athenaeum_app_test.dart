@@ -892,6 +892,14 @@ void main() {
     expect(missing.statusCode, 404);
   });
 
+  test('shipped request-rate limits are the ones spec §5.4 states', () {
+    const limits = AthenaeumBudgetLimits();
+    expect(limits.perIpRequestsPerSecond, 5);
+    expect(limits.perIpRequestBurst, 300);
+    expect(limits.perStoreRequestsPerSecond, 15);
+    expect(limits.perStoreRequestBurst, 600);
+  });
+
   test(
     'general client request budget limits successful sync requests',
     () async {
@@ -911,7 +919,7 @@ void main() {
           headers: {'authorization': authorization},
         ),
       );
-      for (var attempt = 0; attempt < 120; attempt++) {
+      for (var attempt = 0; attempt < 300; attempt++) {
         final response = await request();
         expect(response.statusCode, 200);
       }
@@ -937,7 +945,7 @@ void main() {
         clientAddressResolver: (_) => 'refill-client',
         clock: () => now,
         budgetLimits: const AthenaeumBudgetLimits(
-          perIpRequestsPerMinute: 60,
+          perIpRequestsPerSecond: 1,
           perIpRequestBurst: 2,
         ),
       );
@@ -972,7 +980,7 @@ void main() {
         clock: () => DateTime.utc(2026, 9, 3),
         budgetLimits: const AthenaeumBudgetLimits(
           perIpRequestBurst: 10,
-          perStoreRequestsPerMinute: 1,
+          perStoreRequestsPerSecond: 1 / 60,
           perStoreRequestBurst: 1,
         ),
       );
@@ -1161,6 +1169,143 @@ void main() {
       ),
     );
     expect(response.statusCode, 429);
+  });
+
+  test(
+    'the rightmost forwarded entry keys the budget, not a spoofed prefix',
+    () async {
+      final productionApp = AthenaeumApp(config: app.config, store: app.store);
+      Future<Response> failedRequest(String forwarded) => productionApp.call(
+        _requestWithPeer(
+          InternetAddress.loopbackIPv4,
+          forwardedAddress: forwarded,
+        ),
+      );
+
+      // A client that rotates the leftmost (client-supplied) entry still lands in
+      // the bucket of the address the proxy appended.
+      for (
+        var attempt = 0;
+        attempt < maxFailedResolutionsPerIpBurst;
+        attempt++
+      ) {
+        expect(
+          (await failedRequest('198.51.100.$attempt, 192.0.2.10')).statusCode,
+          401,
+        );
+      }
+      expect((await failedRequest('203.0.113.9, 192.0.2.10')).statusCode, 429);
+      // A different real client is not drained by the spoofed entries.
+      expect((await failedRequest('192.0.2.10, 192.0.2.11')).statusCode, 401);
+    },
+  );
+
+  test('repeated forwarded-for header lines resolve to the last entry', () async {
+    final productionApp = AthenaeumApp(config: app.config, store: app.store);
+    Future<Response> failedRequest(List<String> lines) => productionApp.call(
+      Request(
+        'GET',
+        Uri.parse('http://127.0.0.1/v1/store'),
+        headers: {'authorization': 'Bearer ******', 'x-forwarded-for': lines},
+        context: {
+          'shelf.io.connection_info': _FakeConnectionInfo(
+            InternetAddress.loopbackIPv4,
+          ),
+        },
+      ),
+    );
+
+    // dart:io (verified) presents repeated lines joined in order with ", ", so
+    // a client line followed by the proxy's appended line keys on the proxy's.
+    for (var attempt = 0; attempt < maxFailedResolutionsPerIpBurst; attempt++) {
+      expect(
+        (await failedRequest(['198.51.100.$attempt', '192.0.2.20'])).statusCode,
+        401,
+      );
+    }
+    expect(
+      (await failedRequest(['203.0.113.9', '192.0.2.20'])).statusCode,
+      429,
+    );
+  });
+
+  test('an unparseable rightmost entry falls back to the socket peer', () async {
+    final productionApp = AthenaeumApp(config: app.config, store: app.store);
+    Future<Response> failedRequest(String forwarded) => productionApp.call(
+      _requestWithPeer(
+        InternetAddress.loopbackIPv4,
+        forwardedAddress: forwarded,
+      ),
+    );
+
+    // Varying malformed values all draw on the one socket-peer bucket. If each
+    // malformed string were trusted as its own key, none would ever be limited.
+    for (var attempt = 0; attempt < maxFailedResolutionsPerIpBurst; attempt++) {
+      expect(
+        (await failedRequest('192.0.2.12, not-an-address-$attempt')).statusCode,
+        401,
+      );
+    }
+    expect(
+      (await failedRequest('192.0.2.12, another-bad-value')).statusCode,
+      429,
+    );
+  });
+
+  group('encoded gzip bytes', () {
+    Future<Response> gzipRequest(
+      String method,
+      String path,
+      Stream<List<int>> body, {
+      Map<String, String> headers = const {},
+    }) => app.call(
+      Request(
+        method,
+        Uri.parse('http://127.0.0.1$path'),
+        headers: {
+          'authorization': 'Bearer ${encodeSyncCredential(syncId)}',
+          'content-type': 'application/json',
+          'content-encoding': 'gzip',
+          ...headers,
+        },
+        body: body,
+      ),
+    );
+    final emptyMember = gzip.encode(<int>[]);
+
+    test('empty gzip members beyond the ceiling are rejected', () async {
+      // Each member decodes to zero chunks, so only the encoded count can stop it.
+      final members = List<List<int>>.filled(200, emptyMember);
+      final response = await gzipRequest(
+        'POST',
+        '/v1/store',
+        Stream.fromIterable(members),
+      );
+      expect(response.statusCode, 413);
+    });
+
+    test(
+      'a declared gzip length beyond the ceiling is rejected up front',
+      () async {
+        final response = await gzipRequest(
+          'POST',
+          '/v1/store',
+          Stream.fromIterable([emptyMember]),
+          headers: {'content-length': '${maxGzipBytes + 1}'},
+        );
+        expect(response.statusCode, 413);
+      },
+    );
+
+    test('a valid gzip body within the ceiling is unaffected', () async {
+      final response = await gzipRequest(
+        'POST',
+        '/v1/store',
+        Stream.value(emptyMember),
+      );
+      // Empty decoded body: store creation proceeds past the body read.
+      expect(response.statusCode, 201);
+    });
   });
 
   test('quota failures emit a safe operational alert', () async {

@@ -26,9 +26,9 @@ void main() {
       parseFigureLines(rawText, beats: beats, frontEnd: tcbFigureFrontEnd);
 
   group('taxonomy — the v23 move', () {
-    test('contraTaxonomyVersion is 35', () {
-      expect(contraTaxonomyVersion, 35);
-      expect(tax.version, 35);
+    test('contraTaxonomyVersion is 37', () {
+      expect(contraTaxonomyVersion, 37);
+      expect(tax.version, 37);
     });
 
     test('v23 is purely additive — it owed no schema migration of its own', () {
@@ -71,8 +71,12 @@ void main() {
       // change the taxonomy. Schema 33 adds a program-slot purge-caption
       // marker, schema 34 adds difficulty vocabulary, and schema 35 splits
       // planned slot timing. Schema 36 adds the sync review local-version
-      // guard; none of them changes the taxonomy.
-      expect(kCompendiumSchemaVersion, 36);
+      // guard; none of them changes the taxonomy. Schema 37 (#1554) adds the
+      // nullable programs.dialect_name, likewise leaving the taxonomy alone.
+      // Schema 38 (#1418) adds the nullable programs pay columns, also
+      // leaving the taxonomy alone. Schema 39 adds the retained_sync_fields
+      // table (sync-spec §6.7), and leaves the taxonomy alone too.
+      expect(kCompendiumSchemaVersion, 39);
     });
 
     test('registers with the maintainer-ruled param set', () {
@@ -125,31 +129,31 @@ void main() {
       expect(swingSpec.choices, unorderedEquals(gateFacings));
     });
 
-    test(
-      'direction is a spinDirection defaulting to clockwise, NO sentinel',
-      () {
-        // No sentinel here, and the reason is semantic, not technical: a
-        // courtesy turn wheels clockwise by construction, so `clockwise`
-        // is a real default rather than a fabricated one.
-        //
-        // `ParamKind.spinDirection` once ALSO made a sentinel unsafe: the
-        // editor rendered it from a hardcoded `ParamVocab.spins`, ignoring
-        // `spec.choices`, and its reconciliation pushed a substitute back
-        // into the draft, rewriting "unstated" into "clockwise" on open.
-        // #726 closed the editor half of that, and taught
-        // `ParamSpec.validate` the same rule; the Advanced-search facet
-        // (`facet_labels.dart`) was the last holdout and was fixed
-        // separately (PR #746). All three now read `spec.choices ?? <fixed
-        // vocabulary>`, so this move uses the honest kind because it IS
-        // honest, not as a workaround.
-        final spec = tax.resolve('courtesy_turn')!.params['direction']!;
-        expect(spec.kind, ParamKind.spinDirection);
-        expect(spec.defaultValue, 'clockwise');
-        expect(spec.choices, isNull);
-        expect(spec.validate(ParamVocab.unspecified), isFalse);
-        expect(spec.validate('counterclockwise'), isTrue);
-      },
-    );
+    test('direction is a spinDirection defaulting to counterclockwise, NO '
+        'sentinel', () {
+      // No sentinel here, and the reason is semantic, not technical: a
+      // courtesy turn has a real default rotation. Since v37 it is
+      // counterclockwise — the ordinary turn after a role2s' chain or a
+      // right and left through. Clockwise is the mirrored turn, chiefly
+      // after a role1s' chain.
+      //
+      // `ParamKind.spinDirection` once ALSO made a sentinel unsafe: the
+      // editor rendered it from a hardcoded `ParamVocab.spins`, ignoring
+      // `spec.choices`, and its reconciliation pushed a substitute back
+      // into the draft, rewriting "unstated" into "clockwise" on open.
+      // #726 closed the editor half of that, and taught
+      // `ParamSpec.validate` the same rule; the Advanced-search facet
+      // (`facet_labels.dart`) was the last holdout and was fixed
+      // separately (PR #746). All three now read `spec.choices ?? <fixed
+      // vocabulary>`, so this move uses the honest kind because it IS
+      // honest, not as a workaround.
+      final spec = tax.resolve('courtesy_turn')!.params['direction']!;
+      expect(spec.kind, ParamKind.spinDirection);
+      expect(spec.defaultValue, 'counterclockwise');
+      expect(spec.choices, isNull);
+      expect(spec.validate(ParamVocab.unspecified), isFalse);
+      expect(spec.validate('clockwise'), isTrue);
+    });
 
     test('goodBeats are the counts the corpus actually attests', () {
       // 4 x97, 2 x8, 3 x6, 6 x4 across the 115 lines this grammar claims. The
@@ -183,7 +187,8 @@ void main() {
         'Shadow courtesy turn': 'shadows',
         'Twos courtesy turn': 'twos',
         // Mixer partner-series: spot-checks that courtesy_turn routes through
-        // the same _dancerWords map as swing/allemande/promenade. P0–P5 are
+        // the same dancerWords map (taxonomy/dance_vocabulary.dart) as
+        // swing/allemande/promenade. P0–P5 are
         // exhaustively asserted via that map in figure_parser_test.dart;
         // only a representative subset is needed here.
         'P1 partner courtesy turn': 'partners',
@@ -215,13 +220,14 @@ void main() {
       // claim the SOURCE said it.
       expect(
         tax.resolve('courtesy_turn')!.params['direction']!.defaultValue,
-        'clockwise',
+        'counterclockwise',
       );
     });
 
     test('counterclockwise parses even though the corpus never states it', () {
-      // Authoring parity: the param admits it, so the recognizer must not
-      // reject a hand-written line that uses it.
+      // The corpus never states the default rotation (it only names the
+      // unusual, mirrored one), but a hand-written line may, and the
+      // recognizer must not reject it.
       final f = parseTcb('Neighbor courtesy turn counterclockwise', beats: 4)!;
       expect(f.move, 'courtesy_turn');
       expect(f.params['direction'], 'counterclockwise');
@@ -633,7 +639,7 @@ void main() {
       // identical to a clockwise one.
       expect(
         renderer.renderCanonical(fig({'who': 'partners'})),
-        'partners courtesy turn clockwise',
+        'partners courtesy turn counterclockwise',
       );
       expect(
         renderer.renderCanonical(
@@ -643,20 +649,17 @@ void main() {
       );
       expect(
         renderer.renderCanonical(fig({'endFacing': 'nextNeighbors'})),
-        'partners courtesy turn clockwise next neighbors',
+        'partners courtesy turn counterclockwise next neighbors',
+      );
+      expect(
+        renderer.renderCanonical(fig({'direction': 'clockwise'})),
+        'partners courtesy turn clockwise',
       );
     });
 
-    test('display silences clockwise and states counterclockwise', () {
+    test('display silences counterclockwise and states clockwise', () {
       expect(
         renderer.render(fig({'who': 'partners'}), Dialect.canonical),
-        'partner courtesy turn',
-      );
-      expect(
-        renderer.render(
-          fig({'who': 'partners', 'direction': 'clockwise'}),
-          Dialect.canonical,
-        ),
         'partner courtesy turn',
       );
       expect(
@@ -664,7 +667,14 @@ void main() {
           fig({'who': 'partners', 'direction': 'counterclockwise'}),
           Dialect.canonical,
         ),
-        'partner courtesy turn counterclockwise',
+        'partner courtesy turn',
+      );
+      expect(
+        renderer.render(
+          fig({'who': 'partners', 'direction': 'clockwise'}),
+          Dialect.canonical,
+        ),
+        'partner courtesy turn clockwise',
       );
     });
 
@@ -708,12 +718,12 @@ void main() {
           fig({
             'who': 'ones',
             'whom': 'twos',
-            'direction': 'counterclockwise',
+            'direction': 'clockwise',
             'endFacing': 'thirdNeighbors',
           }),
           Dialect.canonical,
         ),
-        'ones courtesy turn twos counterclockwise to face third neighbor',
+        'ones courtesy turn twos clockwise to face third neighbor',
       );
     });
 

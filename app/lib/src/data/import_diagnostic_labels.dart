@@ -24,6 +24,7 @@ import '../../l10n/app_localizations.dart';
 /// falls back to [AppLocalizations.importIssueGeneric]. Exposed for the coverage
 /// test that guards against a silent English leak.
 const Set<String> mappedImportIssueCodes = {
+  'archive_newer_schema',
   'archive_program_empty_slot',
   'archive_program_unresolved_dance',
   'archive_program_unresolved_venue',
@@ -58,6 +59,12 @@ const Set<String> mappedImportIssueCodes = {
   'contradb_param_unmapped',
   'cc_related_dance_unresolved',
   'duplicate_external_id_in_batch',
+  'usr_file_truncated',
+  'usr_figures_from_dance_rows',
+  'usr_phrase_groups_orphaned',
+  'usr_lines_dropped',
+  'usr_sets_skipped',
+  'usr_related_rows_skipped',
 };
 
 /// Localized message for an [ImportIssue] surfaced in the import review.
@@ -97,6 +104,20 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
       return l10n.importIssueArchiveReadError;
     case 'archive_read_warning':
       return l10n.importIssueArchiveReadWarning;
+    case 'archive_newer_schema':
+      return l10n.importIssueArchiveNewerSchema;
+    case 'usr_file_truncated':
+      return l10n.importIssueUsrFileTruncated;
+    case 'usr_figures_from_dance_rows':
+      return l10n.importIssueUsrFiguresFromDanceRows;
+    case 'usr_phrase_groups_orphaned':
+      return l10n.importIssueUsrPhraseGroupsOrphaned;
+    case 'usr_lines_dropped':
+      return l10n.importIssueUsrLinesDropped;
+    case 'usr_sets_skipped':
+      return l10n.importIssueUsrSetsSkipped;
+    case 'usr_related_rows_skipped':
+      return l10n.importIssueUsrRelatedRowsSkipped;
     case 'callersbox_direction_unmapped':
       return l10n.importIssueDirectionUnmapped;
     case 'callersbox_formation_unclassified':
@@ -179,14 +200,28 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
 }
 
 /// Localized message for a per-record [ImportError] surfaced in the import
-/// review. Keyed on the [ImportError.stage] discriminator; the raw `message`
-/// (which may wrap opaque parser text) is never rendered — it stays on the
-/// error for logging only (CWE-209).
+/// review. Keyed on the typed [ImportError.code] first, falling back to the
+/// [ImportError.stage] discriminator for [ImportErrorCode.unknown]; the raw
+/// `message` (which may wrap opaque parser text or echo user content) is never
+/// rendered — it stays on the error for logging only (CWE-209).
 String importRecordErrorMessage(AppLocalizations l10n, ImportError error) =>
-    switch (error.stage) {
-      ImportStage.discover => l10n.importRecordErrorDiscover,
-      ImportStage.fetch => l10n.importRecordErrorFetch,
-      ImportStage.parse => l10n.importRecordErrorParse,
-      ImportStage.dedupe => l10n.importRecordErrorDedupe,
-      ImportStage.commit => l10n.importRecordErrorCommit,
+    switch (error.code) {
+      ImportErrorCode.emptyFile => l10n.importRecordErrorEmptyFile,
+      ImportErrorCode.notJson => l10n.importRecordErrorNotJson,
+      ImportErrorCode.notCompendiumArchive =>
+        l10n.importRecordErrorNotCompendiumArchive,
+      ImportErrorCode.notCallersBoxDance =>
+        l10n.importRecordErrorNotCallersBoxDance,
+      ImportErrorCode.notContraDbDance =>
+        l10n.importRecordErrorNotContraDbDance,
+      ImportErrorCode.notUsrDatabase => l10n.importRecordErrorNotUsrDatabase,
+      ImportErrorCode.fileTooLarge => l10n.importRecordErrorFileTooLarge,
+      ImportErrorCode.noDanceAtId => l10n.importRecordErrorNoDanceAtId,
+      ImportErrorCode.unknown => switch (error.stage) {
+        ImportStage.discover => l10n.importRecordErrorDiscover,
+        ImportStage.fetch => l10n.importRecordErrorFetch,
+        ImportStage.parse => l10n.importRecordErrorParse,
+        ImportStage.dedupe => l10n.importRecordErrorDedupe,
+        ImportStage.commit => l10n.importRecordErrorCommit,
+      },
     };

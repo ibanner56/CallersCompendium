@@ -90,6 +90,8 @@ class MoveAutocomplete extends StatefulWidget {
 }
 
 class _MoveAutocompleteState extends State<MoveAutocomplete> {
+  static String _labelKey(String label) => label.trim().toLowerCase();
+
   List<MoveOption> _optionsFor(String query) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return const [];
@@ -133,19 +135,22 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
             id: m.id,
             displayName: renderer.displayMoveName(m.id, dialect),
           ),
-      if (widget.includeAliases)
-        for (final a in widget.taxonomy.aliases.values)
-          if (matches(
-            a.id,
-            a.displayName,
-            renderer.displayMoveName(a.id, dialect),
-            a.searchKeywords,
-          ))
-            MoveOption(
-              id: a.id,
-              displayName: renderer.displayMoveName(a.id, dialect),
-            ),
     ];
+    if (widget.includeAliases) {
+      // An alias whose label equals one already offered (the v34 "pull by"
+      // aliases all read "pull by") is indistinguishable in the list, so it
+      // only costs a slot and invites a coin-flip. Drop it; the move, or the
+      // earlier alias, already covers that label. Moves are never dropped, so
+      // a dialect that gives two moves one term cannot hide either of them.
+      final labels = {for (final o in options) _labelKey(o.displayName)};
+      for (final a in widget.taxonomy.aliases.values) {
+        final label = renderer.displayMoveName(a.id, dialect);
+        if (matches(a.id, a.displayName, label, a.searchKeywords) &&
+            labels.add(_labelKey(label))) {
+          options.add(MoveOption(id: a.id, displayName: label));
+        }
+      }
+    }
     return options.take(8).toList();
   }
 

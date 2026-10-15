@@ -1,12 +1,9 @@
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
 import '../model/dance.dart';
-import '../model/enums.dart';
-import '../model/figure.dart';
-import '../model/figure_source.dart';
 import '../model/phrase_structure.dart';
-import '../model/tunes_source.dart';
 import '../taxonomy/contra_taxonomy.dart';
+import 'dance_card_content.dart';
 import 'dance_share_fields.dart';
 import 'export_labels.dart';
 
@@ -16,8 +13,10 @@ import 'export_labels.dart';
 ///
 /// Like the program renderer this lives in `compendium_core` and is
 /// intentionally **pure Dart** (no Flutter/intl): it can be unit-tested and is
-/// reused by the app's share/copy path and by the PDF layout (which mirrors the
-/// same field ordering).
+/// reused by the app's share/copy path. It serialises a [DanceCardContent];
+/// the PDF builders lay out the same [DanceCardContent], so the field gating
+/// and the dialect rendering of the notes, walkthrough and tunes are computed
+/// in one place.
 ///
 /// Unlike a program set list, a dance card *is* dance-card territory, so the
 /// figure table is rendered in full and **dialect-aware** using the same core
@@ -88,50 +87,35 @@ String danceToPlainText(
   Set<DanceShareField> fields = DanceShareField.allExceptTunes,
 }) {
   final fig = renderer ?? FigureRenderer(contraTaxonomy);
+  final content = DanceCardContent.build(
+    dance,
+    dialect: dialect,
+    authorNames: authorNames,
+    formationLabel: formationLabel,
+    levelLabel: levelLabel,
+    statusLabel: statusLabel,
+    renderer: fig,
+    labels: labels,
+    canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    fields: fields,
+  );
   String renderText(String text) => canonicalizeDiscouragedTerms
       ? fig.renderFreeTextWithCanonicalDiscouragedTerms(text, dialect)
       : fig.renderFreeText(text, dialect);
   final lines = <String>[];
 
-  lines.add(dance.title.trim());
+  lines.add(content.title);
 
-  if (fields.contains(DanceShareField.authors)) {
-    final names = authorNames.map((n) => n.trim()).where((n) => n.isNotEmpty);
-    if (names.isNotEmpty) lines.add(names.join(', '));
-  }
-
-  if (fields.contains(DanceShareField.formation) && _has(formationLabel)) {
-    lines.add('${labels.formation}: ${formationLabel.trim()}');
-  }
-  if (fields.contains(DanceShareField.level) && _has(levelLabel)) {
-    lines.add('${labels.level}: ${levelLabel!.trim()}');
-  }
-  if (fields.contains(DanceShareField.mixer) &&
-      dance.mixer &&
-      _has(labels.mixer)) {
-    lines.add(labels.mixer.trim());
-  }
-  // Mirror the on-screen card, which only surfaces a status banner for a
-  // non-active dance; an active dance omits the Status line entirely.
-  if (fields.contains(DanceShareField.status) &&
-      dance.status != DanceStatus.active &&
-      _has(statusLabel)) {
-    lines.add('${labels.status}: ${statusLabel.trim()}');
-  }
-  if (fields.contains(DanceShareField.phraseStructure) &&
-      _has(dance.phraseStructure.raw)) {
-    lines.add('${labels.phrase}: ${dance.phraseStructure.raw.trim()}');
+  if (content.authorNames.isNotEmpty) {
+    lines.add(content.authorNames.join(', '));
   }
 
-  final danceFigures = switch (dance.figuresSource) {
-    DecodedFigures(:final figures) => figures,
-    // Nothing to render: the exported text simply omits the figures section.
-    UnreadableFigures() => const <Figure>[],
-  };
-  if (danceFigures.isNotEmpty) {
+  lines.addAll(content.metaLines);
+
+  if (content.figures.isNotEmpty) {
     lines.add('');
     lines.add('${labels.figures}:');
-    final sectioned = deriveSections(danceFigures, dance.phraseStructure);
+    final sectioned = deriveSections(content.figures, dance.phraseStructure);
     for (final sf in sectioned) {
       final text = canonicalizeDiscouragedTerms
           ? fig.renderSummaryWithCanonicalDiscouragedTerms(sf.figure, dialect)
@@ -147,35 +131,23 @@ String danceToPlainText(
     }
   }
 
-  if (fields.contains(DanceShareField.callingNotes) &&
-      _has(dance.callingNotes)) {
+  if (content.callingNotes case final notes?) {
     lines.add('');
     lines.add('${labels.callingNotes}:');
-    lines.add(renderText(dance.callingNotes.trim()));
+    lines.add(notes);
   }
 
-  if (fields.contains(DanceShareField.walkthrough) && _has(dance.walkthrough)) {
+  if (content.walkthrough case final walkthrough?) {
     lines.add('');
     lines.add('${labels.walkthrough}:');
-    lines.add(renderText(dance.walkthrough.trim()));
+    lines.add(walkthrough);
   }
 
-  if (fields.contains(DanceShareField.tunes)) {
-    final tuneList = switch (dance.tunesSource) {
-      DecodedTunes(:final tunes) => tunes,
-      // Unreadable stored tunes render as absent, matching every other
-      // unreadable-sealed-type contract in this file (figures).
-      UnreadableTunes() => const <String>[],
-    };
-    final tuneNames = tuneList.map((t) => t.trim()).where((t) => t.isNotEmpty);
-    if (tuneNames.isNotEmpty) {
-      lines.add('');
-      lines.add('${labels.tunes}:');
-      lines.add(tuneNames.join(', '));
-    }
+  if (content.tuneNames.isNotEmpty) {
+    lines.add('');
+    lines.add('${labels.tunes}:');
+    lines.add(content.tuneNames.join(', '));
   }
 
   return lines.join('\n');
 }
-
-bool _has(String? value) => value != null && value.trim().isNotEmpty;

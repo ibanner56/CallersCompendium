@@ -5,8 +5,62 @@ lives in the core package; all access through repositories.*
 
 ## Approach
 
-- One SQLite database file per profile, in the platform app-data directory;
-  user-triggered backup/restore = timestamped JSON export/import (6.6), not
+- One SQLite database file per profile (`compendium.sqlite`), in a per-app
+  data directory that is never a user-visible, cloud-synced folder
+  (`resolveDatabaseFile`): `%LOCALAPPDATA%\org.callerscompendium\Caller's
+  Compendium` on Windows (Local, not Roaming: roaming profiles copy Roaming, a
+  poor home for a live WAL database; `path_provider` exposes LocalAppData only
+  as the application *cache* directory, which is what the resolver asks for),
+  the application support directory (`$XDG_DATA_HOME/<app id>`) on Linux, and the
+  app's own documents directory on Android, iOS and macOS (sandboxed or
+  app-private). Earlier builds used `Documents` on Windows and Linux, which
+  OneDrive's folder backup syncs and which on Linux is `$HOME` itself when
+  `XDG_DOCUMENTS_DIR` is unset. The first launch after updating moves the
+  database, its `-wal`/`-shm` sidecars and the pre-migration snapshots out of
+  Documents (and out of the Roaming fallback directory an earlier build could
+  use on Windows) inside the migration preflight, before anything opens the file
+  (`relocateLegacyDatabase`): copy, fsync, verify size, rename into place, then
+  delete the source; it never overwrites a destination, and if a database exists
+  at both the old and new location, or the move fails, nothing is deleted and
+  startup stops on a non-retryable screen (`DatabaseRelocationBlocked`) that
+  lists each conflicting copy's location, size and last change (never a path).
+  The whole move runs under an exclusive advisory lock on `.relocation.lock` in the
+  database directory (the single-instance guard's `AdvisoryFileLock`, plus an
+  in-process queue), and its preconditions are checked only once that lock is
+  held, so a second process that waited finds nothing left to move. It refuses
+  to move a database another connection has open, and keeps every other
+  connection out until the old file is deleted: the checking connection stays
+  open from the check to the delete with `locking_mode = EXCLUSIVE` and
+  `BEGIN EXCLUSIVE`, after taking a WAL database out of WAL mode (which SQLite
+  refuses while any other connection, even an idle one, has the file). The
+  main file is copied through a handle kept open until after that connection
+  closes, because closing any other descriptor would release POSIX record
+  locks. Limits: a pre-WAL rollback-journal file gives no signal for an idle
+  connection; on Windows the lock is released just before the delete (an open
+  file cannot be deleted there, so an opener in that gap makes the delete fail
+  and the move roll back), and a database over 1 GiB cannot be copied while
+  locked (the move fails, nothing deleted). The Windows behaviour is reasoned
+  from SQLite's and Dart's sources; CI does not run tests on Windows.
+  A rollback never removes the new copy unless the old database file is still
+  there. While no database exists at the new location, a Documents path that does not
+  exist (a redirected folder on a disconnected share or drive letter), or a
+  Documents folder Windows cannot resolve, also stops startup
+  (`legacyUnreachable`) instead of reading as "no library". Only a missing path
+  is detected: an unmounted volume that leaves an empty mount-point folder
+  behind reads as an empty Documents. After a move, a breadcrumb *folder*
+  named `compendium.sqlite` (holding a `README.txt` that names the new
+  location) is at the old path: it is made inside the delete step, right after
+  the main file is deleted (on Windows, after the lock was released for that
+  delete), so a move
+  that cannot make it rolls back (only a crash in the instant between the
+  delete and the breadcrumb leaves the path free, unrepaired), and it is added
+  best-effort at each other old path whose folder exists. Every
+  earlier build (v0.1.0 to v0.5.4, all on drift_flutter 0.3.1) skips its
+  preflight because `File.exists()` is false for a folder, then fails to open
+  the path (SQLite cannot open a folder) and shows its startup error screen
+  instead of creating an empty library; the relocation ignores it for the same
+  reason. Pre-migration snapshots go in `db_backups/` beside
+  the file. User-triggered backup/restore = timestamped JSON export/import (6.6), not
   file copying.
 - **Hybrid figure storage** (fixing ContraDB's unqueryable JSON blob):
   1. `dances.figures_json` — authoritative ordered figure list (named params,
@@ -50,6 +104,10 @@ CREATE VIRTUAL TABLE dance_fts USING fts5(     -- derived; canonical text only
 -- rebuild clears the table once instead of deleting per dance. Deleting per new
 -- dance made an N-dance import O(N²) (1,000 → 8,000 dances: 0.57 → 1.66 ms per
 -- dance).
+-- The one exception is the batch edits of level, rating and tunes
+-- (`DanceRepository._updateMany`, `rebuildDerived: false`): none of them is an
+-- input to a derived row, so they leave the rows as they are. A custom-field
+-- batch edit changes `custom_values` and does rebuild.
 
 programs(id PK, title, event_date, venue, venue_id NULL, notes, status,
          created_at, updated_at, deleted_at,
@@ -109,7 +167,8 @@ No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
 ## Migrations
 
 - drift schema versions with stepwise migrations; every migration ships with
-  a test that opens a fixture DB from the previous version.
+  a test that instantiates the previous version from its generated schema
+  snapshot (`GeneratedHelper`) and seeds the rows it asserts on.
 - A **schema floor** (`kMinSupportedSchemaVersion`): versions below it are
   retired — their migration steps, fixtures and `drift_schemas/generated/`
   dumps are
@@ -131,7 +190,9 @@ Retiring versions below a new floor means deleting, together:
 - the `if (from < N)` steps that can no longer fire (note the off-by-one:
   retiring versions up to and including vX kills steps through `if (from < X+1)`,
   because that step only ever applies to a vX-or-below database),
-- the fixtures and generators under `test/storage/fixtures/`,
+- the fixtures and generators under `test/storage/fixtures/` (the floor
+  version itself has no fixture any more: tests that need a floor-version file
+  build one from its `drift_schemas/generated/` snapshot via `GeneratedHelper`),
 - the dumps under `drift_schemas/generated/` and their generated classes, and
 - the corresponding `migration_test.dart` groups.
 
@@ -161,15 +222,18 @@ rides a PATCH release — stays there, next to the constant it governs.
 
 **Every bump appends an entry here, in the same PR.**
 `tools/ci/check_version_history.py` fails a PR that moves the constant without
-adding the matching entry.
+adding the matching entry. A change added to a version that has not shipped yet
+(see CONTRIBUTING.md, "Adding to an unreleased version") amends that version's
+entry instead. The gate cannot see that case, because the constant does not
+move.
 
-### Retired (v1–v19): history only
+### Retired (v1–v34): history only
 
-**v1–v19 are RETIRED** (#837, floor raised past v19 once every tester was
-confirmed on `v0.1.0-beta.6`): they predate `v0.1.0-beta.6`, the oldest
-supported release, so their migration steps, fixtures and schema dumps have
-been deleted and [kMinSupportedSchemaVersion] refuses a database stamped
-below v20. Their entries are kept below as history — they explain why later
+**v1–v34 are RETIRED** (#837, then floor raises since, the latest to v35 once
+every release before `v0.4.0-beta` was retired): they predate `v0.4.0-beta`,
+the oldest supported release, so their migration steps, fixtures and schema
+dumps have been deleted and [kMinSupportedSchemaVersion] refuses a database
+stamped below v35. Their entries are kept below as history — they explain why later
 columns exist and are still referenced by the steps that survive — but there
 is no longer any code path that migrates from them.
 
@@ -341,11 +405,6 @@ is no longer any code path that migrates from them.
   long-hop upgrade from ≤ v11 therefore lands on `form_a_short_wave` at v12
   and is renamed here at v19.
 
-### Supported (v20 and later)
-
-These are the versions a database can still be stamped at, and the steps that
-can still fire.
-
 - v20 (gate merge): duplicate-move retirement + figure rewrite. `gate` and
   `rotation_gate` — which both rendered the display name "gate" and showed
   as two identical picker rows — are MERGED into one `gate` move (taxonomy
@@ -483,6 +542,12 @@ can still fire.
   discarded. The foreign key and repository write guard reject dangling IDs;
   repository deletion is transactional and refuses a level used by any dance,
   including a tombstoned dance that could be restored later.
+### Supported (v35 and later)
+
+These are the versions a database can still be stamped at. v35 is the floor:
+its own migration step is retired along with the older ones, because a floor
+database already carries it. The steps that can still fire are v36 onward.
+
 - v35 (issues #1104 and #1233): rewrites persisted figure parameter keys and
   consolidates the legacy `pull_by_dancers`/`pull_by_direction` move IDs to
   the v35 taxonomy representation, and replaces nullable
@@ -493,6 +558,55 @@ can still fire.
 - v36: adds nullable `review_queue.local_hash`, the queue-time wire hash of
   the affected local record. Actionable review resolution rejects a row whose
   local record changed after enqueue; v35 rows retain NULL and fail closed.
+- v37 (issue #1554): adds nullable `programs.dialect_name`, the name of the
+  dialect Perform uses for that program; NULL (every existing row) means Perform
+  follows the application dialect. A soft reference by name, deliberately not
+  validated at write time and never cascaded on dialect rename or delete: a name
+  that does not resolve falls back to the application dialect when Perform
+  resolves it. Written NFC-normalised like every shareable string: the dialect
+  library's own names are NFC-normalised on their way to storage
+  (`custom_dialects` is a shareable setting), and Device Sync rejects a program
+  body that is not already canonical. Not length-limited, because the library
+  imposes no name cap. Additive `addColumn`; no back-fill and no derived
+  rebuild.
+- v38 (issue #1418): adds nullable `programs.pay_minor_units` (integer) and
+  `programs.pay_currency` (ISO 4217 code): what the caller is paid for the
+  program, as integer minor units so no floating point is stored. The two are
+  set together or not at all and the amount is never negative (enforced by
+  `Program` and by archive decode); NULL in both (every existing row) means no
+  pay recorded. Shareable, so it syncs and is exported in archives, but it is
+  not part of the shared program text or PDF and `Program.duplicate` does not
+  copy it. Additive `addColumn`s; no back-fill and no derived rebuild.
+- v39 (sync-spec §6.7): adds the `retained_sync_fields` table — `kind`,
+  `record_id`, `whole_record` (bool) and `payload` (canonical JSON text), keyed
+  by `(kind, record_id)`. It holds what this device keeps of a synced record
+  for a newer version of the app: the parts of a peer's body this build does
+  not sync, put back verbatim whenever it shares the record again, or, for a
+  setting whose key this build does not sync, the peer's whole blob. `payload`
+  is `shareable` (unclassifiedPersonal / thirdParty, the tombstone payload's
+  classification); the other columns are Device Sync bookkeeping. Sync state,
+  not library content: never backed up or exported. Additive `createTable`; no
+  back-fill and no derived rebuild.
+  The same step adds nullable `baseline_state.published_manifest_hash`
+  (SHA-256 of the manifest this device last published, encoded with its
+  `writtenAt` fixed) and `baseline_state.published_verified_at` (when the store
+  last confirmed every blob that manifest names, epoch milliseconds UTC;
+  sync-spec §6.3 step 8). A pass whose manifest hashes the same, within the
+  refresh interval, skips the blob check and the manifest `PUT`. Device Sync
+  bookkeeping: never backed up, exported or synchronized. They live on the
+  epoch row so that anything that resets the epoch or the baseline forgets them
+  too. Additive `addColumn`s; no back-fill (null means "publish as before").
+  Added to v39 before it was released, rather than as v40.
+  The same step adds the `peer_manifests` table: `peer_id` (primary key), `epoch`,
+  `etag` and `body`. Each row is the last verified manifest of another device and
+  the `ETag` the server sent with it, so the first pass after a restart asks with
+  `If-None-Match` instead of downloading every peer's manifest again
+  (sync-spec §5.2). It is a cache: any row can be dropped and the next pass
+  fetches that manifest in full. `peer_id` and `etag` are `protocolIdentifier`s
+  (both are sent back to the store); `epoch` and `body` are Device Sync
+  bookkeeping. It is cleared with the baseline, and so on
+  an epoch change, detach and restore. Never backed up, exported or
+  synchronized. Additive `createTable`; no back-fill.
 
 ## The delete model
 
@@ -592,7 +706,7 @@ and does not leak into what the user sees.
 
 ## Durability
 
-- WAL mode; foreign keys ON; nightly-on-launch `PRAGMA quick_check`.
+- WAL mode; foreign keys ON; `PRAGMA quick_check` once per launch, after the first frame (advisory banner on failure).
 - WAL and the busy timeout are set by `applyCompendiumSqliteSetup`, which
   **every** connection to the database file must run. Device Sync opens a
   second connection from its worker isolate, so both it and `openAppDatabase`
@@ -611,7 +725,9 @@ and does not leak into what the user sees.
 ### Migration safety (app-layer preflight)
 
 Before the app opens the drift database it runs a preflight
-(`app/lib/src/data/migration_guard.dart`) that reads the file's persisted
+(`app/lib/src/data/migration_guard.dart`). It first moves a database an earlier
+build left in a legacy location into the database directory
+(`relocateLegacyDatabase`, see Approach). It then reads the file's persisted
 `PRAGMA user_version` — via a short-lived, WAL-aware `sqlite3` connection, not
 by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
 
@@ -640,7 +756,7 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   committed under the old stamp where the next open re-enters them and fails.
 - **Backup-before-migrate.** If an upgrade is pending (file version < running),
   the preflight first checkpoints the WAL and copies the whole SQLite file to
-  `<app-documents>/db_backups/compendium.pre-v<from>-<UTC-timestamp>.sqlite.bak`,
+  `<database directory>/db_backups/compendium.pre-v<from>-<UTC-timestamp>.sqlite.bak`,
   retaining the newest 5. This is a raw byte snapshot, distinct from the
   user-triggered JSON backup/restore (6.6/G.5): the JSON path is a *logical*
   export through the current-schema repositories and cannot run against a file
@@ -660,7 +776,7 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   unchanged — no prompt.
 
   **Restoring a pre-migration snapshot:** quit the app, replace the live
-  `compendium.sqlite` in the app-documents directory with the chosen
+  `compendium.sqlite` in the database directory (see Approach) with the chosen
   `.sqlite.bak` (renaming it back to `compendium.sqlite`), and relaunch. Because
   the snapshot is stamped at the older `user_version`, opening it with the build
   that created the backup migrates it forward again; if the migration itself was

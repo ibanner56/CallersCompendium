@@ -66,51 +66,58 @@ class DialectLibraryController extends ChangeNotifier {
   /// blob under [kActiveDialectKey] (no library). When no library key exists
   /// yet, that blob is migrated in — as a custom dialect if it isn't a shipped
   /// preset — and made active, so a user's single custom dialect survives.
+  ///
+  /// Transactional: every read (including the legacy blob) finishes before any
+  /// state changes, so a failing read leaves the previous library and active
+  /// name untouched. Only the first-run write-back can fail after the commit,
+  /// and it leaves the in-memory library complete and consistent.
   Future<void> load() async {
-    _customDialects.clear();
     final hasLibrary = await _settings.contains(kCustomDialectsKey);
     final raw = await _settings.get(kCustomDialectsKey);
+    final activeRaw = await _settings.get(kActiveDialectRefKey);
+    final legacy = hasLibrary ? null : await _settings.get(kActiveDialectKey);
+
+    final loaded = <Dialect>[];
     if (raw is List) {
       for (final entry in raw) {
         if (entry is Map) {
           final d = Dialect.fromJson(entry.cast<String, Object?>());
-          if (_customByNameIndex(d.name) < 0) _customDialects.add(d);
+          if (!loaded.any((existing) => existing.name == d.name)) {
+            loaded.add(d);
+          }
         }
       }
     }
+    var activeName = activeRaw is String ? activeRaw : null;
+    final migrated = hasLibrary ? null : _legacyActiveDialect(legacy);
+    if (migrated != null) {
+      if (Dialect.forName(migrated.name) == null) loaded.add(migrated);
+      activeName = migrated.name;
+    }
 
-    final activeRaw = await _settings.get(kActiveDialectRefKey);
-    _activeName = activeRaw is String ? activeRaw : null;
+    _customDialects
+      ..clear()
+      ..addAll(loaded);
+    _activeName = activeName;
 
     if (!hasLibrary) {
-      await _migrateLegacyActive();
-      // Mark the library as initialized so this one-time migration doesn't
-      // re-run (and re-write settings) on every future startup.
+      // Persist the migrated state, and mark the library as initialized so the
+      // one-time migration doesn't re-run (and re-write settings) on every
+      // future startup.
+      if (migrated != null) await _persistActive();
       await _persistDialects();
     }
     notifyListeners();
   }
 
-  /// Migrates a pre-library install: the active dialect was stored as a full
-  /// JSON blob under [kActiveDialectKey]. If it names/matches a preset, just
-  /// activate that; otherwise adopt it as a custom dialect and activate it.
-  Future<void> _migrateLegacyActive() async {
-    final legacy = await _settings.get(kActiveDialectKey);
-    Dialect? dialect;
-    if (legacy is Map) {
-      dialect = Dialect.fromJson(legacy.cast<String, Object?>());
-    } else if (legacy is String) {
-      dialect = Dialect.forName(legacy);
-    }
-    if (dialect == null) return;
-
-    final preset = Dialect.forName(dialect.name);
-    final matchesPreset = preset != null && preset == dialect;
-    if (!matchesPreset && Dialect.forName(dialect.name) == null) {
-      _customDialects.add(dialect);
-    }
-    _activeName = dialect.name;
-    await _persistActive();
+  /// Decodes a pre-library install's active dialect, stored as a full JSON blob
+  /// under [kActiveDialectKey] (or a preset name). If it names/matches a preset
+  /// the caller just activates it; otherwise it is adopted as a custom dialect.
+  /// Pure: [load] reads the blob and applies the result.
+  Dialect? _legacyActiveDialect(Object? legacy) {
+    if (legacy is Map) return Dialect.fromJson(legacy.cast<String, Object?>());
+    if (legacy is String) return Dialect.forName(legacy);
+    return null;
   }
 
   /// Adds a new custom dialect, or replaces the one with the same name. A

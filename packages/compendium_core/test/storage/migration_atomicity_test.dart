@@ -7,10 +7,12 @@
 // `lib/src/runtime/api/db_base.dart`, `beforeOpen`). Every step in
 // `CompendiumDatabase.onUpgrade` therefore commits as it goes, so an exception
 // — or a process death — after one step and before the stamp leaves a file
-// whose `user_version` says "v34" but whose tables are already at v35. The next
-// open re-enters the v35 step, `INSERT … SELECT planned_minutes` fails with
-// `no such column`, and the collection never opens again; the pre-migration
-// snapshot exists on disk but no app path restores it.
+// whose `user_version` says "v37" but whose tables are already partly at v38.
+// A step that is not idempotent (the since-retired v35 `program_slots` rebuild
+// was the case that found this: re-entered, its `INSERT … SELECT
+// planned_minutes` failed with `no such column`) then fails on every later
+// open, and the collection never opens again; the pre-migration snapshot
+// exists on disk but no app path restores it.
 //
 // `onUpgrade` closes that window two ways: every step runs inside one
 // `transaction()`, and that transaction's own last statement stamps
@@ -19,14 +21,15 @@
 // and drift's own (redundant) stamp, which still has the whole of
 // `beforeOpen` to run first.
 //
-// The first test injects a throw right after the v35 `alterTable` — the
-// reproduction that found the defect — and asserts the rollback: the stamp is
-// unchanged *and* the rebuilt table is gone, so a real reopen then migrates
-// cleanly.
+// The first test injects a throw right after the v38 step's first `addColumn`
+// and asserts the rollback: the stamp is unchanged *and* the added column is
+// gone, so a real reopen then migrates cleanly. (The v38 step is idempotent, so
+// the reopen would survive a leaked column; the column assertion is what
+// proves the rollback.)
 //
 // Mutation the first test catches: remove the `transaction()` wrap.
-// `user_version` still reads 34 (drift never stamped it), but `program_slots`
-// has already lost `planned_minutes`, and the reopen fails.
+// `user_version` still reads 37 (drift never stamped it), but `programs` has
+// already gained `pay_minor_units`.
 //
 // The second test lets the transaction commit and then throws from
 // `beforeOpen`, before drift's own stamp would run, and asserts
@@ -44,34 +47,39 @@ import 'package:test/test.dart';
 
 import 'generated/schema.dart';
 
-/// Throws after the `program_slots` rebuild, i.e. after the v35 step's DDL has
-/// run and before drift would stamp `user_version`.
-class _ThrowAfterProgramSlotsRebuild extends Migrator {
-  _ThrowAfterProgramSlotsRebuild(super.database);
+/// Throws after the `programs.pay_minor_units` column is added, i.e. after the
+/// v38 step's first DDL has run and before drift would stamp `user_version`.
+class _ThrowAfterPayColumnAdded extends Migrator {
+  _ThrowAfterPayColumnAdded(super.database);
 
   /// `PRAGMA foreign_keys` as seen from inside `onUpgrade`, recorded so the
   /// claim in `database.dart` — that foreign keys are OFF for the whole of
   /// `onUpgrade`, which is what makes the pragma toggle inside `alterTable` a
   /// non-event under the enclosing transaction — is checked, not asserted.
+  /// (No surviving step calls `alterTable`, so this samples at `addColumn`.)
   final foreignKeysSeen = <bool>[];
 
   @override
-  Future<void> alterTable(TableMigration migration) async {
+  Future<void> addColumn(
+    TableInfo<Table, dynamic> table,
+    GeneratedColumn column,
+  ) async {
     foreignKeysSeen.add(
       (await database.customSelect('PRAGMA foreign_keys').getSingle())
           .read<bool>('foreign_keys'),
     );
-    await super.alterTable(migration);
-    if (migration.affectedTable.actualTableName == 'program_slots') {
-      throw StateError('injected failure after the v35 alterTable');
+    await super.addColumn(table, column);
+    if (table.actualTableName == 'programs' &&
+        column.name == 'pay_minor_units') {
+      throw StateError('injected failure after the v38 addColumn');
     }
   }
 }
 
-class _FailingAfterV35 extends CompendiumDatabase {
-  _FailingAfterV35(super.executor);
+class _FailingAfterV38Column extends CompendiumDatabase {
+  _FailingAfterV38Column(super.executor);
 
-  late final migrator = _ThrowAfterProgramSlotsRebuild(this);
+  late final migrator = _ThrowAfterPayColumnAdded(this);
 
   @override
   Migrator createMigrator() => migrator;
@@ -104,14 +112,14 @@ void main() {
 
     final historical = GeneratedHelper().databaseForVersion(
       NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-      34,
+      37,
     );
     await historical.customSelect('SELECT 1').get();
     await historical.close();
-    expect(_userVersion(raw), 34);
-    expect(_columnsOf(raw, 'program_slots'), contains('planned_minutes'));
+    expect(_userVersion(raw), 37);
+    expect(_columnsOf(raw, 'programs'), isNot(contains('pay_minor_units')));
 
-    final failing = _FailingAfterV35(
+    final failing = _FailingAfterV38Column(
       NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
     );
     await expectLater(
@@ -141,16 +149,16 @@ void main() {
     );
     expect(
       _userVersion(raw),
-      34,
+      37,
       reason: 'drift stamps user_version only after onUpgrade returns',
     );
     expect(
-      _columnsOf(raw, 'program_slots'),
-      contains('planned_minutes'),
+      _columnsOf(raw, 'programs'),
+      isNot(contains('pay_minor_units')),
       reason:
-          'the v35 alterTable ran before the throw; without a transaction '
-          'around the step body its rebuild of program_slots stays committed '
-          'under a user_version that still says v34',
+          'the v38 addColumn ran before the throw; without a transaction '
+          'around the step body the column stays committed under a '
+          'user_version that still says v37',
     );
 
     // The proof that the rollback matters: a real reopen now migrates.
@@ -160,9 +168,10 @@ void main() {
     addTearDown(reopened.close);
     await reopened.customSelect('SELECT 1').get();
     expect(_userVersion(raw), kCompendiumSchemaVersion);
-    final columns = _columnsOf(raw, 'program_slots');
-    expect(columns, isNot(contains('planned_minutes')));
-    expect(columns, containsAll(['walkthrough_minutes', 'dance_minutes']));
+    expect(
+      _columnsOf(raw, 'programs'),
+      containsAll(['pay_minor_units', 'pay_currency']),
+    );
   });
 
   test("user_version already reads the new value if the process dies in "
@@ -172,11 +181,11 @@ void main() {
 
     final historical = GeneratedHelper().databaseForVersion(
       NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-      34,
+      37,
     );
     await historical.customSelect('SELECT 1').get();
     await historical.close();
-    expect(_userVersion(raw), 34);
+    expect(_userVersion(raw), 37);
 
     final failing = _ThrowInBeforeOpen(
       NativeDatabase.opened(raw, closeUnderlyingOnClose: false),

@@ -62,6 +62,7 @@ void main() {
     expect(exactDeviceScopedKeys, {
       'window_frame',
       'last_backup_at',
+      'update_retirement_notice',
       derivedRebuildRequiredKey,
       purgeCorruptionRepairDoneKey,
       sectionRuleVersionKey,
@@ -75,6 +76,7 @@ void main() {
       taxonomyV34CanonicalRebuildDoneKey,
       kModifierContainerCanonicalRebuildDoneKey,
       taxonomyV35FigureNormalizationDoneKey,
+      taxonomyV37CanonicalRebuildDoneKey,
       callersBoxRollAwayRoleRepairDoneKey,
       normalisationDerivedIndexRepairDoneKey,
       'sync_last_used_fingerprint',
@@ -107,6 +109,10 @@ void main() {
     );
     expect(
       isBackupEligibleSettingKey(taxonomyV34CanonicalRebuildDoneKey),
+      isFalse,
+    );
+    expect(
+      isBackupEligibleSettingKey(taxonomyV37CanonicalRebuildDoneKey),
       isFalse,
     );
     expect(

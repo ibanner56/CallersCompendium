@@ -21,7 +21,8 @@ import 'update_config.dart';
 import 'update_manifest.dart';
 
 /// A cooperative cancel signal for an in-flight [downloadArtifact]. The engine
-/// checks [isCancelled] as each chunk arrives and aborts (deleting the partial
+/// checks [isCancelled] as each chunk arrives (and on a short poll while reads
+/// are paused for a sink flush) and aborts (deleting the partial
 /// file) the moment it is set, so a user "Cancel" resolves promptly.
 class DownloadCancelToken {
   bool _cancelled = false;
@@ -82,7 +83,7 @@ enum DownloadResultKind {
 /// file has been deleted) and [message] carries a short, non-user-facing reason
 /// for tests/logging.
 class DownloadOutcome {
-  const DownloadOutcome._(this.kind, {this.file, this.message});
+  const DownloadOutcome._(this.kind, {this.file, this.message, this.released});
 
   factory DownloadOutcome.success(File file) =>
       DownloadOutcome._(DownloadResultKind.success, file: file);
@@ -103,7 +104,20 @@ class DownloadOutcome {
   final File? file;
   final String? message;
 
+  /// Non-null only when a failed download returned while its partial file was
+  /// still open: a cancel or write watchdog gave up on a flush that had not
+  /// settled, or closing the file outlasted [kUpdateDownloadTimeout]. Completes (never with an error) once that file has been closed
+  /// and its deletion attempted. Until then the file blocks removal of its
+  /// directory on Windows, so a caller that owns the directory retries removing
+  /// it when this completes. It may never complete if the flush never settles.
+  final Future<void>? released;
+
   bool get isSuccess => kind == DownloadResultKind.success;
+
+  /// This outcome with [released] set; used by [downloadArtifact] and by test
+  /// fakes of [ArtifactDownloader].
+  DownloadOutcome withReleased(Future<void> released) =>
+      DownloadOutcome._(kind, file: file, message: message, released: released);
 }
 
 /// The injectable download seam. The [UpdateController] depends on this typedef
@@ -124,14 +138,21 @@ typedef ArtifactDownloader =
 ///
 /// Uses `client.send` (streamed) rather than a buffered `get` so a large
 /// artifact never fully materializes in memory and progress/cancel work while
-/// the body is still arriving. The `url` — and **every redirect hop** — must be
+/// the body is still arriving. Writes pace reads: once
+/// [kDownloadWriteHighWaterBytes] are pending in the file sink the response
+/// is paused until they flush, so a fast network against a slow disk cannot
+/// queue the whole artifact in memory. The `url` — and **every redirect hop** — must be
 /// an https URL whose host is on [kAllowedArtifactHosts] (with no userinfo and
 /// only the default 443 port); redirects are followed manually so an
 /// `https→http` downgrade or an off-allowlist / userinfo / non-443 hop is
 /// refused ([DownloadResultKind.refusedHost]) rather than silently followed
 /// (defense-in-depth alongside the manifest signature+parse checks and the
 /// sha256 gate). An **idle timeout** ([kUpdateDownloadTimeout]) guards a stalled
-/// connection without capping a legitimately long transfer, and the transfer is
+/// connection without capping a legitimately long transfer (it is suspended
+/// while reads are paused for a flush, so a slow disk is not reported as a stalled
+/// connection; a flush that never completes is bounded by a separate write
+/// watchdog of the same duration),
+/// and the transfer is
 /// aborted the moment it would exceed the manifest's declared `size` (or
 /// [kMaxArtifactDownloadBytes] when the artifact is unsized) so an oversized
 /// body cannot fill the disk. After the stream ends, the written byte count is
@@ -174,6 +195,10 @@ Future<DownloadOutcome> downloadArtifact(
   // below), so a symlink an attacker pre-planted at a predictable path is
   // never touched, let alone followed.
   var createdDestination = false;
+  // Completed by the `finally` cleanup of a failed download: true when the
+  // partial file is gone (deleted, or already absent). The deferred cleanup
+  // below deletes only when this is false.
+  final finallyRemovedFile = Completer<bool>();
 
   try {
     if (cancelToken != null && cancelToken.isCancelled) {
@@ -239,10 +264,12 @@ Future<DownloadOutcome> downloadArtifact(
     // (TOCTOU), instead of writing through it. That defeats a local symlink
     // attack (CWE-59) where an attacker pre-plants a symlink at a predictable
     // path to redirect the write at a target of their choosing: `openWrite()`
-    // alone would happily follow it. Callers additionally pair this with an
-    // unpredictable destination path (see
+    // alone would happily follow it. On Windows and Linux the caller also
+    // pairs this with an unpredictable destination path (see
     // `UpdateController.startAssistedDownload`), so neither guard here is the
-    // sole line of defense.
+    // sole line of defense. On macOS the path is the one the user chose in the
+    // Save panel; the caller removes a regular file the user confirmed
+    // replacing, and refuses anything else, before calling here.
     try {
       await destination.create(exclusive: true);
       createdDestination = true;
@@ -257,6 +284,13 @@ Future<DownloadOutcome> downloadArtifact(
     final done = Completer<DownloadOutcome>();
     late StreamSubscription<List<int>> sub;
     Timer? idle;
+    // Bytes handed to the sink since the last flush; see the backpressure note
+    // in the listener below.
+    var unflushed = 0;
+    // The backpressure flush still in progress, if any. dart:io refuses to
+    // close a sink mid-flush (it throws synchronously), so a failed or
+    // cancelled download closes only after this settles.
+    Future<void>? inFlightFlush;
 
     void bumpIdle() {
       idle?.cancel();
@@ -293,10 +327,65 @@ Future<DownloadOutcome> downloadArtifact(
         }
         sink!.add(chunk);
         received += chunk.length;
+        unflushed += chunk.length;
         bumpIdle();
         onProgress?.call(
           DownloadProgress(bytesReceived: received, totalBytes: total),
         );
+        // Backpressure: `IOSink.add` never blocks, so a fast network against a
+        // slow disk would queue the whole artifact in memory. Once a high-water
+        // mark of bytes is pending, stop reading until the sink has flushed them.
+        // While paused no event (chunk, error, done) is delivered, so nothing
+        // else can touch the sink or complete [done] until the flush settles.
+        // While paused, `onData` cannot observe cancellation and the idle timer
+        // does not apply (a slow disk is not a stalled connection), so two
+        // timers stand in: a write watchdog bounding the flush by
+        // [kUpdateDownloadTimeout], and a short poll of [cancelToken]. Either
+        // completes [done]; the flush/close below then runs as usual.
+        if (unflushed >= kDownloadWriteHighWaterBytes) {
+          unflushed = 0;
+          idle?.cancel();
+          final watchdog = Timer(kUpdateDownloadTimeout, () {
+            if (!done.isCompleted) {
+              done.complete(DownloadOutcome.networkError('file write stalled'));
+            }
+          });
+          final cancelPoll = cancelToken == null
+              ? null
+              : Timer.periodic(kDownloadCancelPollInterval, (_) {
+                  if (cancelToken.isCancelled && !done.isCompleted) {
+                    done.complete(DownloadOutcome.cancelled());
+                  }
+                });
+          void stopGuards() {
+            watchdog.cancel();
+            cancelPoll?.cancel();
+          }
+
+          sub.pause();
+          final flushing = sink.flush();
+          inFlightFlush = flushing;
+          flushing.then(
+            (_) {
+              inFlightFlush = null;
+              stopGuards();
+              if (done.isCompleted) return;
+              bumpIdle();
+              sub.resume();
+            },
+            onError: (Object e) {
+              inFlightFlush = null;
+              stopGuards();
+              // diagnostics: silent — returns DownloadOutcome to the
+              // update-layer caller, not UI.
+              if (!done.isCompleted) {
+                done.complete(
+                  DownloadOutcome.networkError('could not write file: $e'),
+                );
+              }
+            },
+          );
+        }
       },
       onError: (Object e) {
         // diagnostics: silent — returns DownloadOutcome to the update-layer
@@ -330,13 +419,85 @@ Future<DownloadOutcome> downloadArtifact(
     // hand a partial/corrupt file to sha256 verification or the OS handoff.
     // (A non-success outcome already deletes the file below, so its kind is
     // preserved even if the close also fails.)
-    sinkClosed = true;
+    //
+    // A non-success outcome (cancel, stall, over-budget) discards the file, so
+    // there is nothing to flush. Awaiting an in-flight flush here would
+    // re-block on the very flush a cancel or write watchdog just gave up on,
+    // and dart:io throws if a sink is closed while a flush is outstanding. So
+    // close once any in-flight flush settles, then delete, but only if the
+    // `finally` delete below could not: it fails on Windows while the handle
+    // is open, and then the file still exists, so a new download cannot have
+    // created a replacement at this path (the exclusive create refuses). Where
+    // that delete succeeded, the path may already belong to a new download and
+    // must not be touched.
+    //
+    // With no flush in flight, wait for the close (bounded like a flush, by
+    // [kUpdateDownloadTimeout]) before returning, so the `finally` delete runs
+    // against a released handle and the file is gone when the caller sees the
+    // outcome on Windows too — the caller removes the download directory next,
+    // which fails on Windows while the file is still there. When the file may
+    // still be open on return (a flush in flight, or a close that outlasted
+    // that bound), the outcome carries [DownloadOutcome.released] so the
+    // caller can remove the directory once the deferred cleanup has run.
+    if (!outcome.isSuccess) {
+      sinkClosed = true;
+      final openSink = sink;
+      final pendingFlush = inFlightFlush;
+      final closing = () async {
+        if (pendingFlush != null) {
+          try {
+            await pendingFlush;
+          } on Object {
+            // diagnostics: silent — the outcome is already determined; the
+            // flush failure only matters for when the handle can close.
+          }
+        }
+        try {
+          await openSink.close();
+        } on Object {
+          // diagnostics: silent — the outcome is already determined; the file
+          // is discarded.
+        }
+      }();
+      final released = () async {
+        await closing;
+        if (await finallyRemovedFile.future) return;
+        // The sink exists only after this call created [destination], and the
+        // file has stayed in place since, so it is still this call's file.
+        try {
+          if (await destination.exists()) await destination.delete();
+        } on Object {
+          // diagnostics: silent — best-effort cleanup of a discarded file.
+        }
+      }();
+      if (pendingFlush == null) {
+        try {
+          await closing.timeout(kUpdateDownloadTimeout);
+          return outcome;
+        } on TimeoutException {
+          // diagnostics: silent — the outcome is already determined; the
+          // deferred cleanup above deletes the file once the close completes.
+        }
+      }
+      return outcome.withReleased(released);
+    }
     try {
       await sink.flush();
       await sink.close();
+      sinkClosed = true;
     } on Object catch (e) {
       // diagnostics: silent — sink flush/close failed; returns DownloadOutcome to update-layer caller, not UI.
       succeeded = false;
+      // Release the handle before the partial file is deleted in `finally`
+      // (an open handle blocks the delete on Windows). Marking the sink closed
+      // first prevents `finally` from closing it a second time.
+      sinkClosed = true;
+      try {
+        await sink.close();
+      } on Object {
+        // diagnostics: silent — the flush/close failure above is the real
+        // outcome; never mask it with a second close error.
+      }
       if (outcome.isSuccess) {
         return DownloadOutcome.networkError(
           'could not finish writing file: $e',
@@ -357,12 +518,15 @@ Future<DownloadOutcome> downloadArtifact(
       }
     }
     if (!succeeded && createdDestination) {
+      var removed = false;
       try {
         if (await destination.exists()) await destination.delete();
+        removed = true;
       } on Object {
         // diagnostics: silent — best-effort cleanup; never mask the real
-        // outcome with a delete error.
+        // outcome with a delete error. A deferred retry runs after the close.
       }
+      finallyRemovedFile.complete(removed);
     }
     if (ownClient) effectiveClient.close();
   }

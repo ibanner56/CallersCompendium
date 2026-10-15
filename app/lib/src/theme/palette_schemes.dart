@@ -406,10 +406,13 @@ class GalleryPalettes {
     final outlineVariant = _mix(onSurf, surface, 0.75);
     final surfaceHighest = _mix(surface, onSurf, dark ? 0.14 : 0.10);
 
-    final p = _accent(_ensureAgainst(primary, surface, _nonText), _text);
+    // Primary and error are rendered as body-sized text (section headers, text
+    // buttons, error messages), so they need AA text (4.5:1) on the surface,
+    // not just the 3:1 non-text bar.
+    final p = _accent(_ensureAgainst(primary, surface, _text), _text);
     final s = _accent(secondary, _text);
     final t = _accent(tertiary, _text);
-    final e = _accent(error, _text);
+    final e = _accent(_ensureAgainst(error, surface, _text), _text);
 
     final pc = _container(primary, brightness, _text);
     final sc = _container(secondary, brightness, _text);
@@ -522,9 +525,10 @@ class GalleryPalettes {
   }
 
   /// Shifts [base]'s lightness (hue preserved) toward the pole opposite [bg]
-  /// until it clears [target] against [bg]. Used to keep the primary — which
-  /// doubles as the focus ring — visible as a non-text UI element on the
-  /// surface, even for accents that are otherwise fine as button fills.
+  /// until it clears [target] against [bg]. Used to keep the primary and error
+  /// accents — which render as text (headers, text buttons, error messages)
+  /// and, for primary, as the focus ring — readable on the surface, even when
+  /// they are otherwise fine as button fills.
   static Color _ensureAgainst(Color base, Color bg, double target) {
     if (_contrast(base, bg) >= target) return base;
     final hsl = HSLColor.fromColor(base);

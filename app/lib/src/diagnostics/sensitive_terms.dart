@@ -10,6 +10,12 @@ import 'package:compendium_core/compendium_core.dart';
 /// urls — plus the serialized records the Device Sync review and deletion
 /// queues hold.
 ///
+/// Since the scrubbed export withholds `errorMessage` outright
+/// (`CrashLogRecord.scrubbed`), these terms are now defence in depth for the
+/// stack text and any other free text passed through the redactor; the
+/// reasoning below about exception text describes why the list exists and why
+/// it could never be complete on its own.
+///
 /// Gathered on demand from the local database at export time — export is a
 /// deliberate, infrequent user action, so a full read is acceptable — and fed
 /// to a [CrashRedactor].
@@ -66,8 +72,10 @@ Future<Set<String>> collectSensitiveTerms(
 
   void addFigureContent(Figure figure) {
     add(figure.note);
-    // A custom (free-text) figure keeps the caller's verbatim text in
-    // params['text'] (taxonomy `customMove`), not in `note`.
+    // A custom (free-text) figure keeps its text in params['text'] (taxonomy
+    // `customMove`), not in `note`. This is the stored form: the editor saves
+    // it through the dialect chokepoint, so role words are canonical here.
+    // The text as typed may still differ (for example in an autosave draft).
     add(figure.params['text']);
     for (final child in figure.subFigures) {
       addFigureContent(child);
@@ -121,6 +129,16 @@ Future<Set<String>> collectSensitiveTerms(
     add(program.caller);
     add(program.venue);
     add(program.dancerLevel);
+    add(program.dialectName);
+    // Pay is private bookkeeping. A failed statement echoes the stored minor
+    // units, while the editor shows the decimal form: redact both.
+    final pay = program.payMinorUnits;
+    final currency = program.payCurrency;
+    if (pay != null && currency != null) {
+      add(currency);
+      add('$pay');
+      add(formatPayMinorUnits(pay, currency));
+    }
     for (final slot in program.slots) {
       add(slot.text);
       add(slot.guestCaller);
@@ -192,7 +210,8 @@ Future<Set<String>> collectSensitiveTerms(
   }
 
   // Device Sync holds whole serialized records while a conflict awaits review
-  // or a tombstone awaits retransmission. Their content is a peer's copy of
+  // or a tombstone awaits retransmission, and the parts of records a newer
+  // version of the app added, kept to share back. Their content is a peer's copy of
   // the same person / place / dance fields, not yet (or no longer) in the
   // entity tables above, so nothing else here would cover it. Added verbatim
   // — the same rule as an undecodable figures list: the stored text is the
@@ -202,6 +221,9 @@ Future<Set<String>> collectSensitiveTerms(
   }
   for (final row in await repositories.syncLocal.listPendingDeletions()) {
     add(row.tombstoneBlob);
+  }
+  for (final row in await repositories.syncLocal.listRetainedSyncFields()) {
+    add(row.payload);
   }
 
   return terms;

@@ -2,6 +2,10 @@ import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart'
     show kAggressiveBeatsUpdateKey;
 import 'package:compendium_app/src/data/backup_reminder.dart'
     show kBackupReminderCadenceKey;
+import 'package:compendium_app/src/data/capitalize_figures_scope.dart'
+    show kCapitalizeFiguresKey;
+import 'package:compendium_app/src/data/show_glossary_scope.dart'
+    show kShowGlossaryKey;
 import 'package:compendium_app/src/data/backup_service.dart'
     show isBackupEligibleSettingKey;
 import 'package:compendium_app/src/data/backup_settings_schema.dart';
@@ -11,6 +15,7 @@ import 'package:compendium_app/src/data/display_defaults.dart'
     show
         encodeStartingProgramTemplate,
         kCanonicalFigureTextKey,
+        kDefaultImportTagNamesKey,
         kDefaultModifierFiguresKey,
         kDefaultStartingProgramKey,
         StartingProgramTemplateEntry;
@@ -107,6 +112,23 @@ void main() {
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, null), isFalse);
     });
 
+    test('capitalize figures setting accepts only bools', () {
+      expect(validateBackupSettingValue(kCapitalizeFiguresKey, true), isTrue);
+      expect(validateBackupSettingValue(kCapitalizeFiguresKey, false), isTrue);
+      expect(
+        validateBackupSettingValue(kCapitalizeFiguresKey, 'true'),
+        isFalse,
+      );
+      expect(validateBackupSettingValue(kCapitalizeFiguresKey, null), isFalse);
+    });
+
+    test('show glossary setting accepts only bools', () {
+      expect(validateBackupSettingValue(kShowGlossaryKey, true), isTrue);
+      expect(validateBackupSettingValue(kShowGlossaryKey, false), isTrue);
+      expect(validateBackupSettingValue(kShowGlossaryKey, 'true'), isFalse);
+      expect(validateBackupSettingValue(kShowGlossaryKey, null), isFalse);
+    });
+
     test('individual Perform timer setting accepts only bools', () {
       expect(
         validateBackupSettingValue(kShowIndividualPerformTimerKey, true),
@@ -174,6 +196,35 @@ void main() {
       expect(validateBackupSettingValue(kAppThemeKey, true), isFalse);
       expect(validateBackupSettingValue(kAppThemeKey, {'x': 1}), isFalse);
     });
+
+    test(
+      'default import tag names (#1476) accept only a JSON list of strings',
+      () {
+        expect(
+          validateBackupSettingValue(kDefaultImportTagNamesKey, '["a","b"]'),
+          isTrue,
+        );
+        expect(
+          validateBackupSettingValue(kDefaultImportTagNamesKey, '[]'),
+          isTrue,
+        );
+        for (final bad in <Object?>[
+          'not json',
+          '{"a":1}',
+          '[1,2]',
+          '[""]',
+          ['a'],
+          42,
+          null,
+        ]) {
+          expect(
+            validateBackupSettingValue(kDefaultImportTagNamesKey, bad),
+            isFalse,
+            reason: '$bad',
+          );
+        }
+      },
+    );
 
     test('modifier defaults accept only encoded figure strings', () {
       expect(

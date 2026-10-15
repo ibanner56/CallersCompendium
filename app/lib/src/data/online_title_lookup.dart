@@ -1,3 +1,6 @@
+import 'package:compendium_core/compendium_core.dart' show titleMatchKey;
+
+import 'import_io.dart' show UrlFetchException, UrlFetchFailureReason;
 import 'online_search.dart';
 
 /// Why [lookupUniqueExactTitle] could not settle on a single online dance for a
@@ -20,7 +23,8 @@ enum OnlineTitleLookupFailure {
   noResults,
 
   /// The search returned results, but none whose name equals the pasted title
-  /// (trimmed, case-insensitive) — only fuzzy/substring neighbours.
+  /// under [titleMatchKey] (case, whitespace and typographic punctuation
+  /// folded) — only fuzzy/substring neighbours.
   noExactMatch,
 
   /// More than one result has exactly this title, so which dance was meant is
@@ -33,9 +37,45 @@ enum OnlineTitleLookupFailure {
   /// path does so.
   multipleExactMatches,
 
-  /// The search could not be performed (fetch/parse failure). Swallowed
-  /// per-title so one bad title can never abort a batch.
+  /// The search could not be performed for a reason that is not a connection
+  /// problem (a parse failure, an unexpected exception). Swallowed per-title so
+  /// one bad title can never abort a batch.
   fetchError,
+
+  /// The search could not reach the source at all: the device is offline, the
+  /// connection timed out, or the source answered with an HTTP error status
+  /// (see [isConnectionFailure] for the exact set). Unlike [fetchError] this
+  /// says nothing about the title — the next title will fail the same way — so
+  /// a batch caller may stop asking.
+  unreachable,
+}
+
+/// Whether [error] says the *source* could not be reached, as opposed to
+/// something being wrong with one title or one page.
+///
+/// Connection-class [UrlFetchFailureReason]s, always: [callersBoxUnreachable],
+/// [contraDbUnreachable], [unreachable], [searchTimeout], [timeout],
+/// [callersBoxTimeout] and [contraDbTimeout]. With
+/// [includeHttpStatus] also the search-endpoint status reasons
+/// ([callersBoxHttpStatus], [contraDbHttpStatus]): a search page that answers
+/// 5xx/403 fails every title alike, whereas the per-dance preview fetch
+/// ([httpStatus]) answering 404 means *that dance* is missing, so it is
+/// deliberately never connection-class. Everything else (blocked host, empty
+/// page, unparseable response…) is per-title.
+bool isConnectionFailure(Object error, {bool includeHttpStatus = false}) {
+  if (error is! UrlFetchException) return false;
+  return switch (error.reason) {
+    UrlFetchFailureReason.callersBoxUnreachable ||
+    UrlFetchFailureReason.contraDbUnreachable ||
+    UrlFetchFailureReason.unreachable ||
+    UrlFetchFailureReason.searchTimeout ||
+    UrlFetchFailureReason.timeout ||
+    UrlFetchFailureReason.callersBoxTimeout ||
+    UrlFetchFailureReason.contraDbTimeout => true,
+    UrlFetchFailureReason.callersBoxHttpStatus ||
+    UrlFetchFailureReason.contraDbHttpStatus => includeHttpStatus,
+    _ => false,
+  };
 }
 
 /// Outcome of [lookupUniqueExactTitle]: either the single unambiguous
@@ -69,8 +109,9 @@ final class OnlineTitleMiss extends OnlineTitleLookupResult {
 
 /// Searches [service] for [title] and returns the **unique exact-title hit** —
 /// exactly one result whose [OnlineSearchResultRow.name] equals [title] once
-/// both are trimmed and lower-cased — or an [OnlineTitleMiss] saying why there
-/// isn't one.
+/// both are reduced to their [titleMatchKey] (trimmed, lower-cased, whitespace
+/// collapsed, `’`/`“”`/`–` and the like folded to ASCII) — or an
+/// [OnlineTitleMiss] saying why there isn't one.
 ///
 /// This is the shared, **non-committing** title→result step. It performs a
 /// single search fetch and writes nothing; deciding what to *do* with a hit
@@ -95,8 +136,10 @@ final class OnlineTitleMiss extends OnlineTitleLookupResult {
 /// flow that has a user watching, which is exactly what #823's batch-review
 /// ruling exists to prevent.
 ///
-/// Any fetch/parse [Exception] becomes [OnlineTitleLookupFailure.fetchError]
-/// rather than propagating, so one bad title can't abort a batch; `Error`s
+/// A [UrlFetchException] that [isConnectionFailure] (with HTTP-status reasons
+/// included) becomes [OnlineTitleLookupFailure.unreachable]; any other
+/// fetch/parse [Exception] becomes [OnlineTitleLookupFailure.fetchError]. Neither
+/// propagates, so one bad title can't abort a batch; `Error`s
 /// (assertion/programmer bugs) still surface.
 ///
 /// [requireFigures] is forwarded to the search (see
@@ -110,22 +153,24 @@ Future<OnlineTitleLookupResult> lookupUniqueExactTitle(
   required OnlineSearchService service,
   bool requireFigures = true,
 }) async {
-  final wanted = title.trim().toLowerCase();
+  final wanted = titleMatchKey(title);
   final List<OnlineSearchResultRow> rows;
   try {
     rows = await service.search(
       OnlineSearchQuery(title: title, requireFigures: requireFigures),
     );
-  } on Exception catch (_) {
-    // diagnostics: silent — fetch failure surfaced via OnlineTitleMiss(fetchError) to callers
-    return const OnlineTitleMiss(OnlineTitleLookupFailure.fetchError);
+  } on Exception catch (e) {
+    // diagnostics: silent — fetch failure surfaced via OnlineTitleMiss(unreachable | fetchError) to callers
+    return OnlineTitleMiss(
+      isConnectionFailure(e, includeHttpStatus: true)
+          ? OnlineTitleLookupFailure.unreachable
+          : OnlineTitleLookupFailure.fetchError,
+    );
   }
   if (rows.isEmpty) {
     return const OnlineTitleMiss(OnlineTitleLookupFailure.noResults);
   }
-  final exact = rows
-      .where((r) => r.name.trim().toLowerCase() == wanted)
-      .toList();
+  final exact = rows.where((r) => titleMatchKey(r.name) == wanted).toList();
   if (exact.isEmpty) {
     return const OnlineTitleMiss(OnlineTitleLookupFailure.noExactMatch);
   }

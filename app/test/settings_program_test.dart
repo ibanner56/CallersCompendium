@@ -11,12 +11,15 @@ import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
+import 'package:compendium_app/src/data/venue_call_count_scope.dart';
 import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/screens/settings/matrix_column_editor_screen.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
+import 'support/screen_size.dart';
+import 'support/text_scale.dart';
 
 /// Pumps the [SettingsScreen] and opens the Program section, wiring every scope
 /// the Program pane reads (venues, matrix-collision, and the two calling-history
@@ -27,9 +30,12 @@ Future<ValueNotifier<bool>> _pumpProgram(
   CompendiumRepositories repos, {
   bool initialExactBeatCollision = true,
   bool initialAutoCommit = false,
+  Size surface = const Size(1200, 1400),
+  double textScale = 1,
+  void Function(ValueNotifier<bool> autoCommit, ValueNotifier<int> venueCalls)?
+  onScopeNotifiers,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 1400));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await setScreenSize(tester, surface);
 
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
   final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
@@ -38,6 +44,9 @@ Future<ValueNotifier<bool>> _pumpProgram(
   final requirePerformed = ValueNotifier<bool>(false);
   final trackAllCallers = ValueNotifier<bool>(false);
   final autoCommit = ValueNotifier<bool>(initialAutoCommit);
+  final venueCalls = ValueNotifier<int>(kVenueCallCountDefault);
+  onScopeNotifiers?.call(autoCommit, venueCalls);
+  addTearDown(venueCalls.dispose);
   final customThemes = CustomThemesController(repos.settings);
   await customThemes.load();
   addTearDown(dialect.dispose);
@@ -71,7 +80,14 @@ Future<ValueNotifier<bool>> _pumpProgram(
                       notifier: trackAllCallers,
                       child: ProgramAutoCommitScope(
                         notifier: autoCommit,
-                        child: child!,
+                        child: VenueCallCountScope(
+                          notifier: venueCalls,
+                          child:
+                              (textScaleBuilder(
+                                textScale,
+                              )?.call(context, child)) ??
+                              child!,
+                        ),
                       ),
                     ),
                   ),
@@ -93,6 +109,40 @@ Future<ValueNotifier<bool>> _pumpProgram(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('Program venue call count survives 360 dp wide at 1.3x text', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpProgram(
+      tester,
+      repos,
+      surface: const Size(360, 1400),
+      textScale: 1.3,
+    );
+    expect(tester.takeException(), isNull);
+    for (final key in const ['program-venue-call-count']) {
+      await tester.scrollUntilVisible(
+        find.byKey(ValueKey(key)),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      // A dropdown inside a ListTile's trailing slot cannot wrap.
+      expect(
+        find.descendant(
+          of: find.byType(ListTile),
+          matching: find.byKey(ValueKey(key)),
+        ),
+        findsNothing,
+        reason: key,
+      );
+      final box = tester.getRect(find.byKey(ValueKey(key)));
+      expect(box.left, greaterThanOrEqualTo(0), reason: key);
+      expect(box.right, lessThanOrEqualTo(360), reason: key);
+    }
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('Program pane renders all four relocated subsections', (
     tester,
@@ -267,6 +317,43 @@ void main() {
     );
 
     handle.dispose();
+  });
+
+  testWidgets('Program section reflects a restored auto-commit and venue call '
+      'count without reopening', (tester) async {
+    final repos = openTestRepositories();
+    late ValueNotifier<bool> autoCommit;
+    late ValueNotifier<int> venueCalls;
+    await _pumpProgram(
+      tester,
+      repos,
+      onScopeNotifiers: (a, v) {
+        autoCommit = a;
+        venueCalls = v;
+      },
+    );
+    final toggle = find.byKey(
+      const ValueKey('settings-auto-commit-program-changes'),
+    );
+    final dropdown = find.byKey(const ValueKey('program-venue-call-count'));
+    await tester.scrollUntilVisible(
+      dropdown,
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    expect(
+      tester.widget<DropdownButton<int>>(dropdown).value,
+      kVenueCallCountDefault,
+    );
+
+    // What `reloadFromSettings` does after a restore: the live notifiers change.
+    autoCommit.value = true;
+    venueCalls.value = 8;
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+    expect(tester.widget<DropdownButton<int>>(dropdown).value, 8);
   });
 
   testWidgets('toggling program auto-commit persists the setting', (

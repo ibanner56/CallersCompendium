@@ -102,6 +102,7 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.emptyFile,
         message: 'No ContraDB page content provided to import.',
       );
     }
@@ -113,6 +114,7 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.notContraDbDance,
         message: 'ContraDB page could not be parsed as HTML: $e',
         cause: e,
       );
@@ -125,6 +127,7 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.notContraDbDance,
         message:
             'Page is not a ContraDB dance page: no "h1.dance-show-title" and '
             'no "table.contra-table-nonfluid" were found.',

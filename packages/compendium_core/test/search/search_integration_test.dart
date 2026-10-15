@@ -12,6 +12,7 @@ Dance _dance({
   List<String> authorIds = const [],
   List<String> tagIds = const [],
   List<String> tunes = const [],
+  String callingNotes = '',
   List<CustomFieldValue> customFields = const [],
   List<Figure>? figures,
   DanceForm form = DanceForm.contra,
@@ -33,6 +34,7 @@ Dance _dance({
     authorIds: authorIds,
     tagIds: tagIds,
     tunes: tunes,
+    callingNotes: callingNotes,
     customFields: customFields,
     form: form,
     formation: Formation(formation),
@@ -55,6 +57,8 @@ Dance _dance({
     deletedAt: deletedAt,
   );
 }
+
+String _pad6(int n) => n.toString().padLeft(6, '0');
 
 void main() {
   late CompendiumDatabase db;
@@ -1494,6 +1498,150 @@ void main() {
       },
     );
 
+    test(
+      'a larks full-text term matches canonical custom figure text (DIA-02)',
+      () async {
+        await dances.create(
+          _dance(
+            id: 'a',
+            title: 'Custom Dance',
+            figures: [
+              Figure(move: 'custom', params: const {'text': 'role1s chain'}),
+            ],
+          ),
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('larks'),
+            dialect: Dialect.larksRobins,
+          ),
+          ['a'],
+        );
+      },
+    );
+
+    group('omni raw branch (role words in verbatim columns)', () {
+      Future<void> seedAuthored() async {
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'c1', name: 'Robin Hayden'),
+        );
+        await dances.create(_dance(id: 'a', title: 'Plain', authorIds: ['c1']));
+      }
+
+      test(
+        'omni "Robin Hayden" finds the dance by author under the default sort',
+        () async {
+          await seedAuthored();
+          expect(await dances.search(const FullTextFilter('Robin Hayden')), [
+            'a',
+          ]);
+          // A partial trailing term still matches (substring table).
+          expect(await dances.search(const FullTextFilter('Robin Hay')), ['a']);
+        },
+      );
+
+      test(
+        'omni "Robin Hayden" finds the dance by author under relevance sort',
+        () async {
+          await seedAuthored();
+          expect(
+            await dances.search(
+              const FullTextFilter('Robin Hayden'),
+              sort: SearchSort.relevance,
+            ),
+            ['a'],
+          );
+        },
+      );
+
+      test(
+        'omni "ladies" finds a calling note containing the word verbatim',
+        () async {
+          await dances.create(
+            _dance(
+              id: 'n',
+              title: 'Noted',
+              callingNotes: 'Ladies chain across, then ladies roll away',
+            ),
+          );
+          await dances.create(_dance(id: 'x', title: 'Other'));
+          expect(await dances.search(const FullTextFilter('ladies')), ['n']);
+          expect(
+            await dances.search(
+              const FullTextFilter('ladies'),
+              sort: SearchSort.relevance,
+            ),
+            ['n'],
+          );
+        },
+      );
+
+      test('omni finds a source name and a custom value verbatim', () async {
+        final def = CustomFieldDef(
+          id: 'f',
+          key: 'origin',
+          label: 'Origin',
+          type: CustomFieldType.text,
+        );
+        // ignore: unused_result
+        await customFieldDefs.upsert(def);
+        final sources = PublishedSourceRepository(db);
+        await sources.upsert(PublishedSource(id: 's1', title: 'Robin Book'));
+        await dances.create(
+          _dance(
+            id: 'src',
+            title: 'Sourced',
+          ).copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
+        );
+        await dances.create(
+          _dance(
+            id: 'cv',
+            title: 'Valued',
+            customFields: [
+              CustomFieldValue(fieldId: 'f', value: 'Robin Hayden camp'),
+            ],
+          ),
+        );
+        expect(await dances.search(const FullTextFilter('Robin Book')), [
+          'src',
+        ]);
+        expect(await dances.search(const FullTextFilter('Robin Hayden')), [
+          'cv',
+        ]);
+      });
+
+      test('figures_text stays canonical-only', () async {
+        await dances.create(
+          _dance(
+            id: 'fig',
+            title: 'Roles',
+            figures: [
+              Figure(
+                move: 'swing',
+                params: const {'who': 'role2s', 'beats': 8},
+              ),
+            ],
+          ),
+        );
+        // The raw branch must not look at figures_text: the stored token is
+        // the canonical role2s, matched only through the canonical branch.
+        expect(await dances.search(const FullTextFilter('role2s')), ['fig']);
+        // The column allowlist lives in the bound MATCH expression (not the
+        // SQL text), so assert on the raw bind for both compile paths.
+        final omni = FilterCompiler().compile(const FullTextFilter('abc'));
+        expect(omni.binds[1], contains('{title authors'));
+        expect(omni.binds[1], isNot(contains('figures_text')));
+        // Relevance is only bm25-ranked for short (prefix) queries.
+        final relevance = FilterCompiler().compile(
+          const FullTextFilter('ab'),
+          sort: SearchSort.relevance,
+        );
+        expect(relevance.binds.single, contains('{title authors'));
+        expect(relevance.binds.single, isNot(contains('figures_text')));
+      });
+    });
+
     test('a gents move-param term matches canonical role in params', () async {
       await dances.create(
         _dance(
@@ -1792,6 +1940,34 @@ void main() {
         );
       },
     );
+
+    test("ignoreLeadingArticles sort does not throw above SQLite's "
+        'bind-variable limit', () async {
+      // 32,767 is the default SQLITE_MAX_VARIABLE_NUMBER (3.32+); go past it.
+      const count = 33000;
+      // Minimal rows via one recursive-CTE insert. Odd rows carry a leading
+      // "The " so the article-ignoring key (the zero-padded number) differs
+      // from the literal title order.
+      await db.customStatement('''
+WITH RECURSIVE seq(n) AS (
+  SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < $count
+)
+INSERT INTO dances (id, title, form, formation_shape, progression, status,
+                    created_at, updated_at)
+SELECT printf('d%06d', n),
+       CASE WHEN n % 2 = 1 THEN 'The ' ELSE '' END || printf('Dance %06d', n),
+       'contra', 'dupleImproper', 'single', 'active', 0, 0
+FROM seq
+''');
+
+      final result = await dances.search(
+        const AndFilter([]),
+        sort: SearchSort.title,
+        ignoreLeadingArticles: true,
+      );
+
+      expect(result, [for (var n = 1; n <= count; n++) 'd${_pad6(n)}']);
+    });
   });
 
   group('sort direction (ascending/descending toggle)', () {
@@ -1976,16 +2152,6 @@ void main() {
       await dances.softDelete('b', at: DateTime.utc(2026, 2));
       expect(await dances.search(const AndFilter([])), ['a']);
       expect(await dances.search(FigureFilter.leaf('petronella')), ['a']);
-    });
-  });
-
-  group('searchDances convenience', () {
-    test('returns hydrated dances in id order', () async {
-      await dances.create(_dance(id: 'a', title: 'Apple'));
-      await dances.create(_dance(id: 'b', title: 'Banana'));
-      final result = await dances.searchDances(const AndFilter([]));
-      expect(result.map((d) => d.id), ['a', 'b']);
-      expect(result.first, isA<Dance>());
     });
   });
 
@@ -2560,6 +2726,59 @@ void main() {
       expect(
         await dances.search(
           CustomFieldFilter(def, CustomFieldOp.contains, 'Zanzi'),
+        ),
+        ['a'],
+      );
+    });
+  });
+
+  // parser-6: the query "mad robin" was canonicalised to "mad role2", which
+  // never matches a structured mad robin (canonical text "role2s mad robin
+  // once"). And a verb "lead" typed under Leads/Follows was canonicalised to
+  // "role1", so "lead down" missed the stored custom text that keeps it.
+  group('move words that are also role words', () {
+    for (final dialect in [null, Dialect.larksRobins, Dialect.leadsFollows]) {
+      for (final scope in [FullTextScope.omni, FullTextScope.figure]) {
+        test('"mad robin" finds a structured mad robin '
+            '(${dialect?.name ?? 'no dialect'}, ${scope.name})', () async {
+          await dances.create(
+            _dance(
+              id: 'a',
+              title: 'Robinless',
+              figures: [Figure(move: 'mad_robin')],
+            ),
+          );
+          await dances.create(_dance(id: 'b', title: 'Other'));
+          expect(
+            await dances.search(
+              FullTextFilter('mad robin', scope: scope),
+              dialect: dialect,
+            ),
+            ['a'],
+          );
+        });
+      }
+    }
+
+    test('"lead down" finds custom text with the verb lead '
+        '(Leads/Follows)', () async {
+      await dances.create(
+        _dance(
+          id: 'a',
+          title: 'Hall',
+          figures: [
+            Figure(
+              move: 'custom',
+              params: const {'text': 'Ones lead down the hall four abreast'},
+            ),
+          ],
+        ),
+      );
+      await dances.create(_dance(id: 'b', title: 'Other'));
+      expect(
+        await dances.search(
+          const FullTextFilter('lead down', scope: FullTextScope.figure),
+          dialect: Dialect.leadsFollows,
         ),
         ['a'],
       );

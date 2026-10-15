@@ -1,0 +1,17 @@
+#!/bin/sh
+# Emails each Athenaeum alert line read from stdin to $ATHENAEUM_ALERT_TO.
+# A failed send is logged and skipped, so one SMTP error does not stop the
+# forwarder: the unit follows the container log from its end (--tail 0), so
+# alerts written while it restarted would never be sent.
+set -u
+
+while IFS= read -r line; do
+  case $line in
+    *'"kind":"quota_exhaustion"'* | *'"kind":"sweep_failure"'*) ;;
+    *) continue ;;
+  esac
+  kind=$(printf '%s\n' "$line" | sed -n 's/.*"kind":"\([^"]*\)".*/\1/p')
+  if ! printf '%s\n' "$line" | mail -s "Athenaeum alert: ${kind}" "$ATHENAEUM_ALERT_TO"; then
+    echo "alert email failed for ${kind}" >&2
+  fi
+done

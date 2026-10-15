@@ -79,6 +79,11 @@ void main() {
           );
         });
 
+        test('primary and error read as text on surface', () {
+          expectText('primary/surface', scheme.primary, scheme.surface);
+          expectText('error/surface', scheme.error, scheme.surface);
+        });
+
         test('accent on-colors', () {
           expectText('onPrimary/primary', scheme.onPrimary, scheme.primary);
           expectText(

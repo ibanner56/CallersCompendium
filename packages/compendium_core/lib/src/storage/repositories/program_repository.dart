@@ -277,6 +277,63 @@ class ProgramRepository {
   Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) =>
       _upsert(program, knownVenueIds: knownVenueIds);
 
+  /// Updates [program] like [update] and returns it as stored, read back in
+  /// the same transaction (text normalized, performed stamps applied,
+  /// timestamps at the store's precision).
+  ///
+  /// The result is the exact token [replaceIfUnchanged] compares against: no
+  /// other write can land between this write and its read-back.
+  Future<Program> updateAndReadBack(Program program) =>
+      _db.transaction(() async {
+        await _upsert(program);
+        final stored = await getById(program.id);
+        if (stored == null) {
+          throw StateError('program "${program.id}" vanished inside its write');
+        }
+        return stored;
+      });
+
+  /// Atomically replaces the program [expected] describes with [replacement],
+  /// but only if the stored program still equals [expected] (a value returned
+  /// by [updateAndReadBack] or [getById]); returns whether it wrote.
+  ///
+  /// The comparison and the write share one transaction, so no write can land
+  /// between them. It compares the whole stored program, not its `updatedAt`
+  /// alone: the store keeps whole seconds, so a later edit within the same
+  /// second as [expected] would carry an equal stamp but different content.
+  /// [replacement] is written with a stamp after the current one (at or after
+  /// [updatedAt]), so restoring an older snapshot still advances `updatedAt`.
+  /// A missing or soft-deleted program is never replaced.
+  Future<bool> replaceIfUnchanged({
+    required Program expected,
+    required Program replacement,
+    required DateTime updatedAt,
+  }) {
+    assertUtc(updatedAt, 'updatedAt');
+    if (replacement.id != expected.id) {
+      throw ArgumentError.value(
+        replacement.id,
+        'replacement.id',
+        'must match expected.id "${expected.id}"',
+      );
+    }
+    return _db.transaction(() async {
+      final current = await getById(expected.id);
+      if (current == null || current != expected) return false;
+      await _upsert(
+        replacement.copyWith(
+          updatedAt: nextStoredTimestamp(
+            now: updatedAt.isAfter(current.updatedAt)
+                ? updatedAt
+                : current.updatedAt.add(storedTimestampTick),
+            current: [current.updatedAt],
+          ),
+        ),
+      );
+      return true;
+    });
+  }
+
   /// Persists an inbound sync body without stamping performed slots as a local
   /// status-transition side effect.
   ///
@@ -486,6 +543,20 @@ class ProgramRepository {
               notes: Value(normalizeShareableText(program.notes)),
               status: program.status,
               hideAlternates: Value(program.hideAlternates),
+              // Normalized like every shareable string, and it must be: the
+              // dialect library's own names reach storage through
+              // SettingsRepository.set, which NFC-normalizes the shareable
+              // `custom_dialects` JSON, and Device Sync rejects a body that
+              // differs from its normalized form (`nonCanonicalWireBody`). A
+              // reference stored un-normalized would stop matching the
+              // reloaded library name and get the whole program rejected.
+              dialectName: Value(
+                program.dialectName == null
+                    ? null
+                    : normalizeShareableText(program.dialectName!),
+              ),
+              payMinorUnits: Value(program.payMinorUnits),
+              payCurrency: Value(program.payCurrency),
               createdAt: program.createdAt,
               updatedAt: program.updatedAt,
               deletedAt: Value(program.deletedAt),
@@ -1373,6 +1444,9 @@ class ProgramRepository {
     notes: row.notes,
     status: row.status,
     hideAlternates: row.hideAlternates,
+    dialectName: row.dialectName,
+    payMinorUnits: row.payMinorUnits,
+    payCurrency: row.payCurrency,
     slots: slots,
     createdAt: asUtc(row.createdAt),
     updatedAt: asUtc(row.updatedAt),

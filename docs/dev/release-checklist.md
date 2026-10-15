@@ -118,6 +118,13 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  tag run's successful upload as this evidence rather than sending a duplicate.
  (Without all eight secrets the iOS leg is a clean skip; the API key needs the
  **App Manager** role or the upload fails.)
+- [ ] Android `.aab` reached Google Play — if `PLAY_SERVICE_ACCOUNT_JSON` is
+ configured, confirm the `Upload Android .aab to Google Play` step succeeded on
+ **that tag's** release run (not a `workflow_dispatch`, which never uploads),
+ then confirm the build in **Play Console → Test and release → App bundle
+ explorer** and, for the default `draft` status, review and roll out the release on
+ the chosen track by hand. Without the secret the step is a clean skip; download
+ the `android-aab` artifact and upload it manually instead.
 - [ ] Update channel advanced **after** the draft was published — the `pages` job
  (`release-publication` approval) passed its public-release check, verified the
  manifest signatures, and pushed `gh-pages`; `verify` was green first.
@@ -143,7 +150,7 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] **`pages-sig-gate` is green (Gate — issues #759, #810).**
  The post-publish `Assert gh-pages signature invariant` step in the `pages` job
  reports this synchronously — a red step means the published `<channel>.json.sig` is
- missing **or does not verify** against the pinned key (`kUpdateManifestPublicKey`);
+ missing **or does not verify** against any pinned key (`kUpdateManifestPublicKeys`);
  either failure causes the updater to silently report "no update" to all users on this
  channel. A stale signature from a previous release alongside an updated manifest also
  fails (issue #810). The `gh-pages signature gate` workflow also runs daily (≤24h

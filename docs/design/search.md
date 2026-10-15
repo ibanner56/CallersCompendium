@@ -22,7 +22,10 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    query matches stored `role2s`/`allemande` (see [dialect.md](dialect.md)).
    Collection text search may explicitly scope to raw title text, derived
    author names, or canonical figure text; Omni is the OR of the canonical
-   cross-field query and a raw-title fallback. Long queries keep the complete
+   cross-field query and a raw branch matching the query as typed over title,
+   authors, sources, custom values, hook and notes (never `figures_text`, which
+   is stored canonicalised), so a name or note containing a role word such as
+   "Robin" or "ladies" is found verbatim. Long queries keep the complete
    input as one literal substring. Online collection search exposes the title,
    author, and figure criteria to Caller's Box and ContraDB, while by-phrase
    criteria remain available only to sources that support them. Caller's Box
@@ -398,8 +401,9 @@ derivation logic:
 
 `_rebuildDerived` iterates `dance.sectionedFigures` (instead of `figures`
 alone) and writes `section: Value(sectioned.label)` into each
-`DanceFiguresCompanion`. Labels come straight from `PhraseStructure.labels`
-(`A1 A2 B1 B2 …`); a figure whose start beat can't be labelled (empty structure
+`DanceFiguresCompanion`. Labels come from `PhraseStructure.labelAtBeat`, which
+derives each label from the phrase index without building the full `labels`
+list (`A1 A2 B1 B2 …`); a figure whose start beat can't be labelled (empty structure
 never happens — it defaults to standard 4×16) yields a non-null label in all
 current cases, but the column stays nullable to stay forward-compatible with
 future structureless forms.

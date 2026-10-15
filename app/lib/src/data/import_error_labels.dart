@@ -33,10 +33,14 @@ String importErrorMessage(AppLocalizations l10n, UrlFetchException error) {
           ? l10n.importErrorUnreachable
           : l10n.importErrorTimeout(error.timeoutSeconds!),
     UrlFetchFailureReason.unreachable => l10n.importErrorUnreachable,
-    UrlFetchFailureReason.httpStatus =>
-      error.statusCode == null
-          ? l10n.importErrorUnreachable
-          : l10n.importErrorHttpStatus(error.statusCode!),
+    UrlFetchFailureReason.httpStatus => switch (_statusClass(
+      error.statusCode,
+    )) {
+      null => l10n.importErrorUnreachable,
+      _HttpStatusClass.notFound => l10n.importErrorHttpNotFound,
+      _HttpStatusClass.busy => l10n.importErrorHttpBusy,
+      _HttpStatusClass.other => l10n.importErrorHttpStatus(error.statusCode!),
+    },
     UrlFetchFailureReason.emptyResponse => l10n.importErrorEmptyResponse,
     UrlFetchFailureReason.unsupportedSharedLink =>
       l10n.importErrorUnsupportedSharedLink,
@@ -54,10 +58,20 @@ String importErrorMessage(AppLocalizations l10n, UrlFetchException error) {
           : l10n.importErrorSearchTimeout(error.timeoutSeconds!),
     UrlFetchFailureReason.callersBoxUnreachable =>
       l10n.importErrorCallersBoxUnreachable,
-    UrlFetchFailureReason.callersBoxHttpStatus =>
-      error.statusCode == null
+    UrlFetchFailureReason.callersBoxTimeout =>
+      error.timeoutSeconds == null
           ? l10n.importErrorCallersBoxUnreachable
-          : l10n.importErrorCallersBoxHttpStatus(error.statusCode!),
+          : l10n.importErrorCallersBoxTimeout(error.timeoutSeconds!),
+    UrlFetchFailureReason.callersBoxHttpStatus => switch (_statusClass(
+      error.statusCode,
+    )) {
+      null => l10n.importErrorCallersBoxUnreachable,
+      _HttpStatusClass.notFound => l10n.importErrorCallersBoxHttpNotFound,
+      _HttpStatusClass.busy => l10n.importErrorCallersBoxHttpBusy,
+      _HttpStatusClass.other => l10n.importErrorCallersBoxHttpStatus(
+        error.statusCode!,
+      ),
+    },
     UrlFetchFailureReason.callersBoxEmptyPage =>
       l10n.importErrorCallersBoxEmptyPage,
     UrlFetchFailureReason.callersBoxNoImportableDance =>
@@ -88,10 +102,20 @@ String importErrorMessage(AppLocalizations l10n, UrlFetchException error) {
       l10n.importErrorContraDbUnsupportedHost,
     UrlFetchFailureReason.contraDbUnreachable =>
       l10n.importErrorContraDbUnreachable,
-    UrlFetchFailureReason.contraDbHttpStatus =>
-      error.statusCode == null
+    UrlFetchFailureReason.contraDbTimeout =>
+      error.timeoutSeconds == null
           ? l10n.importErrorContraDbUnreachable
-          : l10n.importErrorContraDbHttpStatus(error.statusCode!),
+          : l10n.importErrorContraDbTimeout(error.timeoutSeconds!),
+    UrlFetchFailureReason.contraDbHttpStatus => switch (_statusClass(
+      error.statusCode,
+    )) {
+      null => l10n.importErrorContraDbUnreachable,
+      _HttpStatusClass.notFound => l10n.importErrorContraDbHttpNotFound,
+      _HttpStatusClass.busy => l10n.importErrorContraDbHttpBusy,
+      _HttpStatusClass.other => l10n.importErrorContraDbHttpStatus(
+        error.statusCode!,
+      ),
+    },
     UrlFetchFailureReason.contraDbEmptyResponse =>
       l10n.importErrorContraDbEmptyResponse,
     UrlFetchFailureReason.contraDbNoImportableDance =>
@@ -101,12 +125,81 @@ String importErrorMessage(AppLocalizations l10n, UrlFetchException error) {
   };
 }
 
-/// Localized message for an [ImportFileTooLargeException]. The exception's
+/// How an HTTP status is worded to the user: a missing resource, a server that
+/// is busy or failing (retrying later is the next step), or anything else
+/// (the code is shown, with a next step).
+enum _HttpStatusClass { notFound, busy, other }
+
+_HttpStatusClass? _statusClass(int? status) => switch (status) {
+  null => null,
+  404 => _HttpStatusClass.notFound,
+  429 => _HttpStatusClass.busy,
+  final s when s >= 500 && s <= 599 => _HttpStatusClass.busy,
+  _ => _HttpStatusClass.other,
+};
+
+/// Attributes a failure from the shared, guarded [fetchImportUrl] path to the
+/// import source the user selected, so the message names that source instead of
+/// "that URL".
+///
+/// The generic fetcher says [UrlFetchFailureReason.httpStatus],
+/// [UrlFetchFailureReason.unreachable], [UrlFetchFailureReason.timeout] or
+/// [UrlFetchFailureReason.emptyResponse] for a failed request, and the generic
+/// messages for those speak of "the URL". When the selected [kind] is The
+/// Caller's Box or ContraDB, those four are re-labelled with the source's own
+/// reason, keeping the typed status code or timeout seconds, so an id or a
+/// link for that source is never told to "check the URL" (CS-21). Every other
+/// reason, and every other source, is returned unchanged.
+UrlFetchException attributeFetchFailure(
+  UrlFetchException error,
+  ImportSourceKind kind,
+) {
+  final ({
+    UrlFetchFailureReason status,
+    UrlFetchFailureReason unreachable,
+    UrlFetchFailureReason timeout,
+    UrlFetchFailureReason empty,
+  })?
+  reasons = switch (kind) {
+    ImportSourceKind.callersBox => (
+      status: UrlFetchFailureReason.callersBoxHttpStatus,
+      unreachable: UrlFetchFailureReason.callersBoxUnreachable,
+      timeout: UrlFetchFailureReason.callersBoxTimeout,
+      empty: UrlFetchFailureReason.callersBoxEmptyPage,
+    ),
+    ImportSourceKind.contraDb => (
+      status: UrlFetchFailureReason.contraDbHttpStatus,
+      unreachable: UrlFetchFailureReason.contraDbUnreachable,
+      timeout: UrlFetchFailureReason.contraDbTimeout,
+      empty: UrlFetchFailureReason.contraDbEmptyResponse,
+    ),
+    _ => null,
+  };
+  if (reasons == null) return error;
+  return switch (error.reason) {
+    UrlFetchFailureReason.httpStatus => UrlFetchException(
+      reasons.status,
+      statusCode: error.statusCode,
+    ),
+    UrlFetchFailureReason.unreachable => UrlFetchException(reasons.unreachable),
+    // A timeout always carries its seconds (the constructor asserts it); one
+    // without is worded as the source being unreachable, like the generic one.
+    UrlFetchFailureReason.timeout => UrlFetchException(
+      error.timeoutSeconds == null ? reasons.unreachable : reasons.timeout,
+      timeoutSeconds: error.timeoutSeconds,
+    ),
+    UrlFetchFailureReason.emptyResponse => UrlFetchException(reasons.empty),
+    _ => error,
+  };
+}
+
+/// Localized message for an [ImportFileTooLargeException]. It names the cap that
+/// applied ([ImportFileTooLargeException.maxBytes], in whole MiB); the actual
 /// [ImportFileTooLargeException.length] is intentionally not shown to the user.
 String importFileTooLargeMessage(
   AppLocalizations l10n,
   ImportFileTooLargeException error,
-) => l10n.importErrorFileTooLarge;
+) => l10n.importErrorFileTooLarge(error.maxBytes ~/ (1024 * 1024));
 
 /// Localized display name for an import [kind], shown in the import-source
 /// dropdown and the "Import from {source}." headings.
@@ -175,5 +268,7 @@ String titleListNotFoundReasonMessage(
   TitleListNotFoundReason.multipleExactMatches =>
     l10n.importTitleListReasonMultipleExactMatches,
   TitleListNotFoundReason.fetchError => l10n.importTitleListReasonFetchError,
+  TitleListNotFoundReason.connectionFailed =>
+    l10n.importTitleListReasonConnectionFailed,
   TitleListNotFoundReason.lineTooLong => l10n.importTitleListReasonLineTooLong,
 };

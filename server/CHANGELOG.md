@@ -8,6 +8,91 @@ the app and of `compendium_core`; version headings below refer to
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-14
+
+### Fixed
+
+- The reference Apache vhost (`server/deploy/athenaeum.conf`) proxied
+  `/heartbeat` to `/heartbeat/heartbeat`, because a `ProxyPassMatch` target
+  without a backreference has the request path appended, so the liveness check
+  and the status page that polls it got the server's `404`. Both vhosts now
+  capture the path and pass it on. Existing deployments must update their
+  installed vhost and reload Apache; the server itself is unchanged.
+
+### Changed
+
+- The request-rate limits are counted per second (sync spec §5.4): 5 requests
+  a second per client IP with a burst of 300, was 60 a minute with a burst of
+  120, and 15 a second per store with a burst of 600, was 600 a minute.
+  `AthenaeumBudgetLimits.perIpRequestsPerSecond` and `perStoreRequestsPerSecond`
+  replace the per-minute fields. The failure and creation budgets are
+  unchanged and still per minute.
+
+- The `compendium_core` schema advances from v38 → v39 for Device Sync
+  bookkeeping. The generated sync allow-list diff is empty, so this bump added
+  no shareable wire fields or record kinds. Clients running app `0.7.0` continue
+  to sync against older servers through one-blob requests; deploy server
+  `0.3.0` to enable the batch blob endpoints and per-second request budgets.
+
+### Added
+
+- A reference alert forwarder in `server/deploy/`: `athenaeum-alert-email`
+  emails each `quota_exhaustion` or `sweep_failure` line the container writes,
+  and `athenaeum-alert-email.service` feeds it from `docker logs --follow`. A
+  failed send is logged and skipped rather than stopping the forwarder. The
+  operations runbook installs it as first-deployment step 6, and now also
+  checks the root filesystem for `discard`, which stalled synced writes for
+  over half an hour after large deletions on the reference host.
+
+- `POST /v1/blobs/batch` returns the blobs for up to 200 hashes in one
+  response (sync spec §5.2): a frame per hash, in request order, carrying the
+  blob or saying it is missing, or that the 2 MB response cap was reached
+  before it. The response is streamed one blob at a time and gzip-compressed
+  when the client accepts it. A store that does not resolve counts as a failed
+  resolution, as on every store-scoped route. A batch of *n* hashes costs
+  1 + ⌈*n*/20⌉ tokens of both the per-IP and the per-store request limits
+  (`AthenaeumBudgetLimits.blobBatchHashesPerToken`, default 20); one either
+  limit cannot cover is refused `429` whole, with a `Retry-After` computed for
+  that batch. `GET /v1/blobs/{hash}` is unchanged.
+- `PUT /v1/blobs/batch` stores up to 50 blobs in one request and one
+  transaction (sync spec §5.2): the body is the batch read's frames, every one
+  a blob, and the `200` response gives each blob the status its own
+  `PUT /v1/blobs/{hash}` would get, in request order. Once one new blob would
+  pass the store quota, it and every later new blob in the batch is `507`. A
+  body over 50 blobs, with a blob over 1 MB, a duplicate hash or a frame that is
+  not a blob is refused whole. A gzip body is not held to the 10× expansion
+  ratio; the absolute cap bounds it. A batch of *n* blobs costs 1 + ⌈*n*/10⌉
+  tokens of both the per-IP and the per-store request limits
+  (`AthenaeumBudgetLimits.blobUploadBlobsPerToken`, default 10), charged once
+  the store resolves; one either limit cannot cover is refused `429` whole,
+  storing nothing. `PUT /v1/blobs/{hash}` is unchanged.
+
+## [0.2.2] - 2026-10-01
+
+### Fixed
+
+- `POST /v1/blobs/missing` reports a blob whose reference survives but whose
+  file is gone, and a repeated `PUT` of the same bytes now restores the file
+  without charging quota again or changing the reference. A body that does not
+  match the recorded size or hash is rejected `400`.
+
+### Changed
+
+- Request-path cleanup retry stops between jobs once a 50 ms monotonic-clock budget
+  is spent (at least one job always runs). Startup orphan reconciliation walks
+  one store epoch at a time and queues each epoch in a single transaction.
+  
+### Security
+
+- Gzip request bodies are now capped on their encoded (wire) size per route, and
+  an over-long `Content-Length` on a gzip body is rejected up front with `413`.
+  Previously a stream of empty gzip members decoded to no chunks and evaded the
+  size checks.
+- When forwarded headers are trusted (loopback peer), the rightmost
+  `X-Forwarded-For` entry keys the per-client budget instead of the leftmost.
+  Behaviour behind the reference Apache (which overwrites the header) is
+  unchanged.
+
 ## [0.2.1] - 2026-09-24
 
 ### Changed

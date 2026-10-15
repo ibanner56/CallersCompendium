@@ -5,6 +5,7 @@ import 'sync_merge.dart';
 import 'sync_quarantine.dart';
 import 'sync_record_kind.dart';
 import 'sync_report.dart';
+import 'sync_retained_fields.dart';
 
 /// The transaction-facing value passed to an inbound storage adapter.
 class SyncApplyRecord {
@@ -238,7 +239,7 @@ class SyncApplyEngine {
               final current = await storage.read(candidate.address) ?? const {};
               final merged = _overlay(
                 Map<String, Object?>.from(current),
-                Map<String, Object?>.from(candidate.blob.body),
+                syncInboundKnownBody(candidate.blob),
               );
               try {
                 final applyRecord = SyncApplyRecord(
@@ -432,7 +433,7 @@ class SyncApplyEngine {
           address: accepted.address,
           body: _overlay(
             Map<String, Object?>.from(current),
-            Map<String, Object?>.from(accepted.blob.body),
+            syncInboundKnownBody(accepted.blob),
           ),
           updatedAt: accepted.updatedAt,
           deletedAt: accepted.blob.deletedAt,
@@ -815,11 +816,21 @@ class SyncApplyEngine {
           SyncMergeCandidate.fromBlob(decodeSyncRecordBlob(encoded)),
         );
       } on FormatException catch (error) {
-        reports.add(
-          SyncReport(
-            code: SyncReportCode.malformedRecord,
-            message: 'Malformed inbound record: ${error.message}.',
+        final (code, label) = switch (error) {
+          SyncNewerWireVersionException() => (
+            SyncReportCode.newerWireVersion,
+            'Inbound record uses a newer wire version',
           ),
+          SyncNewerFieldException(:final path) => (
+            path.startsWith('figures')
+                ? SyncReportCode.newerFigures
+                : SyncReportCode.newerRecordFields,
+            'Inbound record carries a part this build cannot keep',
+          ),
+          _ => (SyncReportCode.malformedRecord, 'Malformed inbound record'),
+        };
+        reports.add(
+          SyncReport(code: code, message: '$label: ${error.message}.'),
         );
       }
     }
@@ -854,26 +865,50 @@ class SyncApplyEngine {
     SyncMergeCandidate left,
     SyncMergeCandidate right,
   ) {
-    final kind = _kindOrder(
+    final kind = syncApplyKindOrder(
       left.blob.kind,
-    ).compareTo(_kindOrder(right.blob.kind));
+    ).compareTo(syncApplyKindOrder(right.blob.kind));
     return kind == 0 ? left.blob.id.compareTo(right.blob.id) : kind;
   }
-
-  static int _kindOrder(SyncRecordKind kind) => switch (kind) {
-    SyncRecordKind.choreographer => 0,
-    SyncRecordKind.publishedSource => 1,
-    SyncRecordKind.tag => 2,
-    SyncRecordKind.difficultyLevel => 3,
-    SyncRecordKind.customFieldDef => 4,
-    SyncRecordKind.venue => 5,
-    SyncRecordKind.dance => 6,
-    SyncRecordKind.program => 7,
-    SyncRecordKind.setting => 8,
-  };
 }
 
+/// The position of [kind] in apply order: every *other* kind a record can
+/// cite comes before it, so a dance follows the choreographers, tags and
+/// other records it names, and a program follows its dances.
+///
+/// Cross-kind only. A dance can link to another dance, and those links can
+/// form cycles, so no kind order puts a record's every citation first; the
+/// apply engine resolves same-kind references within its batch instead.
+///
+/// Public because the coordinator downloads in the same order (spec §6.3 step
+/// 5), and holds back a fetched record whose same-kind citation was not
+/// fetched yet.
+int syncApplyKindOrder(SyncRecordKind kind) => switch (kind) {
+  SyncRecordKind.choreographer => 0,
+  SyncRecordKind.publishedSource => 1,
+  SyncRecordKind.tag => 2,
+  SyncRecordKind.difficultyLevel => 3,
+  SyncRecordKind.customFieldDef => 4,
+  SyncRecordKind.venue => 5,
+  SyncRecordKind.dance => 6,
+  SyncRecordKind.program => 7,
+  SyncRecordKind.setting => 8,
+};
+
 DateTime _syncNowUtc() => DateTime.now().toUtc();
+
+/// The part of an inbound [blob]'s body this build applies: everything it
+/// syncs, and nothing it keeps for a newer version (spec §6.7). Overlaying the
+/// whole body would write a kept private field into this device's own column.
+/// The kept parts travel separately, on the record's `sourceBlob`.
+Map<String, Object?> syncInboundKnownBody(SyncRecordBlob blob) =>
+    Map<String, Object?>.from(
+      partitionInboundRecordBody(
+        blob.kind,
+        blob.body,
+        settingsKey: blob.kind == SyncRecordKind.setting ? blob.id : null,
+      ).known,
+    );
 
 /// Rolls the inbound batch back when a named tombstone cannot be written.
 ///

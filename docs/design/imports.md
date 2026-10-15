@@ -40,8 +40,8 @@ fetch → RawRecord → parse → StructuredDraft → canonicalize → dedupe �
 | **parse** | Adapter maps fields and parses figures into structured `Figure[]`. **Parsing never fails a dance**: any unparseable figure line becomes a `custom` figure carrying its beats and text. A dance can arrive 100% custom and still be searchable. |
 | **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; recognized formation strings map to the enum, with only source-specific detail retained separately. |
 | **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (NFC-composed, normalized title + author) → user chooses link/duplicate/skip. A title that normalizes to nothing (non-Latin or punctuation-only — `normalizeTitle` keeps `[a-z0-9]`) is never scored against another and never auto-linked: it carries no identity signal, and `'' == ''` once scored every such dance 1.0 against every other. The index is a pre-batch snapshot, so `plan` also tracks `(source, externalId)` within the batch: a repeat is dropped and the kept record carries a `duplicate_external_id_in_batch` warning, so one batch can never commit two dances under one provenance key. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers (e.g. program import) treat a confident match as a hard **skip**, never a silent duplicate (see *Multi-author tokenization*). |
-| **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Accept-all is one tap; nothing silently mutates existing user data. |
-| **commit** | Transactional; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo. |
+| **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Each row carries its own choice (new / re-import / link / duplicate / skip); a re-import match or possible match defaults to **skip** (#446), and bulk controls set every matched dance to Re-import or Skip and every possible match to Skip in one tap. An overwrite warning counts the existing dances a commit would replace; nothing silently mutates existing user data. |
+| **commit** | Per-record: each dance commits in its own transaction and a failing record is rolled back on a best-effort basis (author writes and variation link-backs are separate operations, and a cleanup that itself fails leaves rows behind that Undo can remove); the batch as a whole is not one transaction. The commit reports `(done, total)` per record; the review screen shows that count for the generic, `.USR` and published-collection commits, while the shared-bundle commit and per-row Edit show an indeterminate spinner; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo, which reverts the records that did commit. |
 
 Adapters implement a small interface (`discover() / fetch() / parse()`) in the
 pure-Dart core → each adapter unit-tested against fixture files.
@@ -146,6 +146,21 @@ future-proofed guarantee, not a threshold-tuning accident: an exact-title +
 shared-author pair can never resolve to `isNew` (and therefore never silently
 duplicate), regardless of how differently the two sides' author strings were
 formatted or tokenized upstream.
+
+**How the scan finds it, and what it skips.** `DedupeIndex` keeps an exact map
+from normalized (never empty) title to the entries carrying it, built once at
+construction. Confident matches can only come from that map, because
+confidence requires `nTitle == eTitle`; those entries are always scored. Every
+other entry is scored only if it can still reach the threshold: Levenshtein
+distance is at least the length difference, so
+`titleSim <= 1 - |la - lb| / max(la, lb)`, and the combined score is at most
+`0.8 * that + 0.2` when both author sets are non-empty (at most `that`
+otherwise). A pair whose bound is under the threshold is skipped without
+scoring. The skip is pure: it never re-scores or reorders, so candidates,
+scores and order are identical to scanning every entry (pinned by the
+randomised equivalence tests in `dedupe_test.dart`), and the guarantee above is
+unchanged. `ImportPipeline.plan` yields to the event loop between records in
+this loop as in the parse loop, so a large batch does not freeze the UI.
 
 - **Interactive path unchanged.** `verdictFor`'s `isNew`/`ambiguous` branching
   and `ImportPipeline.commit`'s "no resolution supplied → skip" default are
@@ -375,7 +390,9 @@ declines the collapse.
     and a ~20 000-dance library ~82 000) and
     `maxFiguresPerDance` (512) throw `FmpResourceLimitException`, which the
     adapter's `discover` maps to the friendly "That file is too large to
-    import." — never OOM/throw-through. The byte-level caps are sized together
+    import." — never OOM/throw-through. The error carries
+    `ImportErrorCode.fileTooLarge`, and the review screen shows the localized
+    "too large" string for that code (never the error's `message`). The byte-level caps are sized together
     for a ~20 000-dance library (~237 MiB with FileMaker's own indexes): the
     app's `.USR` byte cap `kMaxImportUsrBytes` is 256 MiB, and the reader's
     `kMaxFmpSectors` (65 536 = 256 MiB / 4 KiB) and `kMaxFmpRecords` (500 000)
@@ -628,11 +645,13 @@ the `hey` pass-list decoder — same `tcbPassPeople` map) reads the codes:
   balance as a separate line, never inline on a square-through line, so a
   standalone `Square through n (…)` carries none. This mirrors `rory_o_more`,
   which forces `balance: false` for the same reason. (The decoder does not itself
-  fold a preceding balance line in; a `<who> balance` line stays its own figure,
-  matching TCB's two-line source.)
+  fold a preceding balance line in. The adapter's cross-line Fold 1 does, but
+  only a `<who> balance` whose stated subject equals the square through's
+  effective `who`; a ring or wave balance stays its own figure.)
 
 **Whole-line strictness / prefer-custom.** The text outside the pass list must be
-exactly `square through <n>` (modulo filler), `n` in 2..10; the cell count must
+exactly `square through <n>` (modulo filler), or `square through <n> without
+hands` for the circular hey below, `n` in 2..10; the cell count must
 equal `n`; every cell must be `<people-code><R|L>` with the code in
 `tcbPassPeople`. A second parenthetical, an `interrupted`/`modified` qualifier, a
 trailing clause, an unmappable code (`C1`–`C3`, out-of-range neighbors, a bare
@@ -656,12 +675,46 @@ source-level discrepancy, not something the importer reconciles, so the two
 imports of *Tangled Yarns* remain distinguishable on `who` even after the fix;
 what the fix removes is the fabricated dancers and the doubled balance.
 
+#### Square through without hands → circular hey
+
+TCB has no circular hey of its own. It writes one as a square through without
+hands: `Square through 3 without hands (NR;PL;NR)` (dances 20273 and 527). With
+`without hands` between the count and the pass list, the same pass-list decoder
+yields a `circular_hey`: `changes` is `n`, `who` is the odd cells' dancers,
+`who2` (taxonomy v37) is the even cells' dancers, and `shoulder` is the first
+cell's side. So `(NR;SL)` is neighbors by the right, then shadows by the left.
+
+The pass list names who passes and by which shoulder, not whether the first
+pass runs across or along the set, so `where` is left to the taxonomy default,
+as for TCB heys.
+
+The line stays custom when there is no pass list (nothing says who starts),
+when the second group repeats the first (a ring of four never passes the same
+group twice running), when that group is outside `who2`'s vocabulary, and on
+any failure of the square-through checks above. Lines imported before this
+change keep their custom text; there is no backfill (maintainer decision on the
+PR that added this mapping).
+
 ### 4. Generic JSON (6.6)
 - Our own canonical archive format (figures, programs, custom fields, provenance,
   dialect definitions). It serves both backup/restore and user-to-user sharing
   through explicit serialization modes: share mode omits custom fields marked
   `shareable = false`, while backup mode preserves every custom field and value.
   Versioned schema; forward-compatible reader.
+- Deleted tags (schema v7). Tags are soft-deleted and their `dance_tags` rows are
+  kept, so restoring a tag brings its dances back; a dance's `tagIds` never lists a
+  tombstoned tag. A **backup-mode** archive therefore carries a `deletedTags` array,
+  one entry per tombstoned tag: the tag (`id`, `name`, `color`), its `deletedAt`, and
+  `danceIds`, the dances (including tombstoned dances) whose retained join names it.
+  Share mode never writes it. The array is separate from `tags` on purpose: a pre-v7
+  reader ignores an unknown key and restores only live tags, whereas a marker inside
+  `tags` would be ignored and the deleted tag would come back live. The archive is
+  stamped v7 only when a tombstoned tag exists. On restore a tombstone is written
+  and stamped like any other deletion, then its joins are re-attached to dances that
+  exist; a tag the destination already holds **live** (by id or name) is never
+  tombstoned by a backup, and its retained joins are not applied. Tombstoned
+  choreographers, sources and custom-field definitions are not carried: they are
+  referentially guarded, so no retained join can name one.
 - Receive key. A received dance is stored under `(json, externalId)`, where the
   external id is the dance's **upstream** provenance namespaced by its source —
   `contradb:457` — because upstream sources hand out overlapping small integer
@@ -737,6 +790,10 @@ and written only on confirmation, where `_defaultChoice` already maps an
 What the two paths share is exactly one non-committing step,
 `lookupUniqueExactTitle` (`app/lib/src/data/online_title_lookup.dart`): search a
 title, return the unique exact-title hit or a typed reason there isn't one.
+"Exact" compares `titleMatchKey`s (case, whitespace and quote/dash style
+folded) because the sources disagree on `'` versus `’` (see
+`docs/research/contradb.md` and `docs/research/callersbox.md`); it does not
+drop punctuation or articles the way dedupe's `normalizeTitle` does.
 Collapsing more than that into the shared function would drag an unattended
 import into a flow that has a user watching; collapsing less would leave the two
 paths as parallel implementations of the same search rule.
@@ -761,7 +818,7 @@ and those need different follow-up:
   choreographer(s), since the local match is by title alone and two dances can
   share a title;
 - **not found** — carrying *which* way it missed (`noResults`, `noExactMatch`,
-  `fetchError`, `lineTooLong`). Multiple exact matches are no longer classified
+  `fetchError`, `connectionFailed`, `lineTooLong`). Multiple exact matches are no longer classified
   as not found when at least one candidate preview succeeds.
 
 A paste with nothing importable deliberately does **not** fall through to the
@@ -775,8 +832,8 @@ than only by the widget — applies: `kMaxTitleListChars` (65,536 UTF-16 code
 units, not bytes) on the raw text;
 `kMaxTitleListTitles` (100) **distinct** titles, refused before any request and
 never silently truncated; `kMaxTitleLength` (200) per line, over which a line is
-reported rather than searched; blank-line drop; and case-insensitive
-de-duplication (first occurrence wins — unlike `parsePlaintextProgram`, which
+reported rather than searched; blank-line drop; and `titleMatchKey`
+de-duplication (case and quote/dash style ignored) (first occurrence wins — unlike `parsePlaintextProgram`, which
 must keep repeats because a program may legitimately call a dance twice).
 
 An accepted paste issues requests serially with progress and a cancel. A unique
@@ -785,7 +842,19 @@ at most `kMaxAmbiguousCandidatesPerLine` (6) previews, so the worst-case bound
 is `kMaxTitleListTitles × (1 + kMaxAmbiguousCandidatesPerLine)` requests.
 Candidates beyond the six-item per-title cap are not fetched. A per-title
 `on Exception` boundary means one unreachable dance becomes one `fetchError` row
-rather than an aborted batch. No new fetch path is introduced: the existing
+rather than an aborted batch — except a *connection-class* failure
+(`isConnectionFailure` in `online_title_lookup.dart`: `callersBoxUnreachable`,
+`contraDbUnreachable`, `unreachable`, `searchTimeout`, `timeout`, the
+source-attributed `callersBoxTimeout`/`contraDbTimeout`, plus the
+search-endpoint `callersBoxHttpStatus`/`contraDbHttpStatus`; the per-dance
+preview's `httpStatus` is not, since a 404 there is about that dance). The first
+such failure stops the batch (IMP-07): the title and every title not yet looked
+up become `connectionFailed` rows — the failing title itself was requested; only
+the later titles are skipped without a request (an ambiguous title's candidate
+previews stop at the first connection failure too) — and
+`TitleListResolution.stoppedAfterConnectionFailure` drives one batch-level
+banner on the review screen. Titles already in the collection are still listed.
+No new fetch path is introduced: the existing
 `buildCallersBoxSearchUrl` / `buildCallersBoxJsonUrl` host allowlist (#621, #766)
 still governs what is reachable.
 
@@ -979,6 +1048,18 @@ has to be judged in its own context.
   out of sync. Both the structured and custom paths therefore store clean text
   only. (This intentionally drops the previous CallersBox/ContraDB phrase-label
   prefix on custom figures.)
+- **Non-quarter amounts round to the nearest quarter** (maintainer ruling).
+  Rotation (`travel`) and places counts are quarter-granular, so a stated
+  `2/3`, `7/8` or `1 & 1/8` used to decline the line to custom. The shared
+  decoders (`_takeRotation`/`_takePlaces`, and the CallersBox single-file
+  circle's `_parsePlaces`) now round it via `roundFractionToQuarters`: ties
+  (every eighth) round half up, and nothing nonzero rounds to zero. The
+  source amount is kept as the figure's note (`1 & 2/3`), ahead of any
+  annotation note, so a structured figure never silently claims 1¾ where the
+  source said 1⅔. Every free-text source routed through `parseFigureLine`
+  shares these decoders; ContraDB's own structured `_rotationStrings` table is
+  separate and unchanged. A rounded total outside the param's domain (past
+  2½ turns, past 10 places) still declines.
 - **First-cut coverage (in):** swing (+balance/meltdown prefix), balance,
   balance the ring, do si do / see saw, shoulder round (+gypsy), box the gnat /
   swat the flea, allemande, circle, star, chain, long lines, right left
@@ -992,16 +1073,28 @@ has to be judged in its own context.
   (→ `ender: turnAlone` when dancer subjects agree), shoulder round + swing
   (→ meltdown swing with adjacent source beats), balance wave + slide
   (→ balanced Rory O'More), and directed promenade around the major set
-  (→ structured turn plus a preserved note), pass the ocean +
+  (→ structured turn plus a preserved note; a `to <dancer>` tail or
+  `(to <dancer>)` annotation also fills `destination`, and its words stay in
+  the note because the v30 render gate hides the clause at the `across`
+  default), pass the ocean +
   trailing balance wave (→ `pass_the_ocean` / `form_short_waves` /
   `form_a_long_wave` / `form_long_waves` with `balance: true`, beats summed;
-  #577), diagonal chain /
+  #577; a balance line whose annotation does not decode — `(C2R,WL)`,
+  `(SRNR,1CL)` — is not folded and stays custom, since the fold carries only
+  decoded params), diagonal chain /
   hey
   / right-&-left-through (→ `dir: left/rightDiagonal`), same-role right & left
   through (variant kept as a note), weave-the-line `with <dancer>`, relationship
   N-suffix (`with/to neighbor N2`, in either word order), explicit dancer codes
   (M1/W1/M2/W2 →
-  ones/twos single-dancer identities), and `(A-B)` beat ranges. **Mad robin &
+  ones/twos single-dancer identities), same-role neighbor subjects
+  (`Same-role neighbor swing` → `who: sameRoles`; maintainer ruling that
+  same-sex = same-role; `N2 same-role neighbor` has no ordinal token and stays
+  custom), S-prefix shadow subjects (`S1`/`S-1 shadow` → `shadows`, `S-1` by
+  maintainer ruling; `S2 shadow` → `secondShadows`; `S3`+ and `S-2`… stay
+  custom), and `(A-B)` beat ranges. A line stating a different turn amount per
+  role — `allemande left (M 1 & 1/2, W 2)` — stays custom: no move models it,
+  and structuring would render the move's default amount. **Mad robin &
   butterfly whirl (#295, taxonomy v20):** both moves gained the params TCB
   states — `mad robin` a rotation `direction` plus the "around `<whom>`" target,
   `butterfly whirl` a `who` plus the same `direction` — so "Mad robin clockwise
@@ -1167,7 +1260,7 @@ has to be judged in its own context.
   of these figures.
   **Out (→ custom
   for now, tracked on #295):** cast off,
-  two-hand turn & other ECD figures, promenade
+  ECD figures outside the contra taxonomy, promenade
   CW/CCW around the major set when the line cannot be recognized, non-duple
   formations, and
   anything with leftover prose. Coverage improves iteratively — measured against
@@ -1234,9 +1327,24 @@ form figure is ever emitted.
 (`_promoteBalanceWaveLines`), so by construction it only ever sees leftovers:
 
 1. **Fold 1 (forward)** — a balance line immediately BEFORE a swing /
-   petronella / rory o'more / box the gnat / swat the flea / box circulate folds
-   into that move (`prefix: balance` / `balance: true`). ~44% of balance-wave
-   lines have such a successor and are claimed here, exactly as before.
+   petronella / rory o'more / box the gnat / swat the flea / box circulate /
+   square through folds into that move (`prefix: balance` / `balance: true`),
+   but only when the merged figure balances the same dancers in the same
+   formation as the source line (`_balanceMatchesMove`). A balance-WAVE line
+   folds only into a WAVE move (box circulate, Rory O'More): folded into a
+   swing, box the gnat, swat the flea, square through or petronella it would
+   render `<who> balance & <move>`, erasing the wave's sides, centre and hands
+   and handing the whole wave's balance to the move's pair (`Balance wave of
+   four` / `Ones swing` lost the twos' balance outright). Those lines fall
+   through to the promotion below instead. The same rule keeps `Balance ring`
+   out of a swing (it folds only into petronella), keeps a bare `Balance` —
+   whose subject the recognizer assumed — out of every subject move, and folds
+   a stated subject (`Partner balance`) only into a move with the SAME
+   effective `who`. Measured over the 11,499 full-permission dances: of the
+   3,773 balance-wave lines that reach the merge, Fold 1 claims **211** (all
+   before a box circulate); it claimed 353 before this rule, the other 142
+   being swings (124), box the gnats (14), swat the fleas (2) and square
+   throughs (2).
 2. **Fold 4 (backward, #577)** — a balance-wave line immediately AFTER a
    structured `pass_the_ocean` / `form_short_waves` / `form_a_long_wave` /
    `form_long_waves` folds into that figure with the beats summed, so an
@@ -1307,7 +1415,9 @@ and **per-dance beat totals are byte-identical for all 20,515 dances**, so
 ## Error handling & testing
 
 - Every stage yields structured errors with source context (never stack-trace
-  UX); partial batch failure imports the rest and reports.
+  UX); errors carry typed codes (`ImportErrorCode`); messages are
+  diagnostic-only, never rendered. Partial batch failure imports the rest and
+  reports.
 - Adapter test fixtures (`test/imports/`): one real TCB JSON file
   (`support/callersbox/right_where_we_belong_19001.json`) plus inline TCB JSON
   in `callersbox_adapter_test.dart` (ids 1, 1006, 10882); ContraDB HTML

@@ -3,7 +3,7 @@ import 'sync_codec.dart';
 import 'sync_merge.dart';
 import 'sync_record_kind.dart';
 import 'sync_report.dart';
-import 'wire_mapping.dart';
+import 'sync_retained_fields.dart';
 import '../storage/shareable_text.dart';
 
 /// The result of admitting one inbound candidate for reconciliation and apply.
@@ -33,23 +33,25 @@ final class SyncInboundCandidateAdmission {
 SyncInboundCandidateAdmission admitSyncInboundCandidate(
   SyncMergeCandidate candidate,
 ) {
-  final validation = validateShareableRecordBody(
+  // A part this build does not sync is kept, not refused (spec §6.7); only a
+  // part it could not put back is. The blob constructor already enforces
+  // this, so a candidate reaching here refused would be one built some other
+  // way — checked again rather than trusted.
+  final split = partitionInboundRecordBody(
     candidate.blob.kind,
     candidate.blob.body,
     settingsKey: candidate.blob.kind == SyncRecordKind.setting
         ? candidate.blob.id
         : null,
   );
-  if (!validation.isValid) {
+  if (split.refusedPath case final path?) {
     return SyncInboundCandidateAdmission.rejected(
       SyncReport(
-        code: SyncReportCode.invalidClassification,
+        code: SyncReportCode.newerRecordFields,
         kind: candidate.blob.kind,
         recordId: candidate.blob.id,
         peerId: candidate.peerId,
-        message:
-            'Inbound body contains a non-shareable wire path '
-            '${validation.invalidPath}.',
+        message: 'Inbound body carries $path, which this build cannot keep.',
       ),
     );
   }

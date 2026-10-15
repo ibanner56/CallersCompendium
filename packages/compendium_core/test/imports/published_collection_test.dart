@@ -272,6 +272,27 @@ void main() {
       expect(await events.heldCount('book', version: 'v2'), 0);
     });
 
+    test('forwards onProgress to the pipeline commit', () async {
+      // Dropping `onProgress` from the importer leaves the review screen's
+      // determinate counter frozen on its seed.
+      final batch = await importer.plan(
+        _payload(dances: [_dance('d1'), _dance('d2')]),
+        metadata,
+      );
+      final events = <(int, int)>[];
+      var n = 0;
+
+      await importer.commit(
+        batch,
+        metadata: metadata,
+        now: DateTime.utc(2026, 8, 20),
+        newId: () => 'local-${++n}',
+        onProgress: (done, total) => events.add((done, total)),
+      );
+
+      expect(events, [(1, 2), (2, 2), (2, 2)]);
+    });
+
     test('clears a published custom level absent from the receiver', () async {
       final level = DifficultyLevel(
         id: 'published-workshop',

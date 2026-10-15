@@ -153,9 +153,9 @@ def _assert_verifier_rejects_tampered_manifest() -> None:
         root = Path(directory)
         key_source = root / "key.dart"
         key_source.write_text(
-            "const String kUpdateManifestPublicKey =\n    '"
+            "const List<String> kUpdateManifestPublicKeys = [\n  '"
             + base64.b64encode(raw_public).decode()
-            + "';\n",
+            + "',\n];\n",
             encoding="utf-8",
         )
         manifest = root / "manifest" / "stable.json"
@@ -280,6 +280,14 @@ def main() -> None:
     assert 'gen_release_metadata.py "${metadata_args[@]}"' in metadata_step
     assert '--codename "$RELEASE_CODENAME"' in metadata_step
     assert '--codename "${{ needs.meta.outputs.codename }}"' not in metadata_step
+    # End-of-life announcements: guarded like --codename so a recovery run of
+    # a tag that predates the option still generates its manifests, and fed
+    # from the checked-in file that test_gen_release_metadata.py validates.
+    assert 'grep -Fq -- "--retirements" <<<"$metadata_help"' in metadata_step
+    assert (
+        "metadata_args+=(--retirements tools/release/retirements.json)"
+        in metadata_step
+    )
 
     codename_define = (
         '--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME"'
@@ -288,8 +296,10 @@ def main() -> None:
 
     build_job = _job_section(text, "build")
     assert "      CODENAME: ${{ needs.meta.outputs.codename }}" in build_job
-    build_windows_job = _job_section(text, "build_windows")
-    assert "      CODENAME: ${{ needs.meta.outputs.codename }}" in build_windows_job
+    # The whole build matrix waits on the release-signing approval gate.
+    assert "\n    environment: release-signing\n" in build_job, (
+        "the build matrix must declare environment: release-signing"
+    )
 
     # Every source checkout must pin the resolved commit, not the mutable tag
     # ref, so a tag moved mid-run cannot make assurance validate one commit while
@@ -297,9 +307,9 @@ def main() -> None:
     # is required (e.g. the recovery provenance predicate), never as a checkout.
     # Match the checkout step's own indentation so the checks job's
     # `checkout_ref:` pass-through (which also ends in "ref:") is not counted.
-    assert text.count("\n          ref: ${{ needs.meta.outputs.source_sha }}") == 4, (
-        "build, Windows, publish, and Pages jobs must all check out the resolved "
-        "source SHA"
+    assert text.count("\n          ref: ${{ needs.meta.outputs.source_sha }}") == 3, (
+        "build (every platform, Windows included), publish, and Pages jobs must "
+        "all check out the resolved source SHA"
     )
     assert text.count("\n          ref: ${{ needs.meta.outputs.release_ref }}") == 0, (
         "no job may check out the mutable release_ref; the tag name is passed via "
@@ -342,7 +352,7 @@ def main() -> None:
     ios_gate = _section(
         text,
         "      - name: Determine iOS signing availability",
-        "      - name: Install Linux desktop dependencies",
+        "      - name: Set up JDK 21 (Temurin)",
     )
     assert 'if [ "$RECOVERY" = "true" ]; then' in ios_gate
     assert "signing=skipped-recovery" in ios_gate
@@ -421,6 +431,29 @@ def main() -> None:
     assert "      - name: Upload iOS build to TestFlight" in publish_mobile
     assert "EVENT_NAME: ${{ github.event_name }}" in publish_mobile
     assert '[[ "$REF" == refs/tags/v* ]]' in publish_mobile
+
+    # Google Play upload: same real-tag guard and approval gate as TestFlight,
+    # SHA-pinned action, safe defaults, and independent of the iOS step's result.
+    assert "      - name: Determine Google Play upload availability" in publish_mobile
+    assert "secrets.PLAY_SERVICE_ACCOUNT_JSON" in publish_mobile
+    play_gate = _section(
+        publish_mobile,
+        "      - name: Determine Google Play upload availability",
+        "      - name: Download signed iOS .ipa",
+    )
+    assert '[ "$EVENT_NAME" = "push" ] && [[ "$REF" == refs/tags/v* ]]' in play_gate
+    assert "exit 1" not in play_gate  # a Play misconfiguration must not skip iOS
+    play_upload = publish_mobile.split(
+        "      - name: Upload Android .aab to Google Play", 1
+    )[1]
+    assert re.search(
+        r"uses: r0adkll/upload-google-play@[0-9a-f]{40} # v\d+\.\d+\.\d+", play_upload
+    )
+    assert "if: ${{ !cancelled() && steps.play.outputs.upload == 'true' }}" in play_upload
+    assert "packageName: org.callerscompendium.compendiumApp" in play_upload
+    assert "tracks: ${{ vars.PLAY_TRACK || 'internal' }}" in play_upload
+    assert "status: ${{ vars.PLAY_RELEASE_STATUS || 'draft' }}" in play_upload
+    assert "name: android-aab" in publish_mobile
 
     provenance = _section(
         text,

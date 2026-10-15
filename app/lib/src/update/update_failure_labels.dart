@@ -20,6 +20,8 @@ String updateDownloadFailureMessage(
   return switch (failure) {
     UpdateDownloadFailure.destinationUnavailable =>
       l10n.updateDownloadFailureDestination,
+    UpdateDownloadFailure.destinationOccupied =>
+      l10n.updateDownloadFailureDestinationOccupied,
     UpdateDownloadFailure.incomplete => l10n.updateDownloadFailureIncomplete,
     UpdateDownloadFailure.refusedHost => l10n.updateDownloadFailureRefusedHost,
     UpdateDownloadFailure.unreachable => l10n.updateDownloadFailureUnreachable,

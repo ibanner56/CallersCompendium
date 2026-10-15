@@ -141,6 +141,11 @@ preview. A template can be up to 512 characters.
 
 - If a template leaves out one of its available slots, the editor asks you to
   confirm before saving, because that detail won't appear on the dance.
+- Some slots hide themselves when they add nothing. For example, a chain's
+  `{hand}` is left out when the role already implies it (a robins chain is
+  right-hand). Put a `!` in front of the slot, as in `{!hand}`, and it always
+  shows. A `!` slot can't show a detail the figure doesn't have, and a few
+  move-specific slots (such as `{subject}` or `{balance}`) ignore the `!`.
 - If a template can't be read — a slot left unclosed, for example — the editor
   says so, and you need to fix it before you can save the dialect.
 
@@ -211,6 +216,26 @@ leaves every saved dance exactly as it was.
 Remember the distinction: **Switch dialect** changes *how dances read for you*, not
 the dances themselves. Switch as often as you like.
 
+## Give a program its own dialect
+
+If you already know tonight's hall uses a particular dialect, you can set it on
+the program ahead of time instead of switching on the night. Open the program's
+details and choose a dialect under **Perform dialect**; choose **Use app
+dialect** to clear it again. The list only offers the dialects you have, so there
+is nothing to type.
+
+- The program's dialect applies only in that program's
+  [Perform mode](./glossary.md#perform-mode). The program editor, the summary,
+  and every export keep reading in your active dialect, and your active dialect
+  itself never changes. Other programs are unaffected.
+- You can still use **Switch dialect** in Perform. While the program has its own
+  dialect, that switch affects the rest of this time in Perform only; the
+  program's dialect is back the next time you open it.
+- A program remembers the dialect by its **name**. If you rename or delete that
+  dialect, the program quietly goes back to using your active dialect in Perform,
+  and the editor shows the old name as **unavailable** so you can see what
+  happened. Pick a dialect again to reconnect it.
+
 ## Peek at the canonical wording
 
 Sometimes you want to see a dance in the plain, shared wording — to compare notes
@@ -237,7 +262,9 @@ full calling view.
 These settings decide what you see before you touch anything:
 
 - **Your active dialect** (in **Settings › Dialect**) is the wording every screen
-  uses by default.
+  uses by default — except [Perform mode](./glossary.md#perform-mode) for a
+  program that has its own dialect (see
+  [Give a program its own dialect](#give-a-program-its-own-dialect)).
 
 The rest are in **Settings › Dialect › Dance details & shorthands**:
 
@@ -308,4 +335,4 @@ both recognise, then flip back to your own.
   use.
 - [Imports & migration](./imports.md) — bring in dances written in other words.
 - [Share, print & export](./sharing.md) — which words leave the app with a dance.
-- [Glossary](./glossary.md) — plain definitions of the terms used here.
+- [App terms](./glossary.md) — plain definitions of the terms used here.

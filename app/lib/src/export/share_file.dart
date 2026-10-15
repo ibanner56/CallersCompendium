@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'dart:ui' show Rect;
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// Materializes a share-bundle payload as an [XFile] for the OS share sheet.
 typedef BundleFileWriter = Future<XFile> Function(String json, String fileName);
@@ -37,6 +39,14 @@ typedef JsonMobileSaveFile = Future<String?> Function(String sourceFilePath);
 
 bool Function() isJsonExportDesktopPlatform = () =>
     Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+
+/// Whether the OS share sheet cannot carry files on this platform.
+///
+/// `share_plus` throws `UnimplementedError` for any [ShareParams.files] on
+/// Linux (only text and `mailto:` work), so file shares fall back to the native
+/// Save As dialog there. A top-level seam, like [isJsonExportDesktopPlatform],
+/// so tests can force either branch regardless of the host.
+bool Function() isBundleShareUnsupported = () => Platform.isLinux;
 
 const _jsonTypeGroup = XTypeGroup(
   label: 'JSON',
@@ -76,11 +86,12 @@ Future<JsonSaveResult?> saveJsonBundle(
   JsonSaveLocationPicker? saveLocationPicker,
   JsonMobileSaveFile? mobileSaveFile,
   BundleFileWriter? stageFile,
+  List<XTypeGroup> acceptedTypeGroups = const [_jsonTypeGroup],
 }) async {
   if ((isDesktop ?? isJsonExportDesktopPlatform)()) {
     final location = await (saveLocationPicker ?? _showSaveLocation)(
       suggestedName: fileName,
-      acceptedTypeGroups: const [_jsonTypeGroup],
+      acceptedTypeGroups: acceptedTypeGroups,
     );
     if (location == null) return null;
     final destination = (isMacOS ?? (() => Platform.isMacOS))()
@@ -106,6 +117,64 @@ Future<JsonSaveResult?> saveJsonBundle(
       await stagedFile.delete();
     }
   }
+}
+
+/// How [shareOrSaveBundleFile] delivered a bundle.
+class BundleDeliveryResult {
+  const BundleDeliveryResult.shared() : saved = null;
+  const BundleDeliveryResult.saved(JsonSaveResult this.saved);
+
+  /// The save result, or `null` when the bundle went to the share sheet.
+  final JsonSaveResult? saved;
+
+  bool get wasSaved => saved != null;
+}
+
+/// Delivers a bundle file: the OS share sheet where it can carry files, the
+/// native Save As dialog where it cannot ([isBundleShareUnsupported]).
+///
+/// Returns `null` when the user cancelled the Save As dialog. Failures are
+/// not caught here; callers wrap this in `guardExport` so they are logged.
+/// Every seam defaults to the production behaviour.
+Future<BundleDeliveryResult?> shareOrSaveBundleFile({
+  required String json,
+  required String fileName,
+  required String subject,
+  required Rect? origin,
+  Future<void> Function(ShareParams params)? shareInvoker,
+  BundleFileWriter? bundleFileWriter,
+  Future<JsonSaveResult?> Function(String json, String fileName)? saveInvoker,
+}) async {
+  if (isBundleShareUnsupported()) {
+    final result = await (saveInvoker ?? _saveBundleAs)(json, fileName);
+    if (result == null) return null;
+    return BundleDeliveryResult.saved(result);
+  }
+  final xfile = await (bundleFileWriter ?? writeBundleTempFile)(json, fileName);
+  await (shareInvoker ?? SharePlus.instance.share)(
+    ShareParams(
+      files: [xfile],
+      fileNameOverrides: [fileName],
+      subject: subject,
+      sharePositionOrigin: origin,
+    ),
+  );
+  return const BundleDeliveryResult.shared();
+}
+
+Future<JsonSaveResult?> _saveBundleAs(String json, String fileName) {
+  final extension = p.extension(fileName).replaceFirst('.', '');
+  return saveJsonBundle(
+    json,
+    fileName,
+    acceptedTypeGroups: [
+      XTypeGroup(
+        label: extension.toUpperCase(),
+        extensions: [extension],
+        mimeTypes: const ['application/json'],
+      ),
+    ],
+  );
 }
 
 Future<FileSaveLocation?> _showSaveLocation({

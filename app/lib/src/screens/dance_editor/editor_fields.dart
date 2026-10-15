@@ -466,7 +466,7 @@ class WarningsCard extends StatelessWidget {
           Row(
             children: [
               Icon(
-                Icons.warning_amber,
+                Icons.warning_amber_outlined,
                 size: 18,
                 color: theme.colorScheme.tertiary,
               ),

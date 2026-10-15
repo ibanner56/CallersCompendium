@@ -396,12 +396,16 @@ class PublishedCollectionImporter {
     required DateTime now,
     String Function()? newId,
     Map<int, DedupeResolution> resolutions = const {},
+    List<String> defaultTagIds = const [],
+    void Function(int done, int total)? onProgress,
   }) async {
     final session = await _pipeline.commit(
       batch,
       now: now,
       newId: newId ?? uuidV4,
       resolutions: resolutions,
+      defaultTagIds: defaultTagIds,
+      onProgress: onProgress,
     );
     return PublishedCollectionImportResult(
       session: session,

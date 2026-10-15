@@ -53,17 +53,20 @@ void main() {
       expect(await readBackupFile(file), '');
     });
 
-    test('the friendly message names both sizes and reassures the user', () {
-      const e = BackupFileTooLargeException(
-        sizeBytes: 60 * 1024 * 1024,
-        maxBytes: 50 * 1024 * 1024,
-      );
+    test(
+      'the log text names both sizes; the UI text is translated elsewhere',
+      () {
+        const e = BackupFileTooLargeException(
+          sizeBytes: 60 * 1024 * 1024,
+          maxBytes: 50 * 1024 * 1024,
+        );
 
-      expect(e.message, contains('too large'));
-      expect(e.message, contains('60.0 MB'));
-      expect(e.message, contains('50.0 MB'));
-      expect(e.message, contains('unchanged'));
-    });
+        expect(e.toString(), contains('60.0 MB'));
+        expect(e.toString(), contains('50.0 MB'));
+        expect(backupMegabytes(e.sizeBytes), '60.0');
+        expect(backupMegabytes(e.maxBytes), '50.0');
+      },
+    );
 
     test('rejects a file that reports a small/stale length but STREAMS more '
         'than the cap (TOCTOU: the stat is not trusted as the bound)', () async {
@@ -315,16 +318,27 @@ void main() {
         final chmod = await Process.run('chmod', ['0500', dir.path]);
         expect(chmod.exitCode, 0, reason: '${chmod.stderr}');
 
-        // Prove the directory is no longer writable for new siblings (what this
-        // regression guard relies on).
-        final sibling = File('${target.path}.tmp');
-        await expectLater(
-          sibling.writeAsString('SHOULD-NOT-WRITE'),
-          throwsA(isA<FileSystemException>()),
-        );
-        expect(await sibling.exists(), isFalse);
-
         try {
+          // Prove the directory is no longer writable for new siblings (what
+          // this regression guard relies on). Inside the try so the chmod
+          // restore below runs on every path.
+          final sibling = File('${target.path}.tmp');
+          var denied = false;
+          try {
+            await sibling.writeAsString('SHOULD-NOT-WRITE');
+          } on FileSystemException {
+            denied = true;
+          }
+          if (!denied) {
+            // `markTestSkipped` does not abort the body: return explicitly.
+            await sibling.delete();
+            markTestSkipped(
+              'directory permissions not enforced (running as root?)',
+            );
+            return;
+          }
+          expect(await sibling.exists(), isFalse);
+
           await writeStringToUserSelectedPath(target.path, 'BACKUP');
         } finally {
           final restore = await Process.run('chmod', ['0700', dir.path]);

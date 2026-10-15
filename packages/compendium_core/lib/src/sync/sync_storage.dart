@@ -30,12 +30,15 @@ import '../storage/shareable_text.dart';
 import 'sync_apply.dart';
 import 'sync_admission.dart';
 import 'sync_codec.dart';
+import 'sync_conflict_compare.dart' show combineSyncCollection;
 import 'sync_id.dart';
 import 'sync_merge.dart';
-import 'sync_quarantine.dart' show syncRecordReferences;
+import 'sync_quarantine.dart'
+    show syncQuarantineWindowEnd, syncRecordReferences;
 import 'sync_record_kind.dart';
 import 'sync_reconciliation.dart';
 import 'sync_report.dart';
+import 'sync_retained_fields.dart';
 import 'sync_review.dart';
 
 Iterable<List<T>> _chunked<T>(Iterable<T> values, int size) sync* {
@@ -116,6 +119,12 @@ final class _NaturalKeyIndex {
   }
 }
 
+typedef _RowTimestamps = ({
+  DateTime updatedAt,
+  DateTime? existenceAt,
+  DateTime? deletedAt,
+});
+
 /// A complete local sync snapshot owned by the repository/database boundary.
 class SyncStorageSnapshot {
   const SyncStorageSnapshot({
@@ -147,8 +156,15 @@ class SyncStorageSnapshot {
   /// advancement while their local citations still exist.
   final Set<SyncRecordAddress> pending;
 
-  /// Records this snapshot withheld from publication because this device could
-  /// not decode their stored content (spec §6.9, #1347).
+  /// Reports about this device's own records: those this snapshot withheld
+  /// from publication because this device could not decode their stored
+  /// content (spec §6.9, #1347), and those it publishes with details kept for
+  /// a newer version of the app, which it cannot show (§6.7).
+  ///
+  /// The second kind joined the first here rather than getting a field of its
+  /// own because both are snapshot-time facts the coordinator forwards to the
+  /// pass report unchanged; a separate field would add a coordinator change
+  /// for no difference in behaviour.
   ///
   /// Carried on the snapshot rather than emitted through a sink passed down
   /// into storage: the coordinator owns the per-pass [SyncReportSink], and the
@@ -318,6 +334,29 @@ final class CompendiumSyncStorage
     return result;
   }
 
+  /// The envelope timestamps of every row of [table], by id. The snapshot loops
+  /// read nothing else from the row, so this selects four columns rather than
+  /// hydrating whole dance and program rows a second time.
+  Future<Map<String, _RowTimestamps>> _readTimestamps<T extends HasResultSet>(
+    ResultSetImplementation<T, dynamic> table,
+    GeneratedColumn<String> id,
+    GeneratedColumn<DateTime> updatedAt,
+    GeneratedColumn<DateTime> existenceAt,
+    GeneratedColumn<DateTime> deletedAt,
+  ) async {
+    final rows = await (_db.selectOnly(
+      table,
+    )..addColumns([id, updatedAt, existenceAt, deletedAt])).get();
+    return {
+      for (final row in rows)
+        row.read(id)!: (
+          updatedAt: row.read(updatedAt)!,
+          existenceAt: row.read(existenceAt),
+          deletedAt: row.read(deletedAt),
+        ),
+    };
+  }
+
   Future<SyncStorageSnapshot> snapshot({
     String? syncId,
   }) => repositories.transaction(() async {
@@ -341,6 +380,14 @@ final class CompendiumSyncStorage
       for (final entry in customFields)
         if (entry.field.shareable && !entry.deleted) entry.field.id,
     };
+    final retainedRows = await repositories.syncLocal.listRetainedSyncFields();
+    final retainedParts = {
+      for (final row in retainedRows)
+        if (!row.wholeRecord)
+          (kind: row.kind, recordId: row.recordId): ?_unsyncedRetainedParts(
+            row,
+          ),
+    };
 
     Future<void> addEntity({
       required SyncRecordKind kind,
@@ -350,6 +397,7 @@ final class CompendiumSyncStorage
       required DateTime existenceAt,
       DateTime? deletedAt,
     }) async {
+      final address = (kind: kind, recordId: id);
       final blob = syncRecordBlobForEntity(
         kind,
         entity,
@@ -357,9 +405,9 @@ final class CompendiumSyncStorage
         deletedAt: deletedAt,
         existenceAt: existenceAt,
         allowedCustomFieldIds: allowedCustomFieldIds,
+        retained: retainedParts[address],
       );
       if (blob == null) return;
-      final address = (kind: kind, recordId: id);
       local[address] = SyncMergeCandidate(
         blob: blob,
         wireHash: sha256Hex(encodeSyncRecordBlobUtf8(blob)),
@@ -367,8 +415,13 @@ final class CompendiumSyncStorage
     }
 
     final dances = await repositories.dances.listAll(includeDeleted: true);
-    final danceRows = await _db.select(_db.dances).get();
-    final danceRowsById = {for (final row in danceRows) row.id: row};
+    final danceRowsById = await _readTimestamps(
+      _db.dances,
+      _db.dances.id,
+      _db.dances.updatedAt,
+      _db.dances.existenceAt,
+      _db.dances.deletedAt,
+    );
     for (final dance in dances) {
       final row = danceRowsById[dance.id];
       if (row == null) continue;
@@ -406,8 +459,13 @@ final class CompendiumSyncStorage
     }
 
     final programs = await repositories.programs.listAll(includeDeleted: true);
-    final programRows = await _db.select(_db.programs).get();
-    final programRowsById = {for (final row in programRows) row.id: row};
+    final programRowsById = await _readTimestamps(
+      _db.programs,
+      _db.programs.id,
+      _db.programs.updatedAt,
+      _db.programs.existenceAt,
+      _db.programs.deletedAt,
+    );
     for (final program in programs) {
       final row = programRowsById[program.id];
       if (row == null) continue;
@@ -551,18 +609,81 @@ final class CompendiumSyncStorage
       if (classifySettingsKey(row.key)?.egress != EgressClass.shareable) {
         continue;
       }
-      final blob = SyncSettingsRecord(
+      final settingBlob = SyncSettingsRecord(
         key: row.key,
         value: jsonDecode(row.valueJson),
         updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
         deletedAt: row.deletedAt,
         existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
       ).toBlob();
-      if (blob == null) continue;
+      if (settingBlob == null) continue;
       final address = (kind: SyncRecordKind.setting, recordId: row.key);
+      final kept = retainedParts[address];
+      final blob = kept == null
+          ? settingBlob
+          : SyncRecordBlob(
+              kind: SyncRecordKind.setting,
+              id: row.key,
+              updatedAt: settingBlob.updatedAt,
+              deletedAt: settingBlob.deletedAt,
+              existenceAt: settingBlob.existenceAt,
+              body: mergeRetainedFields(settingBlob.body, kept),
+            );
       local[address] = SyncMergeCandidate(
         blob: blob,
         wireHash: sha256Hex(encodeSyncRecordBlobUtf8(blob)),
+      );
+    }
+
+    // Settings this build does not sync, kept whole for a newer version and
+    // shared back as they came (spec §6.7). They are this device's copy of
+    // the record like any other, so they merge and publish as local.
+    for (final row in retainedRows) {
+      if (!row.wholeRecord) continue;
+      final blob = decodeSyncRecordBlob(row.payload);
+      final address = (kind: row.kind, recordId: row.recordId);
+      if (blob.kind != row.kind || blob.id != row.recordId) {
+        throw StateError('kept record does not match its stored identity');
+      }
+      local[address] = SyncMergeCandidate(
+        blob: blob,
+        wireHash: sha256Hex(encodeSyncRecordBlobUtf8(blob)),
+      );
+    }
+
+    // Parts kept for a record that no longer exists — hard-deleted, purged —
+    // go with it: third-party content must not outlive its record here.
+    final withheldAddresses = {
+      for (final report in withheld)
+        if ((report.kind, report.recordId) case (final kind?, final recordId?))
+          (kind: kind, recordId: recordId),
+    };
+    final pendingRowAddresses = {
+      for (final row in pendingRows) (kind: row.kind, recordId: row.recordId),
+    };
+    for (final row in retainedRows) {
+      final address = (kind: row.kind, recordId: row.recordId);
+      if (local.containsKey(address)) {
+        withheld.add(
+          SyncReport(
+            code: SyncReportCode.keptNewerFields,
+            kind: row.kind,
+            recordId: row.recordId,
+            message: row.wholeRecord
+                ? 'Kept whole for a newer version of the app.'
+                : 'Carries fields kept for a newer version of the app.',
+          ),
+        );
+        continue;
+      }
+      if (pendingRowAddresses.contains(address) ||
+          withheldAddresses.contains(address)) {
+        continue;
+      }
+      await repositories.syncLocal.setRetainedSyncFields(
+        kind: row.kind,
+        recordId: row.recordId,
+        payload: null,
       );
     }
 
@@ -887,6 +1008,11 @@ final class CompendiumSyncStorage
       for (final pending in await repositories.syncLocal.listPendingDeletions())
         if (pending.kind == SyncRecordKind.dance) pending.recordId,
     };
+    final retainedDances = {
+      for (final row in await repositories.syncLocal.listRetainedSyncFields())
+        if (row.kind == SyncRecordKind.dance && !row.wholeRecord)
+          row.recordId: ?_unsyncedRetainedParts(row),
+    };
     final candidates = <SyncMergeCandidate>[];
     for (final dance in dances) {
       // The live row is only retained until its inbound tombstone can apply.
@@ -920,6 +1046,7 @@ final class CompendiumSyncStorage
         deletedAt: row.deletedAt,
         existenceAt: row.existenceAt ?? row.updatedAt,
         allowedCustomFieldIds: allowedCustomFieldIds,
+        retained: retainedDances[dance.id],
       );
       if (blob != null) candidates.add(SyncMergeCandidate(blob: blob));
     }
@@ -936,7 +1063,10 @@ final class CompendiumSyncStorage
         await repositories.dances.readDeviceLocalCustomFields(losingId),
       );
     }
-    final body = _rewriteDanceReferences(merge.winner.blob.body, aliases);
+    final body = _rewriteDanceReferences(
+      syncInboundKnownBody(merge.winner.blob),
+      aliases,
+    );
     final record = SyncApplyRecord(
       address: merge.winner.address,
       body: body,
@@ -981,6 +1111,9 @@ final class CompendiumSyncStorage
       deletedAt: record.deletedAt,
       existenceAt: record.existenceAt,
     );
+    // The merged body is the survivor's whole record, so what it keeps for a
+    // newer version replaces what the survivor and losers kept before.
+    await _storeRetained(record);
     await _reconcileDanceReviewQueue(
       survivorId: merge.winner.blob.id,
       losingIds: merge.losingIds.toSet(),
@@ -1139,7 +1272,7 @@ final class CompendiumSyncStorage
       }
       final body = _overlay(
         Map<String, Object?>.from(current ?? const {}),
-        blob.body,
+        syncInboundKnownBody(blob),
       );
       final record = SyncApplyRecord(
         address: (kind: blob.kind, recordId: blob.id),
@@ -1256,15 +1389,20 @@ final class CompendiumSyncStorage
         }
         return false;
       case SyncRecordKind.difficultyLevel:
-        final rows = await (_db.select(
-          _db.dances,
-        )..where((row) => row.levelId.equals(recordId))).get();
-        for (final row in rows) {
-          if (await ownerRemainsLive(SyncRecordKind.dance, row.id)) {
-            return true;
-          }
-        }
-        return false;
+        // Counts tombstoned dances too, unlike every other kind here: a deleted
+        // dance can be restored, so it still protects its level. This is the
+        // policy `DifficultyLevelRepository.delete` states (see its comment), so
+        // an inbound tombstone is held pending exactly when a local delete would
+        // be refused. Because a tombstoned dance counts, an inbound tombstone of
+        // the citing dance does not release the level either, and
+        // `ignoreInboundTombstones` has nothing to exclude for this kind.
+        final citations = _db.dances.id.count();
+        final counted =
+            await (_db.selectOnly(_db.dances)
+                  ..addColumns([citations])
+                  ..where(_db.dances.levelId.equals(recordId)))
+                .get();
+        return (counted.single.read(citations) ?? 0) > 0;
       case SyncRecordKind.venue:
         final rows = await (_db.select(
           _db.programs,
@@ -1354,6 +1492,496 @@ final class CompendiumSyncStorage
   @override
   Future<T> transaction<T>(Future<T> Function() action) =>
       repositories.transaction(action);
+
+  /// When this device last changed the record at [address], or null when it
+  /// holds no row for it. For display only — the conflict choice shows when
+  /// each version was last changed.
+  Future<DateTime?> recordUpdatedAt(SyncRecordAddress address) async {
+    final id = address.recordId;
+    switch (address.kind) {
+      case SyncRecordKind.dance:
+        return (await (_db.select(
+          _db.dances,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.program:
+        return (await (_db.select(
+          _db.programs,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.choreographer:
+        return (await (_db.select(
+          _db.choreographers,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.tag:
+        return (await (_db.select(
+          _db.tags,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.publishedSource:
+        return (await (_db.select(
+          _db.publishedSources,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.customFieldDef:
+        return (await (_db.select(
+          _db.customFieldDefs,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.difficultyLevel:
+        return (await (_db.select(
+          _db.difficultyLevels,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.venue:
+        return (await (_db.select(
+          _db.venues,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.setting:
+        return (await (_db.select(_db.settings)
+                  ..where((t) => t.key.equals(id) & t.deletedAt.isNull()))
+                .getSingleOrNull())
+            ?.updatedAt;
+    }
+  }
+
+  /// Brings the queued conflict choices in line with one pass's merge
+  /// (sync-spec §6.3, §6.6).
+  ///
+  /// Queues one row per version the user may choose that is not this
+  /// device's own, plus one [syncConflictChoiceCopyReason] row per copy on
+  /// offer that the choice does not show, and drops every queued choice the
+  /// merge no longer raises —
+  /// typically because the user decided an equal-`updatedAt` tie on another
+  /// device and that decision, stamped past the tie, arrived here as an
+  /// ordinary newer edit. (A whole-collection decision made elsewhere does not
+  /// clear the choice here when this device changed the set too: see
+  /// [resolveConflicts].) Addresses in
+  /// [unevaluated] were skipped by the merge, so their rows are kept untouched:
+  /// a peer that could not be read this pass is not evidence the conflict
+  /// ended. An unchanged row keeps its `queued_at`. Returns how many choice
+  /// rows this call added; copy rows are not counted.
+  Future<int> refreshConflictReviews(
+    Iterable<SyncMergeDecision> reviews, {
+    Set<SyncRecordAddress> unevaluated = const {},
+  }) => repositories.transaction(() async {
+    final expected =
+        <
+          (SyncRecordKind, String, String),
+          ({String reason, String blob, String? local})
+        >{};
+    for (final decision in reviews) {
+      final conflict = decision.conflict;
+      if (conflict == null) continue;
+      for (final hash in conflict.copies) {
+        expected[(decision.address.kind, decision.address.recordId, hash)] = (
+          reason: syncConflictChoiceCopyReason,
+          blob: '',
+          local: conflict.local?.wireHash,
+        );
+      }
+      for (final candidate in conflict.candidates) {
+        expected[(
+          decision.address.kind,
+          decision.address.recordId,
+          candidate.wireHash,
+        )] = (
+          reason: syncConflictChoiceReason,
+          blob: encodeSyncRecordBlob(candidate.blob),
+          local: conflict.local?.wireHash,
+        );
+      }
+    }
+    final existing = {
+      for (final row in await repositories.syncLocal.listReviewQueue())
+        if (row.reason == syncConflictChoiceReason ||
+            row.reason == syncConflictChoiceCopyReason)
+          (row.kind, row.recordId, row.counterpartId): row,
+    };
+    for (final entry in existing.entries) {
+      final (kind, recordId, _) = entry.key;
+      if (unevaluated.contains((kind: kind, recordId: recordId))) continue;
+      final want = expected[entry.key];
+      if (want != null &&
+          want.reason == entry.value.reason &&
+          want.blob == entry.value.candidateBlob &&
+          want.local == entry.value.localHash) {
+        continue;
+      }
+      await repositories.syncLocal.deleteReview(
+        kind: kind,
+        recordId: recordId,
+        counterpartId: entry.key.$3,
+      );
+    }
+    var added = 0;
+    final queuedAt = DateTime.now().toUtc();
+    for (final entry in expected.entries) {
+      final current = existing[entry.key];
+      if (current != null &&
+          current.reason == entry.value.reason &&
+          current.candidateBlob == entry.value.blob &&
+          current.localHash == entry.value.local) {
+        continue;
+      }
+      final (kind, recordId, hash) = entry.key;
+      await repositories.syncLocal.enqueueReview(
+        kind: kind,
+        recordId: recordId,
+        counterpartId: hash,
+        reason: entry.value.reason,
+        candidateBlob: entry.value.blob,
+        candidateHash: hash,
+        localHash: entry.value.local,
+        queuedAt: queuedAt,
+      );
+      if (current == null && entry.value.reason == syncConflictChoiceReason) {
+        added++;
+      }
+    }
+    return added;
+  });
+
+  /// Applies the user's conflict choices, all or none.
+  ///
+  /// Each kept version — or, for a whole-collection setting, both versions
+  /// combined — is written with `updatedAt` one tick past every version that
+  /// was on offer (or the clock, if later), so it reaches every other device
+  /// as an ordinary newer edit. For an equal-`updatedAt` tie, their queued
+  /// choices clear on their next pass.
+  ///
+  /// A whole-collection setting's rule ignores `updatedAt`, so for one of
+  /// those keys every other version on offer (every copy, shown or not), and
+  /// this device's copy before
+  /// the choice, is also recorded as chosen against
+  /// ([syncConflictDecidedAgainstReason]). This device then stops asking, even
+  /// while a peer that has not synced, or a leftover manifest, still publishes
+  /// one of them. Another device that also changed the set is asked once more
+  /// (sync-spec §6.6), unless the version kept was its own. The record is
+  /// local, and nothing on the wire tells that device the new version was a
+  /// choice.
+  ///
+  /// Keeping this device's own version re-stamps an unchanged body: the
+  /// one write I2 permits for that reason (§6.5). Existence is not touched — a
+  /// content choice must not revive or delete.
+  ///
+  /// Writes go through the inbound apply engine, so the kept version is
+  /// admitted, reference-checked and overlaid exactly like a peer's blob, and
+  /// a local edit made since the choice was queued refuses the whole batch
+  /// rather than being overwritten. Returns the kinds written, so the caller
+  /// can reload in-memory preferences when a setting changed, and how to
+  /// reconsider each choice.
+  Future<SyncConflictResolution> resolveConflicts(
+    Iterable<SyncConflictDecision> decisions, {
+    DateTime Function()? now,
+  }) => repositories.transaction(() async {
+    final clockNow = (now ?? DateTime.now)().toUtc();
+    final snapshot = await this.snapshot();
+    final local = {...snapshot.local, ...snapshot.pendingLive};
+    final queue = await repositories.syncLocal.listReviewQueue();
+    final rows = [
+      for (final row in queue)
+        if (row.reason == syncConflictChoiceReason) row,
+    ];
+    final copyRows = [
+      for (final row in queue)
+        if (row.reason == syncConflictChoiceCopyReason) row,
+    ];
+    final aliases = await _aliasMap();
+    final plans = <_ConflictChoicePlan>[];
+    for (final decision in decisions) {
+      final address = (kind: decision.kind, recordId: decision.recordId);
+      if (plans.any((plan) => plan.address == address)) continue;
+      final recordRows = [
+        for (final row in rows)
+          if (row.kind == decision.kind && row.recordId == decision.recordId)
+            row,
+      ];
+      if (recordRows.isEmpty) {
+        throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+      }
+      final current = local[address];
+      if (recordRows.any((row) => row.localHash != current?.wireHash)) {
+        throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+      }
+      final offered = <SyncRecordBlob>[];
+      for (final row in recordRows) {
+        final SyncRecordBlob blob;
+        try {
+          blob = decodeSyncRecordBlob(row.candidateBlob);
+        } on Object {
+          throw const SyncReviewException(
+            SyncReviewFailureCode.candidateInvalid,
+          );
+        }
+        // A peer's copy of a record merged into this one keeps its own id
+        // (filed under the surviving one by the coordinator); the write below
+        // goes through the apply engine, which rewrites it to the survivor.
+        if (sha256Hex(encodeSyncRecordBlobUtf8(blob)) != row.candidateHash ||
+            row.counterpartId != row.candidateHash ||
+            blob.kind != decision.kind ||
+            _resolveInMap(blob.id, aliases[blob.kind]) != decision.recordId ||
+            blob.deletedAt != null) {
+          throw const SyncReviewException(
+            SyncReviewFailureCode.candidateInvalid,
+          );
+        }
+        offered.add(blob);
+      }
+      plans.add(
+        _ConflictChoicePlan(
+          address: address,
+          current: current,
+          before: current != null && !current.isDeleted ? current.blob : null,
+          offered: offered,
+          keepHash: decision.keepCandidateHash,
+          combineTakingOther: decision.combineTakingOther,
+          copies: {
+            for (final row in copyRows)
+              if (row.kind == decision.kind &&
+                  row.recordId == decision.recordId)
+                row.counterpartId,
+          },
+        ),
+      );
+    }
+    final resolution = await _applyConflictChoices(plans, clockNow);
+    for (final row in [...rows, ...copyRows]) {
+      if (plans.any(
+        (plan) => plan.address == (kind: row.kind, recordId: row.recordId),
+      )) {
+        await repositories.syncLocal.deleteReview(
+          kind: row.kind,
+          recordId: row.recordId,
+          counterpartId: row.counterpartId,
+        );
+      }
+    }
+    // After the queued choices are gone: a version chosen against is filed
+    // under the same key as the queued choice that offered it.
+    await _recordDecidedAgainst(plans, resolution, clockNow);
+    return resolution;
+  });
+
+  /// Makes a new choice for records already decided — the undo of a choice.
+  ///
+  /// The versions offered are the ones the first choice was made between,
+  /// held in memory by the caller; the new choice is written exactly as
+  /// [resolveConflicts] writes one, stamped one tick past the first choice
+  /// too, so it supersedes that choice on every device. Refused, writing
+  /// nothing, when this device's copy is no longer what the first choice
+  /// wrote: something newer has arrived since, and undoing would overwrite
+  /// it.
+  Future<SyncConflictResolution> reconsiderConflicts(
+    Iterable<SyncConflictRechoice> rechoices, {
+    DateTime Function()? now,
+  }) => repositories.transaction(() async {
+    final clockNow = (now ?? DateTime.now)().toUtc();
+    final snapshot = await this.snapshot();
+    final local = {...snapshot.local, ...snapshot.pendingLive};
+    final plans = <_ConflictChoicePlan>[];
+    for (final rechoice in rechoices) {
+      final earlier = rechoice.reconsideration;
+      final address = (kind: earlier.kind, recordId: earlier.recordId);
+      if (plans.any((plan) => plan.address == address)) continue;
+      final current = local[address];
+      if (current == null || current.wireHash != earlier.writtenWireHash) {
+        throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+      }
+      plans.add(
+        _ConflictChoicePlan(
+          address: address,
+          current: current,
+          before: earlier.before,
+          offered: earlier.offered,
+          keepHash: rechoice.keepVersionHash,
+          combineTakingOther: rechoice.combineTakingOther,
+          floor: earlier.writtenAt,
+        ),
+      );
+    }
+    final resolution = await _applyConflictChoices(plans, clockNow);
+    await _recordDecidedAgainst(plans, resolution, clockNow);
+    return resolution;
+  });
+
+  Future<SyncConflictResolution> _applyConflictChoices(
+    List<_ConflictChoicePlan> plans,
+    DateTime clockNow,
+  ) async {
+    final localNow = DateTime.fromMillisecondsSinceEpoch(
+      clockNow.millisecondsSinceEpoch - clockNow.millisecondsSinceEpoch % 1000,
+      isUtc: true,
+    );
+    final writes = <SyncMergeCandidate>[];
+    final expected = <SyncRecordAddress, String?>{};
+    final stamps = <SyncRecordAddress, DateTime>{};
+    for (final plan in plans) {
+      final ({SyncRecordBlob template, Map<String, Object?> body}) kept;
+      final combine = plan.combineTakingOther;
+      if (combine != null) {
+        final key = plan.address.recordId;
+        if (plan.address.kind != SyncRecordKind.setting ||
+            !syncWholeCollectionSettingKeys.contains(key) ||
+            plan.offered.length != 1) {
+          throw const SyncReviewException(
+            SyncReviewFailureCode.combineUnavailable,
+          );
+        }
+        final other = plan.offered.single;
+        final combination = combineSyncCollection(
+          key,
+          plan.before?.body['value'],
+          other.body['value'],
+          takeOtherFor: combine,
+        );
+        if (combination == null) {
+          throw const SyncReviewException(
+            SyncReviewFailureCode.candidateInvalid,
+          );
+        }
+        if (combination.overLimit) {
+          throw const SyncReviewException(
+            SyncReviewFailureCode.combineOverLimit,
+          );
+        }
+        kept = (
+          template: plan.before ?? other,
+          body: {'value': combination.value},
+        );
+      } else if (plan.keepHash == null) {
+        final before = plan.before;
+        if (before == null) {
+          throw const SyncReviewException(SyncReviewFailureCode.targetMissing);
+        }
+        kept = (template: before, body: before.body);
+      } else {
+        final match = plan.offered.where(
+          (blob) => sha256Hex(encodeSyncRecordBlobUtf8(blob)) == plan.keepHash,
+        );
+        if (match.isEmpty) {
+          throw const SyncReviewException(
+            SyncReviewFailureCode.candidateChanged,
+          );
+        }
+        kept = (template: match.first, body: match.first.body);
+      }
+      var latest = kept.template.updatedAt;
+      for (final at in [
+        ?plan.before?.updatedAt,
+        for (final blob in plan.offered) blob.updatedAt,
+        ?plan.floor,
+        ?plan.current?.updatedAt,
+      ]) {
+        if (at.isAfter(latest)) latest = at;
+      }
+      final superseding = latest.toUtc().add(existenceStampTick);
+      final stamp = superseding.isAfter(localNow) ? superseding : localNow;
+      if (stamp.isAfter(syncQuarantineWindowEnd(clockNow))) {
+        throw const SyncReviewException(SyncReviewFailureCode.clockOutOfRange);
+      }
+      final current = plan.current;
+      final liveCurrent = current != null && !current.isDeleted
+          ? current
+          : null;
+      final admission = admitSyncInboundCandidate(
+        SyncMergeCandidate.fromBlob(
+          SyncRecordBlob(
+            v: kept.template.v,
+            kind: kept.template.kind,
+            id: kept.template.id,
+            updatedAt: stamp,
+            deletedAt: null,
+            existenceAt: liveCurrent?.existenceAt ?? kept.template.existenceAt,
+            body: kept.body,
+          ),
+        ),
+      );
+      final admitted = admission.candidate;
+      if (admitted == null) {
+        throw const SyncReviewException(SyncReviewFailureCode.candidateInvalid);
+      }
+      writes.add(admitted);
+      expected[plan.address] = current?.wireHash;
+      stamps[plan.address] = stamp;
+    }
+    final result = await SyncApplyEngine(
+      now: () => clockNow,
+    ).apply(candidates: writes, storage: this, expectedWireHashes: expected);
+    if (result.applied.toSet().length != writes.length) {
+      throw const SyncReviewException(SyncReviewFailureCode.candidateChanged);
+    }
+    // What each choice wrote, as this device now publishes it: the hash a
+    // later reconsideration checks to know nothing newer has arrived.
+    final written = (await snapshot()).local;
+    return SyncConflictResolution(
+      kinds: {for (final plan in plans) plan.address.kind},
+      reconsiderations: [
+        for (final plan in plans)
+          SyncConflictReconsideration(
+            kind: plan.address.kind,
+            recordId: plan.address.recordId,
+            before: plan.before,
+            offered: plan.offered,
+            writtenWireHash: written[plan.address]?.wireHash ?? '',
+            writtenAt: stamps[plan.address]!,
+          ),
+      ],
+    );
+  }
+
+  /// Records, for each whole-collection setting just decided, every version
+  /// that was on offer and is not what the choice wrote, so the merge stops
+  /// raising the conflict here (sync-spec §6.6; [syncConflictDecidedAgainstReason]).
+  ///
+  /// Every other kind is settled by last-writer-wins once the stamped choice
+  /// is the newest version, so only these four keys need it.
+  Future<void> _recordDecidedAgainst(
+    List<_ConflictChoicePlan> plans,
+    SyncConflictResolution resolution,
+    DateTime queuedAt,
+  ) async {
+    for (final plan in plans) {
+      final address = plan.address;
+      if (address.kind != SyncRecordKind.setting ||
+          !syncWholeCollectionSettingKeys.contains(address.recordId)) {
+        continue;
+      }
+      final kept = resolution.reconsiderations
+          .firstWhere(
+            (written) =>
+                written.kind == address.kind &&
+                written.recordId == address.recordId,
+          )
+          .writtenWireHash;
+      final against = <String>{
+        ?plan.current?.wireHash,
+        ...plan.copies,
+        for (final blob in [?plan.before, ...plan.offered])
+          sha256Hex(encodeSyncRecordBlobUtf8(blob)),
+      }..remove(kept);
+      for (final hash in against) {
+        await repositories.syncLocal.enqueueReview(
+          kind: address.kind,
+          recordId: address.recordId,
+          counterpartId: hash,
+          reason: syncConflictDecidedAgainstReason,
+          candidateBlob: '',
+          candidateHash: hash,
+          localHash: kept,
+          queuedAt: queuedAt,
+        );
+      }
+    }
+  }
+
+  /// The wire hashes of the versions the user chose against on this device,
+  /// per whole-collection setting, for [SyncMergeEngine.plan]'s
+  /// `decidedAgainst` (sync-spec §6.6).
+  Future<Map<SyncRecordAddress, Set<String>>> decidedAgainstHashes() async {
+    final result = <SyncRecordAddress, Set<String>>{};
+    for (final row in await repositories.syncLocal.listReviewQueue()) {
+      if (row.reason != syncConflictDecidedAgainstReason) continue;
+      result
+          .putIfAbsent((kind: row.kind, recordId: row.recordId), () => {})
+          .add(row.counterpartId);
+    }
+    return result;
+  }
 
   /// Resolves persisted W8 choreography and W14 tombstone review decisions.
   ///
@@ -1561,7 +2189,10 @@ final class CompendiumSyncStorage
     final report = await writeWithReport(
       SyncApplyRecord(
         address: candidateAddress,
-        body: _overlay(currentCandidateBody, candidateForApply.body),
+        body: _overlay(
+          currentCandidateBody,
+          syncInboundKnownBody(candidateForApply),
+        ),
         updatedAt: candidateForApply.updatedAt,
         deletedAt: candidateForApply.deletedAt,
         existenceAt: candidateForApply.existenceAt,
@@ -1806,7 +2437,10 @@ final class CompendiumSyncStorage
     final report = await writeWithReport(
       SyncApplyRecord(
         address: candidateAddress,
-        body: _overlay(currentCandidateBody, candidateForApply.body),
+        body: _overlay(
+          currentCandidateBody,
+          syncInboundKnownBody(candidateForApply),
+        ),
         updatedAt: candidateForApply.updatedAt,
         deletedAt: candidateForApply.deletedAt,
         existenceAt: candidateForApply.existenceAt,
@@ -1929,7 +2563,7 @@ final class CompendiumSyncStorage
   /// [deduplicateFreshAttach], which has already reported the same record from
   /// its dedupe plan — a second report would carry an identical
   /// [SyncReport.coalescingKey] and be dropped anyway, so passing a sink there
-  /// would add a path without adding a notice. `resolveDanceReview` is a user
+  /// would add a path without adding a notice. `resolveReviewQueue` is a user
   /// gesture rather than a pass: it raises
   /// `SyncReviewException(targetMissing)` and has no report sink to fill.
   Future<SyncMergeCandidate?> _danceCandidate(
@@ -1975,6 +2609,10 @@ final class CompendiumSyncStorage
       deletedAt: row.deletedAt,
       existenceAt: row.existenceAt ?? row.updatedAt,
       allowedCustomFieldIds: allowedCustomFieldIds,
+      retained: await retainedSyncParts((
+        kind: SyncRecordKind.dance,
+        recordId: id,
+      )),
     );
     return blob == null ? null : SyncMergeCandidate(blob: blob);
   }
@@ -2728,7 +3366,15 @@ final class CompendiumSyncStorage
     if (candidate.blob.kind == SyncRecordKind.setting) return admission;
 
     try {
-      _decodeEntity(candidate.blob.kind, admitted.blob.body);
+      // Only the part this build syncs is ever written, so only it is checked:
+      // a kept field it does not apply cannot make the record malformed.
+      _decodeEntity(
+        candidate.blob.kind,
+        partitionInboundRecordBody(
+          candidate.blob.kind,
+          admitted.blob.body,
+        ).known,
+      );
     } on Object catch (error) {
       return SyncInboundCandidateAdmission.rejected(
         SyncReport(
@@ -3023,6 +3669,8 @@ final class CompendiumSyncStorage
           hash: remappedHash,
         ));
       } else if (remappedHash != row.tombstoneHash) {
+        // A pending-deletion bookkeeping row, not a record kind's editor path.
+        // sync-invariant-exclusion: upsert — sync-local bookkeeping
         await repositories.syncLocal.upsertPendingDeletion(
           kind: row.kind,
           recordId: row.recordId,
@@ -3208,10 +3856,128 @@ final class CompendiumSyncStorage
         updatedAt: metadata.updatedAt,
         deletedAt: metadata.deletedAt,
         existenceAt: metadata.existenceAt,
-        body: syncBodyForEntity(kind, entity),
+        body: syncBodyForEntity(
+          kind,
+          entity,
+          retained: await retainedSyncParts((kind: kind, recordId: id)),
+        ),
       ),
     );
   }
+
+  /// What this device keeps of [address] for a newer version of the app, to
+  /// put back into any body it builds for the record (spec §6.7); null when
+  /// it keeps nothing, or keeps the record whole.
+  Future<Map<String, Object?>?> retainedSyncParts(
+    SyncRecordAddress address,
+  ) async {
+    final row = await repositories.syncLocal.getRetainedSyncFields(
+      kind: address.kind,
+      recordId: address.recordId,
+    );
+    if (row == null || row.wholeRecord) return null;
+    return _unsyncedRetainedParts(row);
+  }
+
+  /// Moves into the records themselves whatever this device kept for a newer
+  /// version of the app that this build now syncs (spec §6.7), and stops
+  /// keeping it. Runs at open, from `CompendiumRepositories.ensureMigrated`,
+  /// so it is done before anyone can edit a record after an upgrade.
+  ///
+  /// Each record is rewritten as the peer's body it was kept from — this
+  /// device's copy with the kept parts put back — so its timestamps and wire
+  /// hash stay those of the version it holds: this is the same content, now
+  /// stored where this build reads it. A setting kept whole is applied the
+  /// same way, unless this device already holds a newer copy of it, which
+  /// wins. A deleted record is left alone; its kept parts are pruned wherever
+  /// they would be put back, so they cannot win over it either.
+  Future<void> promoteRetainedSyncFields() async {
+    final rows = await repositories.syncLocal.listRetainedSyncFields();
+    final due = [
+      for (final row in rows)
+        if (row.wholeRecord
+            ? !isRetainableSettingKey(row.recordId)
+            : canonicalJson(_unsyncedRetainedParts(row)) !=
+                  canonicalJson(_decodeRetainedPayload(row.payload)))
+          row,
+    ];
+    if (due.isEmpty) return;
+    final snapshotNow = await snapshot();
+    await repositories.transaction(() async {
+      for (final row in due) {
+        final address = (kind: row.kind, recordId: row.recordId);
+        if (row.wholeRecord) {
+          final blob = decodeSyncRecordBlob(row.payload);
+          final existing =
+              await (_db.select(_db.settings)
+                    ..where((table) => table.key.equals(row.recordId)))
+                  .getSingleOrNull();
+          final heldAt = existing?.updatedAt ?? existing?.existenceAt;
+          if (classifySettingsKey(row.recordId)?.egress !=
+                  EgressClass.shareable ||
+              (heldAt != null && !blob.updatedAt.isAfter(heldAt))) {
+            await repositories.syncLocal.setRetainedSyncFields(
+              kind: row.kind,
+              recordId: row.recordId,
+              payload: null,
+            );
+            continue;
+          }
+          await writeWithReport(
+            SyncApplyRecord(
+              address: address,
+              body: syncInboundKnownBody(blob),
+              updatedAt: blob.updatedAt,
+              deletedAt: blob.deletedAt,
+              existenceAt: blob.existenceAt,
+              sourceBlob: blob,
+            ),
+          );
+          continue;
+        }
+        final held = snapshotNow.local[address];
+        if (held == null || held.blob.deletedAt != null) continue;
+        final blob = SyncRecordBlob(
+          v: held.blob.v,
+          kind: held.blob.kind,
+          id: held.blob.id,
+          updatedAt: held.blob.updatedAt,
+          deletedAt: held.blob.deletedAt,
+          existenceAt: held.blob.existenceAt,
+          body: mergeRetainedFields(
+            held.blob.body,
+            _decodeRetainedPayload(row.payload),
+          ),
+        );
+        final current = await read(address) ?? const <String, Object?>{};
+        final report = await writeWithReport(
+          SyncApplyRecord(
+            address: address,
+            body: _overlay(
+              Map<String, Object?>.from(current),
+              syncInboundKnownBody(blob),
+            ),
+            updatedAt: blob.updatedAt,
+            deletedAt: blob.deletedAt,
+            existenceAt: blob.existenceAt,
+            sourceBlob: blob,
+          ),
+        );
+        if (report != null &&
+            report.code != SyncReportCode.unresolvedReference) {
+          throw StateError(report.message);
+        }
+      }
+    });
+  }
+
+  /// What [row] keeps that this build still does not sync; null when nothing.
+  Map<String, Object?>? _unsyncedRetainedParts(RetainedSyncFieldsRow row) =>
+      pruneSyncedRetainedFields(
+        row.kind,
+        _decodeRetainedPayload(row.payload),
+        settingsKey: row.kind == SyncRecordKind.setting ? row.recordId : null,
+      );
 
   /// Whether [candidate] would actually resolve a baseline-absent live local
   /// row out of existence.
@@ -4163,6 +4929,12 @@ final class CompendiumSyncStorage
       return null;
     }
     if (kind == SyncRecordKind.setting) {
+      if (_isWholeRetainedSetting(record)) {
+        // A setting this build does not sync: nothing to apply, and the
+        // peer's blob is kept to share back as it came (spec §6.7).
+        await _storeRetained(record);
+        return null;
+      }
       final value = record.body['value'];
       await _db
           .into(_db.settings)
@@ -4175,6 +4947,7 @@ final class CompendiumSyncStorage
               existenceAt: Value(record.existenceAt),
             ),
           );
+      await _storeRetained(record);
       return null;
     }
 
@@ -4254,6 +5027,7 @@ final class CompendiumSyncStorage
     // — a malformed body, a held natural key — and the deletion could never
     // apply again, because nothing else remembers it.
     await _cancelOutrankedPendingDeletion(record);
+    await _storeRetained(record);
     return report;
   }
 
@@ -4425,7 +5199,55 @@ final class CompendiumSyncStorage
     // where its deferred tombstone may be cancelled — not at the parent write,
     // which the joins phase can still undo.
     await _cancelOutrankedPendingDeletion(record);
+    // Inside the same savepoint, so a failed join keeps the parts this device
+    // kept before rather than the incoming ones.
+    await _storeRetained(record);
     return null;
+  }
+
+  bool _isWholeRetainedSetting(SyncApplyRecord record) {
+    final blob = record.sourceBlob;
+    return blob != null &&
+        partitionInboundRecordBody(
+          SyncRecordKind.setting,
+          blob.body,
+          settingsKey: record.address.recordId,
+        ).wholeRecord;
+  }
+
+  /// Replaces what this device keeps of [record] for a newer version of the
+  /// app with what the record it is applying carries (spec §6.7) — keeping
+  /// nothing when the incoming body has nothing to keep. The incoming record is
+  /// the whole record: a part it no longer carries is gone everywhere.
+  ///
+  /// Read from the peer's blob, never from `record.body`, which is that blob's
+  /// known part overlaid on this device's full local body.
+  Future<void> _storeRetained(SyncApplyRecord record) async {
+    final blob = record.sourceBlob;
+    if (blob == null) return;
+    final kind = record.address.kind;
+    final split = partitionInboundRecordBody(
+      kind,
+      blob.body,
+      settingsKey: kind == SyncRecordKind.setting
+          ? record.address.recordId
+          : null,
+    );
+    if (split.wholeRecord) {
+      await repositories.syncLocal.setRetainedSyncFields(
+        kind: kind,
+        recordId: record.address.recordId,
+        payload: encodeSyncRecordBlob(blob),
+        wholeRecord: true,
+      );
+      return;
+    }
+    final retained = split.retained;
+    await repositories.syncLocal.setRetainedSyncFields(
+      kind: kind,
+      recordId: record.address.recordId,
+      payload: retained == null ? null : canonicalJson(retained),
+    );
   }
 
   Future<void> _storePendingDeletion(SyncApplyRecord record) async {
@@ -4440,6 +5262,8 @@ final class CompendiumSyncStorage
           body: record.body,
         );
     final encoded = encodeSyncRecordBlob(blob);
+    // A pending-deletion bookkeeping row, not a record kind's editor path.
+    // sync-invariant-exclusion: upsert — sync-local bookkeeping
     await repositories.syncLocal.upsertPendingDeletion(
       kind: record.address.kind,
       recordId: record.address.recordId,
@@ -5432,6 +6256,22 @@ final _syncIdentityRandom = Random.secure();
 @visibleForTesting
 int syncIdentityVerifierDerivationCount = 0;
 
+/// Test-only override of the PBKDF2 iteration count behind sync identity
+/// verifiers; defaults to [_syncIdentityKdfIterations] (600,000).
+///
+/// One real derivation costs about two seconds, so suites that mark an
+/// identity as used lower it in `setUpAll` (and restore it in `tearDownAll`).
+/// Production code only reads it (the stored marker, the decode check and the
+/// derivation loop); nothing in this package assigns it outside tests, and a
+/// CI check (`tools/ci/check_kdf_override_unassigned.py`) fails if any
+/// production file (`app/lib`, `packages/*/lib`, `server/lib`, `server/bin`)
+/// assigns it. A lowered value can never validate a production marker: the
+/// marker records the count it was derived with, and
+/// [_decodeUsedIdentityVerifiers] skips entries whose `iterations` differ from
+/// the value in force, so a marker written at one count is ignored at another.
+@visibleForTesting
+int syncIdentityKdfIterations = _syncIdentityKdfIterations;
+
 final class _StoredSyncIdentityVerifier {
   const _StoredSyncIdentityVerifier({
     required this.salt,
@@ -5457,7 +6297,7 @@ final class _StoredSyncIdentityVerifier {
 
   Map<String, Object?> toJson() => {
     'algorithm': _syncIdentityVerifierAlgorithm,
-    'iterations': _syncIdentityKdfIterations,
+    'iterations': syncIdentityKdfIterations,
     'salt': _encodeVerifierBytes(salt),
     'verifier': _encodeVerifierBytes(verifier),
   };
@@ -5469,7 +6309,7 @@ List<_StoredSyncIdentityVerifier> _decodeUsedIdentityVerifiers(Object? marker) {
   for (final value in marker) {
     if (value is! Map ||
         value['algorithm'] != _syncIdentityVerifierAlgorithm ||
-        value['iterations'] != _syncIdentityKdfIterations ||
+        value['iterations'] != syncIdentityKdfIterations ||
         value['salt'] is! String ||
         value['verifier'] is! String) {
       continue;
@@ -5506,7 +6346,7 @@ List<int> _deriveSyncIdentityVerifier(String syncId, List<int> salt) {
   final hmac = Hmac(sha256, utf8.encode(normalizeSyncId(syncId)));
   var block = hmac.convert([...salt, 0, 0, 0, 1]).bytes;
   final derived = List<int>.from(block);
-  for (var iteration = 1; iteration < _syncIdentityKdfIterations; iteration++) {
+  for (var iteration = 1; iteration < syncIdentityKdfIterations; iteration++) {
     block = hmac.convert(block).bytes;
     for (var index = 0; index < derived.length; index++) {
       derived[index] ^= block[index];
@@ -5538,4 +6378,44 @@ bool _constantTimeEquals(List<int> left, List<int> right) {
     difference |= left[index] ^ right[index];
   }
   return difference == 0;
+}
+
+/// One conflict choice, ready to write: the record, this device's copy now,
+/// the versions it was chosen between, and what to keep.
+class _ConflictChoicePlan {
+  const _ConflictChoicePlan({
+    required this.address,
+    required this.current,
+    required this.before,
+    required this.offered,
+    required this.keepHash,
+    required this.combineTakingOther,
+    this.floor,
+    this.copies = const {},
+  });
+
+  final SyncRecordAddress address;
+  final SyncMergeCandidate? current;
+  final SyncRecordBlob? before;
+  final List<SyncRecordBlob> offered;
+  final String? keepHash;
+  final Set<String>? combineTakingOther;
+
+  /// A time the written version must also follow — the earlier choice's
+  /// stamp, when reconsidering.
+  final DateTime? floor;
+
+  /// Wire hashes of copies on offer the choice did not show
+  /// ([syncConflictChoiceCopyReason]); recorded as chosen against with it.
+  final Set<String> copies;
+}
+
+/// The kept-parts tree stored for a record (spec §6.7), as
+/// [partitionInboundRecordBody] produced it.
+Map<String, Object?> _decodeRetainedPayload(String payload) {
+  final decoded = jsonDecode(payload);
+  if (decoded is! Map) {
+    throw StateError('kept sync fields are not a JSON object');
+  }
+  return decoded.cast<String, Object?>();
 }

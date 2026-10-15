@@ -373,6 +373,31 @@ class _CallingHistorySectionState extends State<CallingHistorySection> {
   }
 }
 
+/// The calendar day a calling-history row shows for [record].
+///
+/// Programs appear as soon as they include the dance, so `performedAt` is often
+/// null; like [DanceCallingRecord.effectiveDate] this falls back to the
+/// program's event date, then its last-updated time, so a date always shows.
+/// `performedAt` and `programUpdatedAt` are instants stored in UTC, so they are
+/// shown in local time: a dance called at 22:30 in New York is stored as 02:30Z
+/// the next day. `eventDate` is a calendar date stored as UTC midnight, so it
+/// is shown as stored (converting it would move it back a day west of UTC).
+/// Ordering still uses the UTC `effectiveDate`.
+@visibleForTesting
+DateTime callingHistoryDisplayDate(DanceCallingRecord record) {
+  final performedAt = record.performedAt;
+  if (performedAt != null) return callingHistoryToLocal(performedAt);
+  return record.eventDate ?? callingHistoryToLocal(record.programUpdatedAt);
+}
+
+/// How [callingHistoryDisplayDate] converts a stored UTC instant to local time.
+/// A seam so a test can stand in for a host west of UTC: test hosts usually run
+/// in UTC, where `toLocal` keeps the day and cannot tell the two apart.
+@visibleForTesting
+DateTime Function(DateTime instant) callingHistoryToLocal = _toLocal;
+
+DateTime _toLocal(DateTime instant) => instant.toLocal();
+
 /// One program in the dance's calling history: its title, the date it was
 /// called (or scheduled) and its venue, tappable to open the program.
 class CallingHistoryRow extends StatelessWidget {
@@ -398,11 +423,9 @@ class CallingHistoryRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final localizations = MaterialLocalizations.of(context);
-    // Programs appear as soon as they include the dance, so `performedAt` is
-    // often null; `effectiveDate` falls back to the program's event date, then
-    // its last-updated time, so a date always shows. These are stored UTC
-    // values rendered directly (matching the other date labels on this screen).
-    final date = localizations.formatMediumDate(record.effectiveDate);
+    final date = localizations.formatMediumDate(
+      callingHistoryDisplayDate(record),
+    );
     final venue = (venueLabel ?? record.venue)?.trim();
     final subtitleParts = <String>[
       date,

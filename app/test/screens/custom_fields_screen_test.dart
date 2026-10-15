@@ -343,8 +343,41 @@ void main() {
           findsOneWidget,
         );
         expect(find.textContaining("Can't delete"), findsOneWidget);
+        expect(find.textContaining('1 dance.'), findsOneWidget);
       },
     );
+
+    testWidgets('the in-use snackbar pluralises the live dance count', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'notes',
+          label: 'Notes',
+          type: CustomFieldType.text,
+        ),
+      );
+      for (final id in ['d1', 'd2', 'd3']) {
+        await repos.dances.create(
+          Dance(
+            id: id,
+            title: 'Dance $id',
+            customFields: [CustomFieldValue(fieldId: 'f1', value: 'n')],
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        );
+      }
+      await _pumpScreen(tester, repos);
+      await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('delete-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('3 dances'), findsOneWidget);
+    });
 
     // ---- form validation ----
 

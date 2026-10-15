@@ -7,7 +7,7 @@ confidence.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Collection** and **New dance**. The first time a
-> dance term appears it links to the [Glossary](./glossary.md), so you
+> dance term appears it links to [App terms](./glossary.md), so you
 > can get a plain-language definition without losing your place.
 
 ## What Caller's Compendium is
@@ -81,7 +81,9 @@ Two small things worth knowing on day one:
 
 Four destinations are always one step away in the navigation (a bottom bar on a
 phone, a left rail on a tablet or desktop): **Collection**, **Programs**,
-**Settings**, and **Guide**.
+**Settings**, and **Guide**. A fifth, **Glossary**, appears between **Programs**
+and **Settings** if you turn it on in **Settings ▸ Experimental** (see
+[Settings](settings.md#glossary)).
 
 **Perform** is not a destination but a *mode* — you step into it from a dance or a
 program when it is time to call, and step back out when you are done.
@@ -256,5 +258,5 @@ editing individual moves, and live previews — see the
   [Accessibility guide](./accessibility.md) covers screen readers, text
   size, high contrast, and keyboard use.
 
-Not sure what a word means? The [Glossary](./glossary.md) has plain
+Not sure what a word means? [App terms](./glossary.md) has plain
 definitions for every term used across these guides.

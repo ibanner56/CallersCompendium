@@ -64,6 +64,7 @@ class _Host extends StatefulWidget {
     this.showPhraseStructure = true,
     this.aggressiveBeatsUpdate = false,
     this.showWordingOverride = false,
+    this.dialect,
   }) : taxonomy = taxonomy ?? contraTaxonomy;
 
   final List<FigureDraft> drafts;
@@ -89,6 +90,7 @@ class _Host extends StatefulWidget {
   /// behavior unchanged.
   final bool aggressiveBeatsUpdate;
   final bool showWordingOverride;
+  final Dialect? dialect;
 
   @override
   State<_Host> createState() => _HostState();
@@ -132,6 +134,7 @@ class _HostState extends State<_Host> {
               moveParamDefaults: widget.moveParamDefaults,
               mixer: widget.mixer,
               freeTextEntry: widget.freeTextEntry,
+              dialect: widget.dialect,
               showWordingOverride: widget.showWordingOverride,
               allowAdding: widget.allowAdding,
               allowDuplicating: widget.allowDuplicating,
@@ -250,6 +253,7 @@ Future<void> _pump(
   bool showPhraseStructure = true,
   bool aggressiveBeatsUpdate = false,
   bool showWordingOverride = false,
+  Dialect? dialect,
   Taxonomy? taxonomy,
   Size surfaceSize = const Size(1200, 2400),
 }) async {
@@ -280,6 +284,7 @@ Future<void> _pump(
       showPhraseStructure: showPhraseStructure,
       aggressiveBeatsUpdate: aggressiveBeatsUpdate,
       showWordingOverride: showWordingOverride,
+      dialect: dialect,
     ),
   );
   await tester.pumpAndSettle();
@@ -691,6 +696,63 @@ void main() {
     await _selectDropdownOption(tester, 'figure-0-prefix', 'meltdown');
     expect(drafts.single.params['prefix'], 'meltdown');
     expect(drafts.single.beats, 16);
+  });
+
+  testWidgets('toggling balance on a flag move adds then removes 4 beats', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'box the', 'box_the_gnat');
+    expect(drafts.single.beats, 4);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.params['balance'], true);
+    expect(drafts.single.beats, 8);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.params['balance'], false);
+    expect(drafts.single.beats, 4);
+  });
+
+  testWidgets('balance toggle shifts a manually-set beats value by 4', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'box the', 'box_the_gnat');
+    await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '6');
+    await tester.pumpAndSettle();
+    expect(drafts.single.beatsTouched, isTrue);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.beats, 10);
+    expect(drafts.single.beatsTouched, isTrue);
+  });
+
+  testWidgets('balance toggle keeps beats within 0..64', (tester) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'box the', 'box_the_gnat');
+    await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '64');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.beats, 64);
+
+    await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '2');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.beats, 0);
   });
 
   testWidgets('a loaded figure preserves its beats through a non-beats edit', (
@@ -3505,6 +3567,29 @@ void main() {
         tester.widget<TextField>(find.byKey(fieldKey)).controller?.text,
         'meanwhile-only shorthand',
       );
+    });
+
+    testWidgets('role words from the active dialect parse (Follows chain)', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[];
+      await _pump(
+        tester,
+        drafts,
+        freeTextEntry: true,
+        dialect: Dialect.leadsFollows,
+      );
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(fieldKey), 'Follows chain');
+      await tester.tap(find.byKey(submitKey));
+      await tester.pumpAndSettle();
+
+      expect(drafts, hasLength(1));
+      final figure = drafts.single.toFigure()!;
+      expect(figure.move, 'chain');
+      expect(figure.params['who'], 'role2s');
     });
 
     testWidgets('a `;`-compound line inserts multiple rows', (tester) async {

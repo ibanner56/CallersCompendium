@@ -48,19 +48,29 @@ const int kMaxImportFileBytes = 25 * 1024 * 1024;
 /// together, or the sector guard becomes the effective ceiling.
 const int kMaxImportUsrBytes = 256 * 1024 * 1024;
 
-/// Raised when a picked import file exceeds [kMaxImportFileBytes], so the
-/// oversized case is rejected *without* buffering the whole file into memory
+/// Raised when a picked import file exceeds its cap ([kMaxImportFileBytes], or
+/// [kMaxImportUsrBytes] for a `.USR`), so the oversized case is rejected
+/// *without* buffering the whole file into memory
 /// (the bounded read abandons the stream as soon as the cap is crossed).
 ///
-/// Carries only the typed [length] — no user prose. The presentation layer maps
-/// this to a localized message (see `importFileTooLargeMessage` in
+/// Carries only the typed [length] and [maxBytes] — no user prose. The
+/// presentation layer maps this to a localized message (see
+/// `importFileTooLargeMessage` in
 /// `import_error_labels.dart`); the data layer never bakes English in.
 class ImportFileTooLargeException implements Exception {
-  const ImportFileTooLargeException(this.length);
+  const ImportFileTooLargeException(
+    this.length, {
+    this.maxBytes = kMaxImportFileBytes,
+  });
 
   /// The number of bytes consumed before the cap tripped (always greater than
   /// the cap; kept for diagnostics/tests — never shown to the user).
   final int length;
+
+  /// The cap that was exceeded (the `.USR` path uses a higher one than the
+  /// text/JSON path). Shown to the user, rounded down to whole MiB, so the
+  /// message can name the limit that actually applied.
+  final int maxBytes;
 
   @override
   String toString() => 'ImportFileTooLargeException(length: $length)';
@@ -101,7 +111,7 @@ Future<Uint8List> readCappedBytes(
       // `await for` cancels the subscription when we throw, so we never read
       // (or buffer) the rest of the file — allocation stays bounded even if the
       // underlying file keeps growing.
-      throw ImportFileTooLargeException(total);
+      throw ImportFileTooLargeException(total, maxBytes: maxBytes);
     }
     if (total > capacity) {
       // The stream outran the hint (or there was none): grow geometrically, but
@@ -290,6 +300,12 @@ enum UrlFetchFailureReason {
   callersBoxMissingId,
   callersBoxEmptySearch,
   callersBoxUnreachable,
+
+  /// A fetch for The Caller's Box timed out. The shared fetcher throws the
+  /// generic [timeout]; `attributeFetchFailure` re-labels it with this reason
+  /// so the message names the source rather than "the URL". Carries
+  /// [UrlFetchException.timeoutSeconds].
+  callersBoxTimeout,
   callersBoxHttpStatus,
   callersBoxEmptyPage,
   callersBoxNoImportableDance,
@@ -307,6 +323,10 @@ enum UrlFetchFailureReason {
   contraDbInvalidProgramLink,
   contraDbUnsupportedHost,
   contraDbUnreachable,
+
+  /// A fetch for ContraDB timed out; the ContraDB twin of [callersBoxTimeout].
+  /// Carries [UrlFetchException.timeoutSeconds].
+  contraDbTimeout,
   contraDbHttpStatus,
   contraDbEmptyResponse,
   contraDbNoImportableDance,
@@ -335,7 +355,9 @@ class UrlFetchException implements Exception {
       assert(
         // A timeout reason must carry the elapsed seconds it describes.
         !(reason == UrlFetchFailureReason.timeout ||
-                reason == UrlFetchFailureReason.searchTimeout) ||
+                reason == UrlFetchFailureReason.searchTimeout ||
+                reason == UrlFetchFailureReason.callersBoxTimeout ||
+                reason == UrlFetchFailureReason.contraDbTimeout) ||
             timeoutSeconds != null,
         'timeoutSeconds is required for a timeout reason',
       );
@@ -349,7 +371,9 @@ class UrlFetchException implements Exception {
   final int? statusCode;
 
   /// The elapsed timeout in whole seconds, for [UrlFetchFailureReason.timeout] /
-  /// [UrlFetchFailureReason.searchTimeout]; `null` otherwise.
+  /// [UrlFetchFailureReason.searchTimeout] /
+  /// [UrlFetchFailureReason.callersBoxTimeout] /
+  /// [UrlFetchFailureReason.contraDbTimeout]; `null` otherwise.
   final int? timeoutSeconds;
 
   /// Debug-only, non-prose form (safe for logs — no user prose, no URL/path).
@@ -939,11 +963,26 @@ typedef CallersBoxSearchFetcher = Future<String> Function(String url);
 /// 50-row cap and returns the complete match set (verified live 2026-08-06:
 /// `?title=moon` returns 50 of a stated 68, `?title=moon&show_all` returns all
 /// 68; the `show_all=` form with an empty value behaves identically to the bare
-/// flag, which is what lets this stay inside [Uri.https]'s parameter map rather
-/// than hand-building a query string outside the fetch guard). Broad queries can
-/// match many thousands of dances, so callers must decide against the page's
-/// stated total rather than requesting it unconditionally — see
-/// [parseCallersBoxMatchCount] and `CallersBoxOnline.search`.
+/// flag). Broad queries can match many thousands of dances, so callers must
+/// decide against the page's stated total rather than requesting it
+/// unconditionally — see [parseCallersBoxMatchCount] and
+/// `CallersBoxOnline.search`.
+///
+/// Title, author and every figure line are normalized to what TCB stores and
+/// how it compares (measured live 2026-10-08, `docs/research/callersbox.md`):
+///
+/// - [foldTitlePunctuation]: TCB stores only ASCII apostrophes, quotes and
+///   hyphens and matches them exactly, so a `’` typed by a phone keyboard
+///   would otherwise make a correct title match nothing.
+/// - Lower-cased: TCB's case-insensitivity covers ASCII only (`DÉJÀ` misses
+///   `Déjà vu`), and every accented letter in its titles and authors is
+///   lower-case.
+/// - Percent-encoded as **windows-1252** ([_encodeTcbQuery]), the page's
+///   charset: TCB compares bytes, so the UTF-8 `%C3%A9` for `é` matches
+///   nothing while `%E9` matches.
+///
+/// The URL is still a string re-parsed by [_sendGuarded], so the hand-built
+/// query stays inside the same fetch guard as every other request.
 ///
 /// Throws a [UrlFetchException] (message safe to show) when there is nothing to
 /// search — empty title and author values with no effective [phrases].
@@ -954,9 +993,11 @@ String buildCallersBoxSearchUrl(
   String host = callersBoxHost,
   bool showAll = false,
 }) {
-  final trimmed = title.trim();
-  final trimmedAuthor = author.trim();
+  String normalize(String text) => foldTitlePunctuation(text).toLowerCase();
+  final trimmed = normalize(title).trim();
+  final trimmedAuthor = normalize(author).trim();
   final hasPhrases = phrases != null && !phrases.isEmpty;
+  String joinLines(List<String> lines) => lines.map(normalize).join('\n');
   if (trimmed.isNotEmpty && trimmedAuthor.isNotEmpty) {
     throw ArgumentError('title and author cannot both be specified');
   }
@@ -970,27 +1011,78 @@ String buildCallersBoxSearchUrl(
   if (showAll) params['show_all'] = '';
   if (hasPhrases) {
     if (phrases.globalPos.isNotEmpty) {
-      params['pos_lines'] = phrases.globalPos.join('\n');
+      params['pos_lines'] = joinLines(phrases.globalPos);
       params['pos_mode'] = _tcbPosMode;
     }
     if (phrases.globalNeg.isNotEmpty) {
-      params['neg_lines'] = phrases.globalNeg.join('\n');
+      params['neg_lines'] = joinLines(phrases.globalNeg);
       params['neg_mode'] = _tcbNegMode;
     }
     phrases.phrasePos.forEach((slot, lines) {
       if (lines.isEmpty) return;
-      params['phr${slot}_pos_lines'] = lines.join('\n');
+      params['phr${slot}_pos_lines'] = joinLines(lines);
       params['phr${slot}_pos_mode'] = _tcbPosMode;
     });
     phrases.phraseNeg.forEach((slot, lines) {
       if (lines.isEmpty) return;
-      params['phr${slot}_neg_lines'] = lines.join('\n');
+      params['phr${slot}_neg_lines'] = joinLines(lines);
       params['phr${slot}_neg_mode'] = _tcbNegMode;
     });
   }
 
-  return Uri.https(host, '$callersBoxPathPrefix/index.php', params).toString();
+  return Uri.https(
+    host,
+    '$callersBoxPathPrefix/index.php',
+  ).replace(query: _encodeTcbQuery(params)).toString();
 }
+
+/// Serializes [params] as an `application/x-www-form-urlencoded` query in
+/// **windows-1252**, the way a browser submits TCB's own search form.
+///
+/// A character windows-1252 cannot represent is sent as the numeric character
+/// reference `&#N;`, again as a browser does for that form. No TCB title
+/// contains `&#` (`?title=%26%23` matches 0, 2026-10-08), so such a query
+/// matches nothing rather than a wrong dance.
+String _encodeTcbQuery(Map<String, String> params) {
+  final out = StringBuffer();
+  void writeByte(int b) =>
+      out.write('%${b.toRadixString(16).toUpperCase().padLeft(2, '0')}');
+  void writeText(String text) {
+    for (final rune in text.runes) {
+      if (rune == 0x20) {
+        out.write('+');
+      } else if (_isFormSafe(rune)) {
+        out.writeCharCode(rune);
+      } else if (rune < 0x80 || (rune >= 0xA0 && rune <= 0xFF)) {
+        writeByte(rune);
+      } else if (_cp1252High.indexOf(rune) case final i when i >= 0) {
+        writeByte(0x80 + i);
+      } else {
+        writeText('&#$rune;');
+      }
+    }
+  }
+
+  var first = true;
+  params.forEach((key, value) {
+    if (!first) out.write('&');
+    first = false;
+    writeText(key);
+    out.write('=');
+    writeText(value);
+  });
+  return out.toString();
+}
+
+/// Whether a form submission sends [rune] unescaped: `A-Z a-z 0-9 * - . _`.
+bool _isFormSafe(int rune) =>
+    (rune >= 0x30 && rune <= 0x39) ||
+    (rune >= 0x41 && rune <= 0x5A) ||
+    (rune >= 0x61 && rune <= 0x7A) ||
+    rune == 0x2A ||
+    rune == 0x2D ||
+    rune == 0x2E ||
+    rune == 0x5F;
 
 /// TCB positive figure-match mode: "all of these lines, in any order" — the
 /// dance must contain EVERY selected figure (order irrelevant). Confirmed

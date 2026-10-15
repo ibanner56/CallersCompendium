@@ -12,8 +12,20 @@ This document is the contract for the string-extraction work: the framework and
 every user-facing UI string have landed, and new strings are added to the ARB as
 features land. Follow the conventions here so the app stays consistent.
 
-**Extraction status: complete.** Every user-facing UI surface now sources its
-prose from `AppLocalizations`. The phased extraction (layers 1–6) is finished:
+**Extraction status: every UI string the guard can see is extracted.** The
+hard-coded-string guard (see [below](#guarding-against-hardcoded-strings))
+scans string literals passed as *widget arguments*. It cannot see prose that is
+stored in an enum or a value object and read back later, so those labels must
+be routed through `AppLocalizations` **by convention**: keep the data type's
+English `label` as a stable key/fallback (and sort key), and add a resolver in
+the app layer that switches on the stable identity. The theme gallery and the
+custom-theme editor are the worked example — `AppThemeGroup`,
+`AppThemeSelection` and `CustomThemeRoles` keep English labels, and
+`app_theme_labels_l10n.dart` (`appThemeLabel`, `appThemeDescription`,
+`themeEditorRoleLabel`, …) resolves them (CS-47, L10N-02). Brand palette names
+are proper nouns and stay literal; user-authored names are user data.
+
+Beyond that, the phased extraction (layers 1–6) is finished:
 the framework, shared cross-cutting vocabulary (facet domain-value labels), the
 import-gap badge, the `(copy)` title suffix, global/shared chrome, the full
 **Settings surface**, all secondary screens and editors (custom fields, dialect
@@ -22,8 +34,7 @@ figure-shorthand mappings, reparse-custom-figures), the large chrome widgets
 (`collection_picker`, `command_palette`, `update_banner`), and the
 **venue-management trio** (`venue_manager_screen`, `venue_editor_sheet`,
 `venue_picker`) are all localized. New user-facing strings go straight into the
-ARB — the guard (see [below](#guarding-against-hardcoded-strings)) keeps it that
-way.
+ARB — the guard keeps widget literals that way.
 
 The only remaining hardcoded English is **intentional and permanent**, in one
 bucket:
@@ -116,6 +127,10 @@ as `InheritedNotifier` scopes (mirroring `AppThemeScope`/`DateFormatScope`):
 | Date format       | `DateFormatScope`     | `kDateFormatKey`       | enum token           |
 | First day of week | `FirstDayOfWeekScope` | `kFirstDayOfWeekKey`   | enum token           |
 
+New preference scopes are added to `_appScopeWrappers` in `main.dart` (outermost
+first; `build` folds the list onto the navigator) and to the type list in
+`app/test/app_scopes_test.dart`.
+
 `DateFormatScope` carries a `DateFormatSetting` (the enum token plus, for the
 `custom` variant, a raw user-entered pattern persisted separately under
 `kDateFormatCustomPatternKey`). The custom pattern is validated at the point of
@@ -132,10 +147,31 @@ the English month-name allowlist it already uses for its month-name tiers. See
 #632.
 
 Read a scope with `Scope.of(context)` (registers a rebuild); change it with
-`Scope.notifierOf(context)`. Changing `LocaleScope` updates `MaterialApp.locale`,
+`Scope.notifierOf(context)`, then write it with
+`persistSetting(settings, key, value)` (`persisted_preference.dart`), which logs a
+failed write instead of throwing; flip the notifier first so the UI reacts at
+once. Changing `LocaleScope` updates `MaterialApp.locale`,
 so the whole app re-renders in the selected language live. The Language & region
 settings section (`app/lib/src/screens/settings/regional_section.dart`) is the
 UI for all three.
+
+The settings-backed preferences, including the three locale and regional-format
+scopes above (`Locale?`, `DateFormatSetting` and `FirstDayOfWeekPref`), are
+`PreferenceNotifier<T>`s (`app/lib/src/data/persisted_preference.dart`), each
+owning its settings key, default, decoder and encoder. They are listed once, in
+`_preferences` in `app/lib/main.dart`, which both the reset and the load
+iterate; a scope still receives its notifier as a plain `ValueNotifier<T>`, so
+the scope API above is unchanged. The one exception is the active dialect: it is
+persisted by `DialectLibraryController` (`kActiveDialectRefKey`), not by a
+`PreferenceNotifier`, and `_resetAppPreferenceNotifiers` resets it by hand.
+
+Handlers do not call `PreferenceNotifier.persist`; each writes through
+`persistSetting` itself. So that the encoding still has one owner, a handler's
+written value must be spelled exactly as the descriptor's `encode` applied to the
+value it just assigned to the notifier (`selection.name` for
+`encode: (v) => v.name`). `tools/ci/check_preference_encode.py` (preflight step
+`preference-encode`) fails the build otherwise; to change an encoding, change
+the descriptor and every handler the checker then names.
 
 ### Security: validate every persisted value (OWASP)
 
@@ -376,8 +412,14 @@ You do **not** need to write code to translate the app.
    `<string>fr</string>`, `<string>pt-BR</string>`, `<string>zh-Hant</string>`) —
    not the underscore filename form. iOS advertises the languages an app supports
    from this list, so without it a contributed language isn't offered by the
-   system. Other platforms pick up the supported locales automatically, so no
-   extra step is needed there.
+   system. The Dart side needs nothing further: `resolveSystemLocale`
+   (`locale_scope.dart`) matches the device's language list against the
+   supported locales and falls back to **English** — not `supportedLocales.first`,
+   which is alphabetical (`da`) — when none match. The OS per-app language
+   pickers do depend on platform manifests, though: macOS `knownRegions` in
+   `app/macos/Runner.xcodeproj/project.pbxproj` lists only `en, Base`, and
+   Android declares no `localeConfig`, so those pickers do not yet offer every
+   bundled language.
 6. That's it — your language automatically appears in **Settings ▸ Language &
    region ▸ App language**, shown by its native name, with no code change. If the
    endonym doesn't yet have an entry in `nativeLanguageName` it falls back to the

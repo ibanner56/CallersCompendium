@@ -10,6 +10,7 @@ import '../../privacy/field_registry.dart';
 import '../../privacy/data_classification.dart';
 import '../../privacy/settings_registry.dart';
 import '../../serialization/figure_codec.dart';
+import '../../sync/sync_storage.dart' show CompendiumSyncStorage;
 import '../../taxonomy/taxonomy.dart';
 import '../database.dart';
 import '../shareable_text.dart';
@@ -330,7 +331,16 @@ class CompendiumRepositories {
   /// A **change signal**, not the data: it carries no payload, because the
   /// snapshot is assembled app-side from a fan-out of queries across seven
   /// repositories and there is no single row set to hand back. Callers pair it
-  /// with their own loader (see `CollectionData.watch`).
+  /// with their own loader.
+  ///
+  /// `CollectionData.watch` **no longer consumes this stream**: it needs to know
+  /// *which* tables changed (a `programs`/`program_slots`-only burst refreshes
+  /// just the calling tallies), which a payload-less sentinel cannot say, so it
+  /// listens to `db.tableUpdates` over the same set instead. That set is
+  /// restated there; a table added here must be added there, and
+  /// `per_consumer_read_sets_test.dart` classifies each one. This method and its
+  /// read set stay as they were for consumers that only need "something
+  /// changed".
   ///
   /// ## The declared table set, justified per entry
   ///
@@ -805,6 +815,10 @@ class CompendiumRepositories {
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
+      rebuiltThisCall = await _emitTaxonomyV37CanonicalTextIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
       rebuiltThisCall = await _backfillChainHandIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
@@ -834,6 +848,13 @@ class CompendiumRepositories {
         owedFromHistory: normalisationCompletedBefore.isNotEmpty,
         onProgress: onDerivedRebuildProgress,
       );
+      // Last, so it reads records every earlier sweep has finished with. A
+      // field a newer version added and this device kept (sync-spec §6.7) may
+      // be one this build now syncs; move it into the record before anyone
+      // can edit that record, or the kept copy would win over the edit.
+      // Nothing to do — one indexed read — on every open but the first after
+      // such an upgrade.
+      await CompendiumSyncStorage(this).promoteRetainedSyncFields();
     } catch (_) {
       // Don't cache a failed migration: clear the memo so a subsequent call
       // retries. The durable marker is still set (only deleted after a
@@ -2185,6 +2206,29 @@ class CompendiumRepositories {
     }
     await _writeSweepMarker(taxonomyV35FigureNormalizationDoneKey, 'true');
     return alreadyRebuilt || rebuildOwed;
+  }
+
+  /// Rebuilds canonical/FTS text after taxonomy v37 changed the courtesy
+  /// turn's default rotation to counterclockwise. Source JSON is unchanged: a
+  /// courtesy turn that never stated a direction now means the ordinary
+  /// counterclockwise turn, and only its derived canonical text was stale.
+  Future<bool> _emitTaxonomyV37CanonicalTextIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [Variable.withString(taxonomyV37CanonicalRebuildDoneKey)],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    if (!alreadyRebuilt) {
+      await runDerivedRebuild(onProgress: onProgress);
+    }
+    await _writeSweepMarker(taxonomyV37CanonicalRebuildDoneKey, '"done"');
+    return true;
   }
 
   Future<bool> _emitModifierContainerCanonicalTextIfNeeded({

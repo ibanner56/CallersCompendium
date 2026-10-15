@@ -18,6 +18,11 @@ class MainFlutterWindow: NSWindow {
     IncomingFilesBridge.shared.register(
       messenger: flutterViewController.engine.binaryMessenger)
 
+    // Issue #1725: lets Dart ask whether the app is running from the disk
+    // image (or a translocated copy) instead of an installed location.
+    InstallLocationBridge.shared.register(
+      messenger: flutterViewController.engine.binaryMessenger)
+
     super.awakeFromNib()
   }
 }

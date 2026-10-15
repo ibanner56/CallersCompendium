@@ -2,31 +2,39 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show ValueListenable, kDebugMode;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import 'settings_keys.dart';
 import '../../data/sync_writer_lifecycle_scope.dart';
+import '../../data/backup_document.dart'
+    show
+        BackupReadResult,
+        decodeBackupOnIsolate,
+        decodeBackupSizedOnIsolate,
+        defaultBackupCodecRunner;
 import '../../data/backup_io.dart';
 import '../../data/backup_reminder.dart';
 import '../../data/backup_service.dart';
 import '../../data/confirm_before_delete_scope.dart';
 import '../../data/import_io.dart';
 import '../../data/reduce_motion_scope.dart';
+import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/soft_delete_retention.dart';
 import '../../data/sort_ignore_articles_scope.dart';
 import '../../data/verbose_figure_rendering_scope.dart';
 import '../../data/decimal_turns_scope.dart';
+import '../../data/capitalize_figures_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/settings_dropdown_row.dart';
 import '../import_review_screen.dart';
 import '../published_collection_navigation.dart';
 import '../reparse_custom_figures_screen.dart';
-import '../sync_review_screen.dart';
 
 /// The General settings section: app-wide toggles, soft-delete retention,
 /// backup/restore, and the import launcher. Owns its async loads + load-race
@@ -62,6 +70,7 @@ class GeneralSection extends StatefulWidget {
 
 class _GeneralSectionState extends State<GeneralSection> {
   bool _restoreOperationInFlight = false;
+  bool _exportInFlight = false;
 
   /// Soft-delete retention window (ROADMAP G.4), as the stored `int` day count
   /// (`0` = never auto-purge). `null` = not yet loaded; the view shows the
@@ -138,7 +147,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       _softDeleteRetentionDays = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kSoftDeleteRetentionKey, value);
+    await persistSetting(repos.settings, kSoftDeleteRetentionKey, value);
   }
 
   /// Backup-reminder cadence (ROADMAP G.5). `null` = not yet loaded; the view
@@ -181,19 +190,11 @@ class _GeneralSectionState extends State<GeneralSection> {
 
   Future<void> _onBackupCadenceChanged(BackupReminderCadence cadence) async {
     setState(() => _backupCadence = cadence);
-    await RepositoriesScope.of(
-      context,
-    ).settings.set(kBackupReminderCadenceKey, cadence.token);
-  }
-
-  /// Suggested filename for an exported backup, dated (UTC) so backups sort and
-  /// are easy to tell apart, e.g. `callers-compendium-backup-2026-07-15.json`.
-  String _backupFileName(DateTime when) => '${_backupFileStem(when)}.json';
-
-  String _backupFileStem(DateTime when) {
-    final d = when.toUtc();
-    String two(int n) => n.toString().padLeft(2, '0');
-    return 'callers-compendium-backup-${d.year}-${two(d.month)}-${two(d.day)}';
+    await persistSetting(
+      RepositoriesScope.of(context).settings,
+      kBackupReminderCadenceKey,
+      cadence.token,
+    );
   }
 
   /// Builds the whole-app backup and hands it to the save/share seam, then
@@ -204,32 +205,88 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// cancels the native save/share dialog, this is a clean no-op: no snackbar,
   /// no stamped time.
   Future<void> _onExportBackup() async {
+    if (_exportInFlight) return;
+    _exportInFlight = true;
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final repos = RepositoriesScope.of(context);
     final saver = widget.backupSaver ?? saveBackupToFile;
 
+    // No done/total exists for an export (the encode is a single worker call),
+    // so the bar is indeterminate until the saver returns.
+    final closeProgress = _showBackupProgress(
+      key: const ValueKey('export-progress'),
+      idleLabel: l10n.backupExportInProgress,
+    );
     try {
-      final service = BackupService(repos);
       final now = DateTime.now();
-      final json = await service.exportToJson(createdAt: now);
-
-      final delivered = await saver(json, _backupFileName(now));
+      final delivered = await exportBackupNow(repos, saver, now);
+      closeProgress();
       if (!delivered) return;
-      await service.recordBackup(now);
       if (!mounted) return;
       setState(() {
         _backupPrefsRequested = true;
         _lastBackupAt = now.toUtc();
       });
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupExported)));
-    } on Exception catch (e, st) {
+    } on BackupExportTooLargeException catch (e, st) {
+      closeProgress();
+      logCaughtError(e, st, source: 'general_section._onExportBackup');
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.backupExportTooLarge(
+              backupMegabytes(e.sizeBytes),
+              backupMegabytes(e.maxBytes),
+            ),
+          ),
+        ),
+      );
+    } on Object catch (e, st) {
+      closeProgress();
       logCaughtError(e, st, source: 'general_section._onExportBackup');
       if (kDebugMode) {
         debugPrint('Backup export failed: $e\n$st');
       }
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupExportFailed)));
+    } finally {
+      closeProgress();
+      _exportInFlight = false;
     }
+  }
+
+  /// Opens a non-dismissable progress dialog and returns the (idempotent)
+  /// callback that closes it. The dialog is a modal route, so the caller must
+  /// close it before showing a snackbar or returning.
+  ///
+  /// [progress] drives a determinate bar and [progressLabel] its text once it
+  /// holds a `(done, total)`; until then (and always when [progress] is null)
+  /// the bar is indeterminate and shows [idleLabel].
+  VoidCallback _showBackupProgress({
+    required Key key,
+    required String idleLabel,
+    ValueListenable<(int, int)?>? progress,
+    String Function(int done, int total)? progressLabel,
+  }) {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _BackupProgressDialog(
+          key: key,
+          progress: progress,
+          idleLabel: idleLabel,
+          progressLabel: progressLabel,
+        ),
+      ),
+    );
+    var closed = false;
+    return () {
+      if (closed) return;
+      closed = true;
+      navigator.pop();
+    };
   }
 
   /// Prompts for a backup (file or pasted JSON) behind a destructive-replace
@@ -250,29 +307,60 @@ class _GeneralSectionState extends State<GeneralSection> {
     final writerLifecycle = SyncWriterLifecycleScope.maybeOf(context);
     final onRestored = writerLifecycle?.onRestored;
     final runWrite = writerLifecycle?.runWrite;
+    VoidCallback? closeProgress;
 
     try {
-      final raw = await showDialog<String>(
+      final choice = await showDialog<_RestoreChoice>(
         context: context,
         builder: (_) => _RestoreBackupDialog(picker: picker),
       );
-      if (raw == null || raw.trim().isEmpty) return;
+      if (choice == null || choice.json.trim().isEmpty || !mounted) return;
 
+      // Shown before the lifecycle wrapper, which may wait for an active sync
+      // pass, so the screen never sits unchanged while the restore is pending.
+      // Indeterminate while the file is read; determinate from the first
+      // `(0, total)` the core restore reports.
+      final progress = ValueNotifier<(int, int)?>(null);
+      closeProgress = _showBackupProgress(
+        key: const ValueKey('restore-progress'),
+        idleLabel: l10n.backupRestorePreparing,
+        progress: progress,
+        progressLabel: l10n.backupRestoreProgress,
+      );
+
+      // A file the dialog already decoded is not decoded again; pasted text (or
+      // a file Replace was pressed on mid-decode) is decoded here, under the
+      // progress dialog. The result is kept for the settings retry below.
+      final read =
+          choice.read ??
+          await decodeBackupOnIsolate(
+            choice.json,
+            runner: defaultBackupCodecRunner,
+          );
       final outcome = await _runRestoreLifecycle(
         runWrite: runWrite,
-        operation: () => BackupService(repos).restoreFromJson(raw),
+        operation: () => BackupService(repos).restoreFromJson(
+          choice.json,
+          decoded: read,
+          onProgress: (done, total) => progress.value = (done, total),
+        ),
       );
       if (!outcome.applied) {
+        closeProgress();
         if (!mounted) return;
         // Distinguish the refusal reasons so the user gets an accurate message:
         // a failed integrity checksum (corrupt/altered file, #536), a
-        // valid-but-incomplete backup refused to protect live data (#430), or a
-        // genuinely unreadable file.
+        // valid-but-incomplete backup refused to protect live data (#430), a
+        // backup from a newer schema, a backup with no app section (replace
+        // would clear settings it never described), or a genuinely unreadable
+        // file.
         final String message;
         if (outcome.integrityFailed) {
           message = l10n.backupRestoreIntegrityFailed;
-        } else if (outcome.incompleteCore) {
+        } else if (outcome.incompleteCore || outcome.newerSchema) {
           message = l10n.backupRestoreIncompatibleVersion;
+        } else if (outcome.missingAppSection) {
+          message = l10n.backupRestoreMissingAppSection;
         } else {
           message = l10n.backupRestoreInvalidFile;
         }
@@ -280,6 +368,7 @@ class _GeneralSectionState extends State<GeneralSection> {
         return;
       }
       if (onRestored != null) await onRestored();
+      closeProgress();
       if (!mounted) return;
       _refreshSoftDeleteRetention();
       // The core content committed and refreshed, but the separate settings
@@ -290,7 +379,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       // localized — the raw exception is logged (debug-guarded) inside the
       // service, never shown here (CWE-209).
       if (outcome.settingsFailed) {
-        _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
+        _showSettingsRestoreFailed(messenger, l10n, repos, read, onRestored);
         return;
       }
       messenger.showSnackBar(
@@ -302,13 +391,15 @@ class _GeneralSectionState extends State<GeneralSection> {
           ),
         ),
       );
-    } on Exception catch (e, st) {
+    } on Object catch (e, st) {
+      closeProgress?.call();
       logCaughtError(e, st, source: 'general_section._onRestoreBackup');
       if (kDebugMode) {
         debugPrint('Backup restore failed: $e\n$st');
       }
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupRestoreFailed)));
     } finally {
+      closeProgress?.call();
       _restoreOperationInFlight = false;
     }
   }
@@ -332,7 +423,7 @@ class _GeneralSectionState extends State<GeneralSection> {
     ScaffoldMessengerState messenger,
     AppLocalizations l10n,
     CompendiumRepositories repos,
-    String raw,
+    BackupReadResult read,
     Future<void> Function()? onRestored,
   ) {
     messenger.clearSnackBars();
@@ -344,7 +435,7 @@ class _GeneralSectionState extends State<GeneralSection> {
           label: l10n.backupRestoreSettingsRetryAction,
           onPressed: () {
             unawaited(
-              _retrySettingsRestore(messenger, l10n, repos, raw, onRestored),
+              _retrySettingsRestore(messenger, l10n, repos, read, onRestored),
             );
           },
         ),
@@ -363,17 +454,17 @@ class _GeneralSectionState extends State<GeneralSection> {
     ScaffoldMessengerState messenger,
     AppLocalizations l10n,
     CompendiumRepositories repos,
-    String raw,
+    BackupReadResult read,
     Future<void> Function()? onRestored,
   ) async {
     try {
-      final outcome = await BackupService(repos).retryApplySettings(raw);
+      final outcome = await BackupService(repos).retryApplySettingsFrom(read);
       // Only refresh when something was actually applied.
       if (outcome.applied && onRestored != null) await onRestored();
       if (!mounted) return;
       if (outcome.applied) _refreshSoftDeleteRetention();
       if (outcome.settingsFailed) {
-        _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
+        _showSettingsRestoreFailed(messenger, l10n, repos, read, onRestored);
         return;
       }
       if (!outcome.applied) {
@@ -395,11 +486,11 @@ class _GeneralSectionState extends State<GeneralSection> {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.backupRestoreSettingsRetried)),
       );
-    } on Exception catch (e, st) {
+    } on Object catch (e, st) {
       logCaughtError(e, st, source: 'general_section._retrySettingsRestore');
       if (kDebugMode) debugPrint('Backup settings retry failed: $e\n$st');
       if (!mounted) return;
-      _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
+      _showSettingsRestoreFailed(messenger, l10n, repos, read, onRestored);
     }
   }
 
@@ -437,18 +528,18 @@ class _GeneralSectionState extends State<GeneralSection> {
   Future<void> _onPublishedCollections() =>
       pushPublishedCollectionCatalog(context);
 
-  Future<void> _onSyncReview() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const SyncReviewScreen()));
-  }
-
   Future<void> _onSortIgnoreArticlesChanged(bool value) async {
     // Same instant-notifier-then-persist pattern: flip the live notifier so the
     // dance list re-sorts immediately, then persist in the background.
     SortIgnoreArticlesScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kSortIgnoreArticlesKey, value);
+    await persistSetting(repos.settings, kSortIgnoreArticlesKey, value);
+  }
+
+  Future<void> _onCapitalizeFiguresChanged(bool value) async {
+    CapitalizeFiguresScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kCapitalizeFiguresKey, value);
   }
 
   Future<void> _onReduceMotionChanged(bool value) async {
@@ -456,25 +547,25 @@ class _GeneralSectionState extends State<GeneralSection> {
     // notifier so animation-gated widgets rebuild immediately, then persist.
     ReduceMotionScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kReduceMotionKey, value);
+    await persistSetting(repos.settings, kReduceMotionKey, value);
   }
 
   Future<void> _onVerboseFigureRenderingChanged(bool value) async {
     VerboseFigureRenderingScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kVerboseFigureRenderingKey, value);
+    await persistSetting(repos.settings, kVerboseFigureRenderingKey, value);
   }
 
   Future<void> _onDecimalTurnsChanged(bool value) async {
     DecimalTurnsScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDecimalTurnsKey, value);
+    await persistSetting(repos.settings, kDecimalTurnsKey, value);
   }
 
   Future<void> _onConfirmBeforeDeleteChanged(bool value) async {
     ConfirmBeforeDeleteScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kConfirmBeforeDeleteKey, value);
+    await persistSetting(repos.settings, kConfirmBeforeDeleteKey, value);
   }
 
   @override
@@ -484,6 +575,8 @@ class _GeneralSectionState extends State<GeneralSection> {
     return _GeneralView(
       sortIgnoreArticles: SortIgnoreArticlesScope.of(context),
       onSortIgnoreArticlesChanged: _onSortIgnoreArticlesChanged,
+      capitalizeFigures: CapitalizeFiguresScope.of(context),
+      onCapitalizeFiguresChanged: _onCapitalizeFiguresChanged,
       reduceMotion: ReduceMotionScope.of(context),
       onReduceMotionChanged: _onReduceMotionChanged,
       verboseFigureRendering: VerboseFigureRenderingScope.of(context),
@@ -500,7 +593,6 @@ class _GeneralSectionState extends State<GeneralSection> {
       lastBackupAt: _lastBackupAt,
       onExportBackup: _onExportBackup,
       onRestoreBackup: _onRestoreBackup,
-      onSyncReview: _onSyncReview,
       onImportDances: _onImportDances,
       onPublishedCollections: _onPublishedCollections,
       onReparseCustomFigures: _onReparseCustomFigures,
@@ -517,6 +609,8 @@ class _GeneralView extends StatelessWidget {
   const _GeneralView({
     required this.sortIgnoreArticles,
     required this.onSortIgnoreArticlesChanged,
+    required this.capitalizeFigures,
+    required this.onCapitalizeFiguresChanged,
     required this.reduceMotion,
     required this.onReduceMotionChanged,
     required this.verboseFigureRendering,
@@ -532,7 +626,6 @@ class _GeneralView extends StatelessWidget {
     required this.lastBackupAt,
     required this.onExportBackup,
     required this.onRestoreBackup,
-    required this.onSyncReview,
     required this.onImportDances,
     required this.onPublishedCollections,
     required this.onReparseCustomFigures,
@@ -540,6 +633,8 @@ class _GeneralView extends StatelessWidget {
 
   final bool sortIgnoreArticles;
   final ValueChanged<bool> onSortIgnoreArticlesChanged;
+  final bool capitalizeFigures;
+  final ValueChanged<bool> onCapitalizeFiguresChanged;
   final bool reduceMotion;
   final ValueChanged<bool> onReduceMotionChanged;
   final bool verboseFigureRendering;
@@ -562,7 +657,6 @@ class _GeneralView extends StatelessWidget {
   final DateTime? lastBackupAt;
   final Future<void> Function() onExportBackup;
   final Future<void> Function() onRestoreBackup;
-  final Future<void> Function() onSyncReview;
 
   /// Opens the import review flow (ROADMAP 6.3).
   final Future<void> Function() onImportDances;
@@ -584,6 +678,14 @@ class _GeneralView extends StatelessWidget {
           onChanged: onSortIgnoreArticlesChanged,
           title: Text(l10n.settingsGeneralSortIgnoreArticlesTitle),
           subtitle: Text(l10n.settingsGeneralSortIgnoreArticlesSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-capitalize-figures'),
+          value: capitalizeFigures,
+          onChanged: onCapitalizeFiguresChanged,
+          title: Text(l10n.settingsGeneralCapitalizeFiguresTitle),
+          subtitle: Text(l10n.settingsGeneralCapitalizeFiguresSubtitle),
           isThreeLine: true,
         ),
         SectionHeader(title: l10n.settingsGeneralAccessibilityHeader),
@@ -620,11 +722,12 @@ class _GeneralView extends StatelessWidget {
           isThreeLine: true,
         ),
         SectionHeader(title: l10n.settingsGeneralDeletedItemsHeader),
-        ListTile(
+        SettingsDropdownRow(
           title: Text(l10n.settingsGeneralSoftDeleteRetentionTitle),
           subtitle: Text(l10n.settingsGeneralSoftDeleteRetentionSubtitle),
           isThreeLine: true,
-          trailing: DropdownButton<int>(
+          dropdownBuilder: (expanded) => DropdownButton<int>(
+            isExpanded: expanded,
             key: const ValueKey('general-soft-delete-retention'),
             value: softDeleteRetentionDays,
             onChanged: (value) {
@@ -644,13 +747,6 @@ class _GeneralView extends StatelessWidget {
               ),
             ],
           ),
-        ),
-        ListTile(
-          key: const ValueKey('sync-review-button'),
-          title: Text(l10n.syncReviewSettingsTitle),
-          subtitle: Text(l10n.syncReviewSettingsSubtitle),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: onSyncReview,
         ),
         SectionHeader(title: l10n.settingsGeneralImportHeader),
         ListTile(
@@ -728,10 +824,11 @@ class _GeneralView extends StatelessWidget {
           label: Text(l10n.backupRestoreAction),
         ),
       ),
-      ListTile(
+      SettingsDropdownRow(
         title: Text(l10n.backupReminderTitle),
         subtitle: Text(lastBackupLabel),
-        trailing: DropdownButton<BackupReminderCadence>(
+        dropdownBuilder: (expanded) => DropdownButton<BackupReminderCadence>(
+          isExpanded: expanded,
           key: const ValueKey('backup-reminder-cadence'),
           value: backupCadence,
           onChanged: (value) {
@@ -783,10 +880,24 @@ class _GeneralView extends StatelessWidget {
   }
 }
 
+/// What the restore dialog hands back: the backup text, plus its decoded form
+/// when the dialog already produced it for a chosen file.
+class _RestoreChoice {
+  const _RestoreChoice(this.json, [this.read]);
+
+  final String json;
+  final BackupReadResult? read;
+}
+
 /// A modal that collects a backup to restore — either by choosing a file (via
 /// the injected [picker]) or by pasting JSON — behind an explicit,
-/// destructive-replace warning. Returns the chosen JSON string when the user
+/// destructive-replace warning. Returns a [_RestoreChoice] when the user
 /// confirms, or `null` if they cancel.
+///
+/// A chosen file is held in state and shown as a summary (date, counts, size)
+/// rather than poured into the paste box: laying out megabytes of text froze
+/// the dialog for seconds. The paste box is for pasted text only and is
+/// disabled while a file is held.
 class _RestoreBackupDialog extends StatefulWidget {
   const _RestoreBackupDialog({required this.picker});
 
@@ -800,10 +911,36 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
   final TextEditingController _controller = TextEditingController();
   bool _picking = false;
 
+  /// The chosen file's text, set the moment the picker returns so Replace is
+  /// enabled before the decode finishes.
+  String? _pickedJson;
+
+  /// The decoded [_pickedJson] and its UTF-8 size; `null` while being read.
+  /// Handed on to the restore so the file is decoded once, not twice.
+  BackupReadResult? _read;
+  int? _sizeBytes;
+
+  /// Set when the decode itself threw: shown as unreadable, with the restore
+  /// left to own the refusal.
+  bool _decodeFailed = false;
+
+  /// Guards a slow summary decode against a newer pick or a Clear.
+  int _pickGeneration = 0;
+
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  void _clearFile() {
+    setState(() {
+      _pickGeneration++;
+      _pickedJson = null;
+      _read = null;
+      _sizeBytes = null;
+      _decodeFailed = false;
+    });
   }
 
   Future<void> _chooseFile() async {
@@ -812,22 +949,105 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
     try {
       final json = await widget.picker();
       if (!mounted || json == null) return;
-      _controller.text = json;
+      final generation = ++_pickGeneration;
+      setState(() {
+        _controller.clear();
+        _pickedJson = json;
+        _read = null;
+        _sizeBytes = null;
+        _decodeFailed = false;
+      });
+      try {
+        final decoded = await decodeBackupSizedOnIsolate(
+          json,
+          runner: defaultBackupCodecRunner,
+        );
+        if (!mounted || generation != _pickGeneration) return;
+        setState(() {
+          _read = decoded.read;
+          _sizeBytes = decoded.sizeBytes;
+        });
+      } on Object catch (e, stackTrace) {
+        logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
+        if (!mounted || generation != _pickGeneration) return;
+        setState(() => _decodeFailed = true);
+      }
     } on BackupFileTooLargeException catch (e, stackTrace) {
       logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
       // Surface the size-cap refusal as a friendly message instead of letting
       // it crash the picker: the file was never read, so live data is safe.
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).backupFileTooLarge(
+              backupMegabytes(e.sizeBytes),
+              backupMegabytes(e.maxBytes),
+            ),
+          ),
+        ),
+      );
+    } on FormatException catch (e, stackTrace) {
+      logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).backupRestoreInvalidFile),
+        ),
+      );
+    } on Object catch (e, stackTrace) {
+      logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).backupChooseFileFailed),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _picking = false);
     }
   }
 
+  Widget _fileSummary(AppLocalizations l10n) {
+    final read = _read;
+    final String text;
+    if (read == null && !_decodeFailed) {
+      text = l10n.backupRestorePreparing;
+    } else if (read == null || read.fatal) {
+      text = l10n.backupFileUnreadable(
+        backupMegabytes(_sizeBytes ?? _pickedJson!.length),
+      );
+    } else {
+      final core = read.document.core;
+      text = l10n.backupFileSummary(
+        MaterialLocalizations.of(
+          context,
+        ).formatMediumDate(read.document.createdAt.toLocal()),
+        core.dances.where((d) => d.deletedAt == null).length,
+        core.programs.where((p) => p.deletedAt == null).length,
+        backupMegabytes(_sizeBytes!),
+      );
+    }
+    return Card(
+      key: const ValueKey('restore-file-summary'),
+      margin: EdgeInsets.zero,
+      child: ListTile(
+        leading: const Icon(Icons.description_outlined),
+        title: Text(text),
+        trailing: TextButton(
+          key: const ValueKey('restore-file-clear'),
+          onPressed: _clearFile,
+          child: Text(l10n.backupFileClearAction),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final hasContent = _controller.text.trim().isNotEmpty;
+    final holdsFile = _pickedJson != null;
+    final hasContent = holdsFile || _controller.text.trim().isNotEmpty;
     return AlertDialog(
       key: const ValueKey('restore-backup-dialog'),
       title: Text(l10n.backupRestoreTitle),
@@ -846,9 +1066,14 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
               label: Text(l10n.backupChooseFileAction),
             ),
             const SizedBox(height: AppSpacing.sm),
+            if (holdsFile) ...[
+              _fileSummary(l10n),
+              const SizedBox(height: AppSpacing.sm),
+            ],
             TextField(
               key: const ValueKey('restore-paste-field'),
               controller: _controller,
+              enabled: !holdsFile,
               minLines: 3,
               maxLines: 6,
               onChanged: (_) => setState(() {}),
@@ -869,11 +1094,69 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
         FilledButton(
           key: const ValueKey('restore-confirm'),
           onPressed: hasContent
-              ? () => Navigator.of(context).pop(_controller.text)
+              ? () => Navigator.of(context).pop(
+                  holdsFile
+                      ? _RestoreChoice(_pickedJson!, _read)
+                      : _RestoreChoice(_controller.text),
+                )
               : null,
           child: Text(l10n.backupReplaceAllDataAction),
         ),
       ],
+    );
+  }
+}
+
+/// The modal shown while a backup is exported or restored. Not dismissable by
+/// the barrier or the back button; its owner closes it. See
+/// [_GeneralSectionState._showBackupProgress].
+class _BackupProgressDialog extends StatelessWidget {
+  const _BackupProgressDialog({
+    super.key,
+    required this.progress,
+    required this.idleLabel,
+    required this.progressLabel,
+  });
+
+  /// `(done, total)` once known; `null` (or a null notifier) = indeterminate.
+  final ValueListenable<(int, int)?>? progress;
+  final String idleLabel;
+  final String Function(int done, int total)? progressLabel;
+
+  Widget _body((int, int)? value) {
+    final total = value?.$2 ?? 0;
+    final label = progressLabel;
+    final determinate = value != null && total > 0 && label != null;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LinearProgressIndicator(value: determinate ? value.$1 / total : null),
+        const SizedBox(height: AppSpacing.md),
+        Semantics(
+          liveRegion: true,
+          child: Text(determinate ? label(value.$1, total) : idleLabel),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final source = progress;
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        content: SizedBox(
+          width: 320,
+          child: source == null
+              ? _body(null)
+              : ValueListenableBuilder<(int, int)?>(
+                  valueListenable: source,
+                  builder: (_, value, _) => _body(value),
+                ),
+        ),
+      ),
     );
   }
 }

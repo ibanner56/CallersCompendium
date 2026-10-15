@@ -63,10 +63,44 @@ final class _SqliteBindLimitGuard extends QueryInterceptor {
   }
 }
 
+/// Records bare `SELECT * FROM <table>;` statements for [tables] — a whole-table
+/// hydration with no filter or ordering, which `listAll` never issues (it
+/// orders by title). A `selectOnly` read names its columns, so it is not
+/// recorded.
+final class _WholeRowSelectCounter extends QueryCounter {
+  _WholeRowSelectCounter(this.tables);
+
+  final Set<String> tables;
+  final statements = <String>[];
+
+  @override
+  void reset() {
+    super.reset();
+    statements.clear();
+  }
+
+  @override
+  bool matches(String statement) {
+    final s = statement.toLowerCase();
+    final hit = tables.any((t) => s == 'select * from "$t";');
+    if (hit) statements.add(statement);
+    return hit;
+  }
+}
+
+/// The lowered PBKDF2 count this suite runs under. The real 600,000-iteration
+/// value is asserted in `sync_identity_kdf_test.dart`, which sets no
+/// suite-wide override (its mismatch test lowers it for one test only).
+const _testKdfIterations = 1000;
+
 void main() {
   late CompendiumDatabase db;
   late CompendiumRepositories repositories;
   late CompendiumSyncStorage storage;
+
+  final productionKdfIterations = syncIdentityKdfIterations;
+  setUpAll(() => syncIdentityKdfIterations = _testKdfIterations);
+  tearDownAll(() => syncIdentityKdfIterations = productionKdfIterations);
 
   setUp(() {
     db = openTestDatabase();
@@ -127,6 +161,37 @@ void main() {
       expect(row.deletedAt, isNull);
     },
   );
+
+  test('snapshot() reads timestamps without hydrating dance rows', () async {
+    final counter = _WholeRowSelectCounter(const {'dances', 'programs'});
+    await db.close();
+    final countingDb = openCountingTestDatabase(counter);
+    db = countingDb;
+    final countingRepositories = CompendiumRepositories(
+      countingDb,
+      contraTaxonomy,
+    );
+    final countingStorage = CompendiumSyncStorage(countingRepositories);
+    final stamp = DateTime.utc(2026, 7, 15, 12);
+    await countingRepositories.dances.create(
+      Dance(id: 'd1', title: 'One', createdAt: stamp, updatedAt: stamp),
+    );
+    await countingRepositories.programs.create(
+      Program(id: 'p1', title: 'One', createdAt: stamp, updatedAt: stamp),
+    );
+    counter.reset();
+
+    final snapshot = await countingStorage.snapshot();
+
+    expect(
+      snapshot.local.keys,
+      containsAll([
+        (kind: SyncRecordKind.dance, recordId: 'd1'),
+        (kind: SyncRecordKind.program, recordId: 'p1'),
+      ]),
+    );
+    expect(counter.statements, isEmpty);
+  });
 
   test(
     'rejects a noncanonical natural-key body before reconciliation side effects',
@@ -1293,7 +1358,7 @@ void main() {
       expect(entries, hasLength(1));
       final verifier = (entries.single as Map).cast<String, Object?>();
       expect(verifier['algorithm'], 'pbkdf2-sha256');
-      expect(verifier['iterations'], 600000);
+      expect(verifier['iterations'], _testKdfIterations);
       expect(verifier['salt'], isA<String>());
       expect(verifier['verifier'], isA<String>());
       expect(verifier['verifier'], isNot(sha256Hex(utf8.encode('sync-a'))));
@@ -1306,6 +1371,19 @@ void main() {
       expect((await storage.snapshot(syncId: 'sync-b')).previouslyUsed, isTrue);
     },
   );
+
+  test('the KDF iteration override is recorded in the stored marker and '
+      'costs one derivation', () async {
+    syncIdentityKdfIterations = 1000;
+    syncIdentityVerifierDerivationCount = 0;
+
+    await storage.markSyncUsed('sync-override');
+
+    final marker = await repositories.settings.get(syncLastUsedFingerprintKey);
+    final entry = ((marker! as List).single as Map).cast<String, Object?>();
+    expect(entry['iterations'], 1000);
+    expect(syncIdentityVerifierDerivationCount, 1);
+  });
 
   test('derives the slow identity verifier at most once per pass, for an '
       'identity already marked used before the pass began', () async {
@@ -1502,6 +1580,114 @@ void main() {
       );
     },
   );
+
+  test('holds an inbound difficulty-level tombstone pending while only a '
+      'tombstoned dance cites the level', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final level = await repositories.difficultyLevels.createCustom(
+      label: 'Sizzling',
+      position: 99,
+    );
+    await repositories.dances.create(
+      Dance(
+        id: 'deleted-dance',
+        title: 'Deleted dance',
+        difficultyLevelId: level.id,
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    );
+    await repositories.dances.softDelete('deleted-dance', at: stamp);
+    // The local guard agrees: a dance in Recently Deleted still holds it.
+    expect(await repositories.difficultyLevels.isInUse(level.id), isTrue);
+
+    final tombstone = level.copyWith();
+    await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.difficultyLevel,
+            id: level.id,
+            updatedAt: stamp,
+            deletedAt: stamp,
+            existenceAt: stamp,
+            body: syncBodyForEntity(SyncRecordKind.difficultyLevel, tombstone),
+          ),
+        ),
+      ],
+      storage: storage,
+    );
+
+    final row = await (db.select(
+      db.difficultyLevels,
+    )..where((t) => t.id.equals(level.id))).getSingle();
+    expect(row.deletedAt, isNull);
+    final pending = await repositories.syncLocal.listPendingDeletions();
+    expect(
+      pending.map((p) => (p.kind, p.recordId)),
+      contains((SyncRecordKind.difficultyLevel, level.id)),
+    );
+  });
+
+  test('holds a difficulty-level tombstone pending when its citing dance is '
+      'tombstoned in the same batch', () async {
+    final stamp = DateTime.utc(2025, 1, 2, 12);
+    final later = DateTime.utc(2025, 1, 3, 12);
+    final level = await repositories.difficultyLevels.createCustom(
+      label: 'Sizzling',
+      position: 99,
+    );
+    final dance = Dance(
+      id: 'citing-dance',
+      title: 'Citing dance',
+      difficultyLevelId: level.id,
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    await repositories.dances.create(dance);
+
+    // A peer deletes the dance and its level together. The dance is
+    // restorable, so the level it cites must survive the batch.
+    await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.dance,
+            id: dance.id,
+            updatedAt: later,
+            deletedAt: later,
+            existenceAt: later,
+            body: syncBodyForEntity(SyncRecordKind.dance, dance),
+          ),
+        ),
+        SyncMergeCandidate(
+          blob: SyncRecordBlob(
+            kind: SyncRecordKind.difficultyLevel,
+            id: level.id,
+            updatedAt: later,
+            deletedAt: later,
+            existenceAt: later,
+            body: syncBodyForEntity(SyncRecordKind.difficultyLevel, level),
+          ),
+        ),
+      ],
+      storage: storage,
+    );
+
+    final danceRow = await (db.select(
+      db.dances,
+    )..where((t) => t.id.equals(dance.id))).getSingle();
+    expect(danceRow.deletedAt, isNotNull);
+    final levelRow = await (db.select(
+      db.difficultyLevels,
+    )..where((t) => t.id.equals(level.id))).getSingle();
+    expect(levelRow.deletedAt, isNull);
+    final pending = await repositories.syncLocal.listPendingDeletions();
+    expect(
+      pending.map((p) => (p.kind, p.recordId)),
+      contains((SyncRecordKind.difficultyLevel, level.id)),
+    );
+  });
 
   test(
     'applies an inbound update to a record held by a pending tombstone',

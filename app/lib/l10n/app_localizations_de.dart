@@ -43,6 +43,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get navSettings => 'Einstellungen';
 
   @override
+  String get navGlossary => 'Glossar';
+
+  @override
   String get navGuide => 'Leitfaden';
 
   @override
@@ -71,8 +74,66 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appBootstrapError => 'Sammlung konnte nicht vorbereitet werden.';
 
   @override
+  String appBootstrapErrorType(String errorType) {
+    return 'Fehler: $errorType';
+  }
+
+  @override
+  String get appBootstrapCopyDetails => 'Details kopieren';
+
+  @override
+  String get appBootstrapCopiedDetails => 'Kopiert';
+
+  @override
+  String get appBootstrapLogHint =>
+      'Die Details wurden auch in das Diagnoseprotokoll im Support-Ordner der App geschrieben.';
+
+  @override
   String get migrationDowngradeMessage =>
       'Diese Daten wurden mit einer neueren Version von Caller’s Compendium erstellt – bitte aktualisiere die App.';
+
+  @override
+  String get migrationRelocationBothExist =>
+      'Caller’s Compendium wurde nicht gestartet, weil gespeicherte Datendateien am neuen Speicherort und zusätzlich in einem Ordner gefunden wurden, den eine frühere Version verwendet hat. Es wurde nichts geändert oder gelöscht. Behalte die gewünschte Kopie, verschiebe die andere an einen anderen Ort und öffne die App dann erneut. Der FAQ-Eintrag „Wo werden meine Daten gespeichert?“ nennt die Speicherorte.';
+
+  @override
+  String get migrationRelocationMultipleLegacy =>
+      'Caller’s Compendium wurde nicht gestartet, weil gespeicherte Daten in mehr als einem Ordner gefunden wurden, den frühere Versionen verwendet haben. Es wurde nichts geändert oder gelöscht. Behalte die gewünschte Kopie, verschiebe die anderen an einen anderen Ort und öffne die App dann erneut. Der FAQ-Eintrag „Wo werden meine Daten gespeichert?“ nennt die Speicherorte.';
+
+  @override
+  String get migrationRelocationFailed =>
+      'Caller’s Compendium wurde nicht gestartet, weil das Verschieben deiner gespeicherten Daten an den neuen Speicherort nicht abgeschlossen werden konnte. Es wurde nichts gelöscht. Schaffe Speicherplatz, schließe andere Programme, die die Daten möglicherweise verwenden, oder prüfe die Ordnerberechtigungen und öffne die App dann erneut, um es noch einmal zu versuchen.';
+
+  @override
+  String get migrationRelocationLegacyUnreachable =>
+      'Caller’s Compendium wurde nicht gestartet, weil dein Dokumente-Ordner nicht erreichbar war, in dem frühere Versionen deine gespeicherten Daten abgelegt haben. Es wurde nichts geändert oder angelegt. Liegt der Dokumente-Ordner auf einem anderen Laufwerk oder in einem Netzwerkordner, verbinde ihn erneut und öffne die App dann noch einmal. Hast du keinen Dokumente-Ordner, lege einen leeren an und öffne die App dann noch einmal. Der FAQ-Eintrag „Wo werden meine Daten gespeichert?“ erklärt mehr.';
+
+  @override
+  String get migrationRelocationCopiesHeading =>
+      'Größe und letzte Änderung jeder Kopie (die größere, zuletzt geänderte Kopie ist meist deine Bibliothek):';
+
+  @override
+  String get migrationRelocationCopyNewLocation => 'Neuer Speicherort';
+
+  @override
+  String get migrationRelocationCopyDocuments => 'Dokumente-Ordner';
+
+  @override
+  String get migrationRelocationCopyEarlierAppFolder =>
+      'Früherer App-Datenordner';
+
+  @override
+  String migrationRelocationCopyDetails(
+    String location,
+    int kilobytes,
+    String date,
+  ) {
+    final intl.NumberFormat kilobytesNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String kilobytesString = kilobytesNumberFormat.format(kilobytes);
+
+    return '$location: $kilobytesString KB, zuletzt geändert $date';
+  }
 
   @override
   String migrationSnapshotAbortedMessage(String cause) {
@@ -205,6 +266,53 @@ class AppLocalizationsDe extends AppLocalizations {
       'Neue Funktionen können hier erscheinen, während sie sich noch in Entwicklung befinden.';
 
   @override
+  String get glossaryTitle => 'Glossar';
+
+  @override
+  String get glossarySearchHint => 'Figuren suchen';
+
+  @override
+  String glossaryNoMatches(String query) {
+    return 'Keine Figur passt zu „$query“.';
+  }
+
+  @override
+  String get glossarySelectPrompt =>
+      'Wähle eine Figur aus, um ihre Definition zu sehen.';
+
+  @override
+  String get glossaryNoDefinition => 'Noch keine Definition.';
+
+  @override
+  String glossaryVariantOf(String figure) {
+    return 'Eine Variante von $figure.';
+  }
+
+  @override
+  String glossaryNameWithDetail(String name, String detail) {
+    return '$name ($detail)';
+  }
+
+  @override
+  String get glossaryExample => 'Beispiel';
+
+  @override
+  String get glossaryParameters => 'Parameter';
+
+  @override
+  String get glossaryAlsoKnownAs => 'Auch bekannt als';
+
+  @override
+  String get settingsExperimentalGlossaryHeader => 'Glossar';
+
+  @override
+  String get settingsExperimentalShowGlossaryTitle => 'Glossar anzeigen';
+
+  @override
+  String get settingsExperimentalShowGlossarySubtitle =>
+      'Fügt der Navigation zwischen Programmen und Einstellungen ein Glossar der integrierten Figuren hinzu.';
+
+  @override
   String get settingsSyncHeader => 'Gerätesynchronisierung';
 
   @override
@@ -301,6 +409,320 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die letzte Synchronisierung ist fehlgeschlagen.';
 
   @override
+  String get settingsSyncStatusSettingsUnreadable =>
+      'Die Einstellungen der Gerätesynchronisierung konnten nicht gelesen werden, daher können die hier angezeigten Einstellungen veraltet sein, und die Gerätesynchronisierung kann ausgeschaltet sein, obwohl du sie eingeschaltet hast. Starte die App neu, um es erneut zu versuchen.';
+
+  @override
+  String get settingsSyncFailureUnreachable =>
+      'Der Synchronisierungsserver war nicht erreichbar.';
+
+  @override
+  String get settingsSyncFailureUnreachableAdvice =>
+      'Prüfe, ob dieses Gerät online ist. Wenn du einen eigenen Server betreibst, prüfe, ob er läuft und ob seine Adresse stimmt.';
+
+  @override
+  String get settingsSyncFailureTimedOut =>
+      'Der Synchronisierungsserver hat zu lange für eine Antwort gebraucht.';
+
+  @override
+  String get settingsSyncFailureTimedOutAdvice =>
+      'Meist liegt das an einer langsamen oder instabilen Verbindung. Versuche es erneut, wenn die Verbindung besser ist.';
+
+  @override
+  String get settingsSyncFailureServerError =>
+      'Beim Synchronisierungsserver selbst ist ein Problem aufgetreten.';
+
+  @override
+  String get settingsSyncFailureServerErrorAdvice =>
+      'Mit diesem Gerät und deiner Bibliothek ist alles in Ordnung. Warte eine Weile und versuche es erneut. Wenn es weiterhin passiert, gib der Person Bescheid, die den Server betreibt, und nenne die hier angezeigten Details.';
+
+  @override
+  String get settingsSyncFailureRateLimited =>
+      'Der Synchronisierungsserver hat dieses Gerät gebeten, langsamer zu machen.';
+
+  @override
+  String get settingsSyncFailureRateLimitedAdvice =>
+      'Er hat in kurzer Zeit zu viele Anfragen erhalten. Warte ein paar Minuten, bevor du es erneut versuchst.';
+
+  @override
+  String get settingsSyncFailureStoreFull =>
+      'Dein Speicher hat den gesamten Platz belegt, den der Synchronisierungsserver erlaubt.';
+
+  @override
+  String get settingsSyncFailureStoreFullAdvice =>
+      'Änderungen von diesem Gerät können erst gespeichert werden, wenn wieder Platz ist. Wenn du Ungenutzte importierte Tänze überspringen einschaltest, lädt dieses Gerät weniger hoch. Wenn du einen eigenen Server betreibst, erhöhe sein Speicherlimit.';
+
+  @override
+  String get settingsSyncFailureTooLarge =>
+      'Etwas, das dieses Gerät hochladen wollte, ist größer, als der Synchronisierungsserver annimmt.';
+
+  @override
+  String get settingsSyncFailureTooLargeAdvice =>
+      'Wenn du eine große importierte Sammlung hast, bringt sie das Einschalten von Ungenutzte importierte Tänze überspringen vielleicht unter das Limit. Wenn du einen eigenen Server betreibst, prüfe sein Limit für die Uploadgröße.';
+
+  @override
+  String get settingsSyncFailureRejected =>
+      'Der Synchronisierungsserver hat abgelehnt, was dieses Gerät gesendet hat.';
+
+  @override
+  String get settingsSyncFailureRejectedAdviceDefaultServer =>
+      'Diese Version der App ist neuer als der Synchronisierungsserver. Deine Änderungen sind hier gespeichert und werden synchronisiert, sobald der Server aktualisiert ist.';
+
+  @override
+  String get settingsSyncFailureRejectedAdviceCustomServer =>
+      'Aktualisiere deinen Synchronisierungsserver passend zu dieser Version der App.';
+
+  @override
+  String get settingsSyncStatusWaiting =>
+      'Warten auf Synchronisierung. Deine Änderungen sind hier gespeichert.';
+
+  @override
+  String get settingsSyncQuotaNearlyFull => 'Dein Speicher ist fast voll.';
+
+  @override
+  String get settingsSyncQuotaExcludeImports =>
+      'Importierte Tänze nicht mehr synchronisieren';
+
+  @override
+  String settingsSyncNoticeNewerVersionItems(String items) {
+    return 'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um $items zu erhalten.';
+  }
+
+  @override
+  String settingsSyncNoticeCountDance(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze',
+      one: '1 Tanz',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountProgram(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Programme',
+      one: '1 Programm',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountChoreographer(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Choreografen',
+      one: '1 Choreografen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountTag(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tags',
+      one: '1 Tag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountCustomField(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count benutzerdefinierte Felder',
+      one: '1 benutzerdefiniertes Feld',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountDifficulty(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Schwierigkeitsgrade',
+      one: '1 Schwierigkeitsgrad',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountPublishedSource(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count veröffentlichte Quellen',
+      one: '1 veröffentlichte Quelle',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountVenue(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Veranstaltungsorte',
+      one: '1 Veranstaltungsort',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountSetting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einstellungen',
+      one: '1 Einstellung',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeNewerVersionUncounted =>
+      'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten.';
+
+  @override
+  String settingsSyncNoticeKeptNewerItems(String items) {
+    return 'Für eine neuere Version der App aufbewahrt: $items. Sie werden weiter synchronisiert, mit Details, die diese Version nicht anzeigen kann. Aktualisiere die App auf diesem Gerät, um sie zu sehen.';
+  }
+
+  @override
+  String get settingsSyncCopyDetails => 'Details kopieren';
+
+  @override
+  String get settingsSyncDetailsCopied => 'Details kopiert.';
+
+  @override
+  String get settingsSyncFailureAccessDenied =>
+      'Der Synchronisierungsserver hat die Synchronisierungsphrase dieses Geräts nicht akzeptiert.';
+
+  @override
+  String get settingsSyncFailureAccessDeniedAdvice =>
+      'Vergleiche die Phrase mit der auf deinem anderen Gerät und prüfe, ob die Serveradresse stimmt.';
+
+  @override
+  String get settingsSyncFailureUnexpectedResponse =>
+      'Der Synchronisierungsserver hat eine Antwort gesendet, mit der diese App nichts anfangen kann.';
+
+  @override
+  String get settingsSyncFailureUnexpectedResponseAdvice =>
+      'Wenn du einen eigenen Server betreibst, prüfe seine Adresse und ob er eine Version hat, die diese App unterstützt. Andernfalls aktualisiere die App und versuche es später erneut.';
+
+  @override
+  String get settingsSyncFailurePeerUnavailable =>
+      'Was eines deiner anderen Geräte zuletzt geteilt hat, konnte nicht gelesen werden.';
+
+  @override
+  String get settingsSyncFailurePeerUnavailableAdvice =>
+      'Um sich mit einem Speicher zu verbinden, wird die neueste Liste jedes Geräts darin benötigt. Öffne die App auf deinen anderen Geräten, lass sie synchronisieren und versuche es dann erneut. Wenn ein Gerät endgültig weg ist, entferne es unter Andere Geräte.';
+
+  @override
+  String get settingsSyncFailureInternal =>
+      'Beim Synchronisieren ist in der App etwas schiefgegangen.';
+
+  @override
+  String get settingsSyncFailureInternalAdvice =>
+      'Das liegt nicht an deiner Verbindung oder am Server. Versuche es erneut. Wenn es weiterhin passiert, exportiere das Protokoll unter Einstellungen ▸ Diagnose und füge es bei, wenn du das Problem meldest.';
+
+  @override
+  String settingsSyncFailureStep(String step) {
+    String _temp0 = intl.Intl.selectLogic(step, {
+      'lookup': 'Beim Suchen des Speichers abgebrochen.',
+      'download': 'Beim Herunterladen von deinen anderen Geräten abgebrochen.',
+      'upload': 'Beim Hochladen der Änderungen dieses Geräts abgebrochen.',
+      'publish':
+          'Beim Veröffentlichen der Änderungen dieses Geräts abgebrochen.',
+      'createStore': 'Beim Erstellen des Speichers abgebrochen.',
+      'other': 'Mittendrin abgebrochen.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncFailureStatusCode(int code) {
+    return 'Der Server antwortete mit HTTP-Status $code.';
+  }
+
+  @override
+  String settingsSyncFailureDetails(String details) {
+    return 'Details: $details';
+  }
+
+  @override
+  String commonSyncFailed(String explanation) {
+    return 'Die Synchronisierung wurde nicht abgeschlossen. $explanation';
+  }
+
+  @override
+  String settingsSyncNoticeAffected(String records) {
+    return 'Betrifft: $records';
+  }
+
+  @override
+  String get settingsSyncNoticeListSeparator => ', ';
+
+  @override
+  String settingsSyncNoticeRecordNamed(String kind, String name) {
+    return '$kind „$name“';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHere(String kind) {
+    return '$kind, nicht auf diesem Gerät';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNewerFigures(String kind, String name) {
+    return '$kind „$name“ (enthält Figuren, die nur eine neuere Version lesen kann)';
+  }
+
+  @override
+  String settingsSyncNoticeRecordNotHereNewerFigures(String kind) {
+    return '$kind nicht auf diesem Gerät (enthält Figuren, die nur eine neuere Version lesen kann)';
+  }
+
+  @override
+  String settingsSyncNoticeAffectedMore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'und $count weitere',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeFromDevices(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Von $count anderen Geräten.',
+      one: 'Von 1 anderen Gerät.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDevicesFailedBecause(String explanation) {
+    return 'Die Geräteliste konnte nicht geladen werden. $explanation';
+  }
+
+  @override
+  String settingsSyncAdminFailedBecause(String message, String explanation) {
+    return '$message $explanation';
+  }
+
+  @override
   String get settingsSyncStatusStaleStore =>
       'Dieser Speicher wurde seit deiner letzten Synchronisierung von einem anderen Gerät ersetzt. Die nächste Synchronisierung verbindet sich mit dem neuen.';
 
@@ -318,7 +740,300 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncNoticeDivergence =>
-      'Einige Einträge wurden im selben Moment auf zwei Geräten geändert. Keine der Fassungen wurde ausgewählt, deine Geräte unterscheiden sich also weiterhin. Bearbeite eine davon, um das zu klären.';
+      'Einige Einträge wurden im selben Moment auf zwei Geräten geändert und unterscheiden sich weiterhin. Wenn sie unter Synchronisierungsentscheidungen aufgeführt sind, wähle dort; andernfalls bearbeite einen davon, um das zu klären.';
+
+  @override
+  String get syncConflictTitle => 'Wähle, welche Fassung du behältst';
+
+  @override
+  String get syncConflictIntro =>
+      'Diese Einträge wurden auf mehr als einem Gerät geändert, und die App kann nicht erkennen, welche Änderung gelten soll. Beide Fassungen bleiben erhalten, bis du wählst.';
+
+  @override
+  String get syncConflictThisDevice => 'Dieses Gerät';
+
+  @override
+  String get syncConflictOtherDevice => 'Ein anderes Gerät';
+
+  @override
+  String syncConflictOtherDeviceNumbered(int number) {
+    return 'Ein anderes Gerät ($number)';
+  }
+
+  @override
+  String get syncConflictKeepAllThisDevice => 'Alle von diesem Gerät behalten';
+
+  @override
+  String get syncConflictKeepAllOtherDevice =>
+      'Alle vom anderen Gerät behalten';
+
+  @override
+  String get syncConflictApply => 'Auswahl behalten';
+
+  @override
+  String get syncConflictDecideLater => 'Später entscheiden';
+
+  @override
+  String get syncConflictShowDifferences => 'Unterschiede anzeigen';
+
+  @override
+  String syncConflictChangedAt(String when) {
+    return 'Geändert am $when';
+  }
+
+  @override
+  String get syncConflictOnlyHereHeader => 'Nur auf diesem Gerät';
+
+  @override
+  String get syncConflictOnlyThereHeader => 'Nur auf dem anderen Gerät';
+
+  @override
+  String get syncConflictDifferentHeader => 'Auf jedem Gerät anders';
+
+  @override
+  String syncConflictSameCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count weitere sind auf beiden gleich',
+      one: '1 weiterer ist auf beiden gleich',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictSummaryOnlyHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nur auf diesem Gerät',
+      one: '1 nur auf diesem Gerät',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictSummaryOnlyThere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nur auf dem anderen Gerät',
+      one: '1 nur auf dem anderen Gerät',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictSummaryChanged(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count unterschiedlich',
+      one: '1 unterschiedlich',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictDiffersInFields(String fields) {
+    return 'Unterschiede bei: $fields';
+  }
+
+  @override
+  String syncConflictComparedWith(String version) {
+    return 'Verglichen mit $version';
+  }
+
+  @override
+  String get syncConflictNothingToShow =>
+      'Diese Fassungen unterscheiden sich nur in Details, die hier nicht angezeigt werden.';
+
+  @override
+  String get syncConflictFiguresUnreadable =>
+      'Die Figuren können hier nicht verglichen werden.';
+
+  @override
+  String get syncConflictSlotsReordered =>
+      'Dieselben Tänze in anderer Reihenfolge.';
+
+  @override
+  String get syncConflictSlotsDetailsDiffer =>
+      'Dieselben Tänze mit anderen Details, etwa Zeiten oder Alternativen.';
+
+  @override
+  String get syncConflictUnknownItem => 'Nicht auf diesem Gerät';
+
+  @override
+  String syncConflictVersionLine(String device, String value) {
+    return '$device: $value';
+  }
+
+  @override
+  String syncConflictFieldValue(String field, String value) {
+    return '$field: $value';
+  }
+
+  @override
+  String get syncConflictFieldName => 'Name';
+
+  @override
+  String get syncConflictCombineBoth => 'Beide zusammenführen';
+
+  @override
+  String syncConflictCombineSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Behält alle $count Einträge von beiden Geräten',
+      one: 'Behält den 1 Eintrag von beiden Geräten',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictCombineOverLimit(int count, int limit) {
+    return 'Zusammenführen nicht möglich: Zusammen wären es $count, und diese Liste fasst höchstens $limit.';
+  }
+
+  @override
+  String get syncConflictCombinePickEach =>
+      'Beide Geräte haben diese geändert. Wähle jeweils, welche Fassung du behältst:';
+
+  @override
+  String get syncConflictCombineUnavailable =>
+      'Diese lassen sich nicht zusammenführen, daher wurde nichts geändert.';
+
+  @override
+  String get syncConflictCombineOverLimitError =>
+      'Zusammen wären es mehr, als diese Liste fassen kann, daher wurde nichts geändert.';
+
+  @override
+  String get syncConflictSaved => 'Deine Auswahl ist gespeichert.';
+
+  @override
+  String get syncConflictUndo => 'Rückgängig';
+
+  @override
+  String get syncConflictReconsiderIntro =>
+      'Wähle erneut zwischen den Fassungen, die du hattest. Nichts ändert sich, bis du speicherst.';
+
+  @override
+  String get syncConflictUndoChanged =>
+      'Nach deiner Auswahl ist etwas Neueres eingetroffen, daher wurde nichts geändert.';
+
+  @override
+  String get syncConflictFieldProvenance => 'Herkunft';
+
+  @override
+  String get syncConflictFieldColour => 'Farbe';
+
+  @override
+  String get syncConflictThemeBrightness => 'Hell oder dunkel';
+
+  @override
+  String syncConflictFigureWalkthrough(String text) {
+    return 'Durchgang: $text';
+  }
+
+  @override
+  String syncConflictFigureWording(String text) {
+    return 'Formulierung: $text';
+  }
+
+  @override
+  String syncConflictFigureDetailsDiffer(String figure) {
+    return '$figure (weitere Details unterscheiden sich)';
+  }
+
+  @override
+  String get syncConflictLinkInGroup => 'in der Gruppe verwandter Tänze';
+
+  @override
+  String get syncConflictValueNotSet => 'Nicht festgelegt';
+
+  @override
+  String get syncConflictValueOn => 'Ein';
+
+  @override
+  String get syncConflictValueOff => 'Aus';
+
+  @override
+  String syncConflictValueItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Einträge',
+      one: '1 Eintrag',
+      zero: 'Keine',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String syncConflictValueNamesAndMore(String names, int count) {
+    return '$names und $count weitere';
+  }
+
+  @override
+  String get syncConflictNone => 'Im Moment gibt es nichts zu entscheiden.';
+
+  @override
+  String get syncConflictClockWrong =>
+      'Datum und Uhrzeit dieses Geräts scheinen falsch zu sein, deshalb konnte deine Auswahl nicht gespeichert werden. Korrigiere Datum und Uhrzeit und versuche es dann erneut.';
+
+  @override
+  String get syncConflictFailed =>
+      'Deine Auswahl konnte nicht gespeichert werden. Versuche es erneut.';
+
+  @override
+  String get syncSettingActiveCustomTheme =>
+      'Verwendetes benutzerdefiniertes Design';
+
+  @override
+  String get syncSettingActiveDialect => 'Verwendeter Dialekt';
+
+  @override
+  String get syncSettingLastCollectionSort =>
+      'Sortierung der Sammlung (zuletzt verwendet)';
+
+  @override
+  String get syncSettingLastCollectionSortDirection =>
+      'Sortierrichtung der Sammlung (zuletzt verwendet)';
+
+  @override
+  String get syncSettingLastProgramSort =>
+      'Sortierung der Programme (zuletzt verwendet)';
+
+  @override
+  String get syncSettingLastProgramSortDirection =>
+      'Sortierrichtung der Programme (zuletzt verwendet)';
+
+  @override
+  String get syncSettingPerformStageTheme => 'Bühnen-Design in Perform';
+
+  @override
+  String settingsSyncConflictsSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Einträge wurden auf zwei Geräten geändert und warten auf deine Wahl.',
+      one:
+          '1 Eintrag wurde auf zwei Geräten geändert und wartet auf deine Wahl.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String commonSyncNowConflictsTooltip(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Jetzt synchronisieren ($count Einträge warten auf deine Wahl)',
+      one: 'Jetzt synchronisieren (1 Eintrag wartet auf deine Wahl)',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsSyncNoticeKeptLocalCreation =>
@@ -345,8 +1060,23 @@ class AppLocalizationsDe extends AppLocalizations {
       'Eine Aktualisierung von einem anderen Gerät kam an, während du denselben Eintrag bearbeitet hast, und wurde daher nicht übernommen. Die nächste Synchronisierung holt sie nach.';
 
   @override
-  String get settingsSyncNoticeUnreflectedPublication =>
-      'Änderungen von diesem Gerät sind nach mehreren Synchronisierungen nicht auf deinen anderen Geräten erschienen. Öffne dort die App und synchronisiere.';
+  String settingsSyncNoticePeerNotTaking(int count, String tag) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Gerät $tag synchronisiert, nimmt aber $count Änderungen von diesem Gerät nicht an. Sie sind hier sicher. Das andere Gerät braucht vielleicht ein App-Update, oder Datum und Uhrzeit dieses Geräts stimmen nicht.',
+      one:
+          'Gerät $tag synchronisiert, nimmt aber 1 Änderung von diesem Gerät nicht an. Die Änderung ist hier sicher. Das andere Gerät braucht vielleicht ein App-Update, oder Datum und Uhrzeit dieses Geräts stimmen nicht.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsSyncNoticeNeedsYou => 'Erfordert dein Handeln';
+
+  @override
+  String get settingsSyncNoticeSeeDevices => 'Andere Geräte anzeigen';
 
   @override
   String get settingsSyncNotBackup =>
@@ -364,14 +1094,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncDisconnectSubtitle =>
-      'Die Synchronisierung hier beenden. Der Speicher und deine anderen Geräte bleiben unverändert.';
+      'Die Synchronisierung hier beenden. Deine Bibliothek bleibt, wie sie ist – hier und auf deinen anderen Geräten.';
 
   @override
   String get settingsSyncDisconnectConfirmTitle => 'Dieses Gerät trennen?';
 
   @override
   String get settingsSyncDisconnectConfirmBody =>
-      'Dieses Gerät synchronisiert dann nicht mehr und vergisst seine Synchronisierungsphrase. Deine Bibliothek auf diesem Gerät bleibt, wie sie ist, und der Speicher sowie deine anderen Geräte sind nicht betroffen. Um dich später wieder zu verbinden, brauchst du die Phrase – stell also sicher, dass du sie hast.';
+      'Dieses Gerät synchronisiert dann nicht mehr und vergisst seine Synchronisierungsphrase. Deine Bibliothek auf diesem Gerät bleibt, wie sie ist, und auf deinen anderen Geräten ebenso. Beim Trennen wird dieses Gerät aus dem Synchronisierungsspeicher entfernt, wenn deine anderen Geräte schon alles von ihm haben. Wenn nicht, bleibt es unter „Andere Geräte“ aufgeführt, bis du es dort entfernst. Um dich später wieder zu verbinden, brauchst du die Phrase – stell also sicher, dass du sie hast.';
 
   @override
   String get settingsSyncDisconnectConfirmAction => 'Trennen';
@@ -392,7 +1122,55 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncDevicesCaution =>
-      'Der Server kennt jedes Gerät nur an einer Kennung, die er selbst vergeben hat – deshalb stehen hier keine Gerätenamen, und dieses Gerät wird nicht aufgeführt. Wenn du nicht sicher bist, welches du entfernen sollst, kannst du es gefahrlos stehen lassen: Ein entferntes Gerät kann sich mit der Synchronisierungsphrase wieder verbinden.';
+      'Jedes Gerät denkt sich seine eigene zufällige Kennung aus, und bei jeder Verbindung eine neue. Deshalb werden Geräte hier mit einem kurzen Kürzel aus dieser Kennung angezeigt statt mit einem Namen. Dieses Gerät steht nicht in der Liste; sein eigenes Kürzel steht unten, damit du es auf deinen anderen Geräten wiederfindest. Wenn du nicht sicher bist, welches du entfernen sollst, kannst du es gefahrlos stehen lassen: Ein entferntes Gerät kann sich mit der Synchronisierungsphrase wieder verbinden.';
+
+  @override
+  String settingsSyncDevicesThisDevice(String tag) {
+    return 'Dieses Gerät: $tag';
+  }
+
+  @override
+  String settingsSyncDeviceTag(String tag) {
+    return 'Gerät $tag';
+  }
+
+  @override
+  String get settingsSyncDeviceLastSharedToday =>
+      'Hat heute zuletzt Änderungen geteilt';
+
+  @override
+  String settingsSyncDeviceLastSharedDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Hat vor $count Tagen zuletzt Änderungen geteilt',
+      one: 'Hat gestern zuletzt Änderungen geteilt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDeviceLastSharedWeeks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Hat vor etwa $count Wochen zuletzt Änderungen geteilt',
+      one: 'Hat vor etwa einer Woche zuletzt Änderungen geteilt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncDeviceWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Änderungen von diesem Gerät warten noch darauf, dort anzukommen.',
+      one: '1 Änderung von diesem Gerät wartet noch darauf, dort anzukommen.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsSyncDevicesEmpty =>
@@ -553,10 +1331,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Phrase wird bereits von einem anderen Speicher verwendet. Erzeuge eine andere.';
 
   @override
-  String get settingsSyncPairingUnreachable =>
-      'Die Gerätesynchronisierung ist gerade nicht verfügbar. Prüfe deine Verbindung und versuche es erneut.';
-
-  @override
   String settingsSyncPairingCustomEndpointTitle(String host) {
     return 'Eigener Server: $host';
   }
@@ -651,9 +1425,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get commonSystemDefault => 'Systemstandard';
-
-  @override
-  String get commonComingSoon => 'Demnächst verfügbar';
 
   @override
   String get settingsLanguageRegionTitle => 'Sprache & Region';
@@ -980,6 +1751,323 @@ class AppLocalizationsDe extends AppLocalizations {
       'Benutzerdefinierte Designs';
 
   @override
+  String get appThemeGroupSystem => 'System';
+
+  @override
+  String get appThemeGroupDefault => 'Standard';
+
+  @override
+  String get appThemeGroupLight => 'Hell';
+
+  @override
+  String get appThemeGroupDark => 'Dunkel';
+
+  @override
+  String get appThemeLabelSystem => 'System';
+
+  @override
+  String get appThemeLabelLight => 'Hell';
+
+  @override
+  String get appThemeLabelDark => 'Dunkel';
+
+  @override
+  String get appThemeLabelSoftDark => 'Sanftes Dunkel';
+
+  @override
+  String get appThemeLabelHighContrast => 'Hoher Kontrast';
+
+  @override
+  String get appThemeDescriptionSystem =>
+      'Folgt der Hell-/Dunkel-Einstellung des Geräts';
+
+  @override
+  String get appThemeDescriptionLight => 'Warme helle Palette';
+
+  @override
+  String get appThemeDescriptionDark => 'Warme dunkle Palette';
+
+  @override
+  String get appThemeDescriptionSoftDark =>
+      'Warmes Dunkel auf einem weicheren, helleren Hintergrund';
+
+  @override
+  String get appThemeDescriptionHighContrast =>
+      'Maximaler Kontrast für dunkle Räume und eingeschränktes Sehvermögen';
+
+  @override
+  String get appThemeDescriptionBlulocoLight =>
+      'Klare, kühl-neutrale Fläche mit lebhaften Juwelentönen';
+
+  @override
+  String get appThemeDescriptionOneDarkPro =>
+      'One Dark Pro, das beliebte Editor-Theme';
+
+  @override
+  String get appThemeDescriptionMonokai =>
+      'One Monokai – Monokai-Syntax auf Anthrazit';
+
+  @override
+  String get appThemeDescriptionNoctis =>
+      'Die originale tiefe petrolfarbene Noctis-Nacht';
+
+  @override
+  String get appThemeDescriptionGithubLight => 'GitHubs klares, neutrales Hell';
+
+  @override
+  String get appThemeDescriptionCatppuccinLatte =>
+      'Sanftes Pastell-Hell, Liebling der Community';
+
+  @override
+  String get appThemeDescriptionGruvboxLight =>
+      'Warmes Retro-Creme und Erdtöne';
+
+  @override
+  String get appThemeDescriptionEverforestLight =>
+      'Sanftes Grün, schonend für die Augen';
+
+  @override
+  String get appThemeDescriptionRosePineDawn =>
+      'Gedämpftes Rosé und Iris auf warmem Papier';
+
+  @override
+  String get appThemeDescriptionAyuLight =>
+      'Helles, minimalistisches Hell mit Bernstein-Akzenten';
+
+  @override
+  String get appThemeDescriptionTokyoNightLight =>
+      'Klares Indigo-Tageslicht, der Tag von Tokyo Night';
+
+  @override
+  String get appThemeDescriptionNordLight =>
+      'Kühle arktische Schneesturm-Neutraltöne';
+
+  @override
+  String get appThemeDescriptionKanagawaLotus =>
+      'Warmes Sumi-e-Papier mit Tuscheakzenten';
+
+  @override
+  String get appThemeDescriptionDracula =>
+      'Der klassische Favorit: Lila auf Anthrazit';
+
+  @override
+  String get appThemeDescriptionNord =>
+      'Kühle arktische Blautöne, zurückhaltend';
+
+  @override
+  String get appThemeDescriptionTokyoNight =>
+      'Neon-Indigo-Palette einer Stadt bei Nacht';
+
+  @override
+  String get appThemeDescriptionGruvboxDark =>
+      'Warmes Retro-Bernstein auf Anthrazit';
+
+  @override
+  String get appThemeDescriptionCatppuccinMocha =>
+      'Gemütliches Pastell-Dunkel, Liebling der Community';
+
+  @override
+  String get appThemeDescriptionGithubDark => 'GitHubs neutrales Dunkel';
+
+  @override
+  String get appThemeDescriptionEverforestDark =>
+      'Sanftes Waldgrün, ermüdungsarm';
+
+  @override
+  String get appThemeDescriptionRosePine =>
+      'Gedämpftes Rosé und Iris im Dunkeln';
+
+  @override
+  String get appThemeDescriptionAyuMirage =>
+      'Weiches Schiefergrau mit Bernstein-Akzenten';
+
+  @override
+  String get appThemeDescriptionCutiePro =>
+      'Superniedliches dunkles Pastell, rosa betont';
+
+  @override
+  String get appThemeDescriptionPinkAsHeck =>
+      'Unverschämt grelles Pink auf Beerenton';
+
+  @override
+  String get appThemeDescriptionVitesseLight =>
+      'Modernes, gedämpftes Salbei, Petrol und Rosé';
+
+  @override
+  String get appThemeDescriptionZenburn =>
+      'Das klassische, kontrastarme warme Grau';
+
+  @override
+  String get appThemeDescriptionShadesOfPurple =>
+      'Kräftiges Gold auf tiefem Indigo';
+
+  @override
+  String get appThemeDescriptionCatppuccinFrappe =>
+      'Helleres blaugraues Pastell-Catppuccin';
+
+  @override
+  String get appThemeDescriptionSynthwave84 =>
+      'Leuchtendes Neon auf Retro-Lila';
+
+  @override
+  String get appThemeDescriptionNoctisLilac =>
+      'Sanftes Flieder-Tageslicht von Noctis';
+
+  @override
+  String get themeEditorGroupPrimary => 'Primär';
+
+  @override
+  String get themeEditorGroupSecondary => 'Sekundär';
+
+  @override
+  String get themeEditorGroupTertiary => 'Tertiär';
+
+  @override
+  String get themeEditorGroupError => 'Fehler';
+
+  @override
+  String get themeEditorGroupSurfaceText => 'Oberfläche & Text';
+
+  @override
+  String get themeEditorGroupSurfaceContainers => 'Oberflächen-Container';
+
+  @override
+  String get themeEditorGroupOutlineEffects => 'Umriss & Effekte';
+
+  @override
+  String get themeEditorRolePrimary => 'Primär';
+
+  @override
+  String get themeEditorRoleOnPrimary => 'Auf Primär';
+
+  @override
+  String get themeEditorRolePrimaryContainer => 'Primär-Container';
+
+  @override
+  String get themeEditorRoleOnPrimaryContainer => 'Auf Primär-Container';
+
+  @override
+  String get themeEditorRoleSecondary => 'Sekundär';
+
+  @override
+  String get themeEditorRoleOnSecondary => 'Auf Sekundär';
+
+  @override
+  String get themeEditorRoleSecondaryContainer => 'Sekundär-Container';
+
+  @override
+  String get themeEditorRoleOnSecondaryContainer => 'Auf Sekundär-Container';
+
+  @override
+  String get themeEditorRoleTertiary => 'Tertiär';
+
+  @override
+  String get themeEditorRoleOnTertiary => 'Auf Tertiär';
+
+  @override
+  String get themeEditorRoleTertiaryContainer => 'Tertiär-Container';
+
+  @override
+  String get themeEditorRoleOnTertiaryContainer => 'Auf Tertiär-Container';
+
+  @override
+  String get themeEditorRoleError => 'Fehler';
+
+  @override
+  String get themeEditorRoleOnError => 'Auf Fehler';
+
+  @override
+  String get themeEditorRoleErrorContainer => 'Fehler-Container';
+
+  @override
+  String get themeEditorRoleOnErrorContainer => 'Auf Fehler-Container';
+
+  @override
+  String get themeEditorRoleSurface => 'Oberfläche';
+
+  @override
+  String get themeEditorRoleOnSurface => 'Auf Oberfläche';
+
+  @override
+  String get themeEditorRoleOnSurfaceVariant => 'Auf Oberflächenvariante';
+
+  @override
+  String get themeEditorRoleInverseSurface => 'Inverse Oberfläche';
+
+  @override
+  String get themeEditorRoleOnInverseSurface => 'Auf inverser Oberfläche';
+
+  @override
+  String get themeEditorRoleInversePrimary => 'Inverse Primärfarbe';
+
+  @override
+  String get themeEditorRoleSurfaceContainerLowest => 'Container (niedrigste)';
+
+  @override
+  String get themeEditorRoleSurfaceContainerLow => 'Container (niedrig)';
+
+  @override
+  String get themeEditorRoleSurfaceContainer => 'Container';
+
+  @override
+  String get themeEditorRoleSurfaceContainerHigh => 'Container (hoch)';
+
+  @override
+  String get themeEditorRoleSurfaceContainerHighest => 'Container (höchste)';
+
+  @override
+  String get themeEditorRoleOutline => 'Umriss';
+
+  @override
+  String get themeEditorRoleOutlineVariant => 'Umrissvariante';
+
+  @override
+  String get themeEditorRoleSurfaceTint => 'Oberflächentönung';
+
+  @override
+  String get themeEditorRoleShadow => 'Schatten';
+
+  @override
+  String get themeEditorRoleScrim => 'Abdunkelung';
+
+  @override
+  String get themeEditorPairOnPrimary => 'Text auf Primär';
+
+  @override
+  String get themeEditorPairOnPrimaryContainer => 'Text auf Primär-Container';
+
+  @override
+  String get themeEditorPairOnSecondary => 'Text auf Sekundär';
+
+  @override
+  String get themeEditorPairOnSecondaryContainer =>
+      'Text auf Sekundär-Container';
+
+  @override
+  String get themeEditorPairOnTertiary => 'Text auf Tertiär';
+
+  @override
+  String get themeEditorPairOnTertiaryContainer => 'Text auf Tertiär-Container';
+
+  @override
+  String get themeEditorPairOnError => 'Text auf Fehler';
+
+  @override
+  String get themeEditorPairOnErrorContainer => 'Text auf Fehler-Container';
+
+  @override
+  String get themeEditorPairOnSurface => 'Fließtext auf Oberfläche';
+
+  @override
+  String get themeEditorPairOnSurfaceVariant => 'Sekundärtext auf Oberfläche';
+
+  @override
+  String get themeEditorPairOnInverseSurface => 'Text auf inverser Oberfläche';
+
+  @override
+  String get themeEditorPairOutline => 'Umriss auf Oberfläche';
+
+  @override
   String get settingsAppearanceEasterEggsHeader => 'Easter Eggs';
 
   @override
@@ -1069,15 +2157,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsDefaultsStartingProgramPickerTitle => 'Tanz hinzufügen';
 
   @override
-  String get settingsDefaultsStartingProgramAddDance => 'Tanz';
-
-  @override
-  String get settingsDefaultsStartingProgramAddText => 'Notiz';
-
-  @override
-  String get settingsDefaultsStartingProgramAddBreak => 'Pause hinzufügen';
-
-  @override
   String get settingsDefaultsStartingProgramTextLabel => 'Notiztext';
 
   @override
@@ -1094,6 +2173,30 @@ class AppLocalizationsDe extends AppLocalizations {
   String settingsDefaultsStartingProgramUnavailableDance(String id) {
     return 'Nicht verfügbarer Tanz ($id)';
   }
+
+  @override
+  String get settingsDefaultsDifficultyLevelEmpty =>
+      'Ein Schwierigkeitsgrad braucht einen Namen.';
+
+  @override
+  String settingsDefaultsDifficultyLevelDuplicate(String label) {
+    return 'Ein Grad mit dem Namen „$label“ gibt es bereits.';
+  }
+
+  @override
+  String settingsDefaultsDifficultyLevelInUse(String label, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze verwenden $label. Ändere sie zuerst.',
+      one: '1 Tanz verwendet $label. Ändere ihn zuerst.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsDefaultsDifficultyLevelActionFailed =>
+      'Die Schwierigkeitsgrade konnten nicht gespeichert werden. Versuche es erneut.';
 
   @override
   String get settingsDefaultsBandLabel => 'Standard-Band';
@@ -1202,6 +2305,20 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wählen Sie aus, welche Filter erscheinen, wenn Sie die Sammlung filtern und wenn Sie Tänze für ein Programm auswählen. Standardmäßig werden alle Filter angezeigt. Beim Ausblenden eines Filters wird seine Auswahl zurückgesetzt.';
 
   @override
+  String get settingsDefaultsImportHeader => 'Import-Standardwerte';
+
+  @override
+  String get settingsDefaultsImportTagsTitle => 'Tags für importierte Tänze';
+
+  @override
+  String get settingsDefaultsImportTagsSubtitle =>
+      'Wird jedem neuen Tanz hinzugefügt, den du einzeln importierst. Tänze, die beim Import eines Programms entstehen, und Tänze, die aus einem Compendium-Archiv wiederhergestellt werden, erhalten keine Tags.';
+
+  @override
+  String get settingsDefaultsImportTagsEmpty =>
+      'Du hast noch keine Tags. Füge im Editor einem Tanz eines hinzu und wähle es dann hier aus.';
+
+  @override
   String get settingsDefaultsAuthoringHeader =>
       'Standardwerte für die Tanzerstellung';
 
@@ -1218,7 +2335,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateSubtitle =>
-      'Wenn aktiviert, wird die Taktzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Taktzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von Ihnen bearbeitete Taktzahl nie automatisch geändert.';
+      'Wenn aktiviert, wird die Taktzahl einer Figur sofort neu berechnet, sobald sich die Bewegung oder ein zeitrelevanter Parameter ändert – auch wenn dabei eine manuell eingegebene Taktzahl überschrieben wird. Wenn deaktiviert (Standard), wird eine von Ihnen bearbeitete Taktzahl nur automatisch geändert, wenn Sie eine Balance-Option ein- oder ausschalten; dabei werden 4 Takte hinzugefügt oder entfernt.';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'Figur-Abkürzungen';
@@ -1559,7 +2676,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsMatrixColumnsCompoundDeleteConfirm => 'Spalte löschen';
 
   @override
-  String get settingsGeneralPerformanceHeader => 'Leistung';
+  String get settingsGeneralPerformanceHeader => 'Perform-Modus';
 
   @override
   String get settingsGeneralAutoSizePerformTitle =>
@@ -1623,6 +2740,13 @@ class AppLocalizationsDe extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get settingsGeneralCapitalizeFiguresTitle => 'Figuren großschreiben';
+
+  @override
+  String get settingsGeneralCapitalizeFiguresSubtitle =>
+      'Wenn aktiviert, beginnt jede Figur in der Tanzansicht, im Perform-Modus und im Figureneditor mit einem Großbuchstaben („Neighbors allemande left“). Wenn deaktiviert, werden Figuren so angezeigt, wie sie geschrieben sind; eingebaute Figuren beginnen wie in ContraDB mit einem Kleinbuchstaben. Nur die Darstellung der Figuren an diesen Stellen ändert sich; Exporte, Suche, Sync-Vergleiche und Screenreader-Wortlaut bleiben unverändert.';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Barrierefreiheit';
@@ -1853,6 +2977,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Sicherung enthält Elemente, die diese App-Version nicht lesen kann (sie stammt möglicherweise von einer neueren Version), daher wurde die Wiederherstellung abgebrochen. Ihre Daten sind unverändert.';
 
   @override
+  String get backupRestoreMissingAppSection =>
+      'Diese Sicherung enthält Ihre App-Einstellungen, Designs und Dialekte nicht und kann Ihre aktuellen Daten daher nicht ersetzen. Die Wiederherstellung wurde abgebrochen. Ihre Daten sind unverändert.';
+
+  @override
   String get backupRestoreInvalidFile =>
       'Wiederherstellung fehlgeschlagen: Die Datei ist keine gültige Sicherung. Ihre Daten sind unverändert.';
 
@@ -1923,6 +3051,16 @@ class AppLocalizationsDe extends AppLocalizations {
       'Es ist schon eine Weile her seit Ihrer letzten Sicherung – erwägen Sie, jetzt eine zu exportieren.';
 
   @override
+  String get backupReminderBannerText =>
+      'Ihre Sicherung ist überfällig. Exportieren Sie jetzt eine, um Ihre Sammlung zu schützen.';
+
+  @override
+  String get backupReminderBannerExport => 'Sicherung exportieren';
+
+  @override
+  String get backupReminderBannerNotNow => 'Nicht jetzt';
+
+  @override
   String get backupRestoreDialogBody =>
       'Bei der Wiederherstellung wird alles in der App – Ihre Sammlung, Programme, Dialekte, Designs und Einstellungen – durch den Inhalt der Sicherung ersetzt. Dies kann nicht rückgängig gemacht werden.';
 
@@ -1930,10 +3068,59 @@ class AppLocalizationsDe extends AppLocalizations {
   String get backupChooseFileAction => 'Datei auswählen…';
 
   @override
+  String get backupChooseFileFailed => 'Die Datei konnte nicht gelesen werden.';
+
+  @override
   String get backupPasteJsonLabel => 'Oder Sicherungs-JSON einfügen';
 
   @override
   String get backupReplaceAllDataAction => 'Alle Daten ersetzen';
+
+  @override
+  String backupFileSummary(String date, int dances, int programs, String size) {
+    String _temp0 = intl.Intl.pluralLogic(
+      dances,
+      locale: localeName,
+      other: '$dances Tänze',
+      one: '$dances Tanz',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      programs,
+      locale: localeName,
+      other: '$programs Programme',
+      one: '$programs Programm',
+    );
+    return 'Sicherung vom $date: $_temp0, $_temp1, $size MB';
+  }
+
+  @override
+  String backupFileUnreadable(String size) {
+    return 'Diese Datei sieht nicht wie eine lesbare Sicherung aus ($size MB). Beim Ersetzen erfahren Sie, warum sie sich nicht wiederherstellen lässt.';
+  }
+
+  @override
+  String get backupFileClearAction => 'Entfernen';
+
+  @override
+  String backupFileTooLarge(String sizeMb, String limitMb) {
+    return 'Diese Datei ist zu groß für eine Caller’s-Compendium-Sicherung ($sizeMb MB; Grenze $limitMb MB). Ihre Daten bleiben unverändert.';
+  }
+
+  @override
+  String backupExportTooLarge(String sizeMb, String limitMb) {
+    return 'Ihre Sammlung ist zu groß, um sie als einzelne Sicherung zu exportieren ($sizeMb MB; Grenze $limitMb MB), daher wurde nichts gespeichert. Ihre Daten bleiben unverändert.';
+  }
+
+  @override
+  String get backupExportInProgress => 'Sicherung wird vorbereitet…';
+
+  @override
+  String get backupRestorePreparing => 'Sicherung wird gelesen…';
+
+  @override
+  String backupRestoreProgress(int done, int total) {
+    return '$done von $total werden wiederhergestellt…';
+  }
 
   @override
   String get diagnosticsNoDiagnosticsToExport =>
@@ -2307,10 +3494,6 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get collectionSearchFieldHint =>
       'Titel, Autoren, Figuren, Notizen suchen…';
-
-  @override
-  String get collectionPickerSearchFieldHint =>
-      'Titel, Figuren, Notizen suchen…';
 
   @override
   String get collectionPickerOnlineSearchFieldHint =>
@@ -2825,10 +4008,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionCreateTagButton => 'Tag erstellen';
 
   @override
-  String get collectionCreateTagError =>
-      'Tag konnte nicht erstellt werden. Versuchen Sie es erneut.';
-
-  @override
   String get collectionBatchApplyError =>
       'Batchänderungen konnten nicht angewendet werden. Versuchen Sie es erneut.';
 
@@ -3212,7 +4391,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programsUndoPerformedError =>
-      'Die Markierung konnte nicht rückgängig gemacht werden; die Erledigt-Markierungen bleiben gespeichert.';
+      'Die Markierung konnte nicht rückgängig gemacht werden; die Aufführungsmarkierungen bleiben gespeichert.';
 
   @override
   String get programsUndoRefreshError =>
@@ -3371,6 +4550,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsNotesLabel => 'Notizen';
 
   @override
+  String get programsPayLabel => 'Gage';
+
+  @override
+  String get programsPayHint => 'z. B. 250.00';
+
+  @override
+  String get programsPayCurrencyLabel => 'Währung';
+
+  @override
+  String get programsPayInvalid =>
+      'Gib einen Betrag wie 250 oder 250.50 in dieser Währung ein.';
+
+  @override
   String get programsStatusFieldLabel => 'Status';
 
   @override
@@ -3380,6 +4572,21 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get programsHideAlternatesSubtitle =>
       'Lässt ALT-Slots aus der Zusammenfassung, dem PDF und der exportierten Setliste aus. Der Builder zeigt weiterhin jeden Slot.';
+
+  @override
+  String get programsDialectFieldLabel => 'Dialekt für Perform';
+
+  @override
+  String get programsDialectUseApp => 'App-Dialekt verwenden';
+
+  @override
+  String programsDialectUnavailable(String name) {
+    return '$name (nicht verfügbar)';
+  }
+
+  @override
+  String get programsDialectHelper =>
+      'Nur in der Perform-Ansicht dieses Programms. Editor, Zusammenfassung und Exporte verwenden weiterhin den App-Dialekt.';
 
   @override
   String programsWarningCount(int count) {
@@ -3466,6 +4673,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String programsSummaryLevel(String level) {
     return 'Niveau: $level';
+  }
+
+  @override
+  String programsSummaryPay(String amount) {
+    return 'Gage: $amount';
   }
 
   @override
@@ -3704,35 +4916,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsMatrixHidePhrasesSemantic => 'Präsenzsymbole anzeigen';
 
   @override
-  String programsMatrixRowHeaderSemantic(
-    String title,
-    String alt,
-    String half,
-  ) {
-    String _temp0 = intl.Intl.selectLogic(half, {
-      'first': 'Alternativer Tanz: $title, erste Hälfte',
-      'second': 'Alternativer Tanz: $title, zweite Hälfte',
-      'other': 'Alternativer Tanz: $title',
-    });
-    String _temp1 = intl.Intl.selectLogic(half, {
-      'first': 'Tanz: $title, erste Hälfte',
-      'second': 'Tanz: $title, zweite Hälfte',
-      'other': 'Tanz: $title',
-    });
-    String _temp2 = intl.Intl.selectLogic(alt, {
-      'yes': '$_temp0',
-      'other': '$_temp1',
-    });
-    return '$_temp2';
-  }
-
-  @override
-  String programsMatrixHalfShort(String half) {
-    String _temp0 = intl.Intl.selectLogic(half, {'first': '1.', 'other': '2.'});
-    return '$_temp0';
-  }
-
-  @override
   String programsMatrixSectionShort(String sectionKey, String sectionNumber) {
     String _temp0 = intl.Intl.selectLogic(sectionKey, {
       's1': '1.',
@@ -3832,29 +5015,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'other': ', Phrase(n): $phrases',
     });
     return '$dance, $move: $_temp3$_temp4';
-  }
-
-  @override
-  String programsMatrixChipQualifiedTitle(
-    String title,
-    String alt,
-    String half,
-  ) {
-    String _temp0 = intl.Intl.selectLogic(half, {
-      'first': '$title (Alternativer Tanz, erste Hälfte)',
-      'second': '$title (Alternativer Tanz, zweite Hälfte)',
-      'other': '$title (Alternativer Tanz)',
-    });
-    String _temp1 = intl.Intl.selectLogic(half, {
-      'first': '$title (erste Hälfte)',
-      'second': '$title (zweite Hälfte)',
-      'other': '$title',
-    });
-    String _temp2 = intl.Intl.selectLogic(alt, {
-      'yes': '$_temp0',
-      'other': '$_temp1',
-    });
-    return '$_temp2';
   }
 
   @override
@@ -4054,6 +5214,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get performAdjustmentUndone => 'Anpassung rückgängig gemacht';
 
   @override
+  String get performUndoNoLongerAvailable =>
+      'Rückgängig nicht möglich: Das Programm wurde inzwischen geändert.';
+
+  @override
   String get performProgramAdjustedSnack => 'Programm angepasst.';
 
   @override
@@ -4091,6 +5255,10 @@ class AppLocalizationsDe extends AppLocalizations {
     String walkthroughComplete,
     String over,
     String paused,
+    String manual,
+    String actual,
+    String direction,
+    String delta,
   ) {
     String _temp0 = intl.Intl.pluralLogic(
       planned,
@@ -4103,19 +5271,28 @@ class AppLocalizationsDe extends AppLocalizations {
           ', geplant $_temp0: $walkthrough Minuten Durchlauf und $dance Minuten Tanz',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(walkthroughComplete, {
+    String _temp2 = intl.Intl.selectLogic(direction, {
+      'over': ', $delta über Plan',
+      'under': ', $delta unter Plan',
+      'other': ', planmäßig',
+    });
+    String _temp3 = intl.Intl.selectLogic(manual, {
+      'yes': ', Durchlauf endete bei $actual$_temp2',
+      'other': '',
+    });
+    String _temp4 = intl.Intl.selectLogic(walkthroughComplete, {
       'yes': ', Durchlauf abgeschlossen',
       'other': '',
     });
-    String _temp3 = intl.Intl.selectLogic(over, {
+    String _temp5 = intl.Intl.selectLogic(over, {
       'yes': ', über der geplanten Zeit',
       'other': '',
     });
-    String _temp4 = intl.Intl.selectLogic(paused, {
+    String _temp6 = intl.Intl.selectLogic(paused, {
       'yes': ', pausiert',
       'other': '',
     });
-    return 'Programmzeit $programTime, Slotzeit $slotTime$_temp1$_temp2$_temp3$_temp4';
+    return 'Programmzeit $programTime, Slotzeit $slotTime$_temp1$_temp3$_temp4$_temp5$_temp6';
   }
 
   @override
@@ -4130,6 +5307,27 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String performPlannedSplit(int planned, int walkthrough, int dance) {
     return 'geplant $planned Min. ($walkthrough:$dance)';
+  }
+
+  @override
+  String get performDanceStartUnused => 'Durchlauf fertig — Tanz starten';
+
+  @override
+  String get performDanceStartUsed =>
+      'Tanz gestartet — zum Rückgängigmachen tippen';
+
+  @override
+  String performWalkthroughActual(
+    String actual,
+    String direction,
+    String delta,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(direction, {
+      'over': ' (+$delta)',
+      'under': ' (−$delta)',
+      'other': ' (planmäßig)',
+    });
+    return 'Durchlauf $actual$_temp0';
   }
 
   @override
@@ -4248,6 +5446,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportShareDanceBundle => 'Tanzdatei teilen';
 
   @override
+  String get exportSaveDanceBundle => 'Tanzdatei speichern…';
+
+  @override
   String get exportCopyDance => 'Tanz kopieren';
 
   @override
@@ -4270,6 +5471,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get exportShareProgramBundle => 'Teilen (Programm + Tänze)';
+
+  @override
+  String get exportSaveProgramBundle => 'Programmdatei speichern…';
 
   @override
   String get exportCopySetList => 'Setliste kopieren';
@@ -4295,6 +5499,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get exportJsonShare => 'Teilen';
+
+  @override
+  String get exportJsonSaveAs => 'Speichern unter…';
 
   @override
   String get exportJsonCancel => 'Abbrechen';
@@ -4525,10 +5732,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String onlineSearchFieldLabel(String source) {
     return '$source durchsuchen';
   }
-
-  @override
-  String get onlineSearchFieldHint =>
-      'Online-Tänze nach Titel oder Autor suchen…';
 
   @override
   String get collectionOnlineSearchFieldHint =>
@@ -4959,6 +6162,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String importReviewCommitProgress(int done, int total) {
+    return '$done / $total';
+  }
+
+  @override
   String importReviewTitleListPasted(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -5069,6 +6277,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'The Caller\'s Box konnte für diesen Titel nicht erreicht werden.';
 
   @override
+  String get importTitleListReasonConnectionFailed =>
+      'The Caller\'s Box konnte nicht erreicht werden – prüfen Sie Ihre Verbindung.';
+
+  @override
+  String get importTitleListConnectionBanner =>
+      'Die Suche nach Titeln wurde nach einem Verbindungsfehler abgebrochen. Die Titel, die bereits in Ihrer Sammlung sind, werden aufgelistet; versuchen Sie es mit dem Rest, sobald Sie online sind.';
+
+  @override
   String get importTitleListReasonLineTooLong =>
       'Zu lang für einen Tanztitel, daher wurde nicht danach gesucht.';
 
@@ -5087,8 +6303,9 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get importErrorFileTooLarge =>
-      'Diese Datei ist zu groß zum Importieren.';
+  String importErrorFileTooLarge(int megabytes) {
+    return 'Die Datei überschreitet das Limit von $megabytes MB. Wählen Sie eine kleinere Datei und versuchen Sie es erneut.';
+  }
 
   @override
   String get archiveIntakeRejectedTooLarge =>
@@ -5131,7 +6348,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importErrorTooManyRedirects =>
-      'Diese URL hat zu viele Umleitungen durchgeführt.';
+      'Diese URL wurde zu oft umgeleitet. Öffnen Sie sie in einem Browser, um die endgültige Adresse zu finden, und verwenden Sie stattdessen diese.';
 
   @override
   String get importErrorResponseTooLarge =>
@@ -5151,12 +6368,20 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String importErrorHttpStatus(int status) {
-    return 'Der Server antwortete mit HTTP $status.';
+    return 'Der Server hat eine unerwartete Antwort gesendet (Code $status). Überprüfen Sie die URL und versuchen Sie es erneut.';
   }
 
   @override
+  String get importErrorHttpNotFound =>
+      'Unter dieser Adresse wurde nichts gefunden. Überprüfen Sie die URL und versuchen Sie es erneut.';
+
+  @override
+  String get importErrorHttpBusy =>
+      'Der Server ist ausgelastet oder hat Probleme. Versuchen Sie es in einer Minute erneut.';
+
+  @override
   String get importErrorEmptyResponse =>
-      'Die URL gab eine leere Antwort zurück.';
+      'Die URL hat eine leere Antwort geliefert. Prüfen Sie, ob der Link auf die Daten verweist, die Sie importieren möchten, und versuchen Sie es erneut.';
 
   @override
   String get importErrorCallersBoxEmptyInput =>
@@ -5188,17 +6413,30 @@ class AppLocalizationsDe extends AppLocalizations {
       'The Caller\'s Box konnte nicht erreicht werden. Überprüfen Sie Ihre Verbindung, dann versuchen Sie es erneut.';
 
   @override
-  String importErrorCallersBoxHttpStatus(int status) {
-    return 'The Caller\'s Box antwortete mit HTTP $status.';
+  String importErrorCallersBoxTimeout(int seconds) {
+    return 'The Caller\'s Box hat nicht innerhalb von $seconds s geantwortet. Überprüfen Sie Ihre Verbindung, dann versuchen Sie es erneut.';
   }
 
   @override
+  String importErrorCallersBoxHttpStatus(int status) {
+    return 'The Caller\'s Box hat eine unerwartete Antwort gesendet (Code $status). Versuchen Sie es in einer Minute erneut.';
+  }
+
+  @override
+  String get importErrorCallersBoxHttpNotFound =>
+      'The Caller\'s Box hat keinen Tanz mit dieser ID. Überprüfen Sie die Nummer oder den Link und versuchen Sie es erneut.';
+
+  @override
+  String get importErrorCallersBoxHttpBusy =>
+      'The Caller\'s Box ist gerade ausgelastet. Versuchen Sie es in einer Minute erneut.';
+
+  @override
   String get importErrorCallersBoxEmptyPage =>
-      'The Caller\'s Box gab eine leere Seite zurück.';
+      'The Caller\'s Box gab eine leere Seite zurück. Versuchen Sie es in einer Minute erneut.';
 
   @override
   String get importErrorCallersBoxNoDance =>
-      'The Caller\'s Box hat keinen importierbaren Tanz zurückgegeben.';
+      'The Caller\'s Box hat keinen importierbaren Tanz geliefert. Überprüfen Sie die ID oder den Link und versuchen Sie es erneut.';
 
   @override
   String get importErrorCallersBoxImportFailed =>
@@ -5249,17 +6487,30 @@ class AppLocalizationsDe extends AppLocalizations {
       'ContraDB konnte nicht erreicht werden. Überprüfen Sie Ihre Verbindung, dann versuchen Sie es erneut.';
 
   @override
-  String importErrorContraDbHttpStatus(int status) {
-    return 'ContraDB antwortete mit HTTP $status.';
+  String importErrorContraDbTimeout(int seconds) {
+    return 'ContraDB hat nicht innerhalb von $seconds s geantwortet. Überprüfen Sie Ihre Verbindung, dann versuchen Sie es erneut.';
   }
 
   @override
+  String importErrorContraDbHttpStatus(int status) {
+    return 'ContraDB hat eine unerwartete Antwort gesendet (Code $status). Versuchen Sie es in einer Minute erneut.';
+  }
+
+  @override
+  String get importErrorContraDbHttpNotFound =>
+      'ContraDB hat keinen Tanz mit dieser ID. Überprüfen Sie die Nummer oder den Link und versuchen Sie es erneut.';
+
+  @override
+  String get importErrorContraDbHttpBusy =>
+      'ContraDB ist gerade ausgelastet. Versuchen Sie es in einer Minute erneut.';
+
+  @override
   String get importErrorContraDbEmptyResponse =>
-      'ContraDB gab eine leere Antwort zurück.';
+      'ContraDB gab eine leere Antwort zurück. Versuchen Sie es in einer Minute erneut.';
 
   @override
   String get importErrorContraDbNoDance =>
-      'ContraDB hat keinen importierbaren Tanz zurückgegeben.';
+      'ContraDB hat keinen importierbaren Tanz geliefert. Überprüfen Sie die ID oder den Link und versuchen Sie es erneut.';
 
   @override
   String get importErrorContraDbImportFailed =>
@@ -5288,6 +6539,34 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get importIssueArchiveReadWarning =>
       'Beim Dekodieren der geteilten Datei wurde eine Warnung gemeldet.';
+
+  @override
+  String get importIssueArchiveNewerSchema =>
+      'Diese Datei wurde mit einer neueren Version von Caller\'s Compendium erstellt. Aktualisiere die App vor dem Import, sonst fehlen möglicherweise einige Details.';
+
+  @override
+  String get importIssueUsrFileTruncated =>
+      'Diese Datei wirkt unvollständig – nur ein Teil konnte gelesen werden. Kopiere sie erneut vom Original und importiere sie noch einmal.';
+
+  @override
+  String get importIssueUsrFiguresFromDanceRows =>
+      'Die Figuren konnten aus dieser Datei nicht gelesen werden, daher kommen Tänze möglicherweise ohne Figuren an. Prüfe die Originaldatei oder exportiere sie erneut aus Caller\'s Companion.';
+
+  @override
+  String get importIssueUsrPhraseGroupsOrphaned =>
+      'Einige Figuren konnten keinem Tanz zugeordnet werden und wurden weggelassen. Prüfe, ob deine Tänze vollständig angekommen sind, oder kopiere die Datei erneut vom Original.';
+
+  @override
+  String get importIssueUsrLinesDropped =>
+      'Einige sehr lange Figurenzeilen wurden weggelassen. Der Rest jedes Tanzes wurde importiert.';
+
+  @override
+  String get importIssueUsrSetsSkipped =>
+      'Programme konnten aus dieser Datei nicht vollständig gelesen werden, daher fehlen möglicherweise einige oder sie kommen ohne ihre Tänze an. Prüfe sie nach dem Import.';
+
+  @override
+  String get importIssueUsrRelatedRowsSkipped =>
+      'Einige verknüpfte Tänze in dieser Datei waren ungültig und wurden übersprungen.';
 
   @override
   String get importIssueDirectionUnmapped =>
@@ -5410,6 +6689,38 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Datensatz konnte nicht gefunden werden.';
 
   @override
+  String get importRecordErrorEmptyFile =>
+      'Diese Datei bzw. dieser Text ist leer. Wähle eine Datei mit Inhalt oder füge den Text erneut ein.';
+
+  @override
+  String get importRecordErrorNotJson =>
+      'Das ist keine JSON-Datei. Wähle die .json-Datei, die die Quelle exportiert hat, oder füge ihr JSON erneut ein.';
+
+  @override
+  String get importRecordErrorNotCompendiumArchive =>
+      'Das ist keine Caller\'s-Compendium-Datei. Wähle eine .json-Datei, die aus dieser App exportiert wurde.';
+
+  @override
+  String get importRecordErrorNotCallersBoxDance =>
+      'Das ist kein Caller\'s-Box-Tanz. Prüfe, ob du einen Tanz aus The Caller\'s Box kopiert hast, und versuche es erneut.';
+
+  @override
+  String get importRecordErrorNotContraDbDance =>
+      'Das ist kein ContraDB-Tanz. Prüfe, ob du eine Tanzseite aus ContraDB kopiert hast, und versuche es erneut.';
+
+  @override
+  String get importRecordErrorNotUsrDatabase =>
+      'Das ist keine Caller\'s-Companion-Bibliotheksdatei (.USR). Suche in Caller\'s Companion die .USR-Datei im zugehörigen Datenordner.';
+
+  @override
+  String get importRecordErrorFileTooLarge =>
+      'Diese Datei ist zu groß für den Import. Wähle eine kleinere Datei oder teile sie in mehrere Teile auf.';
+
+  @override
+  String get importRecordErrorNoDanceAtId =>
+      'Dort wurde kein Tanz gefunden. Prüfe die ID bzw. den Link des Caller\'s-Box-Tanzes und versuche es erneut.';
+
+  @override
   String get importRecordErrorFetch =>
       'Dieser Datensatz konnte nicht abgerufen werden.';
 
@@ -5486,6 +6797,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get importReviewCouldNotRead => 'Import konnte nicht gelesen werden';
 
   @override
+  String get importReviewPlanFailedBody =>
+      'Beim Lesen dieses Imports ist etwas schiefgelaufen. Versuche es erneut; falls das weiterhin passiert, ist die Datei möglicherweise beschädigt.';
+
+  @override
   String get importReviewNoDancesTitle => 'Keine Tänze gefunden';
 
   @override
@@ -5499,6 +6814,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get importReviewImported => 'Importiert';
 
   @override
+  String get importReviewImportAndEdit => 'Importieren und bearbeiten';
+
+  @override
   String importReviewStructured(int structured, int total) {
     return '$structured/$total strukturiert';
   }
@@ -5508,6 +6826,20 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importReviewOptionNewDance => 'Neuer Tanz';
+
+  @override
+  String get importReviewBulkSetAllLabel =>
+      'Alle übereinstimmenden Tänze festlegen auf:';
+
+  @override
+  String get importReviewBulkReimport => 'Neu importieren';
+
+  @override
+  String get importReviewBulkSkip => 'Überspringen';
+
+  @override
+  String get importReviewBulkSkipAmbiguous =>
+      'Alle möglichen Übereinstimmungen überspringen';
 
   @override
   String get importReviewOptionSkip => 'Überspringen';
@@ -5527,7 +6859,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String importReviewOptionLink(String title, int percent) {
-    return 'Mit „$title“ verknüpfen ($percent % Übereinstimmung)';
+    return 'Derselbe Tanz – „$title“ durch diese Version ersetzen ($percent % Übereinstimmung)';
   }
 
   @override
@@ -5675,6 +7007,15 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Tanz konnte nicht zum Bearbeiten importiert werden.';
 
   @override
+  String get importReviewEditOverwriteTitle =>
+      'Vorhandenen Tanz jetzt ersetzen?';
+
+  @override
+  String importReviewEditOverwriteBody(String title) {
+    return 'Beim Importieren zum Bearbeiten wird „$title“ in deiner Sammlung sofort ersetzt. „Rückgängig“ für den gesamten Import stellt ihn nicht wieder her.';
+  }
+
+  @override
   String get importReviewImportError =>
       'Der Import konnte nicht abgeschlossen werden.';
 
@@ -5695,7 +7036,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String importReviewOptionSameDance(String title) {
-    return 'Derselbe Tanz wie „$title“ (verknüpfen/aktualisieren)';
+    return 'Derselbe Tanz – „$title“ durch diese Version ersetzen';
   }
 
   @override
@@ -6687,6 +8028,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Es konnte kein Speicherort für den Download des Updates ausgewählt werden.';
 
   @override
+  String get updateDownloadFailureDestinationOccupied =>
+      'An diesem Ort befindet sich bereits etwas. Wählen Sie einen anderen Namen oder Ordner oder verwenden Sie „Release ansehen“.';
+
+  @override
   String get updateDownloadFailureIncomplete =>
       'Der Download war unvollständig und wurde gelöscht. Bitte versuchen Sie es erneut oder verwenden Sie „Release ansehen“.';
 
@@ -6749,6 +8094,33 @@ class AppLocalizationsDe extends AppLocalizations {
   String updateBannerAvailable(String appName, String version) {
     return 'Eine neuere Version von $appName ($version) ist verfügbar.';
   }
+
+  @override
+  String retirementNoticeUpcoming(String appName, String version, String date) {
+    return 'Der Support für diese Version von $appName ($version) endet am $date. Aktualisiere bis dahin auf eine neuere Version.';
+  }
+
+  @override
+  String retirementNoticePast(String appName, String version, String date) {
+    return 'Der Support für diese Version von $appName ($version) endete am $date. Aktualisiere jetzt auf eine neuere Version.';
+  }
+
+  @override
+  String get retirementBannerGetUpdate => 'Update holen';
+
+  @override
+  String get retirementBannerLater => 'Später';
+
+  @override
+  String installLocationBannerMessage(String appName) {
+    return '$appName ist noch nicht installiert: Die App läuft aus dem heruntergeladenen Disk-Image oder Archiv. Beende sie, ziehe sie in den Ordner „Programme“ und öffne sie dann von dort.';
+  }
+
+  @override
+  String get installLocationBannerDismiss => 'Schließen';
+
+  @override
+  String get settingsUpdatesRetirementTitle => 'Ende des Supports';
 
   @override
   String get updateBannerViewRelease => 'Release ansehen';
@@ -7194,11 +8566,6 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String customFieldsDeleteInUseUnknown(String label) {
-    return '„$label“ kann nicht gelöscht werden: noch von einigen Tänzen verwendet. Entfernen Sie zuerst den Wert aus allen Tänzen.';
-  }
-
-  @override
   String get customFieldsTitle => 'Benutzerdefinierte Felder';
 
   @override
@@ -7372,39 +8739,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get dialectEditorPlural => 'Plural';
 
   @override
-  String get dialectEditorMoveSubsAdd => 'Bewegungsersetzungen hinzufügen';
-
-  @override
-  String dialectEditorMoveSubsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Bewegungsersetzungen',
-      one: '1 Bewegungsersetzung',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get dialectEditorMoveSubHint =>
       'Ersetzung (verwenden Sie %S für die Händigkeit)';
 
   @override
   String get dialectEditorAddMove => 'Bewegung hinzufügen…';
-
-  @override
-  String get dialectEditorDancerSubsAdd => 'Tänzerersetzungen hinzufügen';
-
-  @override
-  String dialectEditorDancerSubsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Tänzerersetzungen',
-      one: '1 Tänzerersetzung',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get dialectEditorDancerSubHint => 'Ersetzung';
@@ -7795,6 +9134,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Bedingte Bewegungsvorlagen werden anhand der Parameter der Figur ausgewählt. Fülle alle aufgeführten Platzhalter aus; unvollständige bedingte Vorlagen werden ignoriert.';
 
   @override
+  String dialectEditorMoveWordingsForceHelp(String example) {
+    return 'Manche Platzhalter entfallen, wenn sie nichts beitragen, etwa die Hand bei einer Kette, wenn die Rolle sie bereits vorgibt. Setze ein ! vor einen Platzhalter, wie $example, um ihn immer anzuzeigen.';
+  }
+
+  @override
   String dialectEditorMoveWordingsConditionalLabel(String move) {
     return '$move (bedingt)';
   }
@@ -7816,21 +9160,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingBranchSingleFile => 'Einzelne Reihe';
-
-  @override
-  String get dialectEditorMoveWordingsAdd =>
-      'Vorlagen für Bewegungsformulierungen hinzufügen';
-
-  @override
-  String dialectEditorMoveWordingsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Vorlagen für Bewegungsformulierungen',
-      one: '1 Vorlage für Bewegungsformulierungen',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get dialectEditorAddMoveWording =>

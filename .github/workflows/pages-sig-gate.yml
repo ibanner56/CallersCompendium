@@ -3,8 +3,9 @@
 #
 # WHAT it checks: every ``*.json`` at the gh-pages root has a sibling
 # ``*.json.sig`` that is a **valid Ed25519 signature** over the exact bytes of
-# that manifest, verified against the public key pinned as
-# ``kUpdateManifestPublicKey`` in ``app/lib/src/update/update_config.dart``.
+# that manifest, verified against the public keys pinned as
+# ``kUpdateManifestPublicKeys`` in ``app/lib/src/update/update_config.dart``
+# (valid under any pinned key, as in the app, so a key rotation stays green).
 # A missing or invalid .sig causes the in-app update client to fail closed and
 # silently report "no update" to every user on that channel (issue #714, #759,
 # #810). This closes the second half of #759: PR #806 checked presence only.

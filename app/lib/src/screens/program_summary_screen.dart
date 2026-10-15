@@ -30,6 +30,7 @@ import '../widgets/program_export_menu.dart';
 import '../widgets/program_status_chip.dart';
 import 'dance_detail_screen.dart';
 import 'dance_reimport_flow.dart';
+import '../widgets/command_palette.dart';
 import 'perform_program_screen.dart';
 import 'program_editor_screen.dart';
 
@@ -178,6 +179,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   CollectionData? _collectionData;
   List<DifficultyLevel> _difficultyLevels = const [];
   bool _loading = true;
+
+  /// True while [_performProgram] resolves deleted dances, so a double tap
+  /// cannot push two Perform screens.
+  bool _resolvingPerform = false;
   Object? _error;
 
   /// In-memory Perform resume state (issue #434) — same pattern as
@@ -560,16 +565,38 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// Launches the large-print Perform view for the current saved program,
   /// mirroring [ProgramEditorScreen]'s perform launch. No-op when there is
   /// nothing to perform or the reference data has not finished loading.
-  void _performProgram() {
+  Future<void> _performProgram() async {
     final program = _program;
     final data = _collectionData;
     if (program == null || data == null || program.slots.isEmpty) return;
+    if (_resolvingPerform) return;
+    _resolvingPerform = true;
     _invalidateBulkUndo();
+    final DeletedSlotDances deletedDances;
+    try {
+      deletedDances = await resolveDeletedSlotDances(
+        _repos.dances,
+        _repos.choreographers,
+        program,
+        data,
+      );
+    } finally {
+      _resolvingPerform = false;
+    }
+    if (!mounted) return;
+    // Each Perform write, as stored: the token the post-exit Undo compares
+    // the stored program against (flows-1). Keyed by the adjusted program's
+    // identity, so a stale Undo cannot match a later adjustment's write.
+    final storedAfterWrite = Expando<Program>();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
+        // Ctrl-K is suppressed while this route is on top ([performRouteName]).
+        settings: const RouteSettings(name: performRouteName),
         builder: (_) => PerformProgramScreen(
           program: program,
           data: data,
+          danceOverrides: deletedDances.dances,
+          authorNameOverrides: deletedDances.authorNames,
           difficultyLevels: _difficultyLevels,
           renderer: _performRenderer,
           // Resume where the caller left off (issue #434).
@@ -577,6 +604,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           initialElapsedSeconds: _performResume?.elapsedSeconds ?? 0,
           initialSlotStartSeconds: _performResume?.slotStartSeconds ?? 0,
           initialPaused: _performResume?.paused ?? false,
+          initialWalkthroughEndedAtSlotSeconds:
+              _performResume?.walkthroughEndedAtSlotSeconds,
+          initialWalkthroughEndedSlotId: _performResume?.walkthroughEndedSlotId,
           onExit: (state) => _performResume = state,
           // This is the real in-event path: the program is saved, so in-event
           // adjustments (`docs/design/ux.md` §5) persist immediately via the
@@ -584,13 +614,30 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           // summary and the coexisting Programs list both re-render from their
           // own subscriptions, so neither needs telling.
           onProgramChanged: (updated) async {
-            await _repos.programs.update(updated);
+            storedAfterWrite[updated] = await _repos.programs.updateAndReadBack(
+              updated,
+            );
             if (!mounted) return;
             // The write itself is what reloads this pane and every other view
             // of these slots — the coexisting program list, the Collection's
             // "called N times" badge, a mounted dance detail's calling history.
             // Calling `_load` here as well would load this pane twice for one
             // adjustment (issue #340).
+          },
+          // The "Program adjusted" Undo after leaving Perform restores only
+          // while the stored program still equals, field for field, what that
+          // adjustment's write stored; the compare and the restore are one
+          // transaction, so no edit or sync apply can slip between them
+          // (flows-1). Uses the repository rather than this pane, which may
+          // itself have closed by then.
+          restoreIfUnchanged: (previous, adjusted) async {
+            final expected = storedAfterWrite[adjusted];
+            if (expected == null) return false;
+            return _repos.programs.replaceIfUnchanged(
+              expected: expected,
+              replacement: previous,
+              updatedAt: DateTime.now().toUtc(),
+            );
           },
         ),
       ),
@@ -660,6 +707,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               venuesById: _venuesById,
               danceFor: (id) => _dances[id],
               choreographerFor: (id) => _collectionData?.choreographersById[id],
+              tagFor: (id) => _collectionData?.tagFor(id),
+              publishedSourceFor: (id) =>
+                  _collectionData?.publishedSourceFor(id),
+              customFieldFor: (id) => _collectionData?.customFieldFor(id),
               difficultyLevelFor: (id) => _difficultyLevelFor(_dances[id]),
             ),
             if (program.slots.any((s) => s.danceId != null))
@@ -705,8 +756,18 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           ),
         if (program.dancerLevel != null)
           _summaryRow(
-            Icons.groups_outlined,
+            Icons.signal_cellular_alt_outlined,
             l10n.programsSummaryLevel(_displayProse(program.dancerLevel!)),
+          ),
+        if ((program.payMinorUnits, program.payCurrency) case (
+          final pay?,
+          final currency?,
+        ))
+          _summaryRow(
+            Icons.payments_outlined,
+            l10n.programsSummaryPay(
+              '${formatPayMinorUnits(pay, currency)} $currency',
+            ),
           ),
         if (program.notes.trim().isNotEmpty) ...[
           const SizedBox(height: 16),

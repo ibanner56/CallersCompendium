@@ -270,6 +270,31 @@ class DelayedProgramRepository extends ProgramRepository {
   }
 
   @override
+  Future<Program> updateAndReadBack(Program program) async {
+    await _beforeWrite();
+    if (_shouldFailWrite) throw const InjectedProgramFailure();
+    return super.updateAndReadBack(program);
+  }
+
+  /// Held by [holdNextWrite] like any other write. The hold sits before the
+  /// repository's transaction, so a write landed during it is one the
+  /// compare inside that transaction must see.
+  @override
+  Future<bool> replaceIfUnchanged({
+    required Program expected,
+    required Program replacement,
+    required DateTime updatedAt,
+  }) async {
+    await _beforeWrite();
+    if (_shouldFailWrite) throw const InjectedProgramFailure();
+    return super.replaceIfUnchanged(
+      expected: expected,
+      replacement: replacement,
+      updatedAt: updatedAt,
+    );
+  }
+
+  @override
   Future<int> clearPerformedAtIfMatches({
     required String programId,
     required Iterable<String> slotIds,
@@ -374,6 +399,26 @@ class FailingProgramRepository extends ProgramRepository {
   Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) async {
     _checkWrite();
     await super.update(program, knownVenueIds: knownVenueIds);
+  }
+
+  @override
+  Future<Program> updateAndReadBack(Program program) async {
+    _checkWrite();
+    return super.updateAndReadBack(program);
+  }
+
+  @override
+  Future<bool> replaceIfUnchanged({
+    required Program expected,
+    required Program replacement,
+    required DateTime updatedAt,
+  }) async {
+    _checkWrite();
+    return super.replaceIfUnchanged(
+      expected: expected,
+      replacement: replacement,
+      updatedAt: updatedAt,
+    );
   }
 }
 

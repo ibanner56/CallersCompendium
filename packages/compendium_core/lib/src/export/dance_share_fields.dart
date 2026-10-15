@@ -7,10 +7,9 @@ import '../model/dance.dart';
 /// separate opt-in (`ProgramFiguresPromptDialog`) and are not part of this
 /// picker. Each value gates one block in `danceToPlainText`, the renderer
 /// this PR wires it into; see that function's doc comment for the exact
-/// line each one controls. The design intent is for the app's PDF
-/// dance-card renderers (`dance_pdf.dart`, `program_pdf.dart`) to gate on
-/// the same values in a follow-up PR — as of this PR they still render
-/// unconditionally.
+/// line each one controls. The app's PDF dance-card renderers
+/// (`dance_pdf.dart`, `program_pdf.dart`) gate on the same values: both build
+/// a `DanceCardContent` from the chosen set and only lay it out.
 ///
 /// Follows the same shape as `CollectionTileField` (issue #767,
 /// `app/lib/src/data/collection_tile_fields_scope.dart`): a stable

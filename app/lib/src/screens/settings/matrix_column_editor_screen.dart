@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
 import '../../data/program_matrix_column_config_scope.dart';
+import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import 'matrix_column_editor.dart';
 import 'settings_keys.dart';
@@ -23,7 +24,11 @@ class MatrixColumnEditorScreen extends StatelessWidget {
   Future<void> _persist(BuildContext context, MatrixColumnConfig config) async {
     ProgramMatrixColumnConfigScope.notifierOf(context).value = config;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kProgramMatrixColumnsKey, config.toJson());
+    await persistSetting(
+      repos.settings,
+      kProgramMatrixColumnsKey,
+      config.toJson(),
+    );
   }
 
   @override

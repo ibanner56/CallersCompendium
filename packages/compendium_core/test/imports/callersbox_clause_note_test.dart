@@ -643,18 +643,20 @@ void main() {
 
     test('a cross-line fold PRESERVES the consumed figure\'s clause note', () {
       // `Balance the ring; face up` now structures to `balance_the_ring` + a
-      // note, is still a balance LINE, and folds into the following swing. The
-      // fold `copyWith`s the SURVIVOR, so without note propagation "face up"
-      // would be silently dropped — and it was, before this change: the old
-      // whole-custom balance line was consumed by the very same fold.
+      // note, is still a balance LINE, and folds into the following
+      // petronella (whose balance IS the ring's). The fold `copyWith`s the
+      // SURVIVOR, so without note propagation "face up" would be silently
+      // dropped — and it was, before this change: the old whole-custom
+      // balance line was consumed by the very same fold. (A ring balance no
+      // longer folds into a swing — that would make it the swing pair's.)
       final figures = _importFigures([
         '(4) Balance the ring; face up',
-        '(12) Partner swing',
+        '(4) Petronella',
       ]);
       expect(figures, hasLength(1));
-      expect(figures.single.move, 'swing');
-      expect(figures.single.params['prefix'], 'balance');
-      expect(figures.single.beats, 16); // 4 + 12, unchanged
+      expect(figures.single.move, 'petronella');
+      expect(figures.single.params['balance'], isTrue);
+      expect(figures.single.beats, 8); // 4 + 4, unchanged
       expect(figures.single.note, 'face up');
     });
 

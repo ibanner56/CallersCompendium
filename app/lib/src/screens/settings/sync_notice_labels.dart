@@ -17,8 +17,19 @@ import '../../../l10n/app_localizations.dart';
 /// pointed at :614 and the sentence had since moved to :652.
 ///
 /// Declaration order is the order notices appear, so a pass raising several
-/// conditions renders deterministically.
+/// conditions renders deterministically. [newerVersion] comes first: it needs the user, and its remedy is here.
 enum SyncNoticeGroup {
+  /// Another device shared records this build cannot read: in an envelope
+  /// version newer than its own, or carrying a part it cannot keep. Needs
+  /// you: updating the app on this device is the only remedy, and nothing
+  /// about the records themselves is wrong.
+  newerVersion,
+
+  /// Records on this device carry details a newer version of the app added,
+  /// which this build keeps and shares back but cannot show (spec §6.7).
+  /// Information, not a problem: they sync, and updating the app shows them.
+  keptNewerFields,
+
   /// Two devices hold different bodies with the same `updatedAt`. Neither
   /// wins and neither is applied (spec §6.3); only a human edit settles it.
   divergence,
@@ -58,10 +69,30 @@ enum SyncNoticeGroup {
   /// the pass was preparing it. It is retried, not lost.
   deferredInbound,
 
-  /// Records this device published have not appeared in any peer's manifest
-  /// for three consecutive passes.
+  /// Another device has published at least twice since this one published
+  /// some records, and still does not carry them (spec §6.9): it is syncing,
+  /// but not taking them — typically an older app version refusing them. A
+  /// *needs you* group, and the one shown per device, naming each by its tag.
+  ///
+  /// A device that has simply not published since is *asleep*, not this; it
+  /// raises no notice, and the *Other devices* list shows what is waiting for
+  /// it instead.
   unreflectedPublication,
 }
+
+/// Whether [group] is shown once per other device rather than once in all.
+bool syncNoticeIsPerDevice(SyncNoticeGroup group) =>
+    group == SyncNoticeGroup.unreflectedPublication;
+
+/// The other devices [group]'s reports in [reports] name, deduplicated, in
+/// report order.
+List<String> syncNoticePeerIds(
+  SyncNoticeGroup group,
+  Iterable<SyncReport> reports,
+) => {
+  for (final report in reports)
+    if (syncNoticeGroupFor(report) == group) ?report.peerId,
+}.toList(growable: false);
 
 /// The group [report] belongs to.
 ///
@@ -99,6 +130,10 @@ SyncNoticeGroup syncNoticeGroupFor(SyncReport report) => switch (report.code) {
     SyncNoticeGroup.unreflectedPublication,
   SyncReportCode.withheldUnreadableRecord =>
     SyncNoticeGroup.withheldUnreadableLocal,
+  SyncReportCode.newerWireVersion => SyncNoticeGroup.newerVersion,
+  SyncReportCode.newerRecordFields => SyncNoticeGroup.newerVersion,
+  SyncReportCode.newerFigures => SyncNoticeGroup.newerVersion,
+  SyncReportCode.keptNewerFields => SyncNoticeGroup.keptNewerFields,
 };
 
 /// The groups [reports] raise, deduplicated, in [SyncNoticeGroup] order.
@@ -110,15 +145,54 @@ List<SyncNoticeGroup> syncNoticeGroups(Iterable<SyncReport> reports) {
   ];
 }
 
-/// The notice text for [group].
+/// Whether [group] asks the user to do something, and so is shown with a
+/// warning icon, a "needs you" label, its action and a copyable support code,
+/// rather than as information.
+///
+/// Exhaustive with no `_` arm so a new group must be placed in a tier.
+bool syncNoticeNeedsYou(SyncNoticeGroup group) => switch (group) {
+  SyncNoticeGroup.newerVersion ||
+  SyncNoticeGroup.unreflectedPublication => true,
+  SyncNoticeGroup.keptNewerFields ||
+  SyncNoticeGroup.divergence ||
+  SyncNoticeGroup.keptLocalCreation ||
+  SyncNoticeGroup.quarantinedLocal ||
+  SyncNoticeGroup.withheldUnreadableLocal ||
+  SyncNoticeGroup.skippedRecord ||
+  SyncNoticeGroup.clock ||
+  SyncNoticeGroup.deferredInbound => false,
+};
+
+/// The notice text for [group]. [countedRecords] is
+/// [syncNoticeCountableRecords]. [SyncNoticeGroup.newerVersion] says how many
+/// records of each kind are waiting ([syncNoticeKindCountsText]), and falls
+/// back to an uncounted sentence when it is null or empty — a newer manifest
+/// does not say what it lists. [SyncNoticeGroup.keptNewerFields] counts the
+/// same way; its reports always name their record.
+///
+/// [device] is required for a group [syncNoticeIsPerDevice] says is shown per
+/// device, and ignored otherwise: the device's tag, and how many records the
+/// notice is about.
 ///
 /// Never the report's own `message`: those are internal diagnostics written
 /// for a maintainer reading a log — they name wire paths, status codes and
 /// hashes, and they are English by design.
 String syncNoticeText(
   AppLocalizations l10n,
-  SyncNoticeGroup group,
-) => switch (group) {
+  SyncNoticeGroup group, {
+  List<SyncNoticeRecord>? countedRecords,
+  ({String tag, int count})? device,
+}) => switch (group) {
+  SyncNoticeGroup.newerVersion => switch (countedRecords) {
+    final records? when records.isNotEmpty =>
+      l10n.settingsSyncNoticeNewerVersionItems(
+        syncNoticeKindCountsText(l10n, records),
+      ),
+    _ => l10n.settingsSyncNoticeNewerVersionUncounted,
+  },
+  SyncNoticeGroup.keptNewerFields => l10n.settingsSyncNoticeKeptNewerItems(
+    syncNoticeKindCountsText(l10n, countedRecords ?? const []),
+  ),
   SyncNoticeGroup.divergence => l10n.settingsSyncNoticeDivergence,
   SyncNoticeGroup.keptLocalCreation => l10n.settingsSyncNoticeKeptLocalCreation,
   SyncNoticeGroup.quarantinedLocal => l10n.settingsSyncNoticeQuarantinedLocal,
@@ -128,5 +202,224 @@ String syncNoticeText(
   SyncNoticeGroup.clock => l10n.settingsSyncNoticeClock,
   SyncNoticeGroup.deferredInbound => l10n.settingsSyncNoticeDeferredInbound,
   SyncNoticeGroup.unreflectedPublication =>
-    l10n.settingsSyncNoticeUnreflectedPublication,
+    l10n.settingsSyncNoticePeerNotTaking(device!.count, device.tag),
 };
+
+/// How many of [records] there are of each kind, in [SyncRecordKind] order —
+/// "3 programs, 1 setting" — so a notice says what is waiting rather than a
+/// bare number of "items" the user has to go and find.
+String syncNoticeKindCountsText(
+  AppLocalizations l10n,
+  Iterable<SyncNoticeRecord> records,
+) {
+  final counts = <SyncRecordKind, int>{};
+  for (final record in records) {
+    counts[record.kind] = (counts[record.kind] ?? 0) + 1;
+  }
+  return [
+    for (final kind in SyncRecordKind.values)
+      if (counts[kind] case final count?) _kindCount(l10n, kind, count),
+  ].join(l10n.settingsSyncNoticeListSeparator);
+}
+
+String _kindCount(AppLocalizations l10n, SyncRecordKind kind, int count) =>
+    switch (kind) {
+      SyncRecordKind.dance => l10n.settingsSyncNoticeCountDance(count),
+      SyncRecordKind.program => l10n.settingsSyncNoticeCountProgram(count),
+      SyncRecordKind.choreographer => l10n.settingsSyncNoticeCountChoreographer(
+        count,
+      ),
+      SyncRecordKind.tag => l10n.settingsSyncNoticeCountTag(count),
+      SyncRecordKind.publishedSource =>
+        l10n.settingsSyncNoticeCountPublishedSource(count),
+      SyncRecordKind.customFieldDef => l10n.settingsSyncNoticeCountCustomField(
+        count,
+      ),
+      SyncRecordKind.difficultyLevel => l10n.settingsSyncNoticeCountDifficulty(
+        count,
+      ),
+      SyncRecordKind.venue => l10n.settingsSyncNoticeCountVenue(count),
+      SyncRecordKind.setting => l10n.settingsSyncNoticeCountSetting(count),
+    };
+
+/// The records [reports] name as refused for figures a newer version of the
+/// app added ([SyncReportCode.newerFigures]).
+Set<SyncNoticeRecord> syncNoticeNewerFigureRecords(
+  Iterable<SyncReport> reports,
+) => {
+  for (final report in reports)
+    if (report.code == SyncReportCode.newerFigures)
+      if ((report.kind, report.recordId) case (final kind?, final id?))
+        (kind: kind, recordId: id),
+};
+
+/// How many records a notice names before summarising the rest as a count.
+const int kSyncNoticeNamedLimit = 5;
+
+/// One record a notice is about, as the reports identify it.
+typedef SyncNoticeRecord = ({SyncRecordKind kind, String recordId});
+
+/// The records [group]'s reports in [reports] are about, deduplicated, in
+/// report order. Reports that name no record — a pass-wide clock suspicion, a
+/// blob the store asked for by hash — contribute nothing.
+List<SyncNoticeRecord> syncNoticeRecords(
+  SyncNoticeGroup group,
+  Iterable<SyncReport> reports,
+) {
+  final seen = <SyncNoticeRecord>{};
+  return [
+    for (final report in reports)
+      if (syncNoticeGroupFor(report) == group)
+        if ((report.kind, report.recordId) case (final kind?, final id?))
+          if (seen.add((kind: kind, recordId: id))) (kind: kind, recordId: id),
+  ];
+}
+
+/// The records [group]'s notice may count: the records [syncNoticeRecords]
+/// names, or null when any of the group's reports names no record. A newer
+/// manifest names none, yet stands for everything its peer shares, so a count
+/// beside it would understate what is waiting.
+List<SyncNoticeRecord>? syncNoticeCountableRecords(
+  SyncNoticeGroup group,
+  Iterable<SyncReport> reports,
+) {
+  final grouped = [
+    for (final report in reports)
+      if (syncNoticeGroupFor(report) == group) report,
+  ];
+  if (grouped.any((r) => r.kind == null || r.recordId == null)) return null;
+  return syncNoticeRecords(group, grouped);
+}
+
+/// How many records [group]'s notice may claim it is about: the length of
+/// [syncNoticeCountableRecords], or 0 when it cannot count them.
+int syncNoticeCountedRecords(
+  SyncNoticeGroup group,
+  Iterable<SyncReport> reports,
+) => syncNoticeCountableRecords(group, reports)?.length ?? 0;
+
+/// How many distinct other devices [group]'s reports in [reports] came from.
+int syncNoticePeerCount(SyncNoticeGroup group, Iterable<SyncReport> reports) =>
+    {
+      for (final report in reports)
+        if (syncNoticeGroupFor(report) == group) ?report.peerId,
+    }.length;
+
+/// The user-facing label for a record kind ("Dance", "Program", …).
+String syncRecordKindLabel(AppLocalizations l10n, SyncRecordKind kind) =>
+    switch (kind) {
+      SyncRecordKind.choreographer => l10n.syncReviewKindChoreographer,
+      SyncRecordKind.tag => l10n.syncReviewKindTag,
+      SyncRecordKind.customFieldDef => l10n.syncReviewKindCustomField,
+      SyncRecordKind.difficultyLevel => l10n.syncReviewKindDifficulty,
+      SyncRecordKind.dance => l10n.syncReviewKindDance,
+      SyncRecordKind.program => l10n.syncReviewKindProgram,
+      SyncRecordKind.publishedSource => l10n.syncReviewKindPublishedSource,
+      SyncRecordKind.venue => l10n.syncReviewKindVenue,
+      SyncRecordKind.setting => l10n.syncReviewKindSetting,
+    };
+
+/// What this device knows a notice's record by.
+sealed class SyncNoticeRecordName {
+  const SyncNoticeRecordName();
+}
+
+/// The record is here, under [name].
+final class SyncNoticeRecordNamed extends SyncNoticeRecordName {
+  const SyncNoticeRecordNamed(this.name);
+  final String name;
+}
+
+/// The record's kind has names, and this device has no live record with that
+/// id: typically a skipped record from another device.
+final class SyncNoticeRecordNotHere extends SyncNoticeRecordName {
+  const SyncNoticeRecordNotHere();
+}
+
+/// The kind has no single display name to look up (a setting, a custom
+/// field), or no repositories were available; only the kind is shown.
+final class SyncNoticeRecordUnnamed extends SyncNoticeRecordName {
+  const SyncNoticeRecordUnnamed();
+}
+
+/// Looks up what the user calls [record] on this device.
+///
+/// Only the kinds a user browses by name are looked up. Everything else is
+/// [SyncNoticeRecordUnnamed] rather than [SyncNoticeRecordNotHere]: not
+/// looking is not evidence of absence.
+Future<SyncNoticeRecordName> lookupSyncNoticeRecordName(
+  CompendiumRepositories repositories,
+  SyncNoticeRecord record,
+) async {
+  final id = record.recordId;
+  final String? name = switch (record.kind) {
+    SyncRecordKind.dance => (await repositories.dances.getById(id))?.title,
+    SyncRecordKind.program => (await repositories.programs.getById(id))?.title,
+    SyncRecordKind.choreographer => (await repositories.choreographers.getById(
+      id,
+    ))?.name,
+    SyncRecordKind.tag => (await repositories.tags.getById(id))?.name,
+    SyncRecordKind.venue => (await repositories.venues.getById(id))?.name,
+    SyncRecordKind.customFieldDef ||
+    SyncRecordKind.difficultyLevel ||
+    SyncRecordKind.publishedSource ||
+    SyncRecordKind.setting => null,
+  };
+  if (name != null && name.trim().isNotEmpty) {
+    return SyncNoticeRecordNamed(name);
+  }
+  return switch (record.kind) {
+    SyncRecordKind.dance ||
+    SyncRecordKind.program ||
+    SyncRecordKind.choreographer ||
+    SyncRecordKind.tag ||
+    SyncRecordKind.venue when name == null => const SyncNoticeRecordNotHere(),
+    _ => const SyncNoticeRecordUnnamed(),
+  };
+}
+
+/// The "Affects: …" line for [named] — the first [kSyncNoticeNamedLimit]
+/// records with what they resolved to — out of [total] records in all.
+///
+/// A record in [newerFigures] is marked as refused for figures a newer version
+/// of the app added, so the notice says what this build does not understand
+/// rather than only that it is out of date.
+String syncNoticeAffectedText(
+  AppLocalizations l10n,
+  List<(SyncNoticeRecord, SyncNoticeRecordName)> named,
+  int total, {
+  Set<SyncNoticeRecord> newerFigures = const {},
+}) {
+  final items = [
+    for (final (record, name) in named)
+      switch ((name, newerFigures.contains(record))) {
+        (SyncNoticeRecordNamed(:final name), false) =>
+          l10n.settingsSyncNoticeRecordNamed(
+            syncRecordKindLabel(l10n, record.kind),
+            name,
+          ),
+        (SyncNoticeRecordNamed(:final name), true) =>
+          l10n.settingsSyncNoticeRecordNewerFigures(
+            syncRecordKindLabel(l10n, record.kind),
+            name,
+          ),
+        (SyncNoticeRecordNotHere(), false) =>
+          l10n.settingsSyncNoticeRecordNotHere(
+            syncRecordKindLabel(l10n, record.kind),
+          ),
+        (SyncNoticeRecordNotHere(), true) =>
+          l10n.settingsSyncNoticeRecordNotHereNewerFigures(
+            syncRecordKindLabel(l10n, record.kind),
+          ),
+        (SyncNoticeRecordUnnamed(), _) => syncRecordKindLabel(
+          l10n,
+          record.kind,
+        ),
+      },
+    if (total > named.length)
+      l10n.settingsSyncNoticeAffectedMore(total - named.length),
+  ];
+  return l10n.settingsSyncNoticeAffected(
+    items.join(l10n.settingsSyncNoticeListSeparator),
+  );
+}

@@ -32,6 +32,7 @@ library;
 
 import 'dart:convert';
 
+import 'package:compendium_app/src/export/program_pdf.dart';
 import 'package:compendium_app/src/export/program_share_bundle.dart';
 import 'package:compendium_app/src/export/share_sanitization.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -206,6 +207,18 @@ final _choreographer = Choreographer(
   deceased: true,
 );
 
+/// A user-defined field marked "not shareable" and a value for it. Unlike the
+/// registry columns above this is user data the *user* classified, so it has no
+/// probe; it is checked by its own test below.
+const _privateFieldValue = 'leak-custom-field-value';
+final _privateField = CustomFieldDef(
+  id: 'f-private',
+  key: 'secret',
+  label: 'Secret',
+  type: CustomFieldType.text,
+  shareable: false,
+);
+
 final _dance = Dance(
   id: 'd1',
   title: "Rory O'More",
@@ -214,7 +227,9 @@ final _dance = Dance(
     Figure(move: 'swing', params: const {'beats': 16, 'who': 'partners'}),
   ],
   sourceCitations: const [],
-  customFields: const [],
+  customFields: [
+    CustomFieldValue(fieldId: 'f-private', value: _privateFieldValue),
+  ],
   createdAt: _now,
   updatedAt: _now,
 );
@@ -239,6 +254,9 @@ String _export({Set<VenueContactField> includeVenueContact = const {}}) =>
       _program,
       danceFor: (id) => id == 'd1' ? _dance : null,
       choreographerFor: (id) => id == 'c1' ? _choreographer : null,
+      tagFor: (_) => null,
+      publishedSourceFor: (_) => null,
+      customFieldFor: (id) => id == 'f-private' ? _privateField : null,
       venueFor: (id) => id == 'v1' ? _venue : null,
       includeVenueContact: includeVenueContact,
       now: _now,
@@ -357,6 +375,46 @@ void main() {
       );
     });
 
+    test('no non-shareable venue column survives into the program PDF', () {
+      final text = programPdfVenueText(
+        Program(
+          id: 'p1',
+          title: 'Friday Contra',
+          venueId: 'v1',
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+        {'v1': _venue},
+        const ProgramExportLabels(),
+      );
+      final printed = [?text.headerLabel, ...text.blockLines].join('\n');
+
+      final leaked = [
+        for (final column in _probes.keys)
+          if (column.startsWith('venues.') && printed.contains(_p(column)))
+            column,
+      ];
+      expect(
+        leaked..sort(),
+        isEmpty,
+        reason:
+            'These venue columns are classified non-shareable in the privacy '
+            'registry but the program PDF printed them. buildProgramPdf must '
+            'run the venue through sanitizeVenueForShare:\n  '
+            '${leaked.join('\n  ')}',
+      );
+      // Not satisfiable by printing nothing.
+      expect(printed, contains('Grange Hall'));
+    });
+
+    test('a non-shareable custom field never reaches the program bundle', () {
+      final json = _export();
+
+      expect(json, isNot(contains(_privateFieldValue)));
+      expect(_entities(json, 'customFields'), isEmpty);
+      expect(_entities(json, 'dances').single['customFields'], isEmpty);
+    });
+
     test('shareable fields still survive the redaction', () {
       // The guard above must not be satisfiable by exporting nothing.
       final json = _export();
@@ -395,6 +453,44 @@ void main() {
       expect(venue.containsKey('contact2Email'), isFalse);
       expect(venue.containsKey('address1'), isFalse);
       expect(venue.containsKey('city'), isFalse);
+    });
+
+    // The opt-in is the one route by which a deviceLocal column reaches
+    // another person, which the class's own definition does not allow. The
+    // exception is recorded in each released column's registry note rather
+    // than as a new egress class (flows-9), so a column an opt-in can release
+    // must say so there — including one a future opt-in adds.
+    test('every column the consent dialog can release records the '
+        'exception in its registry note', () {
+      final json = _export(
+        includeVenueContact: VenueContactField.values.toSet(),
+      );
+      final released = <String>[];
+      _probes.forEach((column, probe) {
+        for (final entity in _entities(json, probe.entityList)) {
+          if (probe.leaked(entity)) released.add(column);
+        }
+      });
+      released.sort();
+
+      expect(released, hasLength(VenueContactField.values.length));
+      final unrecorded = [
+        for (final column in released)
+          if (!(fieldClassifications[column]?.note ?? '').contains(
+            'explicit consent',
+          ))
+            column,
+      ];
+      expect(
+        unrecorded,
+        isEmpty,
+        reason:
+            'These non-shareable columns can leave in a share to another '
+            'person when the user opts them in, but their registry note '
+            '(packages/compendium_core/lib/src/privacy/field_registry.dart) '
+            'does not record that "explicit consent" exception:\n  '
+            '${unrecorded.join('\n  ')}',
+      );
     });
   });
 }

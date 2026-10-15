@@ -1,6 +1,6 @@
 name: callers_compendium_server
 description: Shelf-based Athenaeum server for Caller's Compendium Device Sync.
-version: 0.2.1
+version: 0.3.0
 publish_to: none
 resolution: workspace
 
@@ -11,11 +11,11 @@ dependencies:
   args: ^2.7.0
   compendium_core:
     path: ../packages/compendium_core
-  crypto: ^3.0.6
+  crypto: ^3.0.7
   path: ^1.9.1
   shelf: ^1.4.2
-  sqlite3: ^3.4.0
+  sqlite3: ^3.7.0
 
 dev_dependencies:
-  lints: ^6.0.0
-  test: ^1.25.6
+  lints: ^6.1.0
+  test: ^1.31.1

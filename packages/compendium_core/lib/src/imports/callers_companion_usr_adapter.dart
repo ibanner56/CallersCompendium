@@ -64,7 +64,7 @@ Future<CcUsrArchive> _readSynchronously(
   FmpReadLimits limits,
 ) async => readCcUsrArchive(bytes, limits: limits);
 
-class CallersCompanionUsrAdapter implements SourceAdapter {
+class CallersCompanionUsrAdapter implements SourceAdapter, BatchWarningSource {
   CallersCompanionUsrAdapter({
     this.limits = const FmpReadLimits(),
     CcUsrArchiveReader? reader,
@@ -101,6 +101,26 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
   @override
   ProvenanceSource get source => ProvenanceSource.callersCompanion;
 
+  List<ImportIssue> _batchWarnings = const [];
+
+  static const Map<String, String> _warningMessages = {
+    CcUsrWarningCodes.fileTruncated:
+        'The .USR file ends early; only part of it could be read.',
+    CcUsrWarningCodes.figuresFromDanceRows:
+        'Figures were read from the Dance rows because the Phrase table was '
+        'unreadable.',
+    CcUsrWarningCodes.phraseGroupsOrphaned:
+        'Some Phrase rows could not be attached to a dance and were skipped.',
+    CcUsrWarningCodes.linesDropped: 'Some over-long figure lines were dropped.',
+    CcUsrWarningCodes.setsSkipped:
+        'The Set or SetItem table was missing; programs may be incomplete.',
+    CcUsrWarningCodes.relatedRowsSkipped:
+        'Some related-dance rows were skipped.',
+  };
+
+  @override
+  List<ImportIssue> get batchWarnings => _batchWarnings;
+
   @override
   Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
     // Drop what an earlier discovery left before starting this one. The
@@ -109,6 +129,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
     // file's archive and a caller could commit that file's programs for this
     // one.
     _discovered = null;
+    _batchWarnings = const [];
     final bytes = _bytesOf(request);
     final CcUsrArchive archive;
     try {
@@ -120,18 +141,29 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.fileTooLarge,
         message: 'That file is too large to import.',
       );
     } on FmpFormatException catch (e) {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
+        code: ImportErrorCode.notUsrDatabase,
         message:
             'The file is not a readable Caller\'s Companion .USR '
             '(FileMaker 12) database: ${e.message}',
       );
     }
     _discovered = archive.withoutDances();
+    _batchWarnings = [
+      for (final code in archive.warningCodes)
+        ImportIssue(
+          severity: ImportIssueSeverity.warning,
+          code: code,
+          // Logs only: the app localizes from [code].
+          message: _warningMessages[code] ?? code,
+        ),
+    ];
     return [
       for (final entry in archive.dances)
         DiscoveredRecord(
@@ -221,6 +253,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
       throw ImportError(
         stage: ImportStage.parse,
         source: source,
+        code: ImportErrorCode.fileTooLarge,
         message: 'That file is too large to import.',
       );
     }
@@ -249,6 +282,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
         throw ImportError(
           stage: ImportStage.discover,
           source: source,
+          code: ImportErrorCode.notUsrDatabase,
           message:
               'The Caller\'s Companion .USR payload was not valid base64; '
               'pass raw bytes via options["bytes"] or a base64 payload.',
@@ -258,6 +292,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
     throw ImportError(
       stage: ImportStage.discover,
       source: source,
+      code: ImportErrorCode.emptyFile,
       message:
           'No Caller\'s Companion .USR file was provided (expected bytes in '
           'options["bytes"] or a base64 payload).',
@@ -273,7 +308,8 @@ List<Map<String, Object?>> _encodeBody(List<CcBodySection> body) => [
 ];
 
 /// Rebuilds the figure body from a decoded JSON payload, defensively. The
-/// payload is untrusted (it is persisted provenance that can be re-imported), so
+/// payload is untrusted (source-native content held in memory during fetch,
+/// not persisted since #781; see `raw_record.dart`), so
 /// every element is type-checked and malformed entries are skipped rather than
 /// throwing — mirroring the parse-never-fails posture of the rest of the import
 /// path. Downstream, each surviving line still flows through the mapping's

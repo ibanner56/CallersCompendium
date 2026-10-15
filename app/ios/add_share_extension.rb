@@ -24,12 +24,19 @@ group.set_path(ext_name)
 swift_ref = group.new_reference('ShareViewController.swift')
 plist_ref = group.new_reference('Info.plist')
 group.new_reference('ShareExtension.entitlements')
+# Apple's privacy manifest: the extension's own executable uses a required-reason
+# API (file timestamps), so its bundle must carry one. It has to be in the
+# Resources phase, not just the group, or it never reaches the .appex
+# (tools/ci/check_ios_privacy_manifest.py checks the project file for it;
+# post-audit finding platform-6).
+privacy_ref = group.new_reference('PrivacyInfo.xcprivacy')
 
 # --- Target ----------------------------------------------------------------
 ext = project.new_target(
   :app_extension, ext_name, :ios, '15.0', project.products_group, :swift
 )
 ext.source_build_phase.add_file_reference(swift_ref)
+ext.resources_build_phase.add_file_reference(privacy_ref)
 
 ext.build_configurations.each do |config|
   s = config.build_settings

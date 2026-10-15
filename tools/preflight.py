@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import importlib
 import os
 import shutil
 import subprocess
@@ -68,8 +69,8 @@ LOCK_POLL_SECONDS = 2.0
 # `numberOfProcessors / 2` test processes -- 8 here -- and each holds a full
 # engine: measured 5.1 GB peak at 8 against 3.3 GB at 4, for 196s against
 # 208-235s over three capped runs. Half a minute is worth 1.8 GB on a host whose
-# spare commit is ~5 GB. The cap does not reach CI, which runs a 4-core runner
-# and so lands on 2 by itself.
+# spare commit is ~5 GB. CI pins its own concurrency (`--concurrency=4` /
+# `-j 4`, enforced by test_preflight.py), so this cap does not reach it.
 MAX_TEST_JOBS = 4
 TEST_JOBS_ENV = "PREFLIGHT_TEST_JOBS"
 
@@ -209,17 +210,6 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
-        "device-sync-tracking",
-        "ADR-004 work units, dependencies, evidence, and Project projection",
-        (
-            py("tools/tracking/test_validate.py"),
-            py("tools/tracking/test_validate_pr.py"),
-            py("tools/tracking/test_sync_project.py"),
-            py("tools/tracking/test_workflow_integration.py"),
-            py("tools/tracking/validate.py"),
-        ),
-    ),
-    Step(
         "pr-gates",
         "the merge-readiness gate script itself still works",
         (py("tools/ci/test_check_pr_review_gates.py"),),
@@ -238,11 +228,72 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "linux-runner",
+        "the Linux build legs run in the ubuntu:22.04 container that sets the documented glibc floor, and check the bundle against it",
+        (
+            py("tools/ci/test_check_linux_build_runner.py"),
+            py("tools/ci/test_check_linux_glibc_floor.py"),
+        ),
+    ),
+    Step(
+        "apple-native-tests",
+        "CI's ios and macos build legs run the native Swift RunnerTests when Apple native code changes",
+        (
+            py("tools/ci/test_check_apple_native_tests.py"),
+            py("tools/ci/check_apple_native_tests.py"),
+        ),
+    ),
+    Step(
+        "android-unit-tests",
+        "ci.yml's Android build leg runs the Kotlin JVM unit tests after the build",
+        (py("tools/ci/test_check_android_unit_tests.py"),),
+    ),
+    Step(
+        "ios-privacy-manifest",
+        "each shipped iOS target's privacy manifest declares the required-reason APIs its code uses",
+        (
+            py("tools/ci/test_check_ios_privacy_manifest.py"),
+            py("tools/ci/check_ios_privacy_manifest.py"),
+        ),
+    ),
+    Step(
+        "android-intents",
+        "no BROWSABLE VIEW intent filter lets a web page open a file: or content: URI",
+        (
+            py("tools/ci/test_check_android_intent_filters.py"),
+            py("tools/ci/check_android_intent_filters.py"),
+        ),
+    ),
+    Step(
         "debug-print",
         "no unguarded debugPrint reaches a release build",
         (
             py("tools/ci/test_check_debug_print.py"),
             py("tools/ci/check_debug_print.py"),
+        ),
+    ),
+    Step(
+        "l10n-unused",
+        "every ARB key is referenced by app code",
+        (
+            py("tools/ci/test_check_l10n_unused.py"),
+            py("tools/ci/check_l10n_unused.py"),
+        ),
+    ),
+    Step(
+        "stale-comment-refs",
+        "comment citations resolve to code (count ceiling)",
+        (
+            py("tools/ci/test_check_stale_comment_refs.py"),
+            py("tools/ci/check_stale_comment_refs.py"),
+        ),
+    ),
+    Step(
+        "kdf-override",
+        "no production code assigns the test-only sync KDF iteration override",
+        (
+            py("tools/ci/test_check_kdf_override_unassigned.py"),
+            py("tools/ci/check_kdf_override_unassigned.py"),
         ),
     ),
     Step(
@@ -254,11 +305,51 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "hot-path-regexp",
+        "no per-call RegExp( in the import dedupe and figure-parsing hot paths",
+        (
+            py("tools/ci/test_check_hot_path_regexp.py"),
+            py("tools/ci/check_hot_path_regexp.py"),
+        ),
+    ),
+    Step(
+        "export-guard-catches",
+        "export/share/backup files catch Object, not Exception",
+        (
+            py("tools/ci/test_check_export_guard_catches.py"),
+            py("tools/ci/check_export_guard_catches.py"),
+        ),
+    ),
+    Step(
         "settings-reads",
         "raw settings reads filter deleted_at IS NULL",
         (
             py("tools/ci/test_check_settings_marker_reads.py"),
             py("tools/ci/check_settings_marker_reads.py"),
+        ),
+    ),
+    Step(
+        "preference-encode",
+        "live-preference handlers persist exactly their descriptor's encode",
+        (
+            py("tools/ci/test_check_preference_encode.py"),
+            py("tools/ci/check_preference_encode.py"),
+        ),
+    ),
+    Step(
+        "join-columns",
+        "repository joins onto dances carry useColumns or a marker",
+        (
+            py("tools/ci/test_check_join_use_columns.py"),
+            py("tools/ci/check_join_use_columns.py"),
+        ),
+    ),
+    Step(
+        "sync-resolve-alias-loops",
+        "no per-item store.resolveAlias awaited inside a sync loop",
+        (
+            py("tools/ci/test_check_sync_resolve_alias_loops.py"),
+            py("tools/ci/check_sync_resolve_alias_loops.py"),
         ),
     ),
     Step(
@@ -278,6 +369,11 @@ STEPS: tuple[Step, ...] = (
         "version-history",
         "the version-ledger gate's own logic (the gate itself is PR-only)",
         (py("tools/ci/test_check_version_history.py"),),
+    ),
+    Step(
+        "claude-isolation",
+        "the Claude-workflow isolation gate's own logic (the gate itself is PR-only)",
+        (py("tools/ci/test_check_claude_workflow_isolation.py"),),
     ),
     Step(
         "changelog-gate",
@@ -325,19 +421,31 @@ STEPS: tuple[Step, ...] = (
         "release identity / SBOM / metadata / notes / Pages publishing",
         (
             py("tools/release/test_bash.py"),
+            py("tools/release/test_apprun.py"),
             py("tools/release/test_android_version_code.py"),
             py("tools/release/test_check_beta_prerelease_history.py"),
             py("tools/release/test_gen_sbom.py"),
+            # Its cmake -P tests are the pdfium-verifier step, which SKIPs without cmake.
+            py("tools/release/test_pdfium_pin.py", "--without-cmake"),
             py("tools/release/test_gen_release_metadata.py"),
             py("tools/release/test_gen_release_notes.py"),
             py("tools/release/test_gen_recovery_provenance.py"),
             py("tools/release/test_release_workflow_recovery.py"),
+            py("tools/release/test_release_windows_crt.py"),
+            py("tools/release/test_linux_desktop_integration.py"),
+            py("tools/release/test_macos_dmg.py"),
             py("tools/release/test_resolve_release_codename.py"),
             py("tools/release/test_publish_pages_manifest.py"),
             py("tools/release/test_publish_pages_site.py"),
             py("tools/release/test_check_pages_signature_files.py"),
         ),
-        needs_import="cryptography",
+        needs_import="cryptography.hazmat.primitives.asymmetric.ed25519",
+    ),
+    Step(
+        "pdfium-verifier",
+        "the pdfium pre-download and hash verifier, run under cmake -P",
+        (py("tools/release/test_pdfium_pin.py", "--cmake-only"),),
+        needs_binary="cmake",
     ),
     Step(
         "core-flutter-free-tests",
@@ -400,7 +508,7 @@ STEPS: tuple[Step, ...] = (
     Step(
         "core-tests",
         "compendium_core suite with CI-equivalent LCOV generation",
-        (fvm_py("tools/ci/run_core_tests_with_coverage.py"),),
+        (fvm_py("tools/ci/run_core_tests_with_coverage.py", "-j", str(TEST_JOBS)),),
         fast=False,
         needs_binary="fvm",
     ),
@@ -448,9 +556,19 @@ def _unavailable(step: Step) -> str | None:
         return f"{step.needs_binary} is not on PATH"
     if step.needs_import:
         try:
-            __import__(step.needs_import)
+            importlib.import_module(step.needs_import)
+        except (KeyboardInterrupt, SystemExit):
+            raise
         except ImportError:
             return f"python module {step.needs_import!r} is not installed"
+        except BaseException as error:
+            # A broken install can import at the top level and then panic in a
+            # native submodule; pyo3's PanicException derives from
+            # BaseException, so `except Exception` would let it through.
+            return (
+                f"python module {step.needs_import!r} is not importable: "
+                f"{type(error).__name__}"
+            )
     return None
 
 

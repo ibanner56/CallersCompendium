@@ -10,8 +10,8 @@
 // head, permanently mislabelled. Silently corrupting a user's collection is a
 // far worse outcome than refusing to open the file, hence a hard failure.
 //
-// These tests build databases at the boundary versions directly with raw SQL
-// rather than from a fixture, because the whole point is that no fixture below
+// The below-floor tests stamp databases at the boundary version directly with
+// raw SQL, because the whole point is that no fixture or schema snapshot below
 // the floor exists any more.
 import 'dart:io';
 
@@ -21,7 +21,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 import 'package:test/test.dart';
 
-import '../test_package_root.dart';
+import 'generated/schema.dart';
 
 /// Writes a minimal database file stamped at [version].
 ///
@@ -47,9 +47,10 @@ void main() {
   });
 
   test('the floor is the schema version of the oldest supported release', () {
-    // v0.1.0-beta.6 shipped schema v20 and is the oldest supported release.
-    // beta.5 shipped v15, so a beta.5 database is deliberately below the floor.
-    expect(kMinSupportedSchemaVersion, 20);
+    // v0.4.0-beta shipped schema v35 and is the oldest supported release.
+    // v0.3.1-beta shipped v32, so a v0.3.1-beta database is deliberately below
+    // the floor.
+    expect(kMinSupportedSchemaVersion, 35);
     expect(
       kMinSupportedSchemaVersion,
       lessThanOrEqualTo(kCompendiumSchemaVersion),
@@ -85,12 +86,12 @@ void main() {
       });
     }
 
-    test('v19 is refused even though it is only one below the floor', () async {
-      // The boundary is the interesting case: v19 was never released as a
+    test('v34 is refused even though it is only one below the floor', () async {
+      // The boundary is the interesting case: v34 was never released as a
       // beta version itself (it existed only as an interim schema during
-      // beta.6's development, which shipped v20 directly) — but the floor is
-      // exact, so it must still be refused, just as an actually-shipped
-      // boundary version would be.
+      // v0.4.0-beta's development, which shipped v35 directly) — but the
+      // floor is exact, so it must still be refused, just as an
+      // actually-shipped boundary version would be.
       final path = _databaseStampedAt(dir, kMinSupportedSchemaVersion - 1);
       final db = CompendiumDatabase(NativeDatabase(File(path)));
 
@@ -118,26 +119,16 @@ void main() {
     // without refusing the floor itself. A guard off by one here would strand
     // every supported user, which is a worse failure than the one it prevents.
     //
-    // This uses the real committed floor fixture rather than a stamped empty
-    // file, because "it opened" is only meaningful for a database that actually
-    // has the floor version's tables in it.
-    final root = await packageRootPath();
-    final source = File(
-      p.join(
-        root,
-        'test',
-        'storage',
-        'fixtures',
-        'v$kMinSupportedSchemaVersion.sqlite',
-      ),
-    );
-    expect(
-      source.existsSync(),
-      isTrue,
-      reason: 'the floor version must keep its fixture',
-    );
+    // This builds the floor database from its schema snapshot rather than
+    // stamping an empty file, because "it opened" is only meaningful for a
+    // database that actually has the floor version's tables in it.
     final path = p.join(dir.path, 'floor.sqlite');
-    await source.copy(path);
+    final historical = GeneratedHelper().databaseForVersion(
+      NativeDatabase(File(path)),
+      kMinSupportedSchemaVersion,
+    );
+    await historical.customSelect('SELECT 1').get();
+    await historical.close();
 
     final db = CompendiumDatabase(NativeDatabase(File(path)));
     await expectLater(db.customSelect('SELECT 1').get(), completes);

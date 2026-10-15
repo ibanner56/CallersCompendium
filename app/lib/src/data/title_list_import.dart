@@ -41,8 +41,9 @@ const int kMaxTitleListChars = 64 * 1024;
 ///
 /// 100 is deliberately far above real use (an evening's program is ~12-15
 /// dances, a season well under 100) and far below anything that would hammer The
-/// Caller's Box. Counted **after** blank-dropping and case-insensitive
-/// de-duplication, so repeating one title 500 times is one title, not a refusal.
+/// Caller's Box. Counted **after** blank-dropping and case- and
+/// punctuation-insensitive de-duplication, so repeating one title 500 times is
+/// one title, not a refusal.
 const int kMaxTitleListTitles = 100;
 
 /// Hard cap on the length of a single pasted line, in UTF-16 code units.
@@ -134,9 +135,15 @@ enum TitleListNotFoundReason {
   /// Several results share this exact title, so which was meant is ambiguous.
   multipleExactMatches,
 
-  /// The search or the per-dance fetch failed. Isolated per title so one bad
-  /// title cannot abort the batch.
+  /// The search or the per-dance fetch failed for a reason particular to this
+  /// title (a missing page, an unreadable response). Isolated per title so one
+  /// bad title cannot abort the batch.
   fetchError,
+
+  /// The source could not be reached (see `isConnectionFailure`). The first
+  /// such failure stops the batch; this is that title and every title left
+  /// unlooked-up after it. See [TitleListResolution.stoppedAfterConnectionFailure].
+  connectionFailed,
 
   /// The line was longer than [kMaxTitleLength], so it was never searched.
   lineTooLong,
@@ -219,6 +226,7 @@ class TitleListResolution {
     required this.rows,
     required this.duplicateLines,
     this.ambiguousReviewImport,
+    this.stoppedAfterConnectionFailure = false,
   });
 
   /// Only the importable records, in paste order, ready for
@@ -234,6 +242,11 @@ class TitleListResolution {
   /// Candidate groups whose rows are flattened into [batch] and reviewed
   /// together with the ordinary import rows.
   final AmbiguousReviewImport? ambiguousReviewImport;
+
+  /// Whether a connection failure ended online lookups early. When true, every
+  /// title not yet looked up is a [TitleListNotFoundReason.connectionFailed]
+  /// row that was never requested.
+  final bool stoppedAfterConnectionFailure;
 
   Iterable<TitleListRow> rowsIn(TitleListGroup group) =>
       rows.where((r) => r.group == group);
@@ -263,9 +276,9 @@ class TitleListLine {
 /// In order, it: rejects the whole paste over [kMaxTitleListChars]; splits on
 /// newlines; trims; drops blank lines; flags lines over [kMaxTitleLength] as
 /// [TitleListNotFoundReason.lineTooLong] (kept in place so they still appear in
-/// the review, but never searched); folds case-insensitive duplicates onto their
-/// first occurrence; and rejects the paste over [kMaxTitleListTitles] distinct
-/// titles.
+/// the review, but never searched); folds duplicates that share a
+/// `titleMatchKey` (case and punctuation style ignored) onto their first
+/// occurrence; and rejects the paste over [kMaxTitleListTitles] distinct titles.
 TitleListPreflight preflightTitleList(String text) {
   if (text.length > kMaxTitleListChars) {
     return TitleListPreflight._(
@@ -282,19 +295,20 @@ TitleListPreflight preflightTitleList(String text) {
   for (final raw in text.split('\n')) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) continue;
-    // Case-insensitive, first-occurrence-wins, and applied to **every** line
-    // before any other judgement is passed on it. A program may legitimately
-    // call the same dance twice, which is why `parsePlaintextProgram` keeps
-    // duplicates and this de-duplication lives out here instead: importing the
-    // same dance twice is never useful, and searching for it twice is pure
-    // waste against someone else's server.
+    // Case- and punctuation-insensitive ([titleMatchKey], so `O'More` and
+    // `O’More` are one title), first-occurrence-wins, and applied to **every**
+    // line before any other judgement is passed on it. A program may
+    // legitimately call the same dance twice, which is why
+    // `parsePlaintextProgram` keeps duplicates and this de-duplication lives
+    // out here instead: importing the same dance twice is never useful, and
+    // searching for it twice is pure waste against someone else's server.
     //
     // Ordering matters. Folding only the lines that survive the length check
     // would let a repeated over-long line through repeatedly — listed once per
     // occurrence in a review whose stated premise is that repeats were folded,
     // and uncounted by [duplicateLines], which is the number telling the user
     // that folding happened at all.
-    if (!seen.add(trimmed.toLowerCase())) {
+    if (!seen.add(titleMatchKey(trimmed))) {
       duplicates++;
       continue;
     }
@@ -397,6 +411,11 @@ class TitleListPreflight {
 /// titles, so a long batch is visible and abandonable rather than an opaque
 /// wait. A fetch failure for one title becomes a
 /// [TitleListNotFoundReason.fetchError] row and the rest of the batch proceeds.
+/// A *connection* failure (`isConnectionFailure`) is different: the first one
+/// stops lookups, and every title not yet looked up becomes a
+/// [TitleListNotFoundReason.connectionFailed] row without a request
+/// ([TitleListResolution.stoppedAfterConnectionFailure]). Titles already in the
+/// collection are still listed.
 ///
 /// Throws [TitleListTooLargeException] — before any network access — when the
 /// paste trips a hard cap, and [TitleListCancelled] when [isCancelled] goes
@@ -471,6 +490,7 @@ Future<TitleListResolution> resolveTitleList(
   final plans = <ImportRecordPlan>[];
   final ambiguousGroups = <AmbiguousReviewGroup>[];
   var cursor = 0;
+  var connectionFailed = false;
   for (final line in pre.lines) {
     final rejected = line.rejected;
     if (rejected != null) {
@@ -505,20 +525,34 @@ Future<TitleListResolution> resolveTitleList(
       case PlaintextLineResolution.unmatched:
         if (isCancelled?.call() ?? false) throw const TitleListCancelled();
         onProgress?.call(done, total);
+        if (connectionFailed) {
+          // The source is unreachable; asking again would only wait out the
+          // same failure (30 s apiece on a hanging connection).
+          rows.add(
+            TitleListRow.notFound(
+              title: parsedLine.text,
+              reason: TitleListNotFoundReason.connectionFailed,
+            ),
+          );
+          done++;
+          continue;
+        }
         // Reaching this branch means `total > 0`, which is exactly the
         // condition under which the snapshot above was built.
         assert(index != null, 'an unmatched line requires a dedupe snapshot');
-        rows.add(
-          await _resolveOne(
-            parsedLine.text,
-            service: service,
-            repos: repos,
-            index: index!,
-            plans: plans,
-            ambiguousGroups: ambiguousGroups,
-            now: now,
-          ),
+        final row = await _resolveOne(
+          parsedLine.text,
+          service: service,
+          repos: repos,
+          index: index!,
+          plans: plans,
+          ambiguousGroups: ambiguousGroups,
+          now: now,
         );
+        rows.add(row);
+        if (row.reason == TitleListNotFoundReason.connectionFailed) {
+          connectionFailed = true;
+        }
         done++;
     }
   }
@@ -531,13 +565,15 @@ Future<TitleListResolution> resolveTitleList(
     ambiguousReviewImport: ambiguousGroups.isEmpty
         ? null
         : AmbiguousReviewImport(groups: ambiguousGroups),
+    stoppedAfterConnectionFailure: connectionFailed,
   );
 }
 
 /// Looks [title] up online and previews a unique exact hit, or a capped group of
 /// ambiguous exact hits, into [plans]. Never writes. Any [Exception] from a
-/// preview becomes a [TitleListNotFoundReason.fetchError] row so one unreachable
-/// dance cannot abort the batch; `Error`s (programmer bugs) still surface.
+/// preview becomes a [TitleListNotFoundReason.fetchError] row (or
+/// [TitleListNotFoundReason.connectionFailed] for a connection-class failure)
+/// so one unreadable dance cannot abort the batch; `Error`s (programmer bugs) still surface.
 Future<TitleListRow> _resolveOne(
   String title, {
   required OnlineSearchService service,
@@ -556,13 +592,26 @@ Future<TitleListRow> _resolveOne(
   final lookup = await lookupUniqueExactTitle(title, service: service);
   if (lookup is OnlineTitleMiss) {
     if (lookup.failure == OnlineTitleLookupFailure.multipleExactMatches) {
+      // `previewAmbiguousCandidates` drops a failed candidate and carries on, so
+      // an offline device would otherwise issue every candidate preview and
+      // report an ordinary miss. The watcher records the first connection-class
+      // failure and refuses the remaining previews without a request.
+      final watched = _ConnectionWatchingService(service);
       final candidates = await previewAmbiguousCandidates(
         lookup.candidates,
-        servicesBySource: {service.source: service},
+        servicesBySource: {service.source: watched},
         repos: repos,
         index: index,
         now: now,
       );
+      if (watched.connectionFailure != null) {
+        // Any candidates that did preview are discarded (never added to
+        // [plans]): a partial group would hide that others are missing.
+        return TitleListRow.notFound(
+          title: title,
+          reason: TitleListNotFoundReason.connectionFailed,
+        );
+      }
       if (candidates.isNotEmpty) {
         plans.addAll(candidates);
         ambiguousGroups.add(
@@ -583,6 +632,8 @@ Future<TitleListRow> _resolveOne(
           TitleListNotFoundReason.noExactMatch,
         OnlineTitleLookupFailure.multipleExactMatches =>
           TitleListNotFoundReason.multipleExactMatches,
+        OnlineTitleLookupFailure.unreachable =>
+          TitleListNotFoundReason.connectionFailed,
         OnlineTitleLookupFailure.fetchError =>
           TitleListNotFoundReason.fetchError,
       },
@@ -597,13 +648,70 @@ Future<TitleListRow> _resolveOne(
     );
     plans.add(preview.plan);
     return TitleListRow.toImport(title: title, planIndex: plans.length - 1);
-  } on Exception catch (_) {
-    // diagnostics: silent — preview fetch failure surfaced via TitleListRow.notFound(fetchError) to the title list import screen
+  } on Exception catch (e) {
+    // diagnostics: silent — preview fetch failure surfaced via TitleListRow.notFound(connectionFailed | fetchError) to the title list import screen
     return TitleListRow.notFound(
       title: title,
-      reason: TitleListNotFoundReason.fetchError,
+      // No HTTP-status reasons here: a 404 on one dance's page is about that
+      // dance, not the connection.
+      reason: isConnectionFailure(e)
+          ? TitleListNotFoundReason.connectionFailed
+          : TitleListNotFoundReason.fetchError,
     );
   }
+}
+
+/// Wraps [_inner] for the ambiguous-candidate previews of one title: remembers
+/// the first connection-class failure ([isConnectionFailure]) from
+/// `loadPreview`, and from then on rethrows it without calling [_inner], so a
+/// helper that swallows per-candidate failures cannot keep requesting.
+class _ConnectionWatchingService implements OnlineSearchService {
+  _ConnectionWatchingService(this._inner);
+
+  final OnlineSearchService _inner;
+
+  /// The first connection-class failure seen, or null.
+  Object? connectionFailure;
+
+  @override
+  OnlineSource get source => _inner.source;
+
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) =>
+      _inner.search(query);
+
+  @override
+  Future<OnlinePreview> loadPreview(
+    CompendiumRepositories repos,
+    OnlineSearchResultRow result, {
+    DateTime? now,
+    DedupeIndex? index,
+  }) async {
+    final failure = connectionFailure;
+    if (failure != null) throw failure;
+    try {
+      return await _inner.loadPreview(repos, result, now: now, index: index);
+    } on Exception catch (e) {
+      // diagnostics: silent — recorded and rethrown; the caller turns it into a connectionFailed row
+      if (isConnectionFailure(e)) connectionFailure = e;
+      rethrow;
+    }
+  }
+
+  @override
+  Future<OnlineImportResult> import(
+    CompendiumRepositories repos,
+    ImportRecordPlan plan, {
+    DateTime? now,
+    DedupeResolution? ambiguousResolution,
+    List<String> defaultTagIds = const [],
+  }) => _inner.import(
+    repos,
+    plan,
+    now: now,
+    ambiguousResolution: ambiguousResolution,
+    defaultTagIds: defaultTagIds,
+  );
 }
 
 /// Choreographer names for the locally-matched dance [danceId], loading the

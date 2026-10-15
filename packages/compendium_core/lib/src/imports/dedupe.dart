@@ -235,7 +235,7 @@ class DedupeResolution {
   /// #686). When [linkBack] is true (the default — both the interactive
   /// "Import as a variation" prompt and the non-interactive program-import
   /// auto-import path default it on), the pipeline creates a symmetric
-  /// [DanceLinkKind.relatedDance]-equivalent pair of links between the new
+  /// [LinkKind.relatedDance] pair of links between the new
   /// dance and [targetDanceId] so the relationship is visible from either
   /// dance's detail screen.
   factory DedupeResolution.variation(
@@ -256,7 +256,9 @@ class DedupeResolution {
 ///
 /// Pure: it holds a snapshot of [DedupeEntry]s and does no I/O, so it is fully
 /// unit-testable without a database. The pipeline builds one from the live
-/// collection before a batch, then reuses it across the batch.
+/// collection before a batch, then reuses it across the batch. Each entry's
+/// title and author names are normalized once, at construction, so a query
+/// only normalizes its own inputs.
 class DedupeIndex {
   DedupeIndex(
     Iterable<DedupeEntry> entries, {
@@ -270,11 +272,32 @@ class DedupeIndex {
       if (e.source != null && ext != null) {
         _byExternalKey['${e.source!.name}\u0000$ext'] = e.danceId;
       }
+      final nTitle = normalizeTitle(e.title);
+      // Never `''`: an empty normalized title is never scored, so it must not
+      // be reachable through the exact-title map either.
+      if (nTitle.isNotEmpty) {
+        (_byNormalizedTitle[nTitle] ??= []).add(_normalized.length);
+      }
+      _normalized.add((
+        danceId: e.danceId,
+        normalizedTitle: nTitle,
+        normalizedAuthors: e.authorNames.map(normalizeAuthor).toSet()
+          ..remove(''),
+      ));
     }
   }
 
   final List<DedupeEntry> _entries;
+
+  /// Normalized title and author set per entry, parallel to [_entries]. An
+  /// empty `normalizedTitle` marks an entry that is never scored.
+  final List<_NormalizedEntry> _normalized = [];
   final Map<String, String> _byExternalKey = {};
+
+  /// Normalized (non-empty) title → ascending indices into [_normalized] of
+  /// the entries carrying it. Every [DedupeCandidate.confident] match comes
+  /// from here, since confidence requires an exact normalized-title match.
+  final Map<String, List<int>> _byNormalizedTitle = {};
 
   /// Snapshot of every choreographer at the time this index was built
   /// (normalized name → id), incidentally captured from the same collection
@@ -282,6 +305,14 @@ class DedupeIndex {
   /// reuse this instead of a second `listAll()` — see
   /// [ImportPipeline.buildDedupeIndex] and [ImportPipeline.commit].
   final Map<String, String> choreographerIdByNormalizedName;
+
+  /// The precomputed normalized form of every entry; exists so tests can pin
+  /// the shape without reaching into private state.
+  @visibleForTesting
+  List<
+    ({String danceId, String normalizedTitle, Set<String> normalizedAuthors})
+  >
+  get normalizedEntriesForTesting => List.unmodifiable(_normalized);
 
   /// Default minimum combined similarity for a fuzzy match to be surfaced.
   static const double defaultThreshold = 0.72;
@@ -316,10 +347,40 @@ class DedupeIndex {
     final nAuthors = authorNames.map(normalizeAuthor).toSet()..remove('');
     if (nTitle.isEmpty) return const [];
     final out = <DedupeCandidate>[];
-    for (final e in _entries) {
-      final eTitle = normalizeTitle(e.title);
+    // Entries sharing the query's normalized title are always scored: they are
+    // the only possible confident matches. They are visited in entry order,
+    // merged into the scan below, so the candidate order (and thus the order of
+    // equal scores after the sort) is exactly that of a plain scan.
+    final exact = _byNormalizedTitle[nTitle] ?? const <int>[];
+    var nextExact = 0;
+    // Length bound for every other entry. Levenshtein distance is at least the
+    // length difference, so with la = |nTitle|, lb = |eTitle| and
+    // d = |la - lb|, `titleSim = 1 - dist / max(la, lb) <= 1 - d / max(la, lb)`
+    // (floating-point division and subtraction are monotone, so this holds for
+    // the computed values too). The combined score is then at most
+    // `titleSim * 0.8 + 0.2` when both author sets are non-empty (Jaccard is at
+    // most 1) and exactly `titleSim` otherwise. A pair whose bound is under
+    // [threshold] could never have reached it, and is not confident (its
+    // titles differ), so skipping it cannot change the result.
+    final queryHasAuthors = nAuthors.isNotEmpty;
+    for (var i = 0; i < _normalized.length; i++) {
+      final e = _normalized[i];
+      final eTitle = e.normalizedTitle;
       if (eTitle.isEmpty) continue;
-      final eAuthors = e.authorNames.map(normalizeAuthor).toSet()..remove('');
+      final eAuthors = e.normalizedAuthors;
+      if (nextExact < exact.length && exact[nextExact] == i) {
+        nextExact++;
+      } else {
+        final la = nTitle.length;
+        final lb = eTitle.length;
+        final diff = la > lb ? la - lb : lb - la;
+        final maxLen = la > lb ? la : lb;
+        final titleBound = 1.0 - diff / maxLen;
+        final bound = queryHasAuthors && eAuthors.isNotEmpty
+            ? titleBound * 0.8 + 1.0 * 0.2
+            : titleBound;
+        if (bound < threshold) continue;
+      }
       final score = _combinedScore(nTitle, nAuthors, eTitle, eAuthors);
       final confident =
           nTitle.isNotEmpty &&
@@ -382,14 +443,24 @@ class DedupeIndex {
   }
 }
 
+typedef _NormalizedEntry = ({
+  String danceId,
+  String normalizedTitle,
+  Set<String> normalizedAuthors,
+});
+
+final RegExp _nonAlphanumericRe = RegExp(r'[^a-z0-9\s]');
+final RegExp _whitespaceRe = RegExp(r'\s+');
+final RegExp _leadingArticleRe = RegExp(r'^(the|a|an)\s+');
+
 /// Normalizes a dance title for comparison: NFC-composed, lowercased, diacritics
 /// folded, punctuation dropped, whitespace collapsed, and a single leading
 /// article (`the`/`a`/`an`) removed.
 String normalizeTitle(String title) {
   var s = _foldDiacritics(title.toLowerCase());
-  s = s.replaceAll(RegExp(r'[^a-z0-9\s]'), ' ');
-  s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
-  s = s.replaceFirst(RegExp(r'^(the|a|an)\s+'), '');
+  s = s.replaceAll(_nonAlphanumericRe, ' ');
+  s = s.replaceAll(_whitespaceRe, ' ').trim();
+  s = s.replaceFirst(_leadingArticleRe, '');
   return s;
 }
 
@@ -397,8 +468,8 @@ String normalizeTitle(String title) {
 /// folded, punctuation dropped, whitespace collapsed.
 String normalizeAuthor(String name) {
   var s = _foldDiacritics(name.toLowerCase());
-  s = s.replaceAll(RegExp(r'[^a-z0-9\s]'), ' ');
-  return s.replaceAll(RegExp(r'\s+'), ' ').trim();
+  s = s.replaceAll(_nonAlphanumericRe, ' ');
+  return s.replaceAll(_whitespaceRe, ' ').trim();
 }
 
 /// Jaccard similarity of two string sets (`0.0..1.0`); empty∩empty is 1.0.

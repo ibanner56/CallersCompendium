@@ -110,7 +110,8 @@ def _cases() -> None:
         assert "Azure Trusted Signing" in body  # named as the pending Windows leg
         assert "signed via Azure Trusted Signing" not in body  # but not claimed
         assert "`SHA256SUMS`" in body
-        assert "maintainer publishes this draft after review" in body
+        assert "publishes this draft" not in body
+        assert "stable channel" not in body
 
     # 5b. Honest footer when NEITHER Windows nor macOS was signed (default):
     #     all three desktops reported unsigned, and NO false signed claim.
@@ -123,7 +124,8 @@ def _cases() -> None:
         assert "Developer ID-signed & notarized" not in body
         assert "signed via Azure Trusted Signing" not in body
         assert "`SHA256SUMS`" in body
-        assert "maintainer publishes this draft after review" in body
+        assert "publishes this draft" not in body
+        assert "stable channel" not in body
 
     # 5c. Windows signed via Azure Trusted Signing (macOS unsigned): the footer
     #     claims Windows signing and does NOT list Windows among the unsigned.

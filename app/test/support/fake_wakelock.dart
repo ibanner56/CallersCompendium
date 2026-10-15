@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:wakelock_plus_platform_interface/wakelock_plus_platform_interface.dart';
@@ -27,6 +29,50 @@ class FakeWakelockPlus extends WakelockPlusPlatformInterface {
 
   @override
   Future<bool> get enabled async => isEnabled;
+}
+
+/// Non-idempotent counterpart of [FakeWakelockPlus] that mirrors the Linux
+/// plugin's portal semantics: every `toggle(enable: true)` opens another inhibit
+/// (overwriting the previous handle without closing it) and every
+/// `toggle(enable: false)` closes only one, and only if one has been granted.
+/// [FakeWakelockPlus] is idempotent and so cannot show a stacked or leaked
+/// inhibit; [outstanding] is the number still open.
+///
+/// Set [enableGate] to hold an enable in flight: the inhibit is granted only
+/// once the gate completes, like the Linux plugin assigning its request handle
+/// after the D-Bus reply, so a disable that runs meanwhile finds nothing to
+/// close.
+class CountingWakelockPlus extends WakelockPlusPlatformInterface {
+  int outstanding = 0;
+  final List<bool> toggles = <bool>[];
+  Completer<void>? enableGate;
+
+  @override
+  Future<void> toggle({required bool enable}) async {
+    toggles.add(enable);
+    if (enable) {
+      final gate = enableGate;
+      if (gate != null) await gate.future;
+      outstanding++;
+    } else if (outstanding > 0) {
+      outstanding--;
+    }
+  }
+
+  @override
+  Future<bool> get enabled async => outstanding > 0;
+}
+
+/// Installs a [CountingWakelockPlus] the way [installFakeWakelock] installs the
+/// idempotent fake. Call from a test body or `setUp`.
+CountingWakelockPlus installCountingWakelock() {
+  final previous = wakelockPlusPlatformInstance;
+  final fake = CountingWakelockPlus();
+  wakelockPlusPlatformInstance = fake;
+  addTearDown(() {
+    wakelockPlusPlatformInstance = previous;
+  });
+  return fake;
 }
 
 /// Installs a [FakeWakelockPlus] as the active platform implementation and

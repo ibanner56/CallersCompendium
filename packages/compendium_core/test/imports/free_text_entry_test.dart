@@ -287,4 +287,133 @@ void main() {
       expect(fs.single.params['text'], 'qwx zzz nonsense');
     });
   });
+
+  group('parseFreeTextFigureEntry — active dialect', () {
+    test('a role word from the active dialect parses (Follows chain)', () {
+      final fs = parseFreeTextFigureEntry(
+        'Follows chain',
+        dialect: Dialect.leadsFollows,
+      );
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isFalse);
+      expect(fs.single.move, 'chain');
+      expect(fs.single.params['who'], 'role2s');
+    });
+
+    test('the raw line is tried first: `lead` stays a move word', () {
+      final fs = parseFreeTextFigureEntry(
+        'ones lead down the hall',
+        dialect: Dialect.leadsFollows,
+      );
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isFalse);
+      expect(fs.single.move, 'down_the_hall');
+    });
+
+    test('a miss under the dialect keeps the typed text in the custom', () {
+      final fs = parseFreeTextFigureEntry(
+        'qwx follows nonsense',
+        dialect: Dialect.leadsFollows,
+      );
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isTrue);
+      expect(fs.single.params['text'], 'qwx follows nonsense');
+    });
+
+    test('without a dialect, Follows chain still degrades to a custom', () {
+      final fs = parseFreeTextFigureEntry('Follows chain');
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isTrue);
+    });
+  });
+  group('parseFreeTextFigureEntry — common phrasings (COL-02)', () {
+    // Each row: typed line, expected move, expected params (subset).
+    const structured = <(String, String, Map<String, Object?>)>[
+      (
+        'half hey, ladies start by the right',
+        'hey',
+        {'length': 'half', 'pass1': 'role2s', 'shoulder': 'right'},
+      ),
+      ('N swing', 'swing', {'who': 'neighbors'}),
+      ('neighbours balance and swing', 'swing', {'who': 'neighbors'}),
+      ('N2 neighbor swing', 'swing', {'who': 'nextNeighbors'}),
+    ];
+    for (final (line, move, params) in structured) {
+      test('"$line" → structured $move', () {
+        final fs = parseFreeTextFigureEntry(line);
+        expect(fs, hasLength(1));
+        expect(fs.single.isCustom, isFalse, reason: 'got ${fs.single.params}');
+        expect(fs.single.move, move);
+        params.forEach((k, v) => expect(fs.single.params[k], v, reason: k));
+      });
+    }
+
+    test('"ladies chain over and back" is never a note-bearing chain', () {
+      final fs = parseFreeTextFigureEntry('ladies chain over and back');
+      expect(fs.any((f) => f.note == 'and back'), isFalse);
+      expect(fs.single.isCustom, isTrue);
+    });
+
+    // "X chain back" is ordinary phrasing for the return chain: the brief's
+    // leftover rule is "and back", not a bare "back" (the sweep's corpus diff
+    // found these structured at cb40eb5 and custom after CS-45d).
+    for (final line in [
+      'Ladies chain back',
+      'Robins chain back',
+      'ladies chain, back',
+    ]) {
+      test('"$line" stays a structured chain', () {
+        final f = parseFreeTextFigureEntry(line).single;
+        expect(f.isCustom, isFalse);
+        expect(f.move, 'chain');
+      });
+    }
+
+    for (final line in [
+      'ladies chain, and back',
+      'ladies chain, over and back',
+      'ladies chain, then over and back',
+      'ladies chain, and over and back',
+    ]) {
+      test('"$line" is still demoted', () {
+        final fs = parseFreeTextFigureEntry(line);
+        expect(fs.any((f) => (f.note ?? '').endsWith('and back')), isFalse);
+        expect(fs.single.isCustom, isTrue);
+      });
+    }
+
+    test('"neighbors swing 16" is 16 beats or custom, never 8 + note', () {
+      final f = parseFreeTextFigureEntry('neighbors swing 16').single;
+      expect(f.note, isNull);
+      if (!f.isCustom) expect(f.beats, 16);
+    });
+
+    test('a leftover move name is demoted to custom, not a note', () {
+      final f = parseFreeTextFigureEntry('neighbors swing petronella').single;
+      expect(f.isCustom, isTrue);
+    });
+
+    test('a note-tail rejected in a while-container stays custom', () {
+      final fs = parseFreeTextFigureEntry(
+        'neighbors swing 16 while partners swing',
+      );
+      expect(fs.single.isCustom, isTrue);
+    });
+
+    test('entry → reparse: a demoted custom is not upgraded back to a swing '
+        'with note "16"', () {
+      final typed = parseFreeTextFigureEntry('neighbors swing 16').single;
+      expect(typed.isCustom, isTrue);
+      final outcome = reparseImportGapFigures([typed]);
+      expect(outcome.upgradedCount, 0);
+      expect(outcome.figures.single.isCustom, isTrue);
+      expect(outcome.figures.single.customOrigin, CustomOrigin.importGap);
+    });
+
+    test('bare "give and take" stays custom (no default giver/target)', () {
+      final fs = parseFreeTextFigureEntry('give and take');
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isTrue);
+    });
+  });
 }

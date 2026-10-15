@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/src/serialization/archive_entity_codec.dart'
+    show archiveProgramToJson;
 import 'package:test/test.dart';
 import 'package:compendium_core/testing.dart';
 import '../figures_support.dart';
@@ -171,6 +173,9 @@ CompendiumArchive _sampleArchive() {
     notes: 'sound check at 6',
     status: ProgramStatus.performed,
     hideAlternates: true,
+    dialectName: 'Leads/Follows',
+    payMinorUnits: 25050,
+    payCurrency: 'USD',
     provenance: Provenance(
       source: ProvenanceSource.callersCompanion,
       externalId: 'usr-9921',
@@ -341,6 +346,9 @@ void main() {
 
       final p1 = result.archive.programs.firstWhere((p) => p.id == 'p1');
       expect(p1.hideAlternates, isTrue);
+      expect(p1.dialectName, 'Leads/Follows');
+      expect(p1.payMinorUnits, 25050);
+      expect(p1.payCurrency, 'USD');
       expect(p1.slots, hasLength(3));
       expect(p1.slots[0].walkthroughMinutes, 3);
       expect(p1.slots[0].danceMinutes, 9);
@@ -1037,6 +1045,144 @@ void main() {
         restored.provenance!.externalId,
         overlong.substring(0, kMaxExternalIdLength),
       );
+    });
+  });
+
+  group('program dialectName (issue #1554)', () {
+    Map<String, Object?> encodedP1() {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final programs = (map['programs'] as List).cast<Map<String, Object?>>();
+      return programs.firstWhere((p) => p['id'] == 'p1');
+    }
+
+    Program decodedP1(Map<String, Object?> program) {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final programs = (map['programs'] as List).cast<Map<String, Object?>>();
+      programs[programs.indexWhere((p) => p['id'] == 'p1')] = program;
+      final result = decodeArchive(jsonEncode(map));
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      return result.archive.programs.firstWhere((p) => p.id == 'p1');
+    }
+
+    test('an absent key decodes as null (archives from before v37)', () {
+      final p = encodedP1()..remove('dialectName');
+      expect(decodedP1(p).dialectName, isNull);
+    });
+
+    test('a non-string value is rejected per-entity', () {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final programs = (map['programs'] as List).cast<Map<String, Object?>>();
+      programs.firstWhere((p) => p['id'] == 'p1')['dialectName'] = 7;
+      final result = decodeArchive(jsonEncode(map));
+      expect(result.hasErrors, isTrue);
+      expect(result.errors.single.entityType, 'program');
+    });
+
+    test('long and emoji-bounded names survive a round trip unchanged', () {
+      // The dialect library imposes no name cap, and a duplicated dialect
+      // appends " 2", so a clamp would rewrite a valid reference into another
+      // dialect's name. 199 units then an emoji also puts a surrogate pair
+      // across what a 200-unit cut would split.
+      for (final name in [
+        'x' * 300,
+        '${'x' * 199}\u{1F600}',
+        '${'x' * 200} 2',
+      ]) {
+        final p = encodedP1()..['dialectName'] = name;
+        expect(decodedP1(p).dialectName, name);
+      }
+    });
+
+    test('control and bidi characters are stripped on decode', () {
+      final p = encodedP1();
+      p['dialectName'] = 'Leads\u202E/Follows\u0000';
+      expect(decodedP1(p).dialectName, 'Leads/Follows');
+    });
+
+    test('the JSON key is omitted when null, in every mode', () {
+      // Sync bodies pass includeOptionalFields: true; a null-valued key there
+      // would change the wire hash of every program without a dialect.
+      final bare = Program(
+        id: 'p',
+        title: 'T',
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      );
+      expect(archiveProgramToJson(bare), isNot(contains('dialectName')));
+      expect(
+        archiveProgramToJson(bare, includeOptionalFields: true),
+        isNot(contains('dialectName')),
+      );
+      final set = bare.copyWith(dialectName: 'Leads/Follows');
+      expect(archiveProgramToJson(set)['dialectName'], 'Leads/Follows');
+      expect(
+        archiveProgramToJson(set, includeOptionalFields: true)['dialectName'],
+        'Leads/Follows',
+      );
+    });
+  });
+
+  group('program pay (issue #1418)', () {
+    Map<String, Object?> encodedP1() {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final programs = (map['programs'] as List).cast<Map<String, Object?>>();
+      return programs.firstWhere((p) => p['id'] == 'p1');
+    }
+
+    ArchiveReadResult decode(Map<String, Object?> program) {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final programs = (map['programs'] as List).cast<Map<String, Object?>>();
+      programs[programs.indexWhere((p) => p['id'] == 'p1')] = program;
+      return decodeArchive(jsonEncode(map));
+    }
+
+    test('both keys absent decodes as no pay (archives from before v38)', () {
+      final p = encodedP1()
+        ..remove('payMinorUnits')
+        ..remove('payCurrency');
+      final result = decode(p);
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      final decoded = result.archive.programs.firstWhere((x) => x.id == 'p1');
+      expect(decoded.payMinorUnits, isNull);
+      expect(decoded.payCurrency, isNull);
+    });
+
+    test('malformed pay is rejected per-entity', () {
+      final bad = <Map<String, Object?>>[
+        encodedP1()..['payMinorUnits'] = -1,
+        encodedP1()..['payMinorUnits'] = 'ten',
+        encodedP1()..['payCurrency'] = 'usd',
+        encodedP1()..remove('payCurrency'),
+        encodedP1()..remove('payMinorUnits'),
+      ];
+      for (final p in bad) {
+        final result = decode(p);
+        expect(result.hasErrors, isTrue, reason: '$p');
+        expect(result.errors.single.entityType, 'program');
+      }
+    });
+
+    test('the JSON keys are omitted when null, in every mode', () {
+      final bare = Program(
+        id: 'p',
+        title: 'T',
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      );
+      for (final mode in [false, true]) {
+        final json = archiveProgramToJson(bare, includeOptionalFields: mode);
+        expect(json, isNot(contains('payMinorUnits')));
+        expect(json, isNot(contains('payCurrency')));
+      }
+      final set = bare.copyWith(payMinorUnits: 500, payCurrency: 'JPY');
+      final json = archiveProgramToJson(set, includeOptionalFields: true);
+      expect(json['payMinorUnits'], 500);
+      expect(json['payCurrency'], 'JPY');
     });
   });
 

@@ -202,6 +202,141 @@ void main() {
     expect(await repository.listBaselineEntries(), isEmpty);
   });
 
+  group('kept peer manifests (sync-spec §5.2)', () {
+    late CompendiumDatabase db;
+    late SyncLocalRepository repository;
+    const kept = (epoch: 'epoch-a', etag: '"v1"', body: '{"m":1}');
+
+    setUp(() async {
+      db = openTestDatabase();
+      repository = SyncLocalRepository(db);
+      await repository.replaceBaseline(epoch: 'epoch-a');
+    });
+    tearDown(() => db.close());
+
+    test('reads back, replaces and forgets one peer', () async {
+      await repository.putPeerManifest('peer', kept);
+      expect(await repository.peerManifest('peer'), kept);
+      expect(await repository.peerManifest('other'), isNull);
+
+      const replaced = (epoch: 'epoch-a', etag: '"v2"', body: '{"m":2}');
+      await repository.putPeerManifest('peer', replaced);
+      expect(await repository.peerManifest('peer'), replaced);
+
+      await repository.removePeerManifest('peer');
+      expect(await repository.peerManifest('peer'), isNull);
+    });
+
+    test('keeps only listed peers in the given epoch', () async {
+      await repository.putPeerManifest('listed', kept);
+      await repository.putPeerManifest('unlisted', kept);
+      await repository.putPeerManifest('old', (
+        epoch: 'epoch-old',
+        etag: '"v1"',
+        body: '{}',
+      ));
+
+      await repository.retainPeerManifests(
+        epoch: 'epoch-a',
+        peerIds: {'listed', 'old'},
+      );
+
+      expect(await repository.peerManifest('listed'), kept);
+      expect(await repository.peerManifest('unlisted'), isNull);
+      expect(await repository.peerManifest('old'), isNull);
+
+      await repository.retainPeerManifests(epoch: 'epoch-a', peerIds: {});
+      expect(await repository.peerManifest('listed'), isNull);
+    });
+
+    test('goes with the baseline: epoch reset, detach and restore', () async {
+      await repository.putPeerManifest('peer', kept);
+      await repository.clearBaseline();
+      expect(await repository.peerManifest('peer'), isNull);
+
+      await repository.putPeerManifest('peer', kept);
+      await repository.resetEpoch(epoch: 'epoch-b');
+      expect(await repository.peerManifest('peer'), isNull);
+
+      await repository.putPeerManifest('peer', kept);
+      await repository.clearOnDetach();
+      expect(await repository.peerManifest('peer'), isNull);
+
+      await repository.putPeerManifest('peer', kept);
+      await repository.clearForRestore(restoredRecords: const []);
+      expect(await repository.peerManifest('peer'), isNull);
+    });
+  });
+
+  group('published manifest record (sync-spec §6.3 step 8)', () {
+    late CompendiumDatabase db;
+    late SyncLocalRepository repository;
+    final verifiedAt = DateTime.utc(2026, 10, 13, 9, 30);
+
+    setUp(() async {
+      db = openTestDatabase();
+      repository = SyncLocalRepository(db);
+      await repository.replaceBaseline(epoch: 'epoch-a');
+    });
+    tearDown(() => db.close());
+
+    test('reads back what was recorded for the same epoch', () async {
+      await repository.setPublishedManifest(
+        epoch: 'epoch-a',
+        published: (hash: 'manifest-hash', verifiedAt: verifiedAt),
+      );
+
+      expect(await repository.publishedManifest(epoch: 'epoch-a'), (
+        hash: 'manifest-hash',
+        verifiedAt: verifiedAt,
+      ));
+      expect(await repository.publishedManifest(epoch: 'epoch-b'), isNull);
+    });
+
+    test('is not written against another epoch', () async {
+      await repository.setPublishedManifest(
+        epoch: 'epoch-b',
+        published: (hash: 'manifest-hash', verifiedAt: verifiedAt),
+      );
+
+      expect(await repository.publishedManifest(epoch: 'epoch-a'), isNull);
+      expect(await repository.publishedManifest(epoch: 'epoch-b'), isNull);
+    });
+
+    test('is forgotten when cleared, and with the baseline', () async {
+      await repository.setPublishedManifest(
+        epoch: 'epoch-a',
+        published: (hash: 'manifest-hash', verifiedAt: verifiedAt),
+      );
+      await repository.setPublishedManifest(epoch: 'epoch-a', published: null);
+      expect(await repository.publishedManifest(epoch: 'epoch-a'), isNull);
+
+      await repository.setPublishedManifest(
+        epoch: 'epoch-a',
+        published: (hash: 'manifest-hash', verifiedAt: verifiedAt),
+      );
+      await repository.replaceBaseline(epoch: 'epoch-a');
+      expect(
+        await repository.publishedManifest(epoch: 'epoch-a'),
+        isNull,
+        reason: 'a replaced baseline starts with nothing published',
+      );
+
+      await repository.setPublishedManifest(
+        epoch: 'epoch-a',
+        published: (hash: 'manifest-hash', verifiedAt: verifiedAt),
+      );
+      await repository.advanceBaseline(epoch: 'epoch-a');
+      expect(
+        await repository.publishedManifest(epoch: 'epoch-a'),
+        isNotNull,
+        reason: 'advancing the baseline is not a new publication',
+      );
+      await repository.clearBaseline();
+      expect(await repository.publishedManifest(epoch: 'epoch-a'), isNull);
+    });
+  });
+
   test(
     'preserves opaque tombstone bytes alongside their supplied hash',
     () async {

@@ -4,30 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/main.dart';
-import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/locale_scope.dart';
-import 'package:compendium_app/src/data/window_service.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
-import '../support/test_repositories.dart';
-
-/// A [WindowService] whose restore does nothing — the plugin glue is untestable
-/// under `flutter test`, and these tests only exercise the locale wiring that
-/// follows the restore.
-class _NoopWindowService extends WindowService {
-  _NoopWindowService(super.settings);
-
-  @override
-  Future<void> initialize() async {}
-
-  @override
-  void dispose() {}
-}
-
-AppData _openAppData() {
-  final appData = AppData(openWidgetTestDatabase(closeOnTearDown: false));
-  addTearDown(appData.close);
-  return appData;
-}
+import '../support/full_app_harness.dart';
 
 Locale? _materialAppLocale(WidgetTester tester) =>
     tester.widget<MaterialApp>(find.byType(MaterialApp)).locale;
@@ -67,13 +46,13 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final appData = _openAppData();
+    final appData = openTestAppData();
     await appData.repositories.settings.set(kLocaleKey, 'en');
 
     await tester.pumpWidget(
       CompendiumApp(
         appData: appData,
-        windowService: _NoopWindowService(appData.repositories.settings),
+        windowService: NoopWindowService(appData.repositories.settings),
       ),
     );
     await tester.pumpAndSettle();
@@ -87,7 +66,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final appData = _openAppData();
+    final appData = openTestAppData();
     // Untrusted/corrupted value: must never select an unsupported locale or
     // throw — the app boots in the system locale (null).
     await appData.repositories.settings.set(kLocaleKey, 'zz-not-a-locale');
@@ -95,7 +74,7 @@ void main() {
     await tester.pumpWidget(
       CompendiumApp(
         appData: appData,
-        windowService: _NoopWindowService(appData.repositories.settings),
+        windowService: NoopWindowService(appData.repositories.settings),
       ),
     );
     await tester.pumpAndSettle();
@@ -114,7 +93,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final appData = _openAppData();
+      final appData = openTestAppData();
       await appData.repositories.settings.set(kLocaleKey, 'ja');
       final ja = await AppLocalizations.delegate.load(const Locale('ja'));
       final en = await AppLocalizations.delegate.load(const Locale('en'));
@@ -122,7 +101,7 @@ void main() {
       await tester.pumpWidget(
         CompendiumApp(
           appData: appData,
-          windowService: _NoopWindowService(appData.repositories.settings),
+          windowService: NoopWindowService(appData.repositories.settings),
           integrityCheck: threw
               ? () => throw StateError('quick_check failed to run')
               : () async => false,
