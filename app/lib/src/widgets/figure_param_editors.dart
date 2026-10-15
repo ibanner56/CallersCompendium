@@ -99,19 +99,17 @@ class FigureParamEditor extends StatelessWidget {
         // fabricated number into stored data.
         final allowsUnset =
             spec.choices?.contains(ParamVocab.unspecified) ?? false;
-        // A value left as it is (see [correctsValue]) that is neither an amount
-        // nor the sentinel is shown as needing a choice, never as "not stated"
-        // or as a made-up amount, as the dropdown does.
-        final needsChoice =
-            !correctsValue &&
-            value is! num &&
-            !(allowsUnset && value == ParamVocab.unspecified);
+        // A value left as it is (see [correctsValue]) that the spec rejects —
+        // missing, a word other than the admitted sentinel, or an amount
+        // outside the domain — is shown as needing a choice, never as "not
+        // stated" or as an amount, as the dropdown does.
+        final needsChoice = !correctsValue && !spec.validate(value);
         return _RotationStepper(
           fieldKey: _key,
           label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
-          value: value is num
-              ? value! as num
-              : (allowsUnset || needsChoice ? null : 1.0),
+          value: needsChoice
+              ? null
+              : (value is num ? value! as num : (allowsUnset ? null : 1.0)),
           allowsUnset: allowsUnset,
           needsChoice: needsChoice,
           onChanged: onChanged,
@@ -229,9 +227,10 @@ class FigureParamEditor extends StatelessWidget {
 
     // A value outside the choices that is left as it is (see
     // [correctsValue]) is not "not stated": the dropdown asks for a choice
-    // instead, so it never claims a state the draft does not hold. The other
-    // kinds' editors show a fallback for such a value; a caller that leaves
-    // values as they are says so beside them (`CompoundArgumentEditor`).
+    // instead, so it never claims a state the draft does not hold, and so does
+    // the rotation stepper. The other kinds' editors show a fallback for such
+    // a value; a caller that leaves values as they are says so beside them
+    // (`CompoundArgumentEditor`).
     final needsChoice =
         !correctsValue &&
         current == null &&
@@ -327,16 +326,17 @@ class _RotationStepper extends StatelessWidget {
   final String fieldKey;
   final String label;
 
-  /// The stored amount, or `null` when the source stated none. Only reachable
-  /// when [allowsUnset] — a spec without the sentinel always gets a number.
+  /// The stored amount, or `null`: "not stated" (with [allowsUnset]), or a
+  /// value left as it is that needs a choice (with [needsChoice]). Otherwise a
+  /// spec without the sentinel always gets a number.
   final num? value;
 
   /// Whether this param admits [ParamVocab.unspecified], i.e. whether "the
   /// source stated no amount" is a representable state.
   final bool allowsUnset;
 
-  /// Whether the stored value is neither an amount nor the sentinel and is
-  /// left as it is: shown as asking for a choice, with [value] null.
+  /// Whether the stored value is one the spec rejects and is left as it is:
+  /// shown as asking for a choice, with [value] null.
   final bool needsChoice;
   final ValueChanged<Object?> onChanged;
 
@@ -411,9 +411,9 @@ class _RotationStepper extends StatelessWidget {
                   : null,
             ),
             // Only offered when the param can actually represent "not stated",
-            // and only once a value is set — so a user who set an amount by
-            // mistake can put it back rather than being stuck with a number the
-            // source never gave.
+            // and only once a value is set or while a choice is needed — so a
+            // user who set an amount by mistake can put it back rather than
+            // being stuck with a number the source never gave.
             if (allowsUnset && (current != null || needsChoice))
               IconButton(
                 key: ValueKey('$fieldKey-clear'),

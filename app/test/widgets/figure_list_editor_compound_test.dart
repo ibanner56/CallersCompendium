@@ -374,6 +374,7 @@ void main() {
       {'turns': 'sideways', 'again': true},
     ),
     ('a missing one', {'again': true}),
+    ('an amount outside the domain', {'turns': 3.0, 'again': true}),
   ]) {
     testWidgets('a rotation argument asks for a choice for $label, never '
         'reading "not stated", and can be cleared', (tester) async {
