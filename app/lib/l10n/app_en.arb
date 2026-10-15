@@ -10297,6 +10297,10 @@
   "@figureParamFacingStarBackingUp": {
     "description": "Display-only label for the facing star move's `who` parameter in figure editors and search controls."
   },
+  "danceEditorParamChooseValue": "choose a value",
+  "@danceEditorParamChooseValue": {
+    "description": "Hint in a figure parameter's dropdown when its stored value is no longer one it accepts and must be replaced: one of the user's own figures (#709) was changed after the value was chosen, or gained a parameter. Lowercase, like the 'not stated' hint."
+  },
   "danceEditorParamClearTooltip": "Clear (not stated)",
   "@danceEditorParamClearTooltip": {
     "description": "Tooltip for the button that clears a figure parameter back to the unstated state."

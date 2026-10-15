@@ -7609,6 +7609,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get figureParamFacingStarBackingUp => '後退する人';
 
   @override
+  String get danceEditorParamChooseValue => '値を選択';
+
+  @override
   String get danceEditorParamClearTooltip => 'クリア（未指定）';
 
   @override

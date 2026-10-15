@@ -239,6 +239,60 @@ void main() {
     expect(status.data, startsWith('This figure of yours can\'t be expanded'));
   });
 
+  // A hey whose ends pair is the compound's parameter: `hey.pass2` admits
+  // "not stated", so the field could claim it.
+  CompoundDefinition heyWithEnds() => CompoundDefinition(
+    params: const [CompoundParam(key: 'ends', kind: ParamKind.dancerSet)],
+    figures: [
+      Figure(move: 'hey', params: const {'pass1': 'role2s', 'length': 'half'}),
+    ],
+    bindings: [
+      CompoundSlotBinding(figureIndex: 0, slotKey: 'pass2', paramKey: 'ends'),
+    ],
+  );
+
+  for (final (label, args) in [
+    ('one it no longer accepts', {'ends': 'sideways'}),
+    ('a missing one', <String, Object?>{}),
+  ]) {
+    testWidgets('a placeholder\'s field asks for a choice for $label, rather '
+        'than reading "not stated", and can be cleared', (tester) async {
+      final drafts = [
+        FigureDraft(
+          compound: CompoundPlaceholder(
+            id: 'grl',
+            name: 'grand pull',
+            args: Map.of(args),
+            beats: 8,
+          ),
+        ),
+      ];
+      await pump(tester, drafts, resolve: (_) => heyWithEnds());
+      await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+      await tester.pumpAndSettle();
+      final field = find.byKey(const ValueKey('figure-0-compound-ends'));
+      expect(
+        find.descendant(of: field, matching: find.text('choose a value')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: field, matching: find.text('not stated')),
+        findsNothing,
+      );
+      expect(drafts.single.compound!.args, args, reason: 'left as it is');
+
+      await tester.tap(
+        find.byKey(const ValueKey('figure-0-compound-ends-clear')),
+      );
+      await tester.pumpAndSettle();
+      expect(drafts.single.compound!.args['ends'], ParamVocab.unspecified);
+      expect(
+        find.descendant(of: field, matching: find.text('not stated')),
+        findsOneWidget,
+      );
+    });
+  }
+
   testWidgets('a placeholder counts its beats in the phrase labels', (
     tester,
   ) async {
