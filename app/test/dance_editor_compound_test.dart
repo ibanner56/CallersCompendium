@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart' show testFigure;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -23,7 +24,7 @@ void main() {
 
   /// Four pull-bys alternating hands, from the hand given.
   CompoundDefinition grandRightAndLeft({int beats = 2}) {
-    Figure pullBy() => Figure(
+    Figure pullBy() => testFigure(
       move: 'pull_by',
       params: {'who': 'neighbors', 'hand': 'right', 'beats': beats},
     );
