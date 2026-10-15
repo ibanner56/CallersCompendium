@@ -16,9 +16,9 @@ final class _Network implements SyncNetworkClassifier {
   Future<SyncNetworkKind> current() async => SyncNetworkKind.unmetered;
 }
 
-/// The pairing warning about devices on earlier app versions (#709, decision
-/// 15): shown on both paths once this build syncs something they cannot
-/// read, and not before.
+/// The pairing warning about devices on earlier app versions (#709
+/// consolidated spec, decision 13): shown on both paths once this build syncs
+/// something they cannot read, and not before.
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   const finder = ValueKey('sync-pairing-newer-data-disclosure');

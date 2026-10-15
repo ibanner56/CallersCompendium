@@ -481,9 +481,9 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
           ),
         ],
         const SizedBox(height: AppSpacing.lg),
-        // Decision 15 on #709: a device on a build from before the capability
-        // gate cannot read a store that syncs gated data, and the gate cannot
-        // see it until it publishes a manifest. Shown only while this build
+        // #709 consolidated spec, decision 13: a device on a build from before
+        // the capability gate cannot read a store that syncs gated data, and
+        // the gate cannot see it until it publishes a manifest. Shown only while this build
         // advertises a capability, so it says nothing until there is one.
         if (widget.capabilityPolicy.advertised.isNotEmpty) ...[
           _Disclosure(
