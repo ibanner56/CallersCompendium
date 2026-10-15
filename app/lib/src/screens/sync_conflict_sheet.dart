@@ -525,9 +525,22 @@ class _ConflictGroupTile extends StatelessWidget {
       for (final item in group.candidates) ?item.candidate?.updatedAt.toUtc(),
     };
     final showTimes = times.length > 1;
-    String subtitle(String text, DateTime? when) => showTimes && when != null
-        ? '$text\n${l10n.syncConflictChangedAt(syncConflictWhen(context, when))}'
-        : text;
+    // A note's version is the note itself, up to 20,000 characters over many
+    // lines: a few lines here, the whole of it in the comparison (#709).
+    final clipped = group.kind == SyncRecordKind.figureNote;
+    Widget subtitle(String text, DateTime? when) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          text,
+          maxLines: clipped ? 3 : null,
+          overflow: clipped ? TextOverflow.ellipsis : null,
+        ),
+        if (showTimes && when != null)
+          Text(l10n.syncConflictChangedAt(syncConflictWhen(context, when))),
+      ],
+    );
     return Card(
       margin: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -568,11 +581,9 @@ class _ConflictGroupTile extends StatelessWidget {
                   value: _thisDevice,
                   enabled: onChoose != null,
                   title: Text(l10n.syncConflictThisDevice),
-                  subtitle: Text(
-                    subtitle(
-                      _versionText(context, l10n, local),
-                      group.localUpdatedAt,
-                    ),
+                  subtitle: subtitle(
+                    _versionText(context, l10n, local),
+                    group.localUpdatedAt,
                   ),
                 ),
               for (final (index, item) in group.candidates.indexed)
@@ -587,11 +598,9 @@ class _ConflictGroupTile extends StatelessWidget {
                         ? l10n.syncConflictOtherDeviceNumbered(index + 1)
                         : l10n.syncConflictOtherDevice,
                   ),
-                  subtitle: Text(
-                    subtitle(
-                      _versionText(context, l10n, item.candidate?.body),
-                      item.candidate?.updatedAt,
-                    ),
+                  subtitle: subtitle(
+                    _versionText(context, l10n, item.candidate?.body),
+                    item.candidate?.updatedAt,
                   ),
                 ),
               if (combination != null)

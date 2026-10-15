@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/app_theme_labels_l10n.dart';
 import '../data/custom_theme.dart';
+import '../glossary/figure_titles.dart';
 import '../search/facet_labels.dart';
 import '../sync/sync_setting_labels.dart';
 import '../theme/app_spacing.dart';
@@ -97,12 +98,15 @@ String syncConflictFreeText(BuildContext context, String text) =>
     );
 
 /// The built-in figure [figureId] names — a figure note's record id (#709) —
-/// as the Glossary heads it in the active dialect, or null when the taxonomy
-/// no longer has it (such a note is kept and not shown).
+/// exactly as the Glossary heads it in the active dialect, a colliding alias
+/// qualified by the values it pins ([glossaryFigureTitle]); or null when the
+/// Glossary no longer lists it (such a note is kept and not shown).
 String? syncConflictFigureName(BuildContext context, String figureId) {
-  if (contraTaxonomy.resolve(figureId) == null) return null;
-  return SyncConflictComparison._renderer.displayMoveName(
+  if (!shippedFigureGlossaryEntries.any((e) => e.id == figureId)) return null;
+  return glossaryFigureTitle(
+    AppLocalizations.of(context),
     figureId,
+    shippedFigureGlossaryEntries,
     ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
   );
 }

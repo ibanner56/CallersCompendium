@@ -111,8 +111,9 @@ class FigureNote {
 /// — a kind it does not know, a payload that no longer decodes as a definition
 /// — and applies and publishes it again byte for byte rather than dropping or
 /// rewriting it. That guarantee is sync's: a backup carries the payload as
-/// decoded JSON, so a payload whose text is not JSON at all (possible only from
-/// a corrupted row) does not survive a backup restore.
+/// decoded JSON, so a payload whose text is not JSON at all does not survive a
+/// backup restore. The editor and restore write only encoded JSON, and sync
+/// stores such a payload only as a peer sent it.
 @immutable
 class StoredUserGlossaryEntry {
   StoredUserGlossaryEntry({

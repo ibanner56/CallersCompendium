@@ -276,19 +276,44 @@ void main() {
       ),
     );
     await tester.runAsync(
-      () => _queueNoteTie(repos, ['swing', 'no-longer-a-figure']),
+      () => _queueNoteTie(repos, [
+        'swing',
+        'pull_by_dancers',
+        'no-longer-a-figure',
+      ]),
     );
     await _open(tester);
 
     expect(find.text('Your notes on twirl'), findsOneWidget);
+    expect(
+      find.text('Your notes on pull by (neighbors)'),
+      findsOneWidget,
+      reason: 'qualified as the Glossary qualifies it',
+    );
     expect(
       find.text('Your notes on a figure'),
       findsOneWidget,
       reason: 'a figure the taxonomy no longer has is named by kind',
     );
     expect(find.textContaining('no-longer-a-figure'), findsNothing);
-    expect(find.textContaining('Mine.'), findsNWidgets(2));
-    expect(find.textContaining('Theirs.'), findsNWidgets(2));
+  });
+
+  testWidgets('a long note is clipped in the choice, and shown whole in '
+      'the comparison (#709)', (tester) async {
+    final repos = await _pump(tester, size: const Size(400, 1400));
+    await tester.runAsync(() => _queueNoteTie(repos, ['swing']));
+    await _open(tester);
+
+    final choice = tester.widget<Text>(find.text('Mine.').first);
+    expect(choice.maxLines, 3);
+    expect(choice.overflow, TextOverflow.ellipsis);
+    expect(
+      find.byWidgetPredicate(
+        (w) =>
+            w is Text && w.data == 'This device: Mine.' && w.maxLines == null,
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('names the setting and both versions, and preselects '

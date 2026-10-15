@@ -1486,9 +1486,10 @@ envelope, as every kind's do. Text holds canonical role words, as stored.
   rewrite what the author's device stored, and a payload that is not JSON at
   all could not travel. Carrying it as text is the implementer's choice in
   #709. The guarantee is sync's only: a backup carries a payload as decoded
-  JSON, so a payload whose text is not JSON at all — possible only from a
-  corrupted row, since storage writes only encoded JSON — does not survive a
-  backup restore (judged not worth a second payload form in backups, #1772).
+  JSON, so a payload whose text is not JSON at all does not survive a backup
+  restore (judged not worth a second payload form in backups, #1772). The
+  editor and backup restore write only encoded JSON; sync stores such a
+  payload only as a peer sent it, so one first arises from a corrupted row.
 - A receiver MUST refuse (as malformed) a `payload` that parses as JSON but is
   not in the normalised form storage writes (§4.6), and a body over the bounds
   every build enforces: storing either would change the record under its

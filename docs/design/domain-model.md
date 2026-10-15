@@ -16,9 +16,10 @@ pure-Dart core package (no Flutter imports) per ADR-001.*
    permission/license, and import time. (The raw source payload was dropped
    at schema v21, #781 — see [Provenance](#provenance) below.)
 5. **Soft delete over hard delete** for user-visible entities. The current
-   contract covers all nine syncable kinds: schema v25 (#898) introduced
-   tombstones for the original eight, and schema v34 added them for difficulty
-   levels; see the delete model in [storage.md](storage.md).
+   contract covers all eleven syncable kinds: schema v25 (#898) introduced
+   tombstones for the original eight, schema v34 added them for difficulty
+   levels, and the glossary's two tables were created with them in schema v40
+   (#709); see the delete model in [storage.md](storage.md).
 
 ## Entity overview
 
