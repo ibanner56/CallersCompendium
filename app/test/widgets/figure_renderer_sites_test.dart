@@ -77,6 +77,47 @@ int bareConstructions(String source) {
   return count;
 }
 
+/// The name of the call whose argument list holds [index] in [text], or
+/// null when [index] is not inside one.
+String? _enclosingCall(String text, int index) {
+  var depth = 0;
+  for (var i = index - 1; i >= 0; i--) {
+    final char = text[i];
+    if (char == ')') depth++;
+    if (char == '(') {
+      if (depth == 0) {
+        return RegExp(r'(\w+)\s*$').firstMatch(text.substring(0, i))?[1];
+      }
+      depth--;
+    }
+  }
+  return null;
+}
+
+/// Each use of a renderer named `…proseRenderer` in [source] that is neither
+/// a free-text call nor an argument to `formationDisplayLabel`: a screen keeps
+/// one for prose beside the live renderer it gives a dance's figures, and
+/// this is what finds the prose one handed to them instead.
+List<String> proseRendererMisuses(String source) {
+  final text = _withoutComments(source);
+  final misuses = <String>[];
+  for (final match in RegExp(r'\b_?proseRenderer\b').allMatches(text)) {
+    final after = text.substring(match.end);
+    final before = text.substring(0, match.start);
+    if (RegExp(r'FigureRenderer\s+$').hasMatch(before)) continue;
+    if (RegExp(
+      r'^\s*\.\s*(renderFreeText|renderFreeTextWithCanonicalDiscouragedTerms|'
+      r'renderDiscouragedTerms)\b',
+    ).hasMatch(after)) {
+      continue;
+    }
+    if (_enclosingCall(text, match.start) == 'formationDisplayLabel') continue;
+    final line = '\n'.allMatches(before).length + 1;
+    misuses.add('line $line');
+  }
+  return misuses;
+}
+
 void main() {
   test('the scanner reads a construction whole, and ignores comments', () {
     expect(bareConstructions('final r = FigureRenderer(contraTaxonomy);'), 1);
@@ -91,6 +132,39 @@ void main() {
       0,
     );
     expect(bareConstructions('// FigureRenderer(contraTaxonomy)'), 0);
+  });
+
+  test('the prose scanner allows free text and formation labels only', () {
+    expect(
+      proseRendererMisuses(
+        'static final FigureRenderer _proseRenderer = FigureRenderer(t);\n'
+        'a = _proseRenderer.renderFreeText(x, d);\n'
+        'b = formationDisplayLabel(l10n, f, _proseRenderer, d);',
+      ),
+      isEmpty,
+    );
+    expect(proseRendererMisuses('Perform(renderer: _proseRenderer)'), [
+      'line 1',
+    ]);
+    expect(proseRendererMisuses('_proseRenderer.renderSummary(f, d)'), [
+      'line 1',
+    ]);
+  });
+
+  test('a screen\'s prose renderer never shows a dance\'s figures (#1023)', () {
+    final found = <String, List<String>>{};
+    for (final entity in Directory('lib').listSync(recursive: true)) {
+      if (entity is! File || !entity.path.endsWith('.dart')) continue;
+      final misuses = proseRendererMisuses(entity.readAsStringSync());
+      if (misuses.isNotEmpty) found[entity.path] = misuses;
+    }
+    expect(
+      found,
+      isEmpty,
+      reason:
+          'A renderer named …proseRenderer is built without userFigures; '
+          "give a dance's figures UserFiguresScope.rendererOf(context).",
+    );
   });
 
   test('every renderer built without the user\'s figures is one that never '
