@@ -194,10 +194,19 @@ Settings ▸ Updates additionally offer a **"Download & install"** action that:
    (the user can still reach it after "completed"), so nothing removes it at the
    end of the flow. Instead, **on every launch the app deletes `cc_update_*`
    directories older than `kUpdateTempDirMinAge` (7 days)**, judged by the
-   newest modification time inside the directory so a download still being
-   written, or an installer just handed over, is never touched. The sweep is
-   best-effort and silent; what it cannot remove (a file still in use) is
-   retried at the next launch.
+   newest modification time inside the directory, so with a correct clock a
+   download still being written, or an installer handed over within the week,
+   is not touched (a modification time in the future counts as recent). Age
+   alone is not enough: on Linux the artifact is an AppImage, a portable file
+   the user may keep running from the temp directory (the handoff only reveals
+   the folder), and its directory's age is the download time. So the sweep also
+   **never removes a directory that contains the running executable**
+   (`APPIMAGE`, or `Platform.resolvedExecutable`), compared by resolved path and
+   whole path segments. It matches only names `Directory.createTemp` produces
+   (`cc_update_` plus letters and digits) and never follows symlinks. A user who
+   wants to keep an AppImage after a later run should move it out of the temp
+   directory (the user guide says so). The sweep is best-effort and silent; what
+   it cannot remove (a file still in use) is retried at the next launch.
 2. **Verifies** the file's **sha256 against `UpdateArtifact.sha256`** — a
    **mandatory** integrity gate. A mismatch **fails loudly**: the downloaded
    artifact is deleted and a clear error is surfaced (never a silent no-op).

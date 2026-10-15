@@ -147,12 +147,18 @@ const String kUpdateTempDirPrefix = 'cc_update_';
 ///
 /// A successful download deliberately leaves its verified installer in place so
 /// the user can still reach it, and nothing else removes it, so the sweep
-/// is the only thing that ever does. A week is chosen to be far past anything a
-/// live use could need, not to reclaim space quickly: what it must never touch
-/// is a download another running instance is still writing and an installer the
-/// user was handed but has not run yet (on Linux they run it themselves, when
-/// they choose), and both are minutes to days old, not weeks. The cost of
+/// is the only thing that ever does. A week is chosen to be far past the
+/// time a download in progress or a freshly handed-over installer needs, not to
+/// reclaim space quickly: a download another running instance is still writing
+/// and an installer the user was handed but has not run yet (on Linux they
+/// run it themselves, when they choose) are minutes to days old. The cost of
 /// being generous is one installer's disk space per update for that week.
+///
+/// The age is not what protects an installer the user keeps *running* from the
+/// temp directory: on Linux the AppImage is the app, and its directory's age is
+/// the download time, so it passes this age after a week of use. The sweep skips
+/// the directory holding the running executable instead (see
+/// [sweepStaleUpdateTempDirs]'s `inUsePaths`).
 const Duration kUpdateTempDirMinAge = Duration(days: 7);
 
 /// A hard upper bound on the number of bytes [downloadArtifact] will write for a

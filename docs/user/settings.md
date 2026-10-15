@@ -463,9 +463,12 @@ restart** from the banner or Updates section later. On **Windows**, clicking
 **Download & install update** authorizes the verified installer to run; it handles
 closing and replacing the existing installation. On **Linux**, the verified
 download is shown in your file manager for you to run yourself; the app never
-runs it for you. The downloaded file stays in your system's temporary folder
-after a successful download, and the app deletes update downloads there once
-they are a week old, the next time it starts. On phones and tablets, the
+runs it for you. On Windows and Linux, the downloaded file stays in your
+system's temporary folder after a successful download, and the next time the
+app starts it deletes update downloads there that are a week old. It never
+deletes the folder of the copy you are running, but on Linux, if you want to
+keep the AppImage, move it out of the temporary folder to somewhere permanent
+(your home folder, say) before then. On phones and tablets, the
 banner's link takes you to the release to download it the usual way for your
 platform.
 

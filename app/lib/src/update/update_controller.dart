@@ -148,6 +148,7 @@ class UpdateController extends ChangeNotifier {
     ArtifactHandoff? handoff,
     ArtifactDestinationPicker? macosDestinationPicker,
     Future<Directory> Function()? temporaryDirectoryProvider,
+    Iterable<String> Function()? runningExecutablePathsProvider,
     this.onMacosShutdown,
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now,
@@ -164,7 +165,9 @@ class UpdateController extends ChangeNotifier {
        _macosDestinationPicker =
            macosDestinationPicker ?? pickMacosArtifactDestination,
        _temporaryDirectoryProvider =
-           temporaryDirectoryProvider ?? getTemporaryDirectory;
+           temporaryDirectoryProvider ?? getTemporaryDirectory,
+       _runningExecutablePaths =
+           runningExecutablePathsProvider ?? runningExecutablePaths;
 
   final SettingsRepository _settings;
   final UpdateService _service;
@@ -176,6 +179,7 @@ class UpdateController extends ChangeNotifier {
   final ArtifactHandoff _handoff;
   final ArtifactDestinationPicker _macosDestinationPicker;
   final Future<Directory> Function() _temporaryDirectoryProvider;
+  final Iterable<String> Function() _runningExecutablePaths;
   final Future<void> Function()? onMacosShutdown;
   final DateTime Function() _clock;
 
@@ -536,11 +540,18 @@ class UpdateController extends ChangeNotifier {
   ///
   /// Safe next to a download: it only removes a directory whose newest file is
   /// a week old, and a download in flight keeps its file's modification time
-  /// current while one that just completed is only minutes old.
+  /// current while one that just completed is only minutes old. It also never
+  /// removes the directory holding the running executable (see
+  /// [runningExecutablePaths]), so a Linux AppImage the user keeps running from
+  /// where it was downloaded survives however old it is.
   Future<void> sweepStaleDownloads() async {
     try {
       final dir = await _temporaryDirectoryProvider();
-      await sweepStaleUpdateTempDirs(dir, now: _clock);
+      await sweepStaleUpdateTempDirs(
+        dir,
+        now: _clock,
+        inUsePaths: _runningExecutablePaths(),
+      );
     } on Object {
       // diagnostics: silent — best-effort housekeeping; the temp directory
       // could not be resolved, so there is nothing to sweep.

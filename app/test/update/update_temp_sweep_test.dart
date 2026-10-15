@@ -44,6 +44,20 @@ void main() {
     return dir;
   }
 
+  /// [sweepStaleUpdateTempDirs] with no executable to protect unless a test
+  /// names one.
+  Future<int> sweep(
+    Directory dir, {
+    DateTime Function()? now,
+    Iterable<String> inUse = const [],
+  }) => sweepStaleUpdateTempDirs(dir, now: now, inUsePaths: inUse);
+
+  test('a directory is kept for a week, no less', () {
+    // The other tests build their fixtures relative to this constant, so a
+    // shortened one would pass them all while deleting installers too soon.
+    expect(kUpdateTempDirMinAge, const Duration(days: 7));
+  });
+
   group('sweepStaleUpdateTempDirs', () {
     test('removes a stale update directory and its installer', () async {
       final stale = updateDir(
@@ -51,7 +65,7 @@ void main() {
         age: kUpdateTempDirMinAge + const Duration(hours: 1),
       );
 
-      final removed = await sweepStaleUpdateTempDirs(temp, now: nowLater);
+      final removed = await sweep(temp, now: nowLater);
 
       expect(removed, 1);
       expect(stale.existsSync(), isFalse);
@@ -65,7 +79,7 @@ void main() {
         age: kUpdateTempDirMinAge - const Duration(hours: 1),
       );
 
-      final removed = await sweepStaleUpdateTempDirs(temp, now: nowLater);
+      final removed = await sweep(temp, now: nowLater);
 
       expect(removed, 0);
       expect(fresh.existsSync(), isTrue);
@@ -76,7 +90,7 @@ void main() {
       final justNow = Directory('${temp.path}/${kUpdateTempDirPrefix}new')
         ..createSync();
 
-      final removed = await sweepStaleUpdateTempDirs(temp);
+      final removed = await sweep(temp);
 
       expect(removed, 0);
       expect(justNow.existsSync(), isTrue);
@@ -88,7 +102,7 @@ void main() {
         age: -const Duration(days: 400),
       );
 
-      final removed = await sweepStaleUpdateTempDirs(temp, now: nowLater);
+      final removed = await sweep(temp, now: nowLater);
 
       expect(removed, 0);
       expect(skewed.existsSync(), isTrue);
@@ -101,13 +115,19 @@ void main() {
         updateDir('cc_update', age: stale),
         updateDir('cc_updat_x', age: stale),
         updateDir('x_${kUpdateTempDirPrefix}y', age: stale),
+        // `Directory.createTemp` appends only letters and digits, so these were
+        // not made by a download.
+        updateDir('${kUpdateTempDirPrefix}my-notes', age: stale),
+        updateDir('${kUpdateTempDirPrefix}a.b', age: stale),
+        updateDir('${kUpdateTempDirPrefix}a b', age: stale),
+        updateDir(kUpdateTempDirPrefix, age: stale),
         File('${temp.path}/${kUpdateTempDirPrefix}file')
           ..writeAsStringSync('a file with the prefix is not ours')
           ..setLastModifiedSync(later.subtract(stale)),
       ];
       final ours = updateDir('${kUpdateTempDirPrefix}abc', age: stale);
 
-      final removed = await sweepStaleUpdateTempDirs(temp, now: nowLater);
+      final removed = await sweep(temp, now: nowLater);
 
       expect(removed, 1);
       expect(ours.existsSync(), isFalse);
@@ -133,7 +153,7 @@ void main() {
           return;
         }
 
-        final removed = await sweepStaleUpdateTempDirs(temp, now: nowLater);
+        final removed = await sweep(temp, now: nowLater);
 
         expect(removed, 0);
         expect(precious.existsSync(), isTrue);
@@ -143,7 +163,7 @@ void main() {
     test('a missing temp directory is not an error', () async {
       final gone = Directory('${temp.path}/does-not-exist');
 
-      expect(await sweepStaleUpdateTempDirs(gone, now: nowLater), 0);
+      expect(await sweep(gone, now: nowLater), 0);
     });
 
     test('an entry that fails does not stop the sweep or throw', () async {
@@ -154,17 +174,173 @@ void main() {
         good,
       ]);
 
-      final removed = await sweepStaleUpdateTempDirs(listing, now: nowLater);
+      final removed = await sweep(listing, now: nowLater);
 
       expect(removed, 1, reason: 'the entry after the broken one is swept');
       expect(good.existsSync(), isFalse);
     });
 
     test('a temp directory that cannot be listed is not an error', () async {
-      expect(
-        await sweepStaleUpdateTempDirs(_UnlistableDir(), now: nowLater),
-        0,
+      expect(await sweep(_UnlistableDir(), now: nowLater), 0);
+    });
+
+    group('never removes the directory holding the running executable', () {
+      final stale = kUpdateTempDirMinAge + const Duration(days: 30);
+
+      test('however old it is', () async {
+        final running = updateDir('${kUpdateTempDirPrefix}run', age: stale);
+        final idle = updateDir('${kUpdateTempDirPrefix}idle', age: stale);
+
+        final removed = await sweep(
+          temp,
+          now: nowLater,
+          inUse: ['${running.path}/installer.exe'],
+        );
+
+        expect(removed, 1);
+        expect(running.existsSync(), isTrue, reason: 'the running app');
+        expect(idle.existsSync(), isFalse);
+      });
+
+      test(
+        'also when the running file is nested below the directory',
+        () async {
+          final running = updateDir('${kUpdateTempDirPrefix}nest', age: stale);
+          Directory('${running.path}/usr/bin').createSync(recursive: true);
+
+          final removed = await sweep(
+            temp,
+            now: nowLater,
+            inUse: ['${running.path}/usr/bin/app'],
+          );
+
+          expect(removed, 0);
+          expect(running.existsSync(), isTrue);
+        },
       );
+
+      test('matches whole path segments: cc_update_ab and cc_update_abc are '
+          'different directories', () async {
+        final shorter = updateDir('${kUpdateTempDirPrefix}ab', age: stale);
+        final longer = updateDir('${kUpdateTempDirPrefix}abc', age: stale);
+
+        final removed = await sweep(
+          temp,
+          now: nowLater,
+          inUse: ['${longer.path}/installer.exe'],
+        );
+
+        expect(removed, 1);
+        expect(longer.existsSync(), isTrue);
+        expect(
+          shorter.existsSync(),
+          isFalse,
+          reason: 'a name prefix is not containment',
+        );
+      });
+
+      test(
+        'a symbolic link to the running file protects its directory',
+        () async {
+          final running = updateDir(
+            '${kUpdateTempDirPrefix}linked',
+            age: stale,
+          );
+          final elsewhere = Directory.systemTemp.createTempSync('sweep_link_');
+          addTearDown(() => elsewhere.deleteSync(recursive: true));
+          final link = '${elsewhere.path}/app';
+          try {
+            Link(link).createSync('${running.path}/installer.exe');
+          } on FileSystemException {
+            markTestSkipped('this host cannot create symbolic links');
+            return;
+          }
+
+          final removed = await sweep(temp, now: nowLater, inUse: [link]);
+
+          expect(removed, 0);
+          expect(running.existsSync(), isTrue);
+        },
+      );
+
+      test(
+        'a temp directory reached through a symbolic link still matches',
+        () async {
+          final running = updateDir(
+            '${kUpdateTempDirPrefix}viaparent',
+            age: stale,
+          );
+          final elsewhere = Directory.systemTemp.createTempSync('sweep_link_');
+          addTearDown(() => elsewhere.deleteSync(recursive: true));
+          final alias = '${elsewhere.path}/tmp';
+          try {
+            Link(alias).createSync(temp.path);
+          } on FileSystemException {
+            markTestSkipped('this host cannot create symbolic links');
+            return;
+          }
+
+          // Swept through the alias, protected by the real path (and the
+          // reverse is the same comparison).
+          final removed = await sweep(
+            Directory(alias),
+            now: nowLater,
+            inUse: ['${running.path}/installer.exe'],
+          );
+
+          expect(removed, 0);
+          expect(running.existsSync(), isTrue);
+        },
+      );
+
+      test(
+        'a running file that no longer exists is compared as given',
+        () async {
+          final running = updateDir('${kUpdateTempDirPrefix}gone', age: stale);
+
+          final removed = await sweep(
+            temp,
+            now: nowLater,
+            inUse: ['${running.path}/deleted-appimage'],
+          );
+
+          expect(removed, 0);
+          expect(running.existsSync(), isTrue);
+        },
+      );
+    });
+  });
+
+  group('runningExecutablePaths', () {
+    test('names the AppImage and the executable', () {
+      expect(
+        runningExecutablePaths(
+          environment: {'APPIMAGE': '/tmp/cc_update_x/App.AppImage'},
+          resolvedExecutable: '/tmp/.mount_App/usr/bin/app',
+        ),
+        ['/tmp/cc_update_x/App.AppImage', '/tmp/.mount_App/usr/bin/app'],
+      );
+    });
+
+    test('has only the executable when not run as an AppImage', () {
+      expect(
+        runningExecutablePaths(
+          environment: {'APPIMAGE': ''},
+          resolvedExecutable: '/opt/app/app',
+        ),
+        ['/opt/app/app'],
+      );
+      expect(
+        runningExecutablePaths(
+          environment: const {},
+          resolvedExecutable: '/opt/app/app',
+        ),
+        ['/opt/app/app'],
+      );
+    });
+
+    test('defaults to this process', () {
+      expect(runningExecutablePaths(), contains(Platform.resolvedExecutable));
     });
   });
 
@@ -172,6 +348,7 @@ void main() {
     UpdateController build(
       Future<Directory> Function() provider, {
       DateTime Function()? clock,
+      Iterable<String> Function()? runningPaths,
     }) {
       final repos = openTestRepositories();
       final controller = UpdateController(
@@ -185,6 +362,7 @@ void main() {
         platform: UpdatePlatform.windows,
         arch: UpdateArch.x64,
         temporaryDirectoryProvider: provider,
+        runningExecutablePathsProvider: runningPaths,
         clock: clock,
       );
       addTearDown(controller.dispose);
@@ -206,6 +384,22 @@ void main() {
 
       expect(stale.existsSync(), isFalse);
       expect(fresh.existsSync(), isTrue);
+    });
+
+    test('keeps the directory of the executable it is running from', () async {
+      final age = kUpdateTempDirMinAge + const Duration(days: 30);
+      final running = updateDir('${kUpdateTempDirPrefix}run', age: age);
+      final idle = updateDir('${kUpdateTempDirPrefix}idle', age: age);
+      final controller = build(
+        () async => temp,
+        clock: nowLater,
+        runningPaths: () => ['${running.path}/installer.exe'],
+      );
+
+      await controller.sweepStaleDownloads();
+
+      expect(running.existsSync(), isTrue);
+      expect(idle.existsSync(), isFalse);
     });
 
     test('a failing temp directory provider is swallowed', () async {
@@ -305,6 +499,9 @@ class _BrokenUpdateDir implements Directory {
 
   @override
   Uri get uri => Uri.directory('/tmp/$_name');
+
+  @override
+  String get path => '/tmp/$_name';
 
   @override
   Future<FileStat> stat() async =>
