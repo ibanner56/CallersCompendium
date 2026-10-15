@@ -9608,11 +9608,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get glossaryEntryFormHelper =>
-      'Proposée dans les danses de cette forme.';
+      'Le type de danse auquel elle est destinée.';
 
   @override
   String get userFigureEditorParamNames =>
-      'Commencez le nom de chaque paramètre par une lettre, n\'utilisez que des lettres, des chiffres et _, et donnez à chacun un nom différent. Un nom ne peut pas être move, beats ou text.';
+      'Commencez le nom de chaque paramètre par une lettre, n\'utilisez que des lettres, des chiffres et _, et donnez à chacun un nom différent. Un nom ne peut pas être move, beats, text, un rôle ou l\'opposé d\'un autre paramètre, comme otherHand.';
 
   @override
   String userFigureEditorChoiceLabel(int number) {
@@ -9630,6 +9630,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get userFigureEditorNoDefault => 'Aucune valeur par défaut';
+
+  @override
+  String get userFigureEditorFlagOff => 'Désactivé';
 
   @override
   String get userFigureEditorFlagLabel => 'Formulation si activé';
@@ -9687,7 +9690,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String userFigureEditorUnusedBody(String params) {
-    return '$params ne figure pas dans la formulation ; le choisir ne changera donc rien.';
+    return 'Absents de la formulation ; les choisir ne change donc rien : $params.';
   }
 
   @override

@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
@@ -14,6 +15,8 @@ import '../../widgets/user_figure_argument_editor.dart';
 import 'custom_figure_detail.dart' show compoundParamKindLabel;
 
 final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
+
+final RegExp _lineBreaks = RegExp('\r\n|[\r\n\u2028\u2029]');
 
 /// The parameter kinds a custom figure may declare: every kind a figure's
 /// slot can have, except beats, which are the parts' own (#709).
@@ -74,6 +77,11 @@ class _ParamRow {
   final List<_ChoiceRow> choices = [];
   Object? defaultValue;
   final TextEditingController label = TextEditingController();
+
+  /// Bumped when the default changes from outside its own field (a kind
+  /// changed, a default cleared, its choice removed), so the field is rebuilt
+  /// then, and only then: never while the user is choosing or typing in it.
+  int defaultEpoch = 0;
 
   String get key => controller.text.trim();
 
@@ -397,7 +405,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
       ],
       figures: figures,
       bindings: bindings,
-      form: glossaryEntryForm(widget.initial?.payload),
+      form: _form,
       extra: compoundPayloadExtra(widget.initial?.payload),
     );
   }
@@ -411,7 +419,11 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         : null;
     return UserFigureDefinition(
       form: _form,
-      template: mapUserFigureTemplateText(_template.text.trim(), store),
+      // One line: a break reads as a space, not as nothing.
+      template: mapUserFigureTemplateText(
+        _template.text.replaceAll(_lineBreaks, ' ').trim(),
+        store,
+      ),
       defaultBeats: int.tryParse(_beats.text.trim()) ?? -1,
       params: [for (final p in _params) _figureParam(p, store)],
       copiedFrom: copiedFrom is String ? copiedFrom : null,
@@ -603,6 +615,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
           ),
           UserFigureIssueCodes.badBeats => l10n.userFigureEditorBadBeats,
           UserFigureIssueCodes.tooLarge => l10n.compoundEditorTooLarge,
+          UserFigureIssueCodes.tooLong => l10n.compoundEditorTooLong,
           // A label over its bound; an empty one is not saved at all.
           _ => l10n.compoundEditorTooLong,
         };
@@ -939,7 +952,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                       child: TextField(
                         key: ValueKey('compound-param-$i-name'),
                         controller: row.controller,
-                        maxLength: maxCompoundParamKeyLength,
+                        maxLength: _kind == UserGlossaryEntryKind.customFigure
+                            ? maxUserFigureParamKeyLength
+                            : maxCompoundParamKeyLength,
                         onChanged: (_) => _changed(),
                         decoration: InputDecoration(
                           labelText: l10n.compoundEditorParamName,
@@ -969,6 +984,13 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                         ],
                         onChanged: (kind) {
                           if (kind == null) return;
+                          if (kind != row.kind) {
+                            // A default of the old kind means nothing in the
+                            // new one, and could even pass for one of it (a
+                            // choice id as text).
+                            row.defaultValue = null;
+                            row.defaultEpoch++;
+                          }
                           row.kind = kind;
                           _changed();
                         },
@@ -1004,7 +1026,11 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                   key: const ValueKey('compound-add-param'),
                   icon: const Icon(Icons.add),
                   label: Text(l10n.compoundEditorAddParam),
-                  onPressed: _params.length >= maxCompoundParams
+                  onPressed:
+                      _params.length >=
+                          (_kind == UserGlossaryEntryKind.customFigure
+                              ? maxUserFigureParams
+                              : maxCompoundParams)
                       ? null
                       : () {
                           _params.add(_ParamRow('', ParamKind.dancerSet));
@@ -1145,6 +1171,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                         row.choices.removeAt(c);
                         if (row.defaultValue == choice.id) {
                           row.defaultValue = null;
+                          row.defaultEpoch++;
                         }
                         WidgetsBinding.instance.addPostFrameCallback(
                           (_) => choice.controller.dispose(),
@@ -1202,12 +1229,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                   Expanded(
                     child: UserFigureArgumentEditor(
                       key: ValueKey(
-                        // Rebuilt when what it shows changes from outside:
-                        // a kind, a cleared default, a choice added or gone.
-                        // Never while typing a text default.
-                        'user-figure-param-$index-default-${row.kind.name}-'
-                        '${row.kind == ParamKind.text ? '' : row.defaultValue}-'
-                        '${row.choices.length}',
+                        'user-figure-param-$index-default-${row.defaultEpoch}',
                       ),
                       keyPrefix: 'user-figure-param-$index-default',
                       param: param,
@@ -1221,18 +1243,6 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                       },
                     ),
                   ),
-                  if (row.kind != ParamKind.choice &&
-                      row.kind != ParamKind.text &&
-                      row.defaultValue != null)
-                    IconButton(
-                      key: ValueKey('user-figure-param-$index-default-clear'),
-                      tooltip: l10n.userFigureEditorNoDefault,
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        row.defaultValue = null;
-                        _changed();
-                      },
-                    ),
                 ],
               ),
             ),
@@ -1266,6 +1276,12 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         child: TextField(
           key: const ValueKey('user-figure-wording'),
           controller: _template,
+          inputFormatters: [
+            FilteringTextInputFormatter.deny(
+              _lineBreaks,
+              replacementString: ' ',
+            ),
+          ],
           maxLength: kMaxMoveWordingLength,
           minLines: 1,
           maxLines: 3,
@@ -1306,15 +1322,12 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
           AppSpacing.md,
           0,
         ),
-        child: Semantics(
-          liveRegion: true,
-          child: Text(
-            preview == null
-                ? l10n.userFigureEditorPreviewUnavailable
-                : l10n.userFigureEditorPreview(preview),
-            key: const ValueKey('user-figure-preview'),
-            style: theme.textTheme.bodyMedium,
-          ),
+        child: Text(
+          preview == null
+              ? l10n.userFigureEditorPreviewUnavailable
+              : l10n.userFigureEditorPreview(preview),
+          key: const ValueKey('user-figure-preview'),
+          style: theme.textTheme.bodyMedium,
         ),
       ),
     ];

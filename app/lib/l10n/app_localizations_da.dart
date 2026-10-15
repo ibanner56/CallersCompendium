@@ -9484,11 +9484,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get glossaryEntryFormLabel => 'Danseform';
 
   @override
-  String get glossaryEntryFormHelper => 'Tilbydes i danse af denne form.';
+  String get glossaryEntryFormHelper => 'Den slags dans, den er beregnet til.';
 
   @override
   String get userFigureEditorParamNames =>
-      'Start hvert parameternavn med et bogstav, brug kun bogstaver, tal og _, og giv hver et forskelligt navn. Et navn kan ikke være move, beats eller text.';
+      'Start hvert parameternavn med et bogstav, brug kun bogstaver, tal og _, og giv hver et forskelligt navn. Et navn kan ikke være move, beats, text, en rolle eller en anden parameters modsætning, f.eks. otherHand.';
 
   @override
   String userFigureEditorChoiceLabel(int number) {
@@ -9508,11 +9508,14 @@ class AppLocalizationsDa extends AppLocalizations {
   String get userFigureEditorNoDefault => 'Ingen standard';
 
   @override
+  String get userFigureEditorFlagOff => 'Fra';
+
+  @override
   String get userFigureEditorFlagLabel => 'Ordlyd, når slået til';
 
   @override
   String get userFigureEditorFlagLabelHelper =>
-      'Vises i ordlyden, når dette er slået til, f.eks. »med et sving«.';
+      'Vises i ordlyden, når dette er slået til, f.eks. »med et ekstra flourish«.';
 
   @override
   String get userFigureEditorWording => 'Ordlyd';
@@ -9562,7 +9565,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String userFigureEditorUnusedBody(String params) {
-    return '$params indgår ikke i ordlyden, så et valg ændrer ingenting.';
+    return 'Ikke i ordlyden, så et valg ændrer ingenting: $params.';
   }
 
   @override

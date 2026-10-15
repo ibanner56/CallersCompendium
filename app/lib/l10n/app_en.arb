@@ -12458,11 +12458,11 @@
   "@glossaryEntryFormLabel": {
     "description": "Label of the dance form an entry in the user's own glossary is offered in."
   },
-  "glossaryEntryFormHelper": "Offered in dances of this form.",
+  "glossaryEntryFormHelper": "The kind of dance it's for.",
   "@glossaryEntryFormHelper": {
     "description": "Helper text of the dance form choice."
   },
-  "userFigureEditorParamNames": "Start each parameter's name with a letter, use only letters, digits and _, and give each a different name. A name can't be move, beats or text.",
+  "userFigureEditorParamNames": "Start each parameter's name with a letter, use only letters, digits and _, and give each a different name. A name can't be move, beats, text, a role, or another parameter's opposite, such as otherHand.",
   "@userFigureEditorParamNames": {
     "description": "Shown when a parameter of a new figure has a name that can't be used."
   },
@@ -12491,6 +12491,10 @@
   "userFigureEditorNoDefault": "No default",
   "@userFigureEditorNoDefault": {
     "description": "Option for a parameter of a new figure that has no default value."
+  },
+  "userFigureEditorFlagOff": "Off",
+  "@userFigureEditorFlagOff": {
+    "description": "Default of an on/off parameter of a new figure that is off."
   },
   "userFigureEditorFlagLabel": "Wording when on",
   "@userFigureEditorFlagLabel": {
@@ -12574,7 +12578,7 @@
   "@userFigureEditorBadBeats": {
     "description": "Shown when a new figure's default beats are out of range."
   },
-  "userFigureEditorUnusedBody": "{params} isn't in the wording, so choosing it will change nothing.",
+  "userFigureEditorUnusedBody": "Not in the wording, so choosing them changes nothing: {params}.",
   "@userFigureEditorUnusedBody": {
     "description": "Body of the dialog asking about parameters a new figure's wording leaves out.",
     "placeholders": {

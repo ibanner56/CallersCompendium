@@ -9442,13 +9442,13 @@
   "@glossaryEntryFormLabel": {
     "x-sourceSha256": "29c681cc37b84d4e1262914451b1a7639a18d34339ac92da8a1cdc4dbd0b222f"
   },
-  "glossaryEntryFormHelper": "Tilbydes i danse af denne form.",
+  "glossaryEntryFormHelper": "Den slags dans, den er beregnet til.",
   "@glossaryEntryFormHelper": {
-    "x-sourceSha256": "08cc16d46c24dd858bb82cd35399e7fbc6635cbfee0f4a4d32f8887e800441ce"
+    "x-sourceSha256": "2646baa33c159895818c5bded921dde99cdfe4aa6aa02dd21d3a5f21c17733ff"
   },
-  "userFigureEditorParamNames": "Start hvert parameternavn med et bogstav, brug kun bogstaver, tal og _, og giv hver et forskelligt navn. Et navn kan ikke være move, beats eller text.",
+  "userFigureEditorParamNames": "Start hvert parameternavn med et bogstav, brug kun bogstaver, tal og _, og giv hver et forskelligt navn. Et navn kan ikke være move, beats, text, en rolle eller en anden parameters modsætning, f.eks. otherHand.",
   "@userFigureEditorParamNames": {
-    "x-sourceSha256": "ba834174aff1cd0047a013c01483700f88838eecd8504df21d8bb93d31260019"
+    "x-sourceSha256": "525f91db8f8dab2c82543de25dc6d1926f40b2a9ab07baa59b5f041689ed1e5b"
   },
   "userFigureEditorChoiceLabel": "Valgmulighed {number}",
   "@userFigureEditorChoiceLabel": {
@@ -9470,11 +9470,15 @@
   "@userFigureEditorNoDefault": {
     "x-sourceSha256": "706e7d9f0e1dc1ec7df9d700d109ec76d1b00e77e8fb7a444af04483e49a989c"
   },
+  "userFigureEditorFlagOff": "Fra",
+  "@userFigureEditorFlagOff": {
+    "x-sourceSha256": "ca7981b46ecf2c1787b6d76d81d9fd7fa0ca95842e2fcc2a452869891a9334d1"
+  },
   "userFigureEditorFlagLabel": "Ordlyd, når slået til",
   "@userFigureEditorFlagLabel": {
     "x-sourceSha256": "59fdea9670f7750d40570b5bea9efaf5d37b6287369be2eaf00d75eb5d3e4477"
   },
-  "userFigureEditorFlagLabelHelper": "Vises i ordlyden, når dette er slået til, f.eks. »med et sving«.",
+  "userFigureEditorFlagLabelHelper": "Vises i ordlyden, når dette er slået til, f.eks. »med et ekstra flourish«.",
   "@userFigureEditorFlagLabelHelper": {
     "x-sourceSha256": "7e5040023e872753fdcee9beb1543c6fba579aa53431c721fb3ec862bd818f88"
   },
@@ -9522,9 +9526,9 @@
   "@userFigureEditorBadBeats": {
     "x-sourceSha256": "1b2b9fae59537a1f29ed22b6d77e2ed8387cb2cdc7e8db14d05abb3aa51e53c3"
   },
-  "userFigureEditorUnusedBody": "{params} indgår ikke i ordlyden, så et valg ændrer ingenting.",
+  "userFigureEditorUnusedBody": "Ikke i ordlyden, så et valg ændrer ingenting: {params}.",
   "@userFigureEditorUnusedBody": {
-    "x-sourceSha256": "c4eef152a8364ae20890a7118ab7fdeeffecfa18f508c245c4f871b892154308"
+    "x-sourceSha256": "c0122e9e539a81108428dd6d31eac0b5e7b24ebfa6b3f0ce629e8b2978dcd1a3"
   },
   "glossaryCustomWording": "Ordlyd",
   "@glossaryCustomWording": {

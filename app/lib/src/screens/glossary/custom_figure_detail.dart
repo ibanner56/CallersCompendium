@@ -128,7 +128,25 @@ class _GlossaryCustomFigureDetailState
         MaterialPageRoute(builder: (_) => CompoundEditorScreen(initial: entry)),
       );
 
+  /// Set while a delete is being asked about, so a second tap opens no
+  /// second dialog.
+  bool _deleting = false;
+
   Future<void> _delete(
+    BuildContext context,
+    String name, {
+    required bool isFigure,
+  }) async {
+    if (_deleting) return;
+    _deleting = true;
+    try {
+      await _confirmAndDelete(context, name, isFigure: isFigure);
+    } finally {
+      _deleting = false;
+    }
+  }
+
+  Future<void> _confirmAndDelete(
     BuildContext context,
     String name, {
     required bool isFigure,

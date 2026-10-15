@@ -9552,11 +9552,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get glossaryEntryFormLabel => 'Dansvorm';
 
   @override
-  String get glossaryEntryFormHelper => 'Aangeboden in dansen van deze vorm.';
+  String get glossaryEntryFormHelper =>
+      'Het soort dans waarvoor hij bedoeld is.';
 
   @override
   String get userFigureEditorParamNames =>
-      'Begin de naam van elke parameter met een letter, gebruik alleen letters, cijfers en _, en geef elke parameter een andere naam. Een naam kan niet move, beats of text zijn.';
+      'Begin de naam van elke parameter met een letter, gebruik alleen letters, cijfers en _, en geef elke parameter een andere naam. Een naam kan niet move, beats, text, een rol of het tegenovergestelde van een andere parameter zijn, zoals otherHand.';
 
   @override
   String userFigureEditorChoiceLabel(int number) {
@@ -9574,6 +9575,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get userFigureEditorNoDefault => 'Geen standaard';
+
+  @override
+  String get userFigureEditorFlagOff => 'Uit';
 
   @override
   String get userFigureEditorFlagLabel => 'Formulering als aan';
@@ -9631,7 +9635,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String userFigureEditorUnusedBody(String params) {
-    return '$params staat niet in de formulering, dus kiezen verandert niets.';
+    return 'Niet in de formulering, dus kiezen verandert niets: $params.';
   }
 
   @override

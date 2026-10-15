@@ -9124,11 +9124,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get glossaryEntryFormLabel => 'ダンスの形式';
 
   @override
-  String get glossaryEntryFormHelper => 'この形式のダンスで選べます。';
+  String get glossaryEntryFormHelper => '対象とするダンスの種類です。';
 
   @override
   String get userFigureEditorParamNames =>
-      '各パラメーター名は文字で始め、文字・数字・_ だけを使い、それぞれ異なる名前にしてください。move、beats、text は名前に使えません。';
+      '各パラメーター名は文字で始め、文字・数字・_ だけを使い、それぞれ異なる名前にしてください。move、beats、text、役割名、otherHand のような他のパラメーターの反対は名前に使えません。';
 
   @override
   String userFigureEditorChoiceLabel(int number) {
@@ -9146,6 +9146,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get userFigureEditorNoDefault => '既定値なし';
+
+  @override
+  String get userFigureEditorFlagOff => 'オフ';
 
   @override
   String get userFigureEditorFlagLabel => 'オンのときの文言';
@@ -9199,7 +9202,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String userFigureEditorUnusedBody(String params) {
-    return '$paramsは文言に含まれていないため、選んでも何も変わりません。';
+    return '文言に含まれていないため、選んでも何も変わりません: $params。';
   }
 
   @override

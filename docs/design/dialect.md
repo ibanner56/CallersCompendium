@@ -247,7 +247,8 @@ Where the chokepoint IS wired:
 
 **User-glossary text (#709).** Text the user writes into their own glossary — a
 custom compound's name, definition, description, keywords and notes, and their
-notes on shipped figures — has its own variant of the chokepoint,
+notes on shipped figures, and a new figure's (#1023) wording template, choice
+and flag labels and text defaults — has its own variant of the chokepoint,
 `canonicalizeGlossaryText` (`dialect/canonicalize.dart`). It is
 `canonicalizeText` plus two rules, and `canonicalizeText` itself is unchanged:
 
@@ -315,7 +316,8 @@ Edge rules:
 | Free text: custom figures, figure notes | ✅ (canonical on save, rendered on read) |
 | User-glossary text: custom compounds, notes on built-in figures | ✅ (glossary variant on save, rendered on read; #709) |
 | Figure notes inside a custom compound's parts | ✅ (`canonicalizeText` on save, as a dance's figure notes; #709) |
-| A figure of your own's wording template, choice and flag labels, text arguments | ✅ rendered on read (#1023) |
+| A figure of your own's wording template, choice and flag labels, text defaults | ✅ glossary variant on save, the template's literal text only (slots kept as written); rendered on read (#1023) |
+| A use's text arguments | ✅ rendered on read (#1023) |
 | Hand-typed prose: hooks, calling notes, walkthrough | ❌ verbatim (intentional; #613) |
 | Per-dance figure wording override | ✅ display-only; canonical identity unchanged |
 | Program notes / free-text slots | ❌ verbatim (intentional; #665 not planned) |
