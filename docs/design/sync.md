@@ -1805,8 +1805,8 @@ So: for `kind: "setting"`, the **per-key classification in
 `shareable` ships its value; a `deviceScoped` key is not serialised at all.
 
 Note also that settings whose value is an entire collection —
-`custom_dialects`, `custom_themes`, `shorthand_mappings`,
-`walkthrough_snippets` — collide as a unit, so a changed/changed conflict on
+`compound_shorthands`, `custom_dialects`, `custom_themes`,
+`shorthand_mappings`, `walkthrough_snippets` — collide as a unit, so a changed/changed conflict on
 one of them goes to the user's choice between the whole sets rather than to
 last-writer-wins (spec §6.3; ADR-004 consequences).
 

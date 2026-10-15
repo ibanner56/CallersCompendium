@@ -2709,9 +2709,9 @@ republishes, which is an ordinary upload and needs no special path.
    from a merged-away copy is written through the apply engine, which rewrites
    its id to the survivor.
 
-   **Whole-collection settings.** Four settings keys hold a whole user-built
-   collection behind one key: `custom_dialects`, `custom_themes`,
-   `shorthand_mappings` and `walkthrough_snippets`. For these, a
+   **Whole-collection settings.** Five settings keys hold a whole user-built
+   collection behind one key: `compound_shorthands`, `custom_dialects`,
+   `custom_themes`, `shorthand_mappings` and `walkthrough_snippets`. For these, a
    `changed`/`changed` conflict MUST be queued for the user's choice whatever
    the two `updatedAt` values, because last-writer-wins would discard one
    device's entire set rather than one edit. Both sides must have changed since

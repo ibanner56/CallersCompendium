@@ -572,7 +572,8 @@ Glossary is on. While it is on:
   shorthands, or another of your figures.
 - In the dance editor, your figures are offered when you choose a figure's
   move, and become the figures they stand for when you save the dance (see
-  [Your own figures](./authoring.md#your-own-figures)).
+  [Your own figures](./authoring.md#your-own-figures)). You can also give one
+  a [shorthand](./authoring.md#figure-shorthands) with set values.
 - Your figures are marked **Custom** in the list. Select one to see what it
   **Expands to** (folded until you open it), and to **Edit** or **Delete** it.
   A figure that can no longer be expanded is marked **Needs repair**; one whose
