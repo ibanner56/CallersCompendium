@@ -141,6 +141,58 @@ void main() {
         throwsFormatException,
       );
     });
+
+    test('accepts a creation time only as the encoder spells it, so a body '
+        'it accepts encodes back to the same bytes', () {
+      Map<String, Object?> at(String createdAt) => {
+        ...syncGlossaryEntryBody(storedEntry()),
+        'createdAt': createdAt,
+      };
+      expect(
+        decodeSyncGlossaryEntryBody(at('2026-09-01T12:00:00.000Z')).createdAt,
+        created,
+      );
+      for (final spelling in [
+        '2026-09-01T12:00:00Z',
+        '2026-09-01 12:00:00Z',
+        '2026-09-01 12:00:00.000Z',
+        '20260901T120000Z',
+        '+002026-09-01T12:00:00.000Z',
+        '2026-09-01T12:00:00.000000Z',
+        '2026-09-01T12:00:00.000+00:00',
+      ]) {
+        expect(
+          () => decodeSyncGlossaryEntryBody(at(spelling)),
+          throwsFormatException,
+          reason: spelling,
+        );
+      }
+    });
+
+    test('every key must be present, null or not', () {
+      final full = syncGlossaryEntryBody(storedEntry());
+      for (final key in full.keys) {
+        expect(
+          () => decodeSyncGlossaryEntryBody({...full}..remove(key)),
+          throwsFormatException,
+          reason: key,
+        );
+      }
+      expect(
+        () => decodeSyncFigureNoteBody(const {'id': 'swing'}),
+        throwsFormatException,
+      );
+    });
+
+    test('a payload JSON can spell but not hold is refused as malformed', () {
+      expect(
+        () => decodeSyncGlossaryEntryBody({
+          ...syncGlossaryEntryBody(storedEntry()),
+          'payload': '[1e400]',
+        }),
+        throwsFormatException,
+      );
+    });
   });
 
   group('apply through the real storage', () {

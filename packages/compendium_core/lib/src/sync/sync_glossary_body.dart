@@ -40,14 +40,17 @@ Map<String, Object?> syncGlossaryEntryBody(StoredUserGlossaryEntry entry) => {
 /// Reads a `glossaryEntry` body, throwing [FormatException] for one this
 /// build cannot store as it came.
 ///
-/// Refuses only what could not be written faithfully: a missing or mistyped
-/// field, text over the bounds every build enforces, a creation time finer
-/// than the second the column holds, and a payload that is JSON but not in
-/// the normalised form storage would write (storing it would change the
-/// record under its peer's wire hash). A kind this build does not know, and
-/// a payload that does not decode at all, are accepted and kept as they are.
+/// Refuses only what could not be written faithfully, so that every body it
+/// accepts encodes back to the same bytes: a missing or mistyped field (every
+/// key is always present, sync-spec §4.3), text over the bounds every build
+/// enforces, a creation time not spelled exactly as [syncGlossaryEntryBody]
+/// spells it (UTC, to the second), and a payload that is JSON but not in the
+/// normalised form storage would write (storing it would change the record
+/// under its peer's wire hash). A kind this build does not know, and a
+/// payload that does not decode at all, are accepted and kept as they are.
 StoredUserGlossaryEntry decodeSyncGlossaryEntryBody(Map<String, Object?> body) {
-  final keywords = body['keywords'] ?? const <Object?>[];
+  _requireKeys(body, _glossaryEntryKeys);
+  final keywords = body['keywords'];
   if (keywords is! List ||
       keywords.length > maxUserGlossaryKeywords ||
       keywords.any(
@@ -82,10 +85,33 @@ Map<String, Object?> syncFigureNoteBody(FigureNote note) => {
 
 /// Reads a `figureNote` body, throwing [FormatException] for one this build
 /// cannot store.
-FigureNote decodeSyncFigureNoteBody(Map<String, Object?> body) => FigureNote(
-  figureId: _text(body, 'id', maxUserGlossaryNameLength),
-  notes: _text(body, 'notes', maxUserGlossaryTextLength),
-);
+FigureNote decodeSyncFigureNoteBody(Map<String, Object?> body) {
+  _requireKeys(body, const {'id', 'notes'});
+  return FigureNote(
+    figureId: _text(body, 'id', maxUserGlossaryNameLength),
+    notes: _text(body, 'notes', maxUserGlossaryTextLength),
+  );
+}
+
+const _glossaryEntryKeys = {
+  'id',
+  'kind',
+  'name',
+  'definition',
+  'description',
+  'keywords',
+  'notes',
+  'payload',
+  'createdAt',
+};
+
+void _requireKeys(Map<String, Object?> body, Set<String> keys) {
+  for (final key in keys) {
+    if (!body.containsKey(key)) {
+      throw FormatException('glossary body is missing $key');
+    }
+  }
+}
 
 String _text(Map<String, Object?> body, String key, int max) {
   final value = body[key];
@@ -112,6 +138,10 @@ String? _payload(Object? value) {
     normalized = normalizeShareableJsonText(value);
   } on ShareableJsonKeyCollision {
     throw const FormatException('glossary entry payload keys collide');
+  } on JsonUnsupportedObjectError {
+    // A number JSON can spell but not hold, such as 1e400, which decodes to
+    // infinity and cannot be encoded again.
+    throw const FormatException('glossary entry payload cannot be stored');
   }
   if (normalized != value) {
     throw const FormatException('glossary entry payload is not normalised');
@@ -120,13 +150,15 @@ String? _payload(Object? value) {
 }
 
 DateTime _createdAt(Object? value) {
-  final parsed = value is String && value.endsWith('Z')
-      ? DateTime.tryParse(value)
-      : null;
+  final parsed = value is String ? DateTime.tryParse(value) : null;
+  // Only the one spelling the encoder writes: anything DateTime.parse also
+  // accepts (no fraction, a space, the basic format, an expanded year) would
+  // encode back to other bytes.
   if (parsed == null ||
       !parsed.isUtc ||
       parsed.millisecond != 0 ||
-      parsed.microsecond != 0) {
+      parsed.microsecond != 0 ||
+      _timestamp(parsed) != value) {
     throw const FormatException(
       'glossary entry createdAt must be a UTC time to the second',
     );
