@@ -90,7 +90,8 @@ final RegExp _legacyCallersBoxRollAwayClauseRe = RegExp(
 /// CRUD + search for [Dance]s.
 ///
 /// Every write rebuilds the derived indexes ([DanceFigures] rows,
-/// `dance_fts`, and `dance_substring_fts`) from `figures_json` inside the same
+/// `dance_fts`, and `dance_substring_fts`) from `figures_json`, and from the
+/// live definitions of the user's own figures it uses (#1023), inside the same
 /// transaction, per
 /// `docs/design/storage.md` — the derived tables are never the source of
 /// truth and are always safe to drop and recompute (see [rebuildAllDerived]).
@@ -1008,7 +1009,7 @@ class DanceRepository {
   /// rebuild; when omitted, the ones this dance uses are read on demand. A
   /// use of one is indexed as it renders: its canonical text from the live
   /// definition, and its reference kept in `params_json` only while the use
-  /// is attached and its figure exists, so a structured search for the figure
+  /// renders live from its figure, so a structured search for the figure
   /// never finds a use that shows only its stored line.
   Future<void> _insertDerivedRows(
     Dance dance, {
@@ -1028,6 +1029,13 @@ class DanceRepository {
     };
     final catalog = userFigures ?? await _userFiguresUsedBy(danceFigures);
     final renderer = FigureRenderer(_taxonomy, userFigures: catalog);
+    // A use keeps its reference in the index only while it renders live, so
+    // a structured search never finds one that shows only its stored line.
+    Map<String, Object?> indexedParams(Figure part) =>
+        hasUserFigureReferenceKeys(part) &&
+            renderer.renderUserFigureCanonical(part) == null
+        ? detachUserFigureUse(part).params
+        : part.params;
     var idx = 0;
     for (var i = 0; i < danceFigures.length; i++) {
       final figure = danceFigures[i];
@@ -1068,7 +1076,7 @@ class DanceRepository {
                 move: part.move,
                 beats: Value(part.beats),
                 progression: Value(part.progression),
-                paramsJson: Value(jsonEncode(_indexedParams(part, catalog))),
+                paramsJson: Value(jsonEncode(indexedParams(part))),
                 canonicalText: Value(canonicalText),
                 section: Value(section),
               ),
@@ -1102,20 +1110,6 @@ class DanceRepository {
         values,
       );
     }
-  }
-
-  /// [part]'s params as indexed: a use of a figure of your own keeps its
-  /// reference only while it is attached and its figure is in [userFigures].
-  static Map<String, Object?> _indexedParams(
-    Figure part,
-    UserFigureCatalog userFigures,
-  ) {
-    if (!hasUserFigureReferenceKeys(part)) return part.params;
-    final use = userFigureUseOf(part);
-    if (use != null && use.attached && userFigures[use.id] != null) {
-      return part.params;
-    }
-    return detachUserFigureUse(part).params;
   }
 
   /// The live figures of your own (#1023) [figures] use, read for indexing;
@@ -1188,17 +1182,20 @@ class DanceRepository {
         includeDeleted: false,
       )).length;
 
-  /// Rebuilds the derived rows of every dance, soft-deleted ones included,
-  /// that uses the figure of your own [userFigureId] (#1023), so search
+  /// Rebuilds the derived rows of every live dance that uses the figure of
+  /// your own [userFigureId] (#1023), so search
   /// follows its definition. Editing a definition re-renders its uses without
   /// rewriting the dances (maintainer decision 2); this is what keeps their
   /// index in step after a local write. A sync apply batch rebuilds every
   /// dance's rows anyway ([rebuildAllDerived]). Returns the number of dances
   /// rebuilt.
+  ///
+  /// A dance in the Trash is skipped: search never shows it, and restoring
+  /// it rebuilds its rows from the figures live then ([restore]).
   Future<int> reindexDancesUsingUserFigure(String userFigureId) async {
     final ids = await _danceIdsUsingUserFigure(
       userFigureId,
-      includeDeleted: true,
+      includeDeleted: false,
     );
     if (ids.isEmpty) return 0;
     return _db.transaction(() async {
@@ -1223,7 +1220,11 @@ class DanceRepository {
   /// dance as plain text, without the reference (maintainer decision 2, for
   /// a deleted definition): the line it renders to now while the figure is
   /// still live, else the line it last stored. Call it before deleting the
-  /// figure. Each dance changed
+  /// figure.
+  ///
+  /// A dance in the Trash is not written (implementer's choice: rewriting a
+  /// deleted dance would publish a changed tombstone). Restored, it shows the
+  /// line its use last stored, which may predate an edit to the figure. Each dance changed
   /// is written once, stamped [now]; an automatic write, so it never cancels
   /// a peer's pending deletion. Returns the number of dances changed.
   Future<int> freezeUserFigureUses(

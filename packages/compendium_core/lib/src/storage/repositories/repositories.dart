@@ -243,7 +243,6 @@ class CompendiumRepositories {
        collectionImports =
            collectionImports ?? CollectionImportEventRepository(db),
        settings = settings ?? SettingsRepository(db),
-
        figureNotes = FigureNoteRepository(db),
        syncLocal = SyncLocalRepository(db);
 
@@ -1146,7 +1145,9 @@ class CompendiumRepositories {
   /// three *other* tables — `authors` from `choreographers.name`, `sources`
   /// from `published_sources.title`/`.author`, `custom_values` from
   /// `custom_field_values.value_text` — all four of them `shareable` strings
-  /// and so in this pass's scope. Repairing any of them rewrote the source of
+  /// and so in this pass's scope. (Since #1023 a fourth also feeds it:
+  /// `user_glossary_entries.name` and `.payload_json`, through the figures of
+  /// your own a dance uses; the conservative default covers it too.) Repairing any of them rewrote the source of
   /// an index row, set no flag, ran no rebuild, and wrote the completion marker
   /// anyway.
   ///
