@@ -161,6 +161,25 @@ Future<Set<String>> collectSensitiveTerms(
     add(entry.level.label);
   }
 
+  // The user's own glossary (#709): their words defining and annotating
+  // figures. Stored canonically, as figure notes are.
+  for (final entry in await repositories.userGlossary.listAll(
+    includeDeleted: true,
+  )) {
+    add(entry.name);
+    add(entry.definition);
+    add(entry.description);
+    add(entry.notes);
+    for (final keyword in entry.keywords) {
+      add(keyword);
+    }
+  }
+  for (final note in await repositories.figureNotes.listAll(
+    includeDeleted: true,
+  )) {
+    add(note.notes);
+  }
+
   // People, places and sources. Every column the registry classifies as
   // third-party or personal data is here, plus every other free-text scalar
   // column on these entities — identity fields a user would recognise as

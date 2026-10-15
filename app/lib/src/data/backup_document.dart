@@ -14,7 +14,19 @@ import 'custom_theme.dart';
 /// reads a newer version on a best-effort basis with a warning rather than
 /// failing — but flags it ([BackupReadResult.newerSchema]) so a destructive
 /// replace restore refuses it (`BackupService.restoreFromJson`).
-const int backupSchemaVersion = 1;
+///
+/// v2 (#709) adds `app.glossary`: the user's own glossary entries and their
+/// notes on shipped figures. It is stamped only when that section has
+/// something in it, so a backup without them still writes v1 byte for byte,
+/// and an older build refuses to replace-restore one that has them rather
+/// than silently dropping them.
+const int backupSchemaVersion = backupSchemaVersionGlossary;
+
+/// The envelope version every backup without glossary data is written under.
+const int backupSchemaVersionBase = 1;
+
+/// The envelope version a backup carrying `app.glossary` is written under.
+const int backupSchemaVersionGlossary = 2;
 
 /// Current version of the backup **container** envelope (issue #536).
 ///
@@ -32,6 +44,12 @@ const int backupContainerVersion = 1;
 
 /// Maximum custom dialects restored from one backup.
 const int kMaxCustomDialects = 128;
+
+/// Maximum user glossary entries restored from one backup (#709).
+const int kMaxBackupGlossaryEntries = 5000;
+
+/// Maximum notes on shipped figures restored from one backup (#709).
+const int kMaxBackupFigureNotes = 5000;
 
 /// The only checksum algorithm the container understands. A backup that names
 /// anything else is refused rather than trusted.
@@ -55,6 +73,8 @@ class BackupDocument {
     this.customThemes = const [],
     this.activeCustomThemeId,
     this.settings = const {},
+    this.glossaryEntries = const [],
+    this.figureNotes = const [],
   });
 
   /// The [backupSchemaVersion] this document was written under.
@@ -84,6 +104,15 @@ class BackupDocument {
   /// key. The set of keys is chosen by the exporter (`backup_service.dart`),
   /// which excludes device-local and structurally-represented keys.
   final Map<String, Object?> settings;
+
+  /// The user's own glossary entries, live ones only (#709).
+  final List<UserGlossaryEntry> glossaryEntries;
+
+  /// The user's notes on shipped figures, live ones only (#709).
+  final List<FigureNote> figureNotes;
+
+  /// Whether this document carries `app.glossary`.
+  bool get hasGlossary => glossaryEntries.isNotEmpty || figureNotes.isNotEmpty;
 }
 
 /// Outcome of decoding a backup document: the recovered [document] plus any
@@ -104,6 +133,8 @@ class BackupReadResult {
     this.hasDialectsSection = false,
     this.hasThemesSection = false,
     this.hasSettingsSection = false,
+    this.hasGlossarySection = false,
+    this.glossaryComplete = true,
   });
 
   final BackupDocument document;
@@ -175,6 +206,18 @@ class BackupReadResult {
   /// Whether `app.settings` was an object. When false the restore leaves live
   /// preference settings untouched (no stale-key removal either).
   final bool hasSettingsSection;
+
+  /// Whether `app.glossary` was an object (#709). When false the restore
+  /// leaves the live glossary entries and figure notes untouched: absent is
+  /// not "empty", so restoring a backup made before them never clears them.
+  final bool hasGlossarySection;
+
+  /// Whether every glossary entry and figure note in `app.glossary` was read
+  /// (#709). When one could not be read, or the section was over its limit,
+  /// the restore adds what it read but removes nothing: an entry it could not
+  /// read has no id it could be matched against, so a live entry sharing it
+  /// must not be taken for one the backup lacks.
+  final bool glossaryComplete;
 
   bool get hasErrors => errors.isNotEmpty;
 }
@@ -289,7 +332,9 @@ bool _hexEquals(String a, String b) {
 
 /// The JSON object for [doc].
 Map<String, Object?> backupToJson(BackupDocument doc) => {
-  'backupVersion': doc.schemaVersion,
+  'backupVersion': doc.hasGlossary
+      ? backupSchemaVersionGlossary
+      : backupSchemaVersionBase,
   'createdAt': doc.createdAt.toUtc().toIso8601String(),
   'core': archiveToJson(doc.core, mode: ArchiveSerializationMode.backup),
   'app': {
@@ -302,8 +347,71 @@ Map<String, Object?> backupToJson(BackupDocument doc) => {
       'activeId': doc.activeCustomThemeId,
     },
     'settings': doc.settings,
+    if (doc.hasGlossary)
+      'glossary': {
+        'entries': [for (final e in doc.glossaryEntries) _glossaryEntryJson(e)],
+        'figureNotes': [
+          for (final n in doc.figureNotes)
+            {'figureId': n.figureId, 'notes': n.notes},
+        ],
+      },
   },
 };
+
+Map<String, Object?> _glossaryEntryJson(UserGlossaryEntry e) => {
+  'id': e.id,
+  'kind': e.kindName,
+  'name': e.name,
+  'definition': e.definition,
+  'description': e.description,
+  'keywords': e.keywords,
+  if (e.notes != null) 'notes': e.notes,
+  if (e.payload != null) 'payload': e.payload,
+  'createdAt': e.createdAt.toUtc().toIso8601String(),
+};
+
+/// A glossary entry read from a backup, or null when [raw] is not one. Field
+/// bounds are the repository's; it refuses an entry over them on restore.
+UserGlossaryEntry? _glossaryEntryFromJson(Object? raw) {
+  if (raw is! Map) return null;
+  final id = raw['id'];
+  final kind = raw['kind'];
+  final name = raw['name'];
+  final definition = raw['definition'];
+  final description = raw['description'];
+  final rawCreatedAt = raw['createdAt'];
+  final createdAt = rawCreatedAt is String
+      ? DateTime.tryParse(rawCreatedAt)
+      : null;
+  final keywords = raw['keywords'];
+  final notes = raw['notes'];
+  if (id is! String ||
+      id.isEmpty ||
+      kind is! String ||
+      kind.isEmpty ||
+      name is! String ||
+      definition is! String ||
+      description is! String ||
+      createdAt == null ||
+      (keywords != null && keywords is! List) ||
+      (notes != null && notes is! String)) {
+    return null;
+  }
+  return UserGlossaryEntry(
+    id: id,
+    kindName: kind,
+    name: name,
+    definition: definition,
+    description: description,
+    keywords: [
+      for (final k in (keywords as List?) ?? const [])
+        if (k is String) k,
+    ],
+    notes: notes as String?,
+    payload: raw['payload'],
+    createdAt: createdAt.toUtc(),
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Decoding
@@ -569,6 +677,10 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
   var hasDialectsSection = false;
   var hasThemesSection = false;
   var hasSettingsSection = false;
+  var hasGlossarySection = false;
+  var glossaryComplete = true;
+  final glossaryEntries = <UserGlossaryEntry>[];
+  final figureNotes = <FigureNote>[];
 
   final rawApp = root['app'];
   if (rawApp is Map) {
@@ -654,6 +766,70 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
       hasSettingsSection = true;
       settings = rawSettings.cast<String, Object?>();
     }
+
+    // The user's own glossary (#709). Untrusted like every section: each
+    // entry is shape-checked here and bounded, and the repository enforces
+    // field bounds when it is restored.
+    final rawGlossary = app['glossary'];
+    if (rawGlossary is Map) {
+      hasGlossarySection = true;
+      void readError(String entityType, String message) {
+        glossaryComplete = false;
+        errors.add(
+          ArchiveError(
+            kind: ArchiveErrorKind.read,
+            entityType: entityType,
+            message: message, // i18n-ignore: internal diagnostic, never shown
+          ),
+        );
+      }
+
+      final rawEntries = rawGlossary['entries'];
+      if (rawEntries is! List) {
+        readError('glossaryEntry', 'glossary entries are not a list');
+      } else {
+        for (var index = 0; index < rawEntries.length; index++) {
+          if (index >= kMaxBackupGlossaryEntries) {
+            readError(
+              'glossaryEntry',
+              'glossary entry limit exceeded; remaining entries skipped',
+            );
+            break;
+          }
+          final entry = _glossaryEntryFromJson(rawEntries[index]);
+          if (entry == null) {
+            readError('glossaryEntry', 'a glossary entry could not be read');
+          } else {
+            glossaryEntries.add(entry);
+          }
+        }
+      }
+      final rawNotes = rawGlossary['figureNotes'];
+      if (rawNotes is! List) {
+        readError('figureNote', 'figure notes are not a list');
+      } else {
+        for (var index = 0; index < rawNotes.length; index++) {
+          if (index >= kMaxBackupFigureNotes) {
+            readError(
+              'figureNote',
+              'figure note limit exceeded; remaining notes skipped',
+            );
+            break;
+          }
+          final note = rawNotes[index];
+          final figureId = note is Map ? note['figureId'] : null;
+          final text = note is Map ? note['notes'] : null;
+          if (figureId is String &&
+              figureId.isNotEmpty &&
+              text is String &&
+              text.isNotEmpty) {
+            figureNotes.add(FigureNote(figureId: figureId, notes: text));
+          } else {
+            readError('figureNote', 'a figure note could not be read');
+          }
+        }
+      }
+    }
   }
 
   return BackupReadResult(
@@ -666,6 +842,8 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
       customThemes: customThemes,
       activeCustomThemeId: activeCustomThemeId,
       settings: settings,
+      glossaryEntries: glossaryEntries,
+      figureNotes: figureNotes,
     ),
     errors: errors,
     warnings: warnings,
@@ -677,5 +855,7 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
     hasDialectsSection: hasDialectsSection,
     hasThemesSection: hasThemesSection,
     hasSettingsSection: hasSettingsSection,
+    hasGlossarySection: hasGlossarySection,
+    glossaryComplete: glossaryComplete,
   );
 }

@@ -102,6 +102,11 @@ const Map<String, String> _sources = {
   'venues.time': 'TERMSRC venue time',
   'venues.price': 'TERMSRC venue price',
   'published_sources.url': 'https://termsrc-source.example',
+  'user_glossary_entries.name': 'TERMSRC glossary name',
+  'user_glossary_entries.definition': 'TERMSRC glossary definition',
+  'user_glossary_entries.description': 'TERMSRC glossary description',
+  'user_glossary_entries.notes': 'TERMSRC glossary notes',
+  'figure_notes.notes': 'TERMSRC figure note',
 };
 
 /// Freeform scalar TEXT columns the registry classifies non-personal
@@ -130,6 +135,13 @@ const Set<String> _alsoRequiredColumns = {
   'venues.time',
   'venues.price',
   'published_sources.url',
+  // The user's own glossary (#709): appUser and non-personal by intent, but
+  // the user's own words all the same.
+  'user_glossary_entries.name',
+  'user_glossary_entries.definition',
+  'user_glossary_entries.description',
+  'user_glossary_entries.notes',
+  'figure_notes.notes',
 };
 
 /// Required columns that deliberately have no term source, with the reason.
@@ -223,6 +235,18 @@ Future<void> _populate(CompendiumRepositories repos) async {
       position: 99,
     ),
   );
+  await repos.userGlossary.upsert(
+    UserGlossaryEntry(
+      id: 'fixture-glossary',
+      kindName: UserGlossaryEntryKind.compound.name,
+      name: _v('user_glossary_entries.name'),
+      definition: _v('user_glossary_entries.definition'),
+      description: _v('user_glossary_entries.description'),
+      notes: _v('user_glossary_entries.notes'),
+      createdAt: DateTime.utc(2026, 10, 14),
+    ),
+  );
+  await repos.figureNotes.set('swing', _v('figure_notes.notes'));
   await repos.dances.create(
     Dance(
       id: 'd1',

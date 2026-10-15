@@ -24,6 +24,7 @@ import 'published_source_repository.dart';
 import 'settings_repository.dart';
 import 'sync_local_repository.dart';
 import 'tag_repository.dart';
+import 'user_glossary_repository.dart';
 import 'venue_repository.dart';
 
 const _shareableTextNormalisationAlgorithmVersion = 2;
@@ -235,6 +236,8 @@ class CompendiumRepositories {
        collectionImports =
            collectionImports ?? CollectionImportEventRepository(db),
        settings = settings ?? SettingsRepository(db),
+       userGlossary = UserGlossaryRepository(db),
+       figureNotes = FigureNoteRepository(db),
        syncLocal = SyncLocalRepository(db);
 
   final CompendiumDatabase db;
@@ -248,6 +251,12 @@ class CompendiumRepositories {
   final VenueRepository venues;
   final CollectionImportEventRepository collectionImports;
   final SettingsRepository settings;
+
+  /// The user's own glossary entries (#709).
+  final UserGlossaryRepository userGlossary;
+
+  /// The user's notes on shipped figures (#709).
+  final FigureNoteRepository figureNotes;
   final SyncLocalRepository syncLocal;
 
   /// Runs a cross-repository write as one database transaction.

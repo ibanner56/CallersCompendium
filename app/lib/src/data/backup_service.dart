@@ -294,6 +294,8 @@ class BackupService {
       customThemes: customThemes,
       activeCustomThemeId: activeThemeId is String ? activeThemeId : null,
       settings: settings,
+      glossaryEntries: await _repos.userGlossary.listAll(),
+      figureNotes: await _repos.figureNotes.listAll(),
     );
   }
 
@@ -607,6 +609,48 @@ class BackupService {
       );
       if (active != null) {
         await settings.set(kActiveDialectKey, active.toJson());
+      }
+    }
+
+    // The user's own glossary (#709): a replace when the backup describes it,
+    // untouched when it does not. Entries the backup does not hold are
+    // deleted softly, so sync carries the deletion, unless part of the
+    // section could not be read ([BackupReadResult.glossaryComplete]); then
+    // nothing is deleted. An entry the repository refuses (over a bound in a
+    // hand-edited file) is skipped with a warning, and its live copy kept.
+    if (read.hasGlossarySection) {
+      final keptIds = {for (final e in doc.glossaryEntries) e.id};
+      for (final live in await _repos.userGlossary.listAll()) {
+        if (read.glossaryComplete && !keptIds.contains(live.id)) {
+          await _repos.userGlossary.delete(live.id);
+        }
+      }
+      for (final entry in doc.glossaryEntries) {
+        try {
+          await _repos.userGlossary.upsert(entry);
+        } on UserGlossaryEntryInvalid {
+          // diagnostics: silent — the skipped entry is reported in the restore outcome's warnings.
+          warnings.add(
+            'Skipped a glossary entry from the backup whose text is missing '
+            'or too long.',
+          );
+        }
+      }
+      final keptNotes = {for (final n in doc.figureNotes) n.figureId};
+      for (final live in await _repos.figureNotes.listAll()) {
+        if (read.glossaryComplete && !keptNotes.contains(live.figureId)) {
+          await _repos.figureNotes.delete(live.figureId);
+        }
+      }
+      for (final note in doc.figureNotes) {
+        try {
+          await _repos.figureNotes.set(note.figureId, note.notes);
+        } on UserGlossaryEntryInvalid {
+          // diagnostics: silent — the skipped note is reported in the restore outcome's warnings.
+          warnings.add(
+            'Skipped a figure note from the backup that is too long.',
+          );
+        }
       }
     }
 

@@ -607,6 +607,24 @@ database already carries it. The steps that can still fire are v36 onward.
   bookkeeping. It is cleared with the baseline, and so on
   an epoch change, detach and restore. Never backed up, exported or
   synchronized. Additive `createTable`; no back-fill.
+- v40 (issue #709): adds two tables for the user's own glossary.
+  `user_glossary_entries` holds every kind of user entry in one table, keyed
+  by a UUID `id`: `kind` (`compound` today; `term` and `customFigure` are
+  reserved for #1023), the required `name`, `definition` and `description`,
+  `keywords_json` (a JSON array of strings, default `[]`), nullable `notes`,
+  nullable `payload_json` (the kind's payload; a compound's definition), and
+  `created_at`, which an edit never moves, so of two entries sharing a name the
+  later-created one is the one flagged for rename. Names are not unique: a
+  duplicate that arrives by restore (or, later, by sync) is kept, not refused.
+  `figure_notes` holds the user's note on a shipped figure, keyed by the
+  shipped move or alias id (`figure_id`); a note on an id the taxonomy no
+  longer has is kept and not shown. Both carry the `updated_at` /
+  `deleted_at` / `existence_at` triple and are `shareable`, but no record kind
+  carries them yet, so they do not sync; they travel in a backup's
+  `app.glossary` section, not in the core archive, and never in a `.ccshare`
+  export. An entry of a kind this build does not know, or whose payload no
+  longer decodes, is kept as it is. Additive `createTable`s; no back-fill and
+  no derived rebuild.
 
 ## The delete model
 

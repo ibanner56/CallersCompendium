@@ -215,7 +215,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**232 columns**: 151 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 29 personal data by category.
+**249 columns**: 168 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 29 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -327,6 +327,11 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `difficulty_levels` | `label` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `difficulty_levels` | `position` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `difficulty_levels` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
+| `figure_notes` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind. |
+| `figure_notes` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. |
+| `figure_notes` | `figure_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `figure_notes` | `notes` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | The user's own words defining or annotating figures (#709). Classified by intent, as program notes are: choreography reference, not commentary on a person. Synced and backed up like custom shorthands (maintainer). |
+| `figure_notes` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `id_aliases` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `id_aliases` | `losing_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `id_aliases` | `surviving_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
@@ -419,6 +424,18 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `tags` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `tags` | `name` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `tags` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
+| `user_glossary_entries` | `created_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | When the entry was first created; never moved by an edit. Travels so every device agrees which of two entries sharing a name is the newer one, the one flagged for rename (maintainer, 2026-10-14). |
+| `user_glossary_entries` | `definition` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | The user's own words defining or annotating figures (#709). Classified by intent, as program notes are: choreography reference, not commentary on a person. Synced and backed up like custom shorthands (maintainer). |
+| `user_glossary_entries` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind. |
+| `user_glossary_entries` | `description` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | The user's own words defining or annotating figures (#709). Classified by intent, as program notes are: choreography reference, not commentary on a person. Synced and backed up like custom shorthands (maintainer). |
+| `user_glossary_entries` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. |
+| `user_glossary_entries` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `user_glossary_entries` | `keywords_json` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | The user's own words defining or annotating figures (#709). Classified by intent, as program notes are: choreography reference, not commentary on a person. Synced and backed up like custom shorthands (maintainer). |
+| `user_glossary_entries` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `user_glossary_entries` | `name` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | The user's own words defining or annotating figures (#709). Classified by intent, as program notes are: choreography reference, not commentary on a person. Synced and backed up like custom shorthands (maintainer). |
+| `user_glossary_entries` | `notes` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | The user's own words defining or annotating figures (#709). Classified by intent, as program notes are: choreography reference, not commentary on a person. Synced and backed up like custom shorthands (maintainer). |
+| `user_glossary_entries` | `payload_json` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `user_glossary_entries` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `venue_provenance` | `external_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `venue_provenance` | `imported_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `venue_provenance` | `license` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |

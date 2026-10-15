@@ -808,3 +808,55 @@ class PeerManifests extends Table {
   @override
   Set<Column> get primaryKey => {peerId};
 }
+
+/// The user's own glossary entries (#709, and #1023 after it): one table for
+/// every kind, so a single name check, search source, privacy classification
+/// and sync kind serve them all (decided on #695, 2026-10-14).
+///
+/// `kind` decides the payload: `compound` (a `CompoundDefinition`), and the
+/// reserved `term` and `customFigure`. Names are not unique: an entry arriving
+/// by sync or restore may share a name, and is kept and flagged for rename
+/// rather than refused (maintainer, 2026-10-14). Text columns hold canonical
+/// role tokens. Added in schema v40.
+@DataClassName('UserGlossaryEntryRow')
+class UserGlossaryEntries extends Table {
+  TextColumn get id => text()();
+  TextColumn get kind => text()();
+  TextColumn get name => text()();
+  TextColumn get definition => text()();
+  TextColumn get description => text()();
+
+  /// A JSON array of strings.
+  TextColumn get keywordsJson =>
+      text().named('keywords_json').withDefault(const Constant('[]'))();
+  TextColumn get notes => text().nullable()();
+
+  /// The kind-specific payload as JSON, or null for a kind with none.
+  TextColumn get payloadJson => text().named('payload_json').nullable()();
+
+  /// When the entry was first created; never moved by an edit.
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  DateTimeColumn get existenceAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// The user's notes on shipped figures (#709), one row per shipped move or
+/// alias id. A separate table from [UserGlossaryEntries] because a note
+/// annotates a figure rather than defining one (decided on #695). A note whose
+/// id the taxonomy no longer has is kept and not shown. Text holds canonical
+/// role tokens. Added in schema v40.
+@DataClassName('FigureNoteRow')
+class FigureNotes extends Table {
+  TextColumn get figureId => text().named('figure_id')();
+  TextColumn get notes => text()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  DateTimeColumn get existenceAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {figureId};
+}
