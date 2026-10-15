@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 /// Core's [applyParamChange] (#709): the rules the dance editor applies when a
@@ -30,7 +31,7 @@ void main() {
   }
 
   Map<String, Object?> defaults(String move) =>
-      taxonomy.effectiveParams(Figure(move: move));
+      taxonomy.effectiveParams(testFigure(move: move));
 
   group('hey length (#576)', () {
     test('a full or half length drops a stale meetTarget', () {
