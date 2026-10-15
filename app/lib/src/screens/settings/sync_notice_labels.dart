@@ -383,9 +383,10 @@ Future<SyncNoticeRecordName> lookupSyncNoticeRecordName(
     ))?.name,
     SyncRecordKind.tag => (await repositories.tags.getById(id))?.name,
     SyncRecordKind.venue => (await repositories.venues.getById(id))?.name,
-    // The user's glossary holds canonical role words, which read correctly
-    // only rendered in the active dialect, and nothing here has one; a note
-    // has no name of its own. Shown by kind alone.
+    // The user's glossary holds canonical role words, and a note is named by
+    // its built-in figure, whose name the active dialect may replace (a
+    // discouraged term, say). Both read correctly only in the active dialect,
+    // and nothing here has one, so both are shown by kind alone.
     SyncRecordKind.customFieldDef ||
     SyncRecordKind.difficultyLevel ||
     SyncRecordKind.publishedSource ||

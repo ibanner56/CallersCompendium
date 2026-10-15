@@ -1,4 +1,5 @@
 import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/sync_conflict_details.dart';
 import 'package:compendium_app/src/screens/sync_conflict_sheet.dart';
@@ -209,8 +210,86 @@ Future<void> _open(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// Queues a tie on the user's notes on each of [figureIds] (#709).
+Future<void> _queueNoteTie(
+  CompendiumRepositories repos,
+  List<String> figureIds,
+) async {
+  final storage = CompendiumSyncStorage(repos);
+  final local = <SyncRecordAddress, SyncMergeCandidate?>{};
+  final peer = <SyncRecordAddress, SyncMergeCandidate?>{};
+  for (final id in figureIds) {
+    await repos.figureNotes.set(id, 'Mine.', at: _tie);
+    final address = (kind: SyncRecordKind.figureNote, recordId: id);
+    final candidate = (await storage.snapshot()).local[address]!;
+    local[address] = candidate;
+    peer[address] = SyncMergeCandidate.fromBlob(
+      syncRecordBlobForEntity(
+        SyncRecordKind.figureNote,
+        FigureNote(figureId: id, notes: 'Theirs.'),
+        updatedAt: candidate.updatedAt,
+        existenceAt: candidate.existenceAt,
+      )!,
+    );
+  }
+  final plan = const SyncMergeEngine().plan(
+    local: local,
+    baseline: const {},
+    peers: [peer],
+  );
+  await storage.refreshConflictReviews(plan.reviews);
+}
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
+  testWidgets('a conflict on notes names the built-in figure, as the active '
+      'dialect names it (#709)', (tester) async {
+    final repos = openTestRepositories();
+    tester.view
+      ..physicalSize = const Size(400, 1400)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final dialect = ValueNotifier(
+      Dialect(name: 'Twirly', moves: const {'swing': 'twirl'}),
+    );
+    addTearDown(dialect.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => ActiveDialectScope(
+          notifier: dialect,
+          child: RepositoriesScope(repositories: repos, child: child!),
+        ),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                key: const ValueKey('open'),
+                onPressed: () => showSyncConflictSheet(context),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.runAsync(
+      () => _queueNoteTie(repos, ['swing', 'no-longer-a-figure']),
+    );
+    await _open(tester);
+
+    expect(find.text('Your notes on twirl'), findsOneWidget);
+    expect(
+      find.text('Your notes on a figure'),
+      findsOneWidget,
+      reason: 'a figure the taxonomy no longer has is named by kind',
+    );
+    expect(find.textContaining('no-longer-a-figure'), findsNothing);
+    expect(find.textContaining('Mine.'), findsNWidgets(2));
+    expect(find.textContaining('Theirs.'), findsNWidgets(2));
+  });
 
   testWidgets('names the setting and both versions, and preselects '
       'nothing', (tester) async {

@@ -4513,6 +4513,12 @@ abstract class AppLocalizations {
   /// **'Your notes on a figure'**
   String get syncReviewKindFigureNote;
 
+  /// Heading of a sync conflict about the user's notes on one built-in Glossary figure. {figure} is the figure's name as the Glossary shows it, such as 'swing' or 'right shoulder round'.
+  ///
+  /// In en, this message translates to:
+  /// **'Your notes on {figure}'**
+  String syncConflictFigureNoteTitle(String figure);
+
   /// Safe identity line for the local record in a sync decision.
   ///
   /// In en, this message translates to:

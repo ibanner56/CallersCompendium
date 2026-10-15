@@ -2728,6 +2728,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncReviewKindFigureNote => 'フィギュアへの自分のノート';
 
   @override
+  String syncConflictFigureNoteTitle(String figure) {
+    return '$figureへの自分のノート';
+  }
+
+  @override
   String syncReviewLocalRecord(String id) {
     return 'ローカルレコード: $id';
   }

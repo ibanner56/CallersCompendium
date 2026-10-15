@@ -96,6 +96,17 @@ String syncConflictFreeText(BuildContext context, String text) =>
       ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
     );
 
+/// The built-in figure [figureId] names — a figure note's record id (#709) —
+/// as the Glossary heads it in the active dialect, or null when the taxonomy
+/// no longer has it (such a note is kept and not shown).
+String? syncConflictFigureName(BuildContext context, String figureId) {
+  if (contraTaxonomy.resolve(figureId) == null) return null;
+  return SyncConflictComparison._renderer.displayMoveName(
+    figureId,
+    ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+  );
+}
+
 /// When a version was last changed, for telling versions apart.
 String syncConflictWhen(BuildContext context, DateTime when) =>
     DateFormat.yMMMd(

@@ -756,6 +756,13 @@ class _ConflictGroupTile extends StatelessWidget {
       return syncSettingLabel(l10n, group.recordId) ??
           syncRecordKindLabel(l10n, group.kind);
     }
+    // A note's record id is the built-in figure it annotates (#709).
+    if (group.kind == SyncRecordKind.figureNote) {
+      final figure = syncConflictFigureName(context, group.recordId);
+      return figure == null
+          ? syncRecordKindLabel(l10n, group.kind)
+          : l10n.syncConflictFigureNoteTitle(figure);
+    }
     final name =
         _name(context, group.localBody) ??
         _name(context, group.candidates.first.candidate?.body);
@@ -776,6 +783,13 @@ class _ConflictGroupTile extends StatelessWidget {
   }
 
   String? _name(BuildContext context, Map<String, Object?>? body) {
+    // A note has no name; a version of it reads as what it says (#709).
+    if (group.kind == SyncRecordKind.figureNote) {
+      final notes = body?['notes'];
+      return notes is String && notes.isNotEmpty
+          ? syncConflictFreeText(context, notes)
+          : null;
+    }
     final value =
         body?['title'] ?? body?['name'] ?? body?['label'] ?? body?['key'];
     if (value is! String || value.isEmpty) return null;

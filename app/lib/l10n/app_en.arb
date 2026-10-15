@@ -3526,6 +3526,16 @@
   "@syncReviewKindFigureNote": {
     "description": "Kind label for a sync decision about the user's notes on one built-in Glossary figure."
   },
+  "syncConflictFigureNoteTitle": "Your notes on {figure}",
+  "@syncConflictFigureNoteTitle": {
+    "description": "Heading of a sync conflict about the user's notes on one built-in Glossary figure. {figure} is the figure's name as the Glossary shows it, such as 'swing' or 'right shoulder round'.",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "swing"
+      }
+    }
+  },
   "syncReviewLocalRecord": "Local record: {id}",
   "@syncReviewLocalRecord": {
     "description": "Safe identity line for the local record in a sync decision.",

@@ -2866,6 +2866,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get syncReviewKindFigureNote => 'Dine noter til en figur';
 
   @override
+  String syncConflictFigureNoteTitle(String figure) {
+    return 'Dine noter til $figure';
+  }
+
+  @override
   String syncReviewLocalRecord(String id) {
     return 'Lokal post: $id';
   }

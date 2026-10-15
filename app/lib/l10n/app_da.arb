@@ -2932,6 +2932,10 @@
   "@syncReviewKindFigureNote": {
     "x-sourceSha256": "7c075d1bb02b49b5c64babc2c11318461b01bad01b9cfbd964e9f62f3c2f0b93"
   },
+  "syncConflictFigureNoteTitle": "Dine noter til {figure}",
+  "@syncConflictFigureNoteTitle": {
+    "x-sourceSha256": "57808c2e61dfdc04f48d7e10a927ab545ca45e9abffcab7f5706090f807eea66"
+  },
   "syncReviewLocalRecord": "Lokal post: {id}",
   "@syncReviewLocalRecord": {
     "x-sourceSha256": "487c85b7e0023045582a0a723cdcfa96169b944fb4b33f311b167ec57e2b9731"

@@ -2839,6 +2839,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncReviewKindFigureNote => 'Your notes on a figure';
 
   @override
+  String syncConflictFigureNoteTitle(String figure) {
+    return 'Your notes on $figure';
+  }
+
+  @override
   String syncReviewLocalRecord(String id) {
     return 'Local record: $id';
   }
