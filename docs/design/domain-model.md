@@ -16,9 +16,10 @@ pure-Dart core package (no Flutter imports) per ADR-001.*
    permission/license, and import time. (The raw source payload was dropped
    at schema v21, #781 — see [Provenance](#provenance) below.)
 5. **Soft delete over hard delete** for user-visible entities. The current
-   contract covers all nine syncable kinds: schema v25 (#898) introduced
-   tombstones for the original eight, and schema v34 added them for difficulty
-   levels; see the delete model in [storage.md](storage.md).
+   contract covers all eleven syncable kinds: schema v25 (#898) introduced
+   tombstones for the original eight, schema v34 added them for difficulty
+   levels, and the glossary's two tables were created with them in schema v40
+   (#709); see the delete model in [storage.md](storage.md).
 
 ## Entity overview
 
@@ -306,8 +307,8 @@ optional keywords and notes, and a kind-specific payload; its `kind` is
 `compound` (a named, parameterised sequence of shipped figures) or one of the
 kinds reserved for #1023, `term` (the former `GlossaryTerm` idea) and
 `customFigure`. A `FigureNote` is the user's note on one shipped figure.
-Neither is part of a dance; both are carried by backups (`app.glossary`), not by
-archives.
+Neither is part of a dance; both are carried by backups (`app.glossary`) and by
+Device Sync (once every attached device can read them), not by archives.
 
 **Quick-entry snippets** — the question of user-defined quick-entry
 **snippets** (CC "Insert Call" buttons) is closed: a CC import seeds them as

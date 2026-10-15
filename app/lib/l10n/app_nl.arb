@@ -540,6 +540,14 @@
   "@settingsSyncNoticeCountSetting": {
     "x-sourceSha256": "ff0a50b131bbe8edcf51dc54d23235e5089d53704d6a548605bf9b6f132da4c5"
   },
+  "settingsSyncNoticeCountGlossaryEntry": "{count, plural, =1{1 van je eigen figuren} other{{count} van je eigen figuren}}",
+  "@settingsSyncNoticeCountGlossaryEntry": {
+    "x-sourceSha256": "68fc2e794fec98d4ce9e7ebdf6de306fae7ae2eae11a23e0c59f5033212b64ba"
+  },
+  "settingsSyncNoticeCountFigureNote": "{count, plural, =1{je notities bij 1 figuur} other{je notities bij {count} figuren}}",
+  "@settingsSyncNoticeCountFigureNote": {
+    "x-sourceSha256": "d8a9a1a4ceb2c8d27210fecff6147fdceaceb98a415748dabd9f42851eb3176a"
+  },
   "settingsSyncNoticeNewerVersionUncounted": "Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om de wijzigingen ervan te ontvangen.",
   "@settingsSyncNoticeNewerVersionUncounted": {
     "x-sourceSha256": "ca371c7f36b6a2ca97e5fb9d8cd18cc2909af04e2973dec1a999d4e7a50fb339"
@@ -1220,9 +1228,9 @@
   "@settingsSyncPairingNewerDataTitle": {
     "x-sourceSha256": "a70ee18e575d46d080d7a7d51c306ac8647d1e4b28b2cf4a6397534f0bd50189"
   },
-  "settingsSyncPairingNewerDataBody": "Deze versie synchroniseert een aantal dingen die eerdere versies van de app niet kunnen lezen. Werk elk apparaat bij voordat je het verbindt: een apparaat met een eerdere versie kan mogelijk geen verbinding maken. Tot alle verbonden apparaten zijn bijgewerkt, blijven die dingen op het apparaat waarop ze zijn gemaakt.",
+  "settingsSyncPairingNewerDataBody": "Deze versie synchroniseert een aantal dingen die eerdere versies van de app niet kunnen lezen. Werk elk apparaat bij voordat je het verbindt: een apparaat met een eerdere versie kan mogelijk geen verbinding maken. Tot alle verbonden apparaten zijn bijgewerkt, worden die dingen niet naar je andere apparaten gestuurd.",
   "@settingsSyncPairingNewerDataBody": {
-    "x-sourceSha256": "4d930677c1fe7d851fcb0909abedd8931a194760e3c63f5196393e7fc39bb024"
+    "x-sourceSha256": "71895e175c3abfaa7fbb5c050e9583e2f3b0420d09d1653dff98d1e7324a972e"
   },
   "settingsSyncPairingBearerTitle": "Iedereen met deze zin kan je bibliotheek openen",
   "@settingsSyncPairingBearerTitle": {
@@ -2915,6 +2923,18 @@
   "syncReviewKindSetting": "Instelling",
   "@syncReviewKindSetting": {
     "x-sourceSha256": "818cd8d91aea3a1689455f009f49e87fe7fa647fa2c4b9f09072dd1c33d52ca5"
+  },
+  "syncReviewKindGlossaryEntry": "Je eigen figuur",
+  "@syncReviewKindGlossaryEntry": {
+    "x-sourceSha256": "d89a8f32c2f5099f6e866919bcc348bfc5afa253b8fda66039ae398dcc55d1d5"
+  },
+  "syncReviewKindFigureNote": "Je notities bij een figuur",
+  "@syncReviewKindFigureNote": {
+    "x-sourceSha256": "7c075d1bb02b49b5c64babc2c11318461b01bad01b9cfbd964e9f62f3c2f0b93"
+  },
+  "syncConflictFigureNoteTitle": "Je notities bij {figure}",
+  "@syncConflictFigureNoteTitle": {
+    "x-sourceSha256": "57808c2e61dfdc04f48d7e10a927ab545ca45e9abffcab7f5706090f807eea66"
   },
   "syncReviewLocalRecord": "Lokaal record: {id}",
   "@syncReviewLocalRecord": {

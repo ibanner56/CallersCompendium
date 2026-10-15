@@ -46,10 +46,17 @@ final class SyncCapabilityPolicy {
   /// that need them; a capability is advertised only once the whole feature
   /// it covers, sync included, is in the build.
   ///
-  /// [SyncCapabilities.glossaryV1] gates the Custom Figures toggle and the
-  /// compound shorthands (#709) and is not advertised yet, so they stay on
-  /// their device until the glossary's own record kinds can sync with them.
+  /// [SyncCapabilities.glossaryV1] (#709) gates the user's glossary entries,
+  /// their notes on shipped figures, the Custom Figures toggle and the
+  /// compound shorthands, and this build advertises it: they publish once
+  /// every other device attached to the store advertises it too. Until then
+  /// this device sends none of them, and leaves alone what it already holds.
   static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
+    advertised: {SyncCapabilities.glossaryV1},
+    gatedRecordKinds: {
+      SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
+      SyncRecordKind.figureNote: SyncCapabilities.glossaryV1,
+    },
     gatedSettingKeys: {
       'show_custom_figures': SyncCapabilities.glossaryV1,
       'compound_shorthands': SyncCapabilities.glossaryV1,

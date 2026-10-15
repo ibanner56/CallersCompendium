@@ -920,6 +920,18 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 setting} other{{count} settings}}'**
   String settingsSyncNoticeCountSetting(int count);
 
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many of the user's own figures (compound figures they defined in the Glossary) are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 of your own figures} other{{count} of your own figures}}'**
+  String settingsSyncNoticeCountGlossaryEntry(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many of the user's notes on built-in Glossary figures (one note per figure) are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{your notes on 1 figure} other{your notes on {count} figures}}'**
+  String settingsSyncNoticeCountFigureNote(int count);
+
   /// Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting: the other device's list of what it shares is itself in the newer format, or it shares a kind of data this version does not know.
   ///
   /// In en, this message translates to:
@@ -1943,7 +1955,7 @@ abstract class AppLocalizations {
   /// Body of the pairing disclosure about devices on earlier app versions (#709). 'Those things' are the kinds of data the earlier versions cannot read; they are kept, not lost, and sync once every device is updated.
   ///
   /// In en, this message translates to:
-  /// **'This version syncs some things that earlier versions of the app can\'t read. Update each device before you connect it: one running an earlier version may not be able to connect. Until every connected device is up to date, those things stay on the device they were made on.'**
+  /// **'This version syncs some things that earlier versions of the app can\'t read. Update each device before you connect it: one running an earlier version may not be able to connect. Until every connected device is up to date, those things aren\'t sent to your other devices.'**
   String get settingsSyncPairingNewerDataBody;
 
   /// Heading of the disclosure spec §8 requires, shown on both pairing paths. The phrase names WHERE the shared library is, so an address framing is the accurate one; do not write 'access', 'key', 'account' or 'password' here.
@@ -4488,6 +4500,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Setting'**
   String get syncReviewKindSetting;
+
+  /// Kind label for a sync decision about one of the user's own figures: a compound figure they defined in the Glossary.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own figure'**
+  String get syncReviewKindGlossaryEntry;
+
+  /// Kind label for a sync decision about the user's notes on one built-in Glossary figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Your notes on a figure'**
+  String get syncReviewKindFigureNote;
+
+  /// Heading of a sync conflict about the user's notes on one built-in Glossary figure. {figure} is the figure's name as the Glossary shows it, such as 'swing' or 'right shoulder round'.
+  ///
+  /// In en, this message translates to:
+  /// **'Your notes on {figure}'**
+  String syncConflictFigureNoteTitle(String figure);
 
   /// Safe identity line for the local record in a sync decision.
   ///

@@ -588,6 +588,28 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeCountGlossaryEntry(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count deiner eigenen Figuren',
+      one: '1 deiner eigenen Figuren',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountFigureNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'deine Notizen zu $count Figuren',
+      one: 'deine Notizen zu 1 Figur',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten.';
 
@@ -1358,7 +1380,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncPairingNewerDataBody =>
-      'Diese Version synchronisiert einiges, das frühere Versionen der App nicht lesen können. Aktualisiere jedes Gerät, bevor du es verbindest: Ein Gerät mit einer früheren Version kann sich womöglich nicht verbinden. Bis alle verbundenen Geräte aktuell sind, bleibt dies auf dem Gerät, auf dem es erstellt wurde.';
+      'Diese Version synchronisiert einiges, das frühere Versionen der App nicht lesen können. Aktualisiere jedes Gerät, bevor du es verbindest: Ein Gerät mit einer früheren Version kann sich womöglich nicht verbinden. Bis alle verbundenen Geräte aktuell sind, wird dies nicht an deine anderen Geräte gesendet.';
 
   @override
   String get settingsSyncPairingBearerTitle =>
@@ -2873,6 +2895,17 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get syncReviewKindSetting => 'Einstellung';
+
+  @override
+  String get syncReviewKindGlossaryEntry => 'Deine eigene Figur';
+
+  @override
+  String get syncReviewKindFigureNote => 'Deine Notizen zu einer Figur';
+
+  @override
+  String syncConflictFigureNoteTitle(String figure) {
+    return 'Deine Notizen zu $figure';
+  }
 
   @override
   String syncReviewLocalRecord(String id) {

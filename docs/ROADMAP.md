@@ -290,16 +290,18 @@ implementation notes and deviations against each item — is in
     delivered the view): each built-in figure shows a read-only shipped
     definition and description, with a user-editable notes field; the shipped
     glossary does not sync, but any user additions (own terms, notes on
-    figures) must. Still to build: the sync of user additions, and own terms
-    with the CC `Term` mapping in 6.5 (#1023).
+    figures) must. Still to build: own terms with the CC `Term` mapping in 6.5
+    (#1023).
   - **Delivered (#709):** notes on built-in figures, and the user's own
     compound figures behind a nested **Custom Figures** setting — added,
-    edited and deleted in the Glossary, kept in backups, not yet synced
-    (maintainer decisions recorded in #709's consolidated spec, 2026-10-14).
-    Own terms stay with #1023. The sync capability gate they will sync
-    behind is built (sync-spec §6.15): data waits until every attached device
-    understands it. Clients also skip a record kind they do not know instead of
-    refusing a peer's whole manifest (sync-spec §4.5).
+    edited and deleted in the Glossary, kept in backups (maintainer decisions
+    recorded in #709's consolidated spec, 2026-10-14). Own terms stay with
+    #1023. Both sync, with the Custom Figures setting and compound shorthands,
+    as the `glossaryEntry` and `figureNote` record kinds behind the sync
+    capability gate `glossary.v1` (sync-spec §4.3, §6.15): they wait until
+    every attached device runs a build that reads them, and the notice names
+    the device holding them back. Clients also skip a record kind they do not
+    know instead of refusing a peer's whole manifest (sync-spec §4.5).
 - **User-defined quick-entry snippets** — CC's "Insert Call" buttons (per-user
   label → expansion text + beats + a gender-free alternate). **Accepted, reframed**
   over our structured model (see #401): a user shorthand maps to a fully-configured

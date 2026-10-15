@@ -557,6 +557,26 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeCountGlossaryEntry(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '自分のフィギュア$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountFigureNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'フィギュア$count件への自分のノート',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       '別のデバイスで新しいバージョンのアプリが使われています。その変更を受け取るには、このデバイスのアプリを更新してください。';
 
@@ -1283,7 +1303,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncPairingNewerDataBody =>
-      'このバージョンは、以前のバージョンのアプリでは読み取れない一部のデータを同期します。接続する前に各デバイスをアップデートしてください。以前のバージョンのデバイスは接続できない場合があります。接続中のすべてのデバイスが最新になるまで、それらのデータは作成したデバイスに残ります。';
+      'このバージョンは、以前のバージョンのアプリでは読み取れない一部のデータを同期します。接続する前に各デバイスをアップデートしてください。以前のバージョンのデバイスは接続できない場合があります。接続中のすべてのデバイスが最新になるまで、それらのデータは他のデバイスに送信されません。';
 
   @override
   String get settingsSyncPairingBearerTitle => 'このフレーズを持つ人は誰でもライブラリを開けます';
@@ -2700,6 +2720,17 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get syncReviewKindSetting => '設定';
+
+  @override
+  String get syncReviewKindGlossaryEntry => '自分のフィギュア';
+
+  @override
+  String get syncReviewKindFigureNote => 'フィギュアへの自分のノート';
+
+  @override
+  String syncConflictFigureNoteTitle(String figure) {
+    return '$figureへの自分のノート';
+  }
 
   @override
   String syncReviewLocalRecord(String id) {
