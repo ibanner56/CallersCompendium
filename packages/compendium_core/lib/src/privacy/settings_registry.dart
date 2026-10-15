@@ -189,31 +189,36 @@ final Map<String, DataClassification> settingsClassifications = {
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
-    note: 'Per-installation Device Sync consent. Never synced and never restored from a backup: consent given on one device is not consent on another.',
+    note:
+        'Per-installation Device Sync consent. Never synced and never restored from a backup: consent given on one device is not consent on another.',
   ),
   'sync_endpoint': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
-    note: 'The Athenaeum server this installation pairs and syncs with. Never synced, because a synced endpoint would let one device silently redirect another, and never restored from a backup.',
+    note:
+        'The Athenaeum server this installation pairs and syncs with. Never synced, because a synced endpoint would let one device silently redirect another, and never restored from a backup.',
   ),
   'sync_wifi_only': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
-    note: 'Per-installation preference to sync only on WiFi. It is a statement about this device\'s connection, so it never syncs or travels in a backup.',
+    note:
+        'Per-installation preference to sync only on WiFi. It is a statement about this device\'s connection, so it never syncs or travels in a backup.',
   ),
   'sync_exclude_imports': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
-    note: 'Per-installation toggle that trims what this device publishes. It is a statement about this device\'s upload budget, not the library, so it never syncs or travels in a backup.',
+    note:
+        'Per-installation toggle that trims what this device publishes. It is a statement about this device\'s upload budget, not the library, so it never syncs or travels in a backup.',
   ),
   'sync_last_success_at': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
-    note: 'Time of this installation\'s last completed sync pass, used only for the local status surface and expiry warning. Never synced or restored from a backup.',
+    note:
+        'Time of this installation\'s last completed sync pass, used only for the local status surface and expiry warning. Never synced or restored from a backup.',
   ),
 
   // -- Programs and performance --------------------------------------------

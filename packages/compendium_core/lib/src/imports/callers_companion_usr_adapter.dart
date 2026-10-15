@@ -56,10 +56,8 @@ import 'structured_draft.dart';
 /// library-sized file takes seconds and must not stall the UI. Implementations
 /// must throw exactly what [readCcUsrArchive] throws
 /// ([FmpFormatException], [FmpResourceLimitException]).
-typedef CcUsrArchiveReader = Future<CcUsrArchive> Function(
-  Uint8List bytes,
-  FmpReadLimits limits,
-);
+typedef CcUsrArchiveReader =
+    Future<CcUsrArchive> Function(Uint8List bytes, FmpReadLimits limits);
 
 Future<CcUsrArchive> _readSynchronously(
   Uint8List bytes,

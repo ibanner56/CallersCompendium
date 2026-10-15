@@ -65,11 +65,9 @@ final RegExp _whitespaceRun = RegExp(r'\s+');
 /// punctuation and a leading article: an exact-title match that treats
 /// `The Archive` and `Archive` as the same title would turn a genuine
 /// ambiguity into a confident hit.
-String titleMatchKey(String title) =>
-    foldTitlePunctuation(title)
-        .replaceAll(_whitespaceRun, ' ')
-        .trim()
-        .toLowerCase();
+String titleMatchKey(String title) => foldTitlePunctuation(
+  title,
+).replaceAll(_whitespaceRun, ' ').trim().toLowerCase();
 
 /// The spellings of [query] to send to ContraDB's title or choreographer
 /// search so that it matches regardless of which apostrophe or quote style the

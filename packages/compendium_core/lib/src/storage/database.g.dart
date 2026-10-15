@@ -16365,58 +16365,60 @@ typedef $$DifficultyLevelsTableProcessedTableManager =
       DifficultyLevelRow,
       PrefetchHooks Function({bool dancesRefs})
     >;
-typedef $$DancesTableCreateCompanionBuilder = DancesCompanion Function({
-  required String id,
-  required String title,
-  required DanceForm form,
-  required FormationShape formationShape,
-  Value<String?> formationDetail,
-  required Progression progression,
-  Value<String> phraseStructure,
-  Value<String> figuresJson,
-  Value<String> hook,
-  Value<String> callingNotes,
-  Value<String> walkthrough,
-  required DanceStatus status,
-  Value<String?> levelId,
-  Value<bool> mixedLevel,
-  Value<bool> mixer,
-  Value<int?> rating,
-  Value<String> tunesJson,
-  Value<String?> composedOn,
-  Value<String?> revisedOn,
-  required DateTime createdAt,
-  required DateTime updatedAt,
-  Value<DateTime?> deletedAt,
-  Value<DateTime?> existenceAt,
-  Value<int> rowid,
-});
-typedef $$DancesTableUpdateCompanionBuilder = DancesCompanion Function({
-  Value<String> id,
-  Value<String> title,
-  Value<DanceForm> form,
-  Value<FormationShape> formationShape,
-  Value<String?> formationDetail,
-  Value<Progression> progression,
-  Value<String> phraseStructure,
-  Value<String> figuresJson,
-  Value<String> hook,
-  Value<String> callingNotes,
-  Value<String> walkthrough,
-  Value<DanceStatus> status,
-  Value<String?> levelId,
-  Value<bool> mixedLevel,
-  Value<bool> mixer,
-  Value<int?> rating,
-  Value<String> tunesJson,
-  Value<String?> composedOn,
-  Value<String?> revisedOn,
-  Value<DateTime> createdAt,
-  Value<DateTime> updatedAt,
-  Value<DateTime?> deletedAt,
-  Value<DateTime?> existenceAt,
-  Value<int> rowid,
-});
+typedef $$DancesTableCreateCompanionBuilder =
+    DancesCompanion Function({
+      required String id,
+      required String title,
+      required DanceForm form,
+      required FormationShape formationShape,
+      Value<String?> formationDetail,
+      required Progression progression,
+      Value<String> phraseStructure,
+      Value<String> figuresJson,
+      Value<String> hook,
+      Value<String> callingNotes,
+      Value<String> walkthrough,
+      required DanceStatus status,
+      Value<String?> levelId,
+      Value<bool> mixedLevel,
+      Value<bool> mixer,
+      Value<int?> rating,
+      Value<String> tunesJson,
+      Value<String?> composedOn,
+      Value<String?> revisedOn,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+typedef $$DancesTableUpdateCompanionBuilder =
+    DancesCompanion Function({
+      Value<String> id,
+      Value<String> title,
+      Value<DanceForm> form,
+      Value<FormationShape> formationShape,
+      Value<String?> formationDetail,
+      Value<Progression> progression,
+      Value<String> phraseStructure,
+      Value<String> figuresJson,
+      Value<String> hook,
+      Value<String> callingNotes,
+      Value<String> walkthrough,
+      Value<DanceStatus> status,
+      Value<String?> levelId,
+      Value<bool> mixedLevel,
+      Value<bool> mixer,
+      Value<int?> rating,
+      Value<String> tunesJson,
+      Value<String?> composedOn,
+      Value<String?> revisedOn,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
 
 final class $$DancesTableReferences
     extends BaseReferences<_$CompendiumDatabase, $DancesTable, DanceRow> {
@@ -17667,15 +17669,17 @@ class $$DancesTableTableManager
                         >
                       >(state) {
                         if (levelId) {
-                          state = state.withJoin(
-                            currentTable: table,
-                            currentColumn: table.levelId,
-                            referencedTable: $$DancesTableReferences
-                                ._levelIdTable(db),
-                            referencedColumn: $$DancesTableReferences
-                                ._levelIdTable(db)
-                                .id,
-                          ) as T;
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.levelId,
+                                    referencedTable: $$DancesTableReferences
+                                        ._levelIdTable(db),
+                                    referencedColumn: $$DancesTableReferences
+                                        ._levelIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
                         }
 
                         return state;
@@ -18639,26 +18643,30 @@ class $$DanceAuthorsTableTableManager
                     >
                   >(state) {
                     if (danceId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.danceId,
-                        referencedTable: $$DanceAuthorsTableReferences
-                            ._danceIdTable(db),
-                        referencedColumn: $$DanceAuthorsTableReferences
-                            ._danceIdTable(db)
-                            .id,
-                      ) as T;
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.danceId,
+                                referencedTable: $$DanceAuthorsTableReferences
+                                    ._danceIdTable(db),
+                                referencedColumn: $$DanceAuthorsTableReferences
+                                    ._danceIdTable(db)
+                                    .id,
+                              )
+                              as T;
                     }
                     if (choreographerId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.choreographerId,
-                        referencedTable: $$DanceAuthorsTableReferences
-                            ._choreographerIdTable(db),
-                        referencedColumn: $$DanceAuthorsTableReferences
-                            ._choreographerIdTable(db)
-                            .id,
-                      ) as T;
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.choreographerId,
+                                referencedTable: $$DanceAuthorsTableReferences
+                                    ._choreographerIdTable(db),
+                                referencedColumn: $$DanceAuthorsTableReferences
+                                    ._choreographerIdTable(db)
+                                    .id,
+                              )
+                              as T;
                     }
 
                     return state;
@@ -19054,15 +19062,17 @@ class $$DanceFiguresTableTableManager
                     >
                   >(state) {
                     if (danceId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.danceId,
-                        referencedTable: $$DanceFiguresTableReferences
-                            ._danceIdTable(db),
-                        referencedColumn: $$DanceFiguresTableReferences
-                            ._danceIdTable(db)
-                            .id,
-                      ) as T;
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.danceId,
+                                referencedTable: $$DanceFiguresTableReferences
+                                    ._danceIdTable(db),
+                                referencedColumn: $$DanceFiguresTableReferences
+                                    ._danceIdTable(db)
+                                    .id,
+                              )
+                              as T;
                     }
 
                     return state;
@@ -19090,48 +19100,50 @@ typedef $$DanceFiguresTableProcessedTableManager =
       DanceFigureRow,
       PrefetchHooks Function({bool danceId})
     >;
-typedef $$ProgramsTableCreateCompanionBuilder = ProgramsCompanion Function({
-  required String id,
-  required String title,
-  Value<DateTime?> eventDate,
-  Value<String?> venue,
-  Value<String?> venueId,
-  Value<String?> band,
-  Value<String?> caller,
-  Value<String?> dancerLevel,
-  Value<String> notes,
-  required ProgramStatus status,
-  Value<bool> hideAlternates,
-  Value<String?> dialectName,
-  Value<int?> payMinorUnits,
-  Value<String?> payCurrency,
-  required DateTime createdAt,
-  required DateTime updatedAt,
-  Value<DateTime?> deletedAt,
-  Value<DateTime?> existenceAt,
-  Value<int> rowid,
-});
-typedef $$ProgramsTableUpdateCompanionBuilder = ProgramsCompanion Function({
-  Value<String> id,
-  Value<String> title,
-  Value<DateTime?> eventDate,
-  Value<String?> venue,
-  Value<String?> venueId,
-  Value<String?> band,
-  Value<String?> caller,
-  Value<String?> dancerLevel,
-  Value<String> notes,
-  Value<ProgramStatus> status,
-  Value<bool> hideAlternates,
-  Value<String?> dialectName,
-  Value<int?> payMinorUnits,
-  Value<String?> payCurrency,
-  Value<DateTime> createdAt,
-  Value<DateTime> updatedAt,
-  Value<DateTime?> deletedAt,
-  Value<DateTime?> existenceAt,
-  Value<int> rowid,
-});
+typedef $$ProgramsTableCreateCompanionBuilder =
+    ProgramsCompanion Function({
+      required String id,
+      required String title,
+      Value<DateTime?> eventDate,
+      Value<String?> venue,
+      Value<String?> venueId,
+      Value<String?> band,
+      Value<String?> caller,
+      Value<String?> dancerLevel,
+      Value<String> notes,
+      required ProgramStatus status,
+      Value<bool> hideAlternates,
+      Value<String?> dialectName,
+      Value<int?> payMinorUnits,
+      Value<String?> payCurrency,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+typedef $$ProgramsTableUpdateCompanionBuilder =
+    ProgramsCompanion Function({
+      Value<String> id,
+      Value<String> title,
+      Value<DateTime?> eventDate,
+      Value<String?> venue,
+      Value<String?> venueId,
+      Value<String?> band,
+      Value<String?> caller,
+      Value<String?> dancerLevel,
+      Value<String> notes,
+      Value<ProgramStatus> status,
+      Value<bool> hideAlternates,
+      Value<String?> dialectName,
+      Value<int?> payMinorUnits,
+      Value<String?> payCurrency,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
 
 final class $$ProgramsTableReferences
     extends BaseReferences<_$CompendiumDatabase, $ProgramsTable, ProgramRow> {
@@ -20241,26 +20253,30 @@ class $$ProgramSlotsTableTableManager
                     >
                   >(state) {
                     if (programId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.programId,
-                        referencedTable: $$ProgramSlotsTableReferences
-                            ._programIdTable(db),
-                        referencedColumn: $$ProgramSlotsTableReferences
-                            ._programIdTable(db)
-                            .id,
-                      ) as T;
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.programId,
+                                referencedTable: $$ProgramSlotsTableReferences
+                                    ._programIdTable(db),
+                                referencedColumn: $$ProgramSlotsTableReferences
+                                    ._programIdTable(db)
+                                    .id,
+                              )
+                              as T;
                     }
                     if (danceId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.danceId,
-                        referencedTable: $$ProgramSlotsTableReferences
-                            ._danceIdTable(db),
-                        referencedColumn: $$ProgramSlotsTableReferences
-                            ._danceIdTable(db)
-                            .id,
-                      ) as T;
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.danceId,
+                                referencedTable: $$ProgramSlotsTableReferences
+                                    ._danceIdTable(db),
+                                referencedColumn: $$ProgramSlotsTableReferences
+                                    ._danceIdTable(db)
+                                    .id,
+                              )
+                              as T;
                     }
 
                     return state;
@@ -21079,26 +21095,34 @@ class $$CustomFieldValuesTableTableManager
                     >
                   >(state) {
                     if (danceId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.danceId,
-                        referencedTable: $$CustomFieldValuesTableReferences
-                            ._danceIdTable(db),
-                        referencedColumn: $$CustomFieldValuesTableReferences
-                            ._danceIdTable(db)
-                            .id,
-                      ) as T;
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.danceId,
+                                referencedTable:
+                                    $$CustomFieldValuesTableReferences
+                                        ._danceIdTable(db),
+                                referencedColumn:
+                                    $$CustomFieldValuesTableReferences
+                                        ._danceIdTable(db)
+                                        .id,
+                              )
+                              as T;
                     }
                     if (fieldId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.fieldId,
-                        referencedTable: $$CustomFieldValuesTableReferences
-                            ._fieldIdTable(db),
-                        referencedColumn: $$CustomFieldValuesTableReferences
-                            ._fieldIdTable(db)
-                            .id,
-                      ) as T;
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.fieldId,
+                                referencedTable:
+                                    $$CustomFieldValuesTableReferences
+                                        ._fieldIdTable(db),
+                                referencedColumn:
+                                    $$CustomFieldValuesTableReferences
+                                        ._fieldIdTable(db)
+                                        .id,
+                              )
+                              as T;
                     }
 
                     return state;
@@ -21126,24 +21150,26 @@ typedef $$CustomFieldValuesTableProcessedTableManager =
       CustomFieldValueRow,
       PrefetchHooks Function({bool danceId, bool fieldId})
     >;
-typedef $$TagsTableCreateCompanionBuilder = TagsCompanion Function({
-  required String id,
-  required String name,
-  Value<int?> color,
-  Value<DateTime?> updatedAt,
-  Value<DateTime?> deletedAt,
-  Value<DateTime?> existenceAt,
-  Value<int> rowid,
-});
-typedef $$TagsTableUpdateCompanionBuilder = TagsCompanion Function({
-  Value<String> id,
-  Value<String> name,
-  Value<int?> color,
-  Value<DateTime?> updatedAt,
-  Value<DateTime?> deletedAt,
-  Value<DateTime?> existenceAt,
-  Value<int> rowid,
-});
+typedef $$TagsTableCreateCompanionBuilder =
+    TagsCompanion Function({
+      required String id,
+      required String name,
+      Value<int?> color,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+typedef $$TagsTableUpdateCompanionBuilder =
+    TagsCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<int?> color,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
 
 final class $$TagsTableReferences
     extends BaseReferences<_$CompendiumDatabase, $TagsTable, TagRow> {
@@ -21438,16 +21464,18 @@ typedef $$TagsTableProcessedTableManager =
       TagRow,
       PrefetchHooks Function({bool danceTagsRefs})
     >;
-typedef $$DanceTagsTableCreateCompanionBuilder = DanceTagsCompanion Function({
-  required String danceId,
-  required String tagId,
-  Value<int> rowid,
-});
-typedef $$DanceTagsTableUpdateCompanionBuilder = DanceTagsCompanion Function({
-  Value<String> danceId,
-  Value<String> tagId,
-  Value<int> rowid,
-});
+typedef $$DanceTagsTableCreateCompanionBuilder =
+    DanceTagsCompanion Function({
+      required String danceId,
+      required String tagId,
+      Value<int> rowid,
+    });
+typedef $$DanceTagsTableUpdateCompanionBuilder =
+    DanceTagsCompanion Function({
+      Value<String> danceId,
+      Value<String> tagId,
+      Value<int> rowid,
+    });
 
 final class $$DanceTagsTableReferences
     extends BaseReferences<_$CompendiumDatabase, $DanceTagsTable, DanceTagRow> {
@@ -21731,27 +21759,30 @@ class $$DanceTagsTableTableManager
                     >
                   >(state) {
                     if (danceId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.danceId,
-                        referencedTable: $$DanceTagsTableReferences
-                            ._danceIdTable(db),
-                        referencedColumn: $$DanceTagsTableReferences
-                            ._danceIdTable(db)
-                            .id,
-                      ) as T;
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.danceId,
+                                referencedTable: $$DanceTagsTableReferences
+                                    ._danceIdTable(db),
+                                referencedColumn: $$DanceTagsTableReferences
+                                    ._danceIdTable(db)
+                                    .id,
+                              )
+                              as T;
                     }
                     if (tagId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.tagId,
-                        referencedTable: $$DanceTagsTableReferences._tagIdTable(
-                          db,
-                        ),
-                        referencedColumn: $$DanceTagsTableReferences
-                            ._tagIdTable(db)
-                            .id,
-                      ) as T;
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.tagId,
+                                referencedTable: $$DanceTagsTableReferences
+                                    ._tagIdTable(db),
+                                referencedColumn: $$DanceTagsTableReferences
+                                    ._tagIdTable(db)
+                                    .id,
+                              )
+                              as T;
                     }
 
                     return state;
@@ -21779,26 +21810,28 @@ typedef $$DanceTagsTableProcessedTableManager =
       DanceTagRow,
       PrefetchHooks Function({bool danceId, bool tagId})
     >;
-typedef $$DanceLinksTableCreateCompanionBuilder = DanceLinksCompanion Function({
-  required String id,
-  required String danceId,
-  required LinkKind kind,
-  Value<String?> url,
-  Value<String?> targetDanceId,
-  Value<String?> label,
-  Value<bool> transitive,
-  Value<int> rowid,
-});
-typedef $$DanceLinksTableUpdateCompanionBuilder = DanceLinksCompanion Function({
-  Value<String> id,
-  Value<String> danceId,
-  Value<LinkKind> kind,
-  Value<String?> url,
-  Value<String?> targetDanceId,
-  Value<String?> label,
-  Value<bool> transitive,
-  Value<int> rowid,
-});
+typedef $$DanceLinksTableCreateCompanionBuilder =
+    DanceLinksCompanion Function({
+      required String id,
+      required String danceId,
+      required LinkKind kind,
+      Value<String?> url,
+      Value<String?> targetDanceId,
+      Value<String?> label,
+      Value<bool> transitive,
+      Value<int> rowid,
+    });
+typedef $$DanceLinksTableUpdateCompanionBuilder =
+    DanceLinksCompanion Function({
+      Value<String> id,
+      Value<String> danceId,
+      Value<LinkKind> kind,
+      Value<String?> url,
+      Value<String?> targetDanceId,
+      Value<String?> label,
+      Value<bool> transitive,
+      Value<int> rowid,
+    });
 
 final class $$DanceLinksTableReferences
     extends
@@ -22171,26 +22204,30 @@ class $$DanceLinksTableTableManager
                     >
                   >(state) {
                     if (danceId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.danceId,
-                        referencedTable: $$DanceLinksTableReferences
-                            ._danceIdTable(db),
-                        referencedColumn: $$DanceLinksTableReferences
-                            ._danceIdTable(db)
-                            .id,
-                      ) as T;
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.danceId,
+                                referencedTable: $$DanceLinksTableReferences
+                                    ._danceIdTable(db),
+                                referencedColumn: $$DanceLinksTableReferences
+                                    ._danceIdTable(db)
+                                    .id,
+                              )
+                              as T;
                     }
                     if (targetDanceId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.targetDanceId,
-                        referencedTable: $$DanceLinksTableReferences
-                            ._targetDanceIdTable(db),
-                        referencedColumn: $$DanceLinksTableReferences
-                            ._targetDanceIdTable(db)
-                            .id,
-                      ) as T;
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.targetDanceId,
+                                referencedTable: $$DanceLinksTableReferences
+                                    ._targetDanceIdTable(db),
+                                referencedColumn: $$DanceLinksTableReferences
+                                    ._targetDanceIdTable(db)
+                                    .id,
+                              )
+                              as T;
                     }
 
                     return state;
@@ -22218,26 +22255,28 @@ typedef $$DanceLinksTableProcessedTableManager =
       DanceLinkRow,
       PrefetchHooks Function({bool danceId, bool targetDanceId})
     >;
-typedef $$ProvenanceTableCreateCompanionBuilder = ProvenanceCompanion Function({
-  required String danceId,
-  required ProvenanceSource source,
-  Value<String?> externalId,
-  required DateTime importedAt,
-  Value<String?> permission,
-  Value<String?> license,
-  Value<String?> sourceVersion,
-  Value<int> rowid,
-});
-typedef $$ProvenanceTableUpdateCompanionBuilder = ProvenanceCompanion Function({
-  Value<String> danceId,
-  Value<ProvenanceSource> source,
-  Value<String?> externalId,
-  Value<DateTime> importedAt,
-  Value<String?> permission,
-  Value<String?> license,
-  Value<String?> sourceVersion,
-  Value<int> rowid,
-});
+typedef $$ProvenanceTableCreateCompanionBuilder =
+    ProvenanceCompanion Function({
+      required String danceId,
+      required ProvenanceSource source,
+      Value<String?> externalId,
+      required DateTime importedAt,
+      Value<String?> permission,
+      Value<String?> license,
+      Value<String?> sourceVersion,
+      Value<int> rowid,
+    });
+typedef $$ProvenanceTableUpdateCompanionBuilder =
+    ProvenanceCompanion Function({
+      Value<String> danceId,
+      Value<ProvenanceSource> source,
+      Value<String?> externalId,
+      Value<DateTime> importedAt,
+      Value<String?> permission,
+      Value<String?> license,
+      Value<String?> sourceVersion,
+      Value<int> rowid,
+    });
 
 final class $$ProvenanceTableReferences
     extends
@@ -22543,15 +22582,17 @@ class $$ProvenanceTableTableManager
                     >
                   >(state) {
                     if (danceId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.danceId,
-                        referencedTable: $$ProvenanceTableReferences
-                            ._danceIdTable(db),
-                        referencedColumn: $$ProvenanceTableReferences
-                            ._danceIdTable(db)
-                            .id,
-                      ) as T;
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.danceId,
+                                referencedTable: $$ProvenanceTableReferences
+                                    ._danceIdTable(db),
+                                referencedColumn: $$ProvenanceTableReferences
+                                    ._danceIdTable(db)
+                                    .id,
+                              )
+                              as T;
                     }
 
                     return state;
@@ -23332,26 +23373,30 @@ class $$DanceSourcesTableTableManager
                     >
                   >(state) {
                     if (danceId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.danceId,
-                        referencedTable: $$DanceSourcesTableReferences
-                            ._danceIdTable(db),
-                        referencedColumn: $$DanceSourcesTableReferences
-                            ._danceIdTable(db)
-                            .id,
-                      ) as T;
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.danceId,
+                                referencedTable: $$DanceSourcesTableReferences
+                                    ._danceIdTable(db),
+                                referencedColumn: $$DanceSourcesTableReferences
+                                    ._danceIdTable(db)
+                                    .id,
+                              )
+                              as T;
                     }
                     if (sourceId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.sourceId,
-                        referencedTable: $$DanceSourcesTableReferences
-                            ._sourceIdTable(db),
-                        referencedColumn: $$DanceSourcesTableReferences
-                            ._sourceIdTable(db)
-                            .id,
-                      ) as T;
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.sourceId,
+                                referencedTable: $$DanceSourcesTableReferences
+                                    ._sourceIdTable(db),
+                                referencedColumn: $$DanceSourcesTableReferences
+                                    ._sourceIdTable(db)
+                                    .id,
+                              )
+                              as T;
                     }
 
                     return state;
@@ -23379,22 +23424,24 @@ typedef $$DanceSourcesTableProcessedTableManager =
       DanceSourceRow,
       PrefetchHooks Function({bool danceId, bool sourceId})
     >;
-typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
-  required String key,
-  required String valueJson,
-  Value<DateTime?> updatedAt,
-  Value<DateTime?> deletedAt,
-  Value<DateTime?> existenceAt,
-  Value<int> rowid,
-});
-typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
-  Value<String> key,
-  Value<String> valueJson,
-  Value<DateTime?> updatedAt,
-  Value<DateTime?> deletedAt,
-  Value<DateTime?> existenceAt,
-  Value<int> rowid,
-});
+typedef $$SettingsTableCreateCompanionBuilder =
+    SettingsCompanion Function({
+      required String key,
+      required String valueJson,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+typedef $$SettingsTableUpdateCompanionBuilder =
+    SettingsCompanion Function({
+      Value<String> key,
+      Value<String> valueJson,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
 
 class $$SettingsTableFilterComposer
     extends Composer<_$CompendiumDatabase, $SettingsTable> {
@@ -23930,15 +23977,19 @@ class $$ProgramProvenanceTableTableManager
                     >
                   >(state) {
                     if (programId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.programId,
-                        referencedTable: $$ProgramProvenanceTableReferences
-                            ._programIdTable(db),
-                        referencedColumn: $$ProgramProvenanceTableReferences
-                            ._programIdTable(db)
-                            .id,
-                      ) as T;
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.programId,
+                                referencedTable:
+                                    $$ProgramProvenanceTableReferences
+                                        ._programIdTable(db),
+                                referencedColumn:
+                                    $$ProgramProvenanceTableReferences
+                                        ._programIdTable(db)
+                                        .id,
+                              )
+                              as T;
                     }
 
                     return state;
@@ -23966,62 +24017,64 @@ typedef $$ProgramProvenanceTableProcessedTableManager =
       ProgramProvenanceRow,
       PrefetchHooks Function({bool programId})
     >;
-typedef $$VenuesTableCreateCompanionBuilder = VenuesCompanion Function({
-  required String id,
-  required String name,
-  Value<String?> address1,
-  Value<String?> address2,
-  Value<String?> city,
-  Value<String?> stateProv,
-  Value<String?> country,
-  Value<String?> postalCode,
-  Value<String?> plus4,
-  Value<String?> website,
-  Value<String?> sponsor,
-  Value<String?> eventName,
-  Value<String?> time,
-  Value<String?> genericSchedule,
-  Value<String?> price,
-  Value<String?> notes,
-  Value<String?> contact1Name,
-  Value<String?> contact1Phone,
-  Value<String?> contact1Email,
-  Value<String?> contact2Name,
-  Value<String?> contact2Phone,
-  Value<String?> contact2Email,
-  Value<DateTime?> updatedAt,
-  Value<DateTime?> deletedAt,
-  Value<DateTime?> existenceAt,
-  Value<int> rowid,
-});
-typedef $$VenuesTableUpdateCompanionBuilder = VenuesCompanion Function({
-  Value<String> id,
-  Value<String> name,
-  Value<String?> address1,
-  Value<String?> address2,
-  Value<String?> city,
-  Value<String?> stateProv,
-  Value<String?> country,
-  Value<String?> postalCode,
-  Value<String?> plus4,
-  Value<String?> website,
-  Value<String?> sponsor,
-  Value<String?> eventName,
-  Value<String?> time,
-  Value<String?> genericSchedule,
-  Value<String?> price,
-  Value<String?> notes,
-  Value<String?> contact1Name,
-  Value<String?> contact1Phone,
-  Value<String?> contact1Email,
-  Value<String?> contact2Name,
-  Value<String?> contact2Phone,
-  Value<String?> contact2Email,
-  Value<DateTime?> updatedAt,
-  Value<DateTime?> deletedAt,
-  Value<DateTime?> existenceAt,
-  Value<int> rowid,
-});
+typedef $$VenuesTableCreateCompanionBuilder =
+    VenuesCompanion Function({
+      required String id,
+      required String name,
+      Value<String?> address1,
+      Value<String?> address2,
+      Value<String?> city,
+      Value<String?> stateProv,
+      Value<String?> country,
+      Value<String?> postalCode,
+      Value<String?> plus4,
+      Value<String?> website,
+      Value<String?> sponsor,
+      Value<String?> eventName,
+      Value<String?> time,
+      Value<String?> genericSchedule,
+      Value<String?> price,
+      Value<String?> notes,
+      Value<String?> contact1Name,
+      Value<String?> contact1Phone,
+      Value<String?> contact1Email,
+      Value<String?> contact2Name,
+      Value<String?> contact2Phone,
+      Value<String?> contact2Email,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+typedef $$VenuesTableUpdateCompanionBuilder =
+    VenuesCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String?> address1,
+      Value<String?> address2,
+      Value<String?> city,
+      Value<String?> stateProv,
+      Value<String?> country,
+      Value<String?> postalCode,
+      Value<String?> plus4,
+      Value<String?> website,
+      Value<String?> sponsor,
+      Value<String?> eventName,
+      Value<String?> time,
+      Value<String?> genericSchedule,
+      Value<String?> price,
+      Value<String?> notes,
+      Value<String?> contact1Name,
+      Value<String?> contact1Phone,
+      Value<String?> contact1Email,
+      Value<String?> contact2Name,
+      Value<String?> contact2Phone,
+      Value<String?> contact2Email,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
 
 final class $$VenuesTableReferences
     extends BaseReferences<_$CompendiumDatabase, $VenuesTable, VenueRow> {
@@ -25004,15 +25057,19 @@ class $$VenueProvenanceTableTableManager
                     >
                   >(state) {
                     if (venueId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.venueId,
-                        referencedTable: $$VenueProvenanceTableReferences
-                            ._venueIdTable(db),
-                        referencedColumn: $$VenueProvenanceTableReferences
-                            ._venueIdTable(db)
-                            .id,
-                      ) as T;
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.venueId,
+                                referencedTable:
+                                    $$VenueProvenanceTableReferences
+                                        ._venueIdTable(db),
+                                referencedColumn:
+                                    $$VenueProvenanceTableReferences
+                                        ._venueIdTable(db)
+                                        .id,
+                              )
+                              as T;
                     }
 
                     return state;
@@ -25847,18 +25904,20 @@ typedef $$BaselineEntriesTableProcessedTableManager =
       BaselineEntryRow,
       PrefetchHooks Function()
     >;
-typedef $$IdAliasesTableCreateCompanionBuilder = IdAliasesCompanion Function({
-  required SyncRecordKind kind,
-  required String losingId,
-  required String survivingId,
-  Value<int> rowid,
-});
-typedef $$IdAliasesTableUpdateCompanionBuilder = IdAliasesCompanion Function({
-  Value<SyncRecordKind> kind,
-  Value<String> losingId,
-  Value<String> survivingId,
-  Value<int> rowid,
-});
+typedef $$IdAliasesTableCreateCompanionBuilder =
+    IdAliasesCompanion Function({
+      required SyncRecordKind kind,
+      required String losingId,
+      required String survivingId,
+      Value<int> rowid,
+    });
+typedef $$IdAliasesTableUpdateCompanionBuilder =
+    IdAliasesCompanion Function({
+      Value<SyncRecordKind> kind,
+      Value<String> losingId,
+      Value<String> survivingId,
+      Value<int> rowid,
+    });
 
 class $$IdAliasesTableFilterComposer
     extends Composer<_$CompendiumDatabase, $IdAliasesTable> {
