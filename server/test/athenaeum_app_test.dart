@@ -916,6 +916,85 @@ void main() {
     expect(stored.statusCode, 404);
   });
 
+  test('the glossary\'s record kinds are accepted, and validated against the '
+      'allow-list like every kind (#709)', () async {
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    expect(created.statusCode, 201);
+    final epoch =
+        (jsonDecode(await created.body()) as Map<String, Object?>)['epoch']!
+            as String;
+    Future<int> put(Uint8List blob) async {
+      final response = await _send(
+        'PUT',
+        '/v1/blobs/${sha256.convert(blob)}',
+        syncId: syncId,
+        body: blob,
+        contentType: 'application/octet-stream',
+      );
+      await response.drain<void>();
+      return response.statusCode;
+    }
+
+    final entryBody = {
+      'id': 'entry-one',
+      'kind': 'compound',
+      'name': 'Grand chain',
+      'definition': 'A chain.',
+      'description': 'All the way round.',
+      'keywords': ['chain'],
+      'notes': null,
+      'payload': '{"params":[],"figures":[],"bindings":[]}',
+      'createdAt': '2026-09-01T00:00:00.000Z',
+    };
+    expect(
+      await put(
+        _recordBlob(kind: 'glossaryEntry', id: 'entry-one', body: entryBody),
+      ),
+      201,
+    );
+    expect(
+      await put(
+        _recordBlob(
+          kind: 'figureNote',
+          id: 'swing',
+          body: {'id': 'swing', 'notes': 'Keep it smooth.'},
+        ),
+      ),
+      201,
+    );
+    expect(
+      await put(
+        _recordBlob(
+          kind: 'glossaryEntry',
+          id: 'entry-two',
+          body: {...entryBody, 'id': 'entry-two', 'author': 'not shareable'},
+        ),
+      ),
+      422,
+      reason:
+          'a key the allow-list does not name is refused for these kinds '
+          'too',
+    );
+
+    final manifest = SyncManifest(
+      deviceId: 'device-one',
+      epoch: epoch,
+      writtenAt: DateTime.utc(2026, 9, 3),
+      records: {
+        SyncRecordKind.glossaryEntry: {'entry-one': 'a' * 64},
+        SyncRecordKind.figureNote: {'swing': 'b' * 64},
+      },
+    );
+    final response = await _send(
+      'PUT',
+      '/v1/manifests/device-one',
+      syncId: syncId,
+      body: encodeSyncManifestUtf8(manifest),
+      contentType: 'application/json',
+    );
+    expect(response.statusCode, 201);
+  });
+
   test('blob uploads reject a body whose hash differs from the path', () async {
     expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
     final bytes = Uint8List.fromList([1, 2, 3]);

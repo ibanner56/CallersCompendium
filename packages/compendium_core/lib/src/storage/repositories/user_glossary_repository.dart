@@ -7,6 +7,7 @@ import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
 import '../utc_datetime.dart';
+import '../../util/json_depth.dart';
 
 /// Longest name a user glossary entry may have, in UTF-16 code units.
 const int maxUserGlossaryNameLength = 200;
@@ -27,18 +28,42 @@ const int maxUserGlossaryPayloadLength = 256 * 1024;
 /// nested deep enough to overflow the stack is refused, not crashed on.
 const int maxUserGlossaryPayloadDepth = 32;
 
-/// Thrown when an entry's required text is empty or a field is over its bound.
+/// Whether [value] can be an entry's id or kind, or a note's figure id: not
+/// empty, within [maxUserGlossaryNameLength], and already in normalised form.
+/// The sync decoder and inbound admission refuse anything else, so a row
+/// stored with one would be published and refused by every peer, every pass
+/// (#709). Stored as given rather than normalised, since the id is identity.
+bool _isSyncableIdentifier(String value) =>
+    value.isNotEmpty &&
+    value.length <= maxUserGlossaryNameLength &&
+    normalizeShareableText(value) == value;
+
+/// Whether the payload [text] parses as JSON. A stored payload need not: one
+/// that does not is kept as text and read as a broken entry (#709).
+bool userGlossaryPayloadIsJson(String text) {
+  try {
+    jsonDecode(text);
+    return true;
+  } on FormatException {
+    return false;
+  }
+}
+
+/// Thrown when an entry's required text is empty, a field is over its bound,
+/// or its id or kind is not an identifier sync can carry.
 class UserGlossaryEntryInvalid implements Exception {
   const UserGlossaryEntryInvalid(this.field);
 
-  /// `name`, `definition`, `description`, `keywords`, `notes` or `payload`.
+  /// `id`, `kind`, `name`, `definition`, `description`, `keywords`, `notes`
+  /// or `payload`.
   final String field;
 
   @override
   String toString() => 'UserGlossaryEntryInvalid($field)';
 }
 
-/// Thrown when a note on a shipped figure is over its bound.
+/// Thrown when a note on a shipped figure is over its bound, or its figure id
+/// is not an identifier sync can carry.
 class FigureNoteInvalid implements Exception {
   const FigureNoteInvalid();
 
@@ -49,10 +74,13 @@ class FigureNoteInvalid implements Exception {
 /// The user's own glossary entries (#709).
 ///
 /// Reads hand back every live entry, including one of a kind this build does
-/// not know or whose payload no longer decodes: the caller decides how to show
-/// it, and nothing here drops or rewrites it. Text is sanitised and
-/// normalised on write (sync-spec §4.1, §4.6), as every shareable text column
-/// is; canonicalizing role words is the caller's job, before it gets here.
+/// not know or whose payload no longer decodes as a definition: the caller
+/// decides how to show it, and reading never drops or rewrites it. (A payload
+/// whose text is not JSON at all reads as none, and so does not survive a
+/// backup, which carries the decoded payload; sync carries the text.) Text is
+/// sanitised and normalised on write (sync-spec §4.1, §4.6), as every
+/// shareable text column is; canonicalizing role words is the caller's job,
+/// before it gets here.
 class UserGlossaryRepository {
   UserGlossaryRepository(this._db);
 
@@ -82,9 +110,18 @@ class UserGlossaryRepository {
   /// Creates or replaces [entry]. A new entry keeps [UserGlossaryEntry.
   /// createdAt]; an existing one keeps the creation time it already has, so
   /// an edit never moves it. Reviving a deleted entry by writing it again
-  /// stamps the transition causally, as every synced kind does.
+  /// stamps the transition causally, as every synced kind does. An id or kind
+  /// sync could not carry (empty, over [maxUserGlossaryNameLength], or not
+  /// normalised) is refused as [UserGlossaryEntryInvalid], so a restored
+  /// backup cannot store a row every peer would refuse.
   Future<void> upsert(UserGlossaryEntry entry, {DateTime? at}) async {
     final now = resolveStamp(at);
+    if (!_isSyncableIdentifier(entry.id)) {
+      throw const UserGlossaryEntryInvalid('id');
+    }
+    if (!_isSyncableIdentifier(entry.kindName)) {
+      throw const UserGlossaryEntryInvalid('kind');
+    }
     final name = _requiredText(entry.name, 'name', maxUserGlossaryNameLength);
     final definition = _requiredText(
       entry.definition,
@@ -152,8 +189,67 @@ class UserGlossaryRepository {
     });
   }
 
-  /// Deletes entry [id] softly, leaving a tombstone for sync to carry once
-  /// these entries have a record kind.
+  /// Applies a validated inbound sync record (#709).
+  ///
+  /// Separate from [upsert] per sync-spec §6.7, so the editor's path cannot
+  /// change what an inbound apply does. The entry is written as the peer sent
+  /// it: its kind and payload text verbatim, whether or not this build can
+  /// read them, and its creation time unchanged, since which of two entries
+  /// sharing a name is flagged for rename is decided by it. Text is normalised
+  /// as every shareable column is; admission and the sync decoder have already
+  /// refused a body that normalising would change, so nothing is rewritten.
+  /// The sync engine restores the record's timestamps after.
+  Future<void> writeFromSync(
+    StoredUserGlossaryEntry entry, {
+    DateTime? at,
+  }) async {
+    final now = resolveStamp(at);
+    final payload = entry.payloadJson;
+    final notes = entry.notes;
+    await _db
+        .into(_db.userGlossaryEntries)
+        .insertOnConflictUpdate(
+          UserGlossaryEntriesCompanion.insert(
+            id: entry.id,
+            kind: entry.kind,
+            name: normalizeShareableText(entry.name),
+            definition: normalizeShareableText(entry.definition),
+            description: normalizeShareableText(entry.description),
+            keywordsJson: Value(
+              normalizeShareableJsonText(jsonEncode(entry.keywords)),
+            ),
+            notes: Value(notes == null ? null : normalizeShareableText(notes)),
+            // A payload that is not JSON at all is kept as text: it is an
+            // entry this build reads as broken, never one it may drop.
+            payloadJson: Value(
+              payload == null
+                  ? null
+                  : userGlossaryPayloadIsJson(payload)
+                  ? normalizeShareableJsonText(payload)
+                  : normalizeShareableText(payload),
+            ),
+            createdAt: asUtc(entry.createdAt),
+            updatedAt: Value(now),
+          ),
+        );
+  }
+
+  /// [row] as sync carries it: every stored column, the kind and payload
+  /// text verbatim (#709).
+  static StoredUserGlossaryEntry storedFromRow(UserGlossaryEntryRow row) =>
+      StoredUserGlossaryEntry(
+        id: row.id,
+        kind: row.kind,
+        name: row.name,
+        definition: row.definition,
+        description: row.description,
+        keywords: _decodeKeywords(row.keywordsJson),
+        notes: row.notes,
+        payloadJson: row.payloadJson,
+        createdAt: asUtc(row.createdAt),
+      );
+
+  /// Deletes entry [id] softly, leaving a tombstone for sync to carry.
   Future<void> delete(String id, {DateTime? at}) => stampExistenceTransition(
     _db,
     table: _db.userGlossaryEntries,
@@ -217,7 +313,7 @@ class UserGlossaryRepository {
   /// [maxUserGlossaryPayloadLength].
   static String? _payloadJson(Object? payload) {
     if (payload == null) return null;
-    if (_deeperThan(payload, maxUserGlossaryPayloadDepth)) {
+    if (userGlossaryPayloadDeeperThan(payload, maxUserGlossaryPayloadDepth)) {
       throw const UserGlossaryEntryInvalid('payload');
     }
     final String encoded;
@@ -232,26 +328,6 @@ class UserGlossaryRepository {
       throw const UserGlossaryEntryInvalid('payload');
     }
     return encoded;
-  }
-
-  /// Whether [value] nests lists and maps more than [limit] deep, walked
-  /// without recursion.
-  static bool _deeperThan(Object? value, int limit) {
-    final stack = <(Object?, int)>[(value, 1)];
-    while (stack.isNotEmpty) {
-      final (current, depth) = stack.removeLast();
-      final Iterable<Object?>? children = switch (current) {
-        final Map<Object?, Object?> map => map.values,
-        final List<Object?> list => list,
-        _ => null,
-      };
-      if (children == null) continue;
-      if (depth > limit) return true;
-      for (final child in children) {
-        stack.add((child, depth + 1));
-      }
-    }
-    return false;
   }
 
   static String _requiredText(String raw, String field, int max) {
@@ -291,9 +367,12 @@ class FigureNoteRepository {
   }
 
   /// Sets the note on [figureId]. Empty text deletes it; text over
-  /// [maxUserGlossaryTextLength] is refused as [FigureNoteInvalid].
+  /// [maxUserGlossaryTextLength], or a figure id sync could not carry (empty,
+  /// over [maxUserGlossaryNameLength], or not normalised), is refused as
+  /// [FigureNoteInvalid].
   Future<void> set(String figureId, String notes, {DateTime? at}) async {
     final now = resolveStamp(at);
+    if (!_isSyncableIdentifier(figureId)) throw const FigureNoteInvalid();
     final text = normalizeShareableText(sanitizeShareableText(notes).trim());
     if (text.length > maxUserGlossaryTextLength) {
       throw const FigureNoteInvalid();
@@ -319,6 +398,25 @@ class FigureNoteRepository {
     });
   }
 
+  /// Applies a validated inbound sync record (#709). Separate from [set] per
+  /// sync-spec §6.7: the note is written as the peer sent it, never deleted
+  /// for being empty, and the sync engine restores its timestamps after.
+  Future<void> writeFromSync(FigureNote note, {DateTime? at}) async {
+    final now = resolveStamp(at);
+    await _db
+        .into(_db.figureNotes)
+        .insertOnConflictUpdate(
+          FigureNotesCompanion.insert(
+            figureId: note.figureId,
+            notes: normalizeShareableText(note.notes),
+            updatedAt: Value(now),
+          ),
+        );
+  }
+
+  /// [row] as sync carries it (#709).
+  static FigureNote fromRow(FigureNoteRow row) => _toModel(row);
+
   /// Deletes the note on [figureId] softly. A no-op when there is none.
   Future<void> delete(String figureId, {DateTime? at}) =>
       stampExistenceTransition(
@@ -336,3 +434,9 @@ class FigureNoteRepository {
   static FigureNote _toModel(FigureNoteRow row) =>
       FigureNote(figureId: row.figureId, notes: row.notes);
 }
+
+/// Whether [value] nests lists and maps more than [limit] deep, walked
+/// without recursion, so a payload nested deep enough to overflow the stack
+/// is refused before anything recursive touches it (#709).
+bool userGlossaryPayloadDeeperThan(Object? value, int limit) =>
+    jsonNestedDeeperThan(value, limit);

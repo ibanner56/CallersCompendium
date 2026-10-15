@@ -374,7 +374,8 @@ Map<String, Object?> _glossaryEntryJson(UserGlossaryEntry e) => {
 };
 
 /// A glossary entry read from a backup, or null when [raw] is not one. Field
-/// bounds are the repository's; it refuses an entry over them on restore.
+/// bounds, and what an id or kind may be, are the repository's: on restore it
+/// refuses an entry outside them, which is skipped and reported.
 UserGlossaryEntry? _glossaryEntryFromJson(Object? raw) {
   if (raw is! Map) return null;
   final id = raw['id'];

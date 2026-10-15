@@ -2171,6 +2171,43 @@ void main() {
       );
     });
 
+    test('removing a peer tombstones its capability record, so the other '
+        'devices drop it too, and leaves the rest', () async {
+      final fake = _Admin();
+      final controller = await paired(fake);
+      const caps = {
+        'capabilities': ['glossary.v1'],
+      };
+      await repos.settings.set(syncCapabilityRecordKey('peer_a'), caps);
+      await repos.settings.set(syncCapabilityRecordKey('peer_b'), caps);
+
+      expect(await controller.removeDevice('peer_a'), SyncAdminOutcome.done);
+
+      expect(
+        await repos.settings.get(syncCapabilityRecordKey('peer_a')),
+        isNull,
+      );
+      final row =
+          await (repos.db.select(repos.db.settings)
+                ..where((t) => t.key.equals(syncCapabilityRecordKey('peer_a'))))
+              .getSingle();
+      expect(row.deletedAt, isNotNull, reason: 'a tombstone, so it syncs');
+      expect(await repos.settings.get(syncCapabilityRecordKey('peer_b')), caps);
+    });
+
+    test('a removal that fails keeps the peer\'s capability record', () async {
+      final fake = _Admin()..manifestKind = SyncResponseKind.serverError;
+      final controller = await paired(fake);
+      const caps = {
+        'capabilities': ['glossary.v1'],
+      };
+      await repos.settings.set(syncCapabilityRecordKey('peer_a'), caps);
+
+      expect(await controller.removeDevice('peer_a'), SyncAdminOutcome.failed);
+
+      expect(await repos.settings.get(syncCapabilityRecordKey('peer_a')), caps);
+    });
+
     test('removing this device is refused before any request', () async {
       final fake = _Admin();
       var exclusiveRuns = 0;

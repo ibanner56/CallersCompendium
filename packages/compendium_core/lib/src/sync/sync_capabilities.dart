@@ -4,7 +4,9 @@ import 'sync_record_kind.dart';
 /// `sync_capabilities:<deviceId>`, whose value is
 /// `{"capabilities": ["glossary.v1", …]}`.
 ///
-/// Each device writes only its own. It travels as an ordinary `setting`
+/// Each device writes only its own, except that removing a device from the
+/// store tombstones the removed device's record (sync-spec §6.15). It travels
+/// as an ordinary `setting`
 /// record, which every build since v0.7.0 keeps whole when it does not know
 /// the key (ADR-004), so advertising is safe to older peers.
 const String syncCapabilityKeyPrefix = 'sync_capabilities:';
@@ -20,6 +22,12 @@ String syncCapabilityRecordKey(String deviceId) =>
 abstract final class SyncCapabilities {
   /// User glossary entries, notes on shipped figures, and their settings.
   static const String glossaryV1 = 'glossary.v1';
+
+  /// The user's own terms and figures (#1023): glossary entries of the
+  /// `term` and `customFigure` kinds. A build that only understands
+  /// [glossaryV1] reads such an entry as one it cannot use, so they wait for
+  /// every device to understand this too.
+  static const String glossaryV2 = 'glossary.v2';
 }
 
 /// What this build understands and what it holds back until every attached
@@ -29,6 +37,7 @@ final class SyncCapabilityPolicy {
     this.advertised = const {},
     this.gatedRecordKinds = const {},
     this.gatedSettingKeys = const {},
+    this.gatedGlossaryEntryKinds = const {},
   });
 
   /// The capabilities this build advertises in its capability record. A
@@ -42,30 +51,67 @@ final class SyncCapabilityPolicy {
   /// Settings keys whose records wait for a capability.
   final Map<String, String> gatedSettingKeys;
 
+  /// Kinds of user glossary entry (the `kind` in a `glossaryEntry` record's
+  /// body) whose records wait for a capability of their own (#1023). An entry
+  /// of any other kind, one this build does not know included, waits for the
+  /// record kind's capability in [gatedRecordKinds].
+  final Map<String, String> gatedGlossaryEntryKinds;
+
   /// This build's policy. Its gated entries are registered by the features
   /// that need them; a capability is advertised only once the whole feature
   /// it covers, sync included, is in the build.
   ///
-  /// [SyncCapabilities.glossaryV1] gates the Custom Figures toggle and the
-  /// compound shorthands (#709) and is not advertised yet, so they stay on
-  /// their device until the glossary's own record kinds can sync with them.
+  /// [SyncCapabilities.glossaryV1] (#709) gates the user's glossary entries,
+  /// their notes on shipped figures, the Custom Figures toggle and the
+  /// compound shorthands, and this build advertises it: they publish once
+  /// every other device attached to the store advertises it too. Until then
+  /// this device sends none of them, and leaves alone what it already holds.
+  ///
+  /// [SyncCapabilities.glossaryV2] (#1023) gates the user's own terms and
+  /// figures. This build does not advertise it yet, so they stay on their
+  /// device.
   static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
+    advertised: {SyncCapabilities.glossaryV1},
+    gatedRecordKinds: {
+      SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
+      SyncRecordKind.figureNote: SyncCapabilities.glossaryV1,
+    },
     gatedSettingKeys: {
       'show_custom_figures': SyncCapabilities.glossaryV1,
       'compound_shorthands': SyncCapabilities.glossaryV1,
     },
+    gatedGlossaryEntryKinds: {
+      'term': SyncCapabilities.glossaryV2,
+      'customFigure': SyncCapabilities.glossaryV2,
+    },
   );
 
   /// The capability a record waits for, or null when it is not gated.
-  String? capabilityFor(SyncRecordKind kind, String recordId) =>
-      kind == SyncRecordKind.setting
-      ? gatedSettingKeys[recordId]
-      : gatedRecordKinds[kind];
+  ///
+  /// [body] is the record's blob body, tombstones included (a tombstone blob
+  /// carries its body, sync-spec §4.3). Only a `glossaryEntry` record reads
+  /// it, for the entry's kind ([gatedGlossaryEntryKinds]).
+  String? capabilityFor(
+    SyncRecordKind kind,
+    String recordId, {
+    Map<String, Object?>? body,
+  }) {
+    if (kind == SyncRecordKind.setting) return gatedSettingKeys[recordId];
+    if (kind == SyncRecordKind.glossaryEntry) {
+      final entryKind = body?['kind'];
+      if (entryKind is String) {
+        final capability = gatedGlossaryEntryKinds[entryKind];
+        if (capability != null) return capability;
+      }
+    }
+    return gatedRecordKinds[kind];
+  }
 
   /// Every capability something is gated on.
   Set<String> get gatedCapabilities => {
     ...gatedRecordKinds.values,
     ...gatedSettingKeys.values,
+    ...gatedGlossaryEntryKinds.values,
   };
 }
 

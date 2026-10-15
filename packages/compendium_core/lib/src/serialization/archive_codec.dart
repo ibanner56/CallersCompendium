@@ -22,6 +22,7 @@ import '../util/text_sanitizer.dart';
 import 'archive_entity_codec.dart';
 import 'compendium_archive.dart';
 import 'figure_codec.dart';
+import '../taxonomy/user_figure_use.dart';
 
 /// Canonical JSON (de)serialization for a [CompendiumArchive] — the versioned
 /// backup/exchange format (`docs/design/imports.md` §"Generic JSON (6.6)").
@@ -772,6 +773,24 @@ Map<String, Object?> _sanitizeFigureJson(
             ? sanitizeImportedText(entry.value as String)
             : entry.value,
     };
+    // A use of a figure of your own (#1023) carries its arguments one level
+    // down: scrub their text too, and keep only scalar values.
+    final args = sanitizedParams[userFigureArgsKey];
+    if (out['move'] == customMove && args is Map) {
+      sanitizedParams[userFigureArgsKey] = <String, Object?>{
+        for (final entry in args.entries)
+          if (entry.value == null ||
+              entry.value is num ||
+              entry.value is bool ||
+              entry.value is String)
+            entry.key.toString(): entry.value is String
+                ? sanitizeImportedText(
+                    entry.value as String,
+                    allowLineBreaks: false,
+                  )
+                : entry.value,
+      };
+    }
     // Recurse into nested structural children (untrusted recursive structure):
     // scrub each child's free text, cap the child count, and bound depth so a
     // deeply-nested payload cannot exhaust the stack. `figures` is reserved for

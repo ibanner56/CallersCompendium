@@ -77,6 +77,14 @@ Future<Set<String>> collectSensitiveTerms(
     // it through the dialect chokepoint, so role words are canonical here.
     // The text as typed may still differ (for example in an autosave draft).
     add(figure.params['text']);
+    // A use of a figure of your own (#1023) carries its arguments, which the
+    // stored line may not show (a parameter the wording leaves out).
+    if (figure.params[userFigureArgsKey]
+        case final Map<Object?, Object?> args) {
+      for (final value in args.values) {
+        if (value is String) add(value);
+      }
+    }
     for (final child in figure.subFigures) {
       addFigureContent(child);
     }
@@ -179,9 +187,21 @@ Future<Set<String>> collectSensitiveTerms(
     if (entry.payload case final Map<Object?, Object?> payload) {
       if (payload['params'] case final List<Object?> params) {
         for (final param in params) {
-          if (param case {'key': final Object? key}) add(key);
+          if (param is! Map) continue;
+          add(param['key']);
+          // A figure of your own's parameters (#1023) also carry a flag's
+          // label, a default, and each choice's label.
+          if (param['label'] case final String label) add(label);
+          if (param['default'] case final String value) add(value);
+          if (param['choices'] case final List<Object?> choices) {
+            for (final choice in choices) {
+              if (choice case {'label': final String label}) add(label);
+            }
+          }
         }
       }
+      // ...and its wording template.
+      if (payload['template'] case final String template) add(template);
       if (payload['figures'] case final List<Object?> figures) {
         for (final raw in figures) {
           if (raw is! Map) continue;

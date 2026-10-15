@@ -594,6 +594,28 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeCountGlossaryEntry(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count de vos propres figures',
+      one: '1 de vos propres figures',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountFigureNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'vos notes sur $count figures',
+      one: 'vos notes sur 1 figure',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir ses modifications.';
 
@@ -1363,7 +1385,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncPairingNewerDataBody =>
-      'Cette version synchronise certains éléments que les versions antérieures de l\'app ne peuvent pas lire. Mettez à jour chaque appareil avant de le connecter : un appareil sous une version antérieure risque de ne pas pouvoir se connecter. Tant que tous les appareils connectés ne sont pas à jour, ces éléments restent sur l\'appareil où ils ont été créés.';
+      'Cette version synchronise certains éléments que les versions antérieures de l\'app ne peuvent pas lire. Mettez à jour chaque appareil avant de le connecter : un appareil sous une version antérieure risque de ne pas pouvoir se connecter. Tant que tous les appareils connectés ne sont pas à jour, ces éléments ne sont pas envoyés à vos autres appareils.';
 
   @override
   String get settingsSyncPairingBearerTitle =>
@@ -2887,6 +2909,17 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get syncReviewKindSetting => 'Paramètre';
+
+  @override
+  String get syncReviewKindGlossaryEntry => 'Votre propre figure';
+
+  @override
+  String get syncReviewKindFigureNote => 'Vos notes sur une figure';
+
+  @override
+  String syncConflictFigureNoteTitle(String figure) {
+    return 'Vos notes sur $figure';
+  }
 
   @override
   String syncReviewLocalRecord(String id) {

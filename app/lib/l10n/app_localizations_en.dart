@@ -581,6 +581,28 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeCountGlossaryEntry(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count of your own figures',
+      one: '1 of your own figures',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountFigureNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'your notes on $count figures',
+      one: 'your notes on 1 figure',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       'Another device is using a newer version of the app. Update the app on this device to receive its changes.';
 
@@ -1338,7 +1360,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSyncPairingNewerDataBody =>
-      'This version syncs some things that earlier versions of the app can\'t read. Update each device before you connect it: one running an earlier version may not be able to connect. Until every connected device is up to date, those things stay on the device they were made on.';
+      'This version syncs some things that earlier versions of the app can\'t read. Update each device before you connect it: one running an earlier version may not be able to connect. Until every connected device is up to date, those things aren\'t sent to your other devices.';
 
   @override
   String get settingsSyncPairingBearerTitle =>
@@ -2809,6 +2831,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncReviewKindSetting => 'Setting';
+
+  @override
+  String get syncReviewKindGlossaryEntry => 'Your own figure';
+
+  @override
+  String get syncReviewKindFigureNote => 'Your notes on a figure';
+
+  @override
+  String syncConflictFigureNoteTitle(String figure) {
+    return 'Your notes on $figure';
+  }
 
   @override
   String syncReviewLocalRecord(String id) {

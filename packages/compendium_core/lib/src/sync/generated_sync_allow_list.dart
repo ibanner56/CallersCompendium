@@ -130,4 +130,16 @@ const Map<SyncRecordKind, Set<String>> generatedShareableWirePaths = {
     'website',
   },
   SyncRecordKind.setting: {'deletedAt', 'existenceAt', 'id', 'updatedAt'},
+  SyncRecordKind.glossaryEntry: {
+    'createdAt',
+    'definition',
+    'description',
+    'id',
+    'keywords',
+    'kind',
+    'name',
+    'notes',
+    'payload',
+  },
+  SyncRecordKind.figureNote: {'id', 'notes'},
 };
