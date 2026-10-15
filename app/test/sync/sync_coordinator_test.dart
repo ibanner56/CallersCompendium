@@ -7060,6 +7060,38 @@ void main() {
       expect(store.publishedRecords, contains(deleted.address));
     });
 
+    test(
+      'one report per device names every capability it holds back',
+      () async {
+        // Reports coalesce per device, so a report per capability would keep
+        // only the first.
+        final dialects = SyncMergeCandidate.fromBlob(
+          _setting('custom_dialects', 'mine'),
+        );
+        final shorthands = SyncMergeCandidate.fromBlob(
+          _setting('shorthand_mappings', 'mine'),
+        );
+        final store = _FakeStore(
+          local: {dialects.address: dialects, shorthands.address: shorthands},
+        );
+        final result = await coordinatorFor(
+          store,
+          transportFor(['peer']),
+          capabilities: const SyncCapabilityPolicy(
+            advertised: {'a.v1', 'b.v1'},
+            gatedSettingKeys: {
+              'custom_dialects': 'a.v1',
+              'shorthand_mappings': 'b.v1',
+            },
+          ),
+        ).syncNow();
+
+        final report = awaiting(result).single;
+        expect(report.peerId, 'peer');
+        expect(report.message, contains('a.v1, b.v1'));
+      },
+    );
+
     test('a tombstoned capability record counts as no record', () async {
       final peerCaps = tombstoneOf(capabilityOf('peer', {'test.v1'}));
       final store = _FakeStore(

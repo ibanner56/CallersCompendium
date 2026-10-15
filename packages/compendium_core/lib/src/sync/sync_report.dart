@@ -103,7 +103,8 @@ enum SyncReportCode {
   /// `recordId` are null, and the message names every capability it holds
   /// back.
   /// The records stay here and publish on the first pass after every device
-  /// advertises it, or after the device holding it back is removed.
+  /// advertises what they wait for, or after the device holding them back is
+  /// removed.
   withheldAwaitingDevices,
 
   /// A record on *this* device carries details a newer version of the app

@@ -2782,13 +2782,13 @@ class SyncCoordinator {
       }
     }
     for (final MapEntry(key: peerId, value: capabilities) in byDevice.entries) {
+      final names = (capabilities..sort()).join(', ');
       reports.add(
         SyncReport(
           code: SyncReportCode.withheldAwaitingDevices,
           peerId: peerId,
           message:
-              'Holding back ${(capabilities..sort()).join(', ')} until device '
-              '$peerId advertises it.', // i18n-ignore: internal report
+              'Holding back $names until device $peerId advertises them.', // i18n-ignore: internal report
         ),
       );
     }

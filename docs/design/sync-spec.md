@@ -4304,9 +4304,9 @@ that a deletion made while it waits keeps its tombstone: a row never named by
 a publication may be hard-deleted without one, which would lose a deletion the
 gate is only postponing. It follows that a gated row created and deleted while
 the gate is closed, never having left the device, is still published as a
-tombstone once the gate opens, and a tombstone blob carries its body (§4.4):
-over-marking, as §4.4 accepts elsewhere, within the data's own `shareable`
-class. Receiving is never gated:
+tombstone once the gate opens, and a tombstone blob carries its body (§4.3):
+over-marking, as §3.1 and §6.3 step 8 accept elsewhere, within the data's own
+`shareable` class. Receiving is never gated:
 a device applies a gated kind whenever a peer publishes it. The gate is
 evaluated on every pass, so it closes again when a device without the
 capability attaches.
@@ -4329,8 +4329,8 @@ published a manifest (§7.1), and a build without §4.5's client half cannot
 finish a fresh attach to a store whose peers publish a kind it does not know
 (§6.2: every peer manifest must be readable). So a device on such a build
 cannot join a store once the gate has opened, and the gate never sees it.
-Decided by Isaac (maintainer) as accepted, with a warning in the pairing
-screens (#709 consolidated spec, decision 13): the pairing screen says so, on
+Decided by Isaac (maintainer) in planning as accepted, with a warning in the
+pairing screens (#709 consolidated spec, decision 13): the pairing screen says so, on
 both its paths, while the build advertises any capability. There is no
 timeout: a device that never updates keeps the gate closed until it is
 removed.
