@@ -336,7 +336,8 @@ class BackupService {
   /// Decodes [json] and applies it to the live app.
   ///
   /// Core content is restored via [ArchiveRestorer]; the app-local dialects,
-  /// themes, and preference settings are written back into the `settings` table.
+  /// themes, and preference settings are written back into the `settings`
+  /// table, and the user's glossary into its own tables.
   /// Tolerant throughout: decode/restore problems are collected into the
   /// returned [BackupRestoreOutcome] rather than thrown.
   ///
@@ -516,19 +517,21 @@ class BackupService {
   ///
   /// Idempotent: for each section the backup describes, [_applyAppSettings] is
   /// a full REPLACE of that section (for settings: it removes stale eligible
-  /// keys, then re-sets each backed-up key), and it leaves undescribed sections
-  /// alone, so running it once or several times converges to the same state.
-  /// This makes the retry safe to invoke repeatedly, and a settings-apply
-  /// failure that recurs is reported (again) as [BackupRestoreOutcome.applied]
-  /// `true` with [BackupRestoreOutcome.settingsFailed] `true` rather than thrown
-  /// (an [Error], i.e. a programming bug, is deliberately NOT caught so it
+  /// keys, then re-sets each backed-up key) — except the user's glossary in a
+  /// merge, or when part of it could not be read, which is only added to —
+  /// and it leaves undescribed sections alone, so running it once or several
+  /// times converges to the same state. This makes the retry safe to invoke
+  /// repeatedly, and a settings-apply failure that recurs is reported (again)
+  /// as [BackupRestoreOutcome.applied] `true` with
+  /// [BackupRestoreOutcome.settingsFailed] `true` rather than thrown (an
+  /// [Error], i.e. a programming bug, is deliberately NOT caught so it
   /// surfaces; the caught [Exception] is logged in debug builds).
   ///
-  /// [mode] is the mode the restore being retried ran in; it decides only
-  /// whether the user's glossary is replaced or added to.
+  /// [mode] is the mode the restore being retried ran in. It is required so a
+  /// retry can never delete glossary entries a merge restore would have kept.
   Future<BackupRestoreOutcome> retryApplySettings(
     String json, {
-    RestoreMode mode = RestoreMode.replace,
+    required RestoreMode mode,
   }) async => retryApplySettingsFrom(
     await decodeBackupOnIsolate(json, runner: _codecRunner),
     mode: mode,
@@ -538,7 +541,7 @@ class BackupService {
   /// restore just produced), so the retry does not decode the whole file again.
   Future<BackupRestoreOutcome> retryApplySettingsFrom(
     BackupReadResult read, {
-    RestoreMode mode = RestoreMode.replace,
+    required RestoreMode mode,
   }) async {
     final errors = <ArchiveError>[...read.errors];
     final warnings = <String>[...read.warnings];
@@ -581,7 +584,8 @@ class BackupService {
   ///
   /// One transaction, so it is applied whole or not at all. A replace restore
   /// replaces it: live entries and notes the backup does not hold are deleted
-  /// softly, so sync carries the deletion. A merge restore only adds and
+  /// softly, leaving tombstones for sync to carry once these have a record
+  /// kind. A merge restore only adds and
   /// updates, as a merge does for the collection. Either way nothing is
   /// deleted when part of the section could not be read
   /// ([BackupReadResult.glossaryComplete]), since what was lost cannot be told

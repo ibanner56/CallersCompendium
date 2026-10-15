@@ -326,8 +326,8 @@ abstract final class CompoundIssueCodes {
   static const beatsBinding = 'compound_beats_binding';
 
   /// A slot an alias template pins (`meltdown_swing`'s `prefix`), where the
-  /// alias has no inverse pair to reroute to: a bound value would contradict
-  /// the alias's name. Bind on the move it resolves to instead.
+  /// alias has no inverse pair to reroute to: the alias exists to fix that
+  /// value. Bind on the move it resolves to instead.
   static const pinnedSlot = 'compound_pinned_slot';
 
   /// A parameter is bound to a slot of another kind.
@@ -509,8 +509,8 @@ List<ValidationIssue> validateCompound(
 /// taxonomy's validation. The caller falls back to a custom figure; this
 /// never fabricates one.
 ///
-/// Each template is copied whole — its note, progression marker, wording and
-/// walkthrough overrides included — then each of its bound slots is set through
+/// Each template is copied — its note and progression marker included — then
+/// each of its bound slots is set through
 /// [applyParamChange], so a bound value carries the editor's follow-on rules
 /// (a balance's ±4 beats, chain's hand, an inverse pair's reroute). A
 /// figure's slots are set in the order its move declares them, never in the
@@ -521,6 +521,10 @@ List<ValidationIssue> validateCompound(
 /// and the aggressive-beats preference is never consulted — so the same
 /// compound expands to the same figures on every device. A bound `who` clears
 /// the template's assumed-subject mark, as editing `who` does in the editor.
+/// A figure with any bound slot loses its wording and walkthrough overrides:
+/// they are fixed text, which an argument cannot reach, so a bound `hand`
+/// would otherwise still read "right". A figure with no bound slot keeps
+/// them, since it expands exactly as authored.
 /// Nothing records that a figure came from a compound (#709 consolidated
 /// spec: expanded figures record no origin).
 List<Figure>? expandCompound(
@@ -580,9 +584,12 @@ List<Figure>? expandCompound(
         aggressiveBeats: false,
       );
     }
+    final bound = figureBindings.isNotEmpty;
     final figure = template.copyWith(
       move: move,
       params: params,
+      wordingOverride: bound ? null : template.wordingOverride,
+      walkthroughOverride: bound ? null : template.walkthroughOverride,
       assumedSubject:
           template.assumedSubject &&
           !figureBindings.any((b) => b.slotKey == 'who'),

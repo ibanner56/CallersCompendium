@@ -1,7 +1,9 @@
 // A development build stamped `user_version` 39 before the v39 step created
-// everything it now does, so such a file is at head yet lacks `peer_manifests`
-// and the published-manifest columns, and `onUpgrade` never runs for it. Every
-// sync pass then died on "no such table: peer_manifests".
+// everything it now does, so such a file lacks `peer_manifests` and the
+// published-manifest columns, and `onUpgrade`'s v39 step never runs for it
+// (it is already at 39). Every sync pass then died on "no such table:
+// peer_manifests". Only `beforeOpen` repairs it, on the migrating open that
+// also takes it to the current schema.
 //
 // Mutation this catches: drop the `_ensureV39Schema` call from `beforeOpen`.
 import 'package:compendium_core/compendium_core.dart';

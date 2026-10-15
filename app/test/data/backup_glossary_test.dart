@@ -267,6 +267,28 @@ void main() {
       expect(await liveIds(repos), ['live'], reason: 'nothing deleted');
     });
 
+    test('the glossary is applied whole or not at all: a store failure part '
+        'way through undoes its deletions too', () async {
+      final repos = await seeded();
+      // The second entry's insert fails, after the replace has deleted the
+      // live entry the backup lacks and written the first.
+      await repos.db.customStatement(
+        "CREATE TRIGGER boom BEFORE INSERT ON user_glossary_entries "
+        "WHEN NEW.id = 'boom' BEGIN SELECT RAISE(ABORT, 'boom'); END",
+      );
+      final json = backupWith({
+        'entries': [entryJson('fromBackup'), entryJson('boom')],
+        'figureNotes': <Object?>[],
+      });
+
+      final outcome = await BackupService(repos).restoreFromJson(json);
+
+      expect(outcome.applied, isTrue, reason: 'the core committed');
+      expect(outcome.settingsFailed, isTrue);
+      expect(await liveIds(repos), ['live'], reason: 'nothing half-applied');
+      expect(await liveNoteIds(repos), ['swing']);
+    });
+
     test('a merge restore adds and updates, and deletes nothing', () async {
       final repos = await seeded();
       final json = backupWith({
@@ -293,7 +315,9 @@ void main() {
       });
 
       final replaced = await seeded();
-      await BackupService(replaced).retryApplySettings(json);
+      await BackupService(
+        replaced,
+      ).retryApplySettings(json, mode: RestoreMode.replace);
       expect(await liveIds(replaced), ['fromBackup']);
 
       final merged = await seeded();

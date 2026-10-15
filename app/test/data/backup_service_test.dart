@@ -612,7 +612,9 @@ void main() {
 
     // The store recovers; retry re-applies ONLY the settings.
     target.settings.failWrites = false;
-    final retried = await BackupService(target.repos).retryApplySettings(json);
+    final retried = await BackupService(
+      target.repos,
+    ).retryApplySettings(json, mode: RestoreMode.replace);
 
     expect(retried.applied, isTrue);
     expect(retried.settingsFailed, isFalse);
@@ -750,7 +752,7 @@ void main() {
     final read = await decodeBackupOnIsolate(json);
     final retried = await BackupService(
       target.repos,
-    ).retryApplySettingsFrom(read);
+    ).retryApplySettingsFrom(read, mode: RestoreMode.replace);
 
     expect(retried.applied, isTrue);
     expect(retried.settingsFailed, isFalse);
@@ -767,8 +769,12 @@ void main() {
     await BackupService(target.repos).restoreFromJson(json);
     target.settings.failWrites = false;
 
-    final first = await BackupService(target.repos).retryApplySettings(json);
-    final second = await BackupService(target.repos).retryApplySettings(json);
+    final first = await BackupService(
+      target.repos,
+    ).retryApplySettings(json, mode: RestoreMode.replace);
+    final second = await BackupService(
+      target.repos,
+    ).retryApplySettings(json, mode: RestoreMode.replace);
 
     expect(first.settingsFailed, isFalse);
     expect(second.settingsFailed, isFalse);
@@ -819,7 +825,9 @@ void main() {
     final repos = openTestRepositories();
     await repos.settings.set(kSortIgnoreArticlesKey, true);
 
-    final outcome = await BackupService(repos).retryApplySettings('garbage {');
+    final outcome = await BackupService(
+      repos,
+    ).retryApplySettings('garbage {', mode: RestoreMode.replace);
 
     expect(outcome.applied, isFalse);
     expect(outcome.settingsFailed, isFalse);
@@ -849,7 +857,9 @@ void main() {
       final repos = openTestRepositories();
       await repos.settings.set(kSortIgnoreArticlesKey, true);
 
-      final outcome = await BackupService(repos).retryApplySettings(tampered);
+      final outcome = await BackupService(
+        repos,
+      ).retryApplySettings(tampered, mode: RestoreMode.replace);
 
       // Nothing applied, and this is NOT a settings-failure retry state — it's a
       // clean integrity refusal the UI reports as an error, never a success.
@@ -1009,7 +1019,9 @@ void main() {
       const json =
           '{"backupVersion":1,$stamp,"core":{"dances":[$backupDance]}}';
 
-      final outcome = await BackupService(repos).retryApplySettings(json);
+      final outcome = await BackupService(
+        repos,
+      ).retryApplySettings(json, mode: RestoreMode.replace);
 
       expect(outcome.settingsFailed, isFalse);
       await expectLiveIntact(repos);

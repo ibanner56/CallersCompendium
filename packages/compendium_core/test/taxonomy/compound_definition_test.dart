@@ -179,27 +179,29 @@ void main() {
       );
     });
 
-    test('a template is copied whole, and a bound who clears its assumed '
-        'subject', () {
+    test('a template keeps its note and progression; a bound figure loses '
+        'its fixed-text overrides, and a bound who its assumed subject', () {
+      final withOverrides = testFigure(
+        move: 'pull_by',
+        params: {'who': 'neighbors', 'hand': 'right', 'beats': 2},
+        note: 'look up',
+        progression: true,
+        walkthroughOverride: 'Pull by your neighbor, right hand.',
+        assumedSubject: true,
+      ).copyWith(wordingOverride: 'neighbors pull by right');
       final definition = CompoundDefinition(
         params: const [
           CompoundParam(key: 'who', kind: ParamKind.dancerSet),
           CompoundParam(key: 'hand', kind: ParamKind.handedness),
         ],
         figures: [
-          testFigure(
-            move: 'pull_by',
-            params: {'who': 'neighbors', 'hand': 'right', 'beats': 2},
-            note: 'look up',
-            progression: true,
-            walkthroughOverride: 'Pull by your neighbor.',
-            assumedSubject: true,
-          ).copyWith(wordingOverride: 'pull by {who}'),
+          withOverrides,
           testFigure(
             move: 'pull_by',
             params: {'who': 'neighbors', 'hand': 'right', 'beats': 2},
             assumedSubject: true,
           ),
+          withOverrides,
         ],
         bindings: const [
           CompoundSlotBinding(figureIndex: 0, slotKey: 'who', paramKey: 'who'),
@@ -214,13 +216,17 @@ void main() {
         'who': 'partners',
         'hand': 'left',
       }, taxonomy)!;
-      final first = expanded.first;
-      expect(first.note, 'look up');
-      expect(first.progression, isTrue);
-      expect(first.wordingOverride, 'pull by {who}');
-      expect(first.walkthroughOverride, 'Pull by your neighbor.');
-      expect(first.assumedSubject, isFalse, reason: 'who was bound');
-      expect(expanded.last.assumedSubject, isTrue, reason: 'who was not');
+      final [bound, handBound, unbound] = expanded;
+      expect(bound.note, 'look up');
+      expect(bound.progression, isTrue);
+      // Fixed text cannot follow the argument, so it would misstate it.
+      expect(bound.wordingOverride, isNull);
+      expect(bound.walkthroughOverride, isNull);
+      expect(bound.assumedSubject, isFalse, reason: 'who was bound');
+      expect(handBound.assumedSubject, isTrue, reason: 'who was not');
+      // Unbound, it expands exactly as authored, overrides and all.
+      expect(unbound.wordingOverride, 'neighbors pull by right');
+      expect(unbound.walkthroughOverride, 'Pull by your neighbor, right hand.');
     });
 
     test('declines rather than fabricate', () {

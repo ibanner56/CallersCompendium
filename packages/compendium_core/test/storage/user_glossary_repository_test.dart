@@ -136,6 +136,9 @@ void main() {
         {'x': double.infinity},
         {'Cafe\u0301': 1, 'Café': 2},
         {'big': 'x' * maxUserGlossaryPayloadLength},
+        // Deep enough to overflow a recursive encoder, from a hand-edited
+        // backup: refused before anything recursive reads it.
+        _nested(100000),
       ]) {
         await expectLater(
           glossary.upsert(entry(payload: payload)),
@@ -149,6 +152,19 @@ void main() {
         );
       }
       expect(await glossary.listAll(), isEmpty);
+    });
+
+    test('a payload exactly at the depth bound is stored', () async {
+      await glossary.upsert(
+        entry(payload: {'nested': _nested(maxUserGlossaryPayloadDepth - 1)}),
+      );
+      expect(await glossary.getById('e1'), isNotNull);
+      await expectLater(
+        glossary.upsert(
+          entry(payload: {'nested': _nested(maxUserGlossaryPayloadDepth)}),
+        ),
+        throwsA(isA<UserGlossaryEntryInvalid>()),
+      );
     });
 
     test('entries created in the same second read back in id order', () async {
@@ -208,3 +224,12 @@ void main() {
 }
 
 const _day = Duration(days: 1);
+
+/// [depth] lists, each holding the next, the innermost holding a number.
+Object _nested(int depth) {
+  Object value = 1;
+  for (var i = 0; i < depth; i++) {
+    value = [value];
+  }
+  return value;
+}

@@ -36,7 +36,10 @@ const _userGlossaryText = DataClassification(
       "The user's own words defining or annotating figures (#709). Classified "
       'by intent, as program notes and calling notes are: choreography '
       'reference, not about a person, so subject none (see "Freeform fields '
-      'are classified by intent, not by content"). Shareable because the '
+      'are classified by intent, not by content"). The subject is the '
+      "implementer's call, following those precedents; appUser was rejected "
+      'as giving no reason the text is about the user, and thirdParty as '
+      'classifying by what a user might type. Shareable because the '
       'maintainer decided it travels like custom shorthands (#709, comments '
       'of 2026-08-06 and 2026-10-14): in backups now, and in sync once its '
       'record kind exists.',
@@ -219,6 +222,18 @@ const _tombstone = DataClassification(
       'kind.',
 );
 
+/// [_tombstone] for the user's glossary (#709), whose tables have no record
+/// kind yet: the tombstone is kept for sync to carry once they do.
+const _glossaryTombstone = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.shareable,
+  note:
+      'Soft-delete tombstone; see dances.deleted_at. Kept so that sync can '
+      'carry the deletion once this table has a record kind; until then it '
+      'stays on the device, and backups export live rows only.',
+);
+
 /// A freeform note attached to a person, place or source record.
 ///
 /// Still classified as personal data — the field is unbounded and a user may
@@ -349,14 +364,14 @@ final Map<String, DataClassification> fieldClassifications = {
         'which one is flagged, is the implementer\'s choice.',
   ),
   'user_glossary_entries.updated_at': _recordStamp,
-  'user_glossary_entries.deleted_at': _tombstone,
+  'user_glossary_entries.deleted_at': _glossaryTombstone,
   'user_glossary_entries.existence_at': _existenceStamp,
 
   // ------------------------------------------------------------ figure_notes --
   'figure_notes.figure_id': _key,
   'figure_notes.notes': _userGlossaryText,
   'figure_notes.updated_at': _recordStamp,
-  'figure_notes.deleted_at': _tombstone,
+  'figure_notes.deleted_at': _glossaryTombstone,
   'figure_notes.existence_at': _existenceStamp,
 
   // ------------------------------------------------------ difficulty_levels --

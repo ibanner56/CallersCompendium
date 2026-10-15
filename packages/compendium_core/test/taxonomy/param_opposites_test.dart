@@ -150,8 +150,9 @@ void main() {
       // Any slot whose choices hold both halves of a pair the registry inverts
       // is listed here, so a new one fails until someone decides whether it
       // should get an opposite of its own.
-      // Every pair the registry inverts, read from it rather than listed, so
-      // a pair it gains is checked here too.
+      // Every pair the registry inverts among the kinds that have opposites
+      // (pinned in the table above), read from it rather than listed, so a
+      // pair one of those kinds gains is checked here too.
       final pairs = {
         for (final MapEntry(key: kind, value: vocabulary) in {
           ParamKind.handedness: ParamVocab.sides,

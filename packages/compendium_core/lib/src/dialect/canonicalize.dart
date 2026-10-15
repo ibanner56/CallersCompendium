@@ -60,10 +60,12 @@ Substitutor? _discouragedFor(Dialect dialect) =>
       }, caseInsensitive: true);
 
 /// The canonicalization chokepoint (dialect design §"Canonicalization on
-/// input"); user-glossary text has its own variant, [canonicalizeGlossaryText]. Inverse-maps the user's active dialect role terms — plus known
-/// legacy synonyms — back to canonical role tokens before persistence, so
-/// storage and search stay dialect-agnostic. Conservative: only exact,
-/// word-boundary term matches are rewritten; unknown prose is left as typed.
+/// input"); user-glossary text has its own variant,
+/// [canonicalizeGlossaryText]. Inverse-maps the user's active dialect role
+/// terms — plus known legacy synonyms — back to canonical role tokens before
+/// persistence, so storage and search stay dialect-agnostic. Conservative:
+/// only exact, word-boundary term matches are rewritten; unknown prose is
+/// left as typed.
 ///
 /// A role term that is also a move word is not rewritten to a role: "robin" in
 /// the move name "mad robin" (which is written in lowercase, "mad robin", as
@@ -107,37 +109,25 @@ final Map<Dialect, RoleCanonicalizer> _glossaryRoles = {};
 /// bounded like [_dialectRoles].
 final Map<Dialect, Substitutor> _glossaryDiscouraged = {};
 
-/// The built-in discouraged terms as stored text, less any [dialect] uses as
-/// its own role word. A custom dialect may call a role "raven": there,
-/// "ravens" is that role, and storing it as the discouraged term's `role2s`
-/// would invert it, so the role canonicalizer reads it instead.
+/// The built-in discouraged terms as stored text, with [dialect]'s own role
+/// words that hold one ([claimedRoleWords]) mapped to themselves, possessives
+/// included. Longest match wins, so "lady birds" in a dialect whose role1 is
+/// "Lady Bird" is kept whole for the role canonicalizer, while "lady" alone
+/// still reads by the table; and where the role word is the term itself,
+/// such as "ravens" for a role1 "Raven", the dialect's meaning replaces the
+/// table's.
 Substitutor _glossaryDiscouragedFor(Dialect dialect) {
   final cached = _glossaryDiscouraged[dialect];
   if (cached != null) return cached;
   if (_glossaryDiscouraged.length >= _maxDialectRoles) {
     _glossaryDiscouraged.clear();
   }
-  final claimed = {
-    for (final term in dialect.roles.values) ...{
-      term.singular.toLowerCase(),
-      term.plural.toLowerCase(),
-    },
-  };
   return _glossaryDiscouraged[dialect] = Substitutor({
-    for (final MapEntry(key: term, value: stored)
-        in storedDiscouragedTerms.entries)
-      if (!claimed.contains(_withoutPossessive(term))) term: stored,
+    ...storedDiscouragedTerms,
+    for (final word in claimedRoleWords(dialect))
+      // The forms the table's own keys take: plain, `'` and `'s`/`’s`.
+      for (final form in [word, "$word'", "$word's", '$word’s']) form: form,
   }, caseInsensitive: true);
-}
-
-/// [term] without a possessive ending (`'s`, `’s` or a bare `'`).
-String _withoutPossessive(String term) {
-  for (final ending in const ["'s", '’s', "'"]) {
-    if (term.endsWith(ending)) {
-      return term.substring(0, term.length - ending.length);
-    }
-  }
-  return term;
 }
 
 /// Canonicalizes text a user typed into their own glossary — a compound
@@ -149,9 +139,9 @@ String _withoutPossessive(String term) {
 /// - the built-in discouraged terms are stored canonically ("ladies" →
 ///   `role2s`, "gypsy" → "shoulder round"), not kept as typed. The table is
 ///   the built-in one the renderer displays them from, not [dialect]'s own
-///   editable list, so stored and displayed text agree; a term [dialect]
-///   uses as a role word is left to the role rules (the implementer's
-///   choice, see `docs/design/dialect.md`);
+///   editable list; a role word of [dialect] that is or holds one of its
+///   terms keeps the dialect's meaning (the implementer's choices, see
+///   `docs/design/dialect.md`);
 /// - under a dialect whose roles are "lead"/"follow", "leads"/"follows"
 ///   directly after a singular subject is the verb ("The robin follows the
 ///   lark across" → "The role2 follows the role1 across"), where
