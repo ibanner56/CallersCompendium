@@ -9,10 +9,11 @@
 // of them green. These fixtures are the only files here with rows, FTS content,
 // links, provenance and the settings markers a real startup wrote.
 //
-// What is asserted is the user-visible content of every table the generator
-// seeds (figures with their params, timestamps, relations, program, venue,
-// tags, sources, custom fields, authors, default difficulty levels) and the
-// file's integrity. Derived values that the open legitimately rebuilds are not
+// What is asserted is every value the generator seeds to something other than a
+// default, in every table it seeds (dances, figures and their params, links,
+// citations, provenance, tags, authors, venue, sources, custom fields, the
+// program and its slots, the `ui.*` settings), the default difficulty levels
+// and the file's integrity. Columns left at their defaults are not read. Derived values that the open legitimately rebuilds are not
 // compared: the FTS tables, `canonical_text`, `dance_figures` and the
 // `__*_done` repair markers (deleting all of them, or blanking
 // `dance_figures.params_json`, before the open leaves the migration's result
@@ -55,6 +56,8 @@ Future<File> _fixture(int schemaVersion) async => File(
     'v$schemaVersion.sqlite',
   ),
 );
+
+(String, Map<String, Object?>) _moveAndParams(Figure f) => (f.move, f.params);
 
 /// The instant every row of the generator's seed is stamped with.
 final _seededAt = DateTime.utc(2026, 8, 1, 12);
@@ -149,49 +152,72 @@ Future<void> _migratesAndKeepsItsData(
     ('cf-energy', 'high'),
   ]);
   expect(chase.links.map((l) => l.id).toSet(), {'l-1', 'l-2'});
-  expect(
-    chase.links.singleWhere((l) => l.id == 'l-2').targetDanceId,
-    'd-plain',
-  );
+  final video = chase.links.singleWhere((l) => l.id == 'l-1');
+  expect(video.kind, LinkKind.video);
+  expect(video.url, 'https://example.org/v');
+  expect(video.label, 'Demo');
+  final related = chase.links.singleWhere((l) => l.id == 'l-2');
+  expect(related.kind, LinkKind.relatedDance);
+  expect(related.targetDanceId, 'd-plain');
+  expect(related.transitive, isTrue);
   expect(chase.sourceCitations.single.sourceId, 'ps-1');
   expect(chase.sourceCitations.single.page, '12');
+  expect(chase.sourceCitations.single.number, 'A1');
   final provenance = chase.provenance!;
   expect(provenance.source, ProvenanceSource.callersbox);
   expect(provenance.externalId, 'cb-4242');
   expect(provenance.permission, 'full');
   expect(provenance.license, 'CC-BY');
   expect(provenance.sourceVersion, '2026-07');
+  expect(provenance.importedAt, _seededAt);
 
-  expect(figuresOf((await repos.dances.getById('d-fts'))!), hasLength(1));
+  expect(
+    figuresOf((await repos.dances.getById('d-fts'))!).map(_moveAndParams),
+    [
+      ('robins_chain', {'who': 'neighbors'}),
+    ],
+  );
   expect((await repos.dances.getById('d-fts'))!.title, 'Résumé Reel');
-  expect(await repos.dances.getById('d-plain'), isNotNull);
+  expect((await repos.dances.getById('d-fts'))!.hook, 'hey for four');
+  expect((await repos.dances.getById('d-plain'))!.title, 'Plain Dance');
 
   // The tombstone survives as a tombstone: still there, still deleted.
   expect(await repos.dances.getById('d-gone'), isNull);
   expect(await repos.dances.isDeletedById('d-gone'), isTrue);
+  final gone = (await repos.dances.getById('d-gone', includeDeleted: true))!;
+  expect(gone.title, 'Deleted Dance');
+  expect(figuresOf(gone).map(_moveAndParams), [
+    ('swing', {'who': 'partners'}),
+  ]);
 
   // --- the rest of the library ---------------------------------------------
   final beginner = (await repos.tags.getById('t-beginner'))!;
   expect(beginner.name, 'Beginner');
   expect(beginner.color, 0xFF336699);
+  expect((await repos.tags.getById('t-gender-free'))!.name, 'Gender-free');
   expect((await repos.tags.getById('t-gender-free'))!.color, isNull);
   final author = (await repos.choreographers.getById('c-gaudet'))!;
   expect(author.name, 'Gaudet, Ted');
   expect(author.notes, 'Café notes');
   expect(author.website, 'https://example.org/ted');
   expect(author.location, 'Boston');
-  expect((await repos.choreographers.getById('c-old'))!.deceased, isTrue);
+  final old = (await repos.choreographers.getById('c-old'))!;
+  expect(old.name, 'Old Timer');
+  expect(old.deceased, isTrue);
   final venue = (await repos.venues.getById('v-grange'))!;
+  expect(venue.name, 'Grange Hall');
   expect(venue.city, 'Lexington');
   expect(venue.stateProv, 'MA');
   expect(venue.contact1Name, 'Pat Booker');
   expect(venue.contact1Email, 'pat@example.org');
-  expect(
-    (await repos.publishedSources.getById('ps-1'))!.title,
-    'Zesty Contras',
-  );
+  final source = (await repos.publishedSources.getById('ps-1'))!;
+  expect(source.title, 'Zesty Contras');
+  expect(source.author, 'Larry Jennings');
+  expect(source.year, 1983);
   final energy = (await repos.customFieldDefs.getById('cf-energy'))!;
+  expect(energy.key, 'energy');
   expect(energy.label, 'Energy');
+  expect(energy.showInList, isTrue);
   expect(energy.type, CustomFieldType.choice);
   expect(energy.choices, ['low', 'medium', 'high']);
   expect((await repos.difficultyLevels.listAll()).map((l) => (l.id, l.label)), [
@@ -215,14 +241,20 @@ Future<void> _migratesAndKeepsItsData(
   final program = (await repos.programs.getById('p-spring'))!;
   expect(program.title, 'Spring Dance 2026');
   expect(program.venueId, 'v-grange');
+  expect(program.venue, 'Grange Hall');
+  expect(program.dancerLevel, 'mixed');
+  expect(program.notes, 'bring snacks');
   expect(program.eventDate, DateTime.utc(2026, 3, 15));
   expect(program.caller, 'Alex Caller');
   expect(program.band, 'The Reelers');
-  expect(program.slots.map((s) => (s.position, s.danceId, s.text, s.isAlt)), [
-    (0, 'd-chase', null, false),
-    (1, null, 'Break / waltz', false),
-    (2, 'd-plain', null, true),
-  ]);
+  expect(
+    program.slots.map((s) => (s.id, s.position, s.danceId, s.text, s.isAlt)),
+    [
+      ('s-1', 0, 'd-chase', null, false),
+      ('s-2', 1, null, 'Break / waltz', false),
+      ('s-3', 2, 'd-plain', null, true),
+    ],
+  );
   expect(program.slots[0].walkthroughMinutes, 5);
   expect(program.slots[0].danceMinutes, 12);
   expect(program.slots[2].guestCaller, 'Sam');

@@ -10,9 +10,9 @@
 //
 // This file builds its starting databases from the `drift_schemas/` dumps
 // (`GeneratedHelper`), which carry structure only; each test seeds the rows it
-// needs. The one binary fixture that remains is the floor version's, captured
-// from its release tag with real rows and exercised by
-// `real_release_fixture_test.dart`: that is the test that notices a migration
+// needs. Two binary fixtures remain, both written by real releases and
+// exercised by `real_release_fixture_test.dart`: the floor version's (v35) and
+// the bridge release's (v38). That is the test that notices a migration
 // destroying data these tests never seeded.
 //
 // Schema *shape* after migration is covered separately by
