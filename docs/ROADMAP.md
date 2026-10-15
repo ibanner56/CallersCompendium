@@ -292,10 +292,10 @@ implementation notes and deviations against each item — is in
     then the CC `Term` mapping in 6.5.
     Compound figures and notes on shipped figures are being built in #709
     (maintainer decisions recorded in #709's consolidated spec, 2026-10-14);
-    own terms stay with #1023. Their sync will be held behind a capability
-    gate until every attached device understands it, and clients now skip a
-    record kind they do not know instead of refusing a peer's whole manifest
-    (sync-spec §4.5).
+    own terms stay with #1023. The sync capability gate they will sync
+    behind is built (sync-spec §6.15): data waits until every attached device
+    understands it. Clients also skip a record kind they do not know instead of
+    refusing a peer's whole manifest (sync-spec §4.5).
 - **User-defined quick-entry snippets** — CC's "Insert Call" buttons (per-user
   label → expansion text + beats + a gender-free alternate). **Accepted, reframed**
   over our structured model (see #401): a user shorthand maps to a fully-configured

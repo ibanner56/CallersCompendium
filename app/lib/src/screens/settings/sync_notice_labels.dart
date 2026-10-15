@@ -78,11 +78,19 @@ enum SyncNoticeGroup {
   /// raises no notice, and the *Other devices* list shows what is waiting for
   /// it instead.
   unreflectedPublication,
+
+  /// This device is holding back new kinds of data until another attached
+  /// device runs an app version that can read them (#709 capability gate).
+  /// Shown per device, naming each by its tag. Information, not a problem:
+  /// nothing is lost, and the data syncs once that device is updated or
+  /// removed from the store.
+  awaitingDeviceUpdate,
 }
 
 /// Whether [group] is shown once per other device rather than once in all.
 bool syncNoticeIsPerDevice(SyncNoticeGroup group) =>
-    group == SyncNoticeGroup.unreflectedPublication;
+    group == SyncNoticeGroup.unreflectedPublication ||
+    group == SyncNoticeGroup.awaitingDeviceUpdate;
 
 /// The other devices [group]'s reports in [reports] name, deduplicated, in
 /// report order.
@@ -134,6 +142,8 @@ SyncNoticeGroup syncNoticeGroupFor(SyncReport report) => switch (report.code) {
   SyncReportCode.newerRecordFields => SyncNoticeGroup.newerVersion,
   SyncReportCode.newerFigures => SyncNoticeGroup.newerVersion,
   SyncReportCode.newerRecordKind => SyncNoticeGroup.newerVersion,
+  SyncReportCode.withheldAwaitingDevices =>
+    SyncNoticeGroup.awaitingDeviceUpdate,
   SyncReportCode.keptNewerFields => SyncNoticeGroup.keptNewerFields,
 };
 
@@ -161,7 +171,8 @@ bool syncNoticeNeedsYou(SyncNoticeGroup group) => switch (group) {
   SyncNoticeGroup.withheldUnreadableLocal ||
   SyncNoticeGroup.skippedRecord ||
   SyncNoticeGroup.clock ||
-  SyncNoticeGroup.deferredInbound => false,
+  SyncNoticeGroup.deferredInbound ||
+  SyncNoticeGroup.awaitingDeviceUpdate => false,
 };
 
 /// The notice text for [group]. [countedRecords] is
@@ -204,6 +215,9 @@ String syncNoticeText(
   SyncNoticeGroup.deferredInbound => l10n.settingsSyncNoticeDeferredInbound,
   SyncNoticeGroup.unreflectedPublication =>
     l10n.settingsSyncNoticePeerNotTaking(device!.count, device.tag),
+  SyncNoticeGroup.awaitingDeviceUpdate => l10n.settingsSyncNoticeAwaitingDevice(
+    device!.tag,
+  ),
 };
 
 /// How many of [records] there are of each kind, in [SyncRecordKind] order —

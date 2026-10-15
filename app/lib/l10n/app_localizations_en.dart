@@ -1057,6 +1057,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeAwaitingDevice(String tag) {
+    return 'Some new kinds of data on this device will start syncing once device $tag is updated to the latest version of the app, or removed from Other devices. They\'re safe here.';
+  }
+
+  @override
   String get settingsSyncNoticeNeedsYou => 'Needs you';
 
   @override
@@ -1325,6 +1330,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsSyncPairingSharingBody =>
       'A second person can use this same phrase on their device. If you both edit the same dance or program at the same time, one edit silently overwrites the other — there\'s no warning and no way to combine them.';
+
+  @override
+  String get settingsSyncPairingNewerDataTitle =>
+      'Every device needs an up-to-date app';
+
+  @override
+  String get settingsSyncPairingNewerDataBody =>
+      'This version syncs some things that earlier versions of the app can\'t read. Update each device before you connect it: one running an earlier version may not be able to connect. Until every connected device is up to date, those things stay on the device they were made on.';
 
   @override
   String get settingsSyncPairingBearerTitle =>

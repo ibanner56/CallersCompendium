@@ -1,6 +1,6 @@
 // The Device Sync pairing flow (spec §6.2, §6.14 items 1, 2, 3, 5, 6).
 import 'package:compendium_core/compendium_core.dart'
-    show SyncId, generateSyncId;
+    show SyncCapabilityPolicy, SyncId, generateSyncId;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -37,10 +37,18 @@ Future<void> showSyncPairingScreen(
 }
 
 class SyncPairingScreen extends StatefulWidget {
-  const SyncPairingScreen({super.key, this.backupSaver});
+  const SyncPairingScreen({
+    super.key,
+    this.backupSaver,
+    this.capabilityPolicy = SyncCapabilityPolicy.build,
+  });
 
   /// Test seam for the pairing backup offer; defaults to [saveBackupToFile].
   final BackupSaver? backupSaver;
+
+  /// What this build syncs that earlier builds cannot read (#709); a test
+  /// seam, defaulting to this build's policy.
+  final SyncCapabilityPolicy capabilityPolicy;
 
   @override
   State<SyncPairingScreen> createState() => _SyncPairingScreenState();
@@ -473,6 +481,19 @@ class _SyncPairingScreenState extends State<SyncPairingScreen> {
           ),
         ],
         const SizedBox(height: AppSpacing.lg),
+        // #709 consolidated spec, decision 13: a device on a build from before
+        // the capability gate cannot read a store that syncs gated data, and
+        // the gate cannot see it until it publishes a manifest. Shown only while this build
+        // advertises a capability, so it says nothing until there is one.
+        if (widget.capabilityPolicy.advertised.isNotEmpty) ...[
+          _Disclosure(
+            key: const ValueKey('sync-pairing-newer-data-disclosure'),
+            icon: Icons.system_update_outlined,
+            title: l10n.settingsSyncPairingNewerDataTitle,
+            body: l10n.settingsSyncPairingNewerDataBody,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
         _Disclosure(
           key: const ValueKey('sync-pairing-sharing-disclosure'),
           icon: Icons.group_outlined,
