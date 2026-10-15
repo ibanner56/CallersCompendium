@@ -587,7 +587,7 @@ abstract class AppLocalizations {
   /// Header of the Glossary group in the Experimental settings section.
   ///
   /// In en, this message translates to:
-  /// **'Glossary'**
+  /// **'Glossary and Custom Figures'**
   String get settingsExperimentalGlossaryHeader;
 
   /// Title of the switch that adds the Glossary destination to the app's navigation.
@@ -13789,6 +13789,474 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'These templates omit available slots and may hide figure details:\n{figures}\n\nSave anyway?'**
   String dialectEditorMoveWordingConfirmBody(String figures);
+
+  /// Title of the switch, nested under Show Glossary, that shows the user's own compound figures in the Glossary (#709).
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Figures'**
+  String get settingsExperimentalShowCustomFiguresTitle;
+
+  /// Subtitle of the Custom Figures switch while Show Glossary is on.
+  ///
+  /// In en, this message translates to:
+  /// **'Lists your own figures in the Glossary, where you can add and edit them. Turning this off hides them; it doesn\'t delete them.'**
+  String get settingsExperimentalShowCustomFiguresSubtitle;
+
+  /// Subtitle of the Custom Figures switch while it is disabled because Show Glossary is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on Show Glossary to use your own figures.'**
+  String get settingsExperimentalShowCustomFiguresNeedsGlossary;
+
+  /// Tooltip of the Glossary's add button, which opens the editor for a new custom figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your own figure'**
+  String get glossaryAddCustomFigure;
+
+  /// Chip marking one of the user's own figures in the Glossary.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get glossaryCustomMarker;
+
+  /// Short label on a custom figure whose figures or parameters are no longer valid.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs repair'**
+  String get glossaryCustomNeedsRepair;
+
+  /// Explains the Needs repair label on a custom figure's detail page.
+  ///
+  /// In en, this message translates to:
+  /// **'This figure can\'t be used as it is: one of its figures or parameters is no longer valid. Edit it to repair it.'**
+  String get glossaryCustomNeedsRepairBody;
+
+  /// Short label on a custom figure whose name another figure or shorthand already uses.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename needed'**
+  String get glossaryCustomRenameNeeded;
+
+  /// Explains the Rename needed label on a custom figure's detail page.
+  ///
+  /// In en, this message translates to:
+  /// **'Another figure or shorthand already has this name. Rename this one so the two can be told apart.'**
+  String get glossaryCustomRenameNeededBody;
+
+  /// Short label on a custom glossary entry made by a newer version of the app, which this version can show but not edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Newer version'**
+  String get glossaryCustomUnsupported;
+
+  /// Explains the Newer version label on a custom glossary entry.
+  ///
+  /// In en, this message translates to:
+  /// **'This entry was made with a newer version of the app. Update the app here to edit or use it.'**
+  String get glossaryCustomUnsupportedBody;
+
+  /// Title of the folded panel listing the figures a custom figure becomes when a dance is saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Expands to ({beats} beats)'**
+  String glossaryCustomExpandsTo(int beats);
+
+  /// Shown in place of a custom figure's details once it has been deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'This figure has been deleted.'**
+  String get glossaryCustomGone;
+
+  /// Title of the dialog confirming that a custom figure is deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete “{name}”?'**
+  String glossaryCustomDeleteTitle(String name);
+
+  /// Body of the dialog confirming that a custom figure is deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s removed from your Glossary. Dances you\'ve already saved with it keep their figures.'**
+  String get glossaryCustomDeleteBody;
+
+  /// Heading of the user's own notes on a Glossary figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Your notes'**
+  String get glossaryNotes;
+
+  /// Shown under Your notes on a Glossary figure that has none.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes yet.'**
+  String get glossaryNotesEmpty;
+
+  /// Button that opens the editor for the user's notes on a built-in figure that has none.
+  ///
+  /// In en, this message translates to:
+  /// **'Add notes'**
+  String get glossaryNotesAdd;
+
+  /// Button that opens the editor for the user's existing notes on a built-in figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit notes'**
+  String get glossaryNotesEdit;
+
+  /// Title of the dialog where the user edits their notes on a built-in figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Your notes'**
+  String get glossaryNotesEditTitle;
+
+  /// Hint text of the notes field on a built-in figure.
+  ///
+  /// In en, this message translates to:
+  /// **'How you call it, what to watch for…'**
+  String get glossaryNotesHint;
+
+  /// Title of the editor for a new custom figure.
+  ///
+  /// In en, this message translates to:
+  /// **'New figure'**
+  String get compoundEditorTitleNew;
+
+  /// Title of the editor for an existing custom figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit figure'**
+  String get compoundEditorTitleEdit;
+
+  /// Label of a custom figure's name field.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get compoundEditorName;
+
+  /// Label of a custom figure's one-sentence definition field.
+  ///
+  /// In en, this message translates to:
+  /// **'Definition'**
+  String get compoundEditorDefinition;
+
+  /// Helper text of a custom figure's definition field.
+  ///
+  /// In en, this message translates to:
+  /// **'One sentence, shown in the Glossary list.'**
+  String get compoundEditorDefinitionHelper;
+
+  /// Label of a custom figure's description field.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get compoundEditorDescription;
+
+  /// Label of a custom figure's optional keywords field, which search also finds it by.
+  ///
+  /// In en, this message translates to:
+  /// **'Other names'**
+  String get compoundEditorKeywords;
+
+  /// Helper text of a custom figure's keywords field.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Separate them with commas.'**
+  String get compoundEditorKeywordsHelper;
+
+  /// Label of a custom figure's optional notes field.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get compoundEditorNotes;
+
+  /// Helper text of an optional field in the custom figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional.'**
+  String get compoundEditorOptional;
+
+  /// Error under an empty required field in the custom figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get compoundEditorFieldRequired;
+
+  /// Error shown when saving a custom figure with a required field empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Give the figure a name, a definition and a description.'**
+  String get compoundEditorRequired;
+
+  /// Heading of the custom figure editor's parameters, the values asked for each time the figure is used.
+  ///
+  /// In en, this message translates to:
+  /// **'Parameters'**
+  String get compoundEditorParams;
+
+  /// Help text under the Parameters heading of the custom figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'What you choose each time you use the figure, such as who and which hand.'**
+  String get compoundEditorParamsHelp;
+
+  /// Label of a parameter's name field in the custom figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get compoundEditorParamName;
+
+  /// Label of a parameter's kind dropdown in the custom figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Kind'**
+  String get compoundEditorParamKind;
+
+  /// Button that adds a parameter in the custom figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Add parameter'**
+  String get compoundEditorAddParam;
+
+  /// Tooltip of the button that removes a parameter in the custom figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove parameter'**
+  String get compoundEditorRemoveParam;
+
+  /// Error shown when saving a custom figure with an unnamed or repeated parameter.
+  ///
+  /// In en, this message translates to:
+  /// **'Give each parameter a different name.'**
+  String get compoundEditorParamNames;
+
+  /// Heading of the figures a custom figure expands into.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures'**
+  String get compoundEditorFigures;
+
+  /// Help text under the Figures heading of the custom figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures it becomes when you save a dance, in order.'**
+  String get compoundEditorFiguresHelp;
+
+  /// Heading of the section where a figure's settings are tied to the custom figure's parameters.
+  ///
+  /// In en, this message translates to:
+  /// **'Filled in by parameters'**
+  String get compoundEditorBindings;
+
+  /// Help text under the Filled in by parameters heading.
+  ///
+  /// In en, this message translates to:
+  /// **'For each figure, choose which settings come from a parameter. The others stay as you set them.'**
+  String get compoundEditorBindingsHelp;
+
+  /// Heading of one figure's card in the Filled in by parameters section.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {number}: {figure}'**
+  String compoundEditorFigureN(int number, String figure);
+
+  /// Dropdown choice that leaves a figure's setting as it is rather than taking it from a parameter.
+  ///
+  /// In en, this message translates to:
+  /// **'As set in the figure'**
+  String get compoundBindingFixed;
+
+  /// Dropdown choice that fills a figure's setting with the opposite of a parameter's value (left for right).
+  ///
+  /// In en, this message translates to:
+  /// **'Opposite of {param}'**
+  String compoundBindingOpposite(String param);
+
+  /// A dropdown choice that cannot be picked, with why.
+  ///
+  /// In en, this message translates to:
+  /// **'{option} (unavailable: {reason})'**
+  String compoundBindingUnavailable(String option, String reason);
+
+  /// Why a parameter cannot fill a setting: it is unnamed.
+  ///
+  /// In en, this message translates to:
+  /// **'it has no name yet'**
+  String get compoundBindingNoName;
+
+  /// Why a parameter cannot fill a setting: their kinds differ.
+  ///
+  /// In en, this message translates to:
+  /// **'its kind is {paramKind}; this setting\'s is {slotKind}'**
+  String compoundBindingWrongKind(String paramKind, String slotKind);
+
+  /// Why a parameter's opposite cannot fill a setting.
+  ///
+  /// In en, this message translates to:
+  /// **'this kind has no opposite'**
+  String get compoundBindingNoOpposite;
+
+  /// Why a parameter cannot fill a setting: no value is allowed in all of them.
+  ///
+  /// In en, this message translates to:
+  /// **'no value fits every setting it fills'**
+  String get compoundBindingNoSharedValues;
+
+  /// Error shown when saving a custom figure under a name already in use.
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}” is already the name of a figure or shorthand. Choose another name.'**
+  String compoundEditorNameTaken(String name);
+
+  /// Error shown when saving a custom figure with no figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one figure.'**
+  String get compoundEditorNoFigures;
+
+  /// Error shown when a parameter fills settings that have no value in common.
+  ///
+  /// In en, this message translates to:
+  /// **'No value of {param} fits every setting it fills.'**
+  String compoundEditorEmptyDomain(String param);
+
+  /// Error shown when a custom figure is over its size limits.
+  ///
+  /// In en, this message translates to:
+  /// **'This figure has more figures or parameters than it can hold.'**
+  String get compoundEditorTooLarge;
+
+  /// Error shown when saving a custom figure where a later edit (a figure's move, a parameter's kind) left a setting bound to a parameter that cannot fill it. 'Filled in by parameters' is the section heading (compoundEditorBindings).
+  ///
+  /// In en, this message translates to:
+  /// **'A figure\'s setting is filled by a parameter that no longer fits it. Check Filled in by parameters.'**
+  String get compoundEditorBindingInvalid;
+
+  /// Error shown when a custom figure's parts don't validate.
+  ///
+  /// In en, this message translates to:
+  /// **'One of the figures isn\'t complete or valid yet.'**
+  String get compoundEditorInvalidFigures;
+
+  /// Error shown when a custom figure's text is over its length limit.
+  ///
+  /// In en, this message translates to:
+  /// **'One of the fields is too long.'**
+  String get compoundEditorTooLong;
+
+  /// Title of the dialog warning that a declared parameter fills no figure's setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Some parameters aren\'t used'**
+  String get compoundEditorUnusedTitle;
+
+  /// Body of the unused-parameter warning.
+  ///
+  /// In en, this message translates to:
+  /// **'{params} doesn\'t fill any figure\'s settings, so choosing it will change nothing.'**
+  String compoundEditorUnusedBody(String params);
+
+  /// Unused-parameter dialog button that returns to the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to editor'**
+  String get compoundEditorUnusedBack;
+
+  /// Unused-parameter dialog button that saves despite the warning.
+  ///
+  /// In en, this message translates to:
+  /// **'Save anyway'**
+  String get compoundEditorUnusedSave;
+
+  /// Body of the dialog confirming that unsaved changes to a custom figure are discarded.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsaved changes to this figure.'**
+  String get compoundEditorDiscardBody;
+
+  /// A custom figure's parameter, with its kind, in the Glossary.
+  ///
+  /// In en, this message translates to:
+  /// **'{param} ({kind})'**
+  String compoundParamWithKind(String param, String kind);
+
+  /// The kind of a custom figure's parameter: dancers. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'dancers'**
+  String get compoundParamKindDancers;
+
+  /// The kind of a custom figure's parameter: pair of dancers. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'pair of dancers'**
+  String get compoundParamKindDancerPair;
+
+  /// The kind of a custom figure's parameter: hand. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'hand'**
+  String get compoundParamKindHand;
+
+  /// The kind of a custom figure's parameter: shoulder. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'shoulder'**
+  String get compoundParamKindShoulder;
+
+  /// The kind of a custom figure's parameter: turning direction. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'turning direction'**
+  String get compoundParamKindSpin;
+
+  /// The kind of a custom figure's parameter: direction. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'direction'**
+  String get compoundParamKindDirection;
+
+  /// The kind of a custom figure's parameter: fraction. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'fraction'**
+  String get compoundParamKindFraction;
+
+  /// The kind of a custom figure's parameter: amount of turn. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'amount of turn'**
+  String get compoundParamKindRotation;
+
+  /// The kind of a custom figure's parameter: places. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'places'**
+  String get compoundParamKindPlaces;
+
+  /// The kind of a custom figure's parameter: beats. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'beats'**
+  String get compoundParamKindBeats;
+
+  /// The kind of a custom figure's parameter: on or off. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'on or off'**
+  String get compoundParamKindFlag;
+
+  /// The kind of a custom figure's parameter: option. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'option'**
+  String get compoundParamKindChoice;
+
+  /// The kind of a custom figure's parameter: text. Lowercase; also used inside sentences.
+  ///
+  /// In en, this message translates to:
+  /// **'text'**
+  String get compoundParamKindText;
 }
 
 class _AppLocalizationsDelegate

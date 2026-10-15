@@ -25,6 +25,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
+import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
@@ -129,6 +130,9 @@ _pumpSettings(
 
   /// Wires a [ShowGlossaryScope] around the screen when given.
   ValueNotifier<bool>? showGlossary,
+
+  /// Wires a [ShowCustomFiguresScope] around the screen when given.
+  ValueNotifier<bool>? showCustomFigures,
 }) async {
   final repos = openTestRepositories();
   await repos.ensureMigrated();
@@ -240,7 +244,12 @@ _pumpSettings(
                                     ? child!
                                     : ShowGlossaryScope(
                                         notifier: showGlossary,
-                                        child: child!,
+                                        child: showCustomFigures == null
+                                            ? child!
+                                            : ShowCustomFiguresScope(
+                                                notifier: showCustomFigures,
+                                                child: child!,
+                                              ),
                                       ),
                               ),
                             ),
@@ -5355,7 +5364,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('settings-nav-experimental')));
       await tester.pumpAndSettle();
 
-      expect(find.text('GLOSSARY'), findsOneWidget);
+      expect(find.text('GLOSSARY AND CUSTOM FIGURES'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('experimental-show-glossary')),
         findsNothing,
@@ -5393,6 +5402,71 @@ void main() {
       await tester.pumpAndSettle();
       expect(show.value, isFalse);
       expect(await harness.repos.settings.get(kShowGlossaryKey), isFalse);
+    });
+
+    testWidgets('the section is headed Glossary and Custom Figures (#709)', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+      await tester.tap(find.byKey(const ValueKey('settings-nav-experimental')));
+      await tester.pumpAndSettle();
+      expect(find.text('GLOSSARY AND CUSTOM FIGURES'), findsOneWidget);
+    });
+
+    testWidgets('Custom Figures is nested under Show Glossary: disabled, with '
+        'its value kept, while the Glossary is off (#709)', (tester) async {
+      final show = ValueNotifier<bool>(false);
+      addTearDown(show.dispose);
+      final custom = ValueNotifier<bool>(true);
+      addTearDown(custom.dispose);
+      await _pumpSettings(
+        tester,
+        showGlossary: show,
+        showCustomFigures: custom,
+      );
+      await openGlossarySection(tester);
+
+      SwitchListTile tile() => tester.widget<SwitchListTile>(
+        find.byKey(const ValueKey('experimental-show-custom-figures')),
+      );
+      expect(tile().onChanged, isNull, reason: 'disabled while off');
+      expect(tile().value, isTrue, reason: 'its value is kept');
+      expect(
+        find.text('Turn on Show Glossary to use your own figures.'),
+        findsOneWidget,
+      );
+
+      show.value = true;
+      await tester.pumpAndSettle();
+      expect(tile().onChanged, isNotNull);
+    });
+
+    testWidgets('turning Custom Figures off updates the live setting and '
+        'persists it (#709)', (tester) async {
+      final show = ValueNotifier<bool>(true);
+      addTearDown(show.dispose);
+      final custom = ValueNotifier<bool>(false);
+      addTearDown(custom.dispose);
+      final harness = await _pumpSettings(
+        tester,
+        showGlossary: show,
+        showCustomFigures: custom,
+      );
+      await openGlossarySection(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey('experimental-show-custom-figures')),
+      );
+      await tester.pumpAndSettle();
+      expect(custom.value, isTrue);
+      expect(await harness.repos.settings.get(kShowCustomFiguresKey), isTrue);
+
+      await tester.tap(
+        find.byKey(const ValueKey('experimental-show-custom-figures')),
+      );
+      await tester.pumpAndSettle();
+      expect(custom.value, isFalse);
+      expect(await harness.repos.settings.get(kShowCustomFiguresKey), isFalse);
     });
   });
 }

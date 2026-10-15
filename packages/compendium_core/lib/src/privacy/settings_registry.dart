@@ -75,6 +75,7 @@ final Map<String, DataClassification> settingsClassifications = {
   'decimal_turns': _preference,
   'capitalize_figures': _preference,
   'show_glossary': _preference,
+  'show_custom_figures': _preference,
   'free_text_entry': _preference,
   'aggressive_beats_update': _preference,
   'canonical_figure_text': _preference,

@@ -7246,9 +7246,25 @@ void main() {
       expect(awaiting(result), isEmpty, reason: 'no other device to name');
     });
 
-    test('this build\'s policy gates nothing yet', () {
-      expect(SyncCapabilityPolicy.build.gatedCapabilities, isEmpty);
+    test('this build holds the glossary\'s settings back and advertises '
+        'nothing yet (#709)', () async {
+      expect(SyncCapabilityPolicy.build.gatedCapabilities, {
+        SyncCapabilities.glossaryV1,
+      });
       expect(SyncCapabilityPolicy.build.advertised, isEmpty);
+      final toggle = SyncMergeCandidate.fromBlob(
+        _setting('show_custom_figures', 'true'),
+      );
+      final store = _FakeStore(
+        local: {toggle.address: toggle, plain.address: plain},
+      );
+      final transport = transportFor(const []);
+      await coordinatorFor(
+        store,
+        transport,
+        capabilities: SyncCapabilityPolicy.build,
+      ).syncNow();
+      expect(publishedSettings(transport), {'theme_mode'});
     });
 
     test('the real store writes its own record only when it changes', () async {

@@ -45,7 +45,13 @@ final class SyncCapabilityPolicy {
   /// This build's policy. Its gated entries are registered by the features
   /// that need them; a capability is advertised only once the whole feature
   /// it covers, sync included, is in the build.
-  static const SyncCapabilityPolicy build = SyncCapabilityPolicy();
+  ///
+  /// [SyncCapabilities.glossaryV1] gates the Custom Figures toggle (#709)
+  /// and is not advertised yet, so that toggle stays on its device until the
+  /// glossary's own record kinds can sync with it.
+  static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
+    gatedSettingKeys: {'show_custom_figures': SyncCapabilities.glossaryV1},
+  );
 
   /// The capability a record waits for, or null when it is not gated.
   String? capabilityFor(SyncRecordKind kind, String recordId) =>

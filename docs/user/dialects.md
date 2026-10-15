@@ -195,6 +195,13 @@ turn off **Auto-convert all discouraged terms** in **Settings › Dialect › Da
 details & shorthands**. Either way, it only changes what you see: your saved
 dances, notes, search, shared files, and backups are never altered.
 
+Text you write in the [Glossary](settings.md#glossary-and-custom-figures) — your
+own figures and your notes on built-in figures — is the exception: those older
+terms are saved in today's wording as you save it, so "ladies chain" is kept as
+your dialect's role, and a later dialect change shows it in the new one. A word
+your own dialect uses as a role name, such as "ravens" in a Ravens and Crows
+dialect, is kept as that role.
+
 > **The app watches for clashes.** If two different things would end up with the
 > exact same wording, the editor warns you right away, because that would make it
 > impossible to tell them apart later. Adjust one of the words and the warning

@@ -10,7 +10,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 ```
 ┌ Collection (default)   – the dance library
 ├ Programs               – event set lists
-├ Glossary               – built-in figure reference (Experimental, off by default; #695)
+├ Glossary               – built-in figure reference, with the user's notes and
+│                          own compound figures (Experimental, off by default;
+│                          #695, #709)
 ├ Perform                – performance mode (entered from a program or dance)
 └ Settings               – dialect(s), data sources, custom fields, appearance
 ```

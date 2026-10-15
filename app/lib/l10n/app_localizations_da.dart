@@ -303,7 +303,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get glossaryAlsoKnownAs => 'Også kendt som';
 
   @override
-  String get settingsExperimentalGlossaryHeader => 'Ordliste';
+  String get settingsExperimentalGlossaryHeader => 'Ordliste og egne figurer';
 
   @override
   String get settingsExperimentalShowGlossaryTitle => 'Vis ordliste';
@@ -9125,4 +9125,277 @@ class AppLocalizationsDa extends AppLocalizations {
   String dialectEditorMoveWordingConfirmBody(String figures) {
     return 'Disse skabeloner udelader tilgængelige pladsholdere og kan skjule figurdetaljer:\n$figures\n\nGem alligevel?';
   }
+
+  @override
+  String get settingsExperimentalShowCustomFiguresTitle => 'Egne figurer';
+
+  @override
+  String get settingsExperimentalShowCustomFiguresSubtitle =>
+      'Viser dine egne figurer i ordlisten, hvor du kan tilføje og redigere dem. Slår du det fra, skjules de, men de slettes ikke.';
+
+  @override
+  String get settingsExperimentalShowCustomFiguresNeedsGlossary =>
+      'Slå Vis ordliste til for at bruge dine egne figurer.';
+
+  @override
+  String get glossaryAddCustomFigure => 'Tilføj din egen figur';
+
+  @override
+  String get glossaryCustomMarker => 'Egen';
+
+  @override
+  String get glossaryCustomNeedsRepair => 'Skal repareres';
+
+  @override
+  String get glossaryCustomNeedsRepairBody =>
+      'Denne figur kan ikke bruges, som den er: en af dens figurer eller parametre er ikke længere gyldig. Rediger den for at reparere den.';
+
+  @override
+  String get glossaryCustomRenameNeeded => 'Skal omdøbes';
+
+  @override
+  String get glossaryCustomRenameNeededBody =>
+      'En anden figur eller kortform har allerede dette navn. Omdøb denne, så de to kan skelnes fra hinanden.';
+
+  @override
+  String get glossaryCustomUnsupported => 'Nyere version';
+
+  @override
+  String get glossaryCustomUnsupportedBody =>
+      'Denne post blev oprettet med en nyere version af appen. Opdater appen på denne enhed for at redigere eller bruge den.';
+
+  @override
+  String glossaryCustomExpandsTo(int beats) {
+    return 'Udvider til ($beats slag)';
+  }
+
+  @override
+  String get glossaryCustomGone => 'Denne figur er blevet slettet.';
+
+  @override
+  String glossaryCustomDeleteTitle(String name) {
+    return 'Slet »$name«?';
+  }
+
+  @override
+  String get glossaryCustomDeleteBody =>
+      'Den fjernes fra din ordliste. Danse, du allerede har gemt med den, beholder deres figurer.';
+
+  @override
+  String get glossaryNotes => 'Dine noter';
+
+  @override
+  String get glossaryNotesEmpty => 'Ingen noter endnu.';
+
+  @override
+  String get glossaryNotesAdd => 'Tilføj noter';
+
+  @override
+  String get glossaryNotesEdit => 'Rediger noter';
+
+  @override
+  String get glossaryNotesEditTitle => 'Dine noter';
+
+  @override
+  String get glossaryNotesHint =>
+      'Hvordan du kalder den, hvad du skal holde øje med…';
+
+  @override
+  String get compoundEditorTitleNew => 'Ny figur';
+
+  @override
+  String get compoundEditorTitleEdit => 'Rediger figur';
+
+  @override
+  String get compoundEditorName => 'Navn';
+
+  @override
+  String get compoundEditorDefinition => 'Definition';
+
+  @override
+  String get compoundEditorDefinitionHelper =>
+      'Én sætning, der vises i ordlisten.';
+
+  @override
+  String get compoundEditorDescription => 'Beskrivelse';
+
+  @override
+  String get compoundEditorKeywords => 'Andre navne';
+
+  @override
+  String get compoundEditorKeywordsHelper =>
+      'Valgfrit. Adskil dem med kommaer.';
+
+  @override
+  String get compoundEditorNotes => 'Noter';
+
+  @override
+  String get compoundEditorOptional => 'Valgfrit.';
+
+  @override
+  String get compoundEditorFieldRequired => 'Påkrævet';
+
+  @override
+  String get compoundEditorRequired =>
+      'Giv figuren et navn, en definition og en beskrivelse.';
+
+  @override
+  String get compoundEditorParams => 'Parametre';
+
+  @override
+  String get compoundEditorParamsHelp =>
+      'Det, du vælger, hver gang du bruger figuren, f.eks. hvem og hvilken hånd.';
+
+  @override
+  String get compoundEditorParamName => 'Navn';
+
+  @override
+  String get compoundEditorParamKind => 'Type';
+
+  @override
+  String get compoundEditorAddParam => 'Tilføj parameter';
+
+  @override
+  String get compoundEditorRemoveParam => 'Fjern parameter';
+
+  @override
+  String get compoundEditorParamNames =>
+      'Giv hver parameter et forskelligt navn.';
+
+  @override
+  String get compoundEditorFigures => 'Figurer';
+
+  @override
+  String get compoundEditorFiguresHelp =>
+      'De figurer, den bliver til, når du gemmer en dans, i rækkefølge.';
+
+  @override
+  String get compoundEditorBindings => 'Udfyldes af parametre';
+
+  @override
+  String get compoundEditorBindingsHelp =>
+      'Vælg for hver figur, hvilke indstillinger der kommer fra en parameter. De øvrige forbliver, som du har sat dem.';
+
+  @override
+  String compoundEditorFigureN(int number, String figure) {
+    return 'Figur $number: $figure';
+  }
+
+  @override
+  String get compoundBindingFixed => 'Som angivet i figuren';
+
+  @override
+  String compoundBindingOpposite(String param) {
+    return 'Det modsatte af $param';
+  }
+
+  @override
+  String compoundBindingUnavailable(String option, String reason) {
+    return '$option (ikke tilgængelig: $reason)';
+  }
+
+  @override
+  String get compoundBindingNoName => 'den har endnu ikke et navn';
+
+  @override
+  String compoundBindingWrongKind(String paramKind, String slotKind) {
+    return 'den er af typen $paramKind; denne indstilling er af typen $slotKind';
+  }
+
+  @override
+  String get compoundBindingNoOpposite => 'denne type har ikke noget modsat';
+
+  @override
+  String get compoundBindingNoSharedValues =>
+      'ingen værdi passer til alle de indstillinger, den udfylder';
+
+  @override
+  String compoundEditorNameTaken(String name) {
+    return '»$name« er allerede navnet på en figur eller kortform. Vælg et andet navn.';
+  }
+
+  @override
+  String get compoundEditorNoFigures => 'Tilføj mindst én figur.';
+
+  @override
+  String compoundEditorEmptyDomain(String param) {
+    return 'Ingen værdi af $param passer til alle de indstillinger, den udfylder.';
+  }
+
+  @override
+  String get compoundEditorTooLarge =>
+      'Denne figur har flere figurer eller parametre, end den kan rumme.';
+
+  @override
+  String get compoundEditorBindingInvalid =>
+      'En figurs indstilling udfyldes af en parameter, som ikke længere passer til den. Tjek »Udfyldes af parametre«.';
+
+  @override
+  String get compoundEditorInvalidFigures =>
+      'En af figurerne er endnu ikke fuldstændig eller gyldig.';
+
+  @override
+  String get compoundEditorTooLong => 'Et af felterne er for langt.';
+
+  @override
+  String get compoundEditorUnusedTitle => 'Nogle parametre bruges ikke';
+
+  @override
+  String compoundEditorUnusedBody(String params) {
+    return '$params udfylder ingen af figurernes indstillinger, så et valg ændrer ingenting.';
+  }
+
+  @override
+  String get compoundEditorUnusedBack => 'Tilbage til editoren';
+
+  @override
+  String get compoundEditorUnusedSave => 'Gem alligevel';
+
+  @override
+  String get compoundEditorDiscardBody =>
+      'Du har ugemte ændringer i denne figur.';
+
+  @override
+  String compoundParamWithKind(String param, String kind) {
+    return '$param ($kind)';
+  }
+
+  @override
+  String get compoundParamKindDancers => 'dansere';
+
+  @override
+  String get compoundParamKindDancerPair => 'par af dansere';
+
+  @override
+  String get compoundParamKindHand => 'hånd';
+
+  @override
+  String get compoundParamKindShoulder => 'skulder';
+
+  @override
+  String get compoundParamKindSpin => 'drejeretning';
+
+  @override
+  String get compoundParamKindDirection => 'retning';
+
+  @override
+  String get compoundParamKindFraction => 'brøkdel';
+
+  @override
+  String get compoundParamKindRotation => 'drejningsomfang';
+
+  @override
+  String get compoundParamKindPlaces => 'pladser';
+
+  @override
+  String get compoundParamKindBeats => 'slag';
+
+  @override
+  String get compoundParamKindFlag => 'til/fra';
+
+  @override
+  String get compoundParamKindChoice => 'valgmulighed';
+
+  @override
+  String get compoundParamKindText => 'tekst';
 }

@@ -303,7 +303,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get glossaryAlsoKnownAs => 'Ook bekend als';
 
   @override
-  String get settingsExperimentalGlossaryHeader => 'Woordenlijst';
+  String get settingsExperimentalGlossaryHeader =>
+      'Woordenlijst en eigen figuren';
 
   @override
   String get settingsExperimentalShowGlossaryTitle => 'Woordenlijst tonen';
@@ -9190,4 +9191,278 @@ class AppLocalizationsNl extends AppLocalizations {
   String dialectEditorMoveWordingConfirmBody(String figures) {
     return 'Deze sjablonen laten beschikbare slots weg en kunnen figuurdetails verbergen:\n$figures\n\nToch opslaan?';
   }
+
+  @override
+  String get settingsExperimentalShowCustomFiguresTitle => 'Eigen figuren';
+
+  @override
+  String get settingsExperimentalShowCustomFiguresSubtitle =>
+      'Toont je eigen figuren in de woordenlijst, waar je ze kunt toevoegen en bewerken. Als je dit uitzet, worden ze verborgen, niet verwijderd.';
+
+  @override
+  String get settingsExperimentalShowCustomFiguresNeedsGlossary =>
+      'Zet Woordenlijst tonen aan om je eigen figuren te gebruiken.';
+
+  @override
+  String get glossaryAddCustomFigure => 'Eigen figuur toevoegen';
+
+  @override
+  String get glossaryCustomMarker => 'Eigen';
+
+  @override
+  String get glossaryCustomNeedsRepair => 'Reparatie nodig';
+
+  @override
+  String get glossaryCustomNeedsRepairBody =>
+      'Deze figuur kan zo niet worden gebruikt: een van de figuren of parameters erin is niet meer geldig. Bewerk de figuur om dit te herstellen.';
+
+  @override
+  String get glossaryCustomRenameNeeded => 'Nieuwe naam nodig';
+
+  @override
+  String get glossaryCustomRenameNeededBody =>
+      'Een andere figuur of afkorting heeft al deze naam. Geef deze een andere naam, zodat je ze uit elkaar kunt houden.';
+
+  @override
+  String get glossaryCustomUnsupported => 'Nieuwere versie';
+
+  @override
+  String get glossaryCustomUnsupportedBody =>
+      'Dit item is gemaakt met een nieuwere versie van de app. Werk de app op dit apparaat bij om het te bewerken of te gebruiken.';
+
+  @override
+  String glossaryCustomExpandsTo(int beats) {
+    return 'Klapt uit naar ($beats beats)';
+  }
+
+  @override
+  String get glossaryCustomGone => 'Deze figuur is verwijderd.';
+
+  @override
+  String glossaryCustomDeleteTitle(String name) {
+    return '‘$name’ verwijderen?';
+  }
+
+  @override
+  String get glossaryCustomDeleteBody =>
+      'Ze wordt uit je woordenlijst verwijderd. Dansen die je er al mee hebt opgeslagen, behouden hun figuren.';
+
+  @override
+  String get glossaryNotes => 'Jouw notities';
+
+  @override
+  String get glossaryNotesEmpty => 'Nog geen notities.';
+
+  @override
+  String get glossaryNotesAdd => 'Notities toevoegen';
+
+  @override
+  String get glossaryNotesEdit => 'Notities bewerken';
+
+  @override
+  String get glossaryNotesEditTitle => 'Jouw notities';
+
+  @override
+  String get glossaryNotesHint =>
+      'Hoe je de figuur callt, waar je op moet letten…';
+
+  @override
+  String get compoundEditorTitleNew => 'Nieuwe figuur';
+
+  @override
+  String get compoundEditorTitleEdit => 'Figuur bewerken';
+
+  @override
+  String get compoundEditorName => 'Naam';
+
+  @override
+  String get compoundEditorDefinition => 'Definitie';
+
+  @override
+  String get compoundEditorDefinitionHelper =>
+      'Eén zin, getoond in de woordenlijst.';
+
+  @override
+  String get compoundEditorDescription => 'Beschrijving';
+
+  @override
+  String get compoundEditorKeywords => 'Andere namen';
+
+  @override
+  String get compoundEditorKeywordsHelper =>
+      'Optioneel. Scheid ze met komma’s.';
+
+  @override
+  String get compoundEditorNotes => 'Notities';
+
+  @override
+  String get compoundEditorOptional => 'Optioneel.';
+
+  @override
+  String get compoundEditorFieldRequired => 'Verplicht';
+
+  @override
+  String get compoundEditorRequired =>
+      'Geef de figuur een naam, een definitie en een beschrijving.';
+
+  @override
+  String get compoundEditorParams => 'Parameters';
+
+  @override
+  String get compoundEditorParamsHelp =>
+      'Wat je kiest telkens als je de figuur gebruikt, zoals wie en welke hand.';
+
+  @override
+  String get compoundEditorParamName => 'Naam';
+
+  @override
+  String get compoundEditorParamKind => 'Type';
+
+  @override
+  String get compoundEditorAddParam => 'Parameter toevoegen';
+
+  @override
+  String get compoundEditorRemoveParam => 'Parameter verwijderen';
+
+  @override
+  String get compoundEditorParamNames => 'Geef elke parameter een andere naam.';
+
+  @override
+  String get compoundEditorFigures => 'Figuren';
+
+  @override
+  String get compoundEditorFiguresHelp =>
+      'De figuren waarnaar ze uitklapt wanneer je een dans opslaat, op volgorde.';
+
+  @override
+  String get compoundEditorBindings => 'Ingevuld door parameters';
+
+  @override
+  String get compoundEditorBindingsHelp =>
+      'Kies per figuur welke instellingen uit een parameter komen. De rest blijft zoals je die hebt ingesteld.';
+
+  @override
+  String compoundEditorFigureN(int number, String figure) {
+    return 'Figuur $number: $figure';
+  }
+
+  @override
+  String get compoundBindingFixed => 'Zoals ingesteld in de figuur';
+
+  @override
+  String compoundBindingOpposite(String param) {
+    return 'Tegenovergestelde van $param';
+  }
+
+  @override
+  String compoundBindingUnavailable(String option, String reason) {
+    return '$option (niet beschikbaar: $reason)';
+  }
+
+  @override
+  String get compoundBindingNoName => 'heeft nog geen naam';
+
+  @override
+  String compoundBindingWrongKind(String paramKind, String slotKind) {
+    return 'is van het type $paramKind; deze instelling is van het type $slotKind';
+  }
+
+  @override
+  String get compoundBindingNoOpposite =>
+      'dit type heeft geen tegenovergestelde';
+
+  @override
+  String get compoundBindingNoSharedValues =>
+      'geen waarde past bij alle instellingen die hij invult';
+
+  @override
+  String compoundEditorNameTaken(String name) {
+    return '‘$name’ is al de naam van een figuur of afkorting. Kies een andere naam.';
+  }
+
+  @override
+  String get compoundEditorNoFigures => 'Voeg ten minste één figuur toe.';
+
+  @override
+  String compoundEditorEmptyDomain(String param) {
+    return 'Geen waarde van $param past bij alle instellingen die hij invult.';
+  }
+
+  @override
+  String get compoundEditorTooLarge =>
+      'Deze figuur heeft meer figuren of parameters dan ze kan bevatten.';
+
+  @override
+  String get compoundEditorBindingInvalid =>
+      'Een instelling van een figuur wordt ingevuld door een parameter die er niet meer bij past. Controleer ‘Ingevuld door parameters’.';
+
+  @override
+  String get compoundEditorInvalidFigures =>
+      'Een van de figuren is nog niet volledig of geldig.';
+
+  @override
+  String get compoundEditorTooLong => 'Een van de velden is te lang.';
+
+  @override
+  String get compoundEditorUnusedTitle =>
+      'Sommige parameters worden niet gebruikt';
+
+  @override
+  String compoundEditorUnusedBody(String params) {
+    return '$params vult geen instellingen van een figuur in, dus kiezen verandert niets.';
+  }
+
+  @override
+  String get compoundEditorUnusedBack => 'Terug naar editor';
+
+  @override
+  String get compoundEditorUnusedSave => 'Toch opslaan';
+
+  @override
+  String get compoundEditorDiscardBody =>
+      'Je hebt niet-opgeslagen wijzigingen in deze figuur.';
+
+  @override
+  String compoundParamWithKind(String param, String kind) {
+    return '$param ($kind)';
+  }
+
+  @override
+  String get compoundParamKindDancers => 'dansers';
+
+  @override
+  String get compoundParamKindDancerPair => 'paar dansers';
+
+  @override
+  String get compoundParamKindHand => 'hand';
+
+  @override
+  String get compoundParamKindShoulder => 'schouder';
+
+  @override
+  String get compoundParamKindSpin => 'draairichting';
+
+  @override
+  String get compoundParamKindDirection => 'richting';
+
+  @override
+  String get compoundParamKindFraction => 'breuk';
+
+  @override
+  String get compoundParamKindRotation => 'draaihoek';
+
+  @override
+  String get compoundParamKindPlaces => 'plaatsen';
+
+  @override
+  String get compoundParamKindBeats => 'beats';
+
+  @override
+  String get compoundParamKindFlag => 'aan/uit';
+
+  @override
+  String get compoundParamKindChoice => 'optie';
+
+  @override
+  String get compoundParamKindText => 'tekst';
 }

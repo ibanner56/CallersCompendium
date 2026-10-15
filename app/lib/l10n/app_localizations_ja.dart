@@ -293,7 +293,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get glossaryAlsoKnownAs => '別名';
 
   @override
-  String get settingsExperimentalGlossaryHeader => '用語集';
+  String get settingsExperimentalGlossaryHeader => '用語集とカスタムフィギュア';
 
   @override
   String get settingsExperimentalShowGlossaryTitle => '用語集を表示';
@@ -8780,4 +8780,267 @@ class AppLocalizationsJa extends AppLocalizations {
   String dialectEditorMoveWordingConfirmBody(String figures) {
     return 'これらのテンプレートでは利用可能なスロットが省略されているため、フィギュアの詳細が隠れる可能性があります:\n$figures\n\nそれでも保存しますか？';
   }
+
+  @override
+  String get settingsExperimentalShowCustomFiguresTitle => 'カスタムフィギュア';
+
+  @override
+  String get settingsExperimentalShowCustomFiguresSubtitle =>
+      '自分のフィギュアを用語集に表示し、そこで追加や編集ができます。オフにすると非表示になりますが、削除はされません。';
+
+  @override
+  String get settingsExperimentalShowCustomFiguresNeedsGlossary =>
+      '自分のフィギュアを使うには、「用語集を表示」をオンにしてください。';
+
+  @override
+  String get glossaryAddCustomFigure => '自分のフィギュアを追加';
+
+  @override
+  String get glossaryCustomMarker => 'カスタム';
+
+  @override
+  String get glossaryCustomNeedsRepair => '要修復';
+
+  @override
+  String get glossaryCustomNeedsRepairBody =>
+      'このフィギュアはこのままでは使用できません。含まれるフィギュアまたはパラメーターのいずれかが無効になっています。編集して修復してください。';
+
+  @override
+  String get glossaryCustomRenameNeeded => '名前の変更が必要';
+
+  @override
+  String get glossaryCustomRenameNeededBody =>
+      '別のフィギュアまたはショートハンドがすでにこの名前を使用しています。区別できるように、こちらの名前を変更してください。';
+
+  @override
+  String get glossaryCustomUnsupported => '新しいバージョン';
+
+  @override
+  String get glossaryCustomUnsupportedBody =>
+      'この項目は新しいバージョンのアプリで作成されました。編集または使用するには、このデバイスのアプリを更新してください。';
+
+  @override
+  String glossaryCustomExpandsTo(int beats) {
+    return '展開先（$beats拍）';
+  }
+
+  @override
+  String get glossaryCustomGone => 'このフィギュアは削除されました。';
+
+  @override
+  String glossaryCustomDeleteTitle(String name) {
+    return '「$name」を削除しますか？';
+  }
+
+  @override
+  String get glossaryCustomDeleteBody =>
+      '用語集から削除されます。このフィギュアを使ってすでに保存したダンスのフィギュアはそのまま残ります。';
+
+  @override
+  String get glossaryNotes => '自分のノート';
+
+  @override
+  String get glossaryNotesEmpty => 'ノートはまだありません。';
+
+  @override
+  String get glossaryNotesAdd => 'ノートを追加';
+
+  @override
+  String get glossaryNotesEdit => 'ノートを編集';
+
+  @override
+  String get glossaryNotesEditTitle => '自分のノート';
+
+  @override
+  String get glossaryNotesHint => 'コールの仕方、注意点など…';
+
+  @override
+  String get compoundEditorTitleNew => '新しいフィギュア';
+
+  @override
+  String get compoundEditorTitleEdit => 'フィギュアを編集';
+
+  @override
+  String get compoundEditorName => '名前';
+
+  @override
+  String get compoundEditorDefinition => '定義';
+
+  @override
+  String get compoundEditorDefinitionHelper => '1文で入力します。用語集の一覧に表示されます。';
+
+  @override
+  String get compoundEditorDescription => '説明';
+
+  @override
+  String get compoundEditorKeywords => '別名';
+
+  @override
+  String get compoundEditorKeywordsHelper => '任意。カンマで区切ってください。';
+
+  @override
+  String get compoundEditorNotes => 'ノート';
+
+  @override
+  String get compoundEditorOptional => '任意。';
+
+  @override
+  String get compoundEditorFieldRequired => '必須';
+
+  @override
+  String get compoundEditorRequired => 'フィギュアの名前、定義、説明を入力してください。';
+
+  @override
+  String get compoundEditorParams => 'パラメーター';
+
+  @override
+  String get compoundEditorParamsHelp => 'フィギュアを使うたびに選ぶ項目です（誰が、どちらの手で、など）。';
+
+  @override
+  String get compoundEditorParamName => '名前';
+
+  @override
+  String get compoundEditorParamKind => '種類';
+
+  @override
+  String get compoundEditorAddParam => 'パラメーターを追加';
+
+  @override
+  String get compoundEditorRemoveParam => 'パラメーターを削除';
+
+  @override
+  String get compoundEditorParamNames => '各パラメーターに異なる名前を付けてください。';
+
+  @override
+  String get compoundEditorFigures => 'フィギュア';
+
+  @override
+  String get compoundEditorFiguresHelp => 'ダンスを保存するときに展開されるフィギュアです（順番どおり）。';
+
+  @override
+  String get compoundEditorBindings => 'パラメーターで指定';
+
+  @override
+  String get compoundEditorBindingsHelp =>
+      '各フィギュアについて、どの設定をパラメーターから取るかを選びます。それ以外は設定したままになります。';
+
+  @override
+  String compoundEditorFigureN(int number, String figure) {
+    return 'フィギュア$number：$figure';
+  }
+
+  @override
+  String get compoundBindingFixed => 'フィギュアでの設定どおり';
+
+  @override
+  String compoundBindingOpposite(String param) {
+    return '$paramの逆';
+  }
+
+  @override
+  String compoundBindingUnavailable(String option, String reason) {
+    return '$option（使用不可：$reason）';
+  }
+
+  @override
+  String get compoundBindingNoName => 'まだ名前がありません';
+
+  @override
+  String compoundBindingWrongKind(String paramKind, String slotKind) {
+    return '種類が$paramKindですが、この設定は$slotKindです';
+  }
+
+  @override
+  String get compoundBindingNoOpposite => 'この種類には逆がありません';
+
+  @override
+  String get compoundBindingNoSharedValues => '指定先のすべての設定に合う値がありません';
+
+  @override
+  String compoundEditorNameTaken(String name) {
+    return '「$name」はすでにフィギュアまたはショートハンドの名前として使われています。別の名前を選んでください。';
+  }
+
+  @override
+  String get compoundEditorNoFigures => 'フィギュアを1つ以上追加してください。';
+
+  @override
+  String compoundEditorEmptyDomain(String param) {
+    return '$paramには、指定先のすべての設定に合う値がありません。';
+  }
+
+  @override
+  String get compoundEditorTooLarge =>
+      'このフィギュアには、保持できる数を超えるフィギュアまたはパラメーターがあります。';
+
+  @override
+  String get compoundEditorBindingInvalid =>
+      'フィギュアの設定に、もう合わないパラメーターが指定されています。「パラメーターで指定」を確認してください。';
+
+  @override
+  String get compoundEditorInvalidFigures => 'いずれかのフィギュアがまだ不完全か無効です。';
+
+  @override
+  String get compoundEditorTooLong => 'いずれかの欄が長すぎます。';
+
+  @override
+  String get compoundEditorUnusedTitle => '使われていないパラメーターがあります';
+
+  @override
+  String compoundEditorUnusedBody(String params) {
+    return '$paramsはどのフィギュアの設定にも使われていないため、選んでも何も変わりません。';
+  }
+
+  @override
+  String get compoundEditorUnusedBack => 'エディターに戻る';
+
+  @override
+  String get compoundEditorUnusedSave => 'このまま保存';
+
+  @override
+  String get compoundEditorDiscardBody => 'このフィギュアに未保存の変更があります。';
+
+  @override
+  String compoundParamWithKind(String param, String kind) {
+    return '$param（$kind）';
+  }
+
+  @override
+  String get compoundParamKindDancers => 'ダンサー';
+
+  @override
+  String get compoundParamKindDancerPair => 'ダンサーのペア';
+
+  @override
+  String get compoundParamKindHand => '手';
+
+  @override
+  String get compoundParamKindShoulder => '肩';
+
+  @override
+  String get compoundParamKindSpin => '回転方向';
+
+  @override
+  String get compoundParamKindDirection => '方向';
+
+  @override
+  String get compoundParamKindFraction => '分数';
+
+  @override
+  String get compoundParamKindRotation => '回転量';
+
+  @override
+  String get compoundParamKindPlaces => '位置の数';
+
+  @override
+  String get compoundParamKindBeats => '拍数';
+
+  @override
+  String get compoundParamKindFlag => 'オン/オフ';
+
+  @override
+  String get compoundParamKindChoice => '選択肢';
+
+  @override
+  String get compoundParamKindText => 'テキスト';
 }

@@ -70,6 +70,7 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'set_list_color_coding' => l10n.settingsAppearanceSetListColorTitle,
   'shorthand_mappings' => l10n.settingsDefaultsFigureShorthandsTitle,
   'show_glossary' => l10n.settingsExperimentalShowGlossaryTitle,
+  'show_custom_figures' => l10n.settingsExperimentalShowCustomFiguresTitle,
   'show_individual_perform_timer' =>
     l10n.settingsShowIndividualPerformTimerTitle,
   'show_program_slot_caller_notes' =>

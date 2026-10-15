@@ -6,7 +6,7 @@ check a meaning without losing your place. Terms are listed alphabetically.
 
 Looking for a dance figure instead? The app's **Glossary** describes the figures
 built into the app, in your own dialect. Turn it on under **Settings ▸
-Experimental** (see [Settings](./settings.md#glossary)).
+Experimental** (see [Settings](./settings.md#glossary-and-custom-figures)).
 
 ## Alt
 

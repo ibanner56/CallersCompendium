@@ -8,6 +8,7 @@ import 'backup_reminder.dart' show kBackupReminderCadenceKey;
 import 'confirm_before_delete_scope.dart' show kConfirmBeforeDeleteKey;
 import 'capitalize_figures_scope.dart' show kCapitalizeFiguresKey;
 import 'decimal_turns_scope.dart' show kDecimalTurnsKey;
+import 'show_custom_figures_scope.dart' show kShowCustomFiguresKey;
 import 'show_glossary_scope.dart' show kShowGlossaryKey;
 import 'display_defaults.dart'
     show
@@ -92,6 +93,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kDecimalTurnsKey,
     kCapitalizeFiguresKey,
     kShowGlossaryKey,
+    kShowCustomFiguresKey,
     kConfirmBeforeDeleteKey,
     kSetListColorCodingKey,
     kUpdateAutoCheckKey,
