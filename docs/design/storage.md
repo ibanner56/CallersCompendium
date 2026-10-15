@@ -174,7 +174,8 @@ No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
   representative rows. A schema snapshot carries structure only, so it cannot
   show that `onUpgrade` preserved data; `real_release_fixture_test.dart`
   opens the fixture, migrates it to head and reads the rows, FTS content,
-  links, provenance, program and settings back. See "Floor fixtures" below.
+  links, provenance, program and settings back. A second one, `v38.sqlite`
+  from `v0.6.0-beta`, covers the bridge release. See "Floor fixtures" below.
 - A **schema floor** (`kMinSupportedSchemaVersion`): versions below it are
   retired — their migration steps, fixtures and `drift_schemas/generated/`
   dumps are
@@ -248,6 +249,13 @@ clean, the dances/tags/authors/provenance/figures round-trip, FTS search works
 | Fixture | Written by | Schema | sha256 |
 | --- | --- | --- | --- |
 | `v35.sqlite` (the floor) | `v0.4.0-beta` (`04ab10c7`) | 35 | `bce61632dce3f44ff56cd32cec101747dadc1339c17788b3951bccfaf884b290` |
+| `v38.sqlite` (the bridge release) | `v0.6.0-beta` (`a6d52290`) | 38 | `44dfb5a4b25143445a17feb1af6b224a6caa2a4ba5bf9ec3ecc315c000ac1286` |
+
+`v38.sqlite` is the release `kBelowFloorBridgeTags` sends v20–v34 collections
+through, so it is the file many migrating collections really reach head from. It
+is not below the floor, so the below-floor gate allows it; once the floor passes
+v38, delete it and its group in the test. The floor fixture, by contrast, is
+tied to the constant and can never be dropped silently.
 
 Regenerate by running `tool/fixture_generators/generate_release_fixture.dart`
 from a checkout of the release tag (recipe in its header); the output is

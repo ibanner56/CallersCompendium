@@ -7,7 +7,9 @@
 // not the API at head; `analysis_options.yaml` excludes this directory for that
 // reason. Run it from a checkout of the release tag, never from head.
 //
-// Recipe (v35 from v0.4.0-beta, commit 04ab10c7; kCompendiumSchemaVersion = 35):
+// Recipe (v35 from v0.4.0-beta, commit 04ab10c7; kCompendiumSchemaVersion = 35;
+// v38 is the same recipe from v0.6.0-beta, commit a6d52290, whose package has no
+// `resolution: workspace` line to delete):
 //
 //   git worktree add --detach <dir> v0.4.0-beta
 //   cd <dir>/packages/compendium_core
@@ -20,8 +22,8 @@
 //
 // The output is byte-reproducible: every timestamp the script writes is fixed,
 // and the one the release's own seeder takes from the wall clock (the default
-// difficulty levels) is pinned below. Two runs on the same sqlite3 build produce the
-// same sha256; the committed digest is recorded in docs/design/storage.md.
+// difficulty levels) is pinned below. Two runs on the same sqlite3 build produce
+// the same sha256; the committed digests are recorded in docs/design/storage.md.
 //
 // Why a real release and not the schema snapshots: `GeneratedHelper` carries
 // structure only, so a test built on it can never notice that `onUpgrade`
@@ -57,10 +59,21 @@ Future<void> main(List<String> args) async {
     Choreographer(id: 'c-old', name: 'Old Timer', deceased: true),
     at: t0,
   );
-  await repos.tags.upsert(Tag(id: 't-beginner', name: 'Beginner', color: 0xFF336699), at: t0);
-  await repos.tags.upsert(Tag(id: 't-gender-free', name: 'Gender-free'), at: t0);
+  await repos.tags.upsert(
+    Tag(id: 't-beginner', name: 'Beginner', color: 0xFF336699),
+    at: t0,
+  );
+  await repos.tags.upsert(
+    Tag(id: 't-gender-free', name: 'Gender-free'),
+    at: t0,
+  );
   await repos.publishedSources.upsert(
-    PublishedSource(id: 'ps-1', title: 'Zesty Contras', author: 'Larry Jennings', year: 1983),
+    PublishedSource(
+      id: 'ps-1',
+      title: 'Zesty Contras',
+      author: 'Larry Jennings',
+      year: 1983,
+    ),
     at: t0,
   );
   final field = CustomFieldDef(
@@ -114,10 +127,22 @@ Future<void> main(List<String> args) async {
       customFields: [CustomFieldValue(fieldId: 'cf-energy', value: 'high')],
       tagIds: ['t-beginner', 't-gender-free'],
       links: [
-        DanceLink(id: 'l-1', kind: LinkKind.video, url: 'https://example.org/v', label: 'Demo'),
-        DanceLink(id: 'l-2', kind: LinkKind.relatedDance, targetDanceId: 'd-plain', transitive: true),
+        DanceLink(
+          id: 'l-1',
+          kind: LinkKind.video,
+          url: 'https://example.org/v',
+          label: 'Demo',
+        ),
+        DanceLink(
+          id: 'l-2',
+          kind: LinkKind.relatedDance,
+          targetDanceId: 'd-plain',
+          transitive: true,
+        ),
       ],
-      sourceCitations: [SourceCitation(sourceId: 'ps-1', page: '12', number: 'A1')],
+      sourceCitations: [
+        SourceCitation(sourceId: 'ps-1', page: '12', number: 'A1'),
+      ],
       provenance: Provenance(
         source: ProvenanceSource.callersbox,
         externalId: 'cb-4242',
@@ -135,7 +160,9 @@ Future<void> main(List<String> args) async {
     Dance(
       id: 'd-gone',
       title: 'Deleted Dance',
-      figures: [Figure(move: 'swing', params: const {'who': 'partners'})],
+      figures: [
+        Figure(move: 'swing', params: const {'who': 'partners'}),
+      ],
       createdAt: t0,
       updatedAt: t0,
       deletedAt: t0,
@@ -146,7 +173,9 @@ Future<void> main(List<String> args) async {
     Dance(
       id: 'd-fts',
       title: 'Résumé Reel',
-      figures: [Figure(move: 'robins_chain', params: const {'who': 'neighbors'})],
+      figures: [
+        Figure(move: 'robins_chain', params: const {'who': 'neighbors'}),
+      ],
       hook: 'hey for four',
       createdAt: t0,
       updatedAt: t0,
@@ -165,9 +194,21 @@ Future<void> main(List<String> args) async {
       dancerLevel: 'mixed',
       notes: 'bring snacks',
       slots: [
-        ProgramSlot(id: 's-1', position: 0, danceId: 'd-chase', walkthroughMinutes: 5, danceMinutes: 12),
+        ProgramSlot(
+          id: 's-1',
+          position: 0,
+          danceId: 'd-chase',
+          walkthroughMinutes: 5,
+          danceMinutes: 12,
+        ),
         ProgramSlot(id: 's-2', position: 1, text: 'Break / waltz'),
-        ProgramSlot(id: 's-3', position: 2, danceId: 'd-plain', isAlt: true, guestCaller: 'Sam'),
+        ProgramSlot(
+          id: 's-3',
+          position: 2,
+          danceId: 'd-plain',
+          isAlt: true,
+          guestCaller: 'Sam',
+        ),
       ],
       createdAt: t0,
       updatedAt: t0,
@@ -191,9 +232,21 @@ Future<void> main(List<String> args) async {
   final v = raw.select('PRAGMA user_version').first.columnAt(0);
   stdout.writeln('user_version=$v');
   for (final t in [
-    'dances', 'dance_figures', 'dance_fts', 'dance_substring_fts', 'programs',
-    'program_slots', 'settings', 'tags', 'dance_tags', 'venues', 'choreographers',
-    'custom_field_values', 'dance_links', 'dance_tunes', 'dance_source_citations',
+    'dances',
+    'dance_figures',
+    'dance_fts',
+    'dance_substring_fts',
+    'programs',
+    'program_slots',
+    'settings',
+    'tags',
+    'dance_tags',
+    'venues',
+    'choreographers',
+    'custom_field_values',
+    'dance_links',
+    'dance_tunes',
+    'dance_source_citations',
   ]) {
     try {
       final n = raw.select('SELECT count(*) FROM $t').first.columnAt(0);

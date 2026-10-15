@@ -90,6 +90,9 @@ current floor is missing. Its file name is derived from
 fixture for the new floor is captured** from the new floor release's tag; the
 recipe and generator are `tool/fixture_generators/generate_release_fixture.dart`.
 Retiring the old floor deletes the old fixture, as for any below-floor artefact.
+A second fixture, `v38.sqlite` from `v0.6.0-beta` (the release the app's
+below-floor bridge sends older collections through), sits beside it; it is not
+tied to the floor and is deleted once the floor passes v38.
 
 ## Adding a version
 
