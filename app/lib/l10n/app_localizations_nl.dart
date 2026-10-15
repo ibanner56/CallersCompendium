@@ -9232,7 +9232,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String glossaryCustomExpandsTo(int beats) {
-    return 'Klapt uit naar ($beats beats)';
+    return 'Wordt uitgevouwen tot ($beats beats)';
   }
 
   @override
@@ -9265,6 +9265,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get glossaryNotesHint =>
       'Hoe je de figuur callt, waar je op moet letten…';
+
+  @override
+  String get glossaryNotesTooLong =>
+      'Je notities zijn te lang om op te slaan. Maak ze korter en probeer het opnieuw.';
 
   @override
   String get compoundEditorTitleNew => 'Nieuwe figuur';
@@ -9313,7 +9317,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'Wat je kiest telkens als je de figuur gebruikt, zoals wie en welke hand.';
 
   @override
-  String get compoundEditorParamName => 'Naam';
+  String get compoundEditorParamName => 'Parameternaam';
 
   @override
   String get compoundEditorParamKind => 'Type';

@@ -9321,6 +9321,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Comment vous l’appelez, à quoi faire attention…';
 
   @override
+  String get glossaryNotesTooLong =>
+      'Vos notes sont trop longues pour être enregistrées. Raccourcissez-les et réessayez.';
+
+  @override
   String get compoundEditorTitleNew => 'Nouvelle figure';
 
   @override
@@ -9367,7 +9371,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ce que vous choisissez chaque fois que vous utilisez la figure, par exemple qui et quelle main.';
 
   @override
-  String get compoundEditorParamName => 'Nom';
+  String get compoundEditorParamName => 'Nom du paramètre';
 
   @override
   String get compoundEditorParamKind => 'Type';

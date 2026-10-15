@@ -1894,6 +1894,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 initialText: moveText,
                 autofocus: move == null || move == _standStillMove,
                 includeModifier: widget.allowModifierSelection,
+                includeCustomMove: widget.allowCustom,
                 onSelected: (option) => option.kind == MoveOptionKind.modifier
                     ? _selectModifier()
                     : _selectMove(option.id),

@@ -341,3 +341,59 @@ class _GlossaryCustomFigureDetailState
     );
   }
 }
+
+/// A custom figure's name in the active dialect, kept current as the entry
+/// changes: the title of its pushed detail page, from which it can be renamed.
+/// [fallback] shows until the entry is read, and once it is deleted.
+class CustomFigureTitle extends StatefulWidget {
+  const CustomFigureTitle({
+    super.key,
+    required this.entryId,
+    required this.fallback,
+  });
+
+  final String entryId;
+  final String fallback;
+
+  @override
+  State<CustomFigureTitle> createState() => _CustomFigureTitleState();
+}
+
+class _CustomFigureTitleState extends State<CustomFigureTitle> {
+  CompendiumRepositories? _repos;
+  StreamSubscription<List<UserGlossaryEntry>>? _sub;
+  String? _name;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final repos = RepositoriesScope.maybeOf(context);
+    if (identical(repos, _repos)) return;
+    _repos = repos;
+    unawaited(_sub?.cancel());
+    _sub = repos?.userGlossary.watchAll().listen((entries) {
+      final name = entries
+          .where((e) => e.id == widget.entryId)
+          .firstOrNull
+          ?.name;
+      if (mounted && name != null) setState(() => _name = name);
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_sub?.cancel());
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final name = _name;
+    return Text(
+      name == null
+          ? widget.fallback
+          : _renderer.renderFreeText(name, ActiveDialectScope.of(context)),
+      key: const ValueKey('glossary-custom-title'),
+    );
+  }
+}
