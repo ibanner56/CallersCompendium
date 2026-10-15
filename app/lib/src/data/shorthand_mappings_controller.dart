@@ -7,6 +7,11 @@ import 'package:flutter/foundation.dart';
 /// default).
 const String kShorthandMappingsKey = 'shorthand_mappings';
 
+/// Persistence key for the user's compound shorthands (#709): tokens that
+/// stand for one of their own compound figures with fixed arguments. See
+/// [CompoundShorthands].
+const String kCompoundShorthandsKey = compoundShorthandsSettingKey;
+
 /// Owns the user's locally-saved shorthand → figure(s) mappings (issue #420)
 /// and exposes them live to the widget tree.
 ///
@@ -19,9 +24,12 @@ const String kShorthandMappingsKey = 'shorthand_mappings';
 /// structural `meanwhile` and `modifier` targets are validated against their
 /// bounded alternating-child model.
 ///
-/// Tokens are unique case-insensitively; the controller preserves the user's
-/// original casing for display and enforces uniqueness / bounded length /
-/// non-empty on [upsert].
+/// It also owns the compound shorthands (#709), stored under their own key, so
+/// that one place keeps every token unique across both kinds.
+///
+/// Tokens are unique case-insensitively across both kinds; the controller
+/// preserves the user's original casing for display and enforces uniqueness /
+/// bounded length / non-empty on [upsert] and [upsertCompound].
 class ShorthandMappingsController extends ChangeNotifier {
   ShorthandMappingsController(this._settings, {Taxonomy? taxonomy})
     : _taxonomy = taxonomy ?? contraTaxonomy;
@@ -30,6 +38,7 @@ class ShorthandMappingsController extends ChangeNotifier {
   final Taxonomy _taxonomy;
 
   List<ShorthandMapping> _mappings = const [];
+  List<CompoundShorthand> _compound = const [];
 
   /// The current mappings, in display/insertion order. Unmodifiable.
   List<ShorthandMapping> get mappings => List.unmodifiable(_mappings);
@@ -41,6 +50,13 @@ class ShorthandMappingsController extends ChangeNotifier {
   /// Whether there are no mappings.
   bool get isEmpty => _mappings.isEmpty;
 
+  /// The compound shorthands, in display order. Unmodifiable.
+  List<CompoundShorthand> get compoundShorthands =>
+      List.unmodifiable(_compound);
+
+  /// The compound shorthands as a resolvable store, for free-text entry.
+  CompoundShorthands get compoundStore => CompoundShorthands(_compound);
+
   /// Loads persisted mappings from storage. Safe to call once at startup;
   /// malformed payloads degrade to "no mappings" rather than throwing.
   Future<void> load() async {
@@ -49,16 +65,25 @@ class ShorthandMappingsController extends ChangeNotifier {
       stored,
       taxonomy: _taxonomy,
     ).mappings.toList();
+    _compound = CompoundShorthands.decode(
+      await _settings.get(kCompoundShorthandsKey),
+    ).shorthands.toList();
     notifyListeners();
   }
 
-  /// Whether [token] already names a mapping (case-insensitively), optionally
-  /// ignoring the mapping at [exceptIndex] (used when editing a row in place).
-  bool hasToken(String token, {int? exceptIndex}) {
+  /// Whether [token] already names a shorthand of either kind
+  /// (case-insensitively), optionally ignoring the figure shorthand at
+  /// [exceptIndex] or the compound shorthand at [exceptCompoundIndex] (used
+  /// when editing a row in place).
+  bool hasToken(String token, {int? exceptIndex, int? exceptCompoundIndex}) {
     final normalized = normalizeShorthandToken(token);
     for (var i = 0; i < _mappings.length; i++) {
       if (i == exceptIndex) continue;
       if (_mappings[i].normalizedToken == normalized) return true;
+    }
+    for (var i = 0; i < _compound.length; i++) {
+      if (i == exceptCompoundIndex) continue;
+      if (_compound[i].normalizedToken == normalized) return true;
     }
     return false;
   }
@@ -127,6 +152,52 @@ class ShorthandMappingsController extends ChangeNotifier {
     await _persist();
     notifyListeners();
   }
+
+  /// Adds [shorthand] (when [index] is null) or replaces the compound
+  /// shorthand at [index]. Rejects, by throwing [ArgumentError], an empty or
+  /// over-long token or one any other shorthand of either kind already has;
+  /// the editor validates first, so this is a backstop.
+  Future<void> upsertCompound(CompoundShorthand shorthand, {int? index}) async {
+    final token = shorthand.token.trim();
+    if (token.isEmpty || token.length > maxShorthandTokenLength) {
+      throw ArgumentError.value(shorthand.token, 'token', 'invalid length');
+    }
+    if (hasToken(token, exceptCompoundIndex: index)) {
+      throw ArgumentError.value(
+        shorthand.token,
+        'token',
+        'duplicates an existing shorthand (case-insensitive)',
+      );
+    }
+    final normalized = CompoundShorthand(
+      token: token,
+      compoundId: shorthand.compoundId,
+      compoundName: shorthand.compoundName,
+      args: shorthand.args,
+    );
+    final next = _compound.toList();
+    if (index == null || index < 0 || index >= next.length) {
+      next.add(normalized);
+    } else {
+      next[index] = normalized;
+    }
+    _compound = next;
+    await _persistCompound();
+    notifyListeners();
+  }
+
+  /// Removes the compound shorthand at [index] (a no-op when out of range).
+  Future<void> removeCompoundAt(int index) async {
+    if (index < 0 || index >= _compound.length) return;
+    _compound = _compound.toList()..removeAt(index);
+    await _persistCompound();
+    notifyListeners();
+  }
+
+  Future<void> _persistCompound() => _settings.set(
+    kCompoundShorthandsKey,
+    CompoundShorthands(_compound).toJson(),
+  );
 
   Future<void> _persist() => _settings.set(
     kShorthandMappingsKey,

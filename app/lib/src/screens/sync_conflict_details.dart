@@ -525,6 +525,19 @@ class SyncConflictComparison extends StatelessWidget {
       case 'shorthand_mappings':
         final figures = value is Map ? value['figures'] : null;
         return _figureText(figures, dialect) ?? l10n.syncConflictValueNotSet;
+      case compoundShorthandsSettingKey:
+        // One of the user's own figures, by the name the shorthand stored,
+        // with the values it gives.
+        if (value case {
+          'name': final String name,
+          'args': final Map<Object?, Object?> args,
+        }) {
+          final shown = _renderer.renderFreeText(name, dialect);
+          return args.isEmpty
+              ? shown
+              : l10n.danceEditorCompoundSummary(shown, args.values.join(', '));
+        }
+        return l10n.syncConflictValueNotSet;
       default:
         // A dialect or theme: name what differs inside it is beyond this
         // view; its name and a count of its parts tell the two apart.

@@ -46,11 +46,14 @@ final class SyncCapabilityPolicy {
   /// that need them; a capability is advertised only once the whole feature
   /// it covers, sync included, is in the build.
   ///
-  /// [SyncCapabilities.glossaryV1] gates the Custom Figures toggle (#709)
-  /// and is not advertised yet, so that toggle stays on its device until the
-  /// glossary's own record kinds can sync with it.
+  /// [SyncCapabilities.glossaryV1] gates the Custom Figures toggle and the
+  /// compound shorthands (#709) and is not advertised yet, so they stay on
+  /// their device until the glossary's own record kinds can sync with them.
   static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
-    gatedSettingKeys: {'show_custom_figures': SyncCapabilities.glossaryV1},
+    gatedSettingKeys: {
+      'show_custom_figures': SyncCapabilities.glossaryV1,
+      'compound_shorthands': SyncCapabilities.glossaryV1,
+    },
   );
 
   /// The capability a record waits for, or null when it is not gated.

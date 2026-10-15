@@ -8365,6 +8365,44 @@ class AppLocalizationsFr extends AppLocalizations {
   String get shorthandMappingsActionsTooltip => 'Actions de l’abréviation';
 
   @override
+  String get shorthandsCompoundTitle => 'Abréviations pour vos propres figures';
+
+  @override
+  String get shorthandsCompoundIntro =>
+      'Quand la saisie en texte libre est activée, taper l’une de ces abréviations seul sur une ligne dans l’éditeur de danse ajoute l’une de vos propres figures, avec les valeurs choisies ici.';
+
+  @override
+  String get shorthandsCompoundNew =>
+      'Nouvelle abréviation pour l’une de vos figures';
+
+  @override
+  String get shorthandsCompoundEmpty =>
+      'Aucune abréviation pour vos propres figures pour l’instant.';
+
+  @override
+  String get shorthandsCompoundUnavailable =>
+      'Inutilisable : sa figure a été supprimée ou modifiée, ou n’accepte pas ces valeurs. Une fois tapée, elle est lue comme une ligne ordinaire.';
+
+  @override
+  String get shorthandsCompoundShadowed =>
+      'Non utilisée : une abréviation de figures a le même texte.';
+
+  @override
+  String get compoundShorthandEditorFigureLabel => 'Votre figure';
+
+  @override
+  String get compoundShorthandEditorNoFigure =>
+      'Choisissez l’une de vos figures.';
+
+  @override
+  String get compoundShorthandEditorNoCompounds =>
+      'Vous n’avez pas encore de figures à vous. Ajoutez-en d’abord une dans le glossaire.';
+
+  @override
+  String get compoundShorthandEditorInvalidValues =>
+      'Ces valeurs ne conviennent pas à cette figure. Choisissez-en d’autres.';
+
+  @override
   String get shorthandEditorTitleNew => 'Nouvelle abréviation';
 
   @override

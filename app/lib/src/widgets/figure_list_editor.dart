@@ -11,6 +11,7 @@ import '../data/decimal_turns_scope.dart';
 import '../editor/figure_draft.dart';
 import '../glossary/custom_figures.dart';
 import '../search/facet_labels.dart';
+import 'compound_argument_editor.dart';
 import 'figure_param_editors.dart';
 import 'import_gap_badge.dart';
 import 'lingo_text_editing_controller.dart';
@@ -54,6 +55,7 @@ class FigureListEditor extends StatefulWidget {
     this.moveParamDefaults,
     this.freeTextEntry = false,
     this.onAddFreeText,
+    this.onSubmitCompoundShorthand,
     this.shorthandMappings,
     this.snippetLibraryDefaultFor,
     this.onSnippetCommitted,
@@ -144,6 +146,12 @@ class FigureListEditor extends StatefulWidget {
   /// list. Only used when [freeTextEntry] is true. A single typed line may yield
   /// more than one figure when it is a `;`-compound.
   final int Function(List<Figure> figures)? onAddFreeText;
+
+  /// Offered each free-text line before it is parsed (#709): inserts a row for
+  /// one of the user's own compound figures when the line is a compound
+  /// shorthand that can be used, and says whether it did. A line it declines
+  /// is parsed as usual. Null (the default) offers none.
+  final bool Function(String line)? onSubmitCompoundShorthand;
 
   /// User-defined shorthand → figure(s) mappings (issue #420) consulted FIRST
   /// during free-text entry: a typed line matching a shorthand token (whole
@@ -593,6 +601,13 @@ class _FigureListEditorState extends State<FigureListEditor> {
   void _submitFreeText() {
     final onAddFreeText = widget.onAddFreeText;
     if (onAddFreeText == null) return;
+    // A compound shorthand inserts a placeholder row, which is not a [Figure]
+    // the parser could return, so it is offered the line first.
+    if (widget.onSubmitCompoundShorthand?.call(_freeTextController.text) ??
+        false) {
+      _freeTextAccepted(1);
+      return;
+    }
     final figures = parseFreeTextFigureEntry(
       _freeTextController.text,
       taxonomy: widget.taxonomy,
@@ -606,6 +621,12 @@ class _FigureListEditorState extends State<FigureListEditor> {
     }
     final acceptedCount = onAddFreeText(figures);
     if (acceptedCount <= 0) return;
+    _freeTextAccepted(acceptedCount);
+  }
+
+  /// Clears the composer after [acceptedCount] rows were inserted, announces
+  /// them, and keeps the composer focused for the next line.
+  void _freeTextAccepted(int acceptedCount) {
     _freeTextController.clear();
     _announce(_l10n.danceEditorFreeTextFiguresAddedAnnouncement(acceptedCount));
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1871,22 +1892,13 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     ).renderFreeText(compound.name, widget.dialect);
     final definition = widget.resolveCompound?.call(compound.id);
     if (definition == null || definition.params.isEmpty) return name;
-    final values = [
-      for (final param in definition.params)
-        switch (compound.args[param.key]) {
-          final String value => figureParamChoiceLabel(
-            l10n,
-            ParamSpec(param.kind, defaultValue: null),
-            widget.dialect,
-            value,
-          ),
-          true => l10n.commonYes,
-          false => l10n.commonNo,
-          null => l10n.danceEditorParamNotStated,
-          final Object value => '$value',
-        },
-    ];
-    return l10n.danceEditorCompoundSummary(name, values.join(', '));
+    final values = compoundArgumentsText(
+      l10n,
+      definition,
+      compound.args,
+      widget.dialect,
+    );
+    return l10n.danceEditorCompoundSummary(name, values);
   }
 
   Widget _buildDragHandle(BuildContext context) {
@@ -2233,38 +2245,20 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     );
   }
 
-  /// The editor for one of a placeholder's arguments: the parameter's kind's
-  /// own editor, its choices narrowed to the values the compound accepts.
+  /// The editor for one of a placeholder's arguments.
   Widget _buildCompoundArgument(
     CompoundDefinition definition,
     CompoundParam param,
   ) {
     final compound = widget.draft.compound!;
-    final allowed = allowedValues(definition, param.key, widget.taxonomy);
-    final listed = switch (param.kind) {
-      ParamKind.dancerSet ||
-      ParamKind.dancerPair ||
-      ParamKind.handedness ||
-      ParamKind.shoulder ||
-      ParamKind.spinDirection ||
-      ParamKind.fraction ||
-      ParamKind.direction ||
-      ParamKind.choice => true,
-      _ => false,
-    };
-    return FigureParamEditor(
+    return CompoundArgumentEditor(
       keyPrefix: 'figure-${widget.index}-compound',
-      paramKey: param.key,
-      spec: ParamSpec(
-        param.kind,
-        defaultValue: null,
-        choices: listed && allowed != null
-            ? [for (final value in allowed) ?(value is String ? value : null)]
-            : null,
-      ),
+      definition: definition,
+      param: param,
+      value: compound.args[param.key],
       dialect: widget.dialect,
       mixer: widget.mixer,
-      value: compound.args[param.key],
+      taxonomy: widget.taxonomy,
       onChanged: (value) {
         compound.args[param.key] = value;
         _refreshCompoundBeats();

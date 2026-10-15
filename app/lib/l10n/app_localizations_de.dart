@@ -8348,6 +8348,42 @@ class AppLocalizationsDe extends AppLocalizations {
   String get shorthandMappingsActionsTooltip => 'Abkürzungs-Aktionen';
 
   @override
+  String get shorthandsCompoundTitle => 'Abkürzungen für deine eigenen Figuren';
+
+  @override
+  String get shorthandsCompoundIntro =>
+      'Wenn die Freitexteingabe an ist, fügt das Eintippen einer dieser Abkürzungen als ganze Zeile im Tanzeditor eine deiner eigenen Figuren mit den hier gewählten Werten ein.';
+
+  @override
+  String get shorthandsCompoundNew => 'Neue Abkürzung für eine deiner Figuren';
+
+  @override
+  String get shorthandsCompoundEmpty =>
+      'Noch keine Abkürzungen für deine eigenen Figuren.';
+
+  @override
+  String get shorthandsCompoundUnavailable =>
+      'Nicht verwendbar: Ihre Figur wurde gelöscht oder geändert oder akzeptiert diese Werte nicht. Eingetippt wird sie als gewöhnliche Zeile gelesen.';
+
+  @override
+  String get shorthandsCompoundShadowed =>
+      'Nicht verwendet: Eine Figur-Abkürzung hat denselben Text.';
+
+  @override
+  String get compoundShorthandEditorFigureLabel => 'Deine Figur';
+
+  @override
+  String get compoundShorthandEditorNoFigure => 'Wähle eine deiner Figuren.';
+
+  @override
+  String get compoundShorthandEditorNoCompounds =>
+      'Du hast noch keine eigenen Figuren. Füge zuerst eine im Glossar hinzu.';
+
+  @override
+  String get compoundShorthandEditorInvalidValues =>
+      'Diese Werte passen nicht zu dieser Figur. Wähle andere.';
+
+  @override
   String get shorthandEditorTitleNew => 'Neue Abkürzung';
 
   @override

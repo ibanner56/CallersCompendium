@@ -8182,6 +8182,46 @@
   "@shorthandMappingsActionsTooltip": {
     "x-sourceSha256": "8794003dafec4a03b433f702ad1645c759dba638a9aa61e3da40ab8e65dab5e8"
   },
+  "shorthandsCompoundTitle": "Kortformer for dine egne figurer",
+  "@shorthandsCompoundTitle": {
+    "x-sourceSha256": "b37015f6e5621c3bf45810cce907194e87f5b4a9814b5c5695f960f484aa5949"
+  },
+  "shorthandsCompoundIntro": "Når fri tekstindtastning er slået til, tilføjer du en af dine egne figurer med de værdier, der er valgt her, ved at skrive en af disse kortformer som en hel linje i danseeditoren.",
+  "@shorthandsCompoundIntro": {
+    "x-sourceSha256": "d33b23e45c1700cf7ba71c09de854ab8a50a8af2390a5a4d1bf42a805adddd4a"
+  },
+  "shorthandsCompoundNew": "Ny kortform for en af dine figurer",
+  "@shorthandsCompoundNew": {
+    "x-sourceSha256": "1b347bb6599a3f25aeff5e17d7a6e5eeb0dfdb9e7ef94f7939e4d657027a8a14"
+  },
+  "shorthandsCompoundEmpty": "Ingen kortformer for dine egne figurer endnu.",
+  "@shorthandsCompoundEmpty": {
+    "x-sourceSha256": "a10d6f5f186121f862135340b6e0cb665b5aaa7855bad0814bc34fa596c51b24"
+  },
+  "shorthandsCompoundUnavailable": "Kan ikke bruges: dens figur er slettet eller ændret, eller den accepterer ikke disse værdier. Når den skrives, læses den som en almindelig linje.",
+  "@shorthandsCompoundUnavailable": {
+    "x-sourceSha256": "1b95eac1564cf87d7e26c29bfb086720d29821ed2df01c8b5495c164a12b11e0"
+  },
+  "shorthandsCompoundShadowed": "Bruges ikke: en figurkortform har samme tekst.",
+  "@shorthandsCompoundShadowed": {
+    "x-sourceSha256": "75111a930cc8890e0f1378c778ee2c93d1ec4cd35897e8d496d60f0cc46d60b6"
+  },
+  "compoundShorthandEditorFigureLabel": "Din figur",
+  "@compoundShorthandEditorFigureLabel": {
+    "x-sourceSha256": "6af67418286324f390ac3a5859240761a8b839514d0f5e667ab73f2a3ebce834"
+  },
+  "compoundShorthandEditorNoFigure": "Vælg en af dine figurer.",
+  "@compoundShorthandEditorNoFigure": {
+    "x-sourceSha256": "1cc30345f89f7d60df026db7a7d9058a654a1cae56aada728df7863bf573fd28"
+  },
+  "compoundShorthandEditorNoCompounds": "Du har ingen egne figurer endnu. Tilføj først en i ordlisten.",
+  "@compoundShorthandEditorNoCompounds": {
+    "x-sourceSha256": "62a41226cac8234479053580ceee7bf7ee3b36e0d5bf8a2b97d1b8e5c0945a61"
+  },
+  "compoundShorthandEditorInvalidValues": "Disse værdier passer ikke til figuren. Vælg andre.",
+  "@compoundShorthandEditorInvalidValues": {
+    "x-sourceSha256": "af97e0a8be30a36c45361b3f63c27fb0fcbf14984cd22b61567bb0b1e787061d"
+  },
   "shorthandEditorTitleNew": "Ny kortform",
   "@shorthandEditorTitleNew": {
     "x-sourceSha256": "bcb70a5881650d222f46a45b002a5e5d5af4760fe5f046123ce0f9e05100c220"

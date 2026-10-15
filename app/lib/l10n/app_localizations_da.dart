@@ -8250,6 +8250,42 @@ class AppLocalizationsDa extends AppLocalizations {
   String get shorthandMappingsActionsTooltip => 'Kortformhandlinger';
 
   @override
+  String get shorthandsCompoundTitle => 'Kortformer for dine egne figurer';
+
+  @override
+  String get shorthandsCompoundIntro =>
+      'Når fri tekstindtastning er slået til, tilføjer du en af dine egne figurer med de værdier, der er valgt her, ved at skrive en af disse kortformer som en hel linje i danseeditoren.';
+
+  @override
+  String get shorthandsCompoundNew => 'Ny kortform for en af dine figurer';
+
+  @override
+  String get shorthandsCompoundEmpty =>
+      'Ingen kortformer for dine egne figurer endnu.';
+
+  @override
+  String get shorthandsCompoundUnavailable =>
+      'Kan ikke bruges: dens figur er slettet eller ændret, eller den accepterer ikke disse værdier. Når den skrives, læses den som en almindelig linje.';
+
+  @override
+  String get shorthandsCompoundShadowed =>
+      'Bruges ikke: en figurkortform har samme tekst.';
+
+  @override
+  String get compoundShorthandEditorFigureLabel => 'Din figur';
+
+  @override
+  String get compoundShorthandEditorNoFigure => 'Vælg en af dine figurer.';
+
+  @override
+  String get compoundShorthandEditorNoCompounds =>
+      'Du har ingen egne figurer endnu. Tilføj først en i ordlisten.';
+
+  @override
+  String get compoundShorthandEditorInvalidValues =>
+      'Disse værdier passer ikke til figuren. Vælg andre.';
+
+  @override
   String get shorthandEditorTitleNew => 'Ny kortform';
 
   @override

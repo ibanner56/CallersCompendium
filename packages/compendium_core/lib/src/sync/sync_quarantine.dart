@@ -119,9 +119,8 @@ SyncRepairResult repairSyncCandidate({
         // A baseline proves agreement only when a peer still carries the
         // same body. Do not stamp a different body over it.
       } else {
-        updatedAt = _greatestByUpdatedAt(
-          inWindow,
-        ).updatedAt.add(storedTimestampTick);
+        updatedAt = _greatestByUpdatedAt(inWindow).updatedAt
+            .add(storedTimestampTick);
       }
     }
   }

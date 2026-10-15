@@ -32,9 +32,10 @@ const String _fieldSeparator = '\u0000';
 /// wrong venue.
 String? _normalizeField(String? value) {
   if (value == null) return null;
-  final normalized = sanitizeImportedText(
-    value,
-  ).trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  final normalized = sanitizeImportedText(value)
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'\s+'), ' ');
   return normalized.isEmpty ? null : normalized;
 }
 

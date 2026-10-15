@@ -31,5 +31,7 @@ class FigureReparseOutcome {
 /// A re-parse of a figure list, supplied by the caller of the repository's
 /// reparse methods (`reparseImportGapFigures` from the imports layer in the
 /// app). Injected so `storage/` does not import `imports/`.
-typedef FigureReparser =
-    FigureReparseOutcome Function(List<Figure> figures, {Taxonomy? taxonomy});
+typedef FigureReparser = FigureReparseOutcome Function(
+  List<Figure> figures, {
+  Taxonomy? taxonomy,
+});

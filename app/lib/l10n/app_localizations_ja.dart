@@ -7943,6 +7943,41 @@ class AppLocalizationsJa extends AppLocalizations {
   String get shorthandMappingsActionsTooltip => 'ショートハンドのアクション';
 
   @override
+  String get shorthandsCompoundTitle => '自分のフィギュア用のショートハンド';
+
+  @override
+  String get shorthandsCompoundIntro =>
+      'フリーテキスト入力がオンのとき、ダンスエディターでこれらのいずれかを1行だけ入力すると、ここで選んだ値で自分のフィギュアが追加されます。';
+
+  @override
+  String get shorthandsCompoundNew => '自分のフィギュア用の新しいショートハンド';
+
+  @override
+  String get shorthandsCompoundEmpty => '自分のフィギュア用のショートハンドはまだありません。';
+
+  @override
+  String get shorthandsCompoundUnavailable =>
+      '使用できません。フィギュアが削除または変更されたか、これらの値を受け付けません。入力すると通常の行として読み取られます。';
+
+  @override
+  String get shorthandsCompoundShadowed =>
+      '使用されていません。フィギュアショートハンドに同じテキストがあります。';
+
+  @override
+  String get compoundShorthandEditorFigureLabel => '自分のフィギュア';
+
+  @override
+  String get compoundShorthandEditorNoFigure => '自分のフィギュアを1つ選んでください。';
+
+  @override
+  String get compoundShorthandEditorNoCompounds =>
+      '自分のフィギュアがまだありません。まず用語集で追加してください。';
+
+  @override
+  String get compoundShorthandEditorInvalidValues =>
+      'これらの値はこのフィギュアに合いません。別の値を選んでください。';
+
+  @override
   String get shorthandEditorTitleNew => '新しいショートハンド';
 
   @override

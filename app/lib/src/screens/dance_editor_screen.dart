@@ -932,6 +932,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       moveParamDefaults: _moveParamDefaults,
       freeTextEntry: _freeTextEntry,
       shorthandMappings: ShorthandMappingsScope.maybeOf(context)?.store,
+      compoundShorthands: ShorthandMappingsScope.maybeOf(
+        context,
+      )?.compoundStore,
       dialect: dialect,
       isNew: widget.isNew,
       authorOptions: [

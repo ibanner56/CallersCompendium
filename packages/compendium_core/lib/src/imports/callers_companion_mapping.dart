@@ -757,9 +757,8 @@ _DateParse _parseMonthNameDate(String value) {
   }
 
   // "<day> <name> <year>"  e.g. "15 March 2004", "15 Mar 2004".
-  final dayFirst = RegExp(
-    r'^(\d{1,2})\s+([A-Za-z]{3,9})\.?\s+(\d{4})$',
-  ).firstMatch(value);
+  final dayFirst = RegExp(r'^(\d{1,2})\s+([A-Za-z]{3,9})\.?\s+(\d{4})$')
+      .firstMatch(value);
   if (dayFirst != null) {
     final month = _ccMonthNames[dayFirst.group(2)!.toLowerCase()];
     if (month == null) return _noMatch;
@@ -787,9 +786,8 @@ _DateParse _parseNumericDate(
   String which,
   List<ImportIssue> issues,
 ) {
-  final parts = RegExp(
-    r'^(\d{1,4})[/.\-](\d{1,4})(?:[/.\-](\d{1,4}))?$',
-  ).firstMatch(value);
+  final parts = RegExp(r'^(\d{1,4})[/.\-](\d{1,4})(?:[/.\-](\d{1,4}))?$')
+      .firstMatch(value);
   if (parts == null) return _noMatch;
 
   final a = parts.group(1)!;

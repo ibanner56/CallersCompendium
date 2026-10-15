@@ -389,8 +389,7 @@ class SyncApplyEngine {
           code: SyncReportCode.concurrentLocalChange,
           kind: candidate.blob.kind,
           recordId: candidate.blob.id,
-          message:
-              'Local record changed while sync was preparing its inbound update.',
+          message: 'Local record changed while sync was preparing its inbound update.',
         ),
       );
     }
@@ -691,9 +690,8 @@ class SyncApplyEngine {
           existenceAt: record.existenceAt,
           body: record.body,
         );
-    return syncRecordReferences(
-      SyncMergeCandidate(blob: blob),
-    ).contains(address);
+    return syncRecordReferences(SyncMergeCandidate(blob: blob))
+        .contains(address);
   }
 
   /// Aborts the batch when a tombstone the adapter was told about fails to
@@ -865,9 +863,8 @@ class SyncApplyEngine {
     SyncMergeCandidate left,
     SyncMergeCandidate right,
   ) {
-    final kind = syncApplyKindOrder(
-      left.blob.kind,
-    ).compareTo(syncApplyKindOrder(right.blob.kind));
+    final kind = syncApplyKindOrder(left.blob.kind)
+        .compareTo(syncApplyKindOrder(right.blob.kind));
     return kind == 0 ? left.blob.id.compareTo(right.blob.id) : kind;
   }
 }

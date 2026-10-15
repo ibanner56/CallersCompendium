@@ -1359,6 +1359,28 @@ class DanceEditorController extends ChangeNotifier {
     return inserted.length;
   }
 
+  /// Appends a row for the compound [shorthand] stands for, with its values
+  /// (#709), when that compound can be expanded with them; otherwise inserts
+  /// nothing and returns false, so the line is parsed as usual.
+  bool insertCompoundShorthand(CompoundShorthand shorthand) {
+    final compound = CompoundPlaceholder(
+      id: shorthand.compoundId,
+      name:
+          _compounds[shorthand.compoundId]?.entry.name ??
+          shorthand.compoundName,
+      args: {...shorthand.args},
+    );
+    final expanded = expandPlaceholder(compound, resolveCompound);
+    if (expanded == null) return false;
+    compound.beats = CompoundDefinition.beatsOf(expanded, contraTaxonomy);
+    figureDrafts.add(FigureDraft(compound: compound));
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+    return true;
+  }
+
   void deleteFigure(FigureDraft draft) {
     figureDrafts.remove(draft);
     recomputeWarnings();
