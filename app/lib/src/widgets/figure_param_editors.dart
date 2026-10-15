@@ -218,8 +218,10 @@ class FigureParamEditor extends StatelessWidget {
     }
 
     // A value outside the choices that is left as it is (see
-    // [correctsValue]) is not "not stated": the field asks for a choice
-    // instead, so it never claims a state the draft does not hold.
+    // [correctsValue]) is not "not stated": the dropdown asks for a choice
+    // instead, so it never claims a state the draft does not hold. The other
+    // kinds' editors show a fallback for such a value; a caller that leaves
+    // values as they are says so beside them (`CompoundArgumentEditor`).
     final needsChoice =
         !correctsValue &&
         current == null &&
