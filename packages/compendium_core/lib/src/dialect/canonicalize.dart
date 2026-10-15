@@ -105,7 +105,7 @@ final Map<Dialect, RoleCanonicalizer> _glossaryRoles = {};
 
 /// The built-in discouraged terms as stored text, built once.
 final Substitutor _glossaryDiscouraged = Substitutor(
-  canonicalDiscouragedTerms,
+  storedDiscouragedTerms,
   caseInsensitive: true,
 );
 

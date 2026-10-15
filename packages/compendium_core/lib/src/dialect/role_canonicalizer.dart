@@ -146,8 +146,10 @@ final Set<String> _determiners = {
   'those',
 };
 
-/// Singular dancer nouns that, directly before a plural role/verb homograph,
-/// make it a verb under `subjectVerbException` ("partner leads").
+/// Singular dancer nouns that, directly before a plural role/verb homograph
+/// and after a determiner, make it a verb under `subjectVerbException`
+/// ("your partner leads"). Without the determiner the noun is more likely an
+/// object than a subject ("swing partner, follows cross"), so it is not one.
 const Set<String> _singularSubjectNouns = {
   'partner',
   'neighbor',
@@ -276,7 +278,9 @@ String? _unmarked(String? word) {
 ///
 /// With `subjectVerbException` (user-glossary text only, #709), rule 2a has
 /// one exception: the plural form directly after a singular subject in the
-/// same clause is the verb ("the robin follows the lark", "partner leads").
+/// same clause is the verb. A singular subject is a singular role term or
+/// token ("the robin follows the lark", "role2 follows"), or a singular
+/// dancer noun after a determiner ("your partner leads").
 ///
 /// Rewritten roles are lowercase canonical tokens (`role1s`), whatever case
 /// they were typed in. A move name from rule 1 is written lowercase and
@@ -433,8 +437,7 @@ final class RoleCanonicalizer {
     final plural = _verbForms[lower];
     if (plural == null) return (RoleSpanKind.role, '3');
     if (plural) {
-      if (subjectVerbException &&
-          _isSingularSubject(_previousWord(text, start))) {
+      if (subjectVerbException && _followsSingularSubject(text, start)) {
         return (RoleSpanKind.verb, '2a-subject');
       }
       return (RoleSpanKind.role, '2a');
@@ -453,21 +456,30 @@ final class RoleCanonicalizer {
     return (RoleSpanKind.role, '2e');
   }
 
-  /// Whether [word] names one dancer or one pair as a sentence subject: a
-  /// singular role term of this canonicalizer ("robin", "lead"), a singular
-  /// role token typed directly, or a singular dancer noun ("partner").
-  bool _isSingularSubject(String? word) {
-    if (word == null) return false;
+  /// Whether the word directly before [start] names one dancer as a sentence
+  /// subject: a singular role term of this canonicalizer ("robin", "lead"),
+  /// a singular role token typed directly, or a singular dancer noun that
+  /// itself follows a determiner ("your partner").
+  bool _followsSingularSubject(String text, int start) {
+    final previous = _previousWordAt(text, start);
+    if (previous == null) return false;
+    final (word, at) = previous;
     if (word == 'role1' || word == 'role2') return true;
     final token = _reverse[word];
     if (token == 'role1' || token == 'role2') return true;
-    return _singularSubjectNouns.contains(word);
+    if (!_singularSubjectNouns.contains(word)) return false;
+    final before = _previousWord(text, at);
+    return before != null && _determiners.contains(before);
   }
 
   /// The lowercase word directly before [start] in the same clause: only
   /// whitespace and bold markers may separate them. Underline markers at the
   /// word's edges are dropped.
-  static String? _previousWord(String text, int start) {
+  static String? _previousWord(String text, int start) =>
+      _previousWordAt(text, start)?.$1;
+
+  /// [_previousWord], with the offset in [text] where its match starts.
+  static (String, int)? _previousWordAt(String text, int start) {
     var i = start;
     while (i > 0 && _isGap(text[i - 1])) {
       i--;
@@ -475,7 +487,9 @@ final class RoleCanonicalizer {
     if (i == start && i > 0) return null; // punctuation or no gap: no word
     final from = i < 64 ? 0 : i - 64;
     final m = _wordAtEnd.firstMatch(text.substring(from, i));
-    return _unmarked(m?[0]!.toLowerCase());
+    if (m == null) return null;
+    final word = _unmarked(m[0]!.toLowerCase());
+    return word == null ? null : (word, from + m.start);
   }
 
   /// The lowercase word directly after [end] in the same clause: whitespace,

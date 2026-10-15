@@ -142,6 +142,45 @@ void main() {
     }
   });
 
+  test(
+    'every choice slot that spells a pair is pinned, and has no opposite',
+    () {
+      // A choice slot is free-form, so it gets no opposite (#709: a named
+      // limitation, e.g. circle direction cannot take a compound's `hand`).
+      // Any slot whose choices hold both halves of a pair the registry inverts
+      // is listed here, so a new one fails until someone decides whether it
+      // should get an opposite of its own.
+      const pairs = [
+        ('left', 'right'),
+        ('clockwise', 'counterclockwise'),
+        ('up', 'down'),
+        ('in', 'out'),
+      ];
+      final spelled = {
+        for (final move in contraTaxonomy.moves.values)
+          for (final MapEntry(key: slot, value: spec) in move.params.entries)
+            if (spec.kind == ParamKind.choice &&
+                pairs.any(
+                  (pair) =>
+                      (spec.choices ?? const []).contains(pair.$1) &&
+                      (spec.choices ?? const []).contains(pair.$2),
+                ))
+              '${move.id}.$slot',
+      };
+      expect(spelled, {
+        'swing.endFacing',
+        'slide_along_set.slide',
+        'gate.direction',
+        'gate.endFacing',
+        'zig_zag.slide',
+        'slice.slice',
+        'rory_o_more.slide',
+        'circle.direction',
+      });
+      expect(ParamOpposites.coverage(ParamKind.choice), OppositeCoverage.none);
+    },
+  );
+
   test('paired dancers reuse the single pair-inversion source', () {
     for (final who in ParamVocab.dancerSets) {
       expect(
@@ -187,14 +226,61 @@ void main() {
       );
     });
 
-    test('every value of every shipped slot domain validates', () {
+    test('is exactly what the validator accepts, past both ends of every '
+        'range, for every shipped slot', () {
+      // paramDomain filters its enumeration through validate, so a value it
+      // holds always validates; the hazard is an enumeration too narrow. Probe
+      // beyond each numeric range and across every vocabulary in both
+      // directions. Numbers are probed in the kind's own type: a Dart set
+      // finds 4.0 in {4}, which validate (rightly) refuses for an int kind.
+      final quarters = {for (var q = -4; q <= 16; q++) q / 4};
+      final ints = {for (var i = -2; i <= 70; i++) i};
+      final words = <Object>{
+        ...ParamVocab.dancerSets,
+        ...ParamVocab.sides,
+        ...ParamVocab.spins,
+        ...ParamVocab.fractions,
+        ...ParamVocab.directions,
+        u,
+        'bogus',
+        true,
+        false,
+      };
       for (final move in contraTaxonomy.moves.values) {
-        for (final spec in move.params.values) {
-          for (final value in paramDomain(spec) ?? const <Object>{}) {
-            expect(spec.validate(value), isTrue, reason: '${move.id}: $value');
+        for (final MapEntry(key: slot, value: spec) in move.params.entries) {
+          final domain = paramDomain(spec);
+          if (domain == null) continue;
+          final numbers = spec.kind == ParamKind.rotation ? quarters : ints;
+          for (final value in {...words, ...numbers, ...?spec.choices}) {
+            expect(
+              domain.contains(value),
+              spec.validate(value),
+              reason: '${move.id}.$slot: $value',
+            );
           }
         }
       }
+    });
+
+    test('numeric ranges stop at their bounds', () {
+      final rotation = paramDomain(
+        const ParamSpec(ParamKind.rotation, defaultValue: 1.0),
+      )!;
+      expect(rotation, hasLength(10));
+      expect(rotation, containsAll([0.25, 2.5]));
+      expect(rotation, isNot(contains(0)));
+      expect(rotation, isNot(contains(2.75)));
+      final places = paramDomain(
+        const ParamSpec(ParamKind.places, defaultValue: 4),
+      )!;
+      expect(places, isNot(contains(0)));
+      expect(places, isNot(contains(11)));
+      final beats = paramDomain(
+        const ParamSpec(ParamKind.beats, defaultValue: 8),
+      )!;
+      expect(beats, hasLength(65));
+      expect(beats, containsAll([0, 64]));
+      expect(beats, isNot(contains(65)));
     });
   });
 }

@@ -218,8 +218,12 @@ ParamKind? _kindNamed(String name) {
 /// it fills, and — where it fills a slot through its opposite — those whose
 /// opposite that slot accepts, which excludes every value with no opposite.
 ///
-/// Null means any string (an unbound or text parameter); an empty set means
-/// no value fits, which [validateCompound] reports.
+/// A parameter that fills no slot takes its kind's whole vocabulary, with the
+/// `unspecified` sentinel where the kind has one; a `choice` parameter has no
+/// vocabulary of its own, so unbound it takes nothing. Null means any string:
+/// a text parameter whose slots are all free text. An empty set means no
+/// value fits, which [validateCompound] reports for a parameter in use; an
+/// undeclared [paramKey] also gets the empty set.
 Set<Object>? allowedValues(
   CompoundDefinition definition,
   String paramKey,
@@ -486,7 +490,11 @@ List<ValidationIssue> validateCompound(
 ///
 /// Each template is copied, then each of its bound slots is set through
 /// [applyParamChange], so a bound value carries the editor's follow-on rules
-/// (a balance's ±4 beats, chain's hand, an inverse pair's reroute). The flags
+/// (a balance's ±4 beats, chain's hand, an inverse pair's reroute). A
+/// figure's slots are set in the order its move declares them, never in the
+/// order the bindings were stored, because one rule can overwrite another
+/// slot: chain's `who` re-seeds `hand`, so a bound `hand` is set after it and
+/// wins, whichever binding was saved first. The flags
 /// are fixed — a template that states its beats is treated as owning them,
 /// and the aggressive-beats preference is never consulted — so the same
 /// compound expands to the same figures on every device. A template's own
@@ -522,8 +530,18 @@ List<Figure>? expandCompound(
     var move = template.move;
     final params = Map<String, Object?>.of(template.params);
     final beatsTouched = template.params.containsKey('beats');
-    for (final binding in definition.bindings) {
-      if (binding.figureIndex != i) continue;
+    // validateCompound has resolved every slot, so each is in the order.
+    final slotOrder = taxonomy.resolve(template.move)!.params.keys.toList();
+    final figureBindings =
+        [
+          for (final binding in definition.bindings)
+            if (binding.figureIndex == i) binding,
+        ]..sort(
+          (a, b) => slotOrder
+              .indexOf(a.slotKey)
+              .compareTo(slotOrder.indexOf(b.slotKey)),
+        );
+    for (final binding in figureBindings) {
       final param = definition.param(binding.paramKey)!;
       final value = binding.source == CompoundBindingSource.declared
           ? values[param.key]

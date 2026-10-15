@@ -4,7 +4,7 @@
 /// One table, two readers that must not drift:
 /// - the renderer, which displays a discouraged term in the active dialect
 ///   ("ladies" → "Robins") when canonicalizing them for display is on, and
-/// - [canonicalDiscouragedTerms], which stores user-glossary text canonically
+/// - [storedDiscouragedTerms], which stores user-glossary text canonically
 ///   ("ladies" → `role2s`).
 ///
 /// A possessive entry is written with the possessive ending of the term it
@@ -33,13 +33,14 @@ discouragedTermMeanings = {
 
 /// [term] with the possessive ending its spelling takes: `'` after a final
 /// `s`, `'s` otherwise.
-String possessiveOf(String term) => term.endsWith('s') ? "$term'" : "$term's";
+String possessiveSpelling(String term) =>
+    term.endsWith('s') ? "$term'" : "$term's";
 
 /// [discouragedTermMeanings] as stored text: each term mapped to its canonical
 /// token or move name, possessive where the term is.
-final Map<String, String> canonicalDiscouragedTerms = {
+final Map<String, String> storedDiscouragedTerms = {
   for (final e in discouragedTermMeanings.entries)
     e.key: e.value.possessive
-        ? possessiveOf(e.value.canonical)
+        ? possessiveSpelling(e.value.canonical)
         : e.value.canonical,
 };

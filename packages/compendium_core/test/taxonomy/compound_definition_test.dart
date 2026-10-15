@@ -89,6 +89,46 @@ void main() {
       expect(expanded.single.params['hand'], 'left');
     });
 
+    test('slots are set in the order the move declares them, whatever order '
+        'the bindings were saved in', () {
+      // chain's `who` re-seeds `hand`: set after it, a bound hand wins.
+      const who = CompoundSlotBinding(
+        figureIndex: 0,
+        slotKey: 'who',
+        paramKey: 'who',
+      );
+      const hand = CompoundSlotBinding(
+        figureIndex: 0,
+        slotKey: 'hand',
+        paramKey: 'hand',
+      );
+      for (final bindings in [
+        [who, hand],
+        [hand, who],
+      ]) {
+        final definition = CompoundDefinition(
+          params: const [
+            CompoundParam(key: 'who', kind: ParamKind.dancerSet),
+            CompoundParam(key: 'hand', kind: ParamKind.handedness),
+          ],
+          figures: [
+            Figure(move: 'chain', params: {'who': 'role2s', 'hand': 'right'}),
+          ],
+          bindings: bindings,
+        );
+        final expanded = expandCompound(definition, {
+          'who': 'role1s',
+          'hand': 'right',
+        }, taxonomy)!;
+        expect(
+          expanded.single.params,
+          containsPair('hand', 'right'),
+          reason: '${bindings.map((b) => b.slotKey)}',
+        );
+        expect(expanded.single.params, containsPair('who', 'role1s'));
+      }
+    });
+
     test('a template that states its beats keeps them when a bound value '
         'moves the canonical default; one that does not snaps to it', () {
       CompoundDefinition swing({required bool statedBeats}) =>
@@ -167,6 +207,26 @@ void main() {
   });
 
   group('allowed values', () {
+    test('an unbound parameter takes its kind\'s vocabulary; free text is '
+        'null; an undeclared key is empty', () {
+      final definition = CompoundDefinition(
+        params: const [
+          CompoundParam(key: 'hand', kind: ParamKind.handedness),
+          CompoundParam(key: 'slide', kind: ParamKind.choice),
+          CompoundParam(key: 'words', kind: ParamKind.text),
+        ],
+        figures: [pullBy()],
+        bindings: const [],
+      );
+      expect(allowedValues(definition, 'hand', taxonomy), {
+        ...ParamVocab.sides,
+        u,
+      });
+      expect(allowedValues(definition, 'slide', taxonomy), isEmpty);
+      expect(allowedValues(definition, 'words', taxonomy), isNull);
+      expect(allowedValues(definition, 'nope', taxonomy), isEmpty);
+    });
+
     test('are the overlap of every slot a parameter fills', () {
       final definition = CompoundDefinition(
         params: const [CompoundParam(key: 'who', kind: ParamKind.dancerSet)],
@@ -309,6 +369,13 @@ void main() {
             Figure(move: 'orbit'),
           ],
           beats: 8,
+        ),
+        Figure.modifier(
+          figures: [
+            Figure(move: 'balance'),
+            Figure(move: 'swing'),
+          ],
+          beats: 16,
         ),
         Figure(move: 'some_user_compound'),
       ]) {

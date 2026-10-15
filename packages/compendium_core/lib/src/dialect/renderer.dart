@@ -1703,7 +1703,7 @@ class FigureRenderer {
         (canonical: final token, possessive: final possessive)
             when roleTokens.contains(token) =>
           possessive
-              ? possessiveOf(_roleTerm(token, dialect))
+              ? possessiveSpelling(_roleTerm(token, dialect))
               : _roleTerm(token, dialect),
         (canonical: final name, possessive: _) => name,
       },
