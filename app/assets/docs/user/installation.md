@@ -103,9 +103,17 @@ macOS has one universal download that runs on both Intel and Apple Silicon Macs.
      first time.
 
   If you open the app straight from the disk image window instead, it shows a
-  notice that it isn't installed yet: the disk image can't be ejected while the
+  notice that it may not be installed: the disk image can't be ejected while the
   app is open, and the app is gone once it is. Quit, drag the app to
   **Applications**, and open it from there; the notice stops appearing.
+
+  The notice means the app is running from a read-only location. That is
+  usually the disk image, but macOS can also open a freshly downloaded app from
+  a temporary read-only location of its own, even when the app is already in
+  **Applications**. If you see the notice there, quit the app, move or copy it
+  into **Applications** in Finder, and open it from there. If the notice still
+  appears, you can dismiss it; it only hides until the next time you open the
+  app.
 - **Archive** (`...-macos-universal.zip`) — unzip it and move the app wherever
   you keep your applications, then open it the same way.
 

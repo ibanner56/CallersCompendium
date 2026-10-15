@@ -5,11 +5,21 @@ import '../../l10n/app_localizations.dart';
 import '../app_metadata.dart';
 import 'install_location_channel.dart';
 
-/// App-wide notice that the macOS app is running from the disk image (or a
-/// translocated copy) rather than from Applications — issue #1725. Hosted at
-/// the app shell beside the [RetirementBanner] and matching it: non-modal, and
-/// "Dismiss" hides it only until the next launch. Nothing is persisted; the
-/// check re-runs every launch and stops firing once the app is installed.
+/// App-wide notice that the macOS app is running from a read-only volume —
+/// usually the mounted disk image, rather than from Applications — issue #1725.
+/// Hosted at the app shell beside the [RetirementBanner] and matching it:
+/// non-modal, and "Dismiss" hides it only until the next launch. Nothing is
+/// persisted; the check re-runs every launch and stops firing once the app is
+/// installed.
+///
+/// Read-only is only a proxy for "not installed": the temporary copy Gatekeeper
+/// makes of a quarantined app (app translocation) is read-only too, and that
+/// can happen to an app that is already in Applications. The native check
+/// cannot tell the two apart, so the message says the app *may* not be
+/// installed, names both causes, and tells a user whose app is already in
+/// Applications that they can dismiss it. It deliberately does not promise
+/// that moving the app clears the notice: whether that releases a translocated
+/// copy has not been verified on current macOS.
 ///
 /// Renders nothing on every other platform, and until the native check (which
 /// runs off the main thread and never delays startup) reports the condition.

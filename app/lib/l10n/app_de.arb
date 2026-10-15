@@ -8006,9 +8006,9 @@
   "@retirementBannerLater": {
     "x-sourceSha256": "73b6e48a1b552d112502d37a7b7870436efc5ea1de0bca58ccf12d6ae15d3a0c"
   },
-  "installLocationBannerMessage": "{appName} ist noch nicht installiert: Die App läuft aus dem heruntergeladenen Disk-Image oder Archiv. Beende sie, ziehe sie in den Ordner „Programme“ und öffne sie dann von dort.",
+  "installLocationBannerMessage": "{appName} ist möglicherweise nicht installiert. Die App läuft aus dem heruntergeladenen Disk-Image oder Archiv oder von einem temporären, schreibgeschützten Speicherort, den macOS dafür eingerichtet hat. Beende sie, ziehe sie im Finder in den Ordner „Programme“ oder kopiere sie dorthin und öffne sie dann von dort. Wenn sie sich bereits im Ordner „Programme“ befindet, kannst du diesen Hinweis schließen.",
   "@installLocationBannerMessage": {
-    "x-sourceSha256": "12c4548b3d19d088333888d7b32255d0bbea9beb23584cc08ffca881d395df8b"
+    "x-sourceSha256": "ee41af592bd281994bc194fd8b2ada6f12e842dfba13fb0ab0161cb3242f031c"
   },
   "installLocationBannerDismiss": "Schließen",
   "@installLocationBannerDismiss": {

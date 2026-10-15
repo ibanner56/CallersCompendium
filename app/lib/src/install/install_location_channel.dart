@@ -15,7 +15,9 @@ class InstallLocationChannel {
   final MethodChannel _channel;
 
   /// Whether the running app bundle is on a read-only volume (the disk image,
-  /// or a translocated copy). Any channel error, or a platform with no native
+  /// or a translocated copy). This is a proxy for "not installed", not proof
+  /// of it: a translocated copy of an app that is already in Applications
+  /// reads `true` too. Any channel error, or a platform with no native
   /// implementation, reads as `false`: a missed notice is harmless, a false
   /// one is not.
   Future<bool> isRunningUninstalled() async {

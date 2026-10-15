@@ -8129,7 +8129,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String installLocationBannerMessage(String appName) {
-    return '$appName is nog niet geïnstalleerd: de app draait vanaf de gedownloade schijfkopie of het archief. Stop de app, sleep hem naar de map Apps en open hem daarna vanaf daar.';
+    return '$appName is mogelijk niet geïnstalleerd. De app draait vanaf de gedownloade schijfkopie of het archief, of vanaf een tijdelijke alleen-lezen locatie die macOS ervoor heeft aangemaakt. Stop de app, sleep hem in de Finder naar de map Apps of kopieer hem daarheen en open hem daarna vanaf daar. Staat de app al in de map Apps, dan kun je deze melding sluiten.';
   }
 
   @override

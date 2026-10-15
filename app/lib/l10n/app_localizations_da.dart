@@ -8068,7 +8068,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String installLocationBannerMessage(String appName) {
-    return '$appName er ikke installeret endnu: det kører fra det downloadede diskbillede eller arkiv. Afslut det, træk det til mappen Programmer, og åbn det derfra.';
+    return '$appName er muligvis ikke installeret. Det kører fra det downloadede diskbillede eller arkiv eller fra en midlertidig skrivebeskyttet placering, som macOS har oprettet til det. Afslut det, træk eller kopiér det til mappen Programmer i Finder, og åbn det derfra. Hvis det allerede ligger i mappen Programmer, kan du afvise denne meddelelse.';
   }
 
   @override
