@@ -1477,14 +1477,18 @@ present. A `figureNote` body is `id` and `notes`. Their timestamps travel on the
 envelope, as every kind's do. Text holds canonical role words, as stored.
 
 - `payload` is the stored payload **text**, not the JSON value it encodes, and
-  `kind` is the stored kind name. Both travel verbatim, so an entry a build
-  cannot use — a kind it does not know, a payload that does not decode, or one
-  only a newer build reads — is applied, kept and published again unchanged,
-  never dropped or rewritten; the app shows it as made by a newer version, or as
-  needing repair. Text rather than a JSON value because canonical JSON sorts
-  keys: decoding and re-encoding on the way would rewrite what the author's
-  device stored, and a payload that is not JSON at all could not travel.
-  Carrying it as text is the implementer's choice in #709.
+  `kind` is the stored kind name. Both travel verbatim, so sync applies, keeps
+  and publishes again byte for byte an entry a build cannot use — a kind it
+  does not know, a payload that no longer decodes as a definition, or one only
+  a newer build reads; sync never drops or rewrites it, and the app shows it as
+  made by a newer version, or as needing repair. Text rather than a JSON value
+  because canonical JSON sorts keys: decoding and re-encoding on the way would
+  rewrite what the author's device stored, and a payload that is not JSON at
+  all could not travel. Carrying it as text is the implementer's choice in
+  #709. The guarantee is sync's only: a backup carries a payload as decoded
+  JSON, so a payload whose text is not JSON at all — possible only from a
+  corrupted row, since storage writes only encoded JSON — does not survive a
+  backup restore (judged not worth a second payload form in backups, #1772).
 - A receiver MUST refuse (as malformed) a `payload` that parses as JSON but is
   not in the normalised form storage writes (§4.6), and a body over the bounds
   every build enforces: storing either would change the record under its

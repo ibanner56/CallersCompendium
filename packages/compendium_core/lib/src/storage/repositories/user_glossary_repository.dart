@@ -60,8 +60,10 @@ class FigureNoteInvalid implements Exception {
 /// The user's own glossary entries (#709).
 ///
 /// Reads hand back every live entry, including one of a kind this build does
-/// not know or whose payload no longer decodes: the caller decides how to show
-/// it, and nothing here drops or rewrites it. Text is sanitised and
+/// not know or whose payload no longer decodes as a definition: the caller
+/// decides how to show it, and reading never drops or rewrites it. (A payload
+/// whose text is not JSON at all reads as none, and so does not survive a
+/// backup, which carries the decoded payload; sync carries the text.) Text is sanitised and
 /// normalised on write (sync-spec §4.1, §4.6), as every shareable text column
 /// is; canonicalizing role words is the caller's job, before it gets here.
 class UserGlossaryRepository {

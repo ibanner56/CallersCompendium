@@ -621,12 +621,12 @@ database already carries it. The steps that can still fire are v36 onward.
   longer has is kept and not shown. Both carry the `updated_at` /
   `deleted_at` / `existence_at` triple and are `shareable`. They travel in a
   backup's `app.glossary` section, not in the core archive, and never in a
-  `.ccshare` export; Device Sync carries them as the `glossaryEntry` and
+  `.ccshare` export. Device Sync carries them as the `glossaryEntry` and
   `figureNote` record kinds, behind the capability gate (sync-spec §4.3,
-  §6.15), which needed no schema change: those kinds arrived later in #709,
-  and until then no record kind carried them. An entry of a kind this build does not know, or whose payload no
-  longer decodes, is kept as it is. Additive `createTable`s; no back-fill and
-  no derived rebuild.
+  §6.15); those kinds came later in #709 and needed no schema change. An entry
+  of a kind this build does not know, or whose payload no longer decodes as a
+  definition, is kept as it is. Additive `createTable`s; no back-fill and no
+  derived rebuild.
 
 ## The delete model
 

@@ -902,8 +902,8 @@ device they were made on, untouched; you can keep using and editing them there.
 While something is held back, Device Sync shows a note naming the device that
 is holding it back, by its tag in **Other devices**. Update the app on that
 device, or remove it from **Other devices** if you no longer use it, and they
-sync on the next pass. Nothing is lost or deleted while they wait. Things
-other devices send are always received, whatever this device's app version.
+sync on the next pass. Nothing is lost or deleted while they wait. Holding
+data back never stops this device receiving what other devices send.
 
 Because of this, the screen for connecting a device says **Every device needs
 an up-to-date app**: update each device before you connect it, since one on an

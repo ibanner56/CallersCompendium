@@ -410,8 +410,8 @@ time.
 > #709 that both sync, behind the capability gate (*Consequences*, "New kinds
 > of data wait for every device"). The archive does not carry them, so their
 > bodies have a codec of their own rather than the archive's shape; an entry's
-> kind and payload travel as the stored text, so an entry a build cannot read
-> is kept and shared back unchanged (sync-spec §4.3).
+> kind and payload travel as the stored text, so sync keeps and shares back
+> unchanged an entry a build cannot read (sync-spec §4.3).
 
 An earlier revision of this ADR narrowed sync to three kinds and had the other
 five ride inline as content. That was withdrawn, and the reasoning is recorded

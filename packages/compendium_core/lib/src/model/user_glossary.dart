@@ -107,9 +107,12 @@ class FigureNote {
 /// A user glossary entry exactly as stored (#709): what Device Sync carries.
 ///
 /// Unlike [UserGlossaryEntry], [kind] and [payloadJson] are the stored text,
-/// not a decoded reading of it, so an entry this build cannot use — a kind it
-/// does not know, a payload that no longer decodes — travels, applies and is
-/// published again unchanged rather than dropped or rewritten.
+/// not a decoded reading of it, so sync carries an entry this build cannot use
+/// — a kind it does not know, a payload that no longer decodes as a definition
+/// — and applies and publishes it again byte for byte rather than dropping or
+/// rewriting it. That guarantee is sync's: a backup carries the payload as
+/// decoded JSON, so a payload whose text is not JSON at all (possible only from
+/// a corrupted row) does not survive a backup restore.
 @immutable
 class StoredUserGlossaryEntry {
   StoredUserGlossaryEntry({
