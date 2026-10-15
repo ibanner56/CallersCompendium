@@ -162,6 +162,18 @@ void main() {
       expect(find.byKey(customRow), findsOneWidget);
     });
 
+    testWidgets('are found by another name as the dialect shows it, not as '
+        'it is stored', (tester) async {
+      await pump(
+        tester,
+        entries: [
+          entry(keywords: const ['role1s ring']),
+        ],
+      );
+      await search(tester, 'larks ring');
+      expect(find.byKey(customRow), findsOneWidget);
+    });
+
     testWidgets('one that no longer decodes says it needs repair, and one '
         'named like a built-in figure that it needs renaming', (tester) async {
       await pump(
@@ -224,6 +236,35 @@ void main() {
       );
     });
 
+    testWidgets('its page title follows a rename made from it', (tester) async {
+      await pump(tester, entries: [entry()]);
+      await search(tester, 'grand right');
+      await tester.tap(find.byKey(customRow));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('grand right and left'),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('glossary-custom-edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('compound-name')),
+        'grand chain',
+      );
+      await tester.tap(find.byKey(const ValueKey('compound-editor-save')));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('grand chain'),
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('delete asks first, then deletes it softly', (tester) async {
       final h = await pump(tester, entries: [entry()]);
       await search(tester, 'grand right');
@@ -276,6 +317,35 @@ void main() {
       // A stored role token reads back lowercase, as a custom figure's text
       // does (docs/design/dialect.md).
       expect(find.text('larks finish on the left'), findsOneWidget);
+    });
+
+    testWidgets('a note too long to store says so and is not saved', (
+      tester,
+    ) async {
+      final h = await pump(tester);
+      await search(tester, 'swing');
+      await tester.tap(find.byKey(const ValueKey('glossary-entry-swing')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-edit')));
+      await tester.pumpAndSettle();
+      // Within the field's limit as typed, over the stored bound once each
+      // "Larks" is stored as "role1s".
+      await tester.enterText(
+        find.byKey(const ValueKey('glossary-notes-field')),
+        'Larks ' * 3333,
+      );
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-save')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'Your notes are too long to save. Shorten them and try again.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        await tester.runAsync(() => h.repos.figureNotes.get('swing')),
+        isNull,
+      );
     });
   });
 }

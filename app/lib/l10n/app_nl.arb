@@ -9142,7 +9142,7 @@
   "@glossaryCustomUnsupportedBody": {
     "x-sourceSha256": "5a1cadea5dfe1d947a05dfeff086782cecfed7a6b18821dfdf454436be77a42e"
   },
-  "glossaryCustomExpandsTo": "Klapt uit naar ({beats} beats)",
+  "glossaryCustomExpandsTo": "Wordt uitgevouwen tot ({beats} beats)",
   "@glossaryCustomExpandsTo": {
     "x-sourceSha256": "1b63b35172b700aae5b91bd0436f54ff21226d2f95f529991816a3f0a7ed23ae"
   },
@@ -9181,6 +9181,10 @@
   "glossaryNotesHint": "Hoe je de figuur callt, waar je op moet letten…",
   "@glossaryNotesHint": {
     "x-sourceSha256": "2ebb2baa1b27d06ecfc064ccef91f84ec3cbd6b5b4ab0590f6dba78a11360788"
+  },
+  "glossaryNotesTooLong": "Je notities zijn te lang om op te slaan. Maak ze korter en probeer het opnieuw.",
+  "@glossaryNotesTooLong": {
+    "x-sourceSha256": "c2ecf8838d292638167b611a8223636504b1c2756a50854797f78afe414fc11c"
   },
   "compoundEditorTitleNew": "Nieuwe figuur",
   "@compoundEditorTitleNew": {
@@ -9238,9 +9242,9 @@
   "@compoundEditorParamsHelp": {
     "x-sourceSha256": "bceac323a264cca7000f71191323c5f33b584477571d4ef6fb9e30b2225006ae"
   },
-  "compoundEditorParamName": "Naam",
+  "compoundEditorParamName": "Parameternaam",
   "@compoundEditorParamName": {
-    "x-sourceSha256": "dcd1d5223f73b3a965c07e3ff5dbee3eedcfedb806686a05b9b3868a2c3d6d50"
+    "x-sourceSha256": "d7cb455aa6905a1b4b4192949eabbf3cc299b755fd24cf4b53fefa16b87f00fb"
   },
   "compoundEditorParamKind": "Type",
   "@compoundEditorParamKind": {

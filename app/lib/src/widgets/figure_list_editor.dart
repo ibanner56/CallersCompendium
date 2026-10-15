@@ -2091,6 +2091,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 initialText: moveText,
                 autofocus: move == null || move == _standStillMove,
                 includeModifier: widget.allowModifierSelection,
+                includeCustomMove: widget.allowCustom,
                 compoundOptions: _compoundPickerOptions(),
                 compoundMarkerLabel: AppLocalizations.of(
                   context,
@@ -2194,6 +2195,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 dialect: widget.dialect,
                 initialText: name,
                 includeModifier: widget.allowModifierSelection,
+                includeCustomMove: widget.allowCustom,
                 compoundOptions: _compoundPickerOptions(),
                 compoundMarkerLabel: l10n.glossaryCustomMarker,
                 onSelected: _onMoveOptionSelected,

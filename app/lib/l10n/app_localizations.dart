@@ -13940,6 +13940,12 @@ abstract class AppLocalizations {
   /// **'How you call it, what to watch for…'**
   String get glossaryNotesHint;
 
+  /// Shown when the user's notes on a built-in figure in the Glossary are over the length that can be stored.
+  ///
+  /// In en, this message translates to:
+  /// **'Your notes are too long to save. Shorten them and try again.'**
+  String get glossaryNotesTooLong;
+
   /// Title of the editor for a new custom figure.
   ///
   /// In en, this message translates to:
@@ -14027,7 +14033,7 @@ abstract class AppLocalizations {
   /// Label of a parameter's name field in the custom figure editor.
   ///
   /// In en, this message translates to:
-  /// **'Name'**
+  /// **'Parameter name'**
   String get compoundEditorParamName;
 
   /// Label of a parameter's kind dropdown in the custom figure editor.

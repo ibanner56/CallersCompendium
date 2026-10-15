@@ -559,16 +559,17 @@ Glossary is on. While it is on:
 - Build it from figures that come with the app, in order, the same way as in
   the dance editor. Custom figures, meanwhile and modifier groups can't be
   used as parts.
-- Add **Parameters** for what you choose each time you use it, such as *who*
-  and *which hand*, and under **Filled in by parameters** choose which of each
+- Add **Parameters** for what can differ from one use to the next, such as
+  *who* and *which hand*, and under **Filled in by parameters** choose which of each
   figure's settings come from them. A setting can also take the **opposite** of
   a parameter — the other hand, the other role — where that has one. A choice
   that can't be used, because the kinds differ or no value would fit every
   setting it fills, is shown greyed out with the reason.
 - If a parameter fills nothing, saving asks whether to go **Back to editor** or
   **Save anyway**.
-- A name that a built-in figure, one of your shorthands or another of your
-  figures already has can't be saved.
+- A name already taken can't be saved: a built-in figure's name or one of its
+  other names, a figure's name in one of your dialects, one of your
+  shorthands, or another of your figures.
 - Your figures are marked **Custom** in the list. Select one to see what it
   **Expands to** (folded until you open it), and to **Edit** or **Delete** it.
   A figure that can no longer be expanded is marked **Needs repair**; one whose

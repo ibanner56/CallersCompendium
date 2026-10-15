@@ -115,13 +115,16 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     _description.text = shown(initial.description);
     _keywords.text = [for (final k in initial.keywords) shown(k)].join(', ');
     _notes.text = initial.notes == null ? '' : shown(initial.notes!);
-    _seedDefinition(initial.payload);
+    _seedDefinition(initial.payload, shown);
   }
 
   /// Loads a stored definition leniently, so a broken one can be repaired:
   /// every parameter, figure and binding that still reads is kept, and the
   /// rest is left for the user to put back.
-  void _seedDefinition(Object? payload) {
+  ///
+  /// A figure's note is stored canonical, as a dance's are, and is shown in
+  /// the active dialect through [shown].
+  void _seedDefinition(Object? payload, String Function(String) shown) {
     if (payload is! Map) return;
     final byKey = <String, _ParamRow>{};
     for (final raw
@@ -155,6 +158,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
           continue;
         }
         final draft = FigureDraft.fromFigure(figure);
+        draft.note = shown(draft.note);
         draftsByIndex[i] = draft;
         _drafts.add(draft);
       } on Object {
@@ -224,15 +228,22 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
 
   /// The definition as it stands, with [override] in place of the binding of
   /// [draft]'s [slot] when given (null [override] unbinds it).
+  ///
+  /// [canonicalizeNote] stores each figure's note as the dance editor stores
+  /// one: the save passes it, so a note re-renders in every dialect, in the
+  /// Glossary and in every dance the figure expands into.
   CompoundDefinition _definitionNow({
     FigureDraft? draft,
     String? slot,
     _Binding? override,
+    String Function(String)? canonicalizeNote,
   }) {
     final figures = <Figure>[];
     final indexOf = <FigureDraft, int>{};
     for (final d in _drafts) {
-      final figure = d.toFigure();
+      final figure = canonicalizeNote == null
+          ? d.toFigure()
+          : d.toFigure(canonicalizeNote: canonicalizeNote);
       if (figure == null) continue;
       indexOf[d] = figures.length;
       figures.add(figure);
@@ -323,7 +334,21 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   // ---------------------------------------------------------------- save --
 
   Future<void> _save() async {
+    // Claimed before the first await, so a second tap cannot pass the checks
+    // while the first is still running and save a second entry.
     if (_saving) return;
+    setState(() => _saving = true);
+    var saved = false;
+    try {
+      saved = await _trySave();
+    } finally {
+      if (!saved && mounted) setState(() => _saving = false);
+    }
+  }
+
+  /// Validates, asks about unused parameters, and stores the entry; true once
+  /// it is stored and the editor closed.
+  Future<bool> _trySave() async {
     final l10n = AppLocalizations.of(context);
     final dialect = ActiveDialectScope.of(context);
     final repos = RepositoriesScope.of(context);
@@ -343,12 +368,15 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     }
 
     if (name.isNotEmpty) {
+      // Compared as stored, canonical: two names typed differently can store
+      // alike ("Larks swing", "Gents swing" under Larks/Robins), and the
+      // Glossary flags a duplicate by its stored name.
       final others = (await repos.userGlossary.listAll())
           .where((e) => e.id != widget.initial?.id)
-          .map((e) => _renderer.renderFreeText(e.name, dialect));
-      if (!mounted) return;
+          .map((e) => e.name);
+      if (!mounted) return false;
       final collisions = glossaryNameCollisions(
-        name,
+        canonicalizeGlossaryText(name, dialect),
         taxonomy: contraTaxonomy,
         dialects: [
           dialect,
@@ -365,7 +393,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
       if (collisions.isNotEmpty) errors.add(l10n.compoundEditorNameTaken(name));
     }
 
-    final definition = _definitionNow();
+    final definition = _definitionNow(
+      canonicalizeNote: (note) => canonicalizeText(note.trim(), dialect),
+    );
     final issues = validateCompound(definition, contraTaxonomy);
     for (final issue in issues) {
       if (issue.severity != ValidationSeverity.error) continue;
@@ -394,7 +424,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         _errors = errors;
         _showRequired = requiredMissing;
       });
-      return;
+      return false;
     }
 
     final unused = [
@@ -422,7 +452,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
           ],
         ),
       );
-      if (saveAnyway != true || !mounted) return;
+      if (saveAnyway != true || !mounted) return false;
     }
 
     String stored(String text) =>
@@ -442,21 +472,16 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
       payload: definition.toJson(),
       createdAt: widget.initial?.createdAt ?? DateTime.now().toUtc(),
     );
-    setState(() => _saving = true);
     try {
       await repos.userGlossary.upsert(entry);
     } on UserGlossaryEntryInvalid {
       // diagnostics: silent — shown inline; a field over its bound is the user's to shorten.
-      if (mounted) {
-        setState(() {
-          _saving = false;
-          _errors = [l10n.compoundEditorTooLong];
-        });
-      }
-      return;
+      if (mounted) setState(() => _errors = [l10n.compoundEditorTooLong]);
+      return false;
     }
     _dirty = false;
     navigator.pop(entry);
+    return true;
   }
 
   Future<bool> _confirmDiscard() async {

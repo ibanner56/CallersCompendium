@@ -8888,6 +8888,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get glossaryNotesHint => 'コールの仕方、注意点など…';
 
   @override
+  String get glossaryNotesTooLong => 'メモが長すぎるため保存できません。短くしてもう一度お試しください。';
+
+  @override
   String get compoundEditorTitleNew => '新しいフィギュア';
 
   @override
@@ -8930,7 +8933,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get compoundEditorParamsHelp => 'フィギュアを使うたびに選ぶ項目です（誰が、どちらの手で、など）。';
 
   @override
-  String get compoundEditorParamName => '名前';
+  String get compoundEditorParamName => 'パラメーター名';
 
   @override
   String get compoundEditorParamKind => '種類';

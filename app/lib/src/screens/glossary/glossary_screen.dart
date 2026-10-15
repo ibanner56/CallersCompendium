@@ -94,11 +94,16 @@ class _ShownEntry {
     this.name,
     this.definition,
   ) : custom = null,
+      keywords = const [],
       id = entry.id;
 
-  _ShownEntry.custom(CustomGlossaryItem this.custom, this.name, this.definition)
-    : entry = null,
-      id = custom.selectionId;
+  _ShownEntry.custom(
+    CustomGlossaryItem this.custom,
+    this.name,
+    this.definition, {
+    this.keywords = const [],
+  }) : entry = null,
+       id = custom.selectionId;
 
   /// The shipped figure, or null for one of the user's own.
   final FigureGlossaryEntry? entry;
@@ -115,6 +120,10 @@ class _ShownEntry {
   /// The definition in the active dialect, or `null` when none ships yet.
   final String? definition;
 
+  /// A custom entry's keywords in the active dialect, so they are found by
+  /// what the user typed rather than by their stored form.
+  final List<String> keywords;
+
   bool matches(String q) {
     if (name.toLowerCase().contains(q)) return true;
     if (definition?.toLowerCase().contains(q) ?? false) return true;
@@ -123,7 +132,7 @@ class _ShownEntry {
       return shipped.canonicalName.toLowerCase().contains(q) ||
           shipped.searchKeywords.any((k) => k.toLowerCase().contains(q));
     }
-    return custom!.entry.keywords.any((k) => k.toLowerCase().contains(q));
+    return keywords.any((k) => k.toLowerCase().contains(q));
   }
 }
 
@@ -177,6 +186,10 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
           c,
           _renderer.renderFreeText(c.entry.name, dialect),
           _renderer.renderFreeText(c.entry.definition, dialect),
+          keywords: [
+            for (final k in c.entry.keywords)
+              _renderer.renderFreeText(k, dialect),
+          ],
         ),
     ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     final q = _query.trim().toLowerCase();
@@ -232,7 +245,16 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) => Scaffold(
-          appBar: AppBar(title: Text(shown.name)),
+          // A custom figure's title follows the entry, which can be renamed
+          // from this page.
+          appBar: AppBar(
+            title: shown.custom == null
+                ? Text(shown.name)
+                : CustomFigureTitle(
+                    entryId: shown.custom!.entry.id,
+                    fallback: shown.name,
+                  ),
+          ),
           body: _detail(shown, showName: false),
         ),
       ),
@@ -607,12 +629,21 @@ class _FigureNotesSectionState extends State<FigureNotesSection> {
             : _renderer.renderFreeText(_notes!, dialect),
       ),
     );
-    if (saved == null) return;
+    if (saved == null || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final tooLong = AppLocalizations.of(context).glossaryNotesTooLong;
     // Empty text deletes the note.
-    await repos.figureNotes.set(
-      widget.figureId,
-      canonicalizeGlossaryText(saved, dialect),
-    );
+    try {
+      await repos.figureNotes.set(
+        widget.figureId,
+        canonicalizeGlossaryText(saved, dialect),
+      );
+    } on FigureNoteInvalid {
+      // diagnostics: silent — the user's text is over the stored bound, which
+      // canonical role tokens can push it past; the message asks them to
+      // shorten it.
+      messenger.showSnackBar(SnackBar(content: Text(tooLong)));
+    }
   }
 
   @override

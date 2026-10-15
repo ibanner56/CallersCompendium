@@ -47,6 +47,7 @@ class MoveAutocomplete extends StatefulWidget {
     this.includeModifier = false,
     this.compoundOptions = const [],
     this.compoundMarkerLabel = 'custom',
+    this.includeCustomMove = true,
     this.modifierOptionLabel = 'modifier',
     this.hintText = 'e.g. swing',
     this.labelText = 'Move',
@@ -93,6 +94,11 @@ class MoveAutocomplete extends StatefulWidget {
 
   /// What marks a compound option as the user's own, in words.
   final String compoundMarkerLabel;
+
+  /// Whether the taxonomy's own [customMove] is offered. An editor that
+  /// cannot hold a custom figure turns it off, as it turns off
+  /// [onCustomSubmitted].
+  final bool includeCustomMove;
 
   /// Label shown for the optional structural modifier entry.
   final String modifierOptionLabel;
@@ -145,12 +151,13 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
           kind: MoveOptionKind.modifier,
         ),
       for (final m in widget.taxonomy.moves.values)
-        if (matches(
-          m.id,
-          m.displayName,
-          renderer.displayMoveName(m.id, dialect),
-          m.searchKeywords,
-        ))
+        if ((widget.includeCustomMove || m.id != customMove) &&
+            matches(
+              m.id,
+              m.displayName,
+              renderer.displayMoveName(m.id, dialect),
+              m.searchKeywords,
+            ))
           MoveOption(
             id: m.id,
             displayName: renderer.displayMoveName(m.id, dialect),

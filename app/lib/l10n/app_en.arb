@@ -12121,6 +12121,10 @@
   "@glossaryNotesHint": {
     "description": "Hint text of the notes field on a built-in figure."
   },
+  "glossaryNotesTooLong": "Your notes are too long to save. Shorten them and try again.",
+  "@glossaryNotesTooLong": {
+    "description": "Shown when the user's notes on a built-in figure in the Glossary are over the length that can be stored."
+  },
   "compoundEditorTitleNew": "New figure",
   "@compoundEditorTitleNew": {
     "description": "Title of the editor for a new custom figure."
@@ -12177,7 +12181,7 @@
   "@compoundEditorParamsHelp": {
     "description": "Help text under the Parameters heading of the custom figure editor."
   },
-  "compoundEditorParamName": "Name",
+  "compoundEditorParamName": "Parameter name",
   "@compoundEditorParamName": {
     "description": "Label of a parameter's name field in the custom figure editor."
   },

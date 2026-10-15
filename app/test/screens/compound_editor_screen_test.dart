@@ -52,10 +52,14 @@ void main() {
   Future<CompendiumRepositories> pump(
     WidgetTester tester, {
     UserGlossaryEntry? initial,
+    List<UserGlossaryEntry> stored = const [],
   }) async {
     await tester.binding.setSurfaceSize(const Size(600, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final repos = openTestRepositories();
+    for (final e in stored) {
+      await tester.runAsync(() => repos.userGlossary.upsert(e));
+    }
     final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
     addTearDown(dialect.dispose);
     await tester.pumpWidget(
@@ -107,7 +111,7 @@ void main() {
   });
 
   testWidgets('a name a built-in figure has is refused', (tester) async {
-    await pump(tester, initial: twoPullBys());
+    final repos = await pump(tester, initial: twoPullBys());
     await tester.enterText(
       find.byKey(const ValueKey('compound-name')),
       'Pull By',
@@ -120,10 +124,138 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(await tester.runAsync(repos.userGlossary.listAll), isEmpty);
+  });
+
+  testWidgets('a name is compared as it is stored, so two spellings of one '
+      'role cannot both be saved', (tester) async {
+    final existing = UserGlossaryEntry(
+      id: 'other',
+      kindName: UserGlossaryEntryKind.compound.name,
+      name: 'role1s swing twice',
+      definition: 'd',
+      description: 'd',
+      payload: twoPullBys().payload,
+      createdAt: created,
+    );
+    final repos = await pump(tester, initial: twoPullBys(), stored: [existing]);
+    await tester.enterText(
+      find.byKey(const ValueKey('compound-name')),
+      'Gents swing twice',
+    );
+    await save(tester);
+    expect(find.textContaining('is already the name'), findsOneWidget);
+    expect(
+      [
+        for (final e in (await tester.runAsync(repos.userGlossary.listAll))!)
+          e.id,
+      ],
+      ['other'],
+    );
+  });
+
+  testWidgets('editing a stored figure keeps its own name', (tester) async {
+    final repos = await pump(
+      tester,
+      initial: twoPullBys(),
+      stored: [twoPullBys()],
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('compound-definition')),
+      'Pull by twice.',
+    );
+    await save(tester);
+    expect(find.byType(CompoundEditorScreen), findsNothing, reason: 'saved');
+    final saved = (await tester.runAsync(
+      () => repos.userGlossary.getById('pb2'),
+    ))!;
+    expect(saved.name, 'two pull bys');
+    expect(saved.definition, 'Pull by twice.');
+  });
+
+  testWidgets('saving twice in quick succession stores one figure', (
+    tester,
+  ) async {
+    final repos = await pump(tester, initial: twoPullBys());
+    await tester.enterText(
+      find.byKey(const ValueKey('compound-name')),
+      'my thing',
+    );
+    final button = find.byKey(const ValueKey('compound-editor-save'));
+    await tester.tap(button);
+    await tester.tap(button, warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(await tester.runAsync(repos.userGlossary.listAll), hasLength(1));
+    // A second save would also pop a second route: the page that opened the
+    // editor.
+    expect(find.byKey(const ValueKey('open')), findsOneWidget);
+  });
+
+  testWidgets('a figure\'s note is stored canonical and shown in the dialect', (
+    tester,
+  ) async {
+    final initial = twoPullBys();
+    final payload = Map<String, Object?>.of(
+      initial.payload! as Map<String, Object?>,
+    );
+    final figures = [
+      for (final f in payload['figures']! as List)
+        Map<String, Object?>.of(f as Map<String, Object?>),
+    ];
+    figures[0]['note'] = 'role1s step in';
+    payload['figures'] = figures;
+    final repos = await pump(
+      tester,
+      initial: UserGlossaryEntry(
+        id: initial.id,
+        kindName: initial.kindName,
+        name: initial.name,
+        definition: initial.definition,
+        description: initial.description,
+        payload: payload,
+        createdAt: initial.createdAt,
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<EditableText>(
+            find.descendant(
+              of: find.byKey(const ValueKey('figure-0-note')),
+              matching: find.byType(EditableText),
+            ),
+          )
+          .controller
+          .text,
+      'larks step in',
+      reason: 'rendered into the dialect for editing',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-note')),
+      'Larks step out',
+    );
+    await save(tester);
+    final saved = (await tester.runAsync(
+      () => repos.userGlossary.getById('pb2'),
+    ))!;
+    final definition = decodeCompoundDefinition(saved.payload, contraTaxonomy)!;
+    expect(definition.figures.first.note, 'role1s step out');
   });
 
   testWidgets('custom figures are not offered as parts', (tester) async {
-    await pump(tester);
+    await pump(tester, initial: twoPullBys());
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-move-input')),
+      'custom',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('figure-0-move-option-custom')),
+      findsNothing,
+    );
     expect(
       tester
           .widget<FigureListEditor>(find.byType(FigureListEditor))

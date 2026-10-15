@@ -9236,6 +9236,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Hvordan du kalder den, hvad du skal holde øje med…';
 
   @override
+  String get glossaryNotesTooLong =>
+      'Dine noter er for lange til at blive gemt. Gør dem kortere, og prøv igen.';
+
+  @override
   String get compoundEditorTitleNew => 'Ny figur';
 
   @override
@@ -9282,7 +9286,7 @@ class AppLocalizationsDa extends AppLocalizations {
       'Det, du vælger, hver gang du bruger figuren, f.eks. hvem og hvilken hånd.';
 
   @override
-  String get compoundEditorParamName => 'Navn';
+  String get compoundEditorParamName => 'Parameternavn';
 
   @override
   String get compoundEditorParamKind => 'Type';
