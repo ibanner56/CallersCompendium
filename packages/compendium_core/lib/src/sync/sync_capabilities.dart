@@ -4,7 +4,9 @@ import 'sync_record_kind.dart';
 /// `sync_capabilities:<deviceId>`, whose value is
 /// `{"capabilities": ["glossary.v1", …]}`.
 ///
-/// Each device writes only its own. It travels as an ordinary `setting`
+/// Each device writes only its own, except that removing a device from the
+/// store tombstones the removed device's record (sync-spec §6.15). It travels
+/// as an ordinary `setting`
 /// record, which every build since v0.7.0 keeps whole when it does not know
 /// the key (ADR-004), so advertising is safe to older peers.
 const String syncCapabilityKeyPrefix = 'sync_capabilities:';
@@ -46,11 +48,21 @@ final class SyncCapabilityPolicy {
   /// that need them; a capability is advertised only once the whole feature
   /// it covers, sync included, is in the build.
   ///
-  /// [SyncCapabilities.glossaryV1] gates the Custom Figures toggle (#709)
-  /// and is not advertised yet, so that toggle stays on its device until the
-  /// glossary's own record kinds can sync with it.
+  /// [SyncCapabilities.glossaryV1] (#709) gates the user's glossary entries,
+  /// their notes on shipped figures, the Custom Figures toggle and the
+  /// compound shorthands, and this build advertises it: they publish once
+  /// every other device attached to the store advertises it too. Until then
+  /// this device sends none of them, and leaves alone what it already holds.
   static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
-    gatedSettingKeys: {'show_custom_figures': SyncCapabilities.glossaryV1},
+    advertised: {SyncCapabilities.glossaryV1},
+    gatedRecordKinds: {
+      SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
+      SyncRecordKind.figureNote: SyncCapabilities.glossaryV1,
+    },
+    gatedSettingKeys: {
+      'show_custom_figures': SyncCapabilities.glossaryV1,
+      'compound_shorthands': SyncCapabilities.glossaryV1,
+    },
   );
 
   /// The capability a record waits for, or null when it is not gated.

@@ -55,8 +55,8 @@ final Map<String, String> storedDiscouragedTerms = {
 ///
 /// User-glossary canonicalization keeps these as the dialect's roles rather
 /// than reading them by the table, which would invert a "ravens" role1 into
-/// `role2s`. The renderer's display conversion does not consult this (see
-/// `docs/design/dialect.md`).
+/// `role2s`, and the renderer's display conversion shows them as written for
+/// the same reason (see `docs/design/dialect.md`).
 Set<String> claimedRoleWords(Dialect dialect) {
   final bases = {
     for (final term in discouragedTermMeanings.keys) _withoutPossessive(term),

@@ -1441,8 +1441,10 @@ The wire hash remains the full canonical blob hash.
 
 ### 4.3 Record blob
 
-Nine kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
-`publishedSource`, `customFieldDef`, `venue`, `difficultyLevel`, `setting`.
+Eleven kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
+`publishedSource`, `customFieldDef`, `venue`, `difficultyLevel`, `setting`,
+and, since #709, `glossaryEntry` and `figureNote` (the user's own glossary;
+see below, and §6.15 for when they are published).
 
 ```json
 {
@@ -1459,14 +1461,45 @@ Nine kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
 | Field | Requirement |
 | --- | --- |
 | `v` | Envelope version. A client MUST refuse an unknown value rather than guess. It MUST read `v` before any other envelope check — the exact key set included — so that a newer envelope which also adds a key is refused as *newer* and reported as such (§6.9), not as malformed. The same applies to a manifest's `v` (§4.5). |
-| `kind` | One of the nine above. |
-| `id` | The record's id — a UUID for entity kinds other than `difficultyLevel`, one of the fixed shipped IDs or a UUID for `difficultyLevel`, and the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
+| `kind` | One of the eleven above. |
+| `id` | The record's id — a UUID for entity kinds other than `difficultyLevel`, `glossaryEntry` and `figureNote`, one of the fixed shipped IDs or a UUID for `difficultyLevel`, an opaque id of 1–200 UTF-16 code units already in normalised form for `glossaryEntry` (a UUID when the app creates the entry; one restored from a backup keeps the id it was saved with), the id of the shipped figure (move or alias) a note annotates for `figureNote`, and the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
 | `updatedAt` | Content discriminator. UTC, one-tick precision (§2). Plain local clock. |
 | `deletedAt` | Non-null means tombstone. Plain local clock; also the retention timestamp. |
 | `existenceAt` | Orders live↔deleted transitions. Causally stamped; see §6.4. |
-| `body` | Archive-codec output, `shareable` fields only. |
+| `body` | Archive-codec output, `shareable` fields only; for `glossaryEntry` and `figureNote`, which the archive does not carry, the body below, through the same projection. |
 
 Join rows are not separate records; they ride inline with their parent.
+
+**The user's glossary (#709).** A `glossaryEntry` body is `id`, `kind`,
+`name`, `definition`, `description`, `keywords` (an array of strings), `notes`
+(string or null), `payload` (string or null) and `createdAt`, every key always
+present. A `figureNote` body is `id` and `notes`. Their timestamps travel on the
+envelope, as every kind's do. Text holds canonical role words, as stored.
+
+- `payload` is the stored payload **text**, not the JSON value it encodes, and
+  `kind` is the stored kind name. Both travel verbatim, so sync applies, keeps
+  and publishes again byte for byte an entry a build cannot use — a kind it
+  does not know, a payload that no longer decodes as a definition, or one only
+  a newer build reads; sync never drops or rewrites it, and the app shows it as
+  made by a newer version, or as needing repair. Text rather than a JSON value
+  because canonical JSON sorts keys: decoding and re-encoding on the way would
+  rewrite what the author's device stored, and a payload that is not JSON at
+  all could not travel. Carrying it as text is the implementer's choice in
+  #709. The guarantee is sync's only: a backup carries a payload as decoded
+  JSON, so a payload whose text is not JSON at all does not survive a backup
+  restore (judged not worth a second payload form in backups, #1772). The
+  editor and backup restore write only encoded JSON; sync stores such a
+  payload only as a peer sent it, so one first arises from a corrupted row.
+- A receiver MUST refuse (as malformed) a `payload` that parses as JSON but is
+  not in the normalised form storage writes (§4.6), and a body over the bounds
+  every build enforces: storing either would change the record under its
+  peer's wire hash.
+- `createdAt` is a UTC time to the second and MUST be stored unchanged. Of two
+  entries sharing a name, the later-created one is flagged for rename, derived
+  on read and never stored (#709 consolidated spec, decision 6), so carrying
+  the creation time unchanged is what lets every device flag the same one.
+- Names are not natural keys: two entries with one name are two records, so
+  neither kind takes part in collision reconciliation (§6.6).
 
 **A device MUST NOT publish a dance whose stored transcription it cannot
 decode.** The body is the archive codec's output restricted to `shareable`
@@ -2648,7 +2681,7 @@ republishes, which is an ordinary upload and needs no special path.
    two conforming implementations diverge permanently. It is not an edge case.
    §4.4 makes the settings key the record `id`, so it is a natural key rather
    than a UUID: two attached devices that each set the same shareable preference
-   before the next pass reach exactly this state, and 63 settings keys are
+   before the next pass reach exactly this state, and 64 settings keys are
    `shareable` (exact keys in `settingsClassifications` whose egress is
    `shareable`, counted 2026-10-15), as is one prefix entry,
    `sync_capabilities:` (§6.15). Records with UUID ids reach it too, because archive
@@ -2709,9 +2742,9 @@ republishes, which is an ordinary upload and needs no special path.
    from a merged-away copy is written through the apply engine, which rewrites
    its id to the survivor.
 
-   **Whole-collection settings.** Four settings keys hold a whole user-built
-   collection behind one key: `custom_dialects`, `custom_themes`,
-   `shorthand_mappings` and `walkthrough_snippets`. For these, a
+   **Whole-collection settings.** Five settings keys hold a whole user-built
+   collection behind one key: `compound_shorthands`, `custom_dialects`,
+   `custom_themes`, `shorthand_mappings` and `walkthrough_snippets`. For these, a
    `changed`/`changed` conflict MUST be queued for the user's choice whatever
    the two `updatedAt` values, because last-writer-wins would discard one
    device's entire set rather than one edit. Both sides must have changed since
@@ -4274,10 +4307,18 @@ notice; an older build reports it as a malformed record. Decided by Isaac
 consolidated spec, decision 13).
 On detach every capability record is erased, not tombstoned: each names a
 device of the store being left, and a tombstone would carry those device IDs
-to the next store, as keeping this device's own ID would (§3.3). Nothing else
-removes a capability record: the record of a device removed from the store,
-or of an old device ID after a detach and re-attach, stays and is
-republished by the devices that hold it, counting for nothing in the gate.
+to the next store, as keeping this device's own ID would (§3.3). Removing a
+device under *Other devices* (§3.3) is the one write of another device's
+record: once the server has deleted that device's manifest, the device that
+removed it tombstones the removed device's record if it holds one, and the
+tombstone syncs, so every device that holds it drops it. A removed device that
+is still attached, or that pairs again under the same ID, finds its record
+missing on the pass after the tombstone reaches it (its record is written
+before the pull) and writes it afresh; until then its peers hold back the data
+it gates and name it in the held-back notice, and nothing is lost. Decided by Isaac
+(maintainer), 2026-10-15. Nothing else removes a capability record: the record
+of an old device ID after a detach and re-attach stays and is republished by
+the devices that hold it, counting for nothing in the gate.
 
 **The gate.** A capability is open on a device, for a pass, only when its own
 build advertises it **and** every other device in that pass's store device
@@ -4334,6 +4375,12 @@ pairing screens (#709 consolidated spec, decision 13): the pairing screen says s
 both its paths, while the build advertises any capability. There is no
 timeout: a device that never updates keeps the gate closed until it is
 removed.
+
+**`glossary.v1`.** The first capability. It gates the `glossaryEntry` and
+`figureNote` kinds and the `show_custom_figures` and `compound_shorthands`
+settings (#709). The reference client advertises it from the change that
+syncs the two kinds; before that change it gated the two settings without
+advertising the capability, so they stayed on their device.
 
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed

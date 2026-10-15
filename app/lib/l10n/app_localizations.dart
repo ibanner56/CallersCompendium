@@ -920,6 +920,18 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 setting} other{{count} settings}}'**
   String settingsSyncNoticeCountSetting(int count);
 
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many of the user's own figures (compound figures they defined in the Glossary) are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 of your own figures} other{{count} of your own figures}}'**
+  String settingsSyncNoticeCountGlossaryEntry(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many of the user's notes on built-in Glossary figures (one note per figure) are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{your notes on 1 figure} other{your notes on {count} figures}}'**
+  String settingsSyncNoticeCountFigureNote(int count);
+
   /// Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting: the other device's list of what it shares is itself in the newer format, or it shares a kind of data this version does not know.
   ///
   /// In en, this message translates to:
@@ -1943,7 +1955,7 @@ abstract class AppLocalizations {
   /// Body of the pairing disclosure about devices on earlier app versions (#709). 'Those things' are the kinds of data the earlier versions cannot read; they are kept, not lost, and sync once every device is updated.
   ///
   /// In en, this message translates to:
-  /// **'This version syncs some things that earlier versions of the app can\'t read. Update each device before you connect it: one running an earlier version may not be able to connect. Until every connected device is up to date, those things stay on the device they were made on.'**
+  /// **'This version syncs some things that earlier versions of the app can\'t read. Update each device before you connect it: one running an earlier version may not be able to connect. Until every connected device is up to date, those things aren\'t sent to your other devices.'**
   String get settingsSyncPairingNewerDataBody;
 
   /// Heading of the disclosure spec §8 requires, shown on both pairing paths. The phrase names WHERE the shared library is, so an address framing is the accurate one; do not write 'access', 'key', 'account' or 'password' here.
@@ -4488,6 +4500,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Setting'**
   String get syncReviewKindSetting;
+
+  /// Kind label for a sync decision about one of the user's own figures: a compound figure they defined in the Glossary.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own figure'**
+  String get syncReviewKindGlossaryEntry;
+
+  /// Kind label for a sync decision about the user's notes on one built-in Glossary figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Your notes on a figure'**
+  String get syncReviewKindFigureNote;
+
+  /// Heading of a sync conflict about the user's notes on one built-in Glossary figure. {figure} is the figure's name as the Glossary shows it, such as 'swing' or 'right shoulder round'.
+  ///
+  /// In en, this message translates to:
+  /// **'Your notes on {figure}'**
+  String syncConflictFigureNoteTitle(String figure);
 
   /// Safe identity line for the local record in a sync decision.
   ///
@@ -12440,6 +12470,66 @@ abstract class AppLocalizations {
   /// **'Shorthand actions'**
   String get shorthandMappingsActionsTooltip;
 
+  /// Heading of the list of compound shorthands (#709) on the shorthands screen, and the name of their setting in sync notices: tokens that stand for one of the user's own Custom Figures with fixed values.
+  ///
+  /// In en, this message translates to:
+  /// **'Shorthands for your own figures'**
+  String get shorthandsCompoundTitle;
+
+  /// Explains the compound shorthands section.
+  ///
+  /// In en, this message translates to:
+  /// **'With Free-text entry on, typing one of these as a whole line while you edit a dance adds one of your own figures, with the values chosen here.'**
+  String get shorthandsCompoundIntro;
+
+  /// Button that creates a compound shorthand.
+  ///
+  /// In en, this message translates to:
+  /// **'New shorthand for one of your figures'**
+  String get shorthandsCompoundNew;
+
+  /// Shown when there are no compound shorthands.
+  ///
+  /// In en, this message translates to:
+  /// **'No shorthands for your own figures yet.'**
+  String get shorthandsCompoundEmpty;
+
+  /// Shown under a compound shorthand whose figure can no longer be expanded with its values.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t be used: its figure has been deleted or changed, or doesn\'t accept these values. Typing it is read as an ordinary line.'**
+  String get shorthandsCompoundUnavailable;
+
+  /// Shown under a compound shorthand whose token a figure shorthand also has (possible when two devices each add one before syncing); the figure shorthand is used.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used: a figure shorthand has the same text.'**
+  String get shorthandsCompoundShadowed;
+
+  /// Label of the field choosing which of the user's own figures a compound shorthand stands for.
+  ///
+  /// In en, this message translates to:
+  /// **'Your figure'**
+  String get compoundShorthandEditorFigureLabel;
+
+  /// Error when saving a compound shorthand without choosing a figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose one of your figures.'**
+  String get compoundShorthandEditorNoFigure;
+
+  /// Shown in the compound shorthand editor when the user has no usable custom figures.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no figures of your own yet. Add one in the Glossary first.'**
+  String get compoundShorthandEditorNoCompounds;
+
+  /// Error when saving a compound shorthand whose values the chosen figure does not accept.
+  ///
+  /// In en, this message translates to:
+  /// **'These values don\'t fit this figure. Choose others.'**
+  String get compoundShorthandEditorInvalidValues;
+
   /// App-bar title when creating a new figure-shorthand mapping.
   ///
   /// In en, this message translates to:
@@ -12493,6 +12583,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Another shorthand already uses \"{token}\" (shorthands are matched case-insensitively).'**
   String shorthandEditorErrorDuplicate(String token);
+
+  /// Validation error when a figure shorthand's token is taken by a shorthand for one of the user's own figures, which the screen hides while the Custom Figures setting is off; {token} is the user's token.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{token}\" is already a shorthand for one of your own figures. Those are listed here while Custom Figures is on.'**
+  String shorthandEditorErrorDuplicateHidden(String token);
 
   /// Validation error when no target figures have been added to a shorthand.
   ///

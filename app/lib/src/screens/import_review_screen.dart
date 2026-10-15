@@ -1681,8 +1681,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
     if (candidates.isEmpty) return;
 
-    final existing = {for (final m in controller.mappings) m.normalizedToken};
-    final partition = partitionInsertCallCandidates(candidates, existing);
+    // Every shorthand of either kind takes its token (#709).
+    final partition = partitionInsertCallCandidates(
+      candidates,
+      controller.takenTokens,
+    );
     // Nothing addable: every candidate already exists. Surfacing a screen with
     // only skipped rows would be noise, so stay silent (the tokens are already
     // defined — re-import idempotency needs no user action).

@@ -589,6 +589,28 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeCountGlossaryEntry(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count van je eigen figuren',
+      one: '1 van je eigen figuren',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountFigureNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'je notities bij $count figuren',
+      one: 'je notities bij 1 figuur',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om de wijzigingen ervan te ontvangen.';
 
@@ -1358,7 +1380,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSyncPairingNewerDataBody =>
-      'Deze versie synchroniseert een aantal dingen die eerdere versies van de app niet kunnen lezen. Werk elk apparaat bij voordat je het verbindt: een apparaat met een eerdere versie kan mogelijk geen verbinding maken. Tot alle verbonden apparaten zijn bijgewerkt, blijven die dingen op het apparaat waarop ze zijn gemaakt.';
+      'Deze versie synchroniseert een aantal dingen die eerdere versies van de app niet kunnen lezen. Werk elk apparaat bij voordat je het verbindt: een apparaat met een eerdere versie kan mogelijk geen verbinding maken. Tot alle verbonden apparaten zijn bijgewerkt, worden die dingen niet naar je andere apparaten gestuurd.';
 
   @override
   String get settingsSyncPairingBearerTitle =>
@@ -2861,6 +2883,17 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get syncReviewKindSetting => 'Instelling';
+
+  @override
+  String get syncReviewKindGlossaryEntry => 'Je eigen figuur';
+
+  @override
+  String get syncReviewKindFigureNote => 'Je notities bij een figuur';
+
+  @override
+  String syncConflictFigureNoteTitle(String figure) {
+    return 'Je notities bij $figure';
+  }
 
   @override
   String syncReviewLocalRecord(String id) {
@@ -8316,6 +8349,43 @@ class AppLocalizationsNl extends AppLocalizations {
   String get shorthandMappingsActionsTooltip => 'Afkortingsacties';
 
   @override
+  String get shorthandsCompoundTitle => 'Afkortingen voor je eigen figuren';
+
+  @override
+  String get shorthandsCompoundIntro =>
+      'Als vrije tekstinvoer aan staat, voegt het typen van een van deze afkortingen als hele regel tijdens het bewerken van een dans een van je eigen figuren toe, met de waarden die hier zijn gekozen.';
+
+  @override
+  String get shorthandsCompoundNew =>
+      'Nieuwe afkorting voor een van je figuren';
+
+  @override
+  String get shorthandsCompoundEmpty =>
+      'Nog geen afkortingen voor je eigen figuren.';
+
+  @override
+  String get shorthandsCompoundUnavailable =>
+      'Niet bruikbaar: de figuur is verwijderd of gewijzigd, of accepteert deze waarden niet. Getypt wordt het als een gewone regel gelezen.';
+
+  @override
+  String get shorthandsCompoundShadowed =>
+      'Niet gebruikt: een figuurafkorting heeft dezelfde tekst.';
+
+  @override
+  String get compoundShorthandEditorFigureLabel => 'Je figuur';
+
+  @override
+  String get compoundShorthandEditorNoFigure => 'Kies een van je figuren.';
+
+  @override
+  String get compoundShorthandEditorNoCompounds =>
+      'Je hebt nog geen eigen figuren. Voeg er eerst een toe in de woordenlijst.';
+
+  @override
+  String get compoundShorthandEditorInvalidValues =>
+      'Deze waarden passen niet bij deze figuur. Kies andere.';
+
+  @override
   String get shorthandEditorTitleNew => 'Nieuwe afkorting';
 
   @override
@@ -8346,6 +8416,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String shorthandEditorErrorDuplicate(String token) {
     return 'Een andere afkorting gebruikt al “$token” (afkortingen worden hoofdletterongevoelig vergeleken).';
+  }
+
+  @override
+  String shorthandEditorErrorDuplicateHidden(String token) {
+    return '“$token” is al een afkorting voor een van je eigen figuren. Die worden hier getoond zolang Eigen figuren aan staat.';
   }
 
   @override

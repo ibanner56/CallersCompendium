@@ -370,6 +370,54 @@ void main() {
       );
     });
 
+    test('keeps a dialect\'s own role words that the table lists as '
+        'discouraged', () {
+      // "Ravens" is this dialect's role1; the table reads "ravens" as role2s,
+      // which would turn the author's own word into the other role.
+      final ravenDialect = Dialect(
+        name: 'Ravens/Robins',
+        roles: const {'role1': RoleTerm('raven'), 'role2': RoleTerm('robin')},
+      );
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          "Ravens cross; the ravens' turn, then the raven's.",
+          ravenDialect,
+        ),
+        "Ravens cross; the ravens' turn, then the raven's.",
+      );
+      expect(
+        renderer.renderDiscouragedTerms('Ravens cross', ravenDialect),
+        'Ravens cross',
+      );
+      // Terms the dialect doesn't claim still read by the table.
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          'gents cross',
+          ravenDialect,
+        ),
+        'ravens cross',
+      );
+    });
+
+    test('keeps a multi-word claimed role word exactly as typed', () {
+      // "lady" is in the table, so "lady birds" is a claimed word here; a
+      // mixed-case span such as "Lady Birds" must not come back lowercased.
+      final ladyBird = Dialect(
+        name: 'Lady Birds/Beetles',
+        roles: const {
+          'role1': RoleTerm('Lady Bird'),
+          'role2': RoleTerm('Beetle'),
+        },
+      );
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          'Lady Birds cross; LADY BIRDS wait; lady birds turn.',
+          ladyBird,
+        ),
+        'Lady Birds cross; LADY BIRDS wait; lady birds turn.',
+      );
+    });
+
     test('converts custom text before role substitution exactly once', () {
       final ravenDialect = Dialect(
         name: 'Ravens/Robins',

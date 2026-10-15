@@ -219,6 +219,40 @@ void main() {
       );
     });
 
+    test('an id, kind or figure id sync could not carry is skipped and '
+        'reported, and the rest of the restore still applies (#709)', () async {
+      final repos = await seeded();
+      final long = 'x' * (maxUserGlossaryNameLength + 1);
+      const decomposed = 'cafe\u0301';
+      final outcome = await BackupService(repos).restoreFromJson(
+        backupWith({
+          'entries': [
+            entryJson(long),
+            {...entryJson('badKind'), 'kind': long},
+            {...entryJson('nfdKind'), 'kind': decomposed},
+            entryJson('fromBackup'),
+          ],
+          'figureNotes': [
+            {'figureId': long, 'notes': 'A note.'},
+            {'figureId': 'swing', 'notes': 'role1s on the left'},
+          ],
+        }),
+      );
+
+      expect(outcome.applied, isTrue);
+      expect(
+        outcome.errors.map((e) => (e.entityType, e.entityId)),
+        containsAll([
+          ('glossaryEntry', long),
+          ('glossaryEntry', 'badKind'),
+          ('glossaryEntry', 'nfdKind'),
+          ('figureNote', long),
+        ]),
+      );
+      expect(await liveIds(repos), ['fromBackup']);
+      expect(await liveNoteIds(repos), ['swing']);
+    });
+
     test('a payload that cannot be stored is skipped the same way, and the '
         'rest of the restore still applies', () async {
       final repos = await seeded();

@@ -1,0 +1,21 @@
+{
+  "id": "709-follow-ups",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "With Auto-convert all discouraged terms on, a custom dialect's own role words are no longer swapped for the other role: in a dialect whose role is \"Raven\", a note saying \"Ravens cross\" no longer shows as the other role crossing.",
+      "Restoring a backup that holds a setting nested far deeper than the app ever writes no longer stops part-way and reports failure: that setting is skipped and the rest of the restore applies.",
+      "When applying settings fails during a backup restore and Retry succeeds, the message now says how many problems the restore skipped, instead of only \"Settings applied.\"",
+      "Removing a device under Device Sync's Other devices now also removes its record of what that device's app can read, on every device, instead of leaving it to sync forever."
+    ]
+  },
+  "core": {
+    "added": [
+      "`jsonNestedDeeperThan`: whether a JSON value nests lists and maps deeper than a limit, checked without recursion. `userGlossaryPayloadDeeperThan` now uses it."
+    ],
+    "fixed": [
+      "The renderer's discouraged-term display keeps a dialect's claimed role words as written, as glossary canonicalization already does.",
+      "`difficulty_levels.id` has its own privacy classification note: a shipped level id or a UUID, not an opaque key."
+    ]
+  }
+}

@@ -37,6 +37,7 @@ class DanceEditorForm extends StatelessWidget {
     required this.moveParamDefaults,
     this.freeTextEntry = false,
     this.shorthandMappings,
+    this.compoundShorthands,
     required this.dialect,
     required this.isNew,
     required this.authorOptions,
@@ -74,6 +75,11 @@ class DanceEditorForm extends StatelessWidget {
   /// figures. `null` disables shorthand expansion. Only relevant when
   /// [freeTextEntry] is on.
   final ShorthandMappings? shorthandMappings;
+
+  /// The user's compound shorthands (#709), consulted before the figure
+  /// shorthands and the parser while Custom Figures is on. A figure shorthand
+  /// with the same token wins.
+  final CompoundShorthands? compoundShorthands;
   final Dialect dialect;
   final bool isNew;
 
@@ -319,6 +325,19 @@ class DanceEditorForm extends StatelessWidget {
                   canonicalizeDiscouragedTerms:
                       CanonicalDiscouragedTermsScope.of(context),
                   onAddFreeText: controller.insertFreeTextFigures,
+                  onSubmitCompoundShorthand:
+                      compoundShorthands == null || !customFiguresShown(context)
+                      ? null
+                      : (line) {
+                          // Tokens are kept unique, but two devices can each
+                          // add one before they sync.
+                          if (shorthandMappings?.resolve(line) != null) {
+                            return false;
+                          }
+                          final shorthand = compoundShorthands!.resolve(line);
+                          return shorthand != null &&
+                              controller.insertCompoundShorthand(shorthand);
+                        },
                   onDelete: controller.deleteFigure,
                   onDuplicate: controller.duplicateFigure,
                   onReorder: controller.reorderFigure,

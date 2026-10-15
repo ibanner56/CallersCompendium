@@ -540,6 +540,14 @@
   "@settingsSyncNoticeCountSetting": {
     "x-sourceSha256": "ff0a50b131bbe8edcf51dc54d23235e5089d53704d6a548605bf9b6f132da4c5"
   },
+  "settingsSyncNoticeCountGlossaryEntry": "{count, plural, =1{1 de vos propres figures} other{{count} de vos propres figures}}",
+  "@settingsSyncNoticeCountGlossaryEntry": {
+    "x-sourceSha256": "68fc2e794fec98d4ce9e7ebdf6de306fae7ae2eae11a23e0c59f5033212b64ba"
+  },
+  "settingsSyncNoticeCountFigureNote": "{count, plural, =1{vos notes sur 1 figure} other{vos notes sur {count} figures}}",
+  "@settingsSyncNoticeCountFigureNote": {
+    "x-sourceSha256": "d8a9a1a4ceb2c8d27210fecff6147fdceaceb98a415748dabd9f42851eb3176a"
+  },
   "settingsSyncNoticeNewerVersionUncounted": "Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir ses modifications.",
   "@settingsSyncNoticeNewerVersionUncounted": {
     "x-sourceSha256": "ca371c7f36b6a2ca97e5fb9d8cd18cc2909af04e2973dec1a999d4e7a50fb339"
@@ -1220,9 +1228,9 @@
   "@settingsSyncPairingNewerDataTitle": {
     "x-sourceSha256": "a70ee18e575d46d080d7a7d51c306ac8647d1e4b28b2cf4a6397534f0bd50189"
   },
-  "settingsSyncPairingNewerDataBody": "Cette version synchronise certains éléments que les versions antérieures de l'app ne peuvent pas lire. Mettez à jour chaque appareil avant de le connecter : un appareil sous une version antérieure risque de ne pas pouvoir se connecter. Tant que tous les appareils connectés ne sont pas à jour, ces éléments restent sur l'appareil où ils ont été créés.",
+  "settingsSyncPairingNewerDataBody": "Cette version synchronise certains éléments que les versions antérieures de l'app ne peuvent pas lire. Mettez à jour chaque appareil avant de le connecter : un appareil sous une version antérieure risque de ne pas pouvoir se connecter. Tant que tous les appareils connectés ne sont pas à jour, ces éléments ne sont pas envoyés à vos autres appareils.",
   "@settingsSyncPairingNewerDataBody": {
-    "x-sourceSha256": "4d930677c1fe7d851fcb0909abedd8931a194760e3c63f5196393e7fc39bb024"
+    "x-sourceSha256": "71895e175c3abfaa7fbb5c050e9583e2f3b0420d09d1653dff98d1e7324a972e"
   },
   "settingsSyncPairingBearerTitle": "Quiconque a cette phrase peut ouvrir votre bibliothèque",
   "@settingsSyncPairingBearerTitle": {
@@ -2915,6 +2923,18 @@
   "syncReviewKindSetting": "Paramètre",
   "@syncReviewKindSetting": {
     "x-sourceSha256": "818cd8d91aea3a1689455f009f49e87fe7fa647fa2c4b9f09072dd1c33d52ca5"
+  },
+  "syncReviewKindGlossaryEntry": "Votre propre figure",
+  "@syncReviewKindGlossaryEntry": {
+    "x-sourceSha256": "d89a8f32c2f5099f6e866919bcc348bfc5afa253b8fda66039ae398dcc55d1d5"
+  },
+  "syncReviewKindFigureNote": "Vos notes sur une figure",
+  "@syncReviewKindFigureNote": {
+    "x-sourceSha256": "7c075d1bb02b49b5c64babc2c11318461b01bad01b9cfbd964e9f62f3c2f0b93"
+  },
+  "syncConflictFigureNoteTitle": "Vos notes sur {figure}",
+  "@syncConflictFigureNoteTitle": {
+    "x-sourceSha256": "57808c2e61dfdc04f48d7e10a927ab545ca45e9abffcab7f5706090f807eea66"
   },
   "syncReviewLocalRecord": "Élément local : {id}",
   "@syncReviewLocalRecord": {
@@ -8186,6 +8206,46 @@
   "@shorthandMappingsActionsTooltip": {
     "x-sourceSha256": "8794003dafec4a03b433f702ad1645c759dba638a9aa61e3da40ab8e65dab5e8"
   },
+  "shorthandsCompoundTitle": "Abréviations pour vos propres figures",
+  "@shorthandsCompoundTitle": {
+    "x-sourceSha256": "b37015f6e5621c3bf45810cce907194e87f5b4a9814b5c5695f960f484aa5949"
+  },
+  "shorthandsCompoundIntro": "Quand la saisie en texte libre est activée, taper l’une de ces abréviations seule sur une ligne pendant que vous modifiez une danse ajoute l’une de vos propres figures, avec les valeurs choisies ici.",
+  "@shorthandsCompoundIntro": {
+    "x-sourceSha256": "80090b751b53b2c67b417cdeed684cb8b14db7c4fa9ea70f67e05421fec4f587"
+  },
+  "shorthandsCompoundNew": "Nouvelle abréviation pour l’une de vos figures",
+  "@shorthandsCompoundNew": {
+    "x-sourceSha256": "1b347bb6599a3f25aeff5e17d7a6e5eeb0dfdb9e7ef94f7939e4d657027a8a14"
+  },
+  "shorthandsCompoundEmpty": "Aucune abréviation pour vos propres figures pour l’instant.",
+  "@shorthandsCompoundEmpty": {
+    "x-sourceSha256": "a10d6f5f186121f862135340b6e0cb665b5aaa7855bad0814bc34fa596c51b24"
+  },
+  "shorthandsCompoundUnavailable": "Inutilisable : sa figure a été supprimée ou modifiée, ou n’accepte pas ces valeurs. Une fois tapée, elle est lue comme une ligne ordinaire.",
+  "@shorthandsCompoundUnavailable": {
+    "x-sourceSha256": "1b95eac1564cf87d7e26c29bfb086720d29821ed2df01c8b5495c164a12b11e0"
+  },
+  "shorthandsCompoundShadowed": "Non utilisée : une abréviation de figures a le même texte.",
+  "@shorthandsCompoundShadowed": {
+    "x-sourceSha256": "75111a930cc8890e0f1378c778ee2c93d1ec4cd35897e8d496d60f0cc46d60b6"
+  },
+  "compoundShorthandEditorFigureLabel": "Votre figure",
+  "@compoundShorthandEditorFigureLabel": {
+    "x-sourceSha256": "6af67418286324f390ac3a5859240761a8b839514d0f5e667ab73f2a3ebce834"
+  },
+  "compoundShorthandEditorNoFigure": "Choisissez l’une de vos figures.",
+  "@compoundShorthandEditorNoFigure": {
+    "x-sourceSha256": "1cc30345f89f7d60df026db7a7d9058a654a1cae56aada728df7863bf573fd28"
+  },
+  "compoundShorthandEditorNoCompounds": "Vous n’avez pas encore de figures à vous. Ajoutez-en d’abord une dans le glossaire.",
+  "@compoundShorthandEditorNoCompounds": {
+    "x-sourceSha256": "62a41226cac8234479053580ceee7bf7ee3b36e0d5bf8a2b97d1b8e5c0945a61"
+  },
+  "compoundShorthandEditorInvalidValues": "Ces valeurs ne conviennent pas à cette figure. Choisissez-en d’autres.",
+  "@compoundShorthandEditorInvalidValues": {
+    "x-sourceSha256": "af97e0a8be30a36c45361b3f63c27fb0fcbf14984cd22b61567bb0b1e787061d"
+  },
   "shorthandEditorTitleNew": "Nouvelle abréviation",
   "@shorthandEditorTitleNew": {
     "x-sourceSha256": "bcb70a5881650d222f46a45b002a5e5d5af4760fe5f046123ce0f9e05100c220"
@@ -8221,6 +8281,10 @@
   "shorthandEditorErrorDuplicate": "Une autre abréviation utilise déjà « {token} » (les abréviations sont insensibles à la casse).",
   "@shorthandEditorErrorDuplicate": {
     "x-sourceSha256": "652678e63db28b88cf7ee418247d06d9a21db5efad07e7753757d3581bc29dbf"
+  },
+  "shorthandEditorErrorDuplicateHidden": "« {token} » est déjà une abréviation pour l’une de vos propres figures. Celles-ci sont listées ici quand « Figures personnalisées » est activé.",
+  "@shorthandEditorErrorDuplicateHidden": {
+    "x-sourceSha256": "7e3ee1d83196cfbd629298030de3866e4a983082c6b7fc1f5a0312d316091c27"
   },
   "shorthandEditorErrorNoFigures": "Ajoutez au moins une figure que cette abréviation développera.",
   "@shorthandEditorErrorNoFigures": {
