@@ -2304,12 +2304,19 @@ class SyncCoordinator {
       final attachedPublication = await _normalizeCandidates(
         attachedSnapshot.publication,
       );
-      _holdBackGated(
+      final attachedHeldBack = _holdBackGated(
         attachedPublication,
         local: attachedLocal,
         devices: metadata.devices,
         reports: reports,
       );
+      // Protected here, as the steady pass protects them, not left to the
+      // continuation below: an upload failure returns before that runs, and a
+      // held-back row never named by a publication could then be hard-deleted
+      // without the tombstone the gate is only postponing (§6.15).
+      if (attachedHeldBack.isNotEmpty) {
+        await store.markPublished(attachedHeldBack);
+      }
       final attachedReferenceAliases = await _resolveReferenceAliases([
         attachedPublication,
       ]);
@@ -2726,11 +2733,12 @@ class SyncCoordinator {
   /// The capability records come from [local], the synced settings as they
   /// stand after this pass's pull.
   ///
-  /// Returns the addresses it held back, live rows and tombstones alike. The
-  /// caller marks them published with the manifest's own (§6.15): a held-back
-  /// row has not been named by a publication yet, and a row never named by
-  /// one may be hard-deleted without a tombstone, which would lose a deletion
-  /// the gate is only postponing.
+  /// Returns the addresses it held back, live rows and tombstones alike. Both
+  /// callers mark them published (§6.15), the fresh attach before its blob
+  /// upload and a steady pass with the manifest's own: a held-back row has not
+  /// been named by a publication yet, and a row never named by one may be
+  /// hard-deleted without a tombstone, which would lose a deletion the gate is
+  /// only postponing.
   Set<SyncRecordAddress> _holdBackGated(
     Map<SyncRecordAddress, SyncMergeCandidate?> publication, {
     required Map<SyncRecordAddress, SyncMergeCandidate?> local,
