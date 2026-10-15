@@ -123,8 +123,10 @@ so you never lose what you already have by trying.
 > restore succeeds for your content but fails while re-applying your saved
 > settings. The app says so plainly — *your dances and programs were restored,
 > but applying your saved settings failed* — and offers **Retry settings**.
-> Choose it and the app tries again, confirming with **Settings applied.** Your
-> restored content is safe either way.
+> Choose it and the app tries again, confirming with **Settings applied.** If
+> the restore also skipped something it couldn't use, such as a figure of your
+> own that is too long, it tells you how many problems it skipped instead:
+> trying again won't change those. Your restored content is safe either way.
 
 > **A failed integrity check never harms your data.** If a backup was
 > corrupted or altered after it was exported, its integrity check won't
