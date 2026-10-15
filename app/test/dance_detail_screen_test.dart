@@ -210,6 +210,7 @@ void main() {
       ),
     );
     final userFigures = UserFiguresController(repos.userGlossary);
+    await tester.runAsync(userFigures.start);
     addTearDown(userFigures.dispose);
 
     await _pumpDetail(tester, repos, 'd1', userFigures: userFigures);
