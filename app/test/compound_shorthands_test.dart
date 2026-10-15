@@ -461,10 +461,20 @@ void main() {
         find.byKey(const ValueKey('compound-shorthand-token')),
         'NS',
       );
+      // A figure is picked, so only the token can be refused.
+      await tester.tap(
+        find.byKey(const ValueKey('compound-shorthand-compound')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('grand pull').last);
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('compound-shorthand-save')));
       await tester.pumpAndSettle();
       expect(
-        find.byKey(const ValueKey('compound-shorthand-error')),
+        find.text(
+          'Another shorthand already uses "NS" (shorthands are matched '
+          'case-insensitively).',
+        ),
         findsOneWidget,
       );
       expect(controller.compoundShorthands, isEmpty);
