@@ -66,6 +66,12 @@ void markSyncAppliedTablesUpdated(
         });
       case SyncRecordKind.setting:
         tables.add(database.settings);
+      // The Glossary, the dance editor's own figures and the shorthands for
+      // them all watch these tables; nothing references their rows.
+      case SyncRecordKind.glossaryEntry:
+        tables.add(database.userGlossaryEntries);
+      case SyncRecordKind.figureNote:
+        tables.add(database.figureNotes);
     }
   }
   if (tables.isNotEmpty) database.markTablesUpdated(tables);

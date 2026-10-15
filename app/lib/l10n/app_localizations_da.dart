@@ -586,6 +586,28 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeCountGlossaryEntry(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count af dine egne figurer',
+      one: '1 af dine egne figurer',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountFigureNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'dine noter til $count figurer',
+      one: 'dine noter til 1 figur',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage dens ændringer.';
 
@@ -1349,7 +1371,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncPairingNewerDataBody =>
-      'Denne version synkroniserer nogle ting, som tidligere versioner af appen ikke kan læse. Opdater hver enhed, før du forbinder den: en enhed med en tidligere version kan muligvis ikke forbinde. Indtil alle forbundne enheder er opdateret, bliver de ting på den enhed, hvor de blev lavet.';
+      'Denne version synkroniserer nogle ting, som tidligere versioner af appen ikke kan læse. Opdater hver enhed, før du forbinder den: en enhed med en tidligere version kan muligvis ikke forbinde. Indtil alle forbundne enheder er opdateret, bliver de ting ikke sendt til dine andre enheder.';
 
   @override
   String get settingsSyncPairingBearerTitle =>
@@ -2836,6 +2858,17 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get syncReviewKindSetting => 'Indstilling';
+
+  @override
+  String get syncReviewKindGlossaryEntry => 'Din egen figur';
+
+  @override
+  String get syncReviewKindFigureNote => 'Dine noter til en figur';
+
+  @override
+  String syncConflictFigureNoteTitle(String figure) {
+    return 'Dine noter til $figure';
+  }
 
   @override
   String syncReviewLocalRecord(String id) {

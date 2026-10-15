@@ -121,4 +121,33 @@ void main() {
     expect(policy.capabilityFor(SyncRecordKind.dance, 'x'), isNull);
     expect(policy.gatedCapabilities, {'v.v1', 's.v1'});
   });
+
+  test('a glossary entry waits on its own kind\'s capability when it has one '
+      '(#1023)', () {
+    const policy = SyncCapabilityPolicy(
+      gatedRecordKinds: {SyncRecordKind.glossaryEntry: 'g.v1'},
+      gatedGlossaryEntryKinds: {'customFigure': 'g.v2'},
+    );
+    String? forKind(Object? kind) => policy.capabilityFor(
+      SyncRecordKind.glossaryEntry,
+      'id',
+      body: {'kind': kind},
+    );
+    expect(forKind('customFigure'), 'g.v2');
+    expect(forKind('compound'), 'g.v1');
+    expect(forKind('someLaterKind'), 'g.v1', reason: 'relayed as before');
+    expect(forKind(null), 'g.v1');
+    expect(policy.capabilityFor(SyncRecordKind.glossaryEntry, 'id'), 'g.v1');
+    // Only a glossary entry's body is read.
+    expect(
+      policy.capabilityFor(
+        SyncRecordKind.figureNote,
+        'id',
+        body: {'kind': 'customFigure'},
+      ),
+      isNull,
+    );
+    // A capability only an entry kind names is still one the gate closes.
+    expect(policy.gatedCapabilities, {'g.v1', 'g.v2'});
+  });
 }

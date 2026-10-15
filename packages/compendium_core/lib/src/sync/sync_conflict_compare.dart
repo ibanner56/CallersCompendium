@@ -272,6 +272,17 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
     'website',
     'notes',
   },
+  // The user's glossary (#709), as its Glossary page shows an entry. Its text
+  // holds canonical role words, shown in the active dialect.
+  SyncRecordKind.glossaryEntry => const {
+    'name',
+    'definition',
+    'description',
+    'keywords',
+    'notes',
+    'payload',
+  },
+  SyncRecordKind.figureNote => const {'notes'},
   SyncRecordKind.publishedSource ||
   SyncRecordKind.customFieldDef ||
   SyncRecordKind.difficultyLevel ||
@@ -319,12 +330,20 @@ Map<String, String> syncUserHiddenFields(SyncRecordKind kind) => switch (kind) {
     'provenance':
         'Where an imported venue came from; nothing in the app displays it.',
   },
+  SyncRecordKind.glossaryEntry => const {
+    'kind':
+        'Fixed when the entry is created: no edit changes it, so two versions '
+        'of one entry do not differ in it. Nothing names it; an entry of a '
+        'kind this build does not know is shown as made by a newer version. '
+        'Hidden by the implementer in #709.',
+  },
   SyncRecordKind.choreographer ||
   SyncRecordKind.tag ||
   SyncRecordKind.publishedSource ||
   SyncRecordKind.customFieldDef ||
   SyncRecordKind.difficultyLevel ||
-  SyncRecordKind.setting => const {},
+  SyncRecordKind.setting ||
+  SyncRecordKind.figureNote => const {},
 };
 
 /// What a person can see of a [kind] record's [body]: its

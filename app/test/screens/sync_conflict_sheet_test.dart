@@ -1,8 +1,10 @@
 import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/sync_conflict_details.dart';
 import 'package:compendium_app/src/screens/sync_conflict_sheet.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -208,8 +210,111 @@ Future<void> _open(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// Queues a tie on the user's notes on each of [figureIds] (#709).
+Future<void> _queueNoteTie(
+  CompendiumRepositories repos,
+  List<String> figureIds,
+) async {
+  final storage = CompendiumSyncStorage(repos);
+  final local = <SyncRecordAddress, SyncMergeCandidate?>{};
+  final peer = <SyncRecordAddress, SyncMergeCandidate?>{};
+  for (final id in figureIds) {
+    await repos.figureNotes.set(id, 'Mine.', at: _tie);
+    final address = (kind: SyncRecordKind.figureNote, recordId: id);
+    final candidate = (await storage.snapshot()).local[address]!;
+    local[address] = candidate;
+    peer[address] = SyncMergeCandidate.fromBlob(
+      syncRecordBlobForEntity(
+        SyncRecordKind.figureNote,
+        FigureNote(figureId: id, notes: 'Theirs.'),
+        updatedAt: candidate.updatedAt,
+        existenceAt: candidate.existenceAt,
+      )!,
+    );
+  }
+  final plan = const SyncMergeEngine().plan(
+    local: local,
+    baseline: const {},
+    peers: [peer],
+  );
+  await storage.refreshConflictReviews(plan.reviews);
+}
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
+  testWidgets('a conflict on notes names the built-in figure, as the active '
+      'dialect names it (#709)', (tester) async {
+    final repos = openTestRepositories();
+    tester.view
+      ..physicalSize = const Size(400, 1400)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final dialect = ValueNotifier(
+      Dialect(name: 'Twirly', moves: const {'swing': 'twirl'}),
+    );
+    addTearDown(dialect.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => ActiveDialectScope(
+          notifier: dialect,
+          child: RepositoriesScope(repositories: repos, child: child!),
+        ),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                key: const ValueKey('open'),
+                onPressed: () => showSyncConflictSheet(context),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.runAsync(
+      () => _queueNoteTie(repos, [
+        'swing',
+        'pull_by_dancers',
+        'no-longer-a-figure',
+      ]),
+    );
+    await _open(tester);
+
+    expect(find.text('Your notes on twirl'), findsOneWidget);
+    expect(
+      find.text('Your notes on pull by (neighbors)'),
+      findsOneWidget,
+      reason: 'qualified as the Glossary qualifies it',
+    );
+    expect(
+      find.text('Your notes on a figure'),
+      findsOneWidget,
+      reason: 'a figure the taxonomy no longer has is named by kind',
+    );
+    expect(find.textContaining('no-longer-a-figure'), findsNothing);
+  });
+
+  testWidgets('a long note is clipped in the choice, and shown whole in '
+      'the comparison (#709)', (tester) async {
+    final repos = await _pump(tester, size: const Size(400, 1400));
+    await tester.runAsync(() => _queueNoteTie(repos, ['swing']));
+    await _open(tester);
+
+    final choice = tester.widget<Text>(find.text('Mine.').first);
+    expect(choice.maxLines, 3);
+    expect(choice.overflow, TextOverflow.ellipsis);
+    expect(
+      find.byWidgetPredicate(
+        (w) =>
+            w is Text && w.data == 'This device: Mine.' && w.maxLines == null,
+      ),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('names the setting and both versions, and preselects '
       'nothing', (tester) async {
@@ -772,6 +877,75 @@ void main() {
   });
 
   group('showing every saved detail', () {
+    testWidgets('one of the user\'s own figures is compared in the active '
+        'dialect, by what it becomes (#709)', (tester) async {
+      final compound = canonicalJson(
+        CompoundDefinition(
+          params: const [],
+          figures: [
+            testFigure(move: 'swing', params: const {'who': 'partners'}),
+          ],
+          bindings: const [],
+        ).toJson(),
+      );
+      Map<String, Object?> body(String definition, String payload) => {
+        'id': 'g1',
+        'kind': 'compound',
+        'name': 'role1s spiral',
+        'definition': definition,
+        'description': 'Round.',
+        'keywords': const <String>[],
+        'notes': null,
+        'payload': payload,
+        'createdAt': '2026-09-01T00:00:00.000Z',
+      };
+      final theirs = SyncRecordBlob(
+        kind: SyncRecordKind.glossaryEntry,
+        id: 'g1',
+        updatedAt: DateTime.utc(2026, 9, 30),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 9, 30),
+        body: body('role2s lead.', '{not json'),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: SyncConflictComparison(
+                group: SyncConflictGroup(
+                  kind: SyncRecordKind.glossaryEntry,
+                  recordId: 'g1',
+                  localBody: body('role1s lead.', compound),
+                  candidates: syncConflictGroupFor(
+                    SyncConflictReconsideration(
+                      kind: SyncRecordKind.glossaryEntry,
+                      recordId: 'g1',
+                      before: null,
+                      offered: [theirs],
+                      writtenWireHash: 'written',
+                      writtenAt: DateTime.utc(2026, 9, 30),
+                    ),
+                  ).candidates,
+                ),
+                lookups: const SyncConflictLookups(),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Definition'), findsOneWidget);
+      expect(find.textContaining('larks lead.'), findsOneWidget);
+      expect(find.textContaining('robins lead.'), findsOneWidget);
+      expect(find.textContaining('role1s'), findsNothing);
+      expect(find.text('Figures'), findsOneWidget);
+      expect(find.textContaining('swing'), findsOneWidget);
+      expect(find.textContaining('Needs repair'), findsOneWidget);
+      expect(find.textContaining('{not json'), findsNothing);
+    });
+
     testWidgets('a merged-away record a version cites is named as the record '
         'it became', (tester) async {
       final theirs = SyncRecordBlob(
