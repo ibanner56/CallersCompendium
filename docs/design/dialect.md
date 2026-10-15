@@ -119,12 +119,12 @@ free text (notes/custom) ──term regex (case-preserving)──▶ display tex
   replace the display line; summary modifiers are not appended to a templated
   line.
 - A use of a figure of your own (#1023) renders from its definition's
-  template: the template is rendered in the dialect first (role tokens), then
-  its slots are filled in one pass that never rescans a value, so an argument
-  cannot inject a slot. A parameter key can never be a role token, so the
-  substitution cannot touch a `{…}`. The canonical render does the same in the
-  canonical dialect. Without the definition, the use shows its stored line as
-  any custom figure does.
+  template: its slots are filled first, in one pass that never rescans a
+  value, so an argument cannot inject a slot; the assembled line, arguments and
+  labels included, is then rendered in the dialect as free text, which never
+  reads a `{…}` or `[…]`, so a dialect's role word cannot add one either. The
+  canonical render does the same in the canonical dialect. Without the
+  definition, the use shows its stored line as any custom figure does.
 - Search always runs against canonical text/structures → dialect never affects
   results (dialect-agnostic search for free).
 - Print/export lets the user choose canonical or active dialect; exports embed
