@@ -5,15 +5,13 @@ import 'figure_draft.dart';
 /// A dance editor row that uses one of the user's own figures (#1023): a
 /// free-text figure carrying the reference, attached. A detached one, whose
 /// line was edited by a build that knows no reference, is plain text.
-bool isUserFigureDraft(FigureDraft draft) {
-  if (draft.move != customMove) return false;
-  final params = draft.params;
-  final text = params['text'];
-  return params[userFigureRefKey] is String &&
-      params[userFigureArgsKey] is Map &&
-      text is String &&
-      params[userFigureCheckKey] == userFigureTextCheck(text);
-}
+///
+/// The same test the renderer and a save apply ([userFigureUseOf]), so the
+/// editor never treats a row as a use that the dance would store as text.
+bool isUserFigureDraft(FigureDraft draft) =>
+    draft.move == customMove &&
+    userFigureUseOf(Figure(move: customMove, params: draft.params))?.attached ==
+        true;
 
 /// The id of the figure a row uses, or null.
 String? userFigureIdOf(FigureDraft draft) =>
@@ -96,17 +94,22 @@ Map<String, Object?> refreshedUserFigureParams(
 /// [figures] with each use of one of the user's figures re-rendered from
 /// [userFigures]: what a dance stores when it is saved, so its line, the
 /// fallback every build shows, is the figure's current wording (the stored
-/// line refreshes only on such a stamped write, #1023). A use that can't
-/// render keeps its line; a detached one is left as plain text.
+/// line refreshes only on such a stamped write, #1023). A use of a figure in
+/// [deleted] becomes plain text with its line, as deleting the figure made
+/// every stored use (it was open here meanwhile); one whose figure this
+/// device does not have, or that can't render, keeps its line; a detached one
+/// is left as plain text.
 List<Figure> refreshUserFigureUses(
   List<Figure> figures,
-  UserFigureCatalog userFigures,
-) {
-  if (userFigures.isEmpty) return figures;
+  UserFigureCatalog userFigures, {
+  Set<String> deleted = const {},
+}) {
+  if (userFigures.isEmpty && deleted.isEmpty) return figures;
   final renderer = FigureRenderer(contraTaxonomy, userFigures: userFigures);
   return mapFigureLeaves(figures, (figure) {
     final use = userFigureUseOf(figure);
     if (use == null || !use.attached) return figure;
+    if (deleted.contains(use.id)) return detachUserFigureUse(figure);
     final line = renderer.renderUserFigureCanonical(figure);
     if (line == null || line == use.text) return figure;
     return figure.copyWith(

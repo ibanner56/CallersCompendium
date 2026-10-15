@@ -255,13 +255,17 @@ class DanceEditorController extends ChangeNotifier {
   /// Each use of one of the user's own figures (#1023) is re-rendered from
   /// the figure as it is now, so the dance stores its current wording as the
   /// line every build shows.
-  List<Figure> get _figures => refreshUserFigureUses([
-    for (final draft in figureDrafts)
-      ...draft.toFigures(
-        resolveCompound: resolveCompound,
-        canonicalizeNote: _canonicalizeNote,
-      ),
-  ], _userFigureCatalog);
+  List<Figure> get _figures => refreshUserFigureUses(
+    [
+      for (final draft in figureDrafts)
+        ...draft.toFigures(
+          resolveCompound: resolveCompound,
+          canonicalizeNote: _canonicalizeNote,
+        ),
+    ],
+    _userFigureCatalog,
+    deleted: _deletedUserFigureIds,
+  );
 
   /// The figures the draft would save now, compound placeholders expanded.
   List<Figure> get builtFigures => _figures;
@@ -279,23 +283,24 @@ class DanceEditorController extends ChangeNotifier {
 
   /// The user's own figures a row can be turned into: those that decode and
   /// are for this dance's form (#1023, maintainer decision 8), by name.
-  List<UserGlossaryEntry> get userFigureEntries =>
-      [
-        for (final view in _userFigureCatalog.figures)
-          if (view.definition?.form == _form.name)
-            ?_userFigureEntries[view.id],
-      ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  List<UserGlossaryEntry> get userFigureEntries => [
+    for (final view in _userFigureCatalog.figures)
+      if (view.definition?.form == _form.name) ?_userFigureEntries[view.id],
+  ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
   Map<String, UserGlossaryEntry> _userFigureEntries = const {};
+
+  /// The user's figures deleted, as [refreshCompounds] last read: a use of
+  /// one still in the draft is saved as plain text (#1023).
+  Set<String> _deletedUserFigureIds = const {};
 
   /// The compounds a row can be turned into, by name: those for this dance's
   /// form (#1023, maintainer decision 8; a compound naming none is contra).
   /// Empty until [load].
-  List<UserGlossaryEntry> get compoundEntries =>
-      [
-        for (final c in _compounds.values)
-          if (c.definition.form == _form.name) c.entry,
-      ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  List<UserGlossaryEntry> get compoundEntries => [
+    for (final c in _compounds.values)
+      if (c.definition.form == _form.name) c.entry,
+  ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
   /// The compound [id] as it is now, or null when it is gone or no longer
   /// decodes. Whether Custom Figures is on is not consulted: a placeholder
@@ -306,7 +311,16 @@ class DanceEditorController extends ChangeNotifier {
   /// is in storage now rather than as the last watch event left it. The save
   /// awaits this before [buildDance].
   Future<void> refreshCompounds() async {
-    _setCompounds(await _repos.userGlossary.listAll());
+    final live = await _repos.userGlossary.listAll();
+    final all = await _repos.userGlossary.listAll(includeDeleted: true);
+    final liveIds = {for (final entry in live) entry.id};
+    _deletedUserFigureIds = {
+      for (final entry in all)
+        if (entry.kind == UserGlossaryEntryKind.customFigure &&
+            !liveIds.contains(entry.id))
+          entry.id,
+    };
+    _setCompounds(live);
   }
 
   void _setCompounds(List<UserGlossaryEntry> entries) {
@@ -342,6 +356,17 @@ class DanceEditorController extends ChangeNotifier {
   /// user's compounds before building the dance.
   bool get hasCompoundPlaceholders =>
       figureDrafts.any((d) => d.isCompoundPlaceholder);
+
+  /// Whether any row, or any side within one, uses one of the user's own
+  /// figures (#1023), so the save must re-read them: one deleted since the
+  /// editor last heard is then saved as plain text.
+  bool get hasUserFigureUses => _anyUserFigureUse(figureDrafts);
+
+  static bool _anyUserFigureUse(Iterable<FigureDraft> drafts) => drafts.any(
+    (d) =>
+        isUserFigureDraft(d) ||
+        _anyUserFigureUse(d.meanwhileSides ?? d.modifierFigures ?? const []),
+  );
 
   void _watchCompounds() {
     _glossarySubscription = _repos.userGlossary.watchAll().listen(

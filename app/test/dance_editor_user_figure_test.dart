@@ -165,4 +165,85 @@ void main() {
     ).toFigure(canonicalizeNote: shout)!;
     expect(detached.params['text'], 'ROLE1S ZOOM ZOOM-ID AROUND');
   });
+
+  FigureDraft useDraft(UserGlossaryEntry entry, {int? beats}) => FigureDraft(
+    move: customMove,
+    params: userFigureDraftParams(
+      entry,
+      decodeUserFigureDefinition(entry.payload)!,
+      beats: beats,
+    ),
+  );
+
+  test(
+    'a use inside a group takes the group\'s beats, which its line reads',
+    () async {
+      final repos = openTestRepositories();
+      final entry = zoom(template: '{who} {move} for {beats}');
+      await repos.userGlossary.upsert(entry);
+      final controller = await loaded(repos);
+      controller.figureDrafts.add(
+        FigureDraft(
+          meanwhileSides: [
+            useDraft(entry, beats: 6),
+            FigureDraft(move: 'swing', params: {'who': 'partners', 'beats': 6}),
+          ],
+        )..params['beats'] = 16,
+      );
+
+      final group = figuresOf(controller.buildDance()).single;
+      final side = group.subFigures.first;
+      expect(side.params['beats'], 16);
+      final use = userFigureUseOf(side)!;
+      expect(use.text, 'role1s zoom zoom-id for 16');
+      expect(use.attached, isTrue);
+    },
+  );
+
+  test('a use of a figure deleted while the dance was open is saved as plain '
+      'text with its line; one this device never had stays a use', () async {
+    final repos = openTestRepositories();
+    await repos.userGlossary.upsert(zoom());
+    final controller = await loaded(repos);
+    final unknown = zoom(id: 'elsewhere');
+    controller.figureDrafts
+      ..add(useDraft(zoom()))
+      ..add(useDraft(unknown));
+    expect(controller.hasUserFigureUses, isTrue);
+
+    await repos.userGlossary.delete('zoom-id');
+    await controller.refreshCompounds();
+    final figures = figuresOf(controller.buildDance());
+    expect(userFigureUseOf(figures[0]), isNull);
+    expect(hasUserFigureReferenceKeys(figures[0]), isFalse);
+    expect(figures[0].params['text'], 'role1s zoom zoom-id around');
+    expect(userFigureUseOf(figures[1])!.attached, isTrue);
+  });
+
+  test('a row whose arguments are not a use\'s is plain text in the editor '
+      'too', () {
+    final entry = zoom();
+    final params = userFigureDraftParams(
+      entry,
+      decodeUserFigureDefinition(entry.payload)!,
+    );
+    expect(
+      isUserFigureDraft(FigureDraft(move: customMove, params: params)),
+      isTrue,
+    );
+    expect(
+      isUserFigureDraft(
+        FigureDraft(
+          move: customMove,
+          params: {
+            ...params,
+            userFigureArgsKey: {
+              'who': ['role1s'],
+            },
+          },
+        ),
+      ),
+      isFalse,
+    );
+  });
 }

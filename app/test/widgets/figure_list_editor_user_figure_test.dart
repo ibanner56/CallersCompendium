@@ -214,4 +214,11 @@ void main() {
     expect(drafts.single.params['text'], 'role1s zoom slowly');
     expect(isUserFigureDraft(drafts.single), isTrue);
   });
+
+  testWidgets('a row\'s name for screen readers reads a use\'s line in the '
+      'dialect, not its stored role tokens', (tester) async {
+    await pump(tester, [use()]);
+    expect(find.byTooltip('Actions for larks zoom slowly'), findsOneWidget);
+    expect(find.byTooltip('Actions for role1s zoom slowly'), findsNothing);
+  });
 }

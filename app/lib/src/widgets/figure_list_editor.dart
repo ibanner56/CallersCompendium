@@ -1079,9 +1079,12 @@ String _figureDisplayName(
   if (move == null) return l10n.danceEditorEmptyFigureName;
   if (move == customMove) {
     final text = draft.params['text'] as String?;
-    return text != null && text.isNotEmpty
-        ? text
-        : l10n.danceEditorCustomFigureName;
+    if (text == null || text.isEmpty) return l10n.danceEditorCustomFigureName;
+    // A use of one of the user's own figures (#1023) keeps its line
+    // canonical, unlike typed text, which the editor shows in the dialect.
+    return isUserFigureDraft(draft)
+        ? _userEntryRenderer.renderFreeText(text, dialect)
+        : text;
   }
   final alias = taxonomy.aliases[move];
   final def = taxonomy.resolve(move);
@@ -2313,9 +2316,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
     final view = UserFiguresScope.catalogOf(context)[userFigureIdOf(draft)!];
-    final name = view == null
-        ? (draft.params['text'] as String?) ?? ''
-        : _userEntryRenderer.renderFreeText(view.name, widget.dialect);
+    final name = _userEntryRenderer.renderFreeText(
+      view?.name ?? (draft.params['text'] as String?) ?? '',
+      widget.dialect,
+    );
     return Focus(
       canRequestFocus: false,
       onKeyEvent: _handleEditorKey,
@@ -3390,12 +3394,10 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     final moveText = move == null
         ? ''
         : userFigureId != null
-        ? userFigure == null
-              ? (draft.params['text'] as String?) ?? ''
-              : _userEntryRenderer.renderFreeText(
-                  userFigure.name,
-                  widget.dialect,
-                )
+        ? _userEntryRenderer.renderFreeText(
+            userFigure?.name ?? (draft.params['text'] as String?) ?? '',
+            widget.dialect,
+          )
         : FigureRenderer(
             widget.taxonomy,
           ).displayMoveName(move, widget.dialect, params: draft.params);

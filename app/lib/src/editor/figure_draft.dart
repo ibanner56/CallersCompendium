@@ -277,6 +277,16 @@ class FigureDraft {
   ///
   /// A compound placeholder builds the figure it falls back to when it cannot
   /// be expanded ([toFigures] expands it).
+  /// [child] of a group whose count is [groupBeats]: a use of one of the
+  /// user's own figures (#1023) takes the group's count, the one its side
+  /// shows, so a `{beats}` in its wording reads the same in every render of
+  /// the dance and in the line it stores.
+  static Figure _withGroupBeats(Figure child, int groupBeats) =>
+      userFigureUseOf(child)?.attached == true &&
+          child.params['beats'] != groupBeats
+      ? child.copyWith(params: {...child.params, 'beats': groupBeats})
+      : child;
+
   Figure? toFigure({String Function(String) canonicalizeNote = _trimNote}) {
     if (compound case final compound?) {
       return _compoundFallback(compound, canonicalizeNote);
@@ -308,9 +318,13 @@ class FigureDraft {
       // Defensive clamp mirroring the codec's untrusted-input behavior: the
       // UI never lets the side count exceed the cap, but this keeps toFigure()
       // from ever throwing even if that invariant is somehow violated.
-      final cappedChildren = readyChildren.length > kMaxMeanwhileSides
-          ? readyChildren.sublist(0, kMaxMeanwhileSides)
-          : readyChildren;
+      final cappedChildren = [
+        for (final child
+            in readyChildren.length > kMaxMeanwhileSides
+                ? readyChildren.sublist(0, kMaxMeanwhileSides)
+                : readyChildren)
+          _withGroupBeats(child, beats),
+      ];
       final trimmedNote = canonicalizeNote(note);
       final extraParams = Map<String, Object?>.of(params)
         ..remove('beats')
