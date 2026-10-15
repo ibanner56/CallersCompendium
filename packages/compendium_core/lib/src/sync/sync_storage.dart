@@ -15,6 +15,7 @@ import '../model/provenance.dart';
 import '../model/published_source.dart';
 import '../model/program.dart';
 import '../model/tag.dart';
+import '../model/user_glossary.dart';
 import '../model/venue.dart';
 import '../imports/dedupe.dart';
 import '../privacy/data_classification.dart';
@@ -26,6 +27,7 @@ import '../storage/existence.dart';
 import '../storage/repositories/repositories.dart';
 import '../storage/repositories/custom_field_repository.dart';
 import '../storage/repositories/sync_local_repository.dart';
+import '../storage/repositories/user_glossary_repository.dart';
 import '../storage/shareable_text.dart';
 import 'sync_apply.dart';
 import 'sync_admission.dart';
@@ -598,6 +600,32 @@ final class CompendiumSyncStorage
           contact2Email: row.contact2Email,
           provenance: provenance,
         ),
+        updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
+        existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
+        deletedAt: row.deletedAt,
+      );
+    }
+
+    // The user's glossary (#709): read from the rows, so an entry this build
+    // cannot use is published exactly as stored.
+    final glossaryRows = await _db.select(_db.userGlossaryEntries).get();
+    for (final row in glossaryRows) {
+      await addEntity(
+        kind: SyncRecordKind.glossaryEntry,
+        id: row.id,
+        entity: UserGlossaryRepository.storedFromRow(row),
+        updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
+        existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
+        deletedAt: row.deletedAt,
+      );
+    }
+
+    final figureNoteRows = await _db.select(_db.figureNotes).get();
+    for (final row in figureNoteRows) {
+      await addEntity(
+        kind: SyncRecordKind.figureNote,
+        id: row.figureId,
+        entity: FigureNoteRepository.fromRow(row),
         updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
         existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
         deletedAt: row.deletedAt,
@@ -1343,6 +1371,8 @@ final class CompendiumSyncStorage
         case SyncRecordKind.difficultyLevel:
         case SyncRecordKind.venue:
         case SyncRecordKind.setting:
+        case SyncRecordKind.glossaryEntry:
+        case SyncRecordKind.figureNote:
           return false;
       }
     }
@@ -1433,6 +1463,10 @@ final class CompendiumSyncStorage
         return false;
       case SyncRecordKind.program:
       case SyncRecordKind.setting:
+      // Nothing cites the user's glossary: a compound expands into ordinary
+      // figures when a dance is saved, recording no origin (§6.15).
+      case SyncRecordKind.glossaryEntry:
+      case SyncRecordKind.figureNote:
         return false;
     }
   }
@@ -1536,6 +1570,14 @@ final class CompendiumSyncStorage
                   ..where((t) => t.key.equals(id) & t.deletedAt.isNull()))
                 .getSingleOrNull())
             ?.updatedAt;
+      case SyncRecordKind.glossaryEntry:
+        return (await (_db.select(
+          _db.userGlossaryEntries,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.figureNote:
+        return (await (_db.select(
+          _db.figureNotes,
+        )..where((t) => t.figureId.equals(id))).getSingleOrNull())?.updatedAt;
     }
   }
 
@@ -2734,6 +2776,8 @@ final class CompendiumSyncStorage
       case SyncRecordKind.publishedSource:
       case SyncRecordKind.venue:
       case SyncRecordKind.setting:
+      case SyncRecordKind.glossaryEntry:
+      case SyncRecordKind.figureNote:
         throw const SyncReviewException(
           SyncReviewFailureCode.unsupportedReason,
         );
@@ -2780,6 +2824,10 @@ final class CompendiumSyncStorage
         address.recordId,
       ),
       SyncRecordKind.venue => await _readVenueBody(address.recordId),
+      SyncRecordKind.glossaryEntry => await _readGlossaryEntryBody(
+        address.recordId,
+      ),
+      SyncRecordKind.figureNote => await _readFigureNoteBody(address.recordId),
       SyncRecordKind.setting => throw StateError('handled above'),
     };
     return body;
@@ -3767,6 +3815,8 @@ final class CompendiumSyncStorage
       case SyncRecordKind.publishedSource:
       case SyncRecordKind.venue:
       case SyncRecordKind.setting:
+      case SyncRecordKind.glossaryEntry:
+      case SyncRecordKind.figureNote:
         return null;
     }
   }
@@ -3831,6 +3881,8 @@ final class CompendiumSyncStorage
       case SyncRecordKind.publishedSource:
       case SyncRecordKind.venue:
       case SyncRecordKind.setting:
+      case SyncRecordKind.glossaryEntry:
+      case SyncRecordKind.figureNote:
         break;
     }
     return null;
@@ -4051,6 +4103,8 @@ final class CompendiumSyncStorage
       case SyncRecordKind.publishedSource:
       case SyncRecordKind.venue:
       case SyncRecordKind.setting:
+      case SyncRecordKind.glossaryEntry:
+      case SyncRecordKind.figureNote:
         return null;
     }
   }
@@ -4538,6 +4592,8 @@ final class CompendiumSyncStorage
       case SyncRecordKind.publishedSource:
       case SyncRecordKind.venue:
       case SyncRecordKind.setting:
+      case SyncRecordKind.glossaryEntry:
+      case SyncRecordKind.figureNote:
         return;
     }
     await _rewriteLocalReferences(kind, losingId, survivingId);
@@ -4576,6 +4632,8 @@ final class CompendiumSyncStorage
       case SyncRecordKind.publishedSource:
       case SyncRecordKind.venue:
       case SyncRecordKind.setting:
+      case SyncRecordKind.glossaryEntry:
+      case SyncRecordKind.figureNote:
         return;
     }
   }
@@ -4761,6 +4819,8 @@ final class CompendiumSyncStorage
       case SyncRecordKind.program:
       case SyncRecordKind.venue:
       case SyncRecordKind.setting:
+      case SyncRecordKind.glossaryEntry:
+      case SyncRecordKind.figureNote:
         return;
     }
     if (affectedDances.isEmpty) return;
@@ -5010,6 +5070,16 @@ final class CompendiumSyncStorage
           entityToWrite as Venue,
           at: record.updatedAt,
         );
+      case SyncRecordKind.glossaryEntry:
+        await repositories.userGlossary.writeFromSync(
+          entityToWrite as StoredUserGlossaryEntry,
+          at: record.updatedAt,
+        );
+      case SyncRecordKind.figureNote:
+        await repositories.figureNotes.writeFromSync(
+          entityToWrite as FigureNote,
+          at: record.updatedAt,
+        );
       case SyncRecordKind.setting:
         throw StateError('settings are handled above');
     }
@@ -5064,6 +5134,8 @@ final class CompendiumSyncStorage
       case SyncRecordKind.customFieldDef:
       case SyncRecordKind.difficultyLevel:
       case SyncRecordKind.venue:
+      case SyncRecordKind.glossaryEntry:
+      case SyncRecordKind.figureNote:
         throw StateError('unexpected non-parent sync kind: $kind');
     }
     return prepared.report;
@@ -5095,6 +5167,8 @@ final class CompendiumSyncStorage
       case SyncRecordKind.difficultyLevel:
       case SyncRecordKind.venue:
       case SyncRecordKind.setting:
+      case SyncRecordKind.glossaryEntry:
+      case SyncRecordKind.figureNote:
         return null;
     }
   }
@@ -5143,6 +5217,8 @@ final class CompendiumSyncStorage
       case SyncRecordKind.difficultyLevel:
       case SyncRecordKind.venue:
       case SyncRecordKind.setting:
+      case SyncRecordKind.glossaryEntry:
+      case SyncRecordKind.figureNote:
         return;
     }
     _deferredEntities.remove(address);
@@ -5184,6 +5260,8 @@ final class CompendiumSyncStorage
       case SyncRecordKind.customFieldDef:
       case SyncRecordKind.difficultyLevel:
       case SyncRecordKind.venue:
+      case SyncRecordKind.glossaryEntry:
+      case SyncRecordKind.figureNote:
         return null;
     }
     await _restoreTimestamps(
@@ -6051,6 +6129,30 @@ final class CompendiumSyncStorage
     );
   }
 
+  Future<Map<String, Object?>?> _readGlossaryEntryBody(String id) async {
+    final row = await (_db.select(
+      _db.userGlossaryEntries,
+    )..where((table) => table.id.equals(id))).getSingleOrNull();
+    return row == null
+        ? null
+        : syncBodyForEntity(
+            SyncRecordKind.glossaryEntry,
+            UserGlossaryRepository.storedFromRow(row),
+          );
+  }
+
+  Future<Map<String, Object?>?> _readFigureNoteBody(String figureId) async {
+    final row = await (_db.select(
+      _db.figureNotes,
+    )..where((table) => table.figureId.equals(figureId))).getSingleOrNull();
+    return row == null
+        ? null
+        : syncBodyForEntity(
+            SyncRecordKind.figureNote,
+            FigureNoteRepository.fromRow(row),
+          );
+  }
+
   Object _decodeEntity(SyncRecordKind kind, Map<String, Object?> body) {
     return decodeSyncRecordEntity(kind, body);
   }
@@ -6174,6 +6276,26 @@ final class CompendiumSyncStorage
             existenceAt: Value(existenceAt),
           ),
         );
+      case SyncRecordKind.glossaryEntry:
+        await (_db.update(
+          _db.userGlossaryEntries,
+        )..where((row) => row.id.equals(id))).write(
+          UserGlossaryEntriesCompanion(
+            updatedAt: Value(effectiveUpdatedAt),
+            deletedAt: Value(deletedAt),
+            existenceAt: Value(existenceAt),
+          ),
+        );
+      case SyncRecordKind.figureNote:
+        await (_db.update(
+          _db.figureNotes,
+        )..where((row) => row.figureId.equals(id))).write(
+          FigureNotesCompanion(
+            updatedAt: Value(effectiveUpdatedAt),
+            deletedAt: Value(deletedAt),
+            existenceAt: Value(existenceAt),
+          ),
+        );
     }
   }
 
@@ -6215,6 +6337,15 @@ final class CompendiumSyncStorage
         return (await (_db.select(
           _db.settings,
         )..where((row) => row.key.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.glossaryEntry:
+        return (await (_db.select(
+          _db.userGlossaryEntries,
+        )..where((row) => row.id.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.figureNote:
+        return (await (_db.select(
+          _db.figureNotes,
+        )..where((row) => row.figureId.equals(id))).getSingleOrNull())
+            ?.updatedAt;
     }
   }
 

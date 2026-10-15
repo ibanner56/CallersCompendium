@@ -415,6 +415,9 @@ Set<SyncRecordAddress> syncRecordReferences(
     case SyncRecordKind.difficultyLevel:
     case SyncRecordKind.venue:
     case SyncRecordKind.setting:
+    // The user's glossary refers to no record (sync-spec §6.15).
+    case SyncRecordKind.glossaryEntry:
+    case SyncRecordKind.figureNote:
       break;
   }
   return references;

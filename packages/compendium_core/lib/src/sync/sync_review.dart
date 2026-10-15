@@ -290,7 +290,9 @@ class SyncReviewQueueItem {
     final body = candidate?.body;
     if (body == null) return null;
     final value = switch (candidate!.kind) {
-      SyncRecordKind.choreographer || SyncRecordKind.tag => body['name'],
+      SyncRecordKind.choreographer ||
+      SyncRecordKind.tag ||
+      SyncRecordKind.glossaryEntry => body['name'],
       SyncRecordKind.customFieldDef => body['key'],
       SyncRecordKind.difficultyLevel => body['label'],
       SyncRecordKind.dance => body['title'],

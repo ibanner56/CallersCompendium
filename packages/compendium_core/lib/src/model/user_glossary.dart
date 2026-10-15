@@ -103,3 +103,44 @@ class FigureNote {
   final String figureId;
   final String notes;
 }
+
+/// A user glossary entry exactly as stored (#709): what Device Sync carries.
+///
+/// Unlike [UserGlossaryEntry], [kind] and [payloadJson] are the stored text,
+/// not a decoded reading of it, so an entry this build cannot use — a kind it
+/// does not know, a payload that no longer decodes — travels, applies and is
+/// published again unchanged rather than dropped or rewritten.
+@immutable
+class StoredUserGlossaryEntry {
+  StoredUserGlossaryEntry({
+    required this.id,
+    required this.kind,
+    required this.name,
+    required this.definition,
+    required this.description,
+    List<String> keywords = const [],
+    this.notes,
+    this.payloadJson,
+    required this.createdAt,
+  }) : keywords = List.unmodifiable(keywords);
+
+  final String id;
+
+  /// The stored kind name, known to this build or not.
+  final String kind;
+
+  final String name;
+  final String definition;
+  final String description;
+  final List<String> keywords;
+  final String? notes;
+
+  /// The stored payload text verbatim, or null for none. Not required to be
+  /// JSON this build can decode.
+  final String? payloadJson;
+
+  /// When the entry was first created. Carried unchanged by sync, since which
+  /// of two entries sharing a name is flagged for rename is decided by it
+  /// ([UserGlossaryEntry.createdAt]).
+  final DateTime createdAt;
+}
