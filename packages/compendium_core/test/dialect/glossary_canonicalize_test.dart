@@ -90,6 +90,17 @@ void main() {
       canonicalizeGlossaryText('Lady-Birds cross', _hyphenBirds),
       'role1s cross',
     );
+    // Possessives too, where the table has its own possessive key.
+    expect(canonicalizeGlossaryText("lady's hand", _swapped), "role1's hand");
+    expect(canonicalizeGlossaryText("gent's hand", _swapped), "role2's hand");
+    expect(
+      canonicalizeGlossaryText('women’s hands', _womenMen),
+      'role1s’s hands',
+    );
+    expect(
+      canonicalizeGlossaryText("men's hands", _womenMen),
+      "role2s's hands",
+    );
     // The term on its own still reads by the table, as the role rules'
     // legacy synonyms read it too.
     expect(canonicalizeGlossaryText('lady chain', _ladyBirds), 'role2 chain');
@@ -149,5 +160,22 @@ final _ladyBirds = Dialect(
 final _hyphenBirds = Dialect(
   name: 'Lady-Birds/Jays',
   roles: const {'role1': RoleTerm('Lady-Bird'), 'role2': RoleTerm('Jay')},
+  discouragedTerms: Dialect.defaultDiscouragedTerms,
+);
+
+/// The table reads "lady" as role2 and "gent" as role1; this dialect swaps
+/// them.
+final _swapped = Dialect(
+  name: 'Ladies/Gents swapped',
+  roles: const {'role1': RoleTerm('Lady'), 'role2': RoleTerm('Gent')},
+  discouragedTerms: Dialect.defaultDiscouragedTerms,
+);
+
+final _womenMen = Dialect(
+  name: 'Women/Men swapped',
+  roles: const {
+    'role1': RoleTerm('Woman', plural: 'Women'),
+    'role2': RoleTerm('Man', plural: 'Men'),
+  },
   discouragedTerms: Dialect.defaultDiscouragedTerms,
 );
