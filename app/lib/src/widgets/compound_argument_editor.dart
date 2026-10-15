@@ -75,7 +75,9 @@ String? compoundShorthandValueText(
 /// compound accepts ([allowedValues]).
 ///
 /// Used by a compound placeholder row in the dance editor and by the compound
-/// shorthand editor, so both offer the same values.
+/// shorthand editor, so both offer the same values. A stored value the
+/// compound no longer accepts is shown as nothing selected and never replaced
+/// by the editor itself.
 class CompoundArgumentEditor extends StatelessWidget {
   const CompoundArgumentEditor({
     super.key,
@@ -133,6 +135,10 @@ class CompoundArgumentEditor extends StatelessWidget {
       dialect: dialect,
       mixer: mixer,
       value: value,
+      // A value the compound no longer accepts stays as it is, not replaced
+      // by opening the editor, so the caller keeps saying it can't be used
+      // until the user chooses another.
+      correctsValue: false,
       onChanged: onChanged,
     );
   }

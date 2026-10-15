@@ -535,6 +535,25 @@ void main() {
       );
     });
 
+    testWidgets('opening one whose values the figure no longer accepts '
+        'leaves them as they are, and saving it is refused', (tester) async {
+      final controller = await pump(
+        tester,
+        compounds: [
+          shorthand(token: 'odd', args: const {'who': 'partners'}),
+        ],
+      );
+      await tester.tap(find.text('odd'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('compound-shorthand-save')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('compound-shorthand-error')),
+        findsOneWidget,
+      );
+      expect(controller.compoundShorthands.single.args, {'who': 'partners'});
+    });
+
     testWidgets('a new one is made from a figure and its values', (
       tester,
     ) async {
