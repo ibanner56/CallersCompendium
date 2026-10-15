@@ -79,6 +79,10 @@ A backup holds **everything** you've built, including:
 - Your custom themes and which one is active.
 - Your settings and preferences, including your figure shorthands and
   walkthrough snippets.
+- Your own figures from the Glossary and your notes on built-in figures (see
+  [Glossary and Custom Figures](./settings.md#glossary-and-custom-figures)).
+  Restoring a backup replaces them, but a backup made while you had none
+  leaves the ones on this device as they are.
 
 A few device-specific things are left out on purpose, so a restored device
 doesn't inherit the old one's quirks: window size and position, any
