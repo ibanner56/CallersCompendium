@@ -35,6 +35,7 @@
 // many migrating collections reach head from a v38 file rather than from the
 // floor. It runs only the later steps, which the floor fixture also crosses,
 // but on the shape and markers a v0.6.0-beta startup wrote.
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -57,7 +58,7 @@ Future<File> _fixture(int schemaVersion) async => File(
   ),
 );
 
-(String, Map<String, Object?>) _moveAndParams(Figure f) => (f.move, f.params);
+String _moveAndParams(Figure f) => '${f.move} ${jsonEncode(f.params)}';
 
 /// The instant every row of the generator's seed is stamped with.
 final _seededAt = DateTime.utc(2026, 8, 1, 12);
@@ -173,9 +174,7 @@ Future<void> _migratesAndKeepsItsData(
 
   expect(
     figuresOf((await repos.dances.getById('d-fts'))!).map(_moveAndParams),
-    [
-      ('robins_chain', {'who': 'neighbors'}),
-    ],
+    ['robins_chain {"who":"neighbors"}'],
   );
   expect((await repos.dances.getById('d-fts'))!.title, 'Résumé Reel');
   expect((await repos.dances.getById('d-fts'))!.hook, 'hey for four');
@@ -186,9 +185,7 @@ Future<void> _migratesAndKeepsItsData(
   expect(await repos.dances.isDeletedById('d-gone'), isTrue);
   final gone = (await repos.dances.getById('d-gone', includeDeleted: true))!;
   expect(gone.title, 'Deleted Dance');
-  expect(figuresOf(gone).map(_moveAndParams), [
-    ('swing', {'who': 'partners'}),
-  ]);
+  expect(figuresOf(gone).map(_moveAndParams), ['swing {"who":"partners"}']);
 
   // --- the rest of the library ---------------------------------------------
   final beginner = (await repos.tags.getById('t-beginner'))!;
