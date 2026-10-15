@@ -1,3 +1,5 @@
+import 'dialect.dart';
+
 /// What each built-in discouraged term stands for (#709): a canonical role
 /// token, possibly possessive, or a move's display name.
 ///
@@ -44,3 +46,41 @@ final Map<String, String> storedDiscouragedTerms = {
         ? possessiveSpelling(e.value.canonical)
         : e.value.canonical,
 };
+
+/// [dialect]'s own role words (singular and plural, lowercase) that are one
+/// of the built-in discouraged terms, or hold one as a word: "ravens" in a
+/// dialect whose role1 is "Raven", "lady birds" in one whose role1 is "Lady
+/// Bird". Words are split as [Substitutor] splits them, so "Lady-Bird"
+/// counts too.
+///
+/// User-glossary canonicalization keeps these as the dialect's roles rather
+/// than reading them by the table, which would invert a "ravens" role1 into
+/// `role2s`. The renderer's display conversion does not consult this (see
+/// `docs/design/dialect.md`).
+Set<String> claimedRoleWords(Dialect dialect) {
+  final bases = {
+    for (final term in discouragedTermMeanings.keys) _withoutPossessive(term),
+  };
+  return {
+    for (final role in dialect.roles.values)
+      for (final word in [role.singular, role.plural])
+        if (word
+            .toLowerCase()
+            .split(_nonWord)
+            .any((w) => w.isNotEmpty && bases.contains(w)))
+          word.toLowerCase(),
+  };
+}
+
+/// What [Substitutor] treats as a word boundary.
+final RegExp _nonWord = RegExp(r'[^\p{L}\p{M}\p{N}\p{Pc}]+', unicode: true);
+
+/// [term] without a possessive ending (`'s`, `’s`, or a bare `'` or `’`).
+String _withoutPossessive(String term) {
+  for (final ending in const ["'s", '’s', "'", '’']) {
+    if (term.endsWith(ending)) {
+      return term.substring(0, term.length - ending.length);
+    }
+  }
+  return term;
+}

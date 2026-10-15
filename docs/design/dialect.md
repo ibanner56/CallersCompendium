@@ -247,12 +247,20 @@ shipped figures — has its own variant of the chokepoint,
 - The built-in discouraged terms are stored canonically: `ladies` → `role2s`,
   `gents'` → `role1s'`, `gypsy` → `shoulder round`. The table is the one the
   renderer displays them from (`dialect/discouraged_terms.dart`), so a stored
-  term reads back as the renderer would show the term itself. It is that
+  term reads back as the renderer would show the term itself; it is that
   built-in table, not the dialect's own editable discouraged list, because
-  display uses the same table. A term the active dialect uses as its own role
-  word is left out: in a custom dialect whose role1 is "Raven", "ravens" is
-  role1, and storing it as `role2s` would invert it. Both choices are the
-  implementer's.
+  display uses the same table. One exception: a role word of the active
+  dialect that is one of the table's terms, or holds one as a word, keeps the
+  dialect's meaning. In a custom dialect whose role1 is "Raven", "ravens" is
+  stored as `role1s`, not the table's `role2s`; in one whose role1 is "Lady
+  Bird", "lady birds" is `role1s` while "lady" alone is still `role2`. The
+  renderer's **Auto-convert all discouraged terms** display does not make this
+  exception — it shows a "ravens" typed into a dance's text as that dialect's
+  role2 — which predates #709 and is left as it is here. A stored possessive
+  also keeps the canonical token's spelling (`role1s'`), so where a dialect's
+  plural does not end in "s" it reads back as, say, "Leaderfolk'" where the
+  display path writes "Leaderfolk's", as any stored possessive role token
+  does. These are the implementer's choices.
 - Under a dialect whose roles are "lead"/"follow", the plural form directly
   after a singular subject in the same clause is the verb, not the plural
   role: "The robin follows the lark across" stores `The role2 follows the
