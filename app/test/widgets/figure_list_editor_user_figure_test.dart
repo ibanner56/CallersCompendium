@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_app/src/data/user_figures_scope.dart';
 import 'package:compendium_app/src/editor/figure_draft.dart';
 import 'package:compendium_app/src/editor/user_figure_draft.dart';
@@ -50,7 +52,8 @@ void main() {
     }
     final userFigures = UserFiguresController(repos.userGlossary);
     addTearDown(userFigures.dispose);
-    // The controller's first read of the glossary.
+    // On the test's clock, then its first read of the glossary.
+    unawaited(userFigures.start());
     await tester.runAsync(() => Future<void>.delayed(Duration.zero));
     await tester.binding.setSurfaceSize(const Size(1200, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
