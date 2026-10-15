@@ -31,7 +31,8 @@ void main() {
 
     // The one exception, by name: each sync device's capability record
     // (#709) is shareable — it must travel — yet only its own device may
-    // write it, so a replace restore must never touch it.
+    // write it (apart from the tombstone written when it is removed from the
+    // store), so a replace restore must never touch it.
     expect(
       settingsPrefixClassifications[syncCapabilityKeyPrefix]?.egress,
       EgressClass.shareable,

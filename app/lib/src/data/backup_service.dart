@@ -160,8 +160,9 @@ const Set<String> kBackupSettingsDenylist = {
 ///   (`program_editor_draft:<id>`); same device-local, transient rationale.
 /// - [syncCapabilityKeyPrefix] — each sync device's capability record
 ///   (`sync_capabilities:<deviceId>`, #709). Synced, but only its own device
-///   may write it: a replace restore would delete the others' records or
-///   rewrite them with a newer stamp that beats their owners'.
+///   may write it, apart from the tombstone written when it is removed from
+///   the store: a replace restore would delete the others' records or rewrite
+///   them with a newer stamp that beats their owners'.
 const Set<String> kBackupSettingsDenylistPrefixes = {
   kDanceEditorDraftKeyPrefix,
   kProgramEditorDraftKeyPrefix,
