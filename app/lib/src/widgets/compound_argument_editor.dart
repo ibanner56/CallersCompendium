@@ -50,6 +50,13 @@ String? compoundShorthandValueText(
       for (final v in args.values)
         switch (v) {
           ParamVocab.unspecified => l10n.danceEditorParamNotStated,
+          // A dancer token in the dialect's words, single dancers included.
+          final String text when ParamVocab.dancerSets.contains(text) =>
+            FigureRenderer.displayToken(
+              text,
+              const ParamSpec(ParamKind.dancerSet, defaultValue: null),
+              dialect,
+            ),
           final String text => humanizeToken(
             _renderer.renderFreeText(text, dialect),
           ),

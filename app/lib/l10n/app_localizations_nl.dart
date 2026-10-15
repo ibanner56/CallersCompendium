@@ -8384,7 +8384,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String shorthandEditorErrorDuplicateHidden(String token) {
-    return '\"$token\" is al een afkorting voor een van je eigen figuren. Die worden hier getoond zolang Eigen figuren aan staat.';
+    return '“$token” is al een afkorting voor een van je eigen figuren. Die worden hier getoond zolang Eigen figuren aan staat.';
   }
 
   @override

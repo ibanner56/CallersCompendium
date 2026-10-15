@@ -56,10 +56,11 @@ class SyncCollectionDiff {
 /// not a whole-collection setting or [value] is not shaped like one.
 ///
 /// Each key has its own notion of identity, matching how its library already
-/// tells entries apart: a dialect by its name, a custom theme by its id, a
-/// figure or compound shorthand by its normalized token, a walkthrough
-/// snippet by its figure signature. Malformed entries are skipped rather than failing the
-/// comparison — this is display, and the merge already admitted the value.
+/// tells entries apart: a dialect by its name, a custom theme by its id,
+/// a figure or compound shorthand by its normalized token, a walkthrough
+/// snippet by its figure signature. Malformed entries are skipped rather than
+/// failing the comparison — this is display, and the merge already admitted
+/// the value.
 List<SyncCollectionEntry>? syncCollectionEntries(String key, Object? value) {
   switch (key) {
     case 'custom_dialects':

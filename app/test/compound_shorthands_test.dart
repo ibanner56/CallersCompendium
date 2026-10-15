@@ -633,6 +633,7 @@ void main() {
               'name': 'role1s pull',
               'args': {
                 'who': 'role2s',
+                'one': 'twosRole2',
                 'hand': ParamVocab.unspecified,
                 'balance': true,
               },
@@ -642,6 +643,6 @@ void main() {
         ),
       ),
     );
-    expect(text, 'larks pull: robins, not stated, Yes');
+    expect(text, 'larks pull: robins, second robin, not stated, Yes');
   });
 }
