@@ -168,6 +168,12 @@ const Set<String> kBackupSettingsDenylistPrefixes = {
   syncCapabilityKeyPrefix,
 };
 
+/// The deepest nesting of lists and maps a restored setting may have. The
+/// deepest value the app writes, figures inside shorthands with containers at
+/// most [kMaxContainerDepth] deep, is about a dozen levels, so this leaves a
+/// wide margin while staying far below what overflows the stack.
+const int kMaxBackupSettingDepth = 64;
+
 /// Whether a settings-table [key] is eligible to travel in a backup's
 /// `app.settings` map (and thus be fully replaced on restore).
 ///
@@ -729,9 +735,16 @@ class BackupService {
     // corrupt value gracefully instead of letting it reach an unchecked cast
     // and brick startup — while every valid key still restores. Unknown
     // (forward-compatible) keys have no schema and pass through unchanged.
+    //
+    // A value nested deeper than [kMaxBackupSettingDepth] is invalid too,
+    // whatever its key: storing it runs recursive normalisation and encoding,
+    // which a crafted value tens of thousands of levels deep would overflow,
+    // and a StackOverflowError is not caught as a failed restore step, so the
+    // restore would stop half-applied.
     for (final entry in doc.settings.entries) {
       if (!isBackupEligibleSettingKey(entry.key)) continue;
-      if (validateBackupSettingValue(entry.key, entry.value) == false) {
+      if (jsonNestedDeeperThan(entry.value, kMaxBackupSettingDepth) ||
+          validateBackupSettingValue(entry.key, entry.value) == false) {
         await settings.remove(entry.key);
         warnings.add(
           'Skipped an invalid value for "${entry.key}" from the backup; '
