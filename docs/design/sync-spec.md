@@ -4270,10 +4270,14 @@ its own device may write the record, and a restore would delete the others' or
 re-stamp them over their owners'. A build since v0.7.0 that does not know the
 key keeps it whole (§6.7) and shows the informational kept-for-a-newer-version
 notice; an older build reports it as a malformed record. Decided by Isaac
-(maintainer, 2026-10-14) as an accepted consequence of advertising this way.
+(maintainer) as an accepted consequence of advertising this way (#709
+consolidated spec, decision 13).
 On detach every capability record is erased, not tombstoned: each names a
 device of the store being left, and a tombstone would carry those device IDs
-to the next store, as keeping this device's own ID would (§3.3).
+to the next store, as keeping this device's own ID would (§3.3). Nothing else
+removes a capability record: the record of a device removed from the store,
+or of an old device ID after a detach and re-attach, stays and is
+republished by the devices that hold it, counting for nothing in the gate.
 
 **The gate.** A capability is open on a device, for a pass, only when its own
 build advertises it **and** every other device in that pass's store device
@@ -4298,7 +4302,11 @@ merge's view is the wrong place to filter even where it loses nothing. A row
 held back is still recorded as published with the manifest's own records, so
 that a deletion made while it waits keeps its tombstone: a row never named by
 a publication may be hard-deleted without one, which would lose a deletion the
-gate is only postponing. Receiving is never gated:
+gate is only postponing. It follows that a gated row created and deleted while
+the gate is closed, never having left the device, is still published as a
+tombstone once the gate opens, and a tombstone blob carries its body (§4.4):
+over-marking, as §4.4 accepts elsewhere, within the data's own `shareable`
+class. Receiving is never gated:
 a device applies a gated kind whenever a peer publishes it. The gate is
 evaluated on every pass, so it closes again when a device without the
 capability attaches.
@@ -4311,8 +4319,8 @@ data meets this: a compound expands into ordinary figures when a dance is
 saved, and the expanded figures record no origin.
 
 **Reporting.** A device holding data back raises `withheldAwaitingDevices` once
-per device holding the capability closed, naming that device as the peer, and
-only for a capability that held something back this pass. It is
+per device holding a capability closed, naming that device as the peer and
+every such capability that held something back this pass. It is
 shown per device, by its tag, as information: nothing is lost, and the remedy
 is updating or removing that device.
 
@@ -4321,10 +4329,11 @@ published a manifest (§7.1), and a build without §4.5's client half cannot
 finish a fresh attach to a store whose peers publish a kind it does not know
 (§6.2: every peer manifest must be readable). So a device on such a build
 cannot join a store once the gate has opened, and the gate never sees it.
-Decided by Isaac (maintainer, 2026-10-14) as accepted, with a warning in the
-pairing screens: the pairing screen says so, on both its paths, while the
-build advertises any capability. There is no timeout: a device that never updates keeps the
-gate closed until it is removed.
+Decided by Isaac (maintainer) as accepted, with a warning in the pairing
+screens (#709 consolidated spec, decision 13): the pairing screen says so, on
+both its paths, while the build advertises any capability. There is no
+timeout: a device that never updates keeps the gate closed until it is
+removed.
 
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed

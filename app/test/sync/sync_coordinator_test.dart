@@ -7031,8 +7031,9 @@ void main() {
       expect(awaiting(result).single.message, contains('device peer'));
     });
 
-    test('(a\') a held-back row is marked published, so deleting it before '
-        'the gate opens still leaves a tombstone to publish', () async {
+    test('(a\') a held-back row is marked published, which is what keeps a '
+        'later delete\'s tombstone (a never-published row may be '
+        'hard-deleted)', () async {
       // A row never named by a publication may be hard-deleted without a
       // tombstone; a held-back row is only waiting, so it is protected too.
       final store = _FakeStore(

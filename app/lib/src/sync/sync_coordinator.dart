@@ -2772,17 +2772,25 @@ class SyncCoordinator {
       }
       publication[address] = null;
     }
+    // One report per device, naming every capability it holds back: reports
+    // coalesce on code, kind, record and peer, so a second report for the
+    // same device would be dropped.
+    final byDevice = <String, List<String>>{};
     for (final capability in heldCapabilities) {
       for (final peerId in closed[capability]!) {
-        reports.add(
-          SyncReport(
-            code: SyncReportCode.withheldAwaitingDevices,
-            peerId: peerId,
-            message:
-                'Holding back $capability until device $peerId advertises it.', // i18n-ignore: internal report
-          ),
-        );
+        (byDevice[peerId] ??= []).add(capability);
       }
+    }
+    for (final MapEntry(key: peerId, value: capabilities) in byDevice.entries) {
+      reports.add(
+        SyncReport(
+          code: SyncReportCode.withheldAwaitingDevices,
+          peerId: peerId,
+          message:
+              'Holding back ${(capabilities..sort()).join(', ')} until device '
+              '$peerId advertises it.', // i18n-ignore: internal report
+        ),
+      );
     }
     return heldBack;
   }

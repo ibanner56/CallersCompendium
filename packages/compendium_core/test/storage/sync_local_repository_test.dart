@@ -502,6 +502,8 @@ void main() {
       ]);
       // A key that merely shares the letters, and an ordinary setting.
       await repos.settings.set('sync_capabilitiesX', 1);
+      // The prefix must start the key, not merely appear in it.
+      await repos.settings.set('x$peer', 1);
       await repos.settings.set('theme_mode', 'dark');
 
       await repository.clearOnDetach();
@@ -511,7 +513,7 @@ void main() {
       };
       expect(keys, isNot(contains(own)));
       expect(keys, isNot(contains(peer)));
-      expect(keys, containsAll(['sync_capabilitiesX', 'theme_mode']));
+      expect(keys, containsAll(['sync_capabilitiesX', 'x$peer', 'theme_mode']));
     });
 
     test(
