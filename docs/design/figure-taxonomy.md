@@ -1403,9 +1403,10 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     single source of truth for `role2s`→`right`, `role1s`→`left`, mirroring
     ContraDB's `chainChange` (`figure.js:256-263`). It is consulted at six
     write/read sites so none can drift: the ContraDB and shared-recognizer
-    `_chain` parsers, both `_selectMove` implementations and the `who`
-    branch of `_applyNonBeatsParamChange` in `figure_list_editor.dart`, and
-    the one-time backfill sweep below. It is NOT baked into `chain.hand`'s
+    `_chain` parsers, core's `seedChainHand` (`param_change_rules.dart`) —
+    which both `_selectMove` implementations, the meanwhile side editor and
+    every `who` edit through `applyParamChange` call — and the one-time
+    backfill sweep below. It is NOT baked into `chain.hand`'s
     taxonomy default — see the param's own doc comment for why.
 
     **Role-word scoping (#976 §6.1.3).** A hand is populated only at a

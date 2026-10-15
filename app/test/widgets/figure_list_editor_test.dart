@@ -624,7 +624,7 @@ void main() {
       expect(drafts.single.params['who'], 'role2s');
       expect(drafts.single.params['hand'], 'right');
 
-      // Guards the cross-param reaction in _applyNonBeatsParamChange:
+      // Guards the cross-param reaction in core's applyParamChange:
       // deleting it would leave the stale "right" surviving a flip to
       // who=role1s, and "right" is not role1s's implied side.
       await _selectDropdownOption(tester, 'figure-0-who', 'larks');

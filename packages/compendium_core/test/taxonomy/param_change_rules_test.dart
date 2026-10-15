@@ -116,6 +116,27 @@ void main() {
       expect(low.params['beats'], 0);
     });
 
+    test('returns before beats are reconciled, even in aggressive mode', () {
+      // petronella's balance drives its canonical beats (true: 8, false: 4),
+      // so a fall-through into the reconciliation would snap a manual 10 to
+      // 4 rather than shifting it to 6.
+      final result = change(
+        'petronella',
+        {...defaults('petronella'), 'beats': 10},
+        'balance',
+        false,
+        beatsTouched: true,
+        aggressiveBeats: true,
+      );
+      expect(result.params['beats'], 6);
+    });
+
+    test('reads the effective flag, so an unstated spec default of on counts '
+        'as on', () {
+      final result = change('petronella', {'beats': 8}, 'balance', false);
+      expect(result.params['beats'], 4);
+    });
+
     test('setting it to the value it already has changes nothing else', () {
       final result = change(
         'pull_by',
@@ -206,6 +227,19 @@ void main() {
         canonicalBeatsFor(taxonomy, 'swing', aggressive.params),
       );
       expect(aggressive.params['beats'], isNot(10));
+    });
+
+    test('aggressive mode leaves an override alone when the default did not '
+        'move', () {
+      final result = change(
+        'circle',
+        {...defaults('circle'), 'beats': 12},
+        'direction',
+        'right',
+        beatsTouched: true,
+        aggressiveBeats: true,
+      );
+      expect(result.params['beats'], 12);
     });
 
     test('an unowned count snaps to a moved default', () {
