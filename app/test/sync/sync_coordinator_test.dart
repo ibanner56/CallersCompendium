@@ -7343,6 +7343,17 @@ void main() {
         'show_custom_figures': SyncCapabilities.glossaryV1,
         'compound_shorthands': SyncCapabilities.glossaryV1,
       });
+      expect(SyncCapabilityPolicy.build.gatedGlossaryEntryKinds, {
+        'term': SyncCapabilities.glossaryV2,
+        'customFigure': SyncCapabilities.glossaryV2,
+      });
+      expect(
+        SyncCapabilityPolicy.build.advertised,
+        isNot(contains(SyncCapabilities.glossaryV2)),
+        reason:
+            'the user\'s own terms and figures stay on their device until '
+            'the whole of #1023 is in the build',
+      );
       final toggle = SyncMergeCandidate.fromBlob(
         _setting('show_custom_figures', 'true'),
       );
@@ -7375,6 +7386,107 @@ void main() {
         'show_custom_figures',
         'compound_shorthands',
         'theme_mode',
+      });
+    });
+
+    test('glossary entries wait on the capability of their own kind: terms '
+        'and figures of your own on glossary.v2, compounds and unknown kinds '
+        'on glossary.v1, tombstones included (#1023)', () async {
+      SyncMergeCandidate entryOf(String id, String kind) =>
+          SyncMergeCandidate.fromBlob(
+            syncRecordBlobForEntity(
+              SyncRecordKind.glossaryEntry,
+              StoredUserGlossaryEntry(
+                id: id,
+                kind: kind,
+                name: id,
+                definition: 'A definition.',
+                description: 'A description.',
+                createdAt: stamp,
+              ),
+              updatedAt: stamp,
+              existenceAt: stamp,
+            )!,
+          );
+      final compound = entryOf('a-compound', 'compound');
+      final term = entryOf('a-term', 'term');
+      final figure = entryOf('a-figure', 'customFigure');
+      final gone = tombstoneOf(entryOf('a-gone-figure', 'customFigure'));
+      final future = entryOf('a-future', 'someLaterKind');
+      final local = {
+        for (final c in [compound, term, figure, gone, future]) c.address: c,
+      };
+      Set<String> publishedEntries(_FakeTransport transport) =>
+          (decodeSyncManifest(
+                    utf8.decode(transport.manifestBodies.last),
+                  ).records[SyncRecordKind.glossaryEntry] ??
+                  const <String, String>{})
+              .keys
+              .toSet();
+      const both = SyncCapabilityPolicy(
+        advertised: {SyncCapabilities.glossaryV1, SyncCapabilities.glossaryV2},
+        gatedRecordKinds: {
+          SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
+        },
+        gatedGlossaryEntryKinds: {
+          'term': SyncCapabilities.glossaryV2,
+          'customFigure': SyncCapabilities.glossaryV2,
+        },
+      );
+
+      // This build, alone in its store, does not advertise glossary.v2 yet:
+      // only the compound and the kind it does not know publish.
+      final alone = transportFor(const []);
+      var result = await coordinatorFor(
+        _FakeStore(local: local),
+        alone,
+        capabilities: SyncCapabilityPolicy.build,
+      ).syncNow();
+      expect(result.status, SyncPassStatus.completed);
+      expect(publishedEntries(alone), {'a-compound', 'a-future'});
+      expect(
+        uploaded(alone),
+        isNot(anyOf(contains(figure.wireHash), contains(gone.wireHash))),
+      );
+
+      // A build that advertises both, beside a peer that only reads
+      // glossary.v1: the peer holds back only the new kinds, and is named.
+      final v1Peer = capabilityOf('peer', {SyncCapabilities.glossaryV1});
+      final olderPeer = transportFor(['peer']);
+      result = await coordinatorFor(
+        _FakeStore(local: {...local, v1Peer.address: v1Peer}),
+        olderPeer,
+        capabilities: both,
+      ).syncNow();
+      expect(result.status, SyncPassStatus.completed);
+      expect(publishedEntries(olderPeer), {'a-compound', 'a-future'});
+      expect(awaiting(result).map((r) => r.peerId), ['peer']);
+      expect(awaiting(result).single.message, contains('glossary.v2'));
+      expect(
+        awaiting(result).single.message,
+        isNot(contains('glossary.v1')),
+        reason: 'nothing gated on glossary.v1 was held back',
+      );
+
+      // Once the peer reads glossary.v2 too, everything publishes.
+      final v2Peer = capabilityOf('peer', {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+      });
+      final updatedPeer = transportFor(['peer']);
+      result = await coordinatorFor(
+        _FakeStore(local: {...local, v2Peer.address: v2Peer}),
+        updatedPeer,
+        capabilities: both,
+      ).syncNow();
+      expect(result.status, SyncPassStatus.completed);
+      expect(awaiting(result), isEmpty);
+      expect(publishedEntries(updatedPeer), {
+        'a-compound',
+        'a-term',
+        'a-figure',
+        'a-gone-figure',
+        'a-future',
       });
     });
 

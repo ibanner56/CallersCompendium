@@ -25,8 +25,11 @@ class CustomGlossaryItem {
   /// consolidated spec, decision 6).
   final bool renameNeeded;
 
-  /// A kind this build does not know: made by a newer version of the app.
-  bool get unsupported => entry.kind == null;
+  /// A kind this build cannot use: one it does not know, or one reserved for
+  /// a later change (#1023's terms and figures of your own). Either was made
+  /// by a newer version of the app, and is shown read-only, so the compound
+  /// editor can never rewrite it as a compound.
+  bool get unsupported => entry.kind != UserGlossaryEntryKind.compound;
 
   /// A compound whose definition no longer decodes.
   bool get broken => !unsupported && definition == null;

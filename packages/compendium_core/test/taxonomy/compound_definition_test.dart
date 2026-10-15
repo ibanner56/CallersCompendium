@@ -479,6 +479,29 @@ void main() {
   });
 
   group('codec', () {
+    test('a contra compound\'s payload names no form; another form is kept, '
+        'and so are keys this build does not know (#1023)', () {
+      final json = grandRightAndLeft().toJson();
+      expect(json.containsKey('form'), isFalse);
+      final decoded = decodeCompoundDefinition(json, taxonomy)!;
+      expect(decoded.form, 'contra');
+
+      final later = {
+        ...json,
+        'form': 'ecd',
+        'later': [1, 2],
+      };
+      final read = decodeCompoundDefinition(later, taxonomy)!;
+      expect(read.form, 'ecd');
+      expect(read.extra, {
+        'later': [1, 2],
+      });
+      expect(read.toJson(), later);
+      expect(compoundPayloadExtra(later), {
+        'later': [1, 2],
+      });
+    });
+
     test('round-trips', () {
       final json = grandRightAndLeft().toJson();
       final decoded = decodeCompoundDefinition(json, taxonomy)!;
