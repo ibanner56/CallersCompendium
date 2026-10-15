@@ -156,7 +156,8 @@ typed them. "Leads chain" and "the lead on the left" still use the role. Text sa
 
 With **Custom Figures** on (see [Settings](./settings.md)), the figures you
 built in the [Glossary](./glossary.md) are offered when you choose a figure's
-move, listed first and marked **Custom**. They are found by their name or by
+move, listed first and marked with a person icon (announced as **Custom** by
+screen readers). They are found by their name or by
 any of their other names. They are offered for a figure in the list itself,
 not inside a meanwhile or modifier group.
 
@@ -176,7 +177,8 @@ and changing or deleting your figure later does not change it.
 If your figure has been deleted, has changed so that it can no longer be
 expanded, or no longer accepts the values on the row, the row says so, and
 saving keeps it as a [custom figure](#custom-figure) with your figure's name,
-so nothing you entered is lost. A row that is one of your figures cannot be
+its beats, and the row's note and progression mark. The values you chose for
+its parameters are not kept. A row that is one of your figures cannot be
 grouped as a meanwhile or modifier. Turning Custom Figures off stops them being
 offered, but a row you already picked is still expanded when you save.
 

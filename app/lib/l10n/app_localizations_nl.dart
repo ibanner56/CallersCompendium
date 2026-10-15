@@ -7702,7 +7702,7 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String danceEditorCompoundSemantic(String summary, String unavailable) {
     String _temp0 = intl.Intl.selectLogic(unavailable, {
-      'yes': ', kan niet worden uitgebreid',
+      'yes': ', kan niet worden uitgevouwen',
       'other': '',
     });
     return '$summary, eigen figuur$_temp0';
@@ -7727,7 +7727,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorCompoundUnavailable =>
-      'Deze eigen figuur kan niet worden uitgebreid: hij is verwijderd of gewijzigd, of accepteert deze waarden niet. Bij het opslaan blijft alleen de naam bewaard.';
+      'Deze eigen figuur kan niet worden uitgevouwen: hij is verwijderd of gewijzigd, of accepteert deze waarden niet. Bij het opslaan blijven alleen de naam, de beats, de notitie en de progressie bewaard.';
 
   @override
   String danceEditorFigureSummarySemantic(
@@ -9232,7 +9232,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Toont je eigen figuren in de woordenlijst, waar je ze kunt toevoegen en bewerken. Als je dit uitzet, worden ze verborgen, niet verwijderd.';
+      'Toont je eigen figuren in de woordenlijst, waar je ze kunt toevoegen en bewerken, en biedt ze aan wanneer je een dans bewerkt. Als je dit uitzet, worden ze verborgen, niet verwijderd.';
 
   @override
   String get settingsExperimentalShowCustomFiguresNeedsGlossary =>

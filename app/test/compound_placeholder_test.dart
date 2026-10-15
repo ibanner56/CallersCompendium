@@ -22,7 +22,12 @@ void main() {
         CompoundParam(key: 'who', kind: ParamKind.dancerSet),
         CompoundParam(key: 'hand', kind: ParamKind.handedness),
       ],
-      figures: [pullBy(note: 'look at them'), pullBy(), pullBy(), pullBy()],
+      figures: [
+        pullBy(note: 'look at them'),
+        pullBy(),
+        pullBy(),
+        pullBy(),
+      ],
       bindings: [
         for (var i = 0; i < 4; i++) ...[
           CompoundSlotBinding(figureIndex: i, slotKey: 'who', paramKey: 'who'),
@@ -62,10 +67,9 @@ void main() {
     test('expands a placeholder with its arguments', () {
       final figures = placeholder().toFigures(resolveCompound: resolve);
       expect([for (final f in figures) f.move], List.filled(4, 'pull_by'));
-      expect(
-        [for (final f in figures) f.params['who']],
-        List.filled(4, 'partners'),
-      );
+      expect([
+        for (final f in figures) f.params['who'],
+      ], List.filled(4, 'partners'));
       expect(
         [for (final f in figures) f.params['hand']],
         ['left', 'right', 'left', 'right'],
@@ -79,12 +83,10 @@ void main() {
         progression: true,
       ).toFigures(resolveCompound: resolve, canonicalizeNote: (n) => n.trim());
       expect(figures.first.note, 'look at them; Larks lead');
-      expect([for (final f in figures) f.progression], [
-        false,
-        false,
-        false,
-        true,
-      ]);
+      expect(
+        [for (final f in figures) f.progression],
+        [false, false, false, true],
+      );
     });
 
     test('a compound that is gone becomes one custom figure with its stored '
@@ -229,11 +231,7 @@ void main() {
     });
 
     test('a placeholder with a move, or inside a container, is refused', () {
-      const compound = {
-        'id': 'grl',
-        'name': 'x',
-        'args': <String, Object?>{},
-      };
+      const compound = {'id': 'grl', 'name': 'x', 'args': <String, Object?>{}};
       expect(
         () => decodeDraft(withRow(row(compound, move: 'swing'))),
         throwsFormatException,

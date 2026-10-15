@@ -209,6 +209,32 @@ void main() {
     expect(find.text('grand pull'), findsOneWidget);
   });
 
+  testWidgets('a placeholder counts its beats in the phrase labels', (
+    tester,
+  ) async {
+    // 8 beats of placeholder and 8 of swing fill A1; the next swing is A2.
+    await pump(tester, [
+      placeholder(),
+      FigureDraft(move: 'swing', params: {'who': 'partners', 'beats': 8}),
+      FigureDraft(move: 'swing', params: {'who': 'partners', 'beats': 8}),
+    ]);
+    String label(int i) =>
+        tester.widget<Text>(find.byKey(ValueKey('figure-$i-label'))).data!;
+    expect([label(0), label(1), label(2)], ['A1', '', 'A2']);
+  });
+
+  testWidgets('a placeholder\'s picker does not offer the modifier, which '
+      'would discard it', (tester) async {
+    await pump(tester, [placeholder()]);
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    await type(tester, 'figure-0-move-input', 'modifier');
+    expect(
+      find.byKey(const ValueKey('figure-0-move-option-$modifierMove')),
+      findsNothing,
+    );
+  });
+
   testWidgets('choosing a move replaces the placeholder', (tester) async {
     final drafts = [placeholder()];
     await pump(tester, drafts);

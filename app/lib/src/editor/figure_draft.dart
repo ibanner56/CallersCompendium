@@ -6,7 +6,8 @@
 import 'package:compendium_core/compendium_core.dart';
 
 /// Mutable working state for a single figure while it is being edited in the
-/// dance editor. Committed to an immutable [Figure] on save via [toFigure].
+/// dance editor. Committed to immutable figures on save via [toFigures]: the
+/// one figure [toFigure] builds, or a compound placeholder's expansion.
 class FigureDraft {
   FigureDraft({
     String? id,
@@ -367,8 +368,9 @@ class FigureDraft {
   /// [resolveCompound] looks a compound up by id, as it is now — an edit made
   /// in the Glossary since the row was picked applies. A placeholder whose
   /// compound is gone, no longer valid, or no longer accepts the row's
-  /// arguments becomes one custom figure bearing the compound's name, so
-  /// nothing the user entered is lost (#709). The placeholder's [note] goes on
+  /// arguments becomes one custom figure bearing the compound's name, its last
+  /// beat count, and the row's note and progression mark, so the row is not
+  /// dropped; the values chosen for its parameters are not kept (#709). The placeholder's [note] goes on
   /// the first expanded figure and its [progression] mark on the last.
   List<Figure> toFigures({
     required CompoundResolver resolveCompound,

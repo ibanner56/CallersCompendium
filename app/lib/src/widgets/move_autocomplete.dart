@@ -210,6 +210,8 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
           trailing: compound
               ? Tooltip(
                   message: widget.compoundMarkerLabel,
+                  // The icon's own label says it; read once.
+                  excludeFromSemantics: true,
                   child: Icon(
                     Icons.person_outline,
                     size: 18,

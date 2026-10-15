@@ -7667,7 +7667,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorCompoundUnavailable =>
-      'Denne egen figur kan ikke udvides: den er slettet eller ændret, eller den accepterer ikke disse værdier. Når du gemmer, bevares kun dens navn.';
+      'Denne egen figur kan ikke udvides: den er slettet eller ændret, eller den accepterer ikke disse værdier. Når du gemmer, bevares kun navn, slag, note og progression.';
 
   @override
   String danceEditorFigureSummarySemantic(
@@ -9166,7 +9166,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Viser dine egne figurer i ordlisten, hvor du kan tilføje og redigere dem. Slår du det fra, skjules de, men de slettes ikke.';
+      'Viser dine egne figurer i ordlisten, hvor du kan tilføje og redigere dem, og tilbyder dem, når du redigerer en dans. Slår du det fra, skjules de, men de slettes ikke.';
 
   @override
   String get settingsExperimentalShowCustomFiguresNeedsGlossary =>

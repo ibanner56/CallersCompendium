@@ -63,8 +63,9 @@ const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
 /// v13 -> v14: adds the optional per-figure `compound` object, a row that is
 /// one of the user's own compound figures not yet expanded (#709). Only a
 /// draft holding such a row is stamped v14 (see [encodeDraft]): an older build
-/// would read the row as an empty one and drop it unseen, so it refuses that
-/// draft as unreadable instead, while every other draft stays v13 and still
+/// would read the row as an empty one and drop it unseen, so it treats that
+/// draft as unreadable instead — and, as for any unknown version, deletes it
+/// when the editor opens — while every other draft stays v13 and still
 /// restores there.
 const _kDraftVersion = 14;
 

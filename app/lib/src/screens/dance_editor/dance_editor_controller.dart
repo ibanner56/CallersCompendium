@@ -289,8 +289,13 @@ class DanceEditorController extends ChangeNotifier {
               case final definition?)
             entry.id: (entry: entry, definition: definition),
     };
-    // Keep each placeholder's beat count current for the phrase labels, the
-    // beat total and a fallback.
+    _refreshPlaceholderBeats();
+  }
+
+  /// Brings each placeholder's beat count up to date with its expansion, for
+  /// the phrase labels, the beat total and a fallback. A placeholder that
+  /// cannot expand keeps its last count.
+  void _refreshPlaceholderBeats() {
     for (final draft in figureDrafts) {
       final compound = draft.compound;
       if (compound == null) continue;
@@ -299,6 +304,11 @@ class DanceEditorController extends ChangeNotifier {
       }
     }
   }
+
+  /// Whether any row is a compound placeholder, so the save must re-read the
+  /// user's compounds before building the dance.
+  bool get hasCompoundPlaceholders =>
+      figureDrafts.any((d) => d.isCompoundPlaceholder);
 
   void _watchCompounds() {
     _glossarySubscription = _repos.userGlossary.watchAll().listen(
@@ -775,6 +785,9 @@ class DanceEditorController extends ChangeNotifier {
     figureDrafts
       ..clear()
       ..addAll(s.figureDrafts.map((d) => d.toDraft()));
+    // A restored or undone placeholder carries the count it had then; the
+    // compound may have changed since (#709).
+    _refreshPlaceholderBeats();
 
     recomputeWarnings();
   }

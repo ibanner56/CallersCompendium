@@ -7668,15 +7668,15 @@
   },
   "danceEditorCompoundSemantic": "{summary}、自分のフィギュア{unavailable, select, yes{、展開できません} other{}}",
   "@danceEditorCompoundSemantic": {
-    "x-sourceSha256": "4c6bc0afebb84b79baf158be8b6300001403d7010168f341373133857e83ea8f"
+    "x-sourceSha256": "d04eb81bad5803bb1ed81eb9e75652aa7f2f8fd2fe282bc5d93eb028378a4aae"
   },
   "danceEditorCompoundExpandsTo": "ダンスを保存すると{count, plural, other{{count}個のフィギュア}}（{beats, plural, other{{beats}拍}}）になります。",
   "@danceEditorCompoundExpandsTo": {
     "x-sourceSha256": "e1e59e23f7602c299e99da09509da61d362a2d51216e964a0fdf7f0d85a6732d"
   },
-  "danceEditorCompoundUnavailable": "この自分のフィギュアは展開できません。削除または変更されたか、これらの値を受け付けません。保存すると名前だけが残ります。",
+  "danceEditorCompoundUnavailable": "この自分のフィギュアは展開できません。削除または変更されたか、これらの値を受け付けません。保存すると、名前・拍数・メモ・プログレッションだけが残ります。",
   "@danceEditorCompoundUnavailable": {
-    "x-sourceSha256": "f6c9e3b775b9468783ef477b151f73566a40ccefa53ded040d43710c5757b302"
+    "x-sourceSha256": "ed634f3cb27197c9dbd7a4c570a64adccedace935c49e3fbf8cbb4c54e532732"
   },
   "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{、{importGapText}} other{}}{progression, select, yes{、プログレッション} other{}}{hasMove, select, yes{、{beats, plural, other{{beats}拍}}} other{}}{hasNote, select, yes{、ノート: {note}} other{}}。{total}件中フィギュア{position}。",
   "@danceEditorFigureSummarySemantic": {
@@ -9102,9 +9102,9 @@
   "@settingsExperimentalShowCustomFiguresTitle": {
     "x-sourceSha256": "5678ffb9929561067862bd046b5b3a21f57923e2403c78826dece4b932e87462"
   },
-  "settingsExperimentalShowCustomFiguresSubtitle": "自分のフィギュアを用語集に表示し、そこで追加や編集ができます。オフにすると非表示になりますが、削除はされません。",
+  "settingsExperimentalShowCustomFiguresSubtitle": "自分のフィギュアを用語集に表示し、そこで追加や編集ができます。ダンスの編集時にも選べます。オフにすると非表示になりますが、削除はされません。",
   "@settingsExperimentalShowCustomFiguresSubtitle": {
-    "x-sourceSha256": "817edbffcd2e85f8c4fa1329d4377ca8a04af6ad2484e4db5f4b5a37412a1535"
+    "x-sourceSha256": "1a77089cccd357d0a8a5b72258e36ce5746af7de119ec5c03b9c23fa4909d1eb"
   },
   "settingsExperimentalShowCustomFiguresNeedsGlossary": "自分のフィギュアを使うには、「用語集を表示」をオンにしてください。",
   "@settingsExperimentalShowCustomFiguresNeedsGlossary": {

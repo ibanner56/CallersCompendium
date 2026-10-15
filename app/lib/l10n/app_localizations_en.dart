@@ -7610,7 +7610,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'yes': ', can\'t be expanded',
       'other': '',
     });
-    return '$summary, custom figure$_temp0';
+    return '$summary, your own figure$_temp0';
   }
 
   @override
@@ -7632,7 +7632,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorCompoundUnavailable =>
-      'This custom figure can\'t be expanded: it has been deleted or changed, or doesn\'t accept these values. Saving keeps it as its name alone.';
+      'This figure of yours can\'t be expanded: it has been deleted or changed, or doesn\'t accept these values. Saving keeps only its name, beats, note and progression mark.';
 
   @override
   String danceEditorFigureSummarySemantic(
@@ -9124,7 +9124,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Lists your own figures in the Glossary, where you can add and edit them. Turning this off hides them; it doesn\'t delete them.';
+      'Lists your own figures in the Glossary, where you can add and edit them, and offers them when you edit a dance. Turning this off hides them; it doesn\'t delete them.';
 
   @override
   String get settingsExperimentalShowCustomFiguresNeedsGlossary =>
