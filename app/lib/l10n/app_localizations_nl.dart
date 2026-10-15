@@ -7695,6 +7695,41 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorEmptyFigureSemantic => 'lege figuur, kies een move';
 
   @override
+  String danceEditorCompoundSummary(String name, String values) {
+    return '$name: $values';
+  }
+
+  @override
+  String danceEditorCompoundSemantic(String summary, String unavailable) {
+    String _temp0 = intl.Intl.selectLogic(unavailable, {
+      'yes': ', kan niet worden uitgebreid',
+      'other': '',
+    });
+    return '$summary, eigen figuur$_temp0';
+  }
+
+  @override
+  String danceEditorCompoundExpandsTo(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figuren',
+      one: '1 figuur',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats beats',
+      one: '1 beat',
+    );
+    return 'Wordt bij het opslaan van de dans $_temp0 ($_temp1).';
+  }
+
+  @override
+  String get danceEditorCompoundUnavailable =>
+      'Deze eigen figuur kan niet worden uitgebreid: hij is verwijderd of gewijzigd, of accepteert deze waarden niet. Bij het opslaan blijft alleen de naam bewaard.';
+
+  @override
   String danceEditorFigureSummarySemantic(
     String main,
     String importGap,

@@ -7662,6 +7662,22 @@
   "@danceEditorEmptyFigureSemantic": {
     "x-sourceSha256": "1bd403500c41dd51299339ab217294d9b4154a4b19d5a264768c7ff218ec3d7b"
   },
+  "danceEditorCompoundSummary": "{name}：{values}",
+  "@danceEditorCompoundSummary": {
+    "x-sourceSha256": "7f476fe79cafd92164769794845898ea0d554e4a05b2c9f9c5bf5c5ef7e5ec7a"
+  },
+  "danceEditorCompoundSemantic": "{summary}、自分のフィギュア{unavailable, select, yes{、展開できません} other{}}",
+  "@danceEditorCompoundSemantic": {
+    "x-sourceSha256": "4c6bc0afebb84b79baf158be8b6300001403d7010168f341373133857e83ea8f"
+  },
+  "danceEditorCompoundExpandsTo": "ダンスを保存すると{count, plural, other{{count}個のフィギュア}}（{beats, plural, other{{beats}拍}}）になります。",
+  "@danceEditorCompoundExpandsTo": {
+    "x-sourceSha256": "e1e59e23f7602c299e99da09509da61d362a2d51216e964a0fdf7f0d85a6732d"
+  },
+  "danceEditorCompoundUnavailable": "この自分のフィギュアは展開できません。削除または変更されたか、これらの値を受け付けません。保存すると名前だけが残ります。",
+  "@danceEditorCompoundUnavailable": {
+    "x-sourceSha256": "f6c9e3b775b9468783ef477b151f73566a40ccefa53ded040d43710c5757b302"
+  },
   "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{、{importGapText}} other{}}{progression, select, yes{、プログレッション} other{}}{hasMove, select, yes{、{beats, plural, other{{beats}拍}}} other{}}{hasNote, select, yes{、ノート: {note}} other{}}。{total}件中フィギュア{position}。",
   "@danceEditorFigureSummarySemantic": {
     "x-sourceSha256": "e6e055515213aca43227e08180eedb9332836f9adc9dff767e7e5b0d47d55858"

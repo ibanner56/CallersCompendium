@@ -389,6 +389,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     setState(() => _saving = true);
     final Dance dance;
     try {
+      // Expand compound placeholders with each compound as it is stored now,
+      // not as the last watch event left it (#709).
+      await _controller.refreshCompounds();
       dance = _controller.buildDance();
       await _repos.transaction(() async {
         final tagIds = <String, String>{};

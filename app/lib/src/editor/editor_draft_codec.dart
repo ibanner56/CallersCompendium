@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 
 import 'editor_snapshot.dart';
+import 'figure_draft.dart';
 
 /// Settings-table key prefix for the dance editor's transient autosave drafts.
 ///
@@ -58,7 +59,17 @@ const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
 /// when the dance is eventually saved.
 ///
 /// v12 -> v13: adds recursive structural-container children to figure drafts.
-const _kDraftVersion = 13;
+///
+/// v13 -> v14: adds the optional per-figure `compound` object, a row that is
+/// one of the user's own compound figures not yet expanded (#709). Only a
+/// draft holding such a row is stamped v14 (see [encodeDraft]): an older build
+/// would read the row as an empty one and drop it unseen, so it refuses that
+/// draft as unreadable instead, while every other draft stays v13 and still
+/// restores there.
+const _kDraftVersion = 14;
+
+/// The version a draft without a compound placeholder is stamped with.
+const _kDraftVersionWithoutCompounds = 13;
 
 // ---------------------------------------------------------------------------
 // Encode
@@ -67,10 +78,10 @@ const _kDraftVersion = 13;
 /// Serialises [snapshot] to a JSON string suitable for storage in
 /// [SettingsRepository].
 ///
-/// Schema (v13):
+/// Schema (v14; v13 when no row is a compound placeholder):
 /// ```jsonc
 /// {
-///   "v": 13,
+///   "v": 14,
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
@@ -94,18 +105,25 @@ const _kDraftVersion = 13;
 ///     {"id":"...", "move":"swing",
 ///      "params":{"who":"partners","beats":16},
 ///      "note":"", "progression":false, "sv":1,
-///      "walkthroughOverride":"Swing them."}
+///      "walkthroughOverride":"Swing them."},
+///     {"id":"...", "move":null, "params":{}, "note":"", "progression":false,
+///      "sv":1,
+///      "compound":{"id":"...","name":"grand right and left",
+///                  "args":{"hand":"right"},"beats":8}}
 ///   ]
 /// }
 /// ```
-/// `move` may be `null` for an incomplete draft row.
+/// `move` may be `null` for an incomplete draft row, and is for a compound
+/// placeholder.
 /// `label`, `url`, and `targetDanceId` may be omitted when empty/null.
 /// `level`, `rating`, `composedOn`, and `revisedOn` are omitted when unset.
 /// `sourceCitations` is omitted when empty; per-citation `page`/`number` are
 /// omitted when null.
 String encodeDraft(EditorSnapshot snapshot) {
   return jsonEncode({
-    'v': _kDraftVersion,
+    'v': snapshot.figureDrafts.any((d) => d.compound != null)
+        ? _kDraftVersion
+        : _kDraftVersionWithoutCompounds,
     'title': snapshot.title,
     'hook': snapshot.hook,
     'notes': snapshot.notes,
@@ -170,7 +188,7 @@ String encodeDraft(EditorSnapshot snapshot) {
 /// Deserialises a draft JSON value (as returned by [SettingsRepository.get])
 /// back into an [EditorSnapshot].
 ///
-/// Accepts drafts with schema versions **v1 through v13** (forward-compatible
+/// Accepts drafts with schema versions **v1 through v14** (forward-compatible
 /// read):
 /// - v1 has URL-kind links only (no `targetDanceId`). Since v1 couldn't create
 ///   relatedDance links, missing `targetDanceId` fields decode as `null` —
@@ -492,6 +510,17 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
   if (sv is! int) {
     throw FormatException('figureDraft.sv must be an int: $sv');
   }
+  final compound = _parseCompound(m['compound']);
+  if (compound != null && (rawMove != null || containerKind != null)) {
+    throw const FormatException(
+      'figureDraft.compound cannot have a move or children',
+    );
+  }
+  if (compound != null && containerDepth > 0) {
+    throw const FormatException(
+      'figureDraft.compound is allowed only at the top level',
+    );
+  }
 
   final normalized = rawMove == null
       ? null
@@ -517,6 +546,37 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
     wordingOverride: _optSnippet(m['wordingOverride']),
     meanwhileSides: containerKind == meanwhileMove ? parsedChildren : null,
     modifierFigures: containerKind == modifierMove ? parsedChildren : null,
+    compound: compound,
+  );
+}
+
+/// Reads a figure draft's optional `compound` object (v14).
+CompoundPlaceholder? _parseCompound(Object? raw) {
+  if (raw == null) return null;
+  if (raw is! Map) {
+    throw const FormatException('figureDraft.compound must be an object');
+  }
+  final id = raw['id'];
+  final name = raw['name'];
+  final args = raw['args'];
+  final beats = raw['beats'] ?? 0;
+  if (id is! String || id.isEmpty) {
+    throw const FormatException('figureDraft.compound.id is required');
+  }
+  if (name is! String) {
+    throw const FormatException('figureDraft.compound.name must be a string');
+  }
+  if (args is! Map) {
+    throw const FormatException('figureDraft.compound.args must be an object');
+  }
+  if (beats is! int || beats < 0) {
+    throw FormatException('figureDraft.compound.beats is invalid: $beats');
+  }
+  return CompoundPlaceholder(
+    id: id,
+    name: name,
+    args: {for (final e in args.entries) e.key.toString(): e.value},
+    beats: beats,
   );
 }
 
@@ -542,6 +602,13 @@ Map<String, Object?> _figureDraftJson(FigureDraftSnapshot draft) {
     if (draft.wordingOverride != null &&
         draft.wordingOverride!.trim().isNotEmpty)
       'wordingOverride': draft.wordingOverride,
+    if (draft.compound case final compound?)
+      'compound': {
+        'id': compound.id,
+        'name': compound.name,
+        'args': compound.args,
+        'beats': compound.beats,
+      },
     if (children != null) ...{
       'containerKind': draft.modifierFigures == null
           ? meanwhileMove

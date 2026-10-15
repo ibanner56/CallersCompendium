@@ -7662,6 +7662,22 @@
   "@danceEditorEmptyFigureSemantic": {
     "x-sourceSha256": "1bd403500c41dd51299339ab217294d9b4154a4b19d5a264768c7ff218ec3d7b"
   },
+  "danceEditorCompoundSummary": "{name}: {values}",
+  "@danceEditorCompoundSummary": {
+    "x-sourceSha256": "7f476fe79cafd92164769794845898ea0d554e4a05b2c9f9c5bf5c5ef7e5ec7a"
+  },
+  "danceEditorCompoundSemantic": "{summary}, egen figur{unavailable, select, yes{, kan ikke udvides} other{}}",
+  "@danceEditorCompoundSemantic": {
+    "x-sourceSha256": "4c6bc0afebb84b79baf158be8b6300001403d7010168f341373133857e83ea8f"
+  },
+  "danceEditorCompoundExpandsTo": "Bliver til {count, plural, =1{1 figur} other{{count} figurer}} ({beats, plural, =1{1 slag} other{{beats} slag}}), når dansen gemmes.",
+  "@danceEditorCompoundExpandsTo": {
+    "x-sourceSha256": "e1e59e23f7602c299e99da09509da61d362a2d51216e964a0fdf7f0d85a6732d"
+  },
+  "danceEditorCompoundUnavailable": "Denne egen figur kan ikke udvides: den er slettet eller ændret, eller den accepterer ikke disse værdier. Når du gemmer, bevares kun dens navn.",
+  "@danceEditorCompoundUnavailable": {
+    "x-sourceSha256": "f6c9e3b775b9468783ef477b151f73566a40ccefa53ded040d43710c5757b302"
+  },
   "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}{hasMove, select, yes{, {beats, plural, =1{1 slag} other{{beats} slag}}} other{}}{hasNote, select, yes{, note: {note}} other{}}. Figur {position} af {total}.",
   "@danceEditorFigureSummarySemantic": {
     "x-sourceSha256": "e6e055515213aca43227e08180eedb9332836f9adc9dff767e7e5b0d47d55858"

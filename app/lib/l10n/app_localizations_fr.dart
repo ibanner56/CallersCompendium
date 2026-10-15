@@ -7742,6 +7742,41 @@ class AppLocalizationsFr extends AppLocalizations {
       'figure vide, choisissez un mouvement';
 
   @override
+  String danceEditorCompoundSummary(String name, String values) {
+    return '$name : $values';
+  }
+
+  @override
+  String danceEditorCompoundSemantic(String summary, String unavailable) {
+    String _temp0 = intl.Intl.selectLogic(unavailable, {
+      'yes': ', ne peut pas être développée',
+      'other': '',
+    });
+    return '$summary, votre propre figure$_temp0';
+  }
+
+  @override
+  String danceEditorCompoundExpandsTo(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures',
+      one: '1 figure',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats temps',
+      one: '1 temps',
+    );
+    return 'Devient $_temp0 ($_temp1) à l’enregistrement de la danse.';
+  }
+
+  @override
+  String get danceEditorCompoundUnavailable =>
+      'Cette figure ne peut pas être développée : elle a été supprimée ou modifiée, ou n’accepte pas ces valeurs. À l’enregistrement, seul son nom est conservé.';
+
+  @override
   String danceEditorFigureSummarySemantic(
     String main,
     String importGap,

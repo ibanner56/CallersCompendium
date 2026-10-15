@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/canonical_discouraged_terms_scope.dart';
+import '../../data/show_custom_figures_scope.dart';
 import '../../data/validation_issue_labels.dart';
 import '../../data/walkthrough_snippet_library_controller.dart';
 import '../../data/walkthrough_snippet_library_scope.dart';
@@ -329,9 +330,18 @@ class DanceEditorForm extends StatelessWidget {
                   onConvertToMeanwhile: controller.convertContainerToMeanwhile,
                   onConvertToModifier: controller.convertContainerToModifier,
                   onUngroupContainer: controller.ungroupContainer,
+                  // The user's own compounds are offered while Custom Figures
+                  // is on; a placeholder already in the draft still expands
+                  // with it off (#709).
+                  compoundOptions: customFiguresShown(context)
+                      ? controller.compoundEntries
+                      : null,
+                  resolveCompound: controller.resolveCompound,
                   snippetLibraryDefaultFor: snippetLib == null
                       ? null
                       : (draft) {
+                          // A placeholder has no walkthrough step of its own.
+                          if (draft.isCompoundPlaceholder) return null;
                           final figure = draft.toFigure();
                           if (figure == null) return null;
                           return snippetLib.resolve(
@@ -722,9 +732,8 @@ Future<void> _fillWalkthroughFromSnippets(
   final l10n = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
   final library = snippetLib.library;
-  final figures = [
-    for (final draft in controller.figureDrafts) ?draft.toFigure(),
-  ];
+  // Compound placeholders contribute the steps of the figures they expand to.
+  final figures = controller.builtFigures;
   final lines = <String>[];
   for (final figure in figures) {
     final text = resolveFigureSnippet(figure, library, taxonomy);

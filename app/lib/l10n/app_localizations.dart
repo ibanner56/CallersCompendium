@@ -11643,6 +11643,30 @@ abstract class AppLocalizations {
   /// **'empty figure, choose a move'**
   String get danceEditorEmptyFigureSemantic;
 
+  /// Collapsed summary of a figure row that is one of the user's own custom figures, not yet expanded: its name and the value it gives each parameter, comma-separated.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: {values}'**
+  String danceEditorCompoundSummary(String name, String values);
+
+  /// Screen-reader phrase for a figure row that is one of the user's own custom figures. unavailable is 'yes' when it can no longer be expanded.
+  ///
+  /// In en, this message translates to:
+  /// **'{summary}, custom figure{unavailable, select, yes{, can\'t be expanded} other{}}'**
+  String danceEditorCompoundSemantic(String summary, String unavailable);
+
+  /// Under a custom figure being edited in a dance: how many figures, and how many beats, it is replaced by when the dance is saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Becomes {count, plural, =1{1 figure} other{{count} figures}} ({beats, plural, =1{1 beat} other{{beats} beats}}) when the dance is saved.'**
+  String danceEditorCompoundExpandsTo(int count, int beats);
+
+  /// Shown on a dance's figure row that is one of the user's own custom figures when it can no longer be expanded into figures; the dance then saves it as a custom figure whose text is the name.
+  ///
+  /// In en, this message translates to:
+  /// **'This custom figure can\'t be expanded: it has been deleted or changed, or doesn\'t accept these values. Saving keeps it as its name alone.'**
+  String get danceEditorCompoundUnavailable;
+
   /// Composite screen-reader label for a figure row, including optional import-gap, progression, beats, and note details plus row position.
   ///
   /// In en, this message translates to:

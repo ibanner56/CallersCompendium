@@ -9925,6 +9925,52 @@
   "@danceEditorEmptyFigureSemantic": {
     "description": "Screen-reader phrase for an empty figure draft."
   },
+  "danceEditorCompoundSummary": "{name}: {values}",
+  "@danceEditorCompoundSummary": {
+    "description": "Collapsed summary of a figure row that is one of the user's own custom figures, not yet expanded: its name and the value it gives each parameter, comma-separated.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "grand right and left"
+      },
+      "values": {
+        "type": "String",
+        "example": "neighbors, right"
+      }
+    }
+  },
+  "danceEditorCompoundSemantic": "{summary}, custom figure{unavailable, select, yes{, can't be expanded} other{}}",
+  "@danceEditorCompoundSemantic": {
+    "description": "Screen-reader phrase for a figure row that is one of the user's own custom figures. unavailable is 'yes' when it can no longer be expanded.",
+    "placeholders": {
+      "summary": {
+        "type": "String",
+        "example": "grand right and left: neighbors, right"
+      },
+      "unavailable": {
+        "type": "String",
+        "example": "no"
+      }
+    }
+  },
+  "danceEditorCompoundExpandsTo": "Becomes {count, plural, =1{1 figure} other{{count} figures}} ({beats, plural, =1{1 beat} other{{beats} beats}}) when the dance is saved.",
+  "@danceEditorCompoundExpandsTo": {
+    "description": "Under a custom figure being edited in a dance: how many figures, and how many beats, it is replaced by when the dance is saved.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      },
+      "beats": {
+        "type": "int",
+        "example": "8"
+      }
+    }
+  },
+  "danceEditorCompoundUnavailable": "This custom figure can't be expanded: it has been deleted or changed, or doesn't accept these values. Saving keeps it as its name alone.",
+  "@danceEditorCompoundUnavailable": {
+    "description": "Shown on a dance's figure row that is one of the user's own custom figures when it can no longer be expanded into figures; the dance then saves it as a custom figure whose text is the name."
+  },
   "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}{hasMove, select, yes{, {beats, plural, =1{1 beat} other{{beats} beats}}} other{}}{hasNote, select, yes{, note: {note}} other{}}. Figure {position} of {total}.",
   "@danceEditorFigureSummarySemantic": {
     "description": "Composite screen-reader label for a figure row, including optional import-gap, progression, beats, and note details plus row position.",
