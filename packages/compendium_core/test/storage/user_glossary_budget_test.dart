@@ -257,6 +257,28 @@ void main() {
     });
   });
 
+  test('rows applied from sync are not refused by the budget: a peer\'s row '
+      'is applied or the devices never converge', () async {
+    final glossary = entries(1);
+    await glossary.writeFromSync(
+      StoredUserGlossaryEntry(
+        id: 'peer',
+        kind: 'compound',
+        name: 'n',
+        definition: 'd' * 500,
+        description: 'd',
+        createdAt: created,
+      ),
+    );
+    await notes(
+      1,
+    ).writeFromSync(const FigureNote(figureId: 'swing', notes: 'x'));
+    expect((await glossary.getById('peer'))!.definition, 'd' * 500);
+    expect((await notes(1).get('swing'))!.notes, 'x');
+    // Over the budget now, so the editor's own path cannot add to it.
+    await expectLater(glossary.upsert(entry('mine')), throwsA(overBudget()));
+  });
+
   group('figure notes share the budget', () {
     test('a note counts for its figure id and text, to the byte', () async {
       final a = entry('a');

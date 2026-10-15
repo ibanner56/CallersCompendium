@@ -603,18 +603,24 @@ class _FigureNotesSectionState extends State<FigureNotesSection> {
     );
     if (saved == null || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
-    final tooLong = AppLocalizations.of(context).glossaryNotesTooLong;
+    final l10n = AppLocalizations.of(context);
     // Empty text deletes the note.
     try {
       await repos.figureNotes.set(
         widget.figureId,
         canonicalizeGlossaryText(saved, dialect),
       );
-    } on FigureNoteInvalid {
-      // diagnostics: silent — the user's text is over the stored bound, which
-      // canonical role tokens can push it past; the message asks them to
-      // shorten it.
-      messenger.showSnackBar(SnackBar(content: Text(tooLong)));
+    } on FigureNoteInvalid catch (e) {
+      // diagnostics: silent — either the user's text is over the stored bound,
+      // which canonical role tokens can push it past, or the whole Glossary is
+      // full; the message says which and what to do.
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            e.overBudget ? l10n.glossaryOverBudget : l10n.glossaryNotesTooLong,
+          ),
+        ),
+      );
     }
   }
 

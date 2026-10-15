@@ -74,7 +74,7 @@ bool userGlossaryPayloadIsJson(String text) {
 /// = 16 MiB, under a third of the 50 MiB cap, which leaves 34 MiB for
 /// everything else (the app's own estimate is about 30 MiB for a lean
 /// 20,000-dance library). Typical use is far below: a compound is 23-91 KB, so
-/// 4 MiB holds roughly 45 to 170 of them, or a few thousand short entries. The
+/// 4 MiB holds roughly 45 to 180 of them, or a few thousand short entries. The
 /// bound limits what the glossary can add; a collection that is already near
 /// the cap by itself can still reach it.
 ///
@@ -232,6 +232,7 @@ class UserGlossaryRepository {
       final existing = await (_db.select(
         _db.userGlossaryEntries,
       )..where((t) => t.id.equals(entry.id))).getSingleOrNull();
+      final before = await _glossaryBytes(_db, entryId: entry.id);
       // Every value is already normalised above; each is wrapped again here,
       // which changes nothing, so the normalisation ratchet
       // (normalisation_structure_test.dart) can see it at the write.
@@ -268,6 +269,13 @@ class UserGlossaryRepository {
         key: entry.id,
         at: now,
       );
+      // Measured on what is stored, after the write, so what is counted is
+      // what the backup will carry (not a second computation of it); throwing
+      // rolls the whole write back.
+      final after = await _glossaryBytes(_db, entryId: entry.id);
+      if (after.total > maxBytes && after.row > before.row) {
+        throw const UserGlossaryEntryInvalid.overBudget();
+      }
     });
   }
 
@@ -511,6 +519,7 @@ class FigureNoteRepository {
     }
     if (text.isEmpty) return delete(figureId, at: now);
     await _db.transaction(() async {
+      final before = await _glossaryBytes(_db, figureId: figureId);
       await _db
           .into(_db.figureNotes)
           .insertOnConflictUpdate(
@@ -527,6 +536,11 @@ class FigureNoteRepository {
         key: figureId,
         at: now,
       );
+      // Measured after the write, on what is stored; throwing rolls it back.
+      final after = await _glossaryBytes(_db, figureId: figureId);
+      if (after.total > maxBytes && after.row > before.row) {
+        throw const FigureNoteInvalid(overBudget: true);
+      }
     });
   }
 

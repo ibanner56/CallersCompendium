@@ -628,6 +628,40 @@ database already carries it. The steps that can still fire are v36 onward.
   definition, is kept as it is. Additive `createTable`s; no back-fill and no
   derived rebuild.
 
+  **The glossary's size budget.** Each field has its own bound
+  (`maxUserGlossaryNameLength`, `maxUserGlossaryTextLength`,
+  `maxUserGlossaryPayloadLength`), but the two tables together are also held to
+  `maxUserGlossaryBytes` (4 MiB), enforced when a row is written, because a
+  backup is one file capped at 50 MiB (`kMaxBackupFileBytes`) that export
+  refuses to write past: without a total, a large glossary left the user unable
+  to back up at all. A row counts for the UTF-8 bytes of its stored text
+  columns (for a note, `figure_id` and `notes`) plus `kGlossaryRowOverheadBytes`
+  (512); tombstones count for nothing, as a backup does not carry them.
+  `UserGlossaryRepository.upsert` and `FigureNoteRepository.set` measure the
+  tables after the write, inside the transaction, and roll back with
+  `UserGlossaryEntryInvalid.overBudget()` (`field` is `budget`) or
+  `FigureNoteInvalid(overBudget: true)` when the total is past the budget **and**
+  the row grew. A write that does not grow its row always succeeds, so a
+  glossary already over the budget (written before there was one) still loads,
+  exports, and can be edited down and deleted from; it cannot grow. The budget
+  is 4 MiB because the double-encoded backup container writes a stored `"` or
+  `\` as four bytes (a newline as three), so the glossary adds at most four times
+  its counted size to the file: 16 MiB, under a third of the cap, leaving 34 MiB
+  for the rest (about 30 MiB for a lean 20,000-dance library, per
+  `kMaxBackupFileBytes`). `app/test/data/backup_glossary_budget_test.dart`
+  measures that factor on a real export. A collection that is near the cap by
+  itself can still reach it; the budget bounds only what the glossary adds.
+  Restore goes through the same writes: a backup holding more than fits (one
+  made before the budget) restores in file order until the glossary is full, and
+  reports each entry and note it skipped. Rows that arrive by Device Sync
+  (`writeFromSync`, a separate path from `upsert` and `set` per sync-spec §6.7)
+  are **not** held to the budget: refusing a peer's row would leave the two
+  devices unable to converge, and each peer's glossary was within the budget
+  when written. So a synced glossary can exceed it (devices with different
+  entries add up); it then exports as long as the file stays under the cap, and
+  can be edited down, but not grown. Held-back alternative, not taken: refuse
+  at apply and quarantine the row, which needs a sync-spec change.
+
 ## The delete model
 
 Every syncable kind — dances, programs, choreographers, tags, published

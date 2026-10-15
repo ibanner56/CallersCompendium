@@ -472,9 +472,18 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     );
     try {
       await repos.userGlossary.upsert(entry);
-    } on UserGlossaryEntryInvalid {
-      // diagnostics: silent — shown inline; a field over its bound is the user's to shorten.
-      if (mounted) setState(() => _errors = [l10n.compoundEditorTooLong]);
+    } on UserGlossaryEntryInvalid catch (e) {
+      // diagnostics: silent — shown inline; a field over its bound is the
+      // user's to shorten, and a full Glossary is theirs to make room in.
+      if (mounted) {
+        setState(
+          () => _errors = [
+            e.isOverBudget
+                ? l10n.glossaryOverBudget
+                : l10n.compoundEditorTooLong,
+          ],
+        );
+      }
       return false;
     }
     _dirty = false;

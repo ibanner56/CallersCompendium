@@ -309,6 +309,9 @@ kinds reserved for #1023, `term` (the former `GlossaryTerm` idea) and
 `customFigure`. A `FigureNote` is the user's note on one shipped figure.
 Neither is part of a dance; both are carried by backups (`app.glossary`) and by
 Device Sync (once every attached device can read them), not by archives.
+Together they are held to a total size budget when written through the editor
+or a restore (`maxUserGlossaryBytes`), so that a glossary cannot outgrow a
+backup file; see [storage](./storage.md) (schema v40).
 
 **Quick-entry snippets** — the question of user-defined quick-entry
 **snippets** (CC "Insert Call" buttons) is closed: a CC import seeds them as

@@ -600,7 +600,11 @@ class BackupService {
   /// An entry or note the repository refuses (over a bound, a payload that
   /// cannot be stored, or an id or kind sync could not carry, in a
   /// hand-edited file) is skipped, its live copy kept, and reported as an
-  /// error so the restore says something was skipped.
+  /// error so the restore says something was skipped. The glossary's total byte
+  /// budget ([maxUserGlossaryBytes]) is enforced here as everywhere: a backup
+  /// holding more than fits (one made before there was a budget) restores in
+  /// file order until the glossary is full, and reports each entry and note it
+  /// had no room for.
   ///
   /// A backup made where the glossary was empty has no section (an empty one
   /// would end v1's byte-for-byte compatibility), so restoring it leaves the
@@ -636,8 +640,9 @@ class BackupService {
             kind: ArchiveErrorKind.restore,
             entityType: 'glossaryEntry',
             entityId: entry.id,
-            message:
-                'glossary entry skipped: ${e.field} cannot be stored', // i18n-ignore: internal diagnostic, never shown
+            message: e.isOverBudget
+                ? 'glossary entry skipped: the glossary is full' // i18n-ignore: internal diagnostic, never shown
+                : 'glossary entry skipped: ${e.field} cannot be stored', // i18n-ignore: internal diagnostic, never shown
           ),
         );
       }
@@ -645,15 +650,16 @@ class BackupService {
     for (final note in doc.figureNotes) {
       try {
         await _repos.figureNotes.set(note.figureId, note.notes);
-      } on FigureNoteInvalid {
+      } on FigureNoteInvalid catch (e) {
         // diagnostics: silent — the skipped note is reported in the restore outcome's errors.
         errors.add(
           ArchiveError(
             kind: ArchiveErrorKind.restore,
             entityType: 'figureNote',
             entityId: note.figureId,
-            message:
-                'figure note skipped: cannot be stored', // i18n-ignore: internal diagnostic, never shown
+            message: e.overBudget
+                ? 'figure note skipped: the glossary is full' // i18n-ignore: internal diagnostic, never shown
+                : 'figure note skipped: cannot be stored', // i18n-ignore: internal diagnostic, never shown
           ),
         );
       }
