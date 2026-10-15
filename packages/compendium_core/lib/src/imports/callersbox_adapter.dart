@@ -1338,10 +1338,9 @@ class CallersBoxAdapter implements SourceAdapter {
       return null;
     }
 
-    final annotations = RegExp(r'\(([^)]*)\)')
-        .allMatches(lower)
-        .map((m) => m.group(1)!.trim())
-        .toList();
+    final annotations = RegExp(
+      r'\(([^)]*)\)',
+    ).allMatches(lower).map((m) => m.group(1)!.trim()).toList();
     if (annotations.length > 1) return null;
     final head = lower
         .replaceAll(RegExp(r'\([^)]*\)|\[[^\[\]]{0,120}\]'), ' ')

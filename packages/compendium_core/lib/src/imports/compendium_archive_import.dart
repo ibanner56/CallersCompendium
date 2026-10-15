@@ -685,8 +685,9 @@ class CompendiumArchiveImporter {
           revalidatePending: false,
         );
         await repositories.resetNormalisationStateForRestore();
-        await CompendiumSyncStorage(repositories)
-            .revalidatePendingDeletions(dropMissing: true);
+        await CompendiumSyncStorage(
+          repositories,
+        ).revalidatePendingDeletions(dropMissing: true);
         await repositories.ensureMigrated();
       }, resetMigrationOnFailure: true);
 

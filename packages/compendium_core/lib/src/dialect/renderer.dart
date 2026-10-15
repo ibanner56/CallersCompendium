@@ -40,14 +40,15 @@ typedef _AssembledTemplate = ({Set<String> slots, String text});
 /// [FigureRenderer._displayBaseRenderers]). Computes the slots for a move that
 /// adopts ContraDB's `words()` sentence structure verbatim. Never invoked for
 /// the canonical render (which keeps expanding `renderTemplate`).
-typedef _DisplayBaseRenderer = _DisplayTemplate Function(
-  FigureRenderer r,
-  MoveDef def,
-  Map<String, Object?> params,
-  Dialect dialect,
-  bool verbose,
-  bool decimals,
-);
+typedef _DisplayBaseRenderer =
+    _DisplayTemplate Function(
+      FigureRenderer r,
+      MoveDef def,
+      Map<String, Object?> params,
+      Dialect dialect,
+      bool verbose,
+      bool decimals,
+    );
 
 /// Expands a display template in one pass.
 ///

@@ -909,10 +909,9 @@ class ProgramRepository {
   /// by that host caller (see [callingHistoryForDance]; issue #583).
   Future<Map<String, DateTime>> lastCalledByDance({
     String? callerFilter,
-  }) async =>
-      _programDerivedRows(_normalizedCallerFilter(callerFilter))
-          .get()
-          .then(_lastCalledFromRows);
+  }) async => _programDerivedRows(
+    _normalizedCallerFilter(callerFilter),
+  ).get().then(_lastCalledFromRows);
 
   /// Maps dance id → its [DanceCallCounts] across every slot of every
   /// non-deleted program, for dances that have been called at least once (a
@@ -930,10 +929,9 @@ class ProgramRepository {
   /// [callingHistoryForDance].
   Future<Map<String, DanceCallCounts>> countByDance({
     String? callerFilter,
-  }) async =>
-      _programDerivedRows(_normalizedCallerFilter(callerFilter))
-          .get()
-          .then(_countsFromRows);
+  }) async => _programDerivedRows(
+    _normalizedCallerFilter(callerFilter),
+  ).get().then(_countsFromRows);
 
   /// The ONE query behind [lastCalledByDance], [countByDance] and
   /// [watchProgramDerivedCounts]. [caller] is already normalized.

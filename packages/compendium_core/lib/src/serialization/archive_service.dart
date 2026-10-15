@@ -165,8 +165,9 @@ class ArchiveRestorer {
           );
         }
         await _repos.resetNormalisationStateForRestore();
-        await CompendiumSyncStorage(_repos)
-            .revalidatePendingDeletionsInTransaction(dropMissing: true);
+        await CompendiumSyncStorage(
+          _repos,
+        ).revalidatePendingDeletionsInTransaction(dropMissing: true);
       });
       committed = true;
     } on Exception catch (e) {
