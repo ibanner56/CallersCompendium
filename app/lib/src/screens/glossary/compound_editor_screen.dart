@@ -300,6 +300,8 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
       ],
       figures: figures,
       bindings: bindings,
+      form: glossaryEntryForm(widget.initial?.payload),
+      extra: compoundPayloadExtra(widget.initial?.payload),
     );
   }
 

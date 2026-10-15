@@ -332,6 +332,37 @@ void main() {
     expect(find.byType(CompoundEditorScreen), findsNothing, reason: 'closed');
   });
 
+  testWidgets('an edit keeps the compound\'s form and the payload keys this '
+      'build does not know (#1023)', (tester) async {
+    final stored = twoPullBys();
+    final initial = UserGlossaryEntry(
+      id: stored.id,
+      kindName: stored.kindName,
+      name: stored.name,
+      definition: stored.definition,
+      description: stored.description,
+      payload: {
+        ...stored.payload! as Map<String, Object?>,
+        'form': 'ecd',
+        'later': {'kept': true},
+      },
+      createdAt: stored.createdAt,
+    );
+    final repos = await pump(tester, initial: initial);
+    await tester.enterText(
+      find.byKey(const ValueKey('compound-description')),
+      'Edited.',
+    );
+    await save(tester);
+
+    final saved = (await tester.runAsync(
+      () => repos.userGlossary.getById('pb2'),
+    ))!;
+    final payload = saved.payload! as Map<String, Object?>;
+    expect(payload['form'], 'ecd');
+    expect(payload['later'], {'kept': true});
+  });
+
   testWidgets('an unused parameter warns, and the user can go back or save '
       'anyway', (tester) async {
     final repos = await pump(

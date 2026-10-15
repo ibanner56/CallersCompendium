@@ -1,0 +1,15 @@
+{
+  "id": "1023-user-figure-core",
+  "user_visible": false,
+  "core": {
+    "added": [
+      "Add figures of your own (#1023): `UserFigureDefinition`, the `customFigure` glossary payload (dance form, a #822 wording template, default beats, declared parameters with stable choice ids), with `decodeUserFigureDefinition` and `validateUserFigure`; `glossaryEntryForm` reads any entry's form.",
+      "Add the soft reference a dance holds to one (`userFigure`, `userFigureArgs` and `userFigureCheck` inside a `custom` figure's params), read by `userFigureUseOf`, built by `userFigureUseFigure`, frozen by `detachUserFigureUse`; `mapFigureLeaves` and `userFigureIdsUsedBy` walk containers.",
+      "`FigureRenderer` takes an optional `UserFigureCatalog` and renders an attached use live from its definition on every path, canonical included, falling back to the stored line; `renderUserFigureCanonical` gives the line a use's text is refreshed to."
+    ],
+    "changed": [
+      "`validateFigure` accepts the three reference params on `custom`, checked together by shape; `figureCanonicalKey` keys an attached use by its figure and arguments; the archive decoder scrubs a use's arguments; #417's re-parse skips uses; figure shorthands refuse them.",
+      "`CompoundDefinition` gains a dance `form` (written only when not contra) and carries payload keys it does not know through an edit."
+    ]
+  }
+}
