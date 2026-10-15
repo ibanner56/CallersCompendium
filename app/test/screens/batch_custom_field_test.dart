@@ -37,6 +37,8 @@ final _numberDef = CustomFieldDef(
 );
 
 Future<void> _enterSelectionMode(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+  await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('batch-select')));
   await tester.pumpAndSettle();
 }

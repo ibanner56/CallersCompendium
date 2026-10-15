@@ -8005,6 +8005,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get figureParamFacingStarBackingUp => 'achteruit';
 
   @override
+  String get danceEditorParamChooseValue => 'kies een waarde';
+
+  @override
   String get danceEditorParamClearTooltip => 'Wissen (niet opgegeven)';
 
   @override

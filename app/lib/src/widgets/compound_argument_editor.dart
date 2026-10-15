@@ -1,5 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
@@ -76,8 +76,11 @@ String? compoundShorthandValueText(
 ///
 /// Used by a compound placeholder row in the dance editor and by the compound
 /// shorthand editor, so both offer the same values. A stored value the
-/// compound no longer accepts is shown as nothing selected and never replaced
-/// by the editor itself.
+/// compound no longer accepts, or a missing one, is never replaced by the
+/// editor itself, and is never shown as a value it holds: a list or a rotation
+/// asks for a choice in place of a value, and every other kind's editor has a
+/// line beneath it asking for one. "Not stated" is shown only when it is the
+/// value.
 class CompoundArgumentEditor extends StatelessWidget {
   const CompoundArgumentEditor({
     super.key,
@@ -122,15 +125,24 @@ class CompoundArgumentEditor extends StatelessWidget {
       param.key,
       taxonomy ?? contraTaxonomy,
     );
-    return FigureParamEditor(
+    final listed = _listed.contains(param.kind);
+    final editor = FigureParamEditor(
       keyPrefix: keyPrefix,
       paramKey: param.key,
       spec: ParamSpec(
         param.kind,
         defaultValue: null,
-        choices: _listed.contains(param.kind) && allowed != null
-            ? [for (final v in allowed) ?(v is String ? v : null)]
-            : null,
+        choices: switch (param.kind) {
+          _ when listed && allowed != null => [
+            for (final v in allowed) ?(v is String ? v : null),
+          ],
+          // Listing the sentinel is how a rotation admits "not stated": its
+          // stepper then shows that state, and offers Clear, rather than 1.
+          ParamKind.rotation
+              when allowed?.contains(ParamVocab.unspecified) ?? false =>
+            const [ParamVocab.unspecified],
+          _ => null,
+        },
       ),
       dialect: dialect,
       mixer: mixer,
@@ -140,6 +152,28 @@ class CompoundArgumentEditor extends StatelessWidget {
       // until the user chooses another.
       correctsValue: false,
       onChanged: onChanged,
+    );
+    // A list and a rotation ask for a choice themselves; every other kind's
+    // editor shows a fallback (1, 0, off, empty) for a value it can't show, so
+    // say so here.
+    final accepted = allowed == null
+        ? value is String
+        : allowed.contains(value);
+    if (listed || accepted || param.kind == ParamKind.rotation) return editor;
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        editor,
+        Text(
+          AppLocalizations.of(context).danceEditorParamChooseValue,
+          key: ValueKey('$keyPrefix-${param.key}-choose'),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.error,
+          ),
+        ),
+      ],
     );
   }
 }

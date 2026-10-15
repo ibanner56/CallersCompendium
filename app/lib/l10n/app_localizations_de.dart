@@ -8039,6 +8039,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get figureParamFacingStarBackingUp => 'rückwärts';
 
   @override
+  String get danceEditorParamChooseValue => 'einen Wert wählen';
+
+  @override
   String get danceEditorParamClearTooltip => 'Löschen (nicht angegeben)';
 
   @override

@@ -7910,6 +7910,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get figureParamFacingStarBackingUp => 'backing up';
 
   @override
+  String get danceEditorParamChooseValue => 'choose a value';
+
+  @override
   String get danceEditorParamClearTooltip => 'Clear (not stated)';
 
   @override

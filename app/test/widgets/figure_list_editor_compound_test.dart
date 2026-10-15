@@ -239,6 +239,161 @@ void main() {
     expect(status.data, startsWith('This figure of yours can\'t be expanded'));
   });
 
+  // A hey whose ends pair is the compound's parameter: `hey.pass2` admits
+  // "not stated", so the field could claim it.
+  CompoundDefinition heyWithEnds() => CompoundDefinition(
+    params: const [CompoundParam(key: 'ends', kind: ParamKind.dancerSet)],
+    figures: [
+      Figure(move: 'hey', params: const {'pass1': 'role2s', 'length': 'half'}),
+    ],
+    bindings: [
+      CompoundSlotBinding(figureIndex: 0, slotKey: 'pass2', paramKey: 'ends'),
+    ],
+  );
+
+  for (final (label, args) in [
+    ('one it no longer accepts', {'ends': 'sideways'}),
+    ('a missing one', <String, Object?>{}),
+  ]) {
+    testWidgets('a placeholder\'s field asks for a choice for $label, rather '
+        'than reading "not stated", and can be cleared', (tester) async {
+      final drafts = [
+        FigureDraft(
+          compound: CompoundPlaceholder(
+            id: 'grl',
+            name: 'grand pull',
+            args: Map.of(args),
+            beats: 8,
+          ),
+        ),
+      ];
+      await pump(tester, drafts, resolve: (_) => heyWithEnds());
+      await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+      await tester.pumpAndSettle();
+      final field = find.byKey(const ValueKey('figure-0-compound-ends'));
+      expect(
+        find.descendant(of: field, matching: find.text('choose a value')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: field, matching: find.text('not stated')),
+        findsNothing,
+      );
+      expect(drafts.single.compound!.args, args, reason: 'left as it is');
+
+      await tester.tap(
+        find.byKey(const ValueKey('figure-0-compound-ends-clear')),
+      );
+      await tester.pumpAndSettle();
+      expect(drafts.single.compound!.args['ends'], ParamVocab.unspecified);
+      expect(
+        find.descendant(of: field, matching: find.text('not stated')),
+        findsOneWidget,
+      );
+    });
+  }
+
+  // A gate whose turn amount is the compound's `turns`; `gate.travel` is the
+  // one rotation slot that admits "not stated". `again` is a flag bound to no
+  // slot, which its row may not hold yet.
+  CompoundDefinition gateWithTurns() => CompoundDefinition(
+    params: const [
+      CompoundParam(key: 'turns', kind: ParamKind.rotation),
+      CompoundParam(key: 'again', kind: ParamKind.flag),
+    ],
+    figures: [Figure(move: 'gate', params: const {})],
+    bindings: [
+      CompoundSlotBinding(figureIndex: 0, slotKey: 'travel', paramKey: 'turns'),
+    ],
+  );
+
+  Future<List<FigureDraft>> pumpGate(
+    WidgetTester tester,
+    Map<String, Object?> args,
+  ) async {
+    final drafts = [
+      FigureDraft(
+        compound: CompoundPlaceholder(
+          id: 'grl',
+          name: 'gate turns',
+          args: args,
+          beats: 8,
+        ),
+      ),
+    ];
+    await pump(tester, drafts, resolve: (_) => gateWithTurns());
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    return drafts;
+  }
+
+  String turnsShown(WidgetTester tester) => tester
+      .widget<Text>(find.byKey(const ValueKey('figure-0-compound-turns-value')))
+      .data!;
+
+  testWidgets('a rotation argument holding "not stated" says so, not 1, and '
+      'can be set back to it', (tester) async {
+    final drafts = await pumpGate(tester, {
+      'turns': ParamVocab.unspecified,
+      'again': false,
+    });
+    expect(turnsShown(tester), 'not stated');
+    expect(
+      find.byKey(const ValueKey('figure-0-compound-turns-choose')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-compound-turns-inc')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.compound!.args['turns'], isA<num>());
+    await tester.tap(
+      find.byKey(const ValueKey('figure-0-compound-turns-clear')),
+    );
+    await tester.pumpAndSettle();
+    expect(drafts.single.compound!.args['turns'], ParamVocab.unspecified);
+    expect(turnsShown(tester), 'not stated');
+  });
+
+  testWidgets('an argument of a kind that is not a list asks for a choice '
+      'when it is missing, and is left as it is', (tester) async {
+    final drafts = await pumpGate(tester, {'turns': ParamVocab.unspecified});
+    expect(
+      find.byKey(const ValueKey('figure-0-compound-again-choose')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('figure-0-compound-turns-choose')),
+      findsNothing,
+    );
+    expect(drafts.single.compound!.args, {'turns': ParamVocab.unspecified});
+  });
+
+  for (final (label, args) in [
+    (
+      'one the compound no longer accepts',
+      {'turns': 'sideways', 'again': true},
+    ),
+    ('a missing one', {'again': true}),
+    ('an amount outside the domain', {'turns': 3.0, 'again': true}),
+  ]) {
+    testWidgets('a rotation argument asks for a choice for $label, never '
+        'reading "not stated", and can be cleared', (tester) async {
+      final drafts = await pumpGate(tester, Map.of(args));
+      expect(turnsShown(tester), 'choose a value');
+      // Nothing on the page claims "not stated": the only other argument
+      // is a flag.
+      expect(find.text('not stated'), findsNothing);
+      expect(drafts.single.compound!.args, args, reason: 'left as it is');
+
+      await tester.tap(
+        find.byKey(const ValueKey('figure-0-compound-turns-clear')),
+      );
+      await tester.pumpAndSettle();
+      expect(drafts.single.compound!.args['turns'], ParamVocab.unspecified);
+      expect(turnsShown(tester), 'not stated');
+    });
+  }
+
   testWidgets('a placeholder counts its beats in the phrase labels', (
     tester,
   ) async {

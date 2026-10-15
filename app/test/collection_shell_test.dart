@@ -210,12 +210,16 @@ void main() {
       await _pumpShell(tester, repos, size: const Size(600, 900));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('manage-custom-fields')));
       await tester.pumpAndSettle();
       expect(find.byType(DanceListScreen), findsNothing);
       expect(find.text('Custom fields'), findsOneWidget);
 
       await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('recently-deleted')));
       await tester.pumpAndSettle();
@@ -343,6 +347,8 @@ void main() {
       await _pumpShell(tester, repos, size: const Size(1400, 900));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('manage-custom-fields')));
       await tester.pumpAndSettle();
       expect(find.byType(DanceListScreen), findsOneWidget);
@@ -352,6 +358,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Select a dance'), findsOneWidget);
 
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('recently-deleted')));
       await tester.pumpAndSettle();
       expect(find.byType(DanceListScreen), findsOneWidget);
@@ -369,6 +377,8 @@ void main() {
       await _pumpShell(tester, repos, size: const Size(1400, 900));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('manage-custom-fields')));
       await tester.pumpAndSettle();
       final customFieldsClose = tester.element(
@@ -388,6 +398,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('custom-fields-close')));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('recently-deleted')));
       await tester.pumpAndSettle();
       final recentlyDeletedClose = tester.element(
@@ -413,6 +425,8 @@ void main() {
       await repos.dances.create(_dance(id: 'd1', title: 'Dismiss Detail Mode'));
 
       await _pumpShell(tester, repos, size: const Size(1400, 900));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('manage-custom-fields')));
       await tester.pumpAndSettle();
@@ -604,40 +618,38 @@ void main() {
         tester
             .widget<Icon>(
               find.descendant(
-                of: find.byKey(const ValueKey('manage-custom-fields')),
+                of: find.byKey(const ValueKey('collection-more-actions')),
                 matching: find.byType(Icon),
               ),
             )
             .icon,
-        Icons.note_add_outlined,
+        Icons.more_vert,
       );
     });
 
-    testWidgets('compacts tagged Collection actions without truncating title', (
-      tester,
-    ) async {
-      final repos = openTestRepositories();
-      expect(
-        await repos.tags.upsert(Tag(id: 'category', name: 'Category')),
-        'category',
-      );
-      await repos.dances.create(
-        _dance(id: 'tagged', title: 'Tagged Dance', tagIds: ['category']),
-      );
+    testWidgets(
+      'keeps its toolbar glyphs when tags exist, without truncating title',
+      (tester) async {
+        final repos = openTestRepositories();
+        expect(
+          await repos.tags.upsert(Tag(id: 'category', name: 'Category')),
+          'category',
+        );
+        await repos.dances.create(
+          _dance(id: 'tagged', title: 'Tagged Dance', tagIds: ['category']),
+        );
 
-      await _pumpShell(tester, repos, size: const Size(1400, 900));
-      await tester.pumpAndSettle();
+        await _pumpShell(tester, repos, size: const Size(1400, 900));
+        await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const ValueKey('collection-more-actions')),
-        findsOneWidget,
-      );
-      expect(find.byKey(const ValueKey('import-dances')), findsNothing);
-      final title = tester.renderObject<RenderParagraph>(
-        find.text('Collection'),
-      );
-      expect(title.didExceedMaxLines, isFalse);
-    });
+        // Tags no longer collapse the bar into the ⋮ menu: Import stays an icon.
+        expect(find.byKey(const ValueKey('import-dances')), findsOneWidget);
+        final title = tester.renderObject<RenderParagraph>(
+          find.text('Collection'),
+        );
+        expect(title.didExceedMaxLines, isFalse);
+      },
+    );
 
     testWidgets('published source selection shows the inline catalog and hands '
         'a verified collection to review', (tester) async {
@@ -704,25 +716,29 @@ void main() {
       expect(events.single.collectionId, 'sample-1');
     });
 
-    testWidgets('button renders in the app bar, left of batch-select', (
-      tester,
-    ) async {
-      final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'd1', title: 'A Dance'));
+    testWidgets(
+      'button renders in the app bar, left of the more-actions menu',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'A Dance'));
 
-      await _pumpShell(tester, repos, size: const Size(1400, 900));
-      await tester.pumpAndSettle();
+        await _pumpShell(tester, repos, size: const Size(1400, 900));
+        await tester.pumpAndSettle();
 
-      final importFinder = find.byKey(const ValueKey('import-dances'));
-      final batchFinder = find.byKey(const ValueKey('batch-select'));
-      expect(importFinder, findsOneWidget);
-      expect(batchFinder, findsOneWidget);
-      // Import sits to the LEFT of Select dances in the same app bar row.
-      expect(
-        tester.getTopLeft(importFinder).dx,
-        lessThan(tester.getTopLeft(batchFinder).dx),
-      );
-    });
+        final importFinder = find.byKey(const ValueKey('import-dances'));
+        final moreFinder = find.byKey(
+          const ValueKey('collection-more-actions'),
+        );
+        expect(importFinder, findsOneWidget);
+        expect(moreFinder, findsOneWidget);
+        // Import sits to the LEFT of the ⋮ menu (which now holds Select dances)
+        // in the same app bar row.
+        expect(
+          tester.getTopLeft(importFinder).dx,
+          lessThan(tester.getTopLeft(moreFinder).dx),
+        );
+      },
+    );
 
     testWidgets('button is available with an empty collection', (tester) async {
       final repos = openTestRepositories();

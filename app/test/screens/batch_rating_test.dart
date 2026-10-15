@@ -20,6 +20,8 @@ Dance _dance({required String id, required String title, int? rating}) => Dance(
 );
 
 Future<void> _enterSelectionMode(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+  await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('batch-select')));
   await tester.pumpAndSettle();
 }
@@ -63,7 +65,10 @@ void main() {
     expect((await repos.dances.getById('d2'))!.rating, 4);
     // The un-selected dance is untouched.
     expect((await repos.dances.getById('d3'))!.rating, isNull);
-    expect(find.byKey(const ValueKey('batch-select')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('collection-more-actions')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('set-rating is idempotent on dances already at that rating', (

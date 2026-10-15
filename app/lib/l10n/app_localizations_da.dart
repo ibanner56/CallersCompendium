@@ -7944,6 +7944,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get figureParamFacingStarBackingUp => 'bakker baglæns';
 
   @override
+  String get danceEditorParamChooseValue => 'vælg en værdi';
+
+  @override
   String get danceEditorParamClearTooltip => 'Ryd (ikke angivet)';
 
   @override
