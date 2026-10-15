@@ -14333,13 +14333,13 @@ abstract class AppLocalizations {
   /// Helper text of the dance form choice.
   ///
   /// In en, this message translates to:
-  /// **'Offered in dances of this form.'**
+  /// **'The kind of dance it\'s for.'**
   String get glossaryEntryFormHelper;
 
   /// Shown when a parameter of a new figure has a name that can't be used.
   ///
   /// In en, this message translates to:
-  /// **'Start each parameter\'s name with a letter, use only letters, digits and _, and give each a different name. A name can\'t be move, beats or text.'**
+  /// **'Start each parameter\'s name with a letter, use only letters, digits and _, and give each a different name. A name can\'t be move, beats, text, a role, or another parameter\'s opposite, such as otherHand.'**
   String get userFigureEditorParamNames;
 
   /// Label of one choice of a parameter of a new figure.
@@ -14371,6 +14371,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No default'**
   String get userFigureEditorNoDefault;
+
+  /// Default of an on/off parameter of a new figure that is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get userFigureEditorFlagOff;
 
   /// Label of the words an on/off parameter of a new figure adds to its wording when on.
   ///
@@ -14453,7 +14459,7 @@ abstract class AppLocalizations {
   /// Body of the dialog asking about parameters a new figure's wording leaves out.
   ///
   /// In en, this message translates to:
-  /// **'{params} isn\'t in the wording, so choosing it will change nothing.'**
+  /// **'Not in the wording, so choosing them changes nothing: {params}.'**
   String userFigureEditorUnusedBody(String params);
 
   /// Heading of a new figure's wording on its Glossary page.

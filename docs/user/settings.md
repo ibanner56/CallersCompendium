@@ -582,8 +582,8 @@ Glossary is on. While it is on:
 - A name already taken can't be saved: a built-in figure's name or one of its
   other names, a figure's name in one of your dialects, one of your
   shorthands, or another of your figures.
-- In the dance editor, your figures are offered when you choose a figure's
-  move, and become the figures they stand for when you save the dance (see
+- In the dance editor, your combinations are offered when you choose a
+  figure's move, and become the figures they stand for when you save the dance (see
   [Your own figures](./authoring.md#your-own-figures)). You can also give one
   a [shorthand](./authoring.md#figure-shorthands) with set values.
 - Your figures are marked **Custom** in the list. Select one to see what a

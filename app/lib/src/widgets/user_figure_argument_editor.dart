@@ -2,15 +2,18 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../search/facet_labels.dart';
 import 'figure_param_editors.dart';
 
 /// Edits one argument of a figure of your own (#1023): the value one of its
 /// declared parameters takes, in a dance or as the parameter's default.
 ///
 /// A choice offers its labels, in the active dialect, and stores its stable
-/// id; free text and a flag have editors of their own; every other kind is
-/// the dance editor's [FigureParamEditor]. With [allowNone] a choice also
-/// offers [noneLabel] (null), which a default may be.
+/// id; free text has an editor of its own. With [allowNone] (a default),
+/// every other kind is a list of its values headed by [noneLabel], null, and
+/// labelled [label], so "no default" is an ordinary state, never one the
+/// field reads as needing a value. Without it (a dance's argument), a flag is
+/// a switch and every other kind is the dance editor's [FigureParamEditor].
 class UserFigureArgumentEditor extends StatelessWidget {
   const UserFigureArgumentEditor({
     super.key,
@@ -39,6 +42,23 @@ class UserFigureArgumentEditor extends StatelessWidget {
   final bool mixer;
 
   static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
+
+  /// How [value] reads in the list: a flag's wording or its key, a dancer in
+  /// the dialect, any other value humanized.
+  String _valueLabel(AppLocalizations l10n, Object? value) => switch (value) {
+    true =>
+      param.label == null
+          ? param.key
+          : _renderer.renderFreeText(param.label!, dialect),
+    false => l10n.userFigureEditorFlagOff,
+    final String token => figureParamChoiceLabel(
+      l10n,
+      ParamSpec(param.kind, defaultValue: null),
+      dialect,
+      token,
+    ),
+    _ => '$value',
+  };
 
   String get _key => '$keyPrefix-${param.key}';
 
@@ -79,6 +99,31 @@ class UserFigureArgumentEditor extends StatelessWidget {
           label: fieldLabel,
           value: value is String ? value as String : '',
           onChanged: (text) => onChanged(text.isEmpty ? null : text),
+        );
+      case _ when allowNone:
+        final domain = paramDomain(ParamSpec(param.kind, defaultValue: null));
+        final values = [...?domain];
+        return DropdownButtonFormField<Object?>(
+          key: ValueKey(_key),
+          initialValue: values.contains(value) ? value : null,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: fieldLabel,
+            border: const OutlineInputBorder(),
+            isDense: true,
+          ),
+          items: [
+            DropdownMenuItem<Object?>(
+              value: null,
+              child: Text(noneLabel ?? l10n.userFigureEditorNoDefault),
+            ),
+            for (final v in values)
+              DropdownMenuItem<Object?>(
+                value: v,
+                child: Text(_valueLabel(l10n, v)),
+              ),
+          ],
+          onChanged: onChanged,
         );
       case ParamKind.flag:
         return SwitchListTile(

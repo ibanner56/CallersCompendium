@@ -9593,11 +9593,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get glossaryEntryFormLabel => 'Tanzform';
 
   @override
-  String get glossaryEntryFormHelper => 'Wird in Tänzen dieser Form angeboten.';
+  String get glossaryEntryFormHelper =>
+      'Die Art von Tanz, für die sie gedacht ist.';
 
   @override
   String get userFigureEditorParamNames =>
-      'Beginne jeden Parameternamen mit einem Buchstaben, verwende nur Buchstaben, Ziffern und _ und gib jedem einen eigenen Namen. Ein Name darf nicht move, beats oder text sein.';
+      'Beginne jeden Parameternamen mit einem Buchstaben, verwende nur Buchstaben, Ziffern und _ und gib jedem einen eigenen Namen. Ein Name darf nicht move, beats, text, eine Rolle oder das Gegenstück eines anderen Parameters wie otherHand sein.';
 
   @override
   String userFigureEditorChoiceLabel(int number) {
@@ -9615,6 +9616,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get userFigureEditorNoDefault => 'Kein Standard';
+
+  @override
+  String get userFigureEditorFlagOff => 'Aus';
 
   @override
   String get userFigureEditorFlagLabel => 'Wortlaut, wenn an';
@@ -9637,7 +9641,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get userFigureEditorDefaultBeats => 'Standard-Beats';
+  String get userFigureEditorDefaultBeats => 'Standard-Takte';
 
   @override
   String get userFigureEditorDefaultBeatsHelper =>
@@ -9668,11 +9672,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get userFigureEditorBadBeats =>
-      'Standard-Beats müssen zwischen 0 und 64 liegen.';
+      'Standard-Takte müssen zwischen 0 und 64 liegen.';
 
   @override
   String userFigureEditorUnusedBody(String params) {
-    return '$params kommt im Wortlaut nicht vor, daher ändert eine Auswahl nichts.';
+    return 'Nicht im Wortlaut enthalten, daher ändert eine Auswahl nichts: $params.';
   }
 
   @override

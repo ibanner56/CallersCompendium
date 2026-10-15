@@ -239,14 +239,79 @@ void main() {
       );
       await save(tester);
       expect(
-        find.text(
-          "who isn't in the wording, so choosing it will change nothing.",
-        ),
+        find.text('Not in the wording, so choosing them changes nothing: who.'),
         findsOneWidget,
       );
       await tester.tap(find.byKey(const ValueKey('compound-unused-save')));
       await tester.pumpAndSettle();
       expect(await tester.runAsync(repos.userGlossary.listAll), hasLength(1));
+    });
+
+    Future<void> choose(WidgetTester tester, Key field, String item) async {
+      await tester.tap(find.byKey(field));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(item).last);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('changing a parameter\'s kind drops its default, and a '
+        'default can be any of its values, or none', (tester) async {
+      final repos = await pump(tester);
+      await fillRequired(tester);
+      await chooseNewFigure(tester);
+      await addParam(tester, 0, 'n');
+      await choose(tester, const ValueKey('compound-param-0-kind'), 'places');
+      await choose(
+        tester,
+        const ValueKey('user-figure-param-0-default-n'),
+        '3',
+      );
+      await choose(tester, const ValueKey('compound-param-0-kind'), 'text');
+      expect(
+        tester
+            .widget<TextField>(
+              find.descendant(
+                of: find.byKey(const ValueKey('user-figure-param-0-default-n')),
+                matching: find.byType(TextField),
+              ),
+            )
+            .controller!
+            .text,
+        isEmpty,
+        reason: 'the places default is gone',
+      );
+      await choose(tester, const ValueKey('compound-param-0-kind'), 'places');
+      await choose(
+        tester,
+        const ValueKey('user-figure-param-0-default-n'),
+        '2',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('user-figure-wording')),
+        '{move}\n{n}',
+      );
+      await save(tester);
+      final figure = decodeUserFigureDefinition(
+        (await tester.runAsync(repos.userGlossary.listAll))!.single.payload,
+      )!;
+      expect(figure.param('n')!.defaultValue, 2);
+      expect(
+        figure.template,
+        '{move} {n}',
+        reason: 'a line break reads as a space',
+      );
+    });
+
+    testWidgets('a combination keeps the dance form chosen for it', (
+      tester,
+    ) async {
+      final repos = await pump(tester, initial: twoPullBys());
+      await choose(tester, const ValueKey('glossary-entry-form'), 'Square');
+      await save(tester);
+      final saved = (await tester.runAsync(
+        () => repos.userGlossary.getById('pb2'),
+      ))!;
+      expect((saved.payload! as Map)['form'], 'square');
     });
 
     testWidgets('an edit keeps its kind and a renamed choice\'s id', (
