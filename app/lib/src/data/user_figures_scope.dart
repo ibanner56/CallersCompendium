@@ -24,7 +24,9 @@ class UserFiguresController extends ChangeNotifier {
   /// Starts watching the glossary; a second call does nothing. Not done in
   /// the constructor: watching opens the database, which the app's startup
   /// leaves to its data-safety preflight and migration, so it calls this
-  /// after them. A failed read is logged and leaves the figures as they were.
+  /// after them. It does not wait for the first read, so startup never waits
+  /// on it; until then a use shows its stored line. A failed read is logged
+  /// and leaves the figures as they were.
   Future<void> start() async {
     _subscription ??= _glossary.watchAll().listen(
       (entries) {

@@ -210,8 +210,10 @@ void main() {
       ),
     );
     final userFigures = UserFiguresController(repos.userGlossary);
-    await tester.runAsync(userFigures.start);
     addTearDown(userFigures.dispose);
+    // On the test's clock, so the glossary's changes reach the controller as
+    // the test pumps.
+    unawaited(userFigures.start());
 
     await _pumpDetail(tester, repos, 'd1', userFigures: userFigures);
     expect(find.textContaining('larks zoom around'), findsWidgets);

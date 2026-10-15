@@ -27,12 +27,14 @@ const Map<String, int> _allowed = {
   'lib/src/screens/dance_detail_screen.dart': 2,
   'lib/src/screens/program_summary_screen.dart': 2,
   'lib/src/screens/program_editor_screen.dart': 2,
-  'lib/src/screens/sync_conflict_details.dart': 1,
   'lib/src/screens/perform_adjust_sheet.dart': 1,
   'lib/src/screens/import_review_screen.dart': 1,
   'lib/src/widgets/dance_list_tile.dart': 2,
   'lib/src/widgets/program_slot_list_editor.dart': 3,
   'lib/src/widgets/program_export_menu.dart': 1,
+  // Free text, and a combination's or a shorthand's own figures, which are
+  // built-in moves only; a dance's figures go to the live renderer.
+  'lib/src/screens/sync_conflict_details.dart': 1,
   // The editor's own text round trip, move names, parameter editors, and
   // previews of a built-in move or its wording; a row's summary is live.
   'lib/src/screens/dance_editor/dance_editor_controller.dart': 1,
