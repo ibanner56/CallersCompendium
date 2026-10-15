@@ -306,8 +306,8 @@ optional keywords and notes, and a kind-specific payload; its `kind` is
 `compound` (a named, parameterised sequence of shipped figures) or one of the
 kinds reserved for #1023, `term` (the former `GlossaryTerm` idea) and
 `customFigure`. A `FigureNote` is the user's note on one shipped figure.
-Neither is part of a dance; both are carried by backups (`app.glossary`), not by
-archives.
+Neither is part of a dance; both are carried by backups (`app.glossary`) and by
+Device Sync (once every attached device can read them), not by archives.
 
 **Quick-entry snippets** — the question of user-defined quick-entry
 **snippets** (CC "Insert Call" buttons) is closed: a CC import seeds them as

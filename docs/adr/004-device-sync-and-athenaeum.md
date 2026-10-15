@@ -404,6 +404,15 @@ already emits choreographers, tags, published sources and venues as **top-level
 arrays**, siblings of `dances`. Per-record blobs are that shape, one entity at a
 time.
 
+> **Amended 2026-10-15 (#709).** Two kinds join them, making eleven:
+> `glossaryEntry`, the user's own glossary entries, and `figureNote`, their
+> notes on built-in figures, keyed by the figure's id. The maintainer decided in
+> #709 that both sync, behind the capability gate (*Consequences*, "New kinds
+> of data wait for every device"). The archive does not carry them, so their
+> bodies have a codec of their own rather than the archive's shape; an entry's
+> kind and payload travel as the stored text, so an entry a build cannot read
+> is kept and shared back unchanged (sync-spec §4.3).
+
 An earlier revision of this ADR narrowed sync to three kinds and had the other
 five ride inline as content. That was withdrawn, and the reasoning is recorded
 because the failure is instructive:
@@ -1686,6 +1695,10 @@ makes self-hosting materially harder, which constraint 4 forbids.
   record before that); and a device on a build without the client half of
   sync-spec §4.5 cannot join a store once the gate has opened, which the gate
   cannot see because the store lists only devices that have published.
+  The first capability, `glossary.v1`, covers the user's glossary entries,
+  their notes on built-in figures, the Custom Figures setting and compound
+  shorthands; the build that syncs the two glossary kinds advertises it
+  (2026-10-15, #709).
 
 ### Blocking prerequisite — satisfied by [#1115]
 

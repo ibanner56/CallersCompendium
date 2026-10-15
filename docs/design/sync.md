@@ -98,10 +98,18 @@ fields are `shareable`.
 
 ### Record kinds
 
-Nine kinds produce blobs:
+Eleven kinds produce blobs:
 
 `dance` · `program` · `choreographer` · `tag` · `publishedSource` ·
-`customFieldDef` · `difficultyLevel` · `venue` · `setting`
+`customFieldDef` · `difficultyLevel` · `venue` · `setting` · `glossaryEntry` ·
+`figureNote`
+
+The last two (#709) are the user's own glossary entries and their notes on
+built-in figures. The archive does not carry them, so their bodies have a codec
+of their own rather than the archive's shape; they are published only once
+every attached device can read them (spec §6.15), and a glossary entry's kind
+and payload travel as stored text so an entry a build cannot read survives
+(spec §4.3).
 
 Join rows are **not** separate records. They ride inline with their parent
 exactly as the archive codec already models them — a dance carries its

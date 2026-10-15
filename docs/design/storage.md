@@ -615,23 +615,27 @@ database already carries it. The steps that can still fire are v36 onward.
   nullable `payload_json` (the kind's payload; a compound's definition), and
   `created_at`, which an edit never moves, so of two entries sharing a name the
   later-created one is the one flagged for rename. Names are not unique: a
-  duplicate that arrives by restore (or, later, by sync) is kept, not refused.
+  duplicate that arrives by restore or by sync is kept, not refused.
   `figure_notes` holds the user's note on a shipped figure, keyed by the
   shipped move or alias id (`figure_id`); a note on an id the taxonomy no
   longer has is kept and not shown. Both carry the `updated_at` /
-  `deleted_at` / `existence_at` triple and are `shareable`, but no record kind
-  carries them yet, so they do not sync; they travel in a backup's
-  `app.glossary` section, not in the core archive, and never in a `.ccshare`
-  export. An entry of a kind this build does not know, or whose payload no
+  `deleted_at` / `existence_at` triple and are `shareable`. They travel in a
+  backup's `app.glossary` section, not in the core archive, and never in a
+  `.ccshare` export; Device Sync carries them as the `glossaryEntry` and
+  `figureNote` record kinds, behind the capability gate (sync-spec §4.3,
+  §6.15), which needed no schema change: those kinds arrived later in #709,
+  and until then no record kind carried them. An entry of a kind this build does not know, or whose payload no
   longer decodes, is kept as it is. Additive `createTable`s; no back-fill and
   no derived rebuild.
 
 ## The delete model
 
 Every syncable kind — dances, programs, choreographers, tags, published
-sources, custom field definitions, difficulty levels, venues and settings keys —
+sources, custom field definitions, difficulty levels, venues, settings keys,
+and the user's glossary entries and figure notes —
 carries three timestamps. Most kinds gained this shape in schema v25 (issue
-#898); difficulty levels gained the same triple in v34. They answer three
+#898); difficulty levels gained the same triple in v34, and the glossary's two
+tables were created with it in v40. They answer three
 different questions and are deliberately not collapsed into fewer columns:
 
 | Column | Question it answers |

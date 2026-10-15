@@ -584,9 +584,8 @@ class BackupService {
   ///
   /// One transaction, so it is applied whole or not at all. A replace restore
   /// replaces it: live entries and notes the backup does not hold are deleted
-  /// softly, leaving tombstones for sync to carry once these have a record
-  /// kind. A merge restore only adds and
-  /// updates, as a merge does for the collection. Either way nothing is
+  /// softly, leaving tombstones for sync to carry. A merge restore only adds
+  /// and updates, as a merge does for the collection. Either way nothing is
   /// deleted when part of the section could not be read
   /// ([BackupReadResult.glossaryComplete]), since what was lost cannot be told
   /// apart from what the backup lacks.

@@ -1441,8 +1441,10 @@ The wire hash remains the full canonical blob hash.
 
 ### 4.3 Record blob
 
-Nine kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
-`publishedSource`, `customFieldDef`, `venue`, `difficultyLevel`, `setting`.
+Eleven kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
+`publishedSource`, `customFieldDef`, `venue`, `difficultyLevel`, `setting`,
+and, since #709, `glossaryEntry` and `figureNote` (the user's own glossary;
+see below, and §6.15 for when they are published).
 
 ```json
 {
@@ -1459,14 +1461,40 @@ Nine kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
 | Field | Requirement |
 | --- | --- |
 | `v` | Envelope version. A client MUST refuse an unknown value rather than guess. It MUST read `v` before any other envelope check — the exact key set included — so that a newer envelope which also adds a key is refused as *newer* and reported as such (§6.9), not as malformed. The same applies to a manifest's `v` (§4.5). |
-| `kind` | One of the nine above. |
-| `id` | The record's id — a UUID for entity kinds other than `difficultyLevel`, one of the fixed shipped IDs or a UUID for `difficultyLevel`, and the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
+| `kind` | One of the eleven above. |
+| `id` | The record's id — a UUID for entity kinds other than `difficultyLevel` and `figureNote`, one of the fixed shipped IDs or a UUID for `difficultyLevel`, the id of the shipped figure (move or alias) a note annotates for `figureNote`, and the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
 | `updatedAt` | Content discriminator. UTC, one-tick precision (§2). Plain local clock. |
 | `deletedAt` | Non-null means tombstone. Plain local clock; also the retention timestamp. |
 | `existenceAt` | Orders live↔deleted transitions. Causally stamped; see §6.4. |
-| `body` | Archive-codec output, `shareable` fields only. |
+| `body` | Archive-codec output, `shareable` fields only; for `glossaryEntry` and `figureNote`, which the archive does not carry, the body below, through the same projection. |
 
 Join rows are not separate records; they ride inline with their parent.
+
+**The user's glossary (#709).** A `glossaryEntry` body is `id`, `kind`,
+`name`, `definition`, `description`, `keywords` (an array of strings), `notes`
+(string or null), `payload` (string or null) and `createdAt`, every key always
+present. A `figureNote` body is `id` and `notes`. Their timestamps travel on the
+envelope, as every kind's do. Text holds canonical role words, as stored.
+
+- `payload` is the stored payload **text**, not the JSON value it encodes, and
+  `kind` is the stored kind name. Both travel verbatim, so an entry a build
+  cannot use — a kind it does not know, a payload that does not decode, or one
+  only a newer build reads — is applied, kept and published again unchanged,
+  never dropped or rewritten; the app shows it as made by a newer version, or as
+  needing repair. Text rather than a JSON value because canonical JSON sorts
+  keys: decoding and re-encoding on the way would rewrite what the author's
+  device stored, and a payload that is not JSON at all could not travel.
+  Carrying it as text is the implementer's choice in #709.
+- A receiver MUST refuse (as malformed) a `payload` that parses as JSON but is
+  not in the normalised form storage writes (§4.6), and a body over the bounds
+  every build enforces: storing either would change the record under its
+  peer's wire hash.
+- `createdAt` is a UTC time to the second and MUST be stored unchanged. Of two
+  entries sharing a name, the later-created one is flagged for rename, derived
+  on read and never stored (#709 consolidated spec, decision 6), so carrying
+  the creation time unchanged is what lets every device flag the same one.
+- Names are not natural keys: two entries with one name are two records, so
+  neither kind takes part in collision reconciliation (§6.6).
 
 **A device MUST NOT publish a dance whose stored transcription it cannot
 decode.** The body is the archive codec's output restricted to `shareable`
@@ -4334,6 +4362,12 @@ pairing screens (#709 consolidated spec, decision 13): the pairing screen says s
 both its paths, while the build advertises any capability. There is no
 timeout: a device that never updates keeps the gate closed until it is
 removed.
+
+**`glossary.v1`.** The first capability. It gates the `glossaryEntry` and
+`figureNote` kinds and the `show_custom_figures` and `compound_shorthands`
+settings (#709). The reference client advertises it from the change that
+syncs the two kinds; before that change it gated the two settings without
+advertising the capability, so they stayed on their device.
 
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed

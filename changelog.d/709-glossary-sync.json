@@ -1,0 +1,15 @@
+{
+  "id": "709-glossary-sync",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Device Sync now carries your own figures from the Glossary, your notes on built-in figures, the Custom Figures setting and your shorthands for your own figures, once every device connected to your store has this version of the app or a later one. Until then they stay on the device they were made on, and Device Sync names the device holding them back."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add the `glossaryEntry` and `figureNote` sync record kinds, with `StoredUserGlossaryEntry`, `UserGlossaryRepository.writeFromSync` and `FigureNoteRepository.writeFromSync`. A glossary entry's kind and payload travel as stored text, so an entry a build cannot read is kept and republished unchanged; its `createdAt` travels unchanged.",
+      "`SyncCapabilityPolicy.build` gates both kinds on `glossary.v1` and advertises it."
+    ]
+  }
+}

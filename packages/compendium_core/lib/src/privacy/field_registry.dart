@@ -41,8 +41,9 @@ const _userGlossaryText = DataClassification(
       'as giving no reason the text is about the user, and thirdParty as '
       'classifying by what a user might type. Shareable because the '
       'maintainer decided it travels like custom shorthands (#709, comments '
-      'of 2026-08-06 and 2026-10-14): in backups now, and in sync once its '
-      'record kind exists.',
+      'of 2026-08-06 and 2026-10-14): in backups, and in sync as the '
+      'glossaryEntry and figureNote record kinds, once every attached device '
+      'can read them (the capability gate, sync-spec §6.15).',
 );
 
 /// An opaque surrogate key. Carries no meaning alone, but must travel for
@@ -222,16 +223,16 @@ const _tombstone = DataClassification(
       'kind.',
 );
 
-/// [_tombstone] for the user's glossary (#709), whose tables have no record
-/// kind yet: the tombstone is kept for sync to carry once they do.
+/// [_tombstone] for the user's glossary (#709), which sync carries behind the
+/// capability gate.
 const _glossaryTombstone = DataClassification(
   term: DpvTerm.nonPersonal,
   subject: DataSubject.none,
   egress: EgressClass.shareable,
   note:
-      'Soft-delete tombstone; see dances.deleted_at. Kept so that sync can '
-      'carry the deletion once this table has a record kind; until then it '
-      'stays on the device, and backups export live rows only.',
+      'Soft-delete tombstone; see dances.deleted_at. Sync carries it, held '
+      'back with the live rows until every attached device can read the '
+      'glossary (sync-spec §6.15); backups export live rows only.',
 );
 
 /// A freeform note attached to a person, place or source record.
@@ -342,8 +343,8 @@ final Map<String, DataClassification> fieldClassifications = {
   // sync and back up like custom shorthands
   // (https://github.com/ibanner56/CallersCompendium/issues/709#issuecomment-5198798303,
   // https://github.com/ibanner56/CallersCompendium/issues/709#issuecomment-6177064546).
-  // Not synced until their record kind exists, and then only once every
-  // attached device can read it (the capability gate, #709).
+  // Synced as the glossaryEntry and figureNote record kinds, once every
+  // attached device can read them (the capability gate, sync-spec §6.15).
   'user_glossary_entries.id': _key,
   'user_glossary_entries.kind': _choreography,
   'user_glossary_entries.name': _userGlossaryText,
