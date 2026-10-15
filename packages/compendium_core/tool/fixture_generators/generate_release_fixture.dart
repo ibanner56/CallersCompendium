@@ -7,18 +7,17 @@
 // not the API at head; `analysis_options.yaml` excludes this directory for that
 // reason. Run it from a checkout of the release tag, never from head.
 //
-// Recipe (v35 from v0.4.0-beta, commit 04ab10c7; kCompendiumSchemaVersion = 35;
-// v38 is the same recipe from v0.6.0-beta, commit a6d52290, whose package has no
-// `resolution: workspace` line to delete):
+// Recipe (v35 from v0.4.0-beta, commit 04ab10c7, schema 35; v38 from
+// v0.6.0-beta, commit a6d52290, schema 38 -- the same recipe for both tags):
 //
-//   git worktree add --detach <dir> v0.4.0-beta
+//   git worktree add --detach <dir> <tag>   # v0.4.0-beta or v0.6.0-beta
 //   cd <dir>/packages/compendium_core
 //   # standalone resolution at the tag (drops `resolution: workspace` and the
 //   # dev-only dependencies that need the workspace to resolve)
 //   sed -i '/^resolution: workspace/d; /^  analyzer:/d; /^  build_runner:/d; /^  drift_dev:/d' pubspec.yaml
 //   dart pub get
 //   cp <repo>/packages/compendium_core/tool/fixture_generators/generate_release_fixture.dart tool/
-//   dart run tool/generate_release_fixture.dart <out>/v35.sqlite
+//   dart run tool/generate_release_fixture.dart <out>/v<schema>.sqlite
 //
 // The output is byte-reproducible: every timestamp the script writes is fixed,
 // and the one the release's own seeder takes from the wall clock (the default
@@ -245,8 +244,10 @@ Future<void> main(List<String> args) async {
     'choreographers',
     'custom_field_values',
     'dance_links',
-    'dance_tunes',
-    'dance_source_citations',
+    'dance_sources',
+    'published_sources',
+    'custom_field_defs',
+    'difficulty_levels',
   ]) {
     try {
       final n = raw.select('SELECT count(*) FROM $t').first.columnAt(0);

@@ -9,6 +9,15 @@
 // of them green. These fixtures are the only files here with rows, FTS content,
 // links, provenance and the settings markers a real startup wrote.
 //
+// What is asserted is the user-visible content of every table the generator
+// seeds (figures with their params, timestamps, relations, program, venue,
+// tags, sources, custom fields, authors, default difficulty levels) and the
+// file's integrity. Derived values that the open legitimately rebuilds are not
+// compared: the FTS tables, `canonical_text`, `dance_figures` and the
+// `__*_done` repair markers (deleting all of them, or blanking
+// `dance_figures.params_json`, before the open leaves the migration's result
+// identical). Search is only checked to work.
+//
 // The fixtures are produced by `tool/fixture_generators/generate_release_fixture.dart`
 // run against the release's tag (recipe in its header); their digests are in
 // `docs/design/storage.md`.
@@ -47,6 +56,9 @@ Future<File> _fixture(int schemaVersion) async => File(
   ),
 );
 
+/// The instant every row of the generator's seed is stamped with.
+final _seededAt = DateTime.utc(2026, 8, 1, 12);
+
 /// Opens a copy of [source] with the current build, runs the real startup
 /// migration, and asserts what must survive it.
 ///
@@ -81,6 +93,21 @@ Future<void> _migratesAndKeepsItsData(
     4,
     reason: 'the fixture holds rows to migrate',
   );
+  // The release's own startup wrote its one-shot repair markers. This is a
+  // check on the fixture, not on the migration: opening a database re-creates
+  // any missing marker (deleting them all before the open left this test green),
+  // so their presence *after* migration would prove nothing.
+  expect(
+    pre
+        .select(
+          'SELECT count(*) FROM settings '
+          "WHERE key = '__purge_corruption_repair_done__'",
+        )
+        .first
+        .columnAt(0),
+    1,
+    reason: 'the fixture must come from a real startup, with its markers',
+  );
   pre.close();
 
   final db = CompendiumDatabase(NativeDatabase(File(path)));
@@ -96,6 +123,8 @@ Future<void> _migratesAndKeepsItsData(
   expect(chase.callingNotes, 'Teach the swing carefully.');
   expect(chase.walkthrough, 'Walk it twice.');
   expect(chase.rating, 4);
+  expect(chase.createdAt, _seededAt);
+  expect(chase.updatedAt, _seededAt);
   expect(tunesOf(chase), ['Rakish Paddy', "Cuckoo's Nest"]);
   final figures = figuresOf(chase);
   expect(figures, hasLength(4));
@@ -104,6 +133,17 @@ Future<void> _migratesAndKeepsItsData(
     'swing',
     'circle',
     'meanwhile',
+  ]);
+  // Params are what a figure *means* (who swings, for how long): a migration
+  // that kept the moves but mangled their params would still pass a count.
+  expect(figures[0].params, {'who': 'neighbors'});
+  expect(figures[1].params, {'who': 'neighbors', 'beats': 8});
+  expect(figures[2].params, {'direction': 'left', 'beats': 8});
+  expect(figures[3].params['beats'], 8);
+  final nested = (figures[3].params['figures'] as List<Object?>).cast<Figure>();
+  expect(nested.map((f) => (f.move, f.params['who'])), [
+    ('swing', 'partners'),
+    ('balance', 'partners'),
   ]);
   expect(chase.customFields.map((f) => (f.fieldId, f.value)), [
     ('cf-energy', 'high'),
@@ -123,6 +163,7 @@ Future<void> _migratesAndKeepsItsData(
   expect(provenance.sourceVersion, '2026-07');
 
   expect(figuresOf((await repos.dances.getById('d-fts'))!), hasLength(1));
+  expect((await repos.dances.getById('d-fts'))!.title, 'Résumé Reel');
   expect(await repos.dances.getById('d-plain'), isNotNull);
 
   // The tombstone survives as a tombstone: still there, still deleted.
@@ -130,12 +171,34 @@ Future<void> _migratesAndKeepsItsData(
   expect(await repos.dances.isDeletedById('d-gone'), isTrue);
 
   // --- the rest of the library ---------------------------------------------
-  expect((await repos.tags.getById('t-beginner'))!.name, 'Beginner');
+  final beginner = (await repos.tags.getById('t-beginner'))!;
+  expect(beginner.name, 'Beginner');
+  expect(beginner.color, 0xFF336699);
+  expect((await repos.tags.getById('t-gender-free'))!.color, isNull);
   final author = (await repos.choreographers.getById('c-gaudet'))!;
   expect(author.name, 'Gaudet, Ted');
   expect(author.notes, 'Café notes');
+  expect(author.website, 'https://example.org/ted');
+  expect(author.location, 'Boston');
   expect((await repos.choreographers.getById('c-old'))!.deceased, isTrue);
-  expect((await repos.venues.getById('v-grange'))!.city, 'Lexington');
+  final venue = (await repos.venues.getById('v-grange'))!;
+  expect(venue.city, 'Lexington');
+  expect(venue.stateProv, 'MA');
+  expect(venue.contact1Name, 'Pat Booker');
+  expect(venue.contact1Email, 'pat@example.org');
+  expect(
+    (await repos.publishedSources.getById('ps-1'))!.title,
+    'Zesty Contras',
+  );
+  final energy = (await repos.customFieldDefs.getById('cf-energy'))!;
+  expect(energy.label, 'Energy');
+  expect(energy.type, CustomFieldType.choice);
+  expect(energy.choices, ['low', 'medium', 'high']);
+  expect((await repos.difficultyLevels.listAll()).map((l) => (l.id, l.label)), [
+    ('difficulty-beginner', 'Beginner'),
+    ('difficulty-intermediate', 'Intermediate'),
+    ('difficulty-advanced', 'Advanced'),
+  ]);
 
   // --- full-text search -----------------------------------------------------
   expect(await repos.dances.searchText('squirrel'), contains('d-chase'));
@@ -152,13 +215,19 @@ Future<void> _migratesAndKeepsItsData(
   final program = (await repos.programs.getById('p-spring'))!;
   expect(program.title, 'Spring Dance 2026');
   expect(program.venueId, 'v-grange');
+  expect(program.eventDate, DateTime.utc(2026, 3, 15));
+  expect(program.caller, 'Alex Caller');
+  expect(program.band, 'The Reelers');
   expect(program.slots.map((s) => (s.position, s.danceId, s.text, s.isAlt)), [
     (0, 'd-chase', null, false),
     (1, null, 'Break / waltz', false),
     (2, 'd-plain', null, true),
   ]);
+  expect(program.slots[0].walkthroughMinutes, 5);
+  expect(program.slots[0].danceMinutes, 12);
+  expect(program.slots[2].guestCaller, 'Sam');
 
-  // --- settings, including the markers the release's startup wrote ----------
+  // --- settings --------------------------------------------------------------
   expect(await repos.settings.get('ui.theme'), 'dark');
   expect(await repos.settings.get('ui.sort'), {'by': 'title', 'asc': true});
   await db.close();
@@ -195,6 +264,28 @@ void main() {
     () async => dir = await Directory.systemTemp.createTemp('real_fixture_'),
   );
   tearDown(() => dir.delete(recursive: true));
+
+  test('no fixture is left below the schema floor', () async {
+    // Raising the floor retires the old floor's fixture along with its steps.
+    // A file left behind has no migration path to head, so nothing could ever
+    // open it, yet it would look like coverage.
+    final fixtures = Directory(
+      p.dirname((await _fixture(kMinSupportedSchemaVersion)).path),
+    );
+    final stale = [
+      for (final f in fixtures.listSync().whereType<File>())
+        if (RegExp(r'^v(\d+)\.sqlite$').firstMatch(p.basename(f.path))
+            case final m?)
+          if (int.parse(m.group(1)!) < kMinSupportedSchemaVersion)
+            p.basename(f.path),
+    ];
+    expect(
+      stale,
+      isEmpty,
+      reason:
+          'delete the fixtures below the floor (v$kMinSupportedSchemaVersion)',
+    );
+  });
 
   group('floor fixture (v$kMinSupportedSchemaVersion)', () {
     test('exists for the current schema floor', () async {

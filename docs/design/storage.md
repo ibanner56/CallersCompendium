@@ -243,8 +243,15 @@ went through.
 `real_release_fixture_test.dart` copies each one to a temporary directory, opens
 it with the current `CompendiumDatabase`, runs `ensureMigrated`, and asserts
 `user_version` reached head, `foreign_key_check` and `integrity_check` are
-clean, the dances/tags/authors/provenance/figures round-trip, FTS search works
-(including diacritic folding) and the program's slots are intact.
+clean, and that the seeded content reads back unchanged: for every seeded table
+the fields a user can see (figure moves and params, titles, hooks, notes,
+timestamps, relations, links, citations, provenance, tags and their colours,
+authors, venue contacts, sources, custom fields, the default difficulty levels,
+the program's date, caller and slots with their minutes). FTS search is only
+checked to *work* (including diacritic folding). Values the open legitimately
+rebuilds are not compared: the FTS tables, `dance_figures` (including
+`canonical_text`) and the `__*_done` repair markers, which a migration that
+deleted them would be indistinguishable from, because startup re-creates them.
 
 | Fixture | Written by | Schema | sha256 |
 | --- | --- | --- | --- |
@@ -254,8 +261,12 @@ clean, the dances/tags/authors/provenance/figures round-trip, FTS search works
 `v38.sqlite` is the release `kBelowFloorBridgeTags` sends v20–v34 collections
 through, so it is the file many migrating collections really reach head from. It
 is not below the floor, so the below-floor gate allows it; once the floor passes
-v38, delete it and its group in the test. The floor fixture, by contrast, is
-tied to the constant and can never be dropped silently.
+v38, delete it and its group in the test. The floor fixture, by contrast, has its
+name derived from the constant, so raising the floor without a new fixture fails
+the existence test, and a test fails if any `v*.sqlite` below the floor is left
+in the fixtures directory. Neither guard stops someone deleting the test itself
+or editing both the constant and the expectations in the same PR: review still
+has to notice that.
 
 Regenerate by running `tool/fixture_generators/generate_release_fixture.dart`
 from a checkout of the release tag (recipe in its header); the output is
