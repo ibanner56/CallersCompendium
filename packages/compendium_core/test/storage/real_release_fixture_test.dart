@@ -210,10 +210,10 @@ Future<void> _migratesAndKeepsItsData(
   expect(venue.stateProv, 'MA');
   expect(venue.contact1Name, 'Pat Booker');
   expect(venue.contact1Email, 'pat@example.org');
-  final source = (await repos.publishedSources.getById('ps-1'))!;
-  expect(source.title, 'Zesty Contras');
-  expect(source.author, 'Larry Jennings');
-  expect(source.year, 1983);
+  final published = (await repos.publishedSources.getById('ps-1'))!;
+  expect(published.title, 'Zesty Contras');
+  expect(published.author, 'Larry Jennings');
+  expect(published.year, 1983);
   final energy = (await repos.customFieldDefs.getById('cf-energy'))!;
   expect(energy.key, 'energy');
   expect(energy.label, 'Energy');
