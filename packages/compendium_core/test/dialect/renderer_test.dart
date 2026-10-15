@@ -370,6 +370,35 @@ void main() {
       );
     });
 
+    test('keeps a dialect\'s own role words that the table lists as '
+        'discouraged', () {
+      // "Ravens" is this dialect's role1; the table reads "ravens" as role2s,
+      // which would turn the author's own word into the other role.
+      final ravenDialect = Dialect(
+        name: 'Ravens/Robins',
+        roles: const {'role1': RoleTerm('raven'), 'role2': RoleTerm('robin')},
+      );
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          "Ravens cross; the ravens' turn, then the raven's.",
+          ravenDialect,
+        ),
+        "Ravens cross; the ravens' turn, then the raven's.",
+      );
+      expect(
+        renderer.renderDiscouragedTerms('Ravens cross', ravenDialect),
+        'Ravens cross',
+      );
+      // Terms the dialect doesn't claim still read by the table.
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          'gents cross',
+          ravenDialect,
+        ),
+        'ravens cross',
+      );
+    });
+
     test('converts custom text before role substitution exactly once', () {
       final ravenDialect = Dialect(
         name: 'Ravens/Robins',
