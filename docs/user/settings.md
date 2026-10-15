@@ -675,7 +675,8 @@ Sync is off and open while it is on.
   another device runs a version of the app that couldn't read it yet. That one
   names the device by its tag from **Other devices**, is information only —
   the data is safe here — and goes away once that device is updated or removed
-  from **Other devices**, when the data starts syncing. Each notice lists the records it is
+  from **Other devices**, when the data starts syncing. Choose **See other devices**
+  on it to open that list. Each notice lists the records it is
   about, the first few individually and the rest as a count, so you know
   which ones to look at. Dances, programs, choreographers, tags and venues are
   named by the title or name this device has for them, and one this device

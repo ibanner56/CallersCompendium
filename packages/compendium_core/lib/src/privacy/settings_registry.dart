@@ -382,7 +382,9 @@ final Map<String, DataClassification> settingsPrefixClassifications = {
         'gate). The device id in the key is the same protocolIdentifier every '
         'manifest already carries. Never restored from a backup '
         '(backup_service.dart denylists the prefix), since only its own device '
-        'may write it.',
+        'may write it. Erased, not tombstoned, on detach '
+        '(SyncLocalRepository.clearOnDetach), so the device ids of a store '
+        'this device has left never reach the next one.',
   ),
 };
 

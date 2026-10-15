@@ -382,7 +382,8 @@ void main() {
       message: 'diagnostic',
     );
 
-    test('needs you, and is the one group shown per device', () {
+    test('needs you, and with the capability gate\'s notice is shown per '
+        'device', () {
       expect(
         syncNoticeNeedsYou(SyncNoticeGroup.unreflectedPublication),
         isTrue,

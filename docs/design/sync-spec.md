@@ -2648,9 +2648,10 @@ republishes, which is an ordinary upload and needs no special path.
    two conforming implementations diverge permanently. It is not an edge case.
    §4.4 makes the settings key the record `id`, so it is a natural key rather
    than a UUID: two attached devices that each set the same shareable preference
-   before the next pass reach exactly this state, and 60 settings keys are
+   before the next pass reach exactly this state, and 62 settings keys are
    `shareable` (exact keys in `settingsClassifications` whose egress is
-   `shareable`, counted 2026-10-02; no prefix entry is). Records with UUID ids reach it too, because archive
+   `shareable`, counted 2026-10-15), as is one prefix entry,
+   `sync_capabilities:` (§6.15). Records with UUID ids reach it too, because archive
    import preserves ids, so two devices importing one bundle and then editing it
    locally collide on the same id.
 
@@ -4270,6 +4271,9 @@ re-stamp them over their owners'. A build since v0.7.0 that does not know the
 key keeps it whole (§6.7) and shows the informational kept-for-a-newer-version
 notice; an older build reports it as a malformed record. Decided by Isaac
 (maintainer, 2026-10-14) as an accepted consequence of advertising this way.
+On detach every capability record is erased, not tombstoned: each names a
+device of the store being left, and a tombstone would carry those device IDs
+to the next store, as keeping this device's own ID would (§3.3).
 
 **The gate.** A capability is open on a device, for a pass, only when its own
 build advertises it **and** every other device in that pass's store device
@@ -4290,13 +4294,25 @@ because a fresh attach merges against the snapshot's publication (§6.2). A row
 hidden from the merge looks absent, so a peer's older copy is chosen for
 download; in the reference client only the apply step's concurrency check
 (§6.7) then stops it, as a deferred change raised again on every pass, so the
-merge's view is the wrong place to filter even where it loses nothing. Receiving is never gated:
+merge's view is the wrong place to filter even where it loses nothing. A row
+held back is still recorded as published with the manifest's own records, so
+that a deletion made while it waits keeps its tombstone: a row never named by
+a publication may be hard-deleted without one, which would lose a deletion the
+gate is only postponing. Receiving is never gated:
 a device applies a gated kind whenever a peer publishes it. The gate is
 evaluated on every pass, so it closes again when a device without the
 capability attaches.
 
+**Self-contained data.** No record of an ungated kind or key may refer to a
+record of a gated one, because the referring record publishes while what it
+refers to is held back, and a peer would receive a dangling reference. A
+capability's records may refer to each other and to ungated records. #709's
+data meets this: a compound expands into ordinary figures when a dance is
+saved, and the expanded figures record no origin.
+
 **Reporting.** A device holding data back raises `withheldAwaitingDevices` once
-per device holding the capability closed, naming that device as the peer. It is
+per device holding the capability closed, naming that device as the peer, and
+only for a capability that held something back this pass. It is
 shown per device, by its tag, as information: nothing is lost, and the remedy
 is updating or removing that device.
 
@@ -4306,7 +4322,8 @@ finish a fresh attach to a store whose peers publish a kind it does not know
 (§6.2: every peer manifest must be readable). So a device on such a build
 cannot join a store once the gate has opened, and the gate never sees it.
 Decided by Isaac (maintainer, 2026-10-14) as accepted, with a warning in the
-pairing screens. There is no timeout: a device that never updates keeps the
+pairing screens: the pairing screen says so, on both its paths, while the
+build advertises any capability. There is no timeout: a device that never updates keeps the
 gate closed until it is removed.
 
 **Server.** The server needs no code for the gate. It validates settings keys

@@ -35,6 +35,8 @@ import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/screens/settings/sync_notice_labels.dart'
     show kSyncNoticeNamedLimit;
+import 'package:compendium_app/src/screens/settings/sync_devices_screen.dart'
+    show SyncDevicesScreen;
 import 'package:compendium_app/src/screens/settings/sync_pairing_screen.dart';
 import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
@@ -2278,6 +2280,45 @@ void main() {
             findsNothing,
             reason: 'the text already names the one device',
           );
+        });
+
+        testWidgets('a device holding back new data gets a notice of its own, '
+            'as information, with the way to the device list (#709)', (
+          tester,
+        ) async {
+          var result = const SyncPassResult(
+            SyncPassStatus.completed,
+            reports: [
+              SyncReport(
+                code: SyncReportCode.withheldAwaitingDevices,
+                peerId: '7c02LmQx9aZ0',
+                message:
+                    'Holding back test.v1 until device 7c02LmQx9aZ0 '
+                    'advertises it.',
+              ),
+            ],
+          );
+          await pumpPassing(tester, () => result);
+          await syncNow(tester);
+
+          const notice = ValueKey('sync-notice-awaitingDeviceUpdate-7c02Lm');
+          expect(find.byKey(notice), findsOneWidget);
+          expect(
+            find.byKey(
+              const ValueKey(
+                'sync-notice-awaitingDeviceUpdate-7c02Lm-needs-you',
+              ),
+            ),
+            findsNothing,
+            reason: 'nothing is lost: information, not needs-you',
+          );
+          const action = ValueKey(
+            'sync-notice-awaitingDeviceUpdate-7c02Lm-action',
+          );
+          await tester.ensureVisible(find.byKey(action));
+          await tester.tap(find.byKey(action));
+          await tester.pumpAndSettle();
+          expect(find.byType(SyncDevicesScreen), findsOneWidget);
         });
 
         testWidgets('two conditions in one pass each get their own notice', (

@@ -489,6 +489,31 @@ void main() {
       },
     );
 
+    test('detach erases every capability record, leaving no tombstone '
+        '(#709)', () async {
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      final own = syncCapabilityRecordKey('device-a');
+      final peer = syncCapabilityRecordKey('device-b');
+      await repos.settings.set(own, syncCapabilityRecordValue({'x.v1'}));
+      await repos.settings.set(peer, syncCapabilityRecordValue({'x.v1'}));
+      // Published, so an ordinary removal would only tombstone it.
+      await repository.markPublishedAll([
+        (kind: SyncRecordKind.setting, recordId: peer),
+      ]);
+      // A key that merely shares the letters, and an ordinary setting.
+      await repos.settings.set('sync_capabilitiesX', 1);
+      await repos.settings.set('theme_mode', 'dark');
+
+      await repository.clearOnDetach();
+
+      final keys = {
+        for (final row in await db.select(db.settings).get()) row.key,
+      };
+      expect(keys, isNot(contains(own)));
+      expect(keys, isNot(contains(peer)));
+      expect(keys, containsAll(['sync_capabilitiesX', 'theme_mode']));
+    });
+
     test(
       'transaction composition rolls back a coupled lifecycle failure',
       () async {

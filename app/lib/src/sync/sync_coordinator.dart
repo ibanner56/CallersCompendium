@@ -425,7 +425,9 @@ abstract interface class SyncCoordinatorStore
 ///
 /// Type-tested by the coordinator rather than added to [SyncCoordinatorStore],
 /// so a store without settings — every test double that predates the gate —
-/// simply advertises nothing, which keeps its gated data held back.
+/// writes no record. Its own gate is unaffected (that depends on its build's
+/// policy and the other devices' records); its peers, finding no record for
+/// it, hold their gated data back as they would from any device without one.
 abstract interface class SyncCapabilityRecordStore {
   /// Writes [deviceId]'s capability record as [capabilities] when the stored
   /// one is missing or lists something else; otherwise writes nothing, so an

@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../../sync/sync_capabilities.dart';
 import '../../sync/sync_codec.dart';
 import '../../sync/sync_record_kind.dart';
 import '../database.dart';
@@ -498,6 +499,16 @@ class SyncLocalTransaction {
   Future<void> clearOnDetach() async {
     await clearBaseline();
     await _db.delete(_db.pendingDeletions).go();
+    // Every device's capability record (#709) names a device of the store
+    // being left. Erased rather than tombstoned, as the device ID itself is
+    // (sync-spec §3.3): a tombstone keeps the key, and with it the old
+    // store's device IDs, to be published to whatever store comes next.
+    await (_db.delete(_db.settings)..where(
+          (t) => t.key
+              .substr(1, syncCapabilityKeyPrefix.length)
+              .equals(syncCapabilityKeyPrefix),
+        ))
+        .go();
   }
 
   Future<void> clearForRestore({

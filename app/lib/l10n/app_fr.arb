@@ -940,7 +940,7 @@
   "@settingsSyncNoticePeerNotTaking": {
     "x-sourceSha256": "23d0a5d9e3852253a55eaf588f9a609c8082b70652fe7c8a1556438d0683bfe0"
   },
-  "settingsSyncNoticeAwaitingDevice": "Certains nouveaux types de données sur cet appareil commenceront à se synchroniser dès que l'appareil {tag} sera mis à jour vers la dernière version de l'application ou retiré de Autres appareils. Elles sont en sécurité ici.",
+  "settingsSyncNoticeAwaitingDevice": "Certains nouveaux types de données sur cet appareil commenceront à se synchroniser dès que l'appareil {tag} sera mis à jour vers la dernière version de l'application ou retiré de « Autres appareils ». Elles sont en sécurité ici.",
   "@settingsSyncNoticeAwaitingDevice": {
     "x-sourceSha256": "dd67c9a6e21f58132f7b9256ec7eb09bfc1ddf510b4ca310091b60e9e7788fde"
   },
