@@ -180,6 +180,14 @@ Traps:
   [`claude.yml`](../../../.github/workflows/claude.yml) answers mentions as a
   general assistant. Its output does not follow the review format, and it does
   not run once per round.
+- **Only a repository insider's `@claude` starts a run.** The job's `if:`
+  schedules it only when the author of the comment, review or issue is an
+  `OWNER`, `MEMBER` or `COLLABORATOR`; anyone else's mention shows a skipped
+  job. The action refuses a non-write actor itself, but only after the runner
+  has started and the action has exchanged its OIDC token for a write-scoped
+  app token, so the gate keeps outsiders from costing either. It is a
+  scheduling gate, not a sandbox: an insider's mention on an outsider's issue
+  or PR still gives the model that thread to read.
 
 ## Answering findings
 
