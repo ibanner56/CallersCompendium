@@ -35,6 +35,9 @@ import '../tables.dart';
 import '../utc_datetime.dart';
 import 'custom_field_repository.dart';
 import 'sync_local_repository.dart';
+import '../../taxonomy/user_figure_use.dart';
+import '../../model/user_glossary.dart';
+import 'user_glossary_repository.dart';
 
 /// Progress of a [DanceRepository.rebuildAllDerived] pass: [completed] of
 /// [total] dances have had their derived `dance_figures`/`dance_fts` rows
@@ -96,8 +99,6 @@ class DanceRepository {
 
   final CompendiumDatabase _db;
   final Taxonomy _taxonomy;
-
-  FigureRenderer get _renderer => FigureRenderer(_taxonomy);
 
   /// Returns [dance] with every figure's move id normalised through
   /// [Taxonomy.resolvedMoveId]. Returns the original [dance] unchanged if no
@@ -1002,11 +1003,19 @@ class DanceRepository {
   /// field definition must contribute no searchable text (#898, #1358). The
   /// on-demand counterparts filter the same way, so the two paths cannot
   /// disagree about what a tombstoned parent contributes.
+  ///
+  /// [userFigures] is the user's own figures (#1023), prefetched by the bulk
+  /// rebuild; when omitted, the ones this dance uses are read on demand. A
+  /// use of one is indexed as it renders: its canonical text from the live
+  /// definition, and its reference kept in `params_json` only while the use
+  /// is attached and its figure exists, so a structured search for the figure
+  /// never finds a use that shows only its stored line.
   Future<void> _insertDerivedRows(
     Dance dance, {
     Map<String, String>? authorNames,
     Map<String, PublishedSourceRow>? sources,
     Set<String>? liveFieldIds,
+    UserFigureCatalog? userFigures,
   }) async {
     final canonicalTexts = <String>[];
     final sectioned = dance.sectionedFigures;
@@ -1017,6 +1026,8 @@ class DanceRepository {
       DecodedFigures(:final figures) => figures,
       UnreadableFigures() => const <Figure>[],
     };
+    final catalog = userFigures ?? await _userFiguresUsedBy(danceFigures);
+    final renderer = FigureRenderer(_taxonomy, userFigures: catalog);
     var idx = 0;
     for (var i = 0; i < danceFigures.length; i++) {
       final figure = danceFigures[i];
@@ -1039,13 +1050,13 @@ class DanceRepository {
       //
       final subFigures = figure.subFigures;
       if (figure.isContainer && subFigures.isNotEmpty) {
-        canonicalTexts.add(_renderer.renderCanonical(figure));
+        canonicalTexts.add(renderer.renderCanonical(figure));
       }
       final constituents = figure.isContainer && subFigures.isNotEmpty
           ? _leafFigures(figure)
           : <Figure>[figure];
       for (final part in constituents) {
-        final canonicalText = _renderer.renderCanonical(part);
+        final canonicalText = renderer.renderCanonical(part);
         canonicalTexts.add(canonicalText);
         await _db
             .into(_db.danceFigures)
@@ -1057,7 +1068,7 @@ class DanceRepository {
                 move: part.move,
                 beats: Value(part.beats),
                 progression: Value(part.progression),
-                paramsJson: Value(jsonEncode(part.params)),
+                paramsJson: Value(jsonEncode(_indexedParams(part, catalog))),
                 canonicalText: Value(canonicalText),
                 section: Value(section),
               ),
@@ -1091,6 +1102,167 @@ class DanceRepository {
         values,
       );
     }
+  }
+
+  /// [part]'s params as indexed: a use of a figure of your own keeps its
+  /// reference only while it is attached and its figure is in [userFigures].
+  static Map<String, Object?> _indexedParams(
+    Figure part,
+    UserFigureCatalog userFigures,
+  ) {
+    if (!hasUserFigureReferenceKeys(part)) return part.params;
+    final use = userFigureUseOf(part);
+    if (use != null && use.attached && userFigures[use.id] != null) {
+      return part.params;
+    }
+    return detachUserFigureUse(part).params;
+  }
+
+  /// The live figures of your own (#1023) [figures] use, read for indexing;
+  /// empty without a read when they use none.
+  Future<UserFigureCatalog> _userFiguresUsedBy(Iterable<Figure> figures) {
+    final ids = userFigureIdsUsedBy(figures);
+    if (ids.isEmpty) return Future.value(UserFigureCatalog.empty);
+    return _liveUserFigures(ids);
+  }
+
+  /// The live figures of your own, or those of [ids] only.
+  Future<UserFigureCatalog> _liveUserFigures([Set<String>? ids]) async {
+    final query = _db.select(_db.userGlossaryEntries)
+      ..where(
+        (t) =>
+            t.deletedAt.isNull() &
+            t.kind.equals(UserGlossaryEntryKind.customFigure.name),
+      );
+    if (ids != null) query.where((t) => t.id.isIn(ids));
+    return UserFigureCatalog.fromEntries(
+      (await query.get()).map(UserGlossaryRepository.modelFromRow),
+    );
+  }
+
+  /// The ids of the dances whose figures use the figure of your own
+  /// [userFigureId], attached, inside containers too; with [includeDeleted],
+  /// soft-deleted dances as well.
+  ///
+  /// A `LIKE` on the stored figures narrows the candidates without decoding
+  /// every dance; each candidate is then decoded and checked, so the pattern
+  /// only has to over-match. Ids are UUIDs, but `_` and `%` are escaped all
+  /// the same.
+  Future<List<String>> _danceIdsUsingUserFigure(
+    String userFigureId, {
+    required bool includeDeleted,
+  }) async {
+    final escaped = userFigureId
+        .replaceAll(r'\', r'\\')
+        .replaceAll('%', r'\%')
+        .replaceAll('_', r'\_');
+    final rows = await _db
+        .customSelect(
+          'SELECT id, figures_json FROM dances '
+          r"WHERE figures_json LIKE ? ESCAPE '\'"
+          '${includeDeleted ? '' : ' AND deleted_at IS NULL'}',
+          variables: [Variable.withString('%"$userFigureRefKey":"$escaped"%')],
+          readsFrom: {_db.dances},
+        )
+        .get();
+    final ids = <String>[];
+    for (final row in rows) {
+      final List<Figure> figures;
+      try {
+        figures = decodeFigures(row.read<String>('figures_json'));
+      } on Object {
+        continue;
+      }
+      if (userFigureIdsUsedBy(figures).contains(userFigureId)) {
+        ids.add(row.read<String>('id'));
+      }
+    }
+    return ids;
+  }
+
+  /// How many live dances use the figure of your own [userFigureId] (#1023):
+  /// the count deleting it asks about.
+  Future<int> countDancesUsingUserFigure(String userFigureId) async =>
+      (await _danceIdsUsingUserFigure(
+        userFigureId,
+        includeDeleted: false,
+      )).length;
+
+  /// Rebuilds the derived rows of every dance, soft-deleted ones included,
+  /// that uses the figure of your own [userFigureId] (#1023), so search
+  /// follows its definition. Editing a definition re-renders its uses without
+  /// rewriting the dances (maintainer decision 2); this is what keeps their
+  /// index in step. Returns the number of dances rebuilt.
+  Future<int> reindexDancesUsingUserFigure(String userFigureId) async {
+    final ids = await _danceIdsUsingUserFigure(
+      userFigureId,
+      includeDeleted: true,
+    );
+    if (ids.isEmpty) return 0;
+    return _db.transaction(() async {
+      final userFigures = await _liveUserFigures();
+      await _deleteFtsRowsFor(ids);
+      for (final chunk in _chunkIds(ids)) {
+        await (_db.delete(
+          _db.danceFigures,
+        )..where((t) => t.danceId.isIn(chunk))).go();
+        final rows = await (_db.select(
+          _db.dances,
+        )..where((t) => t.id.isIn(chunk))).get();
+        for (final dance in await _hydrateRows(rows)) {
+          await _insertDerivedRows(dance, userFigures: userFigures);
+        }
+      }
+      return ids.length;
+    });
+  }
+
+  /// Freezes every use of the figure of your own [userFigureId] in a live
+  /// dance as plain text, without the reference (maintainer decision 2, for
+  /// a deleted definition): the line it renders to now while the figure is
+  /// still live, else the line it last stored. Call it before deleting the
+  /// figure. Each dance changed
+  /// is written once, stamped [now]; an automatic write, so it never cancels
+  /// a peer's pending deletion. Returns the number of dances changed.
+  Future<int> freezeUserFigureUses(
+    String userFigureId, {
+    required DateTime now,
+  }) async {
+    assertUtc(now, 'now');
+    final ids = await _danceIdsUsingUserFigure(
+      userFigureId,
+      includeDeleted: false,
+    );
+    if (ids.isEmpty) return 0;
+    // Each use freezes to the line it renders to now, so read the figure
+    // while it is still live: the caller freezes before deleting it.
+    final renderer = FigureRenderer(
+      _taxonomy,
+      userFigures: await _liveUserFigures({userFigureId}),
+    );
+    return _updateMany(
+      ids,
+      (dance) {
+        final figures = switch (dance.figuresSource) {
+          DecodedFigures(:final figures) => figures,
+          UnreadableFigures() => null,
+        };
+        if (figures == null) return null;
+        final frozen = mapFigureLeaves(
+          figures,
+          (figure) => userFigureUseOf(figure)?.id == userFigureId
+              ? detachUserFigureUse(
+                  figure,
+                  text: renderer.renderUserFigureCanonical(figure),
+                )
+              : figure,
+        );
+        if (identical(frozen, figures)) return null;
+        return dance.copyWith(figures: frozen, updatedAt: now);
+      },
+      rebuildDerived: true,
+      localUserEdit: false,
+    );
   }
 
   List<Figure> _leafFigures(Figure figure) {
@@ -1265,6 +1437,9 @@ class DanceRepository {
       )..where((t) => t.deletedAt.isNull())).get())
         row.id,
     };
+    // The user's own figures (#1023), live only, as the per-write path reads
+    // them: a use of a deleted figure is indexed as its stored line.
+    final userFigures = await _liveUserFigures();
 
     // One-shot bulk clear instead of N per-dance delete-by-scans. Both FTS5
     // tables are self-contained, so an unqualified DELETE resets each index
@@ -1289,6 +1464,7 @@ class DanceRepository {
             authorNames: authorNames,
             sources: sources,
             liveFieldIds: liveFieldIds,
+            userFigures: userFigures,
           );
         }
       });

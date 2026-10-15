@@ -69,7 +69,13 @@ lives in the core package; all access through repositories.*
      figure for indexed structural search.
   3. `dance_fts` — FTS5 virtual table over canonical text for full-text search.
   Derived tables are rebuildable from `figures_json` at any time (integrity
-  check + repair on migration).
+  check + repair on migration). One more input since #1023: a use of a figure
+  of your own is indexed as it renders, from its live definition in
+  `user_glossary_entries`, and its reference stays in `params_json` only while
+  the use is attached and its figure is live. Every write of such a
+  definition rebuilds the derived rows of the dances using it (found by their
+  `figures_json`, soft-deleted dances included), locally and on sync apply,
+  without rewriting the dances themselves.
 
 ## Tables (abridged)
 

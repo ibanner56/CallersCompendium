@@ -26,6 +26,7 @@ import 'sync_local_repository.dart';
 import 'tag_repository.dart';
 import 'user_glossary_repository.dart';
 import 'venue_repository.dart';
+import '../existence.dart';
 
 const _shareableTextNormalisationAlgorithmVersion = 2;
 const _taxonomyV35MigrationPageSize = 128;
@@ -242,7 +243,7 @@ class CompendiumRepositories {
        collectionImports =
            collectionImports ?? CollectionImportEventRepository(db),
        settings = settings ?? SettingsRepository(db),
-       userGlossary = UserGlossaryRepository(db),
+
        figureNotes = FigureNoteRepository(db),
        syncLocal = SyncLocalRepository(db);
 
@@ -258,8 +259,24 @@ class CompendiumRepositories {
   final CollectionImportEventRepository collectionImports;
   final SettingsRepository settings;
 
-  /// The user's own glossary entries (#709).
-  final UserGlossaryRepository userGlossary;
+  /// The user's own glossary entries (#709). Writing a figure of your own
+  /// (#1023) reindexes the dances that use it.
+  late final UserGlossaryRepository userGlossary = UserGlossaryRepository(
+    db,
+    onUserFigureChanged: dances.reindexDancesUsingUserFigure,
+  );
+
+  /// Deletes the figure of your own [id] (#1023), first freezing each use in
+  /// a live dance as plain text, the line it renders to now (maintainer
+  /// decision 2), in one transaction. Returns the number of dances frozen.
+  Future<int> deleteUserFigure(String id, {DateTime? at}) {
+    final now = resolveStamp(at);
+    return transaction(() async {
+      final frozen = await dances.freezeUserFigureUses(id, now: now);
+      await userGlossary.delete(id, at: now);
+      return frozen;
+    });
+  }
 
   /// The user's notes on shipped figures (#709).
   final FigureNoteRepository figureNotes;
