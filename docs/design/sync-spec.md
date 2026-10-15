@@ -4307,10 +4307,16 @@ notice; an older build reports it as a malformed record. Decided by Isaac
 consolidated spec, decision 13).
 On detach every capability record is erased, not tombstoned: each names a
 device of the store being left, and a tombstone would carry those device IDs
-to the next store, as keeping this device's own ID would (§3.3). Nothing else
-removes a capability record: the record of a device removed from the store,
-or of an old device ID after a detach and re-attach, stays and is
-republished by the devices that hold it, counting for nothing in the gate.
+to the next store, as keeping this device's own ID would (§3.3). Removing a
+device under *Other devices* (§3.3) is the one write of another device's
+record: once the server has deleted that device's manifest, the device that
+removed it tombstones the removed device's record, and the tombstone syncs, so
+every device drops it. A device that pairs again under the same ID finds its
+record missing on its next pass and writes it afresh; until that pass its peers
+hold back the data it gates, and nothing is lost. Decided by Isaac
+(maintainer), 2026-10-15. Nothing else removes a capability record: the record
+of an old device ID after a detach and re-attach stays and is republished by
+the devices that hold it, counting for nothing in the gate.
 
 **The gate.** A capability is open on a device, for a pass, only when its own
 build advertises it **and** every other device in that pass's store device
