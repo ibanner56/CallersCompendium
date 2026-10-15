@@ -7434,6 +7434,41 @@ void main() {
       final snapshot = await CompendiumSyncStorage(repos).snapshot();
       expect(snapshot.local[entry]?.blob.deletedAt, isNull);
       expect(snapshot.local[note]?.blob.deletedAt, isNull);
+
+      // Device B holds its own glossary back too now: absence from its
+      // manifest is not a deletion (spec §4.5), so its entry stays live here.
+      transport.peerManifests['peer'] = _manifest(
+        deviceId: 'peer',
+        records: {
+          SyncRecordKind.setting: {
+            peerCaps.address.recordId: peerCaps.wireHash,
+          },
+        },
+      );
+      result = await coordinator.syncNow();
+      expect(result.status, SyncPassStatus.completed);
+      expect((await repos.userGlossary.getById('theirs'))?.name, 'Grand spin');
+
+      // Device C is updated and advertises glossary.v1: the gate opens again
+      // and the next pass publishes what it held back.
+      final olderCaps = capabilityOf('older', {SyncCapabilities.glossaryV1});
+      transport.peerManifests['older'] = _manifest(
+        deviceId: 'older',
+        records: {
+          SyncRecordKind.setting: {
+            olderCaps.address.recordId: olderCaps.wireHash,
+          },
+        },
+      );
+      transport.blobResponses[olderCaps.wireHash] = _FakeTransport.response(
+        200,
+        body: utf8.encode(encodeSyncRecordBlob(olderCaps.blob)),
+      );
+      result = await coordinator.syncNow();
+      expect(result.status, SyncPassStatus.completed);
+      expect(awaiting(result), isEmpty);
+      expect(manifest()[SyncRecordKind.glossaryEntry]?.keys, contains('mine'));
+      expect(manifest()[SyncRecordKind.figureNote]?.keys, contains('swing'));
     });
 
     test('the real store writes its own record only when it changes', () async {
