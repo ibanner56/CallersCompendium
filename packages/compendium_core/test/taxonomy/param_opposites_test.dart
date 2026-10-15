@@ -150,12 +150,20 @@ void main() {
       // Any slot whose choices hold both halves of a pair the registry inverts
       // is listed here, so a new one fails until someone decides whether it
       // should get an opposite of its own.
-      const pairs = [
-        ('left', 'right'),
-        ('clockwise', 'counterclockwise'),
-        ('up', 'down'),
-        ('in', 'out'),
-      ];
+      // Every pair the registry inverts, read from it rather than listed, so
+      // a pair it gains is checked here too.
+      final pairs = {
+        for (final MapEntry(key: kind, value: vocabulary) in {
+          ParamKind.handedness: ParamVocab.sides,
+          ParamKind.spinDirection: ParamVocab.spins,
+          ParamKind.direction: ParamVocab.directions,
+          ParamKind.dancerSet: ParamVocab.dancerSets,
+        }.entries)
+          for (final value in vocabulary)
+            if (ParamOpposites.of(kind, value) case final String opposite
+                when opposite != value)
+              (value, opposite),
+      };
       final spelled = {
         for (final move in contraTaxonomy.moves.values)
           for (final MapEntry(key: slot, value: spec) in move.params.entries)

@@ -59,8 +59,8 @@ Substitutor? _discouragedFor(Dialect dialect) =>
         for (final t in dialect.discouragedTerms) t: t,
       }, caseInsensitive: true);
 
-/// The single canonicalization chokepoint (dialect design §"Canonicalization
-/// on input"). Inverse-maps the user's active dialect role terms — plus known
+/// The canonicalization chokepoint (dialect design §"Canonicalization on
+/// input"); user-glossary text has its own variant, [canonicalizeGlossaryText]. Inverse-maps the user's active dialect role terms — plus known
 /// legacy synonyms — back to canonical role tokens before persistence, so
 /// storage and search stay dialect-agnostic. Conservative: only exact,
 /// word-boundary term matches are rewritten; unknown prose is left as typed.
@@ -103,19 +103,55 @@ String canonicalizeText(
 /// [_dialectRoles].
 final Map<Dialect, RoleCanonicalizer> _glossaryRoles = {};
 
-/// The built-in discouraged terms as stored text, built once.
-final Substitutor _glossaryDiscouraged = Substitutor(
-  storedDiscouragedTerms,
-  caseInsensitive: true,
-);
+/// Per-[Dialect] memo of the built-in discouraged terms as stored text,
+/// bounded like [_dialectRoles].
+final Map<Dialect, Substitutor> _glossaryDiscouraged = {};
+
+/// The built-in discouraged terms as stored text, less any [dialect] uses as
+/// its own role word. A custom dialect may call a role "raven": there,
+/// "ravens" is that role, and storing it as the discouraged term's `role2s`
+/// would invert it, so the role canonicalizer reads it instead.
+Substitutor _glossaryDiscouragedFor(Dialect dialect) {
+  final cached = _glossaryDiscouraged[dialect];
+  if (cached != null) return cached;
+  if (_glossaryDiscouraged.length >= _maxDialectRoles) {
+    _glossaryDiscouraged.clear();
+  }
+  final claimed = {
+    for (final term in dialect.roles.values) ...{
+      term.singular.toLowerCase(),
+      term.plural.toLowerCase(),
+    },
+  };
+  return _glossaryDiscouraged[dialect] = Substitutor({
+    for (final MapEntry(key: term, value: stored)
+        in storedDiscouragedTerms.entries)
+      if (!claimed.contains(_withoutPossessive(term))) term: stored,
+  }, caseInsensitive: true);
+}
+
+/// [term] without a possessive ending (`'s`, `’s` or a bare `'`).
+String _withoutPossessive(String term) {
+  for (final ending in const ["'s", '’s', "'"]) {
+    if (term.endsWith(ending)) {
+      return term.substring(0, term.length - ending.length);
+    }
+  }
+  return term;
+}
 
 /// Canonicalizes text a user typed into their own glossary — a compound
-/// figure's name, definition and description, and notes on figures (#709).
+/// figure's name, definition, description and notes, and their notes on
+/// shipped figures (#709). Notes on a dance's figures keep [canonicalize].
 ///
 /// Stricter than [canonicalizeText] in one way and wider in another, both
 /// decided by the maintainer for this text only (2026-10-14):
 /// - the built-in discouraged terms are stored canonically ("ladies" →
-///   `role2s`, "gypsy" → "shoulder round"), not kept as typed;
+///   `role2s`, "gypsy" → "shoulder round"), not kept as typed. The table is
+///   the built-in one the renderer displays them from, not [dialect]'s own
+///   editable list, so stored and displayed text agree; a term [dialect]
+///   uses as a role word is left to the role rules (the implementer's
+///   choice, see `docs/design/dialect.md`);
 /// - under a dialect whose roles are "lead"/"follow", "leads"/"follows"
 ///   directly after a singular subject is the verb ("The robin follows the
 ///   lark across" → "The role2 follows the role1 across"), where
@@ -133,7 +169,7 @@ String canonicalizeGlossaryText(String text, Dialect dialect) {
       subjectVerbException: true,
     );
   }
-  return roles.canonicalize(_glossaryDiscouraged.apply(text));
+  return roles.canonicalize(_glossaryDiscouragedFor(dialect).apply(text));
 }
 
 /// Rewrites taxonomy move display names and legacy keywords to their canonical

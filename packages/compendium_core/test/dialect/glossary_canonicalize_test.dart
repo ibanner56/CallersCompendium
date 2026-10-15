@@ -71,6 +71,25 @@ void main() {
     );
   });
 
+  test('a discouraged term the dialect uses as its own role word is that '
+      'role', () {
+    // "ravens" is discouraged (role2s) in the built-in table, but this
+    // dialect calls role1 "raven": storing role2s would invert the role.
+    final birds = Dialect(
+      name: 'Ravens/Crows',
+      roles: const {'role1': RoleTerm('Raven'), 'role2': RoleTerm('Crow')},
+      discouragedTerms: Dialect.defaultDiscouragedTerms,
+    );
+    expect(canonicalizeGlossaryText('ravens cross', birds), 'role1s cross');
+    expect(
+      canonicalizeGlossaryText('the raven leads', birds),
+      'the role1 leads',
+    );
+    // The rest of the table still applies.
+    expect(canonicalizeGlossaryText('ladies chain', birds), 'role2s chain');
+    expect(canonicalizeGlossaryText('gypsy', birds), 'shoulder round');
+  });
+
   test('move names stay protected', () {
     expect(canonicalizeGlossaryText('Mad Robin', lr), 'mad robin');
   });

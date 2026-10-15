@@ -179,18 +179,48 @@ void main() {
       );
     });
 
-    test('is deterministic', () {
-      final args = {'who': 'role1s', 'hand': 'left'};
-      expect(
-        [
-          for (final f in expandCompound(grandRightAndLeft(), args, taxonomy)!)
-            figureToJson(f),
+    test('a template is copied whole, and a bound who clears its assumed '
+        'subject', () {
+      final definition = CompoundDefinition(
+        params: const [
+          CompoundParam(key: 'who', kind: ParamKind.dancerSet),
+          CompoundParam(key: 'hand', kind: ParamKind.handedness),
         ],
-        [
-          for (final f in expandCompound(grandRightAndLeft(), args, taxonomy)!)
-            figureToJson(f),
+        figures: [
+          testFigure(
+            move: 'pull_by',
+            params: {'who': 'neighbors', 'hand': 'right', 'beats': 2},
+            note: 'look up',
+            progression: true,
+            walkthroughOverride: 'Pull by your neighbor.',
+            assumedSubject: true,
+          ).copyWith(wordingOverride: 'pull by {who}'),
+          testFigure(
+            move: 'pull_by',
+            params: {'who': 'neighbors', 'hand': 'right', 'beats': 2},
+            assumedSubject: true,
+          ),
+        ],
+        bindings: const [
+          CompoundSlotBinding(figureIndex: 0, slotKey: 'who', paramKey: 'who'),
+          CompoundSlotBinding(
+            figureIndex: 1,
+            slotKey: 'hand',
+            paramKey: 'hand',
+          ),
         ],
       );
+      final expanded = expandCompound(definition, {
+        'who': 'partners',
+        'hand': 'left',
+      }, taxonomy)!;
+      final first = expanded.first;
+      expect(first.note, 'look up');
+      expect(first.progression, isTrue);
+      expect(first.wordingOverride, 'pull by {who}');
+      expect(first.walkthroughOverride, 'Pull by your neighbor.');
+      expect(first.assumedSubject, isFalse, reason: 'who was bound');
+      expect(expanded.last.assumedSubject, isTrue, reason: 'who was not');
     });
 
     test('declines rather than fabricate', () {
@@ -243,12 +273,14 @@ void main() {
       expect(allowedValues(definition, 'who', taxonomy), {'role1s', 'role2s'});
     });
 
-    test('using a partial opposite keeps only values that have one', () {
+    test('a declared-only parameter keeps every value its slots take', () {
       expect(allowedValues(grandRightAndLeft(), 'who', taxonomy), {
-        'everyone',
         ...ParamVocab.dancerSets,
         u,
       });
+    });
+
+    test('using a partial opposite keeps only values that have one', () {
       final definition = CompoundDefinition(
         params: const [CompoundParam(key: 'who', kind: ParamKind.dancerSet)],
         figures: [pullBy(), pullBy()],
@@ -392,6 +424,30 @@ void main() {
           reason: figure.move,
         );
       }
+    });
+
+    test('a slot an alias pins is refused unless the alias has an inverse '
+        'pair to reroute to', () {
+      CompoundDefinition bound(String move, String slot, ParamKind kind) =>
+          CompoundDefinition(
+            params: [CompoundParam(key: 'p', kind: kind)],
+            figures: [testFigure(move: move)],
+            bindings: [
+              CompoundSlotBinding(figureIndex: 0, slotKey: slot, paramKey: 'p'),
+            ],
+          );
+      expect(
+        errors(
+          bound('meltdown_swing', 'prefix', ParamKind.choice),
+        ).map((i) => i.code),
+        contains(CompoundIssueCodes.pinnedSlot),
+      );
+      expect(
+        errors(
+          bound('see_saw', 'shoulder', ParamKind.shoulder),
+        ).map((i) => i.code),
+        isNot(contains(CompoundIssueCodes.pinnedSlot)),
+      );
     });
 
     test('bound beats, a double binding and a dangling one are errors', () {
