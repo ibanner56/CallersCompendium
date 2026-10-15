@@ -404,8 +404,9 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // The role-implied side is instead written explicitly, by
         // [chainHandForWho], at every write site that actually reads a role
         // word: both parsers, core's `seedChainHand` (`param_change_rules.dart`,
-        // behind the editor's `_selectMove` ×2 and every `who` edit through
-        // `applyParamChange`), and the one-time backfill
+        // behind the editor's `_selectMove` ×2, the meanwhile side editor's
+        // `who` edit, and every `who` edit through `applyParamChange`), and
+        // the one-time backfill
         // sweep — never here. `unspecified` remains the taxonomy default only
         // so pre-release figures (and any bare, role-less chain — #976
         // §6.1.3) keep a defined effective value.

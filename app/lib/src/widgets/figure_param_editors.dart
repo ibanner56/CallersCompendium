@@ -243,8 +243,8 @@ class FigureParamEditor extends StatelessWidget {
     // any existing spec). `promenade.turn` sets it `false` — the owner
     // explicitly does not want a manual UX escape hatch back to "not stated"
     // for a spec whose default is a concrete value; only the automatic reset
-    // triggered by `dir` (in/out/up/down) may drive it there (see
-    // `figure_list_editor.dart`).
+    // triggered by `where` (in/out/up/down) may drive it there (core's
+    // `applyParamChange`, `param_change_rules.dart`).
     if (!spec.allowManualClear) return dropdown;
 
     return Row(

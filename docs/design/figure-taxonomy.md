@@ -1401,9 +1401,9 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
 
     **Role→side table.** [chainHandForWho] (`param_types.dart`) is the
     single source of truth for `role2s`→`right`, `role1s`→`left`, mirroring
-    ContraDB's `chainChange` (`figure.js:256-263`). It is consulted at six
-    write/read sites so none can drift: the ContraDB and shared-recognizer
-    `_chain` parsers, core's `seedChainHand` (`param_change_rules.dart`) —
+    ContraDB's `chainChange` (`figure.js:256-263`). Every site that writes or
+    reads a role-implied side consults it, so none can drift: the ContraDB
+    and shared-recognizer `_chain` parsers, core's `seedChainHand` (`param_change_rules.dart`) —
     which both `_selectMove` implementations, the meanwhile side editor and
     every `who` edit through `applyParamChange` call — and the one-time
     backfill sweep below. It is NOT baked into `chain.hand`'s
@@ -1544,10 +1544,12 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     like `dir`'s existing canonical behaviour of always rendering even at its
     default.
 
-    **Editor.** `figure_list_editor.dart` hides `turn` (and resets it to the
-    `unspecified` sentinel via an explicit write, never `.remove()` — removal
-    would fall back to the concrete default and render it) whenever `dir` is
-    `in`/`out`/`up`/`down`, where a rotation sense is meaningless. It also
+    **Editor.** `figure_list_editor.dart` hides `turn` whenever `dir` is
+    `in`/`out`/`up`/`down`, where a rotation sense is meaningless, and the
+    change that sets `dir` there resets `turn` to the `unspecified` sentinel
+    via an explicit write, never `.remove()` — removal would fall back to the
+    concrete default and render it. The reset is core's `applyParamChange`
+    (`param_change_rules.dart`, #709), which the editor calls. It also
     hides `destination` whenever `dir == 'across'` (mirroring the render
     gate), leaving its stored value untouched rather than clearing it.
     `figure_param_editors.dart`'s Clear affordance is gated on the new

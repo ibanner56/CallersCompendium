@@ -137,6 +137,14 @@ void main() {
       expect(result.params['beats'], 4);
     });
 
+    test('with no beats it shifts from the default before the change', () {
+      // The fallback base is the default the flag had, not the one it now
+      // has: petronella on is 8, so turning it off gives 4, not 0. Compound
+      // expansion hits this branch whenever a template leaves beats unset.
+      final result = change('petronella', {'balance': true}, 'balance', false);
+      expect(result.params['beats'], 4);
+    });
+
     test('setting it to the value it already has changes nothing else', () {
       final result = change(
         'pull_by',
