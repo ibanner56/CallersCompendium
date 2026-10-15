@@ -589,6 +589,28 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeCountGlossaryEntry(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count van je eigen figuren',
+      one: '1 van je eigen figuren',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountFigureNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'je notities bij $count figuren',
+      one: 'je notities bij 1 figuur',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       'Een ander apparaat gebruikt een nieuwere versie van de app. Werk de app op dit apparaat bij om de wijzigingen ervan te ontvangen.';
 
@@ -2861,6 +2883,12 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get syncReviewKindSetting => 'Instelling';
+
+  @override
+  String get syncReviewKindGlossaryEntry => 'Je eigen figuur';
+
+  @override
+  String get syncReviewKindFigureNote => 'Je notities bij een figuur';
 
   @override
   String syncReviewLocalRecord(String id) {

@@ -557,6 +557,26 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeCountGlossaryEntry(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '自分のフィギュア$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountFigureNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'フィギュア$count件への自分のノート',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       '別のデバイスで新しいバージョンのアプリが使われています。その変更を受け取るには、このデバイスのアプリを更新してください。';
 
@@ -2700,6 +2720,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get syncReviewKindSetting => '設定';
+
+  @override
+  String get syncReviewKindGlossaryEntry => '自分のフィギュア';
+
+  @override
+  String get syncReviewKindFigureNote => 'フィギュアへの自分のノート';
 
   @override
   String syncReviewLocalRecord(String id) {

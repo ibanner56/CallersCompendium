@@ -540,6 +540,14 @@
   "@settingsSyncNoticeCountSetting": {
     "x-sourceSha256": "ff0a50b131bbe8edcf51dc54d23235e5089d53704d6a548605bf9b6f132da4c5"
   },
+  "settingsSyncNoticeCountGlossaryEntry": "{count, plural, =1{1 deiner eigenen Figuren} other{{count} deiner eigenen Figuren}}",
+  "@settingsSyncNoticeCountGlossaryEntry": {
+    "x-sourceSha256": "68fc2e794fec98d4ce9e7ebdf6de306fae7ae2eae11a23e0c59f5033212b64ba"
+  },
+  "settingsSyncNoticeCountFigureNote": "{count, plural, =1{deine Notizen zu 1 Figur} other{deine Notizen zu {count} Figuren}}",
+  "@settingsSyncNoticeCountFigureNote": {
+    "x-sourceSha256": "d8a9a1a4ceb2c8d27210fecff6147fdceaceb98a415748dabd9f42851eb3176a"
+  },
   "settingsSyncNoticeNewerVersionUncounted": "Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten.",
   "@settingsSyncNoticeNewerVersionUncounted": {
     "x-sourceSha256": "ca371c7f36b6a2ca97e5fb9d8cd18cc2909af04e2973dec1a999d4e7a50fb339"
@@ -2915,6 +2923,14 @@
   "syncReviewKindSetting": "Einstellung",
   "@syncReviewKindSetting": {
     "x-sourceSha256": "818cd8d91aea3a1689455f009f49e87fe7fa647fa2c4b9f09072dd1c33d52ca5"
+  },
+  "syncReviewKindGlossaryEntry": "Deine eigene Figur",
+  "@syncReviewKindGlossaryEntry": {
+    "x-sourceSha256": "d89a8f32c2f5099f6e866919bcc348bfc5afa253b8fda66039ae398dcc55d1d5"
+  },
+  "syncReviewKindFigureNote": "Deine Notizen zu einer Figur",
+  "@syncReviewKindFigureNote": {
+    "x-sourceSha256": "7c075d1bb02b49b5c64babc2c11318461b01bad01b9cfbd964e9f62f3c2f0b93"
   },
   "syncReviewLocalRecord": "Lokaler Datensatz: {id}",
   "@syncReviewLocalRecord": {

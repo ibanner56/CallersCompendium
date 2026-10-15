@@ -255,6 +255,12 @@ String _kindCount(AppLocalizations l10n, SyncRecordKind kind, int count) =>
       ),
       SyncRecordKind.venue => l10n.settingsSyncNoticeCountVenue(count),
       SyncRecordKind.setting => l10n.settingsSyncNoticeCountSetting(count),
+      SyncRecordKind.glossaryEntry => l10n.settingsSyncNoticeCountGlossaryEntry(
+        count,
+      ),
+      SyncRecordKind.figureNote => l10n.settingsSyncNoticeCountFigureNote(
+        count,
+      ),
     };
 
 /// The records [reports] name as refused for figures a newer version of the
@@ -332,6 +338,8 @@ String syncRecordKindLabel(AppLocalizations l10n, SyncRecordKind kind) =>
       SyncRecordKind.publishedSource => l10n.syncReviewKindPublishedSource,
       SyncRecordKind.venue => l10n.syncReviewKindVenue,
       SyncRecordKind.setting => l10n.syncReviewKindSetting,
+      SyncRecordKind.glossaryEntry => l10n.syncReviewKindGlossaryEntry,
+      SyncRecordKind.figureNote => l10n.syncReviewKindFigureNote,
     };
 
 /// What this device knows a notice's record by.
@@ -375,10 +383,15 @@ Future<SyncNoticeRecordName> lookupSyncNoticeRecordName(
     ))?.name,
     SyncRecordKind.tag => (await repositories.tags.getById(id))?.name,
     SyncRecordKind.venue => (await repositories.venues.getById(id))?.name,
+    // The user's glossary holds canonical role words, which read correctly
+    // only rendered in the active dialect, and nothing here has one; a note
+    // has no name of its own. Shown by kind alone.
     SyncRecordKind.customFieldDef ||
     SyncRecordKind.difficultyLevel ||
     SyncRecordKind.publishedSource ||
-    SyncRecordKind.setting => null,
+    SyncRecordKind.setting ||
+    SyncRecordKind.glossaryEntry ||
+    SyncRecordKind.figureNote => null,
   };
   if (name != null && name.trim().isNotEmpty) {
     return SyncNoticeRecordNamed(name);

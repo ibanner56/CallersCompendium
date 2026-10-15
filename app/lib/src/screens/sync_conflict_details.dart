@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -85,6 +87,14 @@ typedef _FigureLine = ({
   Figure figure,
 });
 
+/// [text] stored in canonical role words, as the active dialect reads it: how
+/// the user's own figures and notes (#709) are shown everywhere else.
+String syncConflictFreeText(BuildContext context, String text) =>
+    SyncConflictComparison._renderer.renderFreeText(
+      text,
+      ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+    );
+
 /// When a version was last changed, for telling versions apart.
 String syncConflictWhen(BuildContext context, DateTime when) =>
     DateFormat.yMMMd(
@@ -149,6 +159,17 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'name': l10n.syncConflictFieldName,
         'color': l10n.syncConflictFieldColour,
       },
+      // One of the user's own figures and the notes on a shipped one (#709),
+      // labelled as the figure editor and the Glossary label them.
+      SyncRecordKind.glossaryEntry => {
+        'name': l10n.compoundEditorName,
+        'definition': l10n.compoundEditorDefinition,
+        'description': l10n.compoundEditorDescription,
+        'keywords': l10n.compoundEditorKeywords,
+        'notes': l10n.compoundEditorNotes,
+        'payload': l10n.compoundEditorFigures,
+      },
+      SyncRecordKind.figureNote => {'notes': l10n.glossaryNotes},
       SyncRecordKind.venue => {
         'name': l10n.syncConflictFieldName,
         'eventName': l10n.venueEditorEventNameLabel,
@@ -309,7 +330,10 @@ class SyncConflictComparison extends StatelessWidget {
     }
     return [
       for (final field in fields)
-        if (field.key == 'figures')
+        if (field.key == 'payload' &&
+            group.kind == SyncRecordKind.glossaryEntry)
+          _compound(context, l10n, field.label, other)
+        else if (field.key == 'figures')
           ..._figures(context, l10n, field.label, other)
         else if (field.key == 'slots')
           ..._slots(context, l10n, field.label, other)
@@ -589,6 +613,56 @@ class SyncConflictComparison extends StatelessWidget {
     return rows;
   }
 
+  /// One of the user's own figures (#709), compared by what it becomes: its
+  /// figures in words, then its parameters. Its stored payload is text; one
+  /// this build cannot read is named as from a newer version, or as needing
+  /// repair, as the Glossary names it.
+  Widget _compound(
+    BuildContext context,
+    AppLocalizations l10n,
+    String label,
+    Map<String, Object?>? other,
+  ) {
+    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    String describe(Map<String, Object?>? body) {
+      if (body == null) return l10n.syncConflictValueNotSet;
+      if (body['kind'] != UserGlossaryEntryKind.compound.name) {
+        return l10n.glossaryCustomUnsupported;
+      }
+      final payload = body['payload'];
+      Object? decoded;
+      if (payload is String) {
+        try {
+          decoded = jsonDecode(payload);
+        } on FormatException {
+          // diagnostics: silent — shown as needing repair, as the Glossary
+          // shows it.
+          decoded = null;
+        }
+      }
+      final definition = decodeCompoundDefinition(decoded, contraTaxonomy);
+      if (definition == null) return l10n.glossaryCustomNeedsRepair;
+      return [
+        definition.figures
+            .map((f) => _renderer.renderSummary(f, dialect))
+            .join('; '),
+        if (definition.params.isNotEmpty)
+          l10n.syncConflictFieldValue(
+            l10n.compoundEditorParams,
+            definition.params.map((p) => p.key).join(', '),
+          ),
+      ].join(' · ');
+    }
+
+    var local = describe(_local), theirs = describe(other);
+    if (local == theirs) {
+      // The same figures in words; what differs is a detail the summary
+      // leaves out, such as which settings a parameter fills.
+      theirs = l10n.syncConflictFigureDetailsDiffer(theirs);
+    }
+    return _versions(context, l10n, label: label, local: local, other: theirs);
+  }
+
   /// A figure in words with the details its summary leaves out.
   String _figureDetails(AppLocalizations l10n, _FigureLine line) {
     final figure = line.figure;
@@ -846,6 +920,13 @@ class SyncConflictComparison extends StatelessWidget {
           return code == null ? amount : '$amount $code';
         case 'color':
           return syncConflictColourText(value as int);
+        case 'keywords':
+          // Another name for one of the user's own figures, each in canonical
+          // role words (#709).
+          return [
+            for (final keyword in value as List)
+              syncConflictFreeText(context, keyword as String),
+          ].join(', ');
         case 'provenance':
           final map = value as Map;
           final license = map['license'];

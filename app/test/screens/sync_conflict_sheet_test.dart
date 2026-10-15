@@ -3,6 +3,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/sync_conflict_details.dart';
 import 'package:compendium_app/src/screens/sync_conflict_sheet.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -772,6 +773,75 @@ void main() {
   });
 
   group('showing every saved detail', () {
+    testWidgets('one of the user\'s own figures is compared in the active '
+        'dialect, by what it becomes (#709)', (tester) async {
+      final compound = canonicalJson(
+        CompoundDefinition(
+          params: const [],
+          figures: [
+            testFigure(move: 'swing', params: const {'who': 'partners'}),
+          ],
+          bindings: const [],
+        ).toJson(),
+      );
+      Map<String, Object?> body(String definition, String payload) => {
+        'id': 'g1',
+        'kind': 'compound',
+        'name': 'role1s spiral',
+        'definition': definition,
+        'description': 'Round.',
+        'keywords': const <String>[],
+        'notes': null,
+        'payload': payload,
+        'createdAt': '2026-09-01T00:00:00.000Z',
+      };
+      final theirs = SyncRecordBlob(
+        kind: SyncRecordKind.glossaryEntry,
+        id: 'g1',
+        updatedAt: DateTime.utc(2026, 9, 30),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 9, 30),
+        body: body('role2s lead.', '{not json'),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: SyncConflictComparison(
+                group: SyncConflictGroup(
+                  kind: SyncRecordKind.glossaryEntry,
+                  recordId: 'g1',
+                  localBody: body('role1s lead.', compound),
+                  candidates: syncConflictGroupFor(
+                    SyncConflictReconsideration(
+                      kind: SyncRecordKind.glossaryEntry,
+                      recordId: 'g1',
+                      before: null,
+                      offered: [theirs],
+                      writtenWireHash: 'written',
+                      writtenAt: DateTime.utc(2026, 9, 30),
+                    ),
+                  ).candidates,
+                ),
+                lookups: const SyncConflictLookups(),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Definition'), findsOneWidget);
+      expect(find.textContaining('larks lead.'), findsOneWidget);
+      expect(find.textContaining('robins lead.'), findsOneWidget);
+      expect(find.textContaining('role1s'), findsNothing);
+      expect(find.text('Figures'), findsOneWidget);
+      expect(find.textContaining('swing'), findsOneWidget);
+      expect(find.textContaining('Needs repair'), findsOneWidget);
+      expect(find.textContaining('{not json'), findsNothing);
+    });
+
     testWidgets('a merged-away record a version cites is named as the record '
         'it became', (tester) async {
       final theirs = SyncRecordBlob(

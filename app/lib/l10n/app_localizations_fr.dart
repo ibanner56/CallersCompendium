@@ -594,6 +594,28 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeCountGlossaryEntry(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count de vos propres figures',
+      one: '1 de vos propres figures',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountFigureNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'vos notes sur $count figures',
+      one: 'vos notes sur 1 figure',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir ses modifications.';
 
@@ -2887,6 +2909,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get syncReviewKindSetting => 'Paramètre';
+
+  @override
+  String get syncReviewKindGlossaryEntry => 'Votre propre figure';
+
+  @override
+  String get syncReviewKindFigureNote => 'Vos notes sur une figure';
 
   @override
   String syncReviewLocalRecord(String id) {

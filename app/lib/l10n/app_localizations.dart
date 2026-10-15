@@ -920,6 +920,18 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 setting} other{{count} settings}}'**
   String settingsSyncNoticeCountSetting(int count);
 
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many of the user's own figures (compound figures they defined in the Glossary) are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 of your own figures} other{{count} of your own figures}}'**
+  String settingsSyncNoticeCountGlossaryEntry(int count);
+
+  /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many of the user's notes on built-in Glossary figures (one note per figure) are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{your notes on 1 figure} other{your notes on {count} figures}}'**
+  String settingsSyncNoticeCountFigureNote(int count);
+
   /// Variant of settingsSyncNoticeNewerVersionItems used when this device cannot tell how many items are waiting: the other device's list of what it shares is itself in the newer format, or it shares a kind of data this version does not know.
   ///
   /// In en, this message translates to:
@@ -4488,6 +4500,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Setting'**
   String get syncReviewKindSetting;
+
+  /// Kind label for a sync decision about one of the user's own figures: a compound figure they defined in the Glossary.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own figure'**
+  String get syncReviewKindGlossaryEntry;
+
+  /// Kind label for a sync decision about the user's notes on one built-in Glossary figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Your notes on a figure'**
+  String get syncReviewKindFigureNote;
 
   /// Safe identity line for the local record in a sync decision.
   ///

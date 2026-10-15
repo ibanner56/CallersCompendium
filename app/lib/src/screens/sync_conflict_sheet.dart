@@ -551,7 +551,7 @@ class _ConflictGroupTile extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 child: Text(
-                  _recordTitle(l10n),
+                  _recordTitle(context, l10n),
                   style: theme.textTheme.titleMedium,
                 ),
               ),
@@ -569,7 +569,10 @@ class _ConflictGroupTile extends StatelessWidget {
                   enabled: onChoose != null,
                   title: Text(l10n.syncConflictThisDevice),
                   subtitle: Text(
-                    subtitle(_versionText(l10n, local), group.localUpdatedAt),
+                    subtitle(
+                      _versionText(context, l10n, local),
+                      group.localUpdatedAt,
+                    ),
                   ),
                 ),
               for (final (index, item) in group.candidates.indexed)
@@ -586,7 +589,7 @@ class _ConflictGroupTile extends StatelessWidget {
                   ),
                   subtitle: Text(
                     subtitle(
-                      _versionText(l10n, item.candidate?.body),
+                      _versionText(context, l10n, item.candidate?.body),
                       item.candidate?.updatedAt,
                     ),
                   ),
@@ -699,7 +702,7 @@ class _ConflictGroupTile extends StatelessWidget {
   /// dialog over the list on a wide window.
   Future<void> _showDifferences(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final title = _recordTitle(l10n);
+    final title = _recordTitle(context, l10n);
     Widget body(BuildContext context) => SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.md),
       child: SyncConflictComparison(group: group, lookups: lookups),
@@ -748,28 +751,38 @@ class _ConflictGroupTile extends StatelessWidget {
     return entry.label ?? (value is String ? value : entry.key);
   }
 
-  String _recordTitle(AppLocalizations l10n) {
+  String _recordTitle(BuildContext context, AppLocalizations l10n) {
     if (group.kind == SyncRecordKind.setting) {
       return syncSettingLabel(l10n, group.recordId) ??
           syncRecordKindLabel(l10n, group.kind);
     }
     final name =
-        _name(group.localBody) ?? _name(group.candidates.first.candidate?.body);
+        _name(context, group.localBody) ??
+        _name(context, group.candidates.first.candidate?.body);
     final kind = syncRecordKindLabel(l10n, group.kind);
     return name == null ? kind : l10n.settingsSyncNoticeRecordNamed(kind, name);
   }
 
-  String _versionText(AppLocalizations l10n, Map<String, Object?>? body) {
+  String _versionText(
+    BuildContext context,
+    AppLocalizations l10n,
+    Map<String, Object?>? body,
+  ) {
     if (body == null) return l10n.syncConflictValueNotSet;
     if (group.kind == SyncRecordKind.setting) {
       return syncSettingValueText(l10n, body['value']);
     }
-    return _name(body) ?? syncRecordKindLabel(l10n, group.kind);
+    return _name(context, body) ?? syncRecordKindLabel(l10n, group.kind);
   }
 
-  static String? _name(Map<String, Object?>? body) {
+  String? _name(BuildContext context, Map<String, Object?>? body) {
     final value =
         body?['title'] ?? body?['name'] ?? body?['label'] ?? body?['key'];
-    return value is String && value.isNotEmpty ? value : null;
+    if (value is! String || value.isEmpty) return null;
+    // One of the user's own figures is named in canonical role words (#709),
+    // read in the active dialect as the Glossary shows it.
+    return group.kind == SyncRecordKind.glossaryEntry
+        ? syncConflictFreeText(context, value)
+        : value;
   }
 }
