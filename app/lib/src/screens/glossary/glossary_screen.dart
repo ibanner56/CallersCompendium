@@ -593,35 +593,35 @@ class _FigureNotesSectionState extends State<FigureNotesSection> {
 
   Future<void> _edit(BuildContext context, Dialect dialect) async {
     final repos = _repos!;
-    final saved = await showDialog<String>(
+    final l10n = AppLocalizations.of(context);
+    // The dialog saves, not this method, so a note that is refused leaves the
+    // dialog open with what the user typed and says why, instead of closing on
+    // a message that asks them to try again with the text gone.
+    await showDialog<void>(
       context: context,
       builder: (_) => _NotesDialog(
         initial: _notes == null
             ? ''
             : _renderer.renderFreeText(_notes!, dialect),
+        // Empty text deletes the note.
+        save: (text) async {
+          try {
+            await repos.figureNotes.set(
+              widget.figureId,
+              canonicalizeGlossaryText(text, dialect),
+            );
+            return null;
+          } on FigureNoteInvalid catch (e) {
+            // diagnostics: silent — either the user's text is over the stored
+            // bound, which canonical role tokens can push it past, or the whole
+            // Glossary is full; the message says which and what to do.
+            return e.overBudget
+                ? l10n.glossaryOverBudget
+                : l10n.glossaryNotesTooLong;
+          }
+        },
       ),
     );
-    if (saved == null || !context.mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-    // Empty text deletes the note.
-    try {
-      await repos.figureNotes.set(
-        widget.figureId,
-        canonicalizeGlossaryText(saved, dialect),
-      );
-    } on FigureNoteInvalid catch (e) {
-      // diagnostics: silent — either the user's text is over the stored bound,
-      // which canonical role tokens can push it past, or the whole Glossary is
-      // full; the message says which and what to do.
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            e.overBudget ? l10n.glossaryOverBudget : l10n.glossaryNotesTooLong,
-          ),
-        ),
-      );
-    }
   }
 
   @override
@@ -676,9 +676,12 @@ class _FigureNotesSectionState extends State<FigureNotesSection> {
 /// Edits the notes on a shipped figure; pops the text, or null on cancel.
 /// Owns its controller, so it outlives the dialog's closing animation.
 class _NotesDialog extends StatefulWidget {
-  const _NotesDialog({required this.initial});
+  const _NotesDialog({required this.initial, required this.save});
 
   final String initial;
+
+  /// Stores the text; returns why it was refused, or null once it is stored.
+  final Future<String?> Function(String text) save;
 
   @override
   State<_NotesDialog> createState() => _NotesDialogState();
@@ -686,11 +689,28 @@ class _NotesDialog extends StatefulWidget {
 
 class _NotesDialogState extends State<_NotesDialog> {
   late final _controller = TextEditingController(text: widget.initial);
+  String? _error;
+  bool _saving = false;
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    final error = await widget.save(_controller.text);
+    if (!mounted) return;
+    if (error == null) {
+      Navigator.of(context).pop();
+    } else {
+      setState(() {
+        _error = error;
+        _saving = false;
+      });
+    }
   }
 
   @override
@@ -701,6 +721,9 @@ class _NotesDialogState extends State<_NotesDialog> {
       content: TextField(
         key: const ValueKey('glossary-notes-field'),
         controller: _controller,
+        onChanged: (_) {
+          if (_error != null) setState(() => _error = null);
+        },
         autofocus: true,
         minLines: 3,
         maxLines: 8,
@@ -708,6 +731,8 @@ class _NotesDialogState extends State<_NotesDialog> {
         maxLengthEnforcement: MaxLengthEnforcement.enforced,
         decoration: InputDecoration(
           hintText: l10n.glossaryNotesHint,
+          errorText: _error,
+          errorMaxLines: 4,
           border: const OutlineInputBorder(),
         ),
       ),
@@ -718,7 +743,7 @@ class _NotesDialogState extends State<_NotesDialog> {
         ),
         FilledButton(
           key: const ValueKey('glossary-notes-save'),
-          onPressed: () => Navigator.of(context).pop(_controller.text),
+          onPressed: _saving ? null : _save,
           child: Text(l10n.commonSave),
         ),
       ],

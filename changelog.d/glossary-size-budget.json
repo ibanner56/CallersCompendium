@@ -3,13 +3,14 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Your own figures and your notes on built-in figures now share a size limit, so they can never grow too large to fit in a backup. Reaching it says so and asks you to delete or shorten something; a Glossary that is already over the limit still opens and backs up, and can still be edited down. A backup larger than the limit restores as much as fits and reports the rest as skipped.",
+      "Your own figures and your notes on built-in figures now share a size limit, which keeps what you add from growing too large to back up. Reaching it says so and asks you to delete or shorten something. Figures and notes that arrive by Device Sync or from a restored backup are always kept, so a Glossary over the limit still opens, backs up and restores whole; it can be edited down but not added to.",
+      "A note that is refused on a built-in figure (too long, or the Glossary is full) no longer closes the dialog and loses what you typed; the reason shows in the dialog and the text stays.",
       "Offering a backup before connecting a sync store now says when the collection is too large to back up, with the sizes, instead of a generic failure."
     ]
   },
   "core": {
     "changed": [
-      "UserGlossaryRepository.upsert and FigureNoteRepository.set refuse a write that would take the glossary past maxUserGlossaryBytes (4 MiB of stored text plus a fixed overhead per row) and grow its row: UserGlossaryEntryInvalid.overBudget() (field 'budget') and FigureNoteInvalid(overBudget: true). A write that does not grow its row is always accepted."
+      "UserGlossaryRepository.upsert and FigureNoteRepository.set refuse a write that would take the glossary past maxUserGlossaryBytes (4 MiB of stored text plus a fixed overhead per row) and grow its row: UserGlossaryEntryInvalid.overBudget() (field 'budget') and FigureNoteInvalid(overBudget: true). A write that does not grow its row is always accepted. writeFromSync, upsertFromRestore and setFromRestore are not budgeted."
     ]
   }
 }

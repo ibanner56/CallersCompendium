@@ -590,13 +590,14 @@ to your other devices, and Device Sync shows a note naming the device that is
 holding them back (see [New kinds of data wait for every
 device](#new-kinds-of-data-wait-for-every-device)).
 
-Your figures and your notes on built-in figures share a size limit, so that
-they always fit in a backup. It is far more than most callers will use (room
-for dozens of long figures, or thousands of short ones). If you reach it, saving
-says that your Glossary has reached its size limit: delete or shorten some
-figures or notes to make room, then try again. Shortening or deleting is always
-allowed. Figures and notes that arrive from another device are always kept, even
-if they take you past the limit; you can then edit them down but not add more.
+Your figures and your notes on built-in figures share a size limit, which
+keeps what you add from growing too large to back up. It is far more than most
+callers will use (thousands of short figures). If you reach it, saving says that
+your Glossary has reached its size limit: delete or shorten some figures or
+notes to make room, then try again. Shortening or deleting is always allowed.
+Figures and notes that arrive from another device with Device Sync, or from a
+backup you restore, are always kept, even if they take you past the limit; you
+can then edit them down but not add more.
 
 ### Device Sync
 

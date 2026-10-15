@@ -87,6 +87,8 @@ void main() {
       (sum, e) =>
           sum +
           glossaryRowBytes([
+            e.id,
+            e.kindName,
             e.name,
             e.definition,
             e.description,
@@ -129,17 +131,19 @@ void main() {
     expect(grown, lessThanOrEqualTo(2 * utf8Bytes(stored) + 1024));
   });
 
-  test('a glossary written before the budget still exports, and restores as '
-      'much as fits, reporting what it had no room for', () async {
-    // The roomy repository stands in for an older build with no budget.
+  test('a glossary written before the budget still exports and restores whole: '
+      'restore is not held to the budget, and what it leaves over the budget '
+      'can be edited down and deleted from but not grown', () async {
+    // The roomy repositories stand in for an older build with no budget.
     final source = openTestRepositories();
     final old = UserGlossaryRepository(source.db, maxBytes: 1 << 30);
+    final oldNotes = FigureNoteRepository(source.db, maxBytes: 1 << 30);
     String text(int i) => '${'x' * (maxUserGlossaryTextLength - 8)}$i';
-    UserGlossaryEntry entry(int i) => UserGlossaryEntry(
+    UserGlossaryEntry entry(int i, {String? definition}) => UserGlossaryEntry(
       id: 'e$i',
       kindName: 'compound',
       name: 'entry $i',
-      definition: text(i),
+      definition: definition ?? text(i),
       description: text(i),
       notes: text(i),
       createdAt: created.add(Duration(minutes: i)),
@@ -147,6 +151,9 @@ void main() {
     const total = 80;
     for (var i = 0; i < total; i++) {
       await old.upsert(entry(i));
+    }
+    for (final id in ['swing', 'balance', 'allemande_right']) {
+      await oldNotes.set(id, 'n' * maxUserGlossaryTextLength);
     }
     expect(
       (await source.userGlossary.listAll()).length,
@@ -161,19 +168,97 @@ void main() {
     final outcome = await BackupService(target).restoreFromJson(json);
     final restored = await target.userGlossary.listAll();
 
+    // Everything in the file comes back, the newest entries and the notes
+    // included, with nothing reported as skipped.
     expect(outcome.applied, isTrue);
-    expect(restored.length, lessThan(total));
-    expect(restored.length, greaterThan(total ~/ 2));
-    // The ones that fit are the first ones, in file order, whole.
+    expect(outcome.errors, isEmpty);
     expect(restored.map((e) => e.id).toList(), [
-      for (var i = 0; i < restored.length; i++) 'e$i',
+      for (var i = 0; i < total; i++) 'e$i',
     ]);
-    expect(restored.first.definition, text(0));
-    // Each of the rest is reported as skipped, and nothing else is.
-    expect(outcome.errors.length, total - restored.length);
-    for (final error in outcome.errors) {
-      expect(error.entityType, 'glossaryEntry');
-      expect(error.message, contains('glossary is full'));
-    }
+    expect(restored.last.definition, text(total - 1));
+    expect((await target.figureNotes.listAll()).length, 3);
+
+    // It is over the budget now: the editor's own writes cannot grow it ...
+    await expectLater(
+      target.userGlossary.upsert(entry(total + 1)),
+      throwsA(
+        isA<UserGlossaryEntryInvalid>().having(
+          (e) => e.isOverBudget,
+          'isOverBudget',
+          isTrue,
+        ),
+      ),
+    );
+    await expectLater(
+      target.userGlossary.upsert(entry(0, definition: '${text(0)}y')),
+      throwsA(isA<UserGlossaryEntryInvalid>()),
+    );
+    await expectLater(
+      target.figureNotes.set('newton', 'a note'),
+      throwsA(isA<FigureNoteInvalid>()),
+    );
+    // ... but it can be edited down and deleted from.
+    await target.userGlossary.upsert(entry(0, definition: 'short'));
+    await target.userGlossary.delete('e1');
+    await target.figureNotes.delete('swing');
+    expect((await target.userGlossary.getById('e0'))!.definition, 'short');
   }, timeout: const Timeout(Duration(minutes: 3)));
+
+  test('the per-row overhead covers the real envelope of an entry and of a '
+      'note: tiny rows write no more than 4x what they count for', () async {
+    final repos = openTestRepositories();
+    final empty = utf8Bytes(await BackupService(repos).exportToJson());
+    const n = 300;
+    for (var i = 0; i < n; i++) {
+      await repos.userGlossary.upsert(
+        UserGlossaryEntry(
+          id: uuidV4(),
+          kindName: 'compound',
+          name: 'n',
+          definition: 'd',
+          description: 'd',
+          createdAt: created,
+        ),
+      );
+    }
+    final withEntries = utf8Bytes(await BackupService(repos).exportToJson());
+    for (var i = 0; i < n; i++) {
+      await repos.figureNotes.set('figure-$i', 'x');
+    }
+    final withNotes = utf8Bytes(await BackupService(repos).exportToJson());
+
+    var entryText = 0;
+    for (final e in await repos.userGlossary.listAll()) {
+      entryText +=
+          glossaryRowBytes([
+            e.id,
+            e.kindName,
+            e.name,
+            e.definition,
+            e.description,
+            jsonEncode(e.keywords),
+          ]) -
+          kGlossaryRowOverheadBytes;
+    }
+    var noteText = 0;
+    for (final note in await repos.figureNotes.listAll()) {
+      noteText +=
+          glossaryRowBytes([note.figureId, note.notes]) -
+          kGlossaryRowOverheadBytes;
+    }
+    // What the file adds per row beyond the row's own text is what the
+    // overhead stands for, and it must fit under it, for each kind of row.
+    expect(
+      (withEntries - empty - entryText) / n,
+      lessThanOrEqualTo(kGlossaryRowOverheadBytes),
+      reason: 'envelope of an entry',
+    );
+    expect(
+      (withNotes - withEntries - noteText) / n,
+      lessThanOrEqualTo(kGlossaryRowOverheadBytes),
+      reason: 'envelope of a note',
+    );
+    final counted = entryText + noteText + 2 * n * kGlossaryRowOverheadBytes;
+    expect(withNotes - empty, lessThanOrEqualTo(counted * 4));
+  });
 }

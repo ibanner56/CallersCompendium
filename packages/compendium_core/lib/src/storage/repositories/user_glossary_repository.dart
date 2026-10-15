@@ -50,12 +50,18 @@ bool userGlossaryPayloadIsJson(String text) {
 }
 
 /// The most the user's glossary (entries and figure notes together) may hold
-/// when written through the editor or a restore, counted as
-/// [glossaryRowBytes]: the UTF-8 bytes of every stored text column plus
-/// [kGlossaryRowOverheadBytes] a row. A write that would take the total past
-/// it is refused as [UserGlossaryEntryInvalid] or [FigureNoteInvalid]; rows
-/// already there are never touched. A row that arrives by sync is not refused
-/// (see [UserGlossaryRepository.writeFromSync]).
+/// when written through the editor, counted as [glossaryRowBytes]: the UTF-8
+/// bytes of every stored text column (an entry's id and kind and a note's
+/// figure id included) plus [kGlossaryRowOverheadBytes] a row. A write that
+/// would take the total past it is refused as [UserGlossaryEntryInvalid] or
+/// [FigureNoteInvalid]; rows already there are never touched. Two paths are
+/// deliberately exempt: a row that arrives by sync
+/// ([UserGlossaryRepository.writeFromSync]) and a restore from a backup
+/// ([UserGlossaryRepository.upsertFromRestore]). Both bring in data the user
+/// already had, and refusing it would either stop devices converging or lose
+/// the newest entries on the operation meant to bring data back; the backup
+/// being restored already fit the file cap. A glossary they leave over the
+/// budget can be edited down and pruned, not grown.
 ///
 /// Why a total, and why 4 MiB. Each field has its own bound, but 5000 entries
 /// at those bounds come to gigabytes, while a backup is one file that restore
@@ -73,19 +79,27 @@ bool userGlossaryPayloadIsJson(String text) {
 /// counted bytes therefore bounds what the glossary adds to the file: 4 MiB x 4
 /// = 16 MiB, under a third of the 50 MiB cap, which leaves 34 MiB for
 /// everything else (the app's own estimate is about 30 MiB for a lean
-/// 20,000-dance library). Typical use is far below: a compound is 23-91 KB, so
-/// 4 MiB holds roughly 45 to 180 of them, or a few thousand short entries. The
-/// bound limits what the glossary can add; a collection that is already near
-/// the cap by itself can still reach it.
+/// 20,000-dance library). The bound limits what the glossary can add: a
+/// collection already near the cap by itself can still reach it, and the exempt
+/// paths above can take a glossary past it (it is then still under the file
+/// cap unless the collection is).
+///
+/// How much fits. An entry at its absolute per-field maximum is about 0.3 MiB
+/// of text plus a payload of up to [maxUserGlossaryPayloadLength], so only a
+/// handful of those fit; the editor's compounds are far below that
+/// ([maxUserGlossaryPayloadLength] notes a compound at its own bounds is far
+/// below it), and an entry with a sentence each of definition and description
+/// counts for about 1 KB, so a few thousand fit.
 ///
 /// Rejected: a budget at export. The user would still be unable to back up,
 /// and the only way out would be deleting entries blind.
 const int maxUserGlossaryBytes = 4 * 1024 * 1024;
 
 /// Counted against [maxUserGlossaryBytes] for each entry and each figure note
-/// on top of its text: the keys, id, kind and timestamp the backup writes
-/// around it (about 250 bytes before the container escapes it again), rounded
-/// up.
+/// on top of its text: the keys and timestamp the backup writes around it
+/// (about 150 bytes before the container escapes it again; the id, kind and
+/// figure id are counted as text), rounded up. A test measures the real
+/// envelope of tiny rows against it.
 const int kGlossaryRowOverheadBytes = 512;
 
 /// What a glossary entry or figure note holding these stored text values counts
@@ -196,7 +210,24 @@ class UserGlossaryRepository {
   /// glossary already over the budget (one from before there was a budget, a
   /// restored backup, or one that sync filled) can still be edited down and
   /// pruned; it just cannot grow.
-  Future<void> upsert(UserGlossaryEntry entry, {DateTime? at}) async {
+  Future<void> upsert(UserGlossaryEntry entry, {DateTime? at}) =>
+      _upsert(entry, at: at, enforceBudget: true);
+
+  /// [upsert] for restoring a backup, which is not held to [maxBytes]: the
+  /// file already fit the backup size cap and was exportable, so refusing its
+  /// tail would lose the newest entries on the one operation meant to bring
+  /// data back, where the budget exists to stop the glossary growing past what
+  /// can be exported. A glossary a restore leaves over the budget can be
+  /// edited down and pruned, not grown. Every per-field bound still applies.
+  /// Only the restore calls this; the editor goes through [upsert].
+  Future<void> upsertFromRestore(UserGlossaryEntry entry) =>
+      _upsert(entry, enforceBudget: false);
+
+  Future<void> _upsert(
+    UserGlossaryEntry entry, {
+    DateTime? at,
+    required bool enforceBudget,
+  }) async {
     final now = resolveStamp(at);
     if (!_isSyncableIdentifier(entry.id)) {
       throw const UserGlossaryEntryInvalid('id');
@@ -232,7 +263,9 @@ class UserGlossaryRepository {
       final existing = await (_db.select(
         _db.userGlossaryEntries,
       )..where((t) => t.id.equals(entry.id))).getSingleOrNull();
-      final before = await _glossaryBytes(_db, entryId: entry.id);
+      final before = enforceBudget
+          ? await _rowBytes(_db, entryId: entry.id)
+          : 0;
       // Every value is already normalised above; each is wrapped again here,
       // which changes nothing, so the normalisation ratchet
       // (normalisation_structure_test.dart) can see it at the write.
@@ -272,8 +305,9 @@ class UserGlossaryRepository {
       // Measured on what is stored, after the write, so what is counted is
       // what the backup will carry (not a second computation of it); throwing
       // rolls the whole write back.
+      if (!enforceBudget) return;
       final after = await _glossaryBytes(_db, entryId: entry.id);
-      if (after.total > maxBytes && after.row > before.row) {
+      if (after.total > maxBytes && after.row > before) {
         throw const UserGlossaryEntryInvalid.overBudget();
       }
     });
@@ -438,6 +472,7 @@ class UserGlossaryRepository {
 // is its byte length, and a text column cast to one is its UTF-8 encoding.
 const String _entryBytesSql =
     '$kGlossaryRowOverheadBytes'
+    ' + LENGTH(CAST(id AS BLOB)) + LENGTH(CAST(kind AS BLOB))'
     ' + LENGTH(CAST(name AS BLOB)) + LENGTH(CAST(definition AS BLOB))'
     ' + LENGTH(CAST(description AS BLOB)) + LENGTH(CAST(keywords_json AS BLOB))'
     ' + COALESCE(LENGTH(CAST(notes AS BLOB)), 0)'
@@ -446,10 +481,30 @@ const String _noteBytesSql =
     '$kGlossaryRowOverheadBytes'
     ' + LENGTH(CAST(figure_id AS BLOB)) + LENGTH(CAST(notes AS BLOB))';
 
+/// What the one live row named by [entryId] or [figureId] counts for; 0 when
+/// there is none, or it is deleted.
+Future<int> _rowBytes(
+  CompendiumDatabase db, {
+  String? entryId,
+  String? figureId,
+}) async {
+  final result = await db
+      .customSelect(
+        'SELECT'
+        ' (SELECT COALESCE(SUM($_entryBytesSql), 0) FROM user_glossary_entries'
+        '   WHERE deleted_at IS NULL AND id = ?)'
+        ' + (SELECT COALESCE(SUM($_noteBytesSql), 0) FROM figure_notes'
+        '   WHERE deleted_at IS NULL AND figure_id = ?) AS own',
+        variables: [Variable<String>(entryId), Variable<String>(figureId)],
+      )
+      .getSingle();
+  return result.read<int>('own');
+}
+
 /// The bytes every live glossary entry and figure note counts for together
 /// ([total]), and what the one row named by [entryId] or [figureId] counts for
-/// ([row]; 0 when there is none, or it is deleted). Deleted rows are not in the
-/// backup, so they count for nothing.
+/// ([row], as [_rowBytes]). Deleted rows are not in the backup, so they count
+/// for nothing.
 Future<({int total, int row})> _glossaryBytes(
   CompendiumDatabase db, {
   String? entryId,
@@ -510,7 +565,21 @@ class FigureNoteRepository {
   /// [maxBytes] and is larger than the one it replaces
   /// ([FigureNoteInvalid.overBudget]); a note that does not grow always goes
   /// through, as [UserGlossaryRepository.upsert] does.
-  Future<void> set(String figureId, String notes, {DateTime? at}) async {
+  Future<void> set(String figureId, String notes, {DateTime? at}) =>
+      _set(figureId, notes, at: at, enforceBudget: true);
+
+  /// [set] for restoring a backup, which is not held to [maxBytes], for the
+  /// reason [UserGlossaryRepository.upsertFromRestore] gives. The length bound
+  /// still applies. Only the restore calls this.
+  Future<void> setFromRestore(String figureId, String notes) =>
+      _set(figureId, notes, enforceBudget: false);
+
+  Future<void> _set(
+    String figureId,
+    String notes, {
+    DateTime? at,
+    required bool enforceBudget,
+  }) async {
     final now = resolveStamp(at);
     if (!_isSyncableIdentifier(figureId)) throw const FigureNoteInvalid();
     final text = normalizeShareableText(sanitizeShareableText(notes).trim());
@@ -519,7 +588,9 @@ class FigureNoteRepository {
     }
     if (text.isEmpty) return delete(figureId, at: now);
     await _db.transaction(() async {
-      final before = await _glossaryBytes(_db, figureId: figureId);
+      final before = enforceBudget
+          ? await _rowBytes(_db, figureId: figureId)
+          : 0;
       await _db
           .into(_db.figureNotes)
           .insertOnConflictUpdate(
@@ -537,8 +608,9 @@ class FigureNoteRepository {
         at: now,
       );
       // Measured after the write, on what is stored; throwing rolls it back.
+      if (!enforceBudget) return;
       final after = await _glossaryBytes(_db, figureId: figureId);
-      if (after.total > maxBytes && after.row > before.row) {
+      if (after.total > maxBytes && after.row > before) {
         throw const FigureNoteInvalid(overBudget: true);
       }
     });

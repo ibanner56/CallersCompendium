@@ -384,6 +384,19 @@ void main() {
         await tester.runAsync(() => h.repos.figureNotes.get('swing')),
         isNull,
       );
+      // The dialog stays open on what was typed, so the text is not lost and
+      // "shorten them" can be done in place.
+      final field = find.byKey(const ValueKey('glossary-notes-field'));
+      expect(field, findsOneWidget);
+      expect(tester.widget<TextField>(field).controller!.text, 'Larks ' * 3333);
+      await tester.enterText(field, 'Larks finish on the left');
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-save')));
+      await tester.pumpAndSettle();
+      expect(field, findsNothing);
+      expect(
+        (await tester.runAsync(() => h.repos.figureNotes.get('swing')))!.notes,
+        'role1s finish on the left',
+      );
     });
 
     testWidgets('a note the full Glossary has no room for says so, not that '
@@ -415,6 +428,13 @@ void main() {
       expect(
         await tester.runAsync(() => h.repos.figureNotes.get('swing')),
         isNull,
+      );
+      // Still open, with the text the user typed.
+      final field = find.byKey(const ValueKey('glossary-notes-field'));
+      expect(field, findsOneWidget);
+      expect(
+        tester.widget<TextField>(field).controller!.text,
+        'Larks finish on the left',
       );
     });
   });

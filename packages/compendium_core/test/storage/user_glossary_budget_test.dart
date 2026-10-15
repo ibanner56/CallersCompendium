@@ -24,6 +24,7 @@ void main() {
 
   UserGlossaryEntry entry(
     String id, {
+    String kind = 'compound',
     String name = 'n',
     String definition = 'd',
     String description = 'd',
@@ -32,7 +33,7 @@ void main() {
     Object? payload,
   }) => UserGlossaryEntry(
     id: id,
-    kindName: 'compound',
+    kindName: kind,
     name: name,
     definition: definition,
     description: description,
@@ -46,6 +47,8 @@ void main() {
   /// read back from the code under test. Every value used here is already
   /// sanitised and in NFC, so the stored text is the text given.
   int weight(UserGlossaryEntry e) => glossaryRowBytes([
+    e.id,
+    e.kindName,
     e.name,
     e.definition,
     e.description,
@@ -118,6 +121,8 @@ void main() {
     // sits one byte under the pair, so only an exact count refuses the second
     // write; and exactly on it, only an exact count accepts it.
     final heavy = <String, UserGlossaryEntry Function(String)>{
+      'id': (_) => entry('i' * 200),
+      'kind': (id) => entry(id, kind: 'k' * 200),
       'name': (id) => entry(id, name: 'n' * 200),
       'definition': (id) => entry(id, definition: 'd' * 3000),
       'description': (id) => entry(id, description: 'd' * 3000),
@@ -279,6 +284,47 @@ void main() {
     await expectLater(glossary.upsert(entry('mine')), throwsA(overBudget()));
   });
 
+  test('restoring is not held to the budget, but keeps every field bound, and '
+      'what it leaves over the budget can be edited down, not grown', () async {
+    final glossary = entries(1);
+    await glossary.upsertFromRestore(entry('a', definition: 'd' * 500));
+    await notes(1).setFromRestore('swing', 'n' * 500);
+    expect((await glossary.getById('a'))!.definition, 'd' * 500);
+    expect((await notes(1).get('swing'))!.notes, 'n' * 500);
+
+    // The per-field bounds are the restore's own and still apply.
+    await expectLater(
+      glossary.upsertFromRestore(entry('b', name: ' ')),
+      throwsA(
+        isA<UserGlossaryEntryInvalid>().having((e) => e.field, 'field', 'name'),
+      ),
+    );
+    await expectLater(
+      notes(1).setFromRestore('swing', 'x' * (maxUserGlossaryTextLength + 1)),
+      throwsA(
+        isA<FigureNoteInvalid>().having(
+          (e) => e.overBudget,
+          'overBudget',
+          false,
+        ),
+      ),
+    );
+
+    // The editor's own paths are still budgeted.
+    await expectLater(glossary.upsert(entry('c')), throwsA(overBudget()));
+    await expectLater(
+      glossary.upsert(entry('a', definition: 'd' * 501)),
+      throwsA(overBudget()),
+    );
+    await expectLater(
+      notes(1).set('swing', 'n' * 501),
+      throwsA(isA<FigureNoteInvalid>()),
+    );
+    await glossary.upsert(entry('a', definition: 'd' * 499));
+    await notes(1).set('swing', 'n' * 499);
+    expect((await glossary.getById('a'))!.definition, 'd' * 499);
+  });
+
   group('figure notes share the budget', () {
     test('a note counts for its figure id and text, to the byte', () async {
       final a = entry('a');
@@ -346,6 +392,21 @@ void main() {
       );
       await tight.set('swing', '');
       expect(await tight.listAll(), isEmpty);
+    });
+
+    test('deleting a note frees its room', () async {
+      final a = entry('a');
+      final both = weight(a) + noteWeight('swing', 'x');
+      await notes(both).set('swing', 'x');
+      await expectLater(
+        entries(both - 1).upsert(entry('a', definition: 'dd')),
+        throwsA(overBudget()),
+        reason: 'the note takes the room an entry needs',
+      );
+      await notes(both).delete('swing');
+      // A tombstone is not in the backup, so it counts for nothing.
+      await entries(weight(a)).upsert(a);
+      expect(await entries(weight(a)).getById('a'), isNotNull);
     });
 
     test(
