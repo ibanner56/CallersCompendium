@@ -1884,6 +1884,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _resolvingPerform = false;
     }
     if (!mounted) return;
+    // Resolved before the push: the route may rebuild after this screen has
+    // gone, when its context can no longer be read.
+    final renderer = UserFiguresScope.rendererOf(context);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         // Ctrl-K is suppressed while this route is on top ([performRouteName]).
@@ -1899,7 +1902,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             for (final entry in _createdChoreographers.entries)
               entry.key: entry.value.name,
           },
-          renderer: UserFiguresScope.rendererOf(context),
+          renderer: renderer,
           // Resume where the caller left off (issue #434): thread the last
           // position + clock back in, and capture the new one on exit. The
           // screen clamps a now-out-of-range group after edits.

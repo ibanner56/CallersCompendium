@@ -1104,10 +1104,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// (deleted mid-review), are simply absent from the result — [_buildActions]
   /// falls back to the plain (pre-#686) ambiguous UI for those.
   ///
-  /// Reuses the app's own [contraTaxonomy] + a fresh [FigureRenderer] and the
-  /// currently active [Dialect] — the comparison itself never depends on the
-  /// dialect (see [diffFigures]'s doc comment); the dialect only shapes the
-  /// display text of any lines actually rendered.
+  /// Reuses the app's own [contraTaxonomy], the live renderer
+  /// (`UserFiguresScope.rendererOf`) and the currently active [Dialect] — the
+  /// comparison itself never depends on the dialect (see [diffFigures]'s doc
+  /// comment); the dialect only shapes the display text of any lines actually
+  /// rendered.
   Future<Map<int, FigureDiffResult>> _computeConfidentDiffs(
     ImportBatchResult batch,
   ) async {

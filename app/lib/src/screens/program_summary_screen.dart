@@ -193,9 +193,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// rather than resetting to slot 1 with a fresh clock.
   PerformResumeState? _performResume;
 
-  /// Shared renderer for the large-print Perform view (mirrors
-  /// [ProgramEditorScreen]'s `_performRenderer`).
-  static final FigureRenderer _performRenderer = FigureRenderer(contraTaxonomy);
+  /// For prose and formation labels only; a dance's figures go to
+  /// `UserFiguresScope.rendererOf`, which shows uses of the user's own
+  /// figures live (#1023).
+  static final FigureRenderer _proseRenderer = FigureRenderer(contraTaxonomy);
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _bulkUndoSnackBar;
 
   /// Collapses a burst of refresh requests into a single [_load].
@@ -589,6 +590,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     // the stored program against (flows-1). Keyed by the adjusted program's
     // identity, so a stale Undo cannot match a later adjustment's write.
     final storedAfterWrite = Expando<Program>();
+    // Resolved before the push: the route may rebuild after this screen has
+    // gone, when its context can no longer be read.
+    final renderer = UserFiguresScope.rendererOf(context);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         // Ctrl-K is suppressed while this route is on top ([performRouteName]).
@@ -599,7 +603,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           danceOverrides: deletedDances.dances,
           authorNameOverrides: deletedDances.authorNames,
           difficultyLevels: _difficultyLevels,
-          renderer: UserFiguresScope.rendererOf(context),
+          renderer: renderer,
           // Resume where the caller left off (issue #434).
           initialGroup: _performResume?.groupIndex ?? 0,
           initialElapsedSeconds: _performResume?.elapsedSeconds ?? 0,
@@ -1059,7 +1063,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           formationDisplayLabel(
             l10n,
             dance.formation,
-            _performRenderer,
+            _proseRenderer,
             ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
               context,
@@ -1094,7 +1098,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           formationDisplayLabel(
             l10n,
             dance.formation,
-            _performRenderer,
+            _proseRenderer,
             ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
             canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
               context,

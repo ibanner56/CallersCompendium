@@ -1674,6 +1674,10 @@ class _CompendiumAppState extends State<CompendiumApp>
       'startup.walkthrough_snippets_load',
       _walkthroughSnippets.load,
     );
+    await _guardedControllerLoad(
+      'startup.user_figures_start',
+      _userFigures.start,
+    );
     await _guardedControllerLoad('startup.update_load', _updateController.load);
     await _guardedControllerLoad('startup.sync_load', _syncController.load);
     // Phase 2: reset, then apply every decoded value. Synchronous — no `await`
