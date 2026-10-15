@@ -11954,6 +11954,12 @@ abstract class AppLocalizations {
   /// **'backing up'**
   String get figureParamFacingStarBackingUp;
 
+  /// Hint in a figure parameter's dropdown when its stored value is no longer one it accepts and must be replaced: one of the user's own figures (#709) was changed after the value was chosen, or gained a parameter. Lowercase, like the 'not stated' hint.
+  ///
+  /// In en, this message translates to:
+  /// **'choose a value'**
+  String get danceEditorParamChooseValue;
+
   /// Tooltip for the button that clears a figure parameter back to the unstated state.
   ///
   /// In en, this message translates to:
