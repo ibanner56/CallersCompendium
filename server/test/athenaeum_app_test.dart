@@ -876,6 +876,46 @@ void main() {
     expect(hidden.statusCode, 404);
   });
 
+  test('a manifest naming an unknown record kind is still rejected (#709): '
+      'only clients skip kinds they do not know (spec §4.5)', () async {
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    expect(created.statusCode, 201);
+    final epoch =
+        (jsonDecode(await created.body()) as Map<String, Object?>)['epoch']!
+            as String;
+    final known = SyncManifest(
+      deviceId: 'device-one',
+      epoch: epoch,
+      writtenAt: DateTime.utc(2026, 9, 3),
+      records: {
+        SyncRecordKind.dance: {'dance-one': 'a' * 64},
+      },
+    ).toJson();
+    final body = utf8.encode(
+      jsonEncode({
+        ...known,
+        'records': {
+          ...(known['records']! as Map<String, Object?>),
+          'futureKind': {'future-one': 'b' * 64},
+        },
+      }),
+    );
+    final response = await _send(
+      'PUT',
+      '/v1/manifests/device-one',
+      syncId: syncId,
+      body: Uint8List.fromList(body),
+      contentType: 'application/json; charset=utf-8',
+    );
+    expect(response.statusCode, 400);
+    final stored = await _send(
+      'GET',
+      '/v1/manifests/device-one',
+      syncId: syncId,
+    );
+    expect(stored.statusCode, 404);
+  });
+
   test('blob uploads reject a body whose hash differs from the path', () async {
     expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
     final bytes = Uint8List.fromList([1, 2, 3]);
