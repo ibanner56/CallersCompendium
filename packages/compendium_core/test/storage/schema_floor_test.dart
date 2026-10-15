@@ -121,7 +121,9 @@ void main() {
     //
     // This builds the floor database from its schema snapshot rather than
     // stamping an empty file, because "it opened" is only meaningful for a
-    // database that actually has the floor version's tables in it.
+    // database that actually has the floor version's tables in it. The snapshot
+    // is empty, so what migration does to a floor database's *rows* is covered
+    // by `real_release_fixture_test.dart`, which opens a real release's file.
     final path = p.join(dir.path, 'floor.sqlite');
     final historical = GeneratedHelper().databaseForVersion(
       NativeDatabase(File(path)),

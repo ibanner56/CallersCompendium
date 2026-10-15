@@ -497,6 +497,11 @@ const int kCompendiumSchemaVersion = 40;
 /// Raising this is a user-visible change: databases below the new floor stop
 /// opening. It needs an app `changelog.d/` fragment, stated in user-facing
 /// terms, with the release whose schema version is being adopted named as the reason.
+///
+/// The floor keeps a real fixture, `test/storage/fixtures/v35.sqlite`, captured
+/// from that release's tag. Its name is derived from this constant in
+/// `test/storage/real_release_fixture_test.dart`, so raising the floor fails
+/// that test until a fixture for the new floor is committed.
 const int kMinSupportedSchemaVersion = 35;
 
 /// The Caller's Compendium local database.

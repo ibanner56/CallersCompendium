@@ -169,6 +169,12 @@ No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
 - drift schema versions with stepwise migrations; every migration ships with
   a test that instantiates the previous version from its generated schema
   snapshot (`GeneratedHelper`) and seeds the rows it asserts on.
+- The **floor version also keeps a real binary fixture**:
+  `test/storage/fixtures/v35.sqlite`, written by the `v0.4.0-beta` release with
+  representative rows. A schema snapshot carries structure only, so it cannot
+  show that `onUpgrade` preserved data; `real_release_fixture_test.dart`
+  opens the fixture, migrates it to head and reads the rows, FTS content,
+  links, provenance, program and settings back. See "Floor fixtures" below.
 - A **schema floor** (`kMinSupportedSchemaVersion`): versions below it are
   retired — their migration steps, fixtures and `drift_schemas/generated/`
   dumps are
@@ -190,11 +196,20 @@ Retiring versions below a new floor means deleting, together:
 - the `if (from < N)` steps that can no longer fire (note the off-by-one:
   retiring versions up to and including vX kills steps through `if (from < X+1)`,
   because that step only ever applies to a vX-or-below database),
-- the fixtures and generators under `test/storage/fixtures/` (the floor
-  version itself has no fixture any more: tests that need a floor-version file
-  build one from its `drift_schemas/generated/` snapshot via `GeneratedHelper`),
+- the fixtures and generators under `test/storage/fixtures/` for the retired
+  versions (the **new floor keeps its own**: see the next list),
 - the dumps under `drift_schemas/generated/` and their generated classes, and
 - the corresponding `migration_test.dart` groups.
+
+And adding, together, a fixture for the new floor:
+
+- **capture `test/storage/fixtures/v<new floor>.sqlite` from the new floor
+  release's tag** with `tool/fixture_generators/generate_release_fixture.dart`
+  (the recipe, including making the package resolve standalone at the tag, is in
+  its header), and record its sha256 under "Floor fixtures" below. The
+  existence test in `real_release_fixture_test.dart` derives the file name from
+  `kMinSupportedSchemaVersion`, so a floor raise without the new fixture is a
+  red test, not a silent loss of coverage.
 
 **The floor check is not bookkeeping.** Deleting those steps without it would
 let a below-floor database open, run only the surviving steps and be stamped at
@@ -208,6 +223,36 @@ Raising the floor is **user-visible** — databases below it stop opening — so
 needs an app entry in a `changelog.d/` fragment, naming the release whose schema
 version is being adopted. `tools/ci/check_schema_migration.py` fails any
 PR that reintroduces a per-version artefact below the floor.
+
+### Floor fixtures
+
+A drift schema snapshot has the tables but no rows, so the tests built on
+`GeneratedHelper` seed only what they assert on and cannot detect a migration
+that destroys, truncates or reinterprets existing data (an
+`UPDATE dances SET figures_json = '[]'` at the top of `onUpgrade` leaves every
+one of them green). The fixtures below are databases written by the real
+release code, holding four dances (a fully populated one with figures including
+a `meanwhile`, tags, an author, tunes, links, a source citation, a custom field
+and provenance; a plain one; a soft-deleted one; a diacritic-titled one), a
+program with three slots, a venue, choreographers, and the settings markers that
+release's startup wrote. They are not shipped user databases: they are what that
+release produces for this seed, which is the same code path a real collection
+went through.
+
+`real_release_fixture_test.dart` copies each one to a temporary directory, opens
+it with the current `CompendiumDatabase`, runs `ensureMigrated`, and asserts
+`user_version` reached head, `foreign_key_check` and `integrity_check` are
+clean, the dances/tags/authors/provenance/figures round-trip, FTS search works
+(including diacritic folding) and the program's slots are intact.
+
+| Fixture | Written by | Schema | sha256 |
+| --- | --- | --- | --- |
+| `v35.sqlite` (the floor) | `v0.4.0-beta` (`04ab10c7`) | 35 | `bce61632dce3f44ff56cd32cec101747dadc1339c17788b3951bccfaf884b290` |
+
+Regenerate by running `tool/fixture_generators/generate_release_fixture.dart`
+from a checkout of the release tag (recipe in its header); the output is
+byte-reproducible on the same sqlite3 build, so the digest above can be
+re-derived.
 
 ## Schema version history
 

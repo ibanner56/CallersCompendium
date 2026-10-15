@@ -1,6 +1,6 @@
 // Migration tests, per the convention documented on [CompendiumDatabase]:
-// every schema migration ships a test that opens a fixture DB captured at the
-// previous version and asserts the migration behaves.
+// every schema migration ships a test that opens a database at the previous
+// version and asserts the migration behaves.
 //
 // Coverage starts at [kMinSupportedSchemaVersion], not at v1. Schema versions
 // below the floor were retired (#837, floor since raised to v35) along with
@@ -8,10 +8,12 @@
 // migrate from; a below-floor database is refused outright, which
 // `schema_floor_test.dart` covers.
 //
-// No binary fixtures remain (the floor raise to v35 retired every one). Each
-// upgrade is exercised from its `drift_schemas/` dump instead
-// (`GeneratedHelper`), which carries structure only; the test seeds the rows
-// it needs.
+// This file builds its starting databases from the `drift_schemas/` dumps
+// (`GeneratedHelper`), which carry structure only; each test seeds the rows it
+// needs. The one binary fixture that remains is the floor version's, captured
+// from its release tag with real rows and exercised by
+// `real_release_fixture_test.dart`: that is the test that notices a migration
+// destroying data these tests never seeded.
 //
 // Schema *shape* after migration is covered separately by
 // `schema_verification_test.dart` (#828); this file covers data semantics.
