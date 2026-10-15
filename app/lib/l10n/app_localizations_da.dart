@@ -586,6 +586,28 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeCountGlossaryEntry(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count af dine egne figurer',
+      one: '1 af dine egne figurer',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountFigureNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'dine noter til $count figurer',
+      one: 'dine noter til 1 figur',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       'En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage dens ændringer.';
 
@@ -1349,7 +1371,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSyncPairingNewerDataBody =>
-      'Denne version synkroniserer nogle ting, som tidligere versioner af appen ikke kan læse. Opdater hver enhed, før du forbinder den: en enhed med en tidligere version kan muligvis ikke forbinde. Indtil alle forbundne enheder er opdateret, bliver de ting på den enhed, hvor de blev lavet.';
+      'Denne version synkroniserer nogle ting, som tidligere versioner af appen ikke kan læse. Opdater hver enhed, før du forbinder den: en enhed med en tidligere version kan muligvis ikke forbinde. Indtil alle forbundne enheder er opdateret, bliver de ting ikke sendt til dine andre enheder.';
 
   @override
   String get settingsSyncPairingBearerTitle =>
@@ -2836,6 +2858,17 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get syncReviewKindSetting => 'Indstilling';
+
+  @override
+  String get syncReviewKindGlossaryEntry => 'Din egen figur';
+
+  @override
+  String get syncReviewKindFigureNote => 'Dine noter til en figur';
+
+  @override
+  String syncConflictFigureNoteTitle(String figure) {
+    return 'Dine noter til $figure';
+  }
 
   @override
   String syncReviewLocalRecord(String id) {
@@ -8253,6 +8286,42 @@ class AppLocalizationsDa extends AppLocalizations {
   String get shorthandMappingsActionsTooltip => 'Kortformhandlinger';
 
   @override
+  String get shorthandsCompoundTitle => 'Kortformer for dine egne figurer';
+
+  @override
+  String get shorthandsCompoundIntro =>
+      'Når fri tekstindtastning er slået til, tilføjer du en af dine egne figurer med de værdier, der er valgt her, ved at skrive en af disse kortformer som en hel linje, mens du redigerer en dans.';
+
+  @override
+  String get shorthandsCompoundNew => 'Ny kortform for en af dine figurer';
+
+  @override
+  String get shorthandsCompoundEmpty =>
+      'Ingen kortformer for dine egne figurer endnu.';
+
+  @override
+  String get shorthandsCompoundUnavailable =>
+      'Kan ikke bruges: dens figur er slettet eller ændret, eller den accepterer ikke disse værdier. Når den skrives, læses den som en almindelig linje.';
+
+  @override
+  String get shorthandsCompoundShadowed =>
+      'Bruges ikke: en figurkortform har samme tekst.';
+
+  @override
+  String get compoundShorthandEditorFigureLabel => 'Din figur';
+
+  @override
+  String get compoundShorthandEditorNoFigure => 'Vælg en af dine figurer.';
+
+  @override
+  String get compoundShorthandEditorNoCompounds =>
+      'Du har ingen egne figurer endnu. Tilføj først en i ordlisten.';
+
+  @override
+  String get compoundShorthandEditorInvalidValues =>
+      'Disse værdier passer ikke til figuren. Vælg andre.';
+
+  @override
   String get shorthandEditorTitleNew => 'Ny kortform';
 
   @override
@@ -8283,6 +8352,11 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String shorthandEditorErrorDuplicate(String token) {
     return 'En anden kortform bruger allerede „$token“ (kortformer matches store/små bogstaver ufølsomt).';
+  }
+
+  @override
+  String shorthandEditorErrorDuplicateHidden(String token) {
+    return '„$token“ er allerede en kortform for en af dine egne figurer. De vises her, når Egne figurer er slået til.';
   }
 
   @override

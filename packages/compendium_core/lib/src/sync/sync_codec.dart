@@ -8,12 +8,14 @@ import '../model/difficulty_level.dart';
 import '../model/published_source.dart';
 import '../model/program.dart';
 import '../model/tag.dart';
+import '../model/user_glossary.dart';
 import '../model/venue.dart';
 import '../privacy/data_classification.dart';
 import '../privacy/settings_registry.dart';
 import '../serialization/archive_codec.dart';
 import '../serialization/archive_entity_codec.dart';
 import 'canonical_json.dart';
+import 'sync_glossary_body.dart';
 import 'sync_record_kind.dart';
 import 'sync_retained_fields.dart';
 import 'wire_mapping.dart';
@@ -368,7 +370,9 @@ String? encodeSyncSettingsRecord(SyncSettingsRecord record) {
   return blob == null ? null : encodeSyncRecordBlob(blob);
 }
 
-/// Builds a shareable archive-shaped body for one of the eight entity kinds.
+/// Builds a shareable body for one of the entity kinds: archive-shaped for
+/// the eight the compendium archive carries, and from
+/// `sync_glossary_body.dart` for the user's glossary (#709).
 ///
 /// [retained] is what this device keeps of the record for a newer version of
 /// the app ([partitionInboundRecordBody]); it is put back after projection so
@@ -413,6 +417,12 @@ Map<String, Object?> syncBodyForEntity(
       _requireEntity<Venue>(entity, kind),
       includeOptionalFields: true,
     ),
+    SyncRecordKind.glossaryEntry => syncGlossaryEntryBody(
+      _requireEntity<StoredUserGlossaryEntry>(entity, kind),
+    ),
+    SyncRecordKind.figureNote => syncFigureNoteBody(
+      _requireEntity<FigureNote>(entity, kind),
+    ),
     SyncRecordKind.setting => throw ArgumentError(
       'settings use SyncSettingsRecord',
     ),
@@ -438,7 +448,7 @@ Map<String, Object?> syncBodyForEntity(
       : mergeRetainedFields(projected, retained);
 }
 
-/// Strictly decodes an archive-shaped sync body into its entity model.
+/// Strictly decodes a sync body into its entity model.
 ///
 /// This is shared by inbound application and persisted review validation so a
 /// candidate cannot be presented as actionable when the eventual write would
@@ -446,6 +456,14 @@ Map<String, Object?> syncBodyForEntity(
 Object decodeSyncRecordEntity(SyncRecordKind kind, Map<String, Object?> body) {
   if (kind == SyncRecordKind.setting) {
     throw StateError('settings have no archive entity');
+  }
+  // The user's glossary is not in the archive; its bodies have their own
+  // reader (#709).
+  if (kind == SyncRecordKind.glossaryEntry) {
+    return decodeSyncGlossaryEntryBody(body);
+  }
+  if (kind == SyncRecordKind.figureNote) {
+    return decodeSyncFigureNoteBody(body);
   }
   final key = switch (kind) {
     SyncRecordKind.dance => 'dances',
@@ -459,6 +477,8 @@ Object decodeSyncRecordEntity(SyncRecordKind kind, Map<String, Object?> body) {
     SyncRecordKind.setting => throw StateError(
       'settings have no archive entity',
     ),
+    SyncRecordKind.glossaryEntry ||
+    SyncRecordKind.figureNote => throw StateError('decoded above'),
   };
   final result = archiveFromJson({
     'schemaVersion': 4,
@@ -494,6 +514,8 @@ Object decodeSyncRecordEntity(SyncRecordKind kind, Map<String, Object?> body) {
     SyncRecordKind.setting => throw StateError(
       'settings have no archive entity',
     ),
+    SyncRecordKind.glossaryEntry ||
+    SyncRecordKind.figureNote => throw StateError('decoded above'),
   };
 }
 
@@ -512,7 +534,8 @@ void validateSyncReviewCandidateBody(
   decodeSyncRecordEntity(kind, split.known);
 }
 
-/// Builds a versioned blob for one of the eight archive entity kinds.
+/// Builds a versioned blob for one of the entity kinds (every kind but
+/// `setting`).
 SyncRecordBlob? syncRecordBlobForEntity(
   SyncRecordKind kind,
   Object entity, {

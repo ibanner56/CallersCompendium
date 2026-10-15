@@ -540,6 +540,14 @@
   "@settingsSyncNoticeCountSetting": {
     "x-sourceSha256": "ff0a50b131bbe8edcf51dc54d23235e5089d53704d6a548605bf9b6f132da4c5"
   },
+  "settingsSyncNoticeCountGlossaryEntry": "{count, plural, =1{1 af dine egne figurer} other{{count} af dine egne figurer}}",
+  "@settingsSyncNoticeCountGlossaryEntry": {
+    "x-sourceSha256": "68fc2e794fec98d4ce9e7ebdf6de306fae7ae2eae11a23e0c59f5033212b64ba"
+  },
+  "settingsSyncNoticeCountFigureNote": "{count, plural, =1{dine noter til 1 figur} other{dine noter til {count} figurer}}",
+  "@settingsSyncNoticeCountFigureNote": {
+    "x-sourceSha256": "d8a9a1a4ceb2c8d27210fecff6147fdceaceb98a415748dabd9f42851eb3176a"
+  },
   "settingsSyncNoticeNewerVersionUncounted": "En anden enhed bruger en nyere version af appen. Opdater appen på denne enhed for at modtage dens ændringer.",
   "@settingsSyncNoticeNewerVersionUncounted": {
     "x-sourceSha256": "ca371c7f36b6a2ca97e5fb9d8cd18cc2909af04e2973dec1a999d4e7a50fb339"
@@ -1220,9 +1228,9 @@
   "@settingsSyncPairingNewerDataTitle": {
     "x-sourceSha256": "a70ee18e575d46d080d7a7d51c306ac8647d1e4b28b2cf4a6397534f0bd50189"
   },
-  "settingsSyncPairingNewerDataBody": "Denne version synkroniserer nogle ting, som tidligere versioner af appen ikke kan læse. Opdater hver enhed, før du forbinder den: en enhed med en tidligere version kan muligvis ikke forbinde. Indtil alle forbundne enheder er opdateret, bliver de ting på den enhed, hvor de blev lavet.",
+  "settingsSyncPairingNewerDataBody": "Denne version synkroniserer nogle ting, som tidligere versioner af appen ikke kan læse. Opdater hver enhed, før du forbinder den: en enhed med en tidligere version kan muligvis ikke forbinde. Indtil alle forbundne enheder er opdateret, bliver de ting ikke sendt til dine andre enheder.",
   "@settingsSyncPairingNewerDataBody": {
-    "x-sourceSha256": "4d930677c1fe7d851fcb0909abedd8931a194760e3c63f5196393e7fc39bb024"
+    "x-sourceSha256": "71895e175c3abfaa7fbb5c050e9583e2f3b0420d09d1653dff98d1e7324a972e"
   },
   "settingsSyncPairingBearerTitle": "Enhver med denne sætning kan åbne dit bibliotek",
   "@settingsSyncPairingBearerTitle": {
@@ -2915,6 +2923,18 @@
   "syncReviewKindSetting": "Indstilling",
   "@syncReviewKindSetting": {
     "x-sourceSha256": "818cd8d91aea3a1689455f009f49e87fe7fa647fa2c4b9f09072dd1c33d52ca5"
+  },
+  "syncReviewKindGlossaryEntry": "Din egen figur",
+  "@syncReviewKindGlossaryEntry": {
+    "x-sourceSha256": "d89a8f32c2f5099f6e866919bcc348bfc5afa253b8fda66039ae398dcc55d1d5"
+  },
+  "syncReviewKindFigureNote": "Dine noter til en figur",
+  "@syncReviewKindFigureNote": {
+    "x-sourceSha256": "7c075d1bb02b49b5c64babc2c11318461b01bad01b9cfbd964e9f62f3c2f0b93"
+  },
+  "syncConflictFigureNoteTitle": "Dine noter til {figure}",
+  "@syncConflictFigureNoteTitle": {
+    "x-sourceSha256": "57808c2e61dfdc04f48d7e10a927ab545ca45e9abffcab7f5706090f807eea66"
   },
   "syncReviewLocalRecord": "Lokal post: {id}",
   "@syncReviewLocalRecord": {
@@ -8186,6 +8206,46 @@
   "@shorthandMappingsActionsTooltip": {
     "x-sourceSha256": "8794003dafec4a03b433f702ad1645c759dba638a9aa61e3da40ab8e65dab5e8"
   },
+  "shorthandsCompoundTitle": "Kortformer for dine egne figurer",
+  "@shorthandsCompoundTitle": {
+    "x-sourceSha256": "b37015f6e5621c3bf45810cce907194e87f5b4a9814b5c5695f960f484aa5949"
+  },
+  "shorthandsCompoundIntro": "Når fri tekstindtastning er slået til, tilføjer du en af dine egne figurer med de værdier, der er valgt her, ved at skrive en af disse kortformer som en hel linje, mens du redigerer en dans.",
+  "@shorthandsCompoundIntro": {
+    "x-sourceSha256": "80090b751b53b2c67b417cdeed684cb8b14db7c4fa9ea70f67e05421fec4f587"
+  },
+  "shorthandsCompoundNew": "Ny kortform for en af dine figurer",
+  "@shorthandsCompoundNew": {
+    "x-sourceSha256": "1b347bb6599a3f25aeff5e17d7a6e5eeb0dfdb9e7ef94f7939e4d657027a8a14"
+  },
+  "shorthandsCompoundEmpty": "Ingen kortformer for dine egne figurer endnu.",
+  "@shorthandsCompoundEmpty": {
+    "x-sourceSha256": "a10d6f5f186121f862135340b6e0cb665b5aaa7855bad0814bc34fa596c51b24"
+  },
+  "shorthandsCompoundUnavailable": "Kan ikke bruges: dens figur er slettet eller ændret, eller den accepterer ikke disse værdier. Når den skrives, læses den som en almindelig linje.",
+  "@shorthandsCompoundUnavailable": {
+    "x-sourceSha256": "1b95eac1564cf87d7e26c29bfb086720d29821ed2df01c8b5495c164a12b11e0"
+  },
+  "shorthandsCompoundShadowed": "Bruges ikke: en figurkortform har samme tekst.",
+  "@shorthandsCompoundShadowed": {
+    "x-sourceSha256": "75111a930cc8890e0f1378c778ee2c93d1ec4cd35897e8d496d60f0cc46d60b6"
+  },
+  "compoundShorthandEditorFigureLabel": "Din figur",
+  "@compoundShorthandEditorFigureLabel": {
+    "x-sourceSha256": "6af67418286324f390ac3a5859240761a8b839514d0f5e667ab73f2a3ebce834"
+  },
+  "compoundShorthandEditorNoFigure": "Vælg en af dine figurer.",
+  "@compoundShorthandEditorNoFigure": {
+    "x-sourceSha256": "1cc30345f89f7d60df026db7a7d9058a654a1cae56aada728df7863bf573fd28"
+  },
+  "compoundShorthandEditorNoCompounds": "Du har ingen egne figurer endnu. Tilføj først en i ordlisten.",
+  "@compoundShorthandEditorNoCompounds": {
+    "x-sourceSha256": "62a41226cac8234479053580ceee7bf7ee3b36e0d5bf8a2b97d1b8e5c0945a61"
+  },
+  "compoundShorthandEditorInvalidValues": "Disse værdier passer ikke til figuren. Vælg andre.",
+  "@compoundShorthandEditorInvalidValues": {
+    "x-sourceSha256": "af97e0a8be30a36c45361b3f63c27fb0fcbf14984cd22b61567bb0b1e787061d"
+  },
   "shorthandEditorTitleNew": "Ny kortform",
   "@shorthandEditorTitleNew": {
     "x-sourceSha256": "bcb70a5881650d222f46a45b002a5e5d5af4760fe5f046123ce0f9e05100c220"
@@ -8221,6 +8281,10 @@
   "shorthandEditorErrorDuplicate": "En anden kortform bruger allerede „{token}“ (kortformer matches store/små bogstaver ufølsomt).",
   "@shorthandEditorErrorDuplicate": {
     "x-sourceSha256": "652678e63db28b88cf7ee418247d06d9a21db5efad07e7753757d3581bc29dbf"
+  },
+  "shorthandEditorErrorDuplicateHidden": "„{token}“ er allerede en kortform for en af dine egne figurer. De vises her, når Egne figurer er slået til.",
+  "@shorthandEditorErrorDuplicateHidden": {
+    "x-sourceSha256": "7e3ee1d83196cfbd629298030de3866e4a983082c6b7fc1f5a0312d316091c27"
   },
   "shorthandEditorErrorNoFigures": "Tilføj mindst én figur, som denne kortform skal udvide til.",
   "@shorthandEditorErrorNoFigures": {

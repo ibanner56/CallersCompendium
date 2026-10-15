@@ -54,6 +54,16 @@ final Map<String, DataClassification> settingsClassifications = {
   'custom_dialects': _preference,
   'custom_themes': _preference,
   'shorthand_mappings': _preference,
+  'compound_shorthands': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'The user\'s shorthands for their own compound figures (#709): '
+        'tokens they chose, a figure\'s id and name, and values. Shareable '
+        'like the figure shorthands; held back until every device can read '
+        'it (SyncCapabilityPolicy.build).',
+  ),
   'walkthrough_snippets': _preference,
   'formation_color_overrides': _preference,
   'default_move_param_overrides': _preference,
@@ -383,7 +393,8 @@ final Map<String, DataClassification> settingsPrefixClassifications = {
         'gate). The device id in the key is the same protocolIdentifier every '
         'manifest already carries. Never restored from a backup '
         '(backup_service.dart denylists the prefix), since only its own device '
-        'may write it. Erased, not tombstoned, on detach '
+        'may write it, apart from the tombstone written when a device is '
+        'removed from the store. Erased, not tombstoned, on detach '
         '(SyncLocalRepository.clearOnDetach), so the device ids of a store '
         'this device has left never reach the next one.',
   ),

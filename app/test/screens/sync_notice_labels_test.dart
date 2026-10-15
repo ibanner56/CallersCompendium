@@ -280,7 +280,8 @@ void main() {
       expect(
         text,
         '1 dance, 1 program, 1 choreographer, 1 tag, 1 published source, '
-        '1 custom field, 1 difficulty level, 1 venue, 1 setting',
+        '1 custom field, 1 difficulty level, 1 venue, 1 setting, '
+        '1 of your own figures, your notes on 1 figure',
       );
     });
 

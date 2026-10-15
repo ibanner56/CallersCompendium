@@ -7110,7 +7110,9 @@ void main() {
       await coordinatorFor(
         quiet,
         transportFor(['peer']),
-        capabilities: SyncCapabilityPolicy.build,
+        capabilities: const SyncCapabilityPolicy(
+          gatedSettingKeys: {'custom_dialects': 'test.v1'},
+        ),
       ).syncNow();
       expect(quiet.ensured, isEmpty);
 
@@ -7279,25 +7281,312 @@ void main() {
       expect(awaiting(result), isEmpty, reason: 'no other device to name');
     });
 
-    test('this build holds the glossary\'s settings back and advertises '
-        'nothing yet (#709)', () async {
-      expect(SyncCapabilityPolicy.build.gatedCapabilities, {
+    test('this build advertises glossary.v1 and gates the glossary\'s '
+        'kinds and settings on it (#709)', () async {
+      expect(SyncCapabilityPolicy.build.advertised, {
         SyncCapabilities.glossaryV1,
       });
-      expect(SyncCapabilityPolicy.build.advertised, isEmpty);
+      expect(SyncCapabilityPolicy.build.gatedRecordKinds, {
+        SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
+        SyncRecordKind.figureNote: SyncCapabilities.glossaryV1,
+      });
+      expect(SyncCapabilityPolicy.build.gatedSettingKeys, {
+        'show_custom_figures': SyncCapabilities.glossaryV1,
+        'compound_shorthands': SyncCapabilities.glossaryV1,
+      });
+      expect(SyncCapabilityPolicy.build.gatedGlossaryEntryKinds, {
+        'term': SyncCapabilities.glossaryV2,
+        'customFigure': SyncCapabilities.glossaryV2,
+      });
+      expect(
+        SyncCapabilityPolicy.build.advertised,
+        isNot(contains(SyncCapabilities.glossaryV2)),
+        reason:
+            'the user\'s own terms and figures stay on their device until '
+            'the whole of #1023 is in the build',
+      );
       final toggle = SyncMergeCandidate.fromBlob(
         _setting('show_custom_figures', 'true'),
       );
-      final store = _FakeStore(
-        local: {toggle.address: toggle, plain.address: plain},
+      final shorthands = SyncMergeCandidate.fromBlob(
+        _setting('compound_shorthands', '[]'),
       );
-      final transport = transportFor(const []);
+      final local = {
+        toggle.address: toggle,
+        shorthands.address: shorthands,
+        plain.address: plain,
+      };
+
+      // A peer that has not said it can read them holds them back...
+      final waiting = transportFor(['peer']);
       await coordinatorFor(
-        store,
-        transport,
+        _FakeStore(local: local),
+        waiting,
         capabilities: SyncCapabilityPolicy.build,
       ).syncNow();
-      expect(publishedSettings(transport), {'theme_mode'});
+      expect(publishedSettings(waiting), {'theme_mode'});
+
+      // ...and alone in its store, this build publishes them.
+      final alone = transportFor(const []);
+      await coordinatorFor(
+        _FakeStore(local: local),
+        alone,
+        capabilities: SyncCapabilityPolicy.build,
+      ).syncNow();
+      expect(publishedSettings(alone), {
+        'show_custom_figures',
+        'compound_shorthands',
+        'theme_mode',
+      });
+    });
+
+    test('glossary entries wait on the capability of their own kind: terms '
+        'and figures of your own on glossary.v2, compounds and unknown kinds '
+        'on glossary.v1, tombstones included (#1023)', () async {
+      SyncMergeCandidate entryOf(String id, String kind) =>
+          SyncMergeCandidate.fromBlob(
+            syncRecordBlobForEntity(
+              SyncRecordKind.glossaryEntry,
+              StoredUserGlossaryEntry(
+                id: id,
+                kind: kind,
+                name: id,
+                definition: 'A definition.',
+                description: 'A description.',
+                createdAt: stamp,
+              ),
+              updatedAt: stamp,
+              existenceAt: stamp,
+            )!,
+          );
+      final compound = entryOf('a-compound', 'compound');
+      final term = entryOf('a-term', 'term');
+      final figure = entryOf('a-figure', 'customFigure');
+      final gone = tombstoneOf(entryOf('a-gone-figure', 'customFigure'));
+      final future = entryOf('a-future', 'someLaterKind');
+      final local = {
+        for (final c in [compound, term, figure, gone, future]) c.address: c,
+      };
+      Set<String> publishedEntries(_FakeTransport transport) =>
+          (decodeSyncManifest(
+                    utf8.decode(transport.manifestBodies.last),
+                  ).records[SyncRecordKind.glossaryEntry] ??
+                  const <String, String>{})
+              .keys
+              .toSet();
+      const both = SyncCapabilityPolicy(
+        advertised: {SyncCapabilities.glossaryV1, SyncCapabilities.glossaryV2},
+        gatedRecordKinds: {
+          SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
+        },
+        gatedGlossaryEntryKinds: {
+          'term': SyncCapabilities.glossaryV2,
+          'customFigure': SyncCapabilities.glossaryV2,
+        },
+      );
+
+      // This build, alone in its store, does not advertise glossary.v2 yet:
+      // only the compound and the kind it does not know publish.
+      final alone = transportFor(const []);
+      var result = await coordinatorFor(
+        _FakeStore(local: local),
+        alone,
+        capabilities: SyncCapabilityPolicy.build,
+      ).syncNow();
+      expect(result.status, SyncPassStatus.completed);
+      expect(publishedEntries(alone), {'a-compound', 'a-future'});
+      expect(
+        uploaded(alone),
+        isNot(anyOf(contains(figure.wireHash), contains(gone.wireHash))),
+      );
+
+      // A build that advertises both, beside a peer that only reads
+      // glossary.v1: the peer holds back only the new kinds, and is named.
+      final v1Peer = capabilityOf('peer', {SyncCapabilities.glossaryV1});
+      final olderPeer = transportFor(['peer']);
+      result = await coordinatorFor(
+        _FakeStore(local: {...local, v1Peer.address: v1Peer}),
+        olderPeer,
+        capabilities: both,
+      ).syncNow();
+      expect(result.status, SyncPassStatus.completed);
+      expect(publishedEntries(olderPeer), {'a-compound', 'a-future'});
+      expect(awaiting(result).map((r) => r.peerId), ['peer']);
+      expect(awaiting(result).single.message, contains('glossary.v2'));
+      expect(
+        awaiting(result).single.message,
+        isNot(contains('glossary.v1')),
+        reason: 'nothing gated on glossary.v1 was held back',
+      );
+
+      // Once the peer reads glossary.v2 too, everything publishes.
+      final v2Peer = capabilityOf('peer', {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+      });
+      final updatedPeer = transportFor(['peer']);
+      result = await coordinatorFor(
+        _FakeStore(local: {...local, v2Peer.address: v2Peer}),
+        updatedPeer,
+        capabilities: both,
+      ).syncNow();
+      expect(result.status, SyncPassStatus.completed);
+      expect(awaiting(result), isEmpty);
+      expect(publishedEntries(updatedPeer), {
+        'a-compound',
+        'a-term',
+        'a-figure',
+        'a-gone-figure',
+        'a-future',
+      });
+    });
+
+    test('end to end: two capable devices publish their glossaries; a third '
+        'with no capability record closes the gate, holding them back and '
+        'deleting nothing (#709)', () async {
+      // Device A, on the real store, and its own entry and note.
+      final repos = openTestRepositories();
+      final created = DateTime.utc(2026, 9, 1);
+      await repos.userGlossary.upsert(
+        UserGlossaryEntry(
+          id: 'mine',
+          kindName: 'compound',
+          name: 'role1s spiral',
+          definition: 'A spiral.',
+          description: 'Round.',
+          payload: const {
+            'params': <Object?>[],
+            'figures': <Object?>[],
+            'bindings': <Object?>[],
+          },
+          createdAt: created,
+        ),
+        at: created,
+      );
+      await repos.figureNotes.set('swing', 'Smooth.', at: created);
+      const entry = (kind: SyncRecordKind.glossaryEntry, recordId: 'mine');
+      const note = (kind: SyncRecordKind.figureNote, recordId: 'swing');
+
+      // Device B advertises glossary.v1 and publishes an entry of its own.
+      final peerCaps = capabilityOf('peer', {SyncCapabilities.glossaryV1});
+      final theirs = SyncMergeCandidate.fromBlob(
+        syncRecordBlobForEntity(
+          SyncRecordKind.glossaryEntry,
+          StoredUserGlossaryEntry(
+            id: 'theirs',
+            kind: 'compound',
+            name: 'Grand spin',
+            definition: 'A spin.',
+            description: 'Once round.',
+            payloadJson: '{"params":[],"figures":[],"bindings":[]}',
+            createdAt: created,
+          ),
+          updatedAt: created,
+          existenceAt: created,
+        )!,
+      );
+      final transport = _FakeTransport(
+        devices: ['device-a', 'peer'],
+        peerManifests: {
+          'peer': _manifest(
+            deviceId: 'peer',
+            records: {
+              SyncRecordKind.setting: {
+                peerCaps.address.recordId: peerCaps.wireHash,
+              },
+              SyncRecordKind.glossaryEntry: {'theirs': theirs.wireHash},
+            },
+          ),
+        },
+        blobResponses: {
+          for (final c in [peerCaps, theirs])
+            c.wireHash: _FakeTransport.response(
+              200,
+              body: utf8.encode(encodeSyncRecordBlob(c.blob)),
+            ),
+        },
+      );
+      await repos.syncLocal.resetEpoch(epoch: 'epoch-1');
+      final coordinator = SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: CompendiumSyncCoordinatorStore(repos),
+        transport: transport,
+      );
+      addTearDown(coordinator.dispose);
+      Map<SyncRecordKind, Map<String, String>> manifest() => decodeSyncManifest(
+        utf8.decode(transport.manifestBodies.last),
+      ).records;
+
+      var result = await coordinator.syncNow();
+      expect(result.status, SyncPassStatus.completed);
+      expect(awaiting(result), isEmpty, reason: 'every device can read them');
+      expect(manifest()[SyncRecordKind.glossaryEntry]?.keys, contains('mine'));
+      expect(manifest()[SyncRecordKind.figureNote]?.keys, contains('swing'));
+      expect(
+        (await repos.userGlossary.getById('theirs'))?.name,
+        'Grand spin',
+        reason: "the peer's entry arrived",
+      );
+      expect(await repos.settings.get(syncCapabilityRecordKey('device-a')), {
+        'capabilities': [SyncCapabilities.glossaryV1],
+      }, reason: 'this build advertises the capability');
+
+      // Device C attaches, on a build that advertises nothing.
+      transport.devices.add('older');
+      result = await coordinator.syncNow();
+      expect(result.status, SyncPassStatus.completed);
+      expect(awaiting(result).map((r) => r.peerId), ['older']);
+      expect(manifest()[SyncRecordKind.glossaryEntry] ?? const {}, isEmpty);
+      expect(manifest()[SyncRecordKind.figureNote] ?? const {}, isEmpty);
+      // Held back, not deleted: every row is still here and live.
+      expect((await repos.userGlossary.getById('mine'))?.name, 'role1s spiral');
+      expect((await repos.userGlossary.getById('theirs'))?.name, 'Grand spin');
+      expect((await repos.figureNotes.get('swing'))?.notes, 'Smooth.');
+      final snapshot = await CompendiumSyncStorage(repos).snapshot();
+      expect(
+        snapshot.local[entry],
+        isNotNull,
+        reason: 'kept in the merge view',
+      );
+      expect(snapshot.local[note], isNotNull, reason: 'kept in the merge view');
+      expect(snapshot.local[entry]!.blob.deletedAt, isNull);
+      expect(snapshot.local[note]!.blob.deletedAt, isNull);
+
+      // Device B holds its own glossary back too now: absence from its
+      // manifest is not a deletion (spec §4.5), so its entry stays live here.
+      transport.peerManifests['peer'] = _manifest(
+        deviceId: 'peer',
+        records: {
+          SyncRecordKind.setting: {
+            peerCaps.address.recordId: peerCaps.wireHash,
+          },
+        },
+      );
+      result = await coordinator.syncNow();
+      expect(result.status, SyncPassStatus.completed);
+      expect((await repos.userGlossary.getById('theirs'))?.name, 'Grand spin');
+
+      // Device C is updated and advertises glossary.v1: the gate opens again
+      // and the next pass publishes what it held back.
+      final olderCaps = capabilityOf('older', {SyncCapabilities.glossaryV1});
+      transport.peerManifests['older'] = _manifest(
+        deviceId: 'older',
+        records: {
+          SyncRecordKind.setting: {
+            olderCaps.address.recordId: olderCaps.wireHash,
+          },
+        },
+      );
+      transport.blobResponses[olderCaps.wireHash] = _FakeTransport.response(
+        200,
+        body: utf8.encode(encodeSyncRecordBlob(olderCaps.blob)),
+      );
+      result = await coordinator.syncNow();
+      expect(result.status, SyncPassStatus.completed);
+      expect(awaiting(result), isEmpty);
+      expect(manifest()[SyncRecordKind.glossaryEntry]?.keys, contains('mine'));
+      expect(manifest()[SyncRecordKind.figureNote]?.keys, contains('swing'));
     });
 
     test('the real store writes its own record only when it changes', () async {

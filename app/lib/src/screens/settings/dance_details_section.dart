@@ -6,6 +6,7 @@ import '../../data/canonical_discouraged_terms_scope.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
+import '../../data/show_custom_figures_scope.dart';
 import '../../data/walkthrough_snippet_library_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/section_header.dart';
@@ -194,13 +195,16 @@ class _DanceDetailsAndShorthandsSectionState
             key: const ValueKey('dialect-figure-shorthands'),
             enabled: _freeTextEntry,
             title: Text(l10n.settingsDefaultsFigureShorthandsTitle),
-            subtitle: Text(
-              shorthandController.mappings.isEmpty
-                  ? l10n.settingsDefaultsFigureShorthandsEmptySubtitle
-                  : l10n.settingsDefaultsFigureShorthandsCountSubtitle(
-                      shorthandController.mappings.length,
-                    ),
-            ),
+            // Compound shorthands (#709) count while their section shows.
+            subtitle: Text(switch (shorthandController.mappings.length +
+                (customFiguresShown(context)
+                    ? shorthandController.compoundShorthands.length
+                    : 0)) {
+              0 => l10n.settingsDefaultsFigureShorthandsEmptySubtitle,
+              final count => l10n.settingsDefaultsFigureShorthandsCountSubtitle(
+                count,
+              ),
+            }),
             trailing: const Icon(Icons.chevron_right),
             onTap: _freeTextEntry
                 ? () => Navigator.of(context).push(

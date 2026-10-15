@@ -2,6 +2,7 @@ import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/formation_colors_controller.dart';
+import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
 import 'package:compendium_app/src/screens/settings/settings_keys.dart';
 import 'package:compendium_app/src/sync/sync_controller.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -133,5 +134,26 @@ void main() {
     await controller.load();
     expect(controller.settingsUnreadable, isFalse);
     expect(controller.enabled, isTrue);
+  });
+
+  test('ShorthandMappingsController keeps both kinds when either read '
+      'fails', () async {
+    final (_, settings) = await _open();
+    final c = ShorthandMappingsController(settings);
+    await c.upsert(
+      ShorthandMapping(
+        token: 'ns',
+        figures: [
+          Figure(move: 'swing', params: const {'who': 'neighbors'}),
+        ],
+      ),
+    );
+    await c.load();
+    // A newer figure shorthand is stored, then the compound key's read fails:
+    // neither kind may change.
+    await settings.set(kShorthandMappingsKey, const <Object?>[]);
+    settings.failingKey = kCompoundShorthandsKey;
+    await expectLater(c.load(), throwsStateError);
+    expect(c.mappings.map((m) => m.token), ['ns']);
   });
 }

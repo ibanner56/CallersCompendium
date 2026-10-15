@@ -220,8 +220,63 @@ void main() {
         throwsA(isA<FigureNoteInvalid>()),
       );
     });
+
+    test('a figure id sync could not carry is refused, not stored', () async {
+      for (final id in [
+        '',
+        'x' * (maxUserGlossaryNameLength + 1),
+        _decomposedCafe,
+      ]) {
+        await expectLater(
+          notes.set(id, 'A note.'),
+          throwsA(isA<FigureNoteInvalid>()),
+          reason: id,
+        );
+      }
+      expect(await notes.listAll(includeDeleted: true), isEmpty);
+    });
+  });
+
+  group('an id or kind sync could not carry is refused, not stored (#709): '
+      'every peer would refuse the row, every pass', () {
+    for (final (field, bad) in [
+      ('id', ''),
+      ('id', 'x' * (maxUserGlossaryNameLength + 1)),
+      ('id', _decomposedCafe),
+      ('kind', ''),
+      ('kind', 'x' * (maxUserGlossaryNameLength + 1)),
+      ('kind', _decomposedCafe),
+    ]) {
+      test(
+        '$field: ${bad.length > 20 ? '${bad.length} units' : bad}',
+        () async {
+          await expectLater(
+            glossary.upsert(field == 'id' ? entry(id: bad) : entry(kind: bad)),
+            throwsA(
+              isA<UserGlossaryEntryInvalid>().having(
+                (e) => e.field,
+                'field',
+                field,
+              ),
+            ),
+          );
+          expect(await glossary.listAll(includeDeleted: true), isEmpty);
+        },
+      );
+    }
+
+    test('the longest id and kind sync carries are stored', () async {
+      final longest = 'x' * maxUserGlossaryNameLength;
+      await glossary.upsert(entry(id: longest));
+      await glossary.upsert(entry(id: 'e2', kind: longest));
+      expect((await glossary.listAll()).length, 2);
+    });
   });
 }
+
+/// "café" with its accent as a separate combining mark: not normalised, so
+/// inbound admission would refuse it as non-canonical.
+const _decomposedCafe = 'cafe\u0301';
 
 const _day = Duration(days: 1);
 

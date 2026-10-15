@@ -99,11 +99,19 @@ class FigureParamEditor extends StatelessWidget {
         // fabricated number into stored data.
         final allowsUnset =
             spec.choices?.contains(ParamVocab.unspecified) ?? false;
+        // A value left as it is (see [correctsValue]) that the spec rejects —
+        // missing, a word other than the admitted sentinel, or an amount
+        // outside the domain — is shown as needing a choice, never as "not
+        // stated" or as an amount, as the dropdown does.
+        final needsChoice = !correctsValue && !spec.validate(value);
         return _RotationStepper(
           fieldKey: _key,
           label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
-          value: value is num ? value! as num : (allowsUnset ? null : 1.0),
+          value: needsChoice
+              ? null
+              : (value is num ? value! as num : (allowsUnset ? null : 1.0)),
           allowsUnset: allowsUnset,
+          needsChoice: needsChoice,
           onChanged: onChanged,
         );
       case ParamKind.beats:
@@ -218,8 +226,11 @@ class FigureParamEditor extends StatelessWidget {
     }
 
     // A value outside the choices that is left as it is (see
-    // [correctsValue]) is not "not stated": the field asks for a choice
-    // instead, so it never claims a state the draft does not hold.
+    // [correctsValue]) is not "not stated": the dropdown asks for a choice
+    // instead, so it never claims a state the draft does not hold, and so does
+    // the rotation stepper. The other kinds' editors show a fallback for such
+    // a value; a caller that leaves values as they are says so beside them
+    // (`CompoundArgumentEditor`).
     final needsChoice =
         !correctsValue &&
         current == null &&
@@ -309,18 +320,24 @@ class _RotationStepper extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.allowsUnset = false,
+    this.needsChoice = false,
   });
 
   final String fieldKey;
   final String label;
 
-  /// The stored amount, or `null` when the source stated none. Only reachable
-  /// when [allowsUnset] — a spec without the sentinel always gets a number.
+  /// The stored amount, or `null`: "not stated" (with [allowsUnset]), or a
+  /// value left as it is that needs a choice (with [needsChoice]). Otherwise a
+  /// spec without the sentinel always gets a number.
   final num? value;
 
   /// Whether this param admits [ParamVocab.unspecified], i.e. whether "the
   /// source stated no amount" is a representable state.
   final bool allowsUnset;
+
+  /// Whether the stored value is one the spec rejects and is left as it is:
+  /// shown as asking for a choice, with [value] null.
+  final bool needsChoice;
   final ValueChanged<Object?> onChanged;
 
   static const double _min = 0.25;
@@ -364,13 +381,17 @@ class _RotationStepper extends StatelessWidget {
             ),
             Text(
               current == null
-                  ? l10n.danceEditorParamNotStated
+                  ? (needsChoice
+                        ? l10n.danceEditorParamChooseValue
+                        : l10n.danceEditorParamNotStated)
                   : l10n.danceEditorTurnCount(current, _format(current)),
               key: ValueKey('$fieldKey-value'),
               style: current == null
                   ? theme.textTheme.bodyMedium?.copyWith(
                       fontStyle: FontStyle.italic,
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: needsChoice
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.onSurfaceVariant,
                     )
                   : null,
             ),
@@ -390,10 +411,10 @@ class _RotationStepper extends StatelessWidget {
                   : null,
             ),
             // Only offered when the param can actually represent "not stated",
-            // and only once a value is set — so a user who set an amount by
-            // mistake can put it back rather than being stuck with a number the
-            // source never gave.
-            if (allowsUnset && current != null)
+            // and only once a value is set or while a choice is needed — so a
+            // user who set an amount by mistake can put it back rather than
+            // being stuck with a number the source never gave.
+            if (allowsUnset && (current != null || needsChoice))
               IconButton(
                 key: ValueKey('$fieldKey-clear'),
                 tooltip: l10n.danceEditorParamClearTooltip,

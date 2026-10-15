@@ -594,6 +594,28 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeCountGlossaryEntry(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count de vos propres figures',
+      one: '1 de vos propres figures',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountFigureNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'vos notes sur $count figures',
+      one: 'vos notes sur 1 figure',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       'Un autre appareil utilise une version plus récente de l’application. Mettez à jour l’application sur cet appareil pour recevoir ses modifications.';
 
@@ -1363,7 +1385,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSyncPairingNewerDataBody =>
-      'Cette version synchronise certains éléments que les versions antérieures de l\'app ne peuvent pas lire. Mettez à jour chaque appareil avant de le connecter : un appareil sous une version antérieure risque de ne pas pouvoir se connecter. Tant que tous les appareils connectés ne sont pas à jour, ces éléments restent sur l\'appareil où ils ont été créés.';
+      'Cette version synchronise certains éléments que les versions antérieures de l\'app ne peuvent pas lire. Mettez à jour chaque appareil avant de le connecter : un appareil sous une version antérieure risque de ne pas pouvoir se connecter. Tant que tous les appareils connectés ne sont pas à jour, ces éléments ne sont pas envoyés à vos autres appareils.';
 
   @override
   String get settingsSyncPairingBearerTitle =>
@@ -2887,6 +2909,17 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get syncReviewKindSetting => 'Paramètre';
+
+  @override
+  String get syncReviewKindGlossaryEntry => 'Votre propre figure';
+
+  @override
+  String get syncReviewKindFigureNote => 'Vos notes sur une figure';
+
+  @override
+  String syncConflictFigureNoteTitle(String figure) {
+    return 'Vos notes sur $figure';
+  }
 
   @override
   String syncReviewLocalRecord(String id) {
@@ -8368,6 +8401,44 @@ class AppLocalizationsFr extends AppLocalizations {
   String get shorthandMappingsActionsTooltip => 'Actions de l’abréviation';
 
   @override
+  String get shorthandsCompoundTitle => 'Abréviations pour vos propres figures';
+
+  @override
+  String get shorthandsCompoundIntro =>
+      'Quand la saisie en texte libre est activée, taper l’une de ces abréviations seule sur une ligne pendant que vous modifiez une danse ajoute l’une de vos propres figures, avec les valeurs choisies ici.';
+
+  @override
+  String get shorthandsCompoundNew =>
+      'Nouvelle abréviation pour l’une de vos figures';
+
+  @override
+  String get shorthandsCompoundEmpty =>
+      'Aucune abréviation pour vos propres figures pour l’instant.';
+
+  @override
+  String get shorthandsCompoundUnavailable =>
+      'Inutilisable : sa figure a été supprimée ou modifiée, ou n’accepte pas ces valeurs. Une fois tapée, elle est lue comme une ligne ordinaire.';
+
+  @override
+  String get shorthandsCompoundShadowed =>
+      'Non utilisée : une abréviation de figures a le même texte.';
+
+  @override
+  String get compoundShorthandEditorFigureLabel => 'Votre figure';
+
+  @override
+  String get compoundShorthandEditorNoFigure =>
+      'Choisissez l’une de vos figures.';
+
+  @override
+  String get compoundShorthandEditorNoCompounds =>
+      'Vous n’avez pas encore de figures à vous. Ajoutez-en d’abord une dans le glossaire.';
+
+  @override
+  String get compoundShorthandEditorInvalidValues =>
+      'Ces valeurs ne conviennent pas à cette figure. Choisissez-en d’autres.';
+
+  @override
   String get shorthandEditorTitleNew => 'Nouvelle abréviation';
 
   @override
@@ -8398,6 +8469,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String shorthandEditorErrorDuplicate(String token) {
     return 'Une autre abréviation utilise déjà « $token » (les abréviations sont insensibles à la casse).';
+  }
+
+  @override
+  String shorthandEditorErrorDuplicateHidden(String token) {
+    return '« $token » est déjà une abréviation pour l’une de vos propres figures. Celles-ci sont listées ici quand « Figures personnalisées » est activé.';
   }
 
   @override

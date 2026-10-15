@@ -88,7 +88,11 @@ class Substitutor {
       // not a key. Leave such a span as written rather than throw.
       final replacement = _map[key];
       if (replacement == null) return matched;
-      return preserveCase ? _applyCase(matched, replacement) : replacement;
+      if (!preserveCase) return replacement;
+      // A rule that maps a term to itself keeps the span exactly as typed;
+      // re-casing would lowercase a mixed-case span such as "Lady Birds".
+      if (replacement == key) return matched;
+      return _applyCase(matched, replacement);
     });
   }
 

@@ -1064,6 +1064,59 @@ void main() {
     },
   );
 
+  testWidgets('a successful settings retry still reports the problems the '
+      'restore skipped, which retrying cannot fix', (tester) async {
+    // A backup with one glossary entry over a bound: the restore refuses and
+    // reports it every time, so a retry that applies the settings must not
+    // claim the restore is now complete.
+    final backupJson = jsonEncode({
+      'backupVersion': 2,
+      'createdAt': '2026-10-15T00:00:00.000Z',
+      'core': {'dances': <Object?>[]},
+      'app': {
+        'settings': {kSoftDeleteRetentionKey: 30},
+        'glossary': {
+          'entries': [
+            {
+              'id': 'long',
+              'kind': 'compound',
+              'name': 'x' * (maxUserGlossaryNameLength + 1),
+              'definition': 'd',
+              'description': 'x',
+              'createdAt': '2026-10-14T09:00:00.000Z',
+            },
+          ],
+          'figureNotes': <Object?>[],
+        },
+      },
+    });
+    final target = openTestRepositoriesWithFailingSettings();
+    target.settings.failWrites = true;
+    await _pumpGeneral(tester, target.repos);
+
+    await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('restore-paste-field')),
+      backupJson,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('restore-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.text('Retry settings'), findsOneWidget);
+
+    target.settings.failWrites = false;
+    await tester.tap(find.text('Retry settings'));
+    await tester.pumpAndSettle();
+
+    expect(await target.repos.settings.get(kSoftDeleteRetentionKey), 30);
+    expect(
+      find.text('Backup restored with 1 problem(s) skipped.'),
+      findsOneWidget,
+    );
+    expect(find.text('Settings applied.'), findsNothing);
+  });
+
   testWidgets('a failed restore pre-hook still runs the post-hook recovery', (
     tester,
   ) async {

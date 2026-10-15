@@ -300,6 +300,8 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
       ],
       figures: figures,
       bindings: bindings,
+      form: glossaryEntryForm(widget.initial?.payload),
+      extra: compoundPayloadExtra(widget.initial?.payload),
     );
   }
 
@@ -385,12 +387,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
           dialect,
           ...?DialectLibraryScope.maybeOf(context)?.customDialects,
         ],
-        shorthandTokens: [
-          for (final m
-              in ShorthandMappingsScope.maybeOf(context)?.mappings ??
-                  const <ShorthandMapping>[])
-            m.token,
-        ],
+        shorthandTokens: ShorthandMappingsScope.tokensOf(context),
         userEntryNames: others,
       );
       if (collisions.isNotEmpty) errors.add(l10n.compoundEditorNameTaken(name));

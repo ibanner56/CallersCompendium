@@ -588,6 +588,28 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeCountGlossaryEntry(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count deiner eigenen Figuren',
+      one: '1 deiner eigenen Figuren',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountFigureNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'deine Notizen zu $count Figuren',
+      one: 'deine Notizen zu 1 Figur',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       'Ein anderes Gerät verwendet eine neuere Version der App. Aktualisiere die App auf diesem Gerät, um seine Änderungen zu erhalten.';
 
@@ -1358,7 +1380,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSyncPairingNewerDataBody =>
-      'Diese Version synchronisiert einiges, das frühere Versionen der App nicht lesen können. Aktualisiere jedes Gerät, bevor du es verbindest: Ein Gerät mit einer früheren Version kann sich womöglich nicht verbinden. Bis alle verbundenen Geräte aktuell sind, bleibt dies auf dem Gerät, auf dem es erstellt wurde.';
+      'Diese Version synchronisiert einiges, das frühere Versionen der App nicht lesen können. Aktualisiere jedes Gerät, bevor du es verbindest: Ein Gerät mit einer früheren Version kann sich womöglich nicht verbinden. Bis alle verbundenen Geräte aktuell sind, wird dies nicht an deine anderen Geräte gesendet.';
 
   @override
   String get settingsSyncPairingBearerTitle =>
@@ -2873,6 +2895,17 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get syncReviewKindSetting => 'Einstellung';
+
+  @override
+  String get syncReviewKindGlossaryEntry => 'Deine eigene Figur';
+
+  @override
+  String get syncReviewKindFigureNote => 'Deine Notizen zu einer Figur';
+
+  @override
+  String syncConflictFigureNoteTitle(String figure) {
+    return 'Deine Notizen zu $figure';
+  }
 
   @override
   String syncReviewLocalRecord(String id) {
@@ -8351,6 +8384,42 @@ class AppLocalizationsDe extends AppLocalizations {
   String get shorthandMappingsActionsTooltip => 'Abkürzungs-Aktionen';
 
   @override
+  String get shorthandsCompoundTitle => 'Abkürzungen für deine eigenen Figuren';
+
+  @override
+  String get shorthandsCompoundIntro =>
+      'Wenn die Freitexteingabe an ist, fügt das Eintippen einer dieser Abkürzungen als ganze Zeile beim Bearbeiten eines Tanzes eine deiner eigenen Figuren mit den hier gewählten Werten ein.';
+
+  @override
+  String get shorthandsCompoundNew => 'Neue Abkürzung für eine deiner Figuren';
+
+  @override
+  String get shorthandsCompoundEmpty =>
+      'Noch keine Abkürzungen für deine eigenen Figuren.';
+
+  @override
+  String get shorthandsCompoundUnavailable =>
+      'Nicht verwendbar: Die Figur wurde gelöscht oder geändert oder akzeptiert diese Werte nicht. Eingetippt wird die Abkürzung als gewöhnliche Zeile gelesen.';
+
+  @override
+  String get shorthandsCompoundShadowed =>
+      'Nicht verwendet: Eine Figur-Abkürzung hat denselben Text.';
+
+  @override
+  String get compoundShorthandEditorFigureLabel => 'Deine Figur';
+
+  @override
+  String get compoundShorthandEditorNoFigure => 'Wähle eine deiner Figuren.';
+
+  @override
+  String get compoundShorthandEditorNoCompounds =>
+      'Du hast noch keine eigenen Figuren. Füge zuerst eine im Glossar hinzu.';
+
+  @override
+  String get compoundShorthandEditorInvalidValues =>
+      'Diese Werte passen nicht zu dieser Figur. Wähle andere.';
+
+  @override
   String get shorthandEditorTitleNew => 'Neue Abkürzung';
 
   @override
@@ -8381,6 +8450,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String shorthandEditorErrorDuplicate(String token) {
     return 'Eine andere Abkürzung verwendet bereits „$token“ (Abkürzungen werden ohne Berücksichtigung der Groß-/Kleinschreibung abgeglichen).';
+  }
+
+  @override
+  String shorthandEditorErrorDuplicateHidden(String token) {
+    return '„$token“ ist bereits eine Abkürzung für eine deiner eigenen Figuren. Diese werden hier aufgeführt, solange „Eigene Figuren“ an ist.';
   }
 
   @override

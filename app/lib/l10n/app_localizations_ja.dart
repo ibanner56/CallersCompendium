@@ -557,6 +557,26 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String settingsSyncNoticeCountGlossaryEntry(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '自分のフィギュア$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountFigureNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'フィギュア$count件への自分のノート',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsSyncNoticeNewerVersionUncounted =>
       '別のデバイスで新しいバージョンのアプリが使われています。その変更を受け取るには、このデバイスのアプリを更新してください。';
 
@@ -1283,7 +1303,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSyncPairingNewerDataBody =>
-      'このバージョンは、以前のバージョンのアプリでは読み取れない一部のデータを同期します。接続する前に各デバイスをアップデートしてください。以前のバージョンのデバイスは接続できない場合があります。接続中のすべてのデバイスが最新になるまで、それらのデータは作成したデバイスに残ります。';
+      'このバージョンは、以前のバージョンのアプリでは読み取れない一部のデータを同期します。接続する前に各デバイスをアップデートしてください。以前のバージョンのデバイスは接続できない場合があります。接続中のすべてのデバイスが最新になるまで、それらのデータは他のデバイスに送信されません。';
 
   @override
   String get settingsSyncPairingBearerTitle => 'このフレーズを持つ人は誰でもライブラリを開けます';
@@ -2700,6 +2720,17 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get syncReviewKindSetting => '設定';
+
+  @override
+  String get syncReviewKindGlossaryEntry => '自分のフィギュア';
+
+  @override
+  String get syncReviewKindFigureNote => 'フィギュアへの自分のノート';
+
+  @override
+  String syncConflictFigureNoteTitle(String figure) {
+    return '$figureへの自分のノート';
+  }
 
   @override
   String syncReviewLocalRecord(String id) {
@@ -7946,6 +7977,41 @@ class AppLocalizationsJa extends AppLocalizations {
   String get shorthandMappingsActionsTooltip => 'ショートハンドのアクション';
 
   @override
+  String get shorthandsCompoundTitle => '自分のフィギュア用のショートハンド';
+
+  @override
+  String get shorthandsCompoundIntro =>
+      'フリーテキスト入力がオンのとき、ダンスの編集中にこれらのいずれかを1行だけ入力すると、ここで選んだ値で自分のフィギュアが追加されます。';
+
+  @override
+  String get shorthandsCompoundNew => '自分のフィギュア用の新しいショートハンド';
+
+  @override
+  String get shorthandsCompoundEmpty => '自分のフィギュア用のショートハンドはまだありません。';
+
+  @override
+  String get shorthandsCompoundUnavailable =>
+      '使用できません。フィギュアが削除または変更されたか、これらの値を受け付けません。入力すると通常の行として読み取られます。';
+
+  @override
+  String get shorthandsCompoundShadowed =>
+      '使用されていません。フィギュアのショートハンドに同じテキストがあります。';
+
+  @override
+  String get compoundShorthandEditorFigureLabel => '自分のフィギュア';
+
+  @override
+  String get compoundShorthandEditorNoFigure => '自分のフィギュアを1つ選んでください。';
+
+  @override
+  String get compoundShorthandEditorNoCompounds =>
+      '自分のフィギュアがまだありません。まず用語集で追加してください。';
+
+  @override
+  String get compoundShorthandEditorInvalidValues =>
+      'これらの値はこのフィギュアに合いません。別の値を選んでください。';
+
+  @override
   String get shorthandEditorTitleNew => '新しいショートハンド';
 
   @override
@@ -7976,6 +8042,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String shorthandEditorErrorDuplicate(String token) {
     return '別のショートハンドがすでに「$token」を使用しています（大文字と小文字を区別せずに一致します）。';
+  }
+
+  @override
+  String shorthandEditorErrorDuplicateHidden(String token) {
+    return '「$token」は自分のフィギュア用のショートハンドとしてすでに使われています。それらはカスタムフィギュアがオンのときにここに表示されます。';
   }
 
   @override
