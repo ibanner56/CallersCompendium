@@ -46,6 +46,21 @@ searchKeywords: [allemande, almond]
 - **`custom`** is a first-class move: `{text, beats}`; its text is
   dialect-processed and FTS-indexed. `contra corners` and `turn alone` embed an
   optional custom sub-text the same way.
+- **A use of a figure of your own** (#1023) is a `custom` figure with three
+  more params: `userFigure` (the glossary entry's id), `userFigureArgs` (every
+  argument by parameter key, scalars only) and `userFigureCheck` (the first
+  eight hex digits of the SHA-256 of `text` as the repository stores it,
+  after `normalizeShareableText`). `validateFigure` accepts exactly
+  these three on `custom`, checked together by shape; any other extra key is
+  still `unknown_param`. `text` holds the line last rendered from the
+  definition, which every build shows, so the reference is soft (sync-spec
+  §6.15). When `text` no longer matches the check, something that does not
+  know the reference edited the line, and the use reads as plain text. The
+  renderer renders an attached use live from the definition
+  (`FigureRenderer.userFigures`) on every path, canonical included, and falls
+  back to `text` when the figure is unknown, no longer decodes, or an argument
+  is outside its values. #417's re-parse and figure shorthands never take a
+  use (`hasUserFigureReferenceKeys`).
 
 ## Parameter types
 
