@@ -47,7 +47,8 @@ updated**, or **Event date**, and the arrow beside it to flip the direction.
 - **Duplicate** a program from its row's **…** menu to reuse last month's shape
   as a starting point.
 - **Delete** a program from the same menu, or by swiping its row. An **Undo**
-  option appears, and the program moves to **Recently deleted**, where you can
+  option appears, and the program moves to **Recently deleted** (in the **More actions** menu in the
+  **Programs** toolbar), where you can
   restore it later, exactly as with
   [dances](./collection.md#keep-your-collection-tidy).
 
