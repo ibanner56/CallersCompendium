@@ -152,6 +152,36 @@ dialect uses Leads and Follows, "lead" and "follow" used as verbs ("Ones lead
 down the hall", "follow your partner up the hall") are kept exactly as you
 typed them. "Leads chain" and "the lead on the left" still use the role. Text saved by an earlier version is not repaired automatically.
 
+### Your own figures
+
+With **Custom Figures** on (see [Settings](./settings.md)), the figures you
+built in the [Glossary](./glossary.md) are offered when you choose a figure's
+move, listed first and marked with a person icon (announced as **Custom** by
+screen readers). They are found by their name or by
+any of their other names. They are offered for a figure in the list itself,
+not inside a meanwhile or modifier group.
+
+A figure you pick this way stays one row while you edit: it shows its name and
+the value you chose for each of its parameters, and opening it lets you change
+those values (only values the figure accepts are offered), mark the
+progression, and add a note. It says how many figures, and how many beats, it
+becomes.
+
+When you save the dance, the row is replaced by the figures it stands for,
+filled in with your values, as the figure is defined at that moment, so an edit
+made in the Glossary since you picked it applies. Your note goes on the first of
+them and the progression mark on the last. After that they are ordinary
+figures: the saved dance does not remember that they came from one of yours,
+and changing or deleting your figure later does not change it.
+
+If your figure has been deleted, has changed so that it can no longer be
+expanded, or no longer accepts the values on the row, the row says so, and
+saving keeps it as a [custom figure](#custom-figure) with your figure's name,
+its beats, and the row's note and progression mark. The values you chose for
+its parameters are not kept. A row that is one of your figures cannot be
+grouped as a meanwhile or modifier. Turning Custom Figures off stops them being
+offered, but a row you already picked is still expanded when you save.
+
 ### Reorder, cut, and duplicate
 
 Each figure row has a drag handle and an actions menu:

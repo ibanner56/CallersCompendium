@@ -9925,6 +9925,52 @@
   "@danceEditorEmptyFigureSemantic": {
     "description": "Screen-reader phrase for an empty figure draft."
   },
+  "danceEditorCompoundSummary": "{name}: {values}",
+  "@danceEditorCompoundSummary": {
+    "description": "Collapsed summary of a figure row that is one of the user's own custom figures, not yet expanded: its name and the value it gives each parameter, comma-separated.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "grand right and left"
+      },
+      "values": {
+        "type": "String",
+        "example": "neighbors, right"
+      }
+    }
+  },
+  "danceEditorCompoundSemantic": "{summary}, your own figure{unavailable, select, yes{, can't be expanded} other{}}",
+  "@danceEditorCompoundSemantic": {
+    "description": "Screen-reader phrase for a figure row that is one of the user's own custom figures. unavailable is 'yes' when it can no longer be expanded.",
+    "placeholders": {
+      "summary": {
+        "type": "String",
+        "example": "grand right and left: neighbors, right"
+      },
+      "unavailable": {
+        "type": "String",
+        "example": "no"
+      }
+    }
+  },
+  "danceEditorCompoundExpandsTo": "Becomes {count, plural, =1{1 figure} other{{count} figures}} ({beats, plural, =1{1 beat} other{{beats} beats}}) when the dance is saved.",
+  "@danceEditorCompoundExpandsTo": {
+    "description": "Under a custom figure being edited in a dance: how many figures, and how many beats, it is replaced by when the dance is saved.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      },
+      "beats": {
+        "type": "int",
+        "example": "8"
+      }
+    }
+  },
+  "danceEditorCompoundUnavailable": "This figure of yours can't be expanded: it has been deleted or changed, or doesn't accept these values. Saving keeps only its name, beats, note and progression mark.",
+  "@danceEditorCompoundUnavailable": {
+    "description": "Shown on a dance's figure row that is one of the user's own custom figures when it can no longer be expanded into figures; the dance then saves it as a custom figure whose text is the name."
+  },
   "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}{hasMove, select, yes{, {beats, plural, =1{1 beat} other{{beats} beats}}} other{}}{hasNote, select, yes{, note: {note}} other{}}. Figure {position} of {total}.",
   "@danceEditorFigureSummarySemantic": {
     "description": "Composite screen-reader label for a figure row, including optional import-gap, progression, beats, and note details plus row position.",
@@ -10250,6 +10296,10 @@
   "figureParamFacingStarBackingUp": "backing up",
   "@figureParamFacingStarBackingUp": {
     "description": "Display-only label for the facing star move's `who` parameter in figure editors and search controls."
+  },
+  "danceEditorParamChooseValue": "choose a value",
+  "@danceEditorParamChooseValue": {
+    "description": "Hint in a figure parameter's dropdown when its stored value is no longer one it accepts and must be replaced: one of the user's own figures (#709) was changed after the value was chosen, or gained a parameter. Lowercase, like the 'not stated' hint."
   },
   "danceEditorParamClearTooltip": "Clear (not stated)",
   "@danceEditorParamClearTooltip": {
@@ -11983,7 +12033,7 @@
   "@settingsExperimentalShowCustomFiguresTitle": {
     "description": "Title of the switch, nested under Show Glossary, that shows the user's own compound figures in the Glossary (#709)."
   },
-  "settingsExperimentalShowCustomFiguresSubtitle": "Lists your own figures in the Glossary, where you can add and edit them. Turning this off hides them; it doesn't delete them.",
+  "settingsExperimentalShowCustomFiguresSubtitle": "Lists your own figures in the Glossary, where you can add and edit them, and offers them when you edit a dance. Turning this off hides them; it doesn't delete them.",
   "@settingsExperimentalShowCustomFiguresSubtitle": {
     "description": "Subtitle of the Custom Figures switch while Show Glossary is on."
   },

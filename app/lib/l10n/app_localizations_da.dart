@@ -7635,6 +7635,41 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorEmptyFigureSemantic => 'tom figur, vælg en bevægelse';
 
   @override
+  String danceEditorCompoundSummary(String name, String values) {
+    return '$name: $values';
+  }
+
+  @override
+  String danceEditorCompoundSemantic(String summary, String unavailable) {
+    String _temp0 = intl.Intl.selectLogic(unavailable, {
+      'yes': ', kan ikke udvides',
+      'other': '',
+    });
+    return '$summary, egen figur$_temp0';
+  }
+
+  @override
+  String danceEditorCompoundExpandsTo(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figurer',
+      one: '1 figur',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats slag',
+      one: '1 slag',
+    );
+    return 'Bliver til $_temp0 ($_temp1), når dansen gemmes.';
+  }
+
+  @override
+  String get danceEditorCompoundUnavailable =>
+      'Denne egen figur kan ikke udvides: den er slettet eller ændret, eller den accepterer ikke disse værdier. Når du gemmer, bevares kun navn, slag, note og progression.';
+
+  @override
   String danceEditorFigureSummarySemantic(
     String main,
     String importGap,
@@ -7874,6 +7909,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get figureParamFacingStarBackingUp => 'bakker baglæns';
+
+  @override
+  String get danceEditorParamChooseValue => 'vælg en værdi';
 
   @override
   String get danceEditorParamClearTooltip => 'Ryd (ikke angivet)';
@@ -9131,7 +9169,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Viser dine egne figurer i ordlisten, hvor du kan tilføje og redigere dem. Slår du det fra, skjules de, men de slettes ikke.';
+      'Viser dine egne figurer i ordlisten, hvor du kan tilføje og redigere dem, og tilbyder dem, når du redigerer en dans. Slår du det fra, skjules de, men de slettes ikke.';
 
   @override
   String get settingsExperimentalShowCustomFiguresNeedsGlossary =>

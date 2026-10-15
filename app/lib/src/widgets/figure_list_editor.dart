@@ -9,6 +9,7 @@ import '../data/reduce_motion_scope.dart';
 import '../data/capitalize_figures_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../editor/figure_draft.dart';
+import '../glossary/custom_figures.dart';
 import '../search/facet_labels.dart';
 import 'figure_param_editors.dart';
 import 'import_gap_badge.dart';
@@ -72,6 +73,8 @@ class FigureListEditor extends StatefulWidget {
     this.allowModifierSelection = true,
     this.allowNestedContainerSelection = true,
     this.allowCustom = true,
+    this.compoundOptions,
+    this.resolveCompound,
     this.keyPrefix = 'figure',
   });
 
@@ -219,6 +222,19 @@ class FigureListEditor extends StatefulWidget {
   /// editor (#709) turns it off: a compound's parts must be taxonomy figures,
   /// whose slots it can fill.
   final bool allowCustom;
+
+  /// The user's own compound figures a top-level row's move picker offers
+  /// (#709); picking one turns the row into a [FigureDraft.compound]
+  /// placeholder. Null or empty offers none. Only the dance editor sets it, and
+  /// only while Custom Figures is on: the nested container editors never
+  /// receive it, so no placeholder can become a meanwhile side or a modifier
+  /// child.
+  final List<UserGlossaryEntry>? compoundOptions;
+
+  /// Looks a placeholder row's compound up as it is now, to edit its
+  /// arguments and show what it expands to. Null in every editor that cannot
+  /// hold a placeholder.
+  final CompoundResolver? resolveCompound;
 
   /// Whether ordinary children may be converted into the one legal opposite
   /// container kind. Nested editors at the maximum depth disable this so the
@@ -414,7 +430,12 @@ class _FigureListEditorState extends State<FigureListEditor> {
     // its freshly-appended figure into view via _ensureVisibleSoon.)
     final i = widget.drafts.indexWhere((d) => d.id == id);
     if (i != -1) {
-      final name = _figureDisplayName(widget.drafts[i], widget.taxonomy, _l10n);
+      final name = _figureDisplayName(
+        widget.drafts[i],
+        widget.taxonomy,
+        _l10n,
+        _dialect,
+      );
       _announce(_l10n.danceEditorEditingFigureAnnouncement(i + 1, name));
     }
   }
@@ -690,7 +711,9 @@ class _FigureListEditorState extends State<FigureListEditor> {
     String? lastLabel;
     if (widget.showPhraseStructure) {
       for (final draft in drafts) {
-        if (draft.move == null && !draft.isContainerDraft) {
+        if (draft.move == null &&
+            !draft.isContainerDraft &&
+            !draft.isCompoundPlaceholder) {
           labels[draft.id] = null;
           sectionStart[draft.id] = false;
           continue;
@@ -714,6 +737,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
             ),
             widget.taxonomy,
             l10n,
+            dialect,
           );
 
     _FigureDraftCard buildCard(int i, {required bool draggable}) {
@@ -738,6 +762,8 @@ class _FigureListEditorState extends State<FigureListEditor> {
         allowModifierSelection: widget.allowModifierSelection,
         allowNestedContainerSelection: widget.allowNestedContainerSelection,
         allowCustom: widget.allowCustom,
+        compoundOptions: widget.compoundOptions,
+        resolveCompound: widget.resolveCompound,
         onChanged: widget.onChanged,
         onActivate: () => _toggleDraft(draft.id),
         onClose: () => _closeDraft(draft.id),
@@ -869,7 +895,12 @@ class _FigureListEditorState extends State<FigureListEditor> {
                   _PasteButton(
                     key: ValueKey('paste-after-${drafts[i].id}'),
                     semanticsLabel: l10n.danceEditorPasteAfterFigure(
-                      _figureDisplayName(drafts[i], widget.taxonomy, l10n),
+                      _figureDisplayName(
+                        drafts[i],
+                        widget.taxonomy,
+                        l10n,
+                        dialect,
+                      ),
                     ),
                     onPaste: () => _paste(i + 1),
                   ),
@@ -999,7 +1030,11 @@ String _figureDisplayName(
   FigureDraft draft,
   Taxonomy taxonomy,
   AppLocalizations l10n,
+  Dialect dialect,
 ) {
+  if (draft.compound case final compound?) {
+    return FigureRenderer(taxonomy).renderFreeText(compound.name, dialect);
+  }
   final sides = draft.meanwhileSides;
   if (sides != null) return l10n.danceEditorMeanwhileGroupLabel(sides.length);
   final modifiers = draft.modifierFigures;
@@ -1090,6 +1125,8 @@ class _FigureDraftCard extends StatefulWidget {
     this.allowModifierSelection = true,
     this.allowNestedContainerSelection = true,
     this.allowCustom = true,
+    this.compoundOptions,
+    this.resolveCompound,
     this.onGroupWithNext,
     this.onGroupWithNextAsModifier,
     this.onCollapseMeanwhileGroup,
@@ -1174,6 +1211,12 @@ class _FigureDraftCard extends StatefulWidget {
   /// See [FigureListEditor.allowCustom].
   final bool allowCustom;
 
+  /// See [FigureListEditor.compoundOptions].
+  final List<UserGlossaryEntry>? compoundOptions;
+
+  /// See [FigureListEditor.resolveCompound].
+  final CompoundResolver? resolveCompound;
+
   /// Resolved "group with next" action for THIS row (#590/#593), already
   /// accounting for adjacency/flat-only conditions (see
   /// [FigureListEditor.onGroupWithNext]). `null` hides the menu item.
@@ -1199,7 +1242,9 @@ class _FigureDraftCard extends StatefulWidget {
 /// parent object so callers only need the usual [onChanged] rebuild.
 void _initializeModifierContainer(FigureDraft draft) {
   if (draft.isContainerDraft) return;
-  final core = draft.clone();
+  // A compound placeholder cannot be a modifier's core (#709): the container
+  // starts with an empty one instead.
+  final core = draft.clone()..compound = null;
   final beats = draft.beats;
   final beatsTouched = draft.beatsTouched;
   draft.move = null;
@@ -1215,6 +1260,7 @@ void _initializeModifierContainer(FigureDraft draft) {
     ..walkthroughOverride = null
     ..wordingOverride = null
     ..meanwhileSides = null
+    ..compound = null
     ..modifierFigures = [core, FigureDraft()];
 }
 
@@ -1280,6 +1326,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   void _selectMove(String moveId) {
     if (widget.draft.move == moveId) return;
     widget.draft.move = moveId;
+    widget.draft.compound = null;
     widget.draft.params
       ..clear()
       ..addAll(widget.taxonomy.effectiveParams(Figure(move: moveId)));
@@ -1315,12 +1362,74 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     widget.onChanged();
   }
 
+  /// Turns this row into a placeholder for the user's compound [entryId]
+  /// (#709), its arguments seeded with the values its author wrote. Whatever
+  /// the row held before is replaced, as picking a move replaces it.
+  void _selectCompound(String entryId) {
+    final entry = widget.compoundOptions
+        ?.where((e) => e.id == entryId)
+        .firstOrNull;
+    final definition = widget.resolveCompound?.call(entryId);
+    if (entry == null || definition == null) return;
+    final draft = widget.draft;
+    draft
+      ..move = null
+      ..beatsTouched = false
+      ..assumedSubject = false
+      ..customOrigin = CustomOrigin.userEntered
+      ..walkthroughOverride = null
+      ..wordingOverride = null
+      ..compound = CompoundPlaceholder(
+        id: entryId,
+        name: entry.name,
+        args: previewArguments(definition, widget.taxonomy) ?? {},
+      );
+    draft.params.clear();
+    _refreshCompoundBeats();
+    _showMoreOptions = false;
+    widget.onChanged();
+  }
+
+  /// Updates the placeholder's beat count from its expansion, when it has one.
+  void _refreshCompoundBeats() {
+    final compound = widget.draft.compound;
+    final resolve = widget.resolveCompound;
+    if (compound == null || resolve == null) return;
+    if (expandPlaceholder(compound, resolve) case final expanded?) {
+      compound.beats = CompoundDefinition.beatsOf(expanded, widget.taxonomy);
+    }
+  }
+
+  /// The user's compounds as move-picker options, named in the dialect.
+  List<MoveOption> _compoundPickerOptions() {
+    final renderer = FigureRenderer(widget.taxonomy);
+    return [
+      for (final entry in widget.compoundOptions ?? const <UserGlossaryEntry>[])
+        MoveOption(
+          id: entry.id,
+          displayName: renderer.renderFreeText(entry.name, widget.dialect),
+          kind: MoveOptionKind.compound,
+          searchTerms: [
+            for (final k in entry.keywords)
+              renderer.renderFreeText(k, widget.dialect),
+          ],
+        ),
+    ];
+  }
+
+  void _onMoveOptionSelected(MoveOption option) => switch (option.kind) {
+    MoveOptionKind.modifier => _selectModifier(),
+    MoveOptionKind.compound => _selectCompound(option.id),
+    MoveOptionKind.move => _selectMove(option.id),
+  };
+
   void _createCustom(String text) {
     final trimmed = text.trim();
     // Ignore an all-whitespace submission rather than creating an empty
     // custom figure.
     if (trimmed.isEmpty) return;
     widget.draft.move = customMove;
+    widget.draft.compound = null;
     widget.draft.params
       ..clear()
       ..addAll(widget.taxonomy.effectiveParams(Figure(move: customMove)));
@@ -1360,8 +1469,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   }
 
   void _clearMove() {
-    if (widget.draft.move == null) return;
+    if (widget.draft.move == null && !widget.draft.isCompoundPlaceholder) {
+      return;
+    }
     widget.draft.move = null;
+    widget.draft.compound = null;
     widget.draft.params.clear();
     widget.draft.beatsTouched = false;
     widget.draft.wordingOverride = null;
@@ -1497,13 +1609,29 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             );
     }
 
-    final sentence = hasMove
+    final compound = draft.compound;
+    final resolve = widget.resolveCompound;
+    // A placeholder that cannot expand is saved as its name alone (#709).
+    final compoundUnavailable =
+        compound != null &&
+        (resolve == null || expandPlaceholder(compound, resolve) == null);
+    final sentence = compound != null
+        ? capitalizeFirstLetter(
+            _compoundSummary(l10n, compound),
+            capitalize: CapitalizeFiguresScope.of(context),
+          )
+        : hasMove
         ? capitalizeFirstLetter(
             displaySummary(verbose: false),
             capitalize: CapitalizeFiguresScope.of(context),
           )
         : l10n.danceEditorEmptyFigureSummary;
-    final spoken = hasMove
+    final spoken = compound != null
+        ? l10n.danceEditorCompoundSemantic(
+            _compoundSummary(l10n, compound),
+            compoundUnavailable ? 'yes' : 'no',
+          )
+        : hasMove
         ? displaySummary(verbose: true)
         : l10n.danceEditorEmptyFigureSemantic;
     final note = draft.note.trim();
@@ -1605,15 +1733,45 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            sentence,
-                            style: hasMove
-                                ? theme.textTheme.bodyLarge
-                                : theme.textTheme.bodyLarge?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    fontStyle: FontStyle.italic,
+                          if (compound != null)
+                            Row(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsetsDirectional.only(
+                                    end: 4,
                                   ),
-                          ),
+                                  child: Icon(
+                                    Icons.person_outline,
+                                    size: 16,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                                Flexible(
+                                  child: Text(
+                                    sentence,
+                                    style: theme.textTheme.bodyLarge,
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            Text(
+                              sentence,
+                              style: hasMove
+                                  ? theme.textTheme.bodyLarge
+                                  : theme.textTheme.bodyLarge?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                            ),
+                          if (compoundUnavailable)
+                            Text(
+                              l10n.danceEditorCompoundUnavailable,
+                              key: _key('compound-unavailable'),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.error,
+                              ),
+                            ),
                           if (hasNote)
                             Padding(
                               padding: const EdgeInsets.only(top: 2),
@@ -1705,6 +1863,32 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     );
   }
 
+  /// A placeholder's one-line summary: the compound's name in the dialect and
+  /// the value it gives each parameter, in the order they are declared.
+  String _compoundSummary(AppLocalizations l10n, CompoundPlaceholder compound) {
+    final name = FigureRenderer(
+      widget.taxonomy,
+    ).renderFreeText(compound.name, widget.dialect);
+    final definition = widget.resolveCompound?.call(compound.id);
+    if (definition == null || definition.params.isEmpty) return name;
+    final values = [
+      for (final param in definition.params)
+        switch (compound.args[param.key]) {
+          final String value => figureParamChoiceLabel(
+            l10n,
+            ParamSpec(param.kind, defaultValue: null),
+            widget.dialect,
+            value,
+          ),
+          true => l10n.commonYes,
+          false => l10n.commonNo,
+          null => l10n.danceEditorParamNotStated,
+          final Object value => '$value',
+        },
+    ];
+    return l10n.danceEditorCompoundSummary(name, values.join(', '));
+  }
+
   Widget _buildDragHandle(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     if (!widget.draggable) {
@@ -1712,7 +1896,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       // reorderable and cut/paste modes.
       return const Icon(Icons.drag_handle, size: 20, color: Colors.transparent);
     }
-    final figureName = _figureDisplayName(widget.draft, widget.taxonomy, l10n);
+    final figureName = _figureDisplayName(
+      widget.draft,
+      widget.taxonomy,
+      l10n,
+      widget.dialect,
+    );
     return ReorderableDragStartListener(
       index: widget.index,
       child: Semantics(
@@ -1726,7 +1915,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
-    final figureName = _figureDisplayName(draft, widget.taxonomy, l10n);
+    final figureName = _figureDisplayName(
+      draft,
+      widget.taxonomy,
+      l10n,
+      widget.dialect,
+    );
     return MenuAnchor(
       builder: (context, controller, child) => IconButton(
         key: _key('menu'),
@@ -1837,6 +2031,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     if (draft.isContainerDraft) {
       return _buildContainerEditor(context);
     }
+    if (draft.isCompoundPlaceholder) {
+      return _buildCompoundEditor(context);
+    }
     final move = draft.move;
     final def = move == null ? null : widget.taxonomy.resolve(move);
     // A figure whose move is not in the active taxonomy (authored in a newer
@@ -1895,9 +2092,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 autofocus: move == null || move == _standStillMove,
                 includeModifier: widget.allowModifierSelection,
                 includeCustomMove: widget.allowCustom,
-                onSelected: (option) => option.kind == MoveOptionKind.modifier
-                    ? _selectModifier()
-                    : _selectMove(option.id),
+                compoundOptions: _compoundPickerOptions(),
+                compoundMarkerLabel: AppLocalizations.of(
+                  context,
+                ).glossaryCustomMarker,
+                onSelected: _onMoveOptionSelected,
                 onCustomSubmitted: widget.allowCustom ? _createCustom : null,
                 onCleared: _clearMove,
               ),
@@ -1952,6 +2151,130 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
           ),
         ),
       ),
+    );
+  }
+
+  // --- Compound placeholder editor (#709) -----------------------------------
+
+  /// Expanded editor for a compound placeholder: the move picker (to replace
+  /// it), one editor per parameter the compound declares, offering only the
+  /// values [allowedValues] admits, what it expands to, and the progression
+  /// mark and note. A placeholder has no walkthrough or wording override.
+  Widget _buildCompoundEditor(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final draft = widget.draft;
+    final compound = draft.compound!;
+    final resolve = widget.resolveCompound;
+    final definition = resolve?.call(compound.id);
+    final expanded = resolve == null
+        ? null
+        : expandPlaceholder(compound, resolve);
+    final name = FigureRenderer(
+      widget.taxonomy,
+    ).renderFreeText(compound.name, widget.dialect);
+    return Focus(
+      canRequestFocus: false,
+      onKeyEvent: _handleEditorKey,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+            borderRadius: BorderRadius.circular(8),
+            color: theme.colorScheme.surfaceContainerLow,
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              MoveAutocomplete(
+                key: _key('move'),
+                fieldKey: 'figure-${widget.index}-move',
+                taxonomy: widget.taxonomy,
+                dialect: widget.dialect,
+                initialText: name,
+                // A placeholder is never a modifier's core, so the option
+                // would only discard it.
+                includeModifier: false,
+                includeCustomMove: widget.allowCustom,
+                compoundOptions: _compoundPickerOptions(),
+                compoundMarkerLabel: l10n.glossaryCustomMarker,
+                onSelected: _onMoveOptionSelected,
+                onCustomSubmitted: widget.allowCustom ? _createCustom : null,
+                onCleared: _clearMove,
+              ),
+              if (definition != null)
+                for (final param in definition.params) ...[
+                  const SizedBox(height: 8),
+                  _buildCompoundArgument(definition, param),
+                ],
+              const SizedBox(height: 8),
+              Text(
+                expanded == null
+                    ? l10n.danceEditorCompoundUnavailable
+                    : l10n.danceEditorCompoundExpandsTo(
+                        expanded.length,
+                        CompoundDefinition.beatsOf(expanded, widget.taxonomy),
+                      ),
+                key: _key('compound-status'),
+                style: expanded == null
+                    ? theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                      )
+                    : theme.textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              _buildProgressionToggle(context),
+              const SizedBox(height: 8),
+              _buildNote(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The editor for one of a placeholder's arguments: the parameter's kind's
+  /// own editor, its choices narrowed to the values the compound accepts.
+  Widget _buildCompoundArgument(
+    CompoundDefinition definition,
+    CompoundParam param,
+  ) {
+    final compound = widget.draft.compound!;
+    final allowed = allowedValues(definition, param.key, widget.taxonomy);
+    final listed = switch (param.kind) {
+      ParamKind.dancerSet ||
+      ParamKind.dancerPair ||
+      ParamKind.handedness ||
+      ParamKind.shoulder ||
+      ParamKind.spinDirection ||
+      ParamKind.fraction ||
+      ParamKind.direction ||
+      ParamKind.choice => true,
+      _ => false,
+    };
+    return FigureParamEditor(
+      keyPrefix: 'figure-${widget.index}-compound',
+      paramKey: param.key,
+      spec: ParamSpec(
+        param.kind,
+        defaultValue: null,
+        choices: listed && allowed != null
+            ? [for (final value in allowed) ?(value is String ? value : null)]
+            : null,
+      ),
+      dialect: widget.dialect,
+      mixer: widget.mixer,
+      value: compound.args[param.key],
+      // A value the compound no longer accepts stays as it is, so the row
+      // keeps saying it can't be expanded until the user chooses another.
+      correctsValue: false,
+      onChanged: (value) {
+        compound.args[param.key] = value;
+        _refreshCompoundBeats();
+        widget.onChanged();
+      },
     );
   }
 

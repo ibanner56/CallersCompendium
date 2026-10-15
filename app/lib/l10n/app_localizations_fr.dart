@@ -7742,6 +7742,41 @@ class AppLocalizationsFr extends AppLocalizations {
       'figure vide, choisissez un mouvement';
 
   @override
+  String danceEditorCompoundSummary(String name, String values) {
+    return '$name : $values';
+  }
+
+  @override
+  String danceEditorCompoundSemantic(String summary, String unavailable) {
+    String _temp0 = intl.Intl.selectLogic(unavailable, {
+      'yes': ', ne peut pas être développée',
+      'other': '',
+    });
+    return '$summary, votre propre figure$_temp0';
+  }
+
+  @override
+  String danceEditorCompoundExpandsTo(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures',
+      one: '1 figure',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats temps',
+      one: '1 temps',
+    );
+    return 'Devient $_temp0 ($_temp1) à l’enregistrement de la danse.';
+  }
+
+  @override
+  String get danceEditorCompoundUnavailable =>
+      'Cette figure ne peut pas être développée : elle a été supprimée ou modifiée, ou n’accepte pas ces valeurs. À l’enregistrement, seuls son nom, ses temps, sa note et la marque de progression sont conservés.';
+
+  @override
   String danceEditorFigureSummarySemantic(
     String main,
     String importGap,
@@ -7985,6 +8020,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get figureParamFacingStarBackingUp => 'à reculons';
+
+  @override
+  String get danceEditorParamChooseValue => 'choisissez une valeur';
 
   @override
   String get danceEditorParamClearTooltip => 'Effacer (non précisé)';
@@ -9251,7 +9289,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Affiche vos propres figures dans le glossaire, où vous pouvez les ajouter et les modifier. Désactiver cette option les masque sans les supprimer.';
+      'Affiche vos propres figures dans le glossaire, où vous pouvez les ajouter et les modifier, et les propose quand vous modifiez une danse. Désactiver cette option les masque sans les supprimer.';
 
   @override
   String get settingsExperimentalShowCustomFiguresNeedsGlossary =>

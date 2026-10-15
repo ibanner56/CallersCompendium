@@ -7727,6 +7727,41 @@ class AppLocalizationsDe extends AppLocalizations {
       'leere Figur, Bewegung auswählen';
 
   @override
+  String danceEditorCompoundSummary(String name, String values) {
+    return '$name: $values';
+  }
+
+  @override
+  String danceEditorCompoundSemantic(String summary, String unavailable) {
+    String _temp0 = intl.Intl.selectLogic(unavailable, {
+      'yes': ', kann nicht erweitert werden',
+      'other': '',
+    });
+    return '$summary, eigene Figur$_temp0';
+  }
+
+  @override
+  String danceEditorCompoundExpandsTo(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Figuren',
+      one: '1 Figur',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats Takte',
+      one: '1 Takt',
+    );
+    return 'Wird beim Speichern des Tanzes zu $_temp0 ($_temp1).';
+  }
+
+  @override
+  String get danceEditorCompoundUnavailable =>
+      'Diese eigene Figur kann nicht erweitert werden: Sie wurde gelöscht oder geändert, oder sie akzeptiert diese Werte nicht. Beim Speichern bleiben nur Name, Takte, Notiz und Progression erhalten.';
+
+  @override
   String danceEditorFigureSummarySemantic(
     String main,
     String importGap,
@@ -7969,6 +8004,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get figureParamFacingStarBackingUp => 'rückwärts';
+
+  @override
+  String get danceEditorParamChooseValue => 'einen Wert wählen';
 
   @override
   String get danceEditorParamClearTooltip => 'Löschen (nicht angegeben)';
@@ -9241,7 +9279,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Zeigt deine eigenen Figuren im Glossar an, wo du sie hinzufügen und bearbeiten kannst. Ausschalten blendet sie aus, löscht sie aber nicht.';
+      'Zeigt deine eigenen Figuren im Glossar an, wo du sie hinzufügen und bearbeiten kannst, und bietet sie beim Bearbeiten eines Tanzes an. Ausschalten blendet sie aus, löscht sie aber nicht.';
 
   @override
   String get settingsExperimentalShowCustomFiguresNeedsGlossary =>

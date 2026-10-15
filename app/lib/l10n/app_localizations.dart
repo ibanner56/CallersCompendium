@@ -11643,6 +11643,30 @@ abstract class AppLocalizations {
   /// **'empty figure, choose a move'**
   String get danceEditorEmptyFigureSemantic;
 
+  /// Collapsed summary of a figure row that is one of the user's own custom figures, not yet expanded: its name and the value it gives each parameter, comma-separated.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: {values}'**
+  String danceEditorCompoundSummary(String name, String values);
+
+  /// Screen-reader phrase for a figure row that is one of the user's own custom figures. unavailable is 'yes' when it can no longer be expanded.
+  ///
+  /// In en, this message translates to:
+  /// **'{summary}, your own figure{unavailable, select, yes{, can\'t be expanded} other{}}'**
+  String danceEditorCompoundSemantic(String summary, String unavailable);
+
+  /// Under a custom figure being edited in a dance: how many figures, and how many beats, it is replaced by when the dance is saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Becomes {count, plural, =1{1 figure} other{{count} figures}} ({beats, plural, =1{1 beat} other{{beats} beats}}) when the dance is saved.'**
+  String danceEditorCompoundExpandsTo(int count, int beats);
+
+  /// Shown on a dance's figure row that is one of the user's own custom figures when it can no longer be expanded into figures; the dance then saves it as a custom figure whose text is the name.
+  ///
+  /// In en, this message translates to:
+  /// **'This figure of yours can\'t be expanded: it has been deleted or changed, or doesn\'t accept these values. Saving keeps only its name, beats, note and progression mark.'**
+  String get danceEditorCompoundUnavailable;
+
   /// Composite screen-reader label for a figure row, including optional import-gap, progression, beats, and note details plus row position.
   ///
   /// In en, this message translates to:
@@ -11929,6 +11953,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'backing up'**
   String get figureParamFacingStarBackingUp;
+
+  /// Hint in a figure parameter's dropdown when its stored value is no longer one it accepts and must be replaced: one of the user's own figures (#709) was changed after the value was chosen, or gained a parameter. Lowercase, like the 'not stated' hint.
+  ///
+  /// In en, this message translates to:
+  /// **'choose a value'**
+  String get danceEditorParamChooseValue;
 
   /// Tooltip for the button that clears a figure parameter back to the unstated state.
   ///
@@ -13799,7 +13829,7 @@ abstract class AppLocalizations {
   /// Subtitle of the Custom Figures switch while Show Glossary is on.
   ///
   /// In en, this message translates to:
-  /// **'Lists your own figures in the Glossary, where you can add and edit them. Turning this off hides them; it doesn\'t delete them.'**
+  /// **'Lists your own figures in the Glossary, where you can add and edit them, and offers them when you edit a dance. Turning this off hides them; it doesn\'t delete them.'**
   String get settingsExperimentalShowCustomFiguresSubtitle;
 
   /// Subtitle of the Custom Figures switch while it is disabled because Show Glossary is off.

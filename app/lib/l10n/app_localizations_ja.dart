@@ -7340,6 +7340,39 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorEmptyFigureSemantic => '空のフィギュア、ムーブを選択してください';
 
   @override
+  String danceEditorCompoundSummary(String name, String values) {
+    return '$name：$values';
+  }
+
+  @override
+  String danceEditorCompoundSemantic(String summary, String unavailable) {
+    String _temp0 = intl.Intl.selectLogic(unavailable, {
+      'yes': '、展開できません',
+      'other': '',
+    });
+    return '$summary、自分のフィギュア$_temp0';
+  }
+
+  @override
+  String danceEditorCompoundExpandsTo(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count個のフィギュア',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats拍',
+    );
+    return 'ダンスを保存すると$_temp0（$_temp1）になります。';
+  }
+
+  @override
+  String get danceEditorCompoundUnavailable =>
+      'この自分のフィギュアは展開できません。削除または変更されたか、これらの値を受け付けません。保存すると、名前・拍数・メモ・プログレッションだけが残ります。';
+
+  @override
   String danceEditorFigureSummarySemantic(
     String main,
     String importGap,
@@ -7574,6 +7607,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get figureParamFacingStarBackingUp => '後退する人';
+
+  @override
+  String get danceEditorParamChooseValue => '値を選択';
 
   @override
   String get danceEditorParamClearTooltip => 'クリア（未指定）';
@@ -8786,7 +8822,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      '自分のフィギュアを用語集に表示し、そこで追加や編集ができます。オフにすると非表示になりますが、削除はされません。';
+      '自分のフィギュアを用語集に表示し、そこで追加や編集ができます。ダンスの編集時にも選べます。オフにすると非表示になりますが、削除はされません。';
 
   @override
   String get settingsExperimentalShowCustomFiguresNeedsGlossary =>

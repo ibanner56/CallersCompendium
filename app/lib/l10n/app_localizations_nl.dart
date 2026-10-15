@@ -7695,6 +7695,41 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorEmptyFigureSemantic => 'lege figuur, kies een move';
 
   @override
+  String danceEditorCompoundSummary(String name, String values) {
+    return '$name: $values';
+  }
+
+  @override
+  String danceEditorCompoundSemantic(String summary, String unavailable) {
+    String _temp0 = intl.Intl.selectLogic(unavailable, {
+      'yes': ', kan niet worden uitgevouwen',
+      'other': '',
+    });
+    return '$summary, eigen figuur$_temp0';
+  }
+
+  @override
+  String danceEditorCompoundExpandsTo(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figuren',
+      one: '1 figuur',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats beats',
+      one: '1 beat',
+    );
+    return 'Wordt bij het opslaan van de dans $_temp0 ($_temp1).';
+  }
+
+  @override
+  String get danceEditorCompoundUnavailable =>
+      'Deze eigen figuur kan niet worden uitgevouwen: hij is verwijderd of gewijzigd, of accepteert deze waarden niet. Bij het opslaan blijven alleen de naam, de beats, de notitie en de progressie bewaard.';
+
+  @override
   String danceEditorFigureSummarySemantic(
     String main,
     String importGap,
@@ -7935,6 +7970,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get figureParamFacingStarBackingUp => 'achteruit';
+
+  @override
+  String get danceEditorParamChooseValue => 'kies een waarde';
 
   @override
   String get danceEditorParamClearTooltip => 'Wissen (niet opgegeven)';
@@ -9197,7 +9235,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Toont je eigen figuren in de woordenlijst, waar je ze kunt toevoegen en bewerken. Als je dit uitzet, worden ze verborgen, niet verwijderd.';
+      'Toont je eigen figuren in de woordenlijst, waar je ze kunt toevoegen en bewerken, en biedt ze aan wanneer je een dans bewerkt. Als je dit uitzet, worden ze verborgen, niet verwijderd.';
 
   @override
   String get settingsExperimentalShowCustomFiguresNeedsGlossary =>

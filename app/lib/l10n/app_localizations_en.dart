@@ -7600,6 +7600,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorEmptyFigureSemantic => 'empty figure, choose a move';
 
   @override
+  String danceEditorCompoundSummary(String name, String values) {
+    return '$name: $values';
+  }
+
+  @override
+  String danceEditorCompoundSemantic(String summary, String unavailable) {
+    String _temp0 = intl.Intl.selectLogic(unavailable, {
+      'yes': ', can\'t be expanded',
+      'other': '',
+    });
+    return '$summary, your own figure$_temp0';
+  }
+
+  @override
+  String danceEditorCompoundExpandsTo(int count, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures',
+      one: '1 figure',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats beats',
+      one: '1 beat',
+    );
+    return 'Becomes $_temp0 ($_temp1) when the dance is saved.';
+  }
+
+  @override
+  String get danceEditorCompoundUnavailable =>
+      'This figure of yours can\'t be expanded: it has been deleted or changed, or doesn\'t accept these values. Saving keeps only its name, beats, note and progression mark.';
+
+  @override
   String danceEditorFigureSummarySemantic(
     String main,
     String importGap,
@@ -7840,6 +7875,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get figureParamFacingStarBackingUp => 'backing up';
+
+  @override
+  String get danceEditorParamChooseValue => 'choose a value';
 
   @override
   String get danceEditorParamClearTooltip => 'Clear (not stated)';
@@ -9089,7 +9127,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsExperimentalShowCustomFiguresSubtitle =>
-      'Lists your own figures in the Glossary, where you can add and edit them. Turning this off hides them; it doesn\'t delete them.';
+      'Lists your own figures in the Glossary, where you can add and edit them, and offers them when you edit a dance. Turning this off hides them; it doesn\'t delete them.';
 
   @override
   String get settingsExperimentalShowCustomFiguresNeedsGlossary =>

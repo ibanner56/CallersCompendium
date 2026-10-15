@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../data/editor_draft_shutdown_scope.dart';
 import '../../data/display_defaults.dart';
+import '../../diagnostics/error_log.dart';
 import '../../editor/editor_draft_codec.dart';
 import '../../editor/editor_snapshot.dart';
 import '../../editor/editor_undo_stack.dart';
@@ -241,10 +242,89 @@ class DanceEditorController extends ChangeNotifier {
   bool get _preserveStoredFigures =>
       _loadedUnreadableFigures && _figures.isEmpty;
 
+  /// The figures the draft builds: every row's, with each compound
+  /// placeholder expanded (#709). Read by the warnings and by [buildDance], so
+  /// no placeholder reaches stored dance data.
   List<Figure> get _figures => [
     for (final draft in figureDrafts)
-      ?draft.toFigure(canonicalizeNote: _canonicalizeNote),
+      ...draft.toFigures(
+        resolveCompound: resolveCompound,
+        canonicalizeNote: _canonicalizeNote,
+      ),
   ];
+
+  /// The figures the draft would save now, compound placeholders expanded.
+  List<Figure> get builtFigures => _figures;
+
+  // ---- The user's own compound figures (#709) ----
+
+  StreamSubscription<List<UserGlossaryEntry>>? _glossarySubscription;
+
+  /// Every compound the user has that this build can expand, by entry id.
+  Map<String, ({UserGlossaryEntry entry, CompoundDefinition definition})>
+  _compounds = const {};
+
+  /// The compounds a row can be turned into, by name. Empty until [load].
+  List<UserGlossaryEntry> get compoundEntries =>
+      [for (final c in _compounds.values) c.entry]
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+  /// The compound [id] as it is now, or null when it is gone or no longer
+  /// decodes. Whether Custom Figures is on is not consulted: a placeholder
+  /// already in the draft still expands with it off (#709 decision 4).
+  CompoundDefinition? resolveCompound(String id) => _compounds[id]?.definition;
+
+  /// Re-reads the user's compounds, so a dance built next uses each one as it
+  /// is in storage now rather than as the last watch event left it. The save
+  /// awaits this before [buildDance].
+  Future<void> refreshCompounds() async {
+    _setCompounds(await _repos.userGlossary.listAll());
+  }
+
+  void _setCompounds(List<UserGlossaryEntry> entries) {
+    _compounds = {
+      for (final entry in entries)
+        if (entry.kind == UserGlossaryEntryKind.compound)
+          if (decodeCompoundDefinition(entry.payload, contraTaxonomy)
+              case final definition?)
+            entry.id: (entry: entry, definition: definition),
+    };
+    _refreshPlaceholderBeats();
+  }
+
+  /// Brings each placeholder's beat count up to date with its expansion, for
+  /// the phrase labels, the beat total and a fallback. A placeholder that
+  /// cannot expand keeps its last count.
+  void _refreshPlaceholderBeats() {
+    for (final draft in figureDrafts) {
+      final compound = draft.compound;
+      if (compound == null) continue;
+      if (expandPlaceholder(compound, resolveCompound) case final expanded?) {
+        compound.beats = CompoundDefinition.beatsOf(expanded, contraTaxonomy);
+      }
+    }
+  }
+
+  /// Whether any row is a compound placeholder, so the save must re-read the
+  /// user's compounds before building the dance.
+  bool get hasCompoundPlaceholders =>
+      figureDrafts.any((d) => d.isCompoundPlaceholder);
+
+  void _watchCompounds() {
+    _glossarySubscription = _repos.userGlossary.watchAll().listen(
+      (entries) {
+        if (_disposed) return;
+        _setCompounds(entries);
+        recomputeWarnings();
+        _notify();
+      },
+      onError: (Object error, StackTrace stackTrace) => logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_editor_controller.watch.compounds',
+      ),
+    );
+  }
 
   PhraseStructure _phraseStructure = PhraseStructure.standard;
   PhraseStructure get phraseStructure => _phraseStructure;
@@ -346,6 +426,20 @@ class DanceEditorController extends ChangeNotifier {
   }) async {
     this.fieldDefs = fieldDefs;
     _difficultyLevels = await _repos.difficultyLevels.listAll();
+    // The dance still opens when the user's compounds cannot be read, with
+    // none offered; a save re-reads them and reports a failure there.
+    try {
+      await refreshCompounds();
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_editor_controller.load.compounds',
+      );
+    }
+    if (!_disposed) {
+      _watchCompounds();
+    }
 
     if (dance != null) {
       _original = dance;
@@ -691,6 +785,9 @@ class DanceEditorController extends ChangeNotifier {
     figureDrafts
       ..clear()
       ..addAll(s.figureDrafts.map((d) => d.toDraft()));
+    // A restored or undone placeholder carries the count it had then; the
+    // compound may have changed since (#709).
+    _refreshPlaceholderBeats();
 
     recomputeWarnings();
   }
@@ -1465,6 +1562,7 @@ class DanceEditorController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    unawaited(_glossarySubscription?.cancel());
     _undoTimer?.cancel();
     _autosaveTimer?.cancel();
     titleController.dispose();

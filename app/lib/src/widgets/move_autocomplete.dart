@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 
 import 'responsive_autocomplete.dart';
 
-/// The kind of entry selected from a [MoveAutocomplete].
-enum MoveOptionKind { move, modifier }
+/// The kind of entry selected from a [MoveAutocomplete]: a taxonomy move or
+/// alias, the structural modifier, or one of the user's own compound figures
+/// (#709), whose [MoveOption.id] is its glossary entry id.
+enum MoveOptionKind { move, modifier, compound }
 
 /// One selectable entry in a [MoveAutocomplete]: either a canonical move, an
 /// alias, or an enabled structural option. [id] is what gets stored on the
@@ -15,11 +17,15 @@ class MoveOption {
     required this.id,
     required this.displayName,
     this.kind = MoveOptionKind.move,
+    this.searchTerms = const [],
   });
 
   final String id;
   final String displayName;
   final MoveOptionKind kind;
+
+  /// Other words that find a [MoveOptionKind.compound] option: its keywords.
+  final List<String> searchTerms;
 }
 
 /// A keyboard-first type-ahead move picker over a [Taxonomy]'s moves (and,
@@ -39,6 +45,8 @@ class MoveAutocomplete extends StatefulWidget {
     this.onCustomSubmitted,
     this.includeAliases = true,
     this.includeModifier = false,
+    this.compoundOptions = const [],
+    this.compoundMarkerLabel = 'custom',
     this.includeCustomMove = true,
     this.modifierOptionLabel = 'modifier',
     this.hintText = 'e.g. swing',
@@ -79,6 +87,14 @@ class MoveAutocomplete extends StatefulWidget {
   /// leaf move.
   final bool includeModifier;
 
+  /// The user's own compound figures to offer (#709), each a
+  /// [MoveOptionKind.compound] option. Matching ones are listed before every
+  /// move, within the same cap. Empty (the default) offers none.
+  final List<MoveOption> compoundOptions;
+
+  /// What marks a compound option as the user's own, in words.
+  final String compoundMarkerLabel;
+
   /// Whether the taxonomy's own [customMove] is offered. An editor that
   /// cannot hold a custom figure turns it off, as it turns off
   /// [onCustomSubmitted].
@@ -118,6 +134,10 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
     }
 
     final options = <MoveOption>[
+      for (final c in widget.compoundOptions)
+        if (c.displayName.toLowerCase().contains(q) ||
+            c.searchTerms.any((k) => k.toLowerCase().contains(q)))
+          c,
       if (widget.includeModifier &&
           matches(
             modifierMove,
@@ -149,7 +169,10 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
       // only costs a slot and invites a coin-flip. Drop it; the move, or the
       // earlier alias, already covers that label. Moves are never dropped, so
       // a dialect that gives two moves one term cannot hide either of them.
-      final labels = {for (final o in options) _labelKey(o.displayName)};
+      final labels = {
+        for (final o in options)
+          if (o.kind != MoveOptionKind.compound) _labelKey(o.displayName),
+      };
       for (final a in widget.taxonomy.aliases.values) {
         final label = renderer.displayMoveName(a.id, dialect);
         if (matches(a.id, a.displayName, label, a.searchKeywords) &&
@@ -175,10 +198,27 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
       optionsBuilder: (value) => _optionsFor(value.text),
       onSelected: widget.onSelected,
       optionTileBuilder: (context, option, onSelected) {
+        final compound = option.kind == MoveOptionKind.compound;
         return ListTile(
-          key: ValueKey('${widget.fieldKey ?? 'move'}-option-${option.id}'),
+          key: ValueKey(
+            '${widget.fieldKey ?? 'move'}-option-'
+            '${compound ? 'compound:' : ''}${option.id}',
+          ),
           dense: true,
           title: Text(option.displayName),
+          // Marked in words for assistive technology, not by the icon alone.
+          trailing: compound
+              ? Tooltip(
+                  message: widget.compoundMarkerLabel,
+                  // The icon's own label says it; read once.
+                  excludeFromSemantics: true,
+                  child: Icon(
+                    Icons.person_outline,
+                    size: 18,
+                    semanticLabel: widget.compoundMarkerLabel,
+                  ),
+                )
+              : null,
           onTap: onSelected,
         );
       },

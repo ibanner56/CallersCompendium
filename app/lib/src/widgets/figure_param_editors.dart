@@ -28,6 +28,7 @@ class FigureParamEditor extends StatelessWidget {
     required this.dialect,
     this.mixer = false,
     this.moveId,
+    this.correctsValue = true,
   });
 
   /// Stem for the child widget's [ValueKey] (e.g. `figure-0`); the editor
@@ -55,6 +56,14 @@ class FigureParamEditor extends StatelessWidget {
 
   /// Move identity used only for display-specific parameter labels.
   final String? moveId;
+
+  /// Whether a dropdown corrects a value outside its choices by writing a
+  /// valid one back after the frame. Off where the value is the user's
+  /// standing choice and an invalid one must stay visible as such, not be
+  /// replaced by opening the editor: a compound placeholder's argument, whose
+  /// compound may have changed since it was chosen (#709). Off, such a value
+  /// shows as nothing selected and is left as it is.
+  final bool correctsValue;
 
   String get _key => '$keyPrefix-$paramKey';
 
@@ -163,7 +172,12 @@ class FigureParamEditor extends StatelessWidget {
     // prevent. Specs that do not admit the sentinel keep the original behaviour
     // untouched.
     final specDefault = spec.defaultValue;
-    final current = (admitsUnstated && value == ParamVocab.unspecified)
+    final current = !correctsValue
+        // Shown as it is when it is a choice, else as nothing selected.
+        ? (value is String && selectable.contains(value)
+              ? value! as String
+              : null)
+        : (admitsUnstated && value == ParamVocab.unspecified)
         ? null
         : (value is String && selectable.contains(value))
         ? value! as String
@@ -172,7 +186,9 @@ class FigureParamEditor extends StatelessWidget {
         : (admitsUnstated
               ? null
               : (selectable.isNotEmpty ? selectable.first : null));
-    if (current != null && current != value) {
+    if (!correctsValue) {
+      // Nothing is written back.
+    } else if (current != null && current != value) {
       WidgetsBinding.instance.addPostFrameCallback((_) => onChanged(current));
     } else if (admitsUnstated &&
         current == null &&
@@ -201,6 +217,14 @@ class FigureParamEditor extends StatelessWidget {
       );
     }
 
+    // A value outside the choices that is left as it is (see
+    // [correctsValue]) is not "not stated": the field asks for a choice
+    // instead, so it never claims a state the draft does not hold.
+    final needsChoice =
+        !correctsValue &&
+        current == null &&
+        !(admitsUnstated && value == ParamVocab.unspecified);
+
     final dropdown = SizedBox(
       width: 180,
       child: DropdownButtonFormField<String>(
@@ -208,10 +232,19 @@ class FigureParamEditor extends StatelessWidget {
         initialValue: current,
         isExpanded: true,
         isDense: true,
-        // Shown only when there is no selection, i.e. the unstated state.
-        // Supplying a hint also keeps `InputDecorator.isEmpty` false, so the
-        // floating label behaves exactly as it does for a set value.
-        hint: admitsUnstated
+        // Shown only when there is no selection: the unstated state, or a
+        // value left as it is that must be replaced. Supplying a hint also
+        // keeps `InputDecorator.isEmpty` false, so the floating label behaves
+        // exactly as it does for a set value.
+        hint: needsChoice
+            ? Text(
+                l10n.danceEditorParamChooseValue,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: theme.colorScheme.error,
+                ),
+              )
+            : admitsUnstated
             ? Text(
                 l10n.danceEditorParamNotStated,
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -255,7 +288,8 @@ class FigureParamEditor extends StatelessWidget {
         // sentinel: offered only once a value is set, so a transcriber who
         // picked one by mistake can put the field back to "the source didn't
         // say" rather than being stuck with a value the source never gave.
-        if (current != null)
+        // A value left as it is (see [correctsValue]) can be cleared too.
+        if (current != null || needsChoice)
           IconButton(
             key: ValueKey('$_key-clear'),
             tooltip: l10n.danceEditorParamClearTooltip,

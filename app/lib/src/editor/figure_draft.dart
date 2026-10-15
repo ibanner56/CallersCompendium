@@ -6,7 +6,8 @@
 import 'package:compendium_core/compendium_core.dart';
 
 /// Mutable working state for a single figure while it is being edited in the
-/// dance editor. Committed to an immutable [Figure] on save via [toFigure].
+/// dance editor. Committed to immutable figures on save via [toFigures]: the
+/// one figure [toFigure] builds, or a compound placeholder's expansion.
 class FigureDraft {
   FigureDraft({
     String? id,
@@ -22,6 +23,7 @@ class FigureDraft {
     this.wordingOverride,
     this.meanwhileSides,
     this.modifierFigures,
+    this.compound,
   }) : id = id ?? uuidV4(),
        params = params ?? <String, Object?>{};
 
@@ -124,6 +126,16 @@ class FigureDraft {
   /// core figure; later children are modifiers.
   List<FigureDraft>? modifierFigures;
 
+  /// Non-null when this row is one of the user's own compound figures (#709),
+  /// picked in the dance editor and not yet expanded. A placeholder exists only
+  /// in the editor and its autosave draft: [toFigures] expands it into the
+  /// figures it stands for when the dance is built, so it never reaches stored
+  /// dance data. While it is set, [move] is null and [params] holds nothing.
+  CompoundPlaceholder? compound;
+
+  /// Whether this draft is a compound placeholder; see [compound].
+  bool get isCompoundPlaceholder => compound != null;
+
   /// Whether this draft is a meanwhile group. Mirrors [Figure.isMeanwhile].
   bool get isMeanwhileGroup => meanwhileSides != null;
 
@@ -146,13 +158,19 @@ class FigureDraft {
   ///
   /// Structural children must alternate kinds and may not introduce a third
   /// container level.
+  ///
+  /// A compound placeholder never can: it stands for several figures, which
+  /// are not one side or one modifier child (#709).
   bool canNestInContainer({required bool modifierParent}) {
+    if (isCompoundPlaceholder) return false;
     if (!isContainerDraft) return true;
     final oppositeKind = modifierParent ? isMeanwhileGroup : isModifierGroup;
     return oppositeKind && !hasNestedContainer;
   }
 
-  int get beats => (params['beats'] as int?) ?? 0;
+  /// The draft's beat count. A compound placeholder's is the count its
+  /// expansion last had ([CompoundPlaceholder.beats]).
+  int get beats => compound?.beats ?? (params['beats'] as int?) ?? 0;
 
   /// Returns an independent copy with a FRESH [id] (the stable-identity
   /// contract: a duplicate is a distinct row) and every other field copied
@@ -178,6 +196,7 @@ class FigureDraft {
     modifierFigures: modifierFigures
         ?.map((child) => child.clone())
         .toList(growable: true),
+    compound: compound?.copy(),
   );
 
   /// Whether this draft holds any content worth preserving even though it
@@ -249,7 +268,13 @@ class FigureDraft {
   /// how `hook`/`callingNotes`/`walkthrough` are canonicalized at the same
   /// `buildDance` boundary, issue #613/#715) while the default keeps today's
   /// plain-trim behavior for any other caller.
+  ///
+  /// A compound placeholder builds the figure it falls back to when it cannot
+  /// be expanded ([toFigures] expands it).
   Figure? toFigure({String Function(String) canonicalizeNote = _trimNote}) {
+    if (compound case final compound?) {
+      return _compoundFallback(compound, canonicalizeNote);
+    }
     final children = meanwhileSides ?? modifierFigures;
     if (children != null) {
       // Never silently drop a child that the user has started authoring
@@ -335,6 +360,67 @@ class FigureDraft {
           : _trimOptionalOverride(wordingOverride),
     );
   }
+
+  /// The figures this draft stands for when the dance is built: a compound
+  /// placeholder's expansion, or else the one figure [toFigure] builds (none
+  /// for a row with nothing chosen yet).
+  ///
+  /// [resolveCompound] looks a compound up by id, as it is now — an edit made
+  /// in the Glossary since the row was picked applies. A placeholder whose
+  /// compound is gone, no longer valid, or no longer accepts the row's
+  /// arguments becomes one custom figure bearing the compound's name, its last
+  /// beat count, and the row's note and progression mark, so the row is not
+  /// dropped; the values chosen for its parameters are not kept (#709). The placeholder's [note] goes on
+  /// the first expanded figure and its [progression] mark on the last.
+  List<Figure> toFigures({
+    required CompoundResolver resolveCompound,
+    String Function(String) canonicalizeNote = _trimNote,
+  }) {
+    final compound = this.compound;
+    if (compound == null) {
+      return [?toFigure(canonicalizeNote: canonicalizeNote)];
+    }
+    final expanded = expandPlaceholder(compound, resolveCompound);
+    if (expanded == null) {
+      return [_compoundFallback(compound, canonicalizeNote)];
+    }
+    final placed = [...expanded];
+    final note = canonicalizeNote(this.note);
+    if (note.isNotEmpty) {
+      final first = placed.first;
+      final own = first.note;
+      placed[0] = first.copyWith(
+        note: own == null || own.isEmpty ? note : '$own; $note',
+      );
+    }
+    if (progression) {
+      placed[placed.length - 1] = placed.last.copyWith(progression: true);
+    }
+    return placed;
+  }
+
+  /// The custom figure a placeholder becomes when it cannot be expanded.
+  ///
+  /// Its text is the compound's stored name, which is already canonical
+  /// glossary text: it does not go through [canonicalizeNote], whose rules
+  /// differ from glossary canonicalization and would alter it (#709).
+  Figure _compoundFallback(
+    CompoundPlaceholder compound,
+    String Function(String) canonicalizeNote,
+  ) {
+    final note = canonicalizeNote(this.note);
+    return Figure(
+      schemaVersion: schemaVersion,
+      move: customMove,
+      params: {
+        ...contraTaxonomy.effectiveParams(Figure(move: customMove)),
+        'text': compound.name,
+        if (compound.beats > 0) 'beats': compound.beats,
+      },
+      note: note.isEmpty ? null : note,
+      progression: progression,
+    );
+  }
 }
 
 /// Default [FigureDraft.toFigure]/[FigureDraft._bestEffortFigure] note
@@ -345,4 +431,53 @@ String _trimNote(String note) => note.trim();
 String? _trimOptionalOverride(String? value) {
   final trimmed = value?.trim();
   return trimmed == null || trimmed.isEmpty ? null : trimmed;
+}
+
+/// Looks one of the user's compound figures up by its glossary entry id: its
+/// definition as it is now, or null when it is gone or no longer decodes.
+typedef CompoundResolver = CompoundDefinition? Function(String id);
+
+/// [compound]'s expansion with its arguments, or null when its compound is
+/// gone, invalid, or does not accept them.
+List<Figure>? expandPlaceholder(
+  CompoundPlaceholder compound,
+  CompoundResolver resolveCompound,
+) {
+  final definition = resolveCompound(compound.id);
+  if (definition == null) return null;
+  final expanded = expandCompound(definition, compound.args, contraTaxonomy);
+  return expanded == null || expanded.isEmpty ? null : expanded;
+}
+
+/// One of the user's compound figures, as a dance-editor row holds it until
+/// the dance is saved (#709).
+class CompoundPlaceholder {
+  CompoundPlaceholder({
+    required this.id,
+    required this.name,
+    Map<String, Object?>? args,
+    this.beats = 0,
+  }) : args = args ?? <String, Object?>{};
+
+  /// The compound's glossary entry id ([UserGlossaryEntry.id]).
+  final String id;
+
+  /// The compound's name when it was picked, as stored: canonical glossary
+  /// text. It is what the row falls back to if the compound is deleted.
+  String name;
+
+  /// The value the row gives each of the compound's parameters, by key.
+  final Map<String, Object?> args;
+
+  /// The beats of the expansion when the row last expanded, so a fallback, the
+  /// phrase labels and the beat total have a count while the compound cannot
+  /// be read.
+  int beats;
+
+  CompoundPlaceholder copy() => CompoundPlaceholder(
+    id: id,
+    name: name,
+    args: Map<String, Object?>.of(args),
+    beats: beats,
+  );
 }

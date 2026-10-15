@@ -83,6 +83,14 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   it with the next row into one 2–6-side concurrent group, each side authored
   with the same figure editor and one shared beats field for the whole group;
   removing down to 1 side auto-collapses back to a plain figure (#590/#593).
+- **The user's own compound figures** (#709), while Custom Figures is on: the
+  move picker of a top-level row lists matching ones first, marked as the
+  user's own in words. Picking one makes the row an editor-only placeholder —
+  the figure's name and one editor per parameter, narrowed to the values it
+  accepts, with progression and note but no walkthrough or wording override —
+  which is never grouped into a meanwhile or modifier and is expanded into
+  ordinary figures when the dance is saved, or kept as a custom figure bearing
+  its name when it no longer expands.
 - Metadata form with author autocomplete (choreographer table), formation
   picker, custom fields.
 - Autosave drafts; explicit save commits; undo history.
