@@ -135,6 +135,26 @@ const Duration kUpdateDownloadTimeout = Duration(seconds: 60);
 /// Cancel apparently dead for the whole idle timeout.
 const Duration kUpdateDiscardCloseTimeout = Duration(seconds: 3);
 
+/// The name prefix of the per-attempt directory a Windows/Linux assisted
+/// download is written into (`Directory.createTemp` appends a random suffix),
+/// and what [sweepStaleUpdateTempDirs] looks for. Keep the two in step: they
+/// share this constant so a directory the download creates is one the sweep
+/// can find.
+const String kUpdateTempDirPrefix = 'cc_update_';
+
+/// How long an update-download directory must have been untouched before the
+/// launch-time sweep ([sweepStaleUpdateTempDirs]) deletes it.
+///
+/// A successful download deliberately leaves its verified installer in place so
+/// the user can still reach it, and nothing else removes it, so the sweep
+/// is the only thing that ever does. A week is chosen to be far past anything a
+/// live use could need, not to reclaim space quickly: what it must never touch
+/// is a download another running instance is still writing and an installer the
+/// user was handed but has not run yet (on Linux they run it themselves, when
+/// they choose), and both are minutes to days old, not weeks. The cost of
+/// being generous is one installer's disk space per update for that week.
+const Duration kUpdateTempDirMinAge = Duration(days: 7);
+
 /// A hard upper bound on the number of bytes [downloadArtifact] will write for a
 /// single artifact, applied as a **backstop** for an artifact that carries no
 /// usable `size` (`size == 0`). A manifest parsed by [UpdateManifest] can never

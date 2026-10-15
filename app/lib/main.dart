@@ -1495,6 +1495,11 @@ class _CompendiumAppState extends State<CompendiumApp>
     // no-op unless the user opted in (default off) and never blocks startup or
     // surfaces an error — fire-and-forget per the ADR-002 §5 privacy contract.
     unawaited(_updateController.maybeAutoCheck());
+    // Housekeeping, not part of the opt-in check: delete update-download temp
+    // directories left from earlier runs (a successful download keeps its
+    // installer on purpose, so they would otherwise pile up). Local, silent,
+    // and age-guarded, so it needs no consent and cannot touch a live download.
+    unawaited(_updateController.sweepStaleDownloads());
     // Scheduled only here, at the success tail, so a failed attempt that Retry
     // re-runs never queues a probe and each successful bootstrap probes once.
     WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -34,6 +34,7 @@ import 'semver.dart';
 import 'update_config.dart';
 import 'update_manifest.dart';
 import 'update_service.dart';
+import 'update_temp_sweep.dart';
 
 /// The state of the manual "Check for updates" action, surfaced as inline
 /// status text in Settings (never an error dialog — ADR-002 §5).
@@ -363,7 +364,7 @@ class UpdateController extends ChangeNotifier {
         // cannot pre-plant a symlink at a guessable location to redirect the
         // write (CWE-59/377). The downloader's own `create(exclusive: true)`
         // guard is defense-in-depth on top of this.
-        downloadDir = await dir.createTemp('cc_update_');
+        downloadDir = await dir.createTemp(kUpdateTempDirPrefix);
         usesTemporaryDirectory = true;
         destination = File(
           '${downloadDir.path}/${downloadFileName(artifact.url)}',
@@ -526,6 +527,26 @@ class UpdateController extends ChangeNotifier {
   /// and the partial file is deleted.
   void cancelDownload() => _cancelToken?.cancel();
 
+  /// Deletes update-download directories that earlier runs left in the temp
+  /// directory and nobody has touched for [kUpdateTempDirMinAge]; see
+  /// [sweepStaleUpdateTempDirs]. The app calls it once per launch, fire and
+  /// forget. It needs no opt-in (it is local housekeeping and sends nothing)
+  /// and never throws: a temp directory that cannot be resolved or listed just
+  /// means nothing is swept.
+  ///
+  /// Safe next to a download: it only removes a directory whose newest file is
+  /// a week old, and a download in flight keeps its file's modification time
+  /// current while one that just completed is only minutes old.
+  Future<void> sweepStaleDownloads() async {
+    try {
+      final dir = await _temporaryDirectoryProvider();
+      await sweepStaleUpdateTempDirs(dir, now: _clock);
+    } on Object {
+      // diagnostics: silent — best-effort housekeeping; the temp directory
+      // could not be resolved, so there is nothing to sweep.
+    }
+  }
+
   /// Clears a terminal download state (completed/failed/cancelled) back to idle
   /// so the affordance re-arms — e.g. after the user reads an error and wants to
   /// retry.
@@ -646,7 +667,8 @@ class UpdateController extends ChangeNotifier {
   /// in [startAssistedDownload] (issue #626). Only ever called on a
   /// non-success path — the directory (and its file) are deliberately left in
   /// place after [AssistedDownloadStatus.completed] so the user can still
-  /// reach the verified artifact.
+  /// reach the verified artifact. [sweepStaleDownloads] removes it at a later
+  /// launch.
   Future<void> _deleteDirQuietly(Directory dir) async {
     try {
       if (await dir.exists()) await dir.delete(recursive: true);

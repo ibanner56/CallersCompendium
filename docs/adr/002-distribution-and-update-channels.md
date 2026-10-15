@@ -182,6 +182,22 @@ Settings ▸ Updates additionally offer a **"Download & install"** action that:
    **cancel**. macOS first presents a native Save As panel and writes directly
    to the user-selected path, preserving user-consented download provenance;
    Windows and Linux use a private temp file.
+
+   *Temp-file lifecycle (Windows/Linux).* Each attempt writes into its own
+   randomly-named `cc_update_<random>` directory under the system temp
+   directory. A failed, cancelled, or checksum-mismatched attempt removes that
+   directory; where the OS still holds the partial file open (Windows), the
+   removal is retried once the file closes, and a **cancel or failure waits at
+   most `kUpdateDiscardCloseTimeout` (3 s)** for the close rather than the 60 s
+   network idle timeout, so Cancel re-arms the action promptly. After a
+   *successful* download the verified installer is deliberately **left in place**
+   (the user can still reach it after "completed"), so nothing removes it at the
+   end of the flow. Instead, **on every launch the app deletes `cc_update_*`
+   directories older than `kUpdateTempDirMinAge` (7 days)**, judged by the
+   newest modification time inside the directory so a download still being
+   written, or an installer just handed over, is never touched. The sweep is
+   best-effort and silent; what it cannot remove (a file still in use) is
+   retried at the next launch.
 2. **Verifies** the file's **sha256 against `UpdateArtifact.sha256`** — a
    **mandatory** integrity gate. A mismatch **fails loudly**: the downloaded
    artifact is deleted and a clear error is surfaced (never a silent no-op).
