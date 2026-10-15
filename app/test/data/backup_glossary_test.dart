@@ -286,6 +286,7 @@ void main() {
       expect(outcome.applied, isTrue, reason: 'the core committed');
       expect(outcome.settingsFailed, isTrue);
       expect(await liveIds(repos), ['live'], reason: 'nothing half-applied');
+      expect(await liveNoteIds(repos), ['swing']);
     });
 
     test('a merge restore adds and updates, and deletes nothing', () async {

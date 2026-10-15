@@ -515,15 +515,15 @@ class BackupService {
   /// keys, then re-sets each backed-up key) — except the user's glossary in a
   /// merge, or when part of it could not be read, which is only added to —
   /// and it leaves undescribed sections alone, so running it once or several
-  /// times converges to the same state.
+  /// times converges to the same state. This makes the retry safe to invoke
+  /// repeatedly, and a settings-apply failure that recurs is reported (again)
+  /// as [BackupRestoreOutcome.applied] `true` with
+  /// [BackupRestoreOutcome.settingsFailed] `true` rather than thrown (an
+  /// [Error], i.e. a programming bug, is deliberately NOT caught so it
+  /// surfaces; the caught [Exception] is logged in debug builds).
   ///
   /// [mode] is the mode the restore being retried ran in. It is required so a
   /// retry can never delete glossary entries a merge restore would have kept.
-  /// This makes the retry safe to invoke repeatedly, and a settings-apply
-  /// failure that recurs is reported (again) as [BackupRestoreOutcome.applied]
-  /// `true` with [BackupRestoreOutcome.settingsFailed] `true` rather than thrown
-  /// (an [Error], i.e. a programming bug, is deliberately NOT caught so it
-  /// surfaces; the caught [Exception] is logged in debug builds).
   Future<BackupRestoreOutcome> retryApplySettings(
     String json, {
     required RestoreMode mode,
