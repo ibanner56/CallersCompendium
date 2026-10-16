@@ -8026,9 +8026,9 @@
   "@retirementBannerLater": {
     "x-sourceSha256": "73b6e48a1b552d112502d37a7b7870436efc5ea1de0bca58ccf12d6ae15d3a0c"
   },
-  "installLocationBannerMessage": "{appName} is nog niet geïnstalleerd: de app draait vanaf de gedownloade schijfkopie of het archief. Stop de app, sleep hem naar de map Apps en open hem daarna vanaf daar.",
+  "installLocationBannerMessage": "{appName} is mogelijk niet geïnstalleerd. De app draait vanaf de gedownloade schijfkopie of het archief, of vanaf een tijdelijke alleen-lezen locatie die macOS ervoor heeft aangemaakt. Stop de app, sleep hem in de Finder naar de map Apps of kopieer hem daarheen en open hem daarna vanaf daar. Staat de app al in de map Apps, dan kun je deze melding sluiten.",
   "@installLocationBannerMessage": {
-    "x-sourceSha256": "12c4548b3d19d088333888d7b32255d0bbea9beb23584cc08ffca881d395df8b"
+    "x-sourceSha256": "ee41af592bd281994bc194fd8b2ada6f12e842dfba13fb0ab0161cb3242f031c"
   },
   "installLocationBannerDismiss": "Sluiten",
   "@installLocationBannerDismiss": {

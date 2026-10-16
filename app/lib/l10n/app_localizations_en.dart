@@ -8067,7 +8067,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String installLocationBannerMessage(String appName) {
-    return '$appName isn\'t installed yet: it is running from the downloaded disk image or archive. Quit it, drag it to your Applications folder, then open it from there.';
+    return '$appName may not be installed. It is running from the downloaded disk image or archive, or from a temporary read-only location that macOS set up for it. Quit it, drag or copy it into your Applications folder in Finder, then open it from there. If it is already in your Applications folder, you can dismiss this notice.';
   }
 
   @override

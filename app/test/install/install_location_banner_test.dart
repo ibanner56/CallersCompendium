@@ -49,7 +49,26 @@ void main() {
 
     expect(calls.value, 1);
     expect(find.byKey(_banner), findsOneWidget);
-    expect(find.textContaining("isn't installed yet"), findsOneWidget);
+    // The check is "the bundle is on a read-only volume", which a Gatekeeper
+    // translocated copy of an app already in Applications also satisfies, so
+    // the wording must not assert the app is certainly uninstalled, must name
+    // the translocated case, and must let a user who has already installed it
+    // dismiss the notice.
+    expect(find.textContaining("isn't installed yet"), findsNothing);
+    // Whether moving the app clears a translocated copy is unverified, so the
+    // message must not promise that the notice goes away.
+    expect(find.textContaining('stops appearing'), findsNothing);
+    expect(find.textContaining('goes away'), findsNothing);
+    expect(find.textContaining('will not appear'), findsNothing);
+    expect(find.textContaining('may not be installed'), findsOneWidget);
+    expect(find.textContaining('disk image or archive'), findsOneWidget);
+    expect(find.textContaining('temporary read-only location'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'If it is already in your Applications folder, you can dismiss',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Dismiss hides the notice', (tester) async {

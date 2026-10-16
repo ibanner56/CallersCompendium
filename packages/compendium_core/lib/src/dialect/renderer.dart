@@ -146,9 +146,10 @@ class FigureRenderer {
   /// attached use of a figure of your own (#1023) renders from its definition
   /// in [userFigures], so its canonical text follows that definition, and
   /// every renderer writing the index must be given the live figures (the
-  /// dance repository reads them as it indexes). It passes `forCanonical: true`, which
-  /// bypasses every display-only polish (silenced defaults, subject omission,
-  /// dancer-set singularization, shoulder injection) that [render] /
+  /// dance repository reads them as it indexes). It passes
+  /// `forCanonical: true`, which bypasses every display-only polish (silenced
+  /// defaults, subject omission, dancer-set singularization, shoulder
+  /// injection) that [render] /
   /// [renderSummary] apply. As a result `render(figure, Dialect.canonical)`
   /// legitimately diverges from `renderCanonical(figure)`.
   String renderCanonical(Figure figure) =>
