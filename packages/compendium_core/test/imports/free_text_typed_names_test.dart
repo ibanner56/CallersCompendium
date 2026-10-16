@@ -289,6 +289,16 @@ void main() {
       expect(unitless.note, '8 beats');
     });
 
+    test('a line free text kept custom for a stray unit count stays custom '
+        'on re-parse', () {
+      final typed = parseFreeTextFigureEntry('circle left 8 beats (16)').single;
+      expect(typed.isCustom, isTrue);
+      final outcome = reparseImportGapFigures([typed]);
+      expect(outcome.upgradedCount, 0);
+      expect(outcome.figures.single.isCustom, isTrue);
+      expect(outcome.figures.single.params['text'], 'circle left 8 beats (16)');
+    });
+
     test('a second count keeps the whole line custom', () {
       final f = parseFreeTextFigureEntry(
         '(8 beats) neighbor swing (16)',
