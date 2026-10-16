@@ -55,13 +55,6 @@ String userFigureKeyFor(String id) => '$userFigureKeyPrefix$id';
 /// Whether [key] names a figure of your own ([userFigureKeyPrefix]).
 bool isUserFigureKey(String key) => key.startsWith(userFigureKeyPrefix);
 
-/// The id in a [userFigureKeyFor] key, or null when [key] is not one.
-String? userFigureIdOfKey(String key) {
-  if (!isUserFigureKey(key)) return null;
-  final id = key.substring(userFigureKeyPrefix.length);
-  return id.isEmpty ? null : id;
-}
-
 /// Longest id a use may refer to: a UUID, with room to spare.
 const int _maxRefLength = 64;
 

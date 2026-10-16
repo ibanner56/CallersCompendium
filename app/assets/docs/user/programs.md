@@ -321,7 +321,11 @@ further split by whether they carry a "balance and" or "meltdown" lead-in, and
 heys are split by their length — so similar-looking moves are not lumped
 together. The plain partner swing and neighbor swing columns are always shown,
 even when empty, so an evening without one stands out; other columns appear only
-when some dance uses that move.
+when some dance uses that move. Free-text figures share one **Custom** column,
+except that, while **Custom Figures** is on, each of
+[your own new figures](./settings.md#glossary-and-custom-figures) that a dance uses gets a
+column of its own, headed by its name. With **Custom Figures** off, they join the
+**Custom** column.
 
 A few practical notes:
 
