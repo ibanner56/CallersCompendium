@@ -1673,6 +1673,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// distinct alternate call, primary vs. alternate); each accepted candidate is
   /// `upsert`ed. Declining seeds nothing, and because conflicts are skipped a
   /// re-import of the same file adds no duplicates.
+  ///
+  /// Saving does not depend on this screen still being mounted: Done on the
+  /// result dialog pops the route before the seed step is answered.
   Future<void> _maybeSeedShorthands(CcUsrArchive archive) async {
     final controller = ShorthandMappingsScope.maybeOf(context);
     if (controller == null) return;
@@ -1694,6 +1697,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (partition.seedable.isEmpty) return;
 
     final dialect = ActiveDialectScope.of(context);
+    // Captured before the awaits: Done on the result dialog has already popped
+    // this screen's route, so it can unmount while the seed step is open. The
+    // controller and messenger are app-scoped and outlive it (#1819).
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     final chosen = await Navigator.of(context).push<List<ShorthandMapping>>(
       MaterialPageRoute(
         builder: (_) => ImportShorthandSeedScreen(
@@ -1703,7 +1711,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
       ),
     );
-    if (chosen == null || chosen.isEmpty || !mounted) return;
+    if (chosen == null || chosen.isEmpty) return;
 
     var seeded = 0;
     for (final mapping in chosen) {
@@ -1726,13 +1734,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         }
       }
     }
-    if (!mounted || seeded == 0) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    if (seeded == 0) return;
+    messenger.showSnackBar(
       SnackBar(
         key: const ValueKey('shorthand-seed-complete'),
-        content: Text(
-          AppLocalizations.of(context).importShorthandSeedComplete(seeded),
-        ),
+        content: Text(l10n.importShorthandSeedComplete(seeded)),
       ),
     );
   }
