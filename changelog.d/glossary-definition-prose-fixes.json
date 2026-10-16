@@ -3,13 +3,13 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "The Glossary text for Petronella and Arch and dive no longer contains a garbled sentence, and the text for Dolphin hey, Facing star and Star promenade is reworded in the project's own words. The meaning is unchanged.",
+      "A garbled sentence in the Glossary text for Petronella is fixed. Arch and dive now says the other couple dives and that the named couple is usually the ones (it said often). Dolphin hey, Facing star and Star promenade are reworded in the project's own words, with the same meaning.",
       "Settings now says that the built-in Glossary definitions and descriptions are in English whatever language the app is set to; only the Glossary's labels and buttons are translated."
     ]
   },
   "core": {
     "fixed": [
-      "Reword the shipped `contraFigureDefinitions` text for petronella, arch_and_dive, dolphin_hey, facing_star and star_promenade; no run of 7 or more words now matches The Caller's Box glossary."
+      "Fix a missing word in the shipped `contraFigureDefinitions` text for petronella, and reword arch_and_dive, dolphin_hey, facing_star and star_promenade; no run of 7 or more words now matches The Caller's Box glossary."
     ]
   }
 }

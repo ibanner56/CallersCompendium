@@ -345,7 +345,7 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     definition:
         'A star in which two of the four dancers walk backward, so dancers face each other as it turns.',
     description:
-        'Each diagonal pair puts a different hand in the middle, one pair right and the other left, and dancers often hold their free hand with the person ahead of them. Two diagonally opposite dancers back up while the other two walk forward. It usually travels 3 places in about 8 beats.',
+        'Each diagonal pair puts a different hand in the middle, one pair right and the other left, and dancers often hold their free hand with the dancer facing them. Two diagonally opposite dancers back up while the other two walk forward. It usually travels 3 places in about 8 beats.',
   ),
   // TCB "Square through".
   'square_through': FigureDefinition(
@@ -382,7 +382,7 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
   // TCB "Dolphin hey".
   'dolphin_hey': FigureDefinition(
     definition:
-        'A hey with three positions, one filled by a pair of dancers, one close behind the other, weaving as a unit.',
+        'A hey with three positions, one filled by two dancers, one close behind the other, who weave as a unit.',
     description:
         'The pair trades places each time it loops around an end: the front dancer swings wide and the one behind cuts inside to take the front. It is usually danced across the set, starting with the couple in the middle. The figure names who starts it and by which shoulder. A full dolphin hey usually takes 16 beats.',
   ),
