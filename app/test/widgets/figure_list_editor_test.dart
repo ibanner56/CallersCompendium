@@ -496,8 +496,9 @@ void main() {
     // menu with Space — no pointer event anywhere.
     Future<void> openAddMenuByKeyboard(WidgetTester tester) async {
       var guard = 0;
-      while (!(FocusManager.instance.primaryFocus?.debugLabel ?? '')
-              .contains('figure-add') &&
+      while (!(FocusManager.instance.primaryFocus?.debugLabel ?? '').contains(
+            'figure-add',
+          ) &&
           guard++ < 80) {
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.pump();
@@ -512,37 +513,33 @@ void main() {
       expect(find.byKey(const ValueKey('figure-add-figure')), findsOneWidget);
     }
 
-    testWidgets('Enter on the first item reaches the free-text box from an empty dance', (
-      tester,
-    ) async {
-      final drafts = <FigureDraft>[];
-      await _pump(
-        tester,
-        drafts,
-        freeTextEntry: true,
-        wireAddMeanwhile: true,
-      );
-      await openAddMenuByKeyboard(tester);
+    testWidgets(
+      'Enter on the first item reaches the free-text box from an empty dance',
+      (tester) async {
+        final drafts = <FigureDraft>[];
+        await _pump(
+          tester,
+          drafts,
+          freeTextEntry: true,
+          wireAddMeanwhile: true,
+        );
+        await openAddMenuByKeyboard(tester);
 
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pumpAndSettle();
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pumpAndSettle();
 
-      final field = find.byKey(const ValueKey('figure-free-text-field'));
-      expect(field, findsOneWidget);
-      final editable = tester.state<EditableTextState>(
-        find.descendant(of: field, matching: find.byType(EditableText)),
-      );
-      expect(editable.widget.focusNode.hasFocus, isTrue);
-    });
+        final field = find.byKey(const ValueKey('figure-free-text-field'));
+        expect(field, findsOneWidget);
+        final editable = tester.state<EditableTextState>(
+          find.descendant(of: field, matching: find.byType(EditableText)),
+        );
+        expect(editable.widget.focusNode.hasFocus, isTrue);
+      },
+    );
 
     testWidgets('Down + Enter adds a meanwhile container', (tester) async {
       final drafts = <FigureDraft>[];
-      await _pump(
-        tester,
-        drafts,
-        freeTextEntry: true,
-        wireAddMeanwhile: true,
-      );
+      await _pump(tester, drafts, freeTextEntry: true, wireAddMeanwhile: true);
       await openAddMenuByKeyboard(tester);
 
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);

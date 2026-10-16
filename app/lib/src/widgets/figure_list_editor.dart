@@ -292,7 +292,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
   /// Focus target of last resort after deleting the final figure.
   final FocusNode _addButtonFocusNode = FocusNode(debugLabel: 'figure-add');
 
-  /// First item of the Add menu. [MenuController.open] does not move focus
+  /// First item of the Add menu. Opening the menu does not move focus
   /// into the menu, so without this a keyboard user's Down/Tab/Enter land on
   /// the page behind it (#1821).
   final FocusNode _addMenuFirstItemFocusNode = FocusNode(
