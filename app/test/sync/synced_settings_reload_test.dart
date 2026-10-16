@@ -125,6 +125,26 @@ void main() {
     expect(runs, 3);
   });
 
+  test('runs a request forced do not spend the race bound', () async {
+    var runs = 0;
+    late SyncedSettingsReload reload;
+    reload = SyncedSettingsReload(
+      reload: () async {
+        runs++;
+        // Two passes apply settings during runs 1 and 2; the user's edit
+        // races run 3, the last run the requests forced.
+        if (runs <= 2) unawaited(reload.request());
+        if (runs == 3) reload.noteSettingsWrite();
+      },
+      fence: () async {},
+      maxRacedRuns: 3,
+    );
+
+    await reload.request();
+
+    expect(runs, 4, reason: 'the raced run 3 is read again');
+  });
+
   test('a failing reload still ends the run', () async {
     final reload = SyncedSettingsReload(
       reload: () async => throw StateError('boom'),
