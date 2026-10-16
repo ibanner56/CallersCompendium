@@ -347,6 +347,25 @@ void main() {
       expect(refused.params, {'text': 'balance'});
     });
 
+    test('a mapped value the target doesn\'t have freezes the use', () {
+      // Not a mapping the editor would offer, which checks the values: the
+      // switch checks each use's own all the same.
+      final switched = switchAll(
+        [
+          use(const {'prefix': 'cbal'}),
+        ],
+        UserFigureSwitch(
+          target: 'swing',
+          params: complete.params,
+          choices: {
+            'prefix': {'cbal': 'twirl', 'cmelt': 'meltdown'},
+          },
+        ),
+      ).single;
+      expect(switched.move, customMoveId);
+      expect(hasUserFigureReferenceKeys(switched), isFalse);
+    });
+
     test('uses inside containers switch; other figures stay as they are', () {
       final plain = Figure(move: 'allemande');
       final other = userFigureUseFigure(
