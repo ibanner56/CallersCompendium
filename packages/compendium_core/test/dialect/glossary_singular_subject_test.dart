@@ -49,6 +49,8 @@ void main() {
       'Nobody leads down the hall',
       'Whoever follows their partner',
       'a call that follows the balance',
+      'This follows the balance',
+      'This leads into a swing',
       'the figure which leads into a swing',
     ];
     for (final text in pronouns) {
@@ -202,6 +204,24 @@ void main() {
     final once = roles.canonicalize(text);
     expect(once, 'The caller role2s role1s');
     expect(roles.canonicalize(once), once);
+  });
+
+  test('a role term after that/this/which is no complement either', () {
+    // The role term is rewritten to a token, which is no complement, so a verb
+    // decided on the word would flip to a role on the next save.
+    final roles = RoleCanonicalizer(
+      lf,
+      extraRoleSynonyms: const {'neighbors': 'role1s'},
+      subjectVerbException: true,
+    );
+    for (final (text, once) in [
+      ('a call that follows neighbors', 'a call that role2s role1s'),
+      ('the figure which leads neighbors', 'the figure which role1s role1s'),
+      ('This follows neighbors', 'This role2s role1s'),
+    ]) {
+      expect(roles.canonicalize(text), once, reason: text);
+      expect(roles.canonicalize(once), once, reason: 'again: $text');
+    }
   });
 
   test('a plural role term that does not end in "s" is no singular noun', () {

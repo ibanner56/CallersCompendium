@@ -333,6 +333,16 @@ and flag labels and text defaults — has its own variant of the chokepoint,
   - a subject that the built-in discouraged-term table rewrites first: "the
     gypsy follows the ones" is stored `the shoulder round role2s the ones`,
     because the rewrite runs before the verb is decided;
+  - "that", "this" and "which" followed by a complement are read as the
+    subject even where a conjunction and a plural role is meant: "Note that
+    follows the balance", "Make sure that follows your partner", "Remember
+    that leads the way", "Ensure that follows them" and "Do this follows the
+    music" are stored with the literal verb. The two readings are the same
+    words and the next word cannot tell them apart, so the lookahead is a
+    compromise: "Make sure that leads cross first" is the plural role and "a
+    call that follows the balance" the verb. When the next word is not a
+    complement the role wins even for a real subject ("This follows
+    established practice" is stored `This role2s established practice`);
   - the render round trip, which can also turn a plural role into the verb.
     Glossary text is stored in canonical form, shown through the active
     dialect, and a no-edit save stores what was shown, so the decision is made
