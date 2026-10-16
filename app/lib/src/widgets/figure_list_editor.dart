@@ -21,11 +21,12 @@ import 'move_autocomplete.dart';
 import 'user_figure_use_editor.dart';
 
 /// Move id of the placeholder "stand still" figure that seeds new dances while
-/// Free-text entry is off (see `defaultNewDanceFigureTemplate`). Activating such a figure opens its editor
-/// with the Move field cleared so the caller can type over the placeholder
-/// immediately, without first deleting the "stand still" text. Only the
-/// editing field is blanked — the stored draft keeps its move/params until a
-/// real move is chosen, so nothing is lost if the editor is collapsed as-is.
+/// Free-text entry is off (see `defaultNewDanceFigureTemplate`). Activating
+/// such a figure opens its editor with the Move field cleared so the caller
+/// can type over the placeholder immediately, without first deleting the
+/// "stand still" text. Only the editing field is blanked — the stored draft
+/// keeps its move/params until a real move is chosen, so nothing is lost if
+/// the editor is collapsed as-is.
 const String _standStillMove = 'stand_still';
 
 /// Editable, keyboard-first figure list for the dance editor (`docs/design/
