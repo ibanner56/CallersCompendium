@@ -149,6 +149,14 @@ terms underlined, discouraged terms struck through, unknown terms plain).
 Free-text figure entry parses the typed line as written first and canonicalises
 against the active dialect only on a parse miss, so a dialect term that is also
 a move word (`lead` in "ones lead down the hall") keeps parsing as the move.
+On a second miss it reads the built-in discouraged role terms by their meaning,
+as user-glossary text is read (`canonicalizeGlossaryText`): `ravens chain` is a
+`role2s` chain, unless the active dialect's own role word is or holds the term,
+which keeps the dialect's meaning. Only when every parse misses is the whole
+line looked up as a move's name (#1826, `imports/typed_figure_names.dart`):
+taxonomy display names, then alias names, then a few caller phrasings, then the
+active dialect's own move names, so a dialect name that is another move's
+taxonomy name does not shadow that move. Imports read none of these.
 
 **Role words that are also move words.** The chokepoint does not rewrite every
 role term it finds (`RoleCanonicalizer`, `dialect/role_canonicalizer.dart`).

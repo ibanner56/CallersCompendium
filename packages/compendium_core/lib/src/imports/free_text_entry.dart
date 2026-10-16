@@ -1,11 +1,13 @@
 import '../dialect/canonicalize.dart';
 import '../dialect/dialect.dart';
 import '../model/figure.dart';
+import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/taxonomy.dart';
 import 'figure_front_end_fan_out.dart';
 import 'figure_text_scrub.dart';
 import 'shorthand_mappings.dart';
 import 'structured_draft.dart';
+import 'typed_figure_names.dart';
 
 /// Longest inline beat count we will read from a free-text line. Bounds the
 /// captured digit run so a hostile/absurd value (`(999999999999)`) can never
@@ -24,33 +26,49 @@ const int _maxInlineBeatDigits = 4;
 /// rather than relying on any UI-side field limit.
 const int maxFreeTextEntryLength = 2000;
 
+/// The optional unit after a count's digits: `16 beats`, `(8 beat)` (#1826).
+const String _beatsUnit = '(?:\\s*beats?)';
+
 /// A leading beat count: a bare `16 balance and swing`, or a bracketed
-/// `(16) balance and swing` / `[16] balance and swing`. A bare count must be
+/// `(16) balance and swing` / `[16] balance and swing`, each optionally with a
+/// `beats` unit (`16 beats …`, `(16 beats) …`). A bare count must be
 /// followed by whitespace AND a non-empty remainder, so a fraction/positional
 /// token glued to the digits (`1/2 hey`, `1s cross`) is NOT mistaken for a
 /// count (there is no space after the leading digits in those). A bracketed
 /// count needs no space (`(16)swing`), as the trailing form needs none.
 final RegExp _leadingBeats = RegExp(
-  '^(?:(\\d{1,$_maxInlineBeatDigits})\\s+'
-  '|[(\\[](\\d{1,$_maxInlineBeatDigits})[)\\]]\\s*)(\\S.*)\$',
+  '^(?:(\\d{1,$_maxInlineBeatDigits})(?:\\s+beats?)?\\s+'
+  '|[(\\[](\\d{1,$_maxInlineBeatDigits})$_beatsUnit?[)\\]]\\s*)(\\S.*)\$',
+  caseSensitive: false,
 );
 
-/// A trailing bracketed beat count: `balance and swing (16)` or `… [16]`. Only
-/// a digits-only group at the very end counts — a trailing prose annotation
-/// (`allemande (once)`) is left untouched because its contents are not all
-/// digits.
+/// A trailing beat count: a bracketed `balance and swing (16)` or `… [16]`, or
+/// one with a `beats` unit, bracketed or not (`… (16 beats)`, `… 16 beats`).
+/// Only digits (and the unit) at the very end count — a trailing prose
+/// annotation (`allemande (once)`) is left untouched, and so is a bare
+/// trailing number with no unit (`neighbors swing 16`), which free text keeps
+/// custom (see `demoteNoteTails`).
 final RegExp _trailingBeats = RegExp(
-  '^(.*\\S)\\s*[(\\[](\\d{1,$_maxInlineBeatDigits})[)\\]]\$',
+  '^(.*\\S)(?:\\s*[(\\[](\\d{1,$_maxInlineBeatDigits})$_beatsUnit?[)\\]]'
+  '|\\s+(\\d{1,$_maxInlineBeatDigits})\\s*beats?)\$',
+  caseSensitive: false,
 );
 
-/// A positive digits-only `(N)`/`[N]` group of ANY length at the start or end
-/// of a line. The recogniser tolerates such a group as an annotation and drops
-/// it, so one that [_splitInlineBeats] did not turn into the beat count (a
-/// second count, or one too long to be beats) must keep the line out of the
-/// parser or the number would vanish. A zero group is not matched: 0 is
-/// "unspecified", see [_splitInlineBeats].
-final RegExp _strayLeadingCount = RegExp(r'^[(\[]\s*0*[1-9]\d*\s*[)\]]');
-final RegExp _strayTrailingCount = RegExp(r'[(\[]\s*0*[1-9]\d*\s*[)\]]$');
+/// A positive `(N)`/`[N]` group of ANY length at the start or end of a line,
+/// or a count with a `beats` unit there (`(8 beats)`, `16 beats`). The
+/// recogniser tolerates a digits-only group as an annotation and drops it, and
+/// keeps a unit count as a note, so one that [_splitInlineBeats] did not turn
+/// into the beat count (a second count, or one too long to be beats) must keep
+/// the line out of the parser or the number would vanish or be misread. A zero
+/// count is not matched: 0 is "unspecified", see [_splitInlineBeats].
+final RegExp _strayLeadingCount = RegExp(
+  r'^(?:[(\[]\s*0*[1-9]\d*(?:\s*beats?)?\s*[)\]]|0*[1-9]\d*\s*beats?\b)',
+  caseSensitive: false,
+);
+final RegExp _strayTrailingCount = RegExp(
+  r'(?:[(\[]\s*0*[1-9]\d*(?:\s*beats?)?\s*[)\]]|\b0*[1-9]\d*\s*beats?)$',
+  caseSensitive: false,
+);
 
 /// Result of splitting an optional inline beat count off a free-text line.
 class _BeatSplit {
@@ -70,8 +88,9 @@ class _BeatSplit {
 }
 
 /// Extracts an optional inline beat count from a trimmed free-text [line]. A
-/// trailing `(N)`/`[N]` is checked first (it is unambiguous — digits inside
-/// brackets at the end), then a leading `N `, `(N)` or `[N]`. Returns the
+/// trailing `(N)`/`[N]` or `N beats` is checked first (it is unambiguous —
+/// digits inside brackets, or with their unit, at the end), then a leading
+/// `N `, `(N)` or `[N]`, any of them with a `beats` unit. Returns the
 /// line unchanged with 0 beats when neither form is present — or when the
 /// stated count parses to 0. Because 0 is "unspecified" downstream, stripping a
 /// `(0)`/`0 ` token would silently mutate the user's text for no gain, so a
@@ -80,7 +99,7 @@ class _BeatSplit {
 _BeatSplit _splitInlineBeats(String line) {
   final trailing = _trailingBeats.firstMatch(line);
   if (trailing != null) {
-    final beats = int.tryParse(trailing.group(2)!);
+    final beats = int.tryParse(trailing.group(2) ?? trailing.group(3)!);
     if (beats != null && beats > 0) {
       return _BeatSplit(trailing.group(1)!.trim(), beats);
     }
@@ -114,6 +133,15 @@ _BeatSplit _splitInlineBeats(String line) {
 /// line arriving from an import — `;`-compounds split all-or-nothing (in the
 /// CallersBox/TCB attempt) and a top-level `||` stays whole-custom.
 ///
+/// On top of that grammar, which follows how source sites write calls, free
+/// text reads what a caller types (#1826, `typed_figure_names.dart`): spoken
+/// turn amounts (`once and a half`) are rewritten to numerals before the
+/// parse, and a line no parse reads is looked up whole as a move's name
+/// (`hey`, `mad robin`, `give & take`, an alias, the [dialect]'s own name).
+/// That lookup is not a fast path: it runs after the parser, under the same
+/// length bound, and its figure is validated against the taxonomy. Imports
+/// and the re-parse upgrade use neither.
+///
 /// When a [dialect] is supplied, the line is parsed RAW first and the
 /// dialect-canonicalised line is tried only if the raw parse is all-custom: the
 /// user's role words (`Follows chain` under [Dialect.leadsFollows]) are not in
@@ -123,7 +151,11 @@ _BeatSplit _splitInlineBeats(String line) {
 /// `ones lead down the hall`. The canonicaliser keeps such a verb when its
 /// neighbours show it is one (`RoleCanonicalizer`), but a line that parses as
 /// typed should never depend on that judgement. When the retry
-/// also misses, the raw result is returned, so the custom is not
+/// also misses, the built-in discouraged role terms are read by their meaning
+/// (`ravens chain` → a `role2s` chain), as user-glossary text is read
+/// ([canonicalizeGlossaryText]), so a role word the [dialect] claims keeps the
+/// dialect's meaning; this retry runs with no [dialect] too. When every retry
+/// misses, the raw result is returned, so the custom is not
 /// dialect-canonicalised here. It is not verbatim either: the parser's import
 /// scrub (`scrubFigureText`) has already run over it, and the editor
 /// canonicalises custom text against the active dialect when the dance is
@@ -133,7 +165,12 @@ _BeatSplit _splitInlineBeats(String line) {
 /// passed as the `beats` argument:
 /// - a **leading** `16 …`, `(16) …` or `[16] …` (a bare integer + space, or a
 ///   bracketed one, with or without a space), or
-/// - a **trailing** `… (16)` or `… [16]` (a bracketed integer at the end).
+/// - a **trailing** `… (16)` or `… [16]` (a bracketed integer at the end),
+///
+/// any of them with a `beats` unit (`16 beats …`, `… (16 beats)`), which also
+/// makes a bare trailing count a count (`… 16 beats`). A count in `bars` is
+/// not read: beats per bar is the dance's phrase structure, which a line does
+/// not see, so it stays in the text.
 ///
 /// Only ONE inline form is honoured per line: a trailing count is checked
 /// first and wins. A count that is not the one honoured (the leading digits of
@@ -218,26 +255,48 @@ List<Figure> _parseSplit(
   Taxonomy? taxonomy,
   Dialect? dialect,
 }) {
+  // Spoken turn amounts first (`once and a half` → `1 1/2`): the grammar would
+  // read `once` and keep `and a half` as a note, so this cannot wait for a
+  // miss.
+  final typed = rewriteTypedSpellings(split.text);
   // Fan OUT across the three source front-ends in precedence order
   // (ContraDB > CallersBox/TCB > CallersCompanion) and take the highest-
   // precedence attempt that structures the whole line to non-custom figure(s);
   // on a full miss the line stays an import-gap custom (byte-identical to the
   // pre-fan-out CallersBox fallback). Only the TCB attempt `;`-splits, so a
   // `;`-compound still resolves through it, and a top-level `||` stays custom.
-  final raw = parseFigureLinesFanOut(
+  List<Figure> attempt(String text) => parseFigureLinesFanOut(
+    text,
+    beats: split.beats,
+    taxonomy: taxonomy,
+    demoteNoteTails: true,
+  );
+  final raw = attempt(typed);
+  if (raw.isEmpty || !raw.every((f) => f.isCustom)) return raw;
+  // Retries, each only on a miss: the dialect's role words, then the built-in
+  // discouraged role terms by their meaning (`ravens` → `role2s`), read as
+  // user-glossary text is (`canonicalizeGlossaryText`), so a role word the
+  // dialect claims keeps the dialect's meaning.
+  final tried = {typed};
+  for (final retry in [
+    if (dialect != null) canonicalizeText(typed, dialect),
+    canonicalizeGlossaryText(typed, dialect ?? Dialect.canonical),
+  ]) {
+    if (!tried.add(retry)) continue;
+    final retried = attempt(retry);
+    if (!retried.every((f) => f.isCustom)) return retried;
+  }
+  // Last, the whole line as a move's name (`hey`, `mad robin`): only when no
+  // parse read it, so a line the grammar reads keeps every fact it states.
+  final named = figureFromTypedName(
     split.text,
     beats: split.beats,
-    taxonomy: taxonomy,
-    demoteNoteTails: true,
+    taxonomy: taxonomy ?? contraTaxonomy,
+    dialect: dialect,
   );
-  if (dialect == null || !raw.every((f) => f.isCustom)) return raw;
-  final canonical = canonicalizeText(split.text, dialect);
-  if (canonical == split.text) return raw;
-  final retried = parseFigureLinesFanOut(
-    canonical,
-    beats: split.beats,
-    taxonomy: taxonomy,
-    demoteNoteTails: true,
-  );
-  return retried.every((f) => f.isCustom) ? raw : retried;
+  if (named != null) return [named];
+  // A miss keeps the line as typed, not as rewritten.
+  return identical(typed, split.text)
+      ? raw
+      : [_typedCustom(split.text, split.beats)];
 }

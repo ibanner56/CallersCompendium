@@ -213,7 +213,7 @@
 {"in":"PhraseText","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"PhraseText\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"PhraseText_GenderSwap_LR","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"PhraseText_GenderSwap_LR\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"B1","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"B1\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"(8) hey for four","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(8) hey for four\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(8) hey for four\",\"beats\":8},\"customOrigin\":\"importGap\"}]"}
+{"in":"(8) hey for four","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(8) hey for four\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"beats\":8}}]"}
 {"in":"GENDER SWAPPED - must be ignored","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"GENDER SWAPPED - must be ignored\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"A2","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"A2\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"(8) circle left 3 places","fanOut":"[{\"schemaVersion\":1,\"move\":\"circle\",\"params\":{\"direction\":\"left\",\"places\":3}}]","freeText":"[{\"schemaVersion\":1,\"move\":\"circle\",\"params\":{\"direction\":\"left\",\"places\":3,\"beats\":8}}]"}
@@ -230,7 +230,7 @@
 {"in":"a compound-beat line structures AND carries its summed beats (#560);","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"a compound-beat line structures AND carries its summed beats (#560);\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"an out-of-coverage line is an importGap custom (never dropped)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"an out-of-coverage line is an importGap custom (never dropped)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"text","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"text\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"hey for four","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"hey for four\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"hey for four","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"hey for four\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"hey\"}]"}
 {"in":"every dance in the file carries figures","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"every dance in the file carries figures\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"full importer commit (pipeline path)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"full importer commit (pipeline path)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"committed dances carry the Phrase figures; undo reverts them","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"committed dances carry the Phrase figures; undo reverts them\"},\"customOrigin\":\"importGap\"}]"}
@@ -317,7 +317,7 @@
 {"in":"parses a full dance: header fields, dates, and figures","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"parses a full dance: header fields, dates, and figures\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Music: any good 32-bar reels","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Music: any good 32-bar reels\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"partners","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"partners\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"Hey for four","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Hey for four\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Hey for four","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Hey for four\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"hey\"}]"}
 {"in":"quality reflects the mix of structured + custom figures","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"quality reflects the mix of structured + custom figures\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"maps shipped external difficulty labels to their fixed IDs","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"maps shipped external difficulty labels to their fixed IDs\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Beginner","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Beginner\"},\"customOrigin\":\"importGap\"}]"}
@@ -969,7 +969,7 @@
 {"in":"right shoulder round → swing folds into a 16-beat meltdown swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"right shoulder round → swing folds into a 16-beat meltdown swing\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"(8) Neighbor right shoulder round","fanOut":"[{\"schemaVersion\":1,\"move\":\"shoulder_round\",\"params\":{\"who\":\"neighbors\",\"shoulder\":\"right\"}}]","freeText":"[{\"schemaVersion\":1,\"move\":\"shoulder_round\",\"params\":{\"who\":\"neighbors\",\"shoulder\":\"right\",\"beats\":8}}]"}
 {"in":"meltdown","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"meltdown\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"the 19800 setup is consumed so the meltdown preserves 16 beats","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"the 19800 setup is consumed so the meltdown preserves 16 beats\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"the 19800 setup is consumed so the meltdown preserves 16 beats","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"the 19800 setup is consumed so the meltdown preserves 16 beats\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"the 19800 setup is consumed so the meltdown preserves 16 beats\",\"beats\":16},\"customOrigin\":\"importGap\"}]"}
 {"in":"(2) Women cast back || Men go forward","scrub":"(2) role2s cast back || role1s go forward","fanOut":"[{\"schemaVersion\":1,\"move\":\"meanwhile\",\"params\":{\"beats\":0,\"figures\":[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(2) role2s cast back\"},\"customOrigin\":\"importGap\"},{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"role1s go forward\"},\"customOrigin\":\"importGap\"}]}}]","freeText":"[{\"schemaVersion\":1,\"move\":\"meanwhile\",\"params\":{\"beats\":2,\"figures\":[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"role2s cast back\"},\"customOrigin\":\"importGap\"},{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"role1s go forward\"},\"customOrigin\":\"importGap\"}]}}]"}
 {"in":"(6) N2 neighbor right shoulder round","fanOut":"[{\"schemaVersion\":1,\"move\":\"shoulder_round\",\"params\":{\"who\":\"nextNeighbors\",\"shoulder\":\"right\"}}]","freeText":"[{\"schemaVersion\":1,\"move\":\"shoulder_round\",\"params\":{\"who\":\"nextNeighbors\",\"shoulder\":\"right\",\"beats\":6}}]"}
 {"in":"(8) N2 neighbor swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"nextNeighbors\"}}]","freeText":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"nextNeighbors\",\"beats\":8}}]"}
@@ -1035,7 +1035,7 @@
 {"in":"sourceVersion carries the download_date","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"sourceVersion carries the download_date\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"real id=1006 fixture (#308)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"real id=1006 fixture (#308)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Pass Thru Two B2 hey decodes structured, not custom","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Pass Thru Two B2 hey decodes structured, not custom\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"hey","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"hey\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"hey","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"hey\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"hey\"}]"}
 {"in":"B2 hey should be structured","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"B2 hey should be structured\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"length","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"length\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"pass1","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"pass1\"},\"customOrigin\":\"importGap\"}]"}
@@ -1249,7 +1249,7 @@
 {"in":"(8) Double slice left:","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(8) Double slice left:\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(8) Double slice left:\",\"beats\":8},\"customOrigin\":\"importGap\"}]"}
 {"in":"(4) On left diagonal, go forward to S1","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(4) On left diagonal, go forward to S1\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(4) On left diagonal, go forward to S1\",\"beats\":4},\"customOrigin\":\"importGap\"}]"}
 {"in":"(4) On other diagonal, fall back to S2","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(4) On other diagonal, fall back to S2\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(4) On other diagonal, fall back to S2\",\"beats\":4},\"customOrigin\":\"importGap\"}]"}
-{"in":"slice","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"slice\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"slice","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"slice\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"slice\"}]"}
 {"in":"return","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"return\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"diagonal","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"diagonal\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"fall back to S2","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"fall back to S2\"},\"customOrigin\":\"importGap\"}]"}
@@ -1509,7 +1509,7 @@
 {"in":"Balance || swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"meanwhile\",\"params\":{\"beats\":0,\"figures\":[{\"schemaVersion\":1,\"move\":\"balance\",\"params\":{\"who\":\"neighbors\"},\"assumedSubject\":true},{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"partners\"},\"assumedSubject\":true}]}}]"}
 {"in":"clockwise ½\" fans into a meanwhile container","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"clockwise ½\\\" fans into a meanwhile container\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Women allemande left 1 || Men orbit clockwise ½","scrub":"role2s allemande left 1 || role1s orbit clockwise ½","fanOut":"[{\"schemaVersion\":1,\"move\":\"meanwhile\",\"params\":{\"beats\":0,\"figures\":[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"role2s\",\"hand\":\"left\",\"travel\":1.0}},{\"schemaVersion\":1,\"move\":\"orbit\",\"params\":{\"who\":\"role1s\",\"direction\":\"clockwise\",\"travel\":0.5}}]}}]"}
-{"in":"orbit","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"orbit\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"orbit","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"orbit\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"orbit\",\"assumedSubject\":true}]"}
 {"in":"travel","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"travel\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"a security bound: more than kMaxMeanwhileSides top-level `||`","fanOut":"[{\"schemaVersion\":1,\"move\":\"meanwhile\",\"params\":{\"beats\":0,\"figures\":[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"a security bound: more than kMaxMeanwhileSides top-level `\"},\"customOrigin\":\"importGap\"},{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"`\"},\"customOrigin\":\"importGap\"}]}}]"}
 {"in":"separators safely degrades to the pre-#591 whole-custom fallback","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"separators safely degrades to the pre-#591 whole-custom fallback\"},\"customOrigin\":\"importGap\"}]"}
@@ -2316,7 +2316,7 @@
 {"in":"forwardThenBackward","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"forwardThenBackward\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"term migration & aliases","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"term migration & aliases\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"gyre → shoulder_round","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"gyre → shoulder_round\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"gyre","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"gyre\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"gyre","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"gyre\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"shoulder_round\",\"params\":{\"who\":\"neighbors\"},\"assumedSubject\":true}]"}
 {"in":"see saw → do si do with pinned left shoulder","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"see saw → do si do with pinned left shoulder\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"see saw","fanOut":"[{\"schemaVersion\":1,\"move\":\"see_saw\",\"params\":{\"who\":\"neighbors\"},\"assumedSubject\":true}]"}
 {"in":"swat the flea → box the gnat with pinned left hand","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"swat the flea → box the gnat with pinned left hand\"},\"customOrigin\":\"importGap\"}]"}
@@ -2341,7 +2341,7 @@
 {"in":"All Custom","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"All Custom\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"flubber","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"flubber\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"contra corners custom_figure sub-field maps to custom param","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"contra corners custom_figure sub-field maps to custom param\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"contra corners","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"contra corners\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"contra corners","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"contra corners\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"contra_corners\",\"assumedSubject\":true}]"}
 {"in":"allemande left the corners","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"allemande left the corners\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"contra_corners","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"contra_corners\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"positional param edge cases","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"positional param edge cases\"},\"customOrigin\":\"importGap\"}]"}
@@ -2424,7 +2424,7 @@
 {"in":"partners balance & meltdown swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"partners balance & meltdown swing\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"meltdown swing → swing with meltdown prefix","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"meltdown swing → swing with meltdown prefix\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"next neighbors meltdown swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"nextNeighbors\",\"prefix\":\"meltdown\"}}]"}
-{"in":"long swing → 16 beats","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"long swing → 16 beats\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"long swing → 16 beats","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"long swing → 16 beats\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"long swing → 16 beats\",\"beats\":16},\"customOrigin\":\"importGap\"}]"}
 {"in":"partners long swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"partners\",\"beats\":16}}]"}
 {"in":"long lines forward & back → goBack true","fanOut":"[{\"schemaVersion\":1,\"move\":\"long_lines\",\"params\":{\"goBack\":true},\"note\":\"→ goBack true\"}]"}
 {"in":"long lines forward & back","fanOut":"[{\"schemaVersion\":1,\"move\":\"long_lines\",\"params\":{\"goBack\":true}}]"}
@@ -2518,10 +2518,10 @@
 {"in":"neighbors gyre once","fanOut":"[{\"schemaVersion\":1,\"move\":\"shoulder_round\",\"params\":{\"who\":\"neighbors\",\"travel\":1.0}}]"}
 {"in":"gyre left shoulders","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"gyre left shoulders\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"neighbors gyre left shoulders 1½","fanOut":"[{\"schemaVersion\":1,\"move\":\"shoulder_round\",\"params\":{\"who\":\"neighbors\",\"shoulder\":\"left\",\"travel\":1.5}}]"}
-{"in":"arch & dive","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"arch & dive\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"arch & dive","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"arch & dive\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"arch_and_dive\",\"assumedSubject\":true}]"}
 {"in":"ones arch twos dive","fanOut":"[{\"schemaVersion\":1,\"move\":\"arch_and_dive\",\"params\":{\"who\":\"ones\"}}]"}
 {"in":"arch_and_dive","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"arch_and_dive\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"give & take","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"give & take\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"give & take","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"give & take\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"give_and_take\",\"assumedSubject\":true}]"}
 {"in":"gentlespoons give & take ladles","scrub":"role1s give & take role2s","fanOut":"[{\"schemaVersion\":1,\"move\":\"give_and_take\",\"params\":{\"who\":\"role1s\",\"give\":true,\"whom\":\"role2s\"}}]"}
 {"in":"give","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"give\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"take-only (ladles take neighbors) → give_and_take give=false","scrub":"take-only (role2s take neighbors) → give_and_take give=false","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"take-only (role2s take neighbors) → give_and_take give=false\"},\"customOrigin\":\"importGap\"}]"}
@@ -2543,7 +2543,7 @@
 {"in":"pull_by","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"pull_by\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"pull by direction","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"pull by direction\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"pull by right along","fanOut":"[{\"schemaVersion\":1,\"move\":\"pull_by\",\"params\":{\"hand\":\"right\",\"where\":\"along\"}}]"}
-{"in":"gate","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"gate\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"gate","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"gate\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"gate\",\"assumedSubject\":true}]"}
 {"in":"ones gate neighbors to face up the set","fanOut":"[{\"schemaVersion\":1,\"move\":\"gate\",\"params\":{\"who\":\"ones\",\"whom\":\"neighbors\",\"endFacing\":\"up\"}}]"}
 {"in":"endFacing","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"endFacing\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"up","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"up\"},\"customOrigin\":\"importGap\"}]"}
@@ -2556,7 +2556,7 @@
 {"in":"allemande orbit combined line -> meanwhile[allemande, orbit]","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"allemande orbit combined line -> meanwhile[allemande, orbit]\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"(issue #295: fused allemande_orbit retired)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(issue #295: fused allemande_orbit retired)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"gentlespoons allemande left 1½ around while the ladles orbit clockwise ½ around","scrub":"role1s allemande left 1½ around while the role2s orbit clockwise ½ around","fanOut":"[{\"schemaVersion\":1,\"move\":\"meanwhile\",\"params\":{\"beats\":0,\"figures\":[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"role1s\",\"hand\":\"left\",\"travel\":1.5}},{\"schemaVersion\":1,\"move\":\"orbit\",\"params\":{\"who\":\"role2s\",\"direction\":\"clockwise\",\"travel\":0.5}}]}}]"}
-{"in":"zig zag","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"zig zag\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"zig zag","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"zig zag\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"zig_zag\",\"assumedSubject\":true}]"}
 {"in":"partners zig left zag right","fanOut":"[{\"schemaVersion\":1,\"move\":\"zig_zag\",\"params\":{\"slide\":\"left\",\"who\":\"partners\"}}]"}
 {"in":"box circulate","fanOut":"[{\"schemaVersion\":1,\"move\":\"box_circulate\"}]"}
 {"in":"box circulate - gentlespoons cross while ladles loop right","scrub":"box circulate - role1s cross while role2s loop right","fanOut":"[{\"schemaVersion\":1,\"move\":\"box_circulate\",\"params\":{\"who\":\"role1s\",\"hand\":\"right\"}}]"}
@@ -2587,7 +2587,7 @@
 {"in":"down the hall and turn alone","fanOut":"[{\"schemaVersion\":1,\"move\":\"down_the_hall\",\"params\":{\"moving\":\"all\",\"ender\":\"turnAlone\"}}]"}
 {"in":"up the hall and bend into a ring","fanOut":"[{\"schemaVersion\":1,\"move\":\"up_the_hall\",\"params\":{\"moving\":\"all\",\"ender\":\"circle\"}}]"}
 {"in":"all supported ContraDB hall enders are structured","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"all supported ContraDB hall enders are structured\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"turn as a couple","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"turn as a couple\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"turn as a couple","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"turn as a couple\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"turn_as_couples\",\"assumedSubject\":true}]"}
 {"in":"bend into a ring","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"bend into a ring\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"form a cozy line","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"form a cozy line\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"cozy","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"cozy\"},\"customOrigin\":\"importGap\"}]"}
@@ -3070,11 +3070,11 @@
 {"in":"Box   Circulate","scrub":"Box Circulate","fanOut":"[{\"schemaVersion\":1,\"move\":\"box_circulate\"}]"}
 {"in":"resolves every canonical ContraDB figure name","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"resolves every canonical ContraDB figure name\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"allemande orbit","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"allemande orbit\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"dolphin hey","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"dolphin hey\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"dolphin hey","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"dolphin hey\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"dolphin_hey\",\"assumedSubject\":true}]"}
 {"in":"long lines","fanOut":"[{\"schemaVersion\":1,\"move\":\"long_lines\"}]"}
-{"in":"mad robin","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"mad robin\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"pass by","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"pass by\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"slide along set","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"slide along set\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"mad robin","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"mad robin\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"mad_robin\",\"assumedSubject\":true}]"}
+{"in":"pass by","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"pass by\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"pass_by\",\"assumedSubject\":true}]"}
+{"in":"slide along set","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"slide along set\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"slide_along_set\"}]"}
 {"in":"rejects a partial or unknown figure filter","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"rejects a partial or unknown figure filter\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"box circul","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"box circul\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"not a ContraDB figure","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"not a ContraDB figure\"},\"customOrigin\":\"importGap\"}]"}
@@ -3382,7 +3382,7 @@
 {"in":"(8) Ladies chain to partner","scrub":"(8) role2s chain to partner","fanOut":"[{\"schemaVersion\":1,\"move\":\"chain\",\"params\":{\"who\":\"role2s\",\"hand\":\"right\"},\"note\":\"to partner\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"chain\",\"params\":{\"who\":\"role2s\",\"hand\":\"right\",\"beats\":8},\"note\":\"to partner\"}]"}
 {"in":"(8) Right and left through","fanOut":"[{\"schemaVersion\":1,\"move\":\"right_left_through\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"right_left_through\",\"params\":{\"beats\":8}}]"}
 {"in":"(8) Circle left 3 places","fanOut":"[{\"schemaVersion\":1,\"move\":\"circle\",\"params\":{\"direction\":\"left\",\"places\":3}}]","freeText":"[{\"schemaVersion\":1,\"move\":\"circle\",\"params\":{\"direction\":\"left\",\"places\":3,\"beats\":8}}]"}
-{"in":"(8) Hey for four","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(8) Hey for four\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(8) Hey for four\",\"beats\":8},\"customOrigin\":\"importGap\"}]"}
+{"in":"(8) Hey for four","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(8) Hey for four\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"beats\":8}}]"}
 {"in":"(8) Gents allemande left 1 1/2","scrub":"(8) role1s allemande left 1 1/2","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"role1s\",\"hand\":\"left\",\"travel\":1.5}}]","freeText":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"role1s\",\"hand\":\"left\",\"travel\":1.5,\"beats\":8}}]"}
 {"in":"(8) Petronella spin","fanOut":"[{\"schemaVersion\":1,\"move\":\"petronella\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"petronella\",\"params\":{\"beats\":8}}]"}
 {"in":"(8) Ladies allemande right 1 1/2 with neighbor","scrub":"(8) role2s allemande right 1 1/2 with neighbor","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(8) role2s allemande right 1 1/2 with neighbor\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"role2s\",\"hand\":\"right\",\"beats\":8},\"note\":\"1 1/2 with neighbor\"}]"}
@@ -3466,7 +3466,7 @@
 {"in":"neighbor","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"neighbor\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"partner","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"partner\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"back","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"back\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"half hey","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"half hey\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"half hey","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"half hey\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"length\":\"half\"}}]"}
 {"in":"california twirl","fanOut":"[{\"schemaVersion\":1,\"move\":\"california_twirl\"}]"}
 {"in":"ring","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"ring\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"shoulder round","fanOut":"[{\"schemaVersion\":1,\"move\":\"shoulder_round\",\"params\":{\"who\":\"neighbors\"},\"assumedSubject\":true}]"}
@@ -3489,7 +3489,7 @@
 {"in":"neighbors balance & swing; partners balance & swing; long lines forward & back","fanOut":"[{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"neighbors\",\"prefix\":\"balance\"}},{\"schemaVersion\":1,\"move\":\"swing\",\"params\":{\"who\":\"partners\",\"prefix\":\"balance\"}},{\"schemaVersion\":1,\"move\":\"long_lines\"}]"}
 {"in":"a b c d e f g h i j k l m n o p q r s t u v w x y z","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"a b c d e f g h i j k l m n o p q r s t u v w x y z\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"💃🕺💃🕺 swing 💃","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"💃🕺💃🕺 swing 💃\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"shoulder round once and a half","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"shoulder round once and a half\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"shoulder round once and a half","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"shoulder round once and a half\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"shoulder_round\",\"params\":{\"who\":\"neighbors\",\"travel\":1.5},\"assumedSubject\":true}]"}
 {"in":"courtesy turn face","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"courtesy turn face\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"partner courtesy turn face","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"partner courtesy turn face\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"face courtesy turn face n2 face","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"face courtesy turn face n2 face\"},\"customOrigin\":\"importGap\"}]"}
@@ -3619,7 +3619,7 @@
 {"in":"Women walk forward, form facing star","scrub":"role2s walk forward, form facing star","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"role2s walk forward, form facing star\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"long lines back","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"long lines back\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"hey 1/2","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"hey 1/2\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"full hey","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"full hey\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"full hey","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"full hey\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"length\":\"full\"}}]"}
 {"in":"dolphin hey (WR;PL)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"dolphin hey (WR;PL)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Hey 1/2 (WR;PL) and swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Hey 1/2 (WR;PL) and swing\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Hey 1/2 (XR;PL)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Hey 1/2 (XR;PL)\"},\"customOrigin\":\"importGap\"}]"}
@@ -4055,10 +4055,10 @@
 {"in":"entry → reparse: a demoted custom is not upgraded back to a swing","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"entry → reparse: a demoted custom is not upgraded back to a swing\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"with note \"16\"","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"with note \\\"16\\\"\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"bare \"give and take\" stays custom (no default giver/target)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"bare \\\"give and take\\\" stays custom (no default giver/target)\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"give and take","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"give and take\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"give and take","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"give and take\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"give_and_take\",\"assumedSubject\":true}]"}
 {"in":"c1","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"c1\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"s1","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"s1\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"Give-and-Take","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Give-and-Take\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Give-and-Take","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Give-and-Take\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"give_and_take\",\"assumedSubject\":true}]"}
 {"in":"f1","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"f1\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"difficulty","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"difficulty\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Difficulty","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Difficulty\"},\"customOrigin\":\"importGap\"}]"}
@@ -4068,7 +4068,7 @@
 {"in":"GenericJsonAdapter","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"GenericJsonAdapter\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"source is ProvenanceSource.json","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"source is ProvenanceSource.json\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"round-trip preserves dance content through the codec","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"round-trip preserves dance content through the codec\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"Give and Take","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Give and Take\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Give and Take","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Give and Take\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"give_and_take\",\"assumedSubject\":true}]"}
 {"in":"medium","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"medium\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Walk forward, turn, and return.","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Walk forward, turn, and return.\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"do the thing","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"do the thing\"},\"customOrigin\":\"importGap\"}]"}

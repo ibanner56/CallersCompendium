@@ -507,10 +507,13 @@ void main() {
       expect(outcome.figures.single.customOrigin, CustomOrigin.importGap);
     });
 
-    test('bare "give and take" stays custom (no default giver/target)', () {
+    test('bare "give and take" is the move as typed (#1826), stating no '
+        'giver or target; imports still keep it custom', () {
       final fs = parseFreeTextFigureEntry('give and take');
       expect(fs, hasLength(1));
-      expect(fs.single.isCustom, isTrue);
+      expect(fs.single.move, 'give_and_take');
+      expect(fs.single.params, isEmpty);
+      expect(parseFigureLinesFanOut('give and take').single.isCustom, isTrue);
     });
   });
 }
