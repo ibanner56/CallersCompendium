@@ -17,6 +17,7 @@ import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.d
 import 'package:compendium_app/src/data/walkthrough_snippet_library_scope.dart';
 import 'package:compendium_app/src/screens/glossary/compound_editor_screen.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/widgets/figure_list_editor.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -164,6 +165,22 @@ void main() {
     expect(use?.id, 'zoom-id');
     expect(use?.attached, isTrue);
     expect(first.params['text'], 'role1s zoom');
+  });
+
+  testWidgets('the meanwhile and modifier lists offer your figures too', (
+    tester,
+  ) async {
+    await pump(tester);
+    for (final list in ['figure', 'meanwhile-side', 'modifier-default']) {
+      final editor = tester.widget<FigureListEditor>(
+        find.byWidgetPredicate(
+          (w) => w is FigureListEditor && w.keyPrefix == list,
+        ),
+      );
+      expect(editor.userFigureOptions?.map((e) => e.id), [
+        'zoom-id',
+      ], reason: list);
+    }
   });
 
   testWidgets('a figure for another form is not offered', (tester) async {
