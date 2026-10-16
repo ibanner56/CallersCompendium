@@ -2416,6 +2416,14 @@
   "@settingsDefaultsMoveDefaultsTitle": {
     "x-sourceSha256": "4d4f2c71c774263fca7f0a1afc94205e923e171d1e05e05354ebfb9a9bc954bf"
   },
+  "settingsDefaultsUserFiguresTitle": "自分のフィギュアの既定値",
+  "@settingsDefaultsUserFiguresTitle": {
+    "x-sourceSha256": "7a5620524eb36c2842c797c0ef3a21a9e023f4529ee7592b615f199808b2c560"
+  },
+  "settingsDefaultsUserFiguresSubtitle": "新しいフィギュアはそれぞれ独自の既定値（開始時の値とビート数）を持ちます。変更するにはフィギュアを選んでください。",
+  "@settingsDefaultsUserFiguresSubtitle": {
+    "x-sourceSha256": "cd250d812df72953f432f85e544a5337cc20ae01885e63913dca1dfa998267ac"
+  },
   "settingsDefaultsMoveDefaultsSubtitle": "ダンス入力時にムーブを挿入するときに適用される優先パラメーター値です。これらはムーブの組み込みデフォルトを上書きします。フィギュアのパラメーターは後から変更できます。設定されていないムーブとパラメーターは組み込みのデフォルトを使用します。",
   "@settingsDefaultsMoveDefaultsSubtitle": {
     "x-sourceSha256": "eb0ef63bbf86910d132d779d7a5c8fffd8bd0a40e61515ca13daea08204729e3"
@@ -9590,9 +9598,17 @@
   "@glossaryCustomExample": {
     "x-sourceSha256": "d029f87e3d80f8fd9b1be67c7426b4cc1ff47b4a9d0a8461c826a59d8c5eb6cd"
   },
-  "glossaryCustomDeleteUses": "{count, plural, =0{このフィギュアを使っているダンスはありません。用語集から削除されます。} =1{1件のダンスがこのフィギュアを使っています。用語集から削除され、そのダンスは現在の文言をプレーンテキストとして残します。} other{{count}件のダンスがこのフィギュアを使っています。用語集から削除され、それらのダンスは現在の文言をプレーンテキストとして残します。}}",
+  "glossaryCustomDeleteTrash": "{count, plural, other{ゴミ箱の{count}件のダンスがこのフィギュアを使っており、最後に保存した行のまま残ります。}}",
+  "@glossaryCustomDeleteTrash": {
+    "x-sourceSha256": "4e9c8016ce24a743d4aef7a908d315920d577cf220737a4a863d495934620b9e"
+  },
+  "glossaryCustomDeleteDefaults": "設定の既定のフィギュアがこのフィギュアを使っており、現在の文言をプレーンテキストとして残します。",
+  "@glossaryCustomDeleteDefaults": {
+    "x-sourceSha256": "60f9d9b3c005db0b184ac777d688e5bdae100ee989fa1418bf1490b7f9475e7e"
+  },
+  "glossaryCustomDeleteUses": "{count, plural, =0{コレクションにこのフィギュアを使っているダンスはありません。用語集から削除されます。} =1{1件のダンスがこのフィギュアを使っています。用語集から削除され、そのダンスは現在の文言をプレーンテキストとして残します。} other{{count}件のダンスがこのフィギュアを使っています。用語集から削除され、それらのダンスは現在の文言をプレーンテキストとして残します。}}",
   "@glossaryCustomDeleteUses": {
-    "x-sourceSha256": "dcf33d6b0593707bf881496eed5b4701d8c69b24f391307e51e9990421e3e214"
+    "x-sourceSha256": "c26dae9673781a119531b3beaa3e8435e9dc2cce5a817010d981d67553f28cbc"
   },
   "danceEditorUserFigureUnavailable": "このフィギュアは使用できないため、この行は現在の文言のままになります。",
   "@danceEditorUserFigureUnavailable": {

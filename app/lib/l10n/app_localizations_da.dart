@@ -2405,6 +2405,13 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDefaultsMoveDefaultsTitle => 'Bevægelsesstandarder';
 
   @override
+  String get settingsDefaultsUserFiguresTitle => 'Dine figurers standarder';
+
+  @override
+  String get settingsDefaultsUserFiguresSubtitle =>
+      'Hver af dine nye figurer har sine egne standarder: de værdier, den starter med, og dens takter. Vælg en for at ændre dem.';
+
+  @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
       'Foretrukne parameterværdier der anvendes, når du indsætter en bevægelse under dansinputet. Disse tilsidesætter bevægelsens indbyggede standarder; du kan stadig ændre enhver parameter på figuren bagefter. Ikke-angivne bevægelser og parametre bruger de indbyggede standarder.';
 
@@ -9623,6 +9630,23 @@ class AppLocalizationsDa extends AppLocalizations {
   String get glossaryCustomExample => 'Eksempel';
 
   @override
+  String glossaryCustomDeleteTrash(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count danse i papirkurven bruger den og beholder de linjer, de sidst gemte.',
+      one:
+          '1 dans i papirkurven bruger den og beholder den linje, den sidst gemte.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get glossaryCustomDeleteDefaults =>
+      'Dine standardfigurer i Indstillinger bruger den og beholder dens nuværende ordlyd som almindelig tekst.';
+
+  @override
   String glossaryCustomDeleteUses(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -9631,7 +9655,8 @@ class AppLocalizationsDa extends AppLocalizations {
           '$count danse bruger den. Den fjernes fra din ordliste, og dansene beholder deres nuværende ordlyd som almindelig tekst.',
       one:
           '1 dans bruger den. Den fjernes fra din ordliste, og dansen beholder sin nuværende ordlyd som almindelig tekst.',
-      zero: 'Ingen dans bruger den. Den fjernes fra din ordliste.',
+      zero:
+          'Ingen dans i din samling bruger den. Den fjernes fra din ordliste.',
     );
     return '$_temp0';
   }

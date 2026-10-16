@@ -680,7 +680,9 @@ final class CompendiumSyncStorage
     }
 
     // Parts kept for a record that no longer exists — hard-deleted, purged —
-    // go with it: third-party content must not outlive its record here.
+    // or for a custom-field definition now private (it adds nothing to
+    // [local]) go with it: third-party content must not outlive its record
+    // here.
     final withheldAddresses = {
       for (final report in withheld)
         if ((report.kind, report.recordId) case (final kind?, final recordId?))
@@ -3918,8 +3920,9 @@ final class CompendiumSyncStorage
   }
 
   /// What this device keeps of [address] for a newer version of the app, to
-  /// put back into any body it builds for the record (spec §6.7); null when
-  /// it keeps nothing, or keeps the record whole.
+  /// put back into any body it builds for the record (spec §6.7, except a
+  /// private custom-field definition, which has no body); null when it keeps
+  /// nothing, or keeps the record whole.
   Future<Map<String, Object?>?> retainedSyncParts(
     SyncRecordAddress address,
   ) async {
