@@ -1821,6 +1821,15 @@ collide as a unit, so a
 changed/changed conflict on one of them goes to the user's choice between the
 whole sets rather than to last-writer-wins (spec §6.3; ADR-004 consequences).
 
+A pass that applies settings records also has to reach the running app, which
+caches most preferences in memory: when a pass reports `setting` among its
+applied kinds, the app reloads its preferences and settings-backed controllers
+(#1828), as a backup restore does. Without that, the change would show only after
+a relaunch, and the next local edit of one of the collections above would write
+the stale collection back over the one the pass applied. The update and Device
+Sync controllers are left out, because none of their keys is a `shareable`
+setting.
+
 This requires a schema change: `settings` is `(key, value_json)` with **no
 timestamp and no tombstone**, so neither the conflict rule nor deletion can reach
 it. **The sync migration** adds `updated_at` *and* `deleted_at`, stamping existing rows
