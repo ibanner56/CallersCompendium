@@ -8555,6 +8555,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Geben Sie diese exakte Zeile bei der Freitexteingabe ein, um die untenstehenden Figuren einzufügen. Groß-/Kleinschreibung wird nicht berücksichtigt.';
 
   @override
+  String shorthandEditorTokenShadowsFigure(String token) {
+    return 'Die Eingabe von „$token“ fügt bereits von selbst eine Figur ein. Wenn Sie diese Abkürzung speichern, fügt die Eingabe stattdessen das ein, was Sie hier festgelegt haben. Sie können sie trotzdem speichern.';
+  }
+
+  @override
   String get shorthandEditorExpandsTo => 'Wird erweitert zu';
 
   @override

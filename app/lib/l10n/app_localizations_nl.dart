@@ -8521,6 +8521,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'Typ deze exacte regel tijdens vrije tekstinvoer om de onderstaande figuren in te voegen. Hoofdletterongevoelig vergeleken.';
 
   @override
+  String shorthandEditorTokenShadowsFigure(String token) {
+    return 'Als je “$token” typt, wordt er al een figuur ingevoegd. Als je deze afkorting opslaat, voegt typen ervan in plaats daarvan in wat je hier hebt ingesteld. Je kunt hem nog steeds opslaan.';
+  }
+
+  @override
   String get shorthandEditorExpandsTo => 'Klapt uit naar';
 
   @override

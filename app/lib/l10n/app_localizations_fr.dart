@@ -8576,6 +8576,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Saisissez cette ligne exacte lors d’une saisie en texte libre pour insérer les figures ci-dessous. Correspondance insensible à la casse.';
 
   @override
+  String shorthandEditorTokenShadowsFigure(String token) {
+    return 'Saisir « $token » insère déjà une figure de lui-même. Si vous enregistrez cette abréviation, la saisir insérera à la place ce que vous avez défini ici. Vous pouvez quand même l’enregistrer.';
+  }
+
+  @override
   String get shorthandEditorExpandsTo => 'Se développe en';
 
   @override

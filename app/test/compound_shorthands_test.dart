@@ -480,6 +480,30 @@ void main() {
       expect(controller.compoundShorthands, isEmpty);
     });
 
+    testWidgets('a token that already reads as a figure is warned about but '
+        'still saved (#1827)', (tester) async {
+      final controller = await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('new-compound-shorthand')));
+      await tester.pumpAndSettle();
+      const warning = ValueKey('compound-shorthand-shadow-warning');
+      expect(find.byKey(warning), findsNothing);
+      await tester.enterText(
+        find.byKey(const ValueKey('compound-shorthand-token')),
+        'swing',
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(warning), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('compound-shorthand-compound')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('grand pull').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('compound-shorthand-save')));
+      await tester.pumpAndSettle();
+      expect(controller.compoundShorthands.single.token, 'swing');
+    });
+
     testWidgets('one is edited in place, and deleted', (tester) async {
       final controller = await pump(
         tester,

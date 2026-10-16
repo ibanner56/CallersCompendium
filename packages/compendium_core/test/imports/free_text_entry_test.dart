@@ -417,96 +417,134 @@ void main() {
     });
   });
 
-  group('parseFreeTextFigureEntry — shorthands with a count or a `;` (#1827)', () {
-    final pbs = Figure(move: 'swing', params: const {'who': 'partners'});
-    final shorthands = ShorthandMappings([
-      ShorthandMapping(token: 'pbs', figures: [pbs]),
-      ShorthandMapping(
-        token: 'combo',
-        figures: [
-          Figure(move: 'swing', params: const {'who': 'partners'}),
-          Figure(move: 'turn_alone'),
-        ],
-      ),
-      ShorthandMapping(token: '3 swings', figures: [pbs]),
-    ]);
+  group(
+    'parseFreeTextFigureEntry — shorthands with a count or a `;` (#1827)',
+    () {
+      final pbs = Figure(move: 'swing', params: const {'who': 'partners'});
+      final shorthands = ShorthandMappings([
+        ShorthandMapping(token: 'pbs', figures: [pbs]),
+        ShorthandMapping(
+          token: 'combo',
+          figures: [
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+            Figure(move: 'turn_alone'),
+          ],
+        ),
+        ShorthandMapping(token: '3 swings', figures: [pbs]),
+      ]);
 
-    test('`16 pbs` applies the leading count to the one-figure shorthand', () {
-      final fs = parseFreeTextFigureEntry('16 pbs', shorthands: shorthands);
-      expect(fs, hasLength(1));
-      expect(fs.single.isCustom, isFalse);
-      expect(fs.single.move, 'swing');
-      expect(fs.single.params['who'], 'partners');
-      expect(fs.single.params['beats'], 16);
-    });
+      test(
+        '`16 pbs` applies the leading count to the one-figure shorthand',
+        () {
+          final fs = parseFreeTextFigureEntry('16 pbs', shorthands: shorthands);
+          expect(fs, hasLength(1));
+          expect(fs.single.isCustom, isFalse);
+          expect(fs.single.move, 'swing');
+          expect(fs.single.params['who'], 'partners');
+          expect(fs.single.params['beats'], 16);
+        },
+      );
 
-    test('`pbs (16)` applies the trailing count', () {
-      final fs = parseFreeTextFigureEntry('pbs (16)', shorthands: shorthands);
-      expect(fs, hasLength(1));
-      expect(fs.single.move, 'swing');
-      expect(fs.single.params['beats'], 16);
-    });
+      test('`pbs (16)` applies the trailing count', () {
+        final fs = parseFreeTextFigureEntry('pbs (16)', shorthands: shorthands);
+        expect(fs, hasLength(1));
+        expect(fs.single.move, 'swing');
+        expect(fs.single.params['beats'], 16);
+      });
 
-    test('a count on a multi-figure shorthand leaves the expansion as saved '
-        '(the count has no single figure to land on)', () {
-      for (final line in ['8 combo', 'combo (8)']) {
+      test('a count on a multi-figure shorthand leaves the expansion as saved '
+          '(the count has no single figure to land on)', () {
+        for (final line in ['8 combo', 'combo (8)']) {
+          final fs = parseFreeTextFigureEntry(line, shorthands: shorthands);
+          expect(fs.map((f) => f.move), ['swing', 'turn_alone'], reason: line);
+          expect(fs.any((f) => f.params.containsKey('beats')), isFalse);
+        }
+      });
+
+      test('a token that itself starts with a number still matches whole-line '
+          'first', () {
+        final fs = parseFreeTextFigureEntry('3 swings', shorthands: shorthands);
+        expect(fs.single.move, 'swing');
+        expect(fs.single.params['who'], 'partners');
+        expect(fs.single.params.containsKey('beats'), isFalse);
+      });
+
+      test('a count in front of an unknown word is not a shorthand', () {
+        final fs = parseFreeTextFigureEntry(
+          '16 zzqx widget',
+          shorthands: shorthands,
+        );
+        expect(fs.single.isCustom, isTrue);
+      });
+
+      test('`pbs; ladies chain` expands the shorthand clause and parses the '
+          'other', () {
+        final fs = parseFreeTextFigureEntry(
+          'pbs; ladies chain',
+          shorthands: shorthands,
+        );
+        expect(fs.map((f) => f.move), ['swing', 'chain']);
+        expect(fs.any((f) => f.isCustom), isFalse);
+        expect(fs.first.params['who'], 'partners');
+      });
+
+      test('each `;` clause takes its own count', () {
+        final fs = parseFreeTextFigureEntry(
+          '8 pbs; pbs (4)',
+          shorthands: shorthands,
+        );
+        expect(fs.map((f) => f.params['beats']), [8, 4]);
+      });
+
+      test('all-or-nothing holds: one clause that cannot structure keeps the '
+          'whole line one custom', () {
+        final fs = parseFreeTextFigureEntry(
+          'pbs; zzqx widget',
+          shorthands: shorthands,
+        );
+        expect(fs, hasLength(1));
+        expect(fs.single.isCustom, isTrue);
+      });
+
+      test('a line of more than $maxShorthandTargetFigures clauses is not '
+          'expanded clause by clause', () {
+        final line = List.filled(
+          maxShorthandTargetFigures + 1,
+          'pbs',
+        ).join('; ');
         final fs = parseFreeTextFigureEntry(line, shorthands: shorthands);
-        expect(fs.map((f) => f.move), ['swing', 'turn_alone'], reason: line);
-        expect(fs.any((f) => f.params.containsKey('beats')), isFalse);
-      }
-    });
+        expect(fs, hasLength(1));
+        expect(fs.single.isCustom, isTrue);
+      });
 
-    test('a token that itself starts with a number still matches whole-line '
-        'first', () {
-      final fs = parseFreeTextFigureEntry('3 swings', shorthands: shorthands);
-      expect(fs.single.move, 'swing');
-      expect(fs.single.params['who'], 'partners');
-      expect(fs.single.params.containsKey('beats'), isFalse);
-    });
+      test('a `;` line with no shorthand clause is unchanged', () {
+        final fs = parseFreeTextFigureEntry(
+          'Circle left 3/4; turn alone',
+          shorthands: shorthands,
+        );
+        expect(fs.map((f) => f.move), ['circle', 'turn_alone']);
+      });
+    },
+  );
 
-    test('a count in front of an unknown word is not a shorthand', () {
-      final fs = parseFreeTextFigureEntry(
-        '16 zzqx widget',
-        shorthands: shorthands,
+  group('shorthandTokenShadowsFigure (#1827)', () {
+    test('is true for a token that already parses to figures', () {
+      expect(shorthandTokenShadowsFigure('swing'), isTrue);
+      expect(shorthandTokenShadowsFigure('  Neighbor swing '), isTrue);
+      expect(
+        shorthandTokenShadowsFigure('Circle left 3/4; turn alone'),
+        isTrue,
       );
-      expect(fs.single.isCustom, isTrue);
     });
 
-    test('`pbs; ladies chain` expands the shorthand clause and parses the '
-        'other', () {
-      final fs = parseFreeTextFigureEntry(
-        'pbs; ladies chain',
-        shorthands: shorthands,
-      );
-      expect(fs.map((f) => f.move), ['swing', 'ladies_chain']);
-      expect(fs.any((f) => f.isCustom), isFalse);
-      expect(fs.first.params['who'], 'partners');
+    test('is false for a token that would only be a custom, or is empty', () {
+      expect(shorthandTokenShadowsFigure('pbs'), isFalse);
+      expect(shorthandTokenShadowsFigure('zzqx widget'), isFalse);
+      expect(shorthandTokenShadowsFigure('   '), isFalse);
     });
 
-    test('each `;` clause takes its own count', () {
-      final fs = parseFreeTextFigureEntry(
-        '8 pbs; pbs (4)',
-        shorthands: shorthands,
-      );
-      expect(fs.map((f) => f.params['beats']), [8, 4]);
-    });
-
-    test('all-or-nothing holds: one clause that cannot structure keeps the '
-        'whole line one custom', () {
-      final fs = parseFreeTextFigureEntry(
-        'pbs; zzqx widget',
-        shorthands: shorthands,
-      );
-      expect(fs, hasLength(1));
-      expect(fs.single.isCustom, isTrue);
-    });
-
-    test('a `;` line with no shorthand clause is unchanged', () {
-      final fs = parseFreeTextFigureEntry(
-        'Circle left 3/4; turn alone',
-        shorthands: shorthands,
-      );
-      expect(fs.map((f) => f.move), ['circle', 'turn_alone']);
+    test('is false when any clause stays custom', () {
+      expect(shorthandTokenShadowsFigure('swing; zzqx widget'), isFalse);
     });
   });
 }

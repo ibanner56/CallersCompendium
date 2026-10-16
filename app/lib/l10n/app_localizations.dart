@@ -12692,6 +12692,12 @@ abstract class AppLocalizations {
   /// **'Type this exact line during free-text entry to insert the figures below. Matched case-insensitively.'**
   String get shorthandEditorTokenHelper;
 
+  /// Warning (not an error; saving is still allowed) under the shorthand-token field when the token, typed as a free-text line, already reads as a figure; {token} is the user's token, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Typing \"{token}\" already adds a figure on its own. If you save this shorthand, typing it will insert what you set here instead. You can still save it.'**
+  String shorthandEditorTokenShadowsFigure(String token);
+
   /// Section header for the figures a shorthand expands to.
   ///
   /// In en, this message translates to:
