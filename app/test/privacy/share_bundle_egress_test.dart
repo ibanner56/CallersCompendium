@@ -49,6 +49,11 @@ const _archiveTables = {
   'dances',
   'choreographers',
   'venues',
+  // The user's own new figures the dances use (#1023, `userFigures`). Every
+  // column is `shareable`, so nothing here needs a probe; a figure's notes
+  // are left out of a bundle all the same
+  // (`export/user_figures_share_bundle_test.dart`).
+  'user_glossary_entries',
 };
 
 /// How one non-`shareable` column is detected in the emitted JSON.

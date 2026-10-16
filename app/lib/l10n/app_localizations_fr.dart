@@ -6391,10 +6391,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ce fichier n\'est pas un fichier de partage Caller’s Compendium.';
 
   @override
-  String get archiveIntakeRejectedNewerVersion =>
-      'Ce fichier a été créé avec une version plus récente de l\'application. Mettez l\'application à jour pour l\'importer.';
-
-  @override
   String get archiveIntakeRejectedNoContent =>
       'Ce fichier ne contenait aucune danse ni aucun programme.';
 

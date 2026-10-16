@@ -771,6 +771,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       customFieldsById: detail.customFieldsById,
       difficultyLevelFor: (id) =>
           id == detail.dance.difficultyLevelId ? detail.difficultyLevel : null,
+      userFigureFor: UserFiguresScope.entryLookupOf(context),
       shareInvoker: widget.shareInvoker,
       pdfLayouter: widget.pdfLayouter,
       jsonExportDelivery: widget.jsonExportDelivery,

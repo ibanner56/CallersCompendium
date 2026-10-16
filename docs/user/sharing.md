@@ -60,7 +60,9 @@ recipient's own dialect.
 
 **Share dance file** and **Export dance as JSON** build the same file: the dance,
 its credited choreographers, its tags and difficulty level, the published
-sources it cites, and its [custom fields](./glossary.md#custom-field). The only
+sources it cites, its [custom fields](./glossary.md#custom-field), and any of
+[your own new figures](./authoring.md#your-own-figures) it uses, without your
+notes on them. The only
 difference is the name — `.ccshare` or `.json`. Choreographers' private details
 are removed (see [What stays private](#what-stays-private)), and custom fields
 with **Include in sharing** turned off are left out.
@@ -138,7 +140,10 @@ evening to another caller. It builds a single self-contained file — a
 - every dance the program's slots refer to;
 - the choreographers credited on those dances;
 - the tags, published sources, and [custom fields](./glossary.md#custom-field)
-  those dances use, so the recipient can import them completely; and
+  those dances use, so the recipient can import them completely;
+- any of [your own new figures](./authoring.md#your-own-figures) those dances
+  use: each one's name, description, parameters and wording, but not your
+  notes on it; and
 - the program's linked [venue](./glossary.md#venue), if it has one.
 
 On Linux the system has no file share sheet, so this action is labelled **Save
@@ -232,6 +237,11 @@ leave, and one thing asks you first.
   private in the editor and are removed from anything you share — see
   [Write & edit dances](./authoring.md#author-and-source-details-are-shared). The
   choreographer's name, website, and notes do travel.
+
+- **Your notes on your own figures.** A shared file carries each of
+  [your own new figures](./authoring.md#your-own-figures) its dances use, but
+  not the notes you keep on it. They stay in your Glossary and in a
+  [backup](./backup-portability.md).
 
 - **A venue's street address.** The address lines, city, state or province,
   country, and postcode of a saved venue record are left out of everything you

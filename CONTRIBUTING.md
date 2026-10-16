@@ -67,7 +67,10 @@ A version is only worth a number once something outside `main` carries it.
 If the latest release tag carries an older value than `main`, that value is
 the unreleased *vNext*. Add your change to vNext rather than bumping again, so
 that every unreleased change ships together under one number (the maintainer's
-direction, 2026-10-13). Bump only when the tag's value matches `main`'s.
+direction of 2026-10-13, recorded in the description of
+[#1752](https://github.com/ibanner56/CallersCompendium/pull/1752), which the
+authoring session wrote; there is no tracker comment). Bump only when the tag's
+value matches `main`'s.
 Check all three at once with:
 
 ```sh
@@ -150,11 +153,22 @@ CI checks less here than for a bump. The constant does not move, so neither
 `check_schema_migration.py` nor `check_version_history.py` notices the change.
 The migration test and the ledger entry are on you.
 
-Only someone running `main` from source can have a database already stamped
-vNext. It does not re-run the step, so it lacks what you added, and the app
-fails on the first query that reads the new column or table. That is accepted:
-recreate such a database, or apply the DDL to it by hand. It is never a reason
-to bump.
+Only someone running a build from `main` can have a database already stamped
+vNext. `onUpgrade` does not re-run the step for it, so
+it lacks what you added, and the app fails on the first query that reads the new
+column or table. The default is to accept that: recreate such a database, or
+apply the DDL to it by hand. It is never a reason to bump.
+
+Repair it in code only when such files are already in use, as v39 was
+([#1760](https://github.com/ibanner56/CallersCompendium/pull/1760): a
+development build had stamped v39 before the step was complete, and every sync
+pass failed). The precedent is an idempotent `_ensureV<N>Schema` helper that
+both the `from < N` step and `beforeOpen` call, so the repair runs on every open
+of a file stamped `N` or later (`database.dart`, with
+`v39_partial_stamp_repair_test.dart`). Weigh the cost: the helper runs on every
+open for as long as it stays, and v39 is the only step repaired this way today.
+`_ensureV40Schema` has no `beforeOpen` call, so copying that helper does not
+give you the repair.
 
 Old schema versions are **retired** once they fall below the oldest supported
 release: `kMinSupportedSchemaVersion` is the floor, a database stamped below it
