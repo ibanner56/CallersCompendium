@@ -455,6 +455,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         widget.taxonomy,
         _l10n,
         _dialect,
+        UserFiguresScope.catalogOf(context),
       );
       _announce(_l10n.danceEditorEditingFigureAnnouncement(i + 1, name));
     }
@@ -771,6 +772,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
             widget.taxonomy,
             l10n,
             dialect,
+            UserFiguresScope.catalogOf(context),
           );
 
     _FigureDraftCard buildCard(int i, {required bool draggable}) {
@@ -934,6 +936,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
                         widget.taxonomy,
                         l10n,
                         dialect,
+                        UserFiguresScope.catalogOf(context),
                       ),
                     ),
                     onPaste: () => _paste(i + 1),
@@ -1065,6 +1068,7 @@ String _figureDisplayName(
   Taxonomy taxonomy,
   AppLocalizations l10n,
   Dialect dialect,
+  UserFigureCatalog userFigures,
 ) {
   if (draft.compound case final compound?) {
     return FigureRenderer(taxonomy).renderFreeText(compound.name, dialect);
@@ -1080,11 +1084,16 @@ String _figureDisplayName(
   if (move == customMove) {
     final text = draft.params['text'] as String?;
     if (text == null || text.isEmpty) return l10n.danceEditorCustomFigureName;
-    // A use of one of the user's own figures (#1023) keeps its line
-    // canonical, unlike typed text, which the editor shows in the dialect.
-    return isUserFigureDraft(draft)
-        ? _userEntryRenderer.renderFreeText(text, dialect)
-        : text;
+    // A use of one of the user's own figures (#1023) reads as the row's
+    // summary does, from the figure as it is now; its stored line is the
+    // fallback when the figure can't render it.
+    final figure = isUserFigureDraft(draft) ? draft.toFigure() : null;
+    return figure == null
+        ? text
+        : FigureRenderer(
+            taxonomy,
+            userFigures: userFigures,
+          ).render(figure, dialect);
   }
   final alias = taxonomy.aliases[move];
   final def = taxonomy.resolve(move);
@@ -1945,6 +1954,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       widget.taxonomy,
       l10n,
       widget.dialect,
+      UserFiguresScope.catalogOf(context),
     );
     return ReorderableDragStartListener(
       index: widget.index,
@@ -1964,6 +1974,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       widget.taxonomy,
       l10n,
       widget.dialect,
+      UserFiguresScope.catalogOf(context),
     );
     return MenuAnchor(
       builder: (context, controller, child) => IconButton(
