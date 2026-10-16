@@ -586,8 +586,10 @@ declares the constants once and imports them at all four sites rather than
 typing two literals and reconciling them afterwards.
 
 *Expect the rebuild to be blunter than the repair.* `runDerivedRebuild` is the
-only rebuild routine there is, and it clears and repopulates the dance FTS and
-figure tables for the whole library. Its indexed columns reach `choreographers`
+only whole-library rebuild routine there is (the other, #1023's
+`reindexDancesUsingUserFigure`, serves only the dances using one figure of
+your own), and it clears and repopulates the dance FTS and figure tables for
+the whole library. Its indexed columns reach `choreographers`
 through resolved author names, but neither `tags.name` nor `custom_field_defs`
 keys appear in either FTS schema — so a tag-only repair, the likeliest kind,
 pays a full recomputation for indexes that did not change. The spec permits

@@ -10585,9 +10585,9 @@
   "@retirementBannerLater": {
     "description": "End-of-support banner action that hides the banner until the app is next launched."
   },
-  "installLocationBannerMessage": "{appName} isn't installed yet: it is running from the downloaded disk image or archive. Quit it, drag it to your Applications folder, then open it from there.",
+  "installLocationBannerMessage": "{appName} may not be installed. It is running from the downloaded disk image or archive, or from a temporary read-only location that macOS set up for it. Quit it, drag or copy it into your Applications folder in Finder, then open it from there. If it is already in your Applications folder, you can dismiss this notice.",
   "@installLocationBannerMessage": {
-    "description": "macOS-only app-wide banner shown when the app was opened from inside the mounted .dmg (or a quarantined, translocated copy) instead of from Applications. 'Applications' is the macOS folder name; use the localized Finder name.",
+    "description": "macOS-only app-wide banner shown when the app's bundle is on a read-only volume: opened from inside the mounted .dmg, or from the temporary read-only location Gatekeeper makes for a quarantined app ('app translocation'), which is suspected (not reproduced) to happen to an app that is already in Applications too. Because of that second case the text must say the app 'may' not be installed rather than assert it, must not promise that moving it fixes the notice, and tells an already-installed user they can dismiss it. 'Applications' is the macOS folder name; use the localized Finder name. 'Finder' is the macOS file manager and keeps its name.",
     "placeholders": {
       "appName": {
         "type": "String"
@@ -12437,6 +12437,174 @@
   "compoundEditorUnusedSave": "Save anyway",
   "@compoundEditorUnusedSave": {
     "description": "Unused-parameter dialog button that saves despite the warning."
+  },
+  "glossaryEntryKindHeading": "What it is",
+  "@glossaryEntryKindHeading": {
+    "description": "Heading of the choice, for a new entry in the user's own glossary, between a combination of built-in figures and a figure of its own."
+  },
+  "glossaryEntryKindHelp": "A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording.",
+  "@glossaryEntryKindHelp": {
+    "description": "Explains the choice between a combination and a new figure."
+  },
+  "glossaryEntryKindCombination": "Combination",
+  "@glossaryEntryKindCombination": {
+    "description": "Choice for an entry that expands into built-in figures (a compound)."
+  },
+  "glossaryEntryKindNewFigure": "New figure",
+  "@glossaryEntryKindNewFigure": {
+    "description": "Choice for an entry that is a figure of its own, with the user's own wording."
+  },
+  "glossaryEntryFormLabel": "Dance form",
+  "@glossaryEntryFormLabel": {
+    "description": "Label of the dance form an entry in the user's own glossary is offered in."
+  },
+  "glossaryEntryFormHelper": "The kind of dance it's for.",
+  "@glossaryEntryFormHelper": {
+    "description": "Helper text of the dance form choice."
+  },
+  "userFigureEditorParamNames": "Start each parameter's name with a letter, use only letters, digits and _, and give each a different name. A name can't be move, beats, text, a role, or another parameter's opposite, such as otherHand.",
+  "@userFigureEditorParamNames": {
+    "description": "Shown when a parameter of a new figure has a name that can't be used."
+  },
+  "userFigureEditorChoiceLabel": "Choice {number}",
+  "@userFigureEditorChoiceLabel": {
+    "description": "Label of one choice of a parameter of a new figure.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "userFigureEditorAddChoice": "Add choice",
+  "@userFigureEditorAddChoice": {
+    "description": "Button that adds a choice to a parameter of a new figure."
+  },
+  "userFigureEditorRemoveChoice": "Remove choice",
+  "@userFigureEditorRemoveChoice": {
+    "description": "Tooltip of the button that removes a choice from a parameter of a new figure."
+  },
+  "userFigureEditorDefault": "Default",
+  "@userFigureEditorDefault": {
+    "description": "Label of a parameter's default value in the editor for a new figure."
+  },
+  "userFigureEditorNoDefault": "No default",
+  "@userFigureEditorNoDefault": {
+    "description": "Option for a parameter of a new figure that has no default value."
+  },
+  "userFigureEditorFlagOff": "Off",
+  "@userFigureEditorFlagOff": {
+    "description": "Default of an on/off parameter of a new figure that is off."
+  },
+  "userFigureEditorFlagLabel": "Wording when on",
+  "@userFigureEditorFlagLabel": {
+    "description": "Label of the words an on/off parameter of a new figure adds to its wording when on."
+  },
+  "userFigureEditorFlagLabelHelper": "Shown in the wording when this is on, such as “with a flourish”.",
+  "@userFigureEditorFlagLabelHelper": {
+    "description": "Helper text of an on/off parameter's wording."
+  },
+  "userFigureEditorWording": "Wording",
+  "@userFigureEditorWording": {
+    "description": "Heading and label of a new figure's wording template."
+  },
+  "userFigureEditorWordingHelp": "How the figure reads in a dance. Put a parameter in braces, like {example}; a part in square brackets is left out when its parameters are empty.",
+  "@userFigureEditorWordingHelp": {
+    "description": "Explains a new figure's wording template.",
+    "placeholders": {
+      "example": {
+        "type": "String",
+        "example": "{who}"
+      }
+    }
+  },
+  "userFigureEditorWordingSlots": "You can use: {slots}",
+  "@userFigureEditorWordingSlots": {
+    "description": "Lists the slots a new figure's wording may use.",
+    "placeholders": {
+      "slots": {
+        "type": "String",
+        "example": "{move}, {beats}, {who}, {otherWho}"
+      }
+    }
+  },
+  "userFigureEditorDefaultBeats": "Default beats",
+  "@userFigureEditorDefaultBeats": {
+    "description": "Label of the beats a new figure takes unless a dance says otherwise."
+  },
+  "userFigureEditorDefaultBeatsHelper": "A dance can change them each time it uses the figure.",
+  "@userFigureEditorDefaultBeatsHelper": {
+    "description": "Helper text of a new figure's default beats."
+  },
+  "userFigureEditorPreview": "Reads as: {text}",
+  "@userFigureEditorPreview": {
+    "description": "Shows how a new figure reads with its default values.",
+    "placeholders": {
+      "text": {
+        "type": "String",
+        "example": "neighbors zoom right hand"
+      }
+    }
+  },
+  "userFigureEditorPreviewUnavailable": "Finish the wording to see how it reads.",
+  "@userFigureEditorPreviewUnavailable": {
+    "description": "Shown in place of the preview while a new figure's wording can't be rendered."
+  },
+  "userFigureEditorBadWording": "The wording isn't complete: check its braces and square brackets.",
+  "@userFigureEditorBadWording": {
+    "description": "Shown when a new figure's wording template is badly formed."
+  },
+  "userFigureEditorUnknownSlot": "The wording uses {slot}, which isn't one of this figure's parameters.",
+  "@userFigureEditorUnknownSlot": {
+    "description": "Shown when a new figure's wording names a slot it doesn't have.",
+    "placeholders": {
+      "slot": {
+        "type": "String",
+        "example": "{hand}"
+      }
+    }
+  },
+  "userFigureEditorBadChoices": "Give {param} at least one choice, each with a different name.",
+  "@userFigureEditorBadChoices": {
+    "description": "Shown when a choice parameter of a new figure has no usable choices.",
+    "placeholders": {
+      "param": {
+        "type": "String",
+        "example": "style"
+      }
+    }
+  },
+  "userFigureEditorBadBeats": "Default beats must be from 0 to 64.",
+  "@userFigureEditorBadBeats": {
+    "description": "Shown when a new figure's default beats are out of range."
+  },
+  "userFigureEditorUnusedBody": "Not in the wording, so choosing them changes nothing: {params}.",
+  "@userFigureEditorUnusedBody": {
+    "description": "Body of the dialog asking about parameters a new figure's wording leaves out.",
+    "placeholders": {
+      "params": {
+        "type": "String",
+        "example": "hand"
+      }
+    }
+  },
+  "glossaryCustomWording": "Wording",
+  "@glossaryCustomWording": {
+    "description": "Heading of a new figure's wording on its Glossary page."
+  },
+  "glossaryCustomExample": "Example",
+  "@glossaryCustomExample": {
+    "description": "Heading of how a new figure reads with its default values, on its Glossary page."
+  },
+  "glossaryCustomDeleteUses": "{count, plural, =0{No dance uses it. It's removed from your Glossary.} =1{1 dance uses it. It's removed from your Glossary, and that dance keeps its current wording as plain text.} other{{count} dances use it. It's removed from your Glossary, and those dances keep their current wording as plain text.}}",
+  "@glossaryCustomDeleteUses": {
+    "description": "Body of the dialog confirming that a new figure is deleted, with how many dances use it.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
   },
   "compoundEditorDiscardBody": "You have unsaved changes to this figure.",
   "@compoundEditorDiscardBody": {

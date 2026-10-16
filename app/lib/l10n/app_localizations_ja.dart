@@ -7793,7 +7793,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String installLocationBannerMessage(String appName) {
-    return '$appNameはまだインストールされていません。ダウンロードしたディスクイメージまたはアーカイブから実行されています。アプリを終了し、「アプリケーション」フォルダにドラッグしてから、そこから開いてください。';
+    return '$appNameはインストールされていない可能性があります。ダウンロードしたディスクイメージまたはアーカイブから、あるいはmacOSが一時的に用意した読み取り専用の場所から実行されています。アプリを終了し、Finderで「アプリケーション」フォルダにドラッグまたはコピーしてから、そこから開いてください。すでに「アプリケーション」フォルダにある場合は、この通知を閉じてかまいません。';
   }
 
   @override
@@ -9106,6 +9106,123 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get compoundEditorUnusedSave => 'このまま保存';
+
+  @override
+  String get glossaryEntryKindHeading => '種類';
+
+  @override
+  String get glossaryEntryKindHelp =>
+      '組み合わせは、ダンスを保存すると組み込みのフィギュアになります。新しいフィギュアは、あなた自身の文言を持つ一つのフィギュアのままです。';
+
+  @override
+  String get glossaryEntryKindCombination => '組み合わせ';
+
+  @override
+  String get glossaryEntryKindNewFigure => '新しいフィギュア';
+
+  @override
+  String get glossaryEntryFormLabel => 'ダンスの形式';
+
+  @override
+  String get glossaryEntryFormHelper => '対象とするダンスの種類です。';
+
+  @override
+  String get userFigureEditorParamNames =>
+      '各パラメーター名は文字で始め、文字・数字・_ だけを使い、それぞれ異なる名前にしてください。move、beats、text、役割名、otherHand のような他のパラメーターの反対は名前に使えません。';
+
+  @override
+  String userFigureEditorChoiceLabel(int number) {
+    return '選択肢 $number';
+  }
+
+  @override
+  String get userFigureEditorAddChoice => '選択肢を追加';
+
+  @override
+  String get userFigureEditorRemoveChoice => '選択肢を削除';
+
+  @override
+  String get userFigureEditorDefault => '既定値';
+
+  @override
+  String get userFigureEditorNoDefault => '既定値なし';
+
+  @override
+  String get userFigureEditorFlagOff => 'オフ';
+
+  @override
+  String get userFigureEditorFlagLabel => 'オンのときの文言';
+
+  @override
+  String get userFigureEditorFlagLabelHelper => 'オンのときに文言に表示されます（例:「華やかに」）。';
+
+  @override
+  String get userFigureEditorWording => '文言';
+
+  @override
+  String userFigureEditorWordingHelp(String example) {
+    return 'ダンスの中でのフィギュアの読み方です。パラメーターは $example のように波かっこで囲みます。角かっこで囲んだ部分は、そのパラメーターが空のときに省略されます。';
+  }
+
+  @override
+  String userFigureEditorWordingSlots(String slots) {
+    return '使えるもの: $slots';
+  }
+
+  @override
+  String get userFigureEditorDefaultBeats => '既定の拍数';
+
+  @override
+  String get userFigureEditorDefaultBeatsHelper =>
+      'ダンスごとに、このフィギュアを使うたびに変更できます。';
+
+  @override
+  String userFigureEditorPreview(String text) {
+    return '表示: $text';
+  }
+
+  @override
+  String get userFigureEditorPreviewUnavailable => '文言を完成させると、表示を確認できます。';
+
+  @override
+  String get userFigureEditorBadWording => '文言が完成していません。波かっこと角かっこを確認してください。';
+
+  @override
+  String userFigureEditorUnknownSlot(String slot) {
+    return '文言に $slot が使われていますが、このフィギュアのパラメーターではありません。';
+  }
+
+  @override
+  String userFigureEditorBadChoices(String param) {
+    return '$param に少なくとも一つの選択肢を追加し、それぞれ異なる名前にしてください。';
+  }
+
+  @override
+  String get userFigureEditorBadBeats => '既定の拍数は 0〜64 にしてください。';
+
+  @override
+  String userFigureEditorUnusedBody(String params) {
+    return '文言に含まれていないため、選んでも何も変わりません: $params。';
+  }
+
+  @override
+  String get glossaryCustomWording => '文言';
+
+  @override
+  String get glossaryCustomExample => '例';
+
+  @override
+  String glossaryCustomDeleteUses(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count件のダンスがこのフィギュアを使っています。用語集から削除され、それらのダンスは現在の文言をプレーンテキストとして残します。',
+      one: '1件のダンスがこのフィギュアを使っています。用語集から削除され、そのダンスは現在の文言をプレーンテキストとして残します。',
+      zero: 'このフィギュアを使っているダンスはありません。用語集から削除されます。',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get compoundEditorDiscardBody => 'このフィギュアに未保存の変更があります。';

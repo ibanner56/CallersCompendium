@@ -8026,9 +8026,9 @@
   "@retirementBannerLater": {
     "x-sourceSha256": "73b6e48a1b552d112502d37a7b7870436efc5ea1de0bca58ccf12d6ae15d3a0c"
   },
-  "installLocationBannerMessage": "{appName} n'est pas encore installé : l'app s'exécute depuis l'image disque ou l'archive téléchargée. Quittez-la, faites-la glisser dans le dossier Applications, puis ouvrez-la depuis ce dossier.",
+  "installLocationBannerMessage": "{appName} n'est peut-être pas installé. L'app s'exécute depuis l'image disque ou l'archive téléchargée, ou depuis un emplacement temporaire en lecture seule que macOS a mis en place pour elle. Quittez-la, puis, dans le Finder, faites-la glisser ou copiez-la dans le dossier Applications et ouvrez-la depuis ce dossier. Si elle se trouve déjà dans le dossier Applications, vous pouvez ignorer cet avis.",
   "@installLocationBannerMessage": {
-    "x-sourceSha256": "12c4548b3d19d088333888d7b32255d0bbea9beb23584cc08ffca881d395df8b"
+    "x-sourceSha256": "ee41af592bd281994bc194fd8b2ada6f12e842dfba13fb0ab0161cb3242f031c"
   },
   "installLocationBannerDismiss": "Ignorer",
   "@installLocationBannerDismiss": {
@@ -9421,6 +9421,126 @@
   "compoundEditorUnusedSave": "Enregistrer quand même",
   "@compoundEditorUnusedSave": {
     "x-sourceSha256": "ef4c87b5083fbe4867b0bfb4e2575ecb106bdd4612160ef40f8f022c415cbdac"
+  },
+  "glossaryEntryKindHeading": "Ce que c'est",
+  "@glossaryEntryKindHeading": {
+    "x-sourceSha256": "1f36becc3aa7c8a8893bc0688d52b8bef91dae5528528706003bc4f45e409f96"
+  },
+  "glossaryEntryKindHelp": "Une combinaison devient des figures intégrées quand une danse est enregistrée. Une nouvelle figure reste une seule figure, avec votre propre formulation.",
+  "@glossaryEntryKindHelp": {
+    "x-sourceSha256": "88207860515a937eaa3a035c86ca465d2bed902bfad7e051fec78ff656096f5f"
+  },
+  "glossaryEntryKindCombination": "Combinaison",
+  "@glossaryEntryKindCombination": {
+    "x-sourceSha256": "51f9b3e644ea5a1c653b79e21b43ff1e8547edf3e9ad63d87a08ee77afa51387"
+  },
+  "glossaryEntryKindNewFigure": "Nouvelle figure",
+  "@glossaryEntryKindNewFigure": {
+    "x-sourceSha256": "3bd330f1f22470db1387c962d78ceea1c7f302fd57729577ba2ee6cb9e9d3326"
+  },
+  "glossaryEntryFormLabel": "Forme de danse",
+  "@glossaryEntryFormLabel": {
+    "x-sourceSha256": "29c681cc37b84d4e1262914451b1a7639a18d34339ac92da8a1cdc4dbd0b222f"
+  },
+  "glossaryEntryFormHelper": "Le type de danse auquel elle est destinée.",
+  "@glossaryEntryFormHelper": {
+    "x-sourceSha256": "2646baa33c159895818c5bded921dde99cdfe4aa6aa02dd21d3a5f21c17733ff"
+  },
+  "userFigureEditorParamNames": "Commencez le nom de chaque paramètre par une lettre, n'utilisez que des lettres, des chiffres et _, et donnez à chacun un nom différent. Un nom ne peut pas être move, beats, text, un rôle ou l'opposé d'un autre paramètre, comme otherHand.",
+  "@userFigureEditorParamNames": {
+    "x-sourceSha256": "525f91db8f8dab2c82543de25dc6d1926f40b2a9ab07baa59b5f041689ed1e5b"
+  },
+  "userFigureEditorChoiceLabel": "Option {number}",
+  "@userFigureEditorChoiceLabel": {
+    "x-sourceSha256": "28c125cdc5559e650a4cfdd23363841ec89cbab8842a6d418cb5866b12496adc"
+  },
+  "userFigureEditorAddChoice": "Ajouter une option",
+  "@userFigureEditorAddChoice": {
+    "x-sourceSha256": "a1827a12bb439024a60d5e42a9e9d616cf6a6374e26e3f6f14843b6daa41ab26"
+  },
+  "userFigureEditorRemoveChoice": "Retirer l'option",
+  "@userFigureEditorRemoveChoice": {
+    "x-sourceSha256": "dfe086c24105cabb9f9a48138bae11f262e6604fe51ae71e6d47f5d05459dbec"
+  },
+  "userFigureEditorDefault": "Par défaut",
+  "@userFigureEditorDefault": {
+    "x-sourceSha256": "21b111cbfe6e8fca2d181c43f53ad548b22e38aca955b9824706a504b0a07a2d"
+  },
+  "userFigureEditorNoDefault": "Aucune valeur par défaut",
+  "@userFigureEditorNoDefault": {
+    "x-sourceSha256": "706e7d9f0e1dc1ec7df9d700d109ec76d1b00e77e8fb7a444af04483e49a989c"
+  },
+  "userFigureEditorFlagOff": "Désactivé",
+  "@userFigureEditorFlagOff": {
+    "x-sourceSha256": "ca7981b46ecf2c1787b6d76d81d9fd7fa0ca95842e2fcc2a452869891a9334d1"
+  },
+  "userFigureEditorFlagLabel": "Formulation si activé",
+  "@userFigureEditorFlagLabel": {
+    "x-sourceSha256": "59fdea9670f7750d40570b5bea9efaf5d37b6287369be2eaf00d75eb5d3e4477"
+  },
+  "userFigureEditorFlagLabelHelper": "Affiché dans la formulation quand c'est activé, par exemple « avec panache ».",
+  "@userFigureEditorFlagLabelHelper": {
+    "x-sourceSha256": "7e5040023e872753fdcee9beb1543c6fba579aa53431c721fb3ec862bd818f88"
+  },
+  "userFigureEditorWording": "Formulation",
+  "@userFigureEditorWording": {
+    "x-sourceSha256": "f041260620c8857c5ad221d225d7dea65aa7b3b3b1ef69952e58be1bd87e2541"
+  },
+  "userFigureEditorWordingHelp": "Comment la figure se lit dans une danse. Mettez un paramètre entre accolades, comme {example} ; une partie entre crochets est omise quand ses paramètres sont vides.",
+  "@userFigureEditorWordingHelp": {
+    "x-sourceSha256": "2b5ffdc723b54cc0665c5e15ceadc78b571106f15d8003c5cdee465c0cd53725"
+  },
+  "userFigureEditorWordingSlots": "Vous pouvez utiliser : {slots}",
+  "@userFigureEditorWordingSlots": {
+    "x-sourceSha256": "531291804de7dc8760c321ea2fc08d2e6c73fcc8cd953ec4f4d45f10cbe743af"
+  },
+  "userFigureEditorDefaultBeats": "Temps par défaut",
+  "@userFigureEditorDefaultBeats": {
+    "x-sourceSha256": "2f205792b8c5e048cbd658bfcbbb9e07b7ddb616348b948a9d1a56d230d0ddbc"
+  },
+  "userFigureEditorDefaultBeatsHelper": "Une danse peut les changer chaque fois qu'elle utilise la figure.",
+  "@userFigureEditorDefaultBeatsHelper": {
+    "x-sourceSha256": "d040ee94830d774750f995ab2f8176c8f274b40554b1dc3e948c925b93e8f919"
+  },
+  "userFigureEditorPreview": "Se lit : {text}",
+  "@userFigureEditorPreview": {
+    "x-sourceSha256": "04ae5a210366732c8adcd382a49291fc89a1a9b0bb30512d21bd01238a7c1335"
+  },
+  "userFigureEditorPreviewUnavailable": "Terminez la formulation pour voir comment elle se lit.",
+  "@userFigureEditorPreviewUnavailable": {
+    "x-sourceSha256": "f7b14136d946788b895cd6ade2713f5822d505972b99edbc2964b0a37c2ea159"
+  },
+  "userFigureEditorBadWording": "La formulation n'est pas complète : vérifiez ses accolades et ses crochets.",
+  "@userFigureEditorBadWording": {
+    "x-sourceSha256": "d39e15f768586554a71e355b7bf747aee4d18308367392bb272fea34388faab2"
+  },
+  "userFigureEditorUnknownSlot": "La formulation utilise {slot}, qui n'est pas un paramètre de cette figure.",
+  "@userFigureEditorUnknownSlot": {
+    "x-sourceSha256": "5cea07a6898fa8c3651f65fd7832a640519dc4093818f8f687fadd5777221d00"
+  },
+  "userFigureEditorBadChoices": "Donnez à {param} au moins une option, chacune avec un nom différent.",
+  "@userFigureEditorBadChoices": {
+    "x-sourceSha256": "7ae4d0b10bff17bbb8923de146f56e55cebd192e73c16a01657ddf2da32425c6"
+  },
+  "userFigureEditorBadBeats": "Les temps par défaut doivent être compris entre 0 et 64.",
+  "@userFigureEditorBadBeats": {
+    "x-sourceSha256": "1b2b9fae59537a1f29ed22b6d77e2ed8387cb2cdc7e8db14d05abb3aa51e53c3"
+  },
+  "userFigureEditorUnusedBody": "Absents de la formulation ; les choisir ne change donc rien : {params}.",
+  "@userFigureEditorUnusedBody": {
+    "x-sourceSha256": "c0122e9e539a81108428dd6d31eac0b5e7b24ebfa6b3f0ce629e8b2978dcd1a3"
+  },
+  "glossaryCustomWording": "Formulation",
+  "@glossaryCustomWording": {
+    "x-sourceSha256": "f041260620c8857c5ad221d225d7dea65aa7b3b3b1ef69952e58be1bd87e2541"
+  },
+  "glossaryCustomExample": "Exemple",
+  "@glossaryCustomExample": {
+    "x-sourceSha256": "d029f87e3d80f8fd9b1be67c7426b4cc1ff47b4a9d0a8461c826a59d8c5eb6cd"
+  },
+  "glossaryCustomDeleteUses": "{count, plural, =0{Aucune danse ne l'utilise. Elle est retirée de votre glossaire.} =1{1 danse l'utilise. Elle est retirée de votre glossaire, et cette danse conserve sa formulation actuelle en texte simple.} other{{count} danses l'utilisent. Elle est retirée de votre glossaire, et ces danses conservent leur formulation actuelle en texte simple.}}",
+  "@glossaryCustomDeleteUses": {
+    "x-sourceSha256": "dcf33d6b0593707bf881496eed5b4701d8c69b24f391307e51e9990421e3e214"
   },
   "compoundEditorDiscardBody": "Vous avez des modifications non enregistrées dans cette figure.",
   "@compoundEditorDiscardBody": {

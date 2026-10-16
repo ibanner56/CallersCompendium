@@ -198,8 +198,10 @@ class DanceAuthors extends Table {
 }
 
 /// Derived, one row per figure, rebuilt from `dances.figures_json` on every
-/// dance write. Enables indexed structural search without a full scan
-/// (ContraDB's unqueryable-JSON-blob pitfall).
+/// dance write, and, for the dances using one of the user's own figures
+/// (#1023), from that figure's live definition in `user_glossary_entries`
+/// whenever it is written. Enables indexed structural search without a full
+/// scan (ContraDB's unqueryable-JSON-blob pitfall).
 @DataClassName('DanceFigureRow')
 class DanceFigures extends Table {
   TextColumn get danceId =>
@@ -221,6 +223,8 @@ class DanceFigures extends Table {
   BoolColumn get progression => boolean().withDefault(const Constant(false))();
 
   /// Figure `params` as JSON (queried via SQLite JSON1, `params_json ->> ...`).
+  /// A use of a figure of your own (#1023) keeps its reference here only
+  /// while it renders live from its figure.
   TextColumn get paramsJson => text().withDefault(const Constant('{}'))();
 
   /// Rendered canonical text (dialect-free); feeds `dance_fts.figures_text`.

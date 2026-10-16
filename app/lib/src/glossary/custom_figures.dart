@@ -9,6 +9,7 @@ class CustomGlossaryItem {
   CustomGlossaryItem._(
     this.entry, {
     required this.definition,
+    required this.figure,
     required this.renameNeeded,
   });
 
@@ -19,6 +20,14 @@ class CustomGlossaryItem {
   /// decodes against the taxonomy.
   final CompoundDefinition? definition;
 
+  /// A figure of your own's definition (#1023), or null when the entry is not
+  /// one this build can use.
+  final UserFigureDefinition? figure;
+
+  /// The dance form's name the entry is offered in (#1023, maintainer
+  /// decision 8).
+  String get form => glossaryEntryForm(entry.payload);
+
   /// Whether another name already claims this entry's: a shipped figure, a
   /// keyword, a dialect's move name, a shorthand, or an earlier-created entry.
   /// Of two entries sharing a name, the later-created one is flagged (#709
@@ -26,13 +35,23 @@ class CustomGlossaryItem {
   final bool renameNeeded;
 
   /// A kind this build cannot use: one it does not know, or one reserved for
-  /// a later change (#1023's terms and figures of your own). Either was made
-  /// by a newer version of the app, and is shown read-only, so the compound
-  /// editor can never rewrite it as a compound.
-  bool get unsupported => entry.kind != UserGlossaryEntryKind.compound;
+  /// a later change (#1023's terms). Either was made by a newer version of
+  /// the app, and is shown read-only, so no editor can rewrite it as another
+  /// kind.
+  bool get unsupported => switch (entry.kind) {
+    UserGlossaryEntryKind.compound ||
+    UserGlossaryEntryKind.customFigure => false,
+    _ => true,
+  };
 
-  /// A compound whose definition no longer decodes.
-  bool get broken => !unsupported && definition == null;
+  /// A compound or figure of your own whose definition no longer decodes.
+  bool get broken =>
+      !unsupported &&
+      switch (entry.kind) {
+        UserGlossaryEntryKind.compound => definition == null,
+        UserGlossaryEntryKind.customFigure => figure == null,
+        _ => false,
+      };
 
   /// The id the Glossary selects this entry by, apart from shipped ids.
   String get selectionId => customSelectionId(entry.id);
@@ -78,6 +97,9 @@ List<CustomGlossaryItem> resolveCustomGlossary(
         entry,
         definition: entry.kind == UserGlossaryEntryKind.compound
             ? decodeCompoundDefinition(entry.payload, taxonomy)
+            : null,
+        figure: entry.kind == UserGlossaryEntryKind.customFigure
+            ? decodeUserFigureDefinition(entry.payload)
             : null,
         renameNeeded: renameNeeded.contains(entry.id),
       ),
