@@ -162,15 +162,11 @@ const Set<String> _singularSubjectNouns = {
 };
 
 /// Words that are a singular subject on their own, with no determiner before
-/// them: "It leads into a swing", "Everyone follows the leader", "a call that
-/// follows the balance".
+/// them: "It leads into a swing", "Everyone follows the leader".
 const Set<String> _subjectPronouns = {
   'it',
   'he',
   'she',
-  'this',
-  'that',
-  'which',
   'who',
   'whoever',
   'everyone',
@@ -181,6 +177,12 @@ const Set<String> _subjectPronouns = {
   'anybody',
   'nobody',
 };
+
+/// Words that are a singular subject only when a verb complement comes next
+/// ("a call that follows the balance"). Otherwise they are a conjunction or a
+/// determiner and the roles after them are plural nouns ("Make sure that
+/// leads cross first", "Do this leads cross first").
+const Set<String> _relativePronouns = {'this', 'that', 'which'};
 
 /// Ordinals: determiners (for the base form: "second follow") that also name
 /// one item as the subject ("the second follows the first").
@@ -228,6 +230,10 @@ const Set<String> _auxiliaries = {
 /// Words that, directly after the base form, make it a verb: a direction
 /// ("lead down", "lead out"), an object determiner ("follow your partner",
 /// "follow the ones") or a non-role dancer word ("follow neighbors").
+///
+/// With `subjectVerbException` they are also what must follow the plural form
+/// for an open subject noun or a "this"/"that"/"which" to make it a verb
+/// ("the caller follows the music"), and they are never that noun themselves.
 final Set<String> _verbComplements = {
   'down',
   'up',
@@ -512,6 +518,9 @@ final class RoleCanonicalizer {
   /// - a singular role term of this canonicalizer ("robin", "lead") or a
   ///   singular role token typed directly;
   /// - a pronoun ([_subjectPronouns]): "it leads", "everyone follows";
+  /// - "this", "that" or "which" ([_relativePronouns]), but only when a verb
+  ///   complement comes next: "a call that follows the balance", not "make
+  ///   sure that leads cross first";
   /// - after a determiner, a singular dancer noun ([_singularSubjectNouns]):
   ///   "your partner leads";
   /// - after a determiner, any other word that cannot be a plural role or a
@@ -531,11 +540,18 @@ final class RoleCanonicalizer {
     final token = _reverse[word];
     if (token == 'role1' || token == 'role2') return true;
     if (_subjectPronouns.contains(word)) return true;
+    if (_relativePronouns.contains(word)) return _complementFollows(text, end);
     final isDancerNoun = _singularSubjectNouns.contains(word);
     if (!isDancerNoun && !_isOpenSubjectNoun(word)) return false;
     final before = _previousWord(text, at);
     if (before == null || !_determiners.contains(before)) return false;
-    if (isDancerNoun) return true;
+    return isDancerNoun || _complementFollows(text, end);
+  }
+
+  /// Whether the word after [end] is a verb complement that is not a role
+  /// term. A role term is rewritten to a token, which is no complement, so a
+  /// verb decided on it would flip on the next save.
+  bool _complementFollows(String text, int end) {
     final next = _nextWord(text, end);
     return next != null &&
         _verbComplements.contains(next) &&

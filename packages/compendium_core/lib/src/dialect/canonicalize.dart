@@ -134,8 +134,10 @@ Substitutor _glossaryDiscouragedFor(Dialect dialect) {
 /// figure's name, definition, description and notes, and their notes on
 /// shipped figures (#709). Notes on a dance's figures keep [canonicalize].
 ///
-/// Stricter than [canonicalizeText] in one way and wider in another, both
-/// decided by the maintainer for this text only (2026-10-14):
+/// Stricter than [canonicalizeText] in one way and wider in another, for this
+/// text only. The maintainer decided the stored discouraged terms and the
+/// singular-role-term subject exception (2026-10-14); what else counts as a
+/// subject is the implementer's choice (see `docs/design/dialect.md`):
 /// - the built-in discouraged terms are stored canonically ("ladies" →
 ///   `role2s`, "gypsy" → "shoulder round"), not kept as typed. The table is
 ///   the built-in one the renderer displays them from, not [dialect]'s own
