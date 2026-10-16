@@ -90,6 +90,11 @@ void main() {
       'the robins follows down': 'the role2s role2s down',
       'the larks follows across': 'the role1s role2s across',
       'the neighbors follows across': 'the neighbors role2s across',
+      // The word before it is a plural, a count, a role term or a
+      // determiner, not the noun of a singular subject.
+      'the callers leads down the hall': 'the callers role1s down the hall',
+      'the 12 leads down the hall': 'the 12 role1s down the hall',
+      'the other leads down the hall': 'the other role1s down the hall',
       // No determiner before the noun: more likely an object than a subject.
       'swing caller follows the music': 'swing caller role2s the music',
       'caller leads down the hall': 'caller role1s down the hall',
@@ -109,6 +114,33 @@ void main() {
     for (final e in roles.entries) {
       test(e.key, () => expect(stored(e.key), e.value));
     }
+  });
+
+  test('a verb complement that is also a role term is not a complement', () {
+    // Text is canonicalized again on every save, and the first pass rewrites
+    // the role term to a token, which is no complement. A verb decided on the
+    // word would flip to a role on the second pass.
+    final roles = RoleCanonicalizer(
+      lf,
+      extraRoleSynonyms: const {'neighbors': 'role1s'},
+      subjectVerbException: true,
+    );
+    const text = 'The caller follows neighbors';
+    final once = roles.canonicalize(text);
+    expect(once, 'The caller role2s role1s');
+    expect(roles.canonicalize(once), once);
+  });
+
+  test('a plural role term that does not end in "s" is no singular noun', () {
+    final roles = RoleCanonicalizer(
+      lf,
+      extraRoleSynonyms: const {'leadfolk': 'role1s'},
+      subjectVerbException: true,
+    );
+    expect(
+      roles.canonicalize('the leadfolk follows down the hall'),
+      'the role1s role2s down the hall',
+    );
   });
 
   group('other dialects', () {
