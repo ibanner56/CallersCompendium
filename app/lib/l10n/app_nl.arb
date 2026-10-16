@@ -2416,6 +2416,14 @@
   "@settingsDefaultsMoveDefaultsTitle": {
     "x-sourceSha256": "4d4f2c71c774263fca7f0a1afc94205e923e171d1e05e05354ebfb9a9bc954bf"
   },
+  "settingsDefaultsUserFiguresTitle": "Standaarden van je figuren",
+  "@settingsDefaultsUserFiguresTitle": {
+    "x-sourceSha256": "7a5620524eb36c2842c797c0ef3a21a9e023f4529ee7592b615f199808b2c560"
+  },
+  "settingsDefaultsUserFiguresSubtitle": "Elk van je nieuwe figuren heeft zijn eigen standaarden: de waarden waarmee hij begint en zijn tellen. Kies er een om ze te wijzigen.",
+  "@settingsDefaultsUserFiguresSubtitle": {
+    "x-sourceSha256": "cd250d812df72953f432f85e544a5337cc20ae01885e63913dca1dfa998267ac"
+  },
   "settingsDefaultsMoveDefaultsSubtitle": "Voorkeursparameterwaarden die worden toegepast wanneer je een move invoegt bij het invoeren van een dans. Deze overschrijven de ingebouwde standaarden van die move; je kunt achteraf elk parameter van de figuur nog aanpassen. Niet-ingestelde moves en parameters gebruiken de ingebouwde standaarden.",
   "@settingsDefaultsMoveDefaultsSubtitle": {
     "x-sourceSha256": "eb0ef63bbf86910d132d779d7a5c8fffd8bd0a40e61515ca13daea08204729e3"
@@ -6286,10 +6294,6 @@
   "@archiveIntakeRejectedNotArchive": {
     "x-sourceSha256": "80dd7dada7feaccdf4d83c86ca2567fad99deb5ad4b25ffc22cdd87c7d4de1d8"
   },
-  "archiveIntakeRejectedNewerVersion": "Dat bestand is gemaakt met een nieuwere versie van de app. Werk de app bij om het te importeren.",
-  "@archiveIntakeRejectedNewerVersion": {
-    "x-sourceSha256": "4752773bacfe510abb112bdc6bad0c781a3813378eab6e504c44056b12f65dc7"
-  },
   "archiveIntakeRejectedNoContent": "Dat bestand bevatte geen dansen of programma’s.",
   "@archiveIntakeRejectedNoContent": {
     "x-sourceSha256": "c432135d1a1811b4f51d8ad2f995526eff018b8005496c8d5fb7a2c57faa411b"
@@ -9590,9 +9594,17 @@
   "@glossaryCustomExample": {
     "x-sourceSha256": "d029f87e3d80f8fd9b1be67c7426b4cc1ff47b4a9d0a8461c826a59d8c5eb6cd"
   },
-  "glossaryCustomDeleteUses": "{count, plural, =0{Geen dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd.} =1{1 dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd en die dans behoudt zijn huidige formulering als platte tekst.} other{{count} dansen gebruiken hem. Hij wordt uit je woordenlijst verwijderd en die dansen behouden hun huidige formulering als platte tekst.}}",
+  "glossaryCustomDeleteTrash": "{count, plural, =1{1 dans in de prullenbak gebruikt hem en behoudt de regel die hij het laatst opsloeg.} other{{count} dansen in de prullenbak gebruiken hem en behouden de regels die ze het laatst opsloegen.}}",
+  "@glossaryCustomDeleteTrash": {
+    "x-sourceSha256": "4e9c8016ce24a743d4aef7a908d315920d577cf220737a4a863d495934620b9e"
+  },
+  "glossaryCustomDeleteDefaults": "Je standaardfiguren in Instellingen gebruiken hem en behouden zijn huidige formulering als platte tekst.",
+  "@glossaryCustomDeleteDefaults": {
+    "x-sourceSha256": "60f9d9b3c005db0b184ac777d688e5bdae100ee989fa1418bf1490b7f9475e7e"
+  },
+  "glossaryCustomDeleteUses": "{count, plural, =0{Geen dans in je collectie gebruikt hem. Hij wordt uit je woordenlijst verwijderd.} =1{1 dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd en die dans behoudt zijn huidige formulering als platte tekst.} other{{count} dansen gebruiken hem. Hij wordt uit je woordenlijst verwijderd en die dansen behouden hun huidige formulering als platte tekst.}}",
   "@glossaryCustomDeleteUses": {
-    "x-sourceSha256": "dcf33d6b0593707bf881496eed5b4701d8c69b24f391307e51e9990421e3e214"
+    "x-sourceSha256": "c26dae9673781a119531b3beaa3e8435e9dc2cce5a817010d981d67553f28cbc"
   },
   "danceEditorUserFigureUnavailable": "Je figuur is niet beschikbaar, dus deze rij houdt de formulering die hij heeft.",
   "@danceEditorUserFigureUnavailable": {

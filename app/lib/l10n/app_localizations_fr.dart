@@ -2442,6 +2442,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Paramètres par défaut des mouvements';
 
   @override
+  String get settingsDefaultsUserFiguresTitle =>
+      'Valeurs par défaut de vos figures';
+
+  @override
+  String get settingsDefaultsUserFiguresSubtitle =>
+      'Chacune de vos nouvelles figures garde ses propres valeurs par défaut : les valeurs de départ et ses temps. Choisissez-en une pour les modifier.';
+
+  @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
       'Valeurs de paramètres préférées appliquées lors de l’insertion d’un mouvement en saisissant une danse. Ces valeurs remplacent les paramètres intégrés du mouvement ; vous pouvez toujours modifier n’importe quel paramètre sur la figure par la suite. Les mouvements et paramètres non définis utilisent les paramètres intégrés.';
 
@@ -6383,10 +6391,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ce fichier n\'est pas un fichier de partage Caller’s Compendium.';
 
   @override
-  String get archiveIntakeRejectedNewerVersion =>
-      'Ce fichier a été créé avec une version plus récente de l\'application. Mettez l\'application à jour pour l\'importer.';
-
-  @override
   String get archiveIntakeRejectedNoContent =>
       'Ce fichier ne contenait aucune danse ni aucun programme.';
 
@@ -9749,6 +9753,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get glossaryCustomExample => 'Exemple';
 
   @override
+  String glossaryCustomDeleteTrash(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count danses de la corbeille l\'utilisent et gardent les lignes qu\'elles ont enregistrées en dernier.',
+      one:
+          '1 danse de la corbeille l\'utilise et garde la ligne qu\'elle a enregistrée en dernier.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get glossaryCustomDeleteDefaults =>
+      'Vos figures par défaut dans les Réglages l\'utilisent et conservent sa formulation actuelle en texte simple.';
+
+  @override
   String glossaryCustomDeleteUses(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -9757,7 +9778,8 @@ class AppLocalizationsFr extends AppLocalizations {
           '$count danses l\'utilisent. Elle est retirée de votre glossaire, et ces danses conservent leur formulation actuelle en texte simple.',
       one:
           '1 danse l\'utilise. Elle est retirée de votre glossaire, et cette danse conserve sa formulation actuelle en texte simple.',
-      zero: 'Aucune danse ne l\'utilise. Elle est retirée de votre glossaire.',
+      zero:
+          'Aucune danse de votre collection ne l\'utilise. Elle est retirée de votre glossaire.',
     );
     return '$_temp0';
   }

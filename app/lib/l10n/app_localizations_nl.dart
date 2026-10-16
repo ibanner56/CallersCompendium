@@ -2420,6 +2420,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDefaultsMoveDefaultsTitle => 'Standaardwaarden voor moves';
 
   @override
+  String get settingsDefaultsUserFiguresTitle => 'Standaarden van je figuren';
+
+  @override
+  String get settingsDefaultsUserFiguresSubtitle =>
+      'Elk van je nieuwe figuren heeft zijn eigen standaarden: de waarden waarmee hij begint en zijn tellen. Kies er een om ze te wijzigen.';
+
+  @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
       'Voorkeursparameterwaarden die worden toegepast wanneer je een move invoegt bij het invoeren van een dans. Deze overschrijven de ingebouwde standaarden van die move; je kunt achteraf elk parameter van de figuur nog aanpassen. Niet-ingestelde moves en parameters gebruiken de ingebouwde standaarden.';
 
@@ -6345,10 +6352,6 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dat bestand is geen deelbestand van Caller’s Compendium.';
 
   @override
-  String get archiveIntakeRejectedNewerVersion =>
-      'Dat bestand is gemaakt met een nieuwere versie van de app. Werk de app bij om het te importeren.';
-
-  @override
   String get archiveIntakeRejectedNoContent =>
       'Dat bestand bevatte geen dansen of programma’s.';
 
@@ -9694,6 +9697,23 @@ class AppLocalizationsNl extends AppLocalizations {
   String get glossaryCustomExample => 'Voorbeeld';
 
   @override
+  String glossaryCustomDeleteTrash(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dansen in de prullenbak gebruiken hem en behouden de regels die ze het laatst opsloegen.',
+      one:
+          '1 dans in de prullenbak gebruikt hem en behoudt de regel die hij het laatst opsloeg.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get glossaryCustomDeleteDefaults =>
+      'Je standaardfiguren in Instellingen gebruiken hem en behouden zijn huidige formulering als platte tekst.';
+
+  @override
   String glossaryCustomDeleteUses(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -9702,7 +9722,8 @@ class AppLocalizationsNl extends AppLocalizations {
           '$count dansen gebruiken hem. Hij wordt uit je woordenlijst verwijderd en die dansen behouden hun huidige formulering als platte tekst.',
       one:
           '1 dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd en die dans behoudt zijn huidige formulering als platte tekst.',
-      zero: 'Geen dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd.',
+      zero:
+          'Geen dans in je collectie gebruikt hem. Hij wordt uit je woordenlijst verwijderd.',
     );
     return '$_temp0';
   }

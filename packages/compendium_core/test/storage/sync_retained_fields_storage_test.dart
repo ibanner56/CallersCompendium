@@ -297,6 +297,54 @@ void main() {
     });
   });
 
+  test('making a shared custom field private with parts kept does not stop '
+      'the snapshot', () async {
+    // A peer's definition carries a field this build does not know, so it is
+    // kept. The user then turns "shareable" off. This device now shares
+    // nothing of the definition (spec §6.6), and what was kept for it goes
+    // with it rather than being published as a record of its own.
+    final field = CustomFieldDef(
+      id: 'f1',
+      key: 'shared_field',
+      label: 'Shared field',
+      type: CustomFieldType.text,
+    );
+    final shared = syncRecordBlobForEntity(
+      SyncRecordKind.customFieldDef,
+      field,
+      updatedAt: _stamp,
+      existenceAt: _stamp,
+    )!;
+    final peer = SyncRecordBlob(
+      kind: SyncRecordKind.customFieldDef,
+      id: shared.id,
+      updatedAt: shared.updatedAt,
+      deletedAt: null,
+      existenceAt: shared.existenceAt,
+      body: {...shared.body, 'addedLater': 'kept'},
+    );
+    await apply(peer);
+    expect(await repositories.syncLocal.listRetainedSyncFields(), hasLength(1));
+
+    // ignore: unused_result
+    await repositories.customFieldDefs.upsert(
+      CustomFieldDef(
+        id: 'f1',
+        key: 'shared_field',
+        label: 'Shared field',
+        type: CustomFieldType.text,
+        shareable: false,
+      ),
+      at: _stamp.add(const Duration(hours: 1)),
+    );
+
+    final snapshot = await storage.snapshot();
+    expect(snapshot.local.containsKey(peer.address), isFalse);
+    expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
+    // And the next one is no different: nothing is left to trip over.
+    expect((await storage.snapshot()).local.containsKey(peer.address), isFalse);
+  });
+
   group('after an upgrade that starts syncing a kept field', () {
     // The kept rows below are what an older build stored for the program's
     // pay, before this build knew the field (#1714). This build knows it, so
@@ -375,6 +423,71 @@ void main() {
       expect(body['payMinorUnits'], 9900);
       expect(body['payCurrency'], 'EUR');
       expect(body['cueSheet'], 'still unknown here');
+    });
+
+    test(
+      'a kept value that no longer decodes is dropped, so opening the app '
+      'still works; what this build still does not sync stays kept',
+      () async {
+        // A mixed-build fleet or a defective peer can leave a kept value the
+        // field's decoder now refuses. Kept values are not validated when they
+        // are stored, so this is reachable; promotion must not take the app's
+        // open down with it, because Retry re-runs the same failing promotion.
+        await repositories.programs.create(program());
+        await repositories.syncLocal.setRetainedSyncFields(
+          kind: SyncRecordKind.program,
+          recordId: 'p1',
+          payload: canonicalJson({
+            'payMinorUnits': {'v': 'abc'},
+            'cueSheet': {'v': 'still unknown here'},
+          }),
+        );
+
+        const address = (kind: SyncRecordKind.program, recordId: 'p1');
+        final before = await published(address);
+
+        final reopened = CompendiumRepositories(db, contraTaxonomy);
+        await reopened.ensureMigrated();
+
+        final stored = await repositories.programs.getById('p1');
+        expect(stored!.payMinorUnits, isNull);
+        final row = await repositories.syncLocal.getRetainedSyncFields(
+          kind: SyncRecordKind.program,
+          recordId: 'p1',
+        );
+        expect(
+          row!.payload,
+          canonicalJson({
+            'cueSheet': {'v': 'still unknown here'},
+          }),
+        );
+        // The kept copy was already kept out of every body this device builds
+        // (it syncs the field now), so dropping it changes nothing published.
+        final after = await published(address);
+        expect(after.wireHash, before.wireHash);
+        expect(after.blob.body['payMinorUnits'], isNull);
+        expect(after.blob.body['cueSheet'], 'still unknown here');
+
+        // Settled: the next open has nothing left to promote.
+        await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+      },
+    );
+
+    test('a kept value that no longer decodes leaves no row behind when it '
+        'was all that was kept', () async {
+      await repositories.programs.create(program());
+      await repositories.syncLocal.setRetainedSyncFields(
+        kind: SyncRecordKind.program,
+        recordId: 'p1',
+        payload: canonicalJson({
+          'payMinorUnits': {'v': -5},
+          'payCurrency': {'v': 'usd'},
+        }),
+      );
+
+      await storage.promoteRetainedSyncFields();
+
+      expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
     });
 
     test('a setting kept whole is applied once this build syncs its key, '

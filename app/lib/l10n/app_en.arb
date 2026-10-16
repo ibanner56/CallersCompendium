@@ -2986,6 +2986,14 @@
   "@settingsDefaultsMoveDefaultsTitle": {
     "description": "Sub-heading for per-move default parameter overrides."
   },
+  "settingsDefaultsUserFiguresTitle": "Your figures' defaults",
+  "@settingsDefaultsUserFiguresTitle": {
+    "description": "Heading, under Move defaults in Settings, of the list of the user's own new figures (#1023), each linking to the figure where its defaults are set."
+  },
+  "settingsDefaultsUserFiguresSubtitle": "Each of your new figures keeps its own defaults: the values it starts with and its beats. Choose one to change them.",
+  "@settingsDefaultsUserFiguresSubtitle": {
+    "description": "Explains the list of the user's own new figures under Move defaults (#1023): a figure's defaults are part of the figure, so choosing one opens it to edit them."
+  },
   "settingsDefaultsMoveDefaultsSubtitle": "Preferred parameter values applied when you insert a move while entering a dance. These override that move's built-in defaults; you can still change any parameter on the figure afterward. Unset moves and parameters use the built-in defaults.",
   "@settingsDefaultsMoveDefaultsSubtitle": {
     "description": "Explanation for per-move default parameter overrides."
@@ -8142,10 +8150,6 @@
   "@archiveIntakeRejectedNotArchive": {
     "description": "Rejection shown when a shared file is not a well-formed Caller's Compendium archive (bad text, non-archive JSON, or an unreadable envelope). Generic; never echoes parser detail."
   },
-  "archiveIntakeRejectedNewerVersion": "That file was made by a newer version of the app. Please update to import it.",
-  "@archiveIntakeRejectedNewerVersion": {
-    "description": "Rejection shown when a shared archive was written by a newer app version than this build understands."
-  },
   "archiveIntakeRejectedNoContent": "That file didn't contain any dances or programs.",
   "@archiveIntakeRejectedNoContent": {
     "description": "Rejection shown when a shared archive decoded successfully but carried neither dances nor programs."
@@ -12659,7 +12663,21 @@
   "@glossaryCustomExample": {
     "description": "Heading of how a new figure reads with its default values, on its Glossary page."
   },
-  "glossaryCustomDeleteUses": "{count, plural, =0{No dance uses it. It's removed from your Glossary.} =1{1 dance uses it. It's removed from your Glossary, and that dance keeps its current wording as plain text.} other{{count} dances use it. It's removed from your Glossary, and those dances keep their current wording as plain text.}}",
+  "glossaryCustomDeleteTrash": "{count, plural, =1{1 dance in the Trash uses it, and keeps the line it last stored.} other{{count} dances in the Trash use it, and keep the lines they last stored.}}",
+  "@glossaryCustomDeleteTrash": {
+    "description": "Added to the dialog confirming that a new figure of the user's (#1023) is deleted, when dances in the Trash use it: they are not changed, and keep the line each last stored.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "glossaryCustomDeleteDefaults": "Your default figures in Settings use it, and keep its current wording as plain text.",
+  "@glossaryCustomDeleteDefaults": {
+    "description": "Added to the dialog confirming that a new figure of the user's (#1023) is deleted, when the default figures for new dances, meanwhile sides or modifiers (Settings, Defaults) use it."
+  },
+  "glossaryCustomDeleteUses": "{count, plural, =0{No dance in your collection uses it. It's removed from your Glossary.} =1{1 dance uses it. It's removed from your Glossary, and that dance keeps its current wording as plain text.} other{{count} dances use it. It's removed from your Glossary, and those dances keep their current wording as plain text.}}",
   "@glossaryCustomDeleteUses": {
     "description": "Body of the dialog confirming that a new figure is deleted, with how many dances use it.",
     "placeholders": {
