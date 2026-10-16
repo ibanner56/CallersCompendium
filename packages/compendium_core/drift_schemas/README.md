@@ -35,10 +35,13 @@ Each dump is taken from a **real database file**, not from static analysis of
   `tool/write_head_database.dart`.
 * Every version below head was dumped the same way the head is: from a
   database written by `tool/write_head_database.dart` on a checkout taken
-  while that version was head. Each was added by its own bump PR; none has a
-  fixture, and none needs one for shape verification (see "Adding a
-  version"). The binary fixtures that earlier floors still carried were
-  retired with the v35 floor.
+  while that version was head. Each was added by its own bump PR; none needs
+  a fixture for shape verification (see "Adding a version").
+
+The dumps are not the only starting files the migration tests use. The
+**floor** version also has a binary fixture, `test/storage/fixtures/v35.sqlite`,
+captured from the `v0.4.0-beta` tag with real rows in it; a dump cannot stand in
+for that, because it carries no data. See "The floor: which versions live here".
 
 The set is exactly floor…head. Some of those versions were never in a release;
 no new ones are added that way. A schema change made while head is unreleased
@@ -59,7 +62,9 @@ A dump is a record of **structure only**. `migration_test.dart` builds a
 database at a given version from its dump (`GeneratedHelper`) and seeds the
 rows its data-semantics assertions need. What dumps replace is the need to
 hand-derive a fixture generator for every future version (see "Adding a
-version").
+version"). Because a dump holds no rows, a migration that destroys or mangles
+existing data cannot fail a test built only on one; the floor fixture below
+exists to cover that.
 
 ## The floor: which versions live here
 
@@ -73,6 +78,21 @@ refuses one outright.
 so both a missing dump and a lingering retired one are failing tests rather than
 silent drift, and `tools/ci/check_schema_migration.py` rejects any PR that
 reintroduces a below-floor artefact.
+
+The floor version additionally keeps a **binary fixture**,
+`test/storage/fixtures/v<floor>.sqlite`: a database written by the real
+release that shipped that schema (v35 from `v0.4.0-beta`), holding dances with
+figures, tags, authors, links, provenance, FTS content, a program and the
+settings markers. `test/storage/real_release_fixture_test.dart` copies it,
+migrates it to head and reads the data back, and fails if the file for the
+current floor is missing. Its file name is derived from
+`kMinSupportedSchemaVersion`, so **raising the floor fails that test until a
+fixture for the new floor is captured** from the new floor release's tag; the
+recipe and generator are `tool/fixture_generators/generate_release_fixture.dart`.
+Retiring the old floor deletes the old fixture, as for any below-floor artefact.
+A second fixture, `v38.sqlite` from `v0.6.0-beta` (the release the app's
+below-floor bridge sends older collections through), sits beside it; it is not
+tied to the floor and is deleted once the floor passes v38.
 
 ## Adding a version
 
