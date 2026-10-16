@@ -119,7 +119,10 @@ void main() {
           }) async {
             pickerCalls++;
             expect(suggestedName, 'dance.json');
-            expect(acceptedTypeGroups!.single.extensions, ['json']);
+            expect(
+              acceptedTypeGroups!.single.extensions,
+              jsonBundleTypeGroup().extensions,
+            );
             return FileSaveLocation(path);
           },
     );
