@@ -5,6 +5,7 @@
 // never agrees on it: the baseline never advances, and the record reaches the
 // conflict machinery over a difference nobody on this device can see.
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 import 'test_database.dart';
@@ -241,7 +242,7 @@ void main() {
       id: id,
       title: 'Shared Dance',
       figures: [
-        Figure(move: move, params: const {'beats': 8}),
+        testFigure(move: move, params: const {'beats': 8}),
       ],
       createdAt: _stamp,
       updatedAt: _stamp,
