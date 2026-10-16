@@ -194,7 +194,7 @@ void main() {
       'the snapshot', () async {
     // A peer's definition carries a field this build does not know, so it is
     // kept. The user then turns "shareable" off. This device now shares
-    // nothing of the definition (spec §6.4), and what was kept for it goes
+    // nothing of the definition (spec §6.6), and what was kept for it goes
     // with it rather than being published as a record of its own.
     final field = CustomFieldDef(
       id: 'f1',
