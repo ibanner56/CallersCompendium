@@ -25,13 +25,14 @@ const int _maxInlineBeatDigits = 4;
 const int maxFreeTextEntryLength = 2000;
 
 /// A leading beat count: a bare `16 balance and swing`, or a bracketed
-/// `(16) balance and swing` / `[16] balance and swing`. The count must be
+/// `(16) balance and swing` / `[16] balance and swing`. A bare count must be
 /// followed by whitespace AND a non-empty remainder, so a fraction/positional
 /// token glued to the digits (`1/2 hey`, `1s cross`) is NOT mistaken for a
-/// count (there is no space after the leading digits in those).
+/// count (there is no space after the leading digits in those). A bracketed
+/// count needs no space (`(16)swing`), as the trailing form needs none.
 final RegExp _leadingBeats = RegExp(
-  '^(?:(\\d{1,$_maxInlineBeatDigits})|[(\\[](\\d{1,$_maxInlineBeatDigits})[)\\]])'
-  '\\s+(\\S.*)\$',
+  '^(?:(\\d{1,$_maxInlineBeatDigits})\\s+'
+  '|[(\\[](\\d{1,$_maxInlineBeatDigits})[)\\]]\\s*)(\\S.*)\$',
 );
 
 /// A trailing bracketed beat count: `balance and swing (16)` or `… [16]`. Only
@@ -48,12 +49,8 @@ final RegExp _trailingBeats = RegExp(
 /// second count, or one too long to be beats) must keep the line out of the
 /// parser or the number would vanish. A zero group is not matched: 0 is
 /// "unspecified", see [_splitInlineBeats].
-final RegExp _strayLeadingCount = RegExp(
-  r'^[(\[]\s*0*[1-9]\d*\s*[)\]](?:\s|$)',
-);
-final RegExp _strayTrailingCount = RegExp(
-  r'(?:^|\s)[(\[]\s*0*[1-9]\d*\s*[)\]]$',
-);
+final RegExp _strayLeadingCount = RegExp(r'^[(\[]\s*0*[1-9]\d*\s*[)\]]');
+final RegExp _strayTrailingCount = RegExp(r'[(\[]\s*0*[1-9]\d*\s*[)\]]$');
 
 /// Result of splitting an optional inline beat count off a free-text line.
 class _BeatSplit {
@@ -192,6 +189,21 @@ List<Figure> parseFreeTextFigureEntry(
     return [_typedCustom(trimmed, split.beats)];
   }
   return result;
+}
+
+/// What to re-parse for a saved import-gap custom with [text] and [beats]
+/// (`reparseImportGapFigures`), or `null` when the line must stay custom.
+///
+/// A free-text custom keeps its count in its text and in its beats; peeling the
+/// count the beats already state lets the line upgrade once the parser learns
+/// it. A stray count (see [_BeatSplit.hasStrayCount]) keeps the line custom,
+/// since the recogniser would drop the number.
+({String text, int beats})? splitForReparse(String text, int beats) {
+  final split = _splitInlineBeats(text);
+  final peel = split.beats > 0 && split.beats == beats;
+  final line = peel ? split : _BeatSplit(text, 0);
+  if (line.hasStrayCount) return null;
+  return (text: line.text, beats: beats);
 }
 
 Figure _typedCustom(String trimmed, int beats) => customFigure(

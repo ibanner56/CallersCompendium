@@ -44,7 +44,8 @@ export 'src/imports/figure_diff.dart';
 export 'src/imports/figure_parser.dart';
 export 'src/imports/figure_front_end_fan_out.dart';
 export 'src/imports/figure_text_scrub.dart';
-export 'src/imports/free_text_entry.dart';
+export 'src/imports/free_text_entry.dart'
+    show maxFreeTextEntryLength, parseFreeTextFigureEntry;
 export 'src/imports/fmp/fmp_reader.dart';
 export 'src/imports/generic_json_adapter.dart';
 export 'src/imports/import_error.dart';

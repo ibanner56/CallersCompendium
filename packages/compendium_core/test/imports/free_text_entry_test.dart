@@ -193,6 +193,36 @@ void main() {
       }
     });
 
+    test('a bracketed count glued to the move is still a count', () {
+      final lead = parseFreeTextFigureEntry('(16)swing').single;
+      expect(lead.move, 'swing');
+      expect(lead.params['beats'], 16);
+      final both = parseFreeTextFigureEntry('swing(16)(8)').single;
+      expect(both.isCustom, isTrue);
+      expect(both.params['text'], 'swing(16)(8)');
+    });
+
+    test('re-parse never drops a count a free-text custom kept', () {
+      for (final line in ['(99999) neighbors swing', '(16) swing (8)']) {
+        final custom = parseFreeTextFigureEntry(line);
+        final out = reparseImportGapFigures(custom);
+        expect(out.upgradedCount, 0, reason: line);
+        expect(out.figures.single.params['text'], line);
+      }
+    });
+
+    test('re-parse peels the count the beats already state', () {
+      final custom = customFigure(
+        '16 neighbor swing',
+        beats: 16,
+        origin: CustomOrigin.importGap,
+      );
+      final out = reparseImportGapFigures([custom]);
+      expect(out.upgradedCount, 1);
+      expect(out.figures.single.move, 'swing');
+      expect(out.figures.single.params['beats'], 16);
+    });
+
     test('a zero count stays unspecified and tolerated, as before', () {
       final f = parseFreeTextFigureEntry('(0) swing').single;
       expect(f.isCustom, isFalse);
