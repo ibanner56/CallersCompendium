@@ -292,6 +292,14 @@
   "@glossarySelectPrompt": {
     "x-sourceSha256": "d97b02adc2d0a840ea30bc0fb3695c2814ff88387e9e4738d206dea39297e7a8"
   },
+  "glossaryCopyAsOwnFigure": "Als eigene Figur kopieren",
+  "@glossaryCopyAsOwnFigure": {
+    "x-sourceSha256": "d170840f3d04c7409227975189b1f4e23dd1b46fe1df60ac31e621403fdc9876"
+  },
+  "glossaryCustomCopiedFrom": "Kopiert von {name}",
+  "@glossaryCustomCopiedFrom": {
+    "x-sourceSha256": "3c803d847c47bd231f3c3bb39109df7e6a49945c0432bbed0fbc3cacbc72db5e"
+  },
   "glossaryNoDefinition": "Noch keine Definition.",
   "@glossaryNoDefinition": {
     "x-sourceSha256": "5a97ad24f6d76f144e5f2008ca1291720b18e718c28f36afb8014dd089028959"

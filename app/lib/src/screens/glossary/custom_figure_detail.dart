@@ -442,6 +442,20 @@ class _GlossaryCustomFigureDetailState
             heading(l10n.glossaryCustomExample),
             Text(example, key: const ValueKey('glossary-custom-example')),
           ],
+          // For display only: the copy keeps no link to the figure it came
+          // from (#1023, maintainer decision 6).
+          if (figure.copiedFrom case final copiedFrom?
+              when contraTaxonomy.resolve(copiedFrom) != null)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.md),
+              child: Text(
+                l10n.glossaryCustomCopiedFrom(
+                  _renderer.displayMoveName(copiedFrom, dialect),
+                ),
+                key: const ValueKey('glossary-custom-copied-from'),
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
         ],
         if (!item.unsupported) ...[
           heading(l10n.glossaryEntryFormLabel),

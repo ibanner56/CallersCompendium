@@ -281,6 +281,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wähle eine Figur aus, um ihre Definition zu sehen.';
 
   @override
+  String get glossaryCopyAsOwnFigure => 'Als eigene Figur kopieren';
+
+  @override
+  String glossaryCustomCopiedFrom(String name) {
+    return 'Kopiert von $name';
+  }
+
+  @override
   String get glossaryNoDefinition => 'Noch keine Definition.';
 
   @override

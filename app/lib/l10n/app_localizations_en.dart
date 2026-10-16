@@ -278,6 +278,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get glossarySelectPrompt => 'Select a figure to see its definition.';
 
   @override
+  String get glossaryCopyAsOwnFigure => 'Copy as your own figure';
+
+  @override
+  String glossaryCustomCopiedFrom(String name) {
+    return 'Copied from $name';
+  }
+
+  @override
   String get glossaryNoDefinition => 'No definition yet.';
 
   @override

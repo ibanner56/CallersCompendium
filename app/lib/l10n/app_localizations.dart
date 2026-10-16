@@ -548,6 +548,18 @@ abstract class AppLocalizations {
   /// **'Select a figure to see its definition.'**
   String get glossarySelectPrompt;
 
+  /// Button on a built-in figure's Glossary page that opens the editor on a new figure of the user's own, copied from it (#1023). The built-in figure is not changed.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy as your own figure'**
+  String get glossaryCopyAsOwnFigure;
+
+  /// Shown on one of the user's own figures that was copied from a built-in figure; {name} is that figure's name. The copy is independent of it.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied from {name}'**
+  String glossaryCustomCopiedFrom(String name);
+
   /// Shown on a Glossary figure's detail when the app does not yet ship a definition for that figure.
   ///
   /// In en, this message translates to:

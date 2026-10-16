@@ -592,6 +592,17 @@ Glossary is on. While it is on:
   choose **Make it a figure** to give it wording and parameters as a new
   figure. It keeps its name and other fields, and can't be turned back into a
   term.
+- To start from a figure that comes with the app, open it in the Glossary and
+  choose **Copy as your own figure**. The editor opens on a new figure named
+  after it with **(copy)** (numbered if you already have one), with its
+  definition and description, its beats, its wording, and the parameters that
+  wording uses, with their defaults (a variant, such as *pull by neighbors*,
+  starts from its own). The wording is the figure's plain one where the app
+  words it in a way of its own, so read it through before you save. Its
+  `{move}` is the copy's name, so rename it to what a dance should say.
+  Nothing is added until you save. The copy is yours alone: the built-in
+  figure doesn't change, and later changes to the app's figure don't reach
+  the copy. Its page says what it was copied from.
 - Build a combination from figures that come with the app, in order, the same
   way as in the dance editor. Custom figures, meanwhile and modifier groups
   can't be used as parts.

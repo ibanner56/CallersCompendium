@@ -62,7 +62,11 @@ class CompoundEditorScreen extends StatefulWidget {
     this.initial,
     this.termsOnly = false,
     this.convertToFigure = false,
-  });
+    this.copyOf,
+  }) : assert(
+         initial == null || copyOf == null,
+         'a copy is a new entry, not an edit',
+       );
 
   /// The entry being edited, or null for a new one.
   final UserGlossaryEntry? initial;
@@ -76,6 +80,12 @@ class CompoundEditorScreen extends StatefulWidget {
   /// (#1023, maintainer decision 7). There is no way back: a figure's uses
   /// would be left referring to a term.
   final bool convertToFigure;
+
+  /// A new figure to start from, its fields filled in as [copyOf]'s (#1023,
+  /// maintainer decision 6: a shipped figure copied as one of the user's
+  /// own, [userFigureSeedFromMove]). Saved as a new entry, under a new id,
+  /// with its `copiedFrom`; [copyOf]'s own id and creation time are not used.
+  final UserGlossaryEntry? copyOf;
 
   @override
   State<CompoundEditorScreen> createState() => _CompoundEditorScreenState();
@@ -153,7 +163,8 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
 
   /// Which kind of entry this is; chosen for a new one, fixed for one stored
   /// (but see [CompoundEditorScreen.convertToFigure]).
-  late UserGlossaryEntryKind _kind = widget.convertToFigure
+  late UserGlossaryEntryKind _kind =
+      widget.convertToFigure || widget.copyOf != null
       ? UserGlossaryEntryKind.customFigure
       : switch (widget.initial?.kind) {
           UserGlossaryEntryKind.customFigure =>
@@ -182,7 +193,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     super.didChangeDependencies();
     if (_seeded) return;
     _seeded = true;
-    final initial = widget.initial;
+    final initial = widget.initial ?? widget.copyOf;
     if (initial == null) return;
     final dialect = ActiveDialectScope.of(context);
     String shown(String text) => _renderer.renderFreeText(text, dialect);
@@ -438,13 +449,14 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   /// The new figure as it stands, its words passed through [store] (the save
   /// canonicalizes them; the preview passes the same).
   UserFigureDefinition _figureNow(String Function(String) store) {
-    final initialPayload = widget.initial?.payload;
+    final source = widget.initial ?? widget.copyOf;
+    final initialPayload = source?.payload;
     // A term given a figure keeps the keys it stored that a figure does not
     // define itself (userFigurePayloadExtra); it adopts no copiedFrom, since
     // a term names no built-in figure.
     final copiedFrom =
         initialPayload is Map &&
-            widget.initial?.kind == UserGlossaryEntryKind.customFigure
+            source?.kind == UserGlossaryEntryKind.customFigure
         ? initialPayload['copiedFrom']
         : null;
     return UserFigureDefinition(
@@ -1104,7 +1116,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                 ),
               ),
             ],
-            if (widget.initial == null && !widget.termsOnly) ...[
+            if (widget.initial == null &&
+                widget.copyOf == null &&
+                !widget.termsOnly) ...[
               heading(
                 l10n.glossaryEntryKindHeading,
                 l10n.glossaryEntryKindHelp,
