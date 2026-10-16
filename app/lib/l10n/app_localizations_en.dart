@@ -6273,10 +6273,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'That file isn\'t a Caller\'s Compendium share file.';
 
   @override
-  String get archiveIntakeRejectedNewerVersion =>
-      'That file was made by a newer version of the app. Please update to import it.';
-
-  @override
   String get archiveIntakeRejectedNoContent =>
       'That file didn\'t contain any dances or programs.';
 

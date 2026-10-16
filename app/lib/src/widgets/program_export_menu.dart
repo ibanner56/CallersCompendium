@@ -421,6 +421,7 @@ class ProgramExportMenu extends StatelessWidget {
       publishedSourceFor: publishedSourceFor ?? (_) => null,
       customFieldFor: customFieldFor ?? (_) => null,
       difficultyLevelFor: (dance) => difficultyLevelFor?.call(dance.id),
+      userFigureFor: UserFiguresScope.entryLookupOf(context),
       includeVenueContact: includeVenueContact,
     );
     final fileName = programShareBundleFileName(

@@ -46,6 +46,24 @@ const _userGlossaryText = DataClassification(
       'can read them (the capability gate, sync-spec §6.15).',
 );
 
+/// [_userGlossaryText], for an entry's own notes, which a share bundle leaves
+/// out all the same.
+const _userGlossaryNotes = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.shareable,
+  note:
+      "The user's own notes on a glossary entry (#709), classified as the "
+      "entry's other text is (see user_glossary_entries.definition), for the "
+      'same reasons. Shareable, so they travel in backups and sync, but a '
+      'share bundle leaves them out (#1023, plan C12): it carries each of '
+      "the sender's own figures its dances use, for someone else, and an "
+      "entry's notes are the owner's own annotations, not part of the "
+      "figure's definition. That omission is the implementer's call; "
+      'carrying them was rejected as sending private annotations with a '
+      'figure the recipient only needs to read the dances.',
+);
+
 /// An opaque surrogate key. Carries no meaning alone, but must travel for
 /// relationships to survive a transfer.
 const _key = DataClassification(
@@ -377,7 +395,7 @@ final Map<String, DataClassification> fieldClassifications = {
   'user_glossary_entries.definition': _userGlossaryText,
   'user_glossary_entries.description': _userGlossaryText,
   'user_glossary_entries.keywords_json': _userGlossaryText,
-  'user_glossary_entries.notes': _userGlossaryText,
+  'user_glossary_entries.notes': _userGlossaryNotes,
   'user_glossary_entries.payload_json': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,
