@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/src/data/user_figures_scope.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/dance_reimport.dart';
 import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
@@ -81,6 +82,7 @@ Future<ValueNotifier<bool>> _pumpDetail(
   bool readOnly = false,
   Future<void> Function(DanceDetailData detail)? onReimport,
   Set<DanceShareField>? shareFields,
+  UserFiguresController? userFigures,
 }) async {
   if (canonicalFigureText != null) {
     await repos.settings.set(kCanonicalFigureTextKey, canonicalFigureText);
@@ -93,6 +95,9 @@ Future<ValueNotifier<bool>> _pumpDetail(
     requirePerformedForHistory,
   );
   addTearDown(requirePerformedNotifier.dispose);
+  Widget withUserFigures(Widget child) => userFigures == null
+      ? child
+      : UserFiguresScope(controller: userFigures, child: child);
   Widget withLibrary(Widget child) => dialectLibrary == null
       ? child
       : DialectLibraryScope(controller: dialectLibrary, child: child);
@@ -112,13 +117,15 @@ Future<ValueNotifier<bool>> _pumpDetail(
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: withLibrary(
-          withShareFields(
-            ActiveDialectScope(
-              notifier: notifier,
-              child: RequirePerformedForHistoryScope(
-                notifier: requirePerformedNotifier,
-                child: child!,
+        child: withUserFigures(
+          withLibrary(
+            withShareFields(
+              ActiveDialectScope(
+                notifier: notifier,
+                child: RequirePerformedForHistoryScope(
+                  notifier: requirePerformedNotifier,
+                  child: child!,
+                ),
               ),
             ),
           ),
@@ -170,6 +177,53 @@ void main() {
     expect(find.text('Gene Hubert'), findsOneWidget);
     expect(find.text('a lovely hook'), findsOneWidget);
     expect(find.text('smooth'), findsOneWidget);
+  });
+
+  testWidgets('a use of a figure of your own shows its figure\'s current '
+      'wording, and follows an edit (#1023)', (tester) async {
+    final repos = openTestRepositories();
+    UserGlossaryEntry zoom(String template) => UserGlossaryEntry(
+      id: 'zoom-id',
+      kindName: UserGlossaryEntryKind.customFigure.name,
+      name: 'zoom',
+      definition: 'A zoom.',
+      description: 'Fast.',
+      payload: {
+        'template': template,
+        'defaultBeats': 8,
+        'params': [
+          {'key': 'who', 'kind': 'dancerSet'},
+        ],
+      },
+      createdAt: _now,
+    );
+    await repos.userGlossary.upsert(zoom('{who} {move} around'));
+    await repos.dances.create(
+      _dance(id: 'd1', title: 'Zoom Reel').copyWith(
+        figures: [
+          userFigureUseFigure(
+            id: 'zoom-id',
+            args: const {'who': 'role1s'},
+            text: 'a stale stored line',
+          ),
+        ],
+      ),
+    );
+    final userFigures = UserFiguresController(repos.userGlossary);
+    addTearDown(userFigures.dispose);
+    // On the test's clock, so the glossary's changes reach the controller as
+    // the test pumps.
+    unawaited(userFigures.start());
+
+    await _pumpDetail(tester, repos, 'd1', userFigures: userFigures);
+    expect(find.textContaining('larks zoom around'), findsWidgets);
+    expect(find.textContaining('a stale stored line'), findsNothing);
+
+    await tester.runAsync(
+      () => repos.userGlossary.upsert(zoom('{who} {move} twice')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('larks zoom twice'), findsWidgets);
   });
 
   testWidgets('persisted read-only detail exposes only re-import', (
