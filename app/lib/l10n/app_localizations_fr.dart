@@ -8213,7 +8213,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String installLocationBannerMessage(String appName) {
-    return '$appName n\'est pas encore installé : l\'app s\'exécute depuis l\'image disque ou l\'archive téléchargée. Quittez-la, faites-la glisser dans le dossier Applications, puis ouvrez-la depuis ce dossier.';
+    return '$appName n\'est peut-être pas installé. L\'app s\'exécute depuis l\'image disque ou l\'archive téléchargée, ou depuis un emplacement temporaire en lecture seule que macOS a mis en place pour elle. Quittez-la, puis, dans le Finder, faites-la glisser ou copiez-la dans le dossier Applications et ouvrez-la depuis ce dossier. Si elle se trouve déjà dans le dossier Applications, vous pouvez ignorer cet avis.';
   }
 
   @override

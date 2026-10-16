@@ -18,8 +18,9 @@ class MainFlutterWindow: NSWindow {
     IncomingFilesBridge.shared.register(
       messenger: flutterViewController.engine.binaryMessenger)
 
-    // Issue #1725: lets Dart ask whether the app is running from the disk
-    // image (or a translocated copy) instead of an installed location.
+    // Issue #1725: lets Dart ask whether the app is running from a read-only
+    // volume (the disk image or a translocated copy), usually because it was
+    // never installed.
     InstallLocationBridge.shared.register(
       messenger: flutterViewController.engine.binaryMessenger)
 
