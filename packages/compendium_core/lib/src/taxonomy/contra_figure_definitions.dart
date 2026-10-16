@@ -17,9 +17,9 @@
 //
 // Where an entry below cites "the maintainer", the maintainer gave that
 // direction in the session that produced #1765, and #1765's description
-// records it ("Maintainer decisions on #695 that this text follows"). It is
-// not a comment on #695, and the description was written by the authoring
-// session, not by the maintainer.
+// records it, in the list headed "Maintainer decisions on #695". It is not a
+// comment on #695, and the description was written by the authoring session,
+// not by the maintainer.
 // The courtesy turn's rotation is also recorded in #1764's description.
 
 import 'figure_glossary.dart' show FigureDefinition;
