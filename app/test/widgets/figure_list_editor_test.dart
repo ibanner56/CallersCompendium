@@ -629,23 +629,28 @@ void main() {
       expect(drafts.map((d) => d.move), ['swing', 'balance']);
     });
 
-    testWidgets('Down + Enter reaches the next item (Cut)', (tester) async {
-      final drafts = [
-        FigureDraft(move: 'balance', params: {'beats': 4}),
-        FigureDraft(move: 'swing', params: {'beats': 8}),
-      ];
-      await _pump(tester, drafts);
-      await openRowMenuByKeyboard(tester, 1);
+    testWidgets(
+      'Down skips disabled items and Enter activates the one reached (Duplicate)',
+      (tester) async {
+        final drafts = [
+          FigureDraft(move: 'balance', params: {'beats': 4}),
+          FigureDraft(move: 'swing', params: {'beats': 8}),
+        ];
+        await _pump(tester, drafts);
+        await openRowMenuByKeyboard(tester, 1);
 
-      // Row 1 opens on Move up; Down is Move down (disabled on the last row,
-      // so skipped) and lands on Cut.
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      await tester.pump();
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pumpAndSettle();
+        // Row 1 opens on Move up; Move down is disabled on the last row, so Down
+        // goes to Cut and Down again to Duplicate.
+        for (var i = 0; i < 2; i++) {
+          await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+          await tester.pump();
+        }
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pumpAndSettle();
 
-      expect(drafts.map((d) => d.move), ['balance']);
-    });
+        expect(drafts.map((d) => d.move), ['balance', 'swing', 'swing']);
+      },
+    );
 
     testWidgets('Escape closes the menu and returns focus to the ⋮ button', (
       tester,
