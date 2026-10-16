@@ -3945,7 +3945,9 @@ final class CompendiumSyncStorage
   /// stored where this build reads it. A setting kept whole is applied the
   /// same way, unless this device already holds a newer copy of it, which
   /// wins. A deleted record is left alone; its kept parts are pruned wherever
-  /// they would be put back, so they cannot win over it either.
+  /// they would be put back, so they cannot win over it either. A kept part
+  /// that this build now syncs but can no longer decode is dropped, the rest
+  /// kept, rather than failing the open.
   Future<void> promoteRetainedSyncFields() async {
     final rows = await repositories.syncLocal.listRetainedSyncFields();
     final due = [
@@ -4020,7 +4022,20 @@ final class CompendiumSyncStorage
         );
         if (report != null &&
             report.code != SyncReportCode.unresolvedReference) {
-          throw StateError(report.message);
+          // The kept copy no longer decodes under this build's rules for a
+          // field it now syncs, and nothing was written. Throwing here would
+          // fail `ensureMigrated` on every open, and Retry re-runs the same
+          // promotion. Drop the part this build syncs, as a refused inbound
+          // body is dropped (spec §6.9), and keep what it still does not.
+          // `pruneSyncedRetainedFields` already kept it out of every body this
+          // device builds, so no published body or hash changes by dropping
+          // it, and the peer still holds the original.
+          final left = _unsyncedRetainedParts(row);
+          await repositories.syncLocal.setRetainedSyncFields(
+            kind: row.kind,
+            recordId: row.recordId,
+            payload: left == null ? null : canonicalJson(left),
+          );
         }
       }
     });

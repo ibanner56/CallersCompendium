@@ -557,6 +557,71 @@ void main() {
       expect(body['cueSheet'], 'still unknown here');
     });
 
+    test(
+      'a kept value that no longer decodes is dropped, so opening the app '
+      'still works; what this build still does not sync stays kept',
+      () async {
+        // A mixed-build fleet or a defective peer can leave a kept value the
+        // field's decoder now refuses. Kept values are not validated when they
+        // are stored, so this is reachable; promotion must not take the app's
+        // open down with it, because Retry re-runs the same failing promotion.
+        await repositories.programs.create(program());
+        await repositories.syncLocal.setRetainedSyncFields(
+          kind: SyncRecordKind.program,
+          recordId: 'p1',
+          payload: canonicalJson({
+            'payMinorUnits': {'v': 'abc'},
+            'cueSheet': {'v': 'still unknown here'},
+          }),
+        );
+
+        const address = (kind: SyncRecordKind.program, recordId: 'p1');
+        final before = await published(address);
+
+        final reopened = CompendiumRepositories(db, contraTaxonomy);
+        await reopened.ensureMigrated();
+
+        final stored = await repositories.programs.getById('p1');
+        expect(stored!.payMinorUnits, isNull);
+        final row = await repositories.syncLocal.getRetainedSyncFields(
+          kind: SyncRecordKind.program,
+          recordId: 'p1',
+        );
+        expect(
+          row!.payload,
+          canonicalJson({
+            'cueSheet': {'v': 'still unknown here'},
+          }),
+        );
+        // The kept copy was already kept out of every body this device builds
+        // (it syncs the field now), so dropping it changes nothing published.
+        final after = await published(address);
+        expect(after.wireHash, before.wireHash);
+        expect(after.blob.body['payMinorUnits'], isNull);
+        expect(after.blob.body['cueSheet'], 'still unknown here');
+
+        // Settled: the next open has nothing left to promote.
+        await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+      },
+    );
+
+    test('a kept value that no longer decodes leaves no row behind when it '
+        'was all that was kept', () async {
+      await repositories.programs.create(program());
+      await repositories.syncLocal.setRetainedSyncFields(
+        kind: SyncRecordKind.program,
+        recordId: 'p1',
+        payload: canonicalJson({
+          'payMinorUnits': {'v': -5},
+          'payCurrency': {'v': 'usd'},
+        }),
+      );
+
+      await storage.promoteRetainedSyncFields();
+
+      expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
+    });
+
     test('a setting kept whole is applied once this build syncs its key, '
         'unless a newer copy is already here', () async {
       SyncRecordBlob dialects(DateTime at, Object value) => SyncRecordBlob(

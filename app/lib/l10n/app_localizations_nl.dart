@@ -6352,10 +6352,6 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dat bestand is geen deelbestand van Caller’s Compendium.';
 
   @override
-  String get archiveIntakeRejectedNewerVersion =>
-      'Dat bestand is gemaakt met een nieuwere versie van de app. Werk de app bij om het te importeren.';
-
-  @override
   String get archiveIntakeRejectedNoContent =>
       'Dat bestand bevatte geen dansen of programma’s.';
 

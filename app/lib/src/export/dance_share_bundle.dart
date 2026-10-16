@@ -4,7 +4,8 @@ import '../utils/safe_name.dart';
 import 'share_sanitization.dart';
 
 /// Builds a canonical, privacy-safe archive containing one dance and only its
-/// referenced metadata.
+/// referenced metadata, the user's own new figures it uses among them
+/// ([userFiguresForShare]).
 String buildDanceShareBundle(
   Dance dance, {
   required Choreographer? Function(String id) choreographerFor,
@@ -12,6 +13,7 @@ String buildDanceShareBundle(
   required PublishedSource? Function(String id) publishedSourceFor,
   required CustomFieldDef? Function(String id) customFieldFor,
   DifficultyLevel? Function(String id)? difficultyLevelFor,
+  UserGlossaryEntry? Function(String id)? userFigureFor,
   DateTime? now,
 }) {
   final choreographers = <Choreographer>[];
@@ -83,6 +85,7 @@ String buildDanceShareBundle(
       customFields: customFields,
       tags: tags,
       difficultyLevels: difficultyLevels,
+      userFigures: userFiguresForShare([dance], userFigureFor),
     ),
     mode: ArchiveSerializationMode.share,
   );

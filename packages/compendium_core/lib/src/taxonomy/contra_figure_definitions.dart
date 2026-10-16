@@ -14,6 +14,13 @@
 // Role words are written as the canonical tokens role1/role1s/role2/role2s,
 // which the dialect renderer turns into the user's terms at display time.
 // figure_glossary_test.dart holds every entry to that rule.
+//
+// Where an entry below cites "the maintainer", #1765's description records the
+// direction, in the list headed "Maintainer decisions on #695". It is not a
+// comment on #695, and the description was written by the authoring session,
+// not by the maintainer.
+// The courtesy turn's rotation is also recorded in #1764's description, as a
+// decision given in the session that produced it.
 
 import 'figure_glossary.dart' show FigureDefinition;
 
@@ -127,9 +134,9 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
   ),
   // TCB "Courtesy turn" and its role1s' chain entry. The usual rotation
   // is counterclockwise; clockwise is the mirrored turn, chiefly after a
-  // role1s' chain (maintainer decision on #695; the taxonomy default changes
-  // to match in #1764). The text says "usually" so it holds on either side
-  // of that change.
+  // role1s' chain (the maintainer's direction, recorded in #1765 and #1764;
+  // the taxonomy default became counterclockwise in #1764, taxonomy v37). The
+  // text says "usually" because the mirrored turn is also a courtesy turn.
   'courtesy_turn': FigureDefinition(
     definition:
         'Two dancers side by side wheel around together, as a unit, to face the opposite way.',
@@ -238,7 +245,7 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
   // TCB "Give and take"; Jennings "GIVE-AND-TAKE" (default side);
   // contra_taxonomy.dart `give_and_take` (who = the role the pair ends beside,
   // default role1s; give flag; 8 beats). The 4-8 beat range, depending on
-  // the dance and its phrasing, is the maintainer's wording.
+  // the dance and its phrasing, is the maintainer's wording (#1765).
   'give_and_take': FigureDefinition(
     definition:
         'Facing couples step toward each other, and the named dancers draw another dancer, usually their partner, back to their own side.',
@@ -273,9 +280,9 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     description:
         'Usually the return trip after a walk down the hall, taking about 8 beats. The figure can say who moves, which way they face, and how the lines finish, most often by bending into a ring of four.',
   ),
-  // TCB "Weave the line" (zig zag is the preferred name for it, per the
-  // maintainer); contra_taxonomy.dart `zig_zag` (who default partners, slide
-  // default left, ender, 6 beats).
+  // TCB "Weave the line" (zig zag is TCB's weave the line, per the
+  // maintainer, #1765); contra_taxonomy.dart `zig_zag` (who default partners,
+  // slide default left, ender, 6 beats).
   'zig_zag': FigureDefinition(
     definition:
         'Couples facing along the set weave past each other on alternating diagonals, like a hey danced in pairs.',
@@ -372,7 +379,7 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
   // TCB "Circular hey": the corpus writes it as "square through N without
   // hands" (e.g. dances 20273 and 527, three changes in 8 beats). The beat
   // counts per number of changes are the app's own choice (taxonomy v36),
-  // confirmed by the maintainer.
+  // confirmed by the maintainer (#1765).
   'circular_hey': FigureDefinition(
     definition:
         'A square through without hands: four dancers weave around their ring, passing alternate shoulders.',
@@ -444,9 +451,9 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     description:
         'Usually the role2 turns under the joined left hands while the role1 walks around, and the pair ends facing each other in swapped places. It takes 4 beats, or 8 with a balance first.',
   ),
-  // Maintainer definition (a swing introduced by a right shoulder round);
-  // contra_taxonomy.dart alias `meltdown_swing` -> swing {prefix: meltdown},
-  // paramBeats meltdown 16.
+  // Maintainer's definition, #1765 (a swing introduced by a right shoulder
+  // round); contra_taxonomy.dart alias `meltdown_swing` -> swing
+  // {prefix: meltdown}, paramBeats meltdown 16.
   'meltdown_swing': FigureDefinition(
     definition:
         'A swing that starts with a right shoulder round, the dancers circling face to face before taking hold.',

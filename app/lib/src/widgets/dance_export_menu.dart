@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/user_figures_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../export/json_export.dart';
 import '../export/share_file.dart';
@@ -89,33 +90,37 @@ class DanceExportMenu extends StatelessWidget {
   /// [isBundleShareUnsupported] (Linux) turns the bundle action into Save As.
   final JsonExportDelivery? jsonExportDelivery;
 
-  DanceExportActions _actions({required bool canonicalizeDiscouragedTerms}) =>
-      DanceExportActions(
-        dance: dance,
-        dialect: dialect,
-        authorNames: authorNames,
-        formationLabel: formationLabel,
-        statusLabel: statusLabel,
-        levelLabel: levelLabel,
-        renderer: renderer,
-        fields: fields,
-        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-        choreographersById: choreographersById,
-        tagsById: tagsById,
-        sourcesById: sourcesById,
-        customFieldsById: customFieldsById,
-        difficultyLevelFor: difficultyLevelFor,
-        shareInvoker: shareInvoker,
-        bundleFileWriter: bundleFileWriter,
-        pdfLayouter: pdfLayouter,
-        jsonExportDelivery: jsonExportDelivery,
-      );
+  DanceExportActions _actions({
+    required bool canonicalizeDiscouragedTerms,
+    required UserGlossaryEntry? Function(String id) userFigureFor,
+  }) => DanceExportActions(
+    dance: dance,
+    dialect: dialect,
+    authorNames: authorNames,
+    formationLabel: formationLabel,
+    statusLabel: statusLabel,
+    levelLabel: levelLabel,
+    renderer: renderer,
+    fields: fields,
+    canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    choreographersById: choreographersById,
+    tagsById: tagsById,
+    sourcesById: sourcesById,
+    customFieldsById: customFieldsById,
+    difficultyLevelFor: difficultyLevelFor,
+    userFigureFor: userFigureFor,
+    shareInvoker: shareInvoker,
+    bundleFileWriter: bundleFileWriter,
+    pdfLayouter: pdfLayouter,
+    jsonExportDelivery: jsonExportDelivery,
+  );
 
   Future<void> _onSelected(BuildContext context, _ExportAction action) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final actions = _actions(
       canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
+      userFigureFor: UserFiguresScope.entryLookupOf(context),
     );
     // Capture the button's screen position before any await: on desktop
     // `share_plus` needs a `sharePositionOrigin` to anchor the native share

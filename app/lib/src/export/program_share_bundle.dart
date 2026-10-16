@@ -109,6 +109,7 @@ String buildProgramShareBundle(
   required PublishedSource? Function(String id) publishedSourceFor,
   required CustomFieldDef? Function(String id) customFieldFor,
   DifficultyLevel? Function(Dance dance)? difficultyLevelFor,
+  UserGlossaryEntry? Function(String id)? userFigureFor,
   Set<VenueContactField> includeVenueContact = const {},
   DateTime? now,
 }) {
@@ -216,6 +217,7 @@ String buildProgramShareBundle(
       customFields: customFields,
       tags: tags,
       difficultyLevels: difficultyLevels,
+      userFigures: userFiguresForShare(dances, userFigureFor),
     ),
     mode: ArchiveSerializationMode.share,
   );

@@ -6054,10 +6054,6 @@ class AppLocalizationsJa extends AppLocalizations {
       'そのファイルはCaller’s Compendiumの共有ファイルではありません。';
 
   @override
-  String get archiveIntakeRejectedNewerVersion =>
-      'そのファイルは新しいバージョンのアプリで作成されました。インポートするにはアプリを更新してください。';
-
-  @override
   String get archiveIntakeRejectedNoContent => 'そのファイルにはダンスもプログラムも含まれていませんでした。';
 
   @override
