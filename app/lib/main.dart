@@ -1667,8 +1667,8 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// restored ones are assigned.)
   ///
   /// [includeDeviceState] `false` leaves out the update and Device Sync
-  /// controllers, whose keys are all `deviceLocal` or `deviceScoped`: no sync
-  /// pass carries them, so a reload after one has nothing to refresh there.
+  /// controllers: none of their keys is classified `shareable`, so no sync
+  /// pass carries them and a reload after one has nothing to refresh there.
   Future<void> _loadPreferences({bool includeDeviceState = true}) async {
     // Phase 1: read everything.
     // Load the persisted dialect library (custom dialects + active-name ref),

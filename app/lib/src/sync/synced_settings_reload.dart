@@ -13,8 +13,10 @@
 /// The app reports every `settings` write through [noteSettingsWrite]; one
 /// that lands while a run is in progress makes it run again. The [fence] read
 /// that ends each run catches a write still queued when the loads finish: one
-/// connection runs its statements in order, so that write completes before
-/// the fence does, and Drift delivers its table-update event synchronously.
+/// connection runs its statements in order (a write's transaction holds it),
+/// so that write completes before the fence does. Drift delivers the write's
+/// table-update event asynchronously, so each run then yields one turn of
+/// the event loop before deciding, by which time that event has arrived.
 ///
 /// Re-runs for a race are bounded by [maxRacedRuns], so a load that one day
 /// writes `settings` itself (the dialect library's one-time migration already
@@ -61,6 +63,7 @@ class SyncedSettingsReload {
         _raced = false;
         await _reload();
         await _fence();
+        await Future<void>.delayed(Duration.zero);
         runs++;
       } while (_requested || (_raced && runs < maxRacedRuns));
     } finally {

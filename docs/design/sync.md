@@ -1827,7 +1827,8 @@ applied kinds, the app reloads its preferences and settings-backed controllers
 (#1828), as a backup restore does. Without that, the change would show only after
 a relaunch, and the next local edit of one of the collections above would write
 the stale collection back over the one the pass applied. The update and Device
-Sync controllers are left out, because none of their keys travel.
+Sync controllers are left out, because none of their keys is a `shareable`
+setting.
 
 This requires a schema change: `settings` is `(key, value_json)` with **no
 timestamp and no tombstone**, so neither the conflict rule nor deletion can reach

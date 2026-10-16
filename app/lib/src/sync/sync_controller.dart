@@ -289,9 +289,12 @@ class SyncController extends ChangeNotifier {
   /// until a relaunch, and the next local edit of a whole-collection setting
   /// writes the stale collection back over what the pass applied.
   ///
-  /// Called whatever the pass's status: a pass that failed part-way can have
-  /// applied records before it stopped, and the database holds them either
-  /// way. Not awaited: the reload is the app's work, not the pass's.
+  /// Called whatever status the pass reports: a pass that failed part-way can
+  /// have applied records before it stopped, and the database holds them
+  /// either way. A pass that threw instead reports no applied kinds, so it
+  /// reaches neither this nor the live-query invalidation; the next pass that
+  /// applies settings reloads. Not awaited: the reload is the app's work, not
+  /// the pass's.
   final void Function()? _onSettingsApplied;
 
   /// Builds the probe for a pairing attempt. [endpoint] must already have
