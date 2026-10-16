@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
-import '../../data/dialect_library_controller.dart';
 import '../../data/dialect_library_scope.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/program_matrix_column_config_scope.dart';
@@ -170,7 +169,6 @@ class _GlossaryCustomFigureDetailState
     final repos = _repos!;
     // Read before anything is awaited: the delete can unmount this page.
     final dialects = DialectLibraryScope.maybeOf(context);
-    final matrix = ProgramMatrixColumnConfigScope.maybeNotifierOf(context);
     // A figure of your own is used by reference (#1023): say how many dances
     // keep its current wording as plain text (maintainer decision 2).
     final uses = isFigure
@@ -203,15 +201,26 @@ class _GlossaryCustomFigureDetailState
     if (confirmed != true) return;
     if (isFigure) {
       await repos.deleteUserFigure(widget.entryId);
-      // The figure is gone either way: a failure here leaves only inert keys,
-      // so it is logged rather than stopping the page from closing.
+      // Then what the settings keep for it (#1023, plan C9): each dialect's
+      // name and wording for it, and its matrix column's place, hiding and
+      // rename. Nothing would read them again, and they would otherwise stay
+      // in every backup and sync. The figure is gone either way: a failure
+      // here leaves only inert keys, so it is logged rather than stopping the
+      // page from closing.
       try {
-        await _forgetInSettings(repos, dialects, matrix);
+        await dialects?.forgetUserFigure(widget.entryId);
+        // The page stays until it pops below, so the matrix scope is still
+        // at hand.
+        if (mounted &&
+            ProgramMatrixColumnConfigScope.maybeNotifierOf(this.context) !=
+                null) {
+          await _dropMatrixColumn(repos);
+        }
       } on Object catch (e, stackTrace) {
         logCaughtError(
           e,
           stackTrace,
-          source: 'GlossaryCustomFigureDetail._forgetInSettings',
+          source: 'GlossaryCustomFigureDetail._confirmAndDelete',
         );
       }
     } else {
@@ -220,26 +229,17 @@ class _GlossaryCustomFigureDetailState
     if (!widget.showName && mounted) navigator.pop();
   }
 
-  /// Drops what the settings keep for a deleted figure (#1023, plan C9): each
-  /// dialect's name and wording for it, and its matrix column's place, hiding
-  /// and rename. Nothing would read them again, and they would otherwise
-  /// stay in every backup and sync.
-  Future<void> _forgetInSettings(
-    CompendiumRepositories repos,
-    DialectLibraryController? dialects,
-    ValueNotifier<MatrixColumnConfig>? matrix,
-  ) async {
-    await dialects?.forgetUserFigure(widget.entryId);
-    // The live config is the one the app keeps and writes, as the Matrix
-    // columns screen does: it is updated first, and its value stored.
-    if (matrix == null) return;
+  /// Drops the deleted figure's matrix column from the live config, then
+  /// stores it, as the Matrix columns screen writes it (#1023, plan C9).
+  Future<void> _dropMatrixColumn(CompendiumRepositories repos) {
+    final matrix = ProgramMatrixColumnConfigScope.notifierOf(context);
     final kept = matrix.value.withoutColumn(userFigureKeyFor(widget.entryId));
-    if (identical(kept, matrix.value)) return;
+    if (identical(kept, matrix.value)) return Future.value();
     matrix.value = kept;
-    await persistSetting(
+    return persistSetting(
       repos.settings,
       kProgramMatrixColumnsKey,
-      matrix.value.toJson(),
+      kept.toJson(),
     );
   }
 
