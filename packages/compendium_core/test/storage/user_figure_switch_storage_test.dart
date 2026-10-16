@@ -75,7 +75,7 @@ void main() {
     final d1 = (await repos.dances.getById('d1'))!;
     expect(d1.updatedAt, switchedAt);
     expect(figuresOf(d1).first.move, 'swing');
-    expect(figuresOf(d1).first.params, {'who': 'partners'});
+    expect(figuresOf(d1).first.params, {'who': 'partners', 'beats': 8});
     expect(await indexedMoves('d1'), ['swing', 'balance']);
     expect((await repos.dances.getById('d2'))!.updatedAt, saved);
     expect(await repos.userGlossary.getById('mine'), isNull);
