@@ -172,7 +172,10 @@ void main() {
     });
 
     test('an unknown target offers nothing', () {
-      expect(userFigureSwitchTargets(mine.params.first, 'nope', taxonomy), []);
+      expect(
+        userFigureSwitchTargets(mine.params.first, 'nope', taxonomy),
+        isEmpty,
+      );
       expect(userFigureSwitchValues('nope', 'who', taxonomy), isEmpty);
     });
   });
@@ -275,12 +278,10 @@ void main() {
   group('switchUserFigureUsesIn', () {
     test('a use becomes the shipped figure, its values mapped', () {
       final switched = switchAll([
-        Figure(
-          move: customMoveId,
-          params: use({'who': 'partners', 'prefix': 'cbal'}).params,
-          note: 'mind the wall',
-          progression: true,
-        ),
+        use({
+          'who': 'partners',
+          'prefix': 'cbal',
+        }).copyWith(note: 'mind the wall', progression: true),
       ]).single;
       expect(switched.move, 'swing');
       expect(switched.params, {
