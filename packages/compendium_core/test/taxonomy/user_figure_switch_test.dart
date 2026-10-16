@@ -127,7 +127,7 @@ void main() {
       expect(
         userFigureSwitchTargets(mine.params[1], 'gate', taxonomy),
         isNot(contains('travel')),
-        reason: 'a rotation whose only word is "not stated"',
+        reason: 'a rotation takes numbers, not words',
       );
     });
 
@@ -314,10 +314,11 @@ void main() {
     });
 
     test('an argument stated as none stays unstated', () {
+      // "who" defaults to neighbors, but this use stated none.
       final switched = switchAll([
-        use(const {'who': 'partners', 'prefix': null}),
+        use(const {'who': null, 'prefix': 'cbal'}),
       ]).single;
-      expect(switched.params, {'who': 'partners', 'beats': 16});
+      expect(switched.params, {'prefix': 'balance', 'beats': 16});
     });
 
     test('a walkthrough is kept, and a wording override is not', () {
