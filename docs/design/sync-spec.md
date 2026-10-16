@@ -3584,6 +3584,19 @@ stays kept, and opening the app MUST NOT fail over it. No body or hash this
 device builds changes by it, since the part was already dropped from every body
 once the build synced its field.
 
+**A deleted record is not promoted.** The move above skips a soft-deleted
+record. Its kept row stays, and is pruned from every body this device builds
+like any already-synced part, so it cannot win over the record. Two costs
+follow and are not fixed: while such a row exists, every open builds
+a full snapshot to look at it; and a record restored from the trash after the
+upgrade holds the field empty until the next open, because the kept value was
+never stored in it. Nothing in a trash restore touches the kept row, so that
+open then writes the kept value into the record, over any edit made to that
+field in between. Writing the tombstone through the ordinary record writer is
+not a remedy: for a dance whose choreographer or source is also deleted it
+drops the dance's links to them, and a deleted record that a live one still
+cites would become a pending deletion.
+
 For `kind: "setting"`, a key this build does not classify `shareable` is kept
 **whole**: the peer's blob is stored as it came, published back as this
 device's copy of that record, and never written to `settings`. The two

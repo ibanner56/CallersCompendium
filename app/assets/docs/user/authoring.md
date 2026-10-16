@@ -274,7 +274,9 @@ offered, but a dance that already uses one still reads with its wording.
 
 ### Reorder, cut, and duplicate
 
-Each figure row has a drag handle and an actions menu:
+Each figure row has a drag handle and an actions menu. From the keyboard, Tab to
+the row's **⋮** button and press Space or Enter to open it; the arrow keys move
+between actions, Enter runs one, and Escape closes the menu:
 
 | Action | What it does |
 |---|---|

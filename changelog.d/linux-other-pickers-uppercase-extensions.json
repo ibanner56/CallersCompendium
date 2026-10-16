@@ -1,0 +1,9 @@
+{
+  "id": "linux-other-pickers-uppercase-extensions",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "On Linux, the backup, diagnostics-log and export file dialogs now also show files whose extension is in upper case (such as Backup.JSON or crash.LOG) instead of hiding them."
+    ]
+  }
+}

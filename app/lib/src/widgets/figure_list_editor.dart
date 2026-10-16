@@ -1399,6 +1399,13 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   ValueKey<String> _key(String suffix) =>
       ValueKey('${widget.keyPrefix}-${widget.index}-$suffix');
 
+  /// First enabled item of the ⋮ menu. Opening the menu does not move focus
+  /// into it, so without this a keyboard user's Down/Enter land on the page
+  /// behind it (#1831). The first items are disabled at the ends of the list.
+  final FocusNode _menuFirstItemFocusNode = FocusNode(
+    debugLabel: 'figure-row-menu-first',
+  );
+
   /// Whether the on-demand note field is revealed. Existing notes are always
   /// shown (never hide existing content); an empty note starts hidden behind
   /// the "+ Add note" button.
@@ -1421,6 +1428,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
 
   /// Whether the per-dance wording field is revealed.
   bool _showWordingOverride = false;
+
+  @override
+  void dispose() {
+    _menuFirstItemFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -1685,7 +1698,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       cb();
       return KeyEventResult.handled;
     }
+    // Enter/Space activate the row only when the row itself is focused. Key
+    // events also bubble up from the ⋮ button and its open menu, which sit under
+    // this Focus; claiming them here would stop the menu from opening and its
+    // items from activating by keyboard (#1831).
     if (!isAlt &&
+        node.hasPrimaryFocus &&
         (key == LogicalKeyboardKey.enter ||
             key == LogicalKeyboardKey.numpadEnter ||
             key == LogicalKeyboardKey.space)) {
@@ -2067,7 +2085,19 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       widget.dialect,
       UserFiguresScope.catalogOf(context),
     );
+    // The first enabled item takes focus when the menu opens; later items get
+    // none.
+    var firstItemClaimed = false;
+    FocusNode? firstEnabled(VoidCallback? onPressed) {
+      if (onPressed == null || firstItemClaimed) return null;
+      firstItemClaimed = true;
+      return _menuFirstItemFocusNode;
+    }
+
     return MenuAnchor(
+      onOpen: () => WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _menuFirstItemFocusNode.requestFocus();
+      }),
       builder: (context, controller, child) => IconButton(
         key: _key('menu'),
         icon: const Icon(Icons.more_vert),
@@ -2078,18 +2108,21 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       menuChildren: [
         MenuItemButton(
           key: _key('move-up'),
+          focusNode: firstEnabled(widget.onMoveUp),
           onPressed: widget.onMoveUp,
           leadingIcon: const Icon(Icons.arrow_upward, size: 18),
           child: Text(l10n.danceEditorMoveUp),
         ),
         MenuItemButton(
           key: _key('move-down'),
+          focusNode: firstEnabled(widget.onMoveDown),
           onPressed: widget.onMoveDown,
           leadingIcon: const Icon(Icons.arrow_downward, size: 18),
           child: Text(l10n.danceEditorMoveDown),
         ),
         MenuItemButton(
           key: _key('cut'),
+          focusNode: firstEnabled(widget.onCut),
           onPressed: widget.onCut,
           leadingIcon: const Icon(Icons.content_cut, size: 18),
           child: Text(l10n.danceEditorCut),
@@ -2097,6 +2130,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         if (widget.onDuplicate != null)
           MenuItemButton(
             key: _key('duplicate'),
+            focusNode: firstEnabled(widget.onDuplicate),
             onPressed: widget.onDuplicate,
             leadingIcon: const Icon(Icons.copy, size: 18),
             child: Text(l10n.commonDuplicate),
@@ -2104,6 +2138,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         if (widget.onGroupWithNext != null)
           MenuItemButton(
             key: _key('group-with-next'),
+            focusNode: firstEnabled(widget.onGroupWithNext),
             onPressed: widget.onGroupWithNext,
             leadingIcon: const Icon(Icons.call_split, size: 18),
             child: Text(l10n.danceEditorGroupWithNext),
@@ -2111,6 +2146,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         if (widget.onGroupWithNextAsModifier != null)
           MenuItemButton(
             key: _key('group-with-next-modifier'),
+            focusNode: firstEnabled(widget.onGroupWithNextAsModifier),
             onPressed: widget.onGroupWithNextAsModifier,
             leadingIcon: const Icon(Icons.tune, size: 18),
             child: Text(l10n.danceEditorGroupWithNextAsModifier),
@@ -2118,6 +2154,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         if (widget.onConvertToMeanwhile != null)
           MenuItemButton(
             key: _key('convert-to-meanwhile'),
+            focusNode: firstEnabled(widget.onConvertToMeanwhile),
             onPressed: widget.onConvertToMeanwhile,
             leadingIcon: const Icon(Icons.sync_alt, size: 18),
             child: Text(l10n.danceEditorConvertToMeanwhile),
@@ -2125,6 +2162,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         if (widget.onConvertToModifier != null)
           MenuItemButton(
             key: _key('convert-to-modifier'),
+            focusNode: firstEnabled(widget.onConvertToModifier),
             onPressed: widget.onConvertToModifier,
             leadingIcon: const Icon(Icons.tune, size: 18),
             child: Text(l10n.danceEditorConvertToModifier),
@@ -2132,6 +2170,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         if (widget.onUngroupContainer != null)
           MenuItemButton(
             key: _key('ungroup-container'),
+            focusNode: firstEnabled(widget.onUngroupContainer),
             onPressed: widget.onUngroupContainer,
             leadingIcon: const Icon(Icons.call_merge, size: 18),
             child: Text(
@@ -2142,6 +2181,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
           ),
         MenuItemButton(
           key: _key('toggle-progression'),
+          focusNode: firstEnabled(_toggleProgression),
           onPressed: _toggleProgression,
           leadingIcon: Icon(
             draft.progression ? Icons.flag : Icons.outlined_flag,
@@ -2155,6 +2195,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         ),
         MenuItemButton(
           key: _key('delete'),
+          focusNode: firstEnabled(widget.onDelete),
           onPressed: widget.onDelete,
           leadingIcon: Icon(
             Icons.delete_outline,
