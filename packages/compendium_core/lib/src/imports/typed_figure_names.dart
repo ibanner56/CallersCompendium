@@ -154,7 +154,8 @@ final Map<String, String> _dancerWords = {
 /// The dancer form is one of [_dancerWords] then a name (`neighbor pass by`,
 /// `ones arch and dive`): the figure's `who` is that dancer set. A move with no
 /// `who` (`neighbor slice`), or a set the taxonomy rejects for the move, is a
-/// miss, and so is an unknown word in the dancer's place; nothing is guessed.
+/// miss (validation rejects the unknown param), and so is an unknown word in
+/// the dancer's place; nothing is guessed.
 ///
 /// The figure states only what the name and the dancer state plus [beats]:
 /// every other param reads as the taxonomy default, as for any bare name the
@@ -220,19 +221,12 @@ Figure? _dancerFigure(
     (move: named.move, params: {...named.params, 'who': who}),
     beats,
     taxonomy,
-    requireSubject: true,
   );
 }
 
-Figure? _figureFor(
-  _Named named,
-  int beats,
-  Taxonomy taxonomy, {
-  bool requireSubject = false,
-}) {
+Figure? _figureFor(_Named named, int beats, Taxonomy taxonomy) {
   final def = taxonomy.resolve(named.move);
   if (def == null) return null;
-  if (requireSubject && !def.params.containsKey('who')) return null;
   final figure = Figure(
     move: named.move,
     params: {...named.params, if (beats > 0) 'beats': beats},
