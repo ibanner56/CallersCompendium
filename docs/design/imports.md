@@ -726,11 +726,13 @@ PR that added this mapping).
   out with a warning, never an error, because the dances that use a figure
   still read, each as the line it carries.
   - **Not versioned, by the maintainer's decision.** Every build before the
-    one that added the array refuses a shared archive newer than it knows at
-    intake, so a bump would keep such a bundle out entirely. Without one, an
-    older build ignores the unknown key and imports the dances. The same build
-    stopped intake refusing a newer archive: the review reads the fields it
-    knows and warns once for the file. So a later build can bump for this
+    one that added the array refuses a shared archive newer than it knows when
+    it is opened from the share sheet or "Open with" (its Import screen still
+    reads one, with a warning), so a bump would keep such a bundle out of
+    those builds there. Without one, an older build ignores the unknown key
+    and imports the dances. The same build stopped that intake refusing a
+    newer archive: the review reads the fields it knows and warns once for the
+    file, as the Import screen always did. So a later build can bump for this
     array, and builds from then on warn, as the earlier bumps intended.
 - Receive key. A received dance is stored under `(json, externalId)`, where the
   external id is the dance's **upstream** provenance namespaced by its source —

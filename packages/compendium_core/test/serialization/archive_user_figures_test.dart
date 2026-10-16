@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 /// A shared archive's `userFigures` section (#1023, plan C12): the user's own
 /// new figures its dances use, without their notes, written in share mode only
 /// and never a version bump (maintainer decision on PR 10), and read back only
-/// whole.
+/// whole and only when a dance in the archive uses it.
 void main() {
   final created = DateTime.utc(2026, 10, 16);
 
@@ -19,36 +19,63 @@ void main() {
     ],
   };
 
-  UserGlossaryEntry zoom({String? notes}) => UserGlossaryEntry(
-    id: 'zoom-id',
-    kindName: UserGlossaryEntryKind.customFigure.name,
-    name: 'zoom',
-    definition: 'A fast figure.',
-    description: 'Of your own.',
-    keywords: const ['fast'],
-    notes: notes,
-    payload: payload(),
-    createdAt: created,
-  );
+  UserGlossaryEntry zoom({String? notes, String name = 'zoom'}) =>
+      UserGlossaryEntry(
+        id: 'zoom-id',
+        kindName: UserGlossaryEntryKind.customFigure.name,
+        name: name,
+        definition: 'A fast figure.',
+        description: 'Of your own.',
+        keywords: const ['fast'],
+        notes: notes,
+        payload: payload(),
+        createdAt: created,
+      );
 
-  CompendiumArchive archive(List<UserGlossaryEntry> figures) =>
-      CompendiumArchive(exportedAt: created, userFigures: figures);
+  /// An archive whose one dance uses each of [uses] (by default, each of
+  /// [figures]), carrying [figures].
+  CompendiumArchive archive(
+    List<UserGlossaryEntry> figures, {
+    Iterable<String>? uses,
+  }) => CompendiumArchive(
+    exportedAt: created,
+    dances: [
+      Dance(
+        id: 'd1',
+        title: 'Zoom Reel',
+        figures: [
+          for (final id in uses ?? figures.map((f) => f.id))
+            userFigureUseFigure(id: id, args: const {}, text: id),
+        ],
+        createdAt: created,
+        updatedAt: created,
+      ),
+    ],
+    userFigures: figures,
+  );
 
   Map<String, Object?> encoded(
     CompendiumArchive a, {
     ArchiveSerializationMode mode = ArchiveSerializationMode.share,
   }) => jsonDecode(encodeArchive(a, mode: mode)) as Map<String, Object?>;
 
+  Map<String, Object?> zoomJson() =>
+      ((encoded(archive([zoom()]))['userFigures']! as List).single as Map)
+          .cast<String, Object?>();
+
   test('share mode writes each figure without its notes or kind, and the '
       'stamp is what it would be without them', () {
     final json = encoded(archive([zoom(notes: 'mine only')]));
-    final figures = json['userFigures']! as List;
-    final figure = (figures.single as Map).cast<String, Object?>();
+    final figure = ((json['userFigures']! as List).single as Map)
+        .cast<String, Object?>();
     expect(figure['id'], 'zoom-id');
     expect(figure['payload'], payload());
     expect(figure.containsKey('notes'), isFalse);
     expect(figure.containsKey('kind'), isFalse);
-    expect(json['schemaVersion'], encoded(archive(const []))['schemaVersion']);
+    expect(
+      json['schemaVersion'],
+      encoded(archive(const [], uses: ['zoom-id']))['schemaVersion'],
+    );
     expect(json['schemaVersion'], lessThanOrEqualTo(archiveSchemaVersion));
   });
 
@@ -60,7 +87,7 @@ void main() {
     expect(json.containsKey('userFigures'), isFalse);
   });
 
-  test('no section when no figure is used', () {
+  test('no section when no figure is carried', () {
     expect(encoded(archive(const [])).containsKey('userFigures'), isFalse);
   });
 
@@ -76,28 +103,43 @@ void main() {
 
   test('only whole figures are kept; the rest are a warning, never an '
       'error', () {
-    final good = encoded(archive([zoom()]))['userFigures']! as List;
     Map<String, Object?> entry(Map<String, Object?> changes) => {
-      ...(good.single as Map).cast<String, Object?>(),
+      ...zoomJson(),
       ...changes,
     };
+    final bad = <Object?>[
+      entry({'id': 'blank-name', 'name': '  '}),
+      entry({'id': ''}),
+      entry({'id': 'no-date', 'createdAt': 'soon'}),
+      entry({'id': 'bad-payload', 'payload': 'not a figure'}),
+      entry({'id': 'bad-template', 'payload': payload(template: '{move')}),
+      entry({'id': 'long-name', 'name': 'x' * 201}),
+      entry({'id': 'bad-keywords', 'keywords': 'fast'}),
+      entry({
+        'id': 'keyword-type',
+        'keywords': [3],
+      }),
+      entry({'id': 'e\u0301-not-normal'}),
+      entry({
+        'id': 'big-payload',
+        'payload': {
+          ...payload(),
+          'padding': 'x' * maxUserGlossaryPayloadLength,
+        },
+      }),
+      'not an object',
+    ];
+    final ids = [
+      for (final e in bad)
+        if (e is Map && e['id'] is String) e['id']! as String,
+    ];
     final json = {
-      ...encoded(archive(const [])),
+      ...encoded(archive(const [], uses: ['zoom-id', ...ids])),
       'userFigures': [
-        entry({'id': 'blank-id', 'name': '  '}),
-        entry({'id': ''}),
-        entry({'id': 'no-date', 'createdAt': 'soon'}),
-        entry({'id': 'bad-payload', 'payload': 'not a figure'}),
-        entry({'id': 'bad-template', 'payload': payload(template: '{move')}),
-        entry({'id': 'long-name', 'name': 'x' * 201}),
-        entry({'id': 'bad-keywords', 'keywords': 'fast'}),
-        entry({
-          'id': 'keyword-type',
-          'keywords': [3],
-        }),
-        'not an object',
+        ...bad,
         entry({}),
         entry({'name': 'a second zoom'}),
+        entry({'id': 'no-dance-uses-it'}),
       ],
     };
     final result = archiveFromJson(json);
@@ -108,24 +150,35 @@ void main() {
       'zoom',
       reason: 'the first entry for an id wins',
     );
-    expect(result.warnings, contains(startsWith('10 userFigures entries')));
+    expect(
+      result.warnings,
+      containsAll([
+        startsWith('${bad.length} userFigures entries could not be read'),
+        startsWith('1 userFigures entries no dance uses'),
+        startsWith('1 userFigures entries repeat an id'),
+      ]),
+    );
+  });
+
+  test('a figure no dance in the archive uses is not kept', () {
+    final result = decodeArchive(
+      encodeArchive(archive([zoom()], uses: const [])),
+    );
+    expect(result.archive.userFigures, isEmpty);
+    expect(result.warnings, contains(contains('no dance uses')));
   });
 
   test('a figure\'s text is scrubbed as imported text is', () {
-    final json = {
-      ...encoded(archive([zoom()])),
-    };
-    final figure = ((json['userFigures']! as List).single as Map)
-        .cast<String, Object?>();
+    final json = encoded(archive([zoom()]));
     json['userFigures'] = [
-      {...figure, 'name': 'zo‮om'},
+      {...zoomJson(), 'name': 'zo\u202Eom'},
     ];
     expect(archiveFromJson(json).archive.userFigures.single.name, 'zoom');
   });
 
   test('a section that is not an array is ignored with a warning', () {
     final result = archiveFromJson({
-      ...encoded(archive(const [])),
+      ...encoded(archive(const [], uses: ['zoom-id'])),
       'userFigures': {'zoom-id': true},
     });
     expect(result.errors, isEmpty);
@@ -134,15 +187,20 @@ void main() {
   });
 
   test('at most $kMaxArchiveUserFigures figures are read', () {
-    final one =
-        (encoded(archive([zoom()]))['userFigures']! as List).single as Map;
+    final ids = [for (var i = 0; i <= kMaxArchiveUserFigures; i++) 'f$i'];
     final result = archiveFromJson({
-      ...encoded(archive(const [])),
+      ...encoded(archive(const [], uses: ids)),
       'userFigures': [
-        for (var i = 0; i <= kMaxArchiveUserFigures; i++) {...one, 'id': 'f$i'},
+        for (final id in ids) {...zoomJson(), 'id': id},
       ],
     });
     expect(result.archive.userFigures, hasLength(kMaxArchiveUserFigures));
     expect(result.warnings, contains(contains('more than')));
+  });
+
+  test('archives that differ only in a figure are not equal', () {
+    expect(archive([zoom()]), isNot(archive([zoom(name: 'whizz')])));
+    expect(archive([zoom()]), archive([zoom()]));
+    expect(archive([zoom()]).hashCode, archive([zoom()]).hashCode);
   });
 }

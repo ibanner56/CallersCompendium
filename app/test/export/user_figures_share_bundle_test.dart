@@ -70,7 +70,6 @@ void main() {
     final json = danceBundle(first);
     final archive = decodeArchive(json).archive;
     expect(archive.userFigures.map((f) => f.id).toSet(), {'a', 'b'});
-    expect(archive.userFigures.every((f) => f.notes == null), isTrue);
     expect(json, isNot(contains('only mine')));
   });
 

@@ -357,7 +357,14 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
 
   // Never an error: a figure that can't be read leaves its uses as the lines
   // they carry, so the dances still import.
-  final userFigures = decodeArchiveUserFigures(root['userFigures'], warnings);
+  final userFigures = decodeArchiveUserFigures(
+    root['userFigures'],
+    warnings,
+    usedIds: userFigureIdsUsedBy([
+      for (final dance in clampedDances)
+        if (dance.figuresSource case DecodedFigures(:final figures)) ...figures,
+    ]),
+  );
 
   return ArchiveReadResult(
     archive: CompendiumArchive(

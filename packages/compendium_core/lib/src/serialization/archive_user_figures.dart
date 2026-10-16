@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import '../model/user_glossary.dart';
+import '../storage/shareable_text.dart';
 import '../storage/repositories/user_glossary_repository.dart';
 import '../taxonomy/user_figure_definition.dart';
 import '../util/text_sanitizer.dart';
@@ -29,14 +32,25 @@ Map<String, Object?> archiveUserFigureToJson(UserGlossaryEntry entry) => {
 /// is never an error: the dances that use it still read, each as the line it
 /// carries.
 ///
-/// An entry is kept when its id is non-empty, its text fits the glossary's own
-/// bounds, and its payload decodes as a figure's definition
-/// ([decodeUserFigureDefinition]). Its text is scrubbed as every imported
-/// string is ([sanitizeImportedText]). The first entry for an id wins.
+/// An entry is kept when:
+/// - one of the archive's dances uses it, attached ([usedIds]): a bundle
+///   carries only those, and a use's reference already holds its id to a
+///   use's own bounds;
+/// - its id is stored as the glossary stores ids, in normalised form;
+/// - its name, definition, description and keywords fit the glossary's own
+///   bounds, once scrubbed as every imported string is
+///   ([sanitizeImportedText]);
+/// - its payload fits the glossary's size and depth bounds and decodes as a
+///   figure's definition ([decodeUserFigureDefinition]). The payload is kept
+///   as it came: its text is scrubbed where a definition is read, and
+///   normalised where the glossary stores it.
+///
+/// The first entry for an id wins; a later one is noted apart.
 List<UserGlossaryEntry> decodeArchiveUserFigures(
   Object? raw,
-  List<String> warnings,
-) {
+  List<String> warnings, {
+  required Set<String> usedIds,
+}) {
   if (raw == null) return const [];
   if (raw is! List) {
     warnings.add('userFigures is not a JSON array; ignored');
@@ -45,6 +59,8 @@ List<UserGlossaryEntry> decodeArchiveUserFigures(
   final figures = <UserGlossaryEntry>[];
   final seen = <String>{};
   var skipped = 0;
+  var unused = 0;
+  var duplicates = 0;
   for (final item in raw) {
     if (figures.length == kMaxArchiveUserFigures) {
       warnings.add(
@@ -54,14 +70,24 @@ List<UserGlossaryEntry> decodeArchiveUserFigures(
       break;
     }
     final figure = _userFigureFromJson(item);
-    if (figure == null || !seen.add(figure.id)) {
+    if (figure == null) {
       skipped++;
-      continue;
+    } else if (!usedIds.contains(figure.id)) {
+      unused++;
+    } else if (!seen.add(figure.id)) {
+      duplicates++;
+    } else {
+      figures.add(figure);
     }
-    figures.add(figure);
   }
   if (skipped > 0) {
     warnings.add('$skipped userFigures entries could not be read; ignored');
+  }
+  if (unused > 0) {
+    warnings.add('$unused userFigures entries no dance uses; ignored');
+  }
+  if (duplicates > 0) {
+    warnings.add('$duplicates userFigures entries repeat an id; ignored');
   }
   return figures;
 }
@@ -75,9 +101,10 @@ UserGlossaryEntry? _userFigureFromJson(Object? raw) {
   final payload = raw['payload'];
   if (id is! String ||
       id.trim().isEmpty ||
-      id.length > maxUserGlossaryNameLength ||
+      normalizeShareableText(id) != id ||
       createdAt == null ||
       userGlossaryPayloadDeeperThan(payload, maxUserGlossaryPayloadDepth) ||
+      _encodedLength(payload) > maxUserGlossaryPayloadLength ||
       decodeUserFigureDefinition(payload) == null) {
     return null;
   }
@@ -115,4 +142,14 @@ String? _text(Object? raw, int max) {
   if (raw is! String) return null;
   final text = sanitizeImportedText(raw).trim();
   return text.isEmpty || text.length > max ? null : text;
+}
+
+/// [payload] as JSON, in UTF-16 code units, as the glossary bounds it; past
+/// any bound when it can't be encoded.
+int _encodedLength(Object? payload) {
+  try {
+    return jsonEncode(payload).length;
+  } on JsonUnsupportedObjectError {
+    return maxUserGlossaryPayloadLength + 1;
+  }
 }

@@ -177,10 +177,9 @@ String? resolveSanitizedVenueLabelParts(
 /// this device) is left out; its uses still carry their lines. None without
 /// [userFigureFor].
 ///
-/// The archive writes each one without its notes ([archiveUserFigureToJson]),
-/// though the registry classifies them shareable, as it does every glossary
-/// column: that class is for sync, between the owner's own devices, while a
-/// bundle goes to someone else.
+/// The archive writes each one without its notes ([archiveUserFigureToJson]):
+/// they are shareable, but a share bundle leaves them out by design (plan C12;
+/// the registry's note on `user_glossary_entries.notes` says why).
 List<UserGlossaryEntry> userFiguresForShare(
   Iterable<Dance> dances,
   UserGlossaryEntry? Function(String id)? userFigureFor,

@@ -55,13 +55,14 @@ const DeepCollectionEquality _deepEq = DeepCollectionEquality();
 /// **Not versioned:** a shared archive's `userFigures` section, the
 /// definitions of the user's own new figures its dances use (#1023, see
 /// [CompendiumArchive.userFigures]), is written without a bump, by the
-/// maintainer's decision. A bump would make no older reader warn: the share
-/// intake of every build before the one that added the section refuses a
-/// newer archive outright, so a bundle carrying figures would not import at
-/// all. Without one, an older reader ignores the unknown key and imports the
-/// dances, each use of a figure as the line it carries. That build also stopped
-/// the intake refusing a newer archive, so a later build can bump for this
-/// section and have readers from then on warn, as the earlier bumps intended.
+/// maintainer's decision. Every build before the one that added the section
+/// refuses a newer archive opened from the share sheet or "Open with", so a
+/// bump would keep a bundle carrying figures out of those builds there (their
+/// Import screen still reads it, with a warning). Without one, an older reader
+/// ignores the unknown key and imports the dances, each use of a figure as the
+/// line it carries. That build also stopped the share intake refusing a newer
+/// archive, so a later build can bump for this section and have readers from
+/// then on warn, as the earlier bumps intended.
 const int archiveSchemaVersion = archiveSchemaVersionDeletedTags;
 
 /// The original, pre-venue archive envelope version.

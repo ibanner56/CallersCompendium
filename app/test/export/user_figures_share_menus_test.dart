@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:compendium_app/src/data/user_figures_scope.dart';
 import 'package:compendium_app/src/export/json_export.dart';
-import 'package:compendium_app/src/export/share_file.dart';
 import 'package:compendium_app/src/widgets/dance_export_menu.dart';
 import 'package:compendium_app/src/widgets/program_export_menu.dart';
 import 'package:compendium_core/compendium_core.dart';

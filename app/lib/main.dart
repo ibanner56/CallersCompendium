@@ -1055,9 +1055,9 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// confirms.
   ///
   /// The file is **untrusted input**: [ArchiveIntakeService] enforces the size
-  /// cap, validates the archive schema/version, and never throws — a bad file
-  /// resolves to a rejection message shown in a snackbar and **writes nothing**
-  /// (fail closed). A valid bundle is decoded Dart-side *before* any UI renders,
+  /// cap, validates that the file is a readable archive, and never throws — a
+  /// bad file resolves to a rejection message shown in a snackbar and **writes
+  /// nothing** (fail closed). A valid bundle is decoded Dart-side *before* any UI renders,
   /// then handed to [ImportReviewScreen], which previews it, applies per-entity
   /// dispositions, and commits (dances + programs + venues) only on the user's
   /// confirmation — offering a transient Undo afterwards.

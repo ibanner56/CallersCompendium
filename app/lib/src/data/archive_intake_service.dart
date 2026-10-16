@@ -61,8 +61,9 @@ enum ArchiveIntakeRejectionReason {
 
 /// The outcome of an [ArchiveIntakeService] attempt. Intake **never throws** to
 /// the caller: every failure — missing/unreadable file, oversized input,
-/// non-text bytes, non-archive JSON, or an empty bundle — resolves to a [rejected] result carrying a stable, non-leaking
-/// [reason] the UI maps to a user-facing string.
+/// non-text bytes, non-archive JSON, or an empty bundle — resolves to a
+/// [rejected] result carrying a stable, non-leaking [reason] the UI maps to a
+/// user-facing string.
 ///
 /// A [validated] result carries the decoded [archive], the raw [json] the
 /// review screen re-plans from, and the pre-computed [entityCount]
@@ -218,8 +219,9 @@ class ArchiveIntakeService {
 
     // An archive from a newer build is let through: the review reads the
     // fields this build knows and says, once for the file, that some may be
-    // left out. That is what a version bump is for (`archiveSchemaVersion`):
-    // refusing the file here made every bump keep a bundle out entirely.
+    // left out, as it does for a file picked on the Import screen. That is
+    // what a version bump is for (`archiveSchemaVersion`): refusing the file
+    // here kept every bumped bundle out of a share-sheet or "Open with" import.
     final archive = read.archive;
 
     if (archive.dances.isEmpty && archive.programs.isEmpty) {
