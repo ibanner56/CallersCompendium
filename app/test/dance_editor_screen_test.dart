@@ -2569,20 +2569,19 @@ void main() {
     testWidgets('the box is labelled "Type a figure" and nothing else (empty '
         'list)', (tester) async {
       final handle = tester.ensureSemantics();
-      addTearDown(handle.dispose);
       final repos = await reposWith(freeText: true);
       await _pumpEditor(tester, repos);
       await openComposer(tester);
 
       final data = tester.getSemantics(find.byKey(fieldKey)).getSemanticsData();
       expect(data.label, 'Type a figure');
+      handle.dispose();
     });
 
     testWidgets('the box label excludes the beat total and over-by warning', (
       tester,
     ) async {
       final handle = tester.ensureSemantics();
-      addTearDown(handle.dispose);
       final repos = await reposWith(freeText: true, seeded: true);
       await _pumpEditor(tester, repos, danceId: 'd1');
       // The seeded dance is over its beat budget, so the total row shows.
@@ -2597,6 +2596,7 @@ void main() {
       expect(label, isNot(contains('Over by')));
       expect(label, isNot(contains('Total')));
       expect(label, isNot(contains('Warnings')));
+      handle.dispose();
     });
 
     testWidgets('section help describes typed lines in free-text mode and '

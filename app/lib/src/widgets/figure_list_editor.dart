@@ -317,6 +317,12 @@ class _FigureListEditorState extends State<FigureListEditor> {
   /// blank submit / Escape / Done closes it.
   bool _freeTextComposing = false;
   final TextEditingController _freeTextController = TextEditingController();
+
+  /// The visible "Added N figures" line under the composer (#1825); null until
+  /// a line is accepted, and cleared again by the next keystroke or when the
+  /// composer closes. Screen readers hear the same text through
+  /// [_announce], so the visible copy is excluded from semantics.
+  String? _freeTextConfirmation;
   final FocusNode _freeTextFocusNode = FocusNode(
     debugLabel: 'figure-free-text',
   );
@@ -667,7 +673,11 @@ class _FigureListEditorState extends State<FigureListEditor> {
   /// them, and keeps the composer focused for the next line.
   void _freeTextAccepted(int acceptedCount) {
     _freeTextController.clear();
-    _announce(_l10n.danceEditorFreeTextFiguresAddedAnnouncement(acceptedCount));
+    final message = _l10n.danceEditorFreeTextFiguresAddedAnnouncement(
+      acceptedCount,
+    );
+    setState(() => _freeTextConfirmation = message);
+    _announce(message);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _freeTextFocusNode.requestFocus();
     });
@@ -704,7 +714,10 @@ class _FigureListEditorState extends State<FigureListEditor> {
   /// Closes the free-text composer and returns focus to Add or the last row.
   void _dismissFreeText({bool focusAddButton = true}) {
     _freeTextController.clear();
-    setState(() => _freeTextComposing = false);
+    setState(() {
+      _freeTextComposing = false;
+      _freeTextConfirmation = null;
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (focusAddButton) {
@@ -1046,73 +1059,116 @@ class _FigureListEditorState extends State<FigureListEditor> {
   Widget _buildFreeTextComposer(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Focus(
-        // A key-handler wrapper only (Escape to cancel); it must not become a
-        // tab stop of its own around the field.
-        canRequestFocus: false,
-        skipTraversal: true,
-        onKeyEvent: (node, event) {
-          if (event is KeyDownEvent &&
-              event.logicalKey == LogicalKeyboardKey.escape) {
-            _dismissFreeText();
-            return KeyEventResult.handled;
-          }
-          return KeyEventResult.ignored;
-        },
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: TextField(
-                key: _key('free-text-field'),
-                controller: _freeTextController,
-                focusNode: _freeTextFocusNode,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _submitFreeText(),
-                maxLength: maxFreeTextEntryLength,
-                maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                // A figure line is short; the cap is a defensive bound, not a
-                // budget to show off — suppress the character counter.
-                buildCounter:
-                    (
-                      _, {
-                      required int currentLength,
-                      required bool isFocused,
-                      int? maxLength,
-                    }) => null,
-                decoration: InputDecoration(
-                  isDense: true,
-                  border: const OutlineInputBorder(),
-                  labelText: l10n.danceEditorTypeFigureLabel,
-                  helperText: l10n.danceEditorTypeFigureHelper,
-                  helperMaxLines: 3,
+    final confirmation = _freeTextConfirmation;
+    // The box is its own semantics boundary: without it the surrounding section
+    // help, empty-state text and beat total/warnings merge into the field's
+    // label (#1825).
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Focus(
+          // A key-handler wrapper only (Escape to cancel); it must not become a
+          // tab stop of its own around the field.
+          canRequestFocus: false,
+          skipTraversal: true,
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.escape) {
+              _dismissFreeText();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      key: _key('free-text-field'),
+                      controller: _freeTextController,
+                      focusNode: _freeTextFocusNode,
+                      textInputAction: TextInputAction.done,
+                      onChanged: (_) {
+                        if (_freeTextConfirmation != null) {
+                          setState(() => _freeTextConfirmation = null);
+                        }
+                      },
+                      onSubmitted: (_) => _submitFreeText(),
+                      maxLength: maxFreeTextEntryLength,
+                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                      // A figure line is short; the cap is a defensive bound, not a
+                      // budget to show off — suppress the character counter.
+                      buildCounter:
+                          (
+                            _, {
+                            required int currentLength,
+                            required bool isFocused,
+                            int? maxLength,
+                          }) => null,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        border: const OutlineInputBorder(),
+                        labelText: l10n.danceEditorTypeFigureLabel,
+                        helperText: l10n.danceEditorTypeFigureHelper,
+                        helperMaxLines: 3,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: FilledButton(
+                      key: _key('free-text-submit'),
+                      onPressed: _submitFreeText,
+                      child: Text(l10n.commonAdd),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: TextButton(
+                      key: _key('free-text-done'),
+                      onPressed: _dismissFreeText,
+                      child: Text(
+                        l10n.commonDone,
+                        style: TextStyle(color: theme.colorScheme.primary),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (confirmation != null)
+                Padding(
+                  key: _key('free-text-confirmation'),
+                  padding: const EdgeInsets.only(top: 4),
+                  // Spoken by [_announce]; a second, live-region copy would be
+                  // read twice.
+                  child: ExcludeSemantics(
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            confirmation,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: FilledButton(
-                key: _key('free-text-submit'),
-                onPressed: _submitFreeText,
-                child: Text(l10n.commonAdd),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: TextButton(
-                key: _key('free-text-done'),
-                onPressed: _dismissFreeText,
-                child: Text(
-                  l10n.commonDone,
-                  style: TextStyle(color: theme.colorScheme.primary),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
