@@ -195,8 +195,11 @@ void main() {
       ),
     );
     await open(tester, 'dialect-moves-toggle');
-    expect(offered(tester, 'dialect-add-move'), isNot(contains(key)));
     expect(find.text('larks zoom'), findsWidgets);
+    // The figure already has a name here, so it is checked where it has no
+    // wording: a list that would offer it with Custom Figures on.
+    await open(tester, 'dialect-wordings-toggle');
+    expect(offered(tester, 'dialect-add-move-wording'), isNot(contains(key)));
   });
 
   testWidgets('a name for a figure not on this device says so', (tester) async {
