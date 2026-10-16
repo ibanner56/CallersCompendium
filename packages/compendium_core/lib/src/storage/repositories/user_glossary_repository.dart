@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../../model/user_glossary.dart';
+import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
 import '../utc_datetime.dart';
+import 'sync_local_repository.dart';
 import '../../util/json_depth.dart';
 
 /// Longest name a user glossary entry may have, in UTF-16 code units.
@@ -402,7 +404,36 @@ class UserGlossaryRepository {
       );
 
   /// Deletes entry [id] softly, leaving a tombstone for sync to carry.
-  Future<void> delete(String id, {DateTime? at}) => _db.transaction(() async {
+  ///
+  /// [permanent] erases the row instead, leaving nothing behind to publish:
+  /// for undoing a write this device just made, such as an import's (#1023),
+  /// so the entry is as if it had never been added and a later import of the
+  /// same id finds no deletion in its way. An entry a publication has already
+  /// named is tombstoned all the same, so peers keep the deletion.
+  Future<void> delete(String id, {DateTime? at, bool permanent = false}) =>
+      _db.transaction(() async {
+        if (permanent &&
+            !await isPublishedSyncRecord(
+              _db,
+              kind: SyncRecordKind.glossaryEntry,
+              recordId: id,
+            )) {
+          final row = await (_db.select(
+            _db.userGlossaryEntries,
+          )..where((t) => t.id.equals(id))).getSingleOrNull();
+          await (_db.delete(
+            _db.userGlossaryEntries,
+          )..where((t) => t.id.equals(id))).go();
+          await _userFigureChanged(
+            id,
+            wasOrIs: row?.kind == UserGlossaryEntryKind.customFigure.name,
+          );
+          return;
+        }
+        await _softDelete(id, at: at);
+      });
+
+  Future<void> _softDelete(String id, {DateTime? at}) async {
     await stampExistenceTransition(
       _db,
       table: _db.userGlossaryEntries,
@@ -418,7 +449,7 @@ class UserGlossaryRepository {
       id,
       wasOrIs: row?.kind == UserGlossaryEntryKind.customFigure.name,
     );
-  });
+  }
 
   SimpleSelectStatement<$UserGlossaryEntriesTable, UserGlossaryEntryRow>
   _live() =>

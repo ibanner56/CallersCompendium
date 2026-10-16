@@ -8102,6 +8102,63 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get importUserFiguresTitle => 'このファイルのフィギュア';
+
+  @override
+  String get importUserFiguresIntro =>
+      'インポートしたダンスは、送信者が作成したフィギュアを使っています。用語集に追加するものを選んでください。フィギュアを追加しないダンスは、共有されたときの行を表示します。';
+
+  @override
+  String get importUserFiguresNewHeader => '新しいもの';
+
+  @override
+  String get importUserFiguresDiffersHeader => '自分のものと異なる';
+
+  @override
+  String get importUserFiguresCopyHeader => 'コピーとして追加';
+
+  @override
+  String get importUserFiguresCopyNote =>
+      'このデバイスはそのIDを以前に使ったため、新しいIDで追加されます。インポートしたダンスはコピーを使います。';
+
+  @override
+  String get importUserFiguresSameHeader => 'すでに用語集にあるもの';
+
+  @override
+  String get importUserFiguresNameTaken =>
+      'この名前はすでに使われているため、用語集で「名前の変更が必要」と表示されます。';
+
+  @override
+  String get importUserFiguresKeepMine => '自分のものを残す';
+
+  @override
+  String get importUserFiguresUseTheirs => '相手のものを使う';
+
+  @override
+  String get importUserFiguresSkip => 'スキップ';
+
+  @override
+  String importUserFiguresConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件の変更を適用',
+      zero: '完了',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importUserFiguresFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のフィギュアを用語集に保存できませんでした。',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String importShorthandSeedComplete(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

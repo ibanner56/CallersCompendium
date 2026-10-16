@@ -6,6 +6,10 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
+import '../data/dialect_library_scope.dart';
+import '../data/show_custom_figures_scope.dart';
+import '../glossary/user_figure_import.dart';
+import 'import_user_figures_screen.dart';
 import '../data/callersbox_online.dart';
 import '../data/import_diagnostic_labels.dart';
 import '../data/import_error_labels.dart';
@@ -386,7 +390,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             archive.tags.isNotEmpty ||
             archive.publishedSources.isNotEmpty ||
             archive.customFields.isNotEmpty ||
-            archive.difficultyLevels.isNotEmpty;
+            archive.difficultyLevels.isNotEmpty ||
+            archive.userFigures.isNotEmpty;
         if (!hasRootError &&
             (archive.programs.isNotEmpty ||
                 (archive.dances.isNotEmpty && hasMetadata))) {
@@ -1787,10 +1792,114 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
     if (!mounted) return;
     setState(() => _phase = _Phase.review);
+    AppliedUserFigureImport? figures;
+    try {
+      figures = await _maybeAddSharedFigures(
+        bundle.archive,
+        result,
+        lifecycle?.runWrite,
+      );
+    } on Object catch (e, stackTrace) {
+      // The dances are in: a failure offering the figures must not cost the
+      // user the Undo below, nor read as a failed import.
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'import_review_screen._maybeAddSharedFigures',
+      );
+    }
+    if (!mounted) return;
     await _showSharedBundleUndo(
       result: result,
       importer: importer,
       runWrite: lifecycle?.runWrite,
+      figures: figures,
+    );
+  }
+
+  /// Offers the figures of the sender's own that a shared file carries
+  /// (#1023, maintainer decision 3; plan C12), once its dances are in, and
+  /// applies what the user chooses. Nothing is offered while Custom Figures
+  /// is off (maintainer decision 9), or when every figure is already here
+  /// as it came; the dances read either way, each use as the line it was
+  /// shared with. Returns what was applied, for the count and the Undo.
+  Future<AppliedUserFigureImport?> _maybeAddSharedFigures(
+    CompendiumArchive archive,
+    CompendiumArchiveImportResult result,
+    SyncWriterCallback? runWrite,
+  ) async {
+    if (archive.userFigures.isEmpty || !customFiguresShown(context)) {
+      return null;
+    }
+    final live = await _repos.userGlossary.listAll();
+    final liveIds = {for (final entry in live) entry.id};
+    final items = planUserFigureImport(
+      archive.userFigures,
+      entries: live,
+      deletedIds: {
+        for (final entry in await _repos.userGlossary.listAll(
+          includeDeleted: true,
+        ))
+          if (!liveIds.contains(entry.id)) entry.id,
+      },
+    );
+    if (items.every((item) => item.kind == UserFigureImportKind.same)) {
+      return null;
+    }
+    if (!mounted) return null;
+    final dialects = [
+      ?ActiveDialectScope.maybeOf(context),
+      ...?DialectLibraryScope.maybeOf(context)?.customDialects,
+    ];
+    final tokens = ShorthandMappingsScope.tokensOf(context);
+    final nameTaken = {
+      for (final item in items)
+        if (item.kind != UserFigureImportKind.same &&
+            glossaryNameCollisions(
+              item.incoming.name,
+              taxonomy: contraTaxonomy,
+              dialects: dialects,
+              shorthandTokens: tokens,
+              // Taking theirs replaces the figure with the same id, so its
+              // name is not a clash; a copy's id belongs to another entry.
+              userEntryNames: [
+                for (final entry in live)
+                  if (item.kind != UserFigureImportKind.differs ||
+                      entry.id != item.incoming.id)
+                    entry.name,
+                // Another figure this file brings may take the name too.
+                for (final other in items)
+                  if (other.kind != UserFigureImportKind.same &&
+                      !identical(other, item))
+                    other.incoming.name,
+              ],
+              exceptUserFigureId: item.kind == UserFigureImportKind.copy
+                  ? null
+                  : item.incoming.id,
+            ).isNotEmpty)
+          item.incoming.id,
+    };
+    final choices = await Navigator.of(context).push<UserFigureImportChoices>(
+      MaterialPageRoute(
+        builder: (_) =>
+            ImportUserFiguresScreen(items: items, nameTaken: nameTaken),
+      ),
+    );
+    if (choices == null || choices.isEmpty || !mounted) return null;
+    return _runSyncWriterLifecycle(
+      runWrite: runWrite,
+      operation: () => applyUserFigureImport(
+        _repos,
+        items,
+        choices,
+        importedDanceIds: [
+          ...result.danceSession.insertedDanceIds,
+          for (final dance in result.danceSession.updatedDancePriorStates)
+            dance.id,
+        ],
+        newId: uuidV4,
+        now: DateTime.now().toUtc(),
+      ),
     );
   }
 
@@ -1803,6 +1912,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     required CompendiumArchiveImportResult result,
     required CompendiumArchiveImporter importer,
     SyncWriterCallback? runWrite,
+    AppliedUserFigureImport? figures,
   }) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -1811,7 +1921,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         .where((r) => r.succeeded && r.action != CommitAction.skip)
         .length;
     final importedCount =
-        importedDances + result.programs.length + result.importedMetadataCount;
+        importedDances +
+        result.programs.length +
+        result.importedMetadataCount +
+        (figures?.count ?? 0);
 
     showUndoSnackBar(
       messenger,
@@ -1824,10 +1937,24 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         if (result.isUndone) return;
         await _runSyncWriterLifecycle(
           runWrite: runWrite,
-          operation: () => importer.undo(result),
+          operation: () async {
+            await importer.undo(result);
+            // After the import's own undo, which restores the dances it
+            // pointed at a copy.
+            await figures?.undo(_repos);
+          },
         );
       },
     );
+    final failed = figures?.failed ?? 0;
+    if (failed > 0) {
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('shared-import-figures-failed'),
+          content: Text(l10n.importUserFiguresFailed(failed)),
+        ),
+      );
+    }
 
     // Return to where the user was; the transient snackbar rides the app-level
     // ScaffoldMessenger, so it stays visible after this route is gone.

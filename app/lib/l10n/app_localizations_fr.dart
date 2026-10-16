@@ -8532,6 +8532,66 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get importUserFiguresTitle => 'Figures de ce fichier';
+
+  @override
+  String get importUserFiguresIntro =>
+      'Les danses importées utilisent des figures créées par l\'expéditeur. Choisissez ce qu\'il faut ajouter à votre glossaire. Une danse dont vous n\'ajoutez pas la figure affiche la ligne avec laquelle elle a été partagée.';
+
+  @override
+  String get importUserFiguresNewHeader => 'Nouvelles pour vous';
+
+  @override
+  String get importUserFiguresDiffersHeader => 'Différentes des vôtres';
+
+  @override
+  String get importUserFiguresCopyHeader => 'Ajoutées comme copie';
+
+  @override
+  String get importUserFiguresCopyNote =>
+      'Cet appareil a déjà utilisé son identifiant, elle est donc ajoutée sous un nouveau. Les danses importées utilisent la copie.';
+
+  @override
+  String get importUserFiguresSameHeader => 'Déjà dans votre glossaire';
+
+  @override
+  String get importUserFiguresNameTaken =>
+      'Son nom est déjà pris ici, votre glossaire la marquera donc « À renommer ».';
+
+  @override
+  String get importUserFiguresKeepMine => 'Garder la mienne';
+
+  @override
+  String get importUserFiguresUseTheirs => 'Prendre la leur';
+
+  @override
+  String get importUserFiguresSkip => 'Ignorer';
+
+  @override
+  String importUserFiguresConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Appliquer $count modifications',
+      one: 'Appliquer 1 modification',
+      zero: 'Terminé',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importUserFiguresFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count figures n\'ont pas pu être enregistrées dans votre glossaire.',
+      one: '1 figure n\'a pas pu être enregistrée dans votre glossaire.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String importShorthandSeedComplete(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

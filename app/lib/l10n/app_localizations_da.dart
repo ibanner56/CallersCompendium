@@ -8414,6 +8414,65 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get importUserFiguresTitle => 'Figurer i denne fil';
+
+  @override
+  String get importUserFiguresIntro =>
+      'De danse, du importerede, bruger figurer, som afsenderen har lavet. Vælg, hvad der skal føjes til din ordliste. En dans, hvis figur du ikke tilføjer, viser den linje, den blev delt med.';
+
+  @override
+  String get importUserFiguresNewHeader => 'Nye for dig';
+
+  @override
+  String get importUserFiguresDiffersHeader => 'Anderledes end dine';
+
+  @override
+  String get importUserFiguresCopyHeader => 'Tilføjes som en kopi';
+
+  @override
+  String get importUserFiguresCopyNote =>
+      'Denne enhed har brugt dens id før, så den tilføjes under et nyt. De danse, du importerede, bruger kopien.';
+
+  @override
+  String get importUserFiguresSameHeader => 'Allerede i din ordliste';
+
+  @override
+  String get importUserFiguresNameTaken =>
+      'Dens navn er allerede i brug her, så din ordliste markerer den med Skal omdøbes.';
+
+  @override
+  String get importUserFiguresKeepMine => 'Behold min';
+
+  @override
+  String get importUserFiguresUseTheirs => 'Brug deres';
+
+  @override
+  String get importUserFiguresSkip => 'Spring over';
+
+  @override
+  String importUserFiguresConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Anvend $count ændringer',
+      one: 'Anvend 1 ændring',
+      zero: 'Færdig',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importUserFiguresFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figurer kunne ikke gemmes i din ordliste.',
+      one: '1 figur kunne ikke gemmes i din ordliste.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String importShorthandSeedComplete(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

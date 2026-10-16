@@ -8379,6 +8379,65 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get importUserFiguresTitle => 'Figures in this file';
+
+  @override
+  String get importUserFiguresIntro =>
+      'The dances you imported use figures the sender made. Choose what to add to your Glossary. A dance whose figure you don\'t add shows the line it was shared with.';
+
+  @override
+  String get importUserFiguresNewHeader => 'New to you';
+
+  @override
+  String get importUserFiguresDiffersHeader => 'Different from yours';
+
+  @override
+  String get importUserFiguresCopyHeader => 'Added as a copy';
+
+  @override
+  String get importUserFiguresCopyNote =>
+      'This device has used its id before, so it is added under a new one. The dances you imported use the copy.';
+
+  @override
+  String get importUserFiguresSameHeader => 'Already in your Glossary';
+
+  @override
+  String get importUserFiguresNameTaken =>
+      'Its name is already taken here, so your Glossary will mark it Rename needed.';
+
+  @override
+  String get importUserFiguresKeepMine => 'Keep mine';
+
+  @override
+  String get importUserFiguresUseTheirs => 'Use theirs';
+
+  @override
+  String get importUserFiguresSkip => 'Skip';
+
+  @override
+  String importUserFiguresConfirm(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Apply $count changes',
+      one: 'Apply 1 change',
+      zero: 'Done',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importUserFiguresFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures could not be saved to your Glossary.',
+      one: '1 figure could not be saved to your Glossary.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String importShorthandSeedComplete(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

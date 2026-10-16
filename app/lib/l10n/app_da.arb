@@ -8338,6 +8338,58 @@
   "@importShorthandSeedConfirm": {
     "x-sourceSha256": "9eaf8a3052fb85c53b9a46ccaf0685d26d8cdbfeadf6e0065bb8c67932cd52ec"
   },
+  "importUserFiguresTitle": "Figurer i denne fil",
+  "@importUserFiguresTitle": {
+    "x-sourceSha256": "8ff3461485285b86cb8d30a1bdba21f2db0ee1a972edbec049630ca4cd942db4"
+  },
+  "importUserFiguresIntro": "De danse, du importerede, bruger figurer, som afsenderen har lavet. Vælg, hvad der skal føjes til din ordliste. En dans, hvis figur du ikke tilføjer, viser den linje, den blev delt med.",
+  "@importUserFiguresIntro": {
+    "x-sourceSha256": "648d457e8b075968e6d05fca0a745bf49522cde1ccb341d9fbed25cbaf4a2b11"
+  },
+  "importUserFiguresNewHeader": "Nye for dig",
+  "@importUserFiguresNewHeader": {
+    "x-sourceSha256": "cdaa7e5a5bd0166cf25db780ebb7dd1965ef53f174f7af224263c4858edd8ecf"
+  },
+  "importUserFiguresDiffersHeader": "Anderledes end dine",
+  "@importUserFiguresDiffersHeader": {
+    "x-sourceSha256": "4caa154ff43bf3124e257e7ac64eb488d8893cc07b3acea5ad8415f8e57c8645"
+  },
+  "importUserFiguresCopyHeader": "Tilføjes som en kopi",
+  "@importUserFiguresCopyHeader": {
+    "x-sourceSha256": "96f42fe1470ce1f031c4f5d0576b4213afc35f3258d624ff0a017a249ee23c17"
+  },
+  "importUserFiguresCopyNote": "Denne enhed har brugt dens id før, så den tilføjes under et nyt. De danse, du importerede, bruger kopien.",
+  "@importUserFiguresCopyNote": {
+    "x-sourceSha256": "04272fbbe38b21a236c3174e7926dfa9d3510ce782fbd5e3f6a16a1b5cc5a993"
+  },
+  "importUserFiguresSameHeader": "Allerede i din ordliste",
+  "@importUserFiguresSameHeader": {
+    "x-sourceSha256": "120d46e2570a65e712e939d175feac1e4017671228a292fc06c8897eae9f63f9"
+  },
+  "importUserFiguresNameTaken": "Dens navn er allerede i brug her, så din ordliste markerer den med Skal omdøbes.",
+  "@importUserFiguresNameTaken": {
+    "x-sourceSha256": "7b52bb96db0395bb3315603a8add6b32218775775e3ee90e63ec45985d947c93"
+  },
+  "importUserFiguresKeepMine": "Behold min",
+  "@importUserFiguresKeepMine": {
+    "x-sourceSha256": "0335c833251799ba6c37ba1823af457b6232b46933570369cf38b4f2766f134c"
+  },
+  "importUserFiguresUseTheirs": "Brug deres",
+  "@importUserFiguresUseTheirs": {
+    "x-sourceSha256": "352c427214d201c262fdab4e83afb826b3b9d1ff0dcaf79d0f2a13b92398a108"
+  },
+  "importUserFiguresSkip": "Spring over",
+  "@importUserFiguresSkip": {
+    "x-sourceSha256": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06"
+  },
+  "importUserFiguresConfirm": "{count, plural, =0{Færdig} =1{Anvend 1 ændring} other{Anvend {count} ændringer}}",
+  "@importUserFiguresConfirm": {
+    "x-sourceSha256": "4db8fd825e193f10caf5fed91a2fc807ae9c5bb1faa3d21ea564c14be4c32171"
+  },
+  "importUserFiguresFailed": "{count, plural, =1{1 figur kunne ikke gemmes i din ordliste.} other{{count} figurer kunne ikke gemmes i din ordliste.}}",
+  "@importUserFiguresFailed": {
+    "x-sourceSha256": "2d71cfdcf6f48de0f523b8ad22eb8118a542279a5bcdb558f27a7436c1b775f5"
+  },
   "importShorthandSeedComplete": "{count, plural, =1{Oprettede 1 kortform} other{Oprettede {count} kortformer}}",
   "@importShorthandSeedComplete": {
     "x-sourceSha256": "4b16fa73556a34ddd3b3e99d44b7d17d04410503bd5b3f367c763e98d681f8aa"

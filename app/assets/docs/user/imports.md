@@ -275,6 +275,32 @@ written. It is also **identity-first** — dances and programs you already have 
 matched and updated in place rather than duplicated, brand-new material is added,
 and nothing is ever deleted.
 
+#### Figures in a shared file
+
+A shared file also carries any of the sender's
+[own new figures](./authoring.md#your-own-figures) its dances use. With
+[Custom Figures](./settings.md#glossary-and-custom-figures) on, once you have
+imported the dances the app shows **Figures in this file**, so you can choose
+what to add to your Glossary:
+
+- **New to you**: figures you don't have. Each is ticked; untick any you don't
+  want.
+- **Different from yours**: figures you have, which the sender's version
+  changes. **Keep mine** is chosen, and the dances you imported then show the
+  figure your way; **Use theirs** replaces yours with theirs, keeping your
+  notes on it.
+- **Added as a copy**: figures whose id this device has used before, for
+  another entry or a figure you deleted. Each is added under a new id, and the
+  dances you just imported use the copy.
+- **Already in your Glossary**: figures you have, unchanged. Nothing to do.
+
+A figure whose name is already taken here is added all the same, and your
+Glossary marks it **Rename needed**. A dance whose new figure you don't add
+shows the line it was shared with. **Skip** adds nothing. The **Undo** after the
+import also takes back what you added or replaced here. With Custom Figures
+off, nothing is offered, and the dances show each figure as the line it was
+shared with.
+
 ## Bring your library across from Caller's Companion
 
 Moving from **Caller's Companion**? Caller's Compendium can read its exported
