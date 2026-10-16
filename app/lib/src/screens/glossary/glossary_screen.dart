@@ -685,7 +685,9 @@ class _FigureNotesSectionState extends State<FigureNotesSection> {
   }
 }
 
-/// Edits the notes on a shipped figure; pops the text, or null on cancel.
+/// Edits the notes on a shipped figure and stores them through [save]; stays
+/// open with the reason when [save] refuses the text, and closes once it is
+/// stored or on cancel.
 /// Owns its controller, so it outlives the dialog's closing animation.
 class _NotesDialog extends StatefulWidget {
   const _NotesDialog({required this.initial, required this.save});
