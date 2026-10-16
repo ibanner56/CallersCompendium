@@ -37,13 +37,17 @@ permissions:
   pull-requests: write
 
 concurrency:
-  # The newest event for a PR decides its label. A review by anyone but Claude
-  # skips the job below, but would still cancel a running one through a shared
-  # group, so it gets a group of its own.
+  # The newest event for a PR decides its label. A run that the job below will
+  # skip (a review by anyone but Claude, or a label event for some other label)
+  # would still cancel a running job through a shared group, so it gets a group
+  # of its own.
   group: >-
     claude-review-status-${{ github.event.pull_request.number }}${{
-    github.event_name == 'pull_request_review' &&
-    github.event.review.user.login != 'claude[bot]' &&
+    ((github.event_name == 'pull_request_review' &&
+      github.event.review.user.login != 'claude[bot]') ||
+     (github.event_name == 'pull_request_target' &&
+      github.event.label.name != null &&
+      github.event.label.name != 'review: claude')) &&
     format('-other-{0}', github.run_id) || '' }}
   cancel-in-progress: true
 
