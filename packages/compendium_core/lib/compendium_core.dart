@@ -56,6 +56,7 @@ export 'src/imports/program_slot_note.dart';
 export 'src/imports/raw_record.dart';
 export 'src/imports/reparse_custom_figures.dart';
 export 'src/imports/compound_shorthands.dart';
+export 'src/imports/user_figure_shorthands.dart';
 export 'src/imports/shorthand_mappings.dart';
 export 'src/imports/share_metadata_import.dart';
 export 'src/imports/source_adapter.dart';
