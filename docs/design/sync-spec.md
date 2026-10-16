@@ -3559,7 +3559,12 @@ at open, rewriting the record as the version it held, so its timestamps and
 wire hash are unchanged), keep only what it still does not sync, and drop
 already-synced paths from kept parts wherever it puts them back. A setting
 kept whole is applied the same way once its key is synced, unless the device
-already holds a newer copy of it, which wins.
+already holds a newer copy of it, which wins. A kept part that this build now
+syncs but cannot decode (a value its decoder refuses) is not moved: it is
+dropped like a refused inbound body (§6.9), what the build still does not sync
+stays kept, and opening the app MUST NOT fail over it. No body or hash this
+device builds changes by it, since the part was already dropped from every body
+once the build synced its field.
 
 For `kind: "setting"`, a key this build does not classify `shareable` is kept
 **whole**: the peer's blob is stored as it came, published back as this

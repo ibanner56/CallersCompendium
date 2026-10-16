@@ -286,6 +286,9 @@ void main() {
         }),
       );
 
+      const address = (kind: SyncRecordKind.program, recordId: 'p1');
+      final before = await published(address);
+
       final reopened = CompendiumRepositories(db, contraTaxonomy);
       await reopened.ensureMigrated();
 
@@ -301,12 +304,12 @@ void main() {
           'cueSheet': {'v': 'still unknown here'},
         }),
       );
-      final body = (await published((
-        kind: SyncRecordKind.program,
-        recordId: 'p1',
-      ))).blob.body;
-      expect(body['payMinorUnits'], isNull);
-      expect(body['cueSheet'], 'still unknown here');
+      // The kept copy was already kept out of every body this device builds
+      // (it syncs the field now), so dropping it changes nothing published.
+      final after = await published(address);
+      expect(after.wireHash, before.wireHash);
+      expect(after.blob.body['payMinorUnits'], isNull);
+      expect(after.blob.body['cueSheet'], 'still unknown here');
 
       // Settled: the next open has nothing left to promote.
       await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
