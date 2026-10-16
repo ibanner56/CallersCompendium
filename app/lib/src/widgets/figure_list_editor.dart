@@ -174,8 +174,9 @@ class FigureListEditor extends StatefulWidget {
 
   /// Offered each free-text line before it is parsed (#709): inserts a row for
   /// one of the user's own figures, a compound or (#1023) a new figure, when
-  /// the line is a shorthand for one that can be used, and says whether it
-  /// did. A line it declines
+  /// the line is a shorthand for one that can be used (with or without a
+  /// leading or trailing beat count, #1861), and says whether it did. A line it
+  /// declines
   /// is parsed as usual. Null (the default) offers none.
   final bool Function(String line)? onSubmitCompoundShorthand;
 
