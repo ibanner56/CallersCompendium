@@ -182,8 +182,9 @@ class FigureListEditor extends StatefulWidget {
   /// during free-text entry before the parser (after
   /// [onSubmitCompoundShorthand], whose caller lets a figure shorthand with
   /// the same token win): a typed line matching a shorthand token (whole
-  /// line, case-insensitive) expands to the mapped figures instead of being
-  /// parsed. `null` (the default) disables shorthand expansion, preserving the
+  /// line, or one `;` clause, case-insensitive, with an optional leading or
+  /// trailing beat count split off; see [parseFreeTextFigureEntry]) expands to
+  /// the mapped figures instead of being parsed. `null` (the default) disables shorthand expansion, preserving the
   /// pure #419 parse behavior. Only relevant when [freeTextEntry] is enabled.
   final ShorthandMappings? shorthandMappings;
 

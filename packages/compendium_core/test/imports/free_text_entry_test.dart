@@ -558,6 +558,28 @@ void main() {
         }
       });
 
+      test('a count on a shorthand for one container sets the container\'s own '
+          'beats', () {
+        final container = ShorthandMappings([
+          ShorthandMapping(
+            token: 'mw',
+            figures: [
+              Figure.meanwhile(
+                figures: [
+                  Figure(move: 'swing', params: const {'who': 'partners'}),
+                  Figure(move: 'turn_alone'),
+                ],
+                beats: 8,
+              ),
+            ],
+          ),
+        ]);
+        final fs = parseFreeTextFigureEntry('16 mw', shorthands: container);
+        expect(fs.single.isMeanwhile, isTrue);
+        expect(fs.single.params['beats'], 16);
+        expect(fs.single.subFigures, hasLength(2));
+      });
+
       test('a token that itself starts with a number still matches whole-line '
           'first', () {
         final fs = parseFreeTextFigureEntry('3 swings', shorthands: shorthands);

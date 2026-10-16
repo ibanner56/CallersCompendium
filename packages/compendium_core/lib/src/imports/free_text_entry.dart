@@ -109,9 +109,10 @@ _BeatSplit _splitInlineBeats(String line) {
 /// moment it is given a count or a neighbour:
 /// - a **leading** `16 pbs` or **trailing** `pbs (16)` count (the same two forms
 ///   as below) is peeled off and the rest matched. A shorthand that expands to
-///   exactly ONE figure takes the count as that figure's beats; one that
-///   expands to several figures (or a container) is inserted as saved and the
-///   count is dropped, because there is no single figure it could belong to.
+///   exactly ONE figure (a single meanwhile or modifier container included, whose
+///   own beats it sets) takes the count as that figure's beats; one that
+///   expands to several figures is inserted as saved and the count is
+///   dropped, because there is no single figure it could belong to.
 ///   A token that itself contains a count (`3 swings`) still matches in
 ///   full, first.
 /// - a `;` line is split into clauses at bracket depth 0, and each clause is
@@ -189,8 +190,9 @@ List<Figure> parseFreeTextFigureEntry(
     return const [];
   }
   // Shorthand resolution runs FIRST (issue #420): a whole-line exact-token hit
-  // expands to the mapped figure(s) and short-circuits the parser. A miss (or
-  // no store) falls through to the normal #419 recognition below.
+  // expands to the mapped figure(s) and short-circuits the parser. Failing
+  // that, a counted or `;`-separated shorthand expands (#1827). Otherwise (or
+  // with no store) the line goes to the normal #419 recognition below.
   if (shorthands != null) {
     final expanded = shorthands.resolve(trimmed);
     if (expanded != null) return expanded;
