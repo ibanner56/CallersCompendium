@@ -2420,6 +2420,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDefaultsMoveDefaultsTitle => 'Standaardwaarden voor moves';
 
   @override
+  String get settingsDefaultsUserFiguresTitle => 'Standaarden van je figuren';
+
+  @override
+  String get settingsDefaultsUserFiguresSubtitle =>
+      'Elk van je nieuwe figuren heeft zijn eigen standaarden: de waarden waarmee hij begint en zijn tellen. Kies er een om ze te wijzigen.';
+
+  @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
       'Voorkeursparameterwaarden die worden toegepast wanneer je een move invoegt bij het invoeren van een dans. Deze overschrijven de ingebouwde standaarden van die move; je kunt achteraf elk parameter van de figuur nog aanpassen. Niet-ingestelde moves en parameters gebruiken de ingebouwde standaarden.';
 
@@ -9692,6 +9699,23 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get glossaryCustomExample => 'Voorbeeld';
+
+  @override
+  String glossaryCustomDeleteTrash(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dansen in de prullenbak gebruiken hem ook en behouden de regels die ze het laatst opsloegen.',
+      one:
+          '1 dans in de prullenbak gebruikt hem ook en behoudt de regel die hij het laatst opsloeg.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get glossaryCustomDeleteDefaults =>
+      'Je standaardfiguren in Instellingen gebruiken hem ook en behouden zijn huidige formulering als platte tekst.';
 
   @override
   String glossaryCustomDeleteUses(int count) {

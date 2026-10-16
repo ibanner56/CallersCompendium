@@ -2294,6 +2294,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDefaultsMoveDefaultsTitle => 'ムーブのデフォルト設定';
 
   @override
+  String get settingsDefaultsUserFiguresTitle => '自分のフィギュアの既定値';
+
+  @override
+  String get settingsDefaultsUserFiguresSubtitle =>
+      '新しいフィギュアはそれぞれ独自の既定値（開始時の値とビート数）を持ちます。変更するにはフィギュアを選んでください。';
+
+  @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
       'ダンス入力時にムーブを挿入するときに適用される優先パラメーター値です。これらはムーブの組み込みデフォルトを上書きします。フィギュアのパラメーターは後から変更できます。設定されていないムーブとパラメーターは組み込みのデフォルトを使用します。';
 
@@ -9256,6 +9263,20 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get glossaryCustomExample => '例';
+
+  @override
+  String glossaryCustomDeleteTrash(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ゴミ箱の$count件のダンスもこのフィギュアを使っており、最後に保存した行のまま残ります。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get glossaryCustomDeleteDefaults =>
+      '設定の既定のフィギュアもこのフィギュアを使っており、現在の文言をプレーンテキストとして残します。';
 
   @override
   String glossaryCustomDeleteUses(int count) {

@@ -3413,3 +3413,23 @@ Dialect dialectWithoutUserFigure(Dialect dialect, String id) {
     moveWordings: {...dialect.moveWordings}..remove(key),
   );
 }
+
+/// [figures] with each use of the figure of your own [id] (#1023), inside
+/// containers too, made plain text with the line it renders to through
+/// [renderer] now: what deleting the figure makes of its uses (maintainer
+/// decision 2), in a dance or a list of default figures (plan C9). [renderer]
+/// must still hold the figure; a use it can't render keeps its stored line.
+/// The same list when nothing uses it.
+List<Figure> freezeUserFigureUsesIn(
+  List<Figure> figures,
+  String id,
+  FigureRenderer renderer,
+) => mapFigureLeaves(
+  figures,
+  (figure) => userFigureUseOf(figure)?.id == id
+      ? detachUserFigureUse(
+          figure,
+          text: renderer.renderUserFigureCanonical(figure),
+        )
+      : figure,
+);

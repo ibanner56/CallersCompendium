@@ -2405,6 +2405,13 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDefaultsMoveDefaultsTitle => 'Bevægelsesstandarder';
 
   @override
+  String get settingsDefaultsUserFiguresTitle => 'Dine figurers standarder';
+
+  @override
+  String get settingsDefaultsUserFiguresSubtitle =>
+      'Hver af dine nye figurer har sine egne standarder: de værdier, den starter med, og dens takter. Vælg en for at ændre dem.';
+
+  @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
       'Foretrukne parameterværdier der anvendes, når du indsætter en bevægelse under dansinputet. Disse tilsidesætter bevægelsens indbyggede standarder; du kan stadig ændre enhver parameter på figuren bagefter. Ikke-angivne bevægelser og parametre bruger de indbyggede standarder.';
 
@@ -9621,6 +9628,23 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get glossaryCustomExample => 'Eksempel';
+
+  @override
+  String glossaryCustomDeleteTrash(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count danse i papirkurven bruger den også og beholder de linjer, de sidst gemte.',
+      one:
+          '1 dans i papirkurven bruger den også og beholder den linje, den sidst gemte.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get glossaryCustomDeleteDefaults =>
+      'Dine standardfigurer i Indstillinger bruger den også og beholder dens nuværende ordlyd som almindelig tekst.';
 
   @override
   String glossaryCustomDeleteUses(int count) {

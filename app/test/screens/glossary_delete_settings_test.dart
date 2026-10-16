@@ -1,6 +1,7 @@
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_scope.dart';
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/program_matrix_column_config_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/settings_keys.dart';
@@ -148,5 +149,109 @@ void main() {
       ),
       expected,
     );
+  });
+
+  testWidgets('deleting a figure freezes its uses in the default figure '
+      'lists, and the dialog counts the Trash and the defaults', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(500, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final repos = openTestRepositories();
+    Figure use() => userFigureUseFigure(
+      id: 'zoom-id',
+      args: const {},
+      text: 'a stale line',
+      beats: 8,
+    );
+    final created = DateTime.utc(2026, 10, 16);
+    await tester.runAsync(() async {
+      await repos.userGlossary.upsert(figure('zoom-id', 'zoom'));
+      await repos.settings.set(
+        kDefaultDanceFiguresTemplateKey,
+        encodeFigures([use(), Figure(move: 'swing')]),
+      );
+      await repos.settings.set(
+        kDefaultModifierFiguresKey,
+        encodeModifierFigures([use()]),
+      );
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Binned',
+          figures: [use()],
+          createdAt: created,
+          updatedAt: created,
+        ),
+      );
+      await repos.dances.softDelete('d1', at: created);
+    });
+    final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+    final glossary = ValueNotifier(true);
+    final custom = ValueNotifier(true);
+    for (final n in <ChangeNotifier>[dialect, glossary, custom]) {
+      addTearDown(n.dispose);
+    }
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(
+            notifier: dialect,
+            child: ShowGlossaryScope(
+              notifier: glossary,
+              child: ShowCustomFiguresScope(notifier: custom, child: child!),
+            ),
+          ),
+        ),
+        home: const GlossaryScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('glossary-search')),
+      'zoom',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('glossary-entry-custom:zoom-id')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('glossary-custom-delete')));
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('glossary-custom-delete-body')),
+          )
+          .data,
+      "No dance uses it. It's removed from your Glossary. 1 dance in the "
+      'Trash uses it too, and keeps the line it last stored. Your default '
+      'figures in Settings use it too, and keep its current wording as plain '
+      'text.',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('glossary-custom-delete-confirm')),
+    );
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pumpAndSettle();
+
+    final template = danceFiguresTemplateFromStored(
+      await tester.runAsync<Object?>(
+        () => repos.settings.get(kDefaultDanceFiguresTemplateKey),
+      ),
+    );
+    expect(template.first.params, {'text': 'zoom', 'beats': 8});
+    expect(template.last.move, 'swing');
+    final modifiers = modifierFiguresFromStored(
+      await tester.runAsync<Object?>(
+        () => repos.settings.get(kDefaultModifierFiguresKey),
+      ),
+    );
+    expect(userFigureUseOf(modifiers.single), isNull);
+    expect(modifiers.single.params['text'], 'zoom');
   });
 }

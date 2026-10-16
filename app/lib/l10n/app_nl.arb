@@ -2416,6 +2416,14 @@
   "@settingsDefaultsMoveDefaultsTitle": {
     "x-sourceSha256": "4d4f2c71c774263fca7f0a1afc94205e923e171d1e05e05354ebfb9a9bc954bf"
   },
+  "settingsDefaultsUserFiguresTitle": "Standaarden van je figuren",
+  "@settingsDefaultsUserFiguresTitle": {
+    "x-sourceSha256": "7a5620524eb36c2842c797c0ef3a21a9e023f4529ee7592b615f199808b2c560"
+  },
+  "settingsDefaultsUserFiguresSubtitle": "Elk van je nieuwe figuren heeft zijn eigen standaarden: de waarden waarmee hij begint en zijn tellen. Kies er een om ze te wijzigen.",
+  "@settingsDefaultsUserFiguresSubtitle": {
+    "x-sourceSha256": "cd250d812df72953f432f85e544a5337cc20ae01885e63913dca1dfa998267ac"
+  },
   "settingsDefaultsMoveDefaultsSubtitle": "Voorkeursparameterwaarden die worden toegepast wanneer je een move invoegt bij het invoeren van een dans. Deze overschrijven de ingebouwde standaarden van die move; je kunt achteraf elk parameter van de figuur nog aanpassen. Niet-ingestelde moves en parameters gebruiken de ingebouwde standaarden.",
   "@settingsDefaultsMoveDefaultsSubtitle": {
     "x-sourceSha256": "eb0ef63bbf86910d132d779d7a5c8fffd8bd0a40e61515ca13daea08204729e3"
@@ -9589,6 +9597,14 @@
   "glossaryCustomExample": "Voorbeeld",
   "@glossaryCustomExample": {
     "x-sourceSha256": "d029f87e3d80f8fd9b1be67c7426b4cc1ff47b4a9d0a8461c826a59d8c5eb6cd"
+  },
+  "glossaryCustomDeleteTrash": "{count, plural, =1{1 dans in de prullenbak gebruikt hem ook en behoudt de regel die hij het laatst opsloeg.} other{{count} dansen in de prullenbak gebruiken hem ook en behouden de regels die ze het laatst opsloegen.}}",
+  "@glossaryCustomDeleteTrash": {
+    "x-sourceSha256": "2c19471592af1b168e7d4892c684f086d1bca6581e09128ba9093d6a9038cdd5"
+  },
+  "glossaryCustomDeleteDefaults": "Je standaardfiguren in Instellingen gebruiken hem ook en behouden zijn huidige formulering als platte tekst.",
+  "@glossaryCustomDeleteDefaults": {
+    "x-sourceSha256": "24967b43f00c8e1a85ff72ddeafa39197d79fc1b2b0786f10b1598c3d803bd94"
   },
   "glossaryCustomDeleteUses": "{count, plural, =0{Geen dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd.} =1{1 dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd en die dans behoudt zijn huidige formulering als platte tekst.} other{{count} dansen gebruiken hem. Hij wordt uit je woordenlijst verwijderd en die dansen behouden hun huidige formulering als platte tekst.}}",
   "@glossaryCustomDeleteUses": {

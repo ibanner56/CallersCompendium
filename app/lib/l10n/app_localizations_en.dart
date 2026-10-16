@@ -2385,6 +2385,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDefaultsMoveDefaultsTitle => 'Move defaults';
 
   @override
+  String get settingsDefaultsUserFiguresTitle => 'Your figures\' defaults';
+
+  @override
+  String get settingsDefaultsUserFiguresSubtitle =>
+      'Each of your new figures keeps its own defaults: the values it starts with and its beats. Choose one to change them.';
+
+  @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
       'Preferred parameter values applied when you insert a move while entering a dance. These override that move\'s built-in defaults; you can still change any parameter on the figure afterward. Unset moves and parameters use the built-in defaults.';
 
@@ -9578,6 +9585,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get glossaryCustomExample => 'Example';
+
+  @override
+  String glossaryCustomDeleteTrash(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dances in the Trash use it too, and keep the lines they last stored.',
+      one:
+          '1 dance in the Trash uses it too, and keeps the line it last stored.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get glossaryCustomDeleteDefaults =>
+      'Your default figures in Settings use it too, and keep its current wording as plain text.';
 
   @override
   String glossaryCustomDeleteUses(int count) {

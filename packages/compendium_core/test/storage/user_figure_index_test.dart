@@ -258,6 +258,11 @@ void main() {
     await repos.dances.create(dance('d1', [use()]));
     await repos.dances.softDelete('d1', at: edited);
     expect(await repos.dances.countDancesUsingUserFigure('zoom-id'), 0);
+    expect(
+      await repos.dances.countTrashedDancesUsingUserFigure('zoom-id'),
+      1,
+      reason: 'counted apart, as the Trash (#1023, plan C9)',
+    );
     expect(await repos.deleteUserFigure('zoom-id', at: removed), 0);
   });
 

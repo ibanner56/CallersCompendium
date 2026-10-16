@@ -78,7 +78,10 @@ lives in the core package; all access through repositories.*
   the Trash is rebuilt when restored, and a sync apply batch already rebuilds
   every dance's rows, from the live figures. Deleting a figure freezes each use
   in a live dance as plain text; a dance in the Trash keeps the line its use
-  last stored.
+  last stored. The app freezes the default figure lists in the settings the
+  same way, and drops the figure's dialect entries and matrix column
+  (`freezeUserFigureUsesIn`, plan C9); each is a settings value, not a
+  dance, so it is the delete's caller, not the repository, that writes it.
 
 ## Tables (abridged)
 

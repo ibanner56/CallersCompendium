@@ -13,6 +13,8 @@ import '../../data/dance_share_fields_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
+import '../../data/show_custom_figures_scope.dart';
+import '../../data/user_figures_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../editor/figure_draft.dart';
@@ -30,6 +32,7 @@ import '../../widgets/move_autocomplete.dart';
 import '../../widgets/collection_picker.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/settings_dropdown_row.dart';
+import '../glossary/compound_editor_screen.dart';
 import 'default_import_tags_editor.dart';
 import 'settings_keys.dart';
 
@@ -73,6 +76,39 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   /// Each has its own user-set guard so a late read can't clobber an in-view
   /// change and one control's change can't suppress seeding the others.
   DanceForm? _defaultDanceForm;
+
+  /// The user's new figures that decode (#1023), by name, watched from the
+  /// glossary: offered in the default figure lists, and linked under Move
+  /// defaults, where their own defaults are (maintainer decision 13).
+  List<({UserGlossaryEntry entry, UserFigureDefinition definition})>
+  _userFigures = const [];
+  StreamSubscription<List<UserGlossaryEntry>>? _userFiguresSub;
+  CompendiumRepositories? _userFiguresRepos;
+
+  void _ensureUserFiguresWatched(BuildContext context) {
+    final repos = RepositoriesScope.maybeOf(context);
+    if (identical(repos, _userFiguresRepos)) return;
+    _userFiguresRepos = repos;
+    unawaited(_userFiguresSub?.cancel());
+    _userFiguresSub = repos?.userGlossary.watchAll().listen((entries) {
+      if (!mounted) return;
+      setState(() {
+        _userFigures =
+            [
+              for (final entry in entries)
+                if (entry.kind == UserGlossaryEntryKind.customFigure)
+                  if (decodeUserFigureDefinition(entry.payload)
+                      case final definition?)
+                    (entry: entry, definition: definition),
+            ]..sort(
+              (a, b) => a.entry.name.toLowerCase().compareTo(
+                b.entry.name.toLowerCase(),
+              ),
+            );
+      });
+    });
+  }
+
   FormationShape? _defaultDanceFormationShape;
   Progression? _defaultDanceProgression;
   final TextEditingController _defaultDancePhrase = TextEditingController();
@@ -662,6 +698,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
 
   @override
   void dispose() {
+    unawaited(_userFiguresSub?.cancel());
     _defaultProgramCaller.dispose();
     _defaultProgramBand.dispose();
     _defaultDancePhrase.dispose();
@@ -702,7 +739,20 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   Widget build(BuildContext context) {
     _ensureDefaultsLoaded(context);
     _ensureDanceTitlesLoaded(context);
+    _ensureUserFiguresWatched(context);
+    // While Custom Figures is on, the default figure lists offer the user's
+    // figures for the default dance form, as the dance editor offers those
+    // for a dance's form (maintainer decision 8).
+    final figuresShown = customFiguresShown(context);
+    final form = (_defaultDanceForm ?? DanceForm.contra).name;
     return _DefaultsView(
+      userFigureOptions: figuresShown
+          ? [
+              for (final f in _userFigures)
+                if (f.definition.form == form) f.entry,
+            ]
+          : null,
+      userFigureLinks: figuresShown ? _userFigures : const [],
       programCallerController: _defaultProgramCaller,
       onDefaultProgramCallerChanged: _onDefaultProgramCallerChanged,
       programBandController: _defaultProgramBand,
@@ -1188,6 +1238,8 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
 /// [SectionHeader].
 class _DefaultsView extends StatelessWidget {
   const _DefaultsView({
+    required this.userFigureOptions,
+    required this.userFigureLinks,
     required this.programCallerController,
     required this.onDefaultProgramCallerChanged,
     required this.programBandController,
@@ -1285,6 +1337,15 @@ class _DefaultsView extends StatelessWidget {
   /// DD.2), plus callbacks mirroring the dance editor's [FigureListEditor]
   /// wiring. Owned by [_DefaultsSectionState]; mutated in the callbacks.
   final List<FigureDraft> danceFigureTemplateDrafts;
+
+  /// The user's figures the default figure lists offer, or null while Custom
+  /// Figures is off (#1023).
+  final List<UserGlossaryEntry>? userFigureOptions;
+
+  /// The user's figures linked under Move defaults, each to its own
+  /// defaults; empty while Custom Figures is off (#1023).
+  final List<({UserGlossaryEntry entry, UserFigureDefinition definition})>
+  userFigureLinks;
   final VoidCallback onDanceFigureTemplateChanged;
   final VoidCallback onDanceFigureTemplateAdd;
   final Future<String?> Function() onDanceFigureTemplateAddMeanwhile;
@@ -1881,6 +1942,7 @@ class _DefaultsView extends StatelessWidget {
                 shorthandMappings: ShorthandMappingsScope.maybeOf(
                   context,
                 )?.store,
+                userFigureOptions: userFigureOptions,
                 onChanged: onDanceFigureTemplateChanged,
                 onAdd: onDanceFigureTemplateAdd,
                 onAddFreeText: onDanceFigureTemplateAddFreeText,
@@ -1925,6 +1987,7 @@ class _DefaultsView extends StatelessWidget {
                 shorthandMappings: ShorthandMappingsScope.maybeOf(
                   context,
                 )?.store,
+                userFigureOptions: userFigureOptions,
                 onChanged: onMeanwhileSideChanged,
                 onAdd: onMeanwhileSideAdd,
                 onAddFreeText: onMeanwhileSideAddFreeText,
@@ -1972,6 +2035,7 @@ class _DefaultsView extends StatelessWidget {
                 shorthandMappings: ShorthandMappingsScope.maybeOf(
                   context,
                 )?.store,
+                userFigureOptions: userFigureOptions,
                 onChanged: onModifierChanged,
                 onAdd: onModifierAdd,
                 onAddFreeText: onModifierAddFreeText,
@@ -2017,6 +2081,8 @@ class _DefaultsView extends StatelessWidget {
                 onMoveParamOverrideChanged: onMoveParamOverrideChanged,
               ),
             ),
+            if (userFigureLinks.isNotEmpty)
+              _UserFigureDefaultsLinks(figures: userFigureLinks),
             Builder(
               builder: (context) {
                 final aggressiveBeatsUpdate = AggressiveBeatsUpdateScope.of(
@@ -2404,6 +2470,63 @@ class _MoveDefaultsEditor extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// Links to the defaults of each of the user's new figures (#1023,
+/// maintainer decision 13): a figure's defaults live on its definition, so
+/// each row opens the figure's own editor in the Glossary.
+class _UserFigureDefaultsLinks extends StatelessWidget {
+  const _UserFigureDefaultsLinks({required this.figures});
+
+  final List<({UserGlossaryEntry entry, UserFigureDefinition definition})>
+  figures;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final dialect = ActiveDialectScope.of(context);
+    final renderer = UserFiguresScope.rendererOf(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.xxs,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.settingsDefaultsUserFiguresTitle,
+                style: theme.textTheme.titleSmall,
+              ),
+              const SizedBox(height: AppSpacing.xxs),
+              Text(
+                l10n.settingsDefaultsUserFiguresSubtitle,
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        for (final f in figures)
+          ListTile(
+            key: ValueKey('defaults-user-figure-${f.entry.id}'),
+            title: Text(renderer.renderFreeText(f.entry.name, dialect)),
+            subtitle: Text(l10n.danceFigureBeats(f.definition.defaultBeats)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push<UserGlossaryEntry>(
+              MaterialPageRoute(
+                builder: (_) => CompoundEditorScreen(initial: f.entry),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

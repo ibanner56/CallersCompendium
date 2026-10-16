@@ -1182,6 +1182,21 @@ class DanceRepository {
         includeDeleted: false,
       )).length;
 
+  /// How many dances in the Trash use the figure of your own [userFigureId]
+  /// (#1023): the other part of the count deleting it says (plan C9). They
+  /// are not frozen by the delete, and keep the line each last stored.
+  Future<int> countTrashedDancesUsingUserFigure(String userFigureId) async {
+    final all = await _danceIdsUsingUserFigure(
+      userFigureId,
+      includeDeleted: true,
+    );
+    final live = await _danceIdsUsingUserFigure(
+      userFigureId,
+      includeDeleted: false,
+    );
+    return all.length - live.length;
+  }
+
   /// Rebuilds the derived rows of every live dance that uses the figure of
   /// your own [userFigureId] (#1023), so search
   /// follows its definition. Editing a definition re-renders its uses without
@@ -1251,15 +1266,7 @@ class DanceRepository {
           UnreadableFigures() => null,
         };
         if (figures == null) return null;
-        final frozen = mapFigureLeaves(
-          figures,
-          (figure) => userFigureUseOf(figure)?.id == userFigureId
-              ? detachUserFigureUse(
-                  figure,
-                  text: renderer.renderUserFigureCanonical(figure),
-                )
-              : figure,
-        );
+        final frozen = freezeUserFigureUsesIn(figures, userFigureId, renderer);
         if (identical(frozen, figures)) return null;
         return dance.copyWith(figures: frozen, updatedAt: now);
       },

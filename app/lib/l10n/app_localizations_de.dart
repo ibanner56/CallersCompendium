@@ -2429,6 +2429,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsDefaultsMoveDefaultsTitle => 'Bewegungsstandards';
 
   @override
+  String get settingsDefaultsUserFiguresTitle => 'Standards deiner Figuren';
+
+  @override
+  String get settingsDefaultsUserFiguresSubtitle =>
+      'Jede deiner neuen Figuren hat ihre eigenen Standards: die Werte, mit denen sie beginnt, und ihre Takte. Wähle eine aus, um sie zu ändern.';
+
+  @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
       'Bevorzugte Parameterwerte, die beim Einfügen einer Bewegung während der Tanzeingabe angewendet werden. Diese überschreiben die integrierten Standardwerte der Bewegung; Sie können anschließend noch jeden Parameter der Figur ändern. Nicht gesetzte Bewegungen und Parameter verwenden die integrierten Standardwerte.';
 
@@ -9733,6 +9740,23 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get glossaryCustomExample => 'Beispiel';
+
+  @override
+  String glossaryCustomDeleteTrash(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count Tänze im Papierkorb verwenden sie auch und behalten die zuletzt gespeicherten Zeilen.',
+      one:
+          '1 Tanz im Papierkorb verwendet sie auch und behält die zuletzt gespeicherte Zeile.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get glossaryCustomDeleteDefaults =>
+      'Deine Standardfiguren in den Einstellungen verwenden sie auch und behalten ihren aktuellen Wortlaut als einfachen Text.';
 
   @override
   String glossaryCustomDeleteUses(int count) {

@@ -14,6 +14,7 @@ import '../../data/show_custom_figures_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../glossary/custom_figures.dart';
+import '../../glossary/user_figure_defaults.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
 import 'compound_editor_screen.dart';
@@ -174,6 +175,25 @@ class _GlossaryCustomFigureDetailState
     final uses = isFigure
         ? await repos.dances.countDancesUsingUserFigure(widget.entryId)
         : null;
+    // The Trash's dances keep the line each last stored (plan C9).
+    final trashed = isFigure
+        ? await repos.dances.countTrashedDancesUsingUserFigure(widget.entryId)
+        : 0;
+    // The default figure lists that use it, frozen as the dances are: read
+    // now, while the figure renders, and written once it is deleted.
+    final entry = isFigure
+        ? await repos.userGlossary.getById(widget.entryId)
+        : null;
+    final frozenDefaults = entry == null
+        ? const <String, String>{}
+        : await frozenDefaultFigureLists(
+            repos.settings,
+            widget.entryId,
+            FigureRenderer(
+              contraTaxonomy,
+              userFigures: UserFigureCatalog.fromEntries([entry]),
+            ),
+          );
     if (!context.mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -182,7 +202,12 @@ class _GlossaryCustomFigureDetailState
         content: Text(
           uses == null
               ? l10n.glossaryCustomDeleteBody
-              : l10n.glossaryCustomDeleteUses(uses),
+              : [
+                  l10n.glossaryCustomDeleteUses(uses),
+                  if (trashed > 0) l10n.glossaryCustomDeleteTrash(trashed),
+                  if (frozenDefaults.isNotEmpty)
+                    l10n.glossaryCustomDeleteDefaults,
+                ].join(' '),
           key: const ValueKey('glossary-custom-delete-body'),
         ),
         actions: [
@@ -201,13 +226,16 @@ class _GlossaryCustomFigureDetailState
     if (confirmed != true) return;
     if (isFigure) {
       await repos.deleteUserFigure(widget.entryId);
-      // Then what the settings keep for it (#1023, plan C9): each dialect's
-      // name and wording for it, and its matrix column's place, hiding and
-      // rename. Nothing would read them again, and they would otherwise stay
+      // Then what the settings keep for it (#1023, plan C9): its uses in the
+      // default figure lists, frozen; each dialect's name and wording for
+      // it; and its matrix column's place, hiding and rename. Nothing would read them again, and they would otherwise stay
       // in every backup and sync. The figure is gone either way: a failure
       // here leaves only inert keys, so it is logged rather than stopping the
       // page from closing.
       try {
+        for (final MapEntry(:key, :value) in frozenDefaults.entries) {
+          await persistSetting(repos.settings, key, value);
+        }
         await dialects?.forgetUserFigure(widget.entryId);
         // The page stays until it pops below, so the matrix scope is still
         // at hand.
