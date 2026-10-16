@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
@@ -5,8 +7,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/screens/settings/matrix_column_editor.dart';
 import 'package:compendium_app/src/data/program_matrix_column_config_scope.dart';
+import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
+import 'package:compendium_app/src/data/show_glossary_scope.dart';
+import 'package:compendium_app/src/data/user_figures_scope.dart';
+import 'package:compendium_app/src/screens/settings/matrix_column_editor_screen.dart';
 
 import 'support/l10n_harness.dart';
+import 'support/test_repositories.dart';
 
 /// A small taxonomy (three plain "known" moves) so the editor renders a handful
 /// of rows that all fit on screen — the full contra taxonomy has ~100 columns,
@@ -717,7 +726,7 @@ void main() {
       createdAt: DateTime.utc(2026, 10, 16),
     );
     final catalog = UserFigureCatalog.fromEntries([
-      figure('zoom-id', 'zoom'),
+      figure('a-id', 'zoom'),
       figure('larks-id', 'role1s whirl'),
     ]);
 
@@ -741,16 +750,16 @@ void main() {
       ];
       expect(order.sublist(order.length - 3), [
         'userFigure:larks-id',
-        'userFigure:zoom-id',
+        'userFigure:a-id',
         customMove,
       ]);
       expect(find.text('larks whirl'), findsOneWidget);
 
       await tester.tap(
-        find.byKey(const ValueKey('matrix-column-remove-userFigure:zoom-id')),
+        find.byKey(const ValueKey('matrix-column-remove-userFigure:a-id')),
       );
       await tester.pumpAndSettle();
-      expect(read().hidden, contains('userFigure:zoom-id'));
+      expect(read().hidden, contains('userFigure:a-id'));
 
       await tester.tap(
         find.byKey(const ValueKey('matrix-column-rename-userFigure:larks-id')),
@@ -770,9 +779,110 @@ void main() {
     testWidgets('none is listed without the catalog', (tester) async {
       await _pumpEditor(tester);
       expect(
-        find.byKey(const ValueKey('matrix-column-remove-userFigure:zoom-id')),
+        find.byKey(const ValueKey('matrix-column-remove-userFigure:a-id')),
         findsNothing,
       );
+    });
+
+    testWidgets('restore removed defaults brings back a removed figure, in '
+        'catalog order before the custom column', (tester) async {
+      final read = await _pumpEditor(
+        tester,
+        userFigures: catalog,
+        initial: const MatrixColumnConfig(
+          order: ['do_si_do'],
+          hidden: {'userFigure:a-id'},
+        ),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-reset-removed')),
+      );
+      await tester.pumpAndSettle();
+      final config = read();
+      expect(config.hidden, isEmpty);
+      expect(config.order, [
+        ...catalogIds.where((id) => id != customMove),
+        'userFigure:larks-id',
+        'userFigure:a-id',
+        customMove,
+      ]);
+    });
+
+    testWidgets('reordering while your figures are not listed keeps their '
+        'place', (tester) async {
+      final read = await _pumpEditor(
+        tester,
+        initial: MatrixColumnConfig(order: ['userFigure:a-id', ...catalogIds]),
+      );
+      tester
+          .widget<ReorderableListView>(find.byType(ReorderableListView))
+          .onReorderItem!(0, 2);
+      await tester.pumpAndSettle();
+      final expected = [...catalogIds];
+      expected.insert(2, expected.removeAt(0));
+      expect(read().order, [...expected, 'userFigure:a-id']);
+    });
+
+    testWidgets('the Matrix columns screen lists your figures only while '
+        'Custom Figures is on', (tester) async {
+      final repos = openTestRepositories();
+      await tester.runAsync(
+        () => repos.userGlossary.upsert(figure('a-id', 'zoom')),
+      );
+      final userFigures = UserFiguresController(repos.userGlossary);
+      addTearDown(userFigures.dispose);
+      unawaited(userFigures.start());
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      final config = ValueNotifier(MatrixColumnConfig.empty);
+      final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+      final glossary = ValueNotifier(true);
+      final custom = ValueNotifier(false);
+      for (final n in <ChangeNotifier>[config, dialect, glossary, custom]) {
+        addTearDown(n.dispose);
+      }
+      await tester.binding.setSurfaceSize(const Size(1200, 1400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: RepositoriesScope(
+            repositories: repos,
+            child: ProgramMatrixColumnConfigScope(
+              notifier: config,
+              child: ActiveDialectScope(
+                notifier: dialect,
+                child: ShowGlossaryScope(
+                  notifier: glossary,
+                  child: ShowCustomFiguresScope(
+                    notifier: custom,
+                    child: UserFiguresScope(
+                      controller: userFigures,
+                      child: const MatrixColumnEditorScreen(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      // The full catalog is ~100 rows, so read what the screen hands the
+      // editor rather than scrolling to the last rows.
+      List<String> listed() => [
+        for (final c in userFigureColumnCatalog(
+          tester
+              .widget<MatrixColumnEditor>(find.byType(MatrixColumnEditor))
+              .userFigures,
+        ))
+          c.moveId,
+      ];
+      expect(listed(), isEmpty);
+
+      custom.value = true;
+      await tester.pumpAndSettle();
+      expect(listed(), ['userFigure:a-id']);
     });
   });
 }

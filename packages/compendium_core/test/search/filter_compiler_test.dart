@@ -802,16 +802,18 @@ void main() {
 
   group('dialect canonicalization at the compiler boundary', () {
     test('FullText role terms are canonicalized', () {
-      final c = FilterCompiler(Dialect.larksRobins)
-          .compile(const FullTextFilter('robins allemande'));
+      final c = FilterCompiler(
+        Dialect.larksRobins,
+      ).compile(const FullTextFilter('robins allemande'));
       // Canonicalized to role tokens while keeping the long query as one
       // literal substring phrase.
       expect(c.binds.first, '"role2s allemande"');
     });
 
     test('role-valued figure params are canonicalized', () {
-      final c = FilterCompiler(Dialect.larksRobins)
-          .compile(FigureFilter.leaf('swing', params: const {'who': 'larks'}));
+      final c = FilterCompiler(
+        Dialect.larksRobins,
+      ).compile(FigureFilter.leaf('swing', params: const {'who': 'larks'}));
       expect(c.binds, ['swing', 'role1s']);
     });
 

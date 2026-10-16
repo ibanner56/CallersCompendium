@@ -414,7 +414,8 @@ typedef CustomColumnLabel = ({String id, String label});
 /// never drops a column.
 ///
 /// Pure and taxonomy-free so it can be unit-tested directly. [catalogOrder] is
-/// the built-in column ids in [builtInColumnCatalog] order; [customs] are the
+/// the built-in column ids in [builtInColumnCatalog] order, with any figure of
+/// your own's column ([userFigureColumnCatalog], #1023) before the custom one; [customs] are the
 /// config's parameterized+compound columns with their displayed labels.
 List<String> restoreRemovedDefaultsOrder({
   required List<String> catalogOrder,

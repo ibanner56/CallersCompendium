@@ -939,8 +939,12 @@ class MoveTypeAheadField extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final label = labelText ?? l10n.collectionQueryMoveLabel;
-    final renderer = UserFiguresScope.rendererOf(context);
-    final mine = onUserFigureSelected == null
+    // Looked up only when figures are offered, so a field that offers none
+    // (the By-Phrase panel's) does not rebuild when the catalog changes.
+    final renderer = onUserFigureSelected == null
+        ? null
+        : UserFiguresScope.rendererOf(context);
+    final mine = renderer == null
         ? const <_UserFigureTypeAheadOption>[]
         : [
             for (final view in userFigures.figures)

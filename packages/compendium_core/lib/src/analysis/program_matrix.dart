@@ -25,7 +25,8 @@
 ///    **effective** beats ([Taxonomy.effectiveParams], so figures with no
 ///    explicitly-stored count still land correctly) and threaded through
 ///    [MatrixRow.phraseLabelsByMove] / [MatrixRow.beatSpansByMove]; the
-///    un-comparable custom column never collides. [ProgramMatrix.collisionMode]
+///    un-comparable custom column never collides, while a figure of your own's
+///    column (#1023) collides like a built-in move's. [ProgramMatrix.collisionMode]
 ///    (issue #962) selects which of two comparisons decides a collision:
 ///     * [MatrixCollisionMode.exactBeats] (the default): the move's beat
 ///       *span* actually overlaps between the two dances — guards against,
@@ -61,9 +62,10 @@ enum MatrixColumnKind {
   /// nothing is silently dropped (mirrors the renderer's unknown-move fallback).
   unknown,
 
-  /// The single collapsed column for all custom (free-text) figures. Custom
-  /// moves are un-taxonomised and can't be reliably compared, so they share one
-  /// column. First-figure highlighting still works when a dance opens custom.
+  /// The single collapsed column for custom (free-text) figures. Custom moves
+  /// are un-taxonomised and can't be reliably compared, so they share one
+  /// column; only a use of a figure of your own that renders live gets a
+  /// [userFigure] column instead (#1023). First-figure highlighting still works when a dance opens custom.
   custom,
 
   /// A sub-column of a move that is split by one of its params so callers can
@@ -769,8 +771,10 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// alias-declaration order (e.g. `see_saw`, `swat_the_flea` — an alias whose
 /// target move is itself split, like `meltdown_swing`, never reaches this
 /// bucket; see [columnKeyForFigure]), then any truly unknown move ids (sorted,
-/// for determinism), then a single trailing custom column when any custom
-/// figure is present. This is stable — it doesn't reshuffle as the program
+/// for determinism), then a column per figure of your own in [userFigures]
+/// that some dance uses ([MatrixColumnKind.userFigure], by name then id —
+/// the name as stored, role words as tokens), then a single trailing custom
+/// column when any other custom figure is present. This is stable — it doesn't reshuffle as the program
 /// changes — and groups related moves the way the taxonomy authors intended.
 ///
 /// `swing`, `allemande`, `chain`, and `hey` are split into sub-columns at
@@ -944,12 +948,7 @@ ProgramMatrix buildProgramMatrix(
         title: dance.title,
         firstMoveId: danceFigures.isEmpty
             ? null
-            : columnKeyForFigure(
-                danceFigures.first,
-                tax,
-                config,
-                userFigures,
-              ),
+            : columnKeyForFigure(danceFigures.first, tax, config, userFigures),
         presentMoveIds: rowMoves,
         phraseLabelsByMove: phraseLabels,
         beatSpansByMove: beatSpans,
@@ -1312,9 +1311,12 @@ int _compareUserFigureColumns(MatrixColumn a, MatrixColumn b) {
 /// [buildProgramMatrix] orders the ones a program uses: by name, then id.
 /// The column editor lists these beside [builtInColumnCatalog], so each can
 /// be hidden, moved or renamed before any program uses it.
+/// A figure that no longer decodes is left out: none of its uses can render
+/// live, so it never has a column.
 List<MatrixColumn> userFigureColumnCatalog(UserFigureCatalog userFigures) => [
   for (final view in userFigures.figures)
-    _userFigureColumn(userFigureKeyFor(view.id), view.name),
+    if (view.definition != null)
+      _userFigureColumn(userFigureKeyFor(view.id), view.name),
 ]..sort(_compareUserFigureColumns);
 
 /// The parent move ids that [buildProgramMatrix] expands into split columns.

@@ -231,10 +231,9 @@ void main() {
       ]),
     );
     expect(await repos.deleteUserFigure('zoom-id', at: removed), 1);
-    final side = figuresOf((await repos.dances.getById('d1'))!)
-        .single
-        .subFigures
-        .first;
+    final side = figuresOf(
+      (await repos.dances.getById('d1'))!,
+    ).single.subFigures.first;
     expect(side.params, {'text': 'neighbors zoom right'});
   });
 

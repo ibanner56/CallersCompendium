@@ -283,7 +283,8 @@ Here is how to read it:
 - **Show phrase labels** with the text-fields icon above the matrix. This
   replaces the markers with every phrase where that move starts, in order (A1,
   A2, B1, B2…). Compound columns and the column for free-text figures keep their
-  markers. It is a screen-only view: it stays on while you switch between
+  markers; a column for one of your own figures shows phrase labels, and is
+  flagged for a repeat, as a built-in move's is. It is a screen-only view: it stays on while you switch between
   **Matrix** and **Build** or resize the window, resets when you close the
   program, and does not change the PDF.
 - **Headers stay pinned** as you scroll, so you never lose track of which row or
@@ -325,7 +326,9 @@ when some dance uses that move. Free-text figures share one **Custom** column,
 except that, while **Custom Figures** is on, each of
 [your own new figures](./settings.md#glossary-and-custom-figures) that a dance uses gets a
 column of its own, headed by its name. With **Custom Figures** off, they join the
-**Custom** column.
+**Custom** column, as does a use that shows its stored line instead of your
+figure's wording: one changed on another device, one whose figure is gone or
+not on this device yet, or one with a choice the figure no longer has.
 
 A few practical notes:
 

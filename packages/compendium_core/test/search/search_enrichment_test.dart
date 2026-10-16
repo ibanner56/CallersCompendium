@@ -178,8 +178,9 @@ void main() {
         Dialect.larksRobins,
         SearchEnrichment.empty,
       ).compile(const FullTextFilter('robins allemande'));
-      final without = FilterCompiler(Dialect.larksRobins)
-          .compile(const FullTextFilter('robins allemande'));
+      final without = FilterCompiler(
+        Dialect.larksRobins,
+      ).compile(const FullTextFilter('robins allemande'));
       expect(withEmpty.binds, without.binds);
     });
   });

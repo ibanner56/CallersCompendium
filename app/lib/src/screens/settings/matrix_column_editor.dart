@@ -110,9 +110,20 @@ class MatrixColumnEditor extends StatelessWidget {
 
   void _reorder(int oldIndex, int newIndex) {
     final ids = [for (final c in _orderedColumns()) c.moveId];
+    final shown = ids.toSet();
     final moved = ids.removeAt(oldIndex);
     ids.insert(newIndex, moved);
-    onConfigChanged(config.copyWith(order: ids));
+    // Keep the place of a column not listed here: a figure of your own's
+    // while Custom Figures is off (#1023), which comes back where it was.
+    onConfigChanged(
+      config.copyWith(
+        order: [
+          ...ids,
+          for (final id in config.order)
+            if (!shown.contains(id)) id,
+        ],
+      ),
+    );
   }
 
   void _toggleHidden(String id) {
@@ -131,9 +142,11 @@ class MatrixColumnEditor extends StatelessWidget {
     onConfigChanged(config.copyWith(renames: renames));
   }
 
-  /// D4: restore removed defaults — un-hide every built-in, reset the built-in
-  /// portion of order to catalog order, keep renames and all custom columns,
-  /// appending customs after the built-ins sorted by displayed label.
+  /// D4: restore removed defaults — un-hide every column (a figure of your
+  /// own's too, even one not listed while Custom Figures is off), reset the
+  /// listed built-in and figure columns to catalog order, keep renames and all
+  /// custom columns, appending customs after the built-ins sorted by displayed
+  /// label.
   void _restoreRemovedDefaults() {
     final catalogOrder = [for (final c in _catalog()) c.moveId];
     final customs = <CustomColumnLabel>[

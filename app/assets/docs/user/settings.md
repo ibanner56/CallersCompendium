@@ -153,8 +153,10 @@ details are handled when you export.
     removed columns stay listed here (struck through) so you can always bring
     them back.
   - While [Custom Figures](#glossary-and-custom-figures) is on, each of your
-    new figures is listed as a column, after the built-in moves and before
-    **Custom**, so you can arrange it before any program uses it.
+    new figures is listed as a column, so you can arrange it before any program
+    uses it. A new one is listed after the built-in moves and before **Custom**,
+    or, once you have moved columns, after the ones you placed. Columns you
+    placed keep their place while Custom Figures is off.
   - **Restore removed columns** brings back everything you removed and returns the
     built-in columns to their original order, while keeping your renames and any
     custom columns.

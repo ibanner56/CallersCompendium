@@ -24,9 +24,9 @@ void main() {
   );
 
   final catalog = UserFigureCatalog.fromEntries([
-    figure('zoom-id', 'zoom'),
-    figure('whirl-id', 'whirl'),
-    figure('unused-id', 'arch'),
+    figure('a-id', 'zoom'),
+    figure('b-id', 'whirl'),
+    figure('c-id', 'arch'),
   ]);
 
   Figure use(String id, String name, {Object who = 'neighbors'}) =>
@@ -53,23 +53,23 @@ void main() {
   test('each figure a program uses gets its own column, by name, before the '
       'custom column', () {
     final matrix = buildProgramMatrix([
-      dance('d1', [use('zoom-id', 'zoom'), custom('wander')]),
-      dance('d2', [use('whirl-id', 'whirl')]),
+      dance('d1', [use('a-id', 'zoom'), custom('wander')]),
+      dance('d2', [use('b-id', 'whirl')]),
     ], userFigures: catalog);
     expect(
       ids(matrix).where((id) => id.startsWith('userFigure:') || id == 'custom'),
-      ['userFigure:whirl-id', 'userFigure:zoom-id', customMove],
+      ['userFigure:b-id', 'userFigure:a-id', customMove],
       reason: 'by name, and the unused figure has no column',
     );
     final zoom = matrix.columns.firstWhere(
-      (c) => c.moveId == 'userFigure:zoom-id',
+      (c) => c.moveId == 'userFigure:a-id',
     );
     expect(zoom.kind, MatrixColumnKind.userFigure);
     expect(zoom.label, 'zoom');
-    expect(matrix.rows[0].presentMoveIds, contains('userFigure:zoom-id'));
+    expect(matrix.rows[0].presentMoveIds, contains('userFigure:a-id'));
     expect(matrix.rows[0].presentMoveIds, contains(customMove));
     expect(matrix.rows[1].presentMoveIds, isNot(contains(customMove)));
-    expect(matrix.rows[1].firstMoveId, 'userFigure:whirl-id');
+    expect(matrix.rows[1].firstMoveId, 'userFigure:b-id');
     expect(
       matrix.columns.where((c) => c.kind == MatrixColumnKind.unknown),
       isEmpty,
@@ -78,11 +78,11 @@ void main() {
   });
 
   test('a use that would not render live stays in the custom column', () {
-    final detached = use('zoom-id', 'zoom').copyWith(
-      params: {...use('zoom-id', 'zoom').params, 'text': 'typed elsewhere'},
+    final detached = use('a-id', 'zoom').copyWith(
+      params: {...use('a-id', 'zoom').params, 'text': 'typed elsewhere'},
     );
     final gone = use('gone-id', 'gone');
-    final outOfRange = use('zoom-id', 'zoom', who: 'sideways');
+    final outOfRange = use('a-id', 'zoom', who: 'sideways');
     final matrix = buildProgramMatrix([
       dance('d1', [detached]),
       dance('d2', [gone]),
@@ -96,7 +96,7 @@ void main() {
 
   test('without the catalog every use is in the custom column', () {
     final matrix = buildProgramMatrix([
-      dance('d1', [use('zoom-id', 'zoom')]),
+      dance('d1', [use('a-id', 'zoom')]),
     ]);
     expect(ids(matrix).where((id) => id.startsWith('userFigure:')), isEmpty);
     expect(matrix.rows.single.presentMoveIds, {customMove});
@@ -104,10 +104,10 @@ void main() {
 
   test('the same figure in adjacent dances collides, as a built-in does', () {
     final matrix = buildProgramMatrix([
-      dance('d1', [use('zoom-id', 'zoom')]),
-      dance('d2', [use('zoom-id', 'zoom')]),
+      dance('d1', [use('a-id', 'zoom')]),
+      dance('d2', [use('a-id', 'zoom')]),
     ], userFigures: catalog);
-    final col = ids(matrix).indexOf('userFigure:zoom-id');
+    final col = ids(matrix).indexOf('userFigure:a-id');
     expect(matrix.isCollision(0, col), isTrue);
     expect(matrix.isCollision(1, col), isTrue);
   });
@@ -146,25 +146,45 @@ void main() {
     List<String> built(MatrixColumnConfig config) => ids(
       buildProgramMatrix(
         [
-          dance('d1', [use('zoom-id', 'zoom'), use('whirl-id', 'whirl')]),
+          dance('d1', [use('a-id', 'zoom'), use('b-id', 'whirl')]),
         ],
         userFigures: catalog,
         config: config,
       ),
     ).where((id) => id.startsWith('userFigure:')).toList();
-    expect(built(const MatrixColumnConfig(hidden: {'userFigure:zoom-id'})), [
-      'userFigure:whirl-id',
+    expect(built(const MatrixColumnConfig(hidden: {'userFigure:a-id'})), [
+      'userFigure:b-id',
     ]);
-    expect(built(const MatrixColumnConfig(order: ['userFigure:zoom-id'])), [
-      'userFigure:zoom-id',
-      'userFigure:whirl-id',
+    expect(built(const MatrixColumnConfig(order: ['userFigure:a-id'])), [
+      'userFigure:a-id',
+      'userFigure:b-id',
     ]);
   });
 
   test('the column catalog lists every figure of your own, by name', () {
     expect(
       [for (final c in userFigureColumnCatalog(catalog)) c.moveId],
-      ['userFigure:unused-id', 'userFigure:whirl-id', 'userFigure:zoom-id'],
+      ['userFigure:c-id', 'userFigure:b-id', 'userFigure:a-id'],
+    );
+  });
+
+  test('the column catalog leaves out a figure that no longer decodes', () {
+    final broken = UserGlossaryEntry(
+      id: 'd-id',
+      kindName: UserGlossaryEntryKind.customFigure.name,
+      name: 'broken',
+      definition: 'A figure.',
+      description: 'Of your own.',
+      payload: const {'template': 42},
+      createdAt: now,
+    );
+    final withBroken = UserFigureCatalog.fromEntries([
+      figure('a-id', 'zoom'),
+      broken,
+    ]);
+    expect(
+      [for (final c in userFigureColumnCatalog(withBroken)) c.moveId],
+      ['userFigure:a-id'],
     );
   });
 }
