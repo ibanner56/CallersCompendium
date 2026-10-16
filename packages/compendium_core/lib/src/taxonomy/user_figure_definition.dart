@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
 import '../model/enums.dart';
 import '../util/text_sanitizer.dart';
@@ -49,6 +52,36 @@ final Set<String> _reservedParamKeys = {
 final RegExp _paramKeyShape = RegExp(r'^[A-Za-z][A-Za-z0-9_]*$');
 final RegExp _choiceIdShape = RegExp(r'^[a-z0-9]{1,16}$');
 final RegExp _wordingSlot = RegExp(r'\{!?(\w+)\}');
+
+/// [template] with [map] applied to its literal text only, its slots kept
+/// exactly as written: how a template's words are canonicalized for storage
+/// and rendered in a dialect for editing (#1023), so a role word never
+/// reaches inside a `{…}` and a slot's key is never taken for a role word.
+String mapUserFigureTemplateText(
+  String template,
+  String Function(String text) map,
+) => template.splitMapJoin(
+  _wordingSlot,
+  onMatch: (match) => match[0]!,
+  onNonMatch: map,
+);
+
+final Random _choiceIds = Random.secure();
+const String _choiceIdAlphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+
+/// A new choice id, distinct from every id in [taken]: what a choice is stored
+/// under in the dances using it, so its label can change.
+/// [random] is for tests.
+String newUserFigureChoiceId(Set<String> taken, {Random? random}) {
+  final source = random ?? _choiceIds;
+  while (true) {
+    final id = String.fromCharCodes([
+      for (var i = 0; i < 8; i++)
+        _choiceIdAlphabet.codeUnitAt(source.nextInt(_choiceIdAlphabet.length)),
+    ]);
+    if (!taken.contains(id)) return id;
+  }
+}
 
 /// The template slot holding [key]'s opposite: for `hand`, other followed by
 /// Hand (#709's "other hand", offered and never declared). Empty for an
@@ -224,6 +257,15 @@ Set<String> userFigureTemplateSlots(String template) => {
   for (final match in _wordingSlot.allMatches(template)) match[1]!,
 };
 
+/// The keys of a stored figure [payload] this build does not know, which an
+/// edit carries through ([UserFigureDefinition.extra]).
+Map<String, Object?> userFigurePayloadExtra(Object? payload) => {
+  if (payload is Map)
+    for (final entry in payload.entries)
+      if (entry.key is String && !_knownPayloadKeys.contains(entry.key))
+        entry.key as String: entry.value,
+};
+
 const Set<String> _knownPayloadKeys = {
   'form',
   'template',
@@ -277,11 +319,7 @@ UserFigureDefinition? decodeUserFigureDefinition(Object? raw) {
       defaultBeats: defaultBeats,
       params: params,
       copiedFrom: copiedFrom as String?,
-      extra: {
-        for (final entry in raw.entries)
-          if (entry.key is String && !_knownPayloadKeys.contains(entry.key))
-            entry.key as String: entry.value,
-      },
+      extra: userFigurePayloadExtra(raw),
     );
     final hasError = validateUserFigure(
       definition,
@@ -339,8 +377,11 @@ UserFigureParam? _decodeParam(Object? raw) {
 
 /// The issue codes [validateUserFigure] reports.
 abstract final class UserFigureIssueCodes {
-  /// The template is empty, too long, or not well formed.
+  /// The template is empty or not well formed.
   static const badTemplate = 'user_figure_bad_template';
+
+  /// The template, or a text default, is over its length bound.
+  static const tooLong = 'user_figure_too_long';
 
   /// The template uses a slot the figure does not offer.
   static const unknownSlot = 'user_figure_unknown_slot';
@@ -356,8 +397,9 @@ abstract final class UserFigureIssueCodes {
   /// the use's own).
   static const badParamKind = 'user_figure_bad_param_kind';
 
-  /// A `choice` parameter offers no choices, a choice is badly shaped or
-  /// repeated, or another kind carries choices.
+  /// A `choice` parameter offers no choices, a choice is badly shaped, a
+  /// choice's id or label is repeated (labels compared trimmed, ignoring
+  /// case), or another kind carries choices.
   static const badChoices = 'user_figure_bad_choices';
 
   /// A label is empty or too long.
@@ -400,7 +442,9 @@ List<ValidationIssue> validateUserFigure(UserFigureDefinition definition) {
   if (definition.form.isEmpty) {
     error(UserFigureIssueCodes.badForm, 'the form is empty');
   }
-  if (!FigureRenderer.isValidMoveWordingTemplate(definition.template)) {
+  if (definition.template.trim().length > kMaxMoveWordingLength) {
+    error(UserFigureIssueCodes.tooLong, 'the template is too long');
+  } else if (!FigureRenderer.isValidMoveWordingTemplate(definition.template)) {
     error(UserFigureIssueCodes.badTemplate, 'the template is not well formed');
   }
   if (definition.defaultBeats < 0 ||
@@ -448,6 +492,7 @@ List<ValidationIssue> validateUserFigure(UserFigureDefinition definition) {
     }
     if (p.kind == ParamKind.choice) {
       final ids = <String>{};
+      final labels = <String>{};
       final valid =
           p.choices.isNotEmpty &&
           p.choices.length <= maxUserFigureChoices &&
@@ -455,7 +500,8 @@ List<ValidationIssue> validateUserFigure(UserFigureDefinition definition) {
             (c) =>
                 _choiceIdShape.hasMatch(c.id) &&
                 ids.add(c.id) &&
-                _isGoodLabel(c.label),
+                _isGoodLabel(c.label) &&
+                labels.add(c.label.trim().toLowerCase()),
           );
       if (!valid) {
         error(
@@ -480,7 +526,14 @@ List<ValidationIssue> validateUserFigure(UserFigureDefinition definition) {
       );
     }
     final defaultValue = p.defaultValue;
-    if (defaultValue != null && !p.spec.validate(defaultValue)) {
+    if (defaultValue is String &&
+        defaultValue.length > maxUserFigureTextArgLength) {
+      error(
+        UserFigureIssueCodes.tooLong,
+        'parameter "${p.key}" has a default over its length bound',
+        data,
+      );
+    } else if (defaultValue != null && !p.spec.validate(defaultValue)) {
       error(
         UserFigureIssueCodes.badDefault,
         'parameter "${p.key}" has a default outside its values',

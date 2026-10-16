@@ -378,7 +378,17 @@ final Map<String, DataClassification> fieldClassifications = {
   'user_glossary_entries.description': _userGlossaryText,
   'user_glossary_entries.keywords_json': _userGlossaryText,
   'user_glossary_entries.notes': _userGlossaryText,
-  'user_glossary_entries.payload_json': _choreography,
+  'user_glossary_entries.payload_json': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note:
+        'The kind\'s payload: a compound\'s figures and parameters, or a '
+        'figure of your own\'s parameters, choice and flag labels, defaults '
+        'and wording template (#1023). Choreography, classified by intent '
+        'as the glossary text is: the user writes it to describe a figure, '
+        'about no person. Travels as the entry does.',
+  ),
   'user_glossary_entries.created_at': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,
