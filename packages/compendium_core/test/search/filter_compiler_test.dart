@@ -823,5 +823,32 @@ void main() {
       ).compile(FigureFilter.leaf('swing', params: const {'who': 'partners'}));
       expect(c.binds, ['swing', 'partners']);
     });
+
+    test('a figure of your own is matched by its id as given (#1023)', () {
+      // An id is not text: one that happens to read as a role word is not
+      // canonicalized to a role token.
+      final c = FilterCompiler(Dialect.larksRobins).compile(
+        FigureFilter.leaf(
+          customMove,
+          params: const {userFigureRefKey: 'larks'},
+        ),
+      );
+      expect(c.binds, [customMove, 'larks']);
+      expect(
+        c.sql,
+        contains("json_extract(f.params_json, '\$.userFigure') = ?"),
+      );
+    });
+
+    test('a dialect key naming a figure of your own is not a move (#1023)', () {
+      // Its wording must not map a query's move to `userFigure:<id>`, which
+      // no index row has.
+      final dialect = Dialect(
+        name: 'Mine',
+        moves: {userFigureKeyFor('fig-1'): 'swing'},
+      );
+      final c = FilterCompiler(dialect).compile(FigureFilter.leaf('swing'));
+      expect(c.binds, ['swing']);
+    });
   });
 }

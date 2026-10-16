@@ -8255,6 +8255,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shorthandsCompoundTitle => 'Shorthands for your own figures';
 
   @override
+  String get shorthandsUserFigureSyncLabel => 'Shorthands for your new figures';
+
+  @override
   String get shorthandsCompoundIntro =>
       'With Free-text entry on, typing one of these as a whole line while you edit a dance adds one of your own figures, with the values chosen here.';
 
@@ -8272,6 +8275,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get shorthandsCompoundShadowed =>
       'Not used: a figure shorthand has the same text.';
+
+  @override
+  String get shorthandsUserFigureShadowedByCompound =>
+      'Not used: a shorthand for one of your combinations has the same text.';
 
   @override
   String get compoundShorthandEditorFigureLabel => 'Your figure';

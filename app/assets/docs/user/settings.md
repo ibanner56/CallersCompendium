@@ -152,6 +152,11 @@ details are handled when you export.
   - **Remove** a column you never use, or **restore** one you removed earlier —
     removed columns stay listed here (struck through) so you can always bring
     them back.
+  - While [Custom Figures](#glossary-and-custom-figures) is on, each of your
+    new figures is listed as a column, so you can arrange it before any program
+    uses it. A new one is listed after the built-in moves and before **Custom**,
+    or, once you have moved columns, after the ones you placed. Columns you
+    placed keep their place while Custom Figures is off.
   - **Restore removed columns** brings back everything you removed and returns the
     built-in columns to their original order, while keeping your renames and any
     custom columns.
@@ -605,8 +610,14 @@ Glossary is on. While it is on:
   choose a figure's move. A combination becomes the figures it stands for when
   you save the dance; a new figure stays one figure that reads with your
   wording (see [Your own figures](./authoring.md#your-own-figures)). You can
-  also give a combination a [shorthand](./authoring.md#figure-shorthands) with
+  also give either kind a [shorthand](./authoring.md#figure-shorthands) with
   set values.
+- In the Collection's **Advanced** search, a **Has figure** row offers your new
+  figures, to find the dances that use one (see
+  [Search by the moves a dance contains](./collection.md#search-by-the-moves-a-dance-contains)).
+  In a program's [matrix](./programs.md#check-your-evening-with-the-matrix),
+  each new figure a dance uses gets a column of its own, which **Matrix
+  columns** lists so you can move, rename or remove it.
 - Your figures are marked **Custom** in the list. Select one to see what a
   combination **Expands to** (folded until you open it), or a new figure's
   **Wording** and an **Example** with its defaults, and to **Edit** or
@@ -625,7 +636,8 @@ this version of the app or a later one. Until then changes to them aren't sent
 to your other devices, and Device Sync shows a note naming the device that is
 holding them back (see [New kinds of data wait for every
 device](#new-kinds-of-data-wait-for-every-device)). New figures, with their
-own wording, and your terms stay on this device for now.
+own wording, your terms and the shorthands for your new figures stay on this
+device for now.
 
 Your figures and your notes on built-in figures share a size limit, which
 keeps what you add from growing too large to back up. It is far more than most

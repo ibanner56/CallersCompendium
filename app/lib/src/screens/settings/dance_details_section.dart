@@ -195,10 +195,12 @@ class _DanceDetailsAndShorthandsSectionState
             key: const ValueKey('dialect-figure-shorthands'),
             enabled: _freeTextEntry,
             title: Text(l10n.settingsDefaultsFigureShorthandsTitle),
-            // Compound shorthands (#709) count while their section shows.
+            // The shorthands for the user's own figures, of both kinds (#709,
+            // #1023), count while their section shows.
             subtitle: Text(switch (shorthandController.mappings.length +
                 (customFiguresShown(context)
-                    ? shorthandController.compoundShorthands.length
+                    ? shorthandController.compoundShorthands.length +
+                          shorthandController.userFigureShorthands.length
                     : 0)) {
               0 => l10n.settingsDefaultsFigureShorthandsEmptySubtitle,
               final count => l10n.settingsDefaultsFigureShorthandsCountSubtitle(
