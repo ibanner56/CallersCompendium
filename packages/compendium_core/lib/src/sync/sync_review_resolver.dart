@@ -121,8 +121,9 @@ final class SyncReviewQueueResolver {
               settingsKey: kind == SyncRecordKind.setting ? recordId : null,
               allowedCustomFieldIds: shareableFieldIds ?? const {},
             );
-      // The copy this device shares includes what it keeps for a newer
-      // version (spec §6.7), so compare against that, not a stripped copy.
+      // The copy shown for this device includes what it keeps for a newer
+      // version (spec §6.7). The comparison below strips kept parts from both
+      // sides, so they never make two copies differ.
       final kept = projected == null
           ? null
           : await storage.retainedSyncParts(address);
