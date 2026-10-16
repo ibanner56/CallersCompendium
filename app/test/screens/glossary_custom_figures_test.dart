@@ -718,6 +718,43 @@ void main() {
       );
     });
 
+    testWidgets('nothing closes the dialog while a save is in flight', (
+      tester,
+    ) async {
+      final h = await pump(tester);
+      await search(tester, 'swing');
+      await tester.tap(find.byKey(const ValueKey('glossary-entry-swing')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('glossary-notes-field')),
+        'Larks finish on the left',
+      );
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-save')));
+      // One frame in, the save has started and not finished.
+      await tester.pump();
+      final cancel = find.byKey(const ValueKey('glossary-notes-cancel'));
+      expect(tester.widget<TextButton>(cancel).onPressed, isNull);
+      // Back (and Escape) is refused too, not just the button.
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('glossary-notes-field')),
+        findsOneWidget,
+        reason: 'the dialog stayed while saving',
+      );
+
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('glossary-notes-field')), findsNothing);
+      // The route beneath the dialog is still there.
+      expect(find.byKey(const ValueKey('glossary-notes-edit')), findsOneWidget);
+      expect(
+        (await tester.runAsync(() => h.repos.figureNotes.get('swing')))!.notes,
+        'role1s finish on the left',
+      );
+    });
+
     testWidgets('an unexpected failure to store leaves Save usable', (
       tester,
     ) async {

@@ -739,37 +739,44 @@ class _NotesDialogState extends State<_NotesDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l10n.glossaryNotesEditTitle),
-      content: TextField(
-        key: const ValueKey('glossary-notes-field'),
-        controller: _controller,
-        onChanged: (_) {
-          if (_error != null) setState(() => _error = null);
-        },
-        autofocus: true,
-        minLines: 3,
-        maxLines: 8,
-        maxLength: maxUserGlossaryTextLength,
-        maxLengthEnforcement: MaxLengthEnforcement.enforced,
-        decoration: InputDecoration(
-          hintText: l10n.glossaryNotesHint,
-          errorText: _error,
-          errorMaxLines: 4,
-          border: const OutlineInputBorder(),
+    // Nothing closes the dialog while a save is in flight (Cancel, the barrier,
+    // Escape or back): the save would finish into a route that is already
+    // leaving and pop the one beneath it, and the note would be stored anyway.
+    return PopScope(
+      canPop: !_saving,
+      child: AlertDialog(
+        title: Text(l10n.glossaryNotesEditTitle),
+        content: TextField(
+          key: const ValueKey('glossary-notes-field'),
+          controller: _controller,
+          onChanged: (_) {
+            if (_error != null) setState(() => _error = null);
+          },
+          autofocus: true,
+          minLines: 3,
+          maxLines: 8,
+          maxLength: maxUserGlossaryTextLength,
+          maxLengthEnforcement: MaxLengthEnforcement.enforced,
+          decoration: InputDecoration(
+            hintText: l10n.glossaryNotesHint,
+            errorText: _error,
+            errorMaxLines: 4,
+            border: const OutlineInputBorder(),
+          ),
         ),
+        actions: [
+          TextButton(
+            key: const ValueKey('glossary-notes-cancel'),
+            onPressed: _saving ? null : () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('glossary-notes-save'),
+            onPressed: _saving ? null : _save,
+            child: Text(l10n.commonSave),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('glossary-notes-save'),
-          onPressed: _saving ? null : _save,
-          child: Text(l10n.commonSave),
-        ),
-      ],
     );
   }
 }
