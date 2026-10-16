@@ -735,6 +735,21 @@ PR that added this mapping).
   never an error, because the dances that use a figure still read, each as
   the line it carries.
 
+  - **Receiving them** (maintainer decision 3). Once a shared file's dances
+    are committed, and while Custom Figures is shown, the review offers its
+    figures (`ImportUserFiguresScreen`), sorted by `planUserFigureImport`
+    against this device's glossary: **add** (no entry has the id),
+    **same** (a figure of the user's with the id and the same name,
+    definition, description, keywords and payload), **differs** (the same id,
+    other content: keep mine, the default, or take theirs, which keeps the
+    user's notes and creation time), or **copy** (the id is held by another
+    kind, or by a deleted figure, which an import never revives: added under a
+    new id, and `DanceRepository.remapUserFigureUses` points the dances the
+    import wrote at it). Nothing is offered when every figure is **same**. A
+    figure whose name is taken is added and flagged *Rename needed*, as one
+    arriving by sync is. A figure the glossary refuses (its budget, its
+    bounds) is counted and reported, never thrown. The import's Undo takes
+    back what was added or replaced, after its own undo restores the dances.
   - **Not versioned, by the maintainer's decision.** Every build before the
     one that added the array refuses a shared archive newer than it knows when
     it is opened from the share sheet or "Open with" (its Import screen still

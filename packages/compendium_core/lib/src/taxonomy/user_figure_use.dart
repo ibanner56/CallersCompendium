@@ -204,6 +204,19 @@ Figure _mapLeaf(Figure figure, Figure Function(Figure leaf) transform) {
   return figure.copyWith(params: {...figure.params, 'figures': mapped});
 }
 
+/// [figures] with each attached use of a figure in [idMap] pointing at its
+/// new id, inside containers too; the same list when none does. Only the
+/// reference changes, so each use stays attached.
+List<Figure> remapUserFigureUsesIn(
+  List<Figure> figures,
+  Map<String, String> idMap,
+) => mapFigureLeaves(figures, (figure) {
+  final use = userFigureUseOf(figure);
+  final to = use == null || !use.attached ? null : idMap[use.id];
+  if (to == null) return figure;
+  return figure.copyWith(params: {...figure.params, userFigureRefKey: to});
+});
+
 /// The ids of the figures of your own [figures] use, inside containers too.
 /// Detached uses count for nothing.
 Set<String> userFigureIdsUsedBy(Iterable<Figure> figures) {

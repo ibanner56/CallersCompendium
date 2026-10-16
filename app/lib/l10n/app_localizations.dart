@@ -12668,6 +12668,84 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Seed shorthands} =1{Seed 1 shorthand} other{Seed {count} shorthands}}'**
   String importShorthandSeedConfirm(int count);
 
+  /// Title of the step, after a shared file is imported, that offers the new figures of the sender's own (#1023) that its dances use.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures in this file'**
+  String get importUserFiguresTitle;
+
+  /// Intro on the shared-figures step. A use of a figure the recipient doesn't add reads as the line stored with it.
+  ///
+  /// In en, this message translates to:
+  /// **'The dances you imported use figures the sender made. Choose what to add to your Glossary. A dance whose figure you don\'t add shows the line it was shared with.'**
+  String get importUserFiguresIntro;
+
+  /// Section header on the shared-figures step: figures this device has none of.
+  ///
+  /// In en, this message translates to:
+  /// **'New to you'**
+  String get importUserFiguresNewHeader;
+
+  /// Section header on the shared-figures step: figures this device has, with different content.
+  ///
+  /// In en, this message translates to:
+  /// **'Different from yours'**
+  String get importUserFiguresDiffersHeader;
+
+  /// Section header on the shared-figures step: figures whose id is taken here by another kind of entry, or by a figure the user deleted, so they are added under a new id.
+  ///
+  /// In en, this message translates to:
+  /// **'Added as a copy'**
+  String get importUserFiguresCopyHeader;
+
+  /// Note under each figure in the 'Added as a copy' section.
+  ///
+  /// In en, this message translates to:
+  /// **'This device has used its id before, so it is added under a new one. The dances you imported use the copy.'**
+  String get importUserFiguresCopyNote;
+
+  /// Section header on the shared-figures step: figures this device already has, unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Already in your Glossary'**
+  String get importUserFiguresSameHeader;
+
+  /// Note under a shared figure whose name clashes with a move, a dialect's name, a shorthand or another entry on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'Its name is already taken here, so your Glossary will mark it Rename needed.'**
+  String get importUserFiguresNameTaken;
+
+  /// Choice for a shared figure that differs from the user's own: keep the user's version.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep mine'**
+  String get importUserFiguresKeepMine;
+
+  /// Choice for a shared figure that differs from the user's own: replace it with the sender's version. The user's notes on it are kept.
+  ///
+  /// In en, this message translates to:
+  /// **'Use theirs'**
+  String get importUserFiguresUseTheirs;
+
+  /// Button on the shared-figures step that adds nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get importUserFiguresSkip;
+
+  /// Confirm button on the shared-figures step; {count} is how many figures it adds or replaces.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Done} =1{Apply 1 change} other{Apply {count} changes}}'**
+  String importUserFiguresConfirm(int count);
+
+  /// Snackbar after the shared-figures step when some figures could not be stored (for example, the Glossary is full); {count} is how many.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 figure could not be added to your Glossary.} other{{count} figures could not be added to your Glossary.}}'**
+  String importUserFiguresFailed(int count);
+
   /// Snackbar shown after shorthands are seeded; {count} is how many were added.
   ///
   /// In en, this message translates to:

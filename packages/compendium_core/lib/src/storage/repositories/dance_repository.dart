@@ -1257,6 +1257,41 @@ class DanceRepository {
     );
   }
 
+  /// Points each attached use, in the dances [danceIds], of one of the user's
+  /// figures in [idMap] at its new id (#1023, plan C12): what an import does
+  /// when it adds a shared figure as a copy, so the dances it brought keep
+  /// using that figure rather than whatever this device holds under the old
+  /// id. Only the reference changes: the stored line, and so its check, stay
+  /// as they were, which keeps each use attached.
+  ///
+  /// A dance in the Trash, unknown, or not using any of them is not written.
+  /// Each dance changed is written once, stamped [now]; an automatic write,
+  /// so it never cancels a peer's pending deletion. Returns the number of
+  /// dances changed.
+  Future<int> remapUserFigureUses(
+    Iterable<String> danceIds,
+    Map<String, String> idMap, {
+    required DateTime now,
+  }) async {
+    assertUtc(now, 'now');
+    if (idMap.isEmpty) return 0;
+    return _updateMany(
+      danceIds,
+      (dance) {
+        final figures = switch (dance.figuresSource) {
+          DecodedFigures(:final figures) => figures,
+          UnreadableFigures() => null,
+        };
+        if (figures == null) return null;
+        final mapped = remapUserFigureUsesIn(figures, idMap);
+        if (identical(mapped, figures)) return null;
+        return dance.copyWith(figures: mapped, updatedAt: now);
+      },
+      rebuildDerived: true,
+      localUserEdit: false,
+    );
+  }
+
   List<Figure> _leafFigures(Figure figure) {
     if (!figure.isContainer || figure.subFigures.isEmpty) return [figure];
     return [for (final child in figure.subFigures) ..._leafFigures(child)];

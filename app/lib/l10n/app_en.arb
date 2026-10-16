@@ -11015,6 +11015,68 @@
       }
     }
   },
+  "importUserFiguresTitle": "Figures in this file",
+  "@importUserFiguresTitle": {
+    "description": "Title of the step, after a shared file is imported, that offers the new figures of the sender's own (#1023) that its dances use."
+  },
+  "importUserFiguresIntro": "The dances you imported use figures the sender made. Choose what to add to your Glossary. A dance whose figure you don't add shows the line it was shared with.",
+  "@importUserFiguresIntro": {
+    "description": "Intro on the shared-figures step. A use of a figure the recipient doesn't add reads as the line stored with it."
+  },
+  "importUserFiguresNewHeader": "New to you",
+  "@importUserFiguresNewHeader": {
+    "description": "Section header on the shared-figures step: figures this device has none of."
+  },
+  "importUserFiguresDiffersHeader": "Different from yours",
+  "@importUserFiguresDiffersHeader": {
+    "description": "Section header on the shared-figures step: figures this device has, with different content."
+  },
+  "importUserFiguresCopyHeader": "Added as a copy",
+  "@importUserFiguresCopyHeader": {
+    "description": "Section header on the shared-figures step: figures whose id is taken here by another kind of entry, or by a figure the user deleted, so they are added under a new id."
+  },
+  "importUserFiguresCopyNote": "This device has used its id before, so it is added under a new one. The dances you imported use the copy.",
+  "@importUserFiguresCopyNote": {
+    "description": "Note under each figure in the 'Added as a copy' section."
+  },
+  "importUserFiguresSameHeader": "Already in your Glossary",
+  "@importUserFiguresSameHeader": {
+    "description": "Section header on the shared-figures step: figures this device already has, unchanged."
+  },
+  "importUserFiguresNameTaken": "Its name is already taken here, so your Glossary will mark it Rename needed.",
+  "@importUserFiguresNameTaken": {
+    "description": "Note under a shared figure whose name clashes with a move, a dialect's name, a shorthand or another entry on this device."
+  },
+  "importUserFiguresKeepMine": "Keep mine",
+  "@importUserFiguresKeepMine": {
+    "description": "Choice for a shared figure that differs from the user's own: keep the user's version."
+  },
+  "importUserFiguresUseTheirs": "Use theirs",
+  "@importUserFiguresUseTheirs": {
+    "description": "Choice for a shared figure that differs from the user's own: replace it with the sender's version. The user's notes on it are kept."
+  },
+  "importUserFiguresSkip": "Skip",
+  "@importUserFiguresSkip": {
+    "description": "Button on the shared-figures step that adds nothing."
+  },
+  "importUserFiguresConfirm": "{count, plural, =0{Done} =1{Apply 1 change} other{Apply {count} changes}}",
+  "@importUserFiguresConfirm": {
+    "description": "Confirm button on the shared-figures step; {count} is how many figures it adds or replaces.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importUserFiguresFailed": "{count, plural, =1{1 figure could not be added to your Glossary.} other{{count} figures could not be added to your Glossary.}}",
+  "@importUserFiguresFailed": {
+    "description": "Snackbar after the shared-figures step when some figures could not be stored (for example, the Glossary is full); {count} is how many.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "importShorthandSeedComplete": "{count, plural, =1{Seeded 1 shorthand} other{Seeded {count} shorthands}}",
   "@importShorthandSeedComplete": {
     "description": "Snackbar shown after shorthands are seeded; {count} is how many were added.",
