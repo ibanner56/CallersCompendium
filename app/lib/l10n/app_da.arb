@@ -2416,6 +2416,14 @@
   "@settingsDefaultsMoveDefaultsTitle": {
     "x-sourceSha256": "4d4f2c71c774263fca7f0a1afc94205e923e171d1e05e05354ebfb9a9bc954bf"
   },
+  "settingsDefaultsUserFiguresTitle": "Dine figurers standarder",
+  "@settingsDefaultsUserFiguresTitle": {
+    "x-sourceSha256": "7a5620524eb36c2842c797c0ef3a21a9e023f4529ee7592b615f199808b2c560"
+  },
+  "settingsDefaultsUserFiguresSubtitle": "Hver af dine nye figurer har sine egne standarder: de værdier, den starter med, og dens takter. Vælg en for at ændre dem.",
+  "@settingsDefaultsUserFiguresSubtitle": {
+    "x-sourceSha256": "cd250d812df72953f432f85e544a5337cc20ae01885e63913dca1dfa998267ac"
+  },
   "settingsDefaultsMoveDefaultsSubtitle": "Foretrukne parameterværdier der anvendes, når du indsætter en bevægelse under dansinputet. Disse tilsidesætter bevægelsens indbyggede standarder; du kan stadig ændre enhver parameter på figuren bagefter. Ikke-angivne bevægelser og parametre bruger de indbyggede standarder.",
   "@settingsDefaultsMoveDefaultsSubtitle": {
     "x-sourceSha256": "eb0ef63bbf86910d132d779d7a5c8fffd8bd0a40e61515ca13daea08204729e3"
@@ -9590,9 +9598,17 @@
   "@glossaryCustomExample": {
     "x-sourceSha256": "d029f87e3d80f8fd9b1be67c7426b4cc1ff47b4a9d0a8461c826a59d8c5eb6cd"
   },
-  "glossaryCustomDeleteUses": "{count, plural, =0{Ingen dans bruger den. Den fjernes fra din ordliste.} =1{1 dans bruger den. Den fjernes fra din ordliste, og dansen beholder sin nuværende ordlyd som almindelig tekst.} other{{count} danse bruger den. Den fjernes fra din ordliste, og dansene beholder deres nuværende ordlyd som almindelig tekst.}}",
+  "glossaryCustomDeleteTrash": "{count, plural, =1{1 dans i papirkurven bruger den og beholder den linje, den sidst gemte.} other{{count} danse i papirkurven bruger den og beholder de linjer, de sidst gemte.}}",
+  "@glossaryCustomDeleteTrash": {
+    "x-sourceSha256": "4e9c8016ce24a743d4aef7a908d315920d577cf220737a4a863d495934620b9e"
+  },
+  "glossaryCustomDeleteDefaults": "Dine standardfigurer i Indstillinger bruger den og beholder dens nuværende ordlyd som almindelig tekst.",
+  "@glossaryCustomDeleteDefaults": {
+    "x-sourceSha256": "60f9d9b3c005db0b184ac777d688e5bdae100ee989fa1418bf1490b7f9475e7e"
+  },
+  "glossaryCustomDeleteUses": "{count, plural, =0{Ingen dans i din samling bruger den. Den fjernes fra din ordliste.} =1{1 dans bruger den. Den fjernes fra din ordliste, og dansen beholder sin nuværende ordlyd som almindelig tekst.} other{{count} danse bruger den. Den fjernes fra din ordliste, og dansene beholder deres nuværende ordlyd som almindelig tekst.}}",
   "@glossaryCustomDeleteUses": {
-    "x-sourceSha256": "dcf33d6b0593707bf881496eed5b4701d8c69b24f391307e51e9990421e3e214"
+    "x-sourceSha256": "c26dae9673781a119531b3beaa3e8435e9dc2cce5a817010d981d67553f28cbc"
   },
   "danceEditorUserFigureUnavailable": "Din figur er ikke tilgængelig, så denne række beholder den ordlyd, den har.",
   "@danceEditorUserFigureUnavailable": {

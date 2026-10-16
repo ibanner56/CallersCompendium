@@ -2385,6 +2385,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDefaultsMoveDefaultsTitle => 'Move defaults';
 
   @override
+  String get settingsDefaultsUserFiguresTitle => 'Your figures\' defaults';
+
+  @override
+  String get settingsDefaultsUserFiguresSubtitle =>
+      'Each of your new figures keeps its own defaults: the values it starts with and its beats. Choose one to change them.';
+
+  @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
       'Preferred parameter values applied when you insert a move while entering a dance. These override that move\'s built-in defaults; you can still change any parameter on the figure afterward. Unset moves and parameters use the built-in defaults.';
 
@@ -9580,6 +9587,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get glossaryCustomExample => 'Example';
 
   @override
+  String glossaryCustomDeleteTrash(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dances in the Trash use it, and keep the lines they last stored.',
+      one: '1 dance in the Trash uses it, and keeps the line it last stored.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get glossaryCustomDeleteDefaults =>
+      'Your default figures in Settings use it, and keep its current wording as plain text.';
+
+  @override
   String glossaryCustomDeleteUses(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -9588,7 +9611,8 @@ class AppLocalizationsEn extends AppLocalizations {
           '$count dances use it. It\'s removed from your Glossary, and those dances keep their current wording as plain text.',
       one:
           '1 dance uses it. It\'s removed from your Glossary, and that dance keeps its current wording as plain text.',
-      zero: 'No dance uses it. It\'s removed from your Glossary.',
+      zero:
+          'No dance in your collection uses it. It\'s removed from your Glossary.',
     );
     return '$_temp0';
   }
