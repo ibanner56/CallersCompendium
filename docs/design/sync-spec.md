@@ -3539,6 +3539,12 @@ the whole record: a field it no longer carries is gone everywhere. Decided by
 Isaac (maintainer) in planning this change, including that a known-but-private
 field is kept like an unknown one.
 
+A record this device shares none of has no body to put kept parts back into. A
+custom-field definition made private (`shareable: false`) projects to an empty
+body (§6.6), so what was kept for it MUST NOT be merged into one and published;
+the kept parts are discarded, as for a record that no longer exists. Making the
+definition shareable again publishes it as this device holds it.
+
 A part is kept where it can be put back exactly: a key at the top level, a key
 inside a nested object (`formation`, `provenance`), or a key inside an item of
 a list whose items carry a stable id (`links` and `slots` by `id`,

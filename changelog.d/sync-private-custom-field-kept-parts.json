@@ -1,0 +1,14 @@
+{
+  "id": "sync-private-custom-field-kept-parts",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Device Sync no longer gets stuck after you make a custom field private when a device running a newer version of the app had shared extra details about it. The private field is simply no longer shared."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "A private custom-field definition projects to an empty body whatever was kept for it for a newer version (spec section 6.7). The kept parts were merged into that empty body, which made the snapshot throw \"body.id must be a non-empty string\" on every pass; they are now swept with the record."
+    ]
+  }
+}
