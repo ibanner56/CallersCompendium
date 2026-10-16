@@ -13,6 +13,17 @@ final _stamp = DateTime.utc(2026, 7, 15, 12);
 
 extension on SyncRecordBlob {
   SyncRecordAddress get address => (kind: kind, recordId: id);
+
+  /// This blob as a newer build would send it: the same record plus a
+  /// top-level field this build does not know.
+  SyncRecordBlob get withKept => SyncRecordBlob(
+    kind: kind,
+    id: id,
+    updatedAt: updatedAt,
+    deletedAt: deletedAt,
+    existenceAt: existenceAt,
+    body: {...body, 'addedLater': 'kept'},
+  );
 }
 
 void main() {
@@ -181,22 +192,12 @@ void main() {
     // candidate builder puts it back. Without it the two copies differ in a
     // field neither user can see, and the pair is queued for a review that has
     // nothing to decide.
-    SyncRecordBlob newerTag(String id) {
-      final blob = syncRecordBlobForEntity(
-        SyncRecordKind.tag,
-        Tag(id: id, name: 'Same Tag'),
-        updatedAt: _stamp,
-        existenceAt: _stamp,
-      )!;
-      return SyncRecordBlob(
-        kind: SyncRecordKind.tag,
-        id: id,
-        updatedAt: blob.updatedAt,
-        deletedAt: null,
-        existenceAt: blob.existenceAt,
-        body: {...blob.body, 'addedLater': 'kept'},
-      );
-    }
+    SyncRecordBlob newerTag(String id) => syncRecordBlobForEntity(
+      SyncRecordKind.tag,
+      Tag(id: id, name: 'Same Tag'),
+      updatedAt: _stamp,
+      existenceAt: _stamp,
+    )!.withKept;
 
     await apply(newerTag('t-a'));
     expect(await repositories.syncLocal.listRetainedSyncFields(), hasLength(1));
@@ -253,16 +254,7 @@ void main() {
         updatedAt: _stamp,
         existenceAt: _stamp,
       )!;
-      await apply(
-        SyncRecordBlob(
-          kind: SyncRecordKind.dance,
-          id: id,
-          updatedAt: blob.updatedAt,
-          deletedAt: null,
-          existenceAt: blob.existenceAt,
-          body: {...blob.body, 'addedLater': 'kept'},
-        ),
-      );
+      await apply(blob.withKept);
       expect(
         await repositories.syncLocal.getRetainedSyncFields(
           kind: SyncRecordKind.dance,
@@ -299,9 +291,18 @@ void main() {
     test(
       'the dropped duplicate\'s own kept parts are not carried over',
       () async {
-        // The merged body is the survivor's whole record: what it keeps replaces
-        // what the survivor and the duplicates kept before, so a duplicate's
-        // parts do not turn up on the survivor.
+        // This pins the choice documented in `_applyDanceDedupeMerge`: the
+        // merged body is the survivor's whole record, so what it keeps replaces
+        // what the survivor and the duplicates kept before, and a duplicate's
+        // parts do not turn up on the survivor. It is the implementation's
+        // choice, not a spec rule and not a maintainer decision. It is in
+        // tension with sync-spec's "A row MUST follow its record when two
+        // identities become one", which can be read as the duplicate's row
+        // moving onto the survivor; if that reading is the intended one, this
+        // test and the `_storeRetained` call change together.
+        //
+        // Only top-level parts are covered. Merged link, custom-field and
+        // citation items that carry nested unknown keys are not exercised here.
         await repositories.dances.create(dance('a-survivor'));
         await applyKeptDance('z-duplicate');
 
@@ -336,10 +337,18 @@ void main() {
 
   test('a conflict that now looks like this device\'s copy, kept part '
       'included, is not offered', () async {
-    // A setting this build syncs, so the kept part sits in the same body as
-    // the value. What is compared is what this device shares, kept part and
-    // all (spec §6.7): a version that differs from it only in a field nobody
-    // here can see is not a choice.
+    // The resolver drops a version that looks the same as this device's copy.
+    // Spec §6.7 says that comparison draws only on the part this build syncs
+    // (decided by Isaac), which this test does not assert. It works only
+    // because for `setting` the visible-fields list is null
+    // (`syncUserVisibleFields`), so every non-identity key, a kept one
+    // included, counts as visible, and the resolver therefore has to compare
+    // this device's copy with its kept part put back.
+    //
+    // Finding F4 (branch sync-kept-parts-not-visible-differences) strips kept
+    // parts in `syncUserVisibleBody`. Once that lands, mutating the resolver to
+    // compare a stripped copy becomes equivalent for settings and this test can
+    // no longer fail: remove it with that change.
     const address = (kind: SyncRecordKind.setting, recordId: 'custom_dialects');
     SyncMergeCandidate peerCopy(String dialect) => SyncMergeCandidate.fromBlob(
       SyncRecordBlob(
@@ -387,14 +396,7 @@ void main() {
           updatedAt: at,
           existenceAt: _stamp,
         )!;
-        return SyncRecordBlob(
-          kind: SyncRecordKind.tag,
-          id: id,
-          updatedAt: at,
-          deletedAt: null,
-          existenceAt: blob.existenceAt,
-          body: {...blob.body, if (kept) 'addedLater': 'kept'},
-        );
+        return kept ? blob.withKept : blob;
       }
 
       await apply(tag('t-z', _stamp.add(const Duration(hours: 2)), kept: true));
