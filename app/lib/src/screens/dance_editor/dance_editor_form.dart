@@ -38,6 +38,7 @@ class DanceEditorForm extends StatelessWidget {
     this.freeTextEntry = false,
     this.shorthandMappings,
     this.compoundShorthands,
+    this.userFigureShorthands,
     required this.dialect,
     required this.isNew,
     required this.authorOptions,
@@ -80,6 +81,11 @@ class DanceEditorForm extends StatelessWidget {
   /// shorthands and the parser while Custom Figures is on. A figure shorthand
   /// with the same token wins.
   final CompoundShorthands? compoundShorthands;
+
+  /// The user's shorthands for their new figures (#1023), consulted with the
+  /// compound shorthands, after them, while Custom Figures is on. A figure
+  /// shorthand with the same token wins here too.
+  final UserFigureShorthands? userFigureShorthands;
   final Dialect dialect;
   final bool isNew;
 
@@ -326,7 +332,9 @@ class DanceEditorForm extends StatelessWidget {
                       CanonicalDiscouragedTermsScope.of(context),
                   onAddFreeText: controller.insertFreeTextFigures,
                   onSubmitCompoundShorthand:
-                      compoundShorthands == null || !customFiguresShown(context)
+                      (compoundShorthands == null &&
+                              userFigureShorthands == null) ||
+                          !customFiguresShown(context)
                       ? null
                       : (line) {
                           // Tokens are kept unique, but two devices can each
@@ -334,9 +342,15 @@ class DanceEditorForm extends StatelessWidget {
                           if (shorthandMappings?.resolve(line) != null) {
                             return false;
                           }
-                          final shorthand = compoundShorthands!.resolve(line);
-                          return shorthand != null &&
-                              controller.insertCompoundShorthand(shorthand);
+                          if (compoundShorthands?.resolve(line)
+                              case final shorthand?) {
+                            return controller.insertCompoundShorthand(
+                              shorthand,
+                            );
+                          }
+                          final mine = userFigureShorthands?.resolve(line);
+                          return mine != null &&
+                              controller.insertUserFigureShorthand(mine);
                         },
                   onDelete: controller.deleteFigure,
                   onDuplicate: controller.duplicateFigure,

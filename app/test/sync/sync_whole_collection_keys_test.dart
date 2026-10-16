@@ -20,6 +20,7 @@ void main() {
       kCustomDialectsKey,
       kCustomThemesKey,
       kShorthandMappingsKey,
+      kUserFigureShorthandsKey,
       kWalkthroughSnippetsKey,
     });
   });
