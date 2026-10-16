@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart' show testFigure;
 import 'package:test/test.dart';
 
 /// The program matrix and figures of your own (#1023): one column per figure
@@ -38,7 +39,7 @@ void main() {
       );
 
   Figure custom(String text) =>
-      Figure(move: customMove, params: {'text': text});
+      testFigure(move: customMove, params: {'text': text});
 
   Dance dance(String id, List<Figure> figures) => Dance(
     id: id,

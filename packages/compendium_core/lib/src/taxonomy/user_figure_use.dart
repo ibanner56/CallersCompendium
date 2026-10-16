@@ -39,21 +39,22 @@ const Set<String> userFigureReferenceKeys = {
   userFigureCheckKey,
 };
 
-/// The prefix of a settings key that names one figure of your own, rather
-/// than a built-in move: a matrix column id, and (from a later part of #1023)
-/// a dialect's `moves`/`moveWordings` key. The rest of the key is the
+/// The prefix of an id, inside a setting's value, that names one figure of
+/// your own rather than a built-in move: a matrix column id, and (from a later
+/// part of #1023) a dialect's `moves`/`moveWordings` key. No settings key
+/// itself starts with it. The rest of the key is the
 /// figure's id ([userFigureKeyFor]).
 ///
 /// Such a key is never a move: search's reverse maps skip it
 /// ([isUserFigureKey]), or a dialect's wording for a figure of your own
 /// would rewrite a query's move to `userFigure:<id>`, which no row has.
-const String userFigureKeyPrefix = 'userFigure:';
+const String userFigureRefPrefix = 'userFigure:';
 
 /// The settings key for the figure of your own with [id].
-String userFigureKeyFor(String id) => '$userFigureKeyPrefix$id';
+String userFigureKeyFor(String id) => '$userFigureRefPrefix$id';
 
-/// Whether [key] names a figure of your own ([userFigureKeyPrefix]).
-bool isUserFigureKey(String key) => key.startsWith(userFigureKeyPrefix);
+/// Whether [key] names a figure of your own ([userFigureRefPrefix]).
+bool isUserFigureKey(String key) => key.startsWith(userFigureRefPrefix);
 
 /// Longest id a use may refer to: a UUID, with room to spare.
 const int _maxRefLength = 64;

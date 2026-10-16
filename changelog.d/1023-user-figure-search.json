@@ -10,7 +10,7 @@
   "core": {
     "added": [
       "`buildProgramMatrix` and `columnKeyForFigure` take a `UserFigureCatalog`: a use that renders live is keyed `userFigure:<id>` in a `MatrixColumnKind.userFigure` column, and `userFigureColumnCatalog` lists one per figure (#1023).",
-      "`userFigureKeyPrefix`, `userFigureKeyFor` and `isUserFigureKey` name a figure of your own in a settings key (#1023)."
+      "`userFigureRefPrefix`, `userFigureKeyFor` and `isUserFigureKey` name a figure of your own in a dialect key or a matrix column id (#1023)."
     ],
     "changed": [
       "Search's move reverse maps skip a dialect key naming a figure of your own, and a `userFigure` id in a figure query binds as given rather than being canonicalized (#1023)."
