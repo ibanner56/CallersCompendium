@@ -83,18 +83,18 @@ void main() {
       expect(shorthands.mappings, isEmpty);
 
       applyInbound = true;
-      await tester.runAsync(syncController.syncNow);
+      final pass = syncController.syncNow();
+      await tester.pumpAndSettle();
+      await pass;
       await tester.pumpAndSettle();
 
       final stored = await tester.runAsync(
         () => appData.repositories.settings.get(kShorthandMappingsKey),
       );
       expect(stored, isNotNull, reason: 'the pass did write the database');
-      expect(
-        shorthands.mappings.map((m) => m.token),
-        ['bs'],
-        reason: 'the live controller must see what the pass applied',
-      );
+      expect(shorthands.mappings.map((m) => m.token), [
+        'bs',
+      ], reason: 'the live controller must see what the pass applied');
 
       // The reload only reads; it must not look like a local edit and start
       // another pass, or two devices would bounce passes between them.

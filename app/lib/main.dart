@@ -113,6 +113,7 @@ import 'src/sync/sync_controller.dart';
 import 'src/sync/sync_coordinator.dart';
 import 'src/sync/sync_network.dart';
 import 'src/sync/sync_scope.dart';
+import 'src/sync/synced_settings_reload.dart';
 import 'src/sync/sync_runtime.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
@@ -824,6 +825,19 @@ class _CompendiumAppState extends State<CompendiumApp>
       onMacosShutdown: _windowService.closeForUpdate,
       temporaryDirectoryProvider: widget.updateTemporaryDirectoryProvider,
     );
+    _syncedSettingsReload = SyncedSettingsReload(
+      reload: () async {
+        // A reload a database replacement overtook has nothing left to load
+        // into: the controllers it would reach are disposed.
+        if (!mounted || !identical(appData, _appData)) return;
+        await _loadPreferences(includeDeviceState: false);
+      },
+      // Any read on the main connection will do: see [SyncedSettingsReload].
+      fence: () => _guardedControllerLoad(
+        'sync.settings_reload_fence',
+        () => appData.repositories.settings.contains(kShorthandMappingsKey),
+      ),
+    );
     _syncController = SyncController(
       settings: _appData.repositories.settings,
       coordinator: () => _syncCoordinator,
@@ -833,6 +847,7 @@ class _CompendiumAppState extends State<CompendiumApp>
       pairingProbeFactory: widget.syncPairingProbeFactory,
       classifier: widget.syncNetworkClassifier,
       debounce: widget.syncDebounce,
+      onSettingsApplied: () => unawaited(_reloadSyncedSettings()),
     );
     // The production coordinator invalidates the main connection's live
     // queries before its pass's own `coordinator.trigger()` call returns
@@ -854,7 +869,11 @@ class _CompendiumAppState extends State<CompendiumApp>
     _syncChangeSubscription = _appData.repositories.db.tableUpdates().listen((
       updates,
     ) {
-      _syncController.notifyTableUpdates({for (final u in updates) u.table});
+      final tables = {for (final u in updates) u.table};
+      if (tables.contains('settings')) {
+        _syncedSettingsReload.noteSettingsWrite();
+      }
+      _syncController.notifyTableUpdates(tables);
     });
   }
 
@@ -1644,7 +1663,11 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// default theme or language while the reads are in flight. (Synchronous
   /// notifier listeners still see the reset values for the instant before the
   /// restored ones are assigned.)
-  Future<void> _loadPreferences() async {
+  ///
+  /// [includeDeviceState] `false` leaves out the update and Device Sync
+  /// controllers, whose keys are all `deviceLocal` or `deviceScoped`: no sync
+  /// pass carries them, so a reload after one has nothing to refresh there.
+  Future<void> _loadPreferences({bool includeDeviceState = true}) async {
     // Phase 1: read everything.
     // Load the persisted dialect library (custom dialects + active-name ref),
     // migrating any legacy single-dialect blob one time. A failure leaves the
@@ -1690,8 +1713,13 @@ class _CompendiumAppState extends State<CompendiumApp>
       'startup.user_figures_start',
       _userFigures.start,
     );
-    await _guardedControllerLoad('startup.update_load', _updateController.load);
-    await _guardedControllerLoad('startup.sync_load', _syncController.load);
+    if (includeDeviceState) {
+      await _guardedControllerLoad(
+        'startup.update_load',
+        _updateController.load,
+      );
+      await _guardedControllerLoad('startup.sync_load', _syncController.load);
+    }
     // Phase 2: reset, then apply every decoded value. Synchronous — no `await`
     // from here to the end of the method.
     _resetAppPreferenceNotifiers();
@@ -1726,6 +1754,23 @@ class _CompendiumAppState extends State<CompendiumApp>
   Future<void> reloadFromSettings() async {
     await _loadPreferences();
     if (mounted) setState(() {});
+  }
+
+  /// Reloads the live preferences and controllers after a sync pass wrote
+  /// `settings` rows (#1828). See [SyncedSettingsReload] for the coalescing
+  /// and the guard against a racing local edit. Created with the
+  /// database-backed services, so a replaced database gets its own.
+  late SyncedSettingsReload _syncedSettingsReload;
+
+  Future<void> _reloadSyncedSettings() async {
+    final appData = _appData;
+    final reload = _syncedSettingsReload;
+    try {
+      await reload.request();
+    } on Object catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'sync.settings_reload');
+    }
+    if (mounted && identical(appData, _appData)) setState(() {});
   }
 
   @override
