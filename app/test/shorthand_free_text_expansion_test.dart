@@ -97,6 +97,10 @@ void main() {
       find.byKey(const ValueKey('figure-free-text-field')),
       'NS',
     );
+    // The buttons sit beneath the field, which can be below the fold here.
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('figure-free-text-submit')),
+    );
     await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
     await tester.pumpAndSettle();
 
@@ -131,7 +135,11 @@ void main() {
         find.byKey(const ValueKey('figure-free-text-field')),
         'Neighbor swing',
       );
-      await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
+      // The buttons sit beneath the field, which can be below the fold here.
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('figure-free-text-submit')),
+    );
+    await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
       await tester.pumpAndSettle();
 
       final stored = danceFiguresTemplateFromStored(

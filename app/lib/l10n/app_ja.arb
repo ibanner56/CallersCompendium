@@ -8484,36 +8484,15 @@
   },
   "importShorthandSeedUnreadableNote": "{count, plural, other{{count}件のコールボタンは、テキストをフィギュアとして読み取れないため除外されました。}}",
   "@importShorthandSeedUnreadableNote": {
-    "description": "Note on the shorthand-seeding step: {count} call buttons in the file were left out because their text does not read as figures.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
+    "x-sourceSha256": "0ec6d6e0d9fbfd5fc20298be7553040b5c2ad552b7114d7c8e7e5d97e77e2e28"
   },
   "importShorthandSeedRoomHint": "{free, plural, =0{ショートハンドの一覧がいっぱい（{max}件）のため、追加できません。} other{あと{free}件追加できます（上限{max}件）。選択したままの先頭{free}件だけが追加されます。}}",
   "@importShorthandSeedRoomHint": {
-    "description": "Hint on the shorthand-seeding step when fewer shorthand slots are free than there are candidates; {free} is the free slots, {max} the limit.",
-    "placeholders": {
-      "free": {
-        "type": "int"
-      },
-      "max": {
-        "type": "int"
-      }
-    }
+    "x-sourceSha256": "2486bd93c8a033677b79c781f5a84d088bf2c106a2af5d1539e6e21f8442a368"
   },
   "importShorthandSeedLimitSkipped": "{skipped, plural, other{一覧がいっぱい（上限{max}件）のため、{skipped}件のショートハンドは追加されませんでした。追加するには、いずれかを削除してください。}}",
   "@importShorthandSeedLimitSkipped": {
-    "description": "Second line of the snackbar after seeding hit the shorthand limit; {skipped} is how many chosen shorthands were not added, {max} the limit.",
-    "placeholders": {
-      "skipped": {
-        "type": "int"
-      },
-      "max": {
-        "type": "int"
-      }
-    }
+    "x-sourceSha256": "e7d4eb6a17610c93cd026e329d45fc8c38bc0bd0e121c083b2d852d61de0b4df"
   },
   "themeEditorTitle": "テーマを編集",
   "@themeEditorTitle": {

@@ -8484,36 +8484,15 @@
   },
   "importShorthandSeedUnreadableNote": "{count, plural, =1{1 opkaldsknap blev udeladt, fordi dens tekst ikke kan læses som figurer.} other{{count} opkaldsknapper blev udeladt, fordi deres tekst ikke kan læses som figurer.}}",
   "@importShorthandSeedUnreadableNote": {
-    "description": "Note on the shorthand-seeding step: {count} call buttons in the file were left out because their text does not read as figures.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
+    "x-sourceSha256": "0ec6d6e0d9fbfd5fc20298be7553040b5c2ad552b7114d7c8e7e5d97e77e2e28"
   },
   "importShorthandSeedRoomHint": "{free, plural, =0{Din liste over kortformer er fuld ({max}), så intet kan tilføjes.} =1{Der er plads til 1 kortform mere (grænse {max}). Kun den første, du lader være markeret, tilføjes.} other{Der er plads til {free} kortformer mere (grænse {max}). Kun de første {free}, du lader være markeret, tilføjes.}}",
   "@importShorthandSeedRoomHint": {
-    "description": "Hint on the shorthand-seeding step when fewer shorthand slots are free than there are candidates; {free} is the free slots, {max} the limit.",
-    "placeholders": {
-      "free": {
-        "type": "int"
-      },
-      "max": {
-        "type": "int"
-      }
-    }
+    "x-sourceSha256": "2486bd93c8a033677b79c781f5a84d088bf2c106a2af5d1539e6e21f8442a368"
   },
   "importShorthandSeedLimitSkipped": "{skipped, plural, =1{1 kortform blev ikke tilføjet, fordi listen er fuld (grænse {max}). Slet en for at tilføje en ny.} other{{skipped} kortformer blev ikke tilføjet, fordi listen er fuld (grænse {max}). Slet en for at tilføje en ny.}}",
   "@importShorthandSeedLimitSkipped": {
-    "description": "Second line of the snackbar after seeding hit the shorthand limit; {skipped} is how many chosen shorthands were not added, {max} the limit.",
-    "placeholders": {
-      "skipped": {
-        "type": "int"
-      },
-      "max": {
-        "type": "int"
-      }
-    }
+    "x-sourceSha256": "e7d4eb6a17610c93cd026e329d45fc8c38bc0bd0e121c083b2d852d61de0b4df"
   },
   "themeEditorTitle": "Rediger tema",
   "@themeEditorTitle": {

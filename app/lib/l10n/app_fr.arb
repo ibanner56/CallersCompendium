@@ -8484,36 +8484,15 @@
   },
   "importShorthandSeedUnreadableNote": "{count, plural, =1{1 bouton d’appel a été ignoré, car son texte n’est pas lisible comme des figures.} other{{count} boutons d’appel ont été ignorés, car leur texte n’est pas lisible comme des figures.}}",
   "@importShorthandSeedUnreadableNote": {
-    "description": "Note on the shorthand-seeding step: {count} call buttons in the file were left out because their text does not read as figures.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
+    "x-sourceSha256": "0ec6d6e0d9fbfd5fc20298be7553040b5c2ad552b7114d7c8e7e5d97e77e2e28"
   },
   "importShorthandSeedRoomHint": "{free, plural, =0{Votre liste d’abréviations est pleine ({max}) : rien ne peut être ajouté.} =1{Il reste de la place pour 1 abréviation (limite {max}). Seule la première sélectionnée sera ajoutée.} other{Il reste de la place pour {free} abréviations (limite {max}). Seules les {free} premières sélectionnées seront ajoutées.}}",
   "@importShorthandSeedRoomHint": {
-    "description": "Hint on the shorthand-seeding step when fewer shorthand slots are free than there are candidates; {free} is the free slots, {max} the limit.",
-    "placeholders": {
-      "free": {
-        "type": "int"
-      },
-      "max": {
-        "type": "int"
-      }
-    }
+    "x-sourceSha256": "2486bd93c8a033677b79c781f5a84d088bf2c106a2af5d1539e6e21f8442a368"
   },
   "importShorthandSeedLimitSkipped": "{skipped, plural, =1{1 abréviation n’a pas été ajoutée car la liste est pleine (limite {max}). Supprimez-en une pour en ajouter une autre.} other{{skipped} abréviations n’ont pas été ajoutées car la liste est pleine (limite {max}). Supprimez-en une pour en ajouter une autre.}}",
   "@importShorthandSeedLimitSkipped": {
-    "description": "Second line of the snackbar after seeding hit the shorthand limit; {skipped} is how many chosen shorthands were not added, {max} the limit.",
-    "placeholders": {
-      "skipped": {
-        "type": "int"
-      },
-      "max": {
-        "type": "int"
-      }
-    }
+    "x-sourceSha256": "e7d4eb6a17610c93cd026e329d45fc8c38bc0bd0e121c083b2d852d61de0b4df"
   },
   "themeEditorTitle": "Modifier le thème",
   "@themeEditorTitle": {

@@ -56,7 +56,7 @@ void main() {
 
   /// Opens [ImportReviewScreen] over [usr], imports it, and taps Done on the
   /// result dialog, which brings up the shorthand seeding screen (#1819).
-  Future<void> _importToSeedScreen(
+  Future<void> importToSeedScreen(
     WidgetTester tester, {
     required CompendiumRepositories repos,
     required ShorthandMappingsController controller,
@@ -128,7 +128,7 @@ void main() {
     await tester.runAsync(controller.load);
     expect(controller.mappings, isEmpty);
 
-    await _importToSeedScreen(
+    await importToSeedScreen(
       tester,
       repos: repos,
       controller: controller,
@@ -160,7 +160,7 @@ void main() {
     addTearDown(controller.dispose);
     await tester.runAsync(controller.load);
 
-    await _importToSeedScreen(
+    await importToSeedScreen(
       tester,
       repos: repos,
       controller: controller,
@@ -216,7 +216,7 @@ void main() {
         maxShorthandMappings - 1,
       );
 
-      await _importToSeedScreen(
+      await importToSeedScreen(
         tester,
         repos: repos,
         controller: controller,
