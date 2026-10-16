@@ -15,12 +15,12 @@
 // which the dialect renderer turns into the user's terms at display time.
 // figure_glossary_test.dart holds every entry to that rule.
 //
-// Where an entry below cites "the maintainer", the maintainer gave that
-// direction in the session that produced #1765, and #1765's description
-// records it, in the list headed "Maintainer decisions on #695". It is not a
+// Where an entry below cites "the maintainer", #1765's description records the
+// direction, in the list headed "Maintainer decisions on #695". It is not a
 // comment on #695, and the description was written by the authoring session,
 // not by the maintainer.
-// The courtesy turn's rotation is also recorded in #1764's description.
+// The courtesy turn's rotation is also recorded in #1764's description, as a
+// decision given in the session that produced it.
 
 import 'figure_glossary.dart' show FigureDefinition;
 
@@ -135,8 +135,8 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
   // TCB "Courtesy turn" and its role1s' chain entry. The usual rotation
   // is counterclockwise; clockwise is the mirrored turn, chiefly after a
   // role1s' chain (the maintainer's direction, recorded in #1765 and #1764;
-  // the taxonomy default changes to match in #1764). The text says "usually"
-  // so it holds on either side of that change.
+  // the taxonomy default became counterclockwise in #1764, taxonomy v37). The
+  // text says "usually" because the mirrored turn is also a courtesy turn.
   'courtesy_turn': FigureDefinition(
     definition:
         'Two dancers side by side wheel around together, as a unit, to face the opposite way.',
@@ -280,7 +280,7 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     description:
         'Usually the return trip after a walk down the hall, taking about 8 beats. The figure can say who moves, which way they face, and how the lines finish, most often by bending into a ring of four.',
   ),
-  // TCB "Weave the line" (zig zag is the preferred name for it, per the
+  // TCB "Weave the line" (zig zag is TCB's weave the line, per the
   // maintainer, #1765); contra_taxonomy.dart `zig_zag` (who default partners,
   // slide default left, ender, 6 beats).
   'zig_zag': FigureDefinition(

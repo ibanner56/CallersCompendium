@@ -3719,9 +3719,9 @@ can neither apply nor keep (§6.7) is refused whole and reported with code
 figures, rather than `malformedRecord`. Both are what a newer build looks like
 to an older one, and the remedy is the same as a newer envelope's, so the
 status surface shows them, with `newerRecordKind` (§4.5), in one needs-you
-notice. The notice says how
-many records of each kind are waiting — "2 programs, 1 setting" rather than a
-bare item count — and lists only those records, apart from records skipped for
+notice. When it can count (see above),
+the notice says how many records of each kind are waiting — "2 programs, 1
+setting" rather than a bare item count — and lists only those records, apart from records skipped for
 any other reason; a dance refused for its figures is marked as having figures
 only a newer version can read, so the user learns what this build does not
 understand rather than only that it is behind.
@@ -4610,8 +4610,8 @@ is redeployed before any client emits the amended form, under the rule above.
 Blobs and manifests written from source at the earlier form of an unreleased
 `v` are development data. A store holding them is recreated, never
 interpreted. (Contributor process: the maintainer's direction of 2026-10-13,
-given in a session and recorded in the description of #1752; CONTRIBUTING.md,
-"Versioned formats".)
+recorded in the description of #1752; CONTRIBUTING.md, "Versioned
+formats".)
 
 ### 7.3 TTL and garbage collection
 
