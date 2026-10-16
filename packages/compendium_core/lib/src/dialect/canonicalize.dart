@@ -144,8 +144,10 @@ Substitutor _glossaryDiscouragedFor(Dialect dialect) {
 ///   `docs/design/dialect.md`);
 /// - under a dialect whose roles are "lead"/"follow", "leads"/"follows"
 ///   directly after a singular subject is the verb ("The robin follows the
-///   lark across" → "The role2 follows the role1 across"), where
-///   [canonicalizeText] would read it as the plural role.
+///   lark across" → "The role2 follows the role1 across", "The caller
+///   follows the music" is kept), where [canonicalizeText] would read it as
+///   the plural role. What counts as a singular subject is
+///   `RoleCanonicalizer`'s `_followsSingularSubject`.
 ///
 /// Everything else is [canonicalizeText]'s behaviour, so "leads cross +
 /// follows loop" still becomes "role1s cross + role2s loop".

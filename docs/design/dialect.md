@@ -273,10 +273,34 @@ and flag labels and text defaults — has its own variant of the chokepoint,
 - Under a dialect whose roles are "lead"/"follow", the plural form directly
   after a singular subject in the same clause is the verb, not the plural
   role: "The robin follows the lark across" stores `The role2 follows the
-  role1 across`. A singular subject is a singular role term or token, or a
-  dancer noun after a determiner ("your partner leads"); a bare dancer noun
-  ("swing partner follows cross") is not, so there `follows` is the role.
-  "leads cross + follows loop" still stores `role1s cross + role2s loop`.
+  role1 across`. A singular subject is a singular role term or token; a
+  pronoun ("It leads into a swing", "Everyone follows the leader", "a call
+  that follows the balance"); a dancer noun after a determiner ("your partner
+  leads"); or any other singular noun after a determiner **when a direction,
+  an object or a dancer word comes next** ("The caller follows the music",
+  "The line leads down the hall"). A bare noun ("swing partner follows cross",
+  "swing caller follows the music") is not a subject, so there `follows` is
+  the role. "leads cross + follows loop" still stores `role1s cross + role2s
+  loop`.
+
+  The exception for a singular subject was recorded as the maintainer's
+  (2026-10-14); the words it extends to beyond a role term and a dancer noun
+  (the pronouns and the open-noun rule) are a **decision of the author
+  session, not of the maintainer**. The open-noun rule is narrow on purpose,
+  because a plural role is also
+  "determiner + word + leads" whenever the word is an adjective, a count or a
+  quantity. The word before the verb must not end in "s" ("the ones leads
+  down", "the class follows" stay roles), be a role term, a count ("the two
+  leads down the hall") or a quantity, or be a determiner other than an
+  ordinal; and the word after it must be a direction, an object or a dancer
+  word ("the new leads follow the ones" and "the inside leads, follows
+  outside" stay roles). A subject followed by nothing ("The set follows.") is
+  therefore stored as the role, as before. Rejected: reading any
+  word after a determiner as the subject (it stores "the new leads" as the verb
+  and survives every pre-existing test); a longer closed list of nouns (it
+  cannot name "caller", "line" or "set", and glossary prose has no closed
+  vocabulary); and no lookahead (it makes every "determiner + adjective +
+  leads" a verb).
 
 Every one of those fields is canonicalized, the prose ones included. That
 takes on, for this text only, the proper-noun risk that keeps hand-typed prose

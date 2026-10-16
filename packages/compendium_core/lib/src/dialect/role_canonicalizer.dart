@@ -161,6 +161,53 @@ const Set<String> _singularSubjectNouns = {
   'person',
 };
 
+/// Words that are a singular subject on their own, with no determiner before
+/// them: "It leads into a swing", "Everyone follows the leader", "a call that
+/// follows the balance".
+const Set<String> _subjectPronouns = {
+  'it',
+  'he',
+  'she',
+  'this',
+  'that',
+  'which',
+  'who',
+  'whoever',
+  'everyone',
+  'everybody',
+  'someone',
+  'somebody',
+  'anyone',
+  'anybody',
+  'nobody',
+};
+
+/// Ordinals: determiners (for the base form: "second follow") that also name
+/// one item as the subject ("the second follows the first").
+const Set<String> _ordinals = {'first', 'second', 'third', '1st', '2nd', '3rd'};
+
+/// Counts and quantities. After a determiner they make the following plural
+/// role a noun ("the two leads down the hall"), never a singular subject.
+const Set<String> _quantities = {
+  'one',
+  'two',
+  'three',
+  'four',
+  'five',
+  'six',
+  'seven',
+  'eight',
+  'nine',
+  'ten',
+  'few',
+  'many',
+  'several',
+  'some',
+  'more',
+  'most',
+  'fewer',
+};
+
 /// Words that, directly before the base form, make it a verb ("to lead",
 /// "do not follow").
 const Set<String> _auxiliaries = {
@@ -279,8 +326,11 @@ String? _unmarked(String? word) {
 /// With `subjectVerbException` (user-glossary text only, #709), rule 2a has
 /// one exception: the plural form directly after a singular subject in the
 /// same clause is the verb. A singular subject is a singular role term or
-/// token ("the robin follows the lark", "role2 follows"), or a singular
-/// dancer noun after a determiner ("your partner leads").
+/// token ("the robin follows the lark", "role2 follows"), a singular dancer
+/// noun after a determiner ("your partner leads"), a pronoun ("it leads into
+/// a swing"), or any other singular noun after a determiner when a verb
+/// complement comes next ("the caller follows the music"; see
+/// [_followsSingularSubject]).
 ///
 /// Rewritten roles are lowercase canonical tokens (`role1s`), whatever case
 /// they were typed in. A move name from rule 1 is written lowercase and
@@ -437,7 +487,7 @@ final class RoleCanonicalizer {
     final plural = _verbForms[lower];
     if (plural == null) return (RoleSpanKind.role, '3');
     if (plural) {
-      if (subjectVerbException && _followsSingularSubject(text, start)) {
+      if (subjectVerbException && _followsSingularSubject(text, start, end)) {
         return (RoleSpanKind.verb, '2a-subject');
       }
       return (RoleSpanKind.role, '2a');
@@ -456,20 +506,55 @@ final class RoleCanonicalizer {
     return (RoleSpanKind.role, '2e');
   }
 
-  /// Whether the word directly before [start] names one dancer as a sentence
-  /// subject: a singular role term of this canonicalizer ("robin", "lead"),
-  /// a singular role token typed directly, or a singular dancer noun that
-  /// itself follows a determiner ("your partner").
-  bool _followsSingularSubject(String text, int start) {
+  /// Whether the word directly before [start] names one dancer or thing as
+  /// the subject of the plural form at [start]..[end]:
+  ///
+  /// - a singular role term of this canonicalizer ("robin", "lead") or a
+  ///   singular role token typed directly;
+  /// - a pronoun ([_subjectPronouns]): "it leads", "everyone follows";
+  /// - after a determiner, a singular dancer noun ([_singularSubjectNouns]):
+  ///   "your partner leads";
+  /// - after a determiner, any other word that cannot be a plural role or a
+  ///   function word ([_isOpenSubjectNoun]), but only when a verb complement
+  ///   comes next: "the caller follows the music", "the line leads down".
+  ///
+  /// The last rule asks for the complement because the word may be an
+  /// adjective, not the noun ("the new leads follow the ones"), and the
+  /// complement is what separates "the new leads into a swing" from a plural
+  /// role. Without a determiner the word is more likely an object than a
+  /// subject ("swing caller follows the music"), so it is not one.
+  bool _followsSingularSubject(String text, int start, int end) {
     final previous = _previousWordAt(text, start);
     if (previous == null) return false;
     final (word, at) = previous;
     if (word == 'role1' || word == 'role2') return true;
     final token = _reverse[word];
     if (token == 'role1' || token == 'role2') return true;
-    if (!_singularSubjectNouns.contains(word)) return false;
+    if (_subjectPronouns.contains(word)) return true;
+    final isDancerNoun = _singularSubjectNouns.contains(word);
+    if (!isDancerNoun && !_isOpenSubjectNoun(word)) return false;
     final before = _previousWord(text, at);
-    return before != null && _determiners.contains(before);
+    if (before == null || !_determiners.contains(before)) return false;
+    if (isDancerNoun) return true;
+    final next = _nextWord(text, end);
+    return next != null &&
+        _verbComplements.contains(next) &&
+        !_reverse.containsKey(next);
+  }
+
+  /// Whether [word] may be the singular noun of a subject: not a plural
+  /// (ending in "s", so "the ones leads down" and "the class follows" stay
+  /// roles), a role term, a determiner other than an ordinal, a count, an
+  /// auxiliary or a verb complement (a direction, a dancer word).
+  bool _isOpenSubjectNoun(String word) {
+    if (word.length < 2 || word.endsWith('s')) return false;
+    final first = word.codeUnitAt(0);
+    if (first >= 0x30 && first <= 0x39 && !_ordinals.contains(word)) {
+      return false;
+    }
+    if (_reverse.containsKey(word) || _quantities.contains(word)) return false;
+    if (_determiners.contains(word) && !_ordinals.contains(word)) return false;
+    return !_auxiliaries.contains(word) && !_verbComplements.contains(word);
   }
 
   /// The lowercase word directly before [start] in the same clause: only
