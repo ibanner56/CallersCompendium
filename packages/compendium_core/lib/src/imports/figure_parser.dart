@@ -208,9 +208,10 @@ const FigureFrontEnd canonicalFigureFrontEnd = FigureFrontEnd();
 ///   custom figure: when in doubt, custom. Free-text entry, and only it, adds
 ///   one exception after this parser misses: a line that is a move's
 ///   name (`hey.`, `mad robin`), alone or after a dancer (`neighbor pass by`),
-///   reads as that move with its defaults (`typed_figure_names.dart`, #1826,
-///   #1857). The "bare X degrades to custom" notes
-///   on the recognizers below describe this parser, which imports use.
+///   reads as that move, with that dancer as its `who` and every other param
+///   at its default (`typed_figure_names.dart`, #1826, #1857). The "bare X
+///   degrades to custom" notes on the recognizers below describe this parser,
+///   which imports use.
 /// - **Validated.** Every candidate structured figure is checked against
 ///   [taxonomy]; if it produces any error-severity [ValidationIssue] (unknown
 ///   move/param, out-of-domain value) it is discarded in favour of custom.
