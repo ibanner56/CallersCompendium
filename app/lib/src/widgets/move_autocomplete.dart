@@ -92,12 +92,13 @@ class MoveAutocomplete extends StatefulWidget {
   /// leaf move.
   final bool includeModifier;
 
-  /// The user's own compound figures to offer (#709), each a
-  /// [MoveOptionKind.compound] option. Matching ones are listed before every
-  /// move, within the same cap. Empty (the default) offers none.
+  /// The user's own figures to offer: combinations (#709), each a
+  /// [MoveOptionKind.compound] option, and new figures (#1023), each a
+  /// [MoveOptionKind.userFigure] option. Matching ones are listed before
+  /// every move, within the same cap. Empty (the default) offers none.
   final List<MoveOption> compoundOptions;
 
-  /// What marks a compound option as the user's own, in words.
+  /// What marks one of [compoundOptions] as the user's own, in words.
   final String compoundMarkerLabel;
 
   /// Whether the taxonomy's own [customMove] is offered. An editor that
