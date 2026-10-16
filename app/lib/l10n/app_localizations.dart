@@ -14240,6 +14240,12 @@ abstract class AppLocalizations {
   /// **'“{name}” is already the name of a figure or shorthand. Choose another name.'**
   String compoundEditorNameTaken(String name);
 
+  /// Error shown when saving a term under a name one of the user's own figures already has, while Custom Figures is off and that figure is not shown.
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}” is already the name of one of your own figures. Those are listed in the Glossary while Custom Figures is on. Choose another name.'**
+  String compoundEditorNameTakenHidden(String name);
+
   /// Error shown when saving a custom figure with no figures.
   ///
   /// In en, this message translates to:
@@ -14300,16 +14306,16 @@ abstract class AppLocalizations {
   /// **'Save anyway'**
   String get compoundEditorUnusedSave;
 
-  /// Heading of the choice, for a new entry in the user's own glossary, between a combination of built-in figures and a figure of its own.
+  /// Heading of the choice, for a new entry in the user's own glossary, between a combination of built-in figures, a figure of its own, and a term with no figure.
   ///
   /// In en, this message translates to:
   /// **'What it is'**
   String get glossaryEntryKindHeading;
 
-  /// Explains the choice between a combination and a new figure.
+  /// Explains the choice between a combination, a new figure and a term.
   ///
   /// In en, this message translates to:
-  /// **'A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording.'**
+  /// **'A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording. A term is a word you define, with no figure; you can give it one later.'**
   String get glossaryEntryKindHelp;
 
   /// Choice for an entry that expands into built-in figures (a compound).
@@ -14323,6 +14329,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New figure'**
   String get glossaryEntryKindNewFigure;
+
+  /// Choice for an entry that is a term the user defines, with no figure. Maintainer's copy: terms are "Terms".
+  ///
+  /// In en, this message translates to:
+  /// **'Term'**
+  String get glossaryEntryKindTerm;
+
+  /// Tooltip of the Glossary's add button while Custom Figures is off, when it adds only a term (an entry with no figure).
+  ///
+  /// In en, this message translates to:
+  /// **'Add a term'**
+  String get glossaryAddTerm;
+
+  /// Title of the editor for a new term in the user's own glossary.
+  ///
+  /// In en, this message translates to:
+  /// **'New term'**
+  String get glossaryTermTitleNew;
+
+  /// Button on a term in the user's own glossary that gives it a figure, turning it into a new figure with its own wording. It cannot be turned back.
+  ///
+  /// In en, this message translates to:
+  /// **'Make it a figure'**
+  String get glossaryTermMakeFigure;
+
+  /// Title of the editor that gives a term a figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Make it a figure'**
+  String get glossaryTermMakeFigureTitle;
 
   /// Label of the dance form an entry in the user's own glossary is offered in.
   ///

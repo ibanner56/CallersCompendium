@@ -146,7 +146,10 @@ void main() {
       final h = await pump(tester, custom: false, entries: [entry()]);
       await search(tester, 'grand right');
       expect(find.byKey(customRow), findsNothing);
-      expect(find.byKey(const ValueKey('glossary-add-custom')), findsNothing);
+      // Adding is still offered, for a term only (#1023, maintainer
+      // decision 9).
+      expect(find.byTooltip('Add your own figure'), findsNothing);
+      expect(find.byTooltip('Add a term'), findsOneWidget);
       expect(
         await tester.runAsync(() => h.repos.userGlossary.getById('grl')),
         isNotNull,
@@ -298,7 +301,7 @@ void main() {
   });
 
   group('entries of a kind this build cannot use (#1023)', () {
-    for (final kind in ['term', 'someLaterKind']) {
+    for (final kind in ['someLaterKind']) {
       testWidgets('a $kind entry says it is from a newer version, and cannot '
           'be edited as a compound', (tester) async {
         await pump(
@@ -332,6 +335,220 @@ void main() {
         expect(edit.onPressed, isNull);
       });
     }
+  });
+
+  group('terms (#1023)', () {
+    UserGlossaryEntry term({String form = 'contra'}) => entry(
+      id: 'tt',
+      kindName: 'term',
+      name: 'zesty corners',
+      payload: {'form': form},
+      keywords: const [],
+    );
+    const termRow = ValueKey('glossary-entry-custom:tt');
+
+    Future<void> fillRequired(WidgetTester tester, {String? name}) async {
+      if (name != null) {
+        await tester.enterText(
+          find.byKey(const ValueKey('compound-name')),
+          name,
+        );
+      }
+      await tester.enterText(
+        find.byKey(const ValueKey('compound-definition')),
+        'A lively turn.',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('compound-description')),
+        'Corners, with a flourish.',
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> save(WidgetTester tester) async {
+      await tester.runAsync(() async {
+        await tester.tap(find.byKey(const ValueKey('compound-editor-save')));
+        await tester.pump();
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      });
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a term shows whenever the Glossary does; a combination '
+        'needs Custom Figures on', (tester) async {
+      await pump(tester, custom: false, entries: [entry(), term()]);
+      await search(tester, 'zesty');
+      expect(find.byKey(termRow), findsOneWidget);
+      await search(tester, 'grand right');
+      expect(find.byKey(customRow), findsNothing);
+    });
+
+    testWidgets('with Custom Figures off, adding makes a term, and offers no '
+        'other kind', (tester) async {
+      final (:repos, custom: _) = await pump(tester, custom: false);
+      expect(find.byTooltip('Add a term'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('glossary-add-custom')));
+      await tester.pumpAndSettle();
+      expect(find.text('New term'), findsOneWidget);
+      expect(find.byKey(const ValueKey('glossary-entry-kind')), findsNothing);
+      expect(find.byKey(const ValueKey('compound-add-param')), findsNothing);
+      await fillRequired(tester, name: 'zesty corners');
+      await save(tester);
+
+      final saved = (await tester.runAsync(repos.userGlossary.listAll))!;
+      expect(saved.single.kind, UserGlossaryEntryKind.term);
+      expect(saved.single.payload, {'form': 'contra'});
+    });
+
+    testWidgets('with Custom Figures off, a term can\'t take the name of a '
+        'figure of your own, and is told where that figure is', (tester) async {
+      final (:repos, custom: _) = await pump(
+        tester,
+        custom: false,
+        entries: [entry()],
+      );
+      await tester.tap(find.byKey(const ValueKey('glossary-add-custom')));
+      await tester.pumpAndSettle();
+      await fillRequired(tester, name: 'grand right and left');
+      await save(tester);
+
+      expect(
+        find.textContaining('one of your own figures. Those are listed'),
+        findsOneWidget,
+      );
+      final saved = (await tester.runAsync(repos.userGlossary.listAll))!;
+      expect(saved, hasLength(1), reason: 'nothing more was saved');
+    });
+
+    testWidgets('a new term is one of the kinds to choose, and has no '
+        'parameters or figures', (tester) async {
+      final (:repos, custom: _) = await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('glossary-add-custom')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('compound-add-param')), findsOneWidget);
+      final termChoice = find.descendant(
+        of: find.byKey(const ValueKey('glossary-entry-kind')),
+        matching: find.text('Term'),
+      );
+      await tester.ensureVisible(termChoice);
+      await tester.pumpAndSettle();
+      await tester.tap(termChoice);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('compound-add-param')), findsNothing);
+      expect(find.byKey(const ValueKey('user-figure-wording')), findsNothing);
+      await fillRequired(tester, name: 'zesty corners');
+      await save(tester);
+
+      final saved = (await tester.runAsync(repos.userGlossary.listAll))!;
+      expect(saved.single.kind, UserGlossaryEntryKind.term);
+    });
+
+    testWidgets('a term can be given a figure, once: it keeps its id, its '
+        'creation time and its fields', (tester) async {
+      final (:repos, custom: _) = await pump(
+        tester,
+        entries: [
+          entry(
+            id: 'tt',
+            kindName: 'term',
+            name: 'zesty corners',
+            payload: const {
+              'form': 'contra',
+              'source': 'Term 12',
+              'copiedFrom': 'swing',
+            },
+            keywords: const [],
+          ),
+        ],
+      );
+      await search(tester, 'zesty');
+      await tester.tap(find.byKey(termRow));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('glossary-custom-form')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('glossary-term-make-figure')));
+      await tester.pumpAndSettle();
+      expect(find.text('Make it a figure'), findsWidgets);
+      expect(find.byKey(const ValueKey('glossary-entry-kind')), findsNothing);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('compound-name')))
+            .controller!
+            .text,
+        'zesty corners',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('user-figure-wording')),
+        '{move} with a flourish',
+      );
+      await tester.pumpAndSettle();
+      await save(tester);
+
+      final saved = (await tester.runAsync(repos.userGlossary.listAll))!;
+      final figure = saved.single;
+      expect(figure.id, 'tt');
+      expect(figure.createdAt, created);
+      expect(figure.kind, UserGlossaryEntryKind.customFigure);
+      expect(figure.name, 'zesty corners');
+      final definition = decodeUserFigureDefinition(figure.payload)!;
+      expect(definition.template, '{move} with a flourish');
+      // What the term kept is carried; it names no built-in it was copied
+      // from, so none is adopted.
+      expect(definition.extra, {'source': 'Term 12'});
+      expect(definition.copiedFrom, isNull);
+      expect(
+        find.byKey(const ValueKey('glossary-term-make-figure')),
+        findsNothing,
+        reason: 'there is no way back',
+      );
+    });
+
+    testWidgets('editing a term keeps it a term, and keeps what a newer build '
+        'stored beside it', (tester) async {
+      final (:repos, custom: _) = await pump(
+        tester,
+        entries: [
+          entry(
+            id: 'tt',
+            kindName: 'term',
+            name: 'zesty corners',
+            payload: const {'form': 'ecd', 'source': 'Term 12'},
+            keywords: const [],
+          ),
+        ],
+      );
+      await search(tester, 'zesty');
+      await tester.tap(find.byKey(termRow));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('glossary-custom-edit')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('compound-add-param')), findsNothing);
+      await fillRequired(tester);
+      await save(tester);
+
+      final saved = (await tester.runAsync(repos.userGlossary.listAll))!;
+      expect(saved.single.kind, UserGlossaryEntryKind.term);
+      expect(saved.single.payload, {'source': 'Term 12', 'form': 'ecd'});
+    });
+
+    testWidgets('a term is not offered a figure while Custom Figures is off', (
+      tester,
+    ) async {
+      await pump(tester, custom: false, entries: [term()]);
+      await search(tester, 'zesty');
+      await tester.tap(find.byKey(termRow));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('glossary-term-make-figure')),
+        findsNothing,
+      );
+      final edit = tester.widget<ButtonStyleButton>(
+        find.byKey(const ValueKey('glossary-custom-edit')),
+      );
+      expect(edit.onPressed, isNotNull);
+    });
   });
 
   group('a custom figure\'s detail', () {

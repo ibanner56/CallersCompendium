@@ -9498,6 +9498,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String compoundEditorNameTakenHidden(String name) {
+    return '‘$name’ is al de naam van een van je eigen figuren. Die staan in de woordenlijst wanneer Eigen figuren aan staat. Kies een andere naam.';
+  }
+
+  @override
   String get compoundEditorNoFigures => 'Voeg ten minste één figuur toe.';
 
   @override
@@ -9540,13 +9545,28 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get glossaryEntryKindHelp =>
-      'Een combinatie wordt ingebouwde figuren wanneer een dans wordt opgeslagen. Een nieuwe figuur blijft één figuur, met je eigen formulering.';
+      'Een combinatie wordt ingebouwde figuren wanneer een dans wordt opgeslagen. Een nieuwe figuur blijft één figuur, met je eigen formulering. Een term is een woord dat je zelf definieert, zonder figuur; je kunt er later een figuur aan geven.';
 
   @override
   String get glossaryEntryKindCombination => 'Combinatie';
 
   @override
   String get glossaryEntryKindNewFigure => 'Nieuwe figuur';
+
+  @override
+  String get glossaryEntryKindTerm => 'Term';
+
+  @override
+  String get glossaryAddTerm => 'Term toevoegen';
+
+  @override
+  String get glossaryTermTitleNew => 'Nieuwe term';
+
+  @override
+  String get glossaryTermMakeFigure => 'Maak er een figuur van';
+
+  @override
+  String get glossaryTermMakeFigureTitle => 'Maak er een figuur van';
 
   @override
   String get glossaryEntryFormLabel => 'Dansvorm';

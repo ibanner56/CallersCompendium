@@ -409,4 +409,20 @@ void main() {
       expect(glossaryEntryForm(const {'form': 3}), 'contra');
     });
   });
+
+  group('glossaryTermPayload', () {
+    test('writes the form, and keeps what a newer build stored beside it', () {
+      expect(glossaryTermPayload('ecd'), {'form': 'ecd'});
+      expect(
+        glossaryTermPayload(
+          'contra',
+          previous: const {'form': 'ecd', 'source': 'Term 12'},
+        ),
+        {'source': 'Term 12', 'form': 'contra'},
+      );
+      expect(glossaryTermPayload('square', previous: 'not a map'), {
+        'form': 'square',
+      });
+    });
+  });
 }

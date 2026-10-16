@@ -9072,6 +9072,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String compoundEditorNameTakenHidden(String name) {
+    return '「$name」はすでにあなた自身のフィギュアの名前として使われています。カスタムフィギュアがオンのとき、用語集に表示されます。別の名前を選んでください。';
+  }
+
+  @override
   String get compoundEditorNoFigures => 'フィギュアを1つ以上追加してください。';
 
   @override
@@ -9112,13 +9117,28 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get glossaryEntryKindHelp =>
-      '組み合わせは、ダンスを保存すると組み込みのフィギュアになります。新しいフィギュアは、あなた自身の文言を持つ一つのフィギュアのままです。';
+      '組み合わせは、ダンスを保存すると組み込みのフィギュアになります。新しいフィギュアは、あなた自身の文言を持つ一つのフィギュアのままです。用語は、フィギュアを持たない、あなたが定義する言葉です。後からフィギュアを与えることができます。';
 
   @override
   String get glossaryEntryKindCombination => '組み合わせ';
 
   @override
   String get glossaryEntryKindNewFigure => '新しいフィギュア';
+
+  @override
+  String get glossaryEntryKindTerm => '用語';
+
+  @override
+  String get glossaryAddTerm => '用語を追加';
+
+  @override
+  String get glossaryTermTitleNew => '新しい用語';
+
+  @override
+  String get glossaryTermMakeFigure => 'フィギュアにする';
+
+  @override
+  String get glossaryTermMakeFigureTitle => 'フィギュアにする';
 
   @override
   String get glossaryEntryFormLabel => 'ダンスの形式';

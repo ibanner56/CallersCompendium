@@ -1000,10 +1000,76 @@ void main() {
       expect(find.textContaining('larks lead.'), findsOneWidget);
       expect(find.textContaining('robins lead.'), findsOneWidget);
       expect(find.textContaining('role1s'), findsNothing);
-      expect(find.text('Figures'), findsOneWidget);
+      expect(find.text('What it is'), findsOneWidget);
+      expect(find.textContaining('Combination · '), findsOneWidget);
       expect(find.textContaining('swing'), findsOneWidget);
       expect(find.textContaining('Needs repair'), findsOneWidget);
       expect(find.textContaining('{not json'), findsNothing);
+    });
+
+    testWidgets('a term, and the figure another device made of it, are '
+        'compared by its dance form and its wording (#1023)', (tester) async {
+      Map<String, Object?> body(String kind, String payload) => {
+        'id': 'g1',
+        'kind': kind,
+        'name': 'zesty corners',
+        'definition': 'A lively turn.',
+        'description': 'Corners.',
+        'keywords': const <String>[],
+        'notes': null,
+        'payload': payload,
+        'createdAt': '2026-09-01T00:00:00.000Z',
+      };
+      final figure = canonicalJson(
+        UserFigureDefinition(
+          form: 'contra',
+          template: '{move} with the role1s',
+          defaultBeats: 8,
+          params: const [],
+        ).toJson(),
+      );
+      final theirs = SyncRecordBlob(
+        kind: SyncRecordKind.glossaryEntry,
+        id: 'g1',
+        updatedAt: DateTime.utc(2026, 9, 30),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 9, 30),
+        body: body('customFigure', figure),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: SyncConflictComparison(
+                group: SyncConflictGroup(
+                  kind: SyncRecordKind.glossaryEntry,
+                  recordId: 'g1',
+                  localBody: body('term', '{"form":"ecd"}'),
+                  candidates: syncConflictGroupFor(
+                    SyncConflictReconsideration(
+                      kind: SyncRecordKind.glossaryEntry,
+                      recordId: 'g1',
+                      before: null,
+                      offered: [theirs],
+                      writtenWireHash: 'written',
+                      writtenAt: DateTime.utc(2026, 9, 30),
+                    ),
+                  ).candidates,
+                ),
+                lookups: const SyncConflictLookups(),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.textContaining('Term · '), findsOneWidget);
+      expect(find.textContaining('English (ECD)'), findsOneWidget);
+      expect(find.textContaining('New figure · '), findsOneWidget);
+      expect(find.textContaining('{move} with the larks'), findsOneWidget);
+      expect(find.textContaining('Newer version'), findsNothing);
     });
 
     testWidgets('a merged-away record a version cites is named as the record '

@@ -9388,6 +9388,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String compoundEditorNameTakenHidden(String name) {
+    return '“$name” is already the name of one of your own figures. Those are listed in the Glossary while Custom Figures is on. Choose another name.';
+  }
+
+  @override
   String get compoundEditorNoFigures => 'Add at least one figure.';
 
   @override
@@ -9429,13 +9434,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get glossaryEntryKindHelp =>
-      'A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording.';
+      'A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording. A term is a word you define, with no figure; you can give it one later.';
 
   @override
   String get glossaryEntryKindCombination => 'Combination';
 
   @override
   String get glossaryEntryKindNewFigure => 'New figure';
+
+  @override
+  String get glossaryEntryKindTerm => 'Term';
+
+  @override
+  String get glossaryAddTerm => 'Add a term';
+
+  @override
+  String get glossaryTermTitleNew => 'New term';
+
+  @override
+  String get glossaryTermMakeFigure => 'Make it a figure';
+
+  @override
+  String get glossaryTermMakeFigureTitle => 'Make it a figure';
 
   @override
   String get glossaryEntryFormLabel => 'Dance form';

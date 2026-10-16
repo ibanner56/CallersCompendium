@@ -34,15 +34,13 @@ class CustomGlossaryItem {
   /// consolidated spec, decision 6).
   final bool renameNeeded;
 
-  /// A kind this build cannot use: one it does not know, or one reserved for
-  /// a later change (#1023's terms). Either was made by a newer version of
-  /// the app, and is shown read-only, so no editor can rewrite it as another
-  /// kind.
-  bool get unsupported => switch (entry.kind) {
-    UserGlossaryEntryKind.compound ||
-    UserGlossaryEntryKind.customFigure => false,
-    _ => true,
-  };
+  /// A kind this build does not know, made by a newer version of the app. It
+  /// is shown read-only, so no editor can rewrite it as another kind.
+  bool get unsupported => entry.kind == null;
+
+  /// A term (#1023): a glossary entry with no figure. Shown whenever the
+  /// Glossary is, not only with Custom Figures on (maintainer decision 9).
+  bool get isTerm => entry.kind == UserGlossaryEntryKind.term;
 
   /// A compound or figure of your own whose definition no longer decodes.
   bool get broken =>
