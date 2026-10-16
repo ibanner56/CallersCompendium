@@ -88,6 +88,11 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] Import/undo round-trips verified for each supported source (JSON, Caller's
  Box, ContraDB, CC .USR): import → undo restores prior state losslessly.
 - [ ] Fresh-install path works (DB created at current schema, no migration).
+- [ ] If `kMinSupportedSchemaVersion` rose since the last release: either
+ `tools/release/retirements.json` has an entry for the builds below the new
+ floor (`docs/dev/releasing.md`, "Announcing an end of life for older builds"),
+ committed before the tag, or the choice not to announce it is recorded in the
+ release decision.
 
 ## 3. Build & signing (Gate)
 - [ ] Android release build is SIGNED — on the **actual tag push**, or an explicit

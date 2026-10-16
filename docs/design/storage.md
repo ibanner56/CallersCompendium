@@ -236,6 +236,13 @@ And adding, together, a fixture for the new floor:
   `kMinSupportedSchemaVersion`, so a floor raise without the new fixture is a
   red test, not a silent loss of coverage.
 
+And noting that the release which carries the raise must decide whether to
+announce the end of life for versions below the new floor: an entry in
+`tools/release/retirements.json`, committed before the tag
+([releasing.md](../dev/releasing.md), "Announcing an end of life for older
+builds"). No CI check ties a floor raise to an entry, so the release checklist
+asks.
+
 **The floor check is not bookkeeping.** Deleting those steps without it would
 let a below-floor database open, run only the surviving steps and be stamped at
 head while missing everything the deleted steps would have added — silently
