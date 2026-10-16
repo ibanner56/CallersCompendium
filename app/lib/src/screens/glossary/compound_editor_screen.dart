@@ -439,8 +439,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   /// canonicalizes them; the preview passes the same).
   UserFigureDefinition _figureNow(String Function(String) store) {
     final initialPayload = widget.initial?.payload;
-    // A term given a figure keeps every key it stored but its form; none of
-    // them names the built-in figure it was copied from.
+    // A term given a figure keeps the keys it stored that a figure does not
+    // define itself (userFigurePayloadExtra); it adopts no copiedFrom, since
+    // a term names no built-in figure.
     final copiedFrom =
         initialPayload is Map &&
             widget.initial?.kind == UserGlossaryEntryKind.customFigure

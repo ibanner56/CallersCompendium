@@ -10,7 +10,8 @@ enum UserGlossaryEntryKind {
   compound,
 
   /// A term with no figure (#1023), such as a Caller's Companion `Term`
-  /// row. Its payload holds only its dance form (`glossaryTermPayload`).
+  /// row. Its payload is its dance form, plus any keys a newer build stored
+  /// (`glossaryTermPayload`).
   term,
 
   /// A user-defined figure with a text rendering formula (#1023).

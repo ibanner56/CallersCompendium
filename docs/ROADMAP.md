@@ -161,8 +161,9 @@ implementation notes and deviations against each item — is in
       present in the real file but not yet mapped:
       - `Term` → glossary import remains **blocked**: the Glossary view
         exists (Experimental, read-only), and the table a `Term` row would
-        import into exists (schema v40, #709, with its `term` kind reserved),
-        but user-added terms, and their sync, are not built yet.
+        import into exists (schema v40, #709), and user-added terms exist
+        (#1023), but their sync and the `Term` import itself are not built
+        yet.
         **Tracked in #1023.** It is now the only remaining unmapped CC table
         for 6.5.
 - [x] 6.6 Generic import/export (JSON) for backup and inter-user sharing
