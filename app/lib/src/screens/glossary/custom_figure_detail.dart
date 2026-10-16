@@ -13,6 +13,7 @@ import '../../data/repositories_scope.dart';
 import '../../data/settings_keys.dart';
 import '../../data/show_custom_figures_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
+import '../../diagnostics/error_log.dart';
 import '../../glossary/custom_figures.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
@@ -202,7 +203,17 @@ class _GlossaryCustomFigureDetailState
     if (confirmed != true) return;
     if (isFigure) {
       await repos.deleteUserFigure(widget.entryId);
-      await _forgetInSettings(repos, dialects, matrix);
+      // The figure is gone either way: a failure here leaves only inert keys,
+      // so it is logged rather than stopping the page from closing.
+      try {
+        await _forgetInSettings(repos, dialects, matrix);
+      } on Object catch (e, stackTrace) {
+        logCaughtError(
+          e,
+          stackTrace,
+          source: 'GlossaryCustomFigureDetail._forgetInSettings',
+        );
+      }
     } else {
       await repos.userGlossary.delete(widget.entryId);
     }

@@ -232,4 +232,40 @@ void main() {
     expect(error.data, contains('larks zoom'));
     expect(error.data, isNot(contains('userFigure:')));
   });
+
+  testWidgets('a wording left as the figure\'s own is not kept, so a later '
+      'change to the figure reaches the dialect', (tester) async {
+    final popped = await pump(tester);
+    await open(tester, 'dialect-wordings-toggle');
+    await pick(tester, 'dialect-add-move-wording', key);
+    await save(tester);
+    expect(popped()!.moveWordings.containsKey(key), isFalse);
+  });
+
+  testWidgets('a name holding %S says the figure keeps its own name', (
+    tester,
+  ) async {
+    await pump(tester);
+    await open(tester, 'dialect-moves-toggle');
+    await pick(tester, 'dialect-add-move', key);
+    expect(
+      find.text(
+        "Your figure has no side for %S to fill, so it keeps its own "
+        'name.',
+      ),
+      findsNothing,
+    );
+    await tester.enterText(
+      find.byKey(ValueKey('dialect-move-$key')),
+      '%S zoom',
+    );
+    await tester.pump();
+    expect(
+      find.text(
+        "Your figure has no side for %S to fill, so it keeps its own "
+        'name.',
+      ),
+      findsOneWidget,
+    );
+  });
 }

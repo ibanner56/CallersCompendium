@@ -59,6 +59,8 @@ void main() {
       await repos.settings.set(kProgramMatrixColumnsKey, matrixConfig.toJson());
       await dialects.load();
       await dialects.upsert(mine);
+      // The active dialect is the custom one, whose copy is kept apart too.
+      await dialects.setActive('Mine');
     });
     final matrix = ValueNotifier(matrixConfig);
     final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
@@ -122,6 +124,14 @@ void main() {
       Dialect.fromJson(
         ((storedDialects! as List).single as Map).cast<String, Object?>(),
       ).moves,
+      {other: 'swoosh', 'swing': 'twirl'},
+    );
+
+    final activeCopy = await tester.runAsync<Object?>(
+      () => repos.settings.get(kActiveDialectKey),
+    );
+    expect(
+      Dialect.fromJson((activeCopy! as Map).cast<String, Object?>()).moves,
       {other: 'swoosh', 'swing': 'twirl'},
     );
 

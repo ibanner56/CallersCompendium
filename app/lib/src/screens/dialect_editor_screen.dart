@@ -61,6 +61,10 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   /// Move-wording syntax/length issues are tracked separately because valid
   /// missing-slot templates have a distinct confirmation flow.
   List<ValidationIssue> _issues = const [];
+
+  /// The keys of the wordings that can't be read, labelled when shown (a
+  /// figure of your own's label reads inherited widgets, which can't be read
+  /// before the first build).
   List<String> _invalidMoveWordings = const [];
 
   /// The dialect assembled from the current editor state, kept in sync on every
@@ -75,7 +79,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     _syncFrom(widget.initial);
     _working = _assemble();
     _issues = _working.validate();
-    _invalidMoveWordings = _invalidMoveWordingLabels(_working);
+    _invalidMoveWordings = _invalidMoveWordingKeys(_working);
   }
 
   void _syncFrom(Dialect d) {
@@ -216,14 +220,13 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     setState(() {
       _working = _assemble();
       _issues = _working.validate();
-      _invalidMoveWordings = _invalidMoveWordingLabels(_working);
+      _invalidMoveWordings = _invalidMoveWordingKeys(_working);
     });
   }
 
-  List<String> _invalidMoveWordingLabels(Dialect dialect) => [
+  List<String> _invalidMoveWordingKeys(Dialect dialect) => [
     for (final entry in dialect.moveWordings.entries)
-      if (!FigureRenderer.isValidMoveWordingTemplate(entry.value))
-        _label(entry.key),
+      if (!FigureRenderer.isValidMoveWordingTemplate(entry.value)) entry.key,
   ];
 
   Map<String, String> _incompleteMoveWordings(Dialect dialect) {
@@ -281,10 +284,32 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   /// validation issues (empty or ambiguous substitutions), they are surfaced
   /// inline and the editor stays open. Templates that omit available slots are
   /// saved only after the user confirms the affected figures.
+  /// [dialect] without a wording for one of the user's figures that is just
+  /// the figure's own (#1023): such a copy would freeze it, so a later edit to
+  /// the figure's wording would not reach this dialect.
+  Dialect _withoutOwnWordings(Dialect dialect) {
+    final userFigures = UserFiguresScope.catalogOf(context);
+    final own = [
+      for (final MapEntry(:key, :value) in dialect.moveWordings.entries)
+        if (isUserFigureKey(key) &&
+            userFigures[key.substring(userFigureRefPrefix.length)]
+                    ?.definition
+                    ?.template
+                    .trim() ==
+                value.trim())
+          key,
+    ];
+    if (own.isEmpty) return dialect;
+    return dialect.copyWith(
+      moveWordings: {...dialect.moveWordings}
+        ..removeWhere((key, _) => own.contains(key)),
+    );
+  }
+
   Future<void> _save() async {
-    final edited = _assemble();
+    final edited = _withoutOwnWordings(_assemble());
     final issues = edited.validate();
-    final invalidMoveWordings = _invalidMoveWordingLabels(edited);
+    final invalidMoveWordings = _invalidMoveWordingKeys(edited);
     if (invalidMoveWordings.isNotEmpty) {
       setState(() {
         _working = edited;
@@ -452,7 +477,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       }
       _working = _assemble();
       _issues = _working.validate();
-      _invalidMoveWordings = _invalidMoveWordingLabels(_working);
+      _invalidMoveWordings = _invalidMoveWordingKeys(_working);
     });
   }
 
@@ -485,7 +510,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       _branchWordingCtrls.clear();
       _working = _assemble();
       _issues = _working.validate();
-      _invalidMoveWordings = _invalidMoveWordingLabels(_working);
+      _invalidMoveWordings = _invalidMoveWordingKeys(_working);
     });
   }
 
@@ -605,7 +630,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
             ),
             if (_invalidMoveWordings.isNotEmpty)
               l10n.dialectEditorMoveWordingSaveError(
-                _invalidMoveWordings.join(', '),
+                _invalidMoveWordings.map(_label).join(', '),
               ),
           ].join('\n'),
           key: const ValueKey('dialect-validation-error'),
@@ -886,8 +911,18 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
                       controller: controllers[id],
                       decoration: InputDecoration(
                         labelText: label(id),
-                        hintText: l10n.dialectEditorMoveSubHint,
+                        // A figure of your own has no side for a %S to fill
+                        // (#1023): a name holding one is not used.
+                        hintText: isUserFigureKey(id)
+                            ? l10n.dialectEditorUserFigureNameHint
+                            : l10n.dialectEditorMoveSubHint,
                         hintMaxLines: 4,
+                        errorText:
+                            isUserFigureKey(id) &&
+                                controllers[id]!.text.contains('%S')
+                            ? l10n.dialectEditorUserFigureNameSide
+                            : null,
+                        errorMaxLines: 3,
                       ),
                       onChanged: (_) => onEdited(),
                     ),

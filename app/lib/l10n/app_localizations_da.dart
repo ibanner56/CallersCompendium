@@ -9219,6 +9219,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'En af dine figurer, ikke på denne enhed';
 
   @override
+  String get dialectEditorUserFigureNameHint =>
+      'Det, denne dialekt kalder din figur';
+
+  @override
+  String get dialectEditorUserFigureNameSide =>
+      'Din figur har ingen side, som %S kan udfylde, så den beholder sit eget navn.';
+
+  @override
   String dialectEditorUserFigureWordingUnknownSlots(String slots) {
     return 'Din figur har ingen $slots, så den læses med sin egen ordlyd, indtil du fjerner dem.';
   }

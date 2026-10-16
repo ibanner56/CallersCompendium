@@ -9287,6 +9287,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een van je figuren, niet op dit apparaat';
 
   @override
+  String get dialectEditorUserFigureNameHint =>
+      'Hoe dit dialect je figuur noemt';
+
+  @override
+  String get dialectEditorUserFigureNameSide =>
+      'Je figuur heeft geen kant die %S kan invullen, dus behoudt die zijn eigen naam.';
+
+  @override
   String dialectEditorUserFigureWordingUnknownSlots(String slots) {
     return 'Je figuur heeft geen $slots, dus wordt die met zijn eigen bewoording gelezen tot je ze verwijdert.';
   }

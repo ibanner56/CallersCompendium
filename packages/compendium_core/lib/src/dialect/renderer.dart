@@ -1742,7 +1742,10 @@ class FigureRenderer {
     }
     // A dialect may name and word the figure its own way (#1023, plan C8),
     // under `userFigure:<id>` in its moves and wordings. Never on the
-    // canonical path, which stores lines and builds the index.
+    // canonical path, which stores lines and builds the index. Every
+    // canonical render reads [Dialect.canonical] today, which holds no such
+    // keys, so the `forCanonical` checks are defensive: they keep that true
+    // should a canonical render ever take another dialect.
     slots[userFigureMoveSlot] =
         (forCanonical ? null : dialectUserFigureName(dialect, use.id)) ??
         view.name;

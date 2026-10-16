@@ -9178,6 +9178,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'One of your figures, not on this device';
 
   @override
+  String get dialectEditorUserFigureNameHint =>
+      'What this dialect calls your figure';
+
+  @override
+  String get dialectEditorUserFigureNameSide =>
+      'Your figure has no side for %S to fill, so it keeps its own name.';
+
+  @override
   String dialectEditorUserFigureWordingUnknownSlots(String slots) {
     return 'Your figure has no $slots, so it reads with its own wording until you remove them.';
   }

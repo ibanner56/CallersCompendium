@@ -9150,6 +9150,14 @@
   "@dialectEditorUserFigureGone": {
     "x-sourceSha256": "998281e8de9118241968955c28d763ffbbc2217b909331b160022c289c4cfde1"
   },
+  "dialectEditorUserFigureNameHint": "Det, denne dialekt kalder din figur",
+  "@dialectEditorUserFigureNameHint": {
+    "x-sourceSha256": "5b6b329928a5bb9b0496a41ed716d3b34b6361b6bac3cd586ab0520616cccb39"
+  },
+  "dialectEditorUserFigureNameSide": "Din figur har ingen side, som %S kan udfylde, så den beholder sit eget navn.",
+  "@dialectEditorUserFigureNameSide": {
+    "x-sourceSha256": "de620408b0e6908452dc3948cdce88f9be7cabc92f43575094b394f065024e3b"
+  },
   "dialectEditorUserFigureWordingUnknownSlots": "Din figur har ingen {slots}, så den læses med sin egen ordlyd, indtil du fjerner dem.",
   "@dialectEditorUserFigureWordingUnknownSlots": {
     "x-sourceSha256": "de788db6fdbfc47a07c303c2fb01008d1a6f5b0e6a5f2f9ed81a178db331e8dd"
