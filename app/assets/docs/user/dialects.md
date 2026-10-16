@@ -167,6 +167,28 @@ If you made a long-wave or promenade template before the app split them into
 versions, it still applies — but only to the ordinary version (**In only** for a
 long wave, **Ordinary** for a promenade).
 
+### Your own figures
+
+While **Custom Figures** is on, both sections also offer your own
+[new figures](./settings.md#glossary-and-custom-figures), listed by name after
+the moves that come with the app. Give one a name of its own under **Move
+substitutions**, or reword it under **Move wording templates**: a new template
+starts from the figure's own wording, uses the figure's own parameters as its
+slots, and previews with the figure's defaults; leave it as the figure's own
+wording and it isn't kept, so a later change to the figure reaches this dialect
+too. A name of your own can't fill a `%S`: a figure has no side for it. A
+dialect's name for a figure counts as a name taken: none of your other figures
+or terms can be given it, and one that already has it is marked **Rename
+needed**.
+
+Your dances store each figure in its own wording, and search finds it by its
+own name, not by a dialect's name for it: a dialect only changes how the figure
+reads. If
+a template uses a slot the figure doesn't have, such as after you removed a
+parameter, the editor says so and the figure reads with its own wording until
+you fix the template. Deleting a figure removes its name and wording from every
+dialect.
+
 ### Dancer wording
 
 In the **Dancer substitutions** section, reword the way the app refers to *who*

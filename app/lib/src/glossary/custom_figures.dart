@@ -84,6 +84,8 @@ List<CustomGlossaryItem> resolveCustomGlossary(
       taxonomy: taxonomy,
       dialects: dialects,
       shorthandTokens: shorthandTokens,
+      // A dialect's own name for this figure is not a clash with it.
+      exceptUserFigureId: entry.id,
     );
     if (elsewhere.isNotEmpty || !earlier.add(name)) {
       renameNeeded.add(entry.id);

@@ -51,6 +51,10 @@ const _backupLocalState = DataClassification(
 /// Classification for every settings key. See the file doc comment.
 final Map<String, DataClassification> settingsClassifications = {
   // -- User-authored content ------------------------------------------------
+  // A dialect's moves and moveWordings may hold `userFigure:<id>` keys, its
+  // name and wording for a figure of the user's own (#1023): the opaque id of
+  // a glossary entry, a soft reference (sync-spec §6.15) that is inert on a
+  // device without the figure.
   'custom_dialects': _preference,
   'custom_themes': _preference,
   'shorthand_mappings': _preference,
