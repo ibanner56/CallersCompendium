@@ -43,7 +43,8 @@ Map<String, Object?> archiveUserFigureToJson(UserGlossaryEntry entry) => {
 /// - its payload fits the glossary's size and depth bounds and decodes as a
 ///   figure's definition ([decodeUserFigureDefinition]). The payload is kept
 ///   as it came: its text is scrubbed where a definition is read, and
-///   normalised where the glossary stores it.
+///   normalised where the glossary stores it;
+/// - its `createdAt` is a parseable timestamp.
 ///
 /// The first entry for an id wins; a later one is noted apart.
 List<UserGlossaryEntry> decodeArchiveUserFigures(

@@ -728,6 +728,7 @@ PR that added this mapping).
     bounds, once scrubbed as every imported string is;
   - its payload fits the glossary's size and depth bounds and decodes as a
     figure's definition;
+  - its `createdAt` is a parseable timestamp;
   - and it is the first entry for its id.
 
   Anything else, and anything past 500 entries, is left out with a warning,
