@@ -558,6 +558,8 @@ Names, definitions and examples follow your active
 [dialect](dialects.md), so role words read the way you call them. The built-in
 figures come with the app, and turning the Glossary off only removes it from
 the navigation; your notes are kept, and come back when you turn it on again.
+The built-in definitions and descriptions are in English whatever language the
+app is set to; only the Glossary's labels and buttons are translated.
 
 **Your terms** are words you define yourself, with no figure: a name, a
 definition and a description (all required), other names they can be found by,
@@ -622,7 +624,9 @@ Glossary is on. While it is on:
   combination **Expands to** (folded until you open it), or a new figure's
   **Wording** and an **Example** with its defaults, and to **Edit** or
   **Delete** it. Deleting a new figure says how many dances use it; each keeps
-  the wording it shows now, as plain text. A figure that can no longer be used
+  the wording it shows now, as plain text. Each dialect's name and wording for
+  it, and its column's place, name and hiding in **Matrix columns**, are
+  removed too. A figure that can no longer be used
   is marked **Needs repair**; one whose name is also another figure's is
   marked **Rename needed**.
 
