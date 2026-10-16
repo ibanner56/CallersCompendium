@@ -136,6 +136,10 @@ class _CompoundShorthandEditorScreenState
     super.dispose();
   }
 
+  /// Whether this makes a new shorthand rather than editing one of either
+  /// kind.
+  bool get _isNew => widget.initial == null && widget.initialUserFigure == null;
+
   /// A choice's value in the figure list: which kind, and its id.
   static String _compoundValue(String id) => 'compound:$id';
   static String _figureValue(String id) => userFigureKeyFor(id);
@@ -299,9 +303,7 @@ class _CompoundShorthandEditorScreenState
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.initial == null
-              ? l10n.shorthandEditorTitleNew
-              : l10n.shorthandEditorTitleEdit,
+          _isNew ? l10n.shorthandEditorTitleNew : l10n.shorthandEditorTitleEdit,
         ),
         actions: [
           TextButton(
@@ -327,7 +329,7 @@ class _CompoundShorthandEditorScreenState
             key: const ValueKey('compound-shorthand-token'),
             controller: _token,
             maxLength: maxShorthandTokenLength,
-            autofocus: widget.initial == null,
+            autofocus: _isNew,
             onChanged: (_) {
               if (_error != null) setState(() => _error = null);
             },

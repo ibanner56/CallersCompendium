@@ -571,7 +571,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `update_beta_channel` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `update_dismissed_version` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `update_retirement_notice` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
-| `user_figure_shorthands` | `dpv:NonPersonalData` | app user | shareable | The user's shorthands for their own new figures (#1023): tokens they chose, a figure's id and name, values and beats. The same call as compound_shorthands: content the user authored for themselves, naming no one else. Held back until every device can read the figures themselves (glossary.v2, SyncCapabilityPolicy.build). |
+| `user_figure_shorthands` | `dpv:NonPersonalData` | app user | shareable | The user's shorthands for their own new figures (#1023): tokens they chose, a figure's id and name, values and beats. Classified as compound_shorthands is (the implementer's call, following that precedent): content the user authored for themselves, naming no one else. Held back until every device can read the figures themselves (glossary.v2, SyncCapabilityPolicy.build). |
 | `venue_call_count` | `dpv:NonPersonalData` | app user | shareable |  |
 | `venue_entity_mode` | `dpv:NonPersonalData` | app user | shareable |  |
 | `verbose_figure_rendering` | `dpv:NonPersonalData` | app user | shareable |  |

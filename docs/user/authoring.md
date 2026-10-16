@@ -107,8 +107,9 @@ those values, as if you had picked it: a combination becomes the figures it
 stands for when you save the dance, and a new figure stays one figure in your
 wording. Its token is unique among all your shorthands, of every kind. If its
 figure has been deleted, or changed so that it no longer accepts the values,
-the shorthand says so and typing it is read as an ordinary line. Turning Custom Figures off hides these shorthands and
-stops them working; it doesn't delete them.
+the shorthand says so and typing it is read as an ordinary line. Turning
+Custom Figures off hides these shorthands and stops them working; it doesn't
+delete them.
 
 ### Adjust a figure
 

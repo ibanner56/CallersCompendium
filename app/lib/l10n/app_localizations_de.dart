@@ -8410,6 +8410,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Nicht verwendet: Eine Figur-Abkürzung hat denselben Text.';
 
   @override
+  String get shorthandsUserFigureShadowedByCompound =>
+      'Nicht verwendet: Eine Abkürzung für eine deiner Kombinationen hat denselben Text.';
+
+  @override
   String get compoundShorthandEditorFigureLabel => 'Deine Figur';
 
   @override

@@ -12512,6 +12512,12 @@ abstract class AppLocalizations {
   /// **'Not used: a figure shorthand has the same text.'**
   String get shorthandsCompoundShadowed;
 
+  /// Shown under a shorthand for one of the user's new figures (#1023) whose token a shorthand for one of their combinations also has (possible when two devices each add one before syncing); the combination's shorthand is used. A combination is a user's figure made of built-in figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used: a shorthand for one of your combinations has the same text.'**
+  String get shorthandsUserFigureShadowedByCompound;
+
   /// Label of the field choosing which of the user's own figures a compound shorthand stands for.
   ///
   /// In en, this message translates to:

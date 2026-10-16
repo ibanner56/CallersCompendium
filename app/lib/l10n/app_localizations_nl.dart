@@ -8376,6 +8376,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Niet gebruikt: een figuurafkorting heeft dezelfde tekst.';
 
   @override
+  String get shorthandsUserFigureShadowedByCompound =>
+      'Niet gebruikt: een afkorting voor een van je combinaties heeft dezelfde tekst.';
+
+  @override
   String get compoundShorthandEditorFigureLabel => 'Je figuur';
 
   @override

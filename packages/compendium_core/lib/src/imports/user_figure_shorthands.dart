@@ -110,7 +110,8 @@ class UserFigureShorthands {
   ///
   /// An entry is kept only whole: a non-empty token within
   /// [maxShorthandTokenLength], a name within the glossary's name bound,
-  /// beats from 1 to [maxUserFigureDefaultBeats] when present, and a figure
+  /// beats from 0 to [maxUserFigureDefaultBeats] when present (as a
+  /// figure's own default beats may be), and a figure
   /// id and arguments a use could hold ([userFigureUseOf]: the same id shape
   /// and argument bounds, so a shorthand never inserts a use that reads back
   /// as plain text). Whether the figure exists or accepts the arguments is not
@@ -158,7 +159,7 @@ class UserFigureShorthands {
     if (token.isEmpty || token.length > maxShorthandTokenLength) return null;
     if (name.isEmpty || name.length > maxUserGlossaryNameLength) return null;
     if (beats != null &&
-        (beats is! int || beats < 1 || beats > maxUserFigureDefaultBeats)) {
+        (beats is! int || beats < 0 || beats > maxUserFigureDefaultBeats)) {
       return null;
     }
     if (rawArgs is! Map) return null;

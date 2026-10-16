@@ -8234,6 +8234,10 @@
   "@shorthandsCompoundShadowed": {
     "x-sourceSha256": "75111a930cc8890e0f1378c778ee2c93d1ec4cd35897e8d496d60f0cc46d60b6"
   },
+  "shorthandsUserFigureShadowedByCompound": "Nicht verwendet: Eine Abkürzung für eine deiner Kombinationen hat denselben Text.",
+  "@shorthandsUserFigureShadowedByCompound": {
+    "x-sourceSha256": "49e899d6d9121b9290be30aa5be38ae4e2ae72f70fba7591164c43af0ca8e2d7"
+  },
   "compoundShorthandEditorFigureLabel": "Deine Figur",
   "@compoundShorthandEditorFigureLabel": {
     "x-sourceSha256": "6af67418286324f390ac3a5859240761a8b839514d0f5e667ab73f2a3ebce834"

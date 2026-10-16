@@ -109,6 +109,46 @@ void main() {
       expect(controller.userFigureShorthands, isEmpty);
     });
 
+    test('a change of kind is checked before either key is written', () async {
+      final repos = openTestRepositories();
+      final controller = ShorthandMappingsController(repos.settings);
+      addTearDown(controller.dispose);
+      await controller.upsertCompound(compoundShorthand('grl'));
+      // One the next load would drop is refused, and the compound stays.
+      await expectLater(
+        controller.replaceCompoundWithUserFigure(
+          0,
+          shorthand(
+            token: 'grl',
+            args: {'who': 'x' * (maxUserFigureTextArgLength + 1)},
+          ),
+        ),
+        throwsArgumentError,
+      );
+      expect(controller.compoundShorthands, hasLength(1));
+      expect(await repos.settings.get(kCompoundShorthandsKey), hasLength(1));
+      expect(controller.userFigureShorthands, isEmpty);
+
+      // It may keep its own token; both keys are then written.
+      await controller.replaceCompoundWithUserFigure(
+        0,
+        shorthand(token: 'grl'),
+      );
+      expect(controller.compoundShorthands, isEmpty);
+      expect(await repos.settings.get(kCompoundShorthandsKey), isEmpty);
+      expect(await repos.settings.get(kUserFigureShorthandsKey), [
+        shorthand(token: 'grl').toJson(),
+      ]);
+
+      // And back again.
+      await controller.replaceUserFigureWithCompound(
+        0,
+        compoundShorthand('grl'),
+      );
+      expect(controller.userFigureShorthands, isEmpty);
+      expect(controller.compoundShorthands.single.token, 'grl');
+    });
+
     test('stores them under their own key, and reads all three back', () async {
       final repos = openTestRepositories();
       final controller = ShorthandMappingsController(repos.settings);
@@ -384,7 +424,7 @@ void main() {
       expect(
         find.descendant(
           of: tile('zm'),
-          matching: find.text('robins zoom briskly'),
+          matching: find.text('robins zoom briskly · 4 beats'),
         ),
         findsOneWidget,
       );
@@ -511,6 +551,107 @@ void main() {
       expect(
         [for (final s in controller.userFigureShorthands) s.token],
         ['grl'],
+      );
+    });
+
+    testWidgets('says when a compound shorthand has the same token', (
+      tester,
+    ) async {
+      final controller = await pump(tester, shorthands: [shorthand()]);
+      // Past the controller's uniqueness check, as two devices could each
+      // add one before they sync.
+      await tester.runAsync(() async {
+        await controller.removeUserFigureAt(0);
+        await controller.upsertCompound(compoundShorthand('zm'));
+        await controller.upsertUserFigure(shorthand(token: 'other'));
+      });
+      final repos = RepositoriesScope.of(
+        tester.element(find.byType(ShorthandMappingsScreen)),
+      );
+      await tester.runAsync(() async {
+        await repos.settings.set(kUserFigureShorthandsKey, [
+          shorthand().toJson(),
+        ]);
+        await controller.load();
+      });
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('user-figure-shorthand-problem-zm')),
+            )
+            .data,
+        'Not used: a shorthand for one of your combinations has the same '
+        'text.',
+      );
+    });
+
+    testWidgets('editing one is titled as an edit', (tester) async {
+      await pump(tester, shorthands: [shorthand()]);
+      await tester.tap(tile('zm'));
+      await tester.pumpAndSettle();
+      expect(find.text('Edit shorthand'), findsOneWidget);
+      expect(find.text('New shorthand'), findsNothing);
+    });
+
+    testWidgets('one given a compound instead moves to the compounds\' key', (
+      tester,
+    ) async {
+      final controller = await pump(tester, shorthands: [shorthand()]);
+      final repos = RepositoriesScope.of(
+        tester.element(find.byType(ShorthandMappingsScreen)),
+      );
+      await tester.runAsync(
+        () => repos.userGlossary.upsert(
+          UserGlossaryEntry(
+            id: 'circle-id',
+            kindName: UserGlossaryEntryKind.compound.name,
+            name: 'circle twice',
+            definition: 'Two circles.',
+            description: 'Round.',
+            payload: CompoundDefinition(
+              params: const [],
+              figures: [
+                for (var i = 0; i < 2; i++)
+                  Figure(
+                    move: 'pull_by',
+                    params: const {
+                      'who': 'neighbors',
+                      'hand': 'right',
+                      'beats': 2,
+                    },
+                  ),
+              ],
+              bindings: const [],
+            ).toJson(),
+            createdAt: created,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(tile('zm'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('compound-shorthand-compound')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find
+            .byKey(
+              const ValueKey('compound-shorthand-choice-compound:circle-id'),
+            )
+            .last,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('compound-shorthand-save')));
+      await tester.pumpAndSettle();
+      expect(controller.userFigureShorthands, isEmpty);
+      expect(
+        [
+          for (final c in controller.compoundShorthands)
+            (c.token, c.compoundId),
+        ],
+        [('ZM', 'circle-id')],
       );
     });
 

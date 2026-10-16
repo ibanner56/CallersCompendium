@@ -8311,6 +8311,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Bruges ikke: en figurkortform har samme tekst.';
 
   @override
+  String get shorthandsUserFigureShadowedByCompound =>
+      'Bruges ikke: en kortform for en af dine kombinationer har samme tekst.';
+
+  @override
   String get compoundShorthandEditorFigureLabel => 'Din figur';
 
   @override

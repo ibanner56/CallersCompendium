@@ -8001,6 +8001,10 @@ class AppLocalizationsJa extends AppLocalizations {
       '使用されていません。フィギュアのショートハンドに同じテキストがあります。';
 
   @override
+  String get shorthandsUserFigureShadowedByCompound =>
+      '使用されていません。自分の組み合わせのショートハンドに同じテキストがあります。';
+
+  @override
   String get compoundShorthandEditorFigureLabel => '自分のフィギュア';
 
   @override

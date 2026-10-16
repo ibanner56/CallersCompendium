@@ -1473,6 +1473,9 @@ class DanceEditorController extends ChangeNotifier {
           beats: shorthand.beats,
         ),
       );
+    // Beats the shorthand sets count as chosen; without them the row has the
+    // figure's default beats, as picking the figure gives it.
+    draft.beatsTouched = shorthand.beats != null;
     // Values the figure no longer accepts would show only the stored line.
     final renders =
         FigureRenderer(

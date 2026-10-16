@@ -8277,6 +8277,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Not used: a figure shorthand has the same text.';
 
   @override
+  String get shorthandsUserFigureShadowedByCompound =>
+      'Not used: a shorthand for one of your combinations has the same text.';
+
+  @override
   String get compoundShorthandEditorFigureLabel => 'Your figure';
 
   @override

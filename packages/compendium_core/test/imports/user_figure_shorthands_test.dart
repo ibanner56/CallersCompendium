@@ -84,7 +84,7 @@ void main() {
           token: 'bad7',
           args: {'text': 'x' * (maxUserFigureTextArgLength + 1)},
         ),
-        entry(token: 'bad8', beats: 0),
+        entry(token: 'bad8', beats: -1),
         entry(token: 'bad9', beats: maxUserFigureDefaultBeats + 1),
         entry(token: 'bad10', beats: 'eight'),
         'not a map',
@@ -106,6 +106,13 @@ void main() {
           entry(token: 't$i'),
       ]);
       expect(store.shorthands, hasLength(maxUserFigureShorthands));
+    });
+
+    test('keeps beats of 0, as a figure\'s own default beats may be', () {
+      expect(
+        UserFigureShorthands.decode([entry(beats: 0)]).shorthands.single.beats,
+        0,
+      );
     });
 
     test('keeps only what a use could hold, so the line it inserts stays a '

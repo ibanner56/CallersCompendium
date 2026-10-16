@@ -318,15 +318,13 @@ class _CompoundShorthandsSectionState
       ),
     );
     switch (edited) {
+      case CompoundShorthand() when userFigureIndex != null:
+        await controller.replaceUserFigureWithCompound(userFigureIndex, edited);
       case CompoundShorthand():
-        if (userFigureIndex != null) {
-          await controller.removeUserFigureAt(userFigureIndex);
-        }
         await controller.upsertCompound(edited, index: compoundIndex);
+      case UserFigureShorthand() when compoundIndex != null:
+        await controller.replaceCompoundWithUserFigure(compoundIndex, edited);
       case UserFigureShorthand():
-        if (compoundIndex != null) {
-          await controller.removeCompoundAt(compoundIndex);
-        }
         await controller.upsertUserFigure(edited, index: userFigureIndex);
     }
   }
@@ -532,19 +530,32 @@ class _CompoundShorthandsSectionState
     final renderer = FigureRenderer(contraTaxonomy, userFigures: userFigures);
     final usable = renderer.renderUserFigureCanonical(use) != null;
     final shadowed = figureTokens.contains(shorthand.normalizedToken);
+    // A compound shorthand with the same token is resolved first, so it wins
+    // too: tokens are kept unique, but two devices can each add one.
+    final shadowedByCompound = {
+      for (final c in widget.controller.compoundShorthands) c.normalizedToken,
+    }.contains(shorthand.normalizedToken);
     final problem = shadowed
         ? l10n.shorthandsCompoundShadowed
+        : shadowedByCompound
+        ? l10n.shorthandsUserFigureShadowedByCompound
         : usable || _entries == null
         ? null
         : l10n.shorthandsCompoundUnavailable;
     final key = shorthand.normalizedToken;
+    final beats = shorthand.beats;
     return ListTile(
       key: ValueKey('user-figure-shorthand-tile-$key'),
       title: Text(shorthand.token),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(renderer.render(use, dialect)),
+          Text(
+            beats == null
+                ? renderer.render(use, dialect)
+                : '${renderer.render(use, dialect)} · '
+                      '${l10n.danceFigureBeats(beats)}',
+          ),
           if (problem != null)
             Text(
               problem,

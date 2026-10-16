@@ -70,9 +70,10 @@ final Map<String, DataClassification> settingsClassifications = {
     egress: EgressClass.shareable,
     note:
         'The user\'s shorthands for their own new figures (#1023): tokens '
-        'they chose, a figure\'s id and name, values and beats. The same '
-        'call as compound_shorthands: content the user authored for '
-        'themselves, naming no one else. Held back until every device can '
+        'they chose, a figure\'s id and name, values and beats. Classified '
+        'as compound_shorthands is (the implementer\'s call, following that '
+        'precedent): content the user authored for themselves, naming no '
+        'one else. Held back until every device can '
         'read the figures themselves (glossary.v2, '
         'SyncCapabilityPolicy.build).',
   ),
