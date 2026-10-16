@@ -55,17 +55,13 @@ enum ArchiveIntakeRejectionReason {
   /// non-archive JSON, or an unreadable envelope).
   notArchive,
 
-  /// The archive was written by a newer app version than this build understands.
-  newerVersion,
-
   /// The archive decoded fine but carried neither dances nor programs.
   noContent,
 }
 
 /// The outcome of an [ArchiveIntakeService] attempt. Intake **never throws** to
 /// the caller: every failure — missing/unreadable file, oversized input,
-/// non-text bytes, non-archive JSON, an unsupported (newer) schema, or an empty
-/// bundle — resolves to a [rejected] result carrying a stable, non-leaking
+/// non-text bytes, non-archive JSON, or an empty bundle — resolves to a [rejected] result carrying a stable, non-leaking
 /// [reason] the UI maps to a user-facing string.
 ///
 /// A [validated] result carries the decoded [archive], the raw [json] the
@@ -138,8 +134,8 @@ class ArchiveIntakeValidation {
 /// - Bytes must decode as UTF-8 text.
 /// - The text must decode as a **well-formed** [CompendiumArchive]; a root that
 ///   isn't a Compendium archive is rejected.
-/// - The archive's schema version must not be **newer** than this build
-///   understands (refuse forward, gracefully — don't guess).
+/// - An archive from a **newer** build is not refused: it is read for the
+///   fields this build knows, and the review says so for the whole file.
 /// - An empty bundle (no dances and no programs) is rejected.
 /// - **Parse-never-throws:** all of the above resolve to an
 ///   [ArchiveIntakeValidation] — the caller never sees an exception.
@@ -220,12 +216,11 @@ class ArchiveIntakeService {
       );
     }
 
+    // An archive from a newer build is let through: the review reads the
+    // fields this build knows and says, once for the file, that some may be
+    // left out. That is what a version bump is for (`archiveSchemaVersion`):
+    // refusing the file here made every bump keep a bundle out entirely.
     final archive = read.archive;
-    if (archive.schemaVersion > archiveSchemaVersion) {
-      return ArchiveIntakeValidation.rejected(
-        ArchiveIntakeRejectionReason.newerVersion,
-      );
-    }
 
     if (archive.dances.isEmpty && archive.programs.isEmpty) {
       return ArchiveIntakeValidation.rejected(

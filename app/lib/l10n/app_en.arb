@@ -8150,10 +8150,6 @@
   "@archiveIntakeRejectedNotArchive": {
     "description": "Rejection shown when a shared file is not a well-formed Caller's Compendium archive (bad text, non-archive JSON, or an unreadable envelope). Generic; never echoes parser detail."
   },
-  "archiveIntakeRejectedNewerVersion": "That file was made by a newer version of the app. Please update to import it.",
-  "@archiveIntakeRejectedNewerVersion": {
-    "description": "Rejection shown when a shared archive was written by a newer app version than this build understands."
-  },
   "archiveIntakeRejectedNoContent": "That file didn't contain any dances or programs.",
   "@archiveIntakeRejectedNoContent": {
     "description": "Rejection shown when a shared archive decoded successfully but carried neither dances nor programs."

@@ -194,11 +194,14 @@ void main() {
       expectRejected(result, reason: ArchiveIntakeRejectionReason.tooLarge);
     });
 
-    test('a newer-schema archive is refused with a clear reason', () async {
+    test('a newer-schema archive is let through to the review, which reads '
+        'what this build knows and says so', () async {
       final json = _validBundleJson(schemaVersion: archiveSchemaVersion + 1);
       final result = await service().validateBytes(_bytes(json));
 
-      expectRejected(result, reason: ArchiveIntakeRejectionReason.newerVersion);
+      expect(result.isValidated, isTrue);
+      expect(result.archive!.schemaVersion, archiveSchemaVersion + 1);
+      expect(result.archive!.dances, isNotEmpty);
     });
 
     test('an unreadable file path is rejected gracefully', () async {

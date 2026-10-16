@@ -55,6 +55,7 @@ class DanceExportActions {
     this.sourcesById = const {},
     this.customFieldsById = const {},
     this.difficultyLevelFor,
+    this.userFigureFor,
     this.fields = DanceShareField.allExceptTunes,
     this.shareInvoker,
     this.bundleFileWriter,
@@ -78,6 +79,11 @@ class DanceExportActions {
   final Map<String, PublishedSource> sourcesById;
   final Map<String, CustomFieldDef> customFieldsById;
   final DifficultyLevel? Function(String id)? difficultyLevelFor;
+
+  /// Finds one of the user's own new figures by id, so the `.ccshare` and
+  /// JSON bundles carry each one the dance uses (#1023). Without it, they
+  /// carry none.
+  final UserGlossaryEntry? Function(String id)? userFigureFor;
 
   /// Test seam for the share call; defaults to [SharePlus.instance.share]. Not
   /// used on platforms where [isBundleShareUnsupported] (Linux) routes the file
@@ -118,6 +124,7 @@ class DanceExportActions {
       publishedSourceFor: (id) => sourcesById[id],
       customFieldFor: (id) => customFieldsById[id],
       difficultyLevelFor: difficultyLevelFor,
+      userFigureFor: userFigureFor,
     );
     final fileName = danceShareBundleFileName(
       dance.title,

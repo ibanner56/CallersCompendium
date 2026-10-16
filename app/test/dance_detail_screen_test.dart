@@ -226,6 +226,64 @@ void main() {
     expect(find.textContaining('larks zoom twice'), findsWidgets);
   });
 
+  testWidgets('a dance file carries the figures of your own the dance uses, '
+      'without your notes (#1023)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.userGlossary.upsert(
+      UserGlossaryEntry(
+        id: 'zoom-id',
+        kindName: UserGlossaryEntryKind.customFigure.name,
+        name: 'zoom',
+        definition: 'A zoom.',
+        description: 'Fast.',
+        notes: 'only mine',
+        payload: const {
+          'template': '{move}',
+          'defaultBeats': 8,
+          'params': <Object?>[],
+        },
+        createdAt: _now,
+      ),
+    );
+    await repos.dances.create(
+      _dance(id: 'd1', title: 'Zoom Reel').copyWith(
+        figures: [
+          userFigureUseFigure(id: 'zoom-id', args: const {}, text: 'zoom'),
+        ],
+      ),
+    );
+    final userFigures = UserFiguresController(repos.userGlossary);
+    addTearDown(userFigures.dispose);
+    unawaited(userFigures.start());
+    String? savedJson;
+
+    await _pumpDetail(
+      tester,
+      repos,
+      'd1',
+      surfaceSize: const Size(360, 800),
+      userFigures: userFigures,
+      jsonExportDelivery: JsonExportDelivery(
+        choicePicker: (_) async => JsonExportChoice.save,
+        saveInvoker: (json, fileName) async {
+          savedJson = json;
+          return JsonSaveResult(
+            path: '/Documents/$fileName',
+            fileName: fileName,
+          );
+        },
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('overflow-share-dance-json')));
+    await tester.pumpAndSettle();
+
+    final archive = decodeArchive(savedJson!).archive;
+    expect(archive.userFigures.map((f) => f.id), ['zoom-id']);
+    expect(savedJson, isNot(contains('only mine')));
+  });
+
   testWidgets('persisted read-only detail exposes only re-import', (
     tester,
   ) async {

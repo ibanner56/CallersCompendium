@@ -8,11 +8,13 @@ import '../model/difficulty_level.dart';
 import '../model/program.dart';
 import '../model/published_source.dart';
 import '../model/tag.dart';
+import '../model/user_glossary.dart';
 import '../model/venue.dart';
 import '../model/figure_source.dart';
 import '../model/tunes_source.dart';
 
 const ListEquality<Object?> _listEq = ListEquality<Object?>();
+const DeepCollectionEquality _deepEq = DeepCollectionEquality();
 
 /// Current version of the canonical [CompendiumArchive] JSON schema.
 ///
@@ -49,6 +51,17 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 ///   full backup restores a deleted tag and its association. Written by backup
 ///   mode only, and only when a tombstoned tag exists. See
 ///   [archiveSchemaVersionDeletedTags].
+///
+/// **Not versioned:** a shared archive's `userFigures` section, the
+/// definitions of the user's own new figures its dances use (#1023, see
+/// [CompendiumArchive.userFigures]), is written without a bump, by the
+/// maintainer's decision. A bump would make no older reader warn: the share
+/// intake of every build before the one that added the section refuses a
+/// newer archive outright, so a bundle carrying figures would not import at
+/// all. Without one, an older reader ignores the unknown key and imports the
+/// dances, each use of a figure as the line it carries. That build also stopped
+/// the intake refusing a newer archive, so a later build can bump for this
+/// section and have readers from then on warn, as the earlier bumps intended.
 const int archiveSchemaVersion = archiveSchemaVersionDeletedTags;
 
 /// The original, pre-venue archive envelope version.
@@ -201,6 +214,7 @@ class CompendiumArchive {
     this.venues = const [],
     this.difficultyLevels = const [],
     this.deletedTags = const [],
+    this.userFigures = const [],
   });
 
   /// The [archiveSchemaVersion] this archive is stamped as. Defaults to
@@ -231,6 +245,13 @@ class CompendiumArchive {
   /// empty in a share archive and in any archive that predates v7.
   final List<ArchivedDeletedTag> deletedTags;
 
+  /// The user's own new figures (#1023) the dances use, as `customFigure`
+  /// entries without notes: what a shared archive carries so the receiver can
+  /// add them (plan C12). Written in share mode only; a backup carries the
+  /// whole glossary in its own section. Not versioned: see
+  /// [archiveSchemaVersion].
+  final List<UserGlossaryEntry> userFigures;
+
   @override
   bool operator ==(Object other) =>
       other is CompendiumArchive &&
@@ -244,7 +265,11 @@ class CompendiumArchive {
       _listEq.equals(other.tags, tags) &&
       _listEq.equals(other.venues, venues) &&
       _listEq.equals(other.difficultyLevels, difficultyLevels) &&
-      _listEq.equals(other.deletedTags, deletedTags);
+      _listEq.equals(other.deletedTags, deletedTags) &&
+      _deepEq.equals(
+        other.userFigures.map(_userFigureFields).toList(),
+        userFigures.map(_userFigureFields).toList(),
+      );
 
   @override
   int get hashCode => Object.hash(
@@ -259,8 +284,23 @@ class CompendiumArchive {
     _listEq.hash(venues),
     _listEq.hash(difficultyLevels),
     _listEq.hash(deletedTags),
+    _deepEq.hash(userFigures.map(_userFigureFields).toList()),
   );
 }
+
+/// What an archive compares of one of [CompendiumArchive.userFigures]: an
+/// entry has no equality of its own.
+List<Object?> _userFigureFields(UserGlossaryEntry e) => [
+  e.id,
+  e.kindName,
+  e.name,
+  e.definition,
+  e.description,
+  e.keywords,
+  e.notes,
+  e.payload,
+  e.createdAt,
+];
 
 /// A tombstoned [Tag] in a full backup: the tag, when it was deleted, and the
 /// dances whose retained `dance_tags` row still names it.

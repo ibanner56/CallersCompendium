@@ -715,6 +715,23 @@ PR that added this mapping).
   tombstoned by a backup, and its retained joins are not applied. Tombstoned
   choreographers, sources and custom-field definitions are not carried: they are
   referentially guarded, so no retained join can name one.
+- Your own figures (#1023, plan C12). A **share-mode** archive carries a
+  `userFigures` array: each of the sender's own new figures its dances use,
+  attached, as `id`, `name`, `definition`, `description`, `keywords`, `payload`
+  and `createdAt`. A figure's notes are left out. Backup mode never writes it;
+  a backup carries the whole glossary in its own section. The reader keeps an
+  entry only when it is whole: a non-empty id, text within the glossary's own
+  bounds (scrubbed as every imported string is), and a payload that decodes as
+  a figure's definition. Anything else, and anything past 500 entries, is left
+  out with a warning, never an error, because the dances that use a figure
+  still read, each as the line it carries.
+  - **Not versioned, by the maintainer's decision.** Every build before the
+    one that added the array refuses a shared archive newer than it knows at
+    intake, so a bump would keep such a bundle out entirely. Without one, an
+    older build ignores the unknown key and imports the dances. The same build
+    stopped intake refusing a newer archive: the review reads the fields it
+    knows and warns once for the file. So a later build can bump for this
+    array, and builds from then on warn, as the earlier bumps intended.
 - Receive key. A received dance is stored under `(json, externalId)`, where the
   external id is the dance's **upstream** provenance namespaced by its source —
   `contradb:457` — because upstream sources hand out overlapping small integer

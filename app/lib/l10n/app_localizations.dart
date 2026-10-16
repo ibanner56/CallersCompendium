@@ -9587,12 +9587,6 @@ abstract class AppLocalizations {
   /// **'That file isn\'t a Caller\'s Compendium share file.'**
   String get archiveIntakeRejectedNotArchive;
 
-  /// Rejection shown when a shared archive was written by a newer app version than this build understands.
-  ///
-  /// In en, this message translates to:
-  /// **'That file was made by a newer version of the app. Please update to import it.'**
-  String get archiveIntakeRejectedNewerVersion;
-
   /// Rejection shown when a shared archive decoded successfully but carried neither dances nor programs.
   ///
   /// In en, this message translates to:

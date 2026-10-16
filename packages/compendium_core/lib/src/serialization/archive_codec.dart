@@ -20,6 +20,7 @@ import '../model/venue.dart';
 import '../util/argb.dart';
 import '../util/text_sanitizer.dart';
 import 'archive_entity_codec.dart';
+import 'archive_user_figures.dart';
 import 'compendium_archive.dart';
 import 'figure_codec.dart';
 import '../taxonomy/user_figure_use.dart';
@@ -147,6 +148,16 @@ Map<String, Object?> archiveToJson(
       'venues': [
         for (final v in _sortedById(archive.venues, (v) => v.id))
           archiveVenueToJson(v),
+      ],
+    // The user's own new figures the dances use (#1023): shared so the
+    // receiver can add them. A backup carries the whole glossary in its own
+    // section, so this is share mode only. Omitted when empty, and never a
+    // version bump (see `archiveSchemaVersion`).
+    if (mode == ArchiveSerializationMode.share &&
+        archive.userFigures.isNotEmpty)
+      'userFigures': [
+        for (final f in _sortedById(archive.userFigures, (f) => f.id))
+          archiveUserFigureToJson(f),
       ],
   };
 }
@@ -344,6 +355,10 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
     dropped,
   );
 
+  // Never an error: a figure that can't be read leaves its uses as the lines
+  // they carry, so the dances still import.
+  final userFigures = decodeArchiveUserFigures(root['userFigures'], warnings);
+
   return ArchiveReadResult(
     archive: CompendiumArchive(
       schemaVersion: schemaVersion,
@@ -357,6 +372,7 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
       venues: venues,
       difficultyLevels: difficultyLevels,
       deletedTags: deletedTags,
+      userFigures: userFigures,
     ),
     errors: errors,
     warnings: warnings,

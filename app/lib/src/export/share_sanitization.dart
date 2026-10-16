@@ -170,3 +170,28 @@ String? resolveSanitizedVenueLabelParts(
   venue,
   venuesWithSanitizedContact(venuesById, venueId),
 );
+
+/// The user's own new figures (#1023) that [dances] use, attached, each found
+/// through [userFigureFor] and without its notes: what a share bundle carries
+/// so the receiver can add them (plan C12). A figure [userFigureFor] can't find
+/// (gone, or not on this device) is left out; its uses still carry their lines.
+/// None without [userFigureFor].
+///
+/// Notes are left out though the registry classifies them shareable, as it
+/// does every glossary column: that class is for sync, between the owner's
+/// own devices, while a bundle goes to someone else.
+List<UserGlossaryEntry> userFiguresForShare(
+  Iterable<Dance> dances,
+  UserGlossaryEntry? Function(String id)? userFigureFor,
+) {
+  if (userFigureFor == null) return const [];
+  return [
+    for (final id in userFigureIdsUsedBy([
+      for (final dance in dances)
+        if (dance.figuresSource case DecodedFigures(:final figures)) ...figures,
+    ]))
+      if (userFigureFor(id) case final entry?
+          when entry.kind == UserGlossaryEntryKind.customFigure)
+        entry.copyWith(clearNotes: true),
+  ];
+}
