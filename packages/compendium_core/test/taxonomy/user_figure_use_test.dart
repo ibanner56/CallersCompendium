@@ -225,11 +225,11 @@ void main() {
         Dialect.larksRobins.copyWith(
           moves: {
             ...Dialect.larksRobins.moves,
-            if (name != null) userFigureKeyFor('zoom-id'): name,
+            userFigureKeyFor('zoom-id'): ?name,
           },
           moveWordings: {
             ...Dialect.larksRobins.moveWordings,
-            if (wording != null) userFigureKeyFor('zoom-id'): wording,
+            userFigureKeyFor('zoom-id'): ?wording,
           },
         );
 
