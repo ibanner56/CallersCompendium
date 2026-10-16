@@ -212,6 +212,73 @@ void main() {
     expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
   });
 
+  group('two tags with one name, the same updatedAt, and a kept part on '
+      'only one side', () {
+    // Accepted behaviour, not a bug (sync-spec §6.7, "A tie this build cannot
+    // judge is left to one that can"; decided by Isaac (maintainer) on review,
+    // 2026-10-16). `_newerNaturalContent` compares whole bodies, so a tie that
+    // differs only in a part this build keeps is queued as a non-actionable
+    // review and the peer is not applied. Comparing only the parts this build
+    // knows would pick the inbound copy on every device: two devices holding
+    // different kept parts would each take the other's copy and stay different
+    // at one `updatedAt`.
+    const reason =
+        'natural-key collision has different bodies at the same updatedAt';
+
+    SyncRecordBlob tag(String id, {required bool kept}) {
+      final blob = syncRecordBlobForEntity(
+        SyncRecordKind.tag,
+        Tag(id: id, name: 'Same Tag'),
+        updatedAt: _stamp,
+        existenceAt: _stamp,
+      )!;
+      return kept ? blob.withKept : blob;
+    }
+
+    for (final (label, localKept) in [
+      ('the local copy holds it', true),
+      ('the inbound copy holds it', false),
+    ]) {
+      test('is left to a build that can judge it when $label', () async {
+        final local = tag('t-local', kept: localKept);
+        final inbound = tag('t-peer', kept: !localKept);
+        await apply(local);
+        final before = await published(local.address);
+        final retainedBefore = await repositories.syncLocal
+            .listRetainedSyncFields();
+
+        final result = await const SyncApplyEngine().apply(
+          candidates: [SyncMergeCandidate(blob: inbound)],
+          storage: storage,
+        );
+        expect(result.applied, isEmpty);
+        expect(result.reports, isEmpty);
+
+        // One review row, filed under the inbound id with this device's tag as
+        // the counterpart, that the user cannot act on: the difference is a
+        // part this build cannot show.
+        final rows = await repositories.syncLocal.listReviewQueue();
+        expect(rows, hasLength(1));
+        expect(rows.single.reason, reason);
+        expect(rows.single.recordId, 't-peer');
+        expect(rows.single.counterpartId, 't-local');
+        expect(SyncReviewQueueItem.fromRow(rows.single).isActionable, isFalse);
+
+        // The peer's copy is not applied: its id holds no row and no alias,
+        // and this device still publishes exactly what it did before.
+        expect(await repositories.tags.getById('t-peer'), isNull);
+        expect(await repositories.syncLocal.listAliases(), isEmpty);
+        expect((await published(local.address)).wireHash, before.wireHash);
+        final retainedAfter = await repositories.syncLocal
+            .listRetainedSyncFields();
+        expect(
+          retainedAfter.map((row) => (row.kind, row.recordId, row.payload)),
+          retainedBefore.map((row) => (row.kind, row.recordId, row.payload)),
+        );
+      });
+    }
+  });
+
   test('a setting this build syncs keeps a newer build\'s extra part and '
       'shares it back', () async {
     final peer = SyncRecordBlob(
