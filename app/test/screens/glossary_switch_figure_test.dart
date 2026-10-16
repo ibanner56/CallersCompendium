@@ -294,10 +294,11 @@ void main() {
 
       if (layout == 'narrow') {
         expect(
-          find.byKey(const ValueKey('glossary-custom-detail')),
+          find.byKey(const ValueKey('glossary-custom-gone')),
           findsNothing,
           reason: 'the page of a retired figure closes',
         );
+        expect(find.byKey(const ValueKey('glossary-search')), findsOneWidget);
       }
     });
   }
