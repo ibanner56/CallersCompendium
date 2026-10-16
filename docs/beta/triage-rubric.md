@@ -6,7 +6,8 @@ tracked so nothing gets lost and testers can see where their reports stand.
 
 Every label named here comes from the project's single source of truth,
 [`.github/labels.yml`](../../.github/labels.yml) — the 49-label triage taxonomy, plus the
-`review: claude` PR label, which is not a triage label. Use labels
+`review: claude` PR label and the four `claude: *` review-status labels (set by
+`claude-review-status.yml`, never by hand), none of which is a triage label. Use labels
 by their **exact names** (for example `severity: critical`, not "critical"); do not
 invent ad-hoc labels in the GitHub UI.
 
