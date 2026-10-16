@@ -6,10 +6,15 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
 import '../../data/dialect_library_scope.dart';
+import '../../data/persisted_preference.dart';
+import '../../data/program_matrix_column_config_scope.dart';
 import '../../data/repositories_scope.dart';
+import '../../data/settings_keys.dart';
 import '../../data/show_custom_figures_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
+import '../../diagnostics/error_log.dart';
 import '../../glossary/custom_figures.dart';
+import '../../glossary/user_figure_defaults.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
 import 'compound_editor_screen.dart';
@@ -163,11 +168,20 @@ class _GlossaryCustomFigureDetailState
     final l10n = AppLocalizations.of(context);
     final navigator = Navigator.of(context);
     final repos = _repos!;
+    // Read before anything is awaited: the delete can unmount this page (in
+    // the wide Glossary it does).
+    final dialects = DialectLibraryScope.maybeOf(context);
     // A figure of your own is used by reference (#1023): say how many dances
     // keep its current wording as plain text (maintainer decision 2).
     final uses = isFigure
         ? await repos.dances.countDancesUsingUserFigure(widget.entryId)
         : null;
+    // The Trash's dances keep the line each last stored (plan C9).
+    final trashed = isFigure
+        ? await repos.dances.countTrashedDancesUsingUserFigure(widget.entryId)
+        : 0;
+    // Whether the default figure lists use it, to say so.
+    final inDefaults = isFigure && (await _frozenDefaults(repos)).isNotEmpty;
     if (!context.mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -176,7 +190,11 @@ class _GlossaryCustomFigureDetailState
         content: Text(
           uses == null
               ? l10n.glossaryCustomDeleteBody
-              : l10n.glossaryCustomDeleteUses(uses),
+              : [
+                  l10n.glossaryCustomDeleteUses(uses),
+                  if (trashed > 0) l10n.glossaryCustomDeleteTrash(trashed),
+                  if (inDefaults) l10n.glossaryCustomDeleteDefaults,
+                ].join(' '),
           key: const ValueKey('glossary-custom-delete-body'),
         ),
         actions: [
@@ -194,11 +212,90 @@ class _GlossaryCustomFigureDetailState
     );
     if (confirmed != true) return;
     if (isFigure) {
+      // Read again now, not when the dialog opened: the lists, or the figure,
+      // may have changed while it was open. Read before the delete, while the
+      // figure still renders.
+      final frozenDefaults = await _frozenDefaults(repos);
       await repos.deleteUserFigure(widget.entryId);
+      // Then what the settings keep for it (#1023, plan C9). The figure is
+      // gone either way, so a failure in either step below is logged rather
+      // than stopping the page from closing, and neither skips the other.
+      //
+      // Each dialect's name and wording for it, and its matrix column's
+      // place, hiding and rename: nothing would read them again, but they
+      // would stay in every backup and sync. A failure leaves only inert
+      // keys.
+      try {
+        await dialects?.forgetUserFigure(widget.entryId);
+        // Through the navigator's context: in the wide Glossary the delete
+        // unmounts this page as soon as the list no longer holds the entry,
+        // and the matrix scope sits above the navigator.
+        final scopeContext = navigator.context;
+        if (scopeContext.mounted &&
+            ProgramMatrixColumnConfigScope.maybeNotifierOf(scopeContext) !=
+                null) {
+          await _dropMatrixColumn(scopeContext, repos);
+        }
+      } on Object catch (e, stackTrace) {
+        logCaughtError(
+          e,
+          stackTrace,
+          source: 'GlossaryCustomFigureDetail._confirmAndDelete',
+        );
+      }
+      // Its uses in the default figure lists, frozen as the dances were. A
+      // failure leaves a list holding uses of a figure that is gone: each
+      // still shows its stored line, and the dance editor makes it plain text
+      // when a dance holding it is saved.
+      try {
+        for (final MapEntry(:key, :value) in frozenDefaults.entries) {
+          await persistSetting(repos.settings, key, value);
+        }
+      } on Object catch (e, stackTrace) {
+        logCaughtError(
+          e,
+          stackTrace,
+          source: 'GlossaryCustomFigureDetail._confirmAndDelete',
+        );
+      }
     } else {
       await repos.userGlossary.delete(widget.entryId);
     }
     if (!widget.showName && mounted) navigator.pop();
+  }
+
+  /// The default figure lists that use this figure, frozen
+  /// ([frozenDefaultFigureLists]); none once it is gone.
+  Future<Map<String, String>> _frozenDefaults(
+    CompendiumRepositories repos,
+  ) async {
+    final entry = await repos.userGlossary.getById(widget.entryId);
+    if (entry == null) return const {};
+    return frozenDefaultFigureLists(
+      repos.settings,
+      widget.entryId,
+      FigureRenderer(
+        contraTaxonomy,
+        userFigures: UserFigureCatalog.fromEntries([entry]),
+      ),
+    );
+  }
+
+  /// Drops the deleted figure's matrix column from the live config, then
+  /// stores it, as the Matrix columns screen writes it (#1023, plan C9).
+  Future<void> _dropMatrixColumn(
+    BuildContext scopeContext,
+    CompendiumRepositories repos,
+  ) {
+    final matrix = ProgramMatrixColumnConfigScope.notifierOf(scopeContext);
+    final kept = matrix.value.withoutColumn(userFigureKeyFor(widget.entryId));
+    if (identical(kept, matrix.value)) return Future.value();
+    matrix.value = kept;
+    return persistSetting(
+      repos.settings,
+      kProgramMatrixColumnsKey,
+      kept.toJson(),
+    );
   }
 
   @override

@@ -1135,8 +1135,8 @@ class DanceRepository {
   }
 
   /// The ids of the dances whose figures use the figure of your own
-  /// [userFigureId], attached, inside containers too; with [includeDeleted],
-  /// soft-deleted dances as well.
+  /// [userFigureId], attached, inside containers too: the live dances, or
+  /// with [trashed] the soft-deleted ones.
   ///
   /// A `LIKE` on the stored figures narrows the candidates without decoding
   /// every dance; each candidate is then decoded and checked, so the pattern
@@ -1144,7 +1144,7 @@ class DanceRepository {
   /// the same.
   Future<List<String>> _danceIdsUsingUserFigure(
     String userFigureId, {
-    required bool includeDeleted,
+    bool trashed = false,
   }) async {
     final escaped = userFigureId
         .replaceAll(r'\', r'\\')
@@ -1154,7 +1154,7 @@ class DanceRepository {
         .customSelect(
           'SELECT id, figures_json FROM dances '
           r"WHERE figures_json LIKE ? ESCAPE '\'"
-          '${includeDeleted ? '' : ' AND deleted_at IS NULL'}',
+          ' AND deleted_at IS ${trashed ? 'NOT ' : ''}NULL',
           variables: [Variable.withString('%"$userFigureRefKey":"$escaped"%')],
           readsFrom: {_db.dances},
         )
@@ -1177,10 +1177,13 @@ class DanceRepository {
   /// How many live dances use the figure of your own [userFigureId] (#1023):
   /// the count deleting it asks about.
   Future<int> countDancesUsingUserFigure(String userFigureId) async =>
-      (await _danceIdsUsingUserFigure(
-        userFigureId,
-        includeDeleted: false,
-      )).length;
+      (await _danceIdsUsingUserFigure(userFigureId)).length;
+
+  /// How many dances in the Trash use the figure of your own [userFigureId]
+  /// (#1023): the other part of the count deleting it says (plan C9). They
+  /// are not frozen by the delete, and keep the line each last stored.
+  Future<int> countTrashedDancesUsingUserFigure(String userFigureId) async =>
+      (await _danceIdsUsingUserFigure(userFigureId, trashed: true)).length;
 
   /// Rebuilds the derived rows of every live dance that uses the figure of
   /// your own [userFigureId] (#1023), so search
@@ -1193,10 +1196,7 @@ class DanceRepository {
   /// A dance in the Trash is skipped: search never shows it, and restoring
   /// it rebuilds its rows from the figures live then ([restore]).
   Future<int> reindexDancesUsingUserFigure(String userFigureId) async {
-    final ids = await _danceIdsUsingUserFigure(
-      userFigureId,
-      includeDeleted: false,
-    );
+    final ids = await _danceIdsUsingUserFigure(userFigureId);
     if (ids.isEmpty) return 0;
     return _db.transaction(() async {
       final userFigures = await _liveUserFigures();
@@ -1232,10 +1232,7 @@ class DanceRepository {
     required DateTime now,
   }) async {
     assertUtc(now, 'now');
-    final ids = await _danceIdsUsingUserFigure(
-      userFigureId,
-      includeDeleted: false,
-    );
+    final ids = await _danceIdsUsingUserFigure(userFigureId);
     if (ids.isEmpty) return 0;
     // Each use freezes to the line it renders to now, so read the figure
     // while it is still live: the caller freezes before deleting it.
@@ -1251,15 +1248,7 @@ class DanceRepository {
           UnreadableFigures() => null,
         };
         if (figures == null) return null;
-        final frozen = mapFigureLeaves(
-          figures,
-          (figure) => userFigureUseOf(figure)?.id == userFigureId
-              ? detachUserFigureUse(
-                  figure,
-                  text: renderer.renderUserFigureCanonical(figure),
-                )
-              : figure,
-        );
+        final frozen = freezeUserFigureUsesIn(figures, userFigureId, renderer);
         if (identical(frozen, figures)) return null;
         return dance.copyWith(figures: frozen, updatedAt: now);
       },

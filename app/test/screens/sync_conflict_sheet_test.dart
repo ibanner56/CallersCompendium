@@ -490,6 +490,20 @@ void main() {
       expect(differing(), ['title', 'authorIds']);
     });
 
+    test('a part kept for a newer version is not shown as a difference', () {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+
+      expect(
+        syncConflictDifferingFields(
+          l10n,
+          SyncRecordKind.publishedSource,
+          {'title': 'Contra Book', 'addedLater': 'one'},
+          {'title': 'Contra Book!', 'addedLater': 'two'},
+        ).map((field) => field.key),
+        ['title'],
+      );
+    });
+
     test('shows exactly the fields the merge treats as visible, so a tie in '
         'any other field is never put to the user', () {
       final l10n = lookupAppLocalizations(const Locale('en'));
@@ -682,6 +696,42 @@ void main() {
       await _open(tester);
       expect(find.textContaining('zoom: robins'), findsOneWidget);
       expect(find.textContaining('zoom: larks'), findsOneWidget);
+    });
+
+    testWidgets('a dialect\'s name for a figure of your own is shown by the '
+        'figure\'s name (#1023)', (tester) async {
+      Map<String, Object?> mine(String name) => {
+        'name': 'Mine',
+        'moves': {userFigureKeyFor('zoom-id'): name},
+      };
+      final repos = await _pump(
+        tester,
+        size: const Size(900, 1400),
+        seed: (repos) => repos.userGlossary.upsert(
+          UserGlossaryEntry(
+            id: 'zoom-id',
+            kindName: UserGlossaryEntryKind.customFigure.name,
+            name: 'role1s zoom',
+            definition: 'A zoom.',
+            description: 'Fast.',
+            payload: const {
+              'template': '{move}',
+              'defaultBeats': 8,
+              'params': <Object?>[],
+            },
+            createdAt: _tie,
+          ),
+        ),
+      );
+      await tester.runAsync(
+        () => _queueTie(repos, [
+          ('custom_dialects', [mine('whizz')], [mine('swoosh')]),
+        ]),
+      );
+      await _open(tester);
+      expect(find.textContaining('larks zoom → whizz'), findsOneWidget);
+      expect(find.textContaining('larks zoom → swoosh'), findsOneWidget);
+      expect(find.textContaining('userFigure:'), findsNothing);
     });
 
     testWidgets('each version says when it was changed, when that tells '

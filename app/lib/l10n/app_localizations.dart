@@ -3739,6 +3739,18 @@ abstract class AppLocalizations {
   /// **'Move defaults'**
   String get settingsDefaultsMoveDefaultsTitle;
 
+  /// Heading, under Move defaults in Settings, of the list of the user's own new figures (#1023), each linking to the figure where its defaults are set.
+  ///
+  /// In en, this message translates to:
+  /// **'Your figures\' defaults'**
+  String get settingsDefaultsUserFiguresTitle;
+
+  /// Explains the list of the user's own new figures under Move defaults (#1023): a figure's defaults are part of the figure, so choosing one opens it to edit them.
+  ///
+  /// In en, this message translates to:
+  /// **'Each of your new figures keeps its own defaults: the values it starts with and its beats. Choose one to change them.'**
+  String get settingsDefaultsUserFiguresSubtitle;
+
   /// Explanation for per-move default parameter overrides.
   ///
   /// In en, this message translates to:
@@ -9575,12 +9587,6 @@ abstract class AppLocalizations {
   /// **'That file isn\'t a Caller\'s Compendium share file.'**
   String get archiveIntakeRejectedNotArchive;
 
-  /// Rejection shown when a shared archive was written by a newer app version than this build understands.
-  ///
-  /// In en, this message translates to:
-  /// **'That file was made by a newer version of the app. Please update to import it.'**
-  String get archiveIntakeRejectedNewerVersion;
-
   /// Rejection shown when a shared archive decoded successfully but carried neither dances nor programs.
   ///
   /// In en, this message translates to:
@@ -13886,6 +13892,30 @@ abstract class AppLocalizations {
   /// **'This template omits available slots: {slots}'**
   String dialectEditorMoveWordingMissingSlots(String slots);
 
+  /// Label of a dialect's name or wording for one of the user's own new figures (#1023) when that figure is not on this device (deleted, or not yet synced here).
+  ///
+  /// In en, this message translates to:
+  /// **'One of your figures, not on this device'**
+  String get dialectEditorUserFigureGone;
+
+  /// Hint in the field where a dialect gives one of the user's own new figures (#1023) a name of its own.
+  ///
+  /// In en, this message translates to:
+  /// **'What this dialect calls your figure'**
+  String get dialectEditorUserFigureNameHint;
+
+  /// Shown under a dialect's name for one of the user's own new figures (#1023) when it holds %S, which only a built-in move with a side can fill. Keep %S exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Your figure has no side for %S to fill, so it keeps its own name.'**
+  String get dialectEditorUserFigureNameSide;
+
+  /// Shown under a dialect's wording for one of the user's own new figures (#1023) when the wording uses slots the figure doesn't have: the figure then keeps its own wording. {slots} is a comma-separated list such as '{gone}, {other}'.
+  ///
+  /// In en, this message translates to:
+  /// **'Your figure has no {slots}, so it reads with its own wording until you remove them.'**
+  String dialectEditorUserFigureWordingUnknownSlots(String slots);
+
   /// Notice shown when a move wording template omits optional placeholders.
   ///
   /// In en, this message translates to:
@@ -14528,10 +14558,22 @@ abstract class AppLocalizations {
   /// **'Example'**
   String get glossaryCustomExample;
 
+  /// Added to the dialog confirming that a new figure of the user's (#1023) is deleted, when dances in the Trash use it: they are not changed, and keep the line each last stored.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance in the Trash uses it, and keeps the line it last stored.} other{{count} dances in the Trash use it, and keep the lines they last stored.}}'**
+  String glossaryCustomDeleteTrash(int count);
+
+  /// Added to the dialog confirming that a new figure of the user's (#1023) is deleted, when the default figures for new dances, meanwhile sides or modifiers (Settings, Defaults) use it.
+  ///
+  /// In en, this message translates to:
+  /// **'Your default figures in Settings use it, and keep its current wording as plain text.'**
+  String get glossaryCustomDeleteDefaults;
+
   /// Body of the dialog confirming that a new figure is deleted, with how many dances use it.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =0{No dance uses it. It\'s removed from your Glossary.} =1{1 dance uses it. It\'s removed from your Glossary, and that dance keeps its current wording as plain text.} other{{count} dances use it. It\'s removed from your Glossary, and those dances keep their current wording as plain text.}}'**
+  /// **'{count, plural, =0{No dance in your collection uses it. It\'s removed from your Glossary.} =1{1 dance uses it. It\'s removed from your Glossary, and that dance keeps its current wording as plain text.} other{{count} dances use it. It\'s removed from your Glossary, and those dances keep their current wording as plain text.}}'**
   String glossaryCustomDeleteUses(int count);
 
   /// Shown on a dance editor row that uses one of the user's own figures when the figure is deleted or can no longer be read.

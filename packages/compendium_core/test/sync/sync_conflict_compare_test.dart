@@ -146,6 +146,102 @@ void main() {
     });
   });
 
+  group('syncUserVisibleBody', () {
+    // Spec §6.7: comparing what a user is shown draws only on the part this
+    // build syncs. A kind with no list of shown fields shows every synced
+    // field, so a part kept for a newer version must not count as one; nor
+    // may one nested in a field a list shows whole.
+    for (final (kind, body) in [
+      (SyncRecordKind.publishedSource, {'title': 'Source', 'year': 1990}),
+      (SyncRecordKind.difficultyLevel, {'label': 'Easy', 'position': 0}),
+      (SyncRecordKind.customFieldDef, {'key': 'level', 'label': 'Level'}),
+    ]) {
+      test('a kept part of a ${kind.name} is not shown', () {
+        final withKept = {...body, 'addedLater': 'x'};
+
+        expect(
+          syncUserVisibleBody(kind, withKept),
+          syncUserVisibleBody(kind, body),
+        );
+        expect(
+          syncUserVisibleContentHash(kind, withKept),
+          syncUserVisibleContentHash(kind, body),
+        );
+        expect(
+          syncDifferingFields(
+            syncUserVisibleBody(kind, withKept),
+            syncUserVisibleBody(kind, {...body, 'addedLater': 'y'}),
+          ),
+          isEmpty,
+        );
+      });
+    }
+
+    test('a part kept inside a field shown whole is not shown either', () {
+      // `formation`, `customFields` and `sourceCitations` are listed whole,
+      // with no sub-paths, so a kept key nested in them is not told apart by
+      // the list of shown fields.
+      Map<String, Object?> dance({String? kept}) => {
+        'title': 'Hey Day',
+        'formation': {'shape': 'improper', 'zz': ?kept},
+        'customFields': [
+          {'fieldId': 'cf', 'value': 1, 'zz': ?kept},
+        ],
+        'sourceCitations': [
+          {'sourceId': 's1', 'page': '4', 'zz': ?kept},
+        ],
+      };
+
+      final shown = syncUserVisibleBody(SyncRecordKind.dance, dance());
+      expect(shown.keys, containsAll(['formation', 'customFields']));
+      expect(
+        syncUserVisibleBody(SyncRecordKind.dance, dance(kept: 'x')),
+        shown,
+      );
+      expect(
+        syncDifferingFields(
+          shown,
+          syncUserVisibleBody(SyncRecordKind.dance, dance(kept: 'y')),
+        ),
+        isEmpty,
+      );
+      expect(
+        syncUserVisibleContentHash(SyncRecordKind.dance, dance(kept: 'x')),
+        syncUserVisibleContentHash(SyncRecordKind.dance, dance()),
+      );
+    });
+
+    test('a field this build syncs still counts', () {
+      expect(
+        syncUserVisibleBody(SyncRecordKind.publishedSource, {
+          'id': 's1',
+          'title': 'Source',
+          'addedLater': 'x',
+        }),
+        {'title': 'Source'},
+      );
+    });
+
+    test('a setting kept whole shows nothing, and a synced one shows its value '
+        'but not a kept part of it', () {
+      expect(
+        syncUserVisibleBody(SyncRecordKind.setting, {
+          'value': 1,
+        }, settingsKey: 'a_setting_added_later'),
+        isEmpty,
+      );
+      expect(
+        syncUserVisibleBody(SyncRecordKind.setting, {
+          'value': ['a'],
+          'addedLater': 'x',
+        }, settingsKey: 'custom_dialects'),
+        {
+          'value': ['a'],
+        },
+      );
+    });
+  });
+
   group('combineSyncCollection', () {
     test("keeps snippets from both in the library's own shape", () {
       final combined = combineSyncCollection(

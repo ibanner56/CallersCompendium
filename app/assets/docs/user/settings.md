@@ -415,9 +415,16 @@ open this group. You can override any of them per dance, and
   two blank figures, or configure up to six figures. If only one figure is
   configured, the app adds a blank second one. Invalid or unavailable saved
   defaults use two stand-still figures.
+- While [Custom Figures](#glossary-and-custom-figures) is on, each of these three
+  lists also offers your own new figures for the **Type** set above, as the
+  dance editor offers them for a dance's form. A list keeps a figure it
+  already holds when you change the form.
 - **Move defaults** — preferred parameter values applied automatically when you
   insert a [move](./glossary.md#move) while writing. These override that move's
-  built-in defaults, and you can still change any parameter afterwards.
+  built-in defaults, and you can still change any parameter afterwards. While
+  Custom Figures is on, **Your figures' defaults** lists each of your new
+  figures that can be used (not one marked **Needs repair**): a figure keeps its own defaults, the values it starts with and its
+  beats, so choosing one opens it to change them.
 - **Aggressively recompute figure beats** (off by default) — when on, changing a
   figure's move or a parameter that affects timing recalculates its beat count
   immediately, even overwriting a beat count you typed in by hand. When off, a
@@ -558,6 +565,8 @@ Names, definitions and examples follow your active
 [dialect](dialects.md), so role words read the way you call them. The built-in
 figures come with the app, and turning the Glossary off only removes it from
 the navigation; your notes are kept, and come back when you turn it on again.
+The built-in definitions and descriptions are in English whatever language the
+app is set to; only the Glossary's labels and buttons are translated.
 
 **Your terms** are words you define yourself, with no figure: a name, a
 definition and a description (all required), other names they can be found by,
@@ -622,7 +631,11 @@ Glossary is on. While it is on:
   combination **Expands to** (folded until you open it), or a new figure's
   **Wording** and an **Example** with its defaults, and to **Edit** or
   **Delete** it. Deleting a new figure says how many dances use it; each keeps
-  the wording it shows now, as plain text. A figure that can no longer be used
+  the wording it shows now, as plain text. It also says how many dances in the
+  Trash use it, which keep the line each last stored, and whether your default
+  figures use it; they keep its current wording as plain text, like the
+  dances. Each dialect's name and wording for it, and its column's place, name
+  and hiding in **Matrix columns**, are removed too. A figure that can no longer be used
   is marked **Needs repair**; one whose name is also another figure's is
   marked **Rename needed**.
 

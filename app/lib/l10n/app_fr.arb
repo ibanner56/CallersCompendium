@@ -2416,6 +2416,14 @@
   "@settingsDefaultsMoveDefaultsTitle": {
     "x-sourceSha256": "4d4f2c71c774263fca7f0a1afc94205e923e171d1e05e05354ebfb9a9bc954bf"
   },
+  "settingsDefaultsUserFiguresTitle": "Valeurs par défaut de vos figures",
+  "@settingsDefaultsUserFiguresTitle": {
+    "x-sourceSha256": "7a5620524eb36c2842c797c0ef3a21a9e023f4529ee7592b615f199808b2c560"
+  },
+  "settingsDefaultsUserFiguresSubtitle": "Chacune de vos nouvelles figures garde ses propres valeurs par défaut : les valeurs de départ et ses temps. Choisissez-en une pour les modifier.",
+  "@settingsDefaultsUserFiguresSubtitle": {
+    "x-sourceSha256": "cd250d812df72953f432f85e544a5337cc20ae01885e63913dca1dfa998267ac"
+  },
   "settingsDefaultsMoveDefaultsSubtitle": "Valeurs de paramètres préférées appliquées lors de l’insertion d’un mouvement en saisissant une danse. Ces valeurs remplacent les paramètres intégrés du mouvement ; vous pouvez toujours modifier n’importe quel paramètre sur la figure par la suite. Les mouvements et paramètres non définis utilisent les paramètres intégrés.",
   "@settingsDefaultsMoveDefaultsSubtitle": {
     "x-sourceSha256": "eb0ef63bbf86910d132d779d7a5c8fffd8bd0a40e61515ca13daea08204729e3"
@@ -6286,10 +6294,6 @@
   "@archiveIntakeRejectedNotArchive": {
     "x-sourceSha256": "80dd7dada7feaccdf4d83c86ca2567fad99deb5ad4b25ffc22cdd87c7d4de1d8"
   },
-  "archiveIntakeRejectedNewerVersion": "Ce fichier a été créé avec une version plus récente de l'application. Mettez l'application à jour pour l'importer.",
-  "@archiveIntakeRejectedNewerVersion": {
-    "x-sourceSha256": "4752773bacfe510abb112bdc6bad0c781a3813378eab6e504c44056b12f65dc7"
-  },
   "archiveIntakeRejectedNoContent": "Ce fichier ne contenait aucune danse ni aucun programme.",
   "@archiveIntakeRejectedNoContent": {
     "x-sourceSha256": "c432135d1a1811b4f51d8ad2f995526eff018b8005496c8d5fb7a2c57faa411b"
@@ -9146,6 +9150,22 @@
   "@dialectEditorMoveWordingMissingSlots": {
     "x-sourceSha256": "3426369df24bbb63eb6223087bcfe4c111e6c6e5424616d6bddb2d0e9f371b37"
   },
+  "dialectEditorUserFigureGone": "Une de vos figures, absente de cet appareil",
+  "@dialectEditorUserFigureGone": {
+    "x-sourceSha256": "998281e8de9118241968955c28d763ffbbc2217b909331b160022c289c4cfde1"
+  },
+  "dialectEditorUserFigureNameHint": "Le nom que ce dialecte donne à votre figure",
+  "@dialectEditorUserFigureNameHint": {
+    "x-sourceSha256": "5b6b329928a5bb9b0496a41ed716d3b34b6361b6bac3cd586ab0520616cccb39"
+  },
+  "dialectEditorUserFigureNameSide": "Votre figure n'a pas de côté que %S pourrait indiquer : elle garde donc son propre nom.",
+  "@dialectEditorUserFigureNameSide": {
+    "x-sourceSha256": "de620408b0e6908452dc3948cdce88f9be7cabc92f43575094b394f065024e3b"
+  },
+  "dialectEditorUserFigureWordingUnknownSlots": "Votre figure n'a pas de {slots} : elle garde donc sa propre formulation tant que vous ne les retirez pas.",
+  "@dialectEditorUserFigureWordingUnknownSlots": {
+    "x-sourceSha256": "de788db6fdbfc47a07c303c2fb01008d1a6f5b0e6a5f2f9ed81a178db331e8dd"
+  },
   "dialectEditorMoveWordingOptionalSlots": "Ce modèle omet des emplacements facultatifs : {slots}",
   "@dialectEditorMoveWordingOptionalSlots": {
     "x-sourceSha256": "c83e2a59ab83671799d5dc290d7783a6f95509a6de891d8f219f8a2834a3e782"
@@ -9574,9 +9594,17 @@
   "@glossaryCustomExample": {
     "x-sourceSha256": "d029f87e3d80f8fd9b1be67c7426b4cc1ff47b4a9d0a8461c826a59d8c5eb6cd"
   },
-  "glossaryCustomDeleteUses": "{count, plural, =0{Aucune danse ne l'utilise. Elle est retirée de votre glossaire.} =1{1 danse l'utilise. Elle est retirée de votre glossaire, et cette danse conserve sa formulation actuelle en texte simple.} other{{count} danses l'utilisent. Elle est retirée de votre glossaire, et ces danses conservent leur formulation actuelle en texte simple.}}",
+  "glossaryCustomDeleteTrash": "{count, plural, =1{1 danse de la corbeille l'utilise et garde la ligne qu'elle a enregistrée en dernier.} other{{count} danses de la corbeille l'utilisent et gardent les lignes qu'elles ont enregistrées en dernier.}}",
+  "@glossaryCustomDeleteTrash": {
+    "x-sourceSha256": "4e9c8016ce24a743d4aef7a908d315920d577cf220737a4a863d495934620b9e"
+  },
+  "glossaryCustomDeleteDefaults": "Vos figures par défaut dans les Réglages l'utilisent et conservent sa formulation actuelle en texte simple.",
+  "@glossaryCustomDeleteDefaults": {
+    "x-sourceSha256": "60f9d9b3c005db0b184ac777d688e5bdae100ee989fa1418bf1490b7f9475e7e"
+  },
+  "glossaryCustomDeleteUses": "{count, plural, =0{Aucune danse de votre collection ne l'utilise. Elle est retirée de votre glossaire.} =1{1 danse l'utilise. Elle est retirée de votre glossaire, et cette danse conserve sa formulation actuelle en texte simple.} other{{count} danses l'utilisent. Elle est retirée de votre glossaire, et ces danses conservent leur formulation actuelle en texte simple.}}",
   "@glossaryCustomDeleteUses": {
-    "x-sourceSha256": "dcf33d6b0593707bf881496eed5b4701d8c69b24f391307e51e9990421e3e214"
+    "x-sourceSha256": "c26dae9673781a119531b3beaa3e8435e9dc2cce5a817010d981d67553f28cbc"
   },
   "danceEditorUserFigureUnavailable": "Votre figure n’est pas disponible ; cette ligne garde donc sa formulation actuelle.",
   "@danceEditorUserFigureUnavailable": {

@@ -18,9 +18,14 @@ class UserFiguresController extends ChangeNotifier {
   final UserGlossaryRepository _glossary;
   StreamSubscription<List<UserGlossaryEntry>>? _subscription;
   UserFigureCatalog _catalog = UserFigureCatalog.empty;
+  Map<String, UserGlossaryEntry> _entries = const {};
 
   /// The live figures; empty until [start] and the glossary's first read.
   UserFigureCatalog get catalog => _catalog;
+
+  /// The live figure [id], whole, or null when there is none (or before the
+  /// first read): what a share bundle carries of each figure its dances use.
+  UserGlossaryEntry? entryOf(String id) => _entries[id];
 
   /// Starts watching the glossary; a second call does nothing. Not done in
   /// the constructor: watching opens the database, which the app's startup
@@ -32,6 +37,11 @@ class UserFiguresController extends ChangeNotifier {
     _subscription ??= _glossary.watchAll().listen(
       (entries) {
         _catalog = UserFigureCatalog.fromEntries(entries);
+        _entries = {
+          for (final entry in entries)
+            if (entry.kind == UserGlossaryEntryKind.customFigure)
+              entry.id: entry,
+        };
         notifyListeners();
       },
       onError: (Object error, StackTrace stackTrace) =>
@@ -73,6 +83,18 @@ class UserFiguresScope extends InheritedNotifier<UserFiguresController> {
       customFiguresShown(context)
       ? catalogOf(context)
       : UserFigureCatalog.empty;
+
+  /// Looks up one of the user's figures, whole ([UserFiguresController.entryOf]),
+  /// without registering a dependency: for building a share bundle at the
+  /// moment it is shared. Finds none outside a scoped tree.
+  static UserGlossaryEntry? Function(String id) entryLookupOf(
+    BuildContext context,
+  ) {
+    final controller = context
+        .getInheritedWidgetOfExactType<UserFiguresScope>()
+        ?.notifier;
+    return controller == null ? (_) => null : controller.entryOf;
+  }
 
   /// A renderer that shows a use of one of the user's figures live, for every
   /// place that shows a dance's figures. Registers a rebuild dependency.

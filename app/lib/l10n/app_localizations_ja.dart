@@ -2294,6 +2294,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDefaultsMoveDefaultsTitle => 'ムーブのデフォルト設定';
 
   @override
+  String get settingsDefaultsUserFiguresTitle => '自分のフィギュアの既定値';
+
+  @override
+  String get settingsDefaultsUserFiguresSubtitle =>
+      '新しいフィギュアはそれぞれ独自の既定値（開始時の値とビート数）を持ちます。変更するにはフィギュアを選んでください。';
+
+  @override
   String get settingsDefaultsMoveDefaultsSubtitle =>
       'ダンス入力時にムーブを挿入するときに適用される優先パラメーター値です。これらはムーブの組み込みデフォルトを上書きします。フィギュアのパラメーターは後から変更できます。設定されていないムーブとパラメーターは組み込みのデフォルトを使用します。';
 
@@ -6047,10 +6054,6 @@ class AppLocalizationsJa extends AppLocalizations {
       'そのファイルはCaller’s Compendiumの共有ファイルではありません。';
 
   @override
-  String get archiveIntakeRejectedNewerVersion =>
-      'そのファイルは新しいバージョンのアプリで作成されました。インポートするにはアプリを更新してください。';
-
-  @override
   String get archiveIntakeRejectedNoContent => 'そのファイルにはダンスもプログラムも含まれていませんでした。';
 
   @override
@@ -8869,6 +8872,21 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get dialectEditorUserFigureGone => 'このデバイスにない自分のフィギュア';
+
+  @override
+  String get dialectEditorUserFigureNameHint => 'この方言でのあなたのフィギュアの呼び名';
+
+  @override
+  String get dialectEditorUserFigureNameSide =>
+      'このフィギュアには %S で埋める左右がないため、フィギュア自身の名前のままになります。';
+
+  @override
+  String dialectEditorUserFigureWordingUnknownSlots(String slots) {
+    return 'このフィギュアには $slots がないため、それを削除するまでフィギュア自身の表現で表示されます。';
+  }
+
+  @override
   String dialectEditorMoveWordingOptionalSlots(String slots) {
     return 'このテンプレートでは任意のスロットが省略されています: $slots';
   }
@@ -9243,6 +9261,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String get glossaryCustomExample => '例';
 
   @override
+  String glossaryCustomDeleteTrash(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ゴミ箱の$count件のダンスがこのフィギュアを使っており、最後に保存した行のまま残ります。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get glossaryCustomDeleteDefaults =>
+      '設定の既定のフィギュアがこのフィギュアを使っており、現在の文言をプレーンテキストとして残します。';
+
+  @override
   String glossaryCustomDeleteUses(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -9250,7 +9282,7 @@ class AppLocalizationsJa extends AppLocalizations {
       other:
           '$count件のダンスがこのフィギュアを使っています。用語集から削除され、それらのダンスは現在の文言をプレーンテキストとして残します。',
       one: '1件のダンスがこのフィギュアを使っています。用語集から削除され、そのダンスは現在の文言をプレーンテキストとして残します。',
-      zero: 'このフィギュアを使っているダンスはありません。用語集から削除されます。',
+      zero: 'コレクションにこのフィギュアを使っているダンスはありません。用語集から削除されます。',
     );
     return '$_temp0';
   }

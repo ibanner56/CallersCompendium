@@ -99,6 +99,7 @@ export 'src/search/filter_compiler.dart';
 export 'src/search/fts_query.dart';
 export 'src/search/search_enrichment.dart';
 export 'src/serialization/archive_codec.dart';
+export 'src/serialization/archive_user_figures.dart';
 export 'src/serialization/archive_service.dart';
 export 'src/serialization/compendium_archive.dart';
 export 'src/serialization/figure_codec.dart';

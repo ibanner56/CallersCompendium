@@ -1,0 +1,14 @@
+{
+  "id": "sync-undecodable-kept-value-does-not-brick-open",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "After an update that starts syncing a detail another device had added, the app could fail to open, with a Retry that never worked, if the kept copy of that detail was no longer readable (for example a pay amount that is not a number). The app now opens, and leaves out the unreadable detail."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "CompendiumSyncStorage.promoteRetainedSyncFields no longer throws StateError (which failed CompendiumRepositories.ensureMigrated on every open) when a kept part this build now syncs does not decode: it drops that part, keeps the parts the build still does not sync, and leaves the record as it was."
+    ]
+  }
+}
