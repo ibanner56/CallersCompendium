@@ -91,19 +91,24 @@ evidence about the world. See
 
 ## Requesting a Claude review
 
-Apply the label. The label is the request, so you need triage access to the
-repository:
+Apply the label. The label is the request, and whoever applies it needs write
+access to the repository: the action rejects any other actor, so triage access,
+which is enough to label a PR, is not enough to start a round:
 
 ```sh
 gh pr edit <PR_NUMBER> --add-label "review: claude"
 ```
 
 [`claude-code-review.yml`](../../../.github/workflows/claude-code-review.yml)
-then reviews the head. It **reviews again on every push** while the label stays
-on, so freshness takes care of itself. To review the same head again, remove
-the label and add it back. To stop further rounds, remove it. Each round costs
-a model run on the maintainer's Claude subscription, so remove the label once
-you no longer need reviews.
+then reviews the head. It **reviews again on every push by a human** while the
+label stays on, so freshness takes care of itself. A push by a non-human actor,
+such as Copilot, fails the action's actor check: no round runs, the
+`claude-review` check on that head goes red (so `check_pr_review_gates.py ci`
+fails on it), and the head has no Claude review. Have someone with write access
+remove the label and add it back to start a round on that head. To review the
+same head again, do the same. To stop further rounds, remove the label. Each
+round costs a model run on the maintainer's Claude subscription, so remove the
+label once you no longer need reviews.
 
 Each round submits **one** PR review, using
 [`.github/skills/code-review/SKILL.md`](../../../.github/skills/code-review/SKILL.md)
@@ -135,6 +140,12 @@ before merging. It is a separate workflow because a PR that edits
 `claude-code-review.yml` may change nothing else (see Traps below). The labels
 are defined in [`labels.yml`](../../../.github/labels.yml).
 
+A round that does not end in a review leaves `claude: reviewing` standing. The
+status workflow sets that label when a round is requested and changes it only
+when `claude[bot]` submits a review, so a failed round, one stopped by the job's
+limits (30 minutes, 80 model turns), and a push whose actor check failed (see
+above) all look "in progress" until someone reads the run.
+
 What a round is given and asked for:
 
 - **The rubric comes from the PR's base commit.** The workflow copies `SKILL.md`,
@@ -148,12 +159,17 @@ What a round is given and asked for:
   collaborators are included, since this text reaches a model that can post the
   review. It should not repeat a fixed finding or drop an unfixed one, and it
   looks hardest at the lines you changed in response.
-- **It reads the claim.** The PR description (`gh pr view`) and the issues the PR
-  closes. The job fetches those issues itself, through `closingIssuesReferences`,
-  into `.claude-review/context/closing-issues.jsonl`; the review cannot run
-  `gh issue view`. The same author filter applies as for inline comments: an
-  issue's title and body (body capped at 8000 characters) are included only for
-  an issue of this repository whose author is an owner, member or collaborator.
+- **It reads the claim.** The PR title and description, and the issues the PR
+  closes. The job fetches the title and description itself, without the PR's
+  comments, into `.claude-review/context/pr-description.json` (body capped at
+  20000 characters; a file saying `unavailable` means the read failed, and
+  `Coverage` says so). The review cannot run `gh pr view` or `gh issue view`,
+  which can print comments from any account. The job also fetches the issues
+  the PR closes, through `closingIssuesReferences`, into
+  `.claude-review/context/closing-issues.jsonl`. The same author filter applies
+  as for inline comments: an issue's title and body (body capped at 8000
+  characters) are included only for an issue of this repository whose author is
+  an owner, member or collaborator.
   Any other closed issue, whether an outsider's or from another repository, is
   listed without text, and the review lists it in `Coverage` as a closed issue it
   was not given. Issue comments are never included. If the query fails, or the PR
@@ -172,8 +188,10 @@ What a round is given and asked for:
   collapsed, so the rubric leads each comment with the ID, severity and title.
   The job cannot run tests or scripts, so it never reports that something is
   merely unverified, and the workflow (not the rubric) leaves out the template's
-  "Verification the author still owes" checklist, which CI and the merge gate
-  own.
+  "Verification the author still owes" checklist. CI runs the preflight gates,
+  its first item, but nothing in CI or the merge gate reads the other two (a new
+  guard test proven red before green, docs updated in the PR): those stay the
+  author's, and a Claude review does not check them.
 - **A `Coverage` section** lists every changed file and the disposition of each
   hazard class. `APPROVE` requires it to be complete, so an `APPROVE` over a
   thin `Coverage` is a reason to distrust the review, not to merge. The merge
