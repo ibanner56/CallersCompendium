@@ -206,9 +206,10 @@ const FigureFrontEnd canonicalFigureFrontEnd = FigureFrontEnd();
 ///   leftover, unexplained prose forces the custom fallback. A wrong structured
 ///   match silently misrepresents choreography, which is worse than an honest
 ///   custom figure: when in doubt, custom. Free-text entry, and only it, adds
-///   one exception after this parser misses: a whole line that is a move's
-///   name (`hey`, `mad robin`) reads as that move with its defaults
-///   (`typed_figure_names.dart`, #1826). The "bare X degrades to custom" notes
+///   one exception after this parser misses: a line that is a move's
+///   name (`hey.`, `mad robin`), alone or after a dancer (`neighbor pass by`),
+///   reads as that move with its defaults (`typed_figure_names.dart`, #1826,
+///   #1857). The "bare X degrades to custom" notes
 ///   on the recognizers below describe this parser, which imports use.
 /// - **Validated.** Every candidate structured figure is checked against
 ///   [taxonomy]; if it produces any error-severity [ValidationIssue] (unknown

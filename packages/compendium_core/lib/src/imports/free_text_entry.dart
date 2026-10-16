@@ -170,8 +170,9 @@ _BeatSplit _splitInlineBeats(String line, [_CountForms? forms]) {
 /// On top of that grammar, which follows how source sites write calls, free
 /// text reads what a caller types (#1826, `typed_figure_names.dart`): spoken
 /// turn amounts (`once and a half`) are rewritten to numerals before the
-/// parse, and a line no parse reads is looked up whole as a move's name
-/// (`hey`, `mad robin`, `give & take`, an alias, the [dialect]'s own name).
+/// parse, and a line no parse reads is looked up as a move's name
+/// (`hey`, `mad robin.`, `give & take`, an alias, the [dialect]'s own name),
+/// alone or after a dancer (`neighbor pass by`, `ones arch and dive`; #1857).
 /// That lookup is not a fast path: it runs after the parser, under the same
 /// length bound, and its figure is validated against the taxonomy. Imports
 /// and the re-parse upgrade use neither.
@@ -330,22 +331,39 @@ List<Figure> _parseSplit(
   // user-glossary text is (`canonicalizeGlossaryText`), so a role word the
   // dialect claims keeps the dialect's meaning.
   final tried = {split.text};
+  final readTexts = <String>[];
   for (final retry in [
     if (dialect != null) canonicalizeText(split.text, dialect),
     canonicalizeGlossaryText(split.text, dialect ?? Dialect.canonical),
   ]) {
     if (!tried.add(retry)) continue;
+    readTexts.add(retry);
     final retried = attempt(retry);
     if (!missed(retried)) return retried;
   }
-  // Last, the whole line as a move's name (`hey`, `mad robin`): only when no
-  // parse read it, so a line the grammar reads keeps every fact it states.
-  final named = figureFromTypedName(
-    split.text,
-    beats: split.beats,
-    taxonomy: taxonomy ?? contraTaxonomy,
-    dialect: dialect,
-  );
+  // Last, the line as a move's name (`hey.`, `mad robin`), alone or after a
+  // dancer (`neighbor pass by`): only when no parse read it, so a line the
+  // grammar reads keeps every fact it states. A role word in the dancer's place
+  // (`ravens hey`) is read by the retries' meaning of it, as it is above.
+  final names = taxonomy ?? contraTaxonomy;
+  final named =
+      figureFromTypedName(
+        split.text,
+        beats: split.beats,
+        taxonomy: names,
+        dialect: dialect,
+      ) ??
+      readTexts
+          .map(
+            (text) => figureFromTypedDancerName(
+              text,
+              beats: split.beats,
+              taxonomy: names,
+              dialect: dialect,
+            ),
+          )
+          .nonNulls
+          .firstOrNull;
   return named == null ? raw : [named];
 }
 

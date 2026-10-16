@@ -37,16 +37,19 @@ void main() {
 
     test('a role word is read by its meaning, as in `ravens chain`', () {
       for (final dialect in [null, ...Dialect.presets]) {
-        final f = only('ravens hey', dialect: dialect);
+        final f = only('ravens mad robin', dialect: dialect);
         expect(f.isCustom, isFalse, reason: dialect?.name);
-        expect(f.move, 'hey', reason: dialect?.name);
+        expect(f.move, 'mad_robin', reason: dialect?.name);
         expect(f.params['who'], 'role2s', reason: dialect?.name);
       }
       final ravensLarks = Dialect(
         name: 'Custom',
         roles: const {'role1': RoleTerm('raven'), 'role2': RoleTerm('lark')},
       );
-      expect(only('ravens hey', dialect: ravensLarks).params['who'], 'role1s');
+      expect(
+        only('ravens mad robin', dialect: ravensLarks).params['who'],
+        'role1s',
+      );
     });
 
     test('stays custom when the words are not a dancer and a name', () {
@@ -54,8 +57,11 @@ void main() {
         // An unknown word in the dancer's place.
         'frobnicators pass by',
         'neighbours pass by',
-        // A dancer the move does not take: `slice` has no subject.
+        // A dancer the move does not take: `slice` has no subject, and
+        // `hey` names its dancers in `pass1`, not `who`.
         'neighbor slice',
+        'ones hey',
+        'ravens hey',
         // A dancer alone, a dancer twice, anything else on the line.
         'neighbor',
         'neighbor neighbor pass by',
@@ -76,8 +82,10 @@ void main() {
         final f = only(line);
         expect(f.isCustom, isFalse, reason: line);
         expect(f.move, 'hey', reason: line);
-        expect(f.assumedSubject, isTrue, reason: line);
+        // `hey` names its dancers in `pass1`, not `who`: nothing is assumed.
+        expect(f.params, isEmpty, reason: line);
       }
+      expect(only('mad robin.').assumedSubject, isTrue);
       expect(only('mad robin.').move, 'mad_robin');
       expect(only('arch & dive.').move, 'arch_and_dive');
     });
