@@ -357,7 +357,7 @@ declines the collapse.
   (`kCcDanceColumnsRead` plus the dance key); CC's derived search/display helper
   columns are never decoded (`readCcUsrArchive` passes the reader a table and
   column allowlist — only the `Dance`/`Phrase`/`Set`/`SetItem`/`InsertCall`/
-  `Dance_Related` tables, and on `Dance` and `Phrase` only the columns read — and
+  `Term`/`Dance_Related` tables, and on `Dance` and `Phrase` only the columns read — and
   the reader discards the index/media/layout sectors it never needs). The
   `Phrase` body is **not** in that per-dance column map,
   so the joined body is threaded through the `discover → fetch → parse` payload
@@ -439,6 +439,26 @@ declines the collapse.
   surfaced in a read-only "already defined — skipped" section — never overwritten
   — which also makes **re-import idempotent** (a second import of the same file
   finds those tokens present and adds nothing). Declining seeds nothing.
+- **Terms from `Term` (#1023, maintainer decision 7).** CC keeps the user's
+  glossary in a `Term` table: `Term`, `Definition`, `Source` and `Notes`, with
+  CC's own timestamps and keys (columns confirmed against a real
+  `CallersCompanion2.USR` the maintainer supplied, which holds 2 rows: one
+  with a definition and the source "Give and Take - Larry Jennings", one with
+  only a teaching note). `extractCcUsrArchive` reads it as `CcTerm`s through
+  the same tolerant resolver: every field sanitized (the name single-line), a
+  row with no name skipped, a row with a field over the glossary's bounds
+  (`maxUserGlossaryNameLength`, `maxUserGlossaryTextLength`) skipped and
+  counted in one warning, and the scan bounded fail-closed
+  (`FmpReadLimits.maxTermRows`, default 20 000). A term is prose: nothing in
+  it is read into a figure or a wording template. The source citation is kept
+  whole, as the term payload's `source` (`glossaryTermSource`): one sample
+  can't show that CC always writes "title - author", so it is not split. The
+  opt-in, previewed step that adds them to the user's glossary follows the
+  dance/program commit, as the shorthand seeding does (maintainer, 2026-10-16:
+  a row's description starts as its definition; one with no definition is
+  offered unticked until it has one, its notes kept as the entry's notes; and
+  a row whose name is taken can only be skipped, never added marked *Rename
+  needed*).
 - Follow-ups: approximating dialect from `Elements`/button phrasing (#563).
 - Fixture: the publicly downloadable demo `.USR` (kept out of the repo until
   redistribution permission is clarified; local test asset otherwise). CI runs

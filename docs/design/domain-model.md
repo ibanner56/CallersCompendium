@@ -307,7 +307,8 @@ optional keywords and notes, and a kind-specific payload; its `kind` is
 `compound` (a named, parameterised sequence of shipped figures, #709),
 `customFigure` (a figure of the user's own, #1023) or `term` (a word the user
 defines with no figure, the former `GlossaryTerm` idea, #1023). A term's
-payload is its dance `form`, plus any keys a newer build stored; a term can be
+payload is its dance `form` and, for one imported from Caller's Companion, its
+`source` citation, plus any keys a newer build stored; a term can be
 given a figure, becoming a `customFigure` under the same id. A `customFigure` payload is a `UserFigureDefinition`
 (`user_figure_definition.dart`): the dance form, a #822 wording template,
 default beats, and the declared parameters, a `choice` parameter's choices

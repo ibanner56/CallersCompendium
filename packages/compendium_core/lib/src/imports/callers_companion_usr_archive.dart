@@ -1,5 +1,9 @@
 import 'dart:typed_data';
 
+import 'package:meta/meta.dart';
+
+import '../storage/repositories/user_glossary_repository.dart'
+    show maxUserGlossaryNameLength, maxUserGlossaryTextLength;
 import '../util/text_sanitizer.dart';
 import 'callers_companion_mapping.dart';
 import 'fmp/fmp_reader.dart';
@@ -30,6 +34,7 @@ class CcUsrArchive {
     required this.dances,
     required this.sets,
     this.insertCalls = const [],
+    this.terms = const [],
     this.relatedDancePairs = const [],
     required this.warnings,
     this.warningCodes = const [],
@@ -46,6 +51,11 @@ class CcUsrArchive {
   /// The seed source for user shorthands (issue #562); empty when the file has
   /// no `InsertCall` table.
   final List<CcInsertCall> insertCalls;
+
+  /// One entry per CC `Term` row with a name (#1023): the user's own glossary
+  /// terms, for the term-import step. Empty when the file has no `Term`
+  /// table.
+  final List<CcTerm> terms;
 
   /// One entry per CC `Dance_Related` row, still keyed by CC `zk_Dance_ID`
   /// values (not yet resolved to Compendium dance ids — the importer resolves
@@ -71,6 +81,7 @@ class CcUsrArchive {
     dances: const [],
     sets: sets,
     insertCalls: insertCalls,
+    terms: terms,
     relatedDancePairs: relatedDancePairs,
     warnings: warnings,
     warningCodes: warningCodes,
@@ -178,6 +189,31 @@ class CcInsertCall {
   /// The ALT call's beat count (`InsertButtonBeatsAlt`), or 0 when absent /
   /// unparseable.
   final int altBeats;
+}
+
+/// A single CC `Term` row (#1023): one of the user's glossary terms, a word
+/// with its explanation and no figure, for the term-import step (maintainer
+/// decision 7). All text is sanitized at this ingestion boundary and within
+/// the glossary's bounds.
+///
+/// Only [name] is certain. CC lets a term have no definition (one seen
+/// carries only a teaching note), and its [source] is a free-text citation
+/// (one seen reads "Give and Take - Larry Jennings"), kept as written: CC
+/// gives it no structure to split it by.
+class CcTerm {
+  CcTerm({required this.name, this.definition, this.source, this.notes});
+
+  /// The term (`Term`), single-line.
+  final String name;
+
+  /// What it means (`Definition`), or null when empty.
+  final String? definition;
+
+  /// Where it comes from (`Source`), or null when empty.
+  final String? source;
+
+  /// The user's notes on it (`Notes`), or null when empty.
+  final String? notes;
 }
 
 /// A single CC `Dance` row: its CC relational id, the mapped [CcDanceRecord],
@@ -318,11 +354,13 @@ CcUsrArchive extractCcUsrArchive(
   }
   final sets = _extractSets(db, warnings);
   final insertCalls = _extractInsertCalls(db, warnings, limits);
+  final terms = _extractTerms(db, warnings, limits);
   final relatedDancePairs = _extractRelatedDancePairs(db, warnings, limits);
   return CcUsrArchive(
     dances: dances,
     sets: sets,
     insertCalls: insertCalls,
+    terms: terms,
     relatedDancePairs: relatedDancePairs,
     warnings: warnings.messages,
     warningCodes: warnings.codes,
@@ -1017,6 +1055,124 @@ List<CcInsertCall> _extractInsertCalls(
   return result;
 }
 
+// --- Term extraction (glossary terms, #1023) -------------------------------
+
+const List<String> _termTableNames = ['Term', 'Terms'];
+
+/// Reads the CC **`Term`** table, the user's glossary terms, as [CcTerm]s for
+/// the term-import step (#1023, maintainer decision 7).
+///
+/// A missing table yields an empty list (silent: many files have none), never
+/// a throw (parse-never-fails). Column names are resolved exact-first
+/// (confirmed against a real `CallersCompanion2.USR`: `Term`, `Definition`,
+/// `Source`, `Notes`) with a tolerant token fallback.
+///
+/// ## OWASP hardening
+/// The `Term` table is untrusted external free text. This layer:
+/// - **Sanitizes** every field at the ingestion boundary via
+///   [sanitizeImportedText] (the name single-line).
+/// - **Bounds** the scan fail-closed: at most [FmpReadLimits.maxTermRows] rows
+///   (a hand-built [FmpDatabase] bypasses the byte-level guard); exceeding it
+///   throws a [FmpResourceLimitException].
+/// - **Degrades**: a row with no name is skipped, and so is one with a field
+///   over the glossary's bounds ([maxUserGlossaryNameLength],
+///   [maxUserGlossaryTextLength]), which could never be stored; the skipped
+///   are counted in one warning. Never a throw.
+List<CcTerm> _extractTerms(
+  FmpDatabase db,
+  _UsrWarnings warnings,
+  FmpReadLimits limits,
+) {
+  final table = _findTable(db, _termTableNames);
+  if (table == null) return const [];
+  final nameCol = _resolveColumn(
+    table,
+    ['Term'],
+    [
+      ['term', 'name'],
+      ['term'],
+    ],
+  );
+  if (nameCol == null) {
+    warnings.add(
+      'The Caller\'s Companion "Term" table was found but its term column '
+      'could not be resolved; no terms were read.',
+    );
+    return const [];
+  }
+  final definitionCol = _resolveColumn(
+    table,
+    ['Definition'],
+    [
+      ['definition'],
+    ],
+  );
+  final sourceCol = _resolveColumn(
+    table,
+    ['Source'],
+    [
+      ['source'],
+    ],
+  );
+  final notesCol = _resolveColumn(
+    table,
+    ['Notes'],
+    [
+      ['notes'],
+    ],
+  );
+
+  String? text(_CiColumns cols, String? column) {
+    if (column == null) return null;
+    final raw = cols.get(column);
+    if (raw == null) return null;
+    final value = sanitizeImportedText(raw).trim();
+    return value.isEmpty ? null : value;
+  }
+
+  final result = <CcTerm>[];
+  var processedRows = 0;
+  var overBounds = 0;
+  for (final rec in table.records) {
+    if (processedRows >= limits.maxTermRows) {
+      throw FmpResourceLimitException(
+        'The Caller\'s Companion "Term" table has too many rows to import '
+        'safely (> ${limits.maxTermRows}).',
+      );
+    }
+    processedRows++;
+    final cols = _CiColumns(_rowColumns(table, rec));
+    final rawName = cols.get(nameCol);
+    final name = rawName == null
+        ? ''
+        : sanitizeImportedText(rawName, allowLineBreaks: false).trim();
+    if (name.isEmpty) continue;
+    final term = CcTerm(
+      name: name,
+      definition: text(cols, definitionCol),
+      source: text(cols, sourceCol),
+      notes: text(cols, notesCol),
+    );
+    if (name.length > maxUserGlossaryNameLength ||
+        [
+          term.definition,
+          term.source,
+          term.notes,
+        ].any((t) => t != null && t.length > maxUserGlossaryTextLength)) {
+      overBounds++;
+      continue;
+    }
+    result.add(term);
+  }
+  if (overBounds > 0) {
+    warnings.add(
+      '$overBounds Caller\'s Companion term(s) were longer than a glossary '
+      'entry can be and were skipped.',
+    );
+  }
+  return result;
+}
+
 /// Sanitizes a button label at the ingestion boundary — single-line (labels
 /// never span lines), control/bidi/format spoofing stripped.
 String _sanitizeButtonLabel(String? raw) =>
@@ -1262,8 +1418,15 @@ final Set<String> _ccTableNames = {
   ..._setTableNames,
   ..._setItemTableNames,
   ..._insertCallTableNames,
+  ..._termTableNames,
   ..._relatedDanceTableNames,
 };
+
+/// The tables [readCcUsrArchive] asks the reader for, for a test that a new
+/// extractor's tables are among them: one missing from the set is never
+/// decoded from a real file, though every hand-built fixture still carries it.
+@visibleForTesting
+Set<String> get ccUsrArchiveTableNames => Set.unmodifiable(_ccTableNames);
 
 FmpTable? _findTable(FmpDatabase db, List<String> candidateNames) {
   for (final name in candidateNames) {

@@ -424,5 +424,38 @@ void main() {
         'form': 'square',
       });
     });
+
+    test('writes a source citation when given one, and keeps the one it '
+        'had otherwise', () {
+      expect(
+        glossaryTermPayload('contra', source: 'Give and Take - Larry Jennings'),
+        {'form': 'contra', 'source': 'Give and Take - Larry Jennings'},
+      );
+      expect(
+        glossaryTermPayload(
+          'contra',
+          previous: const {'form': 'contra', 'source': 'Old book'},
+        ),
+        {'source': 'Old book', 'form': 'contra'},
+      );
+      expect(
+        glossaryTermPayload(
+          'contra',
+          previous: const {'form': 'contra', 'source': 'Old book'},
+          source: 'New book',
+        ),
+        {'source': 'New book', 'form': 'contra'},
+      );
+    });
+  });
+
+  group('glossaryTermSource', () {
+    test('reads the citation; anything else is none', () {
+      expect(glossaryTermSource(const {'source': 'A book'}), 'A book');
+      expect(glossaryTermSource(const {'source': '  '}), isNull);
+      expect(glossaryTermSource(const {'source': 3}), isNull);
+      expect(glossaryTermSource(const {'form': 'contra'}), isNull);
+      expect(glossaryTermSource('not a map'), isNull);
+    });
   });
 }

@@ -1,0 +1,12 @@
+{
+  "id": "1023-cc-terms-core",
+  "user_visible": false,
+  "core": {
+    "added": [
+      "The Caller's Companion `.USR` reader reads the file's `Term` table as `CcUsrArchive.terms` (#1023): each `CcTerm`'s name, definition, source and notes, sanitized, bounded by `FmpReadLimits.maxTermRows`, a row with no name or over the glossary's bounds skipped. A term's payload may carry a free-text `source` citation (`glossaryTermPayload(source:)`, `glossaryTermSource`)."
+    ],
+    "changed": [
+      "`user_glossary_entries.payload_json` is classified as a name about a third party (published authorship credit, as `published_sources.author`): a term's source citation can name the author of the work it cites."
+    ]
+  }
+}

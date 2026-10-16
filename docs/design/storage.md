@@ -714,7 +714,7 @@ database already carries it. The steps that can still fire are v36 onward.
   #1023), the required `name`, `definition` and `description`,
   `keywords_json` (a JSON array of strings, default `[]`), nullable `notes`,
   nullable `payload_json` (the kind's payload: a compound's definition, a
-  figure of your own's definition, or a term's dance form), and
+  figure of your own's definition, or a term's dance form and source citation), and
   `created_at`, which an edit never moves, so of two entries sharing a name the
   later-created one is the one flagged for rename. Names are not unique: a
   duplicate that arrives by restore or by sync is kept, not refused.
