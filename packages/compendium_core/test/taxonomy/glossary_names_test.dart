@@ -37,6 +37,26 @@ void main() {
     });
   });
 
+  test('a dialect\'s name for a figure of your own collides with another '
+      'entry, but not with the figure it names (#1023)', () {
+    final dialect = Dialect.larksRobins.copyWith(
+      name: 'mine',
+      moves: {userFigureKeyFor('zoom-id'): 'whizz'},
+    );
+    expect(check('Whizz', dialects: [dialect]), {
+      GlossaryNameSource.dialectMove,
+    });
+    expect(
+      glossaryNameCollisions(
+        'whizz',
+        taxonomy: contraTaxonomy,
+        dialects: [dialect],
+        exceptUserFigureId: 'zoom-id',
+      ),
+      isEmpty,
+    );
+  });
+
   test('a stored, canonical name collides with a rename or a shorthand '
       'that says it in role words', () {
     final dialect = Dialect.larksRobins.copyWith(

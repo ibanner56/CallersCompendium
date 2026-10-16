@@ -1688,6 +1688,10 @@ class FigureRenderer {
   /// its figure is not in [userFigures] or no longer decodes, or an argument
   /// is outside its parameter's values (a choice since removed, say).
   ///
+  /// Outside the canonical path, [dialect]'s name and wording for the figure
+  /// ([dialectUserFigureName], [dialectUserFigureWording]) stand in for its
+  /// own.
+  ///
   /// The template's slots are filled first, in one pass that never rescans
   /// a value, so an argument can never inject a slot; the assembled line is
   /// then rendered in [dialect] as free text is, so a dialect's role word
@@ -1736,14 +1740,25 @@ class FigureRenderer {
               );
       }
     }
-    slots[userFigureMoveSlot] = view.name;
+    // A dialect may name and word the figure its own way (#1023, plan C8),
+    // under `userFigure:<id>` in its moves and wordings. Never on the
+    // canonical path, which stores lines and builds the index. Every
+    // canonical render reads [Dialect.canonical] today, which holds no such
+    // keys, so the `forCanonical` checks are defensive: they keep that true
+    // should a canonical render ever take another dialect.
+    slots[userFigureMoveSlot] =
+        (forCanonical ? null : dialectUserFigureName(dialect, use.id)) ??
+        view.name;
     final beats = figure.params['beats'];
     slots[userFigureBeatsSlot] = _formatNumber(
       beats is int ? beats : definition.defaultBeats,
     );
-    final line = _assembleDisplayTemplate(
-      _displayTemplate(slots, definition.template),
-    );
+    final template =
+        (forCanonical
+            ? null
+            : dialectUserFigureWording(dialect, use.id, definition)) ??
+        definition.template;
+    final line = _assembleDisplayTemplate(_displayTemplate(slots, template));
     if (line.isEmpty) return null;
     return canonicalizeDiscouragedTerms
         ? renderFreeTextWithCanonicalDiscouragedTerms(line, dialect)
@@ -3351,4 +3366,50 @@ class _DisplaySubstitutors {
 
   static Substitutor _compile(Map<String, String> terms) =>
       Substitutor(terms, caseInsensitive: true, preserveCase: true);
+}
+
+/// [dialect]'s name for the figure of your own [id] (#1023): its `moves`
+/// entry under `userFigure:<id>` ([userFigureKeyFor]), or null when it has
+/// none, or a blank one. A `%S` has no side to fill for such a figure, so a
+/// name holding one is not used either.
+String? dialectUserFigureName(Dialect dialect, String id) {
+  final name = dialect.moves[userFigureKeyFor(id)];
+  if (name == null || name.trim().isEmpty || name.contains('%S')) return null;
+  return name;
+}
+
+/// [dialect]'s wording for the figure of your own [id] (#1023): its
+/// `moveWordings` entry under `userFigure:<id>`, or null when it has none or
+/// the entry can't stand in for [definition]'s own template: it is not a valid
+/// wording ([FigureRenderer.isValidMoveWordingTemplate]), or it uses a slot the figure
+/// doesn't have, as after a parameter was removed. The figure's own wording
+/// is used then.
+String? dialectUserFigureWording(
+  Dialect dialect,
+  String id,
+  UserFigureDefinition definition,
+) {
+  final wording = dialect.moveWordings[userFigureKeyFor(id)];
+  if (wording == null || !FigureRenderer.isValidMoveWordingTemplate(wording)) {
+    return null;
+  }
+  if (!definition.slots.containsAll(userFigureTemplateSlots(wording))) {
+    return null;
+  }
+  return wording;
+}
+
+/// [dialect] without its name and wording for the figure of your own [id]
+/// (#1023): what deleting the figure leaves of it (plan C9). The same
+/// instance when it has neither.
+Dialect dialectWithoutUserFigure(Dialect dialect, String id) {
+  final key = userFigureKeyFor(id);
+  if (!dialect.moves.containsKey(key) &&
+      !dialect.moveWordings.containsKey(key)) {
+    return dialect;
+  }
+  return dialect.copyWith(
+    moves: {...dialect.moves}..remove(key),
+    moveWordings: {...dialect.moveWordings}..remove(key),
+  );
 }

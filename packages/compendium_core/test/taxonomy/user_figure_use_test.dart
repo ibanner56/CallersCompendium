@@ -221,6 +221,89 @@ void main() {
       );
     });
 
+    Dialect withMine({String? name, String? wording}) =>
+        Dialect.larksRobins.copyWith(
+          moves: {
+            ...Dialect.larksRobins.moves,
+            userFigureKeyFor('zoom-id'): ?name,
+          },
+          moveWordings: {
+            ...Dialect.larksRobins.moveWordings,
+            userFigureKeyFor('zoom-id'): ?wording,
+          },
+        );
+
+    test('a dialect names and words the figure its own way, never on the '
+        'canonical path (#1023)', () {
+      final figure = use(const {'who': 'role1s', 'hand': 'right'});
+      final dialect = withMine(
+        name: 'whizz',
+        wording: '{move} by {who}, {hand} hand first',
+      );
+      expect(
+        renderer.render(figure, dialect),
+        'whizz by larks, right hand first',
+      );
+      expect(
+        renderer.renderSummary(figure, dialect),
+        'whizz by larks, right hand first',
+      );
+      expect(
+        renderer.renderCanonical(figure),
+        'role1s zoom right hand, then left',
+        reason: 'what a dance stores and the index reads is the figure\'s own',
+      );
+      expect(
+        renderer.renderUserFigureCanonical(figure),
+        'role1s zoom right hand, then left',
+      );
+      expect(
+        renderer.render(figure, withMine(name: 'whizz')),
+        'larks whizz right hand, then left',
+        reason: 'a name alone fills the figure\'s own wording',
+      );
+    });
+
+    test('deleting the figure leaves a dialect without its name and wording '
+        '(#1023)', () {
+      final dialect = withMine(name: 'whizz', wording: '{move}');
+      final kept = dialectWithoutUserFigure(dialect, 'zoom-id');
+      expect(kept.moves.containsKey(userFigureKeyFor('zoom-id')), isFalse);
+      expect(
+        kept.moveWordings.containsKey(userFigureKeyFor('zoom-id')),
+        isFalse,
+      );
+      expect(kept.moves, Dialect.larksRobins.moves);
+      expect(
+        identical(dialectWithoutUserFigure(kept, 'zoom-id'), kept),
+        isTrue,
+        reason: 'nothing to drop leaves the dialect as it was',
+      );
+    });
+
+    test('a dialect\'s wording the figure can\'t use falls back to its own '
+        '(#1023)', () {
+      final figure = use(const {'who': 'role1s', 'hand': 'right'});
+      for (final wording in [
+        '{move} with {gone}',
+        '{move} [unbalanced',
+        '   ',
+      ]) {
+        expect(
+          renderer.render(figure, withMine(wording: wording)),
+          'larks zoom right hand, then left',
+          reason: wording,
+        );
+      }
+      for (final name in ['%S zoom', '  ']) {
+        expect(
+          renderer.render(figure, withMine(name: name)),
+          'larks zoom right hand, then left',
+          reason: name,
+        );
+      }
+    });
+
     test('an unset argument takes the default, or renders nothing, and an '
         'emptied optional group goes', () {
       expect(renderer.renderCanonical(use(const {})), 'neighbors zoom then');

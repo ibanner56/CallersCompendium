@@ -143,6 +143,24 @@ void main() {
     },
   );
 
+  test('the header is the dialect\'s own name for the figure, when it gives '
+      'one', () {
+    final matrix = buildProgramMatrix([
+      dance('d1', [use('a-id', 'zoom')]),
+    ], userFigures: catalog);
+    final column = matrix.columns.firstWhere(
+      (c) => c.kind == MatrixColumnKind.userFigure,
+    );
+    final dialect = Dialect.larksRobins.copyWith(
+      moves: {...Dialect.larksRobins.moves, userFigureKeyFor('a-id'): 'whizz'},
+    );
+    expect(matrixColumnLabel(column, contraTaxonomy, dialect), 'whizz');
+    expect(
+      matrixColumnLabel(column, contraTaxonomy, Dialect.larksRobins),
+      'zoom',
+    );
+  });
+
   test('the column config hides and orders a figure\'s column by its id', () {
     List<String> built(MatrixColumnConfig config) => ids(
       buildProgramMatrix(
@@ -187,5 +205,18 @@ void main() {
       [for (final c in userFigureColumnCatalog(withBroken)) c.moveId],
       ['userFigure:a-id'],
     );
+  });
+
+  test('deleting a figure leaves the column config without its column', () {
+    const config = MatrixColumnConfig(
+      order: ['swing:partner', 'userFigure:a-id', 'custom'],
+      hidden: {'userFigure:a-id', 'balance'},
+      renames: {'userFigure:a-id': 'Mine', 'balance': 'Bal'},
+    );
+    final kept = config.withoutColumn('userFigure:a-id');
+    expect(kept.order, ['swing:partner', 'custom']);
+    expect(kept.hidden, {'balance'});
+    expect(kept.renames, {'balance': 'Bal'});
+    expect(identical(kept.withoutColumn('userFigure:a-id'), kept), isTrue);
   });
 }

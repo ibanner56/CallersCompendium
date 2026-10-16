@@ -1483,6 +1483,69 @@ void main() {
       final version = await db.customSelect('PRAGMA user_version').getSingle();
       expect(version.read<int>('user_version'), 40);
     });
+
+    // `_ensureV40Schema` documents its existence checks as what keeps the step
+    // idempotent. Nothing else pre-creates one of its tables, so without this a
+    // step that dropped and re-created a table it finds (losing the rows in it)
+    // would pass every other test.
+    test('keeps the rows of a v40 table that already exists', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        39,
+      );
+      await historical.customSelect('SELECT 1').get();
+      await historical.close();
+
+      // The table's DDL as the v40 schema writes it, taken from a throwaway
+      // v40 file rather than retyped here.
+      final v40 = sqlite3.sqlite3.openInMemory();
+      final v40Db = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(v40, closeUnderlyingOnClose: false),
+        40,
+      );
+      await v40Db.customSelect('SELECT 1').get();
+      final ddl =
+          v40
+                  .select(
+                    "SELECT sql FROM sqlite_master WHERE type = 'table' "
+                    "AND name = 'figure_notes'",
+                  )
+                  .single['sql']
+              as String;
+      await v40Db.close();
+      v40.close();
+
+      raw.execute(ddl);
+      raw.execute(
+        "INSERT INTO figure_notes "
+        "(figure_id, notes, updated_at, deleted_at, existence_at) "
+        "VALUES ('f-kept', 'keep me', 7, NULL, 7)",
+      );
+      expect(
+        raw.select(
+          "SELECT name FROM sqlite_master WHERE type = 'table' "
+          "AND name = 'user_glossary_entries'",
+        ),
+        isEmpty,
+        reason: 'only figure_notes is pre-created; the step must add the other',
+      );
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      final notes = await db.select(db.figureNotes).get();
+      expect(notes.map((n) => (n.figureId, n.notes)), [('f-kept', 'keep me')]);
+      expect(await db.select(db.userGlossaryEntries).get(), isEmpty);
+      final version = await db.customSelect('PRAGMA user_version').getSingle();
+      expect(version.read<int>('user_version'), 40);
+    });
   });
 
   group('v38 -> v39 upgrade (retained sync fields, sync-spec §6.7)', () {

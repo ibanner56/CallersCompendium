@@ -9146,6 +9146,22 @@
   "@dialectEditorMoveWordingMissingSlots": {
     "x-sourceSha256": "3426369df24bbb63eb6223087bcfe4c111e6c6e5424616d6bddb2d0e9f371b37"
   },
+  "dialectEditorUserFigureGone": "Een van je figuren, niet op dit apparaat",
+  "@dialectEditorUserFigureGone": {
+    "x-sourceSha256": "998281e8de9118241968955c28d763ffbbc2217b909331b160022c289c4cfde1"
+  },
+  "dialectEditorUserFigureNameHint": "Hoe dit dialect je figuur noemt",
+  "@dialectEditorUserFigureNameHint": {
+    "x-sourceSha256": "5b6b329928a5bb9b0496a41ed716d3b34b6361b6bac3cd586ab0520616cccb39"
+  },
+  "dialectEditorUserFigureNameSide": "Je figuur heeft geen kant die %S kan invullen, dus behoudt die zijn eigen naam.",
+  "@dialectEditorUserFigureNameSide": {
+    "x-sourceSha256": "de620408b0e6908452dc3948cdce88f9be7cabc92f43575094b394f065024e3b"
+  },
+  "dialectEditorUserFigureWordingUnknownSlots": "Je figuur heeft geen {slots}, dus wordt die met zijn eigen bewoording gelezen tot je ze verwijdert.",
+  "@dialectEditorUserFigureWordingUnknownSlots": {
+    "x-sourceSha256": "de788db6fdbfc47a07c303c2fb01008d1a6f5b0e6a5f2f9ed81a178db331e8dd"
+  },
   "dialectEditorMoveWordingOptionalSlots": "Deze template laat optionele slots weg: {slots}",
   "@dialectEditorMoveWordingOptionalSlots": {
     "x-sourceSha256": "c83e2a59ab83671799d5dc290d7783a6f95509a6de891d8f219f8a2834a3e782"

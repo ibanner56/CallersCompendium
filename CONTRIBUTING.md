@@ -423,7 +423,9 @@ symlink you can point your editor/PATH at — see the FVM docs.)
    **and** is not Markdown-only (it has at least one path that is not `.md`,
    or one of the few Markdown files the classifier treats as code). An
    all-Markdown change under `app/ios/` does not run them. For a PR update
-   after a green Merge gate, only the commits pushed since are classified.
+   after a green Merge gate, only the commits pushed since are classified,
+   unless they change no file (a merge of a base the branch already holds):
+   then the whole PR is.
    They also run on every push to `main`, except a push whose files are all
    Markdown, which `ci.yml`'s `paths-ignore: ['**.md']` filters out. To run
    them locally:
@@ -459,6 +461,7 @@ symlink you can point your editor/PATH at — see the FVM docs.)
    which checks review freshness against the reviewer's own latest entry
    (Copilot by default; add `--reviewer claude` if you requested a Claude
    review with the `review: claude` label), unresolved threads (with `totalCount`, so a truncated page is visible),
+   for a Claude review that its latest `## Review verdict:` is not `BLOCK`,
    checks on the current head, and that the PR closes exactly the issues you
    named — a branch name or a sentence containing a closing verb can create a
    link on its own. See

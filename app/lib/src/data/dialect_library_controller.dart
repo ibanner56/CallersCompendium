@@ -184,6 +184,25 @@ class DialectLibraryController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Drops every dialect's name and wording for the user's figure [id], once
+  /// it is deleted (#1023, plan C9): nothing else would ever read them. One
+  /// write for the library when any dialect held them, and then the active
+  /// dialect's copy too when it is a custom dialect.
+  Future<void> forgetUserFigure(String id) async {
+    var changed = false;
+    for (var i = 0; i < _customDialects.length; i++) {
+      final kept = dialectWithoutUserFigure(_customDialects[i], id);
+      if (!identical(kept, _customDialects[i])) {
+        _customDialects[i] = kept;
+        changed = true;
+      }
+    }
+    if (!changed) return;
+    await _persistDialects();
+    if (customByName(_activeName ?? '') != null) await _persistActive();
+    notifyListeners();
+  }
+
   /// Sets the active dialect by [name] (a preset or custom name). Unknown names
   /// are ignored. Persists both the active-name ref and — for back-compat with
   /// readers of [kActiveDialectKey] — the resolved dialect's JSON blob.
