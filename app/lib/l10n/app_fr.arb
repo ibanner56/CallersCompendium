@@ -9386,6 +9386,10 @@
   "@compoundEditorNameTaken": {
     "x-sourceSha256": "262606172e7c9de4247bd5725ee0ea74ab261bedc4310906e817cc955d9efcf3"
   },
+  "compoundEditorNameTakenHidden": "« {name} » est déjà le nom d’une de vos propres figures. Elles figurent dans le glossaire quand Figures personnalisées est activé. Choisissez un autre nom.",
+  "@compoundEditorNameTakenHidden": {
+    "x-sourceSha256": "5ee866fe42345995b7ed626d64e97bec1b8acdc583e8e62d068f0b43aa75aab5"
+  },
   "compoundEditorNoFigures": "Ajoutez au moins une figure.",
   "@compoundEditorNoFigures": {
     "x-sourceSha256": "077dee789ee7f11036fcd87132392a01ed1e1e808a55b857280846be61e40d8c"
@@ -9430,9 +9434,9 @@
   "@glossaryEntryKindHeading": {
     "x-sourceSha256": "1f36becc3aa7c8a8893bc0688d52b8bef91dae5528528706003bc4f45e409f96"
   },
-  "glossaryEntryKindHelp": "Une combinaison devient des figures intégrées quand une danse est enregistrée. Une nouvelle figure reste une seule figure, avec votre propre formulation.",
+  "glossaryEntryKindHelp": "Une combinaison devient des figures intégrées quand une danse est enregistrée. Une nouvelle figure reste une seule figure, avec votre propre formulation. Un terme est un mot que vous définissez, sans figure ; vous pourrez lui en donner une plus tard.",
   "@glossaryEntryKindHelp": {
-    "x-sourceSha256": "88207860515a937eaa3a035c86ca465d2bed902bfad7e051fec78ff656096f5f"
+    "x-sourceSha256": "15b0b15d966bd8e76d6b6c189c7c7f944e5d5957ebc837d1da8914d608015536"
   },
   "glossaryEntryKindCombination": "Combinaison",
   "@glossaryEntryKindCombination": {
@@ -9441,6 +9445,26 @@
   "glossaryEntryKindNewFigure": "Nouvelle figure",
   "@glossaryEntryKindNewFigure": {
     "x-sourceSha256": "3bd330f1f22470db1387c962d78ceea1c7f302fd57729577ba2ee6cb9e9d3326"
+  },
+  "glossaryEntryKindTerm": "Terme",
+  "@glossaryEntryKindTerm": {
+    "x-sourceSha256": "c6f3bfd45614178abb5730fa5acd9aa446f914c4ebfea3574dd281b19d437f07"
+  },
+  "glossaryAddTerm": "Ajouter un terme",
+  "@glossaryAddTerm": {
+    "x-sourceSha256": "b8cb2e88d7137dbf4df6d5589dc889db4815c5b33840617a08040bb6e0e25a8e"
+  },
+  "glossaryTermTitleNew": "Nouveau terme",
+  "@glossaryTermTitleNew": {
+    "x-sourceSha256": "d72f5eae188347d0c7bbf8b576ff4f416e503a6992c18e24d9ee4816bf568cd1"
+  },
+  "glossaryTermMakeFigure": "En faire une figure",
+  "@glossaryTermMakeFigure": {
+    "x-sourceSha256": "8ef8453c988d6c6a41d36623a487975cfdbb8282f09536dcc053bd8e4d503289"
+  },
+  "glossaryTermMakeFigureTitle": "En faire une figure",
+  "@glossaryTermMakeFigureTitle": {
+    "x-sourceSha256": "8ef8453c988d6c6a41d36623a487975cfdbb8282f09536dcc053bd8e4d503289"
   },
   "glossaryEntryFormLabel": "Forme de danse",
   "@glossaryEntryFormLabel": {

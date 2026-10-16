@@ -17,6 +17,15 @@ String danceFormLabel(AppLocalizations l10n, DanceForm form) => switch (form) {
   DanceForm.square => l10n.commonDanceFormSquare,
 };
 
+/// A glossary entry's stored dance [form]'s label (#1023), or [form] as
+/// written for one a later build added.
+String glossaryEntryFormLabel(AppLocalizations l10n, String form) {
+  for (final value in DanceForm.values) {
+    if (value.name == form) return danceFormLabel(l10n, value);
+  }
+  return form;
+}
+
 /// A representative icon for a dance form, used for the Collection tile's
 /// leading avatar. Always paired with a text label (form name) so meaning is
 /// never carried by the glyph alone.

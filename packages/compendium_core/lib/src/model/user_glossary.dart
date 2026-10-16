@@ -2,16 +2,16 @@ import 'package:meta/meta.dart';
 
 /// The kinds of entry a user's own glossary holds (#709, #1023).
 ///
-/// Stored by [name]. Only [compound] is written today; [term] and
-/// [customFigure] are reserved for #1023 so the table needs no change when
-/// they arrive. A stored kind this build does not know is kept, not dropped
-/// (see [UserGlossaryEntry.kind]).
+/// Stored by [name]. A stored kind this build does not know is kept, not
+/// dropped (see [UserGlossaryEntry.kind]).
 enum UserGlossaryEntryKind {
   /// A named sequence of bundled figures with parameters (#709). Its payload
   /// is a `CompoundDefinition`.
   compound,
 
-  /// A term with no figure, such as a Caller's Companion `Term` row (#1023).
+  /// A term with no figure (#1023), such as a Caller's Companion `Term`
+  /// row. Its payload is its dance form, plus any keys a newer build stored
+  /// (`glossaryTermPayload`).
   term,
 
   /// A user-defined figure with a text rendering formula (#1023).

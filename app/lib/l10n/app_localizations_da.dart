@@ -9435,6 +9435,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String compoundEditorNameTakenHidden(String name) {
+    return '»$name« er allerede navnet på en af dine egne figurer. De vises i ordlisten, når Egne figurer er slået til. Vælg et andet navn.';
+  }
+
+  @override
   String get compoundEditorNoFigures => 'Tilføj mindst én figur.';
 
   @override
@@ -9476,13 +9481,28 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get glossaryEntryKindHelp =>
-      'En kombination bliver til indbyggede figurer, når en dans gemmes. En ny figur forbliver én figur med din egen ordlyd.';
+      'En kombination bliver til indbyggede figurer, når en dans gemmes. En ny figur forbliver én figur med din egen ordlyd. Et begreb er et ord, du selv definerer, uden figur; du kan give det en senere.';
 
   @override
   String get glossaryEntryKindCombination => 'Kombination';
 
   @override
   String get glossaryEntryKindNewFigure => 'Ny figur';
+
+  @override
+  String get glossaryEntryKindTerm => 'Begreb';
+
+  @override
+  String get glossaryAddTerm => 'Tilføj et begreb';
+
+  @override
+  String get glossaryTermTitleNew => 'Nyt begreb';
+
+  @override
+  String get glossaryTermMakeFigure => 'Gør det til en figur';
+
+  @override
+  String get glossaryTermMakeFigureTitle => 'Gør det til en figur';
 
   @override
   String get glossaryEntryFormLabel => 'Danseform';
