@@ -8210,6 +8210,10 @@
   "@shorthandsCompoundTitle": {
     "x-sourceSha256": "b37015f6e5621c3bf45810cce907194e87f5b4a9814b5c5695f960f484aa5949"
   },
+  "shorthandsUserFigureSyncLabel": "Abréviations pour vos nouvelles figures",
+  "@shorthandsUserFigureSyncLabel": {
+    "x-sourceSha256": "ddb5a743e550727efdac098dc9b2ded70df5cf8685acefa501184ffefbd78757"
+  },
   "shorthandsCompoundIntro": "Quand la saisie en texte libre est activée, taper l’une de ces abréviations seule sur une ligne pendant que vous modifiez une danse ajoute l’une de vos propres figures, avec les valeurs choisies ici.",
   "@shorthandsCompoundIntro": {
     "x-sourceSha256": "80090b751b53b2c67b417cdeed684cb8b14db7c4fa9ea70f67e05421fec4f587"
@@ -8229,6 +8233,10 @@
   "shorthandsCompoundShadowed": "Non utilisée : une abréviation de figures a le même texte.",
   "@shorthandsCompoundShadowed": {
     "x-sourceSha256": "75111a930cc8890e0f1378c778ee2c93d1ec4cd35897e8d496d60f0cc46d60b6"
+  },
+  "shorthandsUserFigureShadowedByCompound": "Non utilisée : une abréviation pour l'une de vos combinaisons a le même texte.",
+  "@shorthandsUserFigureShadowedByCompound": {
+    "x-sourceSha256": "49e899d6d9121b9290be30aa5be38ae4e2ae72f70fba7591164c43af0ca8e2d7"
   },
   "compoundShorthandEditorFigureLabel": "Votre figure",
   "@compoundShorthandEditorFigureLabel": {

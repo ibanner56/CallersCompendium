@@ -12,6 +12,11 @@ const String kShorthandMappingsKey = 'shorthand_mappings';
 /// [CompoundShorthands].
 const String kCompoundShorthandsKey = compoundShorthandsSettingKey;
 
+/// Persistence key for the user's shorthands for their own new figures
+/// (#1023): tokens that insert a use of one of them with fixed arguments. See
+/// [UserFigureShorthands].
+const String kUserFigureShorthandsKey = userFigureShorthandsSettingKey;
+
 /// Owns the user's locally-saved shorthand → figure(s) mappings (issue #420)
 /// and exposes them live to the widget tree.
 ///
@@ -24,12 +29,14 @@ const String kCompoundShorthandsKey = compoundShorthandsSettingKey;
 /// structural `meanwhile` and `modifier` targets are validated against their
 /// bounded alternating-child model.
 ///
-/// It also owns the compound shorthands (#709), stored under their own key, so
-/// that one place keeps every token unique across both kinds.
+/// It also owns the compound shorthands (#709) and the shorthands for the
+/// user's new figures (#1023), each stored under its own key, so that one
+/// place keeps every token unique across all three kinds.
 ///
-/// Tokens are unique case-insensitively across both kinds; the controller
+/// Tokens are unique case-insensitively across the kinds; the controller
 /// preserves the user's original casing for display and enforces uniqueness /
-/// bounded length / non-empty on [upsert] and [upsertCompound].
+/// bounded length / non-empty on [upsert], [upsertCompound] and
+/// [upsertUserFigure].
 class ShorthandMappingsController extends ChangeNotifier {
   ShorthandMappingsController(this._settings, {Taxonomy? taxonomy})
     : _taxonomy = taxonomy ?? contraTaxonomy;
@@ -39,6 +46,7 @@ class ShorthandMappingsController extends ChangeNotifier {
 
   List<ShorthandMapping> _mappings = const [];
   List<CompoundShorthand> _compound = const [];
+  List<UserFigureShorthand> _userFigure = const [];
 
   /// The current mappings, in display/insertion order. Unmodifiable.
   List<ShorthandMapping> get mappings => List.unmodifiable(_mappings);
@@ -54,36 +62,56 @@ class ShorthandMappingsController extends ChangeNotifier {
   List<CompoundShorthand> get compoundShorthands =>
       List.unmodifiable(_compound);
 
-  /// Every token a shorthand of either kind has, normalized: what a new
-  /// shorthand, of either kind, cannot take.
+  /// The shorthands for the user's new figures, in display order.
+  /// Unmodifiable.
+  List<UserFigureShorthand> get userFigureShorthands =>
+      List.unmodifiable(_userFigure);
+
+  /// Every token a shorthand of any kind has, normalized: what a new
+  /// shorthand, of any kind, cannot take.
   Set<String> get takenTokens => {
     for (final m in _mappings) m.normalizedToken,
     for (final c in _compound) c.normalizedToken,
+    for (final u in _userFigure) u.normalizedToken,
   };
 
   /// The compound shorthands as a resolvable store, for free-text entry.
   CompoundShorthands get compoundStore => CompoundShorthands(_compound);
 
+  /// The shorthands for the user's new figures as a resolvable store, for
+  /// free-text entry.
+  UserFigureShorthands get userFigureStore => UserFigureShorthands(_userFigure);
+
   /// Loads persisted mappings from storage. Safe to call once at startup;
   /// malformed payloads degrade to "no mappings" rather than throwing.
   Future<void> load() async {
-    // Both keys are read before either is applied, so a failed read leaves
-    // the controller as it was.
+    // Every key is read before any is applied, so a failed read leaves the
+    // controller as it was.
     final stored = await _settings.get(kShorthandMappingsKey);
     final storedCompound = await _settings.get(kCompoundShorthandsKey);
+    final storedUserFigure = await _settings.get(kUserFigureShorthandsKey);
     _mappings = ShorthandMappings.decode(
       stored,
       taxonomy: _taxonomy,
     ).mappings.toList();
     _compound = CompoundShorthands.decode(storedCompound).shorthands.toList();
+    _userFigure = UserFigureShorthands.decode(
+      storedUserFigure,
+    ).shorthands.toList();
     notifyListeners();
   }
 
-  /// Whether [token] already names a shorthand of either kind
+  /// Whether [token] already names a shorthand of any kind
   /// (case-insensitively), optionally ignoring the figure shorthand at
-  /// [exceptIndex] or the compound shorthand at [exceptCompoundIndex] (used
-  /// when editing a row in place).
-  bool hasToken(String token, {int? exceptIndex, int? exceptCompoundIndex}) {
+  /// [exceptIndex], the compound shorthand at [exceptCompoundIndex] or the
+  /// shorthand for a new figure at [exceptUserFigureIndex] (used when editing
+  /// a row in place).
+  bool hasToken(
+    String token, {
+    int? exceptIndex,
+    int? exceptCompoundIndex,
+    int? exceptUserFigureIndex,
+  }) {
     final normalized = normalizeShorthandToken(token);
     for (var i = 0; i < _mappings.length; i++) {
       if (i == exceptIndex) continue;
@@ -92,6 +120,10 @@ class ShorthandMappingsController extends ChangeNotifier {
     for (var i = 0; i < _compound.length; i++) {
       if (i == exceptCompoundIndex) continue;
       if (_compound[i].normalizedToken == normalized) return true;
+    }
+    for (var i = 0; i < _userFigure.length; i++) {
+      if (i == exceptUserFigureIndex) continue;
+      if (_userFigure[i].normalizedToken == normalized) return true;
     }
     return false;
   }
@@ -208,6 +240,181 @@ class ShorthandMappingsController extends ChangeNotifier {
     await _persistCompound();
     notifyListeners();
   }
+
+  /// Adds [shorthand] (when [index] is null) or replaces the shorthand for a
+  /// new figure at [index]. Rejects, by throwing [ArgumentError], an empty or
+  /// over-long token, one any other shorthand of any kind already has, or one
+  /// the next load would drop; the editor validates first, so this is a
+  /// backstop.
+  Future<void> upsertUserFigure(
+    UserFigureShorthand shorthand, {
+    int? index,
+  }) async {
+    final token = shorthand.token.trim();
+    if (token.isEmpty || token.length > maxShorthandTokenLength) {
+      throw ArgumentError.value(shorthand.token, 'token', 'invalid length');
+    }
+    if (hasToken(token, exceptUserFigureIndex: index)) {
+      throw ArgumentError.value(
+        shorthand.token,
+        'token',
+        'duplicates an existing shorthand (case-insensitive)',
+      );
+    }
+    final normalized = UserFigureShorthand(
+      token: token,
+      figureId: shorthand.figureId,
+      figureName: shorthand.figureName,
+      args: shorthand.args,
+      beats: shorthand.beats,
+    );
+    final adding = index == null || index < 0 || index >= _userFigure.length;
+    if (!UserFigureShorthands.keeps(normalized) ||
+        (adding && _userFigure.length >= maxUserFigureShorthands)) {
+      throw ArgumentError.value(shorthand, 'shorthand', 'would not be kept');
+    }
+    final next = _userFigure.toList();
+    if (adding) {
+      next.add(normalized);
+    } else {
+      next[index] = normalized;
+    }
+    _userFigure = next;
+    await _persistUserFigure();
+    notifyListeners();
+  }
+
+  /// Removes the shorthand for a new figure at [index] (a no-op when out of
+  /// range).
+  Future<void> removeUserFigureAt(int index) async {
+    if (index < 0 || index >= _userFigure.length) return;
+    _userFigure = _userFigure.toList()..removeAt(index);
+    await _persistUserFigure();
+    notifyListeners();
+  }
+
+  /// Turns the compound shorthand at [compoundIndex] into [shorthand], one
+  /// for a new figure, when an edit chose a new figure instead. Everything is
+  /// checked before either key is written, so a refusal (by throwing
+  /// [ArgumentError], as [upsertUserFigure]) leaves both kinds as they were.
+  Future<void> replaceCompoundWithUserFigure(
+    int compoundIndex,
+    UserFigureShorthand shorthand,
+  ) async {
+    if (compoundIndex < 0 || compoundIndex >= _compound.length) {
+      throw RangeError.index(compoundIndex, _compound, 'compoundIndex');
+    }
+    final normalized = _checkedUserFigure(
+      shorthand,
+      exceptCompoundIndex: compoundIndex,
+    );
+    final userFigure = [..._userFigure, normalized];
+    final compound = _compound.toList()..removeAt(compoundIndex);
+    // The new entry is written first: should the removal then fail, the
+    // token is in both kinds, where the compound shorthand wins and the
+    // other says so, rather than in neither. Each list is taken up only once
+    // its key is written.
+    await _settings.set(
+      kUserFigureShorthandsKey,
+      UserFigureShorthands(userFigure).toJson(),
+    );
+    _userFigure = userFigure;
+    await _settings.set(
+      kCompoundShorthandsKey,
+      CompoundShorthands(compound).toJson(),
+    );
+    _compound = compound;
+    notifyListeners();
+  }
+
+  /// Turns the shorthand for a new figure at [userFigureIndex] into
+  /// [shorthand], a compound shorthand, when an edit chose a compound
+  /// instead. Checked before either key is written, as
+  /// [replaceCompoundWithUserFigure].
+  Future<void> replaceUserFigureWithCompound(
+    int userFigureIndex,
+    CompoundShorthand shorthand,
+  ) async {
+    if (userFigureIndex < 0 || userFigureIndex >= _userFigure.length) {
+      throw RangeError.index(userFigureIndex, _userFigure, 'userFigureIndex');
+    }
+    final normalized = _checkedCompound(
+      shorthand,
+      exceptUserFigureIndex: userFigureIndex,
+    );
+    final compound = [..._compound, normalized];
+    final userFigure = _userFigure.toList()..removeAt(userFigureIndex);
+    // The new entry first, as [replaceCompoundWithUserFigure] writes it.
+    await _settings.set(
+      kCompoundShorthandsKey,
+      CompoundShorthands(compound).toJson(),
+    );
+    _compound = compound;
+    await _settings.set(
+      kUserFigureShorthandsKey,
+      UserFigureShorthands(userFigure).toJson(),
+    );
+    _userFigure = userFigure;
+    notifyListeners();
+  }
+
+  /// [shorthand], trimmed, when a new one of its kind could be added (its
+  /// token free but for the excepted entry, kept by the next load, and
+  /// within the bound); throws [ArgumentError] otherwise.
+  UserFigureShorthand _checkedUserFigure(
+    UserFigureShorthand shorthand, {
+    int? exceptCompoundIndex,
+  }) {
+    final token = shorthand.token.trim();
+    if (token.isEmpty || token.length > maxShorthandTokenLength) {
+      throw ArgumentError.value(shorthand.token, 'token', 'invalid length');
+    }
+    if (hasToken(token, exceptCompoundIndex: exceptCompoundIndex)) {
+      throw ArgumentError.value(shorthand.token, 'token', 'already taken');
+    }
+    final normalized = UserFigureShorthand(
+      token: token,
+      figureId: shorthand.figureId,
+      figureName: shorthand.figureName,
+      args: shorthand.args,
+      beats: shorthand.beats,
+    );
+    if (!UserFigureShorthands.keeps(normalized) ||
+        _userFigure.length >= maxUserFigureShorthands) {
+      throw ArgumentError.value(shorthand, 'shorthand', 'would not be kept');
+    }
+    return normalized;
+  }
+
+  /// As [_checkedUserFigure], for a compound shorthand.
+  CompoundShorthand _checkedCompound(
+    CompoundShorthand shorthand, {
+    int? exceptUserFigureIndex,
+  }) {
+    final token = shorthand.token.trim();
+    if (token.isEmpty || token.length > maxShorthandTokenLength) {
+      throw ArgumentError.value(shorthand.token, 'token', 'invalid length');
+    }
+    if (hasToken(token, exceptUserFigureIndex: exceptUserFigureIndex)) {
+      throw ArgumentError.value(shorthand.token, 'token', 'already taken');
+    }
+    final normalized = CompoundShorthand(
+      token: token,
+      compoundId: shorthand.compoundId,
+      compoundName: shorthand.compoundName,
+      args: shorthand.args,
+    );
+    if (!CompoundShorthands.keeps(normalized) ||
+        _compound.length >= maxCompoundShorthands) {
+      throw ArgumentError.value(shorthand, 'shorthand', 'would not be kept');
+    }
+    return normalized;
+  }
+
+  Future<void> _persistUserFigure() => _settings.set(
+    kUserFigureShorthandsKey,
+    UserFigureShorthands(_userFigure).toJson(),
+  );
 
   Future<void> _persistCompound() => _settings.set(
     kCompoundShorthandsKey,

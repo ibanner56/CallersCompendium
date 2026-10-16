@@ -8387,6 +8387,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get shorthandsCompoundTitle => 'Abkürzungen für deine eigenen Figuren';
 
   @override
+  String get shorthandsUserFigureSyncLabel =>
+      'Abkürzungen für deine neuen Figuren';
+
+  @override
   String get shorthandsCompoundIntro =>
       'Wenn die Freitexteingabe an ist, fügt das Eintippen einer dieser Abkürzungen als ganze Zeile beim Bearbeiten eines Tanzes eine deiner eigenen Figuren mit den hier gewählten Werten ein.';
 
@@ -8404,6 +8408,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get shorthandsCompoundShadowed =>
       'Nicht verwendet: Eine Figur-Abkürzung hat denselben Text.';
+
+  @override
+  String get shorthandsUserFigureShadowedByCompound =>
+      'Nicht verwendet: Eine Abkürzung für eine deiner Kombinationen hat denselben Text.';
 
   @override
   String get compoundShorthandEditorFigureLabel => 'Deine Figur';

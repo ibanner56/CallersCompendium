@@ -612,7 +612,7 @@ Glossary is on. While it is on:
   choose a figure's move. A combination becomes the figures it stands for when
   you save the dance; a new figure stays one figure that reads with your
   wording (see [Your own figures](./authoring.md#your-own-figures)). You can
-  also give a combination a [shorthand](./authoring.md#figure-shorthands) with
+  also give either kind a [shorthand](./authoring.md#figure-shorthands) with
   set values.
 - In the Collection's **Advanced** search, a **Has figure** row offers your new
   figures, to find the dances that use one (see
@@ -638,7 +638,8 @@ this version of the app or a later one. Until then changes to them aren't sent
 to your other devices, and Device Sync shows a note naming the device that is
 holding them back (see [New kinds of data wait for every
 device](#new-kinds-of-data-wait-for-every-device)). New figures, with their
-own wording, and your terms stay on this device for now.
+own wording, your terms and the shorthands for your new figures stay on this
+device for now.
 
 Your figures and your notes on built-in figures share a size limit, which
 keeps what you add from growing too large to back up. It is far more than most

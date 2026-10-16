@@ -80,6 +80,7 @@ const Set<String> syncWholeCollectionSettingKeys = {
   'custom_dialects',
   'custom_themes',
   'shorthand_mappings',
+  'user_figure_shorthands',
   'walkthrough_snippets',
 };
 
