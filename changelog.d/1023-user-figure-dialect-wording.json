@@ -1,0 +1,16 @@
+{
+  "id": "1023-user-figure-dialect-wording",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "With Custom Figures on, a dialect can give one of your own new figures a name or a wording template of its own, starting from the figure's own wording and using its parameters as slots. A program matrix column for the figure takes the dialect's name too.",
+      "Deleting one of your new figures removes its name and wording from every dialect, and its column's place, name and hiding from Matrix columns."
+    ]
+  },
+  "core": {
+    "added": [
+      "`dialectUserFigureName`, `dialectUserFigureWording` and `dialectWithoutUserFigure` read and drop a dialect's `userFigure:<id>` entries; `FigureRenderer` uses them outside the canonical render, and `matrixColumnLabel` uses the name (#1023).",
+      "`MatrixColumnConfig.withoutColumn` and `glossaryNameCollisions(exceptUserFigureId:)` (#1023)."
+    ]
+  }
+}

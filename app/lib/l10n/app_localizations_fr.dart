@@ -9337,6 +9337,23 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get dialectEditorUserFigureGone =>
+      'Une de vos figures, absente de cet appareil';
+
+  @override
+  String get dialectEditorUserFigureNameHint =>
+      'Le nom que ce dialecte donne à votre figure';
+
+  @override
+  String get dialectEditorUserFigureNameSide =>
+      'Votre figure n\'a pas de côté que %S pourrait indiquer : elle garde donc son propre nom.';
+
+  @override
+  String dialectEditorUserFigureWordingUnknownSlots(String slots) {
+    return 'Votre figure n\'a pas de $slots : elle garde donc sa propre formulation tant que vous ne les retirez pas.';
+  }
+
+  @override
   String dialectEditorMoveWordingOptionalSlots(String slots) {
     return 'Ce modèle omet des emplacements facultatifs : $slots';
   }
