@@ -129,8 +129,12 @@ final class SyncReviewQueueResolver {
       final localBody = projected == null || kept == null
           ? projected
           : mergeRetainedFields(projected, kept);
-      String visible(Map<String, Object?> body) =>
-          syncUserVisibleContentHash(kind, body, aliases: aliases);
+      String visible(Map<String, Object?> body) => syncUserVisibleContentHash(
+        kind,
+        body,
+        aliases: aliases,
+        settingsKey: kind == SyncRecordKind.setting ? recordId : null,
+      );
       final seen = {if (localBody != null) visible(localBody)};
       final distinct = [
         for (final item in items)

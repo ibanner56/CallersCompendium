@@ -9,6 +9,7 @@ import '../snippet/snippet_library.dart'
 import 'canonical_json.dart';
 import 'sync_reconciliation.dart' show rewriteSyncInboundReferences;
 import 'sync_record_kind.dart';
+import 'sync_retained_fields.dart' show partitionInboundRecordBody;
 
 /// One entry of a whole-collection setting, identified the way the user's own
 /// library identifies it, for comparing two versions of the collection.
@@ -185,8 +186,9 @@ List<String> syncDifferingFields(
 }
 
 /// The fields of a [kind] record a person is shown when comparing two
-/// versions of it, or null when every field is shown but identity and
-/// timestamps (the fields [syncDifferingFields] ignores by default).
+/// versions of it, or null when every field this build syncs is shown but
+/// identity and timestamps (the fields [syncDifferingFields] ignores by
+/// default).
 ///
 /// A nested path (`provenance.source`) marks its field as shown only in part:
 /// of that field, only the listed parts are compared. Every other synced
@@ -351,13 +353,23 @@ Map<String, String> syncUserHiddenFields(SyncRecordKind kind) => switch (kind) {
 /// natural-key reconciliation ([aliases], losing id to surviving id) read as
 /// the records they were merged into. Of a field shown only in part, only
 /// the listed parts are kept.
+///
+/// A kind with no list shows every field this build syncs, so a part of
+/// [body] that this build keeps for a newer version is left out there too
+/// (spec §6.7); [settingsKey] names the setting a `setting` body belongs to.
 Map<String, Object?> syncUserVisibleBody(
   SyncRecordKind kind,
   Map<String, Object?> body, {
   Map<SyncRecordKind, Map<String, String>> aliases = const {},
+  String? settingsKey,
 }) {
-  final resolved = syncResolveComparedReferences(body, aliases);
   final visible = syncUserVisibleFields(kind);
+  final resolved = syncResolveComparedReferences(
+    visible == null
+        ? partitionInboundRecordBody(kind, body, settingsKey: settingsKey).known
+        : body,
+    aliases,
+  );
   Object? shown(String key, Object? value) {
     final parts = {
       for (final path in visible ?? const <String>{})
@@ -448,7 +460,10 @@ String syncUserVisibleContentHash(
   SyncRecordKind kind,
   Map<String, Object?> body, {
   Map<SyncRecordKind, Map<String, String>> aliases = const {},
-}) => contentHash(syncUserVisibleBody(kind, body, aliases: aliases));
+  String? settingsKey,
+}) => contentHash(
+  syncUserVisibleBody(kind, body, aliases: aliases, settingsKey: settingsKey),
+);
 
 /// Identity and timestamps, never compared between versions: each copy
 /// names its own id, and its stamps decide a tie rather than being what it

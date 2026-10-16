@@ -1,0 +1,14 @@
+{
+  "id": "sync-kept-parts-not-differences",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "When two devices disagree about a source, custom field, difficulty level or setting and one of them is on a newer version of the app, Device Sync no longer lists versions that look the same to you as separate choices, and no longer names a detail this version can't show as the difference."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "syncUserVisibleBody, and so syncUserVisibleContentHash and the review resolver, leave out the parts of a published source, custom field definition, difficulty level or setting that this build keeps for a newer version, as the merge already did."
+    ]
+  }
+}

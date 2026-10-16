@@ -186,6 +186,25 @@ void main() {
         {'title': 'Source'},
       );
     });
+
+    test('a setting kept whole shows nothing, and a synced one shows its value '
+        'but not a kept part of it', () {
+      expect(
+        syncUserVisibleBody(SyncRecordKind.setting, {
+          'value': 1,
+        }, settingsKey: 'a_setting_added_later'),
+        isEmpty,
+      );
+      expect(
+        syncUserVisibleBody(SyncRecordKind.setting, {
+          'value': ['a'],
+          'addedLater': 'x',
+        }, settingsKey: 'custom_dialects'),
+        {
+          'value': ['a'],
+        },
+      );
+    });
   });
 
   group('combineSyncCollection', () {
