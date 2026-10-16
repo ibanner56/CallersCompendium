@@ -361,7 +361,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       // new-dance defaults), seeds custom-field controllers, recomputes
       // warnings, detects a pending autosave draft, and pushes the initial
       // undo entry. Its final notify triggers the loaded-state rebuild.
-      await _controller.load(dance: dance, fieldDefs: fieldDefs);
+      await _controller.load(
+        dance: dance,
+        fieldDefs: fieldDefs,
+        freeTextEntry: _freeTextEntry,
+      );
 
       // Show the restore/discard dialog AFTER the first build frame so
       // WidgetTester.pumpAndSettle() can settle on the loaded editor before

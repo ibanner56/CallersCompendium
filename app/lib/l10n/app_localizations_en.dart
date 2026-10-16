@@ -2326,7 +2326,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. Editing an existing figure always uses the full editor.';
+      'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure\'s move and pressing Enter replaces that figure. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. New dances start with no figures unless you have saved starting figures.';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
@@ -2387,7 +2387,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDefaultsStartingFiguresSubtitle =>
-      'The figures a new dance starts with. Defaults to a single stand still (8 beats); clear it for a blank new dance. Editable per dance.';
+      'The figures a new dance starts with. Defaults to eight stand stills (8 beats each), or to none while free-text entry is on; clear it for a blank new dance. Editable per dance.';
 
   @override
   String get settingsDefaultsMoveDefaultsTitle => 'Move defaults';
@@ -7579,6 +7579,17 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: 'Added $count figures. Type another, or press Escape to finish.',
       one: 'Added 1 figure. Type another, or press Escape to finish.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorFreeTextRowReplacedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Figure replaced with $count figures.',
+      one: 'Figure replaced.',
     );
     return '$_temp0';
   }

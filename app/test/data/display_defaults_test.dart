@@ -233,6 +233,23 @@ void main() {
       expect(danceFiguresTemplateFromStored('[]'), isEmpty);
     });
 
+    test('with free-text entry on, falls back to no figures but keeps a '
+        'saved template (#1177)', () {
+      for (final stored in [null, 7, '', 'not json', '{"move":"x"}']) {
+        expect(
+          danceFiguresTemplateFromStored(stored, freeTextEntry: true),
+          isEmpty,
+        );
+      }
+      final saved = danceFiguresTemplateFromStored(
+        encodeFigures([
+          Figure(move: 'stand_still', params: const {'beats': 8}),
+        ]),
+        freeTextEntry: true,
+      );
+      expect(saved.single.move, 'stand_still');
+    });
+
     test('falls back to the default for null, non-string, empty, garbage', () {
       for (final stored in [null, 7, '', 'not json', '{"move":"x"}']) {
         final template = danceFiguresTemplateFromStored(stored);

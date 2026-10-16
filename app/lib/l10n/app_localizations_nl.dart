@@ -2361,7 +2361,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'Als ingeschakeld, kun je een nieuwe figuur als één regel invoeren (bijv. “neighbor balance & swing”) in plaats van veld voor veld. De regel wordt geparseerd tot figuur(en); niet-herkende delen worden bewaard als een aangepaste figuur die je later kunt corrigeren. Het bewerken van een bestaande figuur gebruikt altijd de volledige editor.';
+      'Als ingeschakeld, kun je een nieuwe figuur als één regel invoeren (bijv. “neighbor balance & swing”) in plaats van veld voor veld, en een regel die je in de beweging van een bestaande figuur typt vervangt die figuur wanneer je op Enter drukt. De regel wordt geparseerd tot figuur(en); niet-herkende delen worden bewaard als een aangepaste figuur die je later kunt corrigeren. Nieuwe dansen beginnen zonder figuren, tenzij je startfiguren hebt opgeslagen.';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
@@ -2422,7 +2422,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsStartingFiguresSubtitle =>
-      'De figuren waarmee een nieuwe dans begint. Standaard één stilstaan (8 beats); maak leeg voor een lege nieuwe dans. Aanpasbaar per dans.';
+      'De figuren waarmee een nieuwe dans begint. Standaard acht keer stilstaan (elk 8 beats), of geen zolang vrije tekstinvoer aan staat; maak leeg voor een lege nieuwe dans. Aanpasbaar per dans.';
 
   @override
   String get settingsDefaultsMoveDefaultsTitle => 'Standaardwaarden voor moves';
@@ -7672,6 +7672,17 @@ class AppLocalizationsNl extends AppLocalizations {
           '$count figuren toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
       one:
           '1 figuur toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorFreeTextRowReplacedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Figuur vervangen door $count figuren.',
+      one: 'Figuur vervangen.',
     );
     return '$_temp0';
   }

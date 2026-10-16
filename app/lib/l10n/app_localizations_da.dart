@@ -2346,7 +2346,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'Når aktiveret kan du ved tilføjelse af en ny figur skrive den som én linje (f.eks. \"nabo balance & swing\") i stedet for at bygge den felt for felt. Linjen parses til figur(er); alt der ikke genkendes gemmes som en brugerdefineret figur, du kan rette senere. Redigering af en eksisterende figur bruger altid den fulde editor.';
+      'Når aktiveret kan du ved tilføjelse af en ny figur skrive den som én linje (f.eks. \"nabo balance & swing\") i stedet for at bygge den felt for felt, og en linje skrevet i en eksisterende figurs bevægelse erstatter figuren, når du trykker Enter. Linjen parses til figur(er); alt der ikke genkendes gemmes som en brugerdefineret figur, du kan rette senere. Nye danse starter uden figurer, medmindre du har gemt startfigurer.';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
@@ -2407,7 +2407,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsStartingFiguresSubtitle =>
-      'De figurer en ny dans starter med. Standard er en enkelt stand still (8 slag); ryd for en blank ny dans. Kan redigeres per dans.';
+      'De figurer en ny dans starter med. Standard er otte stand still (8 slag hver), eller ingen mens fri tekstindtastning er slået til; ryd for en blank ny dans. Kan redigeres per dans.';
 
   @override
   String get settingsDefaultsMoveDefaultsTitle => 'Bevægelsesstandarder';
@@ -7613,6 +7613,17 @@ class AppLocalizationsDa extends AppLocalizations {
           'Tilføjede $count figurer. Skriv en anden, eller tryk Escape for at afslutte.',
       one:
           'Tilføjede 1 figur. Skriv en anden, eller tryk Escape for at afslutte.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorFreeTextRowReplacedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Figuren er erstattet med $count figurer.',
+      one: 'Figuren er erstattet.',
     );
     return '$_temp0';
   }

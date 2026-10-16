@@ -331,6 +331,7 @@ class DanceEditorForm extends StatelessWidget {
                   canonicalizeDiscouragedTerms:
                       CanonicalDiscouragedTermsScope.of(context),
                   onAddFreeText: controller.insertFreeTextFigures,
+                  onReplaceWithFreeText: controller.replaceWithFreeTextFigures,
                   onSubmitCompoundShorthand:
                       (compoundShorthands == null &&
                               userFigureShorthands == null) ||

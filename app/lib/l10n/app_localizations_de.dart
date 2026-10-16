@@ -2370,7 +2370,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'Wenn aktiviert, können Sie beim Hinzufügen einer neuen Figur diese als eine Zeile eingeben (z. B. „neighbor balance & swing“) statt sie Feld für Feld aufzubauen. Die Zeile wird in Figuren geparst; Nichterkanntes wird als benutzerdefinierte Figur gespeichert, die Sie später korrigieren können. Das Bearbeiten einer bestehenden Figur verwendet immer den vollständigen Editor.';
+      'Wenn aktiviert, können Sie beim Hinzufügen einer neuen Figur diese als eine Zeile eingeben (z. B. „neighbor balance & swing“) statt sie Feld für Feld aufzubauen, und eine in die Bewegung einer bestehenden Figur eingegebene Zeile ersetzt diese Figur, wenn Sie die Eingabetaste drücken. Die Zeile wird in Figuren geparst; Nichterkanntes wird als benutzerdefinierte Figur gespeichert, die Sie später korrigieren können. Neue Tänze beginnen ohne Figuren, sofern Sie keine Startfiguren gespeichert haben.';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
@@ -2431,7 +2431,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsStartingFiguresSubtitle =>
-      'Die Figuren, mit denen ein neuer Tanz beginnt. Standard ist ein einzelnes „Stand still“ (8 Takte); leer lassen für einen leeren neuen Tanz. Pro Tanz bearbeitbar.';
+      'Die Figuren, mit denen ein neuer Tanz beginnt. Standard sind acht „Stand still“ (je 8 Takte), bei aktivierter Freitexteingabe keine; leer lassen für einen leeren neuen Tanz. Pro Tanz bearbeitbar.';
 
   @override
   String get settingsDefaultsMoveDefaultsTitle => 'Bewegungsstandards';
@@ -7703,6 +7703,17 @@ class AppLocalizationsDe extends AppLocalizations {
           '$count Figuren hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
       one:
           '1 Figur hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorFreeTextRowReplacedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Figur durch $count Figuren ersetzt.',
+      one: 'Figur ersetzt.',
     );
     return '$_temp0';
   }

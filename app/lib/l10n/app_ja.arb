@@ -2356,9 +2356,9 @@
   "@settingsDefaultsFreeTextEntryTitle": {
     "x-sourceSha256": "bbb4d246761e2b71f24e54ea73f6b4ce05eba3a244080456a1546573b669b9d1"
   },
-  "settingsDefaultsFreeTextEntrySubtitle": "オンにすると、新しいフィギュアを追加する際に「neighbor balance & swing」のように1行で入力できます（フィールドごとに入力する代わりに）。入力した行はフィギュアに解析されます。認識されなかった部分はカスタムフィギュアとして保存され、後で修正できます。既存のフィギュアの編集は常にフルエディターを使用します。",
+  "settingsDefaultsFreeTextEntrySubtitle": "オンにすると、新しいフィギュアを追加する際に「neighbor balance & swing」のように1行で入力できます（フィールドごとに入力する代わりに）。既存のフィギュアのムーブに1行を入力してEnterキーを押すと、そのフィギュアが置き換えられます。入力した行はフィギュアに解析されます。認識されなかった部分はカスタムフィギュアとして保存され、後で修正できます。開始フィギュアを保存していない場合、新しいダンスはフィギュアなしで始まります。",
   "@settingsDefaultsFreeTextEntrySubtitle": {
-    "x-sourceSha256": "06b7ae2c8161ab018bc61128dd0d1badd8fc16eabe491fc4a5eb750577f733fa"
+    "x-sourceSha256": "54175784a5f3ac5d3c2e680de7e1395f1f77dee0d71595359d6c9a096078ee70"
   },
   "settingsDefaultsAggressiveBeatsUpdateTitle": "フィギュアの拍数を積極的に再計算",
   "@settingsDefaultsAggressiveBeatsUpdateTitle": {
@@ -2416,9 +2416,9 @@
   "@settingsDefaultsStartingFiguresTitle": {
     "x-sourceSha256": "1bffd9755117239ce75f839aff4265a5f9298efeea26aaa9f1986fbfc25de14f"
   },
-  "settingsDefaultsStartingFiguresSubtitle": "新しいダンスの開始フィギュアです。デフォルトは「静止」（8拍）です。空白の新しいダンスにする場合はクリアしてください。ダンスごとに編集可能です。",
+  "settingsDefaultsStartingFiguresSubtitle": "新しいダンスの開始フィギュアです。デフォルトは「静止」8つ（各8拍）で、フリーテキスト入力がオンの間はなしです。空白の新しいダンスにする場合はクリアしてください。ダンスごとに編集可能です。",
   "@settingsDefaultsStartingFiguresSubtitle": {
-    "x-sourceSha256": "cb4c6d1e73379661b237250cca459fff6f5167b93b6b9db6ee152083e011b91b"
+    "x-sourceSha256": "6c977376ba7d8485e571afbd397afd4c1e8ccd4fb37864e54cddb2f4176e0b2c"
   },
   "settingsDefaultsMoveDefaultsTitle": "ムーブのデフォルト設定",
   "@settingsDefaultsMoveDefaultsTitle": {
@@ -7625,6 +7625,10 @@
   "danceEditorFreeTextFiguresAddedAnnouncement": "{count, plural, other{{count}件のフィギュアを追加しました。さらに入力するか、Escキーを押して終了してください。}}",
   "@danceEditorFreeTextFiguresAddedAnnouncement": {
     "x-sourceSha256": "c4d66c29eef8a2480eeff9c01651a491f5f23569bc7a17aa9f6d79d0e522c6ed"
+  },
+  "danceEditorFreeTextRowReplacedAnnouncement": "{count, plural, other{フィギュアを{count}件のフィギュアに置き換えました。}}",
+  "@danceEditorFreeTextRowReplacedAnnouncement": {
+    "x-sourceSha256": "692f1ac40a943ce8eda3d48e21914b9660167c3563fa0bce6ed3422af96115de"
   },
   "danceEditorDeletedFigureAnnouncement": "フィギュア{position}を削除しました。元に戻せます。",
   "@danceEditorDeletedFigureAnnouncement": {

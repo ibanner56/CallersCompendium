@@ -2382,7 +2382,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'Activé : l’ajout d’une nouvelle figure vous permet de la saisir sur une seule ligne (ex. « neighbor balance & swing ») au lieu de la construire champ par champ. La ligne est analysée en figure(s) ; tout ce qui n’est pas reconnu est conservé comme figure personnalisée à corriger ultérieurement. La modification d’une figure existante utilise toujours l’éditeur complet.';
+      'Activé : l’ajout d’une nouvelle figure vous permet de la saisir sur une seule ligne (ex. « neighbor balance & swing ») au lieu de la construire champ par champ, et une ligne saisie dans le mouvement d’une figure existante la remplace lorsque vous appuyez sur Entrée. La ligne est analysée en figure(s) ; tout ce qui n’est pas reconnu est conservé comme figure personnalisée à corriger ultérieurement. Les nouvelles danses commencent sans figures, sauf si vous avez enregistré des figures de départ.';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle =>
@@ -2443,7 +2443,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDefaultsStartingFiguresSubtitle =>
-      'Les figures avec lesquelles une nouvelle danse commence. Par défaut : un simple stand still (8 temps) ; effacez pour une nouvelle danse vierge. Modifiable par danse.';
+      'Les figures avec lesquelles une nouvelle danse commence. Par défaut : huit stand still (8 temps chacun), ou aucune tant que la saisie en texte libre est activée ; effacez pour une nouvelle danse vierge. Modifiable par danse.';
 
   @override
   String get settingsDefaultsMoveDefaultsTitle =>
@@ -7718,6 +7718,17 @@ class AppLocalizationsFr extends AppLocalizations {
           '$count figures ajoutées. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
       one:
           '1 figure ajoutée. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorFreeTextRowReplacedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Figure remplacée par $count figures.',
+      one: 'Figure remplacée.',
     );
     return '$_temp0';
   }

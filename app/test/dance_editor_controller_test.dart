@@ -1701,6 +1701,60 @@ void main() {
       expect(controller.figureDrafts, isEmpty);
       expect(controller.canUndo, isFalse);
     });
+
+    test('a typed line replaces its row in place, undoably, with derived '
+        'beats (#1177)', () async {
+      final repos = openTestRepositories();
+      final controller = await emptyExistingController(repos);
+      addTearDown(controller.dispose);
+      controller.insertFreeTextFigures([
+        Figure(move: 'stand_still', params: const {'beats': 8}),
+        Figure(move: 'stand_still', params: const {'beats': 8}),
+        Figure(move: 'turn_alone', params: const {'beats': 4}),
+      ]);
+      final replaced = controller.figureDrafts[1];
+
+      final count = controller.replaceWithFreeTextFigures(
+        replaced,
+        parseFreeTextFigureEntry('neighbor balance & swing; circle left'),
+      );
+
+      expect(count, 2);
+      final figures = figuresOf(controller.buildDance());
+      expect(figures.map((f) => f.move), [
+        'stand_still',
+        'swing',
+        'circle',
+        'turn_alone',
+      ]);
+      expect(figures[1].beats, 16);
+      expect(controller.figureDrafts[1].beatsTouched, isFalse);
+
+      controller.undo();
+      expect(controller.figureDrafts.map((d) => d.move), [
+        'stand_still',
+        'stand_still',
+        'turn_alone',
+      ]);
+    });
+
+    test(
+      'replacing a row no longer in the list changes nothing (#1177)',
+      () async {
+        final repos = openTestRepositories();
+        final controller = await emptyExistingController(repos);
+        addTearDown(controller.dispose);
+
+        final count = controller.replaceWithFreeTextFigures(
+          FigureDraft(),
+          parseFreeTextFigureEntry('Neighbor swing'),
+        );
+
+        expect(count, 0);
+        expect(controller.figureDrafts, isEmpty);
+        expect(controller.canUndo, isFalse);
+      },
+    );
   });
 
   group('addChoiceOption (inline choice-field option add, #373)', () {
@@ -1813,6 +1867,66 @@ void main() {
       expect(result, AddChoiceResult.added);
       final added = controller.fieldDefs.single.choices!.last;
       expect(added.length, kMaxCustomFieldChoiceLength);
+    });
+  });
+
+  group('new-dance starting figures with free-text entry (#1177)', () {
+    Future<DanceEditorController> load(
+      CompendiumRepositories repos, {
+      required bool freeTextEntry,
+    }) async {
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: null,
+        dialect: Dialect.larksRobins,
+        debounce: testDebounce,
+      );
+      addTearDown(controller.dispose);
+      await controller.load(
+        dance: null,
+        fieldDefs: const [],
+        freeTextEntry: freeTextEntry,
+      );
+      return controller;
+    }
+
+    test('on, with no saved template: no figures', () async {
+      final controller = await load(
+        openTestRepositories(),
+        freeTextEntry: true,
+      );
+      expect(controller.figureDrafts, isEmpty);
+    });
+
+    test('on, with an unreadable template: no figures', () async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kDefaultDanceFiguresTemplateKey, 'not json');
+      final controller = await load(repos, freeTextEntry: true);
+      expect(controller.figureDrafts, isEmpty);
+    });
+
+    test('on, with a saved template: the template', () async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultDanceFiguresTemplateKey,
+        encodeFigures([
+          Figure(move: 'stand_still', params: const {'beats': 8}),
+        ]),
+      );
+      final controller = await load(repos, freeTextEntry: true);
+      expect(controller.figureDrafts.single.move, 'stand_still');
+    });
+
+    test('off, with no saved template: eight stand stills', () async {
+      final controller = await load(
+        openTestRepositories(),
+        freeTextEntry: false,
+      );
+      expect(controller.figureDrafts, hasLength(8));
+      expect(
+        controller.figureDrafts.every((d) => d.move == 'stand_still'),
+        isTrue,
+      );
     });
   });
 }
