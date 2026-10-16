@@ -120,12 +120,24 @@ What a round is given and asked for:
   job, so a PR cannot loosen the rules it is reviewed under. A PR that edits
   `SKILL.md` is reviewed under the old rubric; the new one applies from the next
   PR.
-- **It sees earlier rounds.** The job is handed the previous Claude reviews, all
+- **It sees earlier rounds.** The job is handed the previous Claude reviews, the
   inline comments with their replies, and the diff since the last reviewed
-  commit. It should not repeat a fixed finding or drop an unfixed one, and it
+  commit. Only Claude's comments and those of repository owners, members and
+  collaborators are included, since this text reaches a model that can post the
+  review. It should not repeat a fixed finding or drop an unfixed one, and it
   looks hardest at the lines you changed in response.
-- **It reads the claim.** The PR description and the issues the PR closes, via
-  `gh issue view`.
+- **It reads the claim.** The PR description (`gh pr view`) and the issues the PR
+  closes. The job fetches those issues itself, through `closingIssuesReferences`,
+  into `.claude-review/context/closing-issues.jsonl`; the review cannot run
+  `gh issue view`. The same author filter applies as for inline comments: an
+  issue's title and body (body capped at 8000 characters) are included only for
+  an issue of this repository whose author is an owner, member or collaborator.
+  Any other closed issue, whether an outsider's or from another repository, is
+  listed without text, and the review lists it in `Coverage` as a closed issue it
+  was not given. Issue comments are never included. If the query fails, or the PR
+  closes more than 50 issues, the file says the list is incomplete and `Coverage`
+  says so. So put the acceptance criteria a reviewer must hold the change to in
+  the PR description, not only in an issue whose text would be withheld.
 - **Two tiers.** *Findings* carry an input, a path and a wrong result, and decide
   the verdict. *Suspected* items hinge on one fact the job could not read from the
   code (a value set elsewhere, data in an existing database); they are written as
@@ -180,6 +192,14 @@ Traps:
   [`claude.yml`](../../../.github/workflows/claude.yml) answers mentions as a
   general assistant. Its output does not follow the review format, and it does
   not run once per round.
+- **Only a repository insider's `@claude` starts a run.** The job's `if:`
+  schedules it only when the author of the comment, review or issue is an
+  `OWNER`, `MEMBER` or `COLLABORATOR`; anyone else's mention shows a skipped
+  job. The action refuses a non-write actor itself, but only after the runner
+  has started and the action has exchanged its OIDC token for a write-scoped
+  app token, so the gate keeps outsiders from costing either. It is a
+  scheduling gate, not a sandbox: an insider's mention on an outsider's issue
+  or PR still gives the model that thread to read.
 
 ## Answering findings
 

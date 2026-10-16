@@ -1254,10 +1254,13 @@ the indexes correct and MUST NOT rebuild them.
 four in-scope columns do not feed it.** `runDerivedRebuild` forwards to
 `DanceRepository.rebuildAllDerived`, which clears and repopulates `dance_fts`,
 `dance_substring_fts` and `dance_figures` for every dance; it is the only
-rebuild routine that exists. Its indexed columns are `title, authors, hook,
+whole-library rebuild routine. (`reindexDancesUsingUserFigure`, #1023,
+rebuilds only the dances that use one figure of your own, and is not a
+general dance-scoped rebuild.) Its indexed columns are `title, authors, hook,
 notes, figures_text, custom_values, sources`, and the row is assembled from
-resolved author names, custom-field *values* and source texts
-(`dance_repository.dart:509`–`:531`). Of the four tables this pass exists for,
+resolved author names, custom-field *values*, source texts and, since #1023,
+the live definitions of the user's own figures the dance uses
+(`DanceRepository._insertDerivedRows`). Of the four tables this pass exists for,
 only `choreographers.name` reaches an index, through `authors`; `tags.name`,
 `custom_field_defs.key` and `difficulty_levels.label` reach none. So a pass
 that repairs only tags, custom-field keys or difficulty labels — plausible,
@@ -4288,9 +4291,11 @@ version. So data of that kind waits, per store, until every attached device
 says it can read it.
 
 **Capabilities.** A capability is a name (`glossary.v1`) for a set of record
-kinds and settings keys. A build advertises the capabilities it fully
-supports, sync included. Named rather than numbered, so features may ship or
-be backported in any order.
+kinds and settings keys, and of `glossaryEntry` records by the entry's `kind`
+(#1023): an entry of a kind gated on a capability of its own waits for that
+one, and any other entry for its record kind's. A build advertises the
+capabilities it fully supports, sync included. Named rather than numbered, so
+features may ship or be backported in any order.
 
 **Advertising.** Each device writes one settings record,
 `sync_capabilities:<deviceId>`, whose value is
@@ -4327,15 +4332,16 @@ malformed one, holds every capability closed. A record of a device the list no
 longer names counts for nothing. The records read are the synced settings as
 they stand after the pass's pull.
 
-**Holding back.** While a capability is closed, every record of a kind or key
-gated on it, tombstones included, is left out of the device's **publication**
-only: set to no candidate, as the import filter does, so it is not in the
-manifest and its blob is not uploaded. Absence from a manifest is never a
-deletion (§4.5). The rows, and the merge's view of them, are untouched: a local
-edit stays the newer copy, nothing is downloaded over it, and it publishes on
-the first pass after the capability opens. The filter MUST be applied where
-publications are built and MUST NOT be applied inside the store's snapshot,
-because a fresh attach merges against the snapshot's publication (§6.2). A row
+**Holding back.** While a capability is closed, every record of a kind, key or
+entry kind gated on it, tombstones included, is left out of the device's
+**publication** only: set to no candidate, as the import filter does, so it is
+not in the manifest and its blob is not uploaded. Absence from a manifest is
+never a deletion (§4.5). The rows, and the merge's view of them, are untouched:
+a local edit stays the newer copy, nothing is downloaded over it, and it
+publishes on the first pass after the capability opens. The filter MUST be
+applied where publications are built and MUST NOT be applied inside the
+store's snapshot, because a fresh attach merges against the snapshot's
+publication (§6.2). A row
 hidden from the merge looks absent, so a peer's older copy is chosen for
 download; in the reference client only the apply step's concurrency check
 (§6.7) then stops it, as a deferred change raised again on every pass, so the
@@ -4352,12 +4358,19 @@ a device applies a gated kind whenever a peer publishes it. The gate is
 evaluated on every pass, so it closes again when a device without the
 capability attaches.
 
-**Self-contained data.** No record of an ungated kind or key may refer to a
-record of a gated one, because the referring record publishes while what it
-refers to is held back, and a peer would receive a dangling reference. A
-capability's records may refer to each other and to ungated records. #709's
-data meets this: a compound expands into ordinary figures when a dance is
-saved, and the expanded figures record no origin.
+**Self-contained data.** No record of an ungated kind or key may hold a
+*hard* reference to a record of a gated one, because the referring record
+publishes while what it refers to is held back, and a peer would receive a
+dangling reference. A capability's records may refer to each other and to
+ungated records. #709's data meets this: a compound expands into ordinary
+figures when a dance is saved, and the expanded figures record no origin.
+
+A *soft* reference is permitted (#1023; decided by Isaac, maintainer, in
+planning). The referring data carries everything needed to show it without
+the referent: its own fallback. A device that lacks the referent, or holds it
+only as a tombstone, shows the fallback, and never refuses, drops or rewrites
+the referring data for want of it. A soft reference is not a citation in
+§6.8's sense: the referent's deletion never waits on it.
 
 **Reporting.** A device holding data back raises `withheldAwaitingDevices` once
 per device holding a capability closed, naming that device as the peer and
@@ -4381,6 +4394,14 @@ removed.
 settings (#709). The reference client advertises it from the change that
 syncs the two kinds; before that change it gated the two settings without
 advertising the capability, so they stayed on their device.
+
+**`glossary.v2`.** Gates `glossaryEntry` records whose entry kind is `term` or
+`customFigure`, the user's own terms and figures (#1023), tombstones included:
+a tombstone blob carries its body, so its kind. An entry of any other kind,
+`compound` and kinds the build does not know included, stays on `glossary.v1`.
+A build that knows only `glossary.v1` would read such an entry as one it cannot
+use. The reference client gates it without advertising it until #1023 is
+complete, so until then those entries stay on their device.
 
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed

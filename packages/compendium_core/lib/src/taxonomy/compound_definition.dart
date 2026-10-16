@@ -5,6 +5,7 @@ import 'param_change_rules.dart';
 import 'param_opposites.dart';
 import 'param_types.dart';
 import 'taxonomy.dart';
+import 'user_figure_definition.dart';
 
 /// Most template figures a compound may expand into.
 const int maxCompoundFigures = 64;
@@ -92,13 +93,25 @@ final class CompoundDefinition {
     required List<CompoundParam> params,
     required List<Figure> figures,
     required List<CompoundSlotBinding> bindings,
+    this.form = defaultGlossaryEntryForm,
+    Map<String, Object?> extra = const {},
   }) : params = List.unmodifiable(params),
        figures = List.unmodifiable(figures),
-       bindings = List.unmodifiable(bindings);
+       bindings = List.unmodifiable(bindings),
+       extra = Map.unmodifiable(extra);
 
   final List<CompoundParam> params;
   final List<Figure> figures;
   final List<CompoundSlotBinding> bindings;
+
+  /// The dance form's name the compound is offered in (#1023, maintainer
+  /// decision 8). Written only when it is not [defaultGlossaryEntryForm], so
+  /// a contra compound's payload is unchanged.
+  final String form;
+
+  /// Payload keys this build does not know, carried through unchanged so an
+  /// edit here cannot drop what a later build stored (implementer's choice).
+  final Map<String, Object?> extra;
 
   CompoundParam? param(String key) {
     for (final p in params) {
@@ -120,11 +133,29 @@ final class CompoundDefinition {
   }
 
   Map<String, Object?> toJson() => {
+    ...extra,
     'params': [for (final p in params) p.toJson()],
     'figures': [for (final f in figures) figureToJson(f)],
     'bindings': [for (final b in bindings) b.toJson()],
+    if (form != defaultGlossaryEntryForm) 'form': form,
   };
 }
+
+const Set<String> _compoundPayloadKeys = {
+  'params',
+  'figures',
+  'bindings',
+  'form',
+};
+
+/// The keys of a stored compound [payload] this build does not know, which
+/// an edit carries through ([CompoundDefinition.extra]).
+Map<String, Object?> compoundPayloadExtra(Object? payload) => {
+  if (payload is Map)
+    for (final entry in payload.entries)
+      if (entry.key is String && !_compoundPayloadKeys.contains(entry.key))
+        entry.key as String: entry.value,
+};
 
 /// Decodes a stored [CompoundDefinition], or returns null when [raw] is not
 /// one this build can use: malformed, over a bound, or with any error-severity
@@ -190,10 +221,14 @@ CompoundDefinition? decodeCompoundDefinition(Object? raw, Taxonomy taxonomy) {
         ),
       );
     }
+    final form = raw['form'] ?? defaultGlossaryEntryForm;
+    if (form is! String || form.isEmpty) return null;
     final definition = CompoundDefinition(
       params: params,
       figures: figures,
       bindings: bindings,
+      form: form,
+      extra: compoundPayloadExtra(raw),
     );
     final hasError = validateCompound(
       definition,

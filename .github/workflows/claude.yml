@@ -1,7 +1,7 @@
-# Claude assistant, on demand: runs only when a comment, review or issue
-# mentions @claude, and does whatever that mention asks. It is not the review
-# workflow: opt-in Claude reviews are claude-code-review.yml
-# (docs/dev/agents/code-review.md).
+# Claude assistant, on demand: runs only when a comment, review or issue by an
+# OWNER, MEMBER or COLLABORATOR mentions @claude, and does whatever that
+# mention asks. It is not the review workflow: opt-in Claude reviews are
+# claude-code-review.yml (docs/dev/agents/code-review.md).
 name: Claude Code
 
 on:
@@ -16,11 +16,25 @@ on:
 
 jobs:
   claude:
+    # Only a mention by the repository's own people schedules this job. The
+    # action refuses a non-write actor itself, but only after the runner has
+    # started and the action has exchanged its OIDC token for a write-scoped
+    # app token, so without this check any account's "@claude" on this public
+    # repo would cost both. The author's association sits in a different place
+    # in each event's payload: the comment, the review, or the issue.
     if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+      (github.event_name == 'issue_comment'
+        && contains(github.event.comment.body, '@claude')
+        && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'pull_request_review_comment'
+        && contains(github.event.comment.body, '@claude')
+        && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'pull_request_review'
+        && contains(github.event.review.body, '@claude')
+        && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.review.author_association)) ||
+      (github.event_name == 'issues'
+        && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude'))
+        && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association))
     runs-on: ubuntu-latest
     permissions:
       contents: read

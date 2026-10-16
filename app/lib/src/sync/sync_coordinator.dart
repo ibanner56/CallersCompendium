@@ -2764,6 +2764,7 @@ class SyncCoordinator {
       final capability = capabilityPolicy.capabilityFor(
         address.kind,
         address.recordId,
+        body: publication[address]?.blob.body,
       );
       if (capability == null || !closed.containsKey(capability)) continue;
       if (publication[address] != null) {
