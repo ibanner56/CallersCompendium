@@ -27,6 +27,13 @@ reasoning below when a gate fails, or when you are checking by hand.
   If `hasNextPage` is true (or `totalCount` exceeds the nodes returned), fetch
   the rest with `after: "<endCursor>"` before concluding anything.
 
+- **No `BLOCK` verdict in the latest Claude review.** Only when Claude is the
+  reviewer (`--reviewer claude`). A blocker on a line outside the diff exists in
+  the review body only, so no inline comment or thread records it and the other
+  gates pass. `findings` prints the latest `## Review verdict:` line and fails on
+  `BLOCK`. Details:
+  [code-review.md](code-review.md#requesting-a-claude-review).
+
 - **CI green on the commit being merged.** Re-check after any push; a green run
   on a superseded commit proves nothing about the current head.
 
