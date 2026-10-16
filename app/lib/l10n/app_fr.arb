@@ -8482,6 +8482,39 @@
   "@importShorthandSeedComplete": {
     "x-sourceSha256": "4b16fa73556a34ddd3b3e99d44b7d17d04410503bd5b3f367c763e98d681f8aa"
   },
+  "importShorthandSeedUnreadableNote": "{count, plural, =1{1 bouton d’appel a été ignoré, car son texte n’est pas lisible comme des figures.} other{{count} boutons d’appel ont été ignorés, car leur texte n’est pas lisible comme des figures.}}",
+  "@importShorthandSeedUnreadableNote": {
+    "description": "Note on the shorthand-seeding step: {count} call buttons in the file were left out because their text does not read as figures.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importShorthandSeedRoomHint": "{free, plural, =0{Votre liste d’abréviations est pleine ({max}) : rien ne peut être ajouté.} =1{Il reste de la place pour 1 abréviation (limite {max}). Seule la première sélectionnée sera ajoutée.} other{Il reste de la place pour {free} abréviations (limite {max}). Seules les {free} premières sélectionnées seront ajoutées.}}",
+  "@importShorthandSeedRoomHint": {
+    "description": "Hint on the shorthand-seeding step when fewer shorthand slots are free than there are candidates; {free} is the free slots, {max} the limit.",
+    "placeholders": {
+      "free": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "importShorthandSeedLimitSkipped": "{skipped, plural, =1{1 abréviation n’a pas été ajoutée car la liste est pleine (limite {max}). Supprimez-en une pour en ajouter une autre.} other{{skipped} abréviations n’ont pas été ajoutées car la liste est pleine (limite {max}). Supprimez-en une pour en ajouter une autre.}}",
+  "@importShorthandSeedLimitSkipped": {
+    "description": "Second line of the snackbar after seeding hit the shorthand limit; {skipped} is how many chosen shorthands were not added, {max} the limit.",
+    "placeholders": {
+      "skipped": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "themeEditorTitle": "Modifier le thème",
   "@themeEditorTitle": {
     "x-sourceSha256": "b5b64652b00a4685a922c5d85b7813a9162990a66e19945040826f73b47f1cb4"

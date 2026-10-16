@@ -31,6 +31,8 @@ class ImportShorthandSeedScreen extends StatefulWidget {
     required this.seedable,
     required this.conflicting,
     required this.dialect,
+    this.unreadableCount = 0,
+    this.freeSlots,
   });
 
   /// Candidates whose token is free to add.
@@ -41,6 +43,15 @@ class ImportShorthandSeedScreen extends StatefulWidget {
 
   /// The active dialect used to render the figure previews.
   final Dialect dialect;
+
+  /// How many call buttons were left out because their text does not read as
+  /// figures; shown as a note when above zero (#1830).
+  final int unreadableCount;
+
+  /// How many more shorthands the list can take before it reaches its limit, or
+  /// null when that is not known. A hint shows when it is below the number of
+  /// candidates (#1830).
+  final int? freeSlots;
 
   @override
   State<ImportShorthandSeedScreen> createState() =>
@@ -102,6 +113,20 @@ class _ImportShorthandSeedScreenState extends State<ImportShorthandSeedScreen> {
               style: theme.textTheme.bodyMedium,
             ),
           ),
+          if (widget.unreadableCount > 0)
+            _Note(
+              key: const ValueKey('seed-unreadable-note'),
+              l10n.importShorthandSeedUnreadableNote(widget.unreadableCount),
+            ),
+          if (widget.freeSlots case final free?
+              when free < widget.seedable.length)
+            _Note(
+              key: const ValueKey('seed-room-hint'),
+              l10n.importShorthandSeedRoomHint(
+                free < 0 ? 0 : free,
+                maxShorthandMappings,
+              ),
+            ),
           if (widget.seedable.isNotEmpty) ...[
             _SectionHeader(l10n.importShorthandSeedAvailableHeader),
             for (var i = 0; i < widget.seedable.length; i++)
@@ -151,6 +176,20 @@ class _ImportShorthandSeedScreenState extends State<ImportShorthandSeedScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _Note extends StatelessWidget {
+  const _Note(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      child: Text(text, style: Theme.of(context).textTheme.bodySmall),
     );
   }
 }

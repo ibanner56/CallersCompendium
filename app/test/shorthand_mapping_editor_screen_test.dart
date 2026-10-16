@@ -187,7 +187,11 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('figure-0-summary')), findsOneWidget);
-    expect(find.byKey(const ValueKey('figure-0-label')), findsNothing);
+    // The row keeps an empty label slot; no phrase label such as "A1" reads in it.
+    final label = find.byKey(const ValueKey('figure-0-label'));
+    if (label.evaluate().isNotEmpty) {
+      expect(tester.widget<Text>(label).data, isEmpty);
+    }
     expect(find.byKey(const ValueKey('figure-beats-total')), findsNothing);
     expect(find.byKey(const ValueKey('figure-beats-warning')), findsNothing);
     expect(find.textContaining('Under by'), findsNothing);

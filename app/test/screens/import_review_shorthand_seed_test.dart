@@ -136,7 +136,7 @@ void main() {
     );
     expect(find.byKey(const ValueKey('seed-confirm')), findsOneWidget);
     // Everything read cleanly and there is room: no notes on the screen.
-    expect(find.byKey(const ValueKey('seed-unparsed-note')), findsNothing);
+    expect(find.byKey(const ValueKey('seed-unreadable-note')), findsNothing);
     expect(find.byKey(const ValueKey('seed-room-hint')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('seed-confirm')));
@@ -174,7 +174,7 @@ void main() {
 
     expect(
       find.descendant(
-        of: find.byKey(const ValueKey('seed-unparsed-note')),
+        of: find.byKey(const ValueKey('seed-unreadable-note')),
         matching: find.textContaining('2 call buttons'),
       ),
       findsOneWidget,
