@@ -146,8 +146,8 @@ A shorthand of any kind works in an existing figure's **Move** box too: with
 **Free-text entry** on, type it there and press Enter, and the figure is
 replaced by what the shorthand stands for, in the same place in the dance. If
 the shorthand can't be used (its figure or combination has been deleted, or no
-longer accepts the values), the figure is kept as the text you typed, as it
-would be with Free-text entry off.
+longer accepts the values), what you typed is read as an ordinary line
+instead, the same as for any other text typed there.
 
 ### Adjust a figure
 
