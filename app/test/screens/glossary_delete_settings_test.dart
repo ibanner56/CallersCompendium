@@ -238,9 +238,10 @@ void main() {
             find.byKey(const ValueKey('glossary-custom-delete-body')),
           )
           .data,
-      "No dance uses it. It's removed from your Glossary. 1 dance in the "
-      'Trash uses it too, and keeps the line it last stored. Your default '
-      'figures in Settings use it too, and keep its current wording as plain '
+      "No dance in your collection uses it. It's removed from your Glossary. "
+      '1 dance in the Trash uses it, and keeps the line it last stored. Your '
+      'default figures in Settings use it, and keep its current wording as '
+      'plain '
       'text.',
     );
     await tester.tap(

@@ -9592,16 +9592,15 @@ class AppLocalizationsEn extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count dances in the Trash use it too, and keep the lines they last stored.',
-      one:
-          '1 dance in the Trash uses it too, and keeps the line it last stored.',
+          '$count dances in the Trash use it, and keep the lines they last stored.',
+      one: '1 dance in the Trash uses it, and keeps the line it last stored.',
     );
     return '$_temp0';
   }
 
   @override
   String get glossaryCustomDeleteDefaults =>
-      'Your default figures in Settings use it too, and keep its current wording as plain text.';
+      'Your default figures in Settings use it, and keep its current wording as plain text.';
 
   @override
   String glossaryCustomDeleteUses(int count) {
@@ -9612,7 +9611,8 @@ class AppLocalizationsEn extends AppLocalizations {
           '$count dances use it. It\'s removed from your Glossary, and those dances keep their current wording as plain text.',
       one:
           '1 dance uses it. It\'s removed from your Glossary, and that dance keeps its current wording as plain text.',
-      zero: 'No dance uses it. It\'s removed from your Glossary.',
+      zero:
+          'No dance in your collection uses it. It\'s removed from your Glossary.',
     );
     return '$_temp0';
   }

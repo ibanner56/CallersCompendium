@@ -180,21 +180,8 @@ class _GlossaryCustomFigureDetailState
     final trashed = isFigure
         ? await repos.dances.countTrashedDancesUsingUserFigure(widget.entryId)
         : 0;
-    // The default figure lists that use it, frozen as the dances are: read
-    // now, while the figure renders, and written once it is deleted.
-    final entry = isFigure
-        ? await repos.userGlossary.getById(widget.entryId)
-        : null;
-    final frozenDefaults = entry == null
-        ? const <String, String>{}
-        : await frozenDefaultFigureLists(
-            repos.settings,
-            widget.entryId,
-            FigureRenderer(
-              contraTaxonomy,
-              userFigures: UserFigureCatalog.fromEntries([entry]),
-            ),
-          );
+    // Whether the default figure lists use it, to say so.
+    final inDefaults = isFigure && (await _frozenDefaults(repos)).isNotEmpty;
     if (!context.mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -206,8 +193,7 @@ class _GlossaryCustomFigureDetailState
               : [
                   l10n.glossaryCustomDeleteUses(uses),
                   if (trashed > 0) l10n.glossaryCustomDeleteTrash(trashed),
-                  if (frozenDefaults.isNotEmpty)
-                    l10n.glossaryCustomDeleteDefaults,
+                  if (inDefaults) l10n.glossaryCustomDeleteDefaults,
                 ].join(' '),
           key: const ValueKey('glossary-custom-delete-body'),
         ),
@@ -226,17 +212,20 @@ class _GlossaryCustomFigureDetailState
     );
     if (confirmed != true) return;
     if (isFigure) {
+      // Read again now, not when the dialog opened: the lists, or the figure,
+      // may have changed while it was open. Read before the delete, while the
+      // figure still renders.
+      final frozenDefaults = await _frozenDefaults(repos);
       await repos.deleteUserFigure(widget.entryId);
-      // Then what the settings keep for it (#1023, plan C9): its uses in the
-      // default figure lists, frozen; each dialect's name and wording for
-      // it; and its matrix column's place, hiding and rename. Nothing would read them again, and they would otherwise stay
-      // in every backup and sync. The figure is gone either way: a failure
-      // here leaves only inert keys, so it is logged rather than stopping the
-      // page from closing.
+      // Then what the settings keep for it (#1023, plan C9). The figure is
+      // gone either way, so a failure in either step below is logged rather
+      // than stopping the page from closing, and neither skips the other.
+      //
+      // Each dialect's name and wording for it, and its matrix column's
+      // place, hiding and rename: nothing would read them again, but they
+      // would stay in every backup and sync. A failure leaves only inert
+      // keys.
       try {
-        for (final MapEntry(:key, :value) in frozenDefaults.entries) {
-          await persistSetting(repos.settings, key, value);
-        }
         await dialects?.forgetUserFigure(widget.entryId);
         // Through the navigator's context: in the wide Glossary the delete
         // unmounts this page as soon as the list no longer holds the entry,
@@ -254,10 +243,42 @@ class _GlossaryCustomFigureDetailState
           source: 'GlossaryCustomFigureDetail._confirmAndDelete',
         );
       }
+      // Its uses in the default figure lists, frozen as the dances were. A
+      // failure leaves a list holding uses of a figure that is gone: each
+      // still shows its stored line, and the dance editor makes it plain text
+      // when a dance holding it is saved.
+      try {
+        for (final MapEntry(:key, :value) in frozenDefaults.entries) {
+          await persistSetting(repos.settings, key, value);
+        }
+      } on Object catch (e, stackTrace) {
+        logCaughtError(
+          e,
+          stackTrace,
+          source: 'GlossaryCustomFigureDetail._confirmAndDelete',
+        );
+      }
     } else {
       await repos.userGlossary.delete(widget.entryId);
     }
     if (!widget.showName && mounted) navigator.pop();
+  }
+
+  /// The default figure lists that use this figure, frozen
+  /// ([frozenDefaultFigureLists]); none once it is gone.
+  Future<Map<String, String>> _frozenDefaults(
+    CompendiumRepositories repos,
+  ) async {
+    final entry = await repos.userGlossary.getById(widget.entryId);
+    if (entry == null) return const {};
+    return frozenDefaultFigureLists(
+      repos.settings,
+      widget.entryId,
+      FigureRenderer(
+        contraTaxonomy,
+        userFigures: UserFigureCatalog.fromEntries([entry]),
+      ),
+    );
   }
 
   /// Drops the deleted figure's matrix column from the live config, then

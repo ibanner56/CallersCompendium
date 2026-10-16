@@ -266,6 +266,16 @@ void main() {
     expect(await repos.deleteUserFigure('zoom-id', at: removed), 0);
   });
 
+  test('the Trash count counts only the Trash', () async {
+    await repos.userGlossary.upsert(figure(), at: created);
+    await repos.dances.create(dance('d1', [use()]));
+    await repos.dances.create(dance('d2', [use()]));
+    await repos.dances.create(dance('d3', [use()]));
+    await repos.dances.softDelete('d1', at: edited);
+    expect(await repos.dances.countDancesUsingUserFigure('zoom-id'), 2);
+    expect(await repos.dances.countTrashedDancesUsingUserFigure('zoom-id'), 1);
+  });
+
   test('freezing and deleting are one transaction', () async {
     final db = openTestDatabase();
     addTearDown(db.close);

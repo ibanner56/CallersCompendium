@@ -9706,16 +9706,16 @@ class AppLocalizationsNl extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count dansen in de prullenbak gebruiken hem ook en behouden de regels die ze het laatst opsloegen.',
+          '$count dansen in de prullenbak gebruiken hem en behouden de regels die ze het laatst opsloegen.',
       one:
-          '1 dans in de prullenbak gebruikt hem ook en behoudt de regel die hij het laatst opsloeg.',
+          '1 dans in de prullenbak gebruikt hem en behoudt de regel die hij het laatst opsloeg.',
     );
     return '$_temp0';
   }
 
   @override
   String get glossaryCustomDeleteDefaults =>
-      'Je standaardfiguren in Instellingen gebruiken hem ook en behouden zijn huidige formulering als platte tekst.';
+      'Je standaardfiguren in Instellingen gebruiken hem en behouden zijn huidige formulering als platte tekst.';
 
   @override
   String glossaryCustomDeleteUses(int count) {
@@ -9726,7 +9726,8 @@ class AppLocalizationsNl extends AppLocalizations {
           '$count dansen gebruiken hem. Hij wordt uit je woordenlijst verwijderd en die dansen behouden hun huidige formulering als platte tekst.',
       one:
           '1 dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd en die dans behoudt zijn huidige formulering als platte tekst.',
-      zero: 'Geen dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd.',
+      zero:
+          'Geen dans in je collectie gebruikt hem. Hij wordt uit je woordenlijst verwijderd.',
     );
     return '$_temp0';
   }

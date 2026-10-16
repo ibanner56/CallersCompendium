@@ -18,6 +18,7 @@ import '../../data/user_figures_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../editor/figure_draft.dart';
+import '../../editor/user_figure_draft.dart';
 import '../../search/collection_query.dart';
 import '../../search/collection_query_labels.dart';
 import '../../search/collection_data.dart';
@@ -92,7 +93,16 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     unawaited(_userFiguresSub?.cancel());
     _userFiguresSub = repos?.userGlossary.watchAll().listen((entries) {
       if (!mounted) return;
+      final figures = [
+        for (final entry in entries)
+          if (entry.kind == UserGlossaryEntryKind.customFigure) entry,
+      ];
+      final ids = {for (final entry in figures) entry.id};
+      final vanished = _liveUserFigureIds?.difference(ids) ?? const {};
+      _liveUserFigureIds = ids;
+      _userFigureCatalog = UserFigureCatalog.fromEntries(figures);
       setState(() {
+        _refreshDraftUses(_userFigureCatalog, vanished);
         _userFigures =
             [
               for (final entry in entries)
@@ -107,6 +117,41 @@ class _DefaultsSectionState extends State<DefaultsSection> {
             );
       });
     });
+  }
+
+  /// The user's figures in the glossary as last watched; null before the
+  /// first emission.
+  Set<String>? _liveUserFigureIds;
+
+  /// The user's figures as last watched, which a default list's uses read as
+  /// (#1023): stored lists are re-rendered from it as they load.
+  UserFigureCatalog _userFigureCatalog = UserFigureCatalog.empty;
+
+  /// Keeps each default list's uses of the user's figures (#1023) as
+  /// [catalog] renders them now, and makes a use of one in [vanished], deleted
+  /// meanwhile, plain text with that line. The delete froze the stored lists
+  /// the same way (plan C9); without this, the next edit here would store the
+  /// lists as this screen last read them, uses of the deleted figure and all.
+  /// Nothing is stored here: a draft changes only where its use did.
+  void _refreshDraftUses(UserFigureCatalog catalog, Set<String> vanished) {
+    for (final drafts in [
+      _defaultDanceFigureDrafts,
+      _defaultMeanwhileSideDrafts,
+      _defaultModifierDrafts,
+    ]) {
+      for (var i = 0; i < drafts.length; i++) {
+        final figure = drafts[i].toFigure();
+        if (figure == null) continue;
+        final refreshed = refreshUserFigureUses(
+          [figure],
+          catalog,
+          deleted: vanished,
+        ).single;
+        if (!identical(refreshed, figure)) {
+          drafts[i] = FigureDraft.fromFigure(refreshed);
+        }
+      }
+    }
   }
 
   FormationShape? _defaultDanceFormationShape;
@@ -264,7 +309,12 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           apply: (figures) => setState(() {
             _defaultDanceFigureDrafts
               ..clear()
-              ..addAll(figures.map(FigureDraft.fromFigure));
+              ..addAll(
+                refreshUserFigureUses(
+                  figures,
+                  _userFigureCatalog,
+                ).map(FigureDraft.fromFigure),
+              );
           }),
         ),
         _loadSetting<List<Figure>>(
@@ -274,7 +324,12 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           apply: (figures) => setState(() {
             _defaultMeanwhileSideDrafts
               ..clear()
-              ..addAll(figures.map(FigureDraft.fromFigure));
+              ..addAll(
+                refreshUserFigureUses(
+                  figures,
+                  _userFigureCatalog,
+                ).map(FigureDraft.fromFigure),
+              );
           }),
         ),
         _loadSetting<List<Figure>>(
@@ -284,7 +339,12 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           apply: (figures) => setState(() {
             _defaultModifierDrafts
               ..clear()
-              ..addAll(figures.map(FigureDraft.fromFigure));
+              ..addAll(
+                refreshUserFigureUses(
+                  figures,
+                  _userFigureCatalog,
+                ).map(FigureDraft.fromFigure),
+              );
           }),
         ),
         // A failed read keeps the empty override map (pure taxonomy defaults).

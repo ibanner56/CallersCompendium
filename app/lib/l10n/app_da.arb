@@ -9598,17 +9598,17 @@
   "@glossaryCustomExample": {
     "x-sourceSha256": "d029f87e3d80f8fd9b1be67c7426b4cc1ff47b4a9d0a8461c826a59d8c5eb6cd"
   },
-  "glossaryCustomDeleteTrash": "{count, plural, =1{1 dans i papirkurven bruger den også og beholder den linje, den sidst gemte.} other{{count} danse i papirkurven bruger den også og beholder de linjer, de sidst gemte.}}",
+  "glossaryCustomDeleteTrash": "{count, plural, =1{1 dans i papirkurven bruger den og beholder den linje, den sidst gemte.} other{{count} danse i papirkurven bruger den og beholder de linjer, de sidst gemte.}}",
   "@glossaryCustomDeleteTrash": {
-    "x-sourceSha256": "2c19471592af1b168e7d4892c684f086d1bca6581e09128ba9093d6a9038cdd5"
+    "x-sourceSha256": "4e9c8016ce24a743d4aef7a908d315920d577cf220737a4a863d495934620b9e"
   },
-  "glossaryCustomDeleteDefaults": "Dine standardfigurer i Indstillinger bruger den også og beholder dens nuværende ordlyd som almindelig tekst.",
+  "glossaryCustomDeleteDefaults": "Dine standardfigurer i Indstillinger bruger den og beholder dens nuværende ordlyd som almindelig tekst.",
   "@glossaryCustomDeleteDefaults": {
-    "x-sourceSha256": "24967b43f00c8e1a85ff72ddeafa39197d79fc1b2b0786f10b1598c3d803bd94"
+    "x-sourceSha256": "60f9d9b3c005db0b184ac777d688e5bdae100ee989fa1418bf1490b7f9475e7e"
   },
-  "glossaryCustomDeleteUses": "{count, plural, =0{Ingen dans bruger den. Den fjernes fra din ordliste.} =1{1 dans bruger den. Den fjernes fra din ordliste, og dansen beholder sin nuværende ordlyd som almindelig tekst.} other{{count} danse bruger den. Den fjernes fra din ordliste, og dansene beholder deres nuværende ordlyd som almindelig tekst.}}",
+  "glossaryCustomDeleteUses": "{count, plural, =0{Ingen dans i din samling bruger den. Den fjernes fra din ordliste.} =1{1 dans bruger den. Den fjernes fra din ordliste, og dansen beholder sin nuværende ordlyd som almindelig tekst.} other{{count} danse bruger den. Den fjernes fra din ordliste, og dansene beholder deres nuværende ordlyd som almindelig tekst.}}",
   "@glossaryCustomDeleteUses": {
-    "x-sourceSha256": "dcf33d6b0593707bf881496eed5b4701d8c69b24f391307e51e9990421e3e214"
+    "x-sourceSha256": "c26dae9673781a119531b3beaa3e8435e9dc2cce5a817010d981d67553f28cbc"
   },
   "danceEditorUserFigureUnavailable": "Din figur er ikke tilgængelig, så denne række beholder den ordlyd, den har.",
   "@danceEditorUserFigureUnavailable": {

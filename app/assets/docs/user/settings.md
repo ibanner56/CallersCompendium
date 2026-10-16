@@ -417,12 +417,13 @@ open this group. You can override any of them per dance, and
   defaults use two stand-still figures.
 - While [Custom Figures](#glossary-and-custom-figures) is on, each of these three
   lists also offers your own new figures for the **Dance form** set above, as the
-  dance editor offers them for a dance's form.
+  dance editor offers them for a dance's form. A list keeps a figure it
+  already holds when you change the form.
 - **Move defaults** — preferred parameter values applied automatically when you
   insert a [move](./glossary.md#move) while writing. These override that move's
   built-in defaults, and you can still change any parameter afterwards. While
   Custom Figures is on, **Your figures' defaults** lists each of your new
-  figures: a figure keeps its own defaults, the values it starts with and its
+  figures that can be used (not one marked **Needs repair**): a figure keeps its own defaults, the values it starts with and its
   beats, so choosing one opens it to change them.
 - **Aggressively recompute figure beats** (off by default) — when on, changing a
   figure's move or a parameter that affects timing recalculates its beat count

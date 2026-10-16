@@ -9635,16 +9635,16 @@ class AppLocalizationsDa extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count danse i papirkurven bruger den også og beholder de linjer, de sidst gemte.',
+          '$count danse i papirkurven bruger den og beholder de linjer, de sidst gemte.',
       one:
-          '1 dans i papirkurven bruger den også og beholder den linje, den sidst gemte.',
+          '1 dans i papirkurven bruger den og beholder den linje, den sidst gemte.',
     );
     return '$_temp0';
   }
 
   @override
   String get glossaryCustomDeleteDefaults =>
-      'Dine standardfigurer i Indstillinger bruger den også og beholder dens nuværende ordlyd som almindelig tekst.';
+      'Dine standardfigurer i Indstillinger bruger den og beholder dens nuværende ordlyd som almindelig tekst.';
 
   @override
   String glossaryCustomDeleteUses(int count) {
@@ -9655,7 +9655,8 @@ class AppLocalizationsDa extends AppLocalizations {
           '$count danse bruger den. Den fjernes fra din ordliste, og dansene beholder deres nuværende ordlyd som almindelig tekst.',
       one:
           '1 dans bruger den. Den fjernes fra din ordliste, og dansen beholder sin nuværende ordlyd som almindelig tekst.',
-      zero: 'Ingen dans bruger den. Den fjernes fra din ordliste.',
+      zero:
+          'Ingen dans i din samling bruger den. Den fjernes fra din ordliste.',
     );
     return '$_temp0';
   }

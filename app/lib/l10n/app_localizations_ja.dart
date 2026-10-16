@@ -9269,14 +9269,14 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'ゴミ箱の$count件のダンスもこのフィギュアを使っており、最後に保存した行のまま残ります。',
+      other: 'ゴミ箱の$count件のダンスがこのフィギュアを使っており、最後に保存した行のまま残ります。',
     );
     return '$_temp0';
   }
 
   @override
   String get glossaryCustomDeleteDefaults =>
-      '設定の既定のフィギュアもこのフィギュアを使っており、現在の文言をプレーンテキストとして残します。';
+      '設定の既定のフィギュアがこのフィギュアを使っており、現在の文言をプレーンテキストとして残します。';
 
   @override
   String glossaryCustomDeleteUses(int count) {
@@ -9286,7 +9286,7 @@ class AppLocalizationsJa extends AppLocalizations {
       other:
           '$count件のダンスがこのフィギュアを使っています。用語集から削除され、それらのダンスは現在の文言をプレーンテキストとして残します。',
       one: '1件のダンスがこのフィギュアを使っています。用語集から削除され、そのダンスは現在の文言をプレーンテキストとして残します。',
-      zero: 'このフィギュアを使っているダンスはありません。用語集から削除されます。',
+      zero: 'コレクションにこのフィギュアを使っているダンスはありません。用語集から削除されます。',
     );
     return '$_temp0';
   }

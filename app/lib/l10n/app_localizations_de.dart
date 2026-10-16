@@ -9747,16 +9747,16 @@ class AppLocalizationsDe extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count Tänze im Papierkorb verwenden sie auch und behalten die zuletzt gespeicherten Zeilen.',
+          '$count Tänze im Papierkorb verwenden sie und behalten die zuletzt gespeicherten Zeilen.',
       one:
-          '1 Tanz im Papierkorb verwendet sie auch und behält die zuletzt gespeicherte Zeile.',
+          '1 Tanz im Papierkorb verwendet sie und behält die zuletzt gespeicherte Zeile.',
     );
     return '$_temp0';
   }
 
   @override
   String get glossaryCustomDeleteDefaults =>
-      'Deine Standardfiguren in den Einstellungen verwenden sie auch und behalten ihren aktuellen Wortlaut als einfachen Text.';
+      'Deine Standardfiguren in den Einstellungen verwenden sie und behalten ihren aktuellen Wortlaut als einfachen Text.';
 
   @override
   String glossaryCustomDeleteUses(int count) {
@@ -9767,7 +9767,8 @@ class AppLocalizationsDe extends AppLocalizations {
           '$count Tänze verwenden sie. Sie wird aus deinem Glossar entfernt, und diese Tänze behalten ihren aktuellen Wortlaut als einfachen Text.',
       one:
           '1 Tanz verwendet sie. Sie wird aus deinem Glossar entfernt, und dieser Tanz behält seinen aktuellen Wortlaut als einfachen Text.',
-      zero: 'Kein Tanz verwendet sie. Sie wird aus deinem Glossar entfernt.',
+      zero:
+          'Kein Tanz in deiner Sammlung verwendet sie. Sie wird aus deinem Glossar entfernt.',
     );
     return '$_temp0';
   }

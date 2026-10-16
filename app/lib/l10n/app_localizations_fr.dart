@@ -9762,16 +9762,16 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count danses de la corbeille l\'utilisent aussi et gardent les lignes qu\'elles ont enregistrées en dernier.',
+          '$count danses de la corbeille l\'utilisent et gardent les lignes qu\'elles ont enregistrées en dernier.',
       one:
-          '1 danse de la corbeille l\'utilise aussi et garde la ligne qu\'elle a enregistrée en dernier.',
+          '1 danse de la corbeille l\'utilise et garde la ligne qu\'elle a enregistrée en dernier.',
     );
     return '$_temp0';
   }
 
   @override
   String get glossaryCustomDeleteDefaults =>
-      'Vos figures par défaut dans les Réglages l\'utilisent aussi et conservent sa formulation actuelle en texte simple.';
+      'Vos figures par défaut dans les Réglages l\'utilisent et conservent sa formulation actuelle en texte simple.';
 
   @override
   String glossaryCustomDeleteUses(int count) {
@@ -9782,7 +9782,8 @@ class AppLocalizationsFr extends AppLocalizations {
           '$count danses l\'utilisent. Elle est retirée de votre glossaire, et ces danses conservent leur formulation actuelle en texte simple.',
       one:
           '1 danse l\'utilise. Elle est retirée de votre glossaire, et cette danse conserve sa formulation actuelle en texte simple.',
-      zero: 'Aucune danse ne l\'utilise. Elle est retirée de votre glossaire.',
+      zero:
+          'Aucune danse de votre collection ne l\'utilise. Elle est retirée de votre glossaire.',
     );
     return '$_temp0';
   }

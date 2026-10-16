@@ -51,12 +51,23 @@ void main() {
   Future<CompendiumRepositories> pump(
     WidgetTester tester, {
     bool customFigures = true,
+    List<Figure>? startingFigures,
+    DanceForm? form,
   }) async {
     await setScreenSize(tester, const Size(1200, 6000));
     final repos = openTestRepositories();
     await tester.runAsync(() async {
       await repos.userGlossary.upsert(figure('zoom-id', 'zoom'));
       await repos.userGlossary.upsert(figure('jig-id', 'jiggle', form: 'ecd'));
+      if (form != null) {
+        await repos.settings.set(kDefaultDanceFormKey, form.name);
+      }
+      if (startingFigures != null) {
+        await repos.settings.set(
+          kDefaultDanceFiguresTemplateKey,
+          encodeFigures(startingFigures),
+        );
+      }
     });
     final userFigures = UserFiguresController(repos.userGlossary);
     addTearDown(userFigures.dispose);
@@ -192,6 +203,16 @@ void main() {
     );
   });
 
+  testWidgets('with English dance the default form, its figures are offered '
+      'instead', (tester) async {
+    await pump(tester, form: DanceForm.ecd);
+    await typeFirstMove(tester, 'jig');
+    expect(
+      find.byKey(const ValueKey('figure-0-move-option-userFigure:jig-id')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('your figures are not offered while Custom Figures is off', (
     tester,
   ) async {
@@ -218,5 +239,41 @@ void main() {
     await tester.tap(link);
     await tester.pumpAndSettle();
     expect(find.byType(CompoundEditorScreen), findsOneWidget);
+  });
+
+  testWidgets('a figure deleted while Defaults is open is plain text in its '
+      'lists, so the next edit there does not store a use of it', (
+    tester,
+  ) async {
+    final repos = await pump(
+      tester,
+      startingFigures: [
+        userFigureUseFigure(
+          id: 'zoom-id',
+          args: const {'who': 'role2s'},
+          text: 'a stale line',
+        ),
+      ],
+    );
+    Figure first() => tester
+        .widget<FigureListEditor>(
+          find.byWidgetPredicate(
+            (w) => w is FigureListEditor && w.keyPrefix == 'figure',
+          ),
+        )
+        .drafts
+        .first
+        .toFigure()!;
+    expect(userFigureUseOf(first())?.attached, isTrue);
+    expect(
+      first().params['text'],
+      'role2s zoom',
+      reason: 'a use reads as the figure renders it now',
+    );
+    await tester.runAsync(() => repos.deleteUserFigure('zoom-id'));
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pumpAndSettle();
+    expect(userFigureUseOf(first())?.attached ?? false, isFalse);
+    expect(first().params['text'], 'role2s zoom');
   });
 }

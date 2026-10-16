@@ -14567,19 +14567,19 @@ abstract class AppLocalizations {
   /// Added to the dialog confirming that a new figure of the user's (#1023) is deleted, when dances in the Trash use it: they are not changed, and keep the line each last stored.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 dance in the Trash uses it too, and keeps the line it last stored.} other{{count} dances in the Trash use it too, and keep the lines they last stored.}}'**
+  /// **'{count, plural, =1{1 dance in the Trash uses it, and keeps the line it last stored.} other{{count} dances in the Trash use it, and keep the lines they last stored.}}'**
   String glossaryCustomDeleteTrash(int count);
 
   /// Added to the dialog confirming that a new figure of the user's (#1023) is deleted, when the default figures for new dances, meanwhile sides or modifiers (Settings, Defaults) use it.
   ///
   /// In en, this message translates to:
-  /// **'Your default figures in Settings use it too, and keep its current wording as plain text.'**
+  /// **'Your default figures in Settings use it, and keep its current wording as plain text.'**
   String get glossaryCustomDeleteDefaults;
 
   /// Body of the dialog confirming that a new figure is deleted, with how many dances use it.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =0{No dance uses it. It\'s removed from your Glossary.} =1{1 dance uses it. It\'s removed from your Glossary, and that dance keeps its current wording as plain text.} other{{count} dances use it. It\'s removed from your Glossary, and those dances keep their current wording as plain text.}}'**
+  /// **'{count, plural, =0{No dance in your collection uses it. It\'s removed from your Glossary.} =1{1 dance uses it. It\'s removed from your Glossary, and that dance keeps its current wording as plain text.} other{{count} dances use it. It\'s removed from your Glossary, and those dances keep their current wording as plain text.}}'**
   String glossaryCustomDeleteUses(int count);
 
   /// Shown on a dance editor row that uses one of the user's own figures when the figure is deleted or can no longer be read.
