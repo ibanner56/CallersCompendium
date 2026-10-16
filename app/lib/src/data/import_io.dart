@@ -6,6 +6,7 @@ import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 
 import '../search/collection_query.dart' show ByPhraseSelections;
@@ -204,16 +205,7 @@ typedef ImportPicker = Future<String?> Function();
 /// source (CallersBox/ContraDB) can supply its own picker/type group without
 /// changing the queue UI.
 Future<String?> pickImportFile() async {
-  const jsonGroup = XTypeGroup(
-    label: 'Compendium share',
-    extensions: ['ccshare', 'json'],
-    uniformTypeIdentifiers: [
-      'org.callerscompendium.compendiumApp.share',
-      'public.json',
-    ],
-    mimeTypes: ['application/json'],
-  );
-  final file = await openFile(acceptedTypeGroups: const [jsonGroup]);
+  final file = await openFile(acceptedTypeGroups: [importJsonTypeGroup()]);
   if (file == null) return null;
   return readImportTextCapped(file);
 }
@@ -237,16 +229,50 @@ typedef ImportBytePicker = Future<Uint8List?> Function();
 /// raw bytes to hand to `CallersCompanionUsrAdapter` (via `options['bytes']`),
 /// not a decoded string.
 Future<Uint8List?> pickImportUsrFile() async {
-  const usrGroup = XTypeGroup(
-    label: "Caller's Companion .USR",
-    extensions: ['usr'],
-    // FileMaker's `.usr` has no registered UTI/MIME; match on extension only.
-    uniformTypeIdentifiers: ['public.data'],
-  );
-  final file = await openFile(acceptedTypeGroups: const [usrGroup]);
+  final file = await openFile(acceptedTypeGroups: [importUsrTypeGroup()]);
   if (file == null) return null;
   return readImportUsrBytesCapped(file);
 }
+
+/// Extensions as the platform picker should be told them.
+///
+/// `file_selector_linux` turns each extension into a GTK `*.<ext>` pattern and
+/// GTK patterns are case-sensitive, so on Linux a bare `usr` hides the
+/// CallersCompanion2.USR files Caller's Companion actually writes (#1823).
+/// There we list the lower-case, UPPER-case and Capitalised spellings. macOS and
+/// Windows match extensions case-insensitively, so they keep the bare list.
+///
+/// Our call: three spellings, not every case permutation (`ccshare` alone would
+/// be 128 patterns) and not a GTK suffix filter (the plugin does not expose
+/// one); a `.UsR` file can still be opened by typing its name in the dialog.
+List<String> _pickerExtensions(List<String> extensions, bool? isLinux) {
+  if (!(isLinux ?? Platform.isLinux)) return extensions;
+  String cap(String e) => e.isEmpty ? e : e[0].toUpperCase() + e.substring(1);
+  return [
+    for (final e in extensions) ...{e.toLowerCase(), e.toUpperCase(), cap(e)},
+  ];
+}
+
+/// The file-type filter behind [pickImportFile].
+@visibleForTesting
+XTypeGroup importJsonTypeGroup({bool? isLinux}) => XTypeGroup(
+  label: 'Compendium share',
+  extensions: _pickerExtensions(['ccshare', 'json'], isLinux),
+  uniformTypeIdentifiers: [
+    'org.callerscompendium.compendiumApp.share',
+    'public.json',
+  ],
+  mimeTypes: ['application/json'],
+);
+
+/// The file-type filter behind [pickImportUsrFile].
+@visibleForTesting
+XTypeGroup importUsrTypeGroup({bool? isLinux}) => XTypeGroup(
+  label: "Caller's Companion .USR",
+  extensions: _pickerExtensions(['usr'], isLinux),
+  // FileMaker's `.usr` has no registered UTI/MIME; match on extension only.
+  uniformTypeIdentifiers: ['public.data'],
+);
 
 /// Fetches the text body of an import source over HTTP and returns it, or
 /// throws a [UrlFetchException] with a user-presentable message. See

@@ -565,6 +565,8 @@ Names, definitions and examples follow your active
 [dialect](dialects.md), so role words read the way you call them. The built-in
 figures come with the app, and turning the Glossary off only removes it from
 the navigation; your notes are kept, and come back when you turn it on again.
+The built-in definitions and descriptions are in English whatever language the
+app is set to; only the Glossary's labels and buttons are translated.
 
 **Your terms** are words you define yourself, with no figure: a name, a
 definition and a description (all required), other names they can be found by,

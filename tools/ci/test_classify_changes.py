@@ -19,7 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from classify_changes import classify  # noqa: E402
+from classify_changes import changed_paths, classify  # noqa: E402
 
 FAILURES: list[str] = []
 
@@ -47,6 +47,42 @@ def expect(name: str, paths: tuple[bytes, ...], **expected: bool) -> None:
     outcome = classify(paths)
     wanted = dict(ALL_FALSE, **expected)
     check(name, outcome == wanted, f"paths={paths!r} -> {outcome}, want {wanted}")
+
+
+def test_changed_paths_falls_back_to_the_whole_pull_request() -> None:
+    ranges: list[str] = []
+
+    def diff(changes: dict[str, tuple[bytes, ...]]):
+        def run(diff_range: str) -> tuple[bytes, ...]:
+            ranges.append(diff_range)
+            return changes.get(diff_range, ())
+
+        return run
+
+    whole = {"base...head": (b"app/lib/a.dart",)}
+    check(
+        "an incremental range with changes is used alone",
+        changed_paths(
+            diff({**whole, "green..head": (b"docs/x.md",)}), "base", "head", "green"
+        )
+        == (b"docs/x.md",)
+        and ranges == ["green..head"],
+        repr(ranges),
+    )
+    ranges.clear()
+    check(
+        "an incremental range with no changes falls back to base...head",
+        changed_paths(diff(whole), "base", "head", "green") == (b"app/lib/a.dart",)
+        and ranges == ["green..head", "base...head"],
+        repr(ranges),
+    )
+    ranges.clear()
+    check(
+        "without a previous green gate, the whole pull request is used",
+        changed_paths(diff(whole), "base", "head") == (b"app/lib/a.dart",)
+        and ranges == ["base...head"],
+        repr(ranges),
+    )
 
 
 def test_ordinary_markdown_only_skips_everything() -> None:
@@ -339,6 +375,7 @@ def test_docs_bundle_and_changelog_gates_run_on_markdown_only_diffs() -> None:
 
 
 def main() -> int:
+    test_changed_paths_falls_back_to_the_whole_pull_request()
     test_ordinary_markdown_only_skips_everything()
     test_generated_classification_doc_forces_core_tests()
     test_non_markdown_paths_route_to_their_suites()

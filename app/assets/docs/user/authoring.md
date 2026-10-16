@@ -41,7 +41,12 @@ up to as you go.
 ### Type and press Enter
 
 Figure entry is keyboard-first. Choose **Add figure** (or **Add first figure** on
-an empty dance) and type into **Type a figure**. As the app recognises what you
+an empty dance) and type into **Type a figure**. When the dance can also hold a
+meanwhile or a modifier, the button opens a small menu: press Space or Enter on
+it and focus lands on **Add figure**. Press Enter to choose it, use the up and
+down arrow keys to reach the other choices, and press Escape to close the menu.
+
+As the app recognises what you
 are typing it offers matching [moves](./glossary.md#move); press Enter to accept
 one and it is added with that move's default settings. Typing `sw` and pressing
 Enter, for example, gives you a swing.
@@ -66,8 +71,9 @@ Turn on **Free-text entry** in
 **Dance details & shorthands** and the same box accepts a whole line at a time
 instead of one move at a time. Type `neighbor balance & swing` and you get both
 figures; type `16 circle left 3/4` and you get a sixteen-beat circle left
-three-quarters. The app tells you how many figures it added and invites you to
-type another.
+three-quarters. A line that states no count starts with the figure's usual
+beats, and they follow the figure if you change its options. The app tells you
+how many figures it added and invites you to type another.
 
 It also understands common phrasings such as `N swing`, `neighbours balance and
 swing`, `half hey, ladies start by the right` and
