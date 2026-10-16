@@ -3,8 +3,10 @@ import 'package:compendium_core/src/dialect/discouraged_terms.dart';
 import 'package:test/test.dart';
 
 /// User-glossary text canonicalization (#709): today's role rules, plus the
-/// singular-subject verb exception and stored discouraged terms, decided by
-/// the maintainer for this text only (2026-10-14).
+/// singular-subject verb exception and stored discouraged terms, for this text
+/// only. The maintainer decided the stored terms and the singular-role-term
+/// exception (2026-10-14); what else counts as a subject is the implementer's
+/// choice (`docs/design/dialect.md`).
 void main() {
   final lf = Dialect.leadsFollows;
   final lr = Dialect.larksRobins;
