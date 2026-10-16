@@ -128,6 +128,11 @@ class ShorthandMappings {
   /// mapping tokens. On a hit a fresh (mutable) copy of the ordered figures is
   /// returned so the caller can insert/mutate them freely; on a miss `null` is
   /// returned and the caller falls through to the normal parser.
+  ///
+  /// The caller hands over what is left of a line once a leading/trailing
+  /// beat count or a `;` clause has been peeled off (see
+  /// [parseFreeTextFigureEntry], issue #1827); this method only ever compares
+  /// the text it is given.
   List<Figure>? resolve(String line) {
     final key = normalizeShorthandToken(line);
     if (key.isEmpty) return null;

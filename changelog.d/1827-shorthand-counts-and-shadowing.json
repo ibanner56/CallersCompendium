@@ -1,0 +1,20 @@
+{
+  "id": "1827-shorthand-counts-and-shadowing",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A figure shorthand now still works when you give it a beat count (`16 pbs` or `pbs (16)`) or put it in a `;` list (`pbs; ladies chain`). Before, any of these was added as a plain custom figure. A shorthand for one figure takes the count as that figure's beats; a shorthand for several figures is added as saved and the count is ignored."
+    ],
+    "changed": [
+      "When the shorthand you are creating or editing is a word that already adds a figure when typed on its own (such as `swing`), the editor now warns that saving it will replace that figure whenever you type it. You can still save it."
+    ]
+  },
+  "core": {
+    "added": [
+      "`shorthandTokenShadowsFigure` reports whether a shorthand token already reads as a figure when typed (#1827)."
+    ],
+    "fixed": [
+      "`parseFreeTextFigureEntry` matches a shorthand after peeling a leading or trailing beat count, and clause by clause on a `;` line (all-or-nothing, at most 64 clauses), instead of only against the whole line (#1827)."
+    ]
+  }
+}
