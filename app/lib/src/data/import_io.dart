@@ -6,6 +6,7 @@ import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 
 import '../search/collection_query.dart' show ByPhraseSelections;
@@ -204,16 +205,7 @@ typedef ImportPicker = Future<String?> Function();
 /// source (CallersBox/ContraDB) can supply its own picker/type group without
 /// changing the queue UI.
 Future<String?> pickImportFile() async {
-  const jsonGroup = XTypeGroup(
-    label: 'Compendium share',
-    extensions: ['ccshare', 'json'],
-    uniformTypeIdentifiers: [
-      'org.callerscompendium.compendiumApp.share',
-      'public.json',
-    ],
-    mimeTypes: ['application/json'],
-  );
-  final file = await openFile(acceptedTypeGroups: const [jsonGroup]);
+  final file = await openFile(acceptedTypeGroups: [importJsonTypeGroup()]);
   if (file == null) return null;
   return readImportTextCapped(file);
 }
@@ -237,16 +229,31 @@ typedef ImportBytePicker = Future<Uint8List?> Function();
 /// raw bytes to hand to `CallersCompanionUsrAdapter` (via `options['bytes']`),
 /// not a decoded string.
 Future<Uint8List?> pickImportUsrFile() async {
-  const usrGroup = XTypeGroup(
-    label: "Caller's Companion .USR",
-    extensions: ['usr'],
-    // FileMaker's `.usr` has no registered UTI/MIME; match on extension only.
-    uniformTypeIdentifiers: ['public.data'],
-  );
-  final file = await openFile(acceptedTypeGroups: const [usrGroup]);
+  final file = await openFile(acceptedTypeGroups: [importUsrTypeGroup()]);
   if (file == null) return null;
   return readImportUsrBytesCapped(file);
 }
+
+/// The file-type filter behind [pickImportFile].
+@visibleForTesting
+XTypeGroup importJsonTypeGroup({bool? isLinux}) => const XTypeGroup(
+  label: 'Compendium share',
+  extensions: ['ccshare', 'json'],
+  uniformTypeIdentifiers: [
+    'org.callerscompendium.compendiumApp.share',
+    'public.json',
+  ],
+  mimeTypes: ['application/json'],
+);
+
+/// The file-type filter behind [pickImportUsrFile].
+@visibleForTesting
+XTypeGroup importUsrTypeGroup({bool? isLinux}) => const XTypeGroup(
+  label: "Caller's Companion .USR",
+  extensions: ['usr'],
+  // FileMaker's `.usr` has no registered UTI/MIME; match on extension only.
+  uniformTypeIdentifiers: ['public.data'],
+);
 
 /// Fetches the text body of an import source over HTTP and returns it, or
 /// throws a [UrlFetchException] with a user-presentable message. See
