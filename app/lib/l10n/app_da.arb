@@ -316,9 +316,9 @@
   "@userFigureSwitchTitle": {
     "x-sourceSha256": "f6d893e24f3c3d2f5209b0b66739979a81d30738415c7b6f33b0dfab7ee6fd59"
   },
-  "userFigureSwitchIntro": "Vælg, hvad hver af din figurs indstillinger bliver til i {name}, og hvilken af dens værdier hvert af dine valg bliver til. Alle skal vælges, før du kan skifte.",
+  "userFigureSwitchIntro": "Vælg, hvilken af {name}s parametre hver af din figurs parametre bliver til, og hvilken af dens værdier hver af dine valgmuligheder bliver til. Alle skal vælges, før du kan skifte.",
   "@userFigureSwitchIntro": {
-    "x-sourceSha256": "384646561be1f7305e01ed7d262c7c84d0b42c21f32e098607a8d4e7c5ebd8e8"
+    "x-sourceSha256": "d254b1329d64684c3c75a28566beb7d4a9c70befcadf39c2e38b2811facd4341"
   },
   "userFigureSwitchParam": "Din {param} bliver til",
   "@userFigureSwitchParam": {
@@ -331,6 +331,10 @@
   "userFigureSwitchNoTarget": "{name} har intet, som din {param} kan blive til. Fjern den fra din figur først, eller omdøb din i stedet.",
   "@userFigureSwitchNoTarget": {
     "x-sourceSha256": "2f9c52f0aab2b8c1f621780332550762031afc82090537ed6416a0e1f59315c7"
+  },
+  "userFigureSwitchAllTaken": "Alle {name}s parametre, som din {param} kunne blive til, er allerede valgt til en anden af dine. Vælg anderledes der først.",
+  "@userFigureSwitchAllTaken": {
+    "x-sourceSha256": "832268660968f8659fc3e586c18718bc9eaded8d5bf91ac119a805cc1d8c88bd"
   },
   "userFigureSwitchAction": "Skift",
   "@userFigureSwitchAction": {

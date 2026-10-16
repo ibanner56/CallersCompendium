@@ -306,7 +306,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String userFigureSwitchIntro(String name) {
-    return 'Wähle, was jede Einstellung deiner Figur in $name wird und welcher ihrer Werte jede deiner Auswahlen wird. Alle müssen gewählt sein, bevor du wechseln kannst.';
+    return 'Wähle, welcher Parameter von $name jeder Parameter deiner Figur wird und welcher seiner Werte jede deiner Optionen wird. Alle müssen gewählt sein, bevor du wechseln kannst.';
   }
 
   @override
@@ -322,6 +322,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String userFigureSwitchNoTarget(String name, String param) {
     return '$name hat nichts, was dein $param werden kann. Entferne es zuerst aus deiner Figur, oder benenne deine stattdessen um.';
+  }
+
+  @override
+  String userFigureSwitchAllTaken(String name, String param) {
+    return 'Jeder Parameter von $name, der dein $param werden könnte, ist schon für einen anderen deiner Parameter gewählt. Wähle dort zuerst anders.';
   }
 
   @override
@@ -356,8 +361,8 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Ihre $count Abkürzungen fügen dann $name ein.',
-      one: 'Ihre Abkürzung fügt dann $name ein.',
+      other: 'Die $count Abkürzungen dafür fügen dann $name ein.',
+      one: 'Die Abkürzung dafür fügt dann $name ein.',
     );
     return '$_temp0';
   }

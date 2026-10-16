@@ -316,9 +316,9 @@
   "@userFigureSwitchTitle": {
     "x-sourceSha256": "f6d893e24f3c3d2f5209b0b66739979a81d30738415c7b6f33b0dfab7ee6fd59"
   },
-  "userFigureSwitchIntro": "Wähle, was jede Einstellung deiner Figur in {name} wird und welcher ihrer Werte jede deiner Auswahlen wird. Alle müssen gewählt sein, bevor du wechseln kannst.",
+  "userFigureSwitchIntro": "Wähle, welcher Parameter von {name} jeder Parameter deiner Figur wird und welcher seiner Werte jede deiner Optionen wird. Alle müssen gewählt sein, bevor du wechseln kannst.",
   "@userFigureSwitchIntro": {
-    "x-sourceSha256": "384646561be1f7305e01ed7d262c7c84d0b42c21f32e098607a8d4e7c5ebd8e8"
+    "x-sourceSha256": "d254b1329d64684c3c75a28566beb7d4a9c70befcadf39c2e38b2811facd4341"
   },
   "userFigureSwitchParam": "Dein {param} wird zu",
   "@userFigureSwitchParam": {
@@ -331,6 +331,10 @@
   "userFigureSwitchNoTarget": "{name} hat nichts, was dein {param} werden kann. Entferne es zuerst aus deiner Figur, oder benenne deine stattdessen um.",
   "@userFigureSwitchNoTarget": {
     "x-sourceSha256": "2f9c52f0aab2b8c1f621780332550762031afc82090537ed6416a0e1f59315c7"
+  },
+  "userFigureSwitchAllTaken": "Jeder Parameter von {name}, der dein {param} werden könnte, ist schon für einen anderen deiner Parameter gewählt. Wähle dort zuerst anders.",
+  "@userFigureSwitchAllTaken": {
+    "x-sourceSha256": "832268660968f8659fc3e586c18718bc9eaded8d5bf91ac119a805cc1d8c88bd"
   },
   "userFigureSwitchAction": "Wechseln",
   "@userFigureSwitchAction": {
@@ -348,7 +352,7 @@
   "@userFigureSwitchConfirmDefaults": {
     "x-sourceSha256": "c1697c77ab5e374a3eb47917625a399901be0df1dfb4c4e07ab46a731af2ac62"
   },
-  "userFigureSwitchConfirmShorthands": "{count, plural, =1{Ihre Abkürzung fügt dann {name} ein.} other{Ihre {count} Abkürzungen fügen dann {name} ein.}}",
+  "userFigureSwitchConfirmShorthands": "{count, plural, =1{Die Abkürzung dafür fügt dann {name} ein.} other{Die {count} Abkürzungen dafür fügen dann {name} ein.}}",
   "@userFigureSwitchConfirmShorthands": {
     "x-sourceSha256": "d4d2a6ad284fafd94197e4b565bfaedc778486cc6870c4ca4b32137325c8edc7"
   },

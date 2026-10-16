@@ -306,7 +306,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String userFigureSwitchIntro(String name) {
-    return 'Kies wat elke instelling van je figuur wordt in $name, en welke van de waarden elk van je keuzes wordt. Alles moet gekozen zijn voordat je kunt overzetten.';
+    return 'Kies welke parameter van $name elke parameter van je figuur wordt, en welke van de waarden elk van je opties wordt. Alles moet gekozen zijn voordat je kunt overzetten.';
   }
 
   @override
@@ -322,6 +322,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String userFigureSwitchNoTarget(String name, String param) {
     return '$name heeft niets wat je $param kan worden. Verwijder het eerst uit je figuur, of geef de jouwe liever een andere naam.';
+  }
+
+  @override
+  String userFigureSwitchAllTaken(String name, String param) {
+    return 'Elke parameter van $name die je $param kan worden, is al gekozen voor een andere van de jouwe. Kies daar eerst anders.';
   }
 
   @override

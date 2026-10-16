@@ -15,7 +15,7 @@ Future<Map<String, String>> frozenDefaultFigureLists(
   SettingsRepository settings,
   String id,
   FigureRenderer renderer,
-) => rewrittenDefaultFigureLists(
+) => _rewrittenDefaultFigureLists(
   settings,
   (figures) => freezeUserFigureUsesIn(figures, id, renderer),
 );
@@ -31,7 +31,7 @@ Future<Map<String, String>> switchedDefaultFigureLists(
   UserFigureDefinition definition,
   UserFigureSwitch mapping,
   FigureRenderer renderer,
-) => rewrittenDefaultFigureLists(
+) => _rewrittenDefaultFigureLists(
   settings,
   (figures) => switchUserFigureUsesIn(
     figures,
@@ -46,12 +46,12 @@ Future<Map<String, String>> switchedDefaultFigureLists(
 /// For each stored default figure list that [rewrite] changes (returning a
 /// list not identical to the one it was given), its settings key and the
 /// value to store.
-Future<Map<String, String>> rewrittenDefaultFigureLists(
+Future<Map<String, String>> _rewrittenDefaultFigureLists(
   SettingsRepository settings,
   List<Figure> Function(List<Figure> figures) rewrite,
 ) async {
-  final frozen = <String, String>{};
-  Future<void> freeze(
+  final rewritten = <String, String>{};
+  Future<void> rewriteList(
     String key,
     List<Figure> Function(Object? stored) decode,
     String Function(List<Figure> figures) encode,
@@ -60,23 +60,23 @@ Future<Map<String, String>> rewrittenDefaultFigureLists(
     if (stored == null) return;
     final figures = decode(stored);
     final kept = rewrite(figures);
-    if (!identical(kept, figures)) frozen[key] = encode(kept);
+    if (!identical(kept, figures)) rewritten[key] = encode(kept);
   }
 
-  await freeze(
+  await rewriteList(
     kDefaultDanceFiguresTemplateKey,
     danceFiguresTemplateFromStored,
     encodeFigures,
   );
-  await freeze(
+  await rewriteList(
     kDefaultMeanwhileSideFiguresKey,
     meanwhileSideFiguresFromStored,
     encodeMeanwhileSideFigures,
   );
-  await freeze(
+  await rewriteList(
     kDefaultModifierFiguresKey,
     modifierFiguresFromStored,
     encodeModifierFigures,
   );
-  return frozen;
+  return rewritten;
 }

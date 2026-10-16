@@ -370,6 +370,145 @@ void main() {
     expect(tester.widget<TextButton>(save).onPressed, isNotNull);
   });
 
+  testWidgets('two parameters can\'t become the same one, and the screen '
+      'says why', (tester) async {
+    await pump(
+      tester,
+      entry: mine(
+        template: '{lead} and {follow} {move}',
+        params: [
+          {'key': 'lead', 'kind': 'dancerSet'},
+          {'key': 'follow', 'kind': 'dancerSet'},
+        ],
+      ),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('glossary-custom-switch-to-shipped')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('user-figure-switch-none-follow')),
+      findsNothing,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('user-figure-switch-param-lead')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find
+          .byWidgetPredicate(
+            (w) => w is DropdownMenuItem<String> && w.value == 'who',
+          )
+          .last,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('user-figure-switch-none-follow')),
+          )
+          .data,
+      contains('already chosen for another of yours'),
+    );
+    expect(
+      tester
+          .widget<TextButton>(
+            find.byKey(const ValueKey('user-figure-switch-save')),
+          )
+          .onPressed,
+      isNull,
+    );
+  });
+
+  testWidgets('a shorthand whose token an ordinary shorthand has is kept '
+      'as it is, and not counted', (tester) async {
+    final (:repos, :shorthands, dialects: _) = await pump(
+      tester,
+      seed: (repos) async {
+        await repos.settings.set(
+          kShorthandMappingsKey,
+          ShorthandMappings([
+            ShorthandMapping(
+              token: 'bs',
+              figures: [Figure(move: 'balance')],
+            ),
+          ]).toJson(),
+        );
+        await repos.settings.set(
+          kUserFigureShorthandsKey,
+          UserFigureShorthands([
+            UserFigureShorthand(
+              token: 'BS',
+              figureId: 'mine',
+              figureName: 'swing',
+              args: const {'prefix': 'bal'},
+            ),
+          ]).toJson(),
+        );
+      },
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('glossary-custom-switch-to-shipped')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('user-figure-switch-save')));
+    await settle(tester);
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('user-figure-switch-confirm-body')),
+          )
+          .data,
+      isNot(contains('shorthand')),
+    );
+    await tester.tap(find.byKey(const ValueKey('user-figure-switch-confirm')));
+    await settle(tester);
+    expect(shorthands.mappings.single.figures.single.move, 'balance');
+    expect(shorthands.userFigureShorthands.single.token, 'BS');
+  });
+
+  testWidgets('the app\'s values read as words, in the dialect', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      entry: mine(
+        template: '{side} {move}',
+        params: [
+          {
+            'key': 'side',
+            'kind': 'choice',
+            'choices': [
+              {'id': 'l', 'label': 'the larks'},
+            ],
+          },
+        ],
+      ),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('glossary-custom-switch-to-shipped')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('user-figure-switch-param-side')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find
+          .byWidgetPredicate(
+            (w) => w is DropdownMenuItem<String> && w.value == 'who',
+          )
+          .last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('user-figure-switch-choice-side-l-who')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('role1s'), findsNothing);
+    expect(find.text('larks'), findsWidgets);
+  });
+
   testWidgets('cancelling at the confirmation writes nothing', (tester) async {
     final (:repos, shorthands: _, dialects: _) = await pump(
       tester,

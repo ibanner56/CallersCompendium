@@ -311,7 +311,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String userFigureSwitchIntro(String name) {
-    return 'Choisissez ce que devient chaque réglage de votre figure dans $name, et laquelle de ses valeurs devient chacun de vos choix. Tous doivent être choisis avant de pouvoir passer.';
+    return 'Choisissez quel paramètre de $name devient chacun des paramètres de votre figure, et laquelle de ses valeurs devient chacune de vos options. Tous doivent être choisis avant de pouvoir passer.';
   }
 
   @override
@@ -327,6 +327,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String userFigureSwitchNoTarget(String name, String param) {
     return '$name n\'a rien que votre $param puisse devenir. Retirez-le d\'abord de votre figure, ou renommez plutôt la vôtre.';
+  }
+
+  @override
+  String userFigureSwitchAllTaken(String name, String param) {
+    return 'Chaque paramètre de $name que votre $param pourrait devenir est déjà choisi pour un autre des vôtres. Changez d\'abord ce choix-là.';
   }
 
   @override

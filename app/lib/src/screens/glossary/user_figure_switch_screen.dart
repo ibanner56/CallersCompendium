@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
+import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
 import 'custom_figure_detail.dart' show compoundParamKindLabel;
 
@@ -93,11 +94,12 @@ class _UserFigureSwitchScreenState extends State<UserFigureSwitchScreen> {
     ).isEmpty;
 
     String targetLabel(String key) {
+      final name = figureParamKeyLabel(l10n, key, moveId: widget.target);
       final spec = targetParams[key];
       return spec == null
-          ? key
+          ? name
           : l10n.compoundParamWithKind(
-              key,
+              name,
               compoundParamKindLabel(l10n, spec.kind),
             );
     }
@@ -109,7 +111,17 @@ class _UserFigureSwitchScreenState extends State<UserFigureSwitchScreen> {
       ),
     ];
     for (final param in widget.figure.params) {
-      final targets = _targetsOf(param);
+      final all = _targetsOf(param);
+      // A target another of the user's parameters already has is left out:
+      // two can't share one.
+      final taken = {
+        for (final MapEntry(:key, :value) in _params.entries)
+          if (key != param.key) value,
+      };
+      final targets = [
+        for (final key in all)
+          if (!taken.contains(key)) key,
+      ];
       final paramName = l10n.compoundParamWithKind(
         param.key,
         compoundParamKindLabel(l10n, param.kind),
@@ -127,7 +139,9 @@ class _UserFigureSwitchScreenState extends State<UserFigureSwitchScreen> {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
-                  l10n.userFigureSwitchNoTarget(targetName, paramName),
+                  all.isEmpty
+                      ? l10n.userFigureSwitchNoTarget(targetName, paramName)
+                      : l10n.userFigureSwitchAllTaken(targetName, paramName),
                   key: ValueKey('user-figure-switch-none-${param.key}'),
                 ),
               ),
@@ -156,6 +170,7 @@ class _UserFigureSwitchScreenState extends State<UserFigureSwitchScreen> {
       final mappedTo = _params[param.key];
       if (param.kind != ParamKind.choice || mappedTo == null) continue;
       final values = _valuesOf(mappedTo);
+      final valueSpec = targetParams[mappedTo];
       for (final choice in param.choices) {
         children.add(
           Padding(
@@ -177,7 +192,19 @@ class _UserFigureSwitchScreenState extends State<UserFigureSwitchScreen> {
               ),
               items: [
                 for (final value in values)
-                  DropdownMenuItem(value: value, child: Text(value)),
+                  DropdownMenuItem(
+                    value: value,
+                    child: Text(
+                      valueSpec == null
+                          ? value
+                          : figureParamChoiceLabel(
+                              l10n,
+                              valueSpec,
+                              dialect,
+                              value,
+                            ),
+                    ),
+                  ),
               ],
               onChanged: (value) {
                 if (value == null) return;

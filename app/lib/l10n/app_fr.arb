@@ -316,9 +316,9 @@
   "@userFigureSwitchTitle": {
     "x-sourceSha256": "f6d893e24f3c3d2f5209b0b66739979a81d30738415c7b6f33b0dfab7ee6fd59"
   },
-  "userFigureSwitchIntro": "Choisissez ce que devient chaque réglage de votre figure dans {name}, et laquelle de ses valeurs devient chacun de vos choix. Tous doivent être choisis avant de pouvoir passer.",
+  "userFigureSwitchIntro": "Choisissez quel paramètre de {name} devient chacun des paramètres de votre figure, et laquelle de ses valeurs devient chacune de vos options. Tous doivent être choisis avant de pouvoir passer.",
   "@userFigureSwitchIntro": {
-    "x-sourceSha256": "384646561be1f7305e01ed7d262c7c84d0b42c21f32e098607a8d4e7c5ebd8e8"
+    "x-sourceSha256": "d254b1329d64684c3c75a28566beb7d4a9c70befcadf39c2e38b2811facd4341"
   },
   "userFigureSwitchParam": "Votre {param} devient",
   "@userFigureSwitchParam": {
@@ -331,6 +331,10 @@
   "userFigureSwitchNoTarget": "{name} n'a rien que votre {param} puisse devenir. Retirez-le d'abord de votre figure, ou renommez plutôt la vôtre.",
   "@userFigureSwitchNoTarget": {
     "x-sourceSha256": "2f9c52f0aab2b8c1f621780332550762031afc82090537ed6416a0e1f59315c7"
+  },
+  "userFigureSwitchAllTaken": "Chaque paramètre de {name} que votre {param} pourrait devenir est déjà choisi pour un autre des vôtres. Changez d'abord ce choix-là.",
+  "@userFigureSwitchAllTaken": {
+    "x-sourceSha256": "832268660968f8659fc3e586c18718bc9eaded8d5bf91ac119a805cc1d8c88bd"
   },
   "userFigureSwitchAction": "Passer",
   "@userFigureSwitchAction": {

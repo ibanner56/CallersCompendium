@@ -584,10 +584,10 @@ abstract class AppLocalizations {
   /// **'Switch to {name}'**
   String userFigureSwitchTitle(String name);
 
-  /// Explains the screen that maps one of the user's own figures onto the app's figure of the same name (#1023); {name} is the app's figure. 'Settings' are the figure's parameters.
+  /// Explains the screen that maps one of the user's own figures onto the app's figure of the same name (#1023); {name} is the app's figure. 'Options' are the values the user named for an option parameter.
   ///
   /// In en, this message translates to:
-  /// **'Choose what each of your figure\'s settings becomes in {name}, and which of its values each of your choices becomes. Every one must be chosen before you can switch.'**
+  /// **'Choose which of {name}\'s parameters each of your figure\'s parameters becomes, and which of its values each of your options becomes. Every one must be chosen before you can switch.'**
   String userFigureSwitchIntro(String name);
 
   /// Label of the menu choosing which of the app's figure's parameters one of the user's parameters becomes (#1023); {param} is the user's parameter name.
@@ -607,6 +607,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name} has nothing your {param} can become. Remove it from your figure first, or rename yours instead.'**
   String userFigureSwitchNoTarget(String name, String param);
+
+  /// Shown when every parameter of the app's figure that one of the user's parameters (#1023) could map to is already chosen for another of the user's parameters; two can't share one. {name} is the app's figure, {param} the user's parameter.
+  ///
+  /// In en, this message translates to:
+  /// **'Each of {name}\'s parameters your {param} could become is already chosen for another of yours. Choose differently there first.'**
+  String userFigureSwitchAllTaken(String name, String param);
 
   /// Button that switches the user's figure to the app's figure of the same name (#1023), after a confirmation.
   ///

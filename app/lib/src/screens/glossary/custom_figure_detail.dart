@@ -153,7 +153,8 @@ class _GlossaryCustomFigureDetailState
     String name, {
     required bool isFigure,
   }) async {
-    if (_deleting) return;
+    // One action at a time: a delete and a switch both retire the figure.
+    if (_deleting || _switching) return;
     _deleting = true;
     try {
       await _confirmAndDelete(context, name, isFigure: isFigure);
@@ -239,7 +240,7 @@ class _GlossaryCustomFigureDetailState
     UserFigureDefinition figure,
     String target,
   ) async {
-    if (_switching) return;
+    if (_switching || _deleting) return;
     _switching = true;
     try {
       await _chooseAndSwitch(context, figure, target);
@@ -276,9 +277,18 @@ class _GlossaryCustomFigureDetailState
       widget.entryId,
     );
     final inDefaults = (await _switchedDefaults(repos, mapping)).isNotEmpty;
+    // Only those that will insert the app's figure: one whose values the
+    // figure no longer has, or whose token an ordinary shorthand has, stays.
     final shorthandCount =
         shorthands?.userFigureShorthands
-            .where((s) => s.figureId == widget.entryId)
+            .where(
+              (s) =>
+                  s.figureId == widget.entryId &&
+                  !shorthands.mappings.any(
+                    (m) => m.normalizedToken == s.normalizedToken,
+                  ) &&
+                  _switchedShorthand(s, figure, mapping) != null,
+            )
             .length ??
         0;
     if (!context.mounted) return;

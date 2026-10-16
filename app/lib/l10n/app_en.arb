@@ -406,9 +406,9 @@
       }
     }
   },
-  "userFigureSwitchIntro": "Choose what each of your figure's settings becomes in {name}, and which of its values each of your choices becomes. Every one must be chosen before you can switch.",
+  "userFigureSwitchIntro": "Choose which of {name}'s parameters each of your figure's parameters becomes, and which of its values each of your options becomes. Every one must be chosen before you can switch.",
   "@userFigureSwitchIntro": {
-    "description": "Explains the screen that maps one of the user's own figures onto the app's figure of the same name (#1023); {name} is the app's figure. 'Settings' are the figure's parameters.",
+    "description": "Explains the screen that maps one of the user's own figures onto the app's figure of the same name (#1023); {name} is the app's figure. 'Options' are the values the user named for an option parameter.",
     "placeholders": {
       "name": {
         "type": "String"
@@ -436,6 +436,18 @@
   "userFigureSwitchNoTarget": "{name} has nothing your {param} can become. Remove it from your figure first, or rename yours instead.",
   "@userFigureSwitchNoTarget": {
     "description": "Shown when one of the user's parameters (#1023) has no parameter of the same kind in the app's figure, so the switch can't be made; {name} is the app's figure, {param} the user's parameter.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "param": {
+        "type": "String"
+      }
+    }
+  },
+  "userFigureSwitchAllTaken": "Each of {name}'s parameters your {param} could become is already chosen for another of yours. Choose differently there first.",
+  "@userFigureSwitchAllTaken": {
+    "description": "Shown when every parameter of the app's figure that one of the user's parameters (#1023) could map to is already chosen for another of the user's parameters; two can't share one. {name} is the app's figure, {param} the user's parameter.",
     "placeholders": {
       "name": {
         "type": "String"

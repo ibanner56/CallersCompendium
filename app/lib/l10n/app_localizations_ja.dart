@@ -296,7 +296,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String userFigureSwitchIntro(String name) {
-    return '自分のフィギュアの各設定が $name で何になるか、また各選択肢がその値のどれになるかを選んでください。切り替えるには、すべてを選ぶ必要があります。';
+    return '自分のフィギュアの各パラメーターが $name のどのパラメーターになるか、また各オプションがその値のどれになるかを選んでください。切り替えるには、すべてを選ぶ必要があります。';
   }
 
   @override
@@ -312,6 +312,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String userFigureSwitchNoTarget(String name, String param) {
     return '$name には自分の $param の切り替え先がありません。先にフィギュアから削除するか、代わりに自分のものの名前を変更してください。';
+  }
+
+  @override
+  String userFigureSwitchAllTaken(String name, String param) {
+    return '自分の $param の切り替え先になりうる $name のパラメーターは、すべて別のパラメーターに選ばれています。先にそちらの選択を変更してください。';
   }
 
   @override
