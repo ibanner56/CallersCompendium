@@ -3716,7 +3716,9 @@ nothing is wrong with the record, and the only fix is updating the app on the
 *receiving* device. A blob's report carries its kind and id; a manifest's
 carries only the peer, since a manifest the receiver cannot read does not say
 what it lists. The status surface shows it as a needs-you notice naming how
-many items are waiting when the reports name any. A blob reaches an older
+many records of each kind are waiting, when every report in the notice names a
+record; a manifest names none, so a notice that includes one gives no count
+and says only that the other device's changes wait on an update. A blob reaches an older
 client through any server (§7.2 accepts an unknown blob `v`); a newer manifest
 reaches it only once the server has been updated first.
 
@@ -3733,9 +3735,9 @@ can neither apply nor keep (§6.7) is refused whole and reported with code
 figures, rather than `malformedRecord`. Both are what a newer build looks like
 to an older one, and the remedy is the same as a newer envelope's, so the
 status surface shows them, with `newerRecordKind` (§4.5), in one needs-you
-notice. The notice says how
-many records of each kind are waiting — "2 programs, 1 setting" rather than a
-bare item count — and lists only those records, apart from records skipped for
+notice. When it can count (see above),
+the notice says how many records of each kind are waiting — "2 programs, 1
+setting" rather than a bare item count — and lists only those records, apart from records skipped for
 any other reason; a dance refused for its figures is marked as having figures
 only a newer version can read, so the user learns what this build does not
 understand rather than only that it is behind.
@@ -4623,8 +4625,9 @@ validates manifests with the client's codec), so a server deployed in between
 is redeployed before any client emits the amended form, under the rule above.
 Blobs and manifests written from source at the earlier form of an unreleased
 `v` are development data. A store holding them is recreated, never
-interpreted. (Contributor process, the maintainer's direction 2026-10-13;
-CONTRIBUTING.md, "Versioned formats".)
+interpreted. (Contributor process: the maintainer's direction of 2026-10-13,
+recorded in the description of #1752; CONTRIBUTING.md, "Versioned
+formats".)
 
 ### 7.3 TTL and garbage collection
 
