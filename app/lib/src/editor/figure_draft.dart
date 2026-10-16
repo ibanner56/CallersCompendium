@@ -246,7 +246,13 @@ class FigureDraft {
     String Function(String) canonicalizeNote,
   ) {
     final copy = Map<String, Object?>.of(params);
-    if (moveId == customMove && copy['text'] is String) {
+    // A use of one of the user's own figures (#1023) keeps its line as the
+    // figure rendered it, canonical already: canonicalizing it again could
+    // change it, and a changed line no longer matches its check.
+    if (moveId == customMove &&
+        copy['text'] is String &&
+        userFigureUseOf(Figure(move: customMove, params: copy))?.attached !=
+            true) {
       final text = copy['text']! as String;
       if (text.isNotEmpty) {
         copy['text'] = canonicalizeNote(text);
@@ -254,6 +260,16 @@ class FigureDraft {
     }
     return copy;
   }
+
+  /// [child] of a group whose count is [groupBeats]: a use of one of the
+  /// user's own figures (#1023) takes the group's count, the one its side
+  /// shows, so a `{beats}` in its wording reads the same in every render of
+  /// the dance and in the line it stores.
+  static Figure _withGroupBeats(Figure child, int groupBeats) =>
+      userFigureUseOf(child)?.attached == true &&
+          child.params['beats'] != groupBeats
+      ? child.copyWith(params: {...child.params, 'beats': groupBeats})
+      : child;
 
   /// Builds the immutable figure, or `null` when no move is chosen yet (or,
   /// for a structural container, when fewer than 2 children can be
@@ -302,9 +318,13 @@ class FigureDraft {
       // Defensive clamp mirroring the codec's untrusted-input behavior: the
       // UI never lets the side count exceed the cap, but this keeps toFigure()
       // from ever throwing even if that invariant is somehow violated.
-      final cappedChildren = readyChildren.length > kMaxMeanwhileSides
-          ? readyChildren.sublist(0, kMaxMeanwhileSides)
-          : readyChildren;
+      final cappedChildren = [
+        for (final child
+            in readyChildren.length > kMaxMeanwhileSides
+                ? readyChildren.sublist(0, kMaxMeanwhileSides)
+                : readyChildren)
+          _withGroupBeats(child, beats),
+      ];
       final trimmedNote = canonicalizeNote(note);
       final extraParams = Map<String, Object?>.of(params)
         ..remove('beats')

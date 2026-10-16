@@ -390,9 +390,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     final Dance dance;
     try {
       // Expand compound placeholders with each compound as it is stored now,
-      // not as the last watch event left it (#709). A dance without one does
-      // not depend on the user's compounds being readable.
-      if (_controller.hasCompoundPlaceholders) {
+      // not as the last watch event left it (#709), and save a use of a
+      // figure deleted meanwhile as plain text (#1023). A dance without
+      // either does not depend on the user's glossary being readable.
+      if (_controller.hasCompoundPlaceholders ||
+          _controller.hasUserFigureUses) {
         await _controller.refreshCompounds();
       }
       dance = _controller.buildDance();

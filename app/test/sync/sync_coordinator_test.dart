@@ -6981,6 +6981,7 @@ void main() {
       List<String> peers, {
       Map<SyncRecordKind, Map<String, String>> peerRecords = const {},
       Map<String, SyncHttpResponse> blobs = const {},
+      Set<String> missing = const {},
     }) => _FakeTransport(
       devices: ['device-a', ...peers],
       peerManifests: {
@@ -6988,6 +6989,7 @@ void main() {
           peer: _manifest(deviceId: peer, records: peerRecords),
       },
       blobResponses: blobs,
+      missing: missing,
     );
     Set<String> publishedSettings(_FakeTransport transport) =>
         (decodeSyncManifest(
@@ -7244,6 +7246,10 @@ void main() {
       );
       final transport = transportFor(
         ['peer'],
+        // The store lacks the gated blob, so the attach would upload it were
+        // it not held back: without this the upload assertion below cannot
+        // fail, whether or not the attach path holds anything back.
+        missing: {gated.wireHash},
         peerRecords: {
           SyncRecordKind.setting: {'custom_dialects': older.wireHash},
         },
@@ -7262,7 +7268,50 @@ void main() {
         isEmpty,
       );
       expect(publishedSettings(transport), isNot(contains('custom_dialects')));
+      expect(
+        transport.postMissingBatches.expand((batch) => batch),
+        isNot(contains(gated.wireHash)),
+        reason: 'the attach asked the store about a blob it must not publish',
+      );
       expect(uploaded(transport), isNot(contains(gated.wireHash)));
+    });
+
+    test('(g\'\') a fresh attach whose blob upload fails still protects a '
+        'held-back row, so deleting it leaves a tombstone', () async {
+      // The attach protects held-back rows itself (§6.15) rather than leaving
+      // it to the continuation pass, which a failed upload never reaches.
+      final repositories = openTestRepositories();
+      await repositories.settings.set('custom_dialects', 'mine'); // gated
+      await repositories.settings.set('theme_mode', 'dark'); // uploaded
+      final store = CompendiumSyncCoordinatorStore(repositories);
+      final transport = _FakeTransport(
+        devices: ['device-a', 'peer'],
+        peerManifest: _manifest(deviceId: 'peer', records: const {}),
+        onPostMissing: (_) async =>
+            throw const SyncTransportException('request timed out'),
+      );
+
+      final result = await SyncCoordinator(
+        syncId: 'configured',
+        deviceId: 'device-a',
+        store: store,
+        transport: transport,
+        capabilityPolicy: policy,
+      ).syncNow();
+
+      // The attach failed at its own upload, before the continuation pass.
+      expect(result.status, SyncPassStatus.failed);
+      expect(result.failure?.step, SyncFailureStep.upload);
+      expect(transport.manifestPuts, 0);
+      expect(awaiting(result), isNotEmpty, reason: 'the gate held it back');
+
+      // The user deletes the held-back row the way a hard-delete path does.
+      await repositories.settings.remove('custom_dialects', permanent: true);
+
+      final row = (await store.snapshot())
+          .local[(kind: SyncRecordKind.setting, recordId: 'custom_dialects')];
+      expect(row, isNotNull, reason: 'erased without a tombstone');
+      expect(row!.blob.deletedAt, isNotNull);
     });
 
     test('(h) a build that does not advertise the capability never opens '
@@ -8387,6 +8436,7 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     Map<String, List<SyncHttpResponse>>? manifestResponses,
     this.blobResponses = const {},
     List<List<String>>? missingResponses,
+    this.missing = const {},
     this.putManifestStatus = 200,
     List<int>? putManifestStatuses,
     this.onManifestPut,
@@ -8425,6 +8475,13 @@ final class _FakeTransport implements SyncCoordinatorTransport {
   final List<SyncHttpResponse> createResponses;
   final Map<String, List<SyncHttpResponse>> manifestResponses;
   final Map<String, SyncHttpResponse> blobResponses;
+
+  /// Hashes the store does not hold: [postMissing] reports each one of these
+  /// that it is asked about, so the pass uploads it. Without it the default
+  /// answer is empty, and a test asserting that a blob was *not* uploaded
+  /// passes whether or not the code under test would have uploaded it.
+  /// [missingResponses] takes precedence for the calls it scripts.
+  final Set<String> missing;
 
   /// Answers the [call]th blob request (1-based) for [hash] in place of
   /// [blobResponses] when it returns non-null; may throw, as a transport does.
@@ -8563,7 +8620,10 @@ final class _FakeTransport implements SyncCoordinatorTransport {
     await onPostMissing?.call(batch);
     final response = missingResponses.length >= postMissingCalls
         ? missingResponses[postMissingCalls - 1]
-        : const <String>[];
+        : [
+            for (final hash in batch)
+              if (missing.contains(hash)) hash,
+          ];
     final status = postMissingStatuses.isNotEmpty
         ? postMissingStatuses.removeAt(0)
         : 200;

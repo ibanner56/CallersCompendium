@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/user_figures_scope.dart';
 import 'package:compendium_app/src/screens/sync_conflict_details.dart';
 import 'package:compendium_app/src/screens/sync_conflict_sheet.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -171,8 +174,17 @@ Map<String, Object?> _slot(int position, {String? danceId, int? minutes}) => {
 Future<CompendiumRepositories> _pump(
   WidgetTester tester, {
   Size size = const Size(400, 900),
+  Future<void> Function(CompendiumRepositories repos)? seed,
 }) async {
   final repos = openTestRepositories();
+  final figures = UserFiguresController(repos.userGlossary);
+  addTearDown(figures.dispose);
+  if (seed != null) {
+    // Written before the user's figures are watched, on the test's clock,
+    // which then reads them as the test pumps.
+    await tester.runAsync(() => seed(repos));
+    unawaited(figures.start());
+  }
   // The view, not just the render surface: the sheet reads its width from
   // MediaQuery to choose between a bottom sheet and a dialog.
   tester.view
@@ -183,8 +195,10 @@ Future<CompendiumRepositories> _pump(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
-      builder: (context, child) =>
-          RepositoriesScope(repositories: repos, child: child!),
+      builder: (context, child) => RepositoriesScope(
+        repositories: repos,
+        child: UserFiguresScope(controller: figures, child: child!),
+      ),
       home: Builder(
         builder: (context) => Scaffold(
           body: Center(
@@ -661,6 +675,52 @@ void main() {
       expect(find.text('This device: circle left 4 places'), findsOneWidget);
       expect(find.text('Another device: star right 4 places'), findsOneWidget);
       expect(find.text('A1'), findsNothing);
+    });
+
+    testWidgets('a use of a figure of your own shows the figure\'s current '
+        'wording, not the line its dance stored (#1023)', (tester) async {
+      await _pump(
+        tester,
+        size: const Size(400, 1400),
+        seed: (repos) async {
+          await repos.userGlossary.upsert(
+            UserGlossaryEntry(
+              id: 'zoom-id',
+              kindName: UserGlossaryEntryKind.customFigure.name,
+              name: 'zoom',
+              definition: 'A zoom.',
+              description: 'Fast.',
+              payload: {
+                'template': '{who} {move} around',
+                'defaultBeats': 8,
+                'params': [
+                  {'key': 'who', 'kind': 'dancerSet'},
+                ],
+              },
+              createdAt: _tie,
+            ),
+          );
+          await _queueDanceTie(
+            repos,
+            local: [
+              userFigureUseFigure(
+                id: 'zoom-id',
+                args: const {'who': 'role1s'},
+                text: 'a stale stored line',
+                beats: 8,
+              ),
+            ],
+            remote: [
+              Figure(move: 'circle', params: const {'beats': 8}),
+            ],
+          );
+        },
+      );
+      await tester.pumpAndSettle();
+      await _open(tester);
+
+      expect(find.text('This device: larks zoom around'), findsOneWidget);
+      expect(find.textContaining('a stale stored line'), findsNothing);
     });
   });
 

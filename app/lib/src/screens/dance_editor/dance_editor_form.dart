@@ -356,6 +356,11 @@ class DanceEditorForm extends StatelessWidget {
                       ? controller.compoundEntries
                       : null,
                   resolveCompound: controller.resolveCompound,
+                  // And so are their new figures (#1023); a use already in
+                  // the draft still renders and edits with it off.
+                  userFigureOptions: customFiguresShown(context)
+                      ? controller.userFigureEntries
+                      : null,
                   snippetLibraryDefaultFor: snippetLib == null
                       ? null
                       : (draft) {

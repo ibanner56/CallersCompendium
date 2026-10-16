@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/app_theme_labels_l10n.dart';
 import '../data/custom_theme.dart';
@@ -584,8 +585,9 @@ class SyncConflictComparison extends StatelessWidget {
     Map<String, Object?>? other,
   ) {
     final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
-    final mine = _sectionedLines(_local, dialect);
-    final theirs = _sectionedLines(other, dialect);
+    final renderer = UserFiguresScope.rendererOf(context);
+    final mine = _sectionedLines(_local, dialect, renderer);
+    final theirs = _sectionedLines(other, dialect, renderer);
     if (mine == null || theirs == null) {
       return [_note(context, l10n.syncConflictFiguresUnreadable)];
     }
@@ -693,6 +695,7 @@ class SyncConflictComparison extends StatelessWidget {
   List<_FigureLine>? _sectionedLines(
     Map<String, Object?>? body,
     Dialect dialect,
+    FigureRenderer renderer,
   ) {
     final raw = body?['figures'];
     if (raw == null) return const [];
@@ -715,7 +718,7 @@ class SyncConflictComparison extends StatelessWidget {
       for (final s in sections)
         (
           section: s.label,
-          text: _renderer.renderSummary(s.figure, dialect),
+          text: renderer.renderSummary(s.figure, dialect),
           data: canonicalJson(figureToJson(s.figure)),
           figure: s.figure,
         ),

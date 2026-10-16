@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show LazyDatabase, driftRuntimeOptions;
+import 'package:drift/native.dart' show NativeDatabase;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show SystemChannels, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
@@ -2356,5 +2357,44 @@ void main() {
       final dance = await appData.repositories.dances.getById('d1');
       expect(dance!.form, DanceForm.ecd);
     });
+  });
+
+  testWidgets('nothing opens the database before the data-safety preflight '
+      'has finished (#1023: the user figures watch starts after it)', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    var opened = false;
+    bool? openedDuringPreflight;
+    final appData = AppData(
+      openWidgetTestDatabase(
+        executor: LazyDatabase(() async {
+          opened = true;
+          return NativeDatabase.memory();
+        }),
+        closeOnTearDown: false,
+      ),
+    );
+    addTearDown(appData.close);
+
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: NoopWindowService(appData.repositories.settings),
+        integrityCheck: () async => true,
+        migrationPreflight: (_) async {
+          // The real preflight does file I/O; anything already listening
+          // to the database gets its turn meanwhile.
+          await Future<void>.delayed(Duration.zero);
+          await Future<void>.delayed(Duration.zero);
+          openedDuringPreflight = opened;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(openedDuringPreflight, isFalse);
+    expect(opened, isTrue, reason: 'the app opens it after the preflight');
   });
 }

@@ -9714,6 +9714,10 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get danceEditorUserFigureUnavailable =>
+      'Votre figure n’est pas disponible ; cette ligne garde donc sa formulation actuelle.';
+
+  @override
   String get compoundEditorDiscardBody =>
       'Vous avez des modifications non enregistrées dans cette figure.';
 
