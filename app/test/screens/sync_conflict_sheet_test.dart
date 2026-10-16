@@ -684,6 +684,42 @@ void main() {
       expect(find.textContaining('zoom: larks'), findsOneWidget);
     });
 
+    testWidgets('a dialect\'s name for a figure of your own is shown by the '
+        'figure\'s name (#1023)', (tester) async {
+      Map<String, Object?> mine(String name) => {
+        'name': 'Mine',
+        'moves': {userFigureKeyFor('zoom-id'): name},
+      };
+      final repos = await _pump(
+        tester,
+        size: const Size(900, 1400),
+        seed: (repos) => repos.userGlossary.upsert(
+          UserGlossaryEntry(
+            id: 'zoom-id',
+            kindName: UserGlossaryEntryKind.customFigure.name,
+            name: 'role1s zoom',
+            definition: 'A zoom.',
+            description: 'Fast.',
+            payload: const {
+              'template': '{move}',
+              'defaultBeats': 8,
+              'params': <Object?>[],
+            },
+            createdAt: _tie,
+          ),
+        ),
+      );
+      await tester.runAsync(
+        () => _queueTie(repos, [
+          ('custom_dialects', [mine('whizz')], [mine('swoosh')]),
+        ]),
+      );
+      await _open(tester);
+      expect(find.textContaining('larks zoom → whizz'), findsOneWidget);
+      expect(find.textContaining('larks zoom → swoosh'), findsOneWidget);
+      expect(find.textContaining('userFigure:'), findsNothing);
+    });
+
     testWidgets('each version says when it was changed, when that tells '
         'them apart', (tester) async {
       final repos = await _pump(tester);
