@@ -107,7 +107,7 @@ void main() {
     expect(ticked(tester, 0), isFalse);
     expect(enabled(tester, 0), isFalse);
     expect(
-      find.byKey(const ValueKey('cc-term-import-problem-0')),
+      find.byKey(const ValueKey('cc-term-import-needs-definition-0')),
       findsOneWidget,
     );
     expect(
@@ -133,7 +133,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(ticked(tester, 0), isTrue);
     expect(
-      find.byKey(const ValueKey('cc-term-import-problem-0')),
+      find.byKey(const ValueKey('cc-term-import-needs-definition-0')),
       findsNothing,
     );
   });
@@ -166,7 +166,9 @@ void main() {
   });
 
   testWidgets('a second term of the same name in the file is taken too, and '
-      'renaming the first onto another unticks that one', (tester) async {
+      'renaming the first onto another unticks that one and frees the second', (
+    tester,
+  ) async {
     await openScreen(tester, [
       twirl,
       CcTerm(name: 'dixie  twirl', definition: 'Again.'),
@@ -186,7 +188,16 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('cc-term-edit-save')));
     await tester.pumpAndSettle();
     expect(ticked(tester, 0), isTrue);
-    expect(ticked(tester, 1), isTrue, reason: 'its name is free again');
+    expect(
+      enabled(tester, 1),
+      isTrue,
+      reason: 'its name is free again: it can be ticked',
+    );
+    expect(
+      ticked(tester, 1),
+      isFalse,
+      reason: 'only the term edited is ticked for the user',
+    );
     expect(ticked(tester, 2), isFalse, reason: 'the first now has its name');
   });
 

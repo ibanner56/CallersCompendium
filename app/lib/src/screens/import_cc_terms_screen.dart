@@ -134,10 +134,11 @@ class _ImportCcTermsScreenState extends State<ImportCcTermsScreen> {
     final theme = Theme.of(context);
     final draft = _drafts[index];
     final taken = _taken(index);
-    final problems = [
-      if (taken) l10n.importCcTermsNameTaken,
-      if (draft.definition.trim().isEmpty) l10n.importCcTermsNeedsDefinition,
-    ];
+    final problems = {
+      if (taken) 'taken': l10n.importCcTermsNameTaken,
+      if (draft.definition.trim().isEmpty)
+        'needs-definition': l10n.importCcTermsNeedsDefinition,
+    };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -166,10 +167,11 @@ class _ImportCcTermsScreenState extends State<ImportCcTermsScreen> {
                   '${l10n.glossaryNotes}: $notes',
                   style: theme.textTheme.bodySmall,
                 ),
-              for (final problem in problems)
+              for (final MapEntry(key: kind, value: problem)
+                  in problems.entries)
                 Text(
                   problem,
-                  key: ValueKey('cc-term-import-problem-$index'),
+                  key: ValueKey('cc-term-import-$kind-$index'),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.error,
                   ),

@@ -369,6 +369,31 @@ The app keeps up to 500 figure shorthands. If you are at that number, buttons
 you confirm cannot be added; the app tells you so, and you can seed them after
 deleting some shorthands.
 
+### Bring your glossary terms across
+
+If your Caller's Companion file has **terms** of your own, and the
+[Glossary](./settings.md#glossary-and-custom-figures) is shown, the import then
+offers them on **Terms in this file**, after the shorthands. Each comes across as
+a term in your Glossary: a word with its explanation, and no figure. Its
+**Source**, where Caller's Companion has one (such as a book and its author),
+comes with it as it was written, and shows on the term's page. Its notes become
+the term's notes.
+
+Every Glossary entry needs a name, a definition and a description. Caller's
+Companion has no description, so each term's starts as its definition. Choose
+**Edit** to change either one, or the name, before you add it.
+
+- A term with no definition starts unticked and says so. Give it one with
+  **Edit**, and it is ticked.
+- A term whose name is already a figure's, a shorthand's or one of your entries'
+  (or an earlier term's in the same file) can't be added under that name. Leave
+  it out, or rename it with **Edit**.
+
+The confirm button counts what is ticked (**Add 2 terms**). Afterwards, **Undo**
+on the message takes the terms back out. A term too long for the Glossary, or
+one that doesn't fit because your Glossary is full, is left out, and the app
+says how many. Choose **Skip** to add none.
+
 ## Move your whole library: backup and restore
 
 A single Caller's Compendium file can hold **everything** — your dances,

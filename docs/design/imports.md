@@ -455,8 +455,11 @@ declines the collapse.
   it is read into a figure or a wording template. The source citation is kept
   whole, as the term payload's `source` (`glossaryTermSource`): one sample
   can't show that CC always writes "title - author", so it is not split. The
-  opt-in, previewed step that adds them to the user's glossary follows the
-  dance/program commit, as the shorthand seeding does (maintainer, 2026-10-16:
+  opt-in, previewed step that adds them to the user's glossary
+  (`ImportCcTermsScreen`, then `applyCcTermImport`, while the Glossary is
+  shown) follows the shorthand seeding, its context read before that step
+  because Done on the result dialog closes the review (#1819). It adds each as
+  a `term`, with an Undo (maintainer, 2026-10-16:
   a row's description starts as its definition; one with no definition is
   offered unticked until it has one, its notes kept as the entry's notes; and
   a row whose name is taken can only be skipped, never added marked *Rename

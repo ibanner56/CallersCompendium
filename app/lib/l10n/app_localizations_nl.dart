@@ -289,39 +289,39 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get importCcTermsTitle => 'Terms in this file';
+  String get importCcTermsTitle => 'Termen in dit bestand';
 
   @override
   String get importCcTermsIntro =>
-      'Your Caller\'s Companion file has terms of its own. Choose which to add to your Glossary as terms. Each one\'s description starts as its definition: edit a term to change either, or its name.';
+      'Je Caller\'s Companion-bestand heeft eigen termen. Kies welke je als termen aan je woordenlijst toevoegt. Elke beschrijving begint als de definitie: bewerk een term om die, de definitie of de naam te wijzigen.';
 
   @override
   String get importCcTermsNameTaken =>
-      'A figure, shorthand or term already has this name. Rename it to add it, or leave it out.';
+      'Een figuur, afkorting of term heeft deze naam al. Geef hem een andere naam om hem toe te voegen, of laat hem weg.';
 
   @override
   String get importCcTermsNeedsDefinition =>
-      'It has no definition. Edit it to give it one and add it.';
+      'Hij heeft geen definitie. Bewerk hem om er een te geven en hem toe te voegen.';
 
   @override
-  String get importCcTermsEditTitle => 'Edit term';
+  String get importCcTermsEditTitle => 'Term bewerken';
 
   @override
   String importCcTermsEditLabel(String name) {
-    return 'Edit $name';
+    return '$name bewerken';
   }
 
   @override
-  String get importCcTermsSkip => 'Skip';
+  String get importCcTermsSkip => 'Overslaan';
 
   @override
   String importCcTermsConfirm(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Add $count terms',
-      one: 'Add 1 term',
-      zero: 'Add terms',
+      other: '$count termen toevoegen',
+      one: '1 term toevoegen',
+      zero: 'Termen toevoegen',
     );
     return '$_temp0';
   }
@@ -331,8 +331,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Added $count terms to your Glossary.',
-      one: 'Added 1 term to your Glossary.',
+      other: '$count termen aan je woordenlijst toegevoegd.',
+      one: '1 term aan je woordenlijst toegevoegd.',
     );
     return '$_temp0';
   }
@@ -343,16 +343,16 @@ class AppLocalizationsNl extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count terms couldn\'t be added: they\'re too long, or your Glossary is full.',
+          '$count termen konden niet worden toegevoegd: ze zijn te lang, of je woordenlijst is vol.',
       one:
-          '1 term couldn\'t be added: it\'s too long, or your Glossary is full.',
+          '1 term kon niet worden toegevoegd: hij is te lang, of je woordenlijst is vol.',
     );
     return '$_temp0';
   }
 
   @override
   String glossaryTermSource(String source) {
-    return 'Source: $source';
+    return 'Bron: $source';
   }
 
   @override

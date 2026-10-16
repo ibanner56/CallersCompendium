@@ -300,6 +300,50 @@
   "@glossaryCustomCopiedFrom": {
     "x-sourceSha256": "3c803d847c47bd231f3c3bb39109df7e6a49945c0432bbed0fbc3cacbc72db5e"
   },
+  "importCcTermsTitle": "このファイルの用語",
+  "@importCcTermsTitle": {
+    "x-sourceSha256": "5ae022f959c3c603b6f896330e21a31be76a043b049c0e58b2418faadb7bc520"
+  },
+  "importCcTermsIntro": "Caller's Companion ファイルに独自の用語があります。用語集に用語として追加するものを選んでください。説明は最初は定義と同じです。用語を編集すると、説明・定義・名前を変更できます。",
+  "@importCcTermsIntro": {
+    "x-sourceSha256": "b19a51da89f82418cd4771adf2481967a522fccfe12a04f254b8f20d567597a1"
+  },
+  "importCcTermsNameTaken": "フィギュア、ショートハンド、または用語がすでにこの名前を使っています。名前を変更して追加するか、追加しないでください。",
+  "@importCcTermsNameTaken": {
+    "x-sourceSha256": "43337a9a5b09469e8a86ace68df2ce760b2e19bd13fce1ffba035f1dd1935381"
+  },
+  "importCcTermsNeedsDefinition": "定義がありません。編集して定義を加えると追加できます。",
+  "@importCcTermsNeedsDefinition": {
+    "x-sourceSha256": "11af2ee7e314ff38aa02c96c581e3a1eb8ddb05356609429367e3dc3d22770cb"
+  },
+  "importCcTermsEditTitle": "用語を編集",
+  "@importCcTermsEditTitle": {
+    "x-sourceSha256": "e8e50e7ff1817a0f8e2a0b99f6d7bad2421e7cb7b63a76176b10947882379837"
+  },
+  "importCcTermsEditLabel": "{name} を編集",
+  "@importCcTermsEditLabel": {
+    "x-sourceSha256": "2313fe21ea84567f451e913cae39bd4ef9775a83458b23f3f440c2108e5363a1"
+  },
+  "importCcTermsSkip": "スキップ",
+  "@importCcTermsSkip": {
+    "x-sourceSha256": "28d03596d24eeb4eab2d6fe21ca1cb95be7cb1fa6f92933db05e2cc4f4cdfa06"
+  },
+  "importCcTermsConfirm": "{count, plural, =0{用語を追加} other{{count}件の用語を追加}}",
+  "@importCcTermsConfirm": {
+    "x-sourceSha256": "1b0448de168148edd809f4ce4001f8c088a17c3cac96626d3314cf74b403b0d6"
+  },
+  "importCcTermsAdded": "{count, plural, other{{count}件の用語を用語集に追加しました。}}",
+  "@importCcTermsAdded": {
+    "x-sourceSha256": "88e79ac1192a3ac97f816144d0231cc422aae7f22c000b270ef19b3b7276608f"
+  },
+  "importCcTermsFailed": "{count, plural, other{{count}件の用語を追加できませんでした。長すぎるか、用語集がいっぱいです。}}",
+  "@importCcTermsFailed": {
+    "x-sourceSha256": "8aac2e3b66b96bf668ab23514ffb16793275bb927815be11d3f355dcd4a10885"
+  },
+  "glossaryTermSource": "出典: {source}",
+  "@glossaryTermSource": {
+    "x-sourceSha256": "9f9d70c6e9c02550610692cff5686db18819f711160ae757a745aaac28a1e1e8"
+  },
   "glossaryCustomShippedNameBody": "アプリに {name} という独自のフィギュアが追加されました。自分のフィギュアの名前を変更するか、ダンスをアプリのフィギュアに切り替えて自分のフィギュアを削除してください。",
   "@glossaryCustomShippedNameBody": {
     "x-sourceSha256": "01c2a7364d0611f3cf2f3c5e1e881f8619329a10ea1260d42b72fd89438ce235"
