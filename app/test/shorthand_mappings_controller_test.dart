@@ -106,6 +106,42 @@ void main() {
     expect(controller.mappings, hasLength(1));
   });
 
+  test('upsert refuses a new shorthand past the cap, but still edits in '
+      'place at the cap', () async {
+    final repos = openTestRepositories();
+    final controller = ShorthandMappingsController(repos.settings);
+    addTearDown(controller.dispose);
+
+    for (var i = 0; i < maxShorthandMappings; i++) {
+      await controller.upsert(
+        ShorthandMapping(token: 't$i', figures: [_swing()]),
+      );
+    }
+    expect(controller.mappings, hasLength(maxShorthandMappings));
+
+    // The 501st would save and then be dropped by decode at next launch.
+    await expectLater(
+      controller.upsert(ShorthandMapping(token: 'over', figures: [_swing()])),
+      throwsArgumentError,
+    );
+    expect(controller.mappings, hasLength(maxShorthandMappings));
+    expect(controller.hasToken('over'), isFalse);
+
+    // Editing a row in place does not grow the list, so it is still allowed.
+    await controller.upsert(
+      ShorthandMapping(token: 'T0', figures: [_swing()]),
+      index: 0,
+    );
+    expect(controller.mappings.first.token, 'T0');
+
+    // Nothing the refusal left behind survives a relaunch.
+    final reloaded = ShorthandMappingsController(repos.settings);
+    addTearDown(reloaded.dispose);
+    await reloaded.load();
+    expect(reloaded.mappings, hasLength(maxShorthandMappings));
+    expect(reloaded.hasToken('over'), isFalse);
+  });
+
   test('upsert rejects an empty or over-long token', () async {
     final repos = openTestRepositories();
     final controller = ShorthandMappingsController(repos.settings);
