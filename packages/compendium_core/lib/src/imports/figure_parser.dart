@@ -205,7 +205,11 @@ const FigureFrontEnd canonicalFigureFrontEnd = FigureFrontEnd();
 ///   onto exactly one taxonomy move AND the whole line is accounted for — any
 ///   leftover, unexplained prose forces the custom fallback. A wrong structured
 ///   match silently misrepresents choreography, which is worse than an honest
-///   custom figure: when in doubt, custom.
+///   custom figure: when in doubt, custom. Free-text entry, and only it, adds
+///   one exception after this parser misses: a whole line that is a move's
+///   name (`hey`, `mad robin`) reads as that move with its defaults
+///   (`typed_figure_names.dart`, #1826). The "bare X degrades to custom" notes
+///   on the recognizers below describe this parser, which imports use.
 /// - **Validated.** Every candidate structured figure is checked against
 ///   [taxonomy]; if it produces any error-severity [ValidationIssue] (unknown
 ///   move/param, out-of-domain value) it is discarded in favour of custom.
@@ -2094,8 +2098,9 @@ _Match? _butterflyWhirl(List<String> w) {
 /// and `shoulder` (the shoulder of the first pass) — and nothing else.
 ///
 /// Both the starting pair and the shoulder are REQUIRED: a bare "half hey" is
-/// not matched here (it stays custom, as before), and any leftover token yields
-/// null so the line degrades to a faithful custom figure.
+/// not matched here (an import keeps it custom; free-text entry reads it as a
+/// name, see `typed_figure_names.dart`), and any leftover token yields null so
+/// the line degrades to a faithful custom figure.
 _Match? _heyStartBy(List<String> w) {
   String? length;
   if (_consumePhrase(w, ['half', 'hey'])) {

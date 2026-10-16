@@ -92,13 +92,25 @@ swing`, `half hey, ladies start by the right` and
 `allemande left 1 1/2 with neighbor`. A line whose leftover is only another
 move, `and back` or a bare number (`neighbors swing 16`) is kept as a custom
 figure, marked unparsed, rather than becoming a figure with the wrong beats; use
-the leading `16 neighbors swing` form to set the beats. `give and take` still
-needs a giver and a target.
+the leading `16 neighbors swing` form to set the beats.
+
+Any move's own name typed on its own works, whatever your dialect: `hey`, `mad
+robin`, `contra corners`, `give & take` (or `give and take`, `give-and-take`),
+in capitals or not. Your dialect's own name for a move works too. A name on its
+own gives the figure with its usual options, which you can then change; with
+anything else on the line, the line is read as above. The app also reads `hey
+for four`, `half hey`, `full hey`, `turn as a couple`, turn amounts in words
+(`allemande right once and a half`), and older role words such as `ravens` by
+what they mean (`ravens chain` is the same as `robins chain`), unless your own
+role terms use that word, in which case it means your role.
 
 A count can also be written in brackets, `(16) circle left` or `[16] circle
-left`, and goes at the end as well (`circle left [16]`). A count is never
-dropped: if the line states one the app cannot use (a second count, or one
-too long to be beats), the line is kept whole as a custom figure. A line kept
+left`, and goes at the end as well (`circle left [16]`). Any of these can say
+`beats`: `neighbor swing (16 beats)`, `neighbor swing 16 beats` or `16 beats
+neighbor swing`. A count in bars (`circle left 4 bars`) is kept as a note on
+the figure, because how many beats a bar holds depends on the dance's music.
+A count is never dropped: if the line states one the app cannot use (a second
+count, or one too long to be beats), the line is kept whole as a custom figure. A line kept
 as a custom figure keeps your words as you typed them, count included, and the
 count you gave is also its beats.
 
