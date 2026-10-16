@@ -376,8 +376,115 @@ void main() {
 
   test('a restore clears what was kept', () async {
     await apply(newerProgram(program()));
-    await repositories.syncLocal.clearForRestore(restoredRecords: const []);
+    await repositories.syncLocal.clearForRestore(
+      restoredRecords: const [],
+      replacesAllRecords: true,
+    );
     expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
+  });
+
+  group('a restore that is not a full replace', () {
+    // Kept parts belong to the peer's copy of a record, so a merge-like writer
+    // may drop them only for a record it writes itself. Dropping an unrelated
+    // record's parts leaves a peer copy at the same `updatedAt` a tie that never
+    // returns them, and the next local edit then overwrites the peer's copy with
+    // a body that lacks them.
+    Tag tag() => Tag(id: 't1', name: 'Tag');
+
+    CompendiumArchive archiveOf(List<Program> programs) =>
+        CompendiumArchive(exportedAt: _stamp, programs: programs);
+
+    Future<void> expectTagStillCarriesWhatWasKept() async {
+      expect(
+        (await repositories.syncLocal.listRetainedSyncFields()).map(
+          (row) => row.recordId,
+        ),
+        contains('t1'),
+      );
+      final shared = await published((
+        kind: SyncRecordKind.tag,
+        recordId: 't1',
+      ));
+      expect(shared.blob.body['payNoteV2'], 'cash on the night');
+    }
+
+    SyncRecordBlob newerTag() {
+      final blob = syncRecordBlobForEntity(
+        SyncRecordKind.tag,
+        tag(),
+        updatedAt: _stamp,
+        existenceAt: _stamp,
+      )!;
+      return SyncRecordBlob(
+        kind: SyncRecordKind.tag,
+        id: blob.id,
+        updatedAt: blob.updatedAt,
+        deletedAt: null,
+        existenceAt: blob.existenceAt,
+        body: {...blob.body, 'payNoteV2': 'cash on the night'},
+      );
+    }
+
+    test(
+      'a merge-like archive import keeps what unrelated records kept',
+      () async {
+        await apply(newerTag());
+        final archive = archiveOf([program()]);
+
+        await CompendiumArchiveImporter(
+          ImportPipeline(
+            DanceRepository(db, contraTaxonomy),
+            ChoreographerRepository(db),
+          ),
+          ProgramRepository(db),
+          VenueRepository(db),
+          repositories: repositories,
+        ).import(
+          encodeArchive(archive),
+          archive,
+          now: _stamp.add(const Duration(hours: 2)),
+        );
+
+        await expectTagStillCarriesWhatWasKept();
+      },
+    );
+
+    test('a merge restore keeps what unrelated records kept, and drops '
+        'what the records it writes kept', () async {
+      await apply(newerTag());
+      await apply(newerProgram(program()));
+      expect(
+        await repositories.syncLocal.listRetainedSyncFields(),
+        hasLength(2),
+      );
+
+      final result = await ArchiveRestorer(repositories).restore(
+        archiveOf([program(title: 'From the backup')]),
+        mode: RestoreMode.merge,
+      );
+
+      expect(result.errors, isEmpty);
+      await expectTagStillCarriesWhatWasKept();
+      expect(
+        (await repositories.syncLocal.listRetainedSyncFields()).map(
+          (row) => row.recordId,
+        ),
+        ['t1'],
+        reason: 'the merge replaced p1, so what was kept for it goes',
+      );
+    });
+
+    test('a replace restore clears everything that was kept', () async {
+      await apply(newerTag());
+      await apply(newerProgram(program()));
+
+      final result = await ArchiveRestorer(
+        repositories,
+      ).restore(archiveOf([program()]));
+
+      expect(result.errors, isEmpty);
+      expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
+    });
   });
 
   test('making a shared custom field private with parts kept does not stop '
