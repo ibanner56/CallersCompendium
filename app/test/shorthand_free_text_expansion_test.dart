@@ -26,7 +26,7 @@ Future<void> _pumpDefaultsWithShorthands(
   CompendiumRepositories repos,
   ShorthandMappingsController shorthands,
 ) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 3000));
+  await tester.binding.setSurfaceSize(const Size(1200, 3600));
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
@@ -97,10 +97,6 @@ void main() {
       find.byKey(const ValueKey('figure-free-text-field')),
       'NS',
     );
-    // The buttons sit beneath the field, which can be below the fold here.
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('figure-free-text-submit')),
-    );
     await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
     await tester.pumpAndSettle();
 
@@ -136,10 +132,10 @@ void main() {
         'Neighbor swing',
       );
       // The buttons sit beneath the field, which can be below the fold here.
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('figure-free-text-submit')),
-    );
-    await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('figure-free-text-submit')),
+      );
+      await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
       await tester.pumpAndSettle();
 
       final stored = danceFiguresTemplateFromStored(
