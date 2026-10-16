@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../data/picker_extensions.dart';
+
 /// Delivers the exported diagnostics [contents] to the user as a file named
 /// [suggestedFileName]. Returns `true` if it was saved/shared, or `false` if
 /// the user cancelled the dialog. Genuine I/O/plugin failures should throw.
@@ -19,9 +21,9 @@ bool Function() isDesktopPlatformForLog = () =>
 
 /// The file-type filter behind the diagnostics-log save dialog.
 @visibleForTesting
-XTypeGroup crashLogTypeGroup({bool? isLinux}) => const XTypeGroup(
+XTypeGroup crashLogTypeGroup({bool? isLinux}) => XTypeGroup(
   label: 'Diagnostics log',
-  extensions: ['log', 'txt'],
+  extensions: pickerExtensions(['log', 'txt'], isLinux),
   uniformTypeIdentifiers: ['public.plain-text'],
   mimeTypes: ['text/plain'],
 );

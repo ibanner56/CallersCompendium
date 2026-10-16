@@ -8,6 +8,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../data/picker_extensions.dart';
+
 /// Materializes a share-bundle payload as an [XFile] for the OS share sheet.
 typedef BundleFileWriter = Future<XFile> Function(String json, String fileName);
 
@@ -51,21 +53,20 @@ bool Function() isBundleShareUnsupported = () => Platform.isLinux;
 
 /// The default file-type filter for [saveJsonBundle].
 @visibleForTesting
-XTypeGroup jsonBundleTypeGroup({bool? isLinux}) => const XTypeGroup(
+XTypeGroup jsonBundleTypeGroup({bool? isLinux}) => XTypeGroup(
   label: 'JSON',
-  extensions: ['json'],
+  extensions: pickerExtensions(['json'], isLinux),
   uniformTypeIdentifiers: ['public.json'],
   mimeTypes: ['application/json'],
 );
 
 /// The file-type filter for the Save As fallback in [_saveBundleAs].
 @visibleForTesting
-XTypeGroup bundleSaveTypeGroup(String extension, {bool? isLinux}) =>
-    XTypeGroup(
-      label: extension.toUpperCase(),
-      extensions: [extension],
-      mimeTypes: const ['application/json'],
-    );
+XTypeGroup bundleSaveTypeGroup(String extension, {bool? isLinux}) => XTypeGroup(
+  label: extension.toUpperCase(),
+  extensions: pickerExtensions([extension], isLinux),
+  mimeTypes: const ['application/json'],
+);
 
 /// Writes [json] to a path-safe [fileName] in the temporary directory.
 Future<XFile> writeBundleFile(

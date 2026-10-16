@@ -8,6 +8,8 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'picker_extensions.dart';
+
 /// Delivers a finished backup [json] to the user as a file named
 /// [suggestedFileName]. Returns `true` if the backup was delivered/saved, or
 /// `false` if the user cancelled the save/share dialog without picking a
@@ -38,9 +40,9 @@ bool Function() isMacOsPlatform = () => Platform.isMacOS;
 
 /// The file-type filter behind the backup save and restore dialogs.
 @visibleForTesting
-XTypeGroup backupJsonTypeGroup({bool? isLinux}) => const XTypeGroup(
+XTypeGroup backupJsonTypeGroup({bool? isLinux}) => XTypeGroup(
   label: 'Backup (JSON)',
-  extensions: ['json'],
+  extensions: pickerExtensions(['json'], isLinux),
   uniformTypeIdentifiers: ['public.json'],
   mimeTypes: ['application/json'],
 );
