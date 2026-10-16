@@ -15,6 +15,40 @@ Future<Map<String, String>> frozenDefaultFigureLists(
   SettingsRepository settings,
   String id,
   FigureRenderer renderer,
+) => rewrittenDefaultFigureLists(
+  settings,
+  (figures) => freezeUserFigureUsesIn(figures, id, renderer),
+);
+
+/// What switching the user's figure [id] to the shipped figure [mapping]
+/// names (#1023, maintainer decision 5) makes of the default figure lists
+/// that use it, as [frozenDefaultFigureLists] for a delete: each use
+/// switched as the dances are ([switchUserFigureUsesIn]). Read while the
+/// figure still exists; written once it is retired.
+Future<Map<String, String>> switchedDefaultFigureLists(
+  SettingsRepository settings,
+  String id,
+  UserFigureDefinition definition,
+  UserFigureSwitch mapping,
+  FigureRenderer renderer,
+) => rewrittenDefaultFigureLists(
+  settings,
+  (figures) => switchUserFigureUsesIn(
+    figures,
+    id,
+    definition,
+    mapping,
+    renderer.taxonomy,
+    renderer,
+  ),
+);
+
+/// For each stored default figure list that [rewrite] changes (returning a
+/// list not identical to the one it was given), its settings key and the
+/// value to store.
+Future<Map<String, String>> rewrittenDefaultFigureLists(
+  SettingsRepository settings,
+  List<Figure> Function(List<Figure> figures) rewrite,
 ) async {
   final frozen = <String, String>{};
   Future<void> freeze(
@@ -25,7 +59,7 @@ Future<Map<String, String>> frozenDefaultFigureLists(
     final stored = await settings.get(key);
     if (stored == null) return;
     final figures = decode(stored);
-    final kept = freezeUserFigureUsesIn(figures, id, renderer);
+    final kept = rewrite(figures);
     if (!identical(kept, figures)) frozen[key] = encode(kept);
   }
 

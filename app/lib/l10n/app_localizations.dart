@@ -560,6 +560,90 @@ abstract class AppLocalizations {
   /// **'Copied from {name}'**
   String glossaryCustomCopiedFrom(String name);
 
+  /// On one of the user's own figures (#1023) whose name a figure that came with a later version of the app now has; {name} is that figure's name. The user chooses: rename theirs, or switch to the app's.
+  ///
+  /// In en, this message translates to:
+  /// **'The app now has its own figure called {name}. Rename yours, or switch your dances to the app\'s figure and remove yours.'**
+  String glossaryCustomShippedNameBody(String name);
+
+  /// Button on one of the user's own figures whose name a figure of the app's now has (#1023): opens the editor to rename theirs.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename mine'**
+  String get glossaryCustomRenameMine;
+
+  /// Button on one of the user's own figures whose name a figure of the app's now has (#1023): opens a screen that maps the user's figure onto the app's, then switches the dances using it to the app's figure and removes the user's.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to the app\'s'**
+  String get glossaryCustomSwitchToShipped;
+
+  /// Title of the screen that maps one of the user's own figures onto the app's figure of the same name (#1023); {name} is the app's figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to {name}'**
+  String userFigureSwitchTitle(String name);
+
+  /// Explains the screen that maps one of the user's own figures onto the app's figure of the same name (#1023); {name} is the app's figure. 'Settings' are the figure's parameters.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what each of your figure\'s settings becomes in {name}, and which of its values each of your choices becomes. Every one must be chosen before you can switch.'**
+  String userFigureSwitchIntro(String name);
+
+  /// Label of the menu choosing which of the app's figure's parameters one of the user's parameters becomes (#1023); {param} is the user's parameter name.
+  ///
+  /// In en, this message translates to:
+  /// **'Your {param} becomes'**
+  String userFigureSwitchParam(String param);
+
+  /// Label of the menu choosing which of the app's values one of the user's choice values becomes (#1023); {choice} is the user's value.
+  ///
+  /// In en, this message translates to:
+  /// **'Your {choice} becomes'**
+  String userFigureSwitchChoice(String choice);
+
+  /// Shown when one of the user's parameters (#1023) has no parameter of the same kind in the app's figure, so the switch can't be made; {name} is the app's figure, {param} the user's parameter.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} has nothing your {param} can become. Remove it from your figure first, or rename yours instead.'**
+  String userFigureSwitchNoTarget(String name, String param);
+
+  /// Button that switches the user's figure to the app's figure of the same name (#1023), after a confirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get userFigureSwitchAction;
+
+  /// Title of the dialog confirming the switch from one of the user's own figures to the app's figure of the same name (#1023).
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to {name}?'**
+  String userFigureSwitchConfirmTitle(String name);
+
+  /// Body of the dialog confirming the switch to the app's figure {name} (#1023), with how many dances use the user's figure.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No dance in your collection uses your figure. It\'s removed from your Glossary.} =1{1 dance uses your figure, and will use {name} instead. Yours is removed from your Glossary.} other{{count} dances use your figure, and will use {name} instead. Yours is removed from your Glossary.}}'**
+  String userFigureSwitchConfirmUses(int count, String name);
+
+  /// Added to the dialog confirming a switch to the app's figure (#1023) when the user's default figure lists in Settings use their figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Your default figures use it too, and switch the same way.'**
+  String get userFigureSwitchConfirmDefaults;
+
+  /// Added to the dialog confirming a switch to the app's figure {name} (#1023) when the user has shorthands for their figure.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Its shorthand will insert {name}.} other{Its {count} shorthands will insert {name}.}}'**
+  String userFigureSwitchConfirmShorthands(int count, String name);
+
+  /// Shown when a switch to the app's figure (#1023) is refused because the user's figure changed since the mapping was chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing was switched: your figure changed or is gone. Open it again to switch.'**
+  String get userFigureSwitchFailed;
+
   /// Shown on a Glossary figure's detail when the app does not yet ship a definition for that figure.
   ///
   /// In en, this message translates to:

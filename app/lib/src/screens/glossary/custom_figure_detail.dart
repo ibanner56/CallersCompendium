@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
+import '../../data/dialect_library_controller.dart';
 import '../../data/dialect_library_scope.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/program_matrix_column_config_scope.dart';
@@ -18,6 +19,7 @@ import '../../glossary/user_figure_defaults.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
 import 'compound_editor_screen.dart';
+import 'user_figure_switch_screen.dart';
 
 final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
@@ -217,51 +219,247 @@ class _GlossaryCustomFigureDetailState
       // figure still renders.
       final frozenDefaults = await _frozenDefaults(repos);
       await repos.deleteUserFigure(widget.entryId);
-      // Then what the settings keep for it (#1023, plan C9). The figure is
-      // gone either way, so a failure in either step below is logged rather
-      // than stopping the page from closing, and neither skips the other.
-      //
-      // Each dialect's name and wording for it, and its matrix column's
-      // place, hiding and rename: nothing would read them again, but they
-      // would stay in every backup and sync. A failure leaves only inert
-      // keys.
-      try {
-        await dialects?.forgetUserFigure(widget.entryId);
-        // Through the navigator's context: in the wide Glossary the delete
-        // unmounts this page as soon as the list no longer holds the entry,
-        // and the matrix scope sits above the navigator.
-        final scopeContext = navigator.context;
-        if (scopeContext.mounted &&
-            ProgramMatrixColumnConfigScope.maybeNotifierOf(scopeContext) !=
-                null) {
-          await _dropMatrixColumn(scopeContext, repos);
-        }
-      } on Object catch (e, stackTrace) {
-        logCaughtError(
-          e,
-          stackTrace,
-          source: 'GlossaryCustomFigureDetail._confirmAndDelete',
-        );
-      }
-      // Its uses in the default figure lists, frozen as the dances were. A
-      // failure leaves a list holding uses of a figure that is gone: each
-      // still shows its stored line, and the dance editor makes it plain text
-      // when a dance holding it is saved.
-      try {
-        for (final MapEntry(:key, :value) in frozenDefaults.entries) {
-          await persistSetting(repos.settings, key, value);
-        }
-      } on Object catch (e, stackTrace) {
-        logCaughtError(
-          e,
-          stackTrace,
-          source: 'GlossaryCustomFigureDetail._confirmAndDelete',
-        );
-      }
+      await _forgetSettings(navigator, repos, dialects, frozenDefaults);
     } else {
       await repos.userGlossary.delete(widget.entryId);
     }
     if (!widget.showName && mounted) navigator.pop();
+  }
+
+  /// Set while a switch is being chosen or asked about, so a second tap
+  /// opens no second screen.
+  bool _switching = false;
+
+  /// Switches this figure to the shipped figure [target] that now has its
+  /// name (#1023, maintainer decision 5): the user maps it onto [target]
+  /// ([UserFigureSwitchScreen]), confirms with how many dances use it, and
+  /// then its uses become [target]'s and it is retired.
+  Future<void> _switch(
+    BuildContext context,
+    UserFigureDefinition figure,
+    String target,
+  ) async {
+    if (_switching) return;
+    _switching = true;
+    try {
+      await _chooseAndSwitch(context, figure, target);
+    } finally {
+      _switching = false;
+    }
+  }
+
+  Future<void> _chooseAndSwitch(
+    BuildContext context,
+    UserFigureDefinition figure,
+    String target,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final repos = _repos!;
+    // Read before anything is awaited: the switch can unmount this page (in
+    // the wide Glossary it does).
+    final dialects = DialectLibraryScope.maybeOf(context);
+    final shorthands = ShorthandMappingsScope.maybeOf(context);
+    final targetName = _renderer.displayMoveName(
+      target,
+      ActiveDialectScope.of(context),
+    );
+    final mapping = await navigator.push<UserFigureSwitch>(
+      MaterialPageRoute(
+        builder: (_) => UserFigureSwitchScreen(figure: figure, target: target),
+      ),
+    );
+    if (mapping == null || !context.mounted) return;
+    final uses = await repos.dances.countDancesUsingUserFigure(widget.entryId);
+    final trashed = await repos.dances.countTrashedDancesUsingUserFigure(
+      widget.entryId,
+    );
+    final inDefaults = (await _switchedDefaults(repos, mapping)).isNotEmpty;
+    final shorthandCount =
+        shorthands?.userFigureShorthands
+            .where((s) => s.figureId == widget.entryId)
+            .length ??
+        0;
+    if (!context.mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.userFigureSwitchConfirmTitle(targetName)),
+        content: Text(
+          [
+            l10n.userFigureSwitchConfirmUses(uses, targetName),
+            if (trashed > 0) l10n.glossaryCustomDeleteTrash(trashed),
+            if (inDefaults) l10n.userFigureSwitchConfirmDefaults,
+            if (shorthandCount > 0)
+              l10n.userFigureSwitchConfirmShorthands(
+                shorthandCount,
+                targetName,
+              ),
+          ].join(' '),
+          key: const ValueKey('user-figure-switch-confirm-body'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('user-figure-switch-confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.userFigureSwitchAction),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    // Read again now, not when the dialog opened, and before the switch,
+    // while the figure is still live.
+    final current = await _liveDefinition(repos);
+    final switchedDefaults = await _switchedDefaults(repos, mapping);
+    try {
+      await repos.switchUserFigureToBuiltIn(widget.entryId, mapping);
+    } on StateError catch (e, stackTrace) {
+      // The figure changed since it was mapped (an edit synced in, say), or
+      // is gone: nothing was written.
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'GlossaryCustomFigureDetail._chooseAndSwitch',
+      );
+      messenger?.showSnackBar(
+        SnackBar(content: Text(l10n.userFigureSwitchFailed)),
+      );
+      return;
+    }
+    // Its shorthands insert the shipped figure now. A failure leaves them
+    // inert, showing the figure's name, as after a delete.
+    if (current != null) {
+      try {
+        await shorthands?.switchUserFigureShorthands(
+          widget.entryId,
+          (shorthand) => _switchedShorthand(shorthand, current, mapping),
+        );
+      } on Object catch (e, stackTrace) {
+        logCaughtError(
+          e,
+          stackTrace,
+          source: 'GlossaryCustomFigureDetail._chooseAndSwitch',
+        );
+      }
+    }
+    await _forgetSettings(navigator, repos, dialects, switchedDefaults);
+    if (!widget.showName && mounted) navigator.pop();
+  }
+
+  /// The figure the shorthand [shorthand] inserts once this figure is
+  /// switched to [mapping]'s target, or null to leave it as it is: the use
+  /// it inserts, switched as a dance's would be.
+  Figure? _switchedShorthand(
+    UserFigureShorthand shorthand,
+    UserFigureDefinition definition,
+    UserFigureSwitch mapping,
+  ) {
+    final use = userFigureUseFigure(
+      id: widget.entryId,
+      args: shorthand.args,
+      text: shorthand.figureName,
+      beats: shorthand.beats,
+    );
+    final switched = switchUserFigureUsesIn(
+      [use],
+      widget.entryId,
+      definition,
+      mapping,
+      contraTaxonomy,
+      _renderer,
+    ).single;
+    return switched.move == customMoveId ? null : switched;
+  }
+
+  /// This figure's definition as stored now, or null once it is gone or no
+  /// longer decodes.
+  Future<UserFigureDefinition?> _liveDefinition(
+    CompendiumRepositories repos,
+  ) async {
+    final entry = await repos.userGlossary.getById(widget.entryId);
+    if (entry == null || entry.kind != UserGlossaryEntryKind.customFigure) {
+      return null;
+    }
+    return decodeUserFigureDefinition(entry.payload);
+  }
+
+  /// The default figure lists that use this figure, switched to [mapping]'s
+  /// target ([switchedDefaultFigureLists]); none once it is gone.
+  Future<Map<String, String>> _switchedDefaults(
+    CompendiumRepositories repos,
+    UserFigureSwitch mapping,
+  ) async {
+    final entry = await repos.userGlossary.getById(widget.entryId);
+    final definition = entry == null
+        ? null
+        : decodeUserFigureDefinition(entry.payload);
+    if (entry == null || definition == null) return const {};
+    return switchedDefaultFigureLists(
+      repos.settings,
+      widget.entryId,
+      definition,
+      mapping,
+      FigureRenderer(
+        contraTaxonomy,
+        userFigures: UserFigureCatalog.fromEntries([entry]),
+      ),
+    );
+  }
+
+  /// What the settings keep for this figure once it is retired, by a delete
+  /// or a switch (#1023, plan C9): its uses in the default figure lists
+  /// rewritten as [defaults] holds them, and each dialect's name and wording
+  /// for it and its matrix column dropped. The figure is gone either way, so
+  /// a failure in either step is logged rather than stopping the page from
+  /// closing, and neither skips the other.
+  Future<void> _forgetSettings(
+    NavigatorState navigator,
+    CompendiumRepositories repos,
+    DialectLibraryController? dialects,
+    Map<String, String> defaults,
+  ) async {
+    // Each dialect's name and wording for it, and its matrix column's place,
+    // hiding and rename: nothing would read them again, but they would stay
+    // in every backup and sync. A failure leaves only inert keys.
+    try {
+      await dialects?.forgetUserFigure(widget.entryId);
+      // Through the navigator's context: in the wide Glossary the delete
+      // unmounts this page as soon as the list no longer holds the entry, and
+      // the matrix scope sits above the navigator.
+      final scopeContext = navigator.context;
+      if (scopeContext.mounted &&
+          ProgramMatrixColumnConfigScope.maybeNotifierOf(scopeContext) !=
+              null) {
+        await _dropMatrixColumn(scopeContext, repos);
+      }
+    } on Object catch (e, stackTrace) {
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'GlossaryCustomFigureDetail._forgetSettings',
+      );
+    }
+    // Its uses in the default figure lists, rewritten as the dances were. A
+    // failure leaves a list holding uses of a figure that is gone: each still
+    // shows its stored line, and the dance editor makes it plain text when a
+    // dance holding it is saved.
+    try {
+      for (final MapEntry(:key, :value) in defaults.entries) {
+        await persistSetting(repos.settings, key, value);
+      }
+    } on Object catch (e, stackTrace) {
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'GlossaryCustomFigureDetail._forgetSettings',
+      );
+    }
   }
 
   /// The default figure lists that use this figure, frozen
@@ -352,6 +550,14 @@ class _GlossaryCustomFigureDetailState
     );
 
     final figure = item.figure;
+    // A later version of the app shipped a figure of this one's name (#1023,
+    // maintainer decision 5): rename it, or switch to the app's. Only a
+    // figure of your own that can be used can switch, and only while Custom
+    // Figures is shown.
+    final shippedTarget =
+        figure != null && !item.unsupported && customFiguresShown(context)
+        ? shippedFigureNamed(entry.name, contraTaxonomy)
+        : null;
     final example = figure == null ? null : _exampleOf(entry, figure, dialect);
     final args = definition == null
         ? null
@@ -383,10 +589,44 @@ class _GlossaryCustomFigureDetailState
             l10n.glossaryCustomNeedsRepairBody,
             'glossary-custom-needs-repair',
           ),
-        if (item.renameNeeded)
+        if (shippedTarget != null)
+          attention(
+            l10n.glossaryCustomShippedNameBody(
+              _renderer.displayMoveName(shippedTarget, dialect),
+            ),
+            'glossary-custom-shipped-name',
+          )
+        else if (item.renameNeeded)
           attention(
             l10n.glossaryCustomRenameNeededBody,
             'glossary-custom-rename-needed',
+          ),
+        if (shippedTarget != null && figure != null)
+          Padding(
+            padding: const EdgeInsetsDirectional.only(
+              start: AppSpacing.xl,
+              top: AppSpacing.sm,
+            ),
+            child: Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.xs,
+              children: [
+                OutlinedButton(
+                  key: const ValueKey('glossary-custom-rename-mine'),
+                  onPressed: _repos == null
+                      ? null
+                      : () => _edit(context, entry),
+                  child: Text(l10n.glossaryCustomRenameMine),
+                ),
+                OutlinedButton(
+                  key: const ValueKey('glossary-custom-switch-to-shipped'),
+                  onPressed: _repos == null
+                      ? null
+                      : () => _switch(context, figure, shippedTarget),
+                  child: Text(l10n.glossaryCustomSwitchToShipped),
+                ),
+              ],
+            ),
           ),
         Padding(
           padding: const EdgeInsets.only(top: AppSpacing.md),
