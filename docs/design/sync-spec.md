@@ -4422,21 +4422,25 @@ timeout: a device that never updates keeps the gate closed until it is
 removed.
 
 **Rollout.** The first pass of a build that advertises a capability finds
-every other device on a build from before it. None has written a capability
-record, so each reads as closed (*The gate*) and is named in a held-back notice
-until it updates. That is the expected state of every existing store, not a
-fault, and it is the case a build that advertises a capability is most likely
-to get wrong: a gate tested only with its peers' records already seeded can
-hold everything back for ever, or release it too early, and pass every test. So a change that first advertises a capability MUST ship a test of this
-case against `SyncCapabilityPolicy.build` itself, not a hand-built policy,
-which would go on passing if the shipped one changed. With every other device
-in the store lacking a record it MUST show that the capability's records
-are left out of the manifest and their blobs not uploaded, that the rows stay
-live on the device and are recorded as published, that each such device is
+every other device without it: on a build from before the capability gate it
+has written no capability record, and on a later build its record does not list
+this capability. Either reads as closed (*The gate*), and the device is named in
+a held-back notice, when the pass holds something back, until it updates. That
+is the expected state of every existing store, not a fault, and it is the case
+a build that advertises a capability is most likely to get wrong: a gate tested
+only with its peers' records already seeded can hold everything back for ever,
+or release it too early, and pass every test. So a change that first advertises
+a capability should ship a test of this case against
+`SyncCapabilityPolicy.build` itself, not a hand-built policy, which would go on
+passing if the shipped one changed. With every other device in the store
+lacking a record, or holding one that does not list the capability, it should
+show that the capability's records are left out of the manifest and their blobs
+not uploaded, that the rows are recorded as published, that each such device is
 named once, and that the records publish once every device lists the
-capability. Decided by Isaac (maintainer), 2026-10-16. The reference
-client's is `rollout: beside peers that have not written a capability record
-yet…` in the `the capability gate` group of
+capability. This requirement and its wording are a proposal of the change that
+added it; the maintainer approved the documentation and the test, not the
+rule. The reference client's test is `rollout: beside peers that have not
+written a capability record yet…` in the `the capability gate (#709)` group of
 `app/test/sync/sync_coordinator_test.dart`, with the group `the shipped policy`
 in `packages/compendium_core/test/sync/sync_capabilities_test.dart`.
 
