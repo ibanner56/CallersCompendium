@@ -172,14 +172,15 @@ String? resolveSanitizedVenueLabelParts(
 );
 
 /// The user's own new figures (#1023) that [dances] use, attached, each found
-/// through [userFigureFor] and without its notes: what a share bundle carries
-/// so the receiver can add them (plan C12). A figure [userFigureFor] can't find
-/// (gone, or not on this device) is left out; its uses still carry their lines.
-/// None without [userFigureFor].
+/// through [userFigureFor]: what a share bundle carries so the receiver can
+/// add them (plan C12). A figure [userFigureFor] can't find (gone, or not on
+/// this device) is left out; its uses still carry their lines. None without
+/// [userFigureFor].
 ///
-/// Notes are left out though the registry classifies them shareable, as it
-/// does every glossary column: that class is for sync, between the owner's
-/// own devices, while a bundle goes to someone else.
+/// The archive writes each one without its notes ([archiveUserFigureToJson]),
+/// though the registry classifies them shareable, as it does every glossary
+/// column: that class is for sync, between the owner's own devices, while a
+/// bundle goes to someone else.
 List<UserGlossaryEntry> userFiguresForShare(
   Iterable<Dance> dances,
   UserGlossaryEntry? Function(String id)? userFigureFor,
@@ -192,6 +193,6 @@ List<UserGlossaryEntry> userFiguresForShare(
     ]))
       if (userFigureFor(id) case final entry?
           when entry.kind == UserGlossaryEntryKind.customFigure)
-        entry.copyWith(clearNotes: true),
+        entry,
   ];
 }
