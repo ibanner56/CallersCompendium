@@ -281,8 +281,8 @@ void main() {
       );
     });
 
-    testWidgets('typed into an existing row, one whose figure is gone leaves '
-        'a stated custom figure there (#1847)', (tester) async {
+    testWidgets('typed into an existing row, one whose figure is gone is read '
+        'as an ordinary line in that row\'s place (#1847)', (tester) async {
       final repos = await pump(
         tester,
         compounds: [shorthand()],
@@ -293,6 +293,8 @@ void main() {
       expect(figures, hasLength(3));
       expect(figures[1].move, customMove);
       expect(figures[1].params['text'], 'grl');
+      // Parsed, not stated: it keeps the parser-gap marker (#398).
+      expect(figures[1].customOrigin, CustomOrigin.importGap);
     });
 
     testWidgets('one whose figure is gone is read as an ordinary line', (

@@ -182,8 +182,8 @@ class FigureListEditor extends StatefulWidget {
   /// [onSubmitCompoundShorthand] for a line typed into the Move box of the
   /// existing row [draft] (#1847): on a match it puts that shorthand's row in
   /// the row's place, so the old row is replaced as a parsed line replaces it,
-  /// and says whether it did. A line it declines goes to the parser, and then
-  /// to a stated custom figure, as before. Only used when free-text entry is
+  /// and says whether it did. A line it declines is parsed and replaces the
+  /// row as before (#1177). Only used when free-text entry is
   /// active; null offers none.
   final bool Function(FigureDraft draft, String line)? onReplaceWithShorthand;
 
