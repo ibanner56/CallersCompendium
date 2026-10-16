@@ -162,7 +162,7 @@ taxonomy name does not shadow that move. Punctuation at the end of the line
 followed by a name reads as the move with that `who` (#1857, `neighbor pass by`).
 Only a move with a `who` param takes one; for any other (`hey` names its
 dancers in `pass1`) or an unknown word the line stays custom. Role words
-(`ravens hey`) are not in that list: the dancer lookup also runs on the
+(`ravens mad robin`) are not in that list: the dancer lookup also runs on the
 retries' text above, so they keep the meaning the dialect gives them. Imports
 read none of these.
 

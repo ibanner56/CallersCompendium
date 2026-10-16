@@ -344,7 +344,7 @@ List<Figure> _parseSplit(
   // Last, the line as a move's name (`hey.`, `mad robin`), alone or after a
   // dancer (`neighbor pass by`): only when no parse read it, so a line the
   // grammar reads keeps every fact it states. A role word in the dancer's place
-  // (`ravens hey`) is read by the retries' meaning of it, as it is above.
+  // (`ravens mad robin`) is read by the retries' meaning of it, as it is above.
   final names = taxonomy ?? contraTaxonomy;
   final named =
       figureFromTypedName(

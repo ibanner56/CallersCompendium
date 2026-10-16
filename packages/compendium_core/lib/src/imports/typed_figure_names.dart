@@ -182,10 +182,10 @@ Figure? figureFromTypedName(
   }
 }
 
-/// The figure [text] names as a dancer and a move's name (`ravens hey`), else
+/// The figure [text] names as a dancer and a move's name (`ravens mad robin`), else
 /// `null`; [text] is a line that a dialect or the built-in role terms have
 /// already been read out of, such as the result of `canonicalizeGlossaryText`
-/// (`ravens hey` → `role2s hey`). Unlike [figureFromTypedName] it never reads
+/// (`ravens mad robin` → `role2s mad robin`). Unlike [figureFromTypedName] it never reads
 /// the whole line as a name, so it cannot change a name that line reads.
 Figure? figureFromTypedDancerName(
   String text, {
