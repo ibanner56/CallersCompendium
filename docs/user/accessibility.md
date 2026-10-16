@@ -138,6 +138,12 @@ so reading ahead never changes your slot.
 figures — also offers **move-up** and **move-down** actions. Figures additionally
 offer cut and paste. You never *need* to drag to reorder something.
 
+**Figure actions menu.** Tab to a figure's **⋮** button and press **Space** or
+**Enter** to open its actions menu. Focus lands on the first action you can use,
+the **up** and **down** arrow keys move between actions (skipping any that are
+unavailable, such as Move up on the first figure), **Enter** runs the highlighted
+one, and **Esc** closes the menu and returns focus to the **⋮** button.
+
 **Always know where you are.** Interactive controls show a visible focus outline
 as you move through them, so you can always see which control has focus.
 

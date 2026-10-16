@@ -99,7 +99,10 @@ Queueing is the fallback, not the plan. Divide the work so it is not needed:
 
 - A subagent verifying its own edits runs the gates that cover them —
   `--fast` for the Python ratchets, `--only analyze app-tests` and the like for
-  the rest. `--list` says what each step is for.
+  the rest. `--list` says what each step is for. `--fast` does not run
+  `fixtures`, `format` or `analyze`, because they need Dart: a change to a Dart
+  file or a test also runs `--only fixtures format analyze`. A test that built a
+  `Figure` from a variable passed `--fast` and failed `fixtures` in CI (#1814).
 - The session that owns the change runs the **full** preflight once, on the
   final tree, after its subagents have finished. A subagent's pass on a subset
   is not evidence for the merged result.

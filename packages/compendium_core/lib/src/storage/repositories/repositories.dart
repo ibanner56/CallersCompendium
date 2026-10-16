@@ -905,7 +905,8 @@ class CompendiumRepositories {
       // be one this build now syncs; move it into the record before anyone
       // can edit that record, or the kept copy would win over the edit.
       // Nothing to do — one indexed read — on every open but the first after
-      // such an upgrade.
+      // such an upgrade, unless a soft-deleted record still has a kept part
+      // (not promoted; spec §6.7), which costs a snapshot each time.
       await CompendiumSyncStorage(this).promoteRetainedSyncFields();
     } catch (_) {
       // Don't cache a failed migration: clear the memo so a subsequent call
