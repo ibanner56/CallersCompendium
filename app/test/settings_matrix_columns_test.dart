@@ -808,19 +808,54 @@ void main() {
       ]);
     });
 
-    testWidgets('reordering while your figures are not listed keeps their '
-        'place', (tester) async {
+    Future<List<String>> reorderFirstToThird(
+      WidgetTester tester,
+      List<String> initial,
+    ) async {
       final read = await _pumpEditor(
         tester,
-        initial: MatrixColumnConfig(order: ['userFigure:a-id', ...catalogIds]),
+        initial: MatrixColumnConfig(order: initial),
       );
       tester
           .widget<ReorderableListView>(find.byType(ReorderableListView))
           .onReorderItem!(0, 2);
       await tester.pumpAndSettle();
-      final expected = [...catalogIds];
-      expected.insert(2, expected.removeAt(0));
-      expect(read().order, [...expected, 'userFigure:a-id']);
+      return read().order;
+    }
+
+    List<String> movedFirstToThird() {
+      final moved = [...catalogIds];
+      moved.insert(2, moved.removeAt(0));
+      return moved;
+    }
+
+    testWidgets('reordering while your figures are not listed keeps one '
+        'placed first, first', (tester) async {
+      expect(
+        await reorderFirstToThird(tester, ['userFigure:a-id', ...catalogIds]),
+        ['userFigure:a-id', ...movedFirstToThird()],
+      );
+    });
+
+    testWidgets('reordering while your figures are not listed keeps them '
+        'after the column they followed, in their own order', (tester) async {
+      // do_si_do moves to third; the two figures stay right after it.
+      final moved = movedFirstToThird();
+      expect(moved[2], catalogIds.first);
+      expect(
+        await reorderFirstToThird(tester, [
+          catalogIds.first,
+          'userFigure:a-id',
+          'userFigure:b-id',
+          ...catalogIds.skip(1),
+        ]),
+        [
+          ...moved.take(3),
+          'userFigure:a-id',
+          'userFigure:b-id',
+          ...moved.skip(3),
+        ],
+      );
     });
 
     testWidgets('the Matrix columns screen lists your figures only while '

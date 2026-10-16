@@ -113,17 +113,17 @@ class MatrixColumnEditor extends StatelessWidget {
     final shown = ids.toSet();
     final moved = ids.removeAt(oldIndex);
     ids.insert(newIndex, moved);
-    // Keep the place of a column not listed here: a figure of your own's
-    // while Custom Figures is off (#1023), which comes back where it was.
-    onConfigChanged(
-      config.copyWith(
-        order: [
-          ...ids,
-          for (final id in config.order)
-            if (!shown.contains(id)) id,
-        ],
-      ),
-    );
+    // A column not listed here (a figure of your own's, while Custom Figures
+    // is off, #1023) keeps its place: it goes back right after the column it
+    // followed in the old order, or first when it followed none.
+    String? previous;
+    for (final id in config.order) {
+      if (!shown.contains(id)) {
+        ids.insert(previous == null ? 0 : ids.indexOf(previous) + 1, id);
+      }
+      previous = id;
+    }
+    onConfigChanged(config.copyWith(order: ids));
   }
 
   void _toggleHidden(String id) {
