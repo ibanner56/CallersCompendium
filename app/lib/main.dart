@@ -297,6 +297,7 @@ class CompendiumApp extends StatefulWidget {
     this.syncDebounce = kSyncChangeDebounce,
     this.syncPairingProbeFactory,
     this.editorDraftShutdownController,
+    this.updateTemporaryDirectoryProvider,
   });
 
   /// The initially opened database + repositories facade. Injected from [main]
@@ -346,6 +347,11 @@ class CompendiumApp extends StatefulWidget {
   /// termination. The reset flow deliberately bypasses this coordinator while
   /// closing the database before deleting it.
   final EditorDraftShutdownController? editorDraftShutdownController;
+
+  /// Where the update downloader's temp directories live (and where the
+  /// launch-time sweep looks for stale ones). Defaults to the platform temp
+  /// directory; a test injects one to observe the sweep.
+  final Future<Directory> Function()? updateTemporaryDirectoryProvider;
 
   /// Initial value for the history preference notifier. Exposed for widget
   /// tests that need to verify replacement resets a stale in-memory value.
@@ -816,6 +822,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _updateController = UpdateController(
       _appData.repositories.settings,
       onMacosShutdown: _windowService.closeForUpdate,
+      temporaryDirectoryProvider: widget.updateTemporaryDirectoryProvider,
     );
     _syncController = SyncController(
       settings: _appData.repositories.settings,
@@ -1499,6 +1506,11 @@ class _CompendiumAppState extends State<CompendiumApp>
     // no-op unless the user opted in (default off) and never blocks startup or
     // surfaces an error — fire-and-forget per the ADR-002 §5 privacy contract.
     unawaited(_updateController.maybeAutoCheck());
+    // Housekeeping, not part of the opt-in check: delete update-download temp
+    // directories left from earlier runs (a successful download keeps its
+    // installer on purpose, so they would otherwise pile up). Local, silent,
+    // and age-guarded, so it needs no consent and cannot touch a live download.
+    unawaited(_updateController.sweepStaleDownloads());
     // Scheduled only here, at the success tail, so a failed attempt that Retry
     // re-runs never queues a probe and each successful bootstrap probes once.
     WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -9262,6 +9262,10 @@
   "@glossaryNotesTooLong": {
     "x-sourceSha256": "c2ecf8838d292638167b611a8223636504b1c2756a50854797f78afe414fc11c"
   },
+  "glossaryOverBudget": "用語集のサイズが上限に達したため、保存できませんでした。ほかのフィギュアやメモを削除するか短くして空きを作り、もう一度お試しください。",
+  "@glossaryOverBudget": {
+    "x-sourceSha256": "ac1dcf961ced36258bd915f92ee594566bac7f0f85110bf1e48fa9494aca677a"
+  },
   "compoundEditorTitleNew": "新しいフィギュア",
   "@compoundEditorTitleNew": {
     "x-sourceSha256": "3bd330f1f22470db1387c962d78ceea1c7f302fd57729577ba2ee6cb9e9d3326"

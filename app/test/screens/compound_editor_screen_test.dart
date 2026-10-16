@@ -380,6 +380,29 @@ void main() {
     expect(await tester.runAsync(repos.userGlossary.listAll), isEmpty);
   });
 
+  testWidgets('a full Glossary says so, not that a field is too long', (
+    tester,
+  ) async {
+    final repos = await pump(tester, initial: twoPullBys());
+    // Rows written before there was a budget: past it by a few KB, in one
+    // row, put there directly because the repository would now refuse it.
+    await tester.runAsync(
+      () => repos.db.customStatement(
+        'INSERT INTO user_glossary_entries '
+        '(id, kind, name, definition, description, created_at) '
+        "VALUES ('old', 'compound', 'old', 'd', "
+        "replace(hex(zeroblob(${maxUserGlossaryBytes + 1024})), '00', 'x'), 0)",
+      ),
+    );
+    await save(tester);
+    expect(find.textContaining('has reached its size limit'), findsOneWidget);
+    expect(find.text('One of the fields is too long.'), findsNothing);
+    expect(
+      (await tester.runAsync(repos.userGlossary.listAll))!.map((e) => e.id),
+      ['old'],
+    );
+  });
+
   testWidgets('a name is compared as it is stored, so two spellings of one '
       'role cannot both be saved', (tester) async {
     final existing = UserGlossaryEntry(

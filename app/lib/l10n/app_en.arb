@@ -12224,6 +12224,10 @@
   "@glossaryNotesTooLong": {
     "description": "Shown when the user's notes on a built-in figure in the Glossary are over the length that can be stored."
   },
+  "glossaryOverBudget": "Your Glossary has reached its size limit, so this could not be saved. Make room by deleting or shortening other figures or notes, then try again.",
+  "@glossaryOverBudget": {
+    "description": "Shown when saving one of the user's own figures, or their notes on a built-in figure, is refused because the whole Glossary (all their figures and notes together) is at its size limit. The text of the item being saved is not the problem."
+  },
   "compoundEditorTitleNew": "New figure",
   "@compoundEditorTitleNew": {
     "description": "Title of the editor for a new custom figure."

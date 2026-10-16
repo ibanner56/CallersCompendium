@@ -9281,6 +9281,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your notes are too long to save. Shorten them and try again.';
 
   @override
+  String get glossaryOverBudget =>
+      'Your Glossary has reached its size limit, so this could not be saved. Make room by deleting or shortening other figures or notes, then try again.';
+
+  @override
   String get compoundEditorTitleNew => 'New figure';
 
   @override

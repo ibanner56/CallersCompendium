@@ -9434,6 +9434,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Deine Notizen sind zu lang zum Speichern. Kürze sie und versuche es erneut.';
 
   @override
+  String get glossaryOverBudget =>
+      'Dein Glossar hat seine Größengrenze erreicht, daher konnte dies nicht gespeichert werden. Schaffe Platz, indem du andere Figuren oder Notizen löschst oder kürzt, und versuche es dann erneut.';
+
+  @override
   String get compoundEditorTitleNew => 'Neue Figur';
 
   @override

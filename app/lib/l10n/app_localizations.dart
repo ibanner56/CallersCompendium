@@ -14060,6 +14060,12 @@ abstract class AppLocalizations {
   /// **'Your notes are too long to save. Shorten them and try again.'**
   String get glossaryNotesTooLong;
 
+  /// Shown when saving one of the user's own figures, or their notes on a built-in figure, is refused because the whole Glossary (all their figures and notes together) is at its size limit. The text of the item being saved is not the problem.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Glossary has reached its size limit, so this could not be saved. Make room by deleting or shortening other figures or notes, then try again.'**
+  String get glossaryOverBudget;
+
   /// Title of the editor for a new custom figure.
   ///
   /// In en, this message translates to:

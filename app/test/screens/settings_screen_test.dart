@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show SystemChannels;
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/backup_document.dart'
     show
@@ -4482,6 +4483,42 @@ void main() {
           expect(exportCalls, 1);
         },
       );
+
+      testWidgets('a backup too large to export says so, with the sizes, not '
+          'the generic failure', (tester) async {
+        Future<bool> saver(String json, String name) async =>
+            throw const BackupExportTooLargeException(
+              sizeBytes: 60 * 1024 * 1024,
+              maxBytes: 50 * 1024 * 1024,
+            );
+
+        _pairingProbeFactory = (syncId, endpoint) => SyncPairingProbe(
+          getStore: ({required previouslyUsed}) async =>
+              throw UnimplementedError(),
+          createStore: () async => const SyncHttpResponse(
+            statusCode: 201,
+            kind: SyncResponseKind.created,
+            headers: {},
+            body: [],
+          ),
+        );
+        await enableAndOpenPairing(tester, backupSaver: saver);
+        await tester.tap(find.byKey(const ValueKey('sync-pairing-create')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('sync-pairing-backup-accept')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text(AppLocalizationsEn().backupExportTooLarge('60.0', '50.0')),
+          findsOneWidget,
+        );
+        expect(
+          find.text(AppLocalizationsEn().backupExportFailed),
+          findsNothing,
+        );
+      });
 
       testWidgets(
         'skipping the backup offer exports nothing (spec §6.14 item 3)',

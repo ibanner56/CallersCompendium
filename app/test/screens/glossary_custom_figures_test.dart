@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/decimal_turns_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -700,6 +702,136 @@ void main() {
       expect(
         await tester.runAsync(() => h.repos.figureNotes.get('swing')),
         isNull,
+      );
+      // The dialog stays open on what was typed, so the text is not lost and
+      // "shorten them" can be done in place.
+      final field = find.byKey(const ValueKey('glossary-notes-field'));
+      expect(field, findsOneWidget);
+      expect(tester.widget<TextField>(field).controller!.text, 'Larks ' * 3333);
+      await tester.enterText(field, 'Larks finish on the left');
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-save')));
+      await tester.pumpAndSettle();
+      expect(field, findsNothing);
+      expect(
+        (await tester.runAsync(() => h.repos.figureNotes.get('swing')))!.notes,
+        'role1s finish on the left',
+      );
+    });
+
+    testWidgets('nothing closes the dialog while a save is in flight', (
+      tester,
+    ) async {
+      final h = await pump(tester);
+      await search(tester, 'swing');
+      await tester.tap(find.byKey(const ValueKey('glossary-entry-swing')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('glossary-notes-field')),
+        'Larks finish on the left',
+      );
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-save')));
+      // One frame in, the save has started and not finished.
+      await tester.pump();
+      final cancel = find.byKey(const ValueKey('glossary-notes-cancel'));
+      expect(tester.widget<TextButton>(cancel).onPressed, isNull);
+      await tester.tap(cancel, warnIfMissed: false);
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('glossary-notes-field')),
+        findsOneWidget,
+        reason: 'Cancel did not close the dialog while saving',
+      );
+
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('glossary-notes-field')), findsNothing);
+      // The route beneath the dialog is still there, showing the stored note.
+      expect(find.text('larks finish on the left'), findsOneWidget);
+      expect(
+        (await tester.runAsync(() => h.repos.figureNotes.get('swing')))!.notes,
+        'role1s finish on the left',
+      );
+    });
+
+    testWidgets('an unexpected failure to store leaves Save usable', (
+      tester,
+    ) async {
+      final h = await pump(tester);
+      // Not a refusal the repository reports: the write itself fails.
+      await tester.runAsync(
+        () => h.repos.db.customStatement(
+          'CREATE TRIGGER notes_fail BEFORE INSERT ON figure_notes '
+          "BEGIN SELECT RAISE(ABORT, 'boom'); END",
+        ),
+      );
+      await search(tester, 'swing');
+      await tester.tap(find.byKey(const ValueKey('glossary-entry-swing')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('glossary-notes-field')),
+        'Larks finish on the left',
+      );
+      // The failure escapes the button's callback, as an unexpected one does.
+      final uncaught = <Object>[];
+      await runZonedGuarded(() async {
+        await tester.tap(find.byKey(const ValueKey('glossary-notes-save')));
+        await tester.pumpAndSettle();
+      }, (error, _) => uncaught.add(error));
+      expect(uncaught, hasLength(1));
+      final save = find.byKey(const ValueKey('glossary-notes-save'));
+      expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+      // And the retry goes through once the failure is gone.
+      await tester.runAsync(
+        () => h.repos.db.customStatement('DROP TRIGGER notes_fail'),
+      );
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(save, findsNothing);
+      expect(
+        (await tester.runAsync(() => h.repos.figureNotes.get('swing')))!.notes,
+        'role1s finish on the left',
+      );
+    });
+
+    testWidgets('a note the full Glossary has no room for says so, not that '
+        'the note is too long', (tester) async {
+      final h = await pump(tester);
+      // Rows written before there was a budget, put there directly because
+      // the repository would now refuse them.
+      await tester.runAsync(
+        () => h.repos.db.customStatement(
+          'INSERT INTO user_glossary_entries '
+          '(id, kind, name, definition, description, created_at) '
+          "VALUES ('old', 'compound', 'old', 'd', "
+          "replace(hex(zeroblob(${maxUserGlossaryBytes + 1024})), '00', 'x'), 0)",
+        ),
+      );
+      await search(tester, 'swing');
+      await tester.tap(find.byKey(const ValueKey('glossary-entry-swing')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('glossary-notes-field')),
+        'Larks finish on the left',
+      );
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-save')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('has reached its size limit'), findsOneWidget);
+      expect(find.textContaining('too long to save'), findsNothing);
+      expect(
+        await tester.runAsync(() => h.repos.figureNotes.get('swing')),
+        isNull,
+      );
+      // Still open, with the text the user typed.
+      final field = find.byKey(const ValueKey('glossary-notes-field'));
+      expect(field, findsOneWidget);
+      expect(
+        tester.widget<TextField>(field).controller!.text,
+        'Larks finish on the left',
       );
     });
   });

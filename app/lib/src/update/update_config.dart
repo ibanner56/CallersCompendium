@@ -122,6 +122,45 @@ const Duration kUpdateCheckTimeout = Duration(seconds: 10);
 /// real transfer is expected here, unlike the fire-and-forget check.
 const Duration kUpdateDownloadTimeout = Duration(seconds: 60);
 
+/// How long [downloadArtifact] waits for a failed or cancelled download's
+/// partial file to close before it returns anyway, with
+/// [DownloadOutcome.released] set so the caller finishes the cleanup later.
+///
+/// Much shorter than [kUpdateDownloadTimeout] on purpose. The idle timeout
+/// waits for a slow network that is still expected to deliver; this waits for
+/// a local file handle that normally closes in milliseconds, and the user is
+/// waiting on it: the controller only leaves `downloading` (and so only
+/// accepts a retry) once the downloader returns, so a handle the OS holds
+/// (antivirus scan, stalled disk or network share) would otherwise leave
+/// Cancel apparently dead for the whole idle timeout.
+const Duration kUpdateDiscardCloseTimeout = Duration(seconds: 3);
+
+/// The name prefix of the per-attempt directory a Windows/Linux assisted
+/// download is written into (`Directory.createTemp` appends a random suffix),
+/// and what [sweepStaleUpdateTempDirs] looks for. Keep the two in step: they
+/// share this constant so a directory the download creates is one the sweep
+/// can find.
+const String kUpdateTempDirPrefix = 'cc_update_';
+
+/// How long an update-download directory must have been untouched before the
+/// launch-time sweep ([sweepStaleUpdateTempDirs]) deletes it.
+///
+/// A successful download deliberately leaves its verified installer in place so
+/// the user can still reach it, and nothing else removes it, so the sweep
+/// is the only thing that ever does. A week is chosen to be far past the
+/// time a download in progress or a freshly handed-over installer needs, not to
+/// reclaim space quickly: a download another running instance is still writing
+/// and an installer the user was handed but has not run yet (on Linux they
+/// run it themselves, when they choose) are minutes to days old. The cost of
+/// being generous is one installer's disk space per update for that week.
+///
+/// The age is not what protects an installer the user keeps *running* from the
+/// temp directory: on Linux the AppImage is the app, and its directory's age is
+/// the download time, so it passes this age after a week of use. The sweep skips
+/// the directory holding the running executable instead (see
+/// [sweepStaleUpdateTempDirs]'s `inUsePaths`).
+const Duration kUpdateTempDirMinAge = Duration(days: 7);
+
 /// A hard upper bound on the number of bytes [downloadArtifact] will write for a
 /// single artifact, applied as a **backstop** for an artifact that carries no
 /// usable `size` (`size == 0`). A manifest parsed by [UpdateManifest] can never

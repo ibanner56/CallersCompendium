@@ -82,7 +82,10 @@ A backup holds **everything** you've built, including:
 - Your own figures from the Glossary and your notes on built-in figures (see
   [Glossary and Custom Figures](./settings.md#glossary-and-custom-figures)).
   Restoring a backup replaces them, but a backup made while you had none
-  leaves the ones on this device as they are.
+  leaves the ones on this device as they are. Your Glossary has a size limit
+  for what you add yourself; a backup made before the limit existed restores
+  whole even if it is over the limit, and you can then shorten or delete
+  figures and notes, but not add more until it is under.
 
 A few device-specific things are left out on purpose, so a restored device
 doesn't inherit the old one's quirks: window size and position, any

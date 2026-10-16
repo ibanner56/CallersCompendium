@@ -468,7 +468,12 @@ restart** from the banner or Updates section later. On **Windows**, clicking
 **Download & install update** authorizes the verified installer to run; it handles
 closing and replacing the existing installation. On **Linux**, the verified
 download is shown in your file manager for you to run yourself; the app never
-runs it for you. On phones and tablets, the
+runs it for you. On Windows and Linux, the downloaded file stays in your
+system's temporary folder after a successful download, and the next time the
+app starts it deletes update downloads there that are a week old. It never
+deletes the folder of the copy you are running, but on Linux, if you want to
+keep the AppImage, move it out of the temporary folder to somewhere permanent
+(your home folder, say) before then. On phones and tablets, the
 banner's link takes you to the release to download it the usual way for your
 platform.
 
@@ -633,6 +638,15 @@ holding them back (see [New kinds of data wait for every
 device](#new-kinds-of-data-wait-for-every-device)). New figures, with their
 own wording, your terms and the shorthands for your new figures stay on this
 device for now.
+
+Your figures and your notes on built-in figures share a size limit, which
+keeps what you add from growing too large to back up. It is far more than most
+callers will use (thousands of short figures). If you reach it, saving says that
+your Glossary has reached its size limit: delete or shorten some figures or
+notes to make room, then try again. Shortening or deleting is always allowed.
+Figures and notes that arrive from another device with Device Sync, or from a
+backup you restore, are always kept, even if they take you past the limit; you
+can then edit them down but not add more.
 
 ### Device Sync
 
