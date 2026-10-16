@@ -336,55 +336,6 @@ void main() {
     });
   });
 
-  test('a conflict that now looks like this device\'s copy, kept part '
-      'included, is not offered', () async {
-    // The resolver drops a version that looks the same as this device's copy.
-    // Spec §6.7 says that comparison draws only on the part this build syncs
-    // (decided by Isaac), which this test does not assert. It works only
-    // because for `setting` the visible-fields list is null
-    // (`syncUserVisibleFields`), so every non-identity key, a kept one
-    // included, counts as visible, and the resolver therefore has to compare
-    // this device's copy with its kept part put back.
-    //
-    // Finding F4 (branch sync-kept-parts-not-visible-differences) strips kept
-    // parts in `syncUserVisibleBody`. Once that lands, mutating the resolver to
-    // compare a stripped copy becomes equivalent for settings and this test can
-    // no longer fail: remove it with that change.
-    const address = (kind: SyncRecordKind.setting, recordId: 'custom_dialects');
-    SyncMergeCandidate peerCopy(String dialect) => SyncMergeCandidate.fromBlob(
-      SyncRecordBlob(
-        kind: SyncRecordKind.setting,
-        id: address.recordId,
-        updatedAt: _stamp,
-        deletedAt: null,
-        existenceAt: _stamp,
-        body: {
-          'value': [dialect],
-          'addedLater': {'on': true},
-        },
-      ),
-      peerId: 'peer',
-    );
-    await apply(peerCopy('Contra').blob);
-    final local = await published(address);
-    final plan = const SyncMergeEngine().plan(
-      local: {address: local},
-      baseline: const {},
-      peers: [
-        {address: peerCopy('Squares')},
-      ],
-    );
-    await storage.refreshConflictReviews(plan.reviews);
-    final resolver = SyncReviewQueueResolver(storage);
-    expect(await resolver.listConflicts(), hasLength(1));
-
-    await repositories.settings.set('custom_dialects', [
-      'Squares',
-    ], at: _stamp.add(const Duration(hours: 1)));
-
-    expect(await resolver.listConflicts(), isEmpty);
-  });
-
   test(
     'a natural-key survivor that takes over a record keeps its kept parts',
     () async {
