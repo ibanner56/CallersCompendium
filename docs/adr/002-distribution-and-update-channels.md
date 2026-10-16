@@ -182,6 +182,31 @@ Settings ▸ Updates additionally offer a **"Download & install"** action that:
    **cancel**. macOS first presents a native Save As panel and writes directly
    to the user-selected path, preserving user-consented download provenance;
    Windows and Linux use a private temp file.
+
+   *Temp-file lifecycle (Windows/Linux).* Each attempt writes into its own
+   randomly-named `cc_update_<random>` directory under the system temp
+   directory. A failed, cancelled, or checksum-mismatched attempt removes that
+   directory; where the OS still holds the partial file open (Windows), the
+   removal is retried once the file closes, and a **cancel or failure waits at
+   most `kUpdateDiscardCloseTimeout` (3 s)** for the close rather than the 60 s
+   network idle timeout, so Cancel re-arms the action promptly. After a
+   *successful* download the verified installer is deliberately **left in place**
+   (the user can still reach it after "completed"), so nothing removes it at the
+   end of the flow. Instead, **on every launch the app deletes `cc_update_*`
+   directories older than `kUpdateTempDirMinAge` (7 days)**, judged by the
+   newest modification time inside the directory, so with a correct clock a
+   download still being written, or an installer handed over within the week,
+   is not touched (a modification time in the future counts as recent). Age
+   alone is not enough: on Linux the artifact is an AppImage, a portable file
+   the user may keep running from the temp directory (the handoff only reveals
+   the folder), and its directory's age is the download time. So the sweep also
+   **never removes a directory that contains the running executable**
+   (`APPIMAGE`, or `Platform.resolvedExecutable`), compared by resolved path and
+   whole path segments. It matches only names `Directory.createTemp` produces
+   (`cc_update_` plus letters, digits and hyphens) and never follows symlinks. A user who
+   wants to keep an AppImage after a later run should move it out of the temp
+   directory (the user guide says so). The sweep is best-effort and silent; what
+   it cannot remove (a file still in use) is retried at the next launch.
 2. **Verifies** the file's **sha256 against `UpdateArtifact.sha256`** — a
    **mandatory** integrity gate. A mismatch **fails loudly**: the downloaded
    artifact is deleted and a clear error is surfaced (never a silent no-op).

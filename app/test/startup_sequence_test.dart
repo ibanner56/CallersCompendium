@@ -711,6 +711,32 @@ void main() {
     expect(find.byType(AppShell), findsOneWidget);
   });
 
+  testWidgets('startup sweeps stale update-download directories from the '
+      'temp directory the updater uses', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final appData = openTestAppData();
+    final temp = Directory.systemTemp.createTempSync('startup_sweep_test_');
+    addTearDown(() => temp.deleteSync(recursive: true));
+    var asked = 0;
+
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: NoopWindowService(appData.repositories.settings),
+        updateTemporaryDirectoryProvider: () async {
+          asked++;
+          return temp;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppShell), findsOneWidget);
+    expect(asked, 1, reason: 'bootstrap starts the sweep exactly once');
+  });
+
   testWidgets(
     'a shareable-settings write schedules a pass; the controller\'s own '
     'bookkeeping write does not (routed through the real change stream)',

@@ -1,0 +1,12 @@
+{
+  "id": "update-download-cancel-and-temp-sweep",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Cancelling an update download no longer appears stuck for up to a minute when Windows is still holding the partly downloaded file open (for example while antivirus scans it). Cancel now takes effect within a few seconds and you can start the download again."
+    ],
+    "changed": [
+      "On Windows and Linux, the app now deletes update downloads that are over a week old from your system's temporary folder each time it starts (never the copy you are running), so installers from earlier updates no longer pile up there."
+    ]
+  }
+}

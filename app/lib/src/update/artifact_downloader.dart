@@ -106,8 +106,9 @@ class DownloadOutcome {
 
   /// Non-null only when a failed download returned while its partial file was
   /// still open: a cancel or write watchdog gave up on a flush that had not
-  /// settled, or closing the file outlasted [kUpdateDownloadTimeout]. Completes (never with an error) once that file has been closed
-  /// and its deletion attempted. Until then the file blocks removal of its
+  /// settled, or closing the file outlasted [kUpdateDiscardCloseTimeout].
+  /// Completes (never with an error) once that file has been closed and its
+  /// deletion attempted. Until then the file blocks removal of its
   /// directory on Windows, so a caller that owns the directory retries removing
   /// it when this completes. It may never complete if the flush never settles.
   final Future<void>? released;
@@ -159,7 +160,10 @@ typedef ArtifactDownloader =
 /// validated against the manifest `size`; a mismatch is a
 /// [DownloadResultKind.sizeMismatch]. Every non-success path deletes the
 /// partial file — but only one this call itself created — so no truncated
-/// artifact is ever handed to verification.
+/// artifact is ever handed to verification. A failed or cancelled download
+/// waits at most [kUpdateDiscardCloseTimeout] for that file to close before
+/// returning; if the handle is still open then, the outcome's
+/// [DownloadOutcome.released] completes the cleanup later.
 ///
 /// [destination] is refused if anything already sits at that path — checked
 /// **without following a symlink** — before any byte is written (issue #626):
@@ -431,14 +435,17 @@ Future<DownloadOutcome> downloadArtifact(
     // that delete succeeded, the path may already belong to a new download and
     // must not be touched.
     //
-    // With no flush in flight, wait for the close (bounded like a flush, by
-    // [kUpdateDownloadTimeout]) before returning, so the `finally` delete runs
-    // against a released handle and the file is gone when the caller sees the
-    // outcome on Windows too — the caller removes the download directory next,
-    // which fails on Windows while the file is still there. When the file may
-    // still be open on return (a flush in flight, or a close that outlasted
-    // that bound), the outcome carries [DownloadOutcome.released] so the
-    // caller can remove the directory once the deferred cleanup has run.
+    // With no flush in flight, wait for the close, but only up to
+    // [kUpdateDiscardCloseTimeout], before returning: the `finally` delete
+    // then runs against a released handle and the file is gone when the caller
+    // sees the outcome on Windows too — the caller removes the download
+    // directory next, which fails on Windows while the file is still there.
+    // The bound is short because the caller cannot leave `downloading` (so a
+    // cancelled download cannot be retried) until this returns; it is not the
+    // [kUpdateDownloadTimeout] network bound. When the file may still be open
+    // on return (a flush in flight, or a close that outlasted that bound), the
+    // outcome carries [DownloadOutcome.released] so the caller can remove the
+    // directory once the deferred cleanup has run.
     if (!outcome.isSuccess) {
       sinkClosed = true;
       final openSink = sink;
@@ -472,7 +479,7 @@ Future<DownloadOutcome> downloadArtifact(
       }();
       if (pendingFlush == null) {
         try {
-          await closing.timeout(kUpdateDownloadTimeout);
+          await closing.timeout(kUpdateDiscardCloseTimeout);
           return outcome;
         } on TimeoutException {
           // diagnostics: silent — the outcome is already determined; the
