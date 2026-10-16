@@ -8210,6 +8210,10 @@
   "@shorthandsCompoundTitle": {
     "x-sourceSha256": "b37015f6e5621c3bf45810cce907194e87f5b4a9814b5c5695f960f484aa5949"
   },
+  "shorthandsUserFigureSyncLabel": "Kortformer for dine nye figurer",
+  "@shorthandsUserFigureSyncLabel": {
+    "x-sourceSha256": "ddb5a743e550727efdac098dc9b2ded70df5cf8685acefa501184ffefbd78757"
+  },
   "shorthandsCompoundIntro": "Når fri tekstindtastning er slået til, tilføjer du en af dine egne figurer med de værdier, der er valgt her, ved at skrive en af disse kortformer som en hel linje, mens du redigerer en dans.",
   "@shorthandsCompoundIntro": {
     "x-sourceSha256": "80090b751b53b2c67b417cdeed684cb8b14db7c4fa9ea70f67e05421fec4f587"
@@ -8229,6 +8233,10 @@
   "shorthandsCompoundShadowed": "Bruges ikke: en figurkortform har samme tekst.",
   "@shorthandsCompoundShadowed": {
     "x-sourceSha256": "75111a930cc8890e0f1378c778ee2c93d1ec4cd35897e8d496d60f0cc46d60b6"
+  },
+  "shorthandsUserFigureShadowedByCompound": "Bruges ikke: en kortform for en af dine kombinationer har samme tekst.",
+  "@shorthandsUserFigureShadowedByCompound": {
+    "x-sourceSha256": "49e899d6d9121b9290be30aa5be38ae4e2ae72f70fba7591164c43af0ca8e2d7"
   },
   "compoundShorthandEditorFigureLabel": "Din figur",
   "@compoundShorthandEditorFigureLabel": {
