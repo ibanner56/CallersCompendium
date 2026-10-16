@@ -259,6 +259,26 @@ def test_claude_verdict_survives_markdown_decoration() -> None:
         assert not ok, (body, lines)
 
 
+def test_a_later_verdictless_claude_entry_does_not_mask_an_earlier_block() -> None:
+    """Replying to an inline thread records an empty-body review entry, and
+    claude.yml posts as claude[bot] too. Neither carries a verdict, so neither
+    may stand in for the round that does."""
+    for later in ("", "Thanks, looking at it."):
+        fetcher = _claude_reviews((HEAD, BLOCK_BODY), (HEAD, later))
+        ok, lines = gates.gate_findings(fetcher, 1, CLAUDE)
+        assert not ok, (later, lines)
+        assert any("verdict BLOCK (round 1" in line for line in lines), lines
+
+
+def test_a_verdictless_entry_after_a_cleared_block_does_not_resurrect_it() -> None:
+    fetcher = _claude_reviews(
+        (STALE, BLOCK_BODY), (HEAD, "## Review verdict: APPROVE"), (HEAD, "")
+    )
+    ok, lines = gates.gate_findings(fetcher, 1, CLAUDE)
+    assert ok, lines
+    assert any("verdict APPROVE (round 2" in line for line in lines), lines
+
+
 def test_claude_review_without_a_verdict_line_says_so_and_does_not_fail() -> None:
     """`claude.yml` also posts as claude[bot] with no verdict line. Failing
     on it would block merges on a review that is not a rubric review; hiding it
