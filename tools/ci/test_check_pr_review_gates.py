@@ -184,6 +184,109 @@ def test_claude_findings_read_claudes_inline_comments_only() -> None:
     assert not any("lib/copilot.dart" in line for line in lines[1:]), lines
 
 
+BLOCK_BODY = """\
+## Review verdict: BLOCK
+
+The change falsifies a doc it did not touch.
+
+### Blockers
+
+#### B1. docs/x.md still describes the removed flag
+- **Where:** `docs/x.md:3`
+"""
+
+
+def _claude_reviews(*bodies: tuple[str, str]) -> Any:
+    """A Claude-only `findings` fixture: (commit, body) per round, no inline
+    comments -- the shape of a review whose findings all sit outside the diff."""
+    return FakeFetcher(
+        {
+            "pulls/1/reviews": [[review(CLAUDE.review_login, c, b) for c, b in bodies]],
+            "pulls/1/comments": [[]],
+        }
+    )
+
+
+def test_claude_block_verdict_with_body_only_findings_fails_the_findings_gate() -> None:
+    """A finding on a line outside the diff cannot be an inline comment, so a
+    `BLOCK` review can have zero inline findings and zero threads. The gate
+    used to read only inline comments and passed it."""
+    ok, lines = gates.gate_findings(_claude_reviews((HEAD, BLOCK_BODY)), 1, CLAUDE)
+    assert not ok, lines
+    assert any("BLOCK" in line for line in lines), lines
+
+
+def test_claude_block_verdict_fails_through_run_gates_with_exit_one() -> None:
+    fetcher = _claude_reviews((HEAD, BLOCK_BODY))
+    fetcher._rest["pulls/1"] = pull()
+    printed: list[str] = []
+    code = gates.run_gates(
+        fetcher, 1, ["findings", "review"], [], reviewer=CLAUDE, out=printed.append
+    )
+    assert code == 1, printed
+    assert any(line.startswith("FAIL findings:") for line in printed), printed
+    assert any(line.startswith("PASS review:") for line in printed), printed
+
+
+def test_claude_non_block_verdict_is_surfaced_and_passes() -> None:
+    for verdict in ("APPROVE", "APPROVE-WITH-NITS"):
+        body = f"## Review verdict: {verdict}\n\nNo blockers."
+        ok, lines = gates.gate_findings(_claude_reviews((HEAD, body)), 1, CLAUDE)
+        assert ok, lines
+        assert any(f"verdict {verdict}" in line for line in lines), lines
+
+
+def test_claude_verdict_is_read_from_the_latest_round_only() -> None:
+    """A BLOCK that a later round cleared must not fail the gate, and a BLOCK
+    that a later round did not clear must not be hidden by an earlier APPROVE."""
+    cleared = _claude_reviews((STALE, BLOCK_BODY), (HEAD, "## Review verdict: APPROVE"))
+    ok, lines = gates.gate_findings(cleared, 1, CLAUDE)
+    assert ok, lines
+    assert not any("verdict BLOCK" in line for line in lines), lines
+
+    reopened = _claude_reviews((STALE, "## Review verdict: APPROVE"), (HEAD, BLOCK_BODY))
+    ok, lines = gates.gate_findings(reopened, 1, CLAUDE)
+    assert not ok, lines
+
+
+def test_claude_verdict_survives_markdown_decoration() -> None:
+    for body in (
+        "## Review verdict: **BLOCK**",
+        "### Review verdict: `BLOCK`",
+        "intro line\n\n## Review verdict: block\n",
+    ):
+        ok, lines = gates.gate_findings(_claude_reviews((HEAD, body)), 1, CLAUDE)
+        assert not ok, (body, lines)
+
+
+def test_claude_review_without_a_verdict_line_says_so_and_does_not_fail() -> None:
+    """`claude.yml` also posts as claude[bot] with no verdict line. Failing
+    on it would block merges on a review that is not a rubric review; hiding it
+    would read as a clean verdict."""
+    ok, lines = gates.gate_findings(_claude_reviews((HEAD, "Looks fine.")), 1, CLAUDE)
+    assert ok, lines
+    assert any("no `## Review verdict:` line" in line for line in lines), lines
+
+
+def test_a_block_mentioned_in_prose_is_not_a_verdict() -> None:
+    body = "## Review verdict: APPROVE\n\nRound 1 said ## Review verdict: BLOCK."
+    ok, lines = gates.gate_findings(_claude_reviews((HEAD, body)), 1, CLAUDE)
+    assert ok, lines
+
+
+def test_a_copilot_review_is_not_read_for_a_verdict() -> None:
+    """Copilot's body has no verdict line; the Copilot gate stays as it was."""
+    fetcher = FakeFetcher(
+        {
+            "pulls/1/reviews": [[review(REVIEWER, HEAD, BLOCK_BODY)]],
+            "pulls/1/comments": [[]],
+        }
+    )
+    ok, lines = gates.gate_findings(fetcher, 1)
+    assert ok, lines
+    assert not any("verdict" in line for line in lines), lines
+
+
 def test_run_gates_passes_the_reviewer_to_both_review_gates() -> None:
     fetcher = FakeFetcher(
         {
