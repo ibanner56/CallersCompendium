@@ -517,8 +517,7 @@ class SyncLocalTransaction {
   /// kept for records the restore replaces.
   ///
   /// [replacesAllRecords] is true when the writer replaced the whole dataset,
-  /// so the kept parts of every record it replaced are gone (a restore leaves
-  /// settings in place, and their rows go too). Otherwise only the
+  /// so the kept parts of every record it replaced are gone. Otherwise only the
   /// parts of [restoredRecords] go: the kept parts of a record the writer did
   /// not touch are still the only copy of what a peer's newer build put there.
   Future<void> clearForRestore({

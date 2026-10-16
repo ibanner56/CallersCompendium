@@ -254,8 +254,7 @@ never sent anywhere.
 
 `retained_sync_fields` is record content, not store state: it MUST survive an
 epoch reset and a detach, like the record it belongs to. A restore that
-replaces the whole library MUST clear the table (the rows of settings
-included, though a restore leaves settings in place); a merge restore, which
+replaces the whole library MUST clear the table; a merge restore, which
 replaces only the records it writes, MUST clear the rows of those records and no
 others, because the kept parts of a record it did not write are still the only
 copy of what a peer's newer build put there. An archive import edits the records
