@@ -1415,10 +1415,11 @@ class DanceEditorController extends ChangeNotifier {
   /// the list (issue #419, opt-in "Free-text entry"). Each parsed [Figure] —
   /// a matched taxonomy figure or an unparsed [CustomOrigin.importGap] custom —
   /// is seeded into an editable [FigureDraft] via
-  /// [FigureDraft.fromFreeTextFigure], which preserves its custom origin so parser-gap customs keep the #398
-  /// marker and stay reparse-eligible, and whose derived default beats are
-  /// filled in (#1820). A single line may yield more than one
-  /// figure (a `;`-compound). Rows are left collapsed. No-op on an empty list.
+  /// [FigureDraft.fromFreeTextFigure], which preserves its custom origin so
+  /// parser-gap customs keep the #398 marker and stay reparse-eligible, and
+  /// fills in the derived default beats (#1820). A single line may yield more
+  /// than one figure (a `;`-compound). Rows are left collapsed. No-op on an
+  /// empty list.
   int insertFreeTextFigures(List<Figure> figures) {
     if (figures.isEmpty) return 0;
     final inserted = [

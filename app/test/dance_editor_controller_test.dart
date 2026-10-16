@@ -1643,7 +1643,10 @@ void main() {
     test('children of a container line get their derived beats (#1820)', () {
       final draft = FigureDraft.fromFreeTextFigure(
         Figure.meanwhile(
-          figures: [Figure(move: 'swing'), Figure(move: 'custom')],
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'custom'),
+          ],
           beats: 8,
         ),
         contraTaxonomy,

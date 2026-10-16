@@ -892,12 +892,10 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       onDanceFigureTemplateAddFreeText: (figures) {
         if (figures.isEmpty) return 0;
         setState(
-          () => _defaultDanceFigureDrafts.addAll(
-            [
-              for (final figure in figures)
-                FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
-            ],
-          ),
+          () => _defaultDanceFigureDrafts.addAll([
+            for (final figure in figures)
+              FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
+          ]),
         );
         _persistDanceFiguresTemplate();
         return figures.length;
@@ -943,12 +941,10 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         if (remaining <= 0) return 0;
         final accepted = ordinaryFigures.take(remaining).toList();
         setState(
-          () => _defaultMeanwhileSideDrafts.addAll(
-            [
-              for (final figure in accepted)
-                FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
-            ],
-          ),
+          () => _defaultMeanwhileSideDrafts.addAll([
+            for (final figure in accepted)
+              FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
+          ]),
         );
         _persistMeanwhileSideDefaults();
         return accepted.length;
@@ -992,12 +988,10 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         if (remaining <= 0) return 0;
         final accepted = ordinaryFigures.take(remaining).toList();
         setState(
-          () => _defaultModifierDrafts.addAll(
-            [
-              for (final figure in accepted)
-                FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
-            ],
-          ),
+          () => _defaultModifierDrafts.addAll([
+            for (final figure in accepted)
+              FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
+          ]),
         );
         _persistModifierDefaults();
         return accepted.length;
