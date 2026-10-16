@@ -143,4 +143,36 @@ void main() {
     expect(find.byKey(const ValueKey('figure-add-meanwhile')), findsOneWidget);
     expect(find.byKey(const ValueKey('figure-add-modifier')), findsOneWidget);
   });
+
+  testWidgets('warns, without blocking, when the token already reads as a '
+      'figure (#1827)', (tester) async {
+    final read = await _pumpEditor(
+      tester,
+      initial: ShorthandMapping(token: 'bns', figures: [_swing()]),
+    );
+    const warning = ValueKey('shorthand-shadow-warning');
+    expect(find.byKey(warning), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('shorthand-token-field')),
+      'swing',
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(warning), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('shorthand-token-field')),
+      'zzqx',
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(warning), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('shorthand-token-field')),
+      'swing',
+    );
+    await tester.tap(find.byKey(const ValueKey('shorthand-editor-save')));
+    await tester.pumpAndSettle();
+    expect(read()?.token, 'swing');
+  });
 }

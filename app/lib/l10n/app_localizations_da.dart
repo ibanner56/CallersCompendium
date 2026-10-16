@@ -8456,6 +8456,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Skriv denne nøjagtige linje under fri tekstindtastning for at indsætte figurerne nedenfor. Matches store/små bogstaver ufølsomt.';
 
   @override
+  String shorthandEditorTokenShadowsFigure(String token) {
+    return 'Når du skriver „$token“, indsættes der allerede en figur. Hvis du gemmer denne kortform, indsætter den i stedet det, du har angivet her. Du kan stadig gemme den.';
+  }
+
+  @override
   String get shorthandEditorExpandsTo => 'Udvider til';
 
   @override

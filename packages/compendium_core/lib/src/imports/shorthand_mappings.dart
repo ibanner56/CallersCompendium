@@ -18,7 +18,8 @@ import '../taxonomy/user_figure_use.dart';
 const int maxShorthandMappings = 500;
 
 /// Upper bound on the length of a single shorthand token (after trimming). A
-/// token is a short mnemonic ("bns", "nbr bal swing") typed as a whole line, so
+/// token is a short mnemonic ("bns", "nbr bal swing") typed as a whole line (or
+/// one `;` clause of it, see [parseFreeTextFigureEntry]), so
 /// a real token is at most a few words; anything longer is treated as
 /// malformed/hostile and its mapping is dropped. Also enforced by the editor so
 /// the two never disagree.
@@ -39,7 +40,8 @@ String normalizeShorthandToken(String token) => token.trim().toLowerCase();
 const ListEquality<Object?> _figuresEquality = ListEquality<Object?>();
 
 /// One user-defined shorthand mapping: a [token] (a short mnemonic typed as a
-/// whole free-text line) that expands to an ORDERED list of [figures] (issue
+/// whole free-text line, or one `;` clause of it, with an optional beat count;
+/// see [parseFreeTextFigureEntry]) that expands to an ORDERED list of [figures] (issue
 /// #420). A shorthand may be a mini-macro — mapping to one OR MORE figures — so
 /// a single token can drop in a short sequence.
 ///
@@ -128,6 +130,11 @@ class ShorthandMappings {
   /// mapping tokens. On a hit a fresh (mutable) copy of the ordered figures is
   /// returned so the caller can insert/mutate them freely; on a miss `null` is
   /// returned and the caller falls through to the normal parser.
+  ///
+  /// The caller hands over what is left of a line once a leading/trailing
+  /// beat count or a `;` clause has been peeled off (see
+  /// [parseFreeTextFigureEntry], issue #1827); this method only ever compares
+  /// the text it is given.
   List<Figure>? resolve(String line) {
     final key = normalizeShorthandToken(line);
     if (key.isEmpty) return null;

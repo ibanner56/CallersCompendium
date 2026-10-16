@@ -8422,6 +8422,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Type this exact line during free-text entry to insert the figures below. Matched case-insensitively.';
 
   @override
+  String shorthandEditorTokenShadowsFigure(String token) {
+    return 'Typing \"$token\" already adds a figure on its own. If you save this shorthand, typing it will insert what you set here instead. You can still save it.';
+  }
+
+  @override
   String get shorthandEditorExpandsTo => 'Expands to';
 
   @override

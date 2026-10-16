@@ -8354,6 +8354,10 @@
   "@shorthandEditorTokenHelper": {
     "x-sourceSha256": "2ce1c061c62ddcba5d051d4664436be8fbd481b6c11b27b32586824f618f1d4f"
   },
+  "shorthandEditorTokenShadowsFigure": "Saisir « {token} » insère déjà une figure de lui-même. Si vous enregistrez cette abréviation, la saisir insérera à la place ce que vous avez défini ici. Vous pouvez quand même l’enregistrer.",
+  "@shorthandEditorTokenShadowsFigure": {
+    "x-sourceSha256": "3b73b5185219dec5e1ee3cc9de4b614613efa9f1e2905333cddf61ba5a09670a"
+  },
   "shorthandEditorExpandsTo": "Se développe en",
   "@shorthandEditorExpandsTo": {
     "x-sourceSha256": "b58865e2268cf7e2e4fa7bee42a936de81ea04bc5a8bac7a1f86a8001f988bf0"

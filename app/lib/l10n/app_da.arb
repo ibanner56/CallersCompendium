@@ -8354,6 +8354,10 @@
   "@shorthandEditorTokenHelper": {
     "x-sourceSha256": "2ce1c061c62ddcba5d051d4664436be8fbd481b6c11b27b32586824f618f1d4f"
   },
+  "shorthandEditorTokenShadowsFigure": "Når du skriver „{token}“, indsættes der allerede en figur. Hvis du gemmer denne kortform, indsætter den i stedet det, du har angivet her. Du kan stadig gemme den.",
+  "@shorthandEditorTokenShadowsFigure": {
+    "x-sourceSha256": "3b73b5185219dec5e1ee3cc9de4b614613efa9f1e2905333cddf61ba5a09670a"
+  },
   "shorthandEditorExpandsTo": "Udvider til",
   "@shorthandEditorExpandsTo": {
     "x-sourceSha256": "b58865e2268cf7e2e4fa7bee42a936de81ea04bc5a8bac7a1f86a8001f988bf0"

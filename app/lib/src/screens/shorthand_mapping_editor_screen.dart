@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../editor/figure_draft.dart';
 import '../widgets/figure_list_editor.dart';
+import '../widgets/shorthand_shadow_warning.dart';
 
 /// Full-screen editor for a single shorthand → figure(s) mapping (issue #420),
 /// modeled on `dialect_editor_screen.dart`. A shorthand [token] (left) is typed
@@ -16,8 +17,9 @@ import '../widgets/figure_list_editor.dart';
 ///
 /// On Save the token is validated (non-empty, bounded length, and unique
 /// case-insensitively against [existingTokens]) and the drafts are committed to
-/// figures; the edited [ShorthandMapping] is returned via [Navigator.pop] (or
-/// `null` on cancel / back).
+/// figures. A token that already reads as a figure when typed is warned about
+/// under the field but still saves (#1827). The edited [ShorthandMapping] is
+/// returned via [Navigator.pop] (or `null` on cancel / back).
 class ShorthandMappingEditorScreen extends StatefulWidget {
   const ShorthandMappingEditorScreen({
     super.key,
@@ -205,6 +207,10 @@ class _ShorthandMappingEditorScreenState
                 border: const OutlineInputBorder(),
               ),
             ),
+          ),
+          ShorthandShadowWarning(
+            warningKey: const ValueKey('shorthand-shadow-warning'),
+            controller: _tokenController,
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
