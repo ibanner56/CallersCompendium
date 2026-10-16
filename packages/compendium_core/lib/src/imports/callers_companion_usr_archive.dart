@@ -53,9 +53,11 @@ class CcUsrArchive {
   /// no `InsertCall` table.
   final List<CcInsertCall> insertCalls;
 
-  /// One entry per CC `Term` row with a name (#1023): the user's own glossary
-  /// terms, for the term-import step. Empty when the file has no `Term`
-  /// table.
+  /// One entry per CC `Term` row that has a name and fits the glossary's
+  /// bounds (#1023): the user's own glossary terms, for the term-import step.
+  /// Empty when the file has no `Term` table or its term column can't be
+  /// found; rows skipped for their length, and an unreadable table, are
+  /// reported under [CcUsrWarningCodes.termsSkipped].
   final List<CcTerm> terms;
 
   /// One entry per CC `Dance_Related` row, still keyed by CC `zk_Dance_ID`
