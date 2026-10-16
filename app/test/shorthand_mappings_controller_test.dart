@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
+import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -140,6 +141,28 @@ void main() {
     await reloaded.load();
     expect(reloaded.mappings, hasLength(maxShorthandMappings));
     expect(reloaded.hasToken('over'), isFalse);
+  });
+
+  test('seeding at the cap counts what it could not add', () async {
+    final repos = openTestRepositories();
+    final controller = ShorthandMappingsController(repos.settings);
+    addTearDown(controller.dispose);
+
+    for (var i = 0; i < maxShorthandMappings - 1; i++) {
+      await controller.upsert(
+        ShorthandMapping(token: 't$i', figures: [_swing()]),
+      );
+    }
+
+    final outcome = await seedShorthandMappings(controller, [
+      ShorthandMapping(token: 'seed-a', figures: [_swing()]),
+      ShorthandMapping(token: 'seed-b', figures: [_swing()]),
+      ShorthandMapping(token: 'seed-c', figures: [_swing()]),
+    ]);
+
+    expect(outcome.seeded, 1);
+    expect(outcome.skippedAtCap, 2);
+    expect(controller.mappings, hasLength(maxShorthandMappings));
   });
 
   test('upsert rejects an empty or over-long token', () async {
