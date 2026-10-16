@@ -736,8 +736,8 @@ void main() {
       await tester.pump();
       final cancel = find.byKey(const ValueKey('glossary-notes-cancel'));
       expect(tester.widget<TextButton>(cancel).onPressed, isNull);
-      // Back (and Escape) is refused too, not just the button.
-      await tester.binding.handlePopRoute();
+      // A tap on the barrier is refused too, not just the button.
+      await tester.tapAt(const Offset(2, 2));
       await tester.pump();
       expect(
         find.byKey(const ValueKey('glossary-notes-field')),
