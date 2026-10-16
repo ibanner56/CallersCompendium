@@ -416,7 +416,7 @@ open this group. You can override any of them per dance, and
   configured, the app adds a blank second one. Invalid or unavailable saved
   defaults use two stand-still figures.
 - While [Custom Figures](#glossary-and-custom-figures) is on, each of these three
-  lists also offers your own new figures for the **Dance form** set above, as the
+  lists also offers your own new figures for the **Type** set above, as the
   dance editor offers them for a dance's form. A list keeps a figure it
   already holds when you change the form.
 - **Move defaults** — preferred parameter values applied automatically when you
