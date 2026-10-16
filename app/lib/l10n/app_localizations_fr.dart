@@ -9553,6 +9553,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String compoundEditorNameTakenHidden(String name) {
+    return '« $name » est déjà le nom d’une de vos propres figures. Elles figurent dans le glossaire quand Figures personnalisées est activé. Choisissez un autre nom.';
+  }
+
+  @override
   String get compoundEditorNoFigures => 'Ajoutez au moins une figure.';
 
   @override
@@ -9595,13 +9600,28 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get glossaryEntryKindHelp =>
-      'Une combinaison devient des figures intégrées quand une danse est enregistrée. Une nouvelle figure reste une seule figure, avec votre propre formulation.';
+      'Une combinaison devient des figures intégrées quand une danse est enregistrée. Une nouvelle figure reste une seule figure, avec votre propre formulation. Un terme est un mot que vous définissez, sans figure ; vous pourrez lui en donner une plus tard.';
 
   @override
   String get glossaryEntryKindCombination => 'Combinaison';
 
   @override
   String get glossaryEntryKindNewFigure => 'Nouvelle figure';
+
+  @override
+  String get glossaryEntryKindTerm => 'Terme';
+
+  @override
+  String get glossaryAddTerm => 'Ajouter un terme';
+
+  @override
+  String get glossaryTermTitleNew => 'Nouveau terme';
+
+  @override
+  String get glossaryTermMakeFigure => 'En faire une figure';
+
+  @override
+  String get glossaryTermMakeFigureTitle => 'En faire une figure';
 
   @override
   String get glossaryEntryFormLabel => 'Forme de danse';

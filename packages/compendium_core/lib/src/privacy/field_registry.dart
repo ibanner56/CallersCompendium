@@ -383,9 +383,10 @@ final Map<String, DataClassification> fieldClassifications = {
     subject: DataSubject.none,
     egress: EgressClass.shareable,
     note:
-        'The kind\'s payload: a compound\'s figures and parameters, or a '
+        'The kind\'s payload: a compound\'s figures and parameters; a '
         'figure of your own\'s parameters, choice and flag labels, defaults '
-        'and wording template (#1023). Choreography, classified by intent '
+        'and wording template; or a term\'s dance form (#1023). Each kind '
+        'also keeps keys a newer build wrote. Choreography, classified by intent '
         'as the glossary text is: the user writes it to describe a figure, '
         'about no person. Travels as the entry does.',
   ),

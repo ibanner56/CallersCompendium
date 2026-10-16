@@ -818,8 +818,9 @@ class PeerManifests extends Table {
 /// and sync kind serve them all (approved by the maintainer on #695,
 /// https://github.com/ibanner56/CallersCompendium/issues/695#issuecomment-6177759097).
 ///
-/// `kind` decides the payload: `compound` (a `CompoundDefinition`), and the
-/// reserved `term` and `customFigure`. Names are not unique: an entry arriving
+/// `kind` decides the payload: `compound` (a `CompoundDefinition`),
+/// `customFigure` (a `UserFigureDefinition`) or `term` (its dance form,
+/// `glossaryTermPayload`). Names are not unique: an entry arriving
 /// by sync or restore may share a name, and is kept and flagged for rename
 /// rather than refused (#709 consolidated spec, decision 6). Text columns hold canonical
 /// role tokens. Added in schema v40.

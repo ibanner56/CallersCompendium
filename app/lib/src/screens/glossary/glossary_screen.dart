@@ -177,11 +177,12 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
     ];
   }
 
-  /// The user's own entries resolved for display, or none while custom
-  /// figures are hidden.
+  /// The user's own entries resolved for display: their terms, and while
+  /// Custom Figures is on, everything else too (#1023, maintainer decision
+  /// 9). Each is checked for a rename against all of them, shown or not.
   List<CustomGlossaryItem> _custom(BuildContext context, Dialect dialect) {
-    if (!customFiguresShown(context)) return const [];
-    return resolveCustomGlossary(
+    final figuresShown = customFiguresShown(context);
+    final all = resolveCustomGlossary(
       _userEntries,
       taxonomy: contraTaxonomy,
       dialects: [
@@ -190,6 +191,10 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
       ],
       shorthandTokens: ShorthandMappingsScope.tokensOf(context),
     );
+    return [
+      for (final item in all)
+        if (figuresShown || item.isTerm) item,
+    ];
   }
 
   Widget _detail(_ShownEntry shown, {required bool showName}) {
@@ -234,8 +239,11 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
   }
 
   Future<void> _add(BuildContext context) async {
+    final termsOnly = !customFiguresShown(context);
     final saved = await Navigator.of(context).push<UserGlossaryEntry>(
-      MaterialPageRoute(builder: (_) => const CompoundEditorScreen()),
+      MaterialPageRoute(
+        builder: (_) => CompoundEditorScreen(termsOnly: termsOnly),
+      ),
     );
     if (saved != null && mounted) {
       setState(() => _selectedId = customSelectionId(saved.id));
@@ -248,7 +256,9 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
     final dialect = ActiveDialectScope.of(context);
     final custom = _custom(context, dialect);
     final shown = _shown(l10n, dialect, custom);
-    final canAdd = customFiguresShown(context) && _repos != null;
+    // A term needs only the Glossary, which this screen is; a figure of your
+    // own needs Custom Figures on too (#1023, maintainer decision 9).
+    final canAdd = _repos != null;
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.glossaryTitle),
@@ -257,7 +267,9 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
             IconButton(
               key: const ValueKey('glossary-add-custom'),
               icon: const Icon(Icons.add),
-              tooltip: l10n.glossaryAddCustomFigure,
+              tooltip: customFiguresShown(context)
+                  ? l10n.glossaryAddCustomFigure
+                  : l10n.glossaryAddTerm,
               onPressed: () => _add(context),
             ),
         ],

@@ -12386,6 +12386,16 @@
       }
     }
   },
+  "compoundEditorNameTakenHidden": "“{name}” is already the name of one of your own figures. Those are listed in the Glossary while Custom Figures is on. Choose another name.",
+  "@compoundEditorNameTakenHidden": {
+    "description": "Error shown when saving a term under a name one of the user's own figures already has, while Custom Figures is off and that figure is not shown.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "zesty corners"
+      }
+    }
+  },
   "compoundEditorNoFigures": "Add at least one figure.",
   "@compoundEditorNoFigures": {
     "description": "Error shown when saving a custom figure with no figures."
@@ -12440,11 +12450,11 @@
   },
   "glossaryEntryKindHeading": "What it is",
   "@glossaryEntryKindHeading": {
-    "description": "Heading of the choice, for a new entry in the user's own glossary, between a combination of built-in figures and a figure of its own."
+    "description": "Heading of the choice, for a new entry in the user's own glossary, between a combination of built-in figures, a figure of its own, and a term with no figure."
   },
-  "glossaryEntryKindHelp": "A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording.",
+  "glossaryEntryKindHelp": "A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording. A term is a word you define, with no figure; you can give it one later.",
   "@glossaryEntryKindHelp": {
-    "description": "Explains the choice between a combination and a new figure."
+    "description": "Explains the choice between a combination, a new figure and a term."
   },
   "glossaryEntryKindCombination": "Combination",
   "@glossaryEntryKindCombination": {
@@ -12453,6 +12463,26 @@
   "glossaryEntryKindNewFigure": "New figure",
   "@glossaryEntryKindNewFigure": {
     "description": "Choice for an entry that is a figure of its own, with the user's own wording."
+  },
+  "glossaryEntryKindTerm": "Term",
+  "@glossaryEntryKindTerm": {
+    "description": "Choice for an entry that is a term the user defines, with no figure. Maintainer's copy: terms are \"Terms\"."
+  },
+  "glossaryAddTerm": "Add a term",
+  "@glossaryAddTerm": {
+    "description": "Tooltip of the Glossary's add button while Custom Figures is off, when it adds only a term (an entry with no figure)."
+  },
+  "glossaryTermTitleNew": "New term",
+  "@glossaryTermTitleNew": {
+    "description": "Title of the editor for a new term in the user's own glossary."
+  },
+  "glossaryTermMakeFigure": "Make it a figure",
+  "@glossaryTermMakeFigure": {
+    "description": "Button on a term in the user's own glossary that gives it a figure, turning it into a new figure with its own wording. It cannot be turned back."
+  },
+  "glossaryTermMakeFigureTitle": "Make it a figure",
+  "@glossaryTermMakeFigureTitle": {
+    "description": "Title of the editor that gives a term a figure."
   },
   "glossaryEntryFormLabel": "Dance form",
   "@glossaryEntryFormLabel": {

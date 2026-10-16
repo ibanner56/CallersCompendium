@@ -549,6 +549,16 @@ Names, definitions and examples follow your active
 figures come with the app, and turning the Glossary off only removes it from
 the navigation; your notes are kept, and come back when you turn it on again.
 
+**Your terms** are words you define yourself, with no figure: a name, a
+definition and a description (all required), other names they can be found by,
+notes, and the **Dance form** they're for. They are listed in the Glossary
+alongside the built-in figures, marked **Custom**, and found the same way.
+Choose **+** in the Glossary to add one (with Custom Figures on, choose
+**Term** under **What it is**); select one to **Edit** or **Delete** it. Terms
+need only Show Glossary, not Custom Figures. A name already taken can't be
+saved, as for your figures below; one of your own figures keeps its name even
+while Custom Figures is off and it isn't shown, and saving says so.
+
 **Custom Figures**, under Show Glossary, lists your own figures in the
 Glossary. It is **off by default**, and it can only be turned on while Show
 Glossary is on. While it is on:
@@ -557,8 +567,12 @@ Glossary is on. While it is on:
   definition and a description (all required), other names it can be found by,
   notes, and the **Dance form** it's for.
 - Under **What it is**, choose a **Combination**, which becomes figures that
-  come with the app when you save a dance, or a **New figure**, which stays
-  one figure with your own wording. A figure keeps the kind it was saved with.
+  come with the app when you save a dance, a **New figure**, which stays
+  one figure with your own wording, or a **Term**. An entry keeps the kind it
+  was saved with, except that a term can be given a figure: select it and
+  choose **Make it a figure** to give it wording and parameters as a new
+  figure. It keeps its name and other fields, and can't be turned back into a
+  term.
 - Build a combination from figures that come with the app, in order, the same
   way as in the dance editor. Custom figures, meanwhile and modifier groups
   can't be used as parts.
@@ -581,7 +595,7 @@ Glossary is on. While it is on:
   something the figure doesn't have can't be saved.
 - A name already taken can't be saved: a built-in figure's name or one of its
   other names, a figure's name in one of your dialects, one of your
-  shorthands, or another of your figures.
+  shorthands, or another of your figures or terms.
 - In the dance editor, your figures for the dance's form are offered when you
   choose a figure's move. A combination becomes the figures it stands for when
   you save the dance; a new figure stays one figure that reads with your
@@ -606,7 +620,7 @@ this version of the app or a later one. Until then changes to them aren't sent
 to your other devices, and Device Sync shows a note naming the device that is
 holding them back (see [New kinds of data wait for every
 device](#new-kinds-of-data-wait-for-every-device)). New figures, with their
-own wording, stay on this device for now.
+own wording, and your terms stay on this device for now.
 
 ### Device Sync
 
