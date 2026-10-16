@@ -99,13 +99,15 @@ entry** is on.
 
 With **Custom Figures** on, the same screen also lists **Shorthands for your own
 figures**. Choose **New shorthand for one of your figures**, type the
-shorthand, pick one of your [combinations](#your-own-figures) and choose the
-value for each of its parameters. Typing that shorthand as a whole line adds a
-row for your figure with those values, which becomes the figures it stands for
-when you save the dance, as if you had picked it. Its token is unique among all
-your shorthands, of both kinds. If its figure has been deleted, or changed so
-that it no longer accepts the values, the shorthand says so and typing it is
-read as an ordinary line. Turning Custom Figures off hides these shorthands and
+shorthand, pick one of your [own figures](#your-own-figures), a combination or
+a new figure, and choose the value for each of its parameters; for a new
+figure, its beats too (left as they are, they follow the figure's own default
+beats). Typing that shorthand as a whole line adds a row for your figure with
+those values, as if you had picked it: a combination becomes the figures it
+stands for when you save the dance, and a new figure stays one figure in your
+wording. Its token is unique among all your shorthands, of every kind. If its
+figure has been deleted, or changed so that it no longer accepts the values,
+the shorthand says so and typing it is read as an ordinary line. Turning Custom Figures off hides these shorthands and
 stops them working; it doesn't delete them.
 
 ### Adjust a figure

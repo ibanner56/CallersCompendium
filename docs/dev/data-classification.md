@@ -473,7 +473,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**99 settings keys**: 64 shareable, 8 device-local, 25 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
+**100 settings keys**: 65 shareable, 8 device-local, 25 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -571,6 +571,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `update_beta_channel` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `update_dismissed_version` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `update_retirement_notice` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `user_figure_shorthands` | `dpv:NonPersonalData` | app user | shareable | The user's shorthands for their own new figures (#1023): tokens they chose, a figure's id and name, values and beats. The same call as compound_shorthands: content the user authored for themselves, naming no one else. Held back until every device can read the figures themselves (glossary.v2, SyncCapabilityPolicy.build). |
 | `venue_call_count` | `dpv:NonPersonalData` | app user | shareable |  |
 | `venue_entity_mode` | `dpv:NonPersonalData` | app user | shareable |  |
 | `verbose_figure_rendering` | `dpv:NonPersonalData` | app user | shareable |  |

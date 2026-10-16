@@ -8210,6 +8210,10 @@
   "@shorthandsCompoundTitle": {
     "x-sourceSha256": "b37015f6e5621c3bf45810cce907194e87f5b4a9814b5c5695f960f484aa5949"
   },
+  "shorthandsUserFigureSyncLabel": "自分の新しいフィギュア用のショートハンド",
+  "@shorthandsUserFigureSyncLabel": {
+    "x-sourceSha256": "ddb5a743e550727efdac098dc9b2ded70df5cf8685acefa501184ffefbd78757"
+  },
   "shorthandsCompoundIntro": "フリーテキスト入力がオンのとき、ダンスの編集中にこれらのいずれかを1行だけ入力すると、ここで選んだ値で自分のフィギュアが追加されます。",
   "@shorthandsCompoundIntro": {
     "x-sourceSha256": "80090b751b53b2c67b417cdeed684cb8b14db7c4fa9ea70f67e05421fec4f587"

@@ -12470,11 +12470,17 @@ abstract class AppLocalizations {
   /// **'Shorthand actions'**
   String get shorthandMappingsActionsTooltip;
 
-  /// Heading of the list of compound shorthands (#709) on the shorthands screen, and the name of their setting in sync notices: tokens that stand for one of the user's own Custom Figures with fixed values.
+  /// Heading of the list of shorthands for the user's own figures on the shorthands screen (compound shorthands, #709, and shorthands for new figures, #1023), and the name of the compound shorthands' setting in sync notices: tokens that stand for one of the user's own Custom Figures with fixed values.
   ///
   /// In en, this message translates to:
   /// **'Shorthands for your own figures'**
   String get shorthandsCompoundTitle;
+
+  /// The name of the setting holding the shorthands for the user's own new figures (#1023), in sync notices and the sync conflict view. A new figure is one with its own wording, as opposed to a combination of built-in figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Shorthands for your new figures'**
+  String get shorthandsUserFigureSyncLabel;
 
   /// Explains the compound shorthands section.
   ///

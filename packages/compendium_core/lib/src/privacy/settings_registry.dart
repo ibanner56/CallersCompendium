@@ -64,6 +64,18 @@ final Map<String, DataClassification> settingsClassifications = {
         'like the figure shorthands; held back until every device can read '
         'it (SyncCapabilityPolicy.build).',
   ),
+  'user_figure_shorthands': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'The user\'s shorthands for their own new figures (#1023): tokens '
+        'they chose, a figure\'s id and name, values and beats. The same '
+        'call as compound_shorthands: content the user authored for '
+        'themselves, naming no one else. Held back until every device can '
+        'read the figures themselves (glossary.v2, '
+        'SyncCapabilityPolicy.build).',
+  ),
   'walkthrough_snippets': _preference,
   'formation_color_overrides': _preference,
   'default_move_param_overrides': _preference,

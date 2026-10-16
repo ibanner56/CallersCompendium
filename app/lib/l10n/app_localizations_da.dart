@@ -8289,6 +8289,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get shorthandsCompoundTitle => 'Kortformer for dine egne figurer';
 
   @override
+  String get shorthandsUserFigureSyncLabel => 'Kortformer for dine nye figurer';
+
+  @override
   String get shorthandsCompoundIntro =>
       'Når fri tekstindtastning er slået til, tilføjer du en af dine egne figurer med de værdier, der er valgt her, ved at skrive en af disse kortformer som en hel linje, mens du redigerer en dans.';
 

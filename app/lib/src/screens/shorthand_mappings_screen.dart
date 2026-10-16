@@ -123,6 +123,7 @@ class ShorthandMappingsScreen extends StatelessWidget {
       for (var i = 0; i < mappings.length; i++)
         if (i != index) mappings[i].normalizedToken,
       for (final c in controller.compoundShorthands) c.normalizedToken,
+      for (final u in controller.userFigureShorthands) u.normalizedToken,
     };
     final hidden = _hiddenCompoundTokens(context, controller);
     final edited = await Navigator.of(context).push<ShorthandMapping>(
@@ -138,14 +139,18 @@ class ShorthandMappingsScreen extends StatelessWidget {
     await controller.upsert(edited, index: index);
   }
 
-  /// The compound shorthands' tokens while their section is hidden (Custom
-  /// Figures off): still taken, but not on screen.
+  /// The tokens of the shorthands for the user's own figures, of both kinds,
+  /// while their section is hidden (Custom Figures off): still taken, but not
+  /// on screen.
   static Set<String> _hiddenCompoundTokens(
     BuildContext context,
     ShorthandMappingsController controller,
   ) => customFiguresShown(context)
       ? const {}
-      : {for (final c in controller.compoundShorthands) c.normalizedToken};
+      : {
+          for (final c in controller.compoundShorthands) c.normalizedToken,
+          for (final u in controller.userFigureShorthands) u.normalizedToken,
+        };
 
   Future<void> _confirmDelete(
     BuildContext context,
@@ -271,29 +276,71 @@ class _CompoundShorthandsSectionState
     return decodeCompoundDefinition(entry.payload, contraTaxonomy);
   }
 
-  Set<String> _tokensExcept(int index) => {
-    for (final m in widget.controller.mappings) m.normalizedToken,
-    for (var i = 0; i < widget.controller.compoundShorthands.length; i++)
-      if (i != index) widget.controller.compoundShorthands[i].normalizedToken,
-  };
+  /// Every shorthand's token but the one being edited: the compound
+  /// shorthand at [compoundIndex] or the new figure's at [userFigureIndex].
+  Set<String> _tokensExcept({int? compoundIndex, int? userFigureIndex}) {
+    final controller = widget.controller;
+    return {
+      for (final m in controller.mappings) m.normalizedToken,
+      for (var i = 0; i < controller.compoundShorthands.length; i++)
+        if (i != compoundIndex)
+          controller.compoundShorthands[i].normalizedToken,
+      for (var i = 0; i < controller.userFigureShorthands.length; i++)
+        if (i != userFigureIndex)
+          controller.userFigureShorthands[i].normalizedToken,
+    };
+  }
 
-  Future<void> _open(BuildContext context, int? index) async {
-    final shorthands = widget.controller.compoundShorthands;
-    final edited = await Navigator.of(context).push<CompoundShorthand>(
+  /// Opens the editor on the compound shorthand at [compoundIndex], the new
+  /// figure's at [userFigureIndex], or a new one. The editor may hand back
+  /// the other kind, when another kind of figure was chosen: the edited one
+  /// is then removed and the result added, under its own key.
+  Future<void> _open(
+    BuildContext context, {
+    int? compoundIndex,
+    int? userFigureIndex,
+  }) async {
+    final controller = widget.controller;
+    final edited = await Navigator.of(context).push<Object>(
       MaterialPageRoute(
         builder: (_) => CompoundShorthandEditorScreen(
-          initial: index == null ? null : shorthands[index],
-          existingTokens: _tokensExcept(index ?? -1),
+          initial: compoundIndex == null
+              ? null
+              : controller.compoundShorthands[compoundIndex],
+          initialUserFigure: userFigureIndex == null
+              ? null
+              : controller.userFigureShorthands[userFigureIndex],
+          existingTokens: _tokensExcept(
+            compoundIndex: compoundIndex,
+            userFigureIndex: userFigureIndex,
+          ),
         ),
       ),
     );
-    if (edited == null) return;
-    await widget.controller.upsertCompound(edited, index: index);
+    switch (edited) {
+      case CompoundShorthand():
+        if (userFigureIndex != null) {
+          await controller.removeUserFigureAt(userFigureIndex);
+        }
+        await controller.upsertCompound(edited, index: compoundIndex);
+      case UserFigureShorthand():
+        if (compoundIndex != null) {
+          await controller.removeCompoundAt(compoundIndex);
+        }
+        await controller.upsertUserFigure(edited, index: userFigureIndex);
+    }
   }
 
-  Future<void> _confirmDelete(BuildContext context, int index) async {
+  Future<void> _confirmDelete(
+    BuildContext context, {
+    int? compoundIndex,
+    int? userFigureIndex,
+  }) async {
     final l10n = AppLocalizations.of(context);
-    final token = widget.controller.compoundShorthands[index].token;
+    final controller = widget.controller;
+    final token = compoundIndex != null
+        ? controller.compoundShorthands[compoundIndex].token
+        : controller.userFigureShorthands[userFigureIndex!].token;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -312,7 +359,12 @@ class _CompoundShorthandsSectionState
         ],
       ),
     );
-    if (confirmed == true) await widget.controller.removeCompoundAt(index);
+    if (confirmed != true) return;
+    if (compoundIndex != null) {
+      await controller.removeCompoundAt(compoundIndex);
+    } else {
+      await controller.removeUserFigureAt(userFigureIndex!);
+    }
   }
 
   @override
@@ -321,6 +373,7 @@ class _CompoundShorthandsSectionState
     final l10n = AppLocalizations.of(context);
     final dialect = ActiveDialectScope.of(context);
     final shorthands = widget.controller.compoundShorthands;
+    final userFigureShorthands = widget.controller.userFigureShorthands;
     final figureTokens = {
       for (final m in widget.controller.mappings) m.normalizedToken,
     };
@@ -348,12 +401,12 @@ class _CompoundShorthandsSectionState
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: OutlinedButton.icon(
             key: const ValueKey('new-compound-shorthand'),
-            onPressed: () => _open(context, null),
+            onPressed: () => _open(context),
             icon: const Icon(Icons.add),
             label: Text(l10n.shorthandsCompoundNew),
           ),
         ),
-        if (shorthands.isEmpty)
+        if (shorthands.isEmpty && userFigureShorthands.isEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Text(
@@ -363,6 +416,15 @@ class _CompoundShorthandsSectionState
           ),
         for (var i = 0; i < shorthands.length; i++)
           _row(context, l10n, dialect, shorthands[i], i, figureTokens),
+        for (var i = 0; i < userFigureShorthands.length; i++)
+          _userFigureRow(
+            context,
+            l10n,
+            dialect,
+            userFigureShorthands[i],
+            i,
+            figureTokens,
+          ),
       ],
     );
   }
@@ -425,17 +487,85 @@ class _CompoundShorthandsSectionState
             ),
         ],
       ),
-      onTap: () => _open(context, index),
+      onTap: () => _open(context, compoundIndex: index),
       trailing: PopupMenuButton<String>(
         key: ValueKey('compound-shorthand-menu-$key'),
         tooltip: l10n.shorthandMappingsActionsTooltip,
         onSelected: (value) => value == 'edit'
-            ? _open(context, index)
-            : _confirmDelete(context, index),
+            ? _open(context, compoundIndex: index)
+            : _confirmDelete(context, compoundIndex: index),
         itemBuilder: (_) => [
           PopupMenuItem(value: 'edit', child: Text(l10n.commonEdit)),
           PopupMenuItem(
             key: const ValueKey('compound-shorthand-delete'),
+            value: 'delete',
+            child: Text(l10n.commonDelete),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// A shorthand for one of the user's new figures (#1023): its token, and
+  /// the line it inserts, in the figure's current wording. Like a compound
+  /// shorthand's row, it says when it can't be used, or when a figure
+  /// shorthand with the same token wins.
+  Widget _userFigureRow(
+    BuildContext context,
+    AppLocalizations l10n,
+    Dialect dialect,
+    UserFigureShorthand shorthand,
+    int index,
+    Set<String> figureTokens,
+  ) {
+    final theme = Theme.of(context);
+    // The entries this section watches, as the compound rows read them.
+    final userFigures = UserFigureCatalog.fromEntries(
+      _entries?.values ?? const [],
+    );
+    final use = userFigureUseFigure(
+      id: shorthand.figureId,
+      args: shorthand.args,
+      text: shorthand.figureName,
+      beats: shorthand.beats,
+    );
+    final renderer = FigureRenderer(contraTaxonomy, userFigures: userFigures);
+    final usable = renderer.renderUserFigureCanonical(use) != null;
+    final shadowed = figureTokens.contains(shorthand.normalizedToken);
+    final problem = shadowed
+        ? l10n.shorthandsCompoundShadowed
+        : usable || _entries == null
+        ? null
+        : l10n.shorthandsCompoundUnavailable;
+    final key = shorthand.normalizedToken;
+    return ListTile(
+      key: ValueKey('user-figure-shorthand-tile-$key'),
+      title: Text(shorthand.token),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(renderer.render(use, dialect)),
+          if (problem != null)
+            Text(
+              problem,
+              key: ValueKey('user-figure-shorthand-problem-$key'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+        ],
+      ),
+      onTap: () => _open(context, userFigureIndex: index),
+      trailing: PopupMenuButton<String>(
+        key: ValueKey('user-figure-shorthand-menu-$key'),
+        tooltip: l10n.shorthandMappingsActionsTooltip,
+        onSelected: (value) => value == 'edit'
+            ? _open(context, userFigureIndex: index)
+            : _confirmDelete(context, userFigureIndex: index),
+        itemBuilder: (_) => [
+          PopupMenuItem(value: 'edit', child: Text(l10n.commonEdit)),
+          PopupMenuItem(
+            key: const ValueKey('user-figure-shorthand-delete'),
             value: 'delete',
             child: Text(l10n.commonDelete),
           ),
