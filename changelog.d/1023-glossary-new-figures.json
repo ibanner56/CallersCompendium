@@ -10,6 +10,9 @@
   "core": {
     "added": [
       "`mapUserFigureTemplateText`, `newUserFigureChoiceId` and `userFigurePayloadExtra` for editing a figure of your own (#1023)."
+    ],
+    "changed": [
+      "`validateUserFigure` reports an over-length template or text default as `UserFigureIssueCodes.tooLong` (an over-length template was `badTemplate`), and refuses repeated choice labels, compared trimmed and ignoring case, so such a definition now reads as needing repair (#1023)."
     ]
   }
 }
