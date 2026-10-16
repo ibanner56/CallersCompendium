@@ -7705,6 +7705,19 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String danceEditorFreeTextFiguresAddedConfirmation(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Tilføjede $count figurer. Skriv en anden, eller vælg Færdig for at afslutte.',
+      one:
+          'Tilføjede 1 figur. Skriv en anden, eller vælg Færdig for at afslutte.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String danceEditorFreeTextRowReplacedAnnouncement(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -8454,6 +8467,11 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get shorthandEditorTokenHelper =>
       'Skriv denne nøjagtige linje under fri tekstindtastning for at indsætte figurerne nedenfor. Matches store/små bogstaver ufølsomt.';
+
+  @override
+  String shorthandEditorTokenShadowsFigure(String token) {
+    return 'Når du skriver „$token“, indsættes der allerede en figur. Hvis du gemmer denne kortform, indsætter den i stedet det, du har angivet her. Du kan stadig gemme den.';
+  }
 
   @override
   String get shorthandEditorExpandsTo => 'Udvider til';

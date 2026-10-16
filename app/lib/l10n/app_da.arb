@@ -7690,6 +7690,10 @@
   "@danceEditorFreeTextFiguresAddedAnnouncement": {
     "x-sourceSha256": "c4d66c29eef8a2480eeff9c01651a491f5f23569bc7a17aa9f6d79d0e522c6ed"
   },
+  "danceEditorFreeTextFiguresAddedConfirmation": "{count, plural, =1{Tilføjede 1 figur. Skriv en anden, eller vælg Færdig for at afslutte.} other{Tilføjede {count} figurer. Skriv en anden, eller vælg Færdig for at afslutte.}}",
+  "@danceEditorFreeTextFiguresAddedConfirmation": {
+    "x-sourceSha256": "9d440af03e3cb398e592743aab104875b7a185a58ec28037919fb3fd2b40d32a"
+  },
   "danceEditorFreeTextRowReplacedAnnouncement": "{count, plural, =1{Figuren er erstattet.} other{Figuren er erstattet med {count} figurer.}}",
   "@danceEditorFreeTextRowReplacedAnnouncement": {
     "x-sourceSha256": "692f1ac40a943ce8eda3d48e21914b9660167c3563fa0bce6ed3422af96115de"
@@ -8353,6 +8357,10 @@
   "shorthandEditorTokenHelper": "Skriv denne nøjagtige linje under fri tekstindtastning for at indsætte figurerne nedenfor. Matches store/små bogstaver ufølsomt.",
   "@shorthandEditorTokenHelper": {
     "x-sourceSha256": "2ce1c061c62ddcba5d051d4664436be8fbd481b6c11b27b32586824f618f1d4f"
+  },
+  "shorthandEditorTokenShadowsFigure": "Når du skriver „{token}“, indsættes der allerede en figur. Hvis du gemmer denne kortform, indsætter den i stedet det, du har angivet her. Du kan stadig gemme den.",
+  "@shorthandEditorTokenShadowsFigure": {
+    "x-sourceSha256": "3b73b5185219dec5e1ee3cc9de4b614613efa9f1e2905333cddf61ba5a09670a"
   },
   "shorthandEditorExpandsTo": "Udvider til",
   "@shorthandEditorExpandsTo": {

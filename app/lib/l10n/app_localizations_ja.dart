@@ -7405,6 +7405,16 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String danceEditorFreeTextFiguresAddedConfirmation(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のフィギュアを追加しました。さらに入力するか、「完了」を選んで終了してください。',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String danceEditorFreeTextRowReplacedAnnouncement(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -8139,6 +8149,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get shorthandEditorTokenHelper =>
       'フリーテキスト入力時にこの正確な行を入力すると、下のフィギュアが挿入されます。大文字と小文字を区別せずに一致します。';
+
+  @override
+  String shorthandEditorTokenShadowsFigure(String token) {
+    return '「$token」と入力すると、すでにフィギュアが挿入されます。このショートハンドを保存すると、入力時に代わりにここで設定した内容が挿入されます。そのまま保存することもできます。';
+  }
 
   @override
   String get shorthandEditorExpandsTo => '展開先';

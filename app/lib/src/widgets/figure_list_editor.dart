@@ -191,8 +191,9 @@ class FigureListEditor extends StatefulWidget {
   /// during free-text entry before the parser (after
   /// [onSubmitCompoundShorthand], whose caller lets a figure shorthand with
   /// the same token win): a typed line matching a shorthand token (whole
-  /// line, case-insensitive) expands to the mapped figures instead of being
-  /// parsed. `null` (the default) disables shorthand expansion, preserving the
+  /// line, or one `;` clause, case-insensitive, with an optional leading or
+  /// trailing beat count split off; see [parseFreeTextFigureEntry]) expands to
+  /// the mapped figures instead of being parsed. `null` (the default) disables shorthand expansion, preserving the
   /// pure #419 parse behavior. Only relevant when [freeTextEntry] is enabled.
   final ShorthandMappings? shorthandMappings;
 
@@ -333,6 +334,13 @@ class _FigureListEditorState extends State<FigureListEditor> {
   /// blank submit / Escape / Done closes it.
   bool _freeTextComposing = false;
   final TextEditingController _freeTextController = TextEditingController();
+
+  /// The visible "Added N figures" line under the composer (#1825); null until
+  /// a line is accepted, and cleared again by the next keystroke or when the
+  /// composer closes. Screen readers hear the announcement from [_announce]
+  /// instead (it names the Escape key, which touch users lack), so the visible
+  /// copy is excluded from semantics.
+  String? _freeTextConfirmation;
   final FocusNode _freeTextFocusNode = FocusNode(
     debugLabel: 'figure-free-text',
   );
@@ -680,10 +688,18 @@ class _FigureListEditorState extends State<FigureListEditor> {
   }
 
   /// Clears the composer after [acceptedCount] rows were inserted, announces
-  /// them, and keeps the composer focused for the next line.
+  /// and shows the count ([_freeTextConfirmation]), and keeps the composer
+  /// focused for the next line.
   void _freeTextAccepted(int acceptedCount) {
     _freeTextController.clear();
-    _announce(_l10n.danceEditorFreeTextFiguresAddedAnnouncement(acceptedCount));
+    final message = _l10n.danceEditorFreeTextFiguresAddedAnnouncement(
+      acceptedCount,
+    );
+    setState(
+      () => _freeTextConfirmation = _l10n
+          .danceEditorFreeTextFiguresAddedConfirmation(acceptedCount),
+    );
+    _announce(message);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _freeTextFocusNode.requestFocus();
     });
@@ -733,7 +749,10 @@ class _FigureListEditorState extends State<FigureListEditor> {
   /// Closes the free-text composer and returns focus to Add or the last row.
   void _dismissFreeText({bool focusAddButton = true}) {
     _freeTextController.clear();
-    setState(() => _freeTextComposing = false);
+    setState(() {
+      _freeTextComposing = false;
+      _freeTextConfirmation = null;
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (focusAddButton) {
@@ -1075,83 +1094,126 @@ class _FigureListEditorState extends State<FigureListEditor> {
   Widget _buildFreeTextComposer(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Focus(
-        // A key-handler wrapper only (Escape to cancel); it must not become a
-        // tab stop of its own around the field.
-        canRequestFocus: false,
-        skipTraversal: true,
-        onKeyEvent: (node, event) {
-          if (event is KeyDownEvent &&
-              event.logicalKey == LogicalKeyboardKey.escape) {
-            _dismissFreeText();
-            return KeyEventResult.handled;
-          }
-          return KeyEventResult.ignored;
-        },
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: TextField(
-                key: _key('free-text-field'),
-                controller: _freeTextController,
-                focusNode: _freeTextFocusNode,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _submitFreeText(),
-                // One figure line, but not a `maxLines: 1` field: Flutter puts
-                // its single-line formatter ahead of ours and that deletes a
-                // pasted line break, gluing `swing⏎partner` into `swingpartner`.
-                // A few lines with a text keyboard still submits on the action
-                // key; [_lineBreaksToSpaces] turns any line break into a space,
-                // keeping a paste one line (#419 rules out splitting it).
-                keyboardType: TextInputType.text,
-                minLines: 1,
-                maxLines: 4,
-                inputFormatters: [_lineBreaksToSpaces],
-                maxLength: maxFreeTextEntryLength,
-                maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                // A figure line is short; the cap is a defensive bound, not a
-                // budget to show off — suppress the character counter.
-                buildCounter:
-                    (
-                      _, {
-                      required int currentLength,
-                      required bool isFocused,
-                      int? maxLength,
-                    }) => null,
-                decoration: InputDecoration(
-                  isDense: true,
-                  border: const OutlineInputBorder(),
-                  labelText: l10n.danceEditorTypeFigureLabel,
-                  helperText: l10n.danceEditorTypeFigureHelper,
-                  helperMaxLines: 3,
+    final confirmation = _freeTextConfirmation;
+    // The box is its own semantics boundary: without it the surrounding section
+    // help, empty-state text and beat total/warnings merge into the field's
+    // label (#1825).
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Focus(
+          // A key-handler wrapper only (Escape to cancel); it must not become a
+          // tab stop of its own around the field.
+          canRequestFocus: false,
+          skipTraversal: true,
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.escape) {
+              _dismissFreeText();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      key: _key('free-text-field'),
+                      controller: _freeTextController,
+                      focusNode: _freeTextFocusNode,
+                      textInputAction: TextInputAction.done,
+                      onChanged: (_) {
+                        if (_freeTextConfirmation != null) {
+                          setState(() => _freeTextConfirmation = null);
+                        }
+                      },
+                      onSubmitted: (_) => _submitFreeText(),
+                      // One figure line, but not a `maxLines: 1` field: Flutter puts
+                      // its single-line formatter ahead of ours and that deletes a
+                      // pasted line break, gluing `swing⏎partner` into `swingpartner`.
+                      // A few lines with a text keyboard still submits on the action
+                      // key; [_lineBreaksToSpaces] turns any line break into a space,
+                      // keeping a paste one line (#419 rules out splitting it).
+                      keyboardType: TextInputType.text,
+                      minLines: 1,
+                      maxLines: 4,
+                      inputFormatters: [_lineBreaksToSpaces],
+                      maxLength: maxFreeTextEntryLength,
+                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                      // A figure line is short; the cap is a defensive bound, not a
+                      // budget to show off — suppress the character counter.
+                      buildCounter:
+                          (
+                            _, {
+                            required int currentLength,
+                            required bool isFocused,
+                            int? maxLength,
+                          }) => null,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        border: const OutlineInputBorder(),
+                        labelText: l10n.danceEditorTypeFigureLabel,
+                        helperText: l10n.danceEditorTypeFigureHelper,
+                        helperMaxLines: 3,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: FilledButton(
+                      key: _key('free-text-submit'),
+                      onPressed: _submitFreeText,
+                      child: Text(l10n.commonAdd),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: TextButton(
+                      key: _key('free-text-done'),
+                      onPressed: _dismissFreeText,
+                      child: Text(
+                        l10n.commonDone,
+                        style: TextStyle(color: theme.colorScheme.primary),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (confirmation != null)
+                Padding(
+                  key: _key('free-text-confirmation'),
+                  padding: const EdgeInsets.only(top: 4),
+                  // Spoken by [_announce]; a second, live-region copy would be
+                  // read twice.
+                  child: ExcludeSemantics(
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            confirmation,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: FilledButton(
-                key: _key('free-text-submit'),
-                onPressed: _submitFreeText,
-                child: Text(l10n.commonAdd),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: TextButton(
-                key: _key('free-text-done'),
-                onPressed: _dismissFreeText,
-                child: Text(
-                  l10n.commonDone,
-                  style: TextStyle(color: theme.colorScheme.primary),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

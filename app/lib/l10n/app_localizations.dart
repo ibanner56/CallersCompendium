@@ -11679,11 +11679,17 @@ abstract class AppLocalizations {
   /// **'Type a figure and press Enter to add it.'**
   String get danceEditorTypeFigureAnnouncement;
 
-  /// Screen-reader announcement after adding figure(s) from free-text entry.
+  /// Screen-reader announcement after adding figure(s) from free-text entry. Spoken only: the visible line under the box is danceEditorFreeTextFiguresAddedConfirmation, because this one names the Escape key.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{Added 1 figure. Type another, or press Escape to finish.} other{Added {count} figures. Type another, or press Escape to finish.}}'**
   String danceEditorFreeTextFiguresAddedAnnouncement(int count);
+
+  /// Visible line under the free-text figure box after adding figure(s). "Done" is the button next to the box (commonDone) that closes it; keep the wording in step with that button's label.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 figure. Type another, or choose Done to finish.} other{Added {count} figures. Type another, or choose Done to finish.}}'**
+  String danceEditorFreeTextFiguresAddedConfirmation(int count);
 
   /// Screen-reader announcement after a line typed into an existing figure's move field (with free-text entry on) replaced that figure with the figure(s) parsed from it.
   ///
@@ -12691,6 +12697,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Type this exact line during free-text entry to insert the figures below. Matched case-insensitively.'**
   String get shorthandEditorTokenHelper;
+
+  /// Warning (not an error; saving is still allowed) under the shorthand-token field when the token, typed as a free-text line, already reads as a figure; {token} is the user's token, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Typing \"{token}\" already adds a figure on its own. If you save this shorthand, typing it will insert what you set here instead. You can still save it.'**
+  String shorthandEditorTokenShadowsFigure(String token);
 
   /// Section header for the figures a shorthand expands to.
   ///

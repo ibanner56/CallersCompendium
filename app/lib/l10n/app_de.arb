@@ -7690,6 +7690,10 @@
   "@danceEditorFreeTextFiguresAddedAnnouncement": {
     "x-sourceSha256": "c4d66c29eef8a2480eeff9c01651a491f5f23569bc7a17aa9f6d79d0e522c6ed"
   },
+  "danceEditorFreeTextFiguresAddedConfirmation": "{count, plural, =1{1 Figur hinzugefügt. Geben Sie eine weitere ein oder wählen Sie „Fertig“, um zu beenden.} other{{count} Figuren hinzugefügt. Geben Sie eine weitere ein oder wählen Sie „Fertig“, um zu beenden.}}",
+  "@danceEditorFreeTextFiguresAddedConfirmation": {
+    "x-sourceSha256": "9d440af03e3cb398e592743aab104875b7a185a58ec28037919fb3fd2b40d32a"
+  },
   "danceEditorFreeTextRowReplacedAnnouncement": "{count, plural, =1{Figur ersetzt.} other{Figur durch {count} Figuren ersetzt.}}",
   "@danceEditorFreeTextRowReplacedAnnouncement": {
     "x-sourceSha256": "692f1ac40a943ce8eda3d48e21914b9660167c3563fa0bce6ed3422af96115de"
@@ -8353,6 +8357,10 @@
   "shorthandEditorTokenHelper": "Geben Sie diese exakte Zeile bei der Freitexteingabe ein, um die untenstehenden Figuren einzufügen. Groß-/Kleinschreibung wird nicht berücksichtigt.",
   "@shorthandEditorTokenHelper": {
     "x-sourceSha256": "2ce1c061c62ddcba5d051d4664436be8fbd481b6c11b27b32586824f618f1d4f"
+  },
+  "shorthandEditorTokenShadowsFigure": "Die Eingabe von „{token}“ fügt bereits von selbst eine Figur ein. Wenn Sie diese Abkürzung speichern, fügt die Eingabe stattdessen das ein, was Sie hier festgelegt haben. Sie können sie trotzdem speichern.",
+  "@shorthandEditorTokenShadowsFigure": {
+    "x-sourceSha256": "3b73b5185219dec5e1ee3cc9de4b614613efa9f1e2905333cddf61ba5a09670a"
   },
   "shorthandEditorExpandsTo": "Wird erweitert zu",
   "@shorthandEditorExpandsTo": {
