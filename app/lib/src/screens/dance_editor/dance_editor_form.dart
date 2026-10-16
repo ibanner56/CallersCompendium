@@ -129,19 +129,40 @@ class DanceEditorForm extends StatelessWidget {
       return null;
     }
     return (line) {
-      // Tokens are kept unique, but two devices can each add one before they
-      // sync.
+      // A count typed with the token (`16 grl`, `grl (16)`) is split off as
+      // it is for a plain shorthand (#1861), after the whole line, so a
+      // token that itself holds a number still matches in full.
+      // A plain shorthand that is the whole line wins before any split.
       if (shorthandMappings?.resolve(line) != null) return false;
-      if (compoundShorthands?.resolve(line) case final shorthand?) {
-        return controller.insertCompoundShorthand(
-          shorthand,
-          replacing: replacing,
-        );
-      }
-      final mine = userFigureShorthands?.resolve(line);
-      return mine != null &&
-          controller.insertUserFigureShorthand(mine, replacing: replacing);
+      final split = splitShorthandCount(line);
+      return _insertShorthand(line, null, replacing) ||
+          (split != null &&
+              _insertShorthand(split.text, split.beats, replacing));
     };
+  }
+
+  /// Inserts the compound or own-figure shorthand whose token is [token], and
+  /// says whether it did. [beats] is a count typed with it: a compound is
+  /// several figures with beats of their own, so it ignores one, as a plain
+  /// shorthand for several figures does (#1827); an own figure is one, so it
+  /// takes it as its beats.
+  bool _insertShorthand(String token, int? beats, FigureDraft? replacing) {
+    // Tokens are kept unique, but two devices can each add one before they
+    // sync, and then the plain shorthand wins.
+    if (shorthandMappings?.resolve(token) != null) return false;
+    if (compoundShorthands?.resolve(token) case final shorthand?) {
+      return controller.insertCompoundShorthand(
+        shorthand,
+        replacing: replacing,
+      );
+    }
+    final mine = userFigureShorthands?.resolve(token);
+    return mine != null &&
+        controller.insertUserFigureShorthand(
+          mine,
+          replacing: replacing,
+          beats: beats,
+        );
   }
 
   @override

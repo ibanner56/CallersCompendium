@@ -1511,10 +1511,13 @@ class DanceEditorController extends ChangeNotifier {
   /// otherwise inserts nothing and returns false, so the line is parsed as
   /// usual. Like a compound shorthand, it is not held to the dance's form:
   /// typing the token is choosing the figure. With [replacing] (#1847) the row
-  /// takes that row's place instead of being appended.
+  /// takes that row's place instead of being appended. A [beats] count typed
+  /// with the token (`16 zm`, #1861) is the use's beats in place of the
+  /// shorthand's own.
   bool insertUserFigureShorthand(
     UserFigureShorthand shorthand, {
     FigureDraft? replacing,
+    int? beats,
   }) {
     final entry = _userFigureEntries[shorthand.figureId];
     final definition = _userFigureCatalog[shorthand.figureId]?.definition;
@@ -1528,12 +1531,12 @@ class DanceEditorController extends ChangeNotifier {
           entry,
           definition,
           args: {...shorthand.args},
-          beats: shorthand.beats,
+          beats: beats ?? shorthand.beats,
         ),
       );
-    // Beats the shorthand sets count as chosen; without them the row has the
-    // figure's default beats, as picking the figure gives it.
-    draft.beatsTouched = shorthand.beats != null;
+    // Beats the shorthand or the line set count as chosen; without them the
+    // row has the figure's default beats, as picking the figure gives it.
+    draft.beatsTouched = (beats ?? shorthand.beats) != null;
     // Values the figure no longer accepts would show only the stored line.
     final renders =
         FigureRenderer(
