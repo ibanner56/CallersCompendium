@@ -81,15 +81,15 @@ bool userGlossaryPayloadIsJson(String text) {
 /// everything else (the app's own estimate is about 30 MiB for a lean
 /// 20,000-dance library). The bound limits what the glossary can add: a
 /// collection already near the cap by itself can still reach it, and the exempt
-/// paths above can take a glossary past it (it is then still under the file
-/// cap unless the collection is).
+/// paths above can take a glossary past it (a restore or sync merge unions this
+/// glossary with another, and nothing bounds that sum).
 ///
-/// How much fits. An entry at its absolute per-field maximum is about 0.3 MiB
-/// of text plus a payload of up to [maxUserGlossaryPayloadLength], so only a
-/// handful of those fit; the editor's compounds are far below that
-/// ([maxUserGlossaryPayloadLength] notes a compound at its own bounds is far
-/// below it), and an entry with a sentence each of definition and description
-/// counts for about 1 KB, so a few thousand fit.
+/// How much fits. An entry at every per-field maximum counts for around a MiB
+/// (its text bounds allow about 0.2 MiB of UTF-8, and its payload up to
+/// [maxUserGlossaryPayloadLength] code units), so only a handful of those fit;
+/// the payload of a compound at its own bounds is far below that length, and an
+/// entry with a sentence each of definition and description counts for about
+/// 1 KB, so a few thousand fit.
 ///
 /// Rejected: a budget at export. The user would still be unable to back up,
 /// and the only way out would be deleting entries blind.
@@ -317,20 +317,22 @@ class UserGlossaryRepository {
         key: entry.id,
         at: now,
       );
+      // Measured on what is stored, after the write, so what is counted is
+      // what the backup will carry (not a second computation of it); throwing
+      // rolls the whole write back. Before the user-figure hook, so a refused
+      // write does not first re-index every dance that uses the figure.
+      if (enforceBudget) {
+        final after = await _glossaryBytes(_db, entryId: entry.id);
+        if (after.total > maxBytes && after.row > before) {
+          throw const UserGlossaryEntryInvalid.overBudget();
+        }
+      }
       await _userFigureChanged(
         entry.id,
         wasOrIs:
             entry.kindName == UserGlossaryEntryKind.customFigure.name ||
             existing?.kind == UserGlossaryEntryKind.customFigure.name,
       );
-      // Measured on what is stored, after the write, so what is counted is
-      // what the backup will carry (not a second computation of it); throwing
-      // rolls the whole write back.
-      if (!enforceBudget) return;
-      final after = await _glossaryBytes(_db, entryId: entry.id);
-      if (after.total > maxBytes && after.row > before) {
-        throw const UserGlossaryEntryInvalid.overBudget();
-      }
     });
   }
 
@@ -339,7 +341,8 @@ class UserGlossaryRepository {
   /// Separate from [upsert] per sync-spec §6.7, so the editor's path cannot
   /// change what an inbound apply does. It is not held to [maxBytes]: a peer's
   /// row is applied or the two devices never converge, and the peer's own
-  /// glossary was within the budget when it was written. A glossary that sync
+  /// glossary usually was within the budget when it was written (an older build
+  /// had none, and a peer's can itself have been filled by sync or restore). A glossary that sync
   /// fills past the budget can still be exported (up to the backup file cap)
   /// and edited down, but not grown. The entry is written as the peer sent
   /// it: its kind and payload text verbatim, whether or not this build can

@@ -701,7 +701,15 @@ class _NotesDialogState extends State<_NotesDialog> {
   Future<void> _save() async {
     if (_saving) return;
     setState(() => _saving = true);
-    final error = await widget.save(_controller.text);
+    final String? error;
+    try {
+      error = await widget.save(_controller.text);
+    } catch (_) {
+      // Not a refusal (those come back as text): let it surface as it did
+      // before, but leave Save usable for a retry.
+      if (mounted) setState(() => _saving = false);
+      rethrow;
+    }
     if (!mounted) return;
     if (error == null) {
       Navigator.of(context).pop();

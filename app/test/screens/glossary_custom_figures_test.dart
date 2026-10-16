@@ -499,6 +499,44 @@ void main() {
       );
     });
 
+    testWidgets('an unexpected failure to store leaves Save usable', (
+      tester,
+    ) async {
+      final h = await pump(tester);
+      // Not a refusal the repository reports: the write itself fails.
+      await tester.runAsync(
+        () => h.repos.db.customStatement(
+          'CREATE TRIGGER notes_fail BEFORE INSERT ON figure_notes '
+          "BEGIN SELECT RAISE(ABORT, 'boom'); END",
+        ),
+      );
+      await search(tester, 'swing');
+      await tester.tap(find.byKey(const ValueKey('glossary-entry-swing')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('glossary-notes-field')),
+        'Larks finish on the left',
+      );
+      await tester.tap(find.byKey(const ValueKey('glossary-notes-save')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNotNull);
+      final save = find.byKey(const ValueKey('glossary-notes-save'));
+      expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+      // And the retry goes through once the failure is gone.
+      await tester.runAsync(
+        () => h.repos.db.customStatement('DROP TRIGGER notes_fail'),
+      );
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(save, findsNothing);
+      expect(
+        (await tester.runAsync(() => h.repos.figureNotes.get('swing')))!.notes,
+        'role1s finish on the left',
+      );
+    });
+
     testWidgets('a note the full Glossary has no room for says so, not that '
         'the note is too long', (tester) async {
       final h = await pump(tester);
