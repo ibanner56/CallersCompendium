@@ -36,120 +36,130 @@ void main() {
     createdAt: created,
   );
 
-  testWidgets('deleting a figure drops its dialect entries and its matrix '
-      'column, and leaves the others', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(500, 900));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    final repos = openTestRepositories();
-    final other = userFigureKeyFor('other-id');
-    final mine = Dialect.larksRobins.copyWith(
-      name: 'Mine',
-      moves: {key: 'whizz', other: 'swoosh', 'swing': 'twirl'},
-      moveWordings: {key: '{move}!'},
-    );
-    final matrixConfig = MatrixColumnConfig(
-      order: [key, other, 'swing:partner'],
-      hidden: {key},
-      renames: {key: 'Z', other: 'O'},
-    );
-    final dialects = DialectLibraryController(repos.settings);
-    addTearDown(dialects.dispose);
-    await tester.runAsync(() async {
-      await repos.userGlossary.upsert(figure('zoom-id', 'zoom'));
-      await repos.userGlossary.upsert(figure('other-id', 'other'));
-      await repos.settings.set(kProgramMatrixColumnsKey, matrixConfig.toJson());
-      await dialects.load();
-      await dialects.upsert(mine);
-      // The active dialect is the custom one, whose copy is kept apart too.
-      await dialects.setActive('Mine');
-    });
-    final matrix = ValueNotifier(matrixConfig);
-    final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
-    final glossary = ValueNotifier(true);
-    final custom = ValueNotifier(true);
-    for (final n in <ChangeNotifier>[matrix, dialect, glossary, custom]) {
-      addTearDown(n.dispose);
-    }
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: testLocalizationsDelegates,
-        supportedLocales: testSupportedLocales,
-        builder: (context, child) => RepositoriesScope(
-          repositories: repos,
-          child: ActiveDialectScope(
-            notifier: dialect,
-            child: DialectLibraryScope(
-              controller: dialects,
-              child: ProgramMatrixColumnConfigScope(
-                notifier: matrix,
-                child: ShowGlossaryScope(
-                  notifier: glossary,
-                  child: ShowCustomFiguresScope(
-                    notifier: custom,
-                    child: child!,
+  // Narrow, the detail is a pushed page; wide, it is a pane the delete
+  // unmounts as soon as the list no longer holds the entry.
+  for (final (layout, size) in [
+    ('narrow', const Size(500, 900)),
+    ('wide', const Size(1400, 900)),
+  ]) {
+    testWidgets('deleting a figure drops its dialect entries and its matrix '
+        'column, and leaves the others ($layout)', (tester) async {
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final repos = openTestRepositories();
+      final other = userFigureKeyFor('other-id');
+      final mine = Dialect.larksRobins.copyWith(
+        name: 'Mine',
+        moves: {key: 'whizz', other: 'swoosh', 'swing': 'twirl'},
+        moveWordings: {key: '{move}!'},
+      );
+      final matrixConfig = MatrixColumnConfig(
+        order: [key, other, 'swing:partner'],
+        hidden: {key},
+        renames: {key: 'Z', other: 'O'},
+      );
+      final dialects = DialectLibraryController(repos.settings);
+      addTearDown(dialects.dispose);
+      await tester.runAsync(() async {
+        await repos.userGlossary.upsert(figure('zoom-id', 'zoom'));
+        await repos.userGlossary.upsert(figure('other-id', 'other'));
+        await repos.settings.set(
+          kProgramMatrixColumnsKey,
+          matrixConfig.toJson(),
+        );
+        await dialects.load();
+        await dialects.upsert(mine);
+        // The active dialect is the custom one, whose copy is kept apart too.
+        await dialects.setActive('Mine');
+      });
+      final matrix = ValueNotifier(matrixConfig);
+      final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+      final glossary = ValueNotifier(true);
+      final custom = ValueNotifier(true);
+      for (final n in <ChangeNotifier>[matrix, dialect, glossary, custom]) {
+        addTearDown(n.dispose);
+      }
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => RepositoriesScope(
+            repositories: repos,
+            child: ActiveDialectScope(
+              notifier: dialect,
+              child: DialectLibraryScope(
+                controller: dialects,
+                child: ProgramMatrixColumnConfigScope(
+                  notifier: matrix,
+                  child: ShowGlossaryScope(
+                    notifier: glossary,
+                    child: ShowCustomFiguresScope(
+                      notifier: custom,
+                      child: child!,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
+          home: const GlossaryScreen(),
         ),
-        home: const GlossaryScreen(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('glossary-search')),
-      'zoom',
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const ValueKey('glossary-entry-custom:zoom-id')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('glossary-custom-delete')));
-    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const ValueKey('glossary-custom-delete-confirm')),
-    );
-    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('glossary-search')),
+        'zoom',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('glossary-entry-custom:zoom-id')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('glossary-custom-delete')));
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('glossary-custom-delete-confirm')),
+      );
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pumpAndSettle();
 
-    final kept = dialects.customByName('Mine')!;
-    expect(kept.moves, {other: 'swoosh', 'swing': 'twirl'});
-    expect(kept.moveWordings, isEmpty);
-    final storedDialects = await tester.runAsync<Object?>(
-      () => repos.settings.get(kCustomDialectsKey),
-    );
-    expect(
-      Dialect.fromJson(
-        ((storedDialects! as List).single as Map).cast<String, Object?>(),
-      ).moves,
-      {other: 'swoosh', 'swing': 'twirl'},
-    );
+      final kept = dialects.customByName('Mine')!;
+      expect(kept.moves, {other: 'swoosh', 'swing': 'twirl'});
+      expect(kept.moveWordings, isEmpty);
+      final storedDialects = await tester.runAsync<Object?>(
+        () => repos.settings.get(kCustomDialectsKey),
+      );
+      expect(
+        Dialect.fromJson(
+          ((storedDialects! as List).single as Map).cast<String, Object?>(),
+        ).moves,
+        {other: 'swoosh', 'swing': 'twirl'},
+      );
 
-    final activeCopy = await tester.runAsync<Object?>(
-      () => repos.settings.get(kActiveDialectKey),
-    );
-    expect(
-      Dialect.fromJson((activeCopy! as Map).cast<String, Object?>()).moves,
-      {other: 'swoosh', 'swing': 'twirl'},
-    );
+      final activeCopy = await tester.runAsync<Object?>(
+        () => repos.settings.get(kActiveDialectKey),
+      );
+      expect(
+        Dialect.fromJson((activeCopy! as Map).cast<String, Object?>()).moves,
+        {other: 'swoosh', 'swing': 'twirl'},
+      );
 
-    final expected = MatrixColumnConfig(
-      order: [other, 'swing:partner'],
-      renames: {other: 'O'},
-    );
-    expect(matrix.value, expected);
-    expect(
-      MatrixColumnConfig.tryDecode(
-        await tester.runAsync<Object?>(
-          () => repos.settings.get(kProgramMatrixColumnsKey),
+      final expected = MatrixColumnConfig(
+        order: [other, 'swing:partner'],
+        renames: {other: 'O'},
+      );
+      expect(matrix.value, expected);
+      expect(
+        MatrixColumnConfig.tryDecode(
+          await tester.runAsync<Object?>(
+            () => repos.settings.get(kProgramMatrixColumnsKey),
+          ),
         ),
-      ),
-      expected,
-    );
-  });
+        expected,
+      );
+    });
+  }
 
   testWidgets('deleting a figure freezes its uses in the default figure '
       'lists, and the dialog counts the Trash and the defaults', (
