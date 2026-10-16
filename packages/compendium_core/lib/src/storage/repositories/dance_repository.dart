@@ -36,6 +36,7 @@ import '../utc_datetime.dart';
 import 'custom_field_repository.dart';
 import 'sync_local_repository.dart';
 import '../../taxonomy/user_figure_use.dart';
+import '../../taxonomy/user_figure_switch.dart';
 import '../../model/user_glossary.dart';
 import 'user_glossary_repository.dart';
 
@@ -1251,6 +1252,62 @@ class DanceRepository {
         final frozen = freezeUserFigureUsesIn(figures, userFigureId, renderer);
         if (identical(frozen, figures)) return null;
         return dance.copyWith(figures: frozen, updatedAt: now);
+      },
+      rebuildDerived: true,
+      localUserEdit: false,
+    );
+  }
+
+  /// Switches every use of the figure of your own [userFigureId] in a live
+  /// dance to the shipped figure [mapping] names (#1023, maintainer decision
+  /// 5), as [switchUserFigureUsesIn] does: what follows the user choosing the
+  /// app's figure over theirs when a later version ships one of the same
+  /// name. Call it before deleting the figure, which the switch retires.
+  ///
+  /// Throws a [StateError], writing nothing, when the figure is not live here
+  /// or [mapping] is not complete for it ([userFigureSwitchProblems]): the
+  /// mapping editor offers no switch until it is.
+  ///
+  /// A dance in the Trash is not written, as [freezeUserFigureUses] leaves it.
+  /// Each dance changed is written once, stamped [now]; an automatic write,
+  /// so it never cancels a peer's pending deletion. Returns the number of
+  /// dances changed.
+  Future<int> switchUserFigureUses(
+    String userFigureId,
+    UserFigureSwitch mapping, {
+    required DateTime now,
+  }) async {
+    assertUtc(now, 'now');
+    final catalog = await _liveUserFigures({userFigureId});
+    final definition = catalog[userFigureId]?.definition;
+    if (definition == null) {
+      throw StateError('no live figure of your own "$userFigureId"');
+    }
+    final problems = userFigureSwitchProblems(definition, mapping, _taxonomy);
+    if (problems.isNotEmpty) {
+      throw StateError('incomplete switch: ${problems.join('; ')}');
+    }
+    final ids = await _danceIdsUsingUserFigure(userFigureId);
+    if (ids.isEmpty) return 0;
+    final renderer = FigureRenderer(_taxonomy, userFigures: catalog);
+    return _updateMany(
+      ids,
+      (dance) {
+        final figures = switch (dance.figuresSource) {
+          DecodedFigures(:final figures) => figures,
+          UnreadableFigures() => null,
+        };
+        if (figures == null) return null;
+        final switched = switchUserFigureUsesIn(
+          figures,
+          userFigureId,
+          definition,
+          mapping,
+          _taxonomy,
+          renderer,
+        );
+        if (identical(switched, figures)) return null;
+        return dance.copyWith(figures: switched, updatedAt: now);
       },
       rebuildDerived: true,
       localUserEdit: false,

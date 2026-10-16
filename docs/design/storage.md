@@ -84,6 +84,16 @@ lives in the core package; all access through repositories.*
   matrix column (plan C9). These are settings values, not dances, so the
   delete's caller writes them, outside the delete's transaction and best
   effort: a failure is logged, and the figure stays deleted.
+  Switching a figure to the shipped figure of its name (maintainer decision 5,
+  for a name a later version ships) is the delete's twin:
+  `switchUserFigureToBuiltIn` rewrites each attached use in a live dance as a
+  figure of the shipped move or alias, through a mapping of every parameter
+  and choice value (`switchUserFigureUsesIn`), and retires the figure, in one
+  transaction. Each switched use states its beats, so a dance's sections
+  don't move. A use it can't map (detached, or holding a value no longer the
+  figure's) is frozen as plain text instead, and the Trash is left as it is.
+  As for a delete, the uses in the settings, the dialect entries and the
+  matrix column are its caller's to rewrite or drop, outside the transaction.
 
 ## Tables (abridged)
 
