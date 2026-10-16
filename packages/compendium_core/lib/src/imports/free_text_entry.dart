@@ -71,7 +71,7 @@ class _BeatSplit {
 
 /// Extracts an optional inline beat count from a trimmed free-text [line]. A
 /// trailing `(N)`/`[N]` is checked first (it is unambiguous — digits inside
-/// brackets at the end), then a leading `N `, `(N) ` or `[N] `. Returns the
+/// brackets at the end), then a leading `N `, `(N)` or `[N]`. Returns the
 /// line unchanged with 0 beats when neither form is present — or when the
 /// stated count parses to 0. Because 0 is "unspecified" downstream, stripping a
 /// `(0)`/`0 ` token would silently mutate the user's text for no gain, so a
@@ -131,8 +131,8 @@ _BeatSplit _splitInlineBeats(String line) {
 ///
 /// Before parsing, an optional inline beat count is peeled off the line and
 /// passed as the `beats` argument:
-/// - a **leading** `16 …`, `(16) …` or `[16] …` (a bare or bracketed integer +
-///   space), or
+/// - a **leading** `16 …`, `(16) …` or `[16] …` (a bare integer + space, or a
+///   bracketed one, with or without a space), or
 /// - a **trailing** `… (16)` or `… [16]` (a bracketed integer at the end).
 ///
 /// Only ONE inline form is honoured per line: a trailing count is checked
