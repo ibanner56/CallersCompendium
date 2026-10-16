@@ -248,6 +248,7 @@ class SyncController extends ChangeNotifier {
     this._debounce = kSyncChangeDebounce,
     this._retryBackoff = kSyncRetryBackoff,
     this._detachCleanupDeadline = kSyncDetachCleanupDeadline,
+    this._onSettingsApplied,
   }) : assert(_retryBackoff.isNotEmpty),
        _now = now ?? (() => DateTime.now().toUtc());
 
@@ -281,6 +282,20 @@ class SyncController extends ChangeNotifier {
   final Duration _detachCleanupDeadline;
   final SyncPairingProbeFactory? _pairingProbeFactory;
   final SyncDeviceAdminFactory? _deviceAdminFactory;
+
+  /// Called when a pass reports that it wrote `settings` rows — a peer's
+  /// preference applied here — so the app can reload the live controllers
+  /// that cached the old values (#1828). Without it they keep the old values
+  /// until a relaunch, and the next local edit of a whole-collection setting
+  /// writes the stale collection back over what the pass applied.
+  ///
+  /// Called whatever status the pass reports: a pass that failed part-way can
+  /// have applied records before it stopped, and the database holds them
+  /// either way. A pass that threw instead reports no applied kinds, so it
+  /// reaches neither this nor the live-query invalidation; the next pass that
+  /// applies settings reloads. Not awaited: the reload is the app's work, not
+  /// the pass's.
+  final void Function()? _onSettingsApplied;
 
   /// Builds the probe for a pairing attempt. [endpoint] must already have
   /// passed [validateSyncEndpoint] and [syncId] must be a well-formed ID.
@@ -750,7 +765,11 @@ class SyncController extends ChangeNotifier {
           failure: SyncFailure.fromError(error),
         );
       }
-      await _recordResult(result);
+      try {
+        await _recordResult(result);
+      } finally {
+        _reportAppliedSettings(result);
+      }
       _planRetry(result);
       return SyncGateOutcome.ran;
     } finally {
@@ -784,6 +803,19 @@ class SyncController extends ChangeNotifier {
       return SyncGateOutcome.suppressedMetered;
     }
     return null;
+  }
+
+  /// Calls [_onSettingsApplied] when [result] wrote `settings` rows.
+  ///
+  /// After [_recordResult], so its own last-success write has landed before
+  /// the reload starts rather than during it, and even when that write fails
+  /// or [_detaching] skips the recording: the rows the pass applied are in
+  /// the database either way.
+  void _reportAppliedSettings(SyncPassResult result) {
+    if (_disposed) return;
+    if (result.appliedKinds.contains(SyncRecordKind.setting)) {
+      _onSettingsApplied?.call();
+    }
   }
 
   /// Records a pass result and, on success, persists the last-success time as
@@ -992,7 +1024,11 @@ class SyncController extends ChangeNotifier {
           failure: SyncFailure.fromError(error),
         );
       }
-      await _recordResult(result);
+      try {
+        await _recordResult(result);
+      } finally {
+        _reportAppliedSettings(result);
+      }
       // Only a genuinely completed confirmation resolves the decision. A
       // failure (e.g. a 500 from `POST /v1/store`) leaves the coordinator's
       // own replacement-pending state untouched — it never emits a fresh

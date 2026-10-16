@@ -1,0 +1,9 @@
+{
+  "id": "1828-sync-settings-reload",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "With Device Sync on, a setting changed on another device now shows here as soon as a sync brings it in, instead of after you restart the app. Before, editing one of your shorthands, themes, dialects or walkthrough snippets in the meantime saved this device's old list back over the one sync had brought in."
+    ]
+  }
+}
