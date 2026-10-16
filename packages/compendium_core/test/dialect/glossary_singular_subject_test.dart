@@ -11,8 +11,8 @@ import 'package:test/test.dart';
 /// role2s the music" (and displayed as "The caller Robins the music"), and
 /// pins the plural role nouns that must keep converting beside it.
 ///
-/// The rule under test is a decision of the author session, not of the
-/// maintainer; see "User-glossary text (#709)" in `docs/design/dialect.md`.
+/// What counts as a singular subject beyond a role term is the implementer's
+/// choice; see "User-glossary text (#709)" in `docs/design/dialect.md`.
 void main() {
   final lf = Dialect.leadsFollows;
 
@@ -65,6 +65,79 @@ void main() {
         'It leads the role2s into a swing',
       );
     });
+  });
+
+  group('every pronoun and quantifier the rule names', () {
+    // Each member of the closed lists, so that dropping one is caught.
+    const verbs = [
+      'He leads down the hall',
+      'She follows the music',
+      'Who leads into a swing',
+      'Whoever leads down the hall',
+      'Somebody follows the music',
+      'Everybody leads down the hall',
+      'Anyone follows the music',
+      'Anybody leads into a swing',
+      'the third leads down the hall',
+      'the 2nd follows the first',
+      'the 3rd leads down the hall',
+      // A hyphen before the complement ("lead-up") is read like a space.
+      'The line leads-up to a swing',
+    ];
+    for (final text in verbs) {
+      test(text, () => expect(stored(text), text));
+    }
+
+    for (final q in [
+      'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', //
+      'nine', 'ten', 'few', 'many', 'several', 'some', 'more', 'most',
+      'fewer',
+    ]) {
+      test('the $q leads down the hall is a count of roles', () {
+        expect(stored('the $q leads down'), 'the $q role1s down');
+      });
+    }
+
+    // Function words are never the noun of a subject.
+    for (final w in [
+      'up', 'down', 'to', 'all', 'not', 'will', 'can', 'must', 'should',
+      'may', 'shall', 'would', 'could', 'never', 'always', //
+    ]) {
+      test('the $w leads down the hall', () {
+        expect(stored('the $w leads down'), 'the $w role1s down');
+      });
+    }
+
+    test('a one-letter word is no noun', () {
+      expect(stored('the x follows the ones'), 'the x role2s the ones');
+    });
+  });
+
+  group('that, this and which can also introduce a plural role', () {
+    // "that" is a conjunction here, "this" a determiner: the roles that
+    // follow are plural nouns, and the verb that follows them is a plural one.
+    // The words are only a subject when a complement comes next ("a call that
+    // follows the balance").
+    const roles = {
+      'Remember that follows go second': 'Remember that role2s go second',
+      'so that follows can prepare': 'so that role2s can prepare',
+      'Call early so that leads know when to go':
+          'Call early so that role1s know when to go',
+      'Make sure that leads cross first': 'Make sure that role1s cross first',
+      'It is important that follows wait': 'It is important that role2s wait',
+      'Callers say that leads go down the hall':
+          'Callers say that role1s go down the hall',
+      'Note that leads and follows trade places':
+          'Note that role1s and role2s trade places',
+      'Do this leads cross first': 'Do this role1s cross first',
+      'the figure which leads cross first':
+          'the figure which role1s cross first',
+      // A role term next is no complement either.
+      'a call that follows ladies': 'a call that role2s role2s',
+    };
+    for (final e in roles.entries) {
+      test(e.key, () => expect(stored(e.key), e.value));
+    }
   });
 
   group('a plural role noun is still a role', () {
@@ -163,8 +236,14 @@ void main() {
   });
 
   group('idempotence', () {
-    // Every glossary text is canonicalized again by each later save, so the
-    // second pass must change nothing.
+    // A no-edit save canonicalizes the stored text again, so the second pass
+    // must change nothing: canonicalize(canonicalize(x)) == canonicalize(x).
+    // This is not the render round trip (canonicalize(render(canonicalize(x)))),
+    // which can differ, see "known limitations" in `docs/design/dialect.md`.
+    //
+    // Only Leads/Follows has "leads"/"follows" as role words, so only it
+    // exercises the verb rule; the other dialects are controls that must stay
+    // unchanged by it.
     final custom = Dialect(
       name: 'Ravens/Crows',
       roles: const {'role1': RoleTerm('Raven'), 'role2': RoleTerm('Crow')},
@@ -175,7 +254,6 @@ void main() {
       Dialect.larksRobins,
       Dialect.canonical,
       custom,
-      // Role words that are also complement words.
       Dialect(
         name: 'Ones/Twos',
         roles: const {'role1': RoleTerm('Ones'), 'role2': RoleTerm('Twos')},
