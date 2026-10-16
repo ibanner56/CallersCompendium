@@ -10,14 +10,16 @@
 // links, provenance and the settings markers a real startup wrote.
 //
 // What is asserted is every value the generator seeds to something other than a
-// default, in every table it seeds (dances, figures and their params, links,
-// citations, provenance, tags, authors, venue, sources, custom fields, the
-// program and its slots, the `ui.*` settings), the default difficulty levels
-// and the file's integrity. Columns left at their defaults are not read. Derived values that the open legitimately rebuilds are not
-// compared: the FTS tables, `canonical_text`, `dance_figures` and the
-// `__*_done` repair markers (deleting all of them, or blanking
-// `dance_figures.params_json`, before the open leaves the migration's result
-// identical). Search is only checked to work.
+// default, in the tables a user sees content from (dances, figures and their
+// params, links, citations, provenance, tags, authors, venue, sources, custom
+// fields, the program and its slots, the `ui.*` settings), the default
+// difficulty levels and the file's integrity. Columns left at their defaults
+// are not read, nor are the bookkeeping timestamps of the tag, author, venue,
+// source, custom-field and settings rows. Derived values that the open
+// legitimately rebuilds are not compared: the FTS tables, `canonical_text`,
+// `dance_figures` and the `__*_done` repair markers (deleting all of them, or
+// blanking `dance_figures.params_json`, before the open leaves the migration's
+// result identical). Search is only checked to work.
 //
 // The fixtures are produced by `tool/fixture_generators/generate_release_fixture.dart`
 // run against the release's tag (recipe in its header); their digests are in
@@ -178,13 +180,21 @@ Future<void> _migratesAndKeepsItsData(
   );
   expect((await repos.dances.getById('d-fts'))!.title, 'Résumé Reel');
   expect((await repos.dances.getById('d-fts'))!.hook, 'hey for four');
-  expect((await repos.dances.getById('d-plain'))!.title, 'Plain Dance');
+  final plain = (await repos.dances.getById('d-plain'))!;
+  expect(plain.title, 'Plain Dance');
+  for (final dance in [plain, (await repos.dances.getById('d-fts'))!]) {
+    expect(dance.createdAt, _seededAt);
+    expect(dance.updatedAt, _seededAt);
+  }
 
   // The tombstone survives as a tombstone: still there, still deleted.
   expect(await repos.dances.getById('d-gone'), isNull);
   expect(await repos.dances.isDeletedById('d-gone'), isTrue);
   final gone = (await repos.dances.getById('d-gone', includeDeleted: true))!;
   expect(gone.title, 'Deleted Dance');
+  expect(gone.createdAt, _seededAt);
+  expect(gone.updatedAt, _seededAt);
+  expect(gone.deletedAt, _seededAt);
   expect(figuresOf(gone).map(_moveAndParams), ['swing {"who":"partners"}']);
 
   // --- the rest of the library ---------------------------------------------
@@ -237,6 +247,8 @@ Future<void> _migratesAndKeepsItsData(
   // --- program --------------------------------------------------------------
   final program = (await repos.programs.getById('p-spring'))!;
   expect(program.title, 'Spring Dance 2026');
+  expect(program.createdAt, _seededAt);
+  expect(program.updatedAt, _seededAt);
   expect(program.venueId, 'v-grange');
   expect(program.venue, 'Grange Hall');
   expect(program.dancerLevel, 'mixed');
