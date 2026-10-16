@@ -70,9 +70,39 @@ final RegExp _strayTrailingCount = RegExp(
   caseSensitive: false,
 );
 
+/// The count forms of one reader: where a count may sit, and what a stated
+/// count that was not read looks like.
+typedef _CountForms = ({
+  RegExp leading,
+  RegExp trailing,
+  RegExp strayLeading,
+  RegExp strayTrailing,
+});
+
+/// Free-text entry's forms, `beats` unit included.
+final _CountForms _typedCounts = (
+  leading: _leadingBeats,
+  trailing: _trailingBeats,
+  strayLeading: _strayLeadingCount,
+  strayTrailing: _strayTrailingCount,
+);
+
+/// The re-parse upgrade's forms ([splitForReparse]): the unit-less ones, as
+/// before the `beats` unit (#1826). That upgrade also runs over customs that
+/// came from imports, whose behaviour stays unchanged.
+final _CountForms _reparseCounts = (
+  leading: RegExp(
+    '^(?:(\\d{1,$_maxInlineBeatDigits})\\s+'
+    '|[(\\[](\\d{1,$_maxInlineBeatDigits})[)\\]]\\s*)(\\S.*)\$',
+  ),
+  trailing: RegExp('^(.*\\S)\\s*[(\\[](\\d{1,$_maxInlineBeatDigits})[)\\]]\$'),
+  strayLeading: RegExp(r'^[(\[]\s*0*[1-9]\d*\s*[)\]]'),
+  strayTrailing: RegExp(r'[(\[]\s*0*[1-9]\d*\s*[)\]]$'),
+);
+
 /// Result of splitting an optional inline beat count off a free-text line.
 class _BeatSplit {
-  const _BeatSplit(this.text, this.beats);
+  const _BeatSplit(this.text, this.beats, this.forms);
 
   /// The line with any recognised inline beat token removed.
   final String text;
@@ -81,10 +111,13 @@ class _BeatSplit {
   /// "unspecified" everywhere downstream — see [parseFigureLine]).
   final int beats;
 
+  /// The count forms [text] was split with.
+  final _CountForms forms;
+
   /// Whether [text] still starts or ends with a stated count that was not read
   /// as [beats].
   bool get hasStrayCount =>
-      _strayLeadingCount.hasMatch(text) || _strayTrailingCount.hasMatch(text);
+      forms.strayLeading.hasMatch(text) || forms.strayTrailing.hasMatch(text);
 }
 
 /// Extracts an optional inline beat count from a trimmed free-text [line]. A
@@ -95,23 +128,24 @@ class _BeatSplit {
 /// stated count parses to 0. Because 0 is "unspecified" downstream, stripping a
 /// `(0)`/`0 ` token would silently mutate the user's text for no gain, so a
 /// zero count leaves the whole line intact (it flows into the parser verbatim
-/// — e.g. as an honest custom).
-_BeatSplit _splitInlineBeats(String line) {
-  final trailing = _trailingBeats.firstMatch(line);
+/// — e.g. as an honest custom). [forms] defaults to free-text entry's.
+_BeatSplit _splitInlineBeats(String line, [_CountForms? forms]) {
+  final f = forms ?? _typedCounts;
+  final trailing = f.trailing.firstMatch(line);
   if (trailing != null) {
     final beats = int.tryParse(trailing.group(2) ?? trailing.group(3)!);
     if (beats != null && beats > 0) {
-      return _BeatSplit(trailing.group(1)!.trim(), beats);
+      return _BeatSplit(trailing.group(1)!.trim(), beats, f);
     }
   }
-  final leading = _leadingBeats.firstMatch(line);
+  final leading = f.leading.firstMatch(line);
   if (leading != null) {
     final beats = int.tryParse(leading.group(1) ?? leading.group(2)!);
     if (beats != null && beats > 0) {
-      return _BeatSplit(leading.group(3)!.trim(), beats);
+      return _BeatSplit(leading.group(3)!.trim(), beats, f);
     }
   }
-  return _BeatSplit(line, 0);
+  return _BeatSplit(line, 0, f);
 }
 
 /// Parses one free-text figure line typed in the editor's opt-in "Free-text
@@ -236,10 +270,14 @@ List<Figure> parseFreeTextFigureEntry(
 /// count the beats already state lets the line upgrade once the parser learns
 /// it. A stray count (see [_BeatSplit.hasStrayCount]) keeps the line custom,
 /// since the recogniser would drop the number.
+///
+/// Only the unit-less counts are read here (`_reparseCounts`): this also runs
+/// over customs that came from imports, so a `beats` unit (#1826) is left to
+/// the parser, as it was before.
 ({String text, int beats})? splitForReparse(String text, int beats) {
-  final split = _splitInlineBeats(text);
+  final split = _splitInlineBeats(text, _reparseCounts);
   final peel = split.beats > 0 && split.beats == beats;
-  final line = peel ? split : _BeatSplit(text, 0);
+  final line = peel ? split : _BeatSplit(text, 0, _reparseCounts);
   if (line.hasStrayCount) return null;
   return (text: line.text, beats: beats);
 }
@@ -255,10 +293,6 @@ List<Figure> _parseSplit(
   Taxonomy? taxonomy,
   Dialect? dialect,
 }) {
-  // Spoken turn amounts first (`once and a half` → `1 1/2`): the grammar would
-  // read `once` and keep `and a half` as a note, so this cannot wait for a
-  // miss.
-  final typed = rewriteTypedSpellings(split.text);
   // Fan OUT across the three source front-ends in precedence order
   // (ContraDB > CallersBox/TCB > CallersCompanion) and take the highest-
   // precedence attempt that structures the whole line to non-custom figure(s);
@@ -271,20 +305,31 @@ List<Figure> _parseSplit(
     taxonomy: taxonomy,
     demoteNoteTails: true,
   );
-  final raw = attempt(typed);
-  if (raw.isEmpty || !raw.every((f) => f.isCustom)) return raw;
+  bool missed(List<Figure> fs) => fs.every((f) => f.isCustom);
+  // Spoken turn amounts first (`once and a half` → `1 1/2`): the grammar would
+  // read `once` and keep `and a half` as a note, so this cannot wait for a
+  // miss. Only a reading that accounts for the whole line is taken, so the
+  // rewrite never changes a line the grammar already read, or the user's
+  // words in a note.
+  final rewritten = rewriteTypedSpellings(split.text);
+  if (!identical(rewritten, split.text)) {
+    final read = attempt(rewritten);
+    if (!missed(read) && !_anyNote(read)) return read;
+  }
+  final raw = attempt(split.text);
+  if (raw.isEmpty || !missed(raw)) return raw;
   // Retries, each only on a miss: the dialect's role words, then the built-in
   // discouraged role terms by their meaning (`ravens` → `role2s`), read as
   // user-glossary text is (`canonicalizeGlossaryText`), so a role word the
   // dialect claims keeps the dialect's meaning.
-  final tried = {typed};
+  final tried = {split.text};
   for (final retry in [
-    if (dialect != null) canonicalizeText(typed, dialect),
-    canonicalizeGlossaryText(typed, dialect ?? Dialect.canonical),
+    if (dialect != null) canonicalizeText(split.text, dialect),
+    canonicalizeGlossaryText(split.text, dialect ?? Dialect.canonical),
   ]) {
     if (!tried.add(retry)) continue;
     final retried = attempt(retry);
-    if (!retried.every((f) => f.isCustom)) return retried;
+    if (!missed(retried)) return retried;
   }
   // Last, the whole line as a move's name (`hey`, `mad robin`): only when no
   // parse read it, so a line the grammar reads keeps every fact it states.
@@ -294,9 +339,10 @@ List<Figure> _parseSplit(
     taxonomy: taxonomy ?? contraTaxonomy,
     dialect: dialect,
   );
-  if (named != null) return [named];
-  // A miss keeps the line as typed, not as rewritten.
-  return identical(typed, split.text)
-      ? raw
-      : [_typedCustom(split.text, split.beats)];
+  return named == null ? raw : [named];
 }
+
+/// Whether any of [figures], or any figure inside one, carries a note.
+bool _anyNote(Iterable<Figure> figures) => figures.any(
+  (f) => f.note != null || (f.isContainer && _anyNote(f.subFigures)),
+);

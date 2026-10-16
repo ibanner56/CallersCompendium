@@ -145,6 +145,18 @@ void main() {
         'mad_robin',
       );
       expect(parseFreeTextFigureEntry('dizzy robin').single.isCustom, isTrue);
+      // A wording with a `%S` side placeholder is a template, not a name.
+      final templated = Dialect(
+        name: 'Custom',
+        moves: const {'orbit': '%S whirligig'},
+      );
+      expect(
+        parseFreeTextFigureEntry(
+          '%S whirligig',
+          dialect: templated,
+        ).single.isCustom,
+        isTrue,
+      );
       // A dialect name that is another move's taxonomy name reads as the
       // taxonomy move.
       expect(
@@ -155,6 +167,15 @@ void main() {
   });
 
   group('caller phrasings', () {
+    test('the turn-amount rewrite never changes a line the grammar read', () {
+      // The rewritten line does not read cleanly, so the line is read as
+      // typed: the note keeps the user's words.
+      final f = parseFreeTextFigureEntry(
+        'neighbors allemande right one and a half times',
+      ).single;
+      expect(f.note, contains('one and a half'));
+    });
+
     test('hey for four, half hey, full hey', () {
       final four = parseFreeTextFigureEntry('hey for four').single;
       expect(four.move, 'hey');
@@ -242,6 +263,32 @@ void main() {
       }
       final one = parseFreeTextFigureEntry('circle left [8 beat]').single;
       expect(one.params['beats'], 8);
+    });
+
+    test(
+      'a trailing unit count that is not the beats keeps the line custom',
+      () {
+        final f = parseFreeTextFigureEntry(
+          'neighbor swing 16 beats (8)',
+        ).single;
+        expect(f.isCustom, isTrue);
+        expect(f.params['text'], 'neighbor swing 16 beats (8)');
+      },
+    );
+
+    test('the re-parse upgrade does not read the unit (imports unchanged)', () {
+      Figure saved(String text, int beats) =>
+          customFigure(text, beats: beats, origin: CustomOrigin.importGap);
+      final outcome = reparseImportGapFigures([
+        saved('neighbors swing (8 beats)', 16),
+        saved('neighbors swing 8 beats', 0),
+      ]);
+      final [mismatched, unitless] = outcome.figures;
+      expect(mismatched.move, 'swing');
+      expect(mismatched.params['beats'], 16);
+      expect(mismatched.note, '(8 beats)');
+      expect(unitless.move, 'swing');
+      expect(unitless.note, '8 beats');
     });
 
     test('a second count keeps the whole line custom', () {
