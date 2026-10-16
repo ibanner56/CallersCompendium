@@ -8,10 +8,5 @@
     "changed": [
       "`user_glossary_entries.payload_json` is classified as personal data about a third party (as `published_sources.notes`): a term's source citation can name the author of the work it cites."
     ]
-  },
-  "app": {
-    "changed": [
-      "The scrubbed diagnostics export also removes a glossary term's source citation."
-    ]
   }
 }

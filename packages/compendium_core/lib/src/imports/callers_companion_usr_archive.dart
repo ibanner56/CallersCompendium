@@ -1071,7 +1071,7 @@ const List<String> _termTableNames = ['Term', 'Terms'];
 ///
 /// A missing table yields an empty list (silent: many files have none), never
 /// a throw (parse-never-fails). Column names are resolved exact-first
-/// (confirmed against a real `CallersCompanion2.USR`: `Term`, `Definition`,
+/// (confirmed against a real CallersCompanion2.USR file: `Term`, `Definition`,
 /// `Source`, `Notes`) with a tolerant token fallback.
 ///
 /// ## OWASP hardening
