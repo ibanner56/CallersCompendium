@@ -118,6 +118,13 @@ free text (notes/custom) ──term regex (case-preserving)──▶ display tex
   dialect's move template, then the existing renderer output. Move templates
   replace the display line; summary modifiers are not appended to a templated
   line.
+- A use of a figure of your own (#1023) renders from its definition's
+  template: its slots are filled first, in one pass that never rescans a
+  value, so an argument cannot inject a slot; the assembled line, arguments and
+  labels included, is then rendered in the dialect as free text, which never
+  reads a `{…}` or `[…]`, so a dialect's role word cannot add one either. The
+  canonical render does the same in the canonical dialect. Without the
+  definition, the use shows its stored line as any custom figure does.
 - Search always runs against canonical text/structures → dialect never affects
   results (dialect-agnostic search for free).
 - Print/export lets the user choose canonical or active dialect; exports embed
@@ -240,7 +247,8 @@ Where the chokepoint IS wired:
 
 **User-glossary text (#709).** Text the user writes into their own glossary — a
 custom compound's name, definition, description, keywords and notes, and their
-notes on shipped figures — has its own variant of the chokepoint,
+notes on shipped figures, and a new figure's (#1023) wording template, choice
+and flag labels and text defaults — has its own variant of the chokepoint,
 `canonicalizeGlossaryText` (`dialect/canonicalize.dart`). It is
 `canonicalizeText` plus two rules, and `canonicalizeText` itself is unchanged:
 
@@ -308,6 +316,8 @@ Edge rules:
 | Free text: custom figures, figure notes | ✅ (canonical on save, rendered on read) |
 | User-glossary text: custom compounds, notes on built-in figures | ✅ (glossary variant on save, rendered on read; #709) |
 | Figure notes inside a custom compound's parts | ✅ (`canonicalizeText` on save, as a dance's figure notes; #709) |
+| A figure of your own's wording template, choice and flag labels, text defaults | ✅ glossary variant on save, the template's literal text only (slots kept as written); rendered on read (#1023) |
+| A use's text arguments | ✅ rendered on read (#1023) |
 | Hand-typed prose: hooks, calling notes, walkthrough | ❌ verbatim (intentional; #613) |
 | Per-dance figure wording override | ✅ display-only; canonical identity unchanged |
 | Program notes / free-text slots | ❌ verbatim (intentional; #665 not planned) |

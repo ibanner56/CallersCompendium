@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
@@ -10,9 +11,12 @@ import '../../editor/figure_draft.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/figure_list_editor.dart';
+import '../../widgets/user_figure_argument_editor.dart';
 import 'custom_figure_detail.dart' show compoundParamKindLabel;
 
 final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
+
+final RegExp _lineBreaks = RegExp('\r\n|[\r\n\u2028\u2029]');
 
 /// The parameter kinds a custom figure may declare: every kind a figure's
 /// slot can have, except beats, which are the parts' own (#709).
@@ -31,9 +35,14 @@ const List<ParamKind> compoundParamKinds = [
   ParamKind.text,
 ];
 
-/// Creates or edits one of the user's own compound figures (#709) and saves
-/// it to their glossary, popping the saved entry (or null when left).
+/// Creates or edits one of the user's own figures and saves it to their
+/// glossary, popping the saved entry (or null when left): a combination of
+/// built-in figures (#709, a compound) or a new figure with its own wording
+/// (#1023). A new entry chooses which after its parameters (the issue's own
+/// suggestion); an existing one keeps its kind, since a figure's uses refer
+/// to it as a figure.
 ///
+/// A combination:
 /// The figures are authored with the same [FigureListEditor] as a dance's,
 /// limited to plain taxonomy figures: no custom figure, no meanwhile or
 /// modifier. Each figure's slots can then be filled from a declared
@@ -64,7 +73,35 @@ class _ParamRow {
   final TextEditingController controller;
   ParamKind kind;
 
+  /// A new figure's: a choice's options, its default, and a flag's wording.
+  final List<_ChoiceRow> choices = [];
+  Object? defaultValue;
+  final TextEditingController label = TextEditingController();
+
+  /// Bumped when the default changes from outside its own field (a kind
+  /// changed, a default cleared, its choice removed), so the field is rebuilt
+  /// then, and only then: never while the user is choosing or typing in it.
+  int defaultEpoch = 0;
+
   String get key => controller.text.trim();
+
+  void dispose() {
+    controller.dispose();
+    label.dispose();
+    for (final choice in choices) {
+      choice.controller.dispose();
+    }
+  }
+}
+
+/// One option of a new figure's choice parameter: its stable id, kept as its
+/// label is edited, so the dances using it keep their choice.
+class _ChoiceRow {
+  _ChoiceRow(this.id, String label)
+    : controller = TextEditingController(text: label);
+
+  final String id;
+  final TextEditingController controller;
 }
 
 /// A slot filled from [param], directly or through its opposite.
@@ -97,6 +134,20 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   /// them with their figure.
   final Map<FigureDraft, Map<String, _Binding>> _bindings = {};
 
+  /// Which kind of entry this is; chosen for a new one, fixed for one stored.
+  late UserGlossaryEntryKind _kind =
+      widget.initial?.kind == UserGlossaryEntryKind.customFigure
+      ? UserGlossaryEntryKind.customFigure
+      : UserGlossaryEntryKind.compound;
+
+  /// The dance form the entry is offered in (#1023, maintainer decision 8).
+  String _form = defaultGlossaryEntryForm;
+
+  /// A new figure's wording template, shown in the active dialect, and its
+  /// default beats.
+  final _template = TextEditingController();
+  final _beats = TextEditingController(text: '8');
+
   bool _dirty = false;
   bool _saving = false;
   bool _showRequired = false;
@@ -117,7 +168,53 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     _description.text = shown(initial.description);
     _keywords.text = [for (final k in initial.keywords) shown(k)].join(', ');
     _notes.text = initial.notes == null ? '' : shown(initial.notes!);
-    _seedDefinition(initial.payload, shown);
+    _form = glossaryEntryForm(initial.payload);
+    if (_kind == UserGlossaryEntryKind.customFigure) {
+      _seedFigure(initial.payload, shown);
+    } else {
+      _seedDefinition(initial.payload, shown);
+    }
+  }
+
+  /// Loads a stored new figure leniently, as [_seedDefinition] does a
+  /// compound, so a broken one can be repaired. Its words are shown in the
+  /// active dialect through [shown]; the template's slots are kept as
+  /// written.
+  void _seedFigure(Object? payload, String Function(String) shown) {
+    if (payload is! Map) return;
+    if (payload['template'] case final String template) {
+      _template.text = mapUserFigureTemplateText(template, shown);
+    }
+    if (payload['defaultBeats'] case final int beats) _beats.text = '$beats';
+    final seen = <String>{};
+    for (final raw
+        in payload['params'] is List
+            ? payload['params'] as List
+            : const <Object?>[]) {
+      if (raw case {'key': final String key, 'kind': final String kindName}) {
+        final kind = compoundParamKinds
+            .where((k) => k.name == kindName)
+            .firstOrNull;
+        if (kind == null || !seen.add(key)) continue;
+        final row = _ParamRow(key, kind);
+        if (raw['choices'] case final List<Object?> choices) {
+          for (final choice in choices) {
+            if (choice case {
+              'id': final String id,
+              'label': final String label,
+            }) {
+              row.choices.add(_ChoiceRow(id, shown(label)));
+            }
+          }
+        }
+        final defaultValue = raw['default'];
+        row.defaultValue = defaultValue is String && kind == ParamKind.text
+            ? shown(defaultValue)
+            : defaultValue;
+        if (raw['label'] case final String label) row.label.text = shown(label);
+        _params.add(row);
+      }
+    }
   }
 
   /// Loads a stored definition leniently, so a broken one can be repaired:
@@ -193,11 +290,19 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
 
   @override
   void dispose() {
-    for (final c in [_name, _definition, _description, _keywords, _notes]) {
+    for (final c in [
+      _name,
+      _definition,
+      _description,
+      _keywords,
+      _notes,
+      _template,
+      _beats,
+    ]) {
       c.dispose();
     }
     for (final p in _params) {
-      p.controller.dispose();
+      p.dispose();
     }
     super.dispose();
   }
@@ -300,7 +405,104 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
       ],
       figures: figures,
       bindings: bindings,
+      form: _form,
+      extra: compoundPayloadExtra(widget.initial?.payload),
     );
+  }
+
+  /// The new figure as it stands, its words passed through [store] (the save
+  /// canonicalizes them; the preview passes the same).
+  UserFigureDefinition _figureNow(String Function(String) store) {
+    final initialPayload = widget.initial?.payload;
+    final copiedFrom = initialPayload is Map
+        ? initialPayload['copiedFrom']
+        : null;
+    return UserFigureDefinition(
+      form: _form,
+      // One line: a break reads as a space, not as nothing.
+      template: mapUserFigureTemplateText(
+        _template.text.replaceAll(_lineBreaks, ' ').trim(),
+        store,
+      ),
+      defaultBeats: int.tryParse(_beats.text.trim()) ?? -1,
+      params: [for (final p in _params) _figureParam(p, store)],
+      copiedFrom: copiedFrom is String ? copiedFrom : null,
+      extra: userFigurePayloadExtra(initialPayload),
+    );
+  }
+
+  UserFigureParam _figureParam(_ParamRow row, String Function(String) store) {
+    final choices = row.kind == ParamKind.choice
+        ? [
+            for (final c in row.choices)
+              UserFigureChoice(
+                id: c.id,
+                label: store(c.controller.text.trim()),
+              ),
+          ]
+        : const <UserFigureChoice>[];
+    final label = row.label.text.trim();
+    var defaultValue = row.defaultValue;
+    if (defaultValue is String && row.kind == ParamKind.text) {
+      defaultValue = defaultValue.trim().isEmpty
+          ? null
+          : store(defaultValue.trim());
+    }
+    final withoutDefault = UserFigureParam(
+      key: row.key,
+      kind: row.kind,
+      choices: choices,
+      label: row.kind == ParamKind.flag && label.isNotEmpty
+          ? store(label)
+          : null,
+    );
+    // A default the parameter's kind or choices no longer take is dropped,
+    // not saved broken: a kind changed after the default was chosen.
+    if (defaultValue == null || !withoutDefault.spec.validate(defaultValue)) {
+      return withoutDefault;
+    }
+    return UserFigureParam(
+      key: withoutDefault.key,
+      kind: withoutDefault.kind,
+      choices: withoutDefault.choices,
+      defaultValue: defaultValue,
+      label: withoutDefault.label,
+    );
+  }
+
+  /// How the new figure reads with its defaults, or null while it can't be
+  /// rendered.
+  String? _preview(Dialect dialect) {
+    String stored(String text) => canonicalizeGlossaryText(text, dialect);
+    final figure = _figureNow(stored);
+    if (validateUserFigure(
+      figure,
+    ).any((i) => i.severity == ValidationSeverity.error)) {
+      return null;
+    }
+    const previewId = 'preview';
+    final catalog = UserFigureCatalog.fromEntries([
+      UserGlossaryEntry(
+        id: previewId,
+        kindName: UserGlossaryEntryKind.customFigure.name,
+        name: stored(_name.text.trim()),
+        definition: '',
+        description: '',
+        payload: figure.toJson(),
+        createdAt: DateTime.utc(2000),
+      ),
+    ]);
+    final renderer = FigureRenderer(contraTaxonomy, userFigures: catalog);
+    final use = userFigureUseFigure(
+      id: previewId,
+      args: {
+        for (final p in figure.params)
+          if (p.defaultValue != null) p.key: p.defaultValue,
+      },
+      text: '',
+    );
+    if (renderer.renderUserFigureCanonical(use) == null) return null;
+    return renderer.render(use, dialect);
   }
 
   /// Why [candidate] cannot fill [draft]'s [slot], or null when it can.
@@ -366,7 +568,8 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     if (requiredMissing) errors.add(l10n.compoundEditorRequired);
 
     final keys = [for (final p in _params) p.key];
-    if (keys.any((k) => k.isEmpty) || keys.toSet().length != keys.length) {
+    if (_kind == UserGlossaryEntryKind.compound &&
+        (keys.any((k) => k.isEmpty) || keys.toSet().length != keys.length)) {
       errors.add(l10n.compoundEditorParamNames);
     }
 
@@ -391,30 +594,72 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
       if (collisions.isNotEmpty) errors.add(l10n.compoundEditorNameTaken(name));
     }
 
-    final definition = _definitionNow(
-      canonicalizeNote: (note) => canonicalizeText(note.trim(), dialect),
-    );
-    final issues = validateCompound(definition, contraTaxonomy);
-    for (final issue in issues) {
-      if (issue.severity != ValidationSeverity.error) continue;
-      final message = switch (issue.code) {
-        CompoundIssueCodes.empty => l10n.compoundEditorNoFigures,
-        CompoundIssueCodes.badParamKey => null, // reported above
-        CompoundIssueCodes.emptyDomain => l10n.compoundEditorEmptyDomain(
-          '${issue.data['param']}',
-        ),
-        CompoundIssueCodes.tooLarge => l10n.compoundEditorTooLarge,
-        // A binding that a later edit (a figure's move, a parameter's kind)
-        // made unusable; the dropdown shows it disabled, with why.
-        CompoundIssueCodes.typeMismatch ||
-        CompoundIssueCodes.noOpposite ||
-        CompoundIssueCodes.danglingBinding ||
-        CompoundIssueCodes.doubleBinding ||
-        CompoundIssueCodes.beatsBinding ||
-        CompoundIssueCodes.pinnedSlot => l10n.compoundEditorBindingInvalid,
-        _ => l10n.compoundEditorInvalidFigures,
-      };
-      if (message != null && !errors.contains(message)) errors.add(message);
+    final Map<String, Object?> payload;
+    final List<String> unused;
+    if (_kind == UserGlossaryEntryKind.customFigure) {
+      final figure = _figureNow(
+        (text) => canonicalizeGlossaryText(text, dialect),
+      );
+      final issues = validateUserFigure(figure);
+      for (final issue in issues) {
+        if (issue.severity != ValidationSeverity.error) continue;
+        final message = switch (issue.code) {
+          UserFigureIssueCodes.badTemplate => l10n.userFigureEditorBadWording,
+          UserFigureIssueCodes.unknownSlot => l10n.userFigureEditorUnknownSlot(
+            '{${issue.data['slot']}}',
+          ),
+          UserFigureIssueCodes.badParamKey ||
+          UserFigureIssueCodes.badParamKind => l10n.userFigureEditorParamNames,
+          UserFigureIssueCodes.badChoices => l10n.userFigureEditorBadChoices(
+            '${issue.data['param']}',
+          ),
+          UserFigureIssueCodes.badBeats => l10n.userFigureEditorBadBeats,
+          UserFigureIssueCodes.tooLarge => l10n.compoundEditorTooLarge,
+          UserFigureIssueCodes.tooLong => l10n.compoundEditorTooLong,
+          // A label over its bound; an empty one is not saved at all.
+          _ => l10n.compoundEditorTooLong,
+        };
+        if (!errors.contains(message)) errors.add(message);
+      }
+      unused = [
+        for (final issue in issues)
+          if (issue.code == UserFigureIssueCodes.unusedParam)
+            '${issue.data['param']}',
+      ];
+      payload = figure.toJson();
+    } else {
+      final definition = _definitionNow(
+        canonicalizeNote: (note) => canonicalizeText(note.trim(), dialect),
+      );
+      final issues = validateCompound(definition, contraTaxonomy);
+      for (final issue in issues) {
+        if (issue.severity != ValidationSeverity.error) continue;
+        final message = switch (issue.code) {
+          CompoundIssueCodes.empty => l10n.compoundEditorNoFigures,
+          CompoundIssueCodes.badParamKey => null, // reported above
+          CompoundIssueCodes.emptyDomain => l10n.compoundEditorEmptyDomain(
+            '${issue.data['param']}',
+          ),
+          CompoundIssueCodes.tooLarge => l10n.compoundEditorTooLarge,
+          // A binding that a later edit (a figure's move, a parameter's kind)
+          // made unusable; the dropdown shows it disabled, with why.
+          CompoundIssueCodes.typeMismatch ||
+          CompoundIssueCodes.noOpposite ||
+          CompoundIssueCodes.danglingBinding ||
+          CompoundIssueCodes.doubleBinding ||
+          CompoundIssueCodes.beatsBinding ||
+          CompoundIssueCodes.pinnedSlot => l10n.compoundEditorBindingInvalid,
+          _ => l10n.compoundEditorInvalidFigures,
+        };
+        if (message != null && !errors.contains(message)) errors.add(message);
+      }
+
+      unused = [
+        for (final issue in issues)
+          if (issue.code == CompoundIssueCodes.unusedParam)
+            '${issue.data['param']}',
+      ];
+      payload = definition.toJson();
     }
 
     if (errors.isNotEmpty) {
@@ -425,17 +670,16 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
       return false;
     }
 
-    final unused = [
-      for (final issue in issues)
-        if (issue.code == CompoundIssueCodes.unusedParam)
-          '${issue.data['param']}',
-    ];
     if (unused.isNotEmpty) {
       final saveAnyway = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: Text(l10n.compoundEditorUnusedTitle),
-          content: Text(l10n.compoundEditorUnusedBody(unused.join(', '))),
+          content: Text(
+            _kind == UserGlossaryEntryKind.customFigure
+                ? l10n.userFigureEditorUnusedBody(unused.join(', '))
+                : l10n.compoundEditorUnusedBody(unused.join(', ')),
+          ),
           actions: [
             TextButton(
               key: const ValueKey('compound-unused-back'),
@@ -458,7 +702,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     final notes = _notes.text.trim();
     final entry = UserGlossaryEntry(
       id: widget.initial?.id ?? uuidV4(),
-      kindName: UserGlossaryEntryKind.compound.name,
+      kindName: _kind.name,
       name: stored(name),
       definition: stored(_definition.text),
       description: stored(_description.text),
@@ -467,7 +711,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
           if (k.trim().isNotEmpty) stored(k),
       ],
       notes: notes.isEmpty ? null : stored(notes),
-      payload: definition.toJson(),
+      payload: payload,
       createdAt: widget.initial?.createdAt ?? DateTime.now().toUtc(),
     );
     try {
@@ -657,8 +901,41 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
               helper: l10n.compoundEditorOptional,
               maxLines: 6,
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
+                0,
+              ),
+              child: DropdownButtonFormField<String>(
+                key: const ValueKey('glossary-entry-form'),
+                initialValue: _form,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  labelText: l10n.glossaryEntryFormLabel,
+                  helperText: l10n.glossaryEntryFormHelper,
+                  border: const OutlineInputBorder(),
+                ),
+                items: [
+                  for (final form in DanceForm.values)
+                    DropdownMenuItem(
+                      value: form.name,
+                      child: Text(danceFormLabel(l10n, form)),
+                    ),
+                  // A form a later build added is kept, as written.
+                  if (!DanceForm.values.any((f) => f.name == _form))
+                    DropdownMenuItem(value: _form, child: Text(_form)),
+                ],
+                onChanged: (form) {
+                  if (form == null) return;
+                  _form = form;
+                  _changed();
+                },
+              ),
+            ),
             heading(l10n.compoundEditorParams, l10n.compoundEditorParamsHelp),
-            for (final (i, row) in _params.indexed)
+            for (final (i, row) in _params.indexed) ...[
               Padding(
                 key: ValueKey('compound-param-$i'),
                 padding: const EdgeInsets.fromLTRB(
@@ -675,7 +952,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                       child: TextField(
                         key: ValueKey('compound-param-$i-name'),
                         controller: row.controller,
-                        maxLength: maxCompoundParamKeyLength,
+                        maxLength: _kind == UserGlossaryEntryKind.customFigure
+                            ? maxUserFigureParamKeyLength
+                            : maxCompoundParamKeyLength,
                         onChanged: (_) => _changed(),
                         decoration: InputDecoration(
                           labelText: l10n.compoundEditorParamName,
@@ -705,6 +984,13 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                         ],
                         onChanged: (kind) {
                           if (kind == null) return;
+                          if (kind != row.kind) {
+                            // A default of the old kind means nothing in the
+                            // new one, and could even pass for one of it (a
+                            // choice id as text).
+                            row.defaultValue = null;
+                            row.defaultEpoch++;
+                          }
                           row.kind = kind;
                           _changed();
                         },
@@ -721,7 +1007,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                         }
                         // Disposed after the frame that stops building it.
                         WidgetsBinding.instance.addPostFrameCallback(
-                          (_) => row.controller.dispose(),
+                          (_) => row.dispose(),
                         );
                         _changed();
                       },
@@ -729,6 +1015,9 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                   ],
                 ),
               ),
+              if (_kind == UserGlossaryEntryKind.customFigure)
+                _figureParamExtras(context, l10n, dialect, i, row),
+            ],
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               child: Align(
@@ -737,7 +1026,11 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                   key: const ValueKey('compound-add-param'),
                   icon: const Icon(Icons.add),
                   label: Text(l10n.compoundEditorAddParam),
-                  onPressed: _params.length >= maxCompoundParams
+                  onPressed:
+                      _params.length >=
+                          (_kind == UserGlossaryEntryKind.customFigure
+                              ? maxUserFigureParams
+                              : maxCompoundParams)
                       ? null
                       : () {
                           _params.add(_ParamRow('', ParamKind.dancerSet));
@@ -746,51 +1039,298 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                 ),
               ),
             ),
-            heading(l10n.compoundEditorFigures, l10n.compoundEditorFiguresHelp),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: FigureListEditor(
-                drafts: _drafts,
-                taxonomy: contraTaxonomy,
-                phraseStructure: PhraseStructure.standard,
-                dialect: dialect,
-                onChanged: _changed,
-                onAdd: () {
-                  if (_drafts.length >= maxCompoundFigures) return;
-                  _drafts.add(FigureDraft());
-                  _changed();
-                },
-                onDelete: (draft) {
-                  _drafts.remove(draft);
-                  _bindings.remove(draft);
-                  _changed();
-                },
-                onReorder: (oldIndex, newIndex) {
-                  final draft = _drafts.removeAt(oldIndex);
-                  _drafts.insert(newIndex, draft);
-                  _changed();
-                },
-                showPhraseStructure: false,
-                allowDuplicating: false,
-                allowModifierSelection: false,
-                allowNestedContainerSelection: false,
-                allowCustom: false,
-              ),
-            ),
-            if (_params.isNotEmpty) ...[
+            if (widget.initial == null) ...[
               heading(
-                l10n.compoundEditorBindings,
-                l10n.compoundEditorBindingsHelp,
+                l10n.glossaryEntryKindHeading,
+                l10n.glossaryEntryKindHelp,
               ),
-              for (final (i, draft) in _drafts.indexed)
-                if (_slotsOf(draft).isNotEmpty)
-                  _bindingCard(context, l10n, dialect, i, draft),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                child: SegmentedButton<UserGlossaryEntryKind>(
+                  key: const ValueKey('glossary-entry-kind'),
+                  segments: [
+                    ButtonSegment(
+                      value: UserGlossaryEntryKind.compound,
+                      label: Text(l10n.glossaryEntryKindCombination),
+                    ),
+                    ButtonSegment(
+                      value: UserGlossaryEntryKind.customFigure,
+                      label: Text(l10n.glossaryEntryKindNewFigure),
+                    ),
+                  ],
+                  selected: {_kind},
+                  onSelectionChanged: (kinds) {
+                    _kind = kinds.single;
+                    _changed();
+                  },
+                ),
+              ),
+            ],
+            if (_kind == UserGlossaryEntryKind.customFigure)
+              ..._wordingSection(context, l10n, dialect, heading)
+            else ...[
+              heading(
+                l10n.compoundEditorFigures,
+                l10n.compoundEditorFiguresHelp,
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                child: FigureListEditor(
+                  drafts: _drafts,
+                  taxonomy: contraTaxonomy,
+                  phraseStructure: PhraseStructure.standard,
+                  dialect: dialect,
+                  onChanged: _changed,
+                  onAdd: () {
+                    if (_drafts.length >= maxCompoundFigures) return;
+                    _drafts.add(FigureDraft());
+                    _changed();
+                  },
+                  onDelete: (draft) {
+                    _drafts.remove(draft);
+                    _bindings.remove(draft);
+                    _changed();
+                  },
+                  onReorder: (oldIndex, newIndex) {
+                    final draft = _drafts.removeAt(oldIndex);
+                    _drafts.insert(newIndex, draft);
+                    _changed();
+                  },
+                  showPhraseStructure: false,
+                  allowDuplicating: false,
+                  allowModifierSelection: false,
+                  allowNestedContainerSelection: false,
+                  allowCustom: false,
+                ),
+              ),
+              if (_params.isNotEmpty) ...[
+                heading(
+                  l10n.compoundEditorBindings,
+                  l10n.compoundEditorBindingsHelp,
+                ),
+                for (final (i, draft) in _drafts.indexed)
+                  if (_slotsOf(draft).isNotEmpty)
+                    _bindingCard(context, l10n, dialect, i, draft),
+              ],
             ],
             const SizedBox(height: AppSpacing.xl),
           ],
         ),
       ),
     );
+  }
+
+  /// A new figure's parameter beyond its name and kind: a choice's options, a
+  /// flag's wording, and its default.
+  Widget _figureParamExtras(
+    BuildContext context,
+    AppLocalizations l10n,
+    Dialect dialect,
+    int index,
+    _ParamRow row,
+  ) {
+    String stored(String text) => canonicalizeGlossaryText(text, dialect);
+    final param = _figureParam(row, stored);
+    return Padding(
+      key: ValueKey('user-figure-param-$index-extras'),
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        AppSpacing.xl,
+        AppSpacing.xs,
+        AppSpacing.md,
+        AppSpacing.xs,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (row.kind == ParamKind.choice) ...[
+            for (final (c, choice) in row.choices.indexed)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        key: ValueKey('user-figure-param-$index-choice-$c'),
+                        controller: choice.controller,
+                        maxLength: maxUserFigureLabelLength,
+                        onChanged: (_) => _changed(),
+                        decoration: InputDecoration(
+                          labelText: l10n.userFigureEditorChoiceLabel(c + 1),
+                          border: const OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      key: ValueKey(
+                        'user-figure-param-$index-choice-$c-remove',
+                      ),
+                      tooltip: l10n.userFigureEditorRemoveChoice,
+                      icon: const Icon(Icons.remove_circle_outline),
+                      onPressed: () {
+                        row.choices.removeAt(c);
+                        if (row.defaultValue == choice.id) {
+                          row.defaultValue = null;
+                          row.defaultEpoch++;
+                        }
+                        WidgetsBinding.instance.addPostFrameCallback(
+                          (_) => choice.controller.dispose(),
+                        );
+                        _changed();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton.icon(
+                key: ValueKey('user-figure-param-$index-add-choice'),
+                icon: const Icon(Icons.add),
+                label: Text(l10n.userFigureEditorAddChoice),
+                onPressed: row.choices.length >= maxUserFigureChoices
+                    ? null
+                    : () {
+                        row.choices.add(
+                          _ChoiceRow(
+                            newUserFigureChoiceId({
+                              for (final c in row.choices) c.id,
+                            }),
+                            '',
+                          ),
+                        );
+                        _changed();
+                      },
+              ),
+            ),
+          ],
+          if (row.kind == ParamKind.flag)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
+              child: TextField(
+                key: ValueKey('user-figure-param-$index-label'),
+                controller: row.label,
+                maxLength: maxUserFigureLabelLength,
+                onChanged: (_) => _changed(),
+                decoration: InputDecoration(
+                  labelText: l10n.userFigureEditorFlagLabel,
+                  helperText: l10n.userFigureEditorFlagLabelHelper,
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+            ),
+          if (row.key.isNotEmpty &&
+              (row.kind != ParamKind.choice || row.choices.isNotEmpty))
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: UserFigureArgumentEditor(
+                      key: ValueKey(
+                        'user-figure-param-$index-default-${row.defaultEpoch}',
+                      ),
+                      keyPrefix: 'user-figure-param-$index-default',
+                      param: param,
+                      value: row.defaultValue,
+                      dialect: dialect,
+                      label: l10n.userFigureEditorDefault,
+                      allowNone: true,
+                      onChanged: (value) {
+                        row.defaultValue = value;
+                        _changed();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// A new figure's wording, default beats and how it reads.
+  List<Widget> _wordingSection(
+    BuildContext context,
+    AppLocalizations l10n,
+    Dialect dialect,
+    Widget Function(String title, String help) heading,
+  ) {
+    final slots = _figureNow((text) => text).slots;
+    final preview = _preview(dialect);
+    final theme = Theme.of(context);
+    return [
+      heading(
+        l10n.userFigureEditorWording,
+        l10n.userFigureEditorWordingHelp('{who}'),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+          0,
+        ),
+        child: TextField(
+          key: const ValueKey('user-figure-wording'),
+          controller: _template,
+          inputFormatters: [
+            FilteringTextInputFormatter.deny(
+              _lineBreaks,
+              replacementString: ' ',
+            ),
+          ],
+          maxLength: kMaxMoveWordingLength,
+          minLines: 1,
+          maxLines: 3,
+          onChanged: (_) => _changed(),
+          decoration: InputDecoration(
+            labelText: l10n.userFigureEditorWording,
+            helperText: l10n.userFigureEditorWordingSlots(
+              [for (final slot in slots) '{$slot}'].join(', '),
+            ),
+            helperMaxLines: 3,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+          0,
+        ),
+        child: TextField(
+          key: const ValueKey('user-figure-default-beats'),
+          controller: _beats,
+          keyboardType: TextInputType.number,
+          onChanged: (_) => _changed(),
+          decoration: InputDecoration(
+            labelText: l10n.userFigureEditorDefaultBeats,
+            helperText: l10n.userFigureEditorDefaultBeatsHelper,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.md,
+          AppSpacing.md,
+          0,
+        ),
+        child: Text(
+          preview == null
+              ? l10n.userFigureEditorPreviewUnavailable
+              : l10n.userFigureEditorPreview(preview),
+          key: const ValueKey('user-figure-preview'),
+          style: theme.textTheme.bodyMedium,
+        ),
+      ),
+    ];
   }
 
   Widget _bindingCard(
