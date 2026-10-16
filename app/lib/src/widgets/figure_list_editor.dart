@@ -292,6 +292,13 @@ class _FigureListEditorState extends State<FigureListEditor> {
   /// Focus target of last resort after deleting the final figure.
   final FocusNode _addButtonFocusNode = FocusNode(debugLabel: 'figure-add');
 
+  /// First item of the Add menu. Opening the menu does not move focus
+  /// into the menu, so without this a keyboard user's Down/Tab/Enter land on
+  /// the page behind it (#1821).
+  final FocusNode _addMenuFirstItemFocusNode = FocusNode(
+    debugLabel: 'figure-add-menu-first',
+  );
+
   /// Whether the opt-in free-text entry composer is currently open (issue
   /// #419). Only ever set when [_freeTextEnabled]; the Add flow opens it and a
   /// blank submit / Escape / Done closes it.
@@ -361,6 +368,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
       node.dispose();
     }
     _addButtonFocusNode.dispose();
+    _addMenuFirstItemFocusNode.dispose();
     _freeTextController.dispose();
     _freeTextFocusNode.dispose();
     super.dispose();
@@ -572,6 +580,9 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
     return MenuAnchor(
       key: _key('add'),
+      onOpen: () => WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _addMenuFirstItemFocusNode.requestFocus();
+      }),
       builder: (context, controller, child) => empty
           ? FilledButton.icon(
               focusNode: _addButtonFocusNode,
@@ -590,6 +601,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
       menuChildren: [
         MenuItemButton(
           key: _key('add-figure'),
+          focusNode: _addMenuFirstItemFocusNode,
           onPressed: _addFigure,
           child: Text(l10n.danceEditorAddFigure),
         ),
