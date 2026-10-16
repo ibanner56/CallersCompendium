@@ -3945,7 +3945,9 @@ final class CompendiumSyncStorage
   /// stored where this build reads it. A setting kept whole is applied the
   /// same way, unless this device already holds a newer copy of it, which
   /// wins. A deleted record is left alone; its kept parts are pruned wherever
-  /// they would be put back, so they cannot win over it either. A kept part
+  /// they would be put back, so they cannot win over it either. That has two
+  /// accepted costs (spec §6.7): its row stays due, so each open builds a full
+  /// snapshot, and restoring it later leaves the field empty. A kept part
   /// that this build now syncs but can no longer decode is dropped, the rest
   /// kept, rather than failing the open.
   Future<void> promoteRetainedSyncFields() async {
