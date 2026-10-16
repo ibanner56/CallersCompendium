@@ -183,12 +183,12 @@ void main() {
       // the list of shown fields.
       Map<String, Object?> dance({String? kept}) => {
         'title': 'Hey Day',
-        'formation': {'shape': 'improper', if (kept != null) 'zz': kept},
+        'formation': {'shape': 'improper', 'zz': ?kept},
         'customFields': [
-          {'fieldId': 'cf', 'value': 1, if (kept != null) 'zz': kept},
+          {'fieldId': 'cf', 'value': 1, 'zz': ?kept},
         ],
         'sourceCitations': [
-          {'sourceId': 's1', 'page': '4', if (kept != null) 'zz': kept},
+          {'sourceId': 's1', 'page': '4', 'zz': ?kept},
         ],
       };
 
