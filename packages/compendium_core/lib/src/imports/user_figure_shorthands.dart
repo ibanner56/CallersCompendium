@@ -5,8 +5,7 @@ import 'package:meta/meta.dart';
 import '../storage/repositories/user_glossary_repository.dart'
     show maxUserGlossaryNameLength;
 import '../sync/canonical_json.dart';
-import '../taxonomy/user_figure_definition.dart'
-    show maxUserFigureDefaultBeats;
+import '../taxonomy/user_figure_definition.dart' show maxUserFigureDefaultBeats;
 import '../taxonomy/user_figure_use.dart';
 import 'shorthand_mappings.dart'
     show maxShorthandTokenLength, normalizeShorthandToken;
