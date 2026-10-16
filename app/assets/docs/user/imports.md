@@ -365,6 +365,10 @@ Where a button offers two versions, you pick **Primary** or **Alternate**. And i
 a shorthand of that name already exists, the button is listed under **Already
 defined — skipped** and your existing one is left exactly as it is.
 
+The app keeps up to 500 figure shorthands. If you are at that number, buttons
+you confirm cannot be added; the app tells you so, and you can seed them after
+deleting some shorthands.
+
 ## Move your whole library: backup and restore
 
 A single Caller's Compendium file can hold **everything** — your dances,

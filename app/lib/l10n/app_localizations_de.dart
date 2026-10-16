@@ -8384,6 +8384,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get shorthandMappingsEmpty => 'Noch keine Abkürzungen.';
 
   @override
+  String shorthandMappingsLimitReached(int max) {
+    return 'Du hast das Limit von $max Abkürzungen erreicht. Lösche eine, um eine weitere hinzuzufügen.';
+  }
+
+  @override
   String get shorthandMappingsDeleteTitle => 'Abkürzung löschen?';
 
   @override

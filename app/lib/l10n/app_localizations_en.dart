@@ -8252,6 +8252,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shorthandMappingsEmpty => 'No shorthands yet.';
 
   @override
+  String shorthandMappingsLimitReached(int max) {
+    return 'You have reached the limit of $max figure shorthands. Delete one to add another.';
+  }
+
+  @override
   String get shorthandMappingsDeleteTitle => 'Delete shorthand?';
 
   @override

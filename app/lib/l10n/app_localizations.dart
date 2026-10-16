@@ -12470,6 +12470,12 @@ abstract class AppLocalizations {
   /// **'No shorthands yet.'**
   String get shorthandMappingsEmpty;
 
+  /// Snackbar shown when the user tries to add a figure shorthand but already has the maximum number the app keeps; {max} is that maximum.
+  ///
+  /// In en, this message translates to:
+  /// **'You have reached the limit of {max} figure shorthands. Delete one to add another.'**
+  String shorthandMappingsLimitReached(int max);
+
   /// Title of the confirm-delete dialog for a figure-shorthand mapping.
   ///
   /// In en, this message translates to:

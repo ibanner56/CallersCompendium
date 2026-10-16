@@ -1,0 +1,9 @@
+{
+  "id": "1822-shorthand-cap",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Figure shorthands: when you already have the 500 the app keeps, New shorthand now says so instead of letting you save one that disappears the next time the app starts, and importing a Companion file tells you when it could not add shorthands for the same reason."
+    ]
+  }
+}
