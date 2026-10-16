@@ -9468,6 +9468,127 @@ class AppLocalizationsDa extends AppLocalizations {
   String get compoundEditorUnusedSave => 'Gem alligevel';
 
   @override
+  String get glossaryEntryKindHeading => 'Hvad det er';
+
+  @override
+  String get glossaryEntryKindHelp =>
+      'En kombination bliver til indbyggede figurer, når en dans gemmes. En ny figur forbliver én figur med din egen ordlyd.';
+
+  @override
+  String get glossaryEntryKindCombination => 'Kombination';
+
+  @override
+  String get glossaryEntryKindNewFigure => 'Ny figur';
+
+  @override
+  String get glossaryEntryFormLabel => 'Danseform';
+
+  @override
+  String get glossaryEntryFormHelper => 'Den slags dans, den er beregnet til.';
+
+  @override
+  String get userFigureEditorParamNames =>
+      'Start hvert parameternavn med et bogstav, brug kun bogstaver, tal og _, og giv hver et forskelligt navn. Et navn kan ikke være move, beats, text, en rolle eller en anden parameters modsætning, f.eks. otherHand.';
+
+  @override
+  String userFigureEditorChoiceLabel(int number) {
+    return 'Valgmulighed $number';
+  }
+
+  @override
+  String get userFigureEditorAddChoice => 'Tilføj valgmulighed';
+
+  @override
+  String get userFigureEditorRemoveChoice => 'Fjern valgmulighed';
+
+  @override
+  String get userFigureEditorDefault => 'Standard';
+
+  @override
+  String get userFigureEditorNoDefault => 'Ingen standard';
+
+  @override
+  String get userFigureEditorFlagOff => 'Fra';
+
+  @override
+  String get userFigureEditorFlagLabel => 'Ordlyd, når slået til';
+
+  @override
+  String get userFigureEditorFlagLabelHelper =>
+      'Vises i ordlyden, når dette er slået til, f.eks. »med et ekstra flourish«.';
+
+  @override
+  String get userFigureEditorWording => 'Ordlyd';
+
+  @override
+  String userFigureEditorWordingHelp(String example) {
+    return 'Sådan lyder figuren i en dans. Sæt en parameter i krøllede parenteser, som $example; en del i firkantede parenteser udelades, når dens parametre er tomme.';
+  }
+
+  @override
+  String userFigureEditorWordingSlots(String slots) {
+    return 'Du kan bruge: $slots';
+  }
+
+  @override
+  String get userFigureEditorDefaultBeats => 'Standardslag';
+
+  @override
+  String get userFigureEditorDefaultBeatsHelper =>
+      'En dans kan ændre dem, hver gang den bruger figuren.';
+
+  @override
+  String userFigureEditorPreview(String text) {
+    return 'Lyder: $text';
+  }
+
+  @override
+  String get userFigureEditorPreviewUnavailable =>
+      'Gør ordlyden færdig for at se, hvordan den lyder.';
+
+  @override
+  String get userFigureEditorBadWording =>
+      'Ordlyden er ikke færdig: tjek dens krøllede og firkantede parenteser.';
+
+  @override
+  String userFigureEditorUnknownSlot(String slot) {
+    return 'Ordlyden bruger $slot, som ikke er en af figurens parametre.';
+  }
+
+  @override
+  String userFigureEditorBadChoices(String param) {
+    return 'Giv $param mindst én valgmulighed, hver med et forskelligt navn.';
+  }
+
+  @override
+  String get userFigureEditorBadBeats => 'Standardslag skal være fra 0 til 64.';
+
+  @override
+  String userFigureEditorUnusedBody(String params) {
+    return 'Ikke i ordlyden, så et valg ændrer ingenting: $params.';
+  }
+
+  @override
+  String get glossaryCustomWording => 'Ordlyd';
+
+  @override
+  String get glossaryCustomExample => 'Eksempel';
+
+  @override
+  String glossaryCustomDeleteUses(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count danse bruger den. Den fjernes fra din ordliste, og dansene beholder deres nuværende ordlyd som almindelig tekst.',
+      one:
+          '1 dans bruger den. Den fjernes fra din ordliste, og dansen beholder sin nuværende ordlyd som almindelig tekst.',
+      zero: 'Ingen dans bruger den. Den fjernes fra din ordliste.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get compoundEditorDiscardBody =>
       'Du har ugemte ændringer i denne figur.';
 

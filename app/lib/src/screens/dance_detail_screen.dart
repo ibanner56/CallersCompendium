@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/collection_filter_scope.dart';
@@ -247,7 +248,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// (mirrors the settings-screen load-vs-toggle race guard).
   bool _canonicalUserSet = false;
 
-  static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
+  /// For prose and formation labels only; the dance's figures go to
+  /// `UserFiguresScope.rendererOf`, which shows uses of the user's own
+  /// figures live (#1023).
+  static final FigureRenderer _proseRenderer = FigureRenderer(contraTaxonomy);
 
   @override
   void didChangeDependencies() {
@@ -429,15 +433,19 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   }
 
   /// Opens the full-screen large-print [PerformDanceScreen] for this dance,
-  /// passing the shared [FigureRenderer] and the already-resolved author names.
+  /// passing a renderer that shows uses of the user's own figures live and
+  /// the already-resolved author names.
   Future<void> _perform(DanceDetailData detail) async {
+    // Resolved before the push: the route may rebuild after this screen has
+    // gone, when its context can no longer be read.
+    final renderer = UserFiguresScope.rendererOf(context);
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         // Ctrl-K is suppressed while this route is open ([performRouteName]).
         settings: const RouteSettings(name: performRouteName),
         builder: (_) => PerformDanceScreen(
           dance: detail.dance,
-          renderer: _renderer,
+          renderer: renderer,
           authorNames: detail.authorNames,
           difficultyLevel: detail.difficultyLevel,
         ),
@@ -653,7 +661,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       ),
       levelLabel: _levelLabel(l10n, detail.dance, detail.difficultyLevel),
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
-      renderer: _renderer,
+      renderer: UserFiguresScope.rendererOf(context),
       fields: DanceShareFieldsScope.of(context),
       choreographersById: detail.choreographersById,
       tagsById: detail.tagsById,
@@ -754,7 +762,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       ),
       levelLabel: _levelLabel(l10n, detail.dance, detail.difficultyLevel),
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
-      renderer: _renderer,
+      renderer: UserFiguresScope.rendererOf(context),
       fields: DanceShareFieldsScope.of(context),
       canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
       choreographersById: detail.choreographersById,
@@ -900,7 +908,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   ) => formationDisplayLabel(
     l10n,
     formation,
-    _renderer,
+    _proseRenderer,
     dialect,
     canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
   );
@@ -1117,18 +1125,20 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                   const SizedBox(height: AppSpacing.md),
                   _CrossReferenceText(
                     text: canonicalDiscouragedTerms
-                        ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
-                            dance.hook,
-                            dialect,
-                          )
-                        : _renderer.renderFreeText(dance.hook, dialect),
+                        ? _proseRenderer
+                              .renderFreeTextWithCanonicalDiscouragedTerms(
+                                dance.hook,
+                                dialect,
+                              )
+                        : _proseRenderer.renderFreeText(dance.hook, dialect),
                     linkText: dance.hook,
                     transformUnlinkedText: (value) => canonicalDiscouragedTerms
-                        ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
-                            value,
-                            dialect,
-                          )
-                        : _renderer.renderFreeText(value, dialect),
+                        ? _proseRenderer
+                              .renderFreeTextWithCanonicalDiscouragedTerms(
+                                value,
+                                dialect,
+                              )
+                        : _proseRenderer.renderFreeText(value, dialect),
                     style: theme.textTheme.bodyLarge,
                     linker: detail.crossRefLinker,
                     onOpenDance: _openDance,
@@ -1187,7 +1197,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           DecodedFigures(:final figures) => FigureTable(
             figures: figures,
             phraseStructure: dance.phraseStructure,
-            renderer: _renderer,
+            renderer: UserFiguresScope.rendererOf(context),
             dialect: dialect,
           ),
           // An empty table would say the dance has no figures, which is false
@@ -1206,18 +1216,18 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           const SizedBox(height: AppSpacing.xxs),
           _CrossReferenceText(
             text: canonicalDiscouragedTerms
-                ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(
                     dance.callingNotes,
                     dialect,
                   )
-                : _renderer.renderFreeText(dance.callingNotes, dialect),
+                : _proseRenderer.renderFreeText(dance.callingNotes, dialect),
             linkText: dance.callingNotes,
             transformUnlinkedText: (value) => canonicalDiscouragedTerms
-                ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(
                     value,
                     dialect,
                   )
-                : _renderer.renderFreeText(value, dialect),
+                : _proseRenderer.renderFreeText(value, dialect),
             style: theme.textTheme.bodyMedium,
             linker: detail.crossRefLinker,
             onOpenDance: _openDance,
@@ -1232,18 +1242,21 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           const SizedBox(height: AppSpacing.xxs),
           _CrossReferenceText(
             text: canonicalDiscouragedTerms
-                ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(
                     dance.walkthrough.trim(),
                     dialect,
                   )
-                : _renderer.renderFreeText(dance.walkthrough.trim(), dialect),
+                : _proseRenderer.renderFreeText(
+                    dance.walkthrough.trim(),
+                    dialect,
+                  ),
             linkText: dance.walkthrough.trim(),
             transformUnlinkedText: (value) => canonicalDiscouragedTerms
-                ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(
                     value,
                     dialect,
                   )
-                : _renderer.renderFreeText(value, dialect),
+                : _proseRenderer.renderFreeText(value, dialect),
             style: theme.textTheme.bodyMedium,
             linker: detail.crossRefLinker,
             onOpenDance: _openDance,
@@ -1274,7 +1287,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                         UnreadableTunes() => const <String>[],
                       }
                       .map(
-                        (tune) => _renderer
+                        (tune) => _proseRenderer
                             .renderFreeTextWithCanonicalDiscouragedTerms(
                               tune,
                               dialect,
@@ -1335,7 +1348,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
               // intentional: 2px optical inset, below the 4px AppSpacing grid
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Text(
-                '${field.label}: ${canonicalDiscouragedTerms ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(field.value, dialect) : field.value}',
+                '${field.label}: ${canonicalDiscouragedTerms ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(field.value, dialect) : field.value}',
               ),
             ),
         ],

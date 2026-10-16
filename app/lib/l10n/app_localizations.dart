@@ -14300,6 +14300,186 @@ abstract class AppLocalizations {
   /// **'Save anyway'**
   String get compoundEditorUnusedSave;
 
+  /// Heading of the choice, for a new entry in the user's own glossary, between a combination of built-in figures and a figure of its own.
+  ///
+  /// In en, this message translates to:
+  /// **'What it is'**
+  String get glossaryEntryKindHeading;
+
+  /// Explains the choice between a combination and a new figure.
+  ///
+  /// In en, this message translates to:
+  /// **'A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording.'**
+  String get glossaryEntryKindHelp;
+
+  /// Choice for an entry that expands into built-in figures (a compound).
+  ///
+  /// In en, this message translates to:
+  /// **'Combination'**
+  String get glossaryEntryKindCombination;
+
+  /// Choice for an entry that is a figure of its own, with the user's own wording.
+  ///
+  /// In en, this message translates to:
+  /// **'New figure'**
+  String get glossaryEntryKindNewFigure;
+
+  /// Label of the dance form an entry in the user's own glossary is offered in.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance form'**
+  String get glossaryEntryFormLabel;
+
+  /// Helper text of the dance form choice.
+  ///
+  /// In en, this message translates to:
+  /// **'The kind of dance it\'s for.'**
+  String get glossaryEntryFormHelper;
+
+  /// Shown when a parameter of a new figure has a name that can't be used.
+  ///
+  /// In en, this message translates to:
+  /// **'Start each parameter\'s name with a letter, use only letters, digits and _, and give each a different name. A name can\'t be move, beats, text, a role, or another parameter\'s opposite, such as otherHand.'**
+  String get userFigureEditorParamNames;
+
+  /// Label of one choice of a parameter of a new figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Choice {number}'**
+  String userFigureEditorChoiceLabel(int number);
+
+  /// Button that adds a choice to a parameter of a new figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Add choice'**
+  String get userFigureEditorAddChoice;
+
+  /// Tooltip of the button that removes a choice from a parameter of a new figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove choice'**
+  String get userFigureEditorRemoveChoice;
+
+  /// Label of a parameter's default value in the editor for a new figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get userFigureEditorDefault;
+
+  /// Option for a parameter of a new figure that has no default value.
+  ///
+  /// In en, this message translates to:
+  /// **'No default'**
+  String get userFigureEditorNoDefault;
+
+  /// Default of an on/off parameter of a new figure that is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get userFigureEditorFlagOff;
+
+  /// Label of the words an on/off parameter of a new figure adds to its wording when on.
+  ///
+  /// In en, this message translates to:
+  /// **'Wording when on'**
+  String get userFigureEditorFlagLabel;
+
+  /// Helper text of an on/off parameter's wording.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown in the wording when this is on, such as “with a flourish”.'**
+  String get userFigureEditorFlagLabelHelper;
+
+  /// Heading and label of a new figure's wording template.
+  ///
+  /// In en, this message translates to:
+  /// **'Wording'**
+  String get userFigureEditorWording;
+
+  /// Explains a new figure's wording template.
+  ///
+  /// In en, this message translates to:
+  /// **'How the figure reads in a dance. Put a parameter in braces, like {example}; a part in square brackets is left out when its parameters are empty.'**
+  String userFigureEditorWordingHelp(String example);
+
+  /// Lists the slots a new figure's wording may use.
+  ///
+  /// In en, this message translates to:
+  /// **'You can use: {slots}'**
+  String userFigureEditorWordingSlots(String slots);
+
+  /// Label of the beats a new figure takes unless a dance says otherwise.
+  ///
+  /// In en, this message translates to:
+  /// **'Default beats'**
+  String get userFigureEditorDefaultBeats;
+
+  /// Helper text of a new figure's default beats.
+  ///
+  /// In en, this message translates to:
+  /// **'A dance can change them each time it uses the figure.'**
+  String get userFigureEditorDefaultBeatsHelper;
+
+  /// Shows how a new figure reads with its default values.
+  ///
+  /// In en, this message translates to:
+  /// **'Reads as: {text}'**
+  String userFigureEditorPreview(String text);
+
+  /// Shown in place of the preview while a new figure's wording can't be rendered.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish the wording to see how it reads.'**
+  String get userFigureEditorPreviewUnavailable;
+
+  /// Shown when a new figure's wording template is badly formed.
+  ///
+  /// In en, this message translates to:
+  /// **'The wording isn\'t complete: check its braces and square brackets.'**
+  String get userFigureEditorBadWording;
+
+  /// Shown when a new figure's wording names a slot it doesn't have.
+  ///
+  /// In en, this message translates to:
+  /// **'The wording uses {slot}, which isn\'t one of this figure\'s parameters.'**
+  String userFigureEditorUnknownSlot(String slot);
+
+  /// Shown when a choice parameter of a new figure has no usable choices.
+  ///
+  /// In en, this message translates to:
+  /// **'Give {param} at least one choice, each with a different name.'**
+  String userFigureEditorBadChoices(String param);
+
+  /// Shown when a new figure's default beats are out of range.
+  ///
+  /// In en, this message translates to:
+  /// **'Default beats must be from 0 to 64.'**
+  String get userFigureEditorBadBeats;
+
+  /// Body of the dialog asking about parameters a new figure's wording leaves out.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in the wording, so choosing them changes nothing: {params}.'**
+  String userFigureEditorUnusedBody(String params);
+
+  /// Heading of a new figure's wording on its Glossary page.
+  ///
+  /// In en, this message translates to:
+  /// **'Wording'**
+  String get glossaryCustomWording;
+
+  /// Heading of how a new figure reads with its default values, on its Glossary page.
+  ///
+  /// In en, this message translates to:
+  /// **'Example'**
+  String get glossaryCustomExample;
+
+  /// Body of the dialog confirming that a new figure is deleted, with how many dances use it.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No dance uses it. It\'s removed from your Glossary.} =1{1 dance uses it. It\'s removed from your Glossary, and that dance keeps its current wording as plain text.} other{{count} dances use it. It\'s removed from your Glossary, and those dances keep their current wording as plain text.}}'**
+  String glossaryCustomDeleteUses(int count);
+
   /// Body of the dialog confirming that unsaved changes to a custom figure are discarded.
   ///
   /// In en, this message translates to:

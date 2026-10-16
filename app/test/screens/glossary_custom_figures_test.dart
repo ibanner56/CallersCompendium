@@ -197,8 +197,108 @@ void main() {
     });
   });
 
+  group('a figure of your own (#1023)', () {
+    UserGlossaryEntry zoom() => entry(
+      id: 'zoom-id',
+      kindName: UserGlossaryEntryKind.customFigure.name,
+      name: 'zoom',
+      keywords: const [],
+      payload: const {
+        'form': 'ecd',
+        'template': 'role1s {move} {hand}',
+        'defaultBeats': 8,
+        'params': [
+          {'key': 'hand', 'kind': 'handedness', 'default': 'right'},
+        ],
+      },
+    );
+
+    Future<void> open(WidgetTester tester) async {
+      await search(tester, 'zoom');
+      await tester.tap(
+        find.byKey(const ValueKey('glossary-entry-custom:zoom-id')),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows its wording, an example and its dance form, in the '
+        'dialect', (tester) async {
+      await pump(tester, entries: [zoom()]);
+      await open(tester);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('glossary-custom-wording')))
+            .data,
+        'larks {move} {hand}',
+      );
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('glossary-custom-example')))
+            .data,
+        'larks zoom right',
+      );
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('glossary-custom-form')))
+            .data,
+        'English (ECD)',
+      );
+      expect(find.text('Needs repair'), findsNothing);
+    });
+
+    testWidgets('deleting it says how many dances use it, and leaves each '
+        'with its current wording as plain text', (tester) async {
+      final (:repos, custom: _) = await pump(tester, entries: [zoom()]);
+      await tester.runAsync(
+        () => repos.dances.create(
+          Dance(
+            id: 'd1',
+            title: 'Zoom Reel',
+            figures: [
+              userFigureUseFigure(
+                id: 'zoom-id',
+                args: const {'hand': 'left'},
+                text: 'a stale line',
+              ),
+            ],
+            createdAt: created,
+            updatedAt: created,
+          ),
+        ),
+      );
+      await open(tester);
+      await tester.tap(find.byKey(const ValueKey('glossary-custom-delete')));
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('glossary-custom-delete-body')),
+            )
+            .data,
+        "1 dance uses it. It's removed from your Glossary, and that dance "
+        'keeps its current wording as plain text.',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('glossary-custom-delete-confirm')),
+      );
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pumpAndSettle();
+      final dance = (await tester.runAsync(() => repos.dances.getById('d1')))!;
+      final figure = switch (dance.figuresSource) {
+        DecodedFigures(:final figures) => figures.single,
+        UnreadableFigures() => throw StateError('unreadable'),
+      };
+      expect(figure.params, {'text': 'role1s zoom left'});
+      expect(
+        await tester.runAsync(() => repos.userGlossary.getById('zoom-id')),
+        isNull,
+      );
+    });
+  });
+
   group('entries of a kind this build cannot use (#1023)', () {
-    for (final kind in ['term', 'customFigure', 'someLaterKind']) {
+    for (final kind in ['term', 'someLaterKind']) {
       testWidgets('a $kind entry says it is from a newer version, and cannot '
           'be edited as a compound', (tester) async {
         await pump(

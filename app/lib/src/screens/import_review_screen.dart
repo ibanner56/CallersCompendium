@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/user_figures_scope.dart';
 import '../data/callersbox_online.dart';
 import '../data/import_diagnostic_labels.dart';
 import '../data/import_error_labels.dart';
@@ -1103,10 +1104,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// (deleted mid-review), are simply absent from the result — [_buildActions]
   /// falls back to the plain (pre-#686) ambiguous UI for those.
   ///
-  /// Reuses the app's own [contraTaxonomy] + a fresh [FigureRenderer] and the
-  /// currently active [Dialect] — the comparison itself never depends on the
-  /// dialect (see [diffFigures]'s doc comment); the dialect only shapes the
-  /// display text of any lines actually rendered.
+  /// Reuses the app's own [contraTaxonomy], the live renderer
+  /// (`UserFiguresScope.rendererOf`) and the currently active [Dialect] — the
+  /// comparison itself never depends on the dialect (see [diffFigures]'s doc
+  /// comment); the dialect only shapes the display text of any lines actually
+  /// rendered.
   Future<Map<int, FigureDiffResult>> _computeConfidentDiffs(
     ImportBatchResult batch,
   ) async {
@@ -1119,7 +1121,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
     if (!hasConfidentMatch) return const {};
     final dialect = ActiveDialectScope.of(context);
-    final renderer = FigureRenderer(contraTaxonomy);
+    final renderer = UserFiguresScope.rendererOf(context);
     final diffs = <int, FigureDiffResult>{};
     for (var i = 0; i < batch.records.length; i++) {
       if (!mounted) return diffs;
