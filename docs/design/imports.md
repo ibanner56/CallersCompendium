@@ -447,8 +447,10 @@ declines the collapse.
   only a teaching note). `extractCcUsrArchive` reads it as `CcTerm`s through
   the same tolerant resolver: every field sanitized (the name single-line), a
   row with no name skipped, a row with a field over the glossary's bounds
-  (`maxUserGlossaryNameLength`, `maxUserGlossaryTextLength`) skipped and
-  counted in one warning, and the scan bounded fail-closed
+  (`maxUserGlossaryNameLength`, `maxUserGlossaryTextLength`, measured after
+  normalization, as the glossary measures them) skipped and counted in one
+  warning the import review shows (`usr_terms_skipped`), a line break in a
+  name read as a space, and the scan bounded fail-closed
   (`FmpReadLimits.maxTermRows`, default 20 000). A term is prose: nothing in
   it is read into a figure or a wording template. The source citation is kept
   whole, as the term payload's `source` (`glossaryTermSource`): one sample

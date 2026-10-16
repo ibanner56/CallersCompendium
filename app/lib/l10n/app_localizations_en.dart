@@ -6672,6 +6672,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Some related-dance links in this file were invalid and were skipped.';
 
   @override
+  String get importIssueUsrTermsSkipped =>
+      'Some of this file\'s glossary terms were too long to keep, or couldn\'t be read, and were left out.';
+
+  @override
   String get importIssueDirectionUnmapped =>
       'A Becket direction wasn\'t recognized; defaulted to clockwise.';
 

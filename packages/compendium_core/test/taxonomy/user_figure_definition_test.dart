@@ -446,6 +446,15 @@ void main() {
         ),
         {'source': 'New book', 'form': 'contra'},
       );
+      expect(
+        glossaryTermPayload(
+          'contra',
+          previous: const {'form': 'contra', 'source': 'Old book'},
+          source: ' ',
+        ),
+        {'form': 'contra'},
+        reason: 'a blank source removes the citation',
+      );
     });
   });
 

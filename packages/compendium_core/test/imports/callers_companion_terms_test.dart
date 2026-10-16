@@ -1,6 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:compendium_core/src/imports/callers_companion_usr_archive.dart';
-import 'package:compendium_core/src/imports/fmp/fmp_reader.dart';
 import 'package:test/test.dart';
 
 /// Reading a Caller's Companion file's `Term` table as glossary terms (#1023,
@@ -67,18 +65,18 @@ void main() {
     final term = extractCcUsrArchive(
       database([
         FmpRecord(1, {
-          1: 'Dixie\nTwirl‮',
-          2: 'Under‮ the arch.\nThen out.',
-          3: 'Give‏ and Take',
+          1: 'Dixie\nTwirl\u202e',
+          2: 'Under\u202e the arch.\nThen out.',
+          3: 'Give\u200f and Take',
           6: '  ',
         }),
       ]),
     ).terms.single;
-    expect(term.name.contains('\n'), isFalse);
-    expect(term.name.contains('‮'), isFalse);
+    expect(term.name, 'Dixie Twirl', reason: 'a break reads as a space');
+    expect(term.name.contains('\u202e'), isFalse);
     expect(term.definition, contains('\n'), reason: 'prose keeps its lines');
-    expect(term.definition!.contains('‮'), isFalse);
-    expect(term.source!.contains('‏'), isFalse);
+    expect(term.definition!.contains('\u202e'), isFalse);
+    expect(term.source!.contains('\u200f'), isFalse);
     expect(term.notes, isNull, reason: 'blank is none');
   });
 
@@ -114,10 +112,33 @@ void main() {
       ]),
     );
     expect(archive.terms, hasLength(1), reason: 'at the bounds is kept');
+    expect(archive.warningCodes, contains(CcUsrWarningCodes.termsSkipped));
     expect(archive.warnings.where((w) => w.contains('term')), [
       '4 Caller\'s Companion term(s) were longer than a glossary entry can '
           'be and were skipped.',
     ]);
+  });
+
+  test('a field is measured as the glossary stores it, after '
+      'normalization', () {
+    // U+FB2A becomes two code units under NFC: 200 of them fit as typed, but
+    // not as stored.
+    final archive = extractCcUsrArchive(
+      database([
+        FmpRecord(1, {1: '\ufb2a' * maxUserGlossaryNameLength}),
+        FmpRecord(2, {1: 'Kept'}),
+      ]),
+    );
+    expect(archive.terms.map((t) => t.name), ['Kept']);
+  });
+
+  test('a FileMaker line break in a name reads as a space', () {
+    final term = extractCcUsrArchive(
+      database([
+        FmpRecord(1, {1: 'Contra\rCorners'}),
+      ]),
+    ).terms.single;
+    expect(term.name, 'Contra Corners');
   });
 
   test('columns are found by a tolerant name too', () {
@@ -166,6 +187,7 @@ void main() {
       unresolved.warnings.where((w) => w.contains('"Term"')),
       hasLength(1),
     );
+    expect(unresolved.warningCodes, contains(CcUsrWarningCodes.termsSkipped));
   });
 
   test('too many Term rows fails closed', () {

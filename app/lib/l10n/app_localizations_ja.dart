@@ -6439,6 +6439,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'このファイル内の関連ダンスのリンクの一部が無効だったため、スキップしました。';
 
   @override
+  String get importIssueUsrTermsSkipped =>
+      'このファイルの用語集の用語の一部は、長すぎて保持できないか読み取れなかったため、取り込まれませんでした。';
+
+  @override
   String get importIssueDirectionUnmapped =>
       'Becketの方向を認識できませんでした。既定で時計回りにしました。';
 
