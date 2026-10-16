@@ -1125,17 +1125,19 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                   const SizedBox(height: AppSpacing.md),
                   _CrossReferenceText(
                     text: canonicalDiscouragedTerms
-                        ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(
-                            dance.hook,
-                            dialect,
-                          )
+                        ? _proseRenderer
+                              .renderFreeTextWithCanonicalDiscouragedTerms(
+                                dance.hook,
+                                dialect,
+                              )
                         : _proseRenderer.renderFreeText(dance.hook, dialect),
                     linkText: dance.hook,
                     transformUnlinkedText: (value) => canonicalDiscouragedTerms
-                        ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(
-                            value,
-                            dialect,
-                          )
+                        ? _proseRenderer
+                              .renderFreeTextWithCanonicalDiscouragedTerms(
+                                value,
+                                dialect,
+                              )
                         : _proseRenderer.renderFreeText(value, dialect),
                     style: theme.textTheme.bodyLarge,
                     linker: detail.crossRefLinker,
@@ -1244,7 +1246,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     dance.walkthrough.trim(),
                     dialect,
                   )
-                : _proseRenderer.renderFreeText(dance.walkthrough.trim(), dialect),
+                : _proseRenderer.renderFreeText(
+                    dance.walkthrough.trim(),
+                    dialect,
+                  ),
             linkText: dance.walkthrough.trim(),
             transformUnlinkedText: (value) => canonicalDiscouragedTerms
                 ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(

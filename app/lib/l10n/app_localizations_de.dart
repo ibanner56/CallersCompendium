@@ -8197,7 +8197,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String installLocationBannerMessage(String appName) {
-    return '$appName ist noch nicht installiert: Die App läuft aus dem heruntergeladenen Disk-Image oder Archiv. Beende sie, ziehe sie in den Ordner „Programme“ und öffne sie dann von dort.';
+    return '$appName ist möglicherweise nicht installiert. Die App läuft aus dem heruntergeladenen Disk-Image oder Archiv oder von einem temporären, schreibgeschützten Speicherort, den macOS dafür eingerichtet hat. Beende sie, ziehe sie im Finder in den Ordner „Programme“ oder kopiere sie dorthin und öffne sie dann von dort. Wenn sie sich bereits im Ordner „Programme“ befindet, kannst du diesen Hinweis schließen.';
   }
 
   @override

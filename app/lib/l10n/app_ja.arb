@@ -8026,9 +8026,9 @@
   "@retirementBannerLater": {
     "x-sourceSha256": "73b6e48a1b552d112502d37a7b7870436efc5ea1de0bca58ccf12d6ae15d3a0c"
   },
-  "installLocationBannerMessage": "{appName}はまだインストールされていません。ダウンロードしたディスクイメージまたはアーカイブから実行されています。アプリを終了し、「アプリケーション」フォルダにドラッグしてから、そこから開いてください。",
+  "installLocationBannerMessage": "{appName}はインストールされていない可能性があります。ダウンロードしたディスクイメージまたはアーカイブから、あるいはmacOSが一時的に用意した読み取り専用の場所から実行されています。アプリを終了し、Finderで「アプリケーション」フォルダにドラッグまたはコピーしてから、そこから開いてください。すでに「アプリケーション」フォルダにある場合は、この通知を閉じてかまいません。",
   "@installLocationBannerMessage": {
-    "x-sourceSha256": "12c4548b3d19d088333888d7b32255d0bbea9beb23584cc08ffca881d395df8b"
+    "x-sourceSha256": "ee41af592bd281994bc194fd8b2ada6f12e842dfba13fb0ab0161cb3242f031c"
   },
   "installLocationBannerDismiss": "閉じる",
   "@installLocationBannerDismiss": {
