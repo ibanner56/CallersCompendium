@@ -25,6 +25,11 @@ void main() {
     (lf, 'Twos follow the ones down', null),
     (lf, 'follow your partner up the hall', null),
     (lf, 'learn to lead', null),
+    // "always" and "never" are auxiliaries, a hyphen does not end the
+    // complement that follows ("follow-up").
+    (lf, 'Ones always lead', null),
+    (lf, 'Ones never follow', null),
+    (lf, 'follow-up the hall', null),
     (lf, 'The larks lead out.', 'The role1s lead out.'),
     (lf, 'Leads lead down the hall', 'role1s lead down the hall'),
     (lf, 'Follows follow the leads', 'role2s follow the role1s'),
@@ -46,6 +51,9 @@ void main() {
     (lf, 'Leads allemande left 1½', 'role1s allemande left 1½'),
     (lf, "lead's right hand", "role1's right hand"),
     (lf, 'the lead on the left', 'the role1 on the left'),
+    // "opposite" is a determiner, so it makes the next word a role even
+    // though a complement ("down") follows.
+    (lf, 'opposite lead down', 'opposite role1 down'),
     (lf, 'second follow swing', 'second role2 swing'),
     (lf, 'each follow turns alone', 'each role2 turns alone'),
     // The renderer's own single-dancer compounds (`twosRole2` → "twos
@@ -113,6 +121,17 @@ void main() {
       'Ones lead down the hall',
     );
     expect(canonicalizeText(renderer.renderFreeText(legacy, lr), lr), legacy);
+  });
+
+  // The active dialect outranks the legacy synonyms: "robin" is legacy
+  // role2, but a dialect that calls role1 "robin" owns the word.
+  test('a dialect that swaps Robin and Lark keeps its own meaning', () {
+    final swapped = Dialect(
+      name: 'Robins/Larks',
+      roles: const {'role1': RoleTerm('Robin'), 'role2': RoleTerm('Lark')},
+    );
+    expect(canonicalizeText('robins chain', swapped), 'role1s chain');
+    expect(canonicalizeText('larks chain', swapped), 'role2s chain');
   });
 
   // Copilot review of #1699: possessive objects, Unicode spaces and the

@@ -659,6 +659,36 @@ void main() {
           ),
         );
       });
+
+      test('a body id that does not match its envelope is still malformed, '
+          'not newer (spec §6.9)', () {
+        for (final blob in [programBlob(), choreographerBlob()]) {
+          final json = blob.toJson();
+          final mismatched = <String, Map<String, Object?>>{
+            'body-id': withBody(blob, (body) => body..['id'] = 'another-id'),
+            'envelope-id': {...json, 'id': 'another-id'},
+          };
+          for (final MapEntry(key: which, value: wire) in mismatched.entries) {
+            expect(
+              () => SyncRecordBlob.fromJson(wire),
+              throwsA(
+                isA<FormatException>()
+                    .having(
+                      (e) => e is SyncNewerFieldException,
+                      'is newer field',
+                      isFalse,
+                    )
+                    .having(
+                      (e) => e.message,
+                      'message',
+                      contains('body id must match envelope id'),
+                    ),
+              ),
+              reason: '${blob.kind.name}, $which',
+            );
+          }
+        }
+      });
     });
 
     test('rejects malformed required record envelope fields', () {

@@ -123,7 +123,9 @@ _BeatSplit _splitInlineBeats(String line) {
 /// [parseFigureLine] treats as "unspecified": a matched structured figure then
 /// derives its move/param default beats on read via [Taxonomy.effectiveParams]
 /// (never forced to a literal 0), and an unrecognised line stays a beats-absent
-/// custom.
+/// custom. The app's editors read a draft's beats straight from its params, so
+/// they fill that derived count in when they insert the figures
+/// (`FigureDraft.fromFreeTextFigure`).
 ///
 /// Returns an empty list when the line is empty after trimming/scrubbing
 /// (nothing to insert) or when it exceeds [maxFreeTextEntryLength] (treated as
