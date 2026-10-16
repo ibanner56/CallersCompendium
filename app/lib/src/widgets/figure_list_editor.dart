@@ -327,8 +327,9 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
   /// The visible "Added N figures" line under the composer (#1825); null until
   /// a line is accepted, and cleared again by the next keystroke or when the
-  /// composer closes. Screen readers hear the same text through
-  /// [_announce], so the visible copy is excluded from semantics.
+  /// composer closes. Screen readers hear the announcement from [_announce]
+  /// instead (it names the Escape key, which touch users lack), so the visible
+  /// copy is excluded from semantics.
   String? _freeTextConfirmation;
   final FocusNode _freeTextFocusNode = FocusNode(
     debugLabel: 'figure-free-text',
@@ -684,7 +685,10 @@ class _FigureListEditorState extends State<FigureListEditor> {
     final message = _l10n.danceEditorFreeTextFiguresAddedAnnouncement(
       acceptedCount,
     );
-    setState(() => _freeTextConfirmation = message);
+    setState(
+      () => _freeTextConfirmation = _l10n
+          .danceEditorFreeTextFiguresAddedConfirmation(acceptedCount),
+    );
     _announce(message);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _freeTextFocusNode.requestFocus();

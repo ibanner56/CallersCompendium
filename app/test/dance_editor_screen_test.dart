@@ -2622,9 +2622,11 @@ void main() {
 
       await typeAndSubmit(tester, 'neighbors balance & swing');
       expect(
-        find.text('Added 1 figure. Type another, or press Escape to finish.'),
+        find.text('Added 1 figure. Type another, or choose Done to finish.'),
         findsOneWidget,
       );
+      // Touch users have no Escape key; the visible line must not name it.
+      expect(find.textContaining('Escape'), findsNothing);
 
       await tester.enterText(find.byKey(fieldKey), 'c');
       await tester.pumpAndSettle();

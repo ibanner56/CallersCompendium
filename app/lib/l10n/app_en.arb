@@ -10008,7 +10008,17 @@
   },
   "danceEditorFreeTextFiguresAddedAnnouncement": "{count, plural, =1{Added 1 figure. Type another, or press Escape to finish.} other{Added {count} figures. Type another, or press Escape to finish.}}",
   "@danceEditorFreeTextFiguresAddedAnnouncement": {
-    "description": "Screen-reader announcement after adding figure(s) from free-text entry.",
+    "description": "Screen-reader announcement after adding figure(s) from free-text entry. Spoken only: the visible line under the box is danceEditorFreeTextFiguresAddedConfirmation, because this one names the Escape key.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorFreeTextFiguresAddedConfirmation": "{count, plural, =1{Added 1 figure. Type another, or choose Done to finish.} other{Added {count} figures. Type another, or choose Done to finish.}}",
+  "@danceEditorFreeTextFiguresAddedConfirmation": {
+    "description": "Visible line under the free-text figure box after adding figure(s). \"Done\" is the button next to the box (commonDone) that closes it; keep the wording in step with that button's label.",
     "placeholders": {
       "count": {
         "type": "int",
