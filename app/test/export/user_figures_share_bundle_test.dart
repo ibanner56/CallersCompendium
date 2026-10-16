@@ -46,12 +46,7 @@ void main() {
   // gone is not on this device.
   final first = dance('d1', [
     use('a'),
-    Figure(
-      move: meanwhileMove,
-      params: {
-        'figures': [use('b'), use('gone')],
-      },
-    ),
+    Figure.meanwhile(figures: [use('b'), use('gone')], beats: 8),
     detachUserFigureUse(use('c')),
   ]);
 
