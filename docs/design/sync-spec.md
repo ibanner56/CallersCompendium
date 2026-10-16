@@ -4347,17 +4347,17 @@ download; in the reference client only the apply step's concurrency check
 (§6.7) then stops it, as a deferred change raised again on every pass, so the
 merge's view is the wrong place to filter even where it loses nothing. A row
 held back is still recorded as published with the manifest's own records (a
-fresh attach records it before its blob upload, so a failed upload cannot leave
-it unprotected), so that a deletion made while it waits keeps its tombstone: a
-row never named by a publication may be hard-deleted without one, which would
-lose a deletion the gate is only postponing. It follows that a gated row created and deleted while
-the gate is closed, never having left the device, is still published as a
-tombstone once the gate opens, and a tombstone blob carries its body (§4.3):
-over-marking, as §3.1 and §6.3 step 8 accept elsewhere, within the data's own
-`shareable` class. Receiving is never gated:
-a device applies a gated kind whenever a peer publishes it. The gate is
-evaluated on every pass, so it closes again when a device without the
-capability attaches.
+fresh attach records it before its blob upload, so a failed upload cannot
+leave it unprotected), so that a deletion made while it waits keeps its
+tombstone: a row never named by a publication may be hard-deleted without one,
+which would lose a deletion the gate is only postponing. It follows that a
+gated row created and deleted while the gate is closed, never having left the
+device, is still published as a tombstone once the gate opens, and a tombstone
+blob carries its body (§4.3): over-marking, as §3.1 and §6.3 step 8 accept
+elsewhere, within the data's own `shareable` class. Receiving is never gated: a
+device applies a gated kind whenever a peer publishes it. The gate is evaluated
+on every pass, so it closes again when a device without the capability
+attaches.
 
 **Self-contained data.** No record of an ungated kind or key may hold a
 *hard* reference to a record of a gated one, because the referring record
