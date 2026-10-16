@@ -97,23 +97,41 @@ and the diagnostic store is capped at 10,000 rows with a timestamp index.
 
 `tool/load_test.dart` measures how many requests one server process serves, as
 input to the request-rate limits in spec §5.4. It runs the real `AthenaeumApp`
-in its own isolate with every rate budget lifted, so it measures the server
-rather than the limits, and it steps through several numbers of in-flight
-requests per scenario: `store-get`, `blob-get`, `blob-put` (a fresh ~1.5 KB
-record blob), and `first-sync` (one device uploading a whole library into a new
-store, reported as time per device).
+in its own isolate, listening on a loopback port, with every rate budget lifted
+unless `--shipped-request-limits` is given, so by default it measures the server
+rather than the limits. It steps through several numbers of in-flight requests
+per scenario: `store-get`, `blob-get`, `blob-put` (a fresh ~1.5 KB record blob),
+and `first-sync` (one device uploading a whole library into a new store,
+reported as time per device).
+
+`blob-put`, `blob-get` and `first-sync` model the legacy per-record
+`GET`/`PUT /v1/blobs/{hash}` path. Since the batch routes (#1747) the app sends
+`PUT /v1/blobs/batch` and `POST /v1/blobs/batch` instead, and keeps the
+per-record requests only as a fallback (a blob over the size cap, or a server
+without the batch routes). The tool does not call the batch routes, so what they
+cost in request budget is not measured here, and a `first-sync` request count
+overstates what the shipped app sends.
 
 ```sh
 cd server
-dart run tool/load_test.dart --data-dir /path/on/the/deployment/disk
+dart run tool/load_test.dart --data-dir /path/to/a/new/directory/on/the/deployment/disk
 dart run tool/load_test.dart --help
 ```
 
+`--data-dir` must be a new, empty directory (or omitted, which uses a temporary
+one that is deleted afterwards). The tool runs schema migrations in it and
+creates fixture stores with fixed IDs, so it refuses a directory that already
+holds anything: a live deployment's data directory, or the directory of an
+earlier run. Never point it at a live data directory.
+
 Add `--shipped-request-limits` to run with the shipped request-rate limits
-instead, each worker as its own client address, to see where they refuse.
+instead of lifting them, each worker as its own client address, to see where
+they refuse. The fixture stores' per-store buckets carry over between steps, and
+workers retry a `429` at once rather than after a minute as the app does; the
+failure and creation budgets stay lifted.
 
 Run it on the hardware you deploy to, with `--data-dir` on the disk the server
 will use. Every authenticated request commits a SQLite write and every blob
-upload also flushes a file, so disk sync latency dominates: a tmpfs directory
-reports roughly three times the throughput of a real disk. A supplied
-`--data-dir` is left in place afterwards; delete it once you have the numbers.
+upload also flushes a file, so disk sync latency dominates and a tmpfs directory
+does not represent a real disk. A supplied `--data-dir` is left in place
+afterwards; delete it once you have the numbers.

@@ -5,10 +5,12 @@
 // The real [AthenaeumApp] runs in its own isolate with every budget lifted, so
 // the client's load generation does not share a thread with the server and no
 // `429` caps the result — unless `--shipped-request-limits` is given, which
-// keeps the shipped request-rate rows so that their `429`s show. Run it on the hardware you intend to deploy to, with
-// `--data-dir` on the disk the server will use: every authenticated request
-// commits a SQLite write and a blob upload also flushes a file, so the disk's
-// sync latency dominates and a tmpfs directory reports a fantasy.
+// keeps the shipped request-rate rows so that their `429`s show. Run it on the
+// hardware you intend to deploy to, with `--data-dir` on the disk the server
+// will use: every authenticated request commits a SQLite write and a blob
+// upload also flushes a file, so the disk's sync latency dominates and a tmpfs
+// directory does not represent a real disk. `--data-dir` must be new or empty:
+// the tool migrates it and inserts fixture stores, so it refuses anything else.
 //
 //   dart run tool/load_test.dart
 //   dart run tool/load_test.dart --scenario blob-put --concurrency 1,16,64
@@ -72,8 +74,9 @@ Future<void> main(List<String> arguments) async {
     ..addOption(
       'data-dir',
       help:
-          'Directory for the SQLite databases and blobs. Defaults to a '
-          'temporary directory, which is deleted afterwards.',
+          'A new or empty directory for the SQLite databases and blobs; '
+          'anything else is refused. Defaults to a temporary directory, '
+          'which is deleted afterwards.',
     )
     ..addFlag(
       'shipped-request-limits',
@@ -82,8 +85,9 @@ Future<void> main(List<String> arguments) async {
           'Run with the shipped request-rate budgets instead of lifting '
           'them, each worker of each step as its own client address, to see '
           'where they refuse. The fixture stores\' per-store buckets carry '
-          'over between steps, and workers retry a 429 at once rather than after a minute '
-          'as the app does. The failure and creation budgets stay lifted.',
+          'over between steps, and workers retry a 429 at once rather than '
+          'after a minute as the app does. The failure and creation budgets '
+          'stay lifted.',
     )
     ..addFlag('json', negatable: false, help: 'Print results as JSON lines.')
     ..addFlag('help', abbr: 'h', negatable: false);
@@ -106,6 +110,15 @@ Future<void> main(List<String> arguments) async {
   final json = options['json'] as bool;
 
   final suppliedDirectory = options['data-dir'] as String?;
+  if (suppliedDirectory != null) {
+    final problem = _dataDirectoryProblem(suppliedDirectory);
+    if (problem != null) {
+      stderr.writeln('--data-dir $suppliedDirectory: $problem');
+      stderr.writeln('Pass a new, empty directory (or omit --data-dir).');
+      exitCode = 2;
+      return;
+    }
+  }
   final dataDirectory = suppliedDirectory == null
       ? await Directory.systemTemp.createTemp('athenaeum-load-')
       : await Directory(suppliedDirectory).create(recursive: true);
@@ -146,6 +159,24 @@ Future<void> main(List<String> arguments) async {
     if (suppliedDirectory == null) {
       await dataDirectory.delete(recursive: true);
     }
+  }
+}
+
+/// Why [path] cannot be the load test's data directory, or null if it can.
+///
+/// The tool runs schema migrations in it and inserts fixture stores with fixed
+/// IDs, so a directory that already holds anything is either a deployment's
+/// live data or an earlier run's (whose fixture stores answer `409`).
+String? _dataDirectoryProblem(String path) {
+  switch (FileSystemEntity.typeSync(path)) {
+    case FileSystemEntityType.notFound:
+      return null;
+    case FileSystemEntityType.directory:
+      return Directory(path).listSync().isEmpty
+          ? null
+          : 'is not empty; the load test would write fixture data into it.';
+    default:
+      return 'is not a directory.';
   }
 }
 
@@ -211,12 +242,16 @@ Future<_Result> _run(
   return recorder.finish(clock.elapsed);
 }
 
-/// One device's first pass into an empty store, in the order the app's sync
-/// coordinator sends it for a fresh attach: create, read the store, probe for
-/// missing blobs and upload them, then the continuation pass reads the store
-/// again, probes again before publishing, and publishes the manifest. The time
-/// per device is the figure a rate limit stretches, so it is recorded alongside
-/// the request latencies, and only when every request in the pass succeeded.
+/// One device's first pass into an empty store, using the legacy per-record
+/// upload: create, read the store, probe for missing blobs and `PUT` each one
+/// on its own, then read the store again, probe again before publishing, and
+/// publish the manifest. The shipped app no longer uploads this way: since the
+/// batch routes (#1747) it sends `PUT /v1/blobs/batch`, and keeps a per-record
+/// `PUT` only as a fallback. This scenario therefore sends many more requests
+/// than the app does, and the cost of the batch routes is not measured here.
+/// The time per device is the figure a rate limit stretches, so it is recorded
+/// alongside the request latencies, and only when every request in the pass
+/// succeeded.
 Future<void> _firstSync(
   _Target target,
   _Recorder recorder, {
