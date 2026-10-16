@@ -7154,6 +7154,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Geben Sie eine Bewegung ein (z. B. „sw“ → swing) und drücken Sie Eingabe, um sie mit Standardparametern hinzuzufügen; nicht erkannter Text wird eine benutzerdefinierte Figur.';
 
   @override
+  String get danceEditorFiguresHelpFreeText =>
+      'Fügen Sie eine Figur hinzu, indem Sie eine ganze Zeile eingeben (z. B. „neighbor balance & swing“) und die Eingabetaste drücken. Eine in die Bewegung einer bestehenden Figur eingegebene Zeile ersetzt diese Figur. Nicht Erkanntes wird eine benutzerdefinierte Figur.';
+
+  @override
   String get danceEditorNotesSection => 'Notizen';
 
   @override

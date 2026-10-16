@@ -10655,6 +10655,12 @@ abstract class AppLocalizations {
   /// **'Type a move (e.g. \"sw\" → swing) and press Enter to add it with default params; unmatched text becomes a custom figure.'**
   String get danceEditorFiguresHelp;
 
+  /// Helper text above the figure list while the Free-text entry setting is on: figures are typed as whole lines, and a line typed into an existing figure's move field replaces it.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure\'s move replaces that figure. Anything unrecognized becomes a custom figure.'**
+  String get danceEditorFiguresHelpFreeText;
+
   /// Section heading for the dance notes fields.
   ///
   /// In en, this message translates to:

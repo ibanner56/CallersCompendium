@@ -7166,6 +7166,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Saisissez un mouvement (ex. « sw » → swing) et appuyez sur Entrée pour l’ajouter avec les paramètres par défaut ; le texte non reconnu devient une figure personnalisée.';
 
   @override
+  String get danceEditorFiguresHelpFreeText =>
+      'Ajoutez une figure en saisissant une ligne entière (ex. « neighbor balance & swing ») puis en appuyant sur Entrée. Une ligne saisie dans le mouvement d’une figure existante remplace cette figure. Tout ce qui n’est pas reconnu devient une figure personnalisée.';
+
+  @override
   String get danceEditorNotesSection => 'Notes';
 
   @override

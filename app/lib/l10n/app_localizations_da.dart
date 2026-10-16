@@ -7070,6 +7070,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Skriv en bevægelse (f.eks. \"sw\" → swing) og tryk Enter for at tilføje den med standardparametre; umatched tekst gemmes som en brugerdefineret figur.';
 
   @override
+  String get danceEditorFiguresHelpFreeText =>
+      'Tilføj en figur ved at skrive en hel linje (f.eks. \"nabo balance & swing\") og trykke Enter. En linje skrevet i en eksisterende figurs bevægelse erstatter figuren. Alt der ikke genkendes, bliver en brugerdefineret figur.';
+
+  @override
   String get danceEditorNotesSection => 'Noter';
 
   @override

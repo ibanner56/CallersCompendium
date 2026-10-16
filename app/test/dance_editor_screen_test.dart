@@ -2580,6 +2580,10 @@ void main() {
       final repos = await freeTextRepos();
       await _pumpEditor(tester, repos);
 
+      // The help line describes typed lines, not a whole-text custom.
+      expect(find.textContaining('typing a whole line'), findsOneWidget);
+      expect(find.textContaining('unmatched text becomes'), findsNothing);
+
       await tester.enterText(
         find.byKey(const ValueKey('title-field')),
         'Typed Dance',
@@ -2675,6 +2679,7 @@ void main() {
         'template', (tester) async {
       final repos = await freeTextRepos(on: false);
       await _pumpEditor(tester, repos);
+      expect(find.textContaining('unmatched text becomes'), findsOneWidget);
 
       await tester.enterText(
         find.byKey(const ValueKey('title-field')),

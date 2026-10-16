@@ -6790,6 +6790,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'ムーブを入力して（例: \"sw\" → スイング）Enterキーを押すとデフォルトパラメーターで追加されます。一致しないテキストはカスタムフィギュアになります。';
 
   @override
+  String get danceEditorFiguresHelpFreeText =>
+      '「neighbor balance & swing」のように1行全体を入力してEnterキーを押すとフィギュアを追加できます。既存のフィギュアのムーブに1行を入力すると、そのフィギュアが置き換えられます。認識されなかった部分はカスタムフィギュアになります。';
+
+  @override
   String get danceEditorNotesSection => 'ノート';
 
   @override

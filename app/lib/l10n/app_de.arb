@@ -7006,6 +7006,10 @@
   "@danceEditorFiguresHelp": {
     "x-sourceSha256": "5f0ace86fd77201b34845a80d2db45bb43497ae3037fdebaccaae155ff4338c6"
   },
+  "danceEditorFiguresHelpFreeText": "Fügen Sie eine Figur hinzu, indem Sie eine ganze Zeile eingeben (z. B. „neighbor balance & swing“) und die Eingabetaste drücken. Eine in die Bewegung einer bestehenden Figur eingegebene Zeile ersetzt diese Figur. Nicht Erkanntes wird eine benutzerdefinierte Figur.",
+  "@danceEditorFiguresHelpFreeText": {
+    "x-sourceSha256": "06495665fdbffa47f2aa405e4e31e84b8998dc73e30d906a874305eb5d100ef4"
+  },
   "danceEditorNotesSection": "Notizen",
   "@danceEditorNotesSection": {
     "x-sourceSha256": "8a7525b1492fb84833f5c4a69b30f4bfbb134f9b666b61a2c1872d63d234c085"

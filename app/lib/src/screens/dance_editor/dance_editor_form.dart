@@ -298,8 +298,12 @@ class DanceEditorForm extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // With free-text entry on, unmatched text is parsed rather than
+                // kept whole as a custom figure (#1177), so the help says so.
                 Text(
-                  l10n.danceEditorFiguresHelp,
+                  freeTextEntry
+                      ? l10n.danceEditorFiguresHelpFreeText
+                      : l10n.danceEditorFiguresHelp,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 // An empty figure list here would otherwise read as "this dance

@@ -7124,6 +7124,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Typ een move (bijv. “sw” → swing) en druk op Enter om het toe te voegen met standaardparameters; niet-herkende tekst wordt een aangepaste figuur.';
 
   @override
+  String get danceEditorFiguresHelpFreeText =>
+      'Voeg een figuur toe door een hele regel te typen (bijv. “neighbor balance & swing”) en op Enter te drukken. Een regel die je in de beweging van een bestaande figuur typt, vervangt die figuur. Niet-herkende tekst wordt een aangepaste figuur.';
+
+  @override
   String get danceEditorNotesSection => 'Notities';
 
   @override
