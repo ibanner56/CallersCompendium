@@ -2526,6 +2526,128 @@ void main() {
     });
   });
 
+  // #1825: the free-text box is its own semantics boundary with its own label,
+  // the section help fits the active mode, and "Added N figures" is visible.
+  group('free-text box semantics and confirmation (#1825)', () {
+    const fieldKey = ValueKey('figure-free-text-field');
+
+    Future<CompendiumRepositories> reposWith({
+      required bool freeText,
+      bool seeded = false,
+    }) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, freeText);
+      if (seeded) {
+        await repos.dances.create(
+          _dance(
+            id: 'd1',
+            figures: [
+              Figure(move: 'stand_still', params: const {'beats': 8}),
+              for (var i = 0; i < 5; i++)
+                Figure(move: 'swing', params: const {'beats': 16}),
+            ],
+          ),
+        );
+      }
+      return repos;
+    }
+
+    Future<void> openComposer(WidgetTester tester) async {
+      await tester.ensureVisible(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> typeAndSubmit(WidgetTester tester, String line) async {
+      await tester.enterText(find.byKey(fieldKey), line);
+      await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the box is labelled "Type a figure" and nothing else (empty '
+        'list)', (tester) async {
+      final handle = tester.ensureSemantics();
+      final repos = await reposWith(freeText: true);
+      await _pumpEditor(tester, repos);
+      await openComposer(tester);
+
+      final data = tester.getSemantics(find.byKey(fieldKey)).getSemanticsData();
+      expect(data.label, 'Type a figure');
+      handle.dispose();
+    });
+
+    testWidgets('the box label excludes the beat total and over-by warning', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      final repos = await reposWith(freeText: true, seeded: true);
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      // The seeded dance is over its beat budget, so the total row shows.
+      expect(find.textContaining('Over by'), findsWidgets);
+      await openComposer(tester);
+
+      final label = tester
+          .getSemantics(find.byKey(fieldKey))
+          .getSemanticsData()
+          .label;
+      expect(label, 'Type a figure');
+      expect(label, isNot(contains('Over by')));
+      expect(label, isNot(contains('Total')));
+      expect(label, isNot(contains('Warnings')));
+      handle.dispose();
+    });
+
+    testWidgets('section help describes typed lines in free-text mode and '
+        'moves in structured mode', (tester) async {
+      final freeText = await reposWith(freeText: true);
+      await _pumpEditor(tester, freeText);
+      expect(find.textContaining('typing a whole line'), findsOneWidget);
+      expect(find.textContaining('Type a move'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox());
+      final structured = await reposWith(freeText: false);
+      await _pumpEditor(tester, structured);
+      expect(find.textContaining('Type a move'), findsOneWidget);
+      expect(find.textContaining('typing a whole line'), findsNothing);
+    });
+
+    testWidgets('adding figures shows a visible confirmation that clears on '
+        'the next keystroke', (tester) async {
+      final repos = await reposWith(freeText: true);
+      await _pumpEditor(tester, repos);
+      await openComposer(tester);
+
+      await typeAndSubmit(tester, 'neighbors balance & swing');
+      expect(
+        find.text('Added 1 figure. Type another, or choose Done to finish.'),
+        findsOneWidget,
+      );
+      // Touch users have no Escape key; the visible line must not name it.
+      expect(find.textContaining('Escape'), findsNothing);
+
+      await tester.enterText(find.byKey(fieldKey), 'c');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Added 1 figure'), findsNothing);
+    });
+
+    testWidgets('the visible confirmation reports the count and goes away '
+        'with the box', (tester) async {
+      final repos = await reposWith(freeText: true);
+      await _pumpEditor(tester, repos);
+      await openComposer(tester);
+
+      await typeAndSubmit(tester, 'circle left 3/4; turn alone');
+      expect(find.textContaining('Added 2 figures'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('figure-free-text-done')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Added 2 figures'), findsNothing);
+    });
+  });
+
   // Decision D2 on #1177 (Isaac, orchestration session, 2026-10-16): with
   // Free-text entry on, a new dance starts empty and Enter on unmatched text
   // in an existing row's Move box runs the free-text parser.
