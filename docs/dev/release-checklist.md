@@ -126,7 +126,7 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  the chosen track by hand. Without the secret the step is a clean skip; download
  the `android-aab` artifact and upload it manually instead.
 - [ ] Update channel advanced **after** the draft was published — the `pages` job
- (`release-publication` approval) passed its public-release check, verified the
+ (`release-manifest` approval) passed its public-release check, verified the
  manifest signatures, and pushed `gh-pages`; `verify` was green first.
 - [ ] iOS **export compliance** needs no per-build action — `Info.plist` declares
  `ITSAppUsesNonExemptEncryption = false` (app uses only exempt encryption), so
