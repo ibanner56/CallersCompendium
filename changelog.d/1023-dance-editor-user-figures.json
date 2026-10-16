@@ -1,0 +1,12 @@
+{
+  "id": "1023-dance-editor-user-figures",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "With Custom Figures on, your new figures for the dance's form are offered when you choose a figure's move in the dance editor, inside meanwhile and modifier groups too. A figure you pick reads with its own wording; open it to choose the value of each of its parameters and its beats. A dance that uses one follows later edits to its wording."
+    ],
+    "changed": [
+      "The dance editor offers only your combinations for the dance's form."
+    ]
+  }
+}

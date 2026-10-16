@@ -9546,6 +9546,10 @@
   "@glossaryCustomDeleteUses": {
     "x-sourceSha256": "dcf33d6b0593707bf881496eed5b4701d8c69b24f391307e51e9990421e3e214"
   },
+  "danceEditorUserFigureUnavailable": "Je figuur is niet beschikbaar, dus deze rij houdt de formulering die hij heeft.",
+  "@danceEditorUserFigureUnavailable": {
+    "x-sourceSha256": "c8035e4817705db8f29ea82ffd748127a3039e6de626a6e2a90dea9e1ca8345b"
+  },
   "compoundEditorDiscardBody": "Je hebt niet-opgeslagen wijzigingen in deze figuur.",
   "@compoundEditorDiscardBody": {
     "x-sourceSha256": "b75777162fce7dd48f0bfc6ab3ba104c6c897d4b492a3e59c5e4d88637d112ba"

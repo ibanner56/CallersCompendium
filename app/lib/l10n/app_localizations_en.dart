@@ -9550,6 +9550,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get danceEditorUserFigureUnavailable =>
+      'This figure of yours isn\'t available, so this row keeps the wording it has.';
+
+  @override
   String get compoundEditorDiscardBody =>
       'You have unsaved changes to this figure.';
 

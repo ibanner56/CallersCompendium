@@ -9229,6 +9229,10 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get danceEditorUserFigureUnavailable =>
+      'このフィギュアは使用できないため、この行は現在の文言のままになります。';
+
+  @override
   String get compoundEditorDiscardBody => 'このフィギュアに未保存の変更があります。';
 
   @override

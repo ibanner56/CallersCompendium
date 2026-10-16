@@ -110,7 +110,13 @@ When you change the schema:
 - When you do bump, bump `schemaVersion`, add the matching `MigrationStrategy` step, and ship a
   migration test/fixture (`test/storage/migration_test.dart` and/or a
   `test/storage/fixtures/` fixture). CI **fails** a PR that bumps
-  `schemaVersion` without adding or changing such a test/fixture.
+  `schemaVersion` without adding or changing such a test/fixture. A test built
+  from a drift schema dump seeds its own rows, so it cannot notice a step that
+  corrupts existing data; the **floor** version therefore keeps a real
+  fixture captured from its release tag (`test/storage/fixtures/v35.sqlite`,
+  exercised by `real_release_fixture_test.dart`), and raising the floor
+  requires capturing the next one (see "Retiring a schema version" in
+  [`docs/design/storage.md`](docs/design/storage.md)).
 - Add a drift schema dump for the new version under
   [`packages/compendium_core/drift_schemas/`](packages/compendium_core/drift_schemas/README.md).
   `test/storage/schema_verification_test.dart` asserts that migrating from

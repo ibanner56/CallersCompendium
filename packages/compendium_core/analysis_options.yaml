@@ -25,6 +25,9 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+    # Standalone programs written against a past release's API; see the header
+    # of the files inside.
+    - tool/fixture_generators/**
 include:
   - package:lints/recommended.yaml
   - ../../analysis_options.yaml

@@ -25,6 +25,7 @@ import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
 import 'package:compendium_app/src/data/date_format_scope.dart';
 import 'package:compendium_app/src/data/capitalize_figures_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
+import 'package:compendium_app/src/data/user_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/data/decimal_turns_scope.dart';
 import 'package:compendium_app/src/data/dialect_library_scope.dart';
@@ -66,6 +67,7 @@ const _expectedAppScopeTypes = <Type>[
   FormationColorsScope,
   DialectLibraryScope,
   ShorthandMappingsScope,
+  UserFiguresScope,
   WalkthroughSnippetLibraryScope,
   ActiveDialectScope,
   RequirePerformedForHistoryScope,

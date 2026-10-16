@@ -325,6 +325,15 @@ jobs:
     # Every leg of the matrix waits on the release-signing approval gate, not
     # just the ones that sign, so nothing is built until it is approved.
     environment: release-signing
+    # Job-level `permissions` takes no `matrix` expression, so `id-token: write`
+    # applies to EVERY leg, not just Windows. Only the three Windows-gated Azure
+    # steps (`azure/login` and the two Azure/artifact-signing-action steps) use
+    # it. Because every leg references the same environment, GitHub's default
+    # OIDC subject for any leg is `repo:<owner>/<repo>:environment:release-signing`
+    # (no ref, no job_workflow_ref), so an Azure federated credential keyed on
+    # that subject cannot tell the legs apart. Narrowing the permission means
+    # moving Windows back into its own job, as before #1716. See "OIDC scope of
+    # the build matrix" in docs/dev/releasing.md.
     permissions:
       contents: read
       id-token: write  # Windows: Azure Trusted Signing uses GitHub OIDC

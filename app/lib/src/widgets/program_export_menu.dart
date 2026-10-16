@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 export '../export/share_file.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/dance_share_fields_scope.dart';
@@ -282,7 +283,7 @@ class ProgramExportMenu extends StatelessWidget {
     final setList = _plainText(context);
     final danceLabels = danceExportLabels(l10n);
     final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
-    final renderer = FigureRenderer(contraTaxonomy);
+    final renderer = UserFiguresScope.rendererOf(context);
     final buf = StringBuffer(setList);
     final alternate = l10n.exportIncludeFiguresAlternate;
     for (final entry in _orderedExportDances()) {
@@ -498,7 +499,7 @@ class ProgramExportMenu extends StatelessWidget {
 
     final List<({Dance dance, bool isAlternate})>? appendDances;
     final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
-    final renderer = FigureRenderer(contraTaxonomy);
+    final renderer = UserFiguresScope.rendererOf(context);
     if (includeFigures) {
       appendDances = _orderedExportDances();
     } else {

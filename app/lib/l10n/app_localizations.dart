@@ -14486,6 +14486,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{No dance uses it. It\'s removed from your Glossary.} =1{1 dance uses it. It\'s removed from your Glossary, and that dance keeps its current wording as plain text.} other{{count} dances use it. It\'s removed from your Glossary, and those dances keep their current wording as plain text.}}'**
   String glossaryCustomDeleteUses(int count);
 
+  /// Shown on a dance editor row that uses one of the user's own figures when the figure is deleted or can no longer be read.
+  ///
+  /// In en, this message translates to:
+  /// **'This figure of yours isn\'t available, so this row keeps the wording it has.'**
+  String get danceEditorUserFigureUnavailable;
+
   /// Body of the dialog confirming that unsaved changes to a custom figure are discarded.
   ///
   /// In en, this message translates to:

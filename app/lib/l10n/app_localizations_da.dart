@@ -9593,6 +9593,10 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get danceEditorUserFigureUnavailable =>
+      'Din figur er ikke tilgængelig, så denne række beholder den ordlyd, den har.';
+
+  @override
   String get compoundEditorDiscardBody =>
       'Du har ugemte ændringer i denne figur.';
 
