@@ -3,12 +3,12 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "A courtesy turn now turns counterclockwise unless you say otherwise, which is the usual way it's danced; clockwise is the mirrored turn, mostly when the larks chain. Courtesy turns that don't state a direction keep looking the same but are now understood as counterclockwise, and ones you set to clockwise now say so. The app rebuilds its search index once after updating so searches match."
+      "A courtesy turn now turns counterclockwise unless it says otherwise, which is the usual way it's danced; clockwise is the mirrored turn, mostly when the larks chain. A courtesy turn with no direction stored (one imported from text or a file, or arriving from another device) is now understood as counterclockwise: it looks the same, but a device that has not updated yet still reads it as clockwise. Courtesy turns you picked in the editor were stored as clockwise, so they keep that meaning and now say \"clockwise\" in the text. The app rebuilds its search index once after updating so searches match."
     ]
   },
   "core": {
     "changed": [
-      "Taxonomy v37: `courtesy_turn.direction` defaults to `counterclockwise` (was `clockwise`); display silences the default. A one-time canonical/FTS rebuild (`taxonomyV37CanonicalRebuildDoneKey`) re-derives stored courtesy turns' canonical text; source JSON is unchanged."
+      "Taxonomy v37: `courtesy_turn.direction` defaults to `counterclockwise` (was `clockwise`); display silences the default. A figure that stores no `direction` (parser imports, JSON, archive or sync data) now means counterclockwise; editor-authored figures stored an explicit `clockwise` and keep it, so their text now says so. A one-time canonical/FTS rebuild (`taxonomyV37CanonicalRebuildDoneKey`) re-derives stored courtesy turns' canonical text; source JSON is unchanged."
     ]
   }
 }
