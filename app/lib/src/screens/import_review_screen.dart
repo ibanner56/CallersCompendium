@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -8,7 +10,9 @@ import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/show_custom_figures_scope.dart';
+import '../glossary/cc_term_import.dart';
 import '../glossary/user_figure_import.dart';
+import 'import_cc_terms_screen.dart';
 import 'import_user_figures_screen.dart';
 import '../data/callersbox_online.dart';
 import '../data/import_diagnostic_labels.dart';
@@ -21,6 +25,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/shorthand_mappings_controller.dart';
 import '../data/shorthand_mappings_scope.dart';
+import '../data/show_glossary_scope.dart';
 import '../data/sync_writer_lifecycle_scope.dart';
 import '../data/default_import_tags.dart';
 import '../data/title_list_import.dart';
@@ -1569,7 +1574,21 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // Opt-in, previewed step (#562): offer to seed figure shorthands from
         // the file's InsertCall call buttons. Runs after the result dialog so
         // it never blocks the dance/program import; declining seeds nothing.
+        // Then its glossary terms (#1023, maintainer decision 7), as opt-in.
+        // Read from the tree now: Done on the result dialog can unmount this
+        // screen while the shorthand step is open (#1819).
+        final offerTerms = _termsStep(archive);
         await _maybeSeedShorthands(archive);
+        // A failure here never undoes the import above: it is logged.
+        try {
+          await offerTerms?.call();
+        } on Object catch (e, stackTrace) {
+          logCaughtError(
+            e,
+            stackTrace,
+            source: 'import_review_screen._maybeAddTerms',
+          );
+        }
       } else if (adapter is PublishedCollectionAdapter) {
         final metadata = adapter.metadata;
         final importer = PublishedCollectionImporter(pipeline);
@@ -1740,6 +1759,100 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         content: Text(l10n.importShorthandSeedComplete(seeded)),
       ),
     );
+  }
+
+  /// Offers a Caller's Companion file's own glossary terms for the user's
+  /// Glossary ([ImportCcTermsScreen], #1023, maintainer decision 7), then adds
+  /// those chosen ([applyCcTermImport]) and says so, with an Undo. Only while
+  /// the Glossary is shown: terms need nothing else (maintainer decision 9).
+  ///
+  /// It runs after the result dialog and the shorthand step, and Done on the
+  /// result dialog pops this screen's route (#1819): so everything it needs
+  /// from the tree is read here, when it is built, and the step returned runs
+  /// without this screen. Null when there is nothing to offer.
+  Future<void> Function()? _termsStep(CcUsrArchive archive) {
+    if (archive.terms.isEmpty || !mounted || !ShowGlossaryScope.of(context)) {
+      return null;
+    }
+    final repos = _repos;
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final dialect = ActiveDialectScope.of(context);
+    final dialects = [
+      dialect,
+      ...?DialectLibraryScope.maybeOf(context)?.customDialects,
+    ];
+    final shorthands = ShorthandMappingsScope.maybeOf(context);
+    return () => _addTerms(
+      archive.terms,
+      repos: repos,
+      navigator: navigator,
+      messenger: messenger,
+      l10n: l10n,
+      dialect: dialect,
+      dialects: dialects,
+      shorthands: shorthands,
+    );
+  }
+
+  Future<void> _addTerms(
+    List<CcTerm> terms, {
+    required CompendiumRepositories repos,
+    required NavigatorState navigator,
+    required ScaffoldMessengerState messenger,
+    required AppLocalizations l10n,
+    required Dialect dialect,
+    required List<Dialect> dialects,
+    required ShorthandMappingsController? shorthands,
+  }) async {
+    // Read now, after the dances and shorthands were written: a shorthand
+    // just seeded takes its name too.
+    final names = [
+      for (final entry in await repos.userGlossary.listAll()) entry.name,
+    ];
+    final tokens = shorthands?.takenTokens ?? const <String>{};
+    // Compared as stored, as the editor compares a name it is about to save.
+    bool nameTaken(String name) => glossaryNameCollisions(
+      canonicalizeGlossaryText(name.trim(), dialect),
+      taxonomy: contraTaxonomy,
+      dialects: dialects,
+      shorthandTokens: tokens,
+      userEntryNames: names,
+    ).isNotEmpty;
+    final chosen = await navigator.push<List<CcTermDraft>>(
+      MaterialPageRoute(
+        builder: (_) => ImportCcTermsScreen(terms: terms, nameTaken: nameTaken),
+      ),
+    );
+    if (chosen == null || chosen.isEmpty) return;
+    final applied = await applyCcTermImport(
+      repos.userGlossary,
+      chosen,
+      dialect: dialect,
+      newId: uuidV4,
+      now: DateTime.now().toUtc(),
+    );
+    if (applied.addedIds.isNotEmpty) {
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('cc-term-import-complete'),
+          content: Text(l10n.importCcTermsAdded(applied.addedIds.length)),
+          action: SnackBarAction(
+            label: l10n.commonUndo,
+            onPressed: () => unawaited(applied.undo()),
+          ),
+        ),
+      );
+    }
+    if (applied.failed > 0) {
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('cc-term-import-failed'),
+          content: Text(l10n.importCcTermsFailed(applied.failed)),
+        ),
+      );
+    }
   }
 
   /// Serializes a shared archive writer with the live sync coordinator. The
