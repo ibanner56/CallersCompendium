@@ -6294,10 +6294,6 @@
   "@archiveIntakeRejectedNotArchive": {
     "x-sourceSha256": "80dd7dada7feaccdf4d83c86ca2567fad99deb5ad4b25ffc22cdd87c7d4de1d8"
   },
-  "archiveIntakeRejectedNewerVersion": "そのファイルは新しいバージョンのアプリで作成されました。インポートするにはアプリを更新してください。",
-  "@archiveIntakeRejectedNewerVersion": {
-    "x-sourceSha256": "4752773bacfe510abb112bdc6bad0c781a3813378eab6e504c44056b12f65dc7"
-  },
   "archiveIntakeRejectedNoContent": "そのファイルにはダンスもプログラムも含まれていませんでした。",
   "@archiveIntakeRejectedNoContent": {
     "x-sourceSha256": "c432135d1a1811b4f51d8ad2f995526eff018b8005496c8d5fb7a2c57faa411b"

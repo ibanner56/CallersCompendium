@@ -20,7 +20,5 @@ String archiveIntakeRejectionMessage(
   ArchiveIntakeRejectionReason.empty => l10n.archiveIntakeRejectedEmpty,
   ArchiveIntakeRejectionReason.notArchive =>
     l10n.archiveIntakeRejectedNotArchive,
-  ArchiveIntakeRejectionReason.newerVersion =>
-    l10n.archiveIntakeRejectedNewerVersion,
   ArchiveIntakeRejectionReason.noContent => l10n.archiveIntakeRejectedNoContent,
 };

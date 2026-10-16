@@ -170,3 +170,28 @@ String? resolveSanitizedVenueLabelParts(
   venue,
   venuesWithSanitizedContact(venuesById, venueId),
 );
+
+/// The user's own new figures (#1023) that [dances] use, attached, each found
+/// through [userFigureFor]: what a share bundle carries so the receiver can
+/// add them (plan C12). A figure [userFigureFor] can't find (gone, or not on
+/// this device) is left out; its uses still carry their lines. None without
+/// [userFigureFor].
+///
+/// The archive writes each one without its notes ([archiveUserFigureToJson]):
+/// they are shareable, but a share bundle leaves them out by design (plan C12;
+/// the registry's note on `user_glossary_entries.notes` says why).
+List<UserGlossaryEntry> userFiguresForShare(
+  Iterable<Dance> dances,
+  UserGlossaryEntry? Function(String id)? userFigureFor,
+) {
+  if (userFigureFor == null) return const [];
+  return [
+    for (final id in userFigureIdsUsedBy([
+      for (final dance in dances)
+        if (dance.figuresSource case DecodedFigures(:final figures)) ...figures,
+    ]))
+      if (userFigureFor(id) case final entry?
+          when entry.kind == UserGlossaryEntryKind.customFigure)
+        entry,
+  ];
+}

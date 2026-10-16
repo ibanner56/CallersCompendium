@@ -6305,10 +6305,6 @@ class AppLocalizationsDa extends AppLocalizations {
       'Den fil er ikke en delefil fra Caller’s Compendium.';
 
   @override
-  String get archiveIntakeRejectedNewerVersion =>
-      'Den fil blev lavet med en nyere version af appen. Opdatér appen for at importere den.';
-
-  @override
   String get archiveIntakeRejectedNoContent =>
       'Den fil indeholdt ingen danse eller programmer.';
 

@@ -1674,6 +1674,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// distinct alternate call, primary vs. alternate); each accepted candidate is
   /// `upsert`ed. Declining seeds nothing, and because conflicts are skipped a
   /// re-import of the same file adds no duplicates.
+  ///
+  /// Saving does not depend on this screen still being mounted: Done on the
+  /// result dialog pops the route before the seed step is answered.
   Future<void> _maybeSeedShorthands(CcUsrArchive archive) async {
     final controller = ShorthandMappingsScope.maybeOf(context);
     if (controller == null) return;
@@ -1695,6 +1698,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (partition.seedable.isEmpty) return;
 
     final dialect = ActiveDialectScope.of(context);
+    // Captured before the awaits: Done on the result dialog has already popped
+    // this screen's route, so it can unmount while the seed step is open. The
+    // controller and messenger are app-scoped and outlive it (#1819).
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     final chosen = await Navigator.of(context).push<List<ShorthandMapping>>(
       MaterialPageRoute(
         builder: (_) => ImportShorthandSeedScreen(
@@ -1704,32 +1712,27 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
       ),
     );
-    if (chosen == null || chosen.isEmpty || !mounted) return;
+    if (chosen == null || chosen.isEmpty) return;
 
     final outcome = await seedShorthandMappings(controller, chosen);
-    if (!mounted) return;
     if (outcome.skippedAtCap > 0) {
       // The cap is the one refusal worth explaining: the user chose these
       // seeds, so tell them why some were not added.
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           key: const ValueKey('shorthand-seed-limit-reached'),
           content: Text(
-            AppLocalizations.of(
-              context,
-            ).shorthandMappingsLimitReached(maxShorthandMappings),
+            l10n.shorthandMappingsLimitReached(maxShorthandMappings),
           ),
         ),
       );
     }
     final seeded = outcome.seeded;
     if (seeded == 0) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(
         key: const ValueKey('shorthand-seed-complete'),
-        content: Text(
-          AppLocalizations.of(context).importShorthandSeedComplete(seeded),
-        ),
+        content: Text(l10n.importShorthandSeedComplete(seeded)),
       ),
     );
   }

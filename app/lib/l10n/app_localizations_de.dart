@@ -6376,10 +6376,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Datei ist keine Freigabedatei von Caller’s Compendium.';
 
   @override
-  String get archiveIntakeRejectedNewerVersion =>
-      'Diese Datei wurde mit einer neueren Version der App erstellt. Bitte aktualisiere die App, um sie zu importieren.';
-
-  @override
   String get archiveIntakeRejectedNoContent =>
       'Diese Datei enthielt keine Tänze oder Programme.';
 
