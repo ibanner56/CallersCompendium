@@ -30,8 +30,8 @@ void main() {
   });
 
   test('a plural role in front of a homograph is not a singular subject', () {
-    // Only a singular role term or token names one dancer: "leads" and
-    // "robins" in front are plural, so the word after them stays a role.
+    // A plural role term or token in front is not a singular subject: "leads"
+    // and "robins" are plural, so the word after them stays a role.
     expect(canonicalizeGlossaryText('leads follows', lf), 'role1s role2s');
     expect(
       canonicalizeGlossaryText('the robins follows', lf),
