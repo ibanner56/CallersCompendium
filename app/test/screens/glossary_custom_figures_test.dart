@@ -747,8 +747,8 @@ void main() {
 
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('glossary-notes-field')), findsNothing);
-      // The route beneath the dialog is still there.
-      expect(find.byKey(const ValueKey('glossary-notes-edit')), findsOneWidget);
+      // The route beneath the dialog is still there, showing the stored note.
+      expect(find.text('larks finish on the left'), findsOneWidget);
       expect(
         (await tester.runAsync(() => h.repos.figureNotes.get('swing')))!.notes,
         'role1s finish on the left',
