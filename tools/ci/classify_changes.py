@@ -27,6 +27,7 @@ import json
 import os
 import subprocess
 import sys
+from collections.abc import Callable
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -283,6 +284,47 @@ def _prior_merge_gate_succeeded(sha: str) -> bool:
     )
 
 
+class DiffError(Exception):
+    """``git diff`` could not list a range's paths."""
+
+
+def _diff_names(diff_range: str) -> tuple[bytes, ...]:
+    result = subprocess.run(
+        ["git", "diff", "--no-renames", "--name-only", "-z", diff_range],
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode:
+        raise DiffError(result.stderr.decode(errors="replace").strip())
+    return tuple(path for path in result.stdout.split(b"\0") if path)
+
+
+def changed_paths(
+    diff: Callable[[str], tuple[bytes, ...]],
+    base: str,
+    head: str,
+    incremental_from: str | None = None,
+) -> tuple[bytes, ...]:
+    """The paths to classify: those changed since [incremental_from] (the
+    head of the previous green Merge gate), or the whole pull request's
+    ``base...head`` without one.
+
+    A push whose tree is unchanged since that gate, such as a merge of a base
+    branch the PR already holds, changes no path, but its PR still does, and
+    the new head still needs a gate of its own: so an empty incremental range
+    falls back to the whole pull request rather than to nothing.
+    """
+    if incremental_from is not None:
+        paths = diff(f"{incremental_from}..{head}")
+        if paths:
+            return paths
+        print(
+            "No changes since the previous Merge gate; classifying the whole "
+            "pull request."
+        )
+    return diff(f"{base}...{head}")
+
+
 def main(argv: list[str]) -> int:
     base, head, before = argv[1], argv[2], argv[3]
 
@@ -291,7 +333,7 @@ def main(argv: list[str]) -> int:
             print(f"::error::{label} SHA does not resolve.")
             return 1
 
-    diff_range = f"{base}...{head}"
+    incremental_from = None
     if before and before != head:
         before_resolved = _resolve_commit(before)
         is_ancestor = subprocess.run(
@@ -304,20 +346,14 @@ def main(argv: list[str]) -> int:
             and is_ancestor.returncode == 0
             and _prior_merge_gate_succeeded(before)
         ):
-            diff_range = f"{before}..{head}"
+            incremental_from = before
             print("Classifying only changes since the successful previous Merge gate.")
 
-    result = subprocess.run(
-        ["git", "diff", "--no-renames", "--name-only", "-z", diff_range],
-        capture_output=True,
-        check=False,
-    )
-    if result.returncode:
-        detail = result.stderr.decode(errors="replace").strip()
-        print(f"::error::Unable to determine pull request changes: {detail}")
+    try:
+        paths = changed_paths(_diff_names, base, head, incremental_from)
+    except DiffError as error:
+        print(f"::error::Unable to determine pull request changes: {error}")
         return 1
-
-    paths = tuple(path for path in result.stdout.split(b"\0") if path)
     if not paths:
         print("::error::Pull request has no changed paths; refusing to skip validation.")
         return 1

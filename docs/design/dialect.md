@@ -125,6 +125,14 @@ free text (notes/custom) ──term regex (case-preserving)──▶ display tex
   reads a `{…}` or `[…]`, so a dialect's role word cannot add one either. The
   canonical render does the same in the canonical dialect. Without the
   definition, the use shows its stored line as any custom figure does.
+  Outside the canonical render, a dialect's `moves` and `moveWordings` entries
+  under `userFigure:<id>` stand in for the figure's name and template
+  (`dialectUserFigureName`, `dialectUserFigureWording`; plan C8): keys older
+  builds keep, as they keep every key. A wording that is not a valid template,
+  or that uses a slot the figure lacks, is not used; nor is a name holding
+  `%S`, which has no side to fill. The canonical render never reads them, so
+  stored lines and the index stay the figure's own. Deleting the figure drops
+  both entries from every dialect (plan C9).
 - Search always runs against canonical text/structures → dialect never affects
   results (dialect-agnostic search for free).
 - Print/export lets the user choose canonical or active dialect; exports embed

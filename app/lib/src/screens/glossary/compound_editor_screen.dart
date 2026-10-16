@@ -622,6 +622,8 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
         ],
         shorthandTokens: ShorthandMappingsScope.tokensOf(context),
         userEntryNames: entries.map((e) => e.name),
+        // A dialect's own name for this figure is not a clash with it.
+        exceptUserFigureId: widget.initial?.id,
       );
       if (collisionsWith(others).isNotEmpty) {
         // While Custom Figures is off the Glossary lists only terms, so a
