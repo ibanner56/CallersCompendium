@@ -328,10 +328,12 @@ If your Caller's Companion file has **call buttons**, the import offers to turn
 them into [figure shorthands](./authoring.md#figure-shorthands) — short tokens you
 type during free-text entry that expand into whole figures.
 
-The **Seed figure shorthands** screen lists the buttons it found and what each
-one would expand to. Tick the ones you want and choose the confirm button, which
-counts what you picked (**Seed 3 shorthands**), or choose **Skip** to move on.
-Nothing is added until you confirm.
+The **Seed figure shorthands** screen lists the buttons the app could read as
+figures and what each one would expand to. Buttons whose text does not read as a
+figure are left out without notice. Every button listed starts ticked, so untick
+the ones you do not want and choose the confirm button, which counts what you
+kept (**Seed 3 shorthands**), or choose **Skip** to move on. Nothing is added
+until you confirm.
 
 Where a button offers two versions, you pick **Primary** or **Alternate**. And if
 a shorthand of that name already exists, the button is listed under **Already
