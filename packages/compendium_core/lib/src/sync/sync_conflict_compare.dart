@@ -356,9 +356,10 @@ Map<String, String> syncUserHiddenFields(SyncRecordKind kind) => switch (kind) {
 /// the records they were merged into. Of a field shown only in part, only
 /// the listed parts are kept.
 ///
-/// A kind with no list shows every field this build syncs, so a part of
-/// [body] that this build keeps for a newer version is left out there too
-/// (spec §6.7); [settingsKey] names the setting a `setting` body belongs to.
+/// Only the part of [body] this build syncs is compared: a part it keeps for
+/// a newer version is never shown, at the top level or nested in a field
+/// shown whole (spec §6.7). For a `setting`, [settingsKey] must name the
+/// setting: without it the body cannot be split and is compared as it is.
 Map<String, Object?> syncUserVisibleBody(
   SyncRecordKind kind,
   Map<String, Object?> body, {
@@ -367,9 +368,7 @@ Map<String, Object?> syncUserVisibleBody(
 }) {
   final visible = syncUserVisibleFields(kind);
   final resolved = syncResolveComparedReferences(
-    visible == null
-        ? partitionInboundRecordBody(kind, body, settingsKey: settingsKey).known
-        : body,
+    partitionInboundRecordBody(kind, body, settingsKey: settingsKey).known,
     aliases,
   );
   Object? shown(String key, Object? value) {

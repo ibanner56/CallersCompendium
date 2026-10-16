@@ -2730,8 +2730,8 @@ republishes, which is an ordinary upload and needs no special path.
    fields the conflict comparison shows, plus a dance's import source and
    licence, which its page shows) are equal but whose other content differs —
    provenance details, say — are settled without the user. A part this build
-   keeps for a newer version is never one of the fields shown, for a kind with
-   no list of them as for any other (§6.7). Every synced field
+   keeps for a newer version is never one of the fields shown, whatever the
+   kind and however deep it sits in a field shown whole (§6.7). Every synced field
    is either shown or listed in `syncUserHiddenFields` with the reason nothing
    shows it, and `sync_user_visible_fields_test.dart` fails the build for a
    synced field in neither, so a new field is never settled silently by
