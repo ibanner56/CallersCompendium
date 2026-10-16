@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
 
+import '../storage/shareable_text.dart' show normalizeShareableText;
 import '../storage/repositories/user_glossary_repository.dart'
     show maxUserGlossaryNameLength, maxUserGlossaryTextLength;
 import '../util/text_sanitizer.dart';
@@ -73,7 +74,8 @@ class CcUsrArchive {
   final List<String> warningCodes;
 
   /// This archive without its [dances] — everything [CallersCompanionUsrImporter]
-  /// needs at commit time (programs, shorthands, related-dance links) and
+  /// needs at commit time (programs, shorthands, glossary terms, related-dance
+  /// links) and
   /// nothing more. The dances have by then been carried through the import
   /// pipeline as drafts, so holding their rows for the whole review would just
   /// duplicate them in memory.
@@ -112,6 +114,10 @@ abstract final class CcUsrWarningCodes {
   /// `Dance_Related` rows with a missing or self-referential id were skipped.
   static const String relatedRowsSkipped = 'usr_related_rows_skipped';
 
+  /// Some `Term` rows (the user's glossary terms, #1023) were left out: too
+  /// long for a glossary entry, or the table's term column was not found.
+  static const String termsSkipped = 'usr_terms_skipped';
+
   static const List<String> all = [
     fileTruncated,
     figuresFromDanceRows,
@@ -119,6 +125,7 @@ abstract final class CcUsrWarningCodes {
     linesDropped,
     setsSkipped,
     relatedRowsSkipped,
+    termsSkipped,
   ];
 }
 
@@ -1097,6 +1104,7 @@ List<CcTerm> _extractTerms(
     warnings.add(
       'The Caller\'s Companion "Term" table was found but its term column '
       'could not be resolved; no terms were read.',
+      code: CcUsrWarningCodes.termsSkipped,
     );
     return const [];
   }
@@ -1143,9 +1151,14 @@ List<CcTerm> _extractTerms(
     processedRows++;
     final cols = _CiColumns(_rowColumns(table, rec));
     final rawName = cols.get(nameCol);
+    // A break in a name reads as a space, not as nothing (as the glossary
+    // editor treats one): FileMaker stores one as `\r`.
     final name = rawName == null
         ? ''
-        : sanitizeImportedText(rawName, allowLineBreaks: false).trim();
+        : sanitizeImportedText(
+            rawName.replaceAll(RegExp(r'[\r\n\t]+'), ' '),
+            allowLineBreaks: false,
+          ).replaceAll(RegExp(r'\s+'), ' ').trim();
     if (name.isEmpty) continue;
     final term = CcTerm(
       name: name,
@@ -1153,12 +1166,15 @@ List<CcTerm> _extractTerms(
       source: text(cols, sourceCol),
       notes: text(cols, notesCol),
     );
-    if (name.length > maxUserGlossaryNameLength ||
+    // Measured as the glossary measures it, after normalization, which can
+    // lengthen a string (NFC expands some characters to two code units).
+    int stored(String text) => normalizeShareableText(text).length;
+    if (stored(name) > maxUserGlossaryNameLength ||
         [
           term.definition,
           term.source,
           term.notes,
-        ].any((t) => t != null && t.length > maxUserGlossaryTextLength)) {
+        ].any((t) => t != null && stored(t) > maxUserGlossaryTextLength)) {
       overBounds++;
       continue;
     }
@@ -1168,6 +1184,7 @@ List<CcTerm> _extractTerms(
     warnings.add(
       '$overBounds Caller\'s Companion term(s) were longer than a glossary '
       'entry can be and were skipped.',
+      code: CcUsrWarningCodes.termsSkipped,
     );
   }
   return result;

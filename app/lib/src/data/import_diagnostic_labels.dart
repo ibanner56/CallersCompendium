@@ -65,6 +65,7 @@ const Set<String> mappedImportIssueCodes = {
   'usr_lines_dropped',
   'usr_sets_skipped',
   'usr_related_rows_skipped',
+  'usr_terms_skipped',
 };
 
 /// Localized message for an [ImportIssue] surfaced in the import review.
@@ -118,6 +119,8 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
       return l10n.importIssueUsrSetsSkipped;
     case 'usr_related_rows_skipped':
       return l10n.importIssueUsrRelatedRowsSkipped;
+    case 'usr_terms_skipped':
+      return l10n.importIssueUsrTermsSkipped;
     case 'callersbox_direction_unmapped':
       return l10n.importIssueDirectionUnmapped;
     case 'callersbox_formation_unclassified':

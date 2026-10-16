@@ -138,14 +138,13 @@ const Set<String> _alsoRequiredColumns = {
   'venues.price',
   'published_sources.url',
   // The user's own glossary (#709): about no person by intent, but the
-  // user's own words all the same. The payload holds a compound's parameter
-  // names and its template figures' notes.
+  // user's own words all the same. (Its payload is required by the registry
+  // itself: a term's source citation can name a published author, #1023.)
   'user_glossary_entries.name',
   'user_glossary_entries.definition',
   'user_glossary_entries.description',
   'user_glossary_entries.keywords_json',
   'user_glossary_entries.notes',
-  'user_glossary_entries.payload_json',
   'figure_notes.notes',
 };
 
@@ -160,6 +159,10 @@ String _v(String column) => _sources[column]!;
 /// A compound parameter's name, which the user chose: stored in the payload
 /// beside [_sources]' template note, and collected with it.
 const _glossaryParamKey = 'TERMSRC compound parameter';
+
+/// A term's source citation (#1023), which can name a published author:
+/// stored in a term's payload, and collected with it.
+const _termSource = 'TERMSRC term source citation';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -268,6 +271,17 @@ Future<void> _populate(CompendiumRepositories repos) async {
         'bindings': <Object?>[],
       },
       createdAt: DateTime.utc(2026, 10, 14),
+    ),
+  );
+  await repos.userGlossary.upsert(
+    UserGlossaryEntry(
+      id: 'fixture-term',
+      kindName: UserGlossaryEntryKind.term.name,
+      name: 'Fixture term',
+      definition: 'A word.',
+      description: 'Of the fixture.',
+      payload: glossaryTermPayload('contra', source: _termSource),
+      createdAt: DateTime.utc(2026, 10, 16),
     ),
   );
   await repos.figureNotes.set('swing', _v('figure_notes.notes'));
@@ -418,6 +432,11 @@ void main() {
       final repos = openTestRepositories();
       await _populate(repos);
       expect(await collectSensitiveTerms(repos), contains(_glossaryParamKey));
+      expect(
+        await collectSensitiveTerms(repos),
+        contains(_termSource),
+        reason: 'a term\'s source citation (#1023)',
+      );
     });
 
     test('the collector returns every declared source value', () async {

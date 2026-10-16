@@ -6684,6 +6684,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Enkele gekoppelde dansen in dit bestand waren ongeldig en zijn overgeslagen.';
 
   @override
+  String get importIssueUsrTermsSkipped =>
+      'Sommige woordenlijsttermen in dit bestand waren te lang om te bewaren of onleesbaar, en zijn weggelaten.';
+
+  @override
   String get importIssueDirectionUnmapped =>
       'Een Becket-richting werd niet herkend; standaard met de klok mee.';
 

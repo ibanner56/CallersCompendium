@@ -76,6 +76,9 @@ void main() {
     'userFigureRefKey',
     'userFigureArgsKey',
     'userFigureCheckKey',
+    // The payload key of a term's source citation (#1023): part of a
+    // glossary entry, classified with `user_glossary_entries.payload_json`.
+    'glossaryTermSourceKey',
   };
 
   /// Replaces comment bodies with blanks so a commented-out declaration is not

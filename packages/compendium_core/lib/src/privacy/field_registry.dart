@@ -397,7 +397,7 @@ final Map<String, DataClassification> fieldClassifications = {
   'user_glossary_entries.keywords_json': _userGlossaryText,
   'user_glossary_entries.notes': _userGlossaryNotes,
   'user_glossary_entries.payload_json': const DataClassification(
-    term: DpvTerm.name,
+    term: DpvTerm.unclassifiedPersonal,
     subject: DataSubject.thirdParty,
     egress: EgressClass.shareable,
     note:
@@ -409,8 +409,10 @@ final Map<String, DataClassification> fieldClassifications = {
         '`Source`, such as "Give and Take - Larry Jennings"), credits a '
         'published work and often its author by name: a choreographer or '
         'writer who never touches this app, so the column\'s subject is '
-        'thirdParty and its category a name, as published_sources.author '
-        'is. The rest of the payload is choreography about no person. '
+        'thirdParty, as published_sources.author\'s is. Its category is '
+        'unclassified personal data, as published_sources.notes\' is, not a '
+        'name: a citation is free text that mixes a title with an author. '
+        'The rest of the payload is choreography about no person. '
         'Shareable, as that published credit is: public by definition, and '
         'the entry travels as the glossary text does. This is the '
         'implementer\'s call; keeping subject none was rejected because the '

@@ -6724,6 +6724,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Certains liens entre danses de ce fichier étaient invalides et ont été ignorés.';
 
   @override
+  String get importIssueUsrTermsSkipped =>
+      'Certains termes de glossaire de ce fichier étaient trop longs pour être conservés ou illisibles, et ont été ignorés.';
+
+  @override
   String get importIssueDirectionUnmapped =>
       'Une direction Becket n\'a pas été reconnue ; sens horaire par défaut.';
 

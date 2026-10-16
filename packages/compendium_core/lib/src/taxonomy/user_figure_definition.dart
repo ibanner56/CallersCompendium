@@ -293,8 +293,9 @@ const String glossaryTermSourceKey = 'source';
 /// A term's payload (#1023): the dance [form] it is for, and its [source]
 /// citation when given, with every other key [previous] held carried through
 /// (its source too, when no [source] is given), so an edit here keeps what a
-/// newer build, or an import, stored beside it. A term is a glossary entry
-/// with no figure; it has no other content of its own.
+/// newer build, or an import, stored beside it. A blank [source] removes the
+/// citation. A term is a glossary entry with no figure; it has no other
+/// content of its own.
 Map<String, Object?> glossaryTermPayload(
   String form, {
   Object? previous,
@@ -302,10 +303,12 @@ Map<String, Object?> glossaryTermPayload(
 }) => {
   if (previous is Map)
     for (final entry in previous.entries)
-      if (entry.key is String && entry.key != 'form')
+      if (entry.key is String &&
+          entry.key != 'form' &&
+          (source == null || entry.key != glossaryTermSourceKey))
         entry.key as String: entry.value,
   'form': form,
-  glossaryTermSourceKey: ?source,
+  if (source != null && source.trim().isNotEmpty) glossaryTermSourceKey: source,
 };
 
 /// A term's source citation ([glossaryTermSourceKey]), or null when its

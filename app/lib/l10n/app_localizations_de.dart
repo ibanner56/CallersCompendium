@@ -6709,6 +6709,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Einige verknüpfte Tänze in dieser Datei waren ungültig und wurden übersprungen.';
 
   @override
+  String get importIssueUsrTermsSkipped =>
+      'Einige Glossarbegriffe dieser Datei waren zu lang zum Speichern oder ließen sich nicht lesen und wurden ausgelassen.';
+
+  @override
   String get importIssueDirectionUnmapped =>
       'Eine Becket-Richtung wurde nicht erkannt; Standard ist im Uhrzeigersinn.';
 
