@@ -3193,6 +3193,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ? MatrixCollisionMode.exactBeats
           : MatrixCollisionMode.phrase,
       config: _matrixColumnConfig,
+      userFigures: UserFiguresScope.shownCatalogOf(context),
     );
 
     return Column(

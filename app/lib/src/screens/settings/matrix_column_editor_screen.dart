@@ -11,6 +11,7 @@ import '../../data/active_dialect_scope.dart';
 import '../../data/program_matrix_column_config_scope.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
+import '../../data/user_figures_scope.dart';
 import 'matrix_column_editor.dart';
 import 'settings_keys.dart';
 
@@ -41,6 +42,7 @@ class MatrixColumnEditorScreen extends StatelessWidget {
           config: ProgramMatrixColumnConfigScope.of(context),
           dialect: ActiveDialectScope.of(context),
           onConfigChanged: (config) => _persist(context, config),
+          userFigures: UserFiguresScope.shownCatalogOf(context),
         ),
       ),
     );

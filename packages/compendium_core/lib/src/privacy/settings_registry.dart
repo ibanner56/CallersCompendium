@@ -138,7 +138,9 @@ final Map<String, DataClassification> settingsClassifications = {
   // (custom_themes, default_move_param_overrides). It contains only column ids,
   // label overrides, and move/param tokens the user chose; no personal data and
   // nothing device-specific, so it travels in local backups (validated on
-  // restore by backup_settings_schema.dart).
+  // restore by backup_settings_schema.dart). A figure of your own's column id
+  // is `userFigure:<id>` (#1023): the opaque id of a glossary entry, a soft
+  // reference (sync-spec §6.15) that is inert on a device without the figure.
   'program_matrix_columns': _preference,
 
   // Device Sync transport values are not ordinary preferences. The sync ID is
