@@ -271,6 +271,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get glossarySelectPrompt => 'フィギュアを選択すると定義が表示されます。';
 
   @override
+  String get glossaryCopyAsOwnFigure => '自分のフィギュアとしてコピー';
+
+  @override
+  String glossaryCustomCopiedFrom(String name) {
+    return '$nameからコピー';
+  }
+
+  @override
   String get glossaryNoDefinition => '定義はまだありません。';
 
   @override

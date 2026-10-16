@@ -281,6 +281,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Selecteer een figuur om de definitie te zien.';
 
   @override
+  String get glossaryCopyAsOwnFigure => 'Kopiëren als eigen figuur';
+
+  @override
+  String glossaryCustomCopiedFrom(String name) {
+    return 'Gekopieerd van $name';
+  }
+
+  @override
   String get glossaryNoDefinition => 'Nog geen definitie.';
 
   @override

@@ -206,12 +206,70 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
         showName: showName,
       );
     }
+    final entry = shown.entry!;
     return GlossaryFigureDetail(
       key: ValueKey('glossary-detail-${shown.id}'),
-      entryId: shown.entry!.id,
+      entryId: entry.id,
       entries: _entries,
       showName: showName,
+      // A figure of your own needs Custom Figures (maintainer decision 9);
+      // free text has nothing to copy.
+      onCopy: customFiguresShown(context) && entry.id != customMove
+          ? () => _copy(context, entry)
+          : null,
     );
+  }
+
+  /// Opens the editor on a new figure of the user's own, copied from the
+  /// shipped [entry] (#1023, maintainer decision 6): its parameters, beats
+  /// and wording ([userFigureSeedFromMove]), and its definition and
+  /// description, under the name "`<name>` (copy)", numbered if the user
+  /// already has one. Nothing is stored until the user saves.
+  Future<void> _copy(BuildContext context, FigureGlossaryEntry entry) async {
+    final l10n = AppLocalizations.of(context);
+    final dialect = ActiveDialectScope.of(context);
+    final seed = userFigureSeedFromMove(
+      contraTaxonomy,
+      entry.id,
+      choiceLabel: (_, value) => humanizeToken(value),
+      paramLabel: (key) => figureParamKeyLabel(l10n, key, moveId: entry.id),
+    );
+    if (seed == null) return;
+    final taken = {
+      for (final e in await RepositoriesScope.of(
+        context,
+      ).userGlossary.listAll())
+        normalizeGlossaryName(e.name),
+    };
+    if (!context.mounted) return;
+    final base = l10n.commonDuplicateTitleSuffix(
+      _entryTitle(l10n, entry, _entries, dialect),
+    );
+    var name = base;
+    for (var n = 2; taken.contains(normalizeGlossaryName(name)); n++) {
+      name = '$base $n';
+    }
+    final definition = entry.definition;
+    final saved = await Navigator.of(context).push<UserGlossaryEntry>(
+      MaterialPageRoute(
+        builder: (_) => CompoundEditorScreen(
+          copyOf: UserGlossaryEntry(
+            id: '',
+            kindName: UserGlossaryEntryKind.customFigure.name,
+            // The editor shows each field in the active dialect, as stored
+            // text is shown; the name is already in it.
+            name: name,
+            definition: definition?.definition ?? '',
+            description: definition?.description ?? '',
+            payload: seed.toJson(),
+            createdAt: DateTime.now().toUtc(),
+          ),
+        ),
+      ),
+    );
+    if (saved != null && mounted) {
+      setState(() => _selectedId = customSelectionId(saved.id));
+    }
   }
 
   void _open(BuildContext context, _ShownEntry shown, {required bool wide}) {
@@ -407,7 +465,12 @@ class GlossaryFigureDetail extends StatelessWidget {
     required this.entryId,
     this.entries,
     this.showName = false,
+    this.onCopy,
   });
+
+  /// Copies the figure as one of the user's own (#1023); no button without
+  /// it.
+  final VoidCallback? onCopy;
 
   /// The move or alias id of the entry to show.
   final String entryId;
@@ -552,6 +615,19 @@ class GlossaryFigureDetail extends StatelessWidget {
             ],
           ),
         ],
+        if (onCopy != null)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.lg),
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: OutlinedButton.icon(
+                key: const ValueKey('glossary-copy-figure'),
+                onPressed: onCopy,
+                icon: const Icon(Icons.copy_outlined),
+                label: Text(l10n.glossaryCopyAsOwnFigure),
+              ),
+            ),
+          ),
         FigureNotesSection(figureId: entry.id),
       ],
     );

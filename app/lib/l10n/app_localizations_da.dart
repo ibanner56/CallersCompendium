@@ -281,6 +281,14 @@ class AppLocalizationsDa extends AppLocalizations {
   String get glossarySelectPrompt => 'Vælg en figur for at se dens definition.';
 
   @override
+  String get glossaryCopyAsOwnFigure => 'Kopiér som din egen figur';
+
+  @override
+  String glossaryCustomCopiedFrom(String name) {
+    return 'Kopieret fra $name';
+  }
+
+  @override
   String get glossaryNoDefinition => 'Ingen definition endnu.';
 
   @override

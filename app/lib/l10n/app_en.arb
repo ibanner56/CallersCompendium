@@ -367,6 +367,19 @@
   "@glossarySelectPrompt": {
     "description": "Shown in the empty detail pane of the wide Glossary layout before a figure is selected."
   },
+  "glossaryCopyAsOwnFigure": "Copy as your own figure",
+  "@glossaryCopyAsOwnFigure": {
+    "description": "Button on a built-in figure's Glossary page that opens the editor on a new figure of the user's own, copied from it (#1023). The built-in figure is not changed."
+  },
+  "glossaryCustomCopiedFrom": "Copied from {name}",
+  "@glossaryCustomCopiedFrom": {
+    "description": "Shown on one of the user's own figures that was copied from a built-in figure; {name} is that figure's name. The copy is independent of it.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "glossaryNoDefinition": "No definition yet.",
   "@glossaryNoDefinition": {
     "description": "Shown on a Glossary figure's detail when the app does not yet ship a definition for that figure."
