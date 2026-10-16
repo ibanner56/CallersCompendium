@@ -175,12 +175,15 @@ void main() {
       expect(trail.params['beats'], 16);
     });
 
-    test('a second stated count the parser would drop keeps the line whole', () {
-      final f = parseFreeTextFigureEntry('(16) swing (8)').single;
-      expect(f.isCustom, isTrue);
-      expect(f.params['text'], '(16) swing (8)');
-      expect(f.params['beats'], 8);
-    });
+    test(
+      'a second stated count the parser would drop keeps the line whole',
+      () {
+        final f = parseFreeTextFigureEntry('(16) swing (8)').single;
+        expect(f.isCustom, isTrue);
+        expect(f.params['text'], '(16) swing (8)');
+        expect(f.params['beats'], 8);
+      },
+    );
 
     test('a count too long to be beats is kept in a custom, not dropped', () {
       for (final line in ['(99999) swing', 'swing [99999]']) {
