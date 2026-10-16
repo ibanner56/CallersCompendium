@@ -224,4 +224,24 @@ void main() {
     expect(find.byTooltip('Actions for larks zoom slowly'), findsOneWidget);
     expect(find.byTooltip('Actions for role1s zoom slowly'), findsNothing);
   });
+
+  testWidgets('a row\'s name for screen readers follows the figure\'s '
+      'current wording, as its summary does, not the line last saved', (
+    tester,
+  ) async {
+    const stale = 'role1s zoom very slowly';
+    final params = use().params;
+    final draft = FigureDraft(
+      move: customMove,
+      params: {
+        ...params,
+        'text': stale,
+        userFigureCheckKey: userFigureTextCheck(stale),
+      },
+    );
+    await pump(tester, [draft]);
+    expect(find.text('larks zoom slowly'), findsOneWidget);
+    expect(find.byTooltip('Actions for larks zoom slowly'), findsOneWidget);
+    expect(find.byTooltip('Actions for larks zoom very slowly'), findsNothing);
+  });
 }
