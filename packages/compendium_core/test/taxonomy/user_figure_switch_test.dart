@@ -110,14 +110,58 @@ void main() {
       );
     });
 
-    test('a choice maps to any parameter with a list of values', () {
+    test('a choice maps to any parameter that takes words', () {
       expect(userFigureSwitchTargets(mine.params[1], 'swing', taxonomy), [
+        'who',
         'prefix',
         'endFacing',
       ]);
-      expect(userFigureSwitchTargets(mine.params[1], 'balance', taxonomy), [
+      expect(userFigureSwitchTargets(mine.params[1], 'allemande', taxonomy), [
+        'who',
         'hand',
-      ], reason: 'a handedness with its own list of values');
+      ], reason: 'from their kinds\' shared words; never a rotation');
+      expect(userFigureSwitchValues('allemande', 'hand', taxonomy), [
+        'right',
+        'left',
+      ]);
+      expect(
+        userFigureSwitchTargets(mine.params[1], 'gate', taxonomy),
+        isNot(contains('travel')),
+        reason: 'a rotation takes numbers, not words',
+      );
+    });
+
+    test('another kind maps only where every value it holds is taken', () {
+      final who = UserFigureParam(key: 'who', kind: ParamKind.dancerSet);
+      expect(userFigureSwitchTargets(who, 'swing', taxonomy), ['who']);
+      expect(
+        userFigureSwitchTargets(who, 'chain', taxonomy),
+        isEmpty,
+        reason: 'its "who" takes only role1s or role2s',
+      );
+      expect(
+        userFigureSwitchTargets(
+          UserFigureParam(key: 'hand', kind: ParamKind.handedness),
+          'balance',
+          taxonomy,
+        ),
+        ['hand'],
+      );
+    });
+
+    test('an alias\'s pinned parameters are not offered', () {
+      expect(
+        userFigureSwitchTargets(mine.params[1], 'meltdown_swing', taxonomy),
+        ['who', 'endFacing'],
+      );
+      expect(
+        userFigureSwitchTargets(
+          UserFigureParam(key: 'side', kind: ParamKind.shoulder),
+          'see_saw',
+          taxonomy,
+        ),
+        isEmpty,
+      );
     });
 
     test('"not stated" is never a value to map to', () {
@@ -239,14 +283,11 @@ void main() {
         ),
       ]).single;
       expect(switched.move, 'swing');
-      expect(
-        switched.params,
-        {'who': 'partners', 'prefix': 'balance'},
-        reason:
-            'my 16 beats are what a balance and swing counts already, so '
-            'they are not stated',
-      );
-      expect(taxonomy.effectiveParams(switched)['beats'], 16);
+      expect(switched.params, {
+        'who': 'partners',
+        'prefix': 'balance',
+        'beats': 16,
+      });
       expect(switched.note, 'mind the wall');
       expect(switched.progression, isTrue);
       expect(hasUserFigureReferenceKeys(switched), isFalse);
@@ -255,30 +296,41 @@ void main() {
     test('a value the use leaves unstated takes the figure\'s default, or '
         'the target\'s', () {
       final switched = switchAll([use(const {}, beats: 8)]).single;
-      expect(
-        switched.params,
-        {'who': 'neighbors'},
-        reason:
-            'who from my default; no prefix, so swing\'s; 8 beats is '
-            'swing\'s own, so not stated',
-      );
+      expect(switched.params, {
+        'who': 'neighbors',
+        'beats': 8,
+      }, reason: 'who from my default; no prefix, so swing\'s');
       expect(renderer.renderCanonical(switched), contains('swing'));
     });
 
-    test('beats are stated only where the target counts differently', () {
-      expect(
-        switchAll([
-          use(const {'who': 'partners'}),
-        ]).single.params['beats'],
-        16,
-        reason: 'my default beats, not swing\'s 8',
-      );
-      expect(
-        switchAll([
-          use(const {'who': 'partners'}, beats: 8),
-        ]).single.params.containsKey('beats'),
-        isFalse,
-      );
+    test('beats are always stated, so a dance\'s timing never changes', () {
+      for (final (beats, expected) in [(null, 16), (8, 8), (16, 16)]) {
+        final switched = switchAll([
+          use(const {'who': 'partners'}, beats: beats),
+        ]).single;
+        expect(switched.params['beats'], expected, reason: '$beats');
+        expect(switched.beats, expected, reason: 'as sections count it');
+      }
+    });
+
+    test('an argument stated as none stays unstated', () {
+      // "who" defaults to neighbors, but this use stated none.
+      final switched = switchAll([
+        use(const {'who': null, 'prefix': 'cbal'}),
+      ]).single;
+      expect(switched.params, {'prefix': 'balance', 'beats': 16});
+    });
+
+    test('a walkthrough is kept, and a wording override is not', () {
+      final switched = switchAll([
+        use(const {'who': 'partners'}).copyWith(
+          walkthroughOverride: 'look left',
+          wordingOverride: 'mine says',
+        ),
+      ]).single;
+      expect(switched.walkthroughOverride, 'look left');
+      expect(switched.wordingOverride, isNull);
+      expect(switched.customOrigin, CustomOrigin.userEntered);
     });
 
     test('a detached use is plain text, its stored line kept', () {
@@ -305,46 +357,6 @@ void main() {
       expect(switched.move, customMoveId);
       expect(hasUserFigureReferenceKeys(switched), isFalse);
       expect(switched.params['text'], 'neighbors swing');
-    });
-
-    test('a value the target refuses freezes the use', () {
-      // Mapped as complete, but the target's "who" can't hold a dancer set
-      // the user's own could.
-      final narrow = UserFigureDefinition(
-        template: '{who} {move}',
-        defaultBeats: 4,
-        params: [UserFigureParam(key: 'who', kind: ParamKind.handedness)],
-      );
-      final figure = userFigureUseFigure(
-        id: 'mine',
-        args: const {'who': 'right'},
-        text: 'right balance',
-      );
-      final switched = switchUserFigureUsesIn(
-        [figure],
-        'mine',
-        narrow,
-        UserFigureSwitch(target: 'balance', params: {'who': 'hand'}),
-        taxonomy,
-        renderer,
-      ).single;
-      expect(switched.move, 'balance', reason: 'right is a hand balance has');
-      final refused = switchUserFigureUsesIn(
-        [
-          userFigureUseFigure(
-            id: 'mine',
-            args: const {'who': 'unspecified'},
-            text: 'balance',
-          ),
-        ],
-        'mine',
-        narrow,
-        UserFigureSwitch(target: 'balance', params: {'who': 'hand'}),
-        taxonomy,
-        renderer,
-      ).single;
-      expect(refused.move, customMoveId);
-      expect(refused.params, {'text': 'balance'});
     });
 
     test('a mapped value the target doesn\'t have freezes the use', () {

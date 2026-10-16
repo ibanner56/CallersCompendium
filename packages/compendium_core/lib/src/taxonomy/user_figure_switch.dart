@@ -65,11 +65,37 @@ final class UserFigureSwitch {
   final Map<String, Map<String, String>> choices;
 }
 
+/// The words [spec] takes as values, or null when it takes something else:
+/// a number, a flag or free text. A spec's own list where it has one, else
+/// its kind's shared vocabulary, as [ParamSpec.validate] reads them.
+List<String>? _wordValues(ParamSpec spec) => switch (spec.kind) {
+  ParamKind.dancerSet ||
+  ParamKind.dancerPair => spec.choices ?? ParamVocab.dancerSets,
+  ParamKind.handedness ||
+  ParamKind.shoulder => spec.choices ?? ParamVocab.sides,
+  ParamKind.spinDirection => spec.choices ?? ParamVocab.spins,
+  ParamKind.fraction => spec.choices ?? ParamVocab.fractions,
+  ParamKind.direction => spec.choices ?? ParamVocab.directions,
+  ParamKind.choice => spec.choices ?? const [],
+  ParamKind.rotation ||
+  ParamKind.places ||
+  ParamKind.beats ||
+  ParamKind.text ||
+  ParamKind.flag => null,
+};
+
 /// The parameters of [target] that [param] can map to in a switch
-/// ([UserFigureSwitch]), in the move's order: those of the same kind, but a
-/// choice maps to a parameter with a list of values of its own, whatever its
-/// kind, value by value. The target's beats are never one: a use's beats are
-/// carried apart. Empty when [target] is not a move or alias here.
+/// ([UserFigureSwitch]), in the move's order:
+/// - a choice, to any that takes words ([userFigureSwitchValues] not
+///   empty), value by value;
+/// - any other kind, to one of the same kind that takes every value [param]
+///   can hold, so that no use is lost to a narrower list (a dancer set onto a
+///   "who" that only takes role1s or role2s is not offered).
+///
+/// Never the target's beats, whose count each use carries apart, nor a
+/// parameter an alias pins (a "meltdown swing" is always a meltdown): a
+/// value mapped there would contradict the alias. Empty when [target] is not
+/// a move or alias here.
 List<String> userFigureSwitchTargets(
   UserFigureParam param,
   String target,
@@ -77,26 +103,40 @@ List<String> userFigureSwitchTargets(
 ) {
   final def = taxonomy.resolve(target);
   if (def == null) return const [];
+  final pinned = taxonomy.aliases[target]?.pinnedParams.keys ?? const [];
+  final mine = _wordValues(param.spec);
+  bool takes(ParamSpec spec) {
+    if (param.kind == ParamKind.choice) {
+      return (_wordValues(spec) ?? const []).any(
+        (value) => value != ParamVocab.unspecified,
+      );
+    }
+    if (spec.kind != param.kind) return false;
+    if (mine == null) return true;
+    final theirs = _wordValues(spec) ?? const [];
+    return mine.every(theirs.contains);
+  }
+
   return [
     for (final MapEntry(:key, value: spec) in def.params.entries)
-      if (spec.kind != ParamKind.beats &&
-          (param.kind == ParamKind.choice
-              ? spec.choices != null
-              : spec.kind == param.kind))
+      if (spec.kind != ParamKind.beats && !pinned.contains(key) && takes(spec))
         key,
   ];
 }
 
 /// The values a choice of the user's can map to in [target]'s parameter
-/// [targetKey]: that parameter's own list, but "not stated", which is never
-/// a value to pick. Empty when it has none.
+/// [targetKey]: the words it takes ([ParamSpec.validate]), but "not stated",
+/// which is never a value to pick. Empty when it takes none.
 List<String> userFigureSwitchValues(
   String target,
   String targetKey,
   Taxonomy taxonomy,
 ) => [
   for (final value
-      in taxonomy.resolve(target)?.params[targetKey]?.choices ??
+      in switch (taxonomy.resolve(target)?.params[targetKey]) {
+            final spec? => _wordValues(spec),
+            null => null,
+          } ??
           const <String>[])
     if (value != ParamVocab.unspecified) value,
 ];
@@ -161,18 +201,21 @@ List<String> userFigureSwitchProblems(
 /// ([userFigureSwitchProblems]). The same list when nothing uses it.
 ///
 /// An attached use becomes a figure of the target: each argument (or the
-/// parameter's default, where the use states none) under the target
-/// parameter it maps to, a choice's as the value its choice maps to, and its
-/// note and progression kept. A parameter with no value is left to the
-/// target's own default. Its beats are kept: stated only where the target
-/// would count it differently, so a dance's timing never changes.
+/// parameter's default, where the use states none: an argument stated as
+/// null stays unstated, as the renderer reads it) under the target parameter
+/// it maps to, a choice's as the value its choice maps to. A parameter with
+/// no value is left to the target's own default. Its beats are always
+/// stated, the use's own or the figure's default, as the editor states a
+/// built-in figure's: a dance's sections are counted from a figure's stated
+/// beats, so its timing never changes. Its note, progression and walkthrough
+/// are kept.
 ///
 /// A use that can't become one is frozen as plain text, as deleting the
 /// figure freezes it ([freezeUserFigureUsesIn]), with the line it renders to
 /// through [renderer] now, or its stored line: a detached use, which is plain
 /// text already (plan C2); a use whose argument is no longer one of the
-/// figure's values, or is one the target refuses; and a result the taxonomy
-/// would refuse.
+/// figure's values; and a result the taxonomy would refuse, which a complete
+/// mapping never makes.
 List<Figure> switchUserFigureUsesIn(
   List<Figure> figures,
   String id,
@@ -193,7 +236,9 @@ List<Figure> switchUserFigureUsesIn(
   for (final param in definition.params) {
     final to = mapping.params[param.key];
     if (to == null) return freeze();
-    final value = use.args[param.key] ?? param.defaultValue;
+    final value = use.args.containsKey(param.key)
+        ? use.args[param.key]
+        : param.defaultValue;
     if (value == null) continue;
     if (!param.spec.validate(value)) return freeze();
     final Object? mapped;
@@ -205,19 +250,16 @@ List<Figure> switchUserFigureUsesIn(
     if (mapped == null) return freeze();
     params[to] = mapped;
   }
-  final beats = switch (figure.params['beats']) {
+  params['beats'] = switch (figure.params['beats']) {
     final int stated => stated,
     _ => definition.defaultBeats,
   };
-  final unstated = Figure(
+  final switched = figure.copyWith(
     move: mapping.target,
     params: params,
-    note: figure.note,
-    progression: figure.progression,
+    customOrigin: CustomOrigin.userEntered,
+    wordingOverride: null,
   );
-  final switched = taxonomy.effectiveParams(unstated)['beats'] == beats
-      ? unstated
-      : unstated.copyWith(params: {...params, 'beats': beats});
   final refused = taxonomy
       .validateFigure(switched)
       .any((issue) => issue.severity == ValidationSeverity.error);

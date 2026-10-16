@@ -89,8 +89,11 @@ lives in the core package; all access through repositories.*
   `switchUserFigureToBuiltIn` rewrites each attached use in a live dance as a
   figure of the shipped move or alias, through a mapping of every parameter
   and choice value (`switchUserFigureUsesIn`), and retires the figure, in one
-  transaction. A use it can't map (detached, or holding a value the target
-  refuses) is frozen as plain text instead, and the Trash is left as it is.
+  transaction. Each switched use states its beats, so a dance's sections
+  don't move. A use it can't map (detached, or holding a value no longer the
+  figure's) is frozen as plain text instead, and the Trash is left as it is.
+  As for a delete, the uses in the settings, the dialect entries and the
+  matrix column are its caller's to rewrite or drop, outside the transaction.
 
 ## Tables (abridged)
 
