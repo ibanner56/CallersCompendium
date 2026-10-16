@@ -112,7 +112,9 @@ shorthands**, then **New shorthand**:
   checks.
 
 Shorthands are your own; each one has to be unique, and the app tells you if you
-reuse a token that is already taken. Shorthands only apply while **Free-text
+reuse a token that is already taken. The app keeps up to 500 of these
+shorthands; once you have that many, **New shorthand** tells you so, and you
+can add another after deleting one. Shorthands only apply while **Free-text
 entry** is on.
 
 With **Custom Figures** on, the same screen also lists **Shorthands for your own

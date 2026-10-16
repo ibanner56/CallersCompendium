@@ -7991,6 +7991,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get shorthandMappingsEmpty => 'ショートハンドがまだありません。';
 
   @override
+  String shorthandMappingsLimitReached(int max) {
+    return 'ショートハンドの上限（$max件）に達しました。追加するには、いずれかを削除してください。';
+  }
+
+  @override
   String get shorthandMappingsDeleteTitle => 'ショートハンドを削除しますか？';
 
   @override

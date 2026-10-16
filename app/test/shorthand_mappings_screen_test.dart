@@ -53,6 +53,34 @@ void main() {
     expect(find.byKey(const ValueKey('new-shorthand')), findsOneWidget);
   });
 
+  testWidgets(
+    'at the cap, New shorthand says so instead of opening the editor',
+    (tester) async {
+      final repos = openTestRepositories();
+      final controller = ShorthandMappingsController(repos.settings);
+      addTearDown(controller.dispose);
+      await repos.settings.set(
+        kShorthandMappingsKey,
+        ShorthandMappings([
+          for (var i = 0; i < maxShorthandMappings; i++)
+            ShorthandMapping(token: 't$i', figures: [_swing()]),
+        ]).toJson(),
+      );
+      await controller.load();
+
+      await _pumpManager(tester, controller);
+      await tester.tap(find.byKey(const ValueKey('new-shorthand')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('shorthand-limit-reached')),
+        findsOneWidget,
+      );
+      expect(find.byType(ShorthandMappingEditorScreen), findsNothing);
+      expect(controller.mappings, hasLength(maxShorthandMappings));
+    },
+  );
+
   testWidgets('lists a mapping row with its token and figure summary', (
     tester,
   ) async {

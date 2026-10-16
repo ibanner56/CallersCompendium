@@ -130,9 +130,11 @@ class ShorthandMappingsController extends ChangeNotifier {
 
   /// Adds [mapping] (when [index] is `null`) or replaces the mapping at [index].
   ///
-  /// Rejects an empty/whitespace or over-long token, or a token that collides
-  /// case-insensitively with a DIFFERENT mapping, by throwing [ArgumentError]
-  /// — callers (the editor) validate first so this is a defensive backstop.
+  /// Rejects an empty/whitespace or over-long token, a token that collides
+  /// case-insensitively with a DIFFERENT mapping, or a new mapping past
+  /// [maxShorthandMappings] (which the next load would drop), by throwing
+  /// [ArgumentError] — callers (the editor) validate first so this is a
+  /// defensive backstop. Replacing a mapping in place is allowed at the cap.
   Future<void> upsert(ShorthandMapping mapping, {int? index}) async {
     final token = mapping.token.trim();
     if (token.isEmpty) {
@@ -171,10 +173,14 @@ class ShorthandMappingsController extends ChangeNotifier {
         'must expand to at most $maxShorthandTargetFigures figures',
       );
     }
+    final adding = index == null || index < 0 || index >= _mappings.length;
+    if (adding && _mappings.length >= maxShorthandMappings) {
+      throw ArgumentError.value(mapping, 'mapping', 'would not be kept');
+    }
     // Persist the trimmed token while keeping the user's original casing.
     final normalized = ShorthandMapping(token: token, figures: mapping.figures);
     final next = _mappings.toList();
-    if (index == null || index < 0 || index >= next.length) {
+    if (adding) {
       next.add(normalized);
     } else {
       next[index] = normalized;

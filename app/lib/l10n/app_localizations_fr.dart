@@ -8417,6 +8417,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get shorthandMappingsEmpty => 'Aucune abréviation pour l’instant.';
 
   @override
+  String shorthandMappingsLimitReached(int max) {
+    return 'Vous avez atteint la limite de $max abréviations. Supprimez-en une pour en ajouter une autre.';
+  }
+
+  @override
   String get shorthandMappingsDeleteTitle => 'Supprimer l’abréviation ?';
 
   @override

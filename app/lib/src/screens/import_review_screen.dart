@@ -19,6 +19,7 @@ import '../data/program_ambiguous_review.dart';
 import '../data/repositories_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
+import '../data/shorthand_mappings_controller.dart';
 import '../data/shorthand_mappings_scope.dart';
 import '../data/sync_writer_lifecycle_scope.dart';
 import '../data/default_import_tags.dart';
@@ -1718,27 +1719,20 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
     if (chosen == null || chosen.isEmpty) return;
 
-    var seeded = 0;
-    for (final mapping in chosen) {
-      // Defensive: another shorthand with this token could have appeared while
-      // the step was open. upsert throws on a duplicate; skip rather than abort
-      // the batch so one late collision can't drop the rest.
-      if (controller.hasToken(mapping.token)) continue;
-      try {
-        await controller.upsert(mapping);
-        seeded++;
-      } catch (e, stackTrace) {
-        // diagnostics: silent — bounds/duplicate backstop; never surface a raw
-        // error to the user (this is an optional background step, and the
-        // token/mapping content is unvalidated pasted import content, so it
-        // isn't logged either — see `_plan`'s `logCaughtErrorTypeOnly` note
-        // above for why raw pasted content isn't recorded). Debug-only print
-        // remains for local diagnosis.
-        if (kDebugMode) {
-          debugPrint('Shorthand seed upsert failed: $e\n$stackTrace');
-        }
-      }
+    final outcome = await seedShorthandMappings(controller, chosen);
+    if (outcome.skippedAtCap > 0) {
+      // The cap is the one refusal worth explaining: the user chose these
+      // seeds, so tell them why some were not added.
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('shorthand-seed-limit-reached'),
+          content: Text(
+            l10n.shorthandMappingsLimitReached(maxShorthandMappings),
+          ),
+        ),
+      );
     }
+    final seeded = outcome.seeded;
     if (seeded == 0) return;
     messenger.showSnackBar(
       SnackBar(
@@ -3729,4 +3723,46 @@ class _Option {
   final String label;
   final _ActionKind kind;
   final String? targetId;
+}
+
+/// How [seedShorthandMappings] fared.
+typedef ShorthandSeedOutcome = ({int seeded, int skippedAtCap});
+
+/// `upsert`s each of [chosen] into [controller], skipping rather than
+/// aborting on a refusal so one late collision cannot drop the rest. A seed
+/// refused because the list is at [maxShorthandMappings] is counted in
+/// `skippedAtCap`; any other refusal (a token taken while the preview was
+/// open, say) is skipped silently.
+@visibleForTesting
+Future<ShorthandSeedOutcome> seedShorthandMappings(
+  ShorthandMappingsController controller,
+  List<ShorthandMapping> chosen,
+) async {
+  var seeded = 0;
+  var skippedAtCap = 0;
+  for (final mapping in chosen) {
+    // Defensive: another shorthand with this token could have appeared while
+    // the step was open. upsert throws on a duplicate; skip rather than abort
+    // the batch so one late collision can't drop the rest.
+    if (controller.hasToken(mapping.token)) continue;
+    if (controller.mappings.length >= maxShorthandMappings) {
+      skippedAtCap++;
+      continue;
+    }
+    try {
+      await controller.upsert(mapping);
+      seeded++;
+    } catch (e, stackTrace) {
+      // diagnostics: silent — bounds/duplicate backstop; never surface a raw
+      // error to the user (this is an optional background step, and the
+      // token/mapping content is unvalidated pasted import content, so it
+      // isn't logged either — see `_plan`'s `logCaughtErrorTypeOnly` note
+      // above for why raw pasted content isn't recorded). Debug-only print
+      // remains for local diagnosis.
+      if (kDebugMode) {
+        debugPrint('Shorthand seed upsert failed: $e\n$stackTrace');
+      }
+    }
+  }
+  return (seeded: seeded, skippedAtCap: skippedAtCap);
 }
