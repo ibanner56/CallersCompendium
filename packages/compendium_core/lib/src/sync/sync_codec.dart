@@ -376,7 +376,9 @@ String? encodeSyncSettingsRecord(SyncSettingsRecord record) {
 ///
 /// [retained] is what this device keeps of the record for a newer version of
 /// the app ([partitionInboundRecordBody]); it is put back after projection so
-/// the body this device shares is the one it received (spec §6.7).
+/// the body this device shares is the one it received (spec §6.7). A record
+/// this device shares none of (a private custom-field definition) yields an
+/// empty body whatever [retained] holds.
 Map<String, Object?> syncBodyForEntity(
   SyncRecordKind kind,
   Object entity, {
@@ -443,7 +445,11 @@ Map<String, Object?> syncBodyForEntity(
       '${own.invalidPath}',
     );
   }
-  return retained == null
+  // A body projected to nothing — a private custom-field definition, which
+  // shares none of itself — has no record to put kept parts back into. Merging
+  // them anyway would publish a body with no identity (and make the blob
+  // builder throw on every snapshot); they are swept with the record.
+  return retained == null || projected.isEmpty
       ? projected
       : mergeRetainedFields(projected, retained);
 }

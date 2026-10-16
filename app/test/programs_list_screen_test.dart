@@ -10,6 +10,7 @@ import 'package:compendium_app/src/screens/app_shell_search_scope.dart';
 import 'package:compendium_app/src/screens/contradb_program_import_screen.dart';
 import 'package:compendium_app/src/screens/plaintext_program_import_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
+import 'package:compendium_app/src/screens/recently_deleted_screen.dart';
 import 'package:compendium_app/src/search/program_sort.dart';
 import 'package:compendium_app/src/widgets/program_list_tile.dart';
 import 'package:compendium_app/src/widgets/weekday_header_strip.dart';
@@ -108,6 +109,29 @@ void main() {
     expect(find.text('From ContraDB'), findsOneWidget);
     expect(find.text('Import from title list'), findsNothing);
     expect(find.text('Import from ContraDB'), findsNothing);
+  });
+
+  testWidgets('wide overflow menu opens Recently deleted', (tester) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', title: 'Gone'));
+    await repos.programs.softDelete('p1', at: _now);
+    await _pump(tester, repos);
+
+    // The screen is generic, so `find.byType(RecentlyDeletedScreen)` would
+    // look for `RecentlyDeletedScreen<dynamic>` and never match the
+    // `RecentlyDeletedScreen<Program>` that is pushed.
+    final recentlyDeleted = find.byWidgetPredicate(
+      (w) => w is RecentlyDeletedScreen<Program>,
+    );
+    expect(recentlyDeleted, findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('programs-more-actions')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('programs-recently-deleted')));
+    await tester.pumpAndSettle();
+
+    expect(recentlyDeleted, findsOneWidget);
+    expect(find.text('Gone'), findsOneWidget);
   });
 
   testWidgets('empty state teaches and offers New program', (tester) async {

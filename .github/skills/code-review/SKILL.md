@@ -25,7 +25,7 @@ narrative behind each rule stays in
 ## Before you start
 
 Steps and commands below assume the tools a local session has. A CI reviewer
-limited to reading files, `gh pr diff` and `gh pr view` uses the equivalents
+limited to reading files and `gh pr diff` uses the equivalents
 available to it (the PR description's linked text where an issue cannot be
 read), and does not need to run `git` or `tools/preflight.py`. The checks only
 an author can perform (a test proven red before green, a measurement re-taken
@@ -345,6 +345,10 @@ Rules for the output:
     that accounts for every changed file. A clean verdict over an incomplete
     Coverage section is not `APPROVE`. The verdict is a text label in the
     review body; the review's GitHub `event` is always `COMMENT`.
+  - The first `## Review verdict: <word>` line is machine-read:
+    `claude-review-status.yml` turns it into the PR's `claude: approved`
+    (green, `APPROVE` only), `claude: nits` or `claude: blocked` label. Keep
+    that exact heading and one of the three words, or the label cannot be set.
 - **One finding per block.** Never merge two defects into one bullet — they get
   fixed in one push and re-reviewed as a pair.
 - **Order by severity**, `blocker` first. Within a severity, order by file.
