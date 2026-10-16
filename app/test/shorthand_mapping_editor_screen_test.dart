@@ -175,4 +175,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(read()?.token, 'swing');
   });
+
+  // #1830: a shorthand expands to a snippet, not a whole dance, so the phrase
+  // labels and the beat total ("Under by N beats") belong to dances only.
+  testWidgets('does not show phrase labels or a beat total for a snippet', (
+    tester,
+  ) async {
+    await _pumpEditor(
+      tester,
+      initial: ShorthandMapping(token: 'sw', figures: [_swing()]),
+    );
+
+    expect(find.byKey(const ValueKey('figure-0-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-0-label')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-beats-total')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-beats-warning')), findsNothing);
+    expect(find.textContaining('Under by'), findsNothing);
+  });
 }
