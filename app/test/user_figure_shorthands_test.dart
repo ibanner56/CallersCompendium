@@ -149,6 +149,30 @@ void main() {
       expect(controller.compoundShorthands.single.token, 'grl');
     });
 
+    test('a change of kind writes the new entry first, so a failed second '
+        'write loses nothing', () async {
+      final db = openWidgetTestDatabase();
+      final settings = _FailingWrites(db);
+      final controller = ShorthandMappingsController(settings);
+      addTearDown(controller.dispose);
+      await controller.upsertCompound(compoundShorthand('grl'));
+
+      settings.failingKey = kCompoundShorthandsKey;
+      await expectLater(
+        controller.replaceCompoundWithUserFigure(0, shorthand(token: 'grl')),
+        throwsStateError,
+      );
+      settings.failingKey = null;
+      final reloaded = ShorthandMappingsController(settings);
+      addTearDown(reloaded.dispose);
+      await reloaded.load();
+      expect(reloaded.compoundShorthands.single.token, 'grl');
+      expect(reloaded.userFigureShorthands.single.token, 'grl');
+      // What the controller holds is what is stored.
+      expect(controller.compoundShorthands, reloaded.compoundShorthands);
+      expect(controller.userFigureShorthands, reloaded.userFigureShorthands);
+    });
+
     test('stores them under their own key, and reads all three back', () async {
       final repos = openTestRepositories();
       final controller = ShorthandMappingsController(repos.settings);
@@ -743,4 +767,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('is already the name'), findsOneWidget);
   });
+}
+
+/// A [SettingsRepository] whose `set` throws for [failingKey], as if that one
+/// write failed.
+class _FailingWrites extends SettingsRepository {
+  _FailingWrites(super.db);
+
+  String? failingKey;
+
+  @override
+  Future<void> set(String key, Object? value, {DateTime? at}) async {
+    if (key == failingKey) throw StateError('injected write failure: $key');
+    return super.set(key, value, at: at);
+  }
 }
