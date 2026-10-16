@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Device Sync no longer gets stuck after you make a custom field private when a device running a newer version of the app had shared extra details about it. The private field is simply no longer shared."
+      "Device Sync no longer gets stuck after you make a custom field private when a device running a newer version of the app had shared extra details about it. The private field is simply no longer shared, and if you make it shareable again, devices on the newer version lose the extra details they had added to it."
     ]
   },
   "core": {

@@ -3544,7 +3544,12 @@ A record this device shares none of has no body to put kept parts back into. A
 custom-field definition made private (`shareable: false`) projects to an empty
 body (§6.6), so what was kept for it MUST NOT be merged into one and published;
 the kept parts are discarded, as for a record that no longer exists. Making the
-definition shareable again publishes it as this device holds it.
+definition shareable again publishes it as this device holds it, without the
+parts a newer version had added, at a newer `updatedAt`, so devices running that
+newer version lose them as well. Holding the parts while the definition is
+private would not avoid that: newer copies from peers are not applied while it
+is private, so the held parts would go stale and re-sharing would overwrite the
+peers' current ones with them.
 
 A part is kept where it can be put back exactly: a key at the top level, a key
 inside a nested object (`formation`, `provenance`), or a key inside an item of
