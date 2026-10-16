@@ -33,13 +33,13 @@ void main() {
   );
   final noDefinition = CcTerm(name: 'Whirligig', notes: 'Ask the band.');
 
-  Future<List<CcTermDraft>?> openScreen(
+  /// Opens the screen on [terms]; the getter returned reads what it popped.
+  Future<List<CcTermDraft>? Function()> openScreen(
     WidgetTester tester,
     List<CcTerm> terms, {
     bool Function(String name)? nameTaken,
   }) async {
     List<CcTermDraft>? popped;
-    var done = false;
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
@@ -53,10 +53,14 @@ void main() {
                   builder: (_) => ImportCcTermsScreen(
                     terms: terms,
                     nameTaken: nameTaken ?? (_) => false,
+                    // As the import stores text, for Larks and Robins.
+                    stored: (text) => canonicalizeGlossaryText(
+                      text.trim(),
+                      Dialect.larksRobins,
+                    ),
                   ),
                 ),
               );
-              done = true;
             },
             child: const Text('go'),
           ),
@@ -65,8 +69,38 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('launch')));
     await tester.pumpAndSettle();
-    addTearDown(() => expect(done || popped == null, isTrue));
-    return null;
+    return () => popped;
+  }
+
+  Future<void> editAndSave(
+    WidgetTester tester,
+    int index, {
+    String? name,
+    String? definition,
+    String? description,
+  }) async {
+    await tester.tap(find.byKey(ValueKey('cc-term-import-edit-$index')));
+    await tester.pumpAndSettle();
+    if (name != null) {
+      await tester.enterText(
+        find.byKey(const ValueKey('cc-term-edit-name')),
+        name,
+      );
+    }
+    if (definition != null) {
+      await tester.enterText(
+        find.byKey(const ValueKey('cc-term-edit-definition')),
+        definition,
+      );
+    }
+    if (description != null) {
+      await tester.enterText(
+        find.byKey(const ValueKey('cc-term-edit-description')),
+        description,
+      );
+    }
+    await tester.tap(find.byKey(const ValueKey('cc-term-edit-save')));
+    await tester.pumpAndSettle();
   }
 
   bool ticked(WidgetTester tester, int index) =>
@@ -121,18 +155,8 @@ void main() {
       isNull,
     );
 
-    await tester.tap(find.byKey(const ValueKey('cc-term-import-edit-0')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('cc-term-edit-definition')),
-      'A spinning figure.',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('cc-term-edit-description')),
-      'Spin in place.',
-    );
-    await tester.tap(find.byKey(const ValueKey('cc-term-edit-save')));
-    await tester.pumpAndSettle();
+    // A definition alone is enough: the blank description becomes it.
+    await editAndSave(tester, 0, definition: 'A spinning figure.');
     expect(ticked(tester, 0), isTrue);
     expect(
       find.byKey(const ValueKey('cc-term-import-needs-definition-0')),
@@ -201,6 +225,76 @@ void main() {
       reason: 'only the term edited is ticked for the user',
     );
     expect(ticked(tester, 2), isFalse, reason: 'the first now has its name');
+  });
+
+  testWidgets('names are compared as stored: two that differ only in a '
+      'role word are the same name', (tester) async {
+    await openScreen(tester, [
+      CcTerm(name: 'Ladies wait', definition: 'Stand.'),
+      CcTerm(name: 'Robins wait', definition: 'Stand.'),
+    ]);
+    expect(ticked(tester, 0), isTrue);
+    expect(ticked(tester, 1), isFalse);
+    expect(
+      find.byKey(const ValueKey('cc-term-import-taken-1')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('an earlier term that can\'t be added takes no name', (
+    tester,
+  ) async {
+    await openScreen(tester, [
+      CcTerm(name: 'Spin'),
+      CcTerm(name: 'Spin', definition: 'Turn.'),
+    ]);
+    expect(ticked(tester, 0), isFalse);
+    expect(ticked(tester, 1), isTrue);
+  });
+
+  testWidgets('a term with a blank name or description, or too long, says so '
+      'and can\'t be ticked', (tester) async {
+    await openScreen(tester, [
+      twirl,
+      CcTerm(name: 'x' * (maxUserGlossaryNameLength + 1), definition: 'Long.'),
+    ]);
+    expect(enabled(tester, 1), isFalse);
+    expect(
+      find.byKey(const ValueKey('cc-term-import-too-long-1')),
+      findsOneWidget,
+    );
+    await editAndSave(tester, 0, description: 'x', name: '');
+    expect(ticked(tester, 0), isFalse);
+    expect(
+      find.byKey(const ValueKey('cc-term-import-incomplete-0')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Confirm returns only what is ticked, as edited; an edit keeps '
+      'a term the user unticked unticked', (tester) async {
+    final result = await openScreen(tester, [
+      twirl,
+      CcTerm(name: 'Spin', definition: 'Turn.'),
+    ]);
+    await tester.tap(find.byKey(const ValueKey('cc-term-import-1')));
+    await tester.pumpAndSettle();
+    await editAndSave(tester, 1, description: 'Turn around.');
+    expect(ticked(tester, 1), isFalse);
+    await editAndSave(tester, 0, description: 'Under the arch.');
+    await tester.tap(find.byKey(const ValueKey('cc-term-import-confirm')));
+    await tester.pumpAndSettle();
+    final popped = result()!;
+    expect(popped.map((d) => d.name), ['Dixie Twirl']);
+    expect(popped.single.description, 'Under the arch.');
+    expect(popped.single.source, 'Give and Take - Larry Jennings');
+  });
+
+  testWidgets('Skip returns nothing', (tester) async {
+    final result = await openScreen(tester, [twirl]);
+    await tester.tap(find.byKey(const ValueKey('cc-term-import-skip')));
+    await tester.pumpAndSettle();
+    expect(result(), isEmpty);
   });
 
   group('applyCcTermImport', () {
@@ -286,6 +380,8 @@ void main() {
             4: '1',
           }),
           MapEntry(21, {1: 'Contra Corners', 4: '1', 5: 'A teaching note.'}),
+          // Defined, but a shipped figure's name.
+          MapEntry(22, {1: 'Swing', 2: 'My own swing.', 4: '1'}),
         ],
       ),
       // A call button, so the shorthand step comes first and is answered
@@ -313,10 +409,16 @@ void main() {
     Future<CompendiumRepositories> runImport(
       WidgetTester tester, {
       required bool glossary,
+      List<UserGlossaryEntry> existing = const [],
     }) async {
       await tester.binding.setSurfaceSize(const Size(1000, 1600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final repos = openTestRepositories();
+      await tester.runAsync(() async {
+        for (final entry in existing) {
+          await repos.userGlossary.upsert(entry);
+        }
+      });
       final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
       final shown = ValueNotifier(glossary);
       addTearDown(dialect.dispose);
@@ -387,6 +489,11 @@ void main() {
         'their source; Undo takes them back', (tester) async {
       final repos = await runImport(tester, glossary: true);
       expect(find.byType(ImportCcTermsScreen), findsOneWidget);
+      // Swing is a shipped figure's name, as the real check finds it.
+      expect(
+        find.byKey(const ValueKey('cc-term-import-taken-2')),
+        findsOneWidget,
+      );
       // Contra Corners has no definition, and is a shipped figure's name.
       await tester.tap(find.byKey(const ValueKey('cc-term-import-confirm')));
       await tester.runAsync(() => Future<void>.delayed(Duration.zero));
@@ -409,6 +516,37 @@ void main() {
         await tester.runAsync(() => repos.userGlossary.listAll()),
         isEmpty,
       );
+    });
+
+    testWidgets('a term already in the Glossary from an earlier import is '
+        'not offered again', (tester) async {
+      await runImport(
+        tester,
+        glossary: true,
+        existing: [
+          UserGlossaryEntry(
+            id: 'earlier',
+            kindName: UserGlossaryEntryKind.term.name,
+            name: 'Dixie Twirl',
+            definition: 'The left pair go under an arch.',
+            description: 'The left pair go under an arch.',
+            payload: glossaryTermPayload(
+              'contra',
+              source: 'Give and Take - Larry Jennings',
+            ),
+            createdAt: DateTime.utc(2026, 10, 1),
+          ),
+        ],
+      );
+      expect(find.byType(ImportCcTermsScreen), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(ImportCcTermsScreen),
+          matching: find.text('Dixie Twirl'),
+        ),
+        findsNothing,
+      );
+      expect(find.text('Contra Corners'), findsOneWidget);
     });
 
     testWidgets('with the Glossary hidden, no terms are offered', (

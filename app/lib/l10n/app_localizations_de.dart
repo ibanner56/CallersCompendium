@@ -304,6 +304,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Er hat keine Definition. Bearbeite ihn, um ihm eine zu geben und ihn hinzuzufügen.';
 
   @override
+  String get importCcTermsIncomplete =>
+      'Er braucht einen Namen, eine Definition und eine Beschreibung. Bearbeite ihn, um sie auszufüllen und ihn hinzuzufügen.';
+
+  @override
+  String get importCcTermsTooLong =>
+      'Er ist länger, als ein Glossareintrag sein kann. Bearbeite ihn, um ihn zu kürzen und hinzuzufügen.';
+
+  @override
   String get importCcTermsEditTitle => 'Begriff bearbeiten';
 
   @override

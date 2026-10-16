@@ -301,6 +301,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'It has no definition. Edit it to give it one and add it.';
 
   @override
+  String get importCcTermsIncomplete =>
+      'It needs a name, a definition and a description. Edit it to fill them in and add it.';
+
+  @override
+  String get importCcTermsTooLong =>
+      'It is longer than a Glossary entry can be. Edit it to shorten it and add it.';
+
+  @override
   String get importCcTermsEditTitle => 'Edit term';
 
   @override

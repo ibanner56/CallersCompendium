@@ -316,6 +316,14 @@
   "@importCcTermsNeedsDefinition": {
     "x-sourceSha256": "11af2ee7e314ff38aa02c96c581e3a1eb8ddb05356609429367e3dc3d22770cb"
   },
+  "importCcTermsIncomplete": "Den skal have et navn, en definition og en beskrivelse. Rediger den for at udfylde dem og tilføje den.",
+  "@importCcTermsIncomplete": {
+    "x-sourceSha256": "a1c4c14d487eec6570b84669a9d6c1f8d14c2c8ee83e7abd53371ef8b2d389b3"
+  },
+  "importCcTermsTooLong": "Den er længere, end en ordlistepost kan være. Rediger den for at forkorte den og tilføje den.",
+  "@importCcTermsTooLong": {
+    "x-sourceSha256": "7f3d9b2fea011dc3ca4580f6a50fabda106ee120e7acc87030411583dbfc5357"
+  },
   "importCcTermsEditTitle": "Rediger term",
   "@importCcTermsEditTitle": {
     "x-sourceSha256": "e8e50e7ff1817a0f8e2a0b99f6d7bad2421e7cb7b63a76176b10947882379837"

@@ -304,6 +304,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Hij heeft geen definitie. Bewerk hem om er een te geven en hem toe te voegen.';
 
   @override
+  String get importCcTermsIncomplete =>
+      'Hij heeft een naam, een definitie en een beschrijving nodig. Bewerk hem om ze in te vullen en hem toe te voegen.';
+
+  @override
+  String get importCcTermsTooLong =>
+      'Hij is langer dan een woordenlijstitem mag zijn. Bewerk hem om hem in te korten en toe te voegen.';
+
+  @override
   String get importCcTermsEditTitle => 'Term bewerken';
 
   @override

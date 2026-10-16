@@ -308,6 +308,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Il n\'a pas de définition. Modifiez-le pour lui en donner une et l\'ajouter.';
 
   @override
+  String get importCcTermsIncomplete =>
+      'Il lui faut un nom, une définition et une description. Modifiez-le pour les remplir et l\'ajouter.';
+
+  @override
+  String get importCcTermsTooLong =>
+      'Il est plus long qu\'une entrée du glossaire ne peut l\'être. Modifiez-le pour le raccourcir et l\'ajouter.';
+
+  @override
   String get importCcTermsEditTitle => 'Modifier le terme';
 
   @override

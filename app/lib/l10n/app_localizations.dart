@@ -584,6 +584,18 @@ abstract class AppLocalizations {
   /// **'It has no definition. Edit it to give it one and add it.'**
   String get importCcTermsNeedsDefinition;
 
+  /// Shown on a Caller's Companion term (#1023) that has a definition but, after an edit, no name or no description; every Glossary entry needs all three.
+  ///
+  /// In en, this message translates to:
+  /// **'It needs a name, a definition and a description. Edit it to fill them in and add it.'**
+  String get importCcTermsIncomplete;
+
+  /// Shown on a Caller's Companion term (#1023) whose name or text is longer than a Glossary entry can be, so it can't be added as it is.
+  ///
+  /// In en, this message translates to:
+  /// **'It is longer than a Glossary entry can be. Edit it to shorten it and add it.'**
+  String get importCcTermsTooLong;
+
   /// Title of the dialog that edits a Caller's Companion term's name, definition and description before it is added to the Glossary (#1023).
   ///
   /// In en, this message translates to:

@@ -381,18 +381,24 @@ the term's notes.
 
 Every Glossary entry needs a name, a definition and a description. Caller's
 Companion has no description, so each term's starts as its definition. Choose
-**Edit** to change either one, or the name, before you add it.
+**Edit** to change either one, or the name, before you add it. A description
+left blank there becomes the definition.
 
 - A term with no definition starts unticked and says so. Give it one with
   **Edit**, and it is ticked.
 - A term whose name is already a figure's, a shorthand's or one of your entries'
   (or an earlier term's in the same file) can't be added under that name. Leave
-  it out, or rename it with **Edit**.
+  it out, or rename it with **Edit**. Names are compared as your Glossary keeps
+  them, so *Ladies wait* and *Robins wait* are the same name.
+- A term longer than a Glossary entry can be says so, and can be added once
+  **Edit** shortens it.
+- A term already in your Glossary from an earlier import of the same file isn't
+  offered again. If every term is, the step doesn't appear.
 
 The confirm button counts what is ticked (**Add 2 terms**). Afterwards, **Undo**
-on the message takes the terms back out. A term too long for the Glossary, or
-one that doesn't fit because your Glossary is full, is left out, and the app
-says how many. Choose **Skip** to add none.
+on the message takes the terms back out. A term that doesn't fit because your
+Glossary is full is left out, and the same message says how many. Choose
+**Skip** to add none.
 
 ## Move your whole library: backup and restore
 

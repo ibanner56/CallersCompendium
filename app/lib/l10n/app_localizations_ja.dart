@@ -293,6 +293,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importCcTermsNeedsDefinition => '定義がありません。編集して定義を加えると追加できます。';
 
   @override
+  String get importCcTermsIncomplete => '名前・定義・説明がすべて必要です。編集して入力すると追加できます。';
+
+  @override
+  String get importCcTermsTooLong => '用語集の項目として長すぎます。編集して短くすると追加できます。';
+
+  @override
   String get importCcTermsEditTitle => '用語を編集';
 
   @override

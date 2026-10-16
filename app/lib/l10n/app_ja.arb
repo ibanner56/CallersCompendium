@@ -316,6 +316,14 @@
   "@importCcTermsNeedsDefinition": {
     "x-sourceSha256": "11af2ee7e314ff38aa02c96c581e3a1eb8ddb05356609429367e3dc3d22770cb"
   },
+  "importCcTermsIncomplete": "名前・定義・説明がすべて必要です。編集して入力すると追加できます。",
+  "@importCcTermsIncomplete": {
+    "x-sourceSha256": "a1c4c14d487eec6570b84669a9d6c1f8d14c2c8ee83e7abd53371ef8b2d389b3"
+  },
+  "importCcTermsTooLong": "用語集の項目として長すぎます。編集して短くすると追加できます。",
+  "@importCcTermsTooLong": {
+    "x-sourceSha256": "7f3d9b2fea011dc3ca4580f6a50fabda106ee120e7acc87030411583dbfc5357"
+  },
   "importCcTermsEditTitle": "用語を編集",
   "@importCcTermsEditTitle": {
     "x-sourceSha256": "e8e50e7ff1817a0f8e2a0b99f6d7bad2421e7cb7b63a76176b10947882379837"

@@ -1784,6 +1784,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       ...?DialectLibraryScope.maybeOf(context)?.customDialects,
     ];
     final shorthands = ShorthandMappingsScope.maybeOf(context);
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
     return () => _addTerms(
       archive.terms,
       repos: repos,
@@ -1793,6 +1794,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       dialect: dialect,
       dialects: dialects,
       shorthands: shorthands,
+      accessibleNavigation: accessibleNavigation,
     );
   }
 
@@ -1805,16 +1807,33 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     required Dialect dialect,
     required List<Dialect> dialects,
     required ShorthandMappingsController? shorthands,
+    required bool accessibleNavigation,
   }) async {
+    String stored(String text) =>
+        canonicalizeGlossaryText(text.trim(), dialect);
     // Read now, after the dances and shorthands were written: a shorthand
     // just seeded takes its name too.
-    final names = [
-      for (final entry in await repos.userGlossary.listAll()) entry.name,
+    final entries = await repos.userGlossary.listAll();
+    final names = [for (final entry in entries) entry.name];
+    // A term already in the Glossary as this file has it (an earlier import
+    // of the same file) is not offered again; nothing is shown when every
+    // term is.
+    bool alreadyHere(CcTerm term) => entries.any(
+      (entry) =>
+          entry.kind == UserGlossaryEntryKind.term &&
+          normalizeGlossaryName(entry.name) ==
+              normalizeGlossaryName(stored(term.name)) &&
+          glossaryTermSource(entry.payload) == term.source,
+    );
+    final offered = [
+      for (final term in terms)
+        if (!alreadyHere(term)) term,
     ];
+    if (offered.isEmpty) return;
     final tokens = shorthands?.takenTokens ?? const <String>{};
     // Compared as stored, as the editor compares a name it is about to save.
     bool nameTaken(String name) => glossaryNameCollisions(
-      canonicalizeGlossaryText(name.trim(), dialect),
+      stored(name),
       taxonomy: contraTaxonomy,
       dialects: dialects,
       shorthandTokens: tokens,
@@ -1822,7 +1841,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     ).isNotEmpty;
     final chosen = await navigator.push<List<CcTermDraft>>(
       MaterialPageRoute(
-        builder: (_) => ImportCcTermsScreen(terms: terms, nameTaken: nameTaken),
+        builder: (_) => ImportCcTermsScreen(
+          terms: offered,
+          nameTaken: nameTaken,
+          stored: stored,
+        ),
       ),
     );
     if (chosen == null || chosen.isEmpty) return;
@@ -1833,23 +1856,28 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       newId: uuidV4,
       now: DateTime.now().toUtc(),
     );
+    // One message, the failures with the count added: a second would wait
+    // behind the first.
+    final failed = applied.failed > 0
+        ? l10n.importCcTermsFailed(applied.failed)
+        : null;
     if (applied.addedIds.isNotEmpty) {
-      messenger.showSnackBar(
-        SnackBar(
-          key: const ValueKey('cc-term-import-complete'),
-          content: Text(l10n.importCcTermsAdded(applied.addedIds.length)),
-          action: SnackBarAction(
-            label: l10n.commonUndo,
-            onPressed: () => unawaited(applied.undo()),
-          ),
-        ),
+      showUndoSnackBar(
+        messenger,
+        key: const ValueKey('cc-term-import-complete'),
+        message: [
+          l10n.importCcTermsAdded(applied.addedIds.length),
+          ?failed,
+        ].join(' '),
+        undoLabel: l10n.commonUndo,
+        onUndo: () => unawaited(applied.undo()),
+        accessibleNavigation: accessibleNavigation,
       );
-    }
-    if (applied.failed > 0) {
+    } else if (failed != null) {
       messenger.showSnackBar(
         SnackBar(
           key: const ValueKey('cc-term-import-failed'),
-          content: Text(l10n.importCcTermsFailed(applied.failed)),
+          content: Text(failed),
         ),
       );
     }

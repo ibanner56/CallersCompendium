@@ -396,6 +396,14 @@
   "@importCcTermsNeedsDefinition": {
     "description": "Shown on a Caller's Companion term (#1023) that has no definition, which every Glossary entry needs."
   },
+  "importCcTermsIncomplete": "It needs a name, a definition and a description. Edit it to fill them in and add it.",
+  "@importCcTermsIncomplete": {
+    "description": "Shown on a Caller's Companion term (#1023) that has a definition but, after an edit, no name or no description; every Glossary entry needs all three."
+  },
+  "importCcTermsTooLong": "It is longer than a Glossary entry can be. Edit it to shorten it and add it.",
+  "@importCcTermsTooLong": {
+    "description": "Shown on a Caller's Companion term (#1023) whose name or text is longer than a Glossary entry can be, so it can't be added as it is."
+  },
   "importCcTermsEditTitle": "Edit term",
   "@importCcTermsEditTitle": {
     "description": "Title of the dialog that edits a Caller's Companion term's name, definition and description before it is added to the Glossary (#1023)."

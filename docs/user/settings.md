@@ -581,7 +581,10 @@ Choose **+** in the Glossary to add one (with Custom Figures on, choose
 **Term** under **What it is**); select one to **Edit** or **Delete** it. Terms
 need only Show Glossary, not Custom Figures. A name already taken can't be
 saved, as for your figures below; one of your own figures keeps its name even
-while Custom Figures is off and it isn't shown, and saving says so.
+while Custom Figures is off and it isn't shown, and saving says so. Terms can
+also come from a Caller's Companion file (see [Bring your glossary terms
+across](./imports.md#bring-your-glossary-terms-across)); such a term's page shows
+its **Source** as the file had it.
 
 **Custom Figures**, under Show Glossary, lists your own figures in the
 Glossary. It is **off by default**, and it can only be turned on while Show

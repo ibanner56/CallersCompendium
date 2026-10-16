@@ -304,6 +304,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Den har ingen definition. Rediger den for at give den en og tilføje den.';
 
   @override
+  String get importCcTermsIncomplete =>
+      'Den skal have et navn, en definition og en beskrivelse. Rediger den for at udfylde dem og tilføje den.';
+
+  @override
+  String get importCcTermsTooLong =>
+      'Den er længere, end en ordlistepost kan være. Rediger den for at forkorte den og tilføje den.';
+
+  @override
   String get importCcTermsEditTitle => 'Rediger term';
 
   @override
