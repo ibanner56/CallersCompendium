@@ -677,7 +677,8 @@ class _FigureListEditorState extends State<FigureListEditor> {
   }
 
   /// Clears the composer after [acceptedCount] rows were inserted, announces
-  /// them, and keeps the composer focused for the next line.
+  /// and shows the count ([_freeTextConfirmation]), and keeps the composer
+  /// focused for the next line.
   void _freeTextAccepted(int acceptedCount) {
     _freeTextController.clear();
     final message = _l10n.danceEditorFreeTextFiguresAddedAnnouncement(
