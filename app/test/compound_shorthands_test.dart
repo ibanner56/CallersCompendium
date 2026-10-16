@@ -387,6 +387,68 @@ void main() {
       });
     }
 
+    // A `;` clause may be a compound shorthand (#1866), as it may be a plain
+    // shorthand (#1827). A compound is one clause however many figures it
+    // holds, and ignores a count typed on its clause.
+    final clauseLines = <String, List<String>>{
+      'grl; ladies chain': [
+        'pull_by',
+        'pull_by',
+        'pull_by',
+        'pull_by',
+        'chain',
+      ],
+      'ladies chain; grl': [
+        'chain',
+        'pull_by',
+        'pull_by',
+        'pull_by',
+        'pull_by',
+      ],
+      '16 grl; ladies chain': [
+        'pull_by', 'pull_by', 'pull_by', 'pull_by', 'chain', //
+      ],
+      'swing; grl (16); chain': [
+        'swing', 'pull_by', 'pull_by', 'pull_by', 'pull_by', 'chain', //
+      ],
+    };
+    for (final MapEntry(key: line, value: want) in clauseLines.entries) {
+      testWidgets('"$line" inserts a row per clause', (tester) async {
+        final repos = await pump(tester, compounds: [shorthand()]);
+        await typeLine(tester, line);
+        expect(find.text('grand pull: partners, left'), findsOneWidget);
+        expect([for (final f in await saved(tester, repos)) f.move], want);
+      });
+
+      testWidgets('"$line" typed into an existing row\'s Move box replaces '
+          'the row in place with the clauses', (tester) async {
+        final repos = await pump(tester, compounds: [shorthand()]);
+        await typeInExistingRow(tester, line);
+        final figures = await saved(tester, repos);
+        expect(
+          [for (final f in figures) f.move],
+          ['swing', ...want, 'turn_alone'],
+        );
+      });
+    }
+
+    testWidgets('a clause that is not a figure leaves the whole line '
+        'unexpanded (all or nothing)', (tester) async {
+      final repos = await pump(tester, compounds: [shorthand()]);
+      await typeLine(tester, 'grl; flibbertigibbet');
+      expect([
+        for (final f in await saved(tester, repos)) f.move,
+      ], isNot(contains('pull_by')));
+    });
+
+    testWidgets('65 clauses are not expanded', (tester) async {
+      final repos = await pump(tester, compounds: [shorthand()]);
+      await typeLine(tester, List.filled(65, 'grl').join('; '));
+      expect([
+        for (final f in await saved(tester, repos)) f.move,
+      ], isNot(contains('pull_by')));
+    });
+
     testWidgets('a figure shorthand with the same token wins over a counted '
         'compound', (tester) async {
       final repos = await pump(tester, compounds: [shorthand()]);
