@@ -272,7 +272,7 @@ void main() {
           'neighbor swing 16 beats (8)',
         ).single;
         expect(f.isCustom, isTrue);
-        expect(f.params['text'], 'neighbor swing 16 beats (8)');
+        expect(f.params['text'], 'circle left 8 beats (16)');
       },
     );
 
