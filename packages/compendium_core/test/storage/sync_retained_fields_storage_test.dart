@@ -445,17 +445,17 @@ void main() {
     await apply(newerProgram(program()));
     await repositories.syncLocal.clearForRestore(
       restoredRecords: const [],
-      replacesAllRecords: true,
+      clearRetainedParts: true,
     );
     expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
   });
 
   group('a restore that is not a full replace', () {
-    // Kept parts belong to the peer's copy of a record, so a merge-like writer
-    // may drop them only for a record it writes itself. Dropping an unrelated
-    // record's parts leaves a peer copy at the same `updatedAt` a tie that never
-    // returns them, and the next local edit then overwrites the peer's copy with
-    // a body that lacks them.
+    // Kept parts belong to the peer's copy of a record, so a writer that edits
+    // the records it matches, as a merge restore and an archive import do,
+    // keeps them: the record it writes is stamped newer than the peer's copy,
+    // and a body without the parts would win and strip them from the peer.
+    // Only a restore that replaces the whole library clears them.
     Tag tag() => Tag(id: 't1', name: 'Tag');
 
     CompendiumArchive archiveOf(List<Program> programs) =>
@@ -516,9 +516,14 @@ void main() {
       },
     );
 
-    test('a merge restore keeps what unrelated records kept, and drops '
-        'what the records it writes kept', () async {
-      await apply(newerTag());
+    test('a merge restore keeps what the records it writes kept', () async {
+      // The archive carries tag t1 as the peer's copy has it, bar the field
+      // this build does not know. A merge restore writes the tag, stamped at
+      // restore time, so it is the newest copy: if the kept part went with the
+      // write, the body without it would win last-writer-wins and strip the field
+      // from the peer on every device (spec §6.7).
+      final peer = newerTag();
+      await apply(peer);
       await apply(newerProgram(program()));
       expect(
         await repositories.syncLocal.listRetainedSyncFields(),
@@ -526,18 +531,53 @@ void main() {
       );
 
       final result = await ArchiveRestorer(repositories).restore(
-        archiveOf([program(title: 'From the backup')]),
+        CompendiumArchive(
+          exportedAt: _stamp,
+          tags: [tag()],
+          programs: [program(title: 'From the backup')],
+        ),
         mode: RestoreMode.merge,
       );
 
       expect(result.errors, isEmpty);
-      await expectTagStillCarriesWhatWasKept();
       expect(
-        (await repositories.syncLocal.listRetainedSyncFields()).map(
-          (row) => row.recordId,
-        ),
-        ['t1'],
-        reason: 'the merge replaced p1, so what was kept for it goes',
+        (await repositories.syncLocal.listRetainedSyncFields())
+            .map((row) => row.recordId)
+            .toSet(),
+        {'t1', 'p1'},
+        reason:
+            'a merge restore edits the records it matches as a local '
+            'edit does, which keeps what a peer\'s newer build put there',
+      );
+      await expectTagStillCarriesWhatWasKept();
+
+      final mine = await published(peer.address);
+      expect(
+        mine.blob.updatedAt.isAfter(peer.updatedAt),
+        isTrue,
+        reason: 'the restore stamped the tag, so it is the newer copy',
+      );
+      final plan = const SyncMergeEngine().plan(
+        local: {peer.address: mine},
+        baseline: {
+          peer.address: SyncBaselineEntry(
+            kind: peer.kind,
+            recordId: peer.id,
+            wireHash: SyncMergeCandidate(blob: peer).wireHash,
+          ),
+        },
+        peers: [
+          {peer.address: SyncMergeCandidate(blob: peer, peerId: 'peer-a')},
+        ],
+      );
+      expect(plan.reports, isEmpty);
+      final upload = plan.uploads.single;
+      expect(
+        upload.winner!.blob.body['payNoteV2'],
+        'cash on the night',
+        reason:
+            'what this device would upload to the peer must still carry '
+            'the part the peer\'s newer build put on the tag',
       );
     });
 

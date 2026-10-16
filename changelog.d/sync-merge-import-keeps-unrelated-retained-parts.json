@@ -8,7 +8,7 @@
   },
   "core": {
     "fixed": [
-      "SyncLocalRepository.clearForRestore takes a required replacesAllRecords flag. A merge restore now clears the retained_sync_fields rows of the records it wrote only, and an archive import clears none, instead of either clearing the whole table."
+      "An archive import clears no retained_sync_fields row, as a local edit does, instead of clearing the whole table. A replace restore still clears it."
     ]
   }
 }
