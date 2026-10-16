@@ -433,6 +433,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     UserFiguresScope.catalogOf(context),
     _working,
     AppLocalizations.of(context),
+    _renderer,
   );
 
   /// The keys of the user's figures a dialect can name or word, while Custom
@@ -942,8 +943,6 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
   }
 }
 
-final FigureRenderer _labelRenderer = FigureRenderer(contraTaxonomy);
-
 /// A dialect entry's label: a move's name, or, for a figure of your own's
 /// `userFigure:<id>` key (#1023), the figure's name in [dialect], or a note
 /// that it isn't on this device when [userFigures] lacks it.
@@ -952,12 +951,13 @@ String _entryLabel(
   UserFigureCatalog userFigures,
   Dialect dialect,
   AppLocalizations l10n,
+  FigureRenderer renderer,
 ) {
   if (isUserFigureKey(id)) {
     final view = userFigures[id.substring(userFigureRefPrefix.length)];
     return view == null
         ? l10n.dialectEditorUserFigureGone
-        : _labelRenderer.renderFreeText(view.name, dialect);
+        : renderer.renderFreeText(view.name, dialect);
   }
   return contraTaxonomy.moves[id]?.displayName ?? id;
 }

@@ -230,19 +230,17 @@ class _GlossaryCustomFigureDetailState
     ValueNotifier<MatrixColumnConfig>? matrix,
   ) async {
     await dialects?.forgetUserFigure(widget.entryId);
-    final column = userFigureKeyFor(widget.entryId);
-    final stored = MatrixColumnConfig.tryDecode(
-      await repos.settings.get(kProgramMatrixColumnsKey),
+    // The live config is the one the app keeps and writes, as the Matrix
+    // columns screen does: it is updated first, and its value stored.
+    if (matrix == null) return;
+    final kept = matrix.value.withoutColumn(userFigureKeyFor(widget.entryId));
+    if (identical(kept, matrix.value)) return;
+    matrix.value = kept;
+    await persistSetting(
+      repos.settings,
+      kProgramMatrixColumnsKey,
+      matrix.value.toJson(),
     );
-    final kept = stored?.withoutColumn(column);
-    if (stored != null && kept != null && !identical(kept, stored)) {
-      await persistSetting(
-        repos.settings,
-        kProgramMatrixColumnsKey,
-        kept.toJson(),
-      );
-    }
-    if (matrix != null) matrix.value = matrix.value.withoutColumn(column);
   }
 
   @override
