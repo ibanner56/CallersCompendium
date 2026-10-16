@@ -7342,6 +7342,7 @@ void main() {
       expect(SyncCapabilityPolicy.build.gatedSettingKeys, {
         'show_custom_figures': SyncCapabilities.glossaryV1,
         'compound_shorthands': SyncCapabilities.glossaryV1,
+        'user_figure_shorthands': SyncCapabilities.glossaryV2,
       });
       expect(SyncCapabilityPolicy.build.gatedGlossaryEntryKinds, {
         'term': SyncCapabilities.glossaryV2,
@@ -7360,9 +7361,15 @@ void main() {
       final shorthands = SyncMergeCandidate.fromBlob(
         _setting('compound_shorthands', '[]'),
       );
+      // The shorthands for the user's new figures wait on glossary.v2, with
+      // the figures themselves (#1023), which this build doesn't advertise.
+      final newFigureShorthands = SyncMergeCandidate.fromBlob(
+        _setting('user_figure_shorthands', '[]'),
+      );
       final local = {
         toggle.address: toggle,
         shorthands.address: shorthands,
+        newFigureShorthands.address: newFigureShorthands,
         plain.address: plain,
       };
 
@@ -7375,7 +7382,8 @@ void main() {
       ).syncNow();
       expect(publishedSettings(waiting), {'theme_mode'});
 
-      // ...and alone in its store, this build publishes them.
+      // ...and alone in its store, this build publishes the glossary.v1 ones,
+      // but not the shorthands for new figures: it doesn't advertise v2.
       final alone = transportFor(const []);
       await coordinatorFor(
         _FakeStore(local: local),

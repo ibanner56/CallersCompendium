@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/user_figures_scope.dart';
 import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../search/facet_labels.dart';
@@ -733,6 +734,7 @@ class _FigureEditor extends StatelessWidget {
                 key: ValueKey('move-${figure.id}'),
                 figure: figure,
                 taxonomy: taxonomy,
+                dialect: dialect,
                 onChanged: onChanged,
               ),
             ),
@@ -773,18 +775,39 @@ class _MoveField extends StatelessWidget {
     super.key,
     required this.figure,
     required this.taxonomy,
+    required this.dialect,
     required this.onChanged,
   });
 
   final BuilderFigure figure;
   final Taxonomy taxonomy;
+  final Dialect dialect;
   final VoidCallback onChanged;
+
+  /// The id of the figure of your own this row asks for (#1023), if any.
+  String? get _userFigureId {
+    if (figure.move != customMove) return null;
+    final id = figure.params[userFigureRefKey];
+    return id is String ? id : null;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final current = figure.move == null
-        ? ''
-        : (taxonomy.resolve(figure.move!)?.displayName ?? figure.move!);
+    final renderer = UserFiguresScope.rendererOf(context);
+    final userFigureId = _userFigureId;
+    // A row asking for one of your figures names it, from every figure you
+    // have, so it still reads if Custom Figures is turned off after picking.
+    final userFigureName = userFigureId == null
+        ? null
+        : UserFiguresScope.catalogOf(context)[userFigureId]?.name;
+    final current = switch (figure.move) {
+      null => '',
+      _ when userFigureName != null => renderer.renderFreeText(
+        userFigureName,
+        dialect,
+      ),
+      final move => taxonomy.resolve(move)?.displayName ?? move,
+    };
     return MoveTypeAheadField(
       initialText: current,
       taxonomy: taxonomy,
@@ -793,10 +816,23 @@ class _MoveField extends StatelessWidget {
       // narrow-layout sheet's field/options be found by key like every
       // other picker, and gives assistive tech a stable identity per figure.
       fieldKey: 'has-figure-${figure.id}',
+      userFigures: UserFiguresScope.shownCatalogOf(context),
+      dialect: dialect,
       onSelected: (m) {
-        if (figure.move != m.id) {
+        if (figure.move != m.id || _userFigureId != null) {
           figure.move = m.id;
           figure.params.clear();
+          onChanged();
+        }
+      },
+      // One of your figures is asked for as the index stores a use of it: a
+      // free-text figure carrying its id (#1023).
+      onUserFigureSelected: (view) {
+        if (_userFigureId != view.id) {
+          figure.move = customMove;
+          figure.params
+            ..clear()
+            ..[userFigureRefKey] = view.id;
           onChanged();
         }
       },
@@ -809,6 +845,41 @@ class _MoveField extends StatelessWidget {
       },
     );
   }
+}
+
+/// One entry a [MoveTypeAheadField] offers: a taxonomy move, or one of the
+/// user's own figures (#1023).
+sealed class _TypeAheadOption {
+  const _TypeAheadOption();
+
+  String get label;
+
+  /// The option-row key suffix: the move id, or `userFigure:<id>`.
+  String get keySuffix;
+}
+
+final class _MoveTypeAheadOption extends _TypeAheadOption {
+  const _MoveTypeAheadOption(this.move);
+
+  final MoveDef move;
+
+  @override
+  String get label => move.displayName;
+
+  @override
+  String get keySuffix => move.id;
+}
+
+final class _UserFigureTypeAheadOption extends _TypeAheadOption {
+  const _UserFigureTypeAheadOption(this.view, this.label);
+
+  final UserFigureView view;
+
+  @override
+  final String label;
+
+  @override
+  String get keySuffix => userFigureKeyFor(view.id);
 }
 
 /// A reusable move type-ahead: a [ResponsiveAutocomplete] over the
@@ -830,10 +901,26 @@ class MoveTypeAheadField extends StatelessWidget {
     this.labelText,
     this.hintText,
     this.fieldKey,
+    this.userFigures = UserFigureCatalog.empty,
+    this.dialect,
+    this.onUserFigureSelected,
   });
 
   final Taxonomy taxonomy;
   final ValueChanged<MoveDef> onSelected;
+
+  /// The user's own figures to offer before the moves (#1023), each found by
+  /// its name in [dialect] and marked as theirs. Offered only with
+  /// [onUserFigureSelected]; a figure that no longer decodes is never offered,
+  /// since no use of it is searchable.
+  final UserFigureCatalog userFigures;
+
+  /// The dialect [userFigures]' names are shown and matched in; canonical
+  /// when null.
+  final Dialect? dialect;
+
+  /// Fires when the user picks one of [userFigures].
+  final ValueChanged<UserFigureView>? onUserFigureSelected;
   final String initialText;
   final VoidCallback? onCleared;
   final String? labelText;
@@ -852,31 +939,70 @@ class MoveTypeAheadField extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final label = labelText ?? l10n.collectionQueryMoveLabel;
-    return ResponsiveAutocomplete<MoveDef>(
+    // Looked up only when figures are offered, so a field that offers none
+    // (the By-Phrase panel's) does not rebuild when the catalog changes.
+    final renderer = onUserFigureSelected == null
+        ? null
+        : UserFiguresScope.rendererOf(context);
+    final mine = renderer == null
+        ? const <_UserFigureTypeAheadOption>[]
+        : [
+            for (final view in userFigures.figures)
+              if (view.definition != null)
+                _UserFigureTypeAheadOption(
+                  view,
+                  renderer.renderFreeText(
+                    view.name,
+                    dialect ?? Dialect.canonical,
+                  ),
+                ),
+          ];
+    return ResponsiveAutocomplete<_TypeAheadOption>(
       initialValue: TextEditingValue(text: initialText),
-      displayStringForOption: (m) => m.displayName,
+      displayStringForOption: (o) => o.label,
       // Reuses the field's own label as the sheet's a11y announcement (e.g.
       // "Move"), matching the pattern in `MoveAutocomplete`.
       sheetSemanticLabel: label,
       optionsBuilder: (value) {
         final q = value.text.trim().toLowerCase();
-        if (q.isEmpty) return const Iterable<MoveDef>.empty();
-        return taxonomy.moves.values
-            .where((m) {
-              return m.displayName.toLowerCase().contains(q) ||
-                  m.id.toLowerCase().contains(q) ||
-                  m.searchKeywords.any((k) => k.toLowerCase().contains(q));
-            })
-            .take(8);
+        if (q.isEmpty) return const Iterable<_TypeAheadOption>.empty();
+        return <_TypeAheadOption>[
+          for (final o in mine)
+            if (o.label.toLowerCase().contains(q)) o,
+          for (final m in taxonomy.moves.values)
+            if (m.displayName.toLowerCase().contains(q) ||
+                m.id.toLowerCase().contains(q) ||
+                m.searchKeywords.any((k) => k.toLowerCase().contains(q)))
+              _MoveTypeAheadOption(m),
+        ].take(8);
       },
-      onSelected: (m) {
-        onSelected(m);
+      onSelected: (o) => switch (o) {
+        _MoveTypeAheadOption(:final move) => onSelected(move),
+        _UserFigureTypeAheadOption(:final view) => onUserFigureSelected?.call(
+          view,
+        ),
       },
-      optionTileBuilder: (context, m, onSelected) {
+      optionTileBuilder: (context, o, onSelected) {
+        final marker = l10n.glossaryCustomMarker;
         return ListTile(
-          key: fieldKey == null ? null : ValueKey('$fieldKey-option-${m.id}'),
+          key: fieldKey == null
+              ? null
+              : ValueKey('$fieldKey-option-${o.keySuffix}'),
           dense: true,
-          title: Text(m.displayName),
+          title: Text(o.label),
+          // Marked in words for assistive technology, not by the icon alone,
+          // as the dance editor's picker marks them.
+          trailing: o is _UserFigureTypeAheadOption
+              ? Tooltip(
+                  message: marker,
+                  excludeFromSemantics: true,
+                  child: Icon(
+                    Icons.person_outline,
+                    size: 18,
+                    semanticLabel: marker,
+                  ),
+                )
+              : null,
           onTap: onSelected,
         );
       },

@@ -29,6 +29,7 @@ class MatrixColumnEditor extends StatelessWidget {
     required this.dialect,
     required this.onConfigChanged,
     this.taxonomy,
+    this.userFigures = UserFigureCatalog.empty,
   });
 
   /// The active column configuration to edit.
@@ -46,6 +47,26 @@ class MatrixColumnEditor extends StatelessWidget {
 
   Taxonomy get _taxonomy => taxonomy ?? contraTaxonomy;
 
+  /// The user's own figures (#1023), each listed as a column of its own
+  /// after the built-in moves. Empty while Custom Figures is off.
+  final UserFigureCatalog userFigures;
+
+  /// The built-in catalog with a column per figure of your own placed before
+  /// its trailing custom bucket, where [buildProgramMatrix] puts them.
+  List<MatrixColumn> _catalog() {
+    final builtIn = builtInColumnCatalog(_taxonomy);
+    final mine = userFigureColumnCatalog(userFigures);
+    if (mine.isEmpty) return builtIn;
+    final customAt = builtIn.indexWhere((c) => c.isCustom);
+    return customAt < 0
+        ? [...builtIn, ...mine]
+        : [
+            ...builtIn.sublist(0, customAt),
+            ...mine,
+            ...builtIn.sublist(customAt),
+          ];
+  }
+
   /// Every editable column — the built-in catalog plus any custom
   /// (parameterized/compound) columns declared in [config] — in the config's
   /// effective display order. Mirrors the matrix's stable partition (ids listed
@@ -54,7 +75,7 @@ class MatrixColumnEditor extends StatelessWidget {
   /// visible here so the user can restore them.
   List<MatrixColumn> _orderedColumns() {
     final universe = <MatrixColumn>[
-      ...builtInColumnCatalog(_taxonomy),
+      ..._catalog(),
       for (final p in config.parameterized)
         MatrixColumn(moveId: p.id, kind: MatrixColumnKind.parameterized),
       for (final c in config.compound)
@@ -89,8 +110,19 @@ class MatrixColumnEditor extends StatelessWidget {
 
   void _reorder(int oldIndex, int newIndex) {
     final ids = [for (final c in _orderedColumns()) c.moveId];
+    final shown = ids.toSet();
     final moved = ids.removeAt(oldIndex);
     ids.insert(newIndex, moved);
+    // A column not listed here (a figure of your own's, while Custom Figures
+    // is off, #1023) keeps its place: it goes back right after the column it
+    // followed in the old order, or first when it followed none.
+    String? previous;
+    for (final id in config.order) {
+      if (!shown.contains(id)) {
+        ids.insert(previous == null ? 0 : ids.indexOf(previous) + 1, id);
+      }
+      previous = id;
+    }
     onConfigChanged(config.copyWith(order: ids));
   }
 
@@ -110,13 +142,13 @@ class MatrixColumnEditor extends StatelessWidget {
     onConfigChanged(config.copyWith(renames: renames));
   }
 
-  /// D4: restore removed defaults — un-hide every built-in, reset the built-in
-  /// portion of order to catalog order, keep renames and all custom columns,
-  /// appending customs after the built-ins sorted by displayed label.
+  /// D4: restore removed defaults — un-hide every column (a figure of your
+  /// own's too, even one not listed while Custom Figures is off), reset the
+  /// listed built-in and figure columns to catalog order, keep renames and all
+  /// custom columns, appending customs after the built-ins sorted by displayed
+  /// label.
   void _restoreRemovedDefaults() {
-    final catalogOrder = [
-      for (final c in builtInColumnCatalog(_taxonomy)) c.moveId,
-    ];
+    final catalogOrder = [for (final c in _catalog()) c.moveId];
     final customs = <CustomColumnLabel>[
       for (final p in config.parameterized)
         (

@@ -232,6 +232,11 @@ EXISTS (SELECT 1 FROM dance_figures f
   existing `danceIdsWithFigure()` primitive, which compares pre-encoded JSON
   text; the compiler supersedes that primitive.
 - `section`, when present, binds the derived phrase label (`'B1'`, …).
+- A use of a figure of your own (#1023) is asked for as the index stores it:
+  `FigureLeaf('custom', params: {'userFigure': <id>})`. The index keeps that
+  key only while the use renders live from its definition, so a detached use,
+  or one whose figure is gone, is not found. The id is bound as given, never
+  canonicalized (below): it is an id, not prose.
 
 `FigureAnd` / `FigureOr` combine the *inner* clauses of a **single** `EXISTS`
 (all constraints on the same `f` row), joined by `AND` / `OR`. Negation has two
@@ -475,10 +480,13 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
 - **`FigureLeaf.move` / `FigureQuery` moves**: the move name is canonicalized
   to its taxonomy id before binding to `f.move = ?`. A caller who typed a
   dialect/synonym move name resolves to the same canonical `move` stored in
-  `dance_figures`.
+  `dance_figures`. A dialect `moves` key naming a figure of your own
+  (`userFigure:<id>`, #1023) is not a move and is left out of this reverse
+  map and of `SearchEnrichment`'s, so its wording never rewrites a query's
+  move to a key no row has.
 - **`params` string values** that name roles (e.g. `who: 'robins'`) are
   canonicalized the same way before binding, matching the canonical params
-  written by the codec.
+  written by the codec. The `userFigure` id is the exception, bound as given.
 
 The active `Dialect` is passed into the compiler (the UI supplies the user's
 current dialect). Non-role prose and unknown terms are left verbatim

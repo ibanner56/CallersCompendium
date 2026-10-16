@@ -195,7 +195,12 @@ Open the **Advanced** builder to ask about the [figures](./glossary.md#figure) �
 the moves — inside your dances. It works by stacking up rows and groups:
 
 1. Add a **Has figure** row and pick a move with the type-ahead field — start
-   typing and choose from the matches.
+   typing and choose from the matches. While **Custom Figures** is on, your own
+   new figures are offered too, first and marked as yours; picking one finds
+   the dances that use it. A use that shows its stored line instead of your
+   figure's wording is not found this way — one changed on another device, one
+   with a choice the figure no longer has, or one of a figure you have deleted
+   — but its line is still found by the search bar.
 2. Optionally **pin the move to a section** (for example B2), so it only counts
    when it appears there.
 3. Optionally set the move's **parameters** to be more specific.

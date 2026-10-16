@@ -2745,9 +2745,10 @@ republishes, which is an ordinary upload and needs no special path.
    from a merged-away copy is written through the apply engine, which rewrites
    its id to the survivor.
 
-   **Whole-collection settings.** Five settings keys hold a whole user-built
+   **Whole-collection settings.** Six settings keys hold a whole user-built
    collection behind one key: `compound_shorthands`, `custom_dialects`,
-   `custom_themes`, `shorthand_mappings` and `walkthrough_snippets`. For these, a
+   `custom_themes`, `shorthand_mappings`, `user_figure_shorthands` and
+   `walkthrough_snippets`. For these, a
    `changed`/`changed` conflict MUST be queued for the user's choice whatever
    the two `updatedAt` values, because last-writer-wins would discard one
    device's entire set rather than one edit. Both sides must have changed since
@@ -4407,8 +4408,10 @@ advertising the capability, so they stayed on their device.
 a tombstone blob carries its body, so its kind. An entry of any other kind,
 `compound` and kinds the build does not know included, stays on `glossary.v1`.
 A build that knows only `glossary.v1` would read such an entry as one it cannot
-use. The reference client gates it without advertising it until #1023 is
-complete, so until then those entries stay on their device.
+use. It also gates the `user_figure_shorthands` setting, the shorthands for
+those figures, which a peer that cannot read the figures has no use for. The
+reference client gates it without advertising it until #1023 is complete, so
+until then those entries and that setting stay on their device.
 
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed
