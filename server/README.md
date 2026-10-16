@@ -105,9 +105,9 @@ and `first-sync` (one device uploading a whole library into a new store,
 reported as time per device).
 
 `blob-put`, `blob-get` and `first-sync` model the legacy per-record
-`GET`/`PUT /v1/blobs/{hash}` path. Since the batch routes (#1747) the app sends
-`PUT /v1/blobs/batch` and `POST /v1/blobs/batch` instead, and keeps the
-per-record requests only as a fallback (a blob over the size cap, or a server
+`GET`/`PUT /v1/blobs/{hash}` path. Since the batch routes (#1734, #1747) the
+app sends `PUT /v1/blobs/batch` and `POST /v1/blobs/batch` instead, and keeps
+the per-record requests only as a fallback (a blob over the size cap, or a server
 without the batch routes). The tool does not call the batch routes, so what they
 cost in request budget is not measured here, and a `first-sync` request count
 overstates what the shipped app sends.

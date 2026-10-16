@@ -9,6 +9,11 @@ import 'package:test/test.dart';
 // is either a live deployment's data or the previous run's, whose fixture
 // stores would answer 409.
 void main() {
+  // `dart test server/test` from the repository root (tools/preflight.py) and
+  // `dart test` from `server/` (CI) both reach this file.
+  final serverDirectory = File('tool/load_test.dart').existsSync()
+      ? '.'
+      : 'server';
   late Directory scratch;
 
   setUp(() => scratch = Directory.systemTemp.createTempSync('load-test-dir-'));
@@ -23,7 +28,7 @@ void main() {
         '--scenario=store-get',
         '--stores=2',
         '--data-dir=$dataDirectory',
-      ]);
+      ], workingDirectory: serverDirectory);
 
   List<String> listing(Directory directory) =>
       directory
@@ -77,6 +82,16 @@ void main() {
     },
     timeout: const Timeout(Duration(minutes: 3)),
   );
+
+  test('refuses a link that points nowhere', () async {
+    final dangling = p.join(scratch.path, 'dangling');
+    Link(dangling).createSync(p.join(scratch.path, 'missing'));
+
+    final result = await loadTest(dangling);
+
+    expect(result.exitCode, 2, reason: '${result.stdout}${result.stderr}');
+    expect(result.stderr, isNot(contains('Unhandled exception')));
+  }, timeout: const Timeout(Duration(minutes: 3)));
 
   test('accepts an existing empty directory', () async {
     final result = await loadTest(scratch.path);

@@ -170,7 +170,11 @@ Future<void> main(List<String> arguments) async {
 String? _dataDirectoryProblem(String path) {
   switch (FileSystemEntity.typeSync(path)) {
     case FileSystemEntityType.notFound:
-      return null;
+      // `typeSync` follows links, so a link to nowhere reads as absent too.
+      return FileSystemEntity.typeSync(path, followLinks: false) ==
+              FileSystemEntityType.notFound
+          ? null
+          : 'is a link to a path that does not exist.';
     case FileSystemEntityType.directory:
       return Directory(path).listSync().isEmpty
           ? null
@@ -246,9 +250,10 @@ Future<_Result> _run(
 /// upload: create, read the store, probe for missing blobs and `PUT` each one
 /// on its own, then read the store again, probe again before publishing, and
 /// publish the manifest. The shipped app no longer uploads this way: since the
-/// batch routes (#1747) it sends `PUT /v1/blobs/batch`, and keeps a per-record
-/// `PUT` only as a fallback. This scenario therefore sends many more requests
-/// than the app does, and the cost of the batch routes is not measured here.
+/// batch routes (#1734, #1747) it sends `PUT /v1/blobs/batch`, and keeps a
+/// per-record `PUT` only as a fallback. This scenario therefore sends many more
+/// requests than the app does, and the cost of the batch routes is not
+/// measured here.
 /// The time per device is the figure a rate limit stretches, so it is recorded
 /// alongside the request latencies, and only when every request in the pass
 /// succeeded.
