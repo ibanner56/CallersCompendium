@@ -203,7 +203,7 @@ Settings ▸ Updates additionally offer a **"Download & install"** action that:
    **never removes a directory that contains the running executable**
    (`APPIMAGE`, or `Platform.resolvedExecutable`), compared by resolved path and
    whole path segments. It matches only names `Directory.createTemp` produces
-   (`cc_update_` plus letters and digits) and never follows symlinks. A user who
+   (`cc_update_` plus letters, digits and hyphens) and never follows symlinks. A user who
    wants to keep an AppImage after a later run should move it out of the temp
    directory (the user guide says so). The sweep is best-effort and silent; what
    it cannot remove (a file still in use) is retried at the next launch.

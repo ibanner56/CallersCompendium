@@ -115,9 +115,8 @@ void main() {
         updateDir('cc_update', age: stale),
         updateDir('cc_updat_x', age: stale),
         updateDir('x_${kUpdateTempDirPrefix}y', age: stale),
-        // `Directory.createTemp` appends only letters and digits, so these were
-        // not made by a download.
-        updateDir('${kUpdateTempDirPrefix}my-notes', age: stale),
+        // `Directory.createTemp` appends only letters, digits and hyphens, so
+        // these were not made by a download.
         updateDir('${kUpdateTempDirPrefix}a.b', age: stale),
         updateDir('${kUpdateTempDirPrefix}a b', age: stale),
         updateDir(kUpdateTempDirPrefix, age: stale),
@@ -126,14 +125,36 @@ void main() {
           ..setLastModifiedSync(later.subtract(stale)),
       ];
       final ours = updateDir('${kUpdateTempDirPrefix}abc', age: stale);
+      // The hyphenated form Windows can produce.
+      final hyphenated = updateDir(
+        '${kUpdateTempDirPrefix}1b2c-3d4e',
+        age: stale,
+      );
+
+      final removed = await sweep(temp, now: nowLater);
+
+      expect(removed, 2);
+      expect(ours.existsSync(), isFalse);
+      expect(hyphenated.existsSync(), isFalse);
+      for (final other in others) {
+        expect(other.existsSync(), isTrue, reason: other.path);
+      }
+    });
+
+    test('removes a directory made the way the downloader makes it', () async {
+      // Ties the name filter to a real `createTemp` name on whatever host the
+      // suite runs on, so the two cannot drift apart unnoticed.
+      final made = await temp.createTemp(kUpdateTempDirPrefix);
+      File('${made.path}/installer.exe')
+        ..writeAsStringSync('bytes')
+        ..setLastModifiedSync(
+          later.subtract(kUpdateTempDirMinAge + const Duration(days: 1)),
+        );
 
       final removed = await sweep(temp, now: nowLater);
 
       expect(removed, 1);
-      expect(ours.existsSync(), isFalse);
-      for (final other in others) {
-        expect(other.existsSync(), isTrue, reason: other.path);
-      }
+      expect(made.existsSync(), isFalse);
     });
 
     test(
