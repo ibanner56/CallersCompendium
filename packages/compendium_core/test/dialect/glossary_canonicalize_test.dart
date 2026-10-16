@@ -3,8 +3,10 @@ import 'package:compendium_core/src/dialect/discouraged_terms.dart';
 import 'package:test/test.dart';
 
 /// User-glossary text canonicalization (#709): today's role rules, plus the
-/// singular-subject verb exception and stored discouraged terms, decided by
-/// the maintainer for this text only (2026-10-14).
+/// singular-subject verb exception and stored discouraged terms, for this text
+/// only. The maintainer decided the stored terms and the singular-role-term
+/// exception (2026-10-14); what else counts as a subject is the implementer's
+/// choice (`docs/design/dialect.md`).
 void main() {
   final lf = Dialect.leadsFollows;
   final lr = Dialect.larksRobins;
@@ -27,6 +29,49 @@ void main() {
       'each neighbor follows',
     );
     expect(canonicalizeGlossaryText('role2 follows', lf), 'role2 follows');
+  });
+
+  test('a plural role in front of a homograph is not a singular subject', () {
+    // A plural role term or token in front is not a singular subject: "leads"
+    // and "robins" are plural, so the word after them stays a role.
+    expect(canonicalizeGlossaryText('leads follows', lf), 'role1s role2s');
+    expect(
+      canonicalizeGlossaryText('the robins follows', lf),
+      'the role2s role2s',
+    );
+  });
+
+  group('each singular dancer noun after a determiner is a subject', () {
+    for (final noun in [
+      'partner',
+      'neighbor',
+      'neighbour',
+      'shadow',
+      'corner',
+      'couple',
+      'dancer',
+      'person',
+    ]) {
+      test('"the $noun leads down"', () {
+        expect(
+          canonicalizeGlossaryText('the $noun leads down', lf),
+          'the $noun leads down',
+        );
+      });
+    }
+  });
+
+  test('the subject is found past 64 characters of preceding text', () {
+    // The subject's offset is into the whole text, not into the 64-character
+    // window searched for it: the determiner in front of it is read from
+    // there.
+    const lead =
+        'Everyone dances the first half of the figure facing across, then ';
+    expect(lead.length, greaterThan(64));
+    expect(
+      canonicalizeGlossaryText('${lead}your partner leads down', lf),
+      '${lead}your partner leads down',
+    );
   });
 
   test('a dancer noun with no determiner is not taken for a subject', () {
@@ -108,6 +153,37 @@ void main() {
     // The rest of the table still applies.
     expect(canonicalizeGlossaryText('ladies chain', _birds), 'role2s chain');
     expect(canonicalizeGlossaryText('gypsy', _birds), 'shoulder round');
+  });
+
+  test('the stored discouraged-term table, pinned term by term', () {
+    // The round-trip test below derives its expectations from the table it
+    // is checking, so it cannot notice a term whose meaning changed or
+    // went missing. This pins the concrete table; adding a term means adding
+    // it here.
+    const stored = {
+      'gypsy': 'shoulder round',
+      'gyre': 'shoulder round',
+      'gent': 'role1',
+      "gent's": "role1's",
+      'gents': 'role1s',
+      "gents'": "role1s'",
+      'men': 'role1s',
+      "men's": "role1s'",
+      'men’s': "role1s'",
+      'lady': 'role2',
+      "lady's": "role2's",
+      'ladies': 'role2s',
+      "ladies'": "role2s'",
+      'women': 'role2s',
+      "women's": "role2s'",
+      'women’s': "role2s'",
+      'ravens': 'role2s',
+      "ravens'": "role2s'",
+    };
+    expect(storedDiscouragedTerms, stored);
+    for (final e in stored.entries) {
+      expect(canonicalizeGlossaryText(e.key, lr), e.value, reason: e.key);
+    }
   });
 
   test('move names stay protected', () {

@@ -489,6 +489,86 @@ void main() {
     expect(find.byKey(const ValueKey('figure-0-add-side')), findsOneWidget);
   });
 
+  group('Add menu is operable from the keyboard alone (#1821)', () {
+    const addKey = ValueKey('figure-add');
+
+    // Focus the Add button by Tab from the top of the page, then open the
+    // menu with Space — no pointer event anywhere.
+    Future<void> openAddMenuByKeyboard(WidgetTester tester) async {
+      var guard = 0;
+      while (!(FocusManager.instance.primaryFocus?.debugLabel ?? '').contains(
+            'figure-add',
+          ) &&
+          guard++ < 80) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+      }
+      expect(
+        FocusManager.instance.primaryFocus?.debugLabel,
+        contains('figure-add'),
+        reason: 'Tab should reach the Add button',
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('figure-add-figure')), findsOneWidget);
+    }
+
+    testWidgets(
+      'Enter on the first item reaches the free-text box from an empty dance',
+      (tester) async {
+        final drafts = <FigureDraft>[];
+        await _pump(
+          tester,
+          drafts,
+          freeTextEntry: true,
+          wireAddMeanwhile: true,
+        );
+        await openAddMenuByKeyboard(tester);
+
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pumpAndSettle();
+
+        final field = find.byKey(const ValueKey('figure-free-text-field'));
+        expect(field, findsOneWidget);
+        final editable = tester.state<EditableTextState>(
+          find.descendant(of: field, matching: find.byType(EditableText)),
+        );
+        expect(editable.widget.focusNode.hasFocus, isTrue);
+      },
+    );
+
+    testWidgets('Down + Enter adds a meanwhile container', (tester) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true, wireAddMeanwhile: true);
+      await openAddMenuByKeyboard(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+
+      expect(drafts, hasLength(1));
+      expect(drafts.single.isMeanwhileGroup, isTrue);
+    });
+
+    testWidgets('Escape closes the menu and returns focus to Add', (
+      tester,
+    ) async {
+      await _pump(tester, <FigureDraft>[], wireAddMeanwhile: true);
+      await openAddMenuByKeyboard(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('figure-add-figure')), findsNothing);
+      expect(
+        FocusManager.instance.primaryFocus?.debugLabel,
+        contains('figure-add'),
+      );
+      expect(find.byKey(addKey), findsOneWidget);
+    });
+  });
+
   testWidgets('Add menu hides unavailable container actions', (tester) async {
     final drafts = <FigureDraft>[];
     await _pump(tester, drafts, wireAddModifier: true);

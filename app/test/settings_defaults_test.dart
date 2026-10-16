@@ -1691,6 +1691,91 @@ void main() {
       expect(stored.single.move, 'swing');
     });
 
+    testWidgets('a line with no stated count persists its derived beats in the '
+        'template (#1820)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+      await repos.settings.set(kDefaultDanceFiguresTemplateKey, '[]');
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-free-text-field')),
+        'neighbor balance & swing',
+      );
+      await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
+      await tester.pumpAndSettle();
+
+      final stored = danceFiguresTemplateFromStored(
+        await repos.settings.get(kDefaultDanceFiguresTemplateKey),
+      );
+      expect(stored.single.beats, 16);
+    });
+
+    testWidgets('Meanwhile side defaults persist the derived beats of a line '
+        'with no stated count (#1820)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+      await repos.settings.set(kDefaultMeanwhileSideFiguresKey, '[]');
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('meanwhile-side-add')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('meanwhile-side-free-text-field')),
+        'neighbor balance & swing',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('meanwhile-side-free-text-submit')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        meanwhileSideFiguresFromStored(
+          await repos.settings.get(kDefaultMeanwhileSideFiguresKey),
+        ).single.beats,
+        16,
+      );
+    });
+
+    testWidgets('Modifier defaults persist the derived beats of a line with no '
+        'stated count (#1820)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+      await repos.settings.set(kDefaultModifierFiguresKey, '[]');
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('modifier-default-add')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('modifier-default-free-text-field')),
+        'neighbor balance & swing',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('modifier-default-free-text-submit')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        modifierFiguresFromStored(
+          await repos.settings.get(kDefaultModifierFiguresKey),
+        ).single.beats,
+        16,
+      );
+    });
+
     testWidgets('Modifier defaults honor free-text entry and persist figures', (
       tester,
     ) async {

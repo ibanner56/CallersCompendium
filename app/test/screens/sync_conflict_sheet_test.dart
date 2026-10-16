@@ -490,6 +490,20 @@ void main() {
       expect(differing(), ['title', 'authorIds']);
     });
 
+    test('a part kept for a newer version is not shown as a difference', () {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+
+      expect(
+        syncConflictDifferingFields(
+          l10n,
+          SyncRecordKind.publishedSource,
+          {'title': 'Contra Book', 'addedLater': 'one'},
+          {'title': 'Contra Book!', 'addedLater': 'two'},
+        ).map((field) => field.key),
+        ['title'],
+      );
+    });
+
     test('shows exactly the fields the merge treats as visible, so a tie in '
         'any other field is never put to the user', () {
       final l10n = lookupAppLocalizations(const Locale('en'));

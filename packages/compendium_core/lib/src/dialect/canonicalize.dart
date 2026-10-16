@@ -134,8 +134,10 @@ Substitutor _glossaryDiscouragedFor(Dialect dialect) {
 /// figure's name, definition, description and notes, and their notes on
 /// shipped figures (#709). Notes on a dance's figures keep [canonicalize].
 ///
-/// Stricter than [canonicalizeText] in one way and wider in another, both
-/// decided by the maintainer for this text only (2026-10-14):
+/// Stricter than [canonicalizeText] in one way and wider in another, for this
+/// text only. The maintainer decided the stored discouraged terms and the
+/// singular-role-term subject exception (2026-10-14); what else counts as a
+/// subject is the implementer's choice (see `docs/design/dialect.md`):
 /// - the built-in discouraged terms are stored canonically ("ladies" →
 ///   `role2s`, "gypsy" → "shoulder round"), not kept as typed. The table is
 ///   the built-in one the renderer displays them from, not [dialect]'s own
@@ -144,8 +146,10 @@ Substitutor _glossaryDiscouragedFor(Dialect dialect) {
 ///   `docs/design/dialect.md`);
 /// - under a dialect whose roles are "lead"/"follow", "leads"/"follows"
 ///   directly after a singular subject is the verb ("The robin follows the
-///   lark across" → "The role2 follows the role1 across"), where
-///   [canonicalizeText] would read it as the plural role.
+///   lark across" → "The role2 follows the role1 across", "The caller
+///   follows the music" is kept), where [canonicalizeText] would read it as
+///   the plural role. What counts as a singular subject is
+///   `RoleCanonicalizer`'s `_followsSingularSubject`.
 ///
 /// Everything else is [canonicalizeText]'s behaviour, so "leads cross +
 /// follows loop" still becomes "role1s cross + role2s loop".

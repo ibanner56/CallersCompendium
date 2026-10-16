@@ -1611,6 +1611,53 @@ void main() {
       expect(controller.canUndo, isTrue);
     });
 
+    test('a line with no stated count reads its derived beats and keeps '
+        're-deriving them (#1820)', () async {
+      final repos = openTestRepositories();
+      final controller = await emptyExistingController(repos);
+      addTearDown(controller.dispose);
+
+      controller.insertFreeTextFigures(
+        parseFreeTextFigureEntry('neighbor balance & swing'),
+      );
+
+      final draft = controller.figureDrafts.single;
+      expect(draft.beats, 16);
+      expect(draft.beatsTouched, isFalse);
+      expect(figuresOf(controller.buildDance()).single.beats, 16);
+
+      // The count was a default fill, not an override: a prefix change still
+      // re-derives it.
+      draft.move = applyParamChange(
+        contraTaxonomy,
+        move: draft.move!,
+        params: draft.params,
+        key: 'prefix',
+        value: 'none',
+        beatsTouched: draft.beatsTouched,
+        aggressiveBeats: false,
+      );
+      expect(draft.beats, 8);
+    });
+
+    test('children of a container line get their derived beats (#1820)', () {
+      final draft = FigureDraft.fromFreeTextFigure(
+        Figure.meanwhile(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'custom'),
+          ],
+          beats: 8,
+        ),
+        contraTaxonomy,
+      );
+      expect(draft.meanwhileSides![0].beats, 8);
+      expect(draft.meanwhileSides![0].beatsTouched, isFalse);
+      // A custom is left to its own seeding.
+      expect(draft.meanwhileSides![1].params.containsKey('beats'), isFalse);
+      expect(draft.beats, 8);
+    });
+
     test('a `;`-compound appends one row per clause', () async {
       final repos = openTestRepositories();
       final controller = await emptyExistingController(repos);

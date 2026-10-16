@@ -1,0 +1,9 @@
+{
+  "id": "linux-picker-uppercase-extensions",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "On Linux, the import file chooser no longer hides files with an upper-case extension: your Caller's Companion library (for example CallersCompanion2.USR) and shared files (.CCSHARE, .JSON) now show up alongside lower-case ones."
+    ]
+  }
+}

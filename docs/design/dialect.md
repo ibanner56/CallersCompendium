@@ -281,10 +281,85 @@ and flag labels and text defaults — has its own variant of the chokepoint,
 - Under a dialect whose roles are "lead"/"follow", the plural form directly
   after a singular subject in the same clause is the verb, not the plural
   role: "The robin follows the lark across" stores `The role2 follows the
-  role1 across`. A singular subject is a singular role term or token, or a
-  dancer noun after a determiner ("your partner leads"); a bare dancer noun
-  ("swing partner follows cross") is not, so there `follows` is the role.
-  "leads cross + follows loop" still stores `role1s cross + role2s loop`.
+  role1 across`. A singular subject is:
+  - a singular role term or token;
+  - a pronoun that is only ever a subject: it, he, she, who, whoever, and
+    everyone, someone, anyone, nobody and their "-body" forms ("It leads into
+    a swing", "Everyone follows the leader");
+  - "this", "that" or "which" **when a direction, an object or a dancer word
+    comes next** ("a call that follows the balance"); otherwise they are a
+    conjunction or a determiner and the roles after them are plural ("Make
+    sure that leads cross first" stores `role1s`);
+  - a dancer noun after a determiner ("your partner leads");
+  - any other singular noun after a determiner, with the same condition on the
+    next word ("The caller follows the music", "The line leads down the
+    hall").
+
+  A bare noun ("swing partner follows cross", "swing caller follows the
+  music") is not a subject, so there `follows` is the role. "leads cross +
+  follows loop" still stores `role1s cross + role2s loop`.
+
+  **Who decided.** Only the exception for a singular role term is recorded as
+  decided (the maintainer, 2026-10-14, per the comment on
+  `canonicalizeGlossaryText`). Everything else here is the implementer's
+  choice, not a recorded maintainer decision: the dancer nouns, the pronouns,
+  the open-noun rule and its lookahead.
+
+  **Why the open-noun rule is narrow.** "determiner + word + leads" is also a
+  plural role whenever the word is an adjective, a count or a quantity. So
+  the word before the verb must not:
+  - end in "s" ("the ones leads down", "the class follows" stay roles);
+  - be a role term, a count ("the two leads down the hall") or a quantity
+    ("several"), a determiner other than an ordinal ("the other leads down"),
+    an auxiliary ("to", "not", "will") or a verb complement ("up", "down",
+    "all", a dancer word), or a single letter;
+
+  and the word after the verb must be a direction, an object or a dancer word
+  **and not a role term** ("the new leads follow the ones" and "the inside
+  leads, follows outside" stay roles). A hyphen before it counts as a space
+  ("leads-up").
+
+  **Known limitations.** In each of these the plural form is stored as the
+  plural role (`role1s`, `role2s`), as it was before the rule, though a reader
+  would take it for the verb:
+  - a subject followed by nothing, a comma or a non-complement word ("The set
+    follows.", "The set follows, then leads cross");
+  - a modifier between the determiner and the noun ("The opening figure leads
+    into a swing", "The new caller leads down the hall", "The whole set
+    follows the music"): the noun must be the word right after the determiner;
+  - a hyphenated noun ("the call-out leads down the hall"), a noun ending in
+    "s" ("the class follows the music"), "the other follows", "no one
+    follows", and "what follows" or "whatever follows";
+  - a subject that the built-in discouraged-term table rewrites first: "the
+    gypsy follows the ones" is stored `the shoulder round role2s the ones`,
+    because the rewrite runs before the verb is decided;
+  - "that", "this" and "which" followed by a complement are read as the
+    subject even where a conjunction and a plural role is meant: "Note that
+    follows the balance", "Make sure that follows your partner", "Remember
+    that leads the way", "Ensure that follows them" and "Do this follows the
+    music" are stored with the literal verb. The two readings are the same
+    words and the next word cannot tell them apart, so the lookahead is a
+    compromise: "Make sure that leads cross first" is the plural role and "a
+    call that follows the balance" the verb. When the next word is not a
+    complement the role wins even for a real subject ("This follows
+    established practice" is stored `This role2s established practice`);
+  - the render round trip, which can also turn a plural role into the verb.
+    Glossary text is stored in canonical form, shown through the active
+    dialect, and a no-edit save stores what was shown, so the decision is made
+    again on the shown text. "the active larks down the hall" typed under
+    Larks/Robins is stored `the active role1s down the hall`, shown under
+    Leads/Follows as "the active leads down the hall", and a re-save there
+    keeps `leads` as a literal word. The tests pin
+    `canonicalize(canonicalize(x))`, not `canonicalize(render(canonicalize(x)))`.
+    The drift is accepted: closing it needs the renderer to mark which role
+    word it wrote.
+
+  Rejected: reading any word after a determiner as the subject (it stores "the
+  new leads" as the verb and survives every pre-existing test); a longer
+  closed list of nouns (it cannot name "caller", "line" or "set", and glossary
+  prose has no closed vocabulary); no lookahead (it makes every "determiner +
+  adjective + leads" a verb); and a lookahead-free "that", "this" and "which"
+  (it stores "Make sure that leads cross first" with a literal `leads`).
 
 Every one of those fields is canonicalized, the prose ones included. That
 takes on, for this text only, the proper-noun risk that keeps hand-typed prose

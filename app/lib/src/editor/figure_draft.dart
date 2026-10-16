@@ -61,6 +61,45 @@ class FigureDraft {
         : null,
   );
 
+  /// Seeds a draft from a figure parsed out of a free-text entry line (#419).
+  ///
+  /// The parser leaves `beats` absent when the line states no count, so that
+  /// the count is derived on read. A draft reads [beats] straight from its
+  /// params and would show 0, so each ordinary structured figure (and each
+  /// such child of a meanwhile/modifier container) has its params filled from
+  /// [Taxonomy.effectiveParams], `beats` included, the way picking a move in
+  /// the editor does. [beatsTouched] stays false for a derived count, so a
+  /// later param change still re-derives it; a stated count stays touched.
+  /// Customs and a container's own shared count are left as parsed.
+  factory FigureDraft.fromFreeTextFigure(Figure figure, Taxonomy taxonomy) {
+    final draft = FigureDraft.fromFigure(figure);
+    _fillDerivedParams(draft, figure, taxonomy);
+    return draft;
+  }
+
+  static void _fillDerivedParams(
+    FigureDraft draft,
+    Figure figure,
+    Taxonomy taxonomy,
+  ) {
+    if (figure.isContainer) {
+      final children = figure.isMeanwhile
+          ? draft.meanwhileSides
+          : draft.modifierFigures;
+      final sources = figure.subFigures;
+      if (children == null || children.length != sources.length) return;
+      for (var i = 0; i < children.length; i++) {
+        _fillDerivedParams(children[i], sources[i], taxonomy);
+      }
+      return;
+    }
+    if (figure.isCustom || figure.params.containsKey('beats')) return;
+    draft.params
+      ..clear()
+      ..addAll(taxonomy.effectiveParams(figure));
+    draft.beatsTouched = false;
+  }
+
   /// Stable identity for widget keys across reorders/rebuilds.
   final String id;
 

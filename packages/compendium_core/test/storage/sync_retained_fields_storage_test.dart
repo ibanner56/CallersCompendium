@@ -5,6 +5,7 @@
 // never agrees on it: the baseline never advances, and the record reaches the
 // conflict machinery over a difference nobody on this device can see.
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 import 'test_database.dart';
@@ -13,6 +14,17 @@ final _stamp = DateTime.utc(2026, 7, 15, 12);
 
 extension on SyncRecordBlob {
   SyncRecordAddress get address => (kind: kind, recordId: id);
+
+  /// This blob as a newer build would send it: the same record plus a
+  /// top-level field this build does not know.
+  SyncRecordBlob get withKept => SyncRecordBlob(
+    kind: kind,
+    id: id,
+    updatedAt: updatedAt,
+    deletedAt: deletedAt,
+    existenceAt: existenceAt,
+    body: {...body, 'addedLater': 'kept'},
+  );
 }
 
 void main() {
@@ -174,6 +186,184 @@ void main() {
     expect(mine.wireHash, SyncMergeCandidate(blob: peer).wireHash);
   });
 
+  test('two peers\' tags with the same name and the same kept field are one '
+      'tag, not a review', () async {
+    // A natural-key collision at the same `updatedAt` compares the whole body,
+    // and the local copy's body only carries the kept field because the
+    // candidate builder puts it back. Without it the two copies differ in a
+    // field neither user can see, and the pair is queued for a review that has
+    // nothing to decide.
+    SyncRecordBlob newerTag(String id) => syncRecordBlobForEntity(
+      SyncRecordKind.tag,
+      Tag(id: id, name: 'Same Tag'),
+      updatedAt: _stamp,
+      existenceAt: _stamp,
+    )!.withKept;
+
+    await apply(newerTag('t-a'));
+    expect(await repositories.syncLocal.listRetainedSyncFields(), hasLength(1));
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [SyncMergeCandidate(blob: newerTag('t-b'))],
+      storage: storage,
+    );
+
+    expect(result.reports, isEmpty);
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+  });
+
+  test('a setting this build syncs keeps a newer build\'s extra part and '
+      'shares it back', () async {
+    final peer = SyncRecordBlob(
+      kind: SyncRecordKind.setting,
+      id: 'custom_dialects',
+      updatedAt: _stamp,
+      deletedAt: null,
+      existenceAt: _stamp,
+      body: const {
+        'value': ['Contra'],
+        'addedLater': {'on': true},
+      },
+    );
+    await apply(peer);
+
+    // The known part lands in settings; the extra one is only kept.
+    expect(await repositories.settings.get('custom_dialects'), ['Contra']);
+    final mine = await published(peer.address);
+    expect(mine.blob.body['addedLater'], {'on': true});
+    expect(mine.wireHash, SyncMergeCandidate(blob: peer).wireHash);
+  });
+
+  group('a dance with kept parts that is merged with a duplicate', () {
+    // The survivor of a dance merge is the whole record from then on, so the
+    // parts it kept must be in the body the merge starts from. A candidate
+    // built without them would clear the row when the merged record is stored.
+    Dance dance(String id, {String move = 'swing'}) => Dance(
+      id: id,
+      title: 'Shared Dance',
+      figures: [
+        testFigure(move: move, params: const {'beats': 8}),
+      ],
+      createdAt: _stamp,
+      updatedAt: _stamp,
+    );
+
+    Future<void> applyKeptDance(String id) async {
+      final blob = syncRecordBlobForEntity(
+        SyncRecordKind.dance,
+        dance(id),
+        updatedAt: _stamp,
+        existenceAt: _stamp,
+      )!;
+      await apply(blob.withKept);
+      expect(
+        await repositories.syncLocal.getRetainedSyncFields(
+          kind: SyncRecordKind.dance,
+          recordId: id,
+        ),
+        isNotNull,
+      );
+    }
+
+    Future<void> expectKept(String id) async {
+      expect(
+        await repositories.syncLocal.getRetainedSyncFields(
+          kind: SyncRecordKind.dance,
+          recordId: id,
+        ),
+        isNotNull,
+        reason: 'the survivor\'s kept row is still stored',
+      );
+      final mine = await published((kind: SyncRecordKind.dance, recordId: id));
+      expect(mine.blob.body['addedLater'], 'kept');
+    }
+
+    test('a fresh attach keeps them', () async {
+      await applyKeptDance('a-survivor');
+      await repositories.dances.create(dance('z-duplicate'));
+
+      final result = await storage.deduplicateFreshAttach();
+
+      expect(result.duplicateCount, 1);
+      expect(await repositories.dances.getById('z-duplicate'), isNull);
+      await expectKept('a-survivor');
+    });
+
+    test(
+      'the dropped duplicate\'s own kept parts are not carried over',
+      () async {
+        // This pins the choice documented in `_applyDanceDedupeMerge`: the
+        // merged body is the survivor's whole record, so what it keeps replaces
+        // what the survivor and the duplicates kept before, and a duplicate's
+        // parts do not turn up on the survivor. It is the implementation's
+        // choice, not a spec rule and not a maintainer decision. It is in
+        // tension with sync-spec's "A row MUST follow its record when two
+        // identities become one", which can be read as the duplicate's row
+        // moving onto the survivor; if that reading is the intended one, this
+        // test and the `_storeRetained` call change together.
+        //
+        // Only top-level parts are covered. Merged link, custom-field and
+        // citation items that carry nested unknown keys are not exercised here.
+        await repositories.dances.create(dance('a-survivor'));
+        await applyKeptDance('z-duplicate');
+
+        await storage.deduplicateFreshAttach();
+
+        expect(await repositories.dances.getById('z-duplicate'), isNull);
+        expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
+        final mine = await published((
+          kind: SyncRecordKind.dance,
+          recordId: 'a-survivor',
+        ));
+        expect(mine.blob.body.containsKey('addedLater'), isFalse);
+      },
+    );
+
+    test('the user\'s Merge choice keeps them', () async {
+      await applyKeptDance('a-survivor');
+      await repositories.dances.create(dance('z-other', move: 'allemande'));
+      await storage.deduplicateFreshAttach();
+      final row = (await repositories.syncLocal.listReviewQueue()).single;
+      expect(row.reason, syncDanceChoreographyAmbiguityReason);
+
+      await storage.resolveReviewQueue(
+        expectedRow: row,
+        action: SyncReviewAction.merge,
+      );
+
+      expect(await repositories.dances.getById('z-other'), isNull);
+      await expectKept('a-survivor');
+    });
+  });
+
+  test(
+    'a natural-key survivor that takes over a record keeps its kept parts',
+    () async {
+      // Two peers' tags with one name become one record, under the lower id. The
+      // newer content is this device's own record, kept parts included.
+      SyncRecordBlob tag(String id, DateTime at, {bool kept = false}) {
+        final blob = syncRecordBlobForEntity(
+          SyncRecordKind.tag,
+          Tag(id: id, name: 'Same Tag'),
+          updatedAt: at,
+          existenceAt: _stamp,
+        )!;
+        return kept ? blob.withKept : blob;
+      }
+
+      await apply(tag('t-z', _stamp.add(const Duration(hours: 2)), kept: true));
+      await const SyncApplyEngine().apply(
+        candidates: [SyncMergeCandidate(blob: tag('t-a', _stamp))],
+        storage: storage,
+      );
+
+      final rows = await repositories.syncLocal.listRetainedSyncFields();
+      expect(rows.map((row) => row.recordId), ['t-a']);
+      final mine = await published((kind: SyncRecordKind.tag, recordId: 't-a'));
+      expect(mine.blob.body['addedLater'], 'kept');
+    },
+  );
+
   test('kept parts go when their record is hard-deleted', () async {
     await apply(newerProgram(program()));
     expect(await repositories.syncLocal.listRetainedSyncFields(), hasLength(1));
@@ -186,8 +376,163 @@ void main() {
 
   test('a restore clears what was kept', () async {
     await apply(newerProgram(program()));
-    await repositories.syncLocal.clearForRestore(restoredRecords: const []);
+    await repositories.syncLocal.clearForRestore(
+      restoredRecords: const [],
+      replacesAllRecords: true,
+    );
     expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
+  });
+
+  group('a restore that is not a full replace', () {
+    // Kept parts belong to the peer's copy of a record, so a merge-like writer
+    // may drop them only for a record it writes itself. Dropping an unrelated
+    // record's parts leaves a peer copy at the same `updatedAt` a tie that never
+    // returns them, and the next local edit then overwrites the peer's copy with
+    // a body that lacks them.
+    Tag tag() => Tag(id: 't1', name: 'Tag');
+
+    CompendiumArchive archiveOf(List<Program> programs) =>
+        CompendiumArchive(exportedAt: _stamp, programs: programs);
+
+    Future<void> expectTagStillCarriesWhatWasKept() async {
+      expect(
+        (await repositories.syncLocal.listRetainedSyncFields()).map(
+          (row) => row.recordId,
+        ),
+        contains('t1'),
+      );
+      final shared = await published((
+        kind: SyncRecordKind.tag,
+        recordId: 't1',
+      ));
+      expect(shared.blob.body['payNoteV2'], 'cash on the night');
+    }
+
+    SyncRecordBlob newerTag() {
+      final blob = syncRecordBlobForEntity(
+        SyncRecordKind.tag,
+        tag(),
+        updatedAt: _stamp,
+        existenceAt: _stamp,
+      )!;
+      return SyncRecordBlob(
+        kind: SyncRecordKind.tag,
+        id: blob.id,
+        updatedAt: blob.updatedAt,
+        deletedAt: null,
+        existenceAt: blob.existenceAt,
+        body: {...blob.body, 'payNoteV2': 'cash on the night'},
+      );
+    }
+
+    test(
+      'a merge-like archive import keeps what unrelated records kept',
+      () async {
+        await apply(newerTag());
+        final archive = archiveOf([program()]);
+
+        await CompendiumArchiveImporter(
+          ImportPipeline(
+            DanceRepository(db, contraTaxonomy),
+            ChoreographerRepository(db),
+          ),
+          ProgramRepository(db),
+          VenueRepository(db),
+          repositories: repositories,
+        ).import(
+          encodeArchive(archive),
+          archive,
+          now: _stamp.add(const Duration(hours: 2)),
+        );
+
+        await expectTagStillCarriesWhatWasKept();
+      },
+    );
+
+    test('a merge restore keeps what unrelated records kept, and drops '
+        'what the records it writes kept', () async {
+      await apply(newerTag());
+      await apply(newerProgram(program()));
+      expect(
+        await repositories.syncLocal.listRetainedSyncFields(),
+        hasLength(2),
+      );
+
+      final result = await ArchiveRestorer(repositories).restore(
+        archiveOf([program(title: 'From the backup')]),
+        mode: RestoreMode.merge,
+      );
+
+      expect(result.errors, isEmpty);
+      await expectTagStillCarriesWhatWasKept();
+      expect(
+        (await repositories.syncLocal.listRetainedSyncFields()).map(
+          (row) => row.recordId,
+        ),
+        ['t1'],
+        reason: 'the merge replaced p1, so what was kept for it goes',
+      );
+    });
+
+    test('a replace restore clears everything that was kept', () async {
+      await apply(newerTag());
+      await apply(newerProgram(program()));
+
+      final result = await ArchiveRestorer(
+        repositories,
+      ).restore(archiveOf([program()]));
+
+      expect(result.errors, isEmpty);
+      expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
+    });
+  });
+
+  test('making a shared custom field private with parts kept does not stop '
+      'the snapshot', () async {
+    // A peer's definition carries a field this build does not know, so it is
+    // kept. The user then turns "shareable" off. This device now shares
+    // nothing of the definition (spec §6.6), and what was kept for it goes
+    // with it rather than being published as a record of its own.
+    final field = CustomFieldDef(
+      id: 'f1',
+      key: 'shared_field',
+      label: 'Shared field',
+      type: CustomFieldType.text,
+    );
+    final shared = syncRecordBlobForEntity(
+      SyncRecordKind.customFieldDef,
+      field,
+      updatedAt: _stamp,
+      existenceAt: _stamp,
+    )!;
+    final peer = SyncRecordBlob(
+      kind: SyncRecordKind.customFieldDef,
+      id: shared.id,
+      updatedAt: shared.updatedAt,
+      deletedAt: null,
+      existenceAt: shared.existenceAt,
+      body: {...shared.body, 'addedLater': 'kept'},
+    );
+    await apply(peer);
+    expect(await repositories.syncLocal.listRetainedSyncFields(), hasLength(1));
+
+    // ignore: unused_result
+    await repositories.customFieldDefs.upsert(
+      CustomFieldDef(
+        id: 'f1',
+        key: 'shared_field',
+        label: 'Shared field',
+        type: CustomFieldType.text,
+        shareable: false,
+      ),
+      at: _stamp.add(const Duration(hours: 1)),
+    );
+
+    final snapshot = await storage.snapshot();
+    expect(snapshot.local.containsKey(peer.address), isFalse);
+    expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
+    // And the next one is no different: nothing is left to trip over.
+    expect((await storage.snapshot()).local.containsKey(peer.address), isFalse);
   });
 
   group('after an upgrade that starts syncing a kept field', () {
@@ -268,6 +613,71 @@ void main() {
       expect(body['payMinorUnits'], 9900);
       expect(body['payCurrency'], 'EUR');
       expect(body['cueSheet'], 'still unknown here');
+    });
+
+    test(
+      'a kept value that no longer decodes is dropped, so opening the app '
+      'still works; what this build still does not sync stays kept',
+      () async {
+        // A mixed-build fleet or a defective peer can leave a kept value the
+        // field's decoder now refuses. Kept values are not validated when they
+        // are stored, so this is reachable; promotion must not take the app's
+        // open down with it, because Retry re-runs the same failing promotion.
+        await repositories.programs.create(program());
+        await repositories.syncLocal.setRetainedSyncFields(
+          kind: SyncRecordKind.program,
+          recordId: 'p1',
+          payload: canonicalJson({
+            'payMinorUnits': {'v': 'abc'},
+            'cueSheet': {'v': 'still unknown here'},
+          }),
+        );
+
+        const address = (kind: SyncRecordKind.program, recordId: 'p1');
+        final before = await published(address);
+
+        final reopened = CompendiumRepositories(db, contraTaxonomy);
+        await reopened.ensureMigrated();
+
+        final stored = await repositories.programs.getById('p1');
+        expect(stored!.payMinorUnits, isNull);
+        final row = await repositories.syncLocal.getRetainedSyncFields(
+          kind: SyncRecordKind.program,
+          recordId: 'p1',
+        );
+        expect(
+          row!.payload,
+          canonicalJson({
+            'cueSheet': {'v': 'still unknown here'},
+          }),
+        );
+        // The kept copy was already kept out of every body this device builds
+        // (it syncs the field now), so dropping it changes nothing published.
+        final after = await published(address);
+        expect(after.wireHash, before.wireHash);
+        expect(after.blob.body['payMinorUnits'], isNull);
+        expect(after.blob.body['cueSheet'], 'still unknown here');
+
+        // Settled: the next open has nothing left to promote.
+        await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+      },
+    );
+
+    test('a kept value that no longer decodes leaves no row behind when it '
+        'was all that was kept', () async {
+      await repositories.programs.create(program());
+      await repositories.syncLocal.setRetainedSyncFields(
+        kind: SyncRecordKind.program,
+        recordId: 'p1',
+        payload: canonicalJson({
+          'payMinorUnits': {'v': -5},
+          'payCurrency': {'v': 'usd'},
+        }),
+      );
+
+      await storage.promoteRetainedSyncFields();
+
+      expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
     });
 
     test('a setting kept whole is applied once this build syncs its key, '
