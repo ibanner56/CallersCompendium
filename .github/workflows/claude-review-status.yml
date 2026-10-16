@@ -1,0 +1,145 @@
+# Show the state of a PR's Claude review as one color-coded label, so the PR list
+# reads at a glance. Exactly one `claude: *` status label is on a PR at a time:
+#
+#   claude: reviewing  gray    a round is requested or running on the current head
+#   claude: approved   green   verdict APPROVE (no findings, no Suspected items)
+#   claude: nits       yellow  verdict APPROVE-WITH-NITS (non-blocking items remain)
+#   claude: blocked    red     verdict BLOCK
+#
+# Only a true APPROVE is green. The verdict is the first line of the review body
+# that claude-code-review.yml posts (`## Review verdict: <...>`, defined by
+# .github/skills/code-review/SKILL.md). Reading it from the review entry, not from
+# the `claude-review` check, matters: that check is green even when no review was
+# posted (docs/dev/agents/code-review.md).
+#
+# This is a separate workflow because a PR that edits claude-code-review.yml may
+# change nothing else (the `Claude workflow isolation` job), and the labels,
+# docs and this file belong in one reviewable change.
+#
+# Safety: no checkout and no PR code runs. The review body is untrusted text; it
+# reaches the shell only through an env var, is accepted only from `claude[bot]`,
+# and is reduced to one of three fixed verdict words before anything uses it.
+# A review of an older commit than the PR's current head is ignored, so a late
+# review never relabels a head it did not look at.
+name: Claude review status
+
+on:
+  pull_request_target:
+    types: [labeled, unlabeled, synchronize, ready_for_review, reopened]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  issues: write
+  pull-requests: read
+
+concurrency:
+  # The newest event for a PR decides its label. A review by anyone but Claude
+  # skips the job below, but would still cancel a running one through a shared
+  # group, so it gets a group of its own.
+  group: >-
+    claude-review-status-${{ github.event.pull_request.number }}${{
+    github.event_name == 'pull_request_review' &&
+    github.event.review.user.login != 'claude[bot]' &&
+    format('-other-{0}', github.run_id) || '' }}
+  cancel-in-progress: true
+
+jobs:
+  status:
+    # Same-repository PRs only (fork runs get a read-only token and are never
+    # reviewed by Claude). A `labeled`/`unlabeled` event for some other label is
+    # not ours.
+    if: >-
+      github.repository == 'ibanner56/CallersCompendium' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event_name != 'pull_request_target' ||
+       github.event.label.name == null ||
+       github.event.label.name == 'review: claude') &&
+      (github.event_name != 'pull_request_review' ||
+       github.event.review.user.login == 'claude[bot]')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+      EVENT: ${{ github.event_name }}
+      ACTION: ${{ github.event.action }}
+      DRAFT: ${{ github.event.pull_request.draft }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      REVIEWED_SHA: ${{ github.event.review.commit_id }}
+      REVIEW_BODY: ${{ github.event.review.body }}
+    steps:
+      - name: Set the status label
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REVIEWING='claude: reviewing'
+          ALL=('claude: reviewing' 'claude: approved' 'claude: nits' 'claude: blocked')
+
+          # Make `$1` the only status label on the PR. The new one is added
+          # first, so the PR is never without a status mid-change.
+          set_status() {
+            local want="$1" have name
+            have=$(gh api --paginate "repos/${REPO}/issues/${PR}/labels?per_page=100" --jq '.[].name')
+            if ! grep -qxF -- "${want}" <<<"${have}"; then
+              gh api --method POST "repos/${REPO}/issues/${PR}/labels" -f "labels[]=${want}" >/dev/null
+            fi
+            for name in "${ALL[@]}"; do
+              [ "${name}" = "${want}" ] && continue
+              if grep -qxF -- "${name}" <<<"${have}"; then
+                gh api --method DELETE "repos/${REPO}/issues/${PR}/labels/$(jq -rn --arg n "${name}" '$n|@uri')" >/dev/null
+              fi
+            done
+          }
+
+          clear_status() {
+            local have name
+            have=$(gh api --paginate "repos/${REPO}/issues/${PR}/labels?per_page=100" --jq '.[].name')
+            for name in "${ALL[@]}"; do
+              if grep -qxF -- "${name}" <<<"${have}"; then
+                gh api --method DELETE "repos/${REPO}/issues/${PR}/labels/$(jq -rn --arg n "${name}" '$n|@uri')" >/dev/null
+              fi
+            done
+          }
+
+          # Whether the PR currently asks for Claude reviews.
+          wants_review() {
+            gh api --paginate "repos/${REPO}/issues/${PR}/labels?per_page=100" --jq '.[].name' |
+              grep -qxF 'review: claude'
+          }
+
+          if [ "${EVENT}" = "pull_request_review" ]; then
+            # A review from an older head says nothing about this one.
+            if [ "${REVIEWED_SHA}" != "${HEAD_SHA}" ]; then
+              echo "review of ${REVIEWED_SHA} is not for head ${HEAD_SHA}; ignored"
+              exit 0
+            fi
+            # First verdict line only: finding text further down must not count.
+            verdict=$(printf '%s\n' "${REVIEW_BODY}" |
+              sed -n 's/^## Review verdict:[[:space:]]*\([A-Za-z-]*\).*/\1/p' | head -n 1)
+            case "${verdict}" in
+              APPROVE)             set_status 'claude: approved' ;;
+              APPROVE-WITH-NITS)   set_status 'claude: nits' ;;
+              BLOCK)               set_status 'claude: blocked' ;;
+              *)
+                # Never leave a stale color standing for a review we could not read.
+                clear_status
+                echo "::error::Claude review has no readable '## Review verdict:' line; status label cleared"
+                exit 1
+                ;;
+            esac
+            exit 0
+          fi
+
+          # pull_request_target
+          if ! wants_review; then
+            clear_status       # label removed, or never there
+            exit 0
+          fi
+          if [ "${DRAFT}" = "true" ]; then
+            exit 0             # drafts are not reviewed; keep whatever is shown
+          fi
+          # labeled, synchronize, ready_for_review, reopened: a round is coming
+          # for this head, so any verdict on the label is out of date.
+          set_status "${REVIEWING}"
