@@ -2543,7 +2543,8 @@ void main() {
             id: 'd1',
             figures: [
               Figure(move: 'stand_still', params: const {'beats': 8}),
-              Figure(move: 'swing', params: const {'beats': 80}),
+              for (var i = 0; i < 5; i++)
+                Figure(move: 'swing', params: const {'beats': 16}),
             ],
           ),
         );
