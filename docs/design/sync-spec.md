@@ -3699,7 +3699,9 @@ nothing is wrong with the record, and the only fix is updating the app on the
 *receiving* device. A blob's report carries its kind and id; a manifest's
 carries only the peer, since a manifest the receiver cannot read does not say
 what it lists. The status surface shows it as a needs-you notice naming how
-many items are waiting when the reports name any. A blob reaches an older
+many records of each kind are waiting, when every report in the notice names a
+record; a manifest names none, so a notice that includes one gives no count
+and says only that the other device's changes wait on an update. A blob reaches an older
 client through any server (§7.2 accepts an unknown blob `v`); a newer manifest
 reaches it only once the server has been updated first.
 
@@ -4604,8 +4606,9 @@ validates manifests with the client's codec), so a server deployed in between
 is redeployed before any client emits the amended form, under the rule above.
 Blobs and manifests written from source at the earlier form of an unreleased
 `v` are development data. A store holding them is recreated, never
-interpreted. (Contributor process, the maintainer's direction 2026-10-13;
-CONTRIBUTING.md, "Versioned formats".)
+interpreted. (Contributor process: the maintainer's direction of 2026-10-13,
+given in a session and recorded in the description of #1752; CONTRIBUTING.md,
+"Versioned formats".)
 
 ### 7.3 TTL and garbage collection
 
