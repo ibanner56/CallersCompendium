@@ -1254,10 +1254,13 @@ the indexes correct and MUST NOT rebuild them.
 four in-scope columns do not feed it.** `runDerivedRebuild` forwards to
 `DanceRepository.rebuildAllDerived`, which clears and repopulates `dance_fts`,
 `dance_substring_fts` and `dance_figures` for every dance; it is the only
-rebuild routine that exists. Its indexed columns are `title, authors, hook,
+whole-library rebuild routine. (`reindexDancesUsingUserFigure`, #1023,
+rebuilds only the dances that use one figure of your own, and is not a
+general dance-scoped rebuild.) Its indexed columns are `title, authors, hook,
 notes, figures_text, custom_values, sources`, and the row is assembled from
-resolved author names, custom-field *values* and source texts
-(`dance_repository.dart:509`–`:531`). Of the four tables this pass exists for,
+resolved author names, custom-field *values*, source texts and, since #1023,
+the live definitions of the user's own figures the dance uses
+(`DanceRepository._insertDerivedRows`). Of the four tables this pass exists for,
 only `choreographers.name` reaches an index, through `authors`; `tags.name`,
 `custom_field_defs.key` and `difficulty_levels.label` reach none. So a pass
 that repairs only tags, custom-field keys or difficulty labels — plausible,
