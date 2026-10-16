@@ -10849,6 +10849,15 @@
   "@shorthandMappingsEmpty": {
     "description": "Empty state when the user has no figure-shorthand mappings."
   },
+  "shorthandMappingsLimitReached": "You have reached the limit of {max} figure shorthands. Delete one to add another.",
+  "@shorthandMappingsLimitReached": {
+    "description": "Snackbar shown when the user tries to add a figure shorthand but already has the maximum number the app keeps; {max} is that maximum.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "shorthandMappingsDeleteTitle": "Delete shorthand?",
   "@shorthandMappingsDeleteTitle": {
     "description": "Title of the confirm-delete dialog for a figure-shorthand mapping."

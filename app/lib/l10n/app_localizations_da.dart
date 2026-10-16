@@ -8282,6 +8282,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get shorthandMappingsEmpty => 'Ingen kortformer endnu.';
 
   @override
+  String shorthandMappingsLimitReached(int max) {
+    return 'Du har nået grænsen på $max kortformer. Slet en for at tilføje en ny.';
+  }
+
+  @override
   String get shorthandMappingsDeleteTitle => 'Slet kortform?';
 
   @override

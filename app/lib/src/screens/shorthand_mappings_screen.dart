@@ -95,6 +95,12 @@ class ShorthandMappingsScreen extends StatelessWidget {
     BuildContext context,
     ShorthandMappingsController controller,
   ) async {
+    // Say so before the editor opens, so the user does not build a shorthand
+    // that cannot be saved.
+    if (controller.mappings.length >= maxShorthandMappings) {
+      _showLimitReached(context);
+      return;
+    }
     final existing = controller.takenTokens;
     final hidden = _hiddenCompoundTokens(context, controller);
     final edited = await Navigator.of(context).push<ShorthandMapping>(
@@ -106,7 +112,27 @@ class ShorthandMappingsScreen extends StatelessWidget {
       ),
     );
     if (edited == null) return;
-    await controller.upsert(edited);
+    try {
+      await controller.upsert(edited);
+    } on ArgumentError {
+      // The list filled while the editor was open (e.g. a sync landed); the
+      // other rejections are screened by the editor.
+      if (controller.mappings.length < maxShorthandMappings) rethrow;
+      if (context.mounted) _showLimitReached(context);
+    }
+  }
+
+  static void _showLimitReached(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        key: const ValueKey('shorthand-limit-reached'),
+        content: Text(
+          AppLocalizations.of(
+            context,
+          ).shorthandMappingsLimitReached(maxShorthandMappings),
+        ),
+      ),
+    );
   }
 
   Future<void> _edit(

@@ -8202,6 +8202,10 @@
   "@shorthandMappingsEmpty": {
     "x-sourceSha256": "2033070fb18827ce55f5388e79eded465e61704e0c52fb4554f84f313c53f01f"
   },
+  "shorthandMappingsLimitReached": "Vous avez atteint la limite de {max} abréviations. Supprimez-en une pour en ajouter une autre.",
+  "@shorthandMappingsLimitReached": {
+    "x-sourceSha256": "3f8a40d5253e3d42f05fd74e05353a6ffb21fb6de2fd6f6e22da50300ff01c23"
+  },
   "shorthandMappingsDeleteTitle": "Supprimer l’abréviation ?",
   "@shorthandMappingsDeleteTitle": {
     "x-sourceSha256": "a8a818eba0a742b81c447939890409c3772364a3796479a44fe26309d848b01b"
