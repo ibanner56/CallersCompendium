@@ -94,6 +94,9 @@ Future<AppliedUserFigureImport> applyUserFigureImport(
           break;
       }
     } on UserGlossaryEntryInvalid {
+      // diagnostics: silent — the glossary refusing an untrusted file's
+      // figure (its bounds, its budget) is expected input, counted and shown
+      // to the user, not a fault to log.
       failed++;
     } on Object catch (e, stackTrace) {
       failed++;
