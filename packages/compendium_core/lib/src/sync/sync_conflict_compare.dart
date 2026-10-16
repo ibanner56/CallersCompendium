@@ -4,6 +4,8 @@ import '../imports/compound_shorthands.dart'
     show compoundShorthandsSettingKey, maxCompoundShorthands;
 import '../imports/shorthand_mappings.dart'
     show maxShorthandMappings, normalizeShorthandToken;
+import '../imports/user_figure_shorthands.dart'
+    show maxUserFigureShorthands, userFigureShorthandsSettingKey;
 import '../snippet/snippet_library.dart'
     show WalkthroughSnippetLibrary, kMaxSnippetLibraryEntries;
 import 'canonical_json.dart';
@@ -97,7 +99,7 @@ List<SyncCollectionEntry>? syncCollectionEntries(String key, Object? value) {
               value: entry,
             ),
       ];
-    case compoundShorthandsSettingKey:
+    case compoundShorthandsSettingKey || userFigureShorthandsSettingKey:
       if (value is! List) return null;
       return [
         for (final entry in value)
@@ -499,6 +501,7 @@ int? syncCollectionLimit(String key) => switch (key) {
   'custom_dialects' => syncMaxCustomDialects,
   'shorthand_mappings' => maxShorthandMappings,
   compoundShorthandsSettingKey => maxCompoundShorthands,
+  userFigureShorthandsSettingKey => maxUserFigureShorthands,
   'walkthrough_snippets' => kMaxSnippetLibraryEntries,
   _ => null,
 };

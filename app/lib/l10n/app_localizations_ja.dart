@@ -7980,6 +7980,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get shorthandsCompoundTitle => '自分のフィギュア用のショートハンド';
 
   @override
+  String get shorthandsUserFigureSyncLabel => '自分の新しいフィギュア用のショートハンド';
+
+  @override
   String get shorthandsCompoundIntro =>
       'フリーテキスト入力がオンのとき、ダンスの編集中にこれらのいずれかを1行だけ入力すると、ここで選んだ値で自分のフィギュアが追加されます。';
 
@@ -7996,6 +7999,10 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get shorthandsCompoundShadowed =>
       '使用されていません。フィギュアのショートハンドに同じテキストがあります。';
+
+  @override
+  String get shorthandsUserFigureShadowedByCompound =>
+      '使用されていません。自分の組み合わせのショートハンドに同じテキストがあります。';
 
   @override
   String get compoundShorthandEditorFigureLabel => '自分のフィギュア';

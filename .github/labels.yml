@@ -189,3 +189,20 @@
 - name: "review: claude"
   color: "D97757"
   description: "Opt-in: Claude reviews each push to this PR while the label is on"
+
+# --- claude: Claude review status on a PR (traffic light) --------------------
+# Set by .github/workflows/claude-review-status.yml, exactly one at a time, while
+# `review: claude` is on the PR. Only a true APPROVE is green; a verdict with
+# nits or Suspected items is yellow (docs/dev/agents/code-review.md).
+- name: "claude: reviewing"
+  color: "8B949E"
+  description: "Claude review requested or running on the current head"
+- name: "claude: approved"
+  color: "1A7F37"
+  description: "Claude review verdict APPROVE: no findings, no suspected items"
+- name: "claude: nits"
+  color: "E3B341"
+  description: "Claude review verdict APPROVE-WITH-NITS: non-blocking items remain"
+- name: "claude: blocked"
+  color: "CF222E"
+  description: "Claude review verdict BLOCK: at least one blocker"

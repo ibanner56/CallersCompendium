@@ -628,6 +628,76 @@ void main() {
       expect(find.text('1 more is the same on both'), findsOneWidget);
     });
 
+    testWidgets('a shorthand for a new figure reads as the line it inserts, '
+        'and as its name and values where it can\'t be rendered (#1023)', (
+      tester,
+    ) async {
+      Map<String, Object?> shorthand(String id, String who, {int? beats}) => {
+        'token': 'zm',
+        'figure': id,
+        'name': 'zoom',
+        'args': {'who': who},
+        'beats': ?beats,
+      };
+      final repos = await _pump(
+        tester,
+        size: const Size(900, 1400),
+        seed: (repos) => repos.userGlossary.upsert(
+          UserGlossaryEntry(
+            id: 'zoom-id',
+            kindName: UserGlossaryEntryKind.customFigure.name,
+            name: 'zoom',
+            definition: 'A zoom.',
+            description: 'Fast.',
+            payload: {
+              'template': '{who} {move}',
+              'defaultBeats': 8,
+              'params': [
+                {'key': 'who', 'kind': 'dancerSet'},
+              ],
+            },
+            createdAt: _tie,
+          ),
+        ),
+      );
+      await tester.runAsync(
+        () => _queueTie(repos, [
+          (
+            'user_figure_shorthands',
+            [shorthand('zoom-id', 'role2s')],
+            [shorthand('zoom-id', 'role1s', beats: 4)],
+          ),
+        ]),
+      );
+      await _open(tester);
+      expect(find.textContaining('robins zoom'), findsOneWidget);
+      expect(find.textContaining('larks zoom · 4 beats'), findsOneWidget);
+      expect(find.text('Shorthands for your new figures'), findsWidgets);
+    });
+
+    testWidgets('a shorthand for a figure this device lacks reads as its name '
+        'and values (#1023)', (tester) async {
+      Map<String, Object?> shorthand(String who) => {
+        'token': 'zm',
+        'figure': 'elsewhere-id',
+        'name': 'zoom',
+        'args': {'who': who},
+      };
+      final repos = await _pump(tester, size: const Size(900, 1400));
+      await tester.runAsync(
+        () => _queueTie(repos, [
+          (
+            'user_figure_shorthands',
+            [shorthand('role2s')],
+            [shorthand('role1s')],
+          ),
+        ]),
+      );
+      await _open(tester);
+      expect(find.textContaining('zoom: robins'), findsOneWidget);
+      expect(find.textContaining('zoom: larks'), findsOneWidget);
+    });
+
     testWidgets('each version says when it was changed, when that tells '
         'them apart', (tester) async {
       final repos = await _pump(tester);
