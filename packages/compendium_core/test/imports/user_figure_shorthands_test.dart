@@ -59,27 +59,34 @@ void main() {
           reason: '$bad',
         );
       }
+      // Each bad entry has a token of its own, so it is dropped for what is
+      // wrong with it, not as a second use of a token.
       final kept = UserFigureShorthands.decode([
         entry(),
         entry(token: '   '),
         entry(token: 'x' * (maxShorthandTokenLength + 1)),
         entry(token: 7),
-        entry(figure: ''),
-        entry(figure: 'not an id!'),
-        entry(name: ''),
-        entry(args: 'who=neighbors'),
+        entry(token: 'bad1', figure: ''),
+        entry(token: 'bad2', figure: 'not an id!'),
+        entry(token: 'bad3', name: ''),
+        entry(token: 'bad4', args: 'who=neighbors'),
         entry(
+          token: 'bad5',
           args: {for (var i = 0; i <= maxUserFigureParams; i++) 'p$i': 'v'},
         ),
         entry(
+          token: 'bad6',
           args: {
             'who': const ['neighbors'],
           },
         ),
-        entry(args: {'text': 'x' * (maxUserFigureTextArgLength + 1)}),
-        entry(beats: 0),
-        entry(beats: maxUserFigureDefaultBeats + 1),
-        entry(beats: 'eight'),
+        entry(
+          token: 'bad7',
+          args: {'text': 'x' * (maxUserFigureTextArgLength + 1)},
+        ),
+        entry(token: 'bad8', beats: 0),
+        entry(token: 'bad9', beats: maxUserFigureDefaultBeats + 1),
+        entry(token: 'bad10', beats: 'eight'),
         'not a map',
       ]);
       expect([for (final s in kept.shorthands) s.token], ['ZM']);
