@@ -9382,6 +9382,10 @@
   "@compoundEditorNameTaken": {
     "x-sourceSha256": "262606172e7c9de4247bd5725ee0ea74ab261bedc4310906e817cc955d9efcf3"
   },
+  "compoundEditorNameTakenHidden": "»{name}« er allerede navnet på en af dine egne figurer. De vises i ordlisten, når Egne figurer er slået til. Vælg et andet navn.",
+  "@compoundEditorNameTakenHidden": {
+    "x-sourceSha256": "5ee866fe42345995b7ed626d64e97bec1b8acdc583e8e62d068f0b43aa75aab5"
+  },
   "compoundEditorNoFigures": "Tilføj mindst én figur.",
   "@compoundEditorNoFigures": {
     "x-sourceSha256": "077dee789ee7f11036fcd87132392a01ed1e1e808a55b857280846be61e40d8c"
@@ -9426,9 +9430,9 @@
   "@glossaryEntryKindHeading": {
     "x-sourceSha256": "1f36becc3aa7c8a8893bc0688d52b8bef91dae5528528706003bc4f45e409f96"
   },
-  "glossaryEntryKindHelp": "En kombination bliver til indbyggede figurer, når en dans gemmes. En ny figur forbliver én figur med din egen ordlyd.",
+  "glossaryEntryKindHelp": "En kombination bliver til indbyggede figurer, når en dans gemmes. En ny figur forbliver én figur med din egen ordlyd. Et begreb er et ord, du selv definerer, uden figur; du kan give det en senere.",
   "@glossaryEntryKindHelp": {
-    "x-sourceSha256": "88207860515a937eaa3a035c86ca465d2bed902bfad7e051fec78ff656096f5f"
+    "x-sourceSha256": "15b0b15d966bd8e76d6b6c189c7c7f944e5d5957ebc837d1da8914d608015536"
   },
   "glossaryEntryKindCombination": "Kombination",
   "@glossaryEntryKindCombination": {
@@ -9437,6 +9441,26 @@
   "glossaryEntryKindNewFigure": "Ny figur",
   "@glossaryEntryKindNewFigure": {
     "x-sourceSha256": "3bd330f1f22470db1387c962d78ceea1c7f302fd57729577ba2ee6cb9e9d3326"
+  },
+  "glossaryEntryKindTerm": "Begreb",
+  "@glossaryEntryKindTerm": {
+    "x-sourceSha256": "c6f3bfd45614178abb5730fa5acd9aa446f914c4ebfea3574dd281b19d437f07"
+  },
+  "glossaryAddTerm": "Tilføj et begreb",
+  "@glossaryAddTerm": {
+    "x-sourceSha256": "b8cb2e88d7137dbf4df6d5589dc889db4815c5b33840617a08040bb6e0e25a8e"
+  },
+  "glossaryTermTitleNew": "Nyt begreb",
+  "@glossaryTermTitleNew": {
+    "x-sourceSha256": "d72f5eae188347d0c7bbf8b576ff4f416e503a6992c18e24d9ee4816bf568cd1"
+  },
+  "glossaryTermMakeFigure": "Gør det til en figur",
+  "@glossaryTermMakeFigure": {
+    "x-sourceSha256": "8ef8453c988d6c6a41d36623a487975cfdbb8282f09536dcc053bd8e4d503289"
+  },
+  "glossaryTermMakeFigureTitle": "Gør det til en figur",
+  "@glossaryTermMakeFigureTitle": {
+    "x-sourceSha256": "8ef8453c988d6c6a41d36623a487975cfdbb8282f09536dcc053bd8e4d503289"
   },
   "glossaryEntryFormLabel": "Danseform",
   "@glossaryEntryFormLabel": {

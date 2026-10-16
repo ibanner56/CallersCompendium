@@ -285,6 +285,18 @@ String glossaryEntryForm(Object? payload) {
   return defaultGlossaryEntryForm;
 }
 
+/// A term's payload (#1023): the dance [form] it is for, with every other key
+/// [previous] held carried through, so an edit here keeps what a newer build
+/// stored beside it. A term is a glossary entry with no figure; it has no
+/// other content of its own.
+Map<String, Object?> glossaryTermPayload(String form, {Object? previous}) => {
+  if (previous is Map)
+    for (final entry in previous.entries)
+      if (entry.key is String && entry.key != 'form')
+        entry.key as String: entry.value,
+  'form': form,
+};
+
 /// Decodes a stored [UserFigureDefinition], or returns null when [raw] is not
 /// one this build can use: malformed, over a bound, or with any error from
 /// [validateUserFigure]. Never throws.

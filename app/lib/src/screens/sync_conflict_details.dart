@@ -184,7 +184,7 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'description': l10n.compoundEditorDescription,
         'keywords': l10n.compoundEditorKeywords,
         'notes': l10n.compoundEditorNotes,
-        'payload': l10n.compoundEditorFigures,
+        'payload': l10n.glossaryEntryKindHeading,
       },
       SyncRecordKind.figureNote => {'notes': l10n.glossaryNotes},
       SyncRecordKind.venue => {
@@ -623,10 +623,11 @@ class SyncConflictComparison extends StatelessWidget {
     return rows;
   }
 
-  /// One of the user's own figures (#709), compared by what it becomes: its
-  /// figures in words, then its parameters. Its stored payload is text; one
-  /// this build cannot read is named as from a newer version, or as needing
-  /// repair, as the Glossary names it.
+  /// One of the user's own glossary entries, compared by what its payload
+  /// says (#709, #1023): a combination's figures in words, then its
+  /// parameters; a new figure's wording, then its parameters; a term's dance
+  /// form. Its stored payload is text; one this build cannot read is named as
+  /// from a newer version, or as needing repair, as the Glossary names it.
   Widget _compound(
     BuildContext context,
     AppLocalizations l10n,
@@ -636,9 +637,7 @@ class SyncConflictComparison extends StatelessWidget {
     final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
     String describe(Map<String, Object?>? body) {
       if (body == null) return l10n.syncConflictValueNotSet;
-      if (body['kind'] != UserGlossaryEntryKind.compound.name) {
-        return l10n.glossaryCustomUnsupported;
-      }
+      final kind = body['kind'];
       final payload = body['payload'];
       Object? decoded;
       if (payload is String) {
@@ -650,9 +649,39 @@ class SyncConflictComparison extends StatelessWidget {
           decoded = null;
         }
       }
+      if (kind == UserGlossaryEntryKind.term.name) {
+        return [
+          l10n.glossaryEntryKindTerm,
+          l10n.syncConflictFieldValue(
+            l10n.glossaryEntryFormLabel,
+            glossaryEntryFormLabel(l10n, glossaryEntryForm(decoded)),
+          ),
+        ].join(' · ');
+      }
+      if (kind == UserGlossaryEntryKind.customFigure.name) {
+        final figure = decodeUserFigureDefinition(decoded);
+        if (figure == null) return l10n.glossaryCustomNeedsRepair;
+        return [
+          l10n.glossaryEntryKindNewFigure,
+          // Slots kept as written: a role word never reaches inside a {…}.
+          mapUserFigureTemplateText(
+            figure.template,
+            (text) => _renderer.renderFreeText(text, dialect),
+          ),
+          if (figure.params.isNotEmpty)
+            l10n.syncConflictFieldValue(
+              l10n.compoundEditorParams,
+              figure.params.map((p) => p.key).join(', '),
+            ),
+        ].join(' · ');
+      }
+      if (kind != UserGlossaryEntryKind.compound.name) {
+        return l10n.glossaryCustomUnsupported;
+      }
       final definition = decodeCompoundDefinition(decoded, contraTaxonomy);
       if (definition == null) return l10n.glossaryCustomNeedsRepair;
       return [
+        l10n.glossaryEntryKindCombination,
         definition.figures
             .map((f) => _renderer.renderSummary(f, dialect))
             .join('; '),

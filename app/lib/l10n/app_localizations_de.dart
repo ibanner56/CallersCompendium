@@ -9539,6 +9539,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String compoundEditorNameTakenHidden(String name) {
+    return '„$name“ ist bereits der Name einer deiner eigenen Figuren. Diese stehen im Glossar, wenn Eigene Figuren eingeschaltet ist. Wähle einen anderen Namen.';
+  }
+
+  @override
   String get compoundEditorNoFigures => 'Füge mindestens eine Figur hinzu.';
 
   @override
@@ -9581,13 +9586,28 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get glossaryEntryKindHelp =>
-      'Eine Kombination wird beim Speichern eines Tanzes zu eingebauten Figuren. Eine neue Figur bleibt eine eigene Figur, mit deinem eigenen Wortlaut.';
+      'Eine Kombination wird beim Speichern eines Tanzes zu eingebauten Figuren. Eine neue Figur bleibt eine eigene Figur, mit deinem eigenen Wortlaut. Ein Begriff ist ein Wort, das du selbst definierst, ohne Figur; du kannst ihm später eine geben.';
 
   @override
   String get glossaryEntryKindCombination => 'Kombination';
 
   @override
   String get glossaryEntryKindNewFigure => 'Neue Figur';
+
+  @override
+  String get glossaryEntryKindTerm => 'Begriff';
+
+  @override
+  String get glossaryAddTerm => 'Begriff hinzufügen';
+
+  @override
+  String get glossaryTermTitleNew => 'Neuer Begriff';
+
+  @override
+  String get glossaryTermMakeFigure => 'Zur Figur machen';
+
+  @override
+  String get glossaryTermMakeFigureTitle => 'Zur Figur machen';
 
   @override
   String get glossaryEntryFormLabel => 'Tanzform';

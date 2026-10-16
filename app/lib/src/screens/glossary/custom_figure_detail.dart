@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
 import '../../data/dialect_library_scope.dart';
 import '../../data/repositories_scope.dart';
+import '../../data/show_custom_figures_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
 import '../../glossary/custom_figures.dart';
 import '../../search/facet_labels.dart';
@@ -123,10 +124,18 @@ class _GlossaryCustomFigureDetailState
     super.dispose();
   }
 
-  Future<void> _edit(BuildContext context, UserGlossaryEntry entry) =>
-      Navigator.of(context).push<UserGlossaryEntry>(
-        MaterialPageRoute(builder: (_) => CompoundEditorScreen(initial: entry)),
-      );
+  Future<void> _edit(
+    BuildContext context,
+    UserGlossaryEntry entry, {
+    bool convertToFigure = false,
+  }) => Navigator.of(context).push<UserGlossaryEntry>(
+    MaterialPageRoute(
+      builder: (_) => CompoundEditorScreen(
+        initial: entry,
+        convertToFigure: convertToFigure,
+      ),
+    ),
+  );
 
   /// Set while a delete is being asked about, so a second tap opens no
   /// second dialog.
@@ -340,7 +349,7 @@ class _GlossaryCustomFigureDetailState
         if (!item.unsupported) ...[
           heading(l10n.glossaryEntryFormLabel),
           Text(
-            _formLabel(l10n, item.form),
+            glossaryEntryFormLabel(l10n, item.form),
             key: const ValueKey('glossary-custom-form'),
           ),
         ],
@@ -398,6 +407,17 @@ class _GlossaryCustomFigureDetailState
                     ? null
                     : () => _edit(context, entry),
               ),
+              // A term can be given a figure, once (#1023, maintainer
+              // decision 7); a figure of your own needs Custom Figures on.
+              if (item.isTerm && customFiguresShown(context))
+                OutlinedButton.icon(
+                  key: const ValueKey('glossary-term-make-figure'),
+                  icon: const Icon(Icons.add_box_outlined),
+                  label: Text(l10n.glossaryTermMakeFigure),
+                  onPressed: _repos == null
+                      ? null
+                      : () => _edit(context, entry, convertToFigure: true),
+                ),
               OutlinedButton.icon(
                 key: const ValueKey('glossary-custom-delete'),
                 icon: const Icon(Icons.delete_outline),
@@ -440,14 +460,6 @@ String? _exampleOf(
   );
   if (renderer.renderUserFigureCanonical(use) == null) return null;
   return renderer.render(use, dialect);
-}
-
-/// [form]'s label, or [form] as written for one a later build added.
-String _formLabel(AppLocalizations l10n, String form) {
-  for (final value in DanceForm.values) {
-    if (value.name == form) return danceFormLabel(l10n, value);
-  }
-  return form;
 }
 
 /// A custom figure's name in the active dialect, kept current as the entry
