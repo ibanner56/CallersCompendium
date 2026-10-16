@@ -72,8 +72,9 @@ Turn on **Free-text entry** in
 instead of one move at a time. Type `neighbor balance & swing` and you get both
 figures; type `16 circle left 3/4` and you get a sixteen-beat circle left
 three-quarters. A line that states no count starts with the figure's usual
-beats, and they follow the figure if you change its options. The app tells you
-how many figures it added and invites you to type another.
+beats, and they follow the figure if you change its options. A line under the
+box tells you how many figures it added and invites you to type another (a
+screen reader announces the count too); it goes away when you start typing.
 
 The same works on a figure that is already in the dance. Open it, type a line
 into its move over what is there, and press Enter: if the line is not simply the
@@ -134,14 +135,31 @@ a [shorthand](./glossary.md#shorthand).
 Choose **Figure shorthands** in **Settings** ▸ **Dialect** ▸ **Dance details &
 shorthands**, then **New shorthand**:
 
-- **Shorthand** is the exact line you will type during free-text entry. It is
+- **Shorthand** is the exact line (or the exact part of a `;` list) you will
+  type during free-text entry. It is
   matched without regard to capitals, so `NBS` and `nbs` are the same shorthand.
 - **Expands to** is the figure or figures it inserts, in order. You build them
   exactly the way you build a normal figure, with the same options and the same
   checks.
 
+A shorthand also works with a beat count and in a `;` list:
+
+- `16 pbs` and `pbs (16)` add the shorthand with 16 beats. The count is applied
+  when the shorthand is a single figure. A shorthand for several figures is
+  added exactly as saved and the count is ignored, since there is no one figure
+  to give it to. A token that includes a number, such as `3 swings`, is matched
+  as typed, before any count is looked for.
+- `pbs; ladies chain` adds the shorthand's figures, then the next figure. Each
+  part can have its own count. As with any `;` list, if one part is neither a
+  shorthand nor a figure the app understands, the whole line is added as one
+  custom figure instead.
+
 Shorthands are your own; each one has to be unique, and the app tells you if you
-reuse a token that is already taken. The app keeps up to 500 of these
+reuse a token that is already taken. Shorthands are matched before the app tries
+to read a line as a figure, so a shorthand named for something the app already
+understands, such as `swing`, replaces that reading every time you type it. The
+editor warns you when your shorthand is such a word, but still lets you save
+it. The app keeps up to 500 of these
 shorthands; once you have that many, **New shorthand** tells you so, and you
 can add another after deleting one. Shorthands only apply while **Free-text
 entry** is on.

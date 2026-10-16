@@ -148,9 +148,12 @@ class ArchiveRestorer {
             abortedForRollback = true;
             throw const _RestoreAborted();
           }
+          // The whole library was replaced, so the parts kept for a peer's
+          // newer build are cleared with it (sync-spec §3.2). Whether a
+          // replace should keep them is a separate decision, not made here.
           await _repos.syncLocal.clearForRestore(
             restoredRecords: restoredRecords,
-            replacesAllRecords: true,
+            clearRetainedParts: true,
             revalidatePending: true,
           );
         } else {
@@ -160,9 +163,13 @@ class ArchiveRestorer {
             causalAt: causalAt,
             onProgress: onProgress,
           );
+          // A merge edits the records it matches as a local edit does, so it
+          // keeps the parts kept for them too: a restored record is stamped
+          // newer than the peer's copy, and a body without those parts would
+          // win and strip them from the peer (sync-spec §6.7).
           await _repos.syncLocal.clearForRestore(
             restoredRecords: restoredRecords,
-            replacesAllRecords: false,
+            clearRetainedParts: false,
             revalidatePending: false,
           );
         }

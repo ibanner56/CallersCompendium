@@ -11,6 +11,7 @@ import '../editor/figure_draft.dart';
 import '../editor/user_figure_draft.dart';
 import '../glossary/custom_figures.dart';
 import '../widgets/compound_argument_editor.dart';
+import '../widgets/shorthand_shadow_warning.dart';
 import '../widgets/user_figure_use_editor.dart';
 
 /// Creates or edits one shorthand for one of the user's own figures: a token
@@ -338,6 +339,11 @@ class _CompoundShorthandEditorScreenState
               helperText: l10n.shorthandEditorTokenHelper,
               border: const OutlineInputBorder(),
             ),
+          ),
+          // Warns, never blocks (#1827), for both kinds this editor saves.
+          ShorthandShadowWarning(
+            warningKey: const ValueKey('compound-shorthand-shadow-warning'),
+            controller: _token,
           ),
           const SizedBox(height: 16),
           if (compounds != null && figures != null && choices.isEmpty)

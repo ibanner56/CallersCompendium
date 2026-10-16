@@ -155,10 +155,28 @@ _BeatSplit _splitInlineBeats(String line, [_CountForms? forms]) {
 /// the whole trimmed line is matched against the user's shorthand tokens as an
 /// EXACT, whole-line token (case-insensitive + trim-insensitive; no mid-line or
 /// substring substitution, keeping expansion deterministic). On a hit the line
-/// expands to the mapped figure(s) and those are returned verbatim — inline
-/// beat parsing is skipped because a shorthand's targets carry their own beats.
-/// On a miss (or when no store is given) the line falls through to the normal
-/// #419 parser path below.
+/// expands to the mapped figure(s) and those are returned verbatim.
+///
+/// On a whole-line miss the shorthands are tried again, still token-exact, in
+/// two further ways (issue #1827), so a shorthand does not stop working the
+/// moment it is given a count or a neighbour:
+/// - a **leading** `16 pbs` or **trailing** `pbs (16)` count (the same two forms
+///   as below) is peeled off and the rest matched. A shorthand that expands to
+///   exactly ONE figure (a single meanwhile or modifier container included, whose
+///   own beats it sets) takes the count as that figure's beats; one that
+///   expands to several figures is inserted as saved and the count is
+///   dropped, because there is no single figure it could belong to.
+///   A token that itself contains a count (`3 swings`) still matches in
+///   full, first.
+/// - a `;` line is split into clauses at bracket depth 0, and each clause is
+///   matched on its own (with its own count). The clauses that are not
+///   shorthands are parsed one at a time. Like the parser's own `;` compound
+///   the line is all-or-nothing: if any non-shorthand clause cannot be
+///   structured, the whole line falls through to the ordinary path below
+///   (usually one custom). A `;` line with no shorthand clause is untouched.
+///
+/// On a miss everywhere (or when no store is given) the line falls through to
+/// the normal #419 parser path below.
 ///
 /// This is the local-typed counterpart to the import adapters: it reuses the
 /// SAME hardened, bounded, never-throw core parser (fanning out across the
@@ -245,12 +263,124 @@ List<Figure> parseFreeTextFigureEntry(
     return const [];
   }
   // Shorthand resolution runs FIRST (issue #420): a whole-line exact-token hit
-  // expands to the mapped figure(s) and short-circuits the parser. A miss (or
-  // no store) falls through to the normal #419 recognition below.
+  // expands to the mapped figure(s) and short-circuits the parser. Failing
+  // that, a counted or `;`-separated shorthand expands (#1827). Otherwise (or
+  // with no store) the line goes to the normal #419 recognition below.
   if (shorthands != null) {
     final expanded = shorthands.resolve(trimmed);
     if (expanded != null) return expanded;
+    final withShorthands = _expandShorthandClauses(
+      trimmed,
+      shorthands,
+      taxonomy,
+      dialect,
+    );
+    if (withShorthands != null) return withShorthands;
   }
+  return _parseLine(trimmed, taxonomy, dialect);
+}
+
+/// Whether typing [token] as a free-text line already inserts a figure: the
+/// parser structures it to one or more non-custom figures (issue #1827). A
+/// shorthand with such a token would replace that reading, because shorthands
+/// are matched before the parser, so the editors warn before it is saved.
+/// [dialect] is the active one, so a token written in the user's own role words
+/// is judged as it would be typed.
+bool shorthandTokenShadowsFigure(
+  String token, {
+  Taxonomy? taxonomy,
+  Dialect? dialect,
+}) {
+  final figures = parseFreeTextFigureEntry(
+    token,
+    taxonomy: taxonomy,
+    dialect: dialect,
+  );
+  return figures.isNotEmpty && figures.every((f) => !f.isCustom);
+}
+
+/// Most `;` clauses a line is split into to look for shorthands. Matches
+/// [maxShorthandTargetFigures], the most figures one shorthand may insert, so a
+/// hostile line of a thousand `;` cannot drive a thousand parses.
+const int _maxShorthandClauses = maxShorthandTargetFigures;
+
+/// Resolves [line] against [shorthands] after the whole-line match missed: a
+/// counted shorthand (`16 pbs`, `pbs (16)`) and/or a `;` line some of whose
+/// clauses are shorthands. Returns `null` when no clause is a shorthand, or the
+/// line cannot be expanded all-or-nothing, so the caller parses it as before.
+List<Figure>? _expandShorthandClauses(
+  String line,
+  ShorthandMappings shorthands,
+  Taxonomy? taxonomy,
+  Dialect? dialect,
+) {
+  final clauses = _splitClauses(line);
+  if (clauses.length > _maxShorthandClauses) return null;
+  final expansions = <List<Figure>?>[];
+  var anyShorthand = false;
+  for (final clause in clauses) {
+    if (clause.isEmpty) return null;
+    final expansion = _resolveClause(clause, shorthands);
+    anyShorthand = anyShorthand || expansion != null;
+    expansions.add(expansion);
+  }
+  if (!anyShorthand) return null;
+  final result = <Figure>[];
+  for (var i = 0; i < clauses.length; i++) {
+    final expansion = expansions[i];
+    if (expansion != null) {
+      result.addAll(expansion);
+      continue;
+    }
+    final parsed = _parseLine(clauses[i], taxonomy, dialect);
+    if (parsed.isEmpty || parsed.any((f) => f.isCustom)) return null;
+    result.addAll(parsed);
+  }
+  return result;
+}
+
+/// The figures a single [clause] expands to as a shorthand, with an inline
+/// count applied when the shorthand is one figure, or `null` if it is not one.
+List<Figure>? _resolveClause(String clause, ShorthandMappings shorthands) {
+  final whole = shorthands.resolve(clause);
+  if (whole != null) return whole;
+  final split = _splitInlineBeats(clause);
+  if (split.beats == 0) return null;
+  final expanded = shorthands.resolve(split.text);
+  if (expanded == null) return null;
+  if (expanded.length != 1) return expanded;
+  final only = expanded.single;
+  return [
+    only.copyWith(params: {...only.params, 'beats': split.beats}),
+  ];
+}
+
+/// Splits [line] at bracket-depth-0 `;`, trimming each clause and keeping empty
+/// ones so the caller can decline a degenerate run (`pbs;;swing`). Brackets are
+/// opaque, as in the parser's own `;` split, so a `(PR;WL)` pass list is not
+/// cut.
+List<String> _splitClauses(String line) {
+  final out = <String>[];
+  var depth = 0;
+  var start = 0;
+  for (var i = 0; i < line.length; i++) {
+    final c = line.codeUnitAt(i);
+    if (c == 0x28 || c == 0x5B) {
+      depth++;
+    } else if (c == 0x29 || c == 0x5D) {
+      if (depth > 0) depth--;
+    } else if (depth == 0 && c == 0x3B) {
+      out.add(line.substring(start, i).trim());
+      start = i + 1;
+    }
+  }
+  out.add(line.substring(start).trim());
+  return out;
+}
+
+/// The ordinary (non-shorthand) path for one trimmed [trimmed] line: peel an
+/// inline count, fan out across the front-ends, and retry dialect-canonicalised.
+List<Figure> _parseLine(String trimmed, Taxonomy? taxonomy, Dialect? dialect) {
   final split = _splitInlineBeats(trimmed);
   // A stray count keeps the line out of the parser, which would drop the
   // number: it is kept whole as a custom.

@@ -7690,6 +7690,10 @@
   "@danceEditorFreeTextFiguresAddedAnnouncement": {
     "x-sourceSha256": "c4d66c29eef8a2480eeff9c01651a491f5f23569bc7a17aa9f6d79d0e522c6ed"
   },
+  "danceEditorFreeTextFiguresAddedConfirmation": "{count, plural, other{{count}件のフィギュアを追加しました。さらに入力するか、「完了」を選んで終了してください。}}",
+  "@danceEditorFreeTextFiguresAddedConfirmation": {
+    "x-sourceSha256": "9d440af03e3cb398e592743aab104875b7a185a58ec28037919fb3fd2b40d32a"
+  },
   "danceEditorFreeTextRowReplacedAnnouncement": "{count, plural, other{フィギュアを{count}件のフィギュアに置き換えました。}}",
   "@danceEditorFreeTextRowReplacedAnnouncement": {
     "x-sourceSha256": "692f1ac40a943ce8eda3d48e21914b9660167c3563fa0bce6ed3422af96115de"
@@ -8353,6 +8357,10 @@
   "shorthandEditorTokenHelper": "フリーテキスト入力時にこの正確な行を入力すると、下のフィギュアが挿入されます。大文字と小文字を区別せずに一致します。",
   "@shorthandEditorTokenHelper": {
     "x-sourceSha256": "2ce1c061c62ddcba5d051d4664436be8fbd481b6c11b27b32586824f618f1d4f"
+  },
+  "shorthandEditorTokenShadowsFigure": "「{token}」と入力すると、すでにフィギュアが挿入されます。このショートハンドを保存すると、入力時に代わりにここで設定した内容が挿入されます。そのまま保存することもできます。",
+  "@shorthandEditorTokenShadowsFigure": {
+    "x-sourceSha256": "3b73b5185219dec5e1ee3cc9de4b614613efa9f1e2905333cddf61ba5a09670a"
   },
   "shorthandEditorExpandsTo": "展開先",
   "@shorthandEditorExpandsTo": {

@@ -265,7 +265,7 @@ void main() {
       await repository.putPeerManifest('peer', kept);
       await repository.clearForRestore(
         restoredRecords: const [],
-        replacesAllRecords: true,
+        clearRetainedParts: true,
       );
       expect(await repository.peerManifest('peer'), isNull);
     });
@@ -462,7 +462,7 @@ void main() {
       () async {
         await repository.clearForRestore(
           restoredRecords: const [(kind: SyncRecordKind.dance, recordId: 'd1')],
-          replacesAllRecords: true,
+          clearRetainedParts: true,
         );
         expect(await repository.getBaselineState(), isNull);
         expect(await repository.listBaselineEntries(), isEmpty);

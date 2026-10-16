@@ -7764,6 +7764,19 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String danceEditorFreeTextFiguresAddedConfirmation(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count figuren toegevoegd. Typ nog een figuur of kies Klaar om te voltooien.',
+      one:
+          '1 figuur toegevoegd. Typ nog een figuur of kies Klaar om te voltooien.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String danceEditorFreeTextRowReplacedAnnouncement(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -8519,6 +8532,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get shorthandEditorTokenHelper =>
       'Typ deze exacte regel tijdens vrije tekstinvoer om de onderstaande figuren in te voegen. Hoofdletterongevoelig vergeleken.';
+
+  @override
+  String shorthandEditorTokenShadowsFigure(String token) {
+    return 'Als je “$token” typt, wordt er al een figuur ingevoegd. Als je deze afkorting opslaat, voegt typen ervan in plaats daarvan in wat je hier hebt ingesteld. Je kunt hem nog steeds opslaan.';
+  }
 
   @override
   String get shorthandEditorExpandsTo => 'Klapt uit naar';

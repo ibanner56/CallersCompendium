@@ -10008,7 +10008,17 @@
   },
   "danceEditorFreeTextFiguresAddedAnnouncement": "{count, plural, =1{Added 1 figure. Type another, or press Escape to finish.} other{Added {count} figures. Type another, or press Escape to finish.}}",
   "@danceEditorFreeTextFiguresAddedAnnouncement": {
-    "description": "Screen-reader announcement after adding figure(s) from free-text entry.",
+    "description": "Screen-reader announcement after adding figure(s) from free-text entry. Spoken only: the visible line under the box is danceEditorFreeTextFiguresAddedConfirmation, because this one names the Escape key.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorFreeTextFiguresAddedConfirmation": "{count, plural, =1{Added 1 figure. Type another, or choose Done to finish.} other{Added {count} figures. Type another, or choose Done to finish.}}",
+  "@danceEditorFreeTextFiguresAddedConfirmation": {
+    "description": "Visible line under the free-text figure box after adding figure(s). \"Done\" is the button next to the box (commonDone) that closes it; keep the wording in step with that button's label.",
     "placeholders": {
       "count": {
         "type": "int",
@@ -11085,6 +11095,15 @@
   "shorthandEditorTokenHelper": "Type this exact line during free-text entry to insert the figures below. Matched case-insensitively.",
   "@shorthandEditorTokenHelper": {
     "description": "Helper text under the shorthand-token field."
+  },
+  "shorthandEditorTokenShadowsFigure": "Typing \"{token}\" already adds a figure on its own. If you save this shorthand, typing it will insert what you set here instead. You can still save it.",
+  "@shorthandEditorTokenShadowsFigure": {
+    "description": "Warning (not an error; saving is still allowed) under the shorthand-token field when the token, typed as a free-text line, already reads as a figure; {token} is the user's token, rendered as plain text.",
+    "placeholders": {
+      "token": {
+        "type": "String"
+      }
+    }
   },
   "shorthandEditorExpandsTo": "Expands to",
   "@shorthandEditorExpandsTo": {
