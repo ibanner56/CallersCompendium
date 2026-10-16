@@ -748,8 +748,12 @@ PR that added this mapping).
     import wrote at it). Nothing is offered when every figure is **same**. A
     figure whose name is taken is added and flagged *Rename needed*, as one
     arriving by sync is. A figure the glossary refuses (its budget, its
-    bounds) is counted and reported, never thrown. The import's Undo takes
-    back what was added or replaced, after its own undo restores the dances.
+    bounds), or whose write fails, is counted and reported, never thrown, so
+    what was written always reaches the Undo. The import's Undo takes back
+    what was added, erasing it (`UserGlossaryRepository.delete(permanent:)`,
+    so no tombstone makes a later import of the same file offer it as a
+    copy, and sync has nothing to publish), and restores what was replaced,
+    after its own undo restores the dances.
   - **Not versioned, by the maintainer's decision.** Every build before the
     one that added the array refuses a shared archive newer than it knows when
     it is opened from the share sheet or "Open with" (its Import screen still

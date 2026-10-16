@@ -1861,6 +1861,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   if (item.kind != UserFigureImportKind.differs ||
                       entry.id != item.incoming.id)
                     entry.name,
+                // Another figure this file brings may take the name too.
+                for (final other in items)
+                  if (other.kind != UserFigureImportKind.same &&
+                      !identical(other, item))
+                    other.incoming.name,
               ],
               exceptUserFigureId: item.kind == UserFigureImportKind.copy
                   ? null

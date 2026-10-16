@@ -286,16 +286,17 @@ what to add to your Glossary:
 - **New to you**: figures you don't have. Each is ticked; untick any you don't
   want.
 - **Different from yours**: figures you have, which the sender's version
-  changes. **Keep mine** is chosen; **Use theirs** replaces yours with theirs,
-  keeping your notes on it.
+  changes. **Keep mine** is chosen, and the dances you imported then show the
+  figure your way; **Use theirs** replaces yours with theirs, keeping your
+  notes on it.
 - **Added as a copy**: figures whose id this device has used before, for
   another entry or a figure you deleted. Each is added under a new id, and the
   dances you just imported use the copy.
 - **Already in your Glossary**: figures you have, unchanged. Nothing to do.
 
 A figure whose name is already taken here is added all the same, and your
-Glossary marks it **Rename needed**. A dance whose figure you don't add shows
-the line it was shared with. **Skip** adds nothing. The **Undo** after the
+Glossary marks it **Rename needed**. A dance whose new figure you don't add
+shows the line it was shared with. **Skip** adds nothing. The **Undo** after the
 import also takes back what you added or replaced here. With Custom Figures
 off, nothing is offered, and the dances show each figure as the line it was
 shared with.

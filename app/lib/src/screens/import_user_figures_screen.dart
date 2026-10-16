@@ -131,25 +131,30 @@ class _ImportUserFiguresScreenState extends State<ImportUserFiguresScreen> {
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    child: SegmentedButton<bool>(
-                      key: ValueKey(
-                        'user-figure-import-choice-${item.incoming.id}',
-                      ),
-                      segments: [
-                        ButtonSegment(
-                          value: false,
-                          label: Text(l10n.importUserFiguresKeepMine),
+                    // Named, so a screen reader says whose choice this is.
+                    child: Semantics(
+                      container: true,
+                      label: item.incoming.name,
+                      child: SegmentedButton<bool>(
+                        key: ValueKey(
+                          'user-figure-import-choice-${item.incoming.id}',
                         ),
-                        ButtonSegment(
-                          value: true,
-                          label: Text(l10n.importUserFiguresUseTheirs),
+                        segments: [
+                          ButtonSegment(
+                            value: false,
+                            label: Text(l10n.importUserFiguresKeepMine),
+                          ),
+                          ButtonSegment(
+                            value: true,
+                            label: Text(l10n.importUserFiguresUseTheirs),
+                          ),
+                        ],
+                        selected: {_useTheirs.contains(item.incoming.id)},
+                        onSelectionChanged: (selection) => setState(
+                          () => selection.first
+                              ? _useTheirs.add(item.incoming.id)
+                              : _useTheirs.remove(item.incoming.id),
                         ),
-                      ],
-                      selected: {_useTheirs.contains(item.incoming.id)},
-                      onSelectionChanged: (selection) => setState(
-                        () => selection.first
-                            ? _useTheirs.add(item.incoming.id)
-                            : _useTheirs.remove(item.incoming.id),
                       ),
                     ),
                   ),
@@ -166,9 +171,9 @@ class _ImportUserFiguresScreenState extends State<ImportUserFiguresScreen> {
             for (final item in same)
               ListTile(
                 key: ValueKey('user-figure-import-same-${item.incoming.id}'),
-                enabled: false,
                 leading: const Icon(Icons.check),
                 title: Text(item.incoming.name),
+                textColor: theme.colorScheme.onSurfaceVariant,
               ),
           ],
           const SizedBox(height: 24),

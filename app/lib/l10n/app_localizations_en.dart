@@ -8431,8 +8431,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count figures could not be added to your Glossary.',
-      one: '1 figure could not be added to your Glossary.',
+      other: '$count figures could not be saved to your Glossary.',
+      one: '1 figure could not be saved to your Glossary.',
     );
     return '$_temp0';
   }

@@ -219,6 +219,13 @@ void main() {
       await applied.undo(repos);
       expect(await repos.userGlossary.getById('new'), isNull);
       expect(await repos.userGlossary.getById('copy-id'), isNull);
+      // Erased, not deleted: importing the file again offers it as new.
+      final every = {
+        for (final e in await repos.userGlossary.listAll(includeDeleted: true))
+          e.id,
+      };
+      expect(every, isNot(contains('new')));
+      expect(every, isNot(contains('copy-id')));
       final restored = (await repos.userGlossary.getById('diff'))!;
       expect(restored.name, 'zoom');
       expect(restored.notes, 'my notes');
@@ -348,6 +355,58 @@ void main() {
       await tester.pumpAndSettle();
       expect(await repos.dances.listAll(), isEmpty);
       expect(await repos.userGlossary.getById('zoom-id'), isNull);
+    });
+
+    testWidgets('a figure whose id is taken here comes in as a copy, and the '
+        'imported dance uses the copy', (tester) async {
+      final repos = openTestRepositories();
+      await tester.runAsync(
+        () => repos.userGlossary.upsert(figure('zoom-id', kind: 'compound')),
+      );
+      await pumpShared(tester, repos);
+      expect(find.text('Added as a copy'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('user-figure-import-confirm')),
+      );
+      await tester.pumpAndSettle();
+
+      final dance = (await repos.dances.listAll()).single;
+      final use = userFigureUseOf(figuresOf(dance).single)!;
+      expect(use.id, isNot('zoom-id'));
+      expect(use.attached, isTrue);
+      final copy = (await repos.userGlossary.getById(use.id))!;
+      expect(copy.kind, UserGlossaryEntryKind.customFigure);
+      expect(
+        (await repos.userGlossary.getById('zoom-id'))!.kind,
+        UserGlossaryEntryKind.compound,
+      );
+    });
+
+    testWidgets('Use theirs replaces yours, keeping your notes; Undo puts '
+        'yours back', (tester) async {
+      final repos = openTestRepositories();
+      await tester.runAsync(
+        () => repos.userGlossary.upsert(
+          figure('zoom-id', template: '{move} mine', notes: 'my notes'),
+        ),
+      );
+      await pumpShared(tester, repos);
+      await tester.tap(find.text('Use theirs'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('user-figure-import-confirm')),
+      );
+      await tester.pumpAndSettle();
+
+      final taken = (await repos.userGlossary.getById('zoom-id'))!;
+      expect((taken.payload! as Map)['template'], '{move}');
+      expect(taken.notes, 'my notes');
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      final back = (await repos.userGlossary.getById('zoom-id'))!;
+      expect((back.payload! as Map)['template'], '{move} mine');
+      expect(back.notes, 'my notes');
     });
 
     testWidgets('nothing is offered while Custom Figures is off', (

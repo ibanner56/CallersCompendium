@@ -154,7 +154,14 @@ void main() {
     });
 
     test('a detached use keeps its id', () async {
-      await repos.dances.create(dance('d1', [detachUserFigureUse(use('old'))]));
+      // Its line was edited where the figure couldn't be read: the reference
+      // stays, but no longer matches the line, so the use reads as text.
+      final edited = use('old');
+      final detached = edited.copyWith(
+        params: {...edited.params, 'text': 'edited elsewhere'},
+      );
+      expect(userFigureUseOf(detached)?.attached, isFalse);
+      await repos.dances.create(dance('d1', [detached]));
       expect(
         await repos.dances.remapUserFigureUses(
           ['d1'],
@@ -163,6 +170,43 @@ void main() {
         ),
         0,
       );
+    });
+  });
+
+  group('UserGlossaryRepository.delete(permanent:)', () {
+    late CompendiumRepositories repos;
+    setUp(
+      () => repos = CompendiumRepositories(openTestDatabase(), contraTaxonomy),
+    );
+    tearDown(() => repos.db.close());
+
+    Future<Set<String>> everyId() async => {
+      for (final e in await repos.userGlossary.listAll(includeDeleted: true))
+        e.id,
+    };
+
+    test('erases an entry no publication has named', () async {
+      await repos.userGlossary.upsert(entry('z'));
+      await repos.userGlossary.delete('z', permanent: true);
+      expect(await everyId(), isEmpty);
+    });
+
+    test('tombstones one a publication has named, so peers keep the '
+        'deletion', () async {
+      await repos.userGlossary.upsert(entry('z'));
+      await repos.syncLocal.markPublished(
+        kind: SyncRecordKind.glossaryEntry,
+        recordId: 'z',
+      );
+      await repos.userGlossary.delete('z', permanent: true);
+      expect(await repos.userGlossary.getById('z'), isNull);
+      expect(await everyId(), {'z'});
+    });
+
+    test('a plain delete tombstones', () async {
+      await repos.userGlossary.upsert(entry('z'));
+      await repos.userGlossary.delete('z');
+      expect(await everyId(), {'z'});
     });
   });
 }

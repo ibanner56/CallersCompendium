@@ -8153,7 +8153,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count件のフィギュアを用語集に追加できませんでした。',
+      other: '$count件のフィギュアを用語集に保存できませんでした。',
     );
     return '$_temp0';
   }

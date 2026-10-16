@@ -11068,7 +11068,7 @@
       }
     }
   },
-  "importUserFiguresFailed": "{count, plural, =1{1 figure could not be added to your Glossary.} other{{count} figures could not be added to your Glossary.}}",
+  "importUserFiguresFailed": "{count, plural, =1{1 figure could not be saved to your Glossary.} other{{count} figures could not be saved to your Glossary.}}",
   "@importUserFiguresFailed": {
     "description": "Snackbar after the shared-figures step when some figures could not be stored (for example, the Glossary is full); {count} is how many.",
     "placeholders": {

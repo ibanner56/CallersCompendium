@@ -8466,8 +8466,8 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count figurer kunne ikke føjes til din ordliste.',
-      one: '1 figur kunne ikke føjes til din ordliste.',
+      other: '$count figurer kunne ikke gemmes i din ordliste.',
+      one: '1 figur kunne ikke gemmes i din ordliste.',
     );
     return '$_temp0';
   }

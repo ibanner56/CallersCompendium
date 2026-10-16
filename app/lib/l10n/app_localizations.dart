@@ -12743,7 +12743,7 @@ abstract class AppLocalizations {
   /// Snackbar after the shared-figures step when some figures could not be stored (for example, the Glossary is full); {count} is how many.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 figure could not be added to your Glossary.} other{{count} figures could not be added to your Glossary.}}'**
+  /// **'{count, plural, =1{1 figure could not be saved to your Glossary.} other{{count} figures could not be saved to your Glossary.}}'**
   String importUserFiguresFailed(int count);
 
   /// Snackbar shown after shorthands are seeded; {count} is how many were added.

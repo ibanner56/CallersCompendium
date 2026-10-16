@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 
+import '../diagnostics/error_log.dart';
 import '../screens/import_user_figures_screen.dart';
 
 /// What applying a shared file's figures did (#1023, plan C12): enough to
@@ -13,21 +14,24 @@ class AppliedUserFigureImport {
   /// The user's own figures replaced with the sender's, as they were.
   final List<UserGlossaryEntry> replaced;
 
-  /// How many could not be stored (the glossary was full, or the repository
-  /// refused one).
+  /// How many could not be stored or replaced (the glossary was full, the
+  /// repository refused one, or the write failed).
   final int failed;
 
   int get count => addedIds.length + replaced.length;
 
-  /// Removes the figures added and puts back the ones replaced. Run after the
+  /// Removes the figures added, leaving no deletion behind (so a later import
+  /// of the same file offers them as new again, and sync has nothing to
+  /// publish), and puts back the ones replaced, as a restore does, so the
+  /// glossary's budget can't refuse the user's own version. Run after the
   /// import's own undo, which already restored the dances it pointed at a
   /// copy.
   Future<void> undo(CompendiumRepositories repos) async {
     for (final id in addedIds) {
-      await repos.userGlossary.delete(id);
+      await repos.userGlossary.delete(id, permanent: true);
     }
     for (final entry in replaced) {
-      await repos.userGlossary.upsert(entry);
+      await repos.userGlossary.upsertFromRestore(entry);
     }
   }
 }
@@ -39,9 +43,11 @@ class AppliedUserFigureImport {
 /// - replaces each of the user's figures chosen with the sender's version,
 ///   keeping the user's notes on it and when it was made.
 ///
-/// A figure the repository refuses is counted in
-/// [AppliedUserFigureImport.failed], never thrown: the file is untrusted, and
-/// the dances are imported either way.
+/// Never throws: a figure the repository refuses, or whose write fails, is
+/// counted in [AppliedUserFigureImport.failed] (and a failure other than a
+/// refusal logged), and a failed remap is logged, so what was written is
+/// always returned for the Undo. The file is untrusted, and the dances are
+/// imported either way.
 Future<AppliedUserFigureImport> applyUserFigureImport(
   CompendiumRepositories repos,
   List<UserFigureImportItem> items,
@@ -89,10 +95,23 @@ Future<AppliedUserFigureImport> applyUserFigureImport(
       }
     } on UserGlossaryEntryInvalid {
       failed++;
+    } on Object catch (e, stackTrace) {
+      failed++;
+      logCaughtError(e, stackTrace, source: 'applyUserFigureImport');
     }
   }
   if (copies.isNotEmpty) {
-    await repos.dances.remapUserFigureUses(importedDanceIds, copies, now: now);
+    try {
+      await repos.dances.remapUserFigureUses(
+        importedDanceIds,
+        copies,
+        now: now,
+      );
+    } on Object catch (e, stackTrace) {
+      // The copies stay, for the Undo to remove; the dances keep the ids they
+      // came with, and show each use as its line.
+      logCaughtError(e, stackTrace, source: 'applyUserFigureImport.remap');
+    }
   }
   return AppliedUserFigureImport._(added, replaced, failed);
 }

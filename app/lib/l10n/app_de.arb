@@ -8386,9 +8386,9 @@
   "@importUserFiguresConfirm": {
     "x-sourceSha256": "4db8fd825e193f10caf5fed91a2fc807ae9c5bb1faa3d21ea564c14be4c32171"
   },
-  "importUserFiguresFailed": "{count, plural, =1{1 Figur konnte deinem Glossar nicht hinzugefügt werden.} other{{count} Figuren konnten deinem Glossar nicht hinzugefügt werden.}}",
+  "importUserFiguresFailed": "{count, plural, =1{1 Figur konnte nicht in deinem Glossar gespeichert werden.} other{{count} Figuren konnten nicht in deinem Glossar gespeichert werden.}}",
   "@importUserFiguresFailed": {
-    "x-sourceSha256": "d422b924c6ec1764a0190bd3f1ca251c4acdfd4e1b3497fcd40a54df84a4c76e"
+    "x-sourceSha256": "2d71cfdcf6f48de0f523b8ad22eb8118a542279a5bcdb558f27a7436c1b775f5"
   },
   "importShorthandSeedComplete": "{count, plural, =1{1 Abkürzung angelegt} other{{count} Abkürzungen angelegt}}",
   "@importShorthandSeedComplete": {
