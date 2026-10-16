@@ -8,7 +8,7 @@
   },
   "core": {
     "changed": [
-      "`parseFreeTextFigureEntry` adds a typed-by-a-caller layer (`typed_figure_names.dart`): spoken turn amounts are rewritten before the parse, the built-in discouraged role terms are retried by their meaning, and a line no parse reads is looked up whole as a taxonomy, alias, caller-phrasing or dialect move name. A count may carry a `beats` unit. Imports and the custom-figure re-parse are unchanged."
+      "`parseFreeTextFigureEntry` adds a typed-by-a-caller layer (`typed_figure_names.dart`): spoken turn amounts are rewritten before the parse, the built-in discouraged role terms are retried by their meaning, and a line no parse reads is looked up whole as a taxonomy, alias, caller-phrasing or dialect move name. A count may carry a `beats` unit. Imports are unchanged; the custom-figure re-parse reads counts as before, except that a saved custom left with a second, `beats`-unit count once its count is peeled stays custom instead of upgrading with both counts."
     ]
   }
 }
