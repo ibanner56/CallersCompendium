@@ -158,8 +158,9 @@ _BeatSplit _splitInlineBeats(String line) {
 /// (nothing to insert) or when it exceeds [maxFreeTextEntryLength] (treated as
 /// malformed/hostile input). Matched lines yield structured taxonomy figures;
 /// unrecognised lines yield [customMove] figures tagged
-/// [CustomOrigin.importGap] (via [parseFigureLine]) so they surface the #398
-/// parser-gap marker and remain eligible for the reparse-customs upgrade.
+/// [CustomOrigin.importGap] so they surface the #398 parser-gap marker. They
+/// remain eligible for the reparse-customs upgrade, except a line kept whole
+/// for a stray count, which [splitForReparse] keeps custom.
 List<Figure> parseFreeTextFigureEntry(
   String input, {
   Taxonomy? taxonomy,
