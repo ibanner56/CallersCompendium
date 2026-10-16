@@ -364,6 +364,53 @@ class ShorthandMappingsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Turns each shorthand for the user's figure [id] into an ordinary
+  /// shorthand for the figure [toFigure] returns for it (#1023, maintainer
+  /// decision 5): what switching that figure to the shipped one of its name
+  /// makes of its shorthands. Returns how many were turned.
+  ///
+  /// A shorthand [toFigure] returns null for, or that the ordinary
+  /// shorthands have no room left for ([maxShorthandMappings]), stays as it
+  /// is: once the figure is retired it shows that figure's name, as after a
+  /// delete. So does one whose token an ordinary shorthand already has (two
+  /// devices can each add one before they sync), which the next load would
+  /// otherwise drop. Each turned keeps its token. The
+  /// ordinary shorthands are written first: should the second write fail,
+  /// a token is in both kinds, where the ordinary shorthand wins and the
+  /// other says so, rather than in neither.
+  Future<int> switchUserFigureShorthands(
+    String id,
+    Figure? Function(UserFigureShorthand shorthand) toFigure,
+  ) async {
+    final mappings = _mappings.toList();
+    final kept = <UserFigureShorthand>[];
+    var turned = 0;
+    for (final shorthand in _userFigure) {
+      final figure = shorthand.figureId == id ? toFigure(shorthand) : null;
+      if (figure == null ||
+          mappings.length >= maxShorthandMappings ||
+          mappings.any((m) => m.normalizedToken == shorthand.normalizedToken)) {
+        kept.add(shorthand);
+        continue;
+      }
+      mappings.add(ShorthandMapping(token: shorthand.token, figures: [figure]));
+      turned++;
+    }
+    if (turned == 0) return 0;
+    await _settings.set(
+      kShorthandMappingsKey,
+      ShorthandMappings(mappings).toJson(),
+    );
+    _mappings = mappings;
+    await _settings.set(
+      kUserFigureShorthandsKey,
+      UserFigureShorthands(kept).toJson(),
+    );
+    _userFigure = kept;
+    notifyListeners();
+    return turned;
+  }
+
   /// [shorthand], trimmed, when a new one of its kind could be added (its
   /// token free but for the excepted entry, kept by the next load, and
   /// within the bound); throws [ArgumentError] otherwise.

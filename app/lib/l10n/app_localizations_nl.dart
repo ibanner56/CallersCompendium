@@ -289,6 +289,89 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String glossaryCustomShippedNameBody(String name) {
+    return 'De app heeft nu een eigen figuur met de naam $name. Geef de jouwe een andere naam, of zet je dansen over op de figuur van de app en verwijder de jouwe.';
+  }
+
+  @override
+  String get glossaryCustomRenameMine => 'Mijn figuur hernoemen';
+
+  @override
+  String get glossaryCustomSwitchToShipped => 'Overzetten op die van de app';
+
+  @override
+  String userFigureSwitchTitle(String name) {
+    return 'Overzetten op $name';
+  }
+
+  @override
+  String userFigureSwitchIntro(String name) {
+    return 'Kies welke parameter van $name elke parameter van je figuur wordt, en welke van de waarden elk van je opties wordt. Alles moet gekozen zijn voordat je kunt overzetten.';
+  }
+
+  @override
+  String userFigureSwitchParam(String param) {
+    return 'Je $param wordt';
+  }
+
+  @override
+  String userFigureSwitchChoice(String choice) {
+    return 'Je $choice wordt';
+  }
+
+  @override
+  String userFigureSwitchNoTarget(String name, String param) {
+    return '$name heeft niets wat je $param kan worden. Verwijder het eerst uit je figuur, of geef de jouwe liever een andere naam.';
+  }
+
+  @override
+  String userFigureSwitchAllTaken(String name, String param) {
+    return 'Elke parameter van $name die je $param kan worden, is al gekozen voor een andere van de jouwe. Kies daar eerst anders.';
+  }
+
+  @override
+  String get userFigureSwitchAction => 'Overzetten';
+
+  @override
+  String userFigureSwitchConfirmTitle(String name) {
+    return 'Overzetten op $name?';
+  }
+
+  @override
+  String userFigureSwitchConfirmUses(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dansen gebruiken je figuur en gaan $name gebruiken. De jouwe wordt uit je woordenlijst verwijderd.',
+      one:
+          '1 dans gebruikt je figuur en gaat $name gebruiken. De jouwe wordt uit je woordenlijst verwijderd.',
+      zero:
+          'Geen dans in je collectie gebruikt je figuur. Hij wordt uit je woordenlijst verwijderd.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get userFigureSwitchConfirmDefaults =>
+      'Je standaardfiguren gebruiken hem ook en worden op dezelfde manier overgezet.';
+
+  @override
+  String userFigureSwitchConfirmShorthands(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zijn $count afkortingen voegen dan $name in.',
+      one: 'Zijn afkorting voegt dan $name in.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get userFigureSwitchFailed =>
+      'Er is niets overgezet: je figuur is gewijzigd of verdwenen. Open hem opnieuw om over te zetten.';
+
+  @override
   String get glossaryNoDefinition => 'Nog geen definitie.';
 
   @override

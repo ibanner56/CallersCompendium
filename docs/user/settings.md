@@ -649,6 +649,26 @@ Glossary is on. While it is on:
   and hiding in **Matrix columns**, are removed too. A figure that can no longer be used
   is marked **Needs repair**; one whose name is also another figure's is
   marked **Rename needed**.
+- If a later version of the app comes with a figure that has the name of one
+  of your new figures, your figure's page says so, with two choices.
+  **Rename mine** opens it to give it another name. **Switch to the app's**
+  opens a page where you choose which of the app's figure's parameters each of
+  yours becomes, and which of its values each of your options becomes; where a
+  name matches, it is chosen for you. An option can become any parameter that
+  takes words, such as a hand or who; any other parameter, one of the same
+  kind that takes all its values. Two of yours can't become the same one.
+  Every one must be chosen, so a parameter the app's figure has nothing for
+  stops the switch: remove it from your figure first, or rename yours.
+  **Switch** then says how many dances use your figure, as deleting does, and
+  once you confirm, each of them uses the app's figure instead, with the same
+  beats, and your figure is removed. Your default figures switch the same way,
+  and your shorthands for it insert the app's figure (but one whose values
+  your figure no longer has, or whose name another shorthand also has, stays
+  as it is). A line whose wording was edited in an older version of the app,
+  or that holds a value your figure no longer has, keeps its wording as plain
+  text, and dances in the Trash keep the line each last stored. As with
+  deleting, each dialect's name and wording for your figure, and its column in
+  **Matrix columns**, are removed: the app's figure has its own.
 
 Turning Custom Figures off hides your figures; it doesn't delete them. They are
 kept in your backups.

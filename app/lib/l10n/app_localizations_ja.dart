@@ -279,6 +279,85 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String glossaryCustomShippedNameBody(String name) {
+    return 'アプリに $name という独自のフィギュアが追加されました。自分のフィギュアの名前を変更するか、ダンスをアプリのフィギュアに切り替えて自分のフィギュアを削除してください。';
+  }
+
+  @override
+  String get glossaryCustomRenameMine => '自分のものの名前を変更';
+
+  @override
+  String get glossaryCustomSwitchToShipped => 'アプリのものに切り替え';
+
+  @override
+  String userFigureSwitchTitle(String name) {
+    return '$name に切り替え';
+  }
+
+  @override
+  String userFigureSwitchIntro(String name) {
+    return '自分のフィギュアの各パラメーターが $name のどのパラメーターになるか、また各オプションがその値のどれになるかを選んでください。切り替えるには、すべてを選ぶ必要があります。';
+  }
+
+  @override
+  String userFigureSwitchParam(String param) {
+    return '自分の $param の切り替え先';
+  }
+
+  @override
+  String userFigureSwitchChoice(String choice) {
+    return '自分の $choice の切り替え先';
+  }
+
+  @override
+  String userFigureSwitchNoTarget(String name, String param) {
+    return '$name には自分の $param の切り替え先がありません。先にフィギュアから削除するか、代わりに自分のものの名前を変更してください。';
+  }
+
+  @override
+  String userFigureSwitchAllTaken(String name, String param) {
+    return '自分の $param の切り替え先になりうる $name のパラメーターは、すべて別のパラメーターに選ばれています。先にそちらの選択を変更してください。';
+  }
+
+  @override
+  String get userFigureSwitchAction => '切り替え';
+
+  @override
+  String userFigureSwitchConfirmTitle(String name) {
+    return '$name に切り替えますか？';
+  }
+
+  @override
+  String userFigureSwitchConfirmUses(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count件のダンスが自分のフィギュアを使っており、代わりに $name を使うようになります。自分のフィギュアは用語集から削除されます。',
+      zero: 'コレクションに自分のフィギュアを使っているダンスはありません。用語集から削除されます。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get userFigureSwitchConfirmDefaults =>
+      '既定のフィギュアもこのフィギュアを使っており、同じように切り替わります。';
+
+  @override
+  String userFigureSwitchConfirmShorthands(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のショートハンドは $name を挿入するようになります。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get userFigureSwitchFailed =>
+      '切り替えられませんでした。フィギュアが変更されたか、削除されています。もう一度開いて切り替えてください。';
+
+  @override
   String get glossaryNoDefinition => '定義はまだありません。';
 
   @override

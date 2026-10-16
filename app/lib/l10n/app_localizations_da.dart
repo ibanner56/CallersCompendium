@@ -289,6 +289,89 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String glossaryCustomShippedNameBody(String name) {
+    return 'Appen har nu sin egen figur ved navn $name. Omdøb din, eller skift dine danse over til appens figur og fjern din.';
+  }
+
+  @override
+  String get glossaryCustomRenameMine => 'Omdøb min';
+
+  @override
+  String get glossaryCustomSwitchToShipped => 'Skift til appens';
+
+  @override
+  String userFigureSwitchTitle(String name) {
+    return 'Skift til $name';
+  }
+
+  @override
+  String userFigureSwitchIntro(String name) {
+    return 'Vælg, hvilken af ${name}s parametre hver af din figurs parametre bliver til, og hvilken af dens værdier hver af dine valgmuligheder bliver til. Alle skal vælges, før du kan skifte.';
+  }
+
+  @override
+  String userFigureSwitchParam(String param) {
+    return 'Din $param bliver til';
+  }
+
+  @override
+  String userFigureSwitchChoice(String choice) {
+    return 'Din $choice bliver til';
+  }
+
+  @override
+  String userFigureSwitchNoTarget(String name, String param) {
+    return '$name har intet, som din $param kan blive til. Fjern den fra din figur først, eller omdøb din i stedet.';
+  }
+
+  @override
+  String userFigureSwitchAllTaken(String name, String param) {
+    return 'Alle ${name}s parametre, som din $param kunne blive til, er allerede valgt til en anden af dine. Vælg anderledes der først.';
+  }
+
+  @override
+  String get userFigureSwitchAction => 'Skift';
+
+  @override
+  String userFigureSwitchConfirmTitle(String name) {
+    return 'Skift til $name?';
+  }
+
+  @override
+  String userFigureSwitchConfirmUses(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count danse bruger din figur og vil bruge $name i stedet. Din fjernes fra din ordliste.',
+      one:
+          '1 dans bruger din figur og vil bruge $name i stedet. Din fjernes fra din ordliste.',
+      zero:
+          'Ingen dans i din samling bruger din figur. Den fjernes fra din ordliste.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get userFigureSwitchConfirmDefaults =>
+      'Dine standardfigurer bruger den også og skifter på samme måde.';
+
+  @override
+  String userFigureSwitchConfirmShorthands(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Dens $count kortformer vil indsætte $name.',
+      one: 'Dens kortform vil indsætte $name.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get userFigureSwitchFailed =>
+      'Intet blev skiftet: din figur er ændret eller væk. Åbn den igen for at skifte.';
+
+  @override
   String get glossaryNoDefinition => 'Ingen definition endnu.';
 
   @override

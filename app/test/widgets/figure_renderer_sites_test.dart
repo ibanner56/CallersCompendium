@@ -21,6 +21,9 @@ const Map<String, int> _allowed = {
   'lib/src/screens/glossary/glossary_screen.dart': 1,
   'lib/src/screens/glossary/custom_figure_detail.dart': 1,
   'lib/src/screens/glossary/compound_editor_screen.dart': 1,
+  // The app's figure's name and the user's option labels, on the screen
+  // that maps one of the user's figures onto it.
+  'lib/src/screens/glossary/user_figure_switch_screen.dart': 1,
   'lib/src/screens/compound_shorthand_editor_screen.dart': 1,
   // Free text, formation labels and link labels; the figures go to the live
   // renderer.

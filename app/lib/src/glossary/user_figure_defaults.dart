@@ -15,9 +15,43 @@ Future<Map<String, String>> frozenDefaultFigureLists(
   SettingsRepository settings,
   String id,
   FigureRenderer renderer,
+) => _rewrittenDefaultFigureLists(
+  settings,
+  (figures) => freezeUserFigureUsesIn(figures, id, renderer),
+);
+
+/// What switching the user's figure [id] to the shipped figure [mapping]
+/// names (#1023, maintainer decision 5) makes of the default figure lists
+/// that use it, as [frozenDefaultFigureLists] for a delete: each use
+/// switched as the dances are ([switchUserFigureUsesIn]). Read while the
+/// figure still exists; written once it is retired.
+Future<Map<String, String>> switchedDefaultFigureLists(
+  SettingsRepository settings,
+  String id,
+  UserFigureDefinition definition,
+  UserFigureSwitch mapping,
+  FigureRenderer renderer,
+) => _rewrittenDefaultFigureLists(
+  settings,
+  (figures) => switchUserFigureUsesIn(
+    figures,
+    id,
+    definition,
+    mapping,
+    renderer.taxonomy,
+    renderer,
+  ),
+);
+
+/// For each stored default figure list that [rewrite] changes (returning a
+/// list not identical to the one it was given), its settings key and the
+/// value to store.
+Future<Map<String, String>> _rewrittenDefaultFigureLists(
+  SettingsRepository settings,
+  List<Figure> Function(List<Figure> figures) rewrite,
 ) async {
-  final frozen = <String, String>{};
-  Future<void> freeze(
+  final rewritten = <String, String>{};
+  Future<void> rewriteList(
     String key,
     List<Figure> Function(Object? stored) decode,
     String Function(List<Figure> figures) encode,
@@ -25,24 +59,24 @@ Future<Map<String, String>> frozenDefaultFigureLists(
     final stored = await settings.get(key);
     if (stored == null) return;
     final figures = decode(stored);
-    final kept = freezeUserFigureUsesIn(figures, id, renderer);
-    if (!identical(kept, figures)) frozen[key] = encode(kept);
+    final kept = rewrite(figures);
+    if (!identical(kept, figures)) rewritten[key] = encode(kept);
   }
 
-  await freeze(
+  await rewriteList(
     kDefaultDanceFiguresTemplateKey,
     danceFiguresTemplateFromStored,
     encodeFigures,
   );
-  await freeze(
+  await rewriteList(
     kDefaultMeanwhileSideFiguresKey,
     meanwhileSideFiguresFromStored,
     encodeMeanwhileSideFigures,
   );
-  await freeze(
+  await rewriteList(
     kDefaultModifierFiguresKey,
     modifierFiguresFromStored,
     encodeModifierFigures,
   );
-  return frozen;
+  return rewritten;
 }

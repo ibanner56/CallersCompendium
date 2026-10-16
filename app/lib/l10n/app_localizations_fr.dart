@@ -293,6 +293,90 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String glossaryCustomShippedNameBody(String name) {
+    return 'L\'application a maintenant sa propre figure nommée $name. Renommez la vôtre, ou faites passer vos danses à la figure de l\'application et retirez la vôtre.';
+  }
+
+  @override
+  String get glossaryCustomRenameMine => 'Renommer la mienne';
+
+  @override
+  String get glossaryCustomSwitchToShipped =>
+      'Passer à celle de l\'application';
+
+  @override
+  String userFigureSwitchTitle(String name) {
+    return 'Passer à $name';
+  }
+
+  @override
+  String userFigureSwitchIntro(String name) {
+    return 'Choisissez quel paramètre de $name devient chacun des paramètres de votre figure, et laquelle de ses valeurs devient chacune de vos options. Tous doivent être choisis avant de pouvoir passer.';
+  }
+
+  @override
+  String userFigureSwitchParam(String param) {
+    return 'Votre $param devient';
+  }
+
+  @override
+  String userFigureSwitchChoice(String choice) {
+    return 'Votre $choice devient';
+  }
+
+  @override
+  String userFigureSwitchNoTarget(String name, String param) {
+    return '$name n\'a rien que votre $param puisse devenir. Retirez-le d\'abord de votre figure, ou renommez plutôt la vôtre.';
+  }
+
+  @override
+  String userFigureSwitchAllTaken(String name, String param) {
+    return 'Chaque paramètre de $name que votre $param pourrait devenir est déjà choisi pour un autre des vôtres. Changez d\'abord ce choix-là.';
+  }
+
+  @override
+  String get userFigureSwitchAction => 'Passer';
+
+  @override
+  String userFigureSwitchConfirmTitle(String name) {
+    return 'Passer à $name ?';
+  }
+
+  @override
+  String userFigureSwitchConfirmUses(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count danses utilisent votre figure et utiliseront $name à la place. La vôtre est retirée de votre glossaire.',
+      one:
+          '1 danse utilise votre figure et utilisera $name à la place. La vôtre est retirée de votre glossaire.',
+      zero:
+          'Aucune danse de votre collection n\'utilise votre figure. Elle est retirée de votre glossaire.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get userFigureSwitchConfirmDefaults =>
+      'Vos figures par défaut l\'utilisent aussi et passent de la même façon.';
+
+  @override
+  String userFigureSwitchConfirmShorthands(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ses $count abréviations inséreront $name.',
+      one: 'Son abréviation insérera $name.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get userFigureSwitchFailed =>
+      'Rien n\'a changé : votre figure a été modifiée ou n\'existe plus. Ouvrez-la de nouveau pour passer.';
+
+  @override
   String get glossaryNoDefinition => 'Pas encore de définition.';
 
   @override

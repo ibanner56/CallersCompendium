@@ -286,6 +286,89 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String glossaryCustomShippedNameBody(String name) {
+    return 'The app now has its own figure called $name. Rename yours, or switch your dances to the app\'s figure and remove yours.';
+  }
+
+  @override
+  String get glossaryCustomRenameMine => 'Rename mine';
+
+  @override
+  String get glossaryCustomSwitchToShipped => 'Switch to the app\'s';
+
+  @override
+  String userFigureSwitchTitle(String name) {
+    return 'Switch to $name';
+  }
+
+  @override
+  String userFigureSwitchIntro(String name) {
+    return 'Choose which of $name\'s parameters each of your figure\'s parameters becomes, and which of its values each of your options becomes. Every one must be chosen before you can switch.';
+  }
+
+  @override
+  String userFigureSwitchParam(String param) {
+    return 'Your $param becomes';
+  }
+
+  @override
+  String userFigureSwitchChoice(String choice) {
+    return 'Your $choice becomes';
+  }
+
+  @override
+  String userFigureSwitchNoTarget(String name, String param) {
+    return '$name has nothing your $param can become. Remove it from your figure first, or rename yours instead.';
+  }
+
+  @override
+  String userFigureSwitchAllTaken(String name, String param) {
+    return 'Each of $name\'s parameters your $param could become is already chosen for another of yours. Choose differently there first.';
+  }
+
+  @override
+  String get userFigureSwitchAction => 'Switch';
+
+  @override
+  String userFigureSwitchConfirmTitle(String name) {
+    return 'Switch to $name?';
+  }
+
+  @override
+  String userFigureSwitchConfirmUses(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dances use your figure, and will use $name instead. Yours is removed from your Glossary.',
+      one:
+          '1 dance uses your figure, and will use $name instead. Yours is removed from your Glossary.',
+      zero:
+          'No dance in your collection uses your figure. It\'s removed from your Glossary.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get userFigureSwitchConfirmDefaults =>
+      'Your default figures use it too, and switch the same way.';
+
+  @override
+  String userFigureSwitchConfirmShorthands(int count, String name) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Its $count shorthands will insert $name.',
+      one: 'Its shorthand will insert $name.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get userFigureSwitchFailed =>
+      'Nothing was switched: your figure changed or is gone. Open it again to switch.';
+
+  @override
   String get glossaryNoDefinition => 'No definition yet.';
 
   @override
