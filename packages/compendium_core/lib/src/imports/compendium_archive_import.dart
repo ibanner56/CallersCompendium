@@ -676,12 +676,15 @@ class CompendiumArchiveImporter {
       // bundle, so pending deletions for unrelated local records remain valid.
       // Baselines, aliases, review decisions, and normalization bookkeeping
       // are conclusions about the pre-import dataset and must not survive it.
+      // Parts kept for a peer's newer build are not: this writer replaces no
+      // record wholesale, so it clears none, as a local edit keeps them too.
       // Keep the cleanup transaction separate from the content ledger: on a
       // cleanup failure it rolls back these rows, then the catch block
       // compensates the already-written content.
       await repositories.transaction(() async {
         await repositories.syncLocal.clearForRestore(
           restoredRecords: const [],
+          replacesAllRecords: false,
           revalidatePending: false,
         );
         await repositories.resetNormalisationStateForRestore();

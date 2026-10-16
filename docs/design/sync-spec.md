@@ -253,9 +253,12 @@ wire cannot take that class. The kept `body` names the peer's id too and is
 never sent anywhere.
 
 `retained_sync_fields` is record content, not store state: it MUST survive an
-epoch reset and a detach, like the record it belongs to. A restore replaces the
-records, so it MUST clear the table. A row MUST follow its record when two
-identities become one, and MUST go when its record is hard-deleted or purged;
+epoch reset and a detach, like the record it belongs to. A restore that
+replaces the whole library MUST clear the table; a merge or an import, which
+replaces only the records it writes, MUST clear the rows of those records and no
+others, because the kept parts of a record it did not write are still the only
+copy of what a peer's newer build put there. A row MUST follow its record when
+two identities become one, and MUST go when its record is hard-deleted or purged;
 every snapshot drops a row whose record no longer exists, so third-party
 content never outlives its record. Only the sync engine writes it, so a write
 does not schedule a pass.
@@ -4067,7 +4070,9 @@ judged, in either mode.** The codebase has three such entry points —
 `replace`. Today the shipped UI path uses `replace`, so the merge case is
 latent; but a merge writes rows the pass never saw exactly as a replace does, so
 the rule is stated over the event and not over the mode, and holds unchanged
-when merge-mode sharing ships.
+when merge-mode sharing ships. The one clearing this does not extend to is
+`retained_sync_fields` (§3.2), whose rows are record content: a merge or an
+import clears the rows of the records it writes, never the rest.
 
 Restore converges on a deletion only while some peer still advertises the
 tombstone.
@@ -5922,7 +5927,10 @@ refuses the record as `newerRecordFields` or `newerFigures`** (mutation: let
 figure decoding drop the key — the dance applies, truncated). **A tie in kept
 parts is left to a device that understands them** (mutation: settle it as a tie
 in nothing the user is shown — the copy without the newer field can win
-everywhere). **After an upgrade that starts syncing a kept field, the record
+everywhere). **A merge or an import keeps the parts kept for records it did
+not write** (mutation: clear the whole table — the peer's copy at the same
+`updatedAt` is a tie that never returns the field, and the next edit overwrites
+it everywhere). **After an upgrade that starts syncing a kept field, the record
 holds it and the kept copy no longer wins** (mutation: keep putting the kept
 copy back — the user's edit to the now-synced field is shared with the old
 value). These are client-side and

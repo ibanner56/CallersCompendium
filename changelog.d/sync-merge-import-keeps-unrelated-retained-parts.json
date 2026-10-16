@@ -1,0 +1,14 @@
+{
+  "id": "sync-merge-import-keeps-unrelated-retained-parts",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Importing a collection no longer makes Device Sync lose the details a newer version of the app added to your other records. Before, the import wiped what this device was keeping for those records, so your next edit to one of them removed the details on every device."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "SyncLocalRepository.clearForRestore takes a required replacesAllRecords flag. A merge restore or an archive import now clears the retained_sync_fields rows of the records it wrote only, instead of the whole table."
+    ]
+  }
+}

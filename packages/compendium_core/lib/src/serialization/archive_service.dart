@@ -150,6 +150,7 @@ class ArchiveRestorer {
           }
           await _repos.syncLocal.clearForRestore(
             restoredRecords: restoredRecords,
+            replacesAllRecords: true,
             revalidatePending: true,
           );
         } else {
@@ -161,6 +162,7 @@ class ArchiveRestorer {
           );
           await _repos.syncLocal.clearForRestore(
             restoredRecords: restoredRecords,
+            replacesAllRecords: false,
             revalidatePending: false,
           );
         }

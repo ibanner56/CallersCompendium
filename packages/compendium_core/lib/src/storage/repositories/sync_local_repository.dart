@@ -229,10 +229,12 @@ class SyncLocalRepository {
 
   Future<void> clearForRestore({
     required Iterable<SyncRecordAddress> restoredRecords,
+    required bool replacesAllRecords,
     bool revalidatePending = true,
   }) => transaction(
     (tx) => tx.clearForRestore(
       restoredRecords: restoredRecords,
+      replacesAllRecords: replacesAllRecords,
       revalidatePending: revalidatePending,
     ),
   );
@@ -511,15 +513,32 @@ class SyncLocalTransaction {
         .go();
   }
 
+  /// Clears what a restore or import makes stale: the baseline, and the parts
+  /// kept for records the restore replaces.
+  ///
+  /// [replacesAllRecords] is true when the writer replaced the whole dataset,
+  /// so every kept part belongs to a record that is gone. Otherwise only the
+  /// parts of [restoredRecords] go: the kept parts of a record the writer did
+  /// not touch are still the only copy of what a peer's newer build put there.
   Future<void> clearForRestore({
     required Iterable<SyncRecordAddress> restoredRecords,
+    required bool replacesAllRecords,
     bool revalidatePending = true,
   }) async {
     await clearBaseline();
-    // A restore replaces the records these parts were kept for; what the
-    // restored records carry for a newer version, if anything, arrives again
-    // from a peer.
-    await _db.delete(_db.retainedSyncFields).go();
+    // What a restored record carried for a newer version, if anything, arrives
+    // again from a peer.
+    if (replacesAllRecords) {
+      await _db.delete(_db.retainedSyncFields).go();
+    } else {
+      for (final record in restoredRecords) {
+        await setRetainedSyncFields(
+          kind: record.kind,
+          recordId: record.recordId,
+          payload: null,
+        );
+      }
+    }
     if (revalidatePending) {
       await revalidatePendingDeletions(restoredRecords: restoredRecords);
     }

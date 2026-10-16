@@ -186,7 +186,10 @@ void main() {
 
   test('a restore clears what was kept', () async {
     await apply(newerProgram(program()));
-    await repositories.syncLocal.clearForRestore(restoredRecords: const []);
+    await repositories.syncLocal.clearForRestore(
+      restoredRecords: const [],
+      replacesAllRecords: true,
+    );
     expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
   });
 
