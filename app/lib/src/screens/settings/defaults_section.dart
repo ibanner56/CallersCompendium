@@ -893,7 +893,10 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         if (figures.isEmpty) return 0;
         setState(
           () => _defaultDanceFigureDrafts.addAll(
-            figures.map(FigureDraft.fromFigure),
+            [
+              for (final figure in figures)
+                FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
+            ],
           ),
         );
         _persistDanceFiguresTemplate();
@@ -941,7 +944,10 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         final accepted = ordinaryFigures.take(remaining).toList();
         setState(
           () => _defaultMeanwhileSideDrafts.addAll(
-            accepted.map(FigureDraft.fromFigure),
+            [
+              for (final figure in accepted)
+                FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
+            ],
           ),
         );
         _persistMeanwhileSideDefaults();
@@ -987,7 +993,10 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         final accepted = ordinaryFigures.take(remaining).toList();
         setState(
           () => _defaultModifierDrafts.addAll(
-            accepted.map(FigureDraft.fromFigure),
+            [
+              for (final figure in accepted)
+                FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
+            ],
           ),
         );
         _persistModifierDefaults();

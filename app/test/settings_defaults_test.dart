@@ -1718,6 +1718,35 @@ void main() {
       expect(stored.single.beats, 16);
     });
 
+    testWidgets('Meanwhile side defaults persist the derived beats of a line '
+        'with no stated count (#1820)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+      await repos.settings.set(kDefaultMeanwhileSideFiguresKey, '[]');
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('meanwhile-side-add')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('meanwhile-side-free-text-field')),
+        'neighbor balance & swing',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('meanwhile-side-free-text-submit')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        meanwhileSideFiguresFromStored(
+          await repos.settings.get(kDefaultMeanwhileSideFiguresKey),
+        ).single.beats,
+        16,
+      );
+    });
+
     testWidgets('Modifier defaults persist the derived beats of a line with no '
         'stated count (#1820)', (tester) async {
       final repos = openTestRepositories();

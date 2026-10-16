@@ -1640,6 +1640,21 @@ void main() {
       expect(draft.beats, 8);
     });
 
+    test('children of a container line get their derived beats (#1820)', () {
+      final draft = FigureDraft.fromFreeTextFigure(
+        Figure.meanwhile(
+          figures: [Figure(move: 'swing'), Figure(move: 'custom')],
+          beats: 8,
+        ),
+        contraTaxonomy,
+      );
+      expect(draft.meanwhileSides![0].beats, 8);
+      expect(draft.meanwhileSides![0].beatsTouched, isFalse);
+      // A custom is left to its own seeding.
+      expect(draft.meanwhileSides![1].params.containsKey('beats'), isFalse);
+      expect(draft.beats, 8);
+    });
+
     test('a `;`-compound appends one row per clause', () async {
       final repos = openTestRepositories();
       final controller = await emptyExistingController(repos);
