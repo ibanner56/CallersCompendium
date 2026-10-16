@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
 import '../model/user_glossary.dart';
+import '../storage/shareable_text.dart';
 
 /// What adding a shared figure to this device would do (#1023, maintainer
 /// decision 3; plan C12).
@@ -85,9 +86,25 @@ const DeepCollectionEquality _deepEq = DeepCollectionEquality();
 /// Whether [a] and [b] define the same figure: the same name, definition,
 /// description, keywords and payload. Notes and creation time are not
 /// compared.
-bool sameUserFigureContent(UserGlossaryEntry a, UserGlossaryEntry b) =>
-    a.name == b.name &&
-    a.definition == b.definition &&
-    a.description == b.description &&
-    _deepEq.equals(a.keywords, b.keywords) &&
-    _deepEq.equals(a.payload, b.payload);
+///
+/// Each side is compared in the form the glossary stores
+/// ([normalizeShareableText], [normalizeShareableJson]), so a figure read from
+/// a file in another Unicode form still matches the copy stored from it.
+/// A payload that can't be normalised (two keys that normalise to one) never
+/// matches.
+bool sameUserFigureContent(UserGlossaryEntry a, UserGlossaryEntry b) {
+  String n(String text) => normalizeShareableText(text);
+  final Object? payloadA;
+  final Object? payloadB;
+  try {
+    payloadA = normalizeShareableJson(a.payload);
+    payloadB = normalizeShareableJson(b.payload);
+  } on ShareableJsonKeyCollision {
+    return false;
+  }
+  return n(a.name) == n(b.name) &&
+      n(a.definition) == n(b.definition) &&
+      n(a.description) == n(b.description) &&
+      _deepEq.equals(a.keywords.map(n).toList(), b.keywords.map(n).toList()) &&
+      _deepEq.equals(payloadA, payloadB);
+}

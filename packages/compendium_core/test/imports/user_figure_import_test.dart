@@ -62,6 +62,15 @@ void main() {
         'not notes or creation time', () {
       final mine = entry('z', notes: 'mine', at: now);
       expect(sameUserFigureContent(mine, entry('z')), isTrue);
+      // Compared as the glossary stores it: a file's other Unicode form of
+      // the same text still matches.
+      expect(
+        sameUserFigureContent(
+          entry('z', name: 'caf\u00e9', template: 'caf\u00e9 {move}'),
+          entry('z', name: 'cafe\u0301', template: 'cafe\u0301 {move}'),
+        ),
+        isTrue,
+      );
       expect(sameUserFigureContent(mine, entry('z', name: 'whizz')), isFalse);
       expect(
         sameUserFigureContent(mine, entry('z', template: '{move}!')),
