@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' show Rect;
 
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -48,12 +49,23 @@ bool Function() isJsonExportDesktopPlatform = () =>
 /// so tests can force either branch regardless of the host.
 bool Function() isBundleShareUnsupported = () => Platform.isLinux;
 
-const _jsonTypeGroup = XTypeGroup(
+/// The default file-type filter for [saveJsonBundle].
+@visibleForTesting
+XTypeGroup jsonBundleTypeGroup({bool? isLinux}) => const XTypeGroup(
   label: 'JSON',
   extensions: ['json'],
   uniformTypeIdentifiers: ['public.json'],
   mimeTypes: ['application/json'],
 );
+
+/// The file-type filter for the Save As fallback in [_saveBundleAs].
+@visibleForTesting
+XTypeGroup bundleSaveTypeGroup(String extension, {bool? isLinux}) =>
+    XTypeGroup(
+      label: extension.toUpperCase(),
+      extensions: [extension],
+      mimeTypes: const ['application/json'],
+    );
 
 /// Writes [json] to a path-safe [fileName] in the temporary directory.
 Future<XFile> writeBundleFile(
@@ -86,12 +98,12 @@ Future<JsonSaveResult?> saveJsonBundle(
   JsonSaveLocationPicker? saveLocationPicker,
   JsonMobileSaveFile? mobileSaveFile,
   BundleFileWriter? stageFile,
-  List<XTypeGroup> acceptedTypeGroups = const [_jsonTypeGroup],
+  List<XTypeGroup>? acceptedTypeGroups,
 }) async {
   if ((isDesktop ?? isJsonExportDesktopPlatform)()) {
     final location = await (saveLocationPicker ?? _showSaveLocation)(
       suggestedName: fileName,
-      acceptedTypeGroups: acceptedTypeGroups,
+      acceptedTypeGroups: acceptedTypeGroups ?? [jsonBundleTypeGroup()],
     );
     if (location == null) return null;
     final destination = (isMacOS ?? (() => Platform.isMacOS))()
@@ -167,13 +179,7 @@ Future<JsonSaveResult?> _saveBundleAs(String json, String fileName) {
   return saveJsonBundle(
     json,
     fileName,
-    acceptedTypeGroups: [
-      XTypeGroup(
-        label: extension.toUpperCase(),
-        extensions: [extension],
-        mimeTypes: const ['application/json'],
-      ),
-    ],
+    acceptedTypeGroups: [bundleSaveTypeGroup(extension)],
   );
 }
 

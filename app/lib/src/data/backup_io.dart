@@ -36,7 +36,9 @@ bool Function() isDesktopPlatform = () =>
 /// routing without depending on the host OS.
 bool Function() isMacOsPlatform = () => Platform.isMacOS;
 
-const _jsonTypeGroup = XTypeGroup(
+/// The file-type filter behind the backup save and restore dialogs.
+@visibleForTesting
+XTypeGroup backupJsonTypeGroup({bool? isLinux}) => const XTypeGroup(
   label: 'Backup (JSON)',
   extensions: ['json'],
   uniformTypeIdentifiers: ['public.json'],
@@ -233,7 +235,7 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
   if (isDesktopPlatform()) {
     final location = await getSaveLocation(
       suggestedName: suggestedFileName,
-      acceptedTypeGroups: const [_jsonTypeGroup],
+      acceptedTypeGroups: [backupJsonTypeGroup()],
     );
     if (location == null) return false;
     await writeDesktopBackup(location.path, json);
@@ -310,7 +312,7 @@ Future<void> writeStringToUserSelectedPath(String path, String contents) {
 /// text (subject to the [kMaxBackupFileBytes] size cap). Returns `null` when the
 /// user cancels.
 Future<String?> pickBackupFile() async {
-  final file = await openFile(acceptedTypeGroups: const [_jsonTypeGroup]);
+  final file = await openFile(acceptedTypeGroups: [backupJsonTypeGroup()]);
   if (file == null) return null;
   return readBackupFile(file);
 }
