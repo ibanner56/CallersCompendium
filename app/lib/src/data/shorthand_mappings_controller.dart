@@ -308,10 +308,22 @@ class ShorthandMappingsController extends ChangeNotifier {
       shorthand,
       exceptCompoundIndex: compoundIndex,
     );
-    _compound = _compound.toList()..removeAt(compoundIndex);
-    _userFigure = [..._userFigure, normalized];
-    await _persistCompound();
-    await _persistUserFigure();
+    final userFigure = [..._userFigure, normalized];
+    final compound = _compound.toList()..removeAt(compoundIndex);
+    // The new entry is written first: should the removal then fail, the
+    // token is in both kinds, where the compound shorthand wins and the
+    // other says so, rather than in neither. Each list is taken up only once
+    // its key is written.
+    await _settings.set(
+      kUserFigureShorthandsKey,
+      UserFigureShorthands(userFigure).toJson(),
+    );
+    _userFigure = userFigure;
+    await _settings.set(
+      kCompoundShorthandsKey,
+      CompoundShorthands(compound).toJson(),
+    );
+    _compound = compound;
     notifyListeners();
   }
 
@@ -330,10 +342,19 @@ class ShorthandMappingsController extends ChangeNotifier {
       shorthand,
       exceptUserFigureIndex: userFigureIndex,
     );
-    _userFigure = _userFigure.toList()..removeAt(userFigureIndex);
-    _compound = [..._compound, normalized];
-    await _persistUserFigure();
-    await _persistCompound();
+    final compound = [..._compound, normalized];
+    final userFigure = _userFigure.toList()..removeAt(userFigureIndex);
+    // The new entry first, as [replaceCompoundWithUserFigure] writes it.
+    await _settings.set(
+      kCompoundShorthandsKey,
+      CompoundShorthands(compound).toJson(),
+    );
+    _compound = compound;
+    await _settings.set(
+      kUserFigureShorthandsKey,
+      UserFigureShorthands(userFigure).toJson(),
+    );
+    _userFigure = userFigure;
     notifyListeners();
   }
 
