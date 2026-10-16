@@ -8869,6 +8869,21 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get dialectEditorUserFigureGone => 'このデバイスにない自分のフィギュア';
+
+  @override
+  String get dialectEditorUserFigureNameHint => 'この方言でのあなたのフィギュアの呼び名';
+
+  @override
+  String get dialectEditorUserFigureNameSide =>
+      'このフィギュアには %S で埋める左右がないため、フィギュア自身の名前のままになります。';
+
+  @override
+  String dialectEditorUserFigureWordingUnknownSlots(String slots) {
+    return 'このフィギュアには $slots がないため、それを削除するまでフィギュア自身の表現で表示されます。';
+  }
+
+  @override
   String dialectEditorMoveWordingOptionalSlots(String slots) {
     return 'このテンプレートでは任意のスロットが省略されています: $slots';
   }
