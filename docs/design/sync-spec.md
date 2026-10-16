@@ -254,11 +254,13 @@ never sent anywhere.
 
 `retained_sync_fields` is record content, not store state: it MUST survive an
 epoch reset and a detach, like the record it belongs to. A restore that
-replaces the whole library MUST clear the table; a merge or an import, which
+replaces the whole library MUST clear the table (the rows of settings
+included, though a restore leaves settings in place); a merge restore, which
 replaces only the records it writes, MUST clear the rows of those records and no
 others, because the kept parts of a record it did not write are still the only
-copy of what a peer's newer build put there. A row MUST follow its record when
-two identities become one, and MUST go when its record is hard-deleted or purged;
+copy of what a peer's newer build put there. An archive import edits the records
+it matches as a local edit does and clears no row. A row MUST follow its record
+when two identities become one, and MUST go when its record is hard-deleted or purged;
 every snapshot drops a row whose record no longer exists, so third-party
 content never outlives its record. Only the sync engine writes it, so a write
 does not schedule a pass.
@@ -4072,8 +4074,9 @@ judged, in either mode.** The codebase has three such entry points —
 latent; but a merge writes rows the pass never saw exactly as a replace does, so
 the rule is stated over the event and not over the mode, and holds unchanged
 when merge-mode sharing ships. The one clearing this does not extend to is
-`retained_sync_fields` (§3.2), whose rows are record content: a merge or an
-import clears the rows of the records it writes, never the rest.
+`retained_sync_fields` (§3.2), whose rows are record content: a merge restore
+clears the rows of the records it writes, never the rest, and an archive import
+clears none.
 
 Restore converges on a deletion only while some peer still advertises the
 tombstone.
