@@ -142,9 +142,10 @@ are defined in [`labels.yml`](../../../.github/labels.yml).
 
 A round that does not end in a review leaves `claude: reviewing` standing. The
 status workflow sets that label when a round is requested and changes it only
-when `claude[bot]` submits a review, so a failed round, one stopped by the job's
-limits (30 minutes, 80 model turns), and a push whose actor check failed (see
-above) all look "in progress" until someone reads the run.
+when `claude[bot]` submits a review of the current head or the `review: claude`
+label is removed, so a failed round, one stopped by the job's limits (30
+minutes, 80 model turns), and a push whose actor check failed (see above) all
+look "in progress" until someone reads the run.
 
 What a round is given and asked for:
 
