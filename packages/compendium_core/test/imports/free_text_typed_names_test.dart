@@ -269,7 +269,7 @@ void main() {
       'a trailing unit count that is not the beats keeps the line custom',
       () {
         final f = parseFreeTextFigureEntry(
-          'neighbor swing 16 beats (8)',
+          'circle left 8 beats (16)',
         ).single;
         expect(f.isCustom, isTrue);
         expect(f.params['text'], 'circle left 8 beats (16)');
