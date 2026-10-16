@@ -9439,6 +9439,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Vos notes sont trop longues pour être enregistrées. Raccourcissez-les et réessayez.';
 
   @override
+  String get glossaryOverBudget =>
+      'Votre glossaire a atteint sa limite de taille ; cet élément n’a donc pas pu être enregistré. Libérez de la place en supprimant ou en raccourcissant d’autres figures ou notes, puis réessayez.';
+
+  @override
   String get compoundEditorTitleNew => 'Nouvelle figure';
 
   @override

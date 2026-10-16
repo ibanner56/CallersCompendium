@@ -602,6 +602,14 @@ class BackupService {
   /// hand-edited file) is skipped, its live copy kept, and reported as an
   /// error so the restore says something was skipped.
   ///
+  /// The glossary's total byte budget ([maxUserGlossaryBytes]) is *not*
+  /// applied: the entries and notes go in through the repositories' restore
+  /// paths, which keep every per-field check but not the total. A backup made
+  /// before there was a budget, holding more than it, restores whole (it
+  /// already fit the file cap), and the glossary can then be edited down but not
+  /// grown. Skipping its tail instead would lose the newest entries on the one
+  /// operation meant to bring data back.
+  ///
   /// A backup made where the glossary was empty has no section (an empty one
   /// would end v1's byte-for-byte compatibility), so restoring it leaves the
   /// glossary here as it is rather than emptying it.
@@ -628,7 +636,7 @@ class BackupService {
     }
     for (final entry in doc.glossaryEntries) {
       try {
-        await _repos.userGlossary.upsert(entry);
+        await _repos.userGlossary.upsertFromRestore(entry);
       } on UserGlossaryEntryInvalid catch (e) {
         // diagnostics: silent — the skipped entry is reported in the restore outcome's errors.
         errors.add(
@@ -644,7 +652,7 @@ class BackupService {
     }
     for (final note in doc.figureNotes) {
       try {
-        await _repos.figureNotes.set(note.figureId, note.notes);
+        await _repos.figureNotes.setFromRestore(note.figureId, note.notes);
       } on FigureNoteInvalid {
         // diagnostics: silent — the skipped note is reported in the restore outcome's errors.
         errors.add(

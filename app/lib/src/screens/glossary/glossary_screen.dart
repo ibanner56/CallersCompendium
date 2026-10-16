@@ -605,29 +605,35 @@ class _FigureNotesSectionState extends State<FigureNotesSection> {
 
   Future<void> _edit(BuildContext context, Dialect dialect) async {
     final repos = _repos!;
-    final saved = await showDialog<String>(
+    final l10n = AppLocalizations.of(context);
+    // The dialog saves, not this method, so a note that is refused leaves the
+    // dialog open with what the user typed and says why, instead of closing on
+    // a message that asks them to try again with the text gone.
+    await showDialog<void>(
       context: context,
       builder: (_) => _NotesDialog(
         initial: _notes == null
             ? ''
             : _renderer.renderFreeText(_notes!, dialect),
+        // Empty text deletes the note.
+        save: (text) async {
+          try {
+            await repos.figureNotes.set(
+              widget.figureId,
+              canonicalizeGlossaryText(text, dialect),
+            );
+            return null;
+          } on FigureNoteInvalid catch (e) {
+            // diagnostics: silent — either the user's text is over the stored
+            // bound, which canonical role tokens can push it past, or the whole
+            // Glossary is full; the message says which and what to do.
+            return e.overBudget
+                ? l10n.glossaryOverBudget
+                : l10n.glossaryNotesTooLong;
+          }
+        },
       ),
     );
-    if (saved == null || !context.mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    final tooLong = AppLocalizations.of(context).glossaryNotesTooLong;
-    // Empty text deletes the note.
-    try {
-      await repos.figureNotes.set(
-        widget.figureId,
-        canonicalizeGlossaryText(saved, dialect),
-      );
-    } on FigureNoteInvalid {
-      // diagnostics: silent — the user's text is over the stored bound, which
-      // canonical role tokens can push it past; the message asks them to
-      // shorten it.
-      messenger.showSnackBar(SnackBar(content: Text(tooLong)));
-    }
   }
 
   @override
@@ -679,12 +685,17 @@ class _FigureNotesSectionState extends State<FigureNotesSection> {
   }
 }
 
-/// Edits the notes on a shipped figure; pops the text, or null on cancel.
+/// Edits the notes on a shipped figure and stores them through [save]; stays
+/// open with the reason when [save] refuses the text, and closes once it is
+/// stored or on cancel.
 /// Owns its controller, so it outlives the dialog's closing animation.
 class _NotesDialog extends StatefulWidget {
-  const _NotesDialog({required this.initial});
+  const _NotesDialog({required this.initial, required this.save});
 
   final String initial;
+
+  /// Stores the text; returns why it was refused, or null once it is stored.
+  final Future<String?> Function(String text) save;
 
   @override
   State<_NotesDialog> createState() => _NotesDialogState();
@@ -692,6 +703,8 @@ class _NotesDialog extends StatefulWidget {
 
 class _NotesDialogState extends State<_NotesDialog> {
   late final _controller = TextEditingController(text: widget.initial);
+  String? _error;
+  bool _saving = false;
 
   @override
   void dispose() {
@@ -699,35 +712,71 @@ class _NotesDialogState extends State<_NotesDialog> {
     super.dispose();
   }
 
+  Future<void> _save() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    final String? error;
+    try {
+      error = await widget.save(_controller.text);
+    } catch (_) {
+      // diagnostics: silent — rethrown below, so it surfaces as it did before;
+      // this only leaves Save usable for a retry (a refusal comes back as text,
+      // not as an exception).
+      if (mounted) setState(() => _saving = false);
+      rethrow;
+    }
+    if (!mounted) return;
+    if (error == null) {
+      Navigator.of(context).pop();
+    } else {
+      setState(() {
+        _error = error;
+        _saving = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l10n.glossaryNotesEditTitle),
-      content: TextField(
-        key: const ValueKey('glossary-notes-field'),
-        controller: _controller,
-        autofocus: true,
-        minLines: 3,
-        maxLines: 8,
-        maxLength: maxUserGlossaryTextLength,
-        maxLengthEnforcement: MaxLengthEnforcement.enforced,
-        decoration: InputDecoration(
-          hintText: l10n.glossaryNotesHint,
-          border: const OutlineInputBorder(),
+    // Nothing closes the dialog while a save is in flight (Cancel, the barrier,
+    // Escape or back): the save would finish into a route that is already
+    // leaving and pop the one beneath it, and the note would be stored anyway.
+    return PopScope(
+      canPop: !_saving,
+      child: AlertDialog(
+        title: Text(l10n.glossaryNotesEditTitle),
+        content: TextField(
+          key: const ValueKey('glossary-notes-field'),
+          controller: _controller,
+          onChanged: (_) {
+            if (_error != null) setState(() => _error = null);
+          },
+          autofocus: true,
+          minLines: 3,
+          maxLines: 8,
+          maxLength: maxUserGlossaryTextLength,
+          maxLengthEnforcement: MaxLengthEnforcement.enforced,
+          decoration: InputDecoration(
+            hintText: l10n.glossaryNotesHint,
+            errorText: _error,
+            errorMaxLines: 4,
+            border: const OutlineInputBorder(),
+          ),
         ),
+        actions: [
+          TextButton(
+            key: const ValueKey('glossary-notes-cancel'),
+            onPressed: _saving ? null : () => Navigator.of(context).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('glossary-notes-save'),
+            onPressed: _saving ? null : _save,
+            child: Text(l10n.commonSave),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          key: const ValueKey('glossary-notes-save'),
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: Text(l10n.commonSave),
-        ),
-      ],
     );
   }
 }

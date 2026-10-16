@@ -9317,6 +9317,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Dine noter er for lange til at blive gemt. Gør dem kortere, og prøv igen.';
 
   @override
+  String get glossaryOverBudget =>
+      'Din ordliste har nået sin størrelsesgrænse, så det kunne ikke gemmes. Skab plads ved at slette eller forkorte andre figurer eller noter, og prøv igen.';
+
+  @override
   String get compoundEditorTitleNew => 'Ny figur';
 
   @override
