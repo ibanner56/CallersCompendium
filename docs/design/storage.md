@@ -261,12 +261,12 @@ authors, the venue, the published source, the custom-field definition, the
 program (date, venue, level, caller, band, notes, timestamps, and slots with
 ids, positions, minutes and guest caller), the `ui.*` settings and the default
 difficulty levels. Columns left at their defaults are not read, nor are the
-bookkeeping timestamps of the tag, author, venue, source, custom-field and
-settings rows. FTS search is only
-checked to *work* (including diacritic folding). Values the open legitimately
-rebuilds are not compared: the FTS tables, `dance_figures` (including
-`canonical_text`) and the `__*_done` repair markers, which a migration that
-deleted them would be indistinguishable from, because startup re-creates them.
+bookkeeping timestamps of the tag, author, venue, source, custom-field,
+difficulty-level and settings rows. FTS search is only checked to *work*
+(including diacritic folding). Values the open legitimately rebuilds are not
+compared: the FTS tables, `dance_figures` (including `canonical_text`) and the
+`__*_done` repair markers, which a migration that deleted them would be
+indistinguishable from, because startup re-creates them.
 
 | Fixture | Written by | Schema | sha256 |
 | --- | --- | --- | --- |

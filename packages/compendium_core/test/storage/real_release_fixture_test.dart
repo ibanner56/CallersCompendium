@@ -15,11 +15,11 @@
 // fields, the program and its slots, the `ui.*` settings), the default
 // difficulty levels and the file's integrity. Columns left at their defaults
 // are not read, nor are the bookkeeping timestamps of the tag, author, venue,
-// source, custom-field and settings rows. Derived values that the open
-// legitimately rebuilds are not compared: the FTS tables, `canonical_text`,
-// `dance_figures` and the `__*_done` repair markers (deleting all of them, or
-// blanking `dance_figures.params_json`, before the open leaves the migration's
-// result identical). Search is only checked to work.
+// source, custom-field, difficulty-level and settings rows. Derived values that
+// the open legitimately rebuilds are not compared: the FTS tables,
+// `canonical_text`, `dance_figures` and the `__*_done` repair markers (deleting
+// all of them, or blanking `dance_figures.params_json`, before the open leaves
+// the migration's result identical). Search is only checked to work.
 //
 // The fixtures are produced by `tool/fixture_generators/generate_release_fixture.dart`
 // run against the release's tag (recipe in its header); their digests are in
