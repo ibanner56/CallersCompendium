@@ -70,7 +70,8 @@ final class SyncCapabilityPolicy {
   /// [SyncCapabilities.glossaryV2] (#1023) gates the user's own terms and
   /// figures, and the shorthands for those figures: a peer that can't read
   /// the figures has no use for them. This build does not advertise it yet,
-  /// so they stay on their device.
+  /// so they stay on their device, on every pass: no device holds it closed,
+  /// so none is named and no notice shows (sync-spec §6.15).
   static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
     advertised: {SyncCapabilities.glossaryV1},
     gatedRecordKinds: {

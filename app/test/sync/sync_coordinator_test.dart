@@ -6990,6 +6990,11 @@ void main() {
       },
       blobResponses: blobs,
       missing: missing,
+      // The fake answers its first question from `missingResponses`, whose
+      // default is one empty answer, whatever `missing` says. A pass that
+      // asks only once (a steady one) then uploads nothing, and no upload
+      // assertion here could fail.
+      missingResponses: missing.isEmpty ? null : const [],
     );
     Set<String> publishedSettings(_FakeTransport transport) =>
         (decodeSyncManifest(
@@ -7023,11 +7028,17 @@ void main() {
       final store = _FakeStore(
         local: {gated.address: gated, plain.address: plain},
       );
-      final transport = transportFor(['peer']);
+      // Both blobs are missing from the store, so only the gate keeps the
+      // gated one from uploading.
+      final transport = transportFor(
+        ['peer'],
+        missing: {gated.wireHash, plain.wireHash},
+      );
       final result = await coordinatorFor(store, transport).syncNow();
 
       expect(result.status, SyncPassStatus.completed);
       expect(publishedSettings(transport), {'theme_mode'});
+      expect(uploaded(transport), contains(plain.wireHash));
       expect(uploaded(transport), isNot(contains(gated.wireHash)));
       expect(awaiting(result).map((r) => r.peerId), ['peer']);
       expect(awaiting(result).single.message, contains('device peer'));
@@ -7053,10 +7064,14 @@ void main() {
       final store = _FakeStore(
         local: {deleted.address: deleted, plain.address: plain},
       );
-      final transport = transportFor(['peer']);
+      final transport = transportFor(
+        ['peer'],
+        missing: {deleted.wireHash, plain.wireHash},
+      );
       final result = await coordinatorFor(store, transport).syncNow();
 
       expect(publishedSettings(transport), {'theme_mode'});
+      expect(uploaded(transport), contains(plain.wireHash));
       expect(uploaded(transport), isNot(contains(deleted.wireHash)));
       expect(awaiting(result).map((r) => r.peerId), ['peer']);
       expect(store.publishedRecords, contains(deleted.address));
@@ -7395,6 +7410,164 @@ void main() {
         'compound_shorthands',
         'theme_mode',
       });
+    });
+
+    test('rollout: beside peers that have not written a capability record '
+        'yet, this build holds all of glossary.v1 back and names every '
+        'peer; once they advertise it that publishes, and glossary.v2, '
+        'which no build advertises yet, is held back and names no one '
+        '(#709, #1023)', () async {
+      // The shipped policy, not a hand-built one: this is what an update
+      // that first advertises a capability meets (sync-spec §6.15). Every
+      // existing peer is on a build that has written no record, so each
+      // reads as closed until it updates.
+      const build = SyncCapabilityPolicy.build;
+      SyncMergeCandidate entryOf(String id, String kind) =>
+          SyncMergeCandidate.fromBlob(
+            syncRecordBlobForEntity(
+              SyncRecordKind.glossaryEntry,
+              StoredUserGlossaryEntry(
+                id: id,
+                kind: kind,
+                name: id,
+                definition: 'A definition.',
+                description: 'A description.',
+                createdAt: stamp,
+              ),
+              updatedAt: stamp,
+              existenceAt: stamp,
+            )!,
+          );
+      final onV1 = [
+        SyncMergeCandidate.fromBlob(_setting('show_custom_figures', 'true')),
+        SyncMergeCandidate.fromBlob(_setting('compound_shorthands', '[]')),
+        entryOf('a-compound', 'compound'),
+        SyncMergeCandidate.fromBlob(
+          SyncRecordBlob(
+            kind: SyncRecordKind.figureNote,
+            id: 'swing',
+            updatedAt: stamp,
+            deletedAt: null,
+            existenceAt: stamp,
+            body: const {'id': 'swing', 'notes': 'Smooth.'},
+          ),
+        ),
+      ];
+      final onV2 = [
+        SyncMergeCandidate.fromBlob(_setting('user_figure_shorthands', '[]')),
+        entryOf('a-figure', 'customFigure'),
+      ];
+      for (final candidate in [...onV1, ...onV2]) {
+        expect(
+          build.capabilityFor(
+            candidate.blob.kind,
+            candidate.blob.id,
+            body: candidate.blob.body,
+          ),
+          isNotNull,
+          reason: '${candidate.blob.id} is gated by the shipped policy',
+        );
+      }
+      final everyDevice = ['p1', 'p2', 'p3'];
+
+      Future<(SyncPassResult, _FakeTransport, _FakeStore)> pass(
+        Set<String> recorded,
+      ) async {
+        final records = [
+          for (final peer in recorded) capabilityOf(peer, build.advertised),
+        ];
+        final local = {
+          for (final c in [...onV1, ...onV2, plain, ...records]) c.address: c,
+        };
+        final store = _FakeStore(local: local);
+        // The store holds none of these blobs, so a pass that published one
+        // would upload it: without this, an upload assertion cannot fail.
+        final transport = transportFor(
+          everyDevice,
+          missing: {
+            for (final c in [...onV1, ...onV2, plain]) c.wireHash,
+          },
+        );
+        final result = await coordinatorFor(
+          store,
+          transport,
+          capabilities: build,
+        ).syncNow();
+        expect(result.status, SyncPassStatus.completed);
+        expect(
+          uploaded(transport),
+          contains(plain.wireHash),
+          reason: 'an ungated record uploads, so the checks below can fail',
+        );
+        return (result, transport, store);
+      }
+
+      Set<String> manifestIds(_FakeTransport transport, SyncRecordKind kind) =>
+          (decodeSyncManifest(
+                    utf8.decode(transport.manifestBodies.last),
+                  ).records[kind] ??
+                  const <String, String>{})
+              .keys
+              .toSet();
+
+      // 1. No peer has a record: all of glossary.v1 waits, every peer is named.
+      var (result, transport, store) = await pass(const {});
+      expect(publishedSettings(transport), {'theme_mode'});
+      expect(manifestIds(transport, SyncRecordKind.glossaryEntry), isEmpty);
+      expect(manifestIds(transport, SyncRecordKind.figureNote), isEmpty);
+      for (final c in [...onV1, ...onV2]) {
+        expect(uploaded(transport), isNot(contains(c.wireHash)));
+        expect(store.publishedRecords, contains(c.address));
+      }
+      expect(awaiting(result).map((r) => r.peerId).toSet(), {'p1', 'p2', 'p3'});
+      expect(awaiting(result), hasLength(3), reason: 'one report per peer');
+      for (final report in awaiting(result)) {
+        expect(report.message, contains(SyncCapabilities.glossaryV1));
+        expect(
+          report.message,
+          isNot(contains(SyncCapabilities.glossaryV2)),
+          reason: 'no peer holds glossary.v2 closed: this build does',
+        );
+      }
+
+      // 2. Some have updated: only the ones that have not are named.
+      (result, transport, store) = await pass({'p1'});
+      expect(
+        publishedSettings(transport),
+        isNot(contains('show_custom_figures')),
+      );
+      expect(awaiting(result).map((r) => r.peerId).toSet(), {'p2', 'p3'});
+
+      // 3. Every peer advertises what this build does: glossary.v1 publishes.
+      (result, transport, store) = await pass(everyDevice.toSet());
+      expect(
+        publishedSettings(transport),
+        containsAll([
+          'show_custom_figures',
+          'compound_shorthands',
+          'theme_mode',
+        ]),
+      );
+      expect(manifestIds(transport, SyncRecordKind.glossaryEntry), {
+        'a-compound',
+      });
+      expect(manifestIds(transport, SyncRecordKind.figureNote), {'swing'});
+      for (final c in onV1) {
+        expect(uploaded(transport), contains(c.wireHash));
+      }
+
+      // ...while glossary.v2, which this build does not advertise, stays
+      // home with every peer up to date, and is reported to no one: no
+      // device holds it closed, so there is none to name.
+      expect(
+        publishedSettings(transport),
+        isNot(contains('user_figure_shorthands')),
+      );
+      for (final c in onV2) {
+        expect(uploaded(transport), isNot(contains(c.wireHash)));
+        expect(store.publishedRecords, contains(c.address));
+      }
+      expect(awaiting(result), isEmpty);
     });
 
     test('glossary entries wait on the capability of their own kind: terms '

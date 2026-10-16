@@ -72,6 +72,48 @@ void main() {
     );
   });
 
+  group('the shipped policy (SyncCapabilityPolicy.build)', () {
+    const build = SyncCapabilityPolicy.build;
+    Map<String, Set<String>> closedBeside(
+      List<String> peers,
+      Map<String, Set<String>?> records,
+    ) => closedSyncCapabilities(
+      gated: build.gatedCapabilities,
+      advertised: build.advertised,
+      deviceId: 'me',
+      devices: ['me', ...peers],
+      recordsByDevice: records,
+    );
+
+    test('advertises glossary.v1 and gates glossary.v2 without advertising '
+        'it', () {
+      expect(build.advertised, {SyncCapabilities.glossaryV1});
+      expect(build.gatedCapabilities, {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+      });
+    });
+
+    test('rollout: with no record from any peer, every peer holds '
+        'glossary.v1 closed', () {
+      expect(closedBeside(['a', 'b'], const {}), {
+        SyncCapabilities.glossaryV1: {'a', 'b'},
+        SyncCapabilities.glossaryV2: <String>{},
+      });
+    });
+
+    test('with every peer advertising what the build does, glossary.v1 is '
+        'open and glossary.v2 is closed with no device to name', () {
+      expect(
+        closedBeside(
+          ['a', 'b'],
+          {'a': build.advertised, 'b': build.advertised},
+        ),
+        {SyncCapabilities.glossaryV2: <String>{}},
+      );
+    });
+  });
+
   group('the record', () {
     test('round-trips, sorted so its bytes depend only on the set', () {
       final value = syncCapabilityRecordValue({'b', 'a'});

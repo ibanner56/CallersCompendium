@@ -4405,7 +4405,10 @@ the referring data for want of it. A soft reference is not a citation in
 per device holding a capability closed, naming that device as the peer and
 every such capability that held something back this pass. It is
 shown per device, by its tag, as information: nothing is lost, and the remedy
-is updating or removing that device.
+is updating or removing that device. A capability that is closed only because
+this build does not advertise it has no device to name and raises no report,
+however much it holds back: the user is told of nothing, and the data stays
+on the device without a notice until the build advertises the capability.
 
 **What it cannot see.** The store's device list names only devices that have
 published a manifest (§7.1), and a build without §4.5's client half cannot
@@ -4418,11 +4421,31 @@ both its paths, while the build advertises any capability. There is no
 timeout: a device that never updates keeps the gate closed until it is
 removed.
 
+**Rollout.** The first pass of a build that advertises a capability finds
+every other device on a build from before it. None has written a capability
+record, so each reads as closed (*The gate*) and is named in a held-back notice
+until it updates. That is the expected state of every existing store, not a
+fault, and it is the case a build that advertises a capability is most likely
+to get wrong: a gate tested only with its peers' records already seeded can
+hold everything back for ever, or release it too early, and pass every test. So a change that first advertises a capability MUST ship a test of this
+case against `SyncCapabilityPolicy.build` itself, not a hand-built policy,
+which would go on passing if the shipped one changed. With every other device
+in the store lacking a record it MUST show that the capability's records
+are left out of the manifest and their blobs not uploaded, that the rows stay
+live on the device and are recorded as published, that each such device is
+named once, and that the records publish once every device lists the
+capability. Decided by Isaac (maintainer), 2026-10-16. The reference
+client's is `rollout: beside peers that have not written a capability record
+yet…` in the `the capability gate` group of
+`app/test/sync/sync_coordinator_test.dart`, with the group `the shipped policy`
+in `packages/compendium_core/test/sync/sync_capabilities_test.dart`.
+
 **`glossary.v1`.** The first capability. It gates the `glossaryEntry` and
 `figureNote` kinds and the `show_custom_figures` and `compound_shorthands`
 settings (#709). The reference client advertises it from the change that
-syncs the two kinds; before that change it gated the two settings without
-advertising the capability, so they stayed on their device.
+syncs the two kinds (#1776); before that change it gated the two settings
+without advertising the capability, so they stayed on their device, with no
+notice, as `glossary.v2` does now.
 
 **`glossary.v2`.** Gates `glossaryEntry` records whose entry kind is `term` or
 `customFigure`, the user's own terms and figures (#1023), tombstones included:
@@ -4432,7 +4455,11 @@ A build that knows only `glossary.v1` would read such an entry as one it cannot
 use. It also gates the `user_figure_shorthands` setting, the shorthands for
 those figures, which a peer that cannot read the figures has no use for. The
 reference client gates it without advertising it until #1023 is complete, so
-until then those entries and that setting stay on their device.
+until then those entries and that setting are held back on every pass, however
+many devices are attached and however up to date they are, and no notice is
+shown: no device holds it closed, so there is none to name. The build that
+first advertises it is subject to *Rollout*, and must change the tests that pin
+it as unadvertised.
 
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed
