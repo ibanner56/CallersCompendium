@@ -705,8 +705,9 @@ class _NotesDialogState extends State<_NotesDialog> {
     try {
       error = await widget.save(_controller.text);
     } catch (_) {
-      // Not a refusal (those come back as text): let it surface as it did
-      // before, but leave Save usable for a retry.
+      // diagnostics: silent — rethrown below, so it surfaces as it did before;
+      // this only leaves Save usable for a retry (a refusal comes back as text,
+      // not as an exception).
       if (mounted) setState(() => _saving = false);
       rethrow;
     }
