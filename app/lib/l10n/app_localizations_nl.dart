@@ -9540,6 +9540,129 @@ class AppLocalizationsNl extends AppLocalizations {
   String get compoundEditorUnusedSave => 'Toch opslaan';
 
   @override
+  String get glossaryEntryKindHeading => 'Wat het is';
+
+  @override
+  String get glossaryEntryKindHelp =>
+      'Een combinatie wordt ingebouwde figuren wanneer een dans wordt opgeslagen. Een nieuwe figuur blijft één figuur, met je eigen formulering.';
+
+  @override
+  String get glossaryEntryKindCombination => 'Combinatie';
+
+  @override
+  String get glossaryEntryKindNewFigure => 'Nieuwe figuur';
+
+  @override
+  String get glossaryEntryFormLabel => 'Dansvorm';
+
+  @override
+  String get glossaryEntryFormHelper =>
+      'Het soort dans waarvoor hij bedoeld is.';
+
+  @override
+  String get userFigureEditorParamNames =>
+      'Begin de naam van elke parameter met een letter, gebruik alleen letters, cijfers en _, en geef elke parameter een andere naam. Een naam kan niet move, beats, text, een rol of het tegenovergestelde van een andere parameter zijn, zoals otherHand.';
+
+  @override
+  String userFigureEditorChoiceLabel(int number) {
+    return 'Optie $number';
+  }
+
+  @override
+  String get userFigureEditorAddChoice => 'Optie toevoegen';
+
+  @override
+  String get userFigureEditorRemoveChoice => 'Optie verwijderen';
+
+  @override
+  String get userFigureEditorDefault => 'Standaard';
+
+  @override
+  String get userFigureEditorNoDefault => 'Geen standaard';
+
+  @override
+  String get userFigureEditorFlagOff => 'Uit';
+
+  @override
+  String get userFigureEditorFlagLabel => 'Formulering als aan';
+
+  @override
+  String get userFigureEditorFlagLabelHelper =>
+      'Getoond in de formulering als dit aan staat, zoals ‘met een zwier’.';
+
+  @override
+  String get userFigureEditorWording => 'Formulering';
+
+  @override
+  String userFigureEditorWordingHelp(String example) {
+    return 'Hoe de figuur in een dans leest. Zet een parameter tussen accolades, zoals $example; een deel tussen vierkante haken valt weg als de parameters ervan leeg zijn.';
+  }
+
+  @override
+  String userFigureEditorWordingSlots(String slots) {
+    return 'Je kunt gebruiken: $slots';
+  }
+
+  @override
+  String get userFigureEditorDefaultBeats => 'Standaardtellen';
+
+  @override
+  String get userFigureEditorDefaultBeatsHelper =>
+      'Een dans kan ze wijzigen telkens als die de figuur gebruikt.';
+
+  @override
+  String userFigureEditorPreview(String text) {
+    return 'Leest als: $text';
+  }
+
+  @override
+  String get userFigureEditorPreviewUnavailable =>
+      'Maak de formulering af om te zien hoe die leest.';
+
+  @override
+  String get userFigureEditorBadWording =>
+      'De formulering is niet compleet: controleer de accolades en vierkante haken.';
+
+  @override
+  String userFigureEditorUnknownSlot(String slot) {
+    return 'De formulering gebruikt $slot, dat geen parameter van deze figuur is.';
+  }
+
+  @override
+  String userFigureEditorBadChoices(String param) {
+    return 'Geef $param minstens één optie, elk met een andere naam.';
+  }
+
+  @override
+  String get userFigureEditorBadBeats =>
+      'Standaardtellen moeten tussen 0 en 64 liggen.';
+
+  @override
+  String userFigureEditorUnusedBody(String params) {
+    return 'Niet in de formulering, dus kiezen verandert niets: $params.';
+  }
+
+  @override
+  String get glossaryCustomWording => 'Formulering';
+
+  @override
+  String get glossaryCustomExample => 'Voorbeeld';
+
+  @override
+  String glossaryCustomDeleteUses(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dansen gebruiken hem. Hij wordt uit je woordenlijst verwijderd en die dansen behouden hun huidige formulering als platte tekst.',
+      one:
+          '1 dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd en die dans behoudt zijn huidige formulering als platte tekst.',
+      zero: 'Geen dans gebruikt hem. Hij wordt uit je woordenlijst verwijderd.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get compoundEditorDiscardBody =>
       'Je hebt niet-opgeslagen wijzigingen in deze figuur.';
 

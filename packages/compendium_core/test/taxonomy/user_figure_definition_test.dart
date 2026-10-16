@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
@@ -267,6 +268,12 @@ void main() {
       UserFigureParam choice(List<UserFigureChoice> choices) =>
           UserFigureParam(key: 'c', kind: ParamKind.choice, choices: choices);
       for (final params in [
+        [
+          choice(const [
+            UserFigureChoice(id: 'a', label: 'fast'),
+            UserFigureChoice(id: 'b', label: ' Fast '),
+          ]),
+        ],
         [choice(const [])],
         [
           choice(const [
@@ -324,6 +331,25 @@ void main() {
       );
     });
 
+    test('refuses a template or a text default over its length bound', () {
+      expect(
+        codes(definitionWith([], template: '{move} ${'x' * 520}')),
+        contains(UserFigureIssueCodes.tooLong),
+      );
+      expect(
+        codes(
+          definitionWith([
+            UserFigureParam(
+              key: 'where',
+              kind: ParamKind.text,
+              defaultValue: 'x' * 1001,
+            ),
+          ], template: '{where}'),
+        ),
+        contains(UserFigureIssueCodes.tooLong),
+      );
+    });
+
     test('refuses default beats out of range and an empty form', () {
       expect(
         codes(
@@ -346,6 +372,32 @@ void main() {
         ),
         contains(UserFigureIssueCodes.badForm),
       );
+    });
+  });
+
+  group('editing helpers', () {
+    test('a template\'s literal text is mapped and its slots kept', () {
+      expect(
+        mapUserFigureTemplateText(
+          'Leads {leads} [{!hand} hand] leads',
+          (text) => text.replaceAll('eads', 'EADS'),
+        ),
+        'LEADS {leads} [{!hand} hand] lEADS',
+      );
+    });
+
+    test('a new choice id is well-shaped and avoids those taken', () {
+      expect(newUserFigureChoiceId({}), matches(RegExp(r'^[a-z0-9]{8}$')));
+      // The same seed gives the same first id: taken, it is skipped.
+      final first = newUserFigureChoiceId({}, random: Random(7));
+      final next = newUserFigureChoiceId({first}, random: Random(7));
+      expect(next, isNot(first));
+      expect(next, matches(RegExp(r'^[a-z0-9]{8}$')));
+    });
+
+    test('a payload\'s unknown keys are what an edit carries', () {
+      expect(userFigurePayloadExtra({...zoom(), 'later': 1}), {'later': 1});
+      expect(userFigurePayloadExtra(null), isEmpty);
     });
   });
 

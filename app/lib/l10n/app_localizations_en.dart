@@ -9429,6 +9429,127 @@ class AppLocalizationsEn extends AppLocalizations {
   String get compoundEditorUnusedSave => 'Save anyway';
 
   @override
+  String get glossaryEntryKindHeading => 'What it is';
+
+  @override
+  String get glossaryEntryKindHelp =>
+      'A combination becomes built-in figures when a dance is saved. A new figure stays one figure, with your own wording.';
+
+  @override
+  String get glossaryEntryKindCombination => 'Combination';
+
+  @override
+  String get glossaryEntryKindNewFigure => 'New figure';
+
+  @override
+  String get glossaryEntryFormLabel => 'Dance form';
+
+  @override
+  String get glossaryEntryFormHelper => 'The kind of dance it\'s for.';
+
+  @override
+  String get userFigureEditorParamNames =>
+      'Start each parameter\'s name with a letter, use only letters, digits and _, and give each a different name. A name can\'t be move, beats, text, a role, or another parameter\'s opposite, such as otherHand.';
+
+  @override
+  String userFigureEditorChoiceLabel(int number) {
+    return 'Choice $number';
+  }
+
+  @override
+  String get userFigureEditorAddChoice => 'Add choice';
+
+  @override
+  String get userFigureEditorRemoveChoice => 'Remove choice';
+
+  @override
+  String get userFigureEditorDefault => 'Default';
+
+  @override
+  String get userFigureEditorNoDefault => 'No default';
+
+  @override
+  String get userFigureEditorFlagOff => 'Off';
+
+  @override
+  String get userFigureEditorFlagLabel => 'Wording when on';
+
+  @override
+  String get userFigureEditorFlagLabelHelper =>
+      'Shown in the wording when this is on, such as “with a flourish”.';
+
+  @override
+  String get userFigureEditorWording => 'Wording';
+
+  @override
+  String userFigureEditorWordingHelp(String example) {
+    return 'How the figure reads in a dance. Put a parameter in braces, like $example; a part in square brackets is left out when its parameters are empty.';
+  }
+
+  @override
+  String userFigureEditorWordingSlots(String slots) {
+    return 'You can use: $slots';
+  }
+
+  @override
+  String get userFigureEditorDefaultBeats => 'Default beats';
+
+  @override
+  String get userFigureEditorDefaultBeatsHelper =>
+      'A dance can change them each time it uses the figure.';
+
+  @override
+  String userFigureEditorPreview(String text) {
+    return 'Reads as: $text';
+  }
+
+  @override
+  String get userFigureEditorPreviewUnavailable =>
+      'Finish the wording to see how it reads.';
+
+  @override
+  String get userFigureEditorBadWording =>
+      'The wording isn\'t complete: check its braces and square brackets.';
+
+  @override
+  String userFigureEditorUnknownSlot(String slot) {
+    return 'The wording uses $slot, which isn\'t one of this figure\'s parameters.';
+  }
+
+  @override
+  String userFigureEditorBadChoices(String param) {
+    return 'Give $param at least one choice, each with a different name.';
+  }
+
+  @override
+  String get userFigureEditorBadBeats => 'Default beats must be from 0 to 64.';
+
+  @override
+  String userFigureEditorUnusedBody(String params) {
+    return 'Not in the wording, so choosing them changes nothing: $params.';
+  }
+
+  @override
+  String get glossaryCustomWording => 'Wording';
+
+  @override
+  String get glossaryCustomExample => 'Example';
+
+  @override
+  String glossaryCustomDeleteUses(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count dances use it. It\'s removed from your Glossary, and those dances keep their current wording as plain text.',
+      one:
+          '1 dance uses it. It\'s removed from your Glossary, and that dance keeps its current wording as plain text.',
+      zero: 'No dance uses it. It\'s removed from your Glossary.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get compoundEditorDiscardBody =>
       'You have unsaved changes to this figure.';
 

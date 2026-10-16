@@ -9595,6 +9595,129 @@ class AppLocalizationsFr extends AppLocalizations {
   String get compoundEditorUnusedSave => 'Enregistrer quand même';
 
   @override
+  String get glossaryEntryKindHeading => 'Ce que c\'est';
+
+  @override
+  String get glossaryEntryKindHelp =>
+      'Une combinaison devient des figures intégrées quand une danse est enregistrée. Une nouvelle figure reste une seule figure, avec votre propre formulation.';
+
+  @override
+  String get glossaryEntryKindCombination => 'Combinaison';
+
+  @override
+  String get glossaryEntryKindNewFigure => 'Nouvelle figure';
+
+  @override
+  String get glossaryEntryFormLabel => 'Forme de danse';
+
+  @override
+  String get glossaryEntryFormHelper =>
+      'Le type de danse auquel elle est destinée.';
+
+  @override
+  String get userFigureEditorParamNames =>
+      'Commencez le nom de chaque paramètre par une lettre, n\'utilisez que des lettres, des chiffres et _, et donnez à chacun un nom différent. Un nom ne peut pas être move, beats, text, un rôle ou l\'opposé d\'un autre paramètre, comme otherHand.';
+
+  @override
+  String userFigureEditorChoiceLabel(int number) {
+    return 'Option $number';
+  }
+
+  @override
+  String get userFigureEditorAddChoice => 'Ajouter une option';
+
+  @override
+  String get userFigureEditorRemoveChoice => 'Retirer l\'option';
+
+  @override
+  String get userFigureEditorDefault => 'Par défaut';
+
+  @override
+  String get userFigureEditorNoDefault => 'Aucune valeur par défaut';
+
+  @override
+  String get userFigureEditorFlagOff => 'Désactivé';
+
+  @override
+  String get userFigureEditorFlagLabel => 'Formulation si activé';
+
+  @override
+  String get userFigureEditorFlagLabelHelper =>
+      'Affiché dans la formulation quand c\'est activé, par exemple « avec panache ».';
+
+  @override
+  String get userFigureEditorWording => 'Formulation';
+
+  @override
+  String userFigureEditorWordingHelp(String example) {
+    return 'Comment la figure se lit dans une danse. Mettez un paramètre entre accolades, comme $example ; une partie entre crochets est omise quand ses paramètres sont vides.';
+  }
+
+  @override
+  String userFigureEditorWordingSlots(String slots) {
+    return 'Vous pouvez utiliser : $slots';
+  }
+
+  @override
+  String get userFigureEditorDefaultBeats => 'Temps par défaut';
+
+  @override
+  String get userFigureEditorDefaultBeatsHelper =>
+      'Une danse peut les changer chaque fois qu\'elle utilise la figure.';
+
+  @override
+  String userFigureEditorPreview(String text) {
+    return 'Se lit : $text';
+  }
+
+  @override
+  String get userFigureEditorPreviewUnavailable =>
+      'Terminez la formulation pour voir comment elle se lit.';
+
+  @override
+  String get userFigureEditorBadWording =>
+      'La formulation n\'est pas complète : vérifiez ses accolades et ses crochets.';
+
+  @override
+  String userFigureEditorUnknownSlot(String slot) {
+    return 'La formulation utilise $slot, qui n\'est pas un paramètre de cette figure.';
+  }
+
+  @override
+  String userFigureEditorBadChoices(String param) {
+    return 'Donnez à $param au moins une option, chacune avec un nom différent.';
+  }
+
+  @override
+  String get userFigureEditorBadBeats =>
+      'Les temps par défaut doivent être compris entre 0 et 64.';
+
+  @override
+  String userFigureEditorUnusedBody(String params) {
+    return 'Absents de la formulation ; les choisir ne change donc rien : $params.';
+  }
+
+  @override
+  String get glossaryCustomWording => 'Formulation';
+
+  @override
+  String get glossaryCustomExample => 'Exemple';
+
+  @override
+  String glossaryCustomDeleteUses(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count danses l\'utilisent. Elle est retirée de votre glossaire, et ces danses conservent leur formulation actuelle en texte simple.',
+      one:
+          '1 danse l\'utilise. Elle est retirée de votre glossaire, et cette danse conserve sa formulation actuelle en texte simple.',
+      zero: 'Aucune danse ne l\'utilise. Elle est retirée de votre glossaire.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get compoundEditorDiscardBody =>
       'Vous avez des modifications non enregistrées dans cette figure.';
 

@@ -555,29 +555,44 @@ Glossary is on. While it is on:
 
 - Choose **+** in the Glossary to add a figure of your own: a name, a
   definition and a description (all required), other names it can be found by,
-  and notes.
-- Build it from figures that come with the app, in order, the same way as in
-  the dance editor. Custom figures, meanwhile and modifier groups can't be
-  used as parts.
+  notes, and the **Dance form** it's for.
+- Under **What it is**, choose a **Combination**, which becomes figures that
+  come with the app when you save a dance, or a **New figure**, which stays
+  one figure with your own wording. A figure keeps the kind it was saved with.
+- Build a combination from figures that come with the app, in order, the same
+  way as in the dance editor. Custom figures, meanwhile and modifier groups
+  can't be used as parts.
+- Give a new figure its **Wording**, how it reads in a dance: put a parameter
+  in braces, such as `{who}`, use `{move}` for the figure's name and `{beats}`
+  for its beats, and put a part in square brackets to leave it out when its
+  parameters are empty. A parameter whose kind has an opposite, such as a
+  hand, also offers it, such as `{otherHand}`. **Reads as** shows the wording
+  with each parameter's **Default**. A parameter can be an **option** you name
+  the choices of, and an on/off parameter has its own **Wording when on**. Set
+  its **Default beats**; a dance can change them each time.
 - Add **Parameters** for what can differ from one use to the next, such as
-  *who* and *which hand*, and under **Filled in by parameters** choose which of each
-  figure's settings come from them. A setting can also take the **opposite** of
+  *who* and *which hand*. In a combination, under **Filled in by parameters**,
+  choose which of each figure's settings come from them. A setting can also take the **opposite** of
   a parameter — the other hand, the other role — where that has one. A choice
   that can't be used, because the kinds differ or no value would fit every
   setting it fills, is shown greyed out with the reason.
-- If a parameter fills nothing, saving asks whether to go **Back to editor** or
-  **Save anyway**.
+- If a parameter fills nothing, or a new figure's wording leaves it out, saving
+  asks whether to go **Back to editor** or **Save anyway**. Wording that uses
+  something the figure doesn't have can't be saved.
 - A name already taken can't be saved: a built-in figure's name or one of its
   other names, a figure's name in one of your dialects, one of your
   shorthands, or another of your figures.
-- In the dance editor, your figures are offered when you choose a figure's
-  move, and become the figures they stand for when you save the dance (see
+- In the dance editor, your combinations are offered when you choose a
+  figure's move, and become the figures they stand for when you save the dance (see
   [Your own figures](./authoring.md#your-own-figures)). You can also give one
   a [shorthand](./authoring.md#figure-shorthands) with set values.
-- Your figures are marked **Custom** in the list. Select one to see what it
-  **Expands to** (folded until you open it), and to **Edit** or **Delete** it.
-  A figure that can no longer be expanded is marked **Needs repair**; one whose
-  name is also another figure's is marked **Rename needed**.
+- Your figures are marked **Custom** in the list. Select one to see what a
+  combination **Expands to** (folded until you open it), or a new figure's
+  **Wording** and an **Example** with its defaults, and to **Edit** or
+  **Delete** it. Deleting a new figure says how many dances use it; each keeps
+  the wording it shows now, as plain text. A figure that can no longer be used
+  is marked **Needs repair**; one whose name is also another figure's is
+  marked **Rename needed**.
 
 Turning Custom Figures off hides your figures; it doesn't delete them. They are
 kept in your backups.
@@ -588,7 +603,8 @@ sync to your other devices too, once every device connected to your store has
 this version of the app or a later one. Until then changes to them aren't sent
 to your other devices, and Device Sync shows a note naming the device that is
 holding them back (see [New kinds of data wait for every
-device](#new-kinds-of-data-wait-for-every-device)).
+device](#new-kinds-of-data-wait-for-every-device)). New figures, with their
+own wording, stay on this device for now.
 
 Your figures and your notes on built-in figures share a size limit, which
 keeps what you add from growing too large to back up. It is far more than most
