@@ -2,6 +2,7 @@ import '../dialect/canonicalize.dart';
 import '../dialect/dialect.dart';
 import '../model/figure.dart';
 import 'taxonomy.dart';
+import 'user_figure_use.dart';
 
 /// Where a name a user typed for their own glossary entry already exists
 /// (#709).
@@ -32,7 +33,9 @@ String normalizeGlossaryName(String name) =>
 /// [dialects] should be the active dialect and every dialect the user has
 /// made, so that switching dialect cannot create a collision after the fact.
 /// A dialect's `%s` placeholder is ignored, as [Dialect.validate] ignores it.
-/// [userEntryNames] should leave out the entry being edited.
+/// [userEntryNames] should leave out the entry being edited, and
+/// [exceptUserFigureId] names it, so a dialect's own name for that figure
+/// (#1023, its `userFigure:<id>` move key) is not a clash with itself.
 ///
 /// [candidate] may be the name as typed or as stored, canonical (#709): the
 /// app compares stored names, as the Glossary flags duplicates by them. A
@@ -46,6 +49,7 @@ Set<GlossaryNameSource> glossaryNameCollisions(
   Iterable<Dialect> dialects = const [],
   Iterable<String> shorthandTokens = const [],
   Iterable<String> userEntryNames = const [],
+  String? exceptUserFigureId,
 }) {
   final name = normalizeGlossaryName(candidate);
   if (name.isEmpty) return const {};
@@ -71,7 +75,11 @@ Set<GlossaryNameSource> glossaryNameCollisions(
   bool sameIn(String written, Dialect dialect) =>
       same(written) || same(canonicalizeGlossaryText(written, dialect));
   for (final dialect in dialects) {
-    for (final rename in dialect.moves.values) {
+    for (final MapEntry(key: moveKey, value: rename) in dialect.moves.entries) {
+      if (exceptUserFigureId != null &&
+          moveKey == userFigureKeyFor(exceptUserFigureId)) {
+        continue;
+      }
       final written = rename.replaceAll(RegExp('%s', caseSensitive: false), '');
       if (sameIn(written, dialect)) {
         found.add(GlossaryNameSource.dialectMove);
