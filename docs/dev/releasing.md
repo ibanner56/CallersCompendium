@@ -110,7 +110,9 @@ and produces no Android artifact.
   approval-gated `release-signing` environment, so no platform builds until a
   maintainer approves, and it holds `id-token: write` job-wide (Azure Trusted
   Signing authenticates over GitHub OIDC for the Windows leg; the other legs do
-  not use it) with `contents: read` only. The `publish_draft` job elevates
+  not use it, but they can request a token; see
+  [OIDC scope of the build matrix](#oidc-scope-of-the-build-matrix)) with
+  `contents: read` only. The `publish_draft` job elevates
   to `contents: write` (plus `id-token`/`attestations: write` for the provenance
   and SBOM attestations); the approval-gated `publish_mobile` job remains
   read-only; the `verify` job is read-only (`attestations: read` to query the
@@ -918,6 +920,60 @@ The variables must be paired with an Azure federated credential for the
 `ibanner56/CallersCompendium` release workflow and the service principal must
 have the Artifact Signing Certificate Profile Signer role. If any variable is
 absent, the Windows leg intentionally produces the existing unsigned artifacts.
+
+### OIDC scope of the build matrix
+
+`id-token: write` is granted to the **whole** `build` job, so all five legs
+(linux, macos, android, ios, windows) hold it, not only Windows. Windows had
+its own job and its own `permissions:` block until #1716 folded it into the
+matrix. Job-level `permissions:` cannot be made conditional per matrix leg:
+GitHub's context-availability table has no row for `jobs.<job_id>.permissions`,
+so no `matrix` expression is available there. Narrowing the grant would mean
+splitting Windows back into its own job, which duplicates the shared setup
+steps; the Windows leg already runs the same dependency resolution as the
+other legs, so the gain is small. (`jobs.<job_id>.environment`, unlike
+`permissions`, does accept a `matrix` expression, so Windows could be given an
+environment of its own with a distinct `sub`. That would let an Azure
+credential tell Windows from the other legs, but it would not narrow
+`id-token: write`, and it would need its own approvals and variables. It has
+not been adopted.)
+
+What this means in practice:
+
+- Only the three Windows-gated steps (`azure/login` and the two
+  `Azure/artifact-signing-action` steps) use the token. No step on another leg
+  requests one, but any code running in a leg's job can (a Pub, Gradle,
+  CocoaPods or apt dependency, or a build script).
+- Every leg references the `release-signing` environment. For a job that
+  references an environment, GitHub's default OIDC `sub` claim is
+  `repo:ibanner56/CallersCompendium:environment:release-signing`, with no ref
+  and no `job_workflow_ref`. An Azure federated credential keyed on that subject
+  accepts a token from any leg, and from any ref the environment admits.
+- The Windows signing gate (the "Determine Windows signing availability" step)
+  keys on the five `AZURE_*` repository variables being non-empty. It does not
+  consult `is_release`. A manual `workflow_dispatch` dry run therefore also
+  enters the environment and, with the variables set, signs the Windows
+  artifacts of whatever ref it was dispatched from. What contains this is the
+  environment's approval rule (and its deployment-branch rule, if one is set),
+  not the workflow.
+
+The Azure federated credential and the `release-signing` environment's
+reviewers and deployment rules live in the Azure portal and the repository
+settings, not in this repository, so this repository can neither change them
+nor record their current values. When reviewing them, check that:
+
+- the credential's subject is the environment form above (a ref-based subject,
+  in its branch or tag form, never matches a job that references an
+  environment);
+- the service principal holds only the Artifact Signing Certificate Profile
+  Signer role, scoped to the one signing account;
+- the environment has required reviewers, and that its deployment branch and
+  tag rule admits only the refs a release or a dry run is meant to run from;
+- the five `AZURE_*` variables are repository variables, not set on the
+  `release-signing` environment: the `build` job would read an environment
+  variable of the same name in preference, but `publish_draft` has no
+  environment and would not see it, so the release notes would say the Windows
+  artifacts are unsigned while the leg had signed them.
 
 ## macOS (Developer ID signed + notarized)
 
