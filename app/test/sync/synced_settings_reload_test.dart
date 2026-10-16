@@ -122,7 +122,9 @@ void main() {
 
     await reload.request();
 
-    expect(runs, 3);
+    // Run 3, which the request forced, starts the race count again: runs 3
+    // and 4 are the two the bound allows.
+    expect(runs, 4);
   });
 
   test('runs a request forced do not spend the race bound', () async {

@@ -32,7 +32,8 @@ class SyncedSettingsReload {
   final Future<void> Function() _reload;
   final Future<void> Function() _fence;
 
-  /// The most runs one call makes when only races, not requests, ask for more.
+  /// The most runs in a row that only races, not requests, ask for: the run
+  /// a race interrupted and its re-runs. A request starts the count again.
   final int maxRacedRuns;
 
   bool _running = false;
@@ -57,15 +58,21 @@ class SyncedSettingsReload {
     }
     _running = true;
     try {
-      var runs = 0;
-      do {
+      // Consecutive runs that ended raced with no request pending; a request
+      // starts the count again, so runs it forced never spend the bound.
+      var racedRuns = 0;
+      while (true) {
         _requested = false;
         _raced = false;
         await _reload();
         await _fence();
         await Future<void>.delayed(Duration.zero);
-        runs++;
-      } while (_requested || (_raced && runs < maxRacedRuns));
+        if (_requested) {
+          racedRuns = 0;
+        } else if (!_raced || ++racedRuns >= maxRacedRuns) {
+          break;
+        }
+      }
     } finally {
       _running = false;
     }
