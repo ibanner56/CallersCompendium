@@ -113,6 +113,28 @@ on diff lines. A finding on a line outside the diff appears in the body only,
 and `check_pr_review_gates.py findings` lists inline comments only, so read the
 body of a Claude review as well. There is no `Suppressed comments` block.
 
+Status label: while `review: claude` is on,
+[`claude-review-status.yml`](../../../.github/workflows/claude-review-status.yml)
+keeps exactly one traffic-light label on the PR, so the PR list shows the state
+without opening anything:
+
+| Label | Color | Meaning |
+| --- | --- | --- |
+| `claude: reviewing` | gray | a round is requested or running on the current head (set on label, push, ready-for-review, reopen) |
+| `claude: approved` | green | verdict `APPROVE`: no findings, no Suspected items, complete Coverage |
+| `claude: nits` | yellow | verdict `APPROVE-WITH-NITS`: no blocker, but a minor finding or Suspected item remains |
+| `claude: blocked` | red | verdict `BLOCK` |
+
+Only a true `APPROVE` is green. The label is read from the first
+`## Review verdict:` line of the `claude[bot]` review whose `commit_id` is the
+PR's current head; a review of an older head is ignored, and a review with no
+readable verdict clears the label and fails the job rather than leave a stale
+color. Removing `review: claude` removes the status label. It is a display
+aid: the merge gate does not read it, so read the review itself
+before merging. It is a separate workflow because a PR that edits
+`claude-code-review.yml` may change nothing else (see Traps below). The labels
+are defined in [`labels.yml`](../../../.github/labels.yml).
+
 What a round is given and asked for:
 
 - **The rubric comes from the PR's base commit.** The workflow copies `SKILL.md`,

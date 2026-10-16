@@ -10860,7 +10860,11 @@
   },
   "shorthandsCompoundTitle": "Shorthands for your own figures",
   "@shorthandsCompoundTitle": {
-    "description": "Heading of the list of compound shorthands (#709) on the shorthands screen, and the name of their setting in sync notices: tokens that stand for one of the user's own Custom Figures with fixed values."
+    "description": "Heading of the list of shorthands for the user's own figures on the shorthands screen (compound shorthands, #709, and shorthands for new figures, #1023), and the name of the compound shorthands' setting in sync notices: tokens that stand for one of the user's own Custom Figures with fixed values."
+  },
+  "shorthandsUserFigureSyncLabel": "Shorthands for your new figures",
+  "@shorthandsUserFigureSyncLabel": {
+    "description": "The name of the setting holding the shorthands for the user's own new figures (#1023), in sync notices and the sync conflict view. A new figure is one with its own wording, as opposed to a combination of built-in figures."
   },
   "shorthandsCompoundIntro": "With Free-text entry on, typing one of these as a whole line while you edit a dance adds one of your own figures, with the values chosen here.",
   "@shorthandsCompoundIntro": {
@@ -10881,6 +10885,10 @@
   "shorthandsCompoundShadowed": "Not used: a figure shorthand has the same text.",
   "@shorthandsCompoundShadowed": {
     "description": "Shown under a compound shorthand whose token a figure shorthand also has (possible when two devices each add one before syncing); the figure shorthand is used."
+  },
+  "shorthandsUserFigureShadowedByCompound": "Not used: a shorthand for one of your combinations has the same text.",
+  "@shorthandsUserFigureShadowedByCompound": {
+    "description": "Shown under a shorthand for one of the user's new figures (#1023) whose token a shorthand for one of their combinations also has (possible when two devices each add one before syncing); the combination's shorthand is used. A combination is a user's figure made of built-in figures."
   },
   "compoundShorthandEditorFigureLabel": "Your figure",
   "@compoundShorthandEditorFigureLabel": {

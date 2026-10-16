@@ -68,8 +68,9 @@ final class SyncCapabilityPolicy {
   /// this device sends none of them, and leaves alone what it already holds.
   ///
   /// [SyncCapabilities.glossaryV2] (#1023) gates the user's own terms and
-  /// figures. This build does not advertise it yet, so they stay on their
-  /// device.
+  /// figures, and the shorthands for those figures: a peer that can't read
+  /// the figures has no use for them. This build does not advertise it yet,
+  /// so they stay on their device.
   static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
     advertised: {SyncCapabilities.glossaryV1},
     gatedRecordKinds: {
@@ -79,6 +80,7 @@ final class SyncCapabilityPolicy {
     gatedSettingKeys: {
       'show_custom_figures': SyncCapabilities.glossaryV1,
       'compound_shorthands': SyncCapabilities.glossaryV1,
+      'user_figure_shorthands': SyncCapabilities.glossaryV2,
     },
     gatedGlossaryEntryKinds: {
       'term': SyncCapabilities.glossaryV2,
