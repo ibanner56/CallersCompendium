@@ -146,6 +146,48 @@ void main() {
     });
   });
 
+  group('syncUserVisibleBody', () {
+    // Spec §6.7: comparing what a user is shown draws only on the part this
+    // build syncs. A kind with no list of shown fields shows every synced
+    // field, so a part kept for a newer version must not count as one.
+    for (final (kind, body) in [
+      (SyncRecordKind.publishedSource, {'title': 'Source', 'year': 1990}),
+      (SyncRecordKind.difficultyLevel, {'label': 'Easy', 'position': 0}),
+      (SyncRecordKind.customFieldDef, {'key': 'level', 'label': 'Level'}),
+    ]) {
+      test('a kept part of a ${kind.name} is not shown', () {
+        final withKept = {...body, 'addedLater': 'x'};
+
+        expect(
+          syncUserVisibleBody(kind, withKept),
+          syncUserVisibleBody(kind, body),
+        );
+        expect(
+          syncUserVisibleContentHash(kind, withKept),
+          syncUserVisibleContentHash(kind, body),
+        );
+        expect(
+          syncDifferingFields(
+            syncUserVisibleBody(kind, withKept),
+            syncUserVisibleBody(kind, {...body, 'addedLater': 'y'}),
+          ),
+          isEmpty,
+        );
+      });
+    }
+
+    test('a field this build syncs still counts', () {
+      expect(
+        syncUserVisibleBody(SyncRecordKind.publishedSource, {
+          'id': 's1',
+          'title': 'Source',
+          'addedLater': 'x',
+        }),
+        {'title': 'Source'},
+      );
+    });
+  });
+
   group('combineSyncCollection', () {
     test("keeps snippets from both in the library's own shape", () {
       final combined = combineSyncCollection(
