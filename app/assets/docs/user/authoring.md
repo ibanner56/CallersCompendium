@@ -95,6 +95,17 @@ figure, marked unparsed, rather than becoming a figure with the wrong beats; use
 the leading `16 neighbors swing` form to set the beats. `give and take` still
 needs a giver and a target.
 
+A count can also be written in brackets, `(16) circle left` or `[16] circle
+left`, and goes at the end as well (`circle left [16]`). A count is never
+dropped: if the line states one the app cannot use (a second count, or one
+too long to be beats), the line is kept whole as a custom figure. A line kept
+as a custom figure keeps your words as you typed them, count included, and the
+count you gave is also its beats.
+
+Pasting several lines into the box keeps them as one line, with a space where
+each line break was; type or paste one figure line at a time to get one figure
+per line.
+
 As always, anything it cannot parse is kept as a custom figure rather than
 dropped.
 

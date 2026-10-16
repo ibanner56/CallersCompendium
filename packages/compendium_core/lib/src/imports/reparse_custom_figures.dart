@@ -2,6 +2,7 @@ import '../model/figure.dart';
 import '../storage/figure_reparse.dart';
 import '../taxonomy/taxonomy.dart';
 import 'figure_front_end_fan_out.dart';
+import 'free_text_entry.dart';
 import '../taxonomy/user_figure_use.dart';
 
 /// Upper bound on the length of stored custom text we will feed back through
@@ -167,9 +168,12 @@ Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy) {
   final rawBeats = figure.params['beats'];
   final beats = rawBeats is int && rawBeats > 0 ? rawBeats : 0;
 
+  final line = splitForReparse(text, beats);
+  if (line == null) return null;
+
   final parsed = parseFigureLineFanOut(
-    text,
-    beats: beats,
+    line.text,
+    beats: line.beats,
     progression: figure.progression,
     taxonomy: taxonomy,
     // Same rule as free-text entry: a saved import-gap custom whose line only
