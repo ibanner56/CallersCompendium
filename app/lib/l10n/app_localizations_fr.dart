@@ -8404,6 +8404,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get shorthandsCompoundTitle => 'Abréviations pour vos propres figures';
 
   @override
+  String get shorthandsUserFigureSyncLabel =>
+      'Abréviations pour vos nouvelles figures';
+
+  @override
   String get shorthandsCompoundIntro =>
       'Quand la saisie en texte libre est activée, taper l’une de ces abréviations seule sur une ligne pendant que vous modifiez une danse ajoute l’une de vos propres figures, avec les valeurs choisies ici.';
 
@@ -8422,6 +8426,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get shorthandsCompoundShadowed =>
       'Non utilisée : une abréviation de figures a le même texte.';
+
+  @override
+  String get shorthandsUserFigureShadowedByCompound =>
+      'Non utilisée : une abréviation pour l\'une de vos combinaisons a le même texte.';
 
   @override
   String get compoundShorthandEditorFigureLabel => 'Votre figure';
