@@ -29,8 +29,16 @@ const Set<String> mappedValidationCodes = {
 };
 
 /// Localized message for a [ValidationIssue] surfaced in an editor.
-String validationIssueMessage(AppLocalizations l10n, ValidationIssue issue) {
-  final localized = _localizedValidation(l10n, issue);
+///
+/// [keyLabel], when given, names a dialect entry's source key, the move a
+/// substitution is for: the dialect editor names a figure of your own by its
+/// name rather than its `userFigure:<id>` key (#1023).
+String validationIssueMessage(
+  AppLocalizations l10n,
+  ValidationIssue issue, {
+  String Function(String key)? keyLabel,
+}) {
+  final localized = _localizedValidation(l10n, issue, keyLabel ?? (k) => k);
   if (localized != null) return localized;
   // No specific localization (unknown code, or expected structured data
   // missing/ill-typed): generic, non-leaking fallback. The diagnostic English
@@ -44,7 +52,11 @@ String validationIssueMessage(AppLocalizations l10n, ValidationIssue issue) {
 /// is unmapped or its required safe structured data is absent/ill-typed (so the
 /// caller can fall back to the generic message rather than render a misleading
 /// value such as "0 beats").
-String? _localizedValidation(AppLocalizations l10n, ValidationIssue issue) {
+String? _localizedValidation(
+  AppLocalizations l10n,
+  ValidationIssue issue,
+  String Function(String key) keyLabel,
+) {
   final data = issue.data;
   switch (issue.code) {
     case 'phrase_overflow':
@@ -63,13 +75,19 @@ String? _localizedValidation(AppLocalizations l10n, ValidationIssue issue) {
           : l10n.validationOrphanedAltNamed(position, text);
     case 'empty_substitution':
       final source = data['source'];
-      return source is String ? l10n.validationEmptySubstitution(source) : null;
+      return source is String
+          ? l10n.validationEmptySubstitution(keyLabel(source))
+          : null;
     case 'dialect_collision':
       final source = data['source'];
       final existing = data['existing'];
       final substitution = data['substitution'];
       return (source is String && existing is String && substitution is String)
-          ? l10n.validationDialectCollision(source, existing, substitution)
+          ? l10n.validationDialectCollision(
+              keyLabel(source),
+              keyLabel(existing),
+              substitution,
+            )
           : null;
     default:
       return null;

@@ -622,7 +622,9 @@ Glossary is on. While it is on:
   combination **Expands to** (folded until you open it), or a new figure's
   **Wording** and an **Example** with its defaults, and to **Edit** or
   **Delete** it. Deleting a new figure says how many dances use it; each keeps
-  the wording it shows now, as plain text. A figure that can no longer be used
+  the wording it shows now, as plain text. Each dialect's name and wording for
+  it, and its column's place, name and hiding in **Matrix columns**, are
+  removed too. A figure that can no longer be used
   is marked **Needs repair**; one whose name is also another figure's is
   marked **Rename needed**.
 

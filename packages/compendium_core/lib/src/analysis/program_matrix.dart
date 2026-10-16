@@ -1160,8 +1160,9 @@ List<MatrixColumn> _applyColumnConfig(
 ///   shoulder/hand) can't be resolved at the column level, so they fall back
 ///   to the display name;
 /// - unknown → the raw move id (nothing silently dropped);
-/// - userFigure → the figure's name ([MatrixColumn.label]) in [dialect], as
-///   free text, so its role words read in the dialect (#1023);
+/// - userFigure → [dialect]'s name for the figure ([dialectUserFigureName]),
+///   else the figure's own ([MatrixColumn.label]), as free text, so its role
+///   words read in the dialect (#1023);
 /// - parameterized / compound → the user-defined header from
 ///   [MatrixColumnConfig.renames] (Phase 4/5 columns have no built-in label),
 ///   falling back to the raw id if none is set.
@@ -1186,9 +1187,12 @@ String matrixColumnLabel(
       // guarantees a label.
       return column.moveId;
     case MatrixColumnKind.userFigure:
-      return FigureRenderer(
-        taxonomy,
-      ).renderFreeText(column.label ?? column.moveId, dialect);
+      // The dialect's own name for the figure, when it gives one (#1023).
+      final id = column.moveId.substring(userFigureRefPrefix.length);
+      return FigureRenderer(taxonomy).renderFreeText(
+        dialectUserFigureName(dialect, id) ?? column.label ?? column.moveId,
+        dialect,
+      );
     case MatrixColumnKind.custom:
     case MatrixColumnKind.split:
     case MatrixColumnKind.known:

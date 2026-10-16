@@ -25,7 +25,7 @@ void main() {
 
   test('any run of Unicode whitespace is one space', () {
     expect(normalizeGlossaryName('Pull\t  By'), 'pull by');
-    expect(normalizeGlossaryName('Pull By'), 'pull by');
+    expect(normalizeGlossaryName('Pull\u00A0By'), 'pull by');
     expect(check('pull\nby'), {GlossaryNameSource.shippedFigure});
   });
 
@@ -80,6 +80,26 @@ void main() {
       moves: {'swing': '%s'},
     );
     expect(check('  ', dialects: [dialect], entries: ['', ' \t']), isEmpty);
+  });
+
+  test('a dialect\'s name for a figure of your own collides with another '
+      'entry, but not with the figure it names (#1023)', () {
+    final dialect = Dialect.larksRobins.copyWith(
+      name: 'mine',
+      moves: {userFigureKeyFor('zoom-id'): 'whizz'},
+    );
+    expect(check('Whizz', dialects: [dialect]), {
+      GlossaryNameSource.dialectMove,
+    });
+    expect(
+      glossaryNameCollisions(
+        'whizz',
+        taxonomy: contraTaxonomy,
+        dialects: [dialect],
+        exceptUserFigureId: 'zoom-id',
+      ),
+      isEmpty,
+    );
   });
 
   test('a stored, canonical name collides with a rename or a shorthand '

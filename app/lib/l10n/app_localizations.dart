@@ -13886,6 +13886,30 @@ abstract class AppLocalizations {
   /// **'This template omits available slots: {slots}'**
   String dialectEditorMoveWordingMissingSlots(String slots);
 
+  /// Label of a dialect's name or wording for one of the user's own new figures (#1023) when that figure is not on this device (deleted, or not yet synced here).
+  ///
+  /// In en, this message translates to:
+  /// **'One of your figures, not on this device'**
+  String get dialectEditorUserFigureGone;
+
+  /// Hint in the field where a dialect gives one of the user's own new figures (#1023) a name of its own.
+  ///
+  /// In en, this message translates to:
+  /// **'What this dialect calls your figure'**
+  String get dialectEditorUserFigureNameHint;
+
+  /// Shown under a dialect's name for one of the user's own new figures (#1023) when it holds %S, which only a built-in move with a side can fill. Keep %S exactly as written.
+  ///
+  /// In en, this message translates to:
+  /// **'Your figure has no side for %S to fill, so it keeps its own name.'**
+  String get dialectEditorUserFigureNameSide;
+
+  /// Shown under a dialect's wording for one of the user's own new figures (#1023) when the wording uses slots the figure doesn't have: the figure then keeps its own wording. {slots} is a comma-separated list such as '{gone}, {other}'.
+  ///
+  /// In en, this message translates to:
+  /// **'Your figure has no {slots}, so it reads with its own wording until you remove them.'**
+  String dialectEditorUserFigureWordingUnknownSlots(String slots);
+
   /// Notice shown when a move wording template omits optional placeholders.
   ///
   /// In en, this message translates to:

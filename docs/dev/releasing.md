@@ -321,7 +321,9 @@ and produces no Android artifact.
    release tags should always include one.
 5. Watch the run under **Actions → Release**. It resolves + validates metadata
    (pending fragments or a direct compatibility-queue edit fail here, fast; schema changes also require a
-   current Data / Migrations range), gates on the reusable checks, builds +
+   current Data / Migrations range), gates on the reusable checks, then **waits
+   for the `release-signing` environment approval** (every `build` leg is in
+   that environment, so nothing is built until a maintainer approves), builds +
    packages on all three OSes, creates the **draft** release (`publish`), then
    **verifies each artifact's SLSA provenance and SBOM attestation** (`verify`).
 6. Review the draft under **Releases**: confirm its title is the selected
@@ -338,7 +340,7 @@ and produces no Android artifact.
    [Verifying attestations](#verifying-attestations).
 8. **Publish** the draft manually once the `verify` job is green and the draft
    looks right.
-9. **Approve the `pages` job** (`release-publication` environment) **after** the
+9. **Approve the `pages` job** (`release-manifest` environment) **after** the
    draft is public. `pages` needs `verify`, checks that the release is no longer a
    draft and that its manifests download anonymously, verifies every manifest
    signature against the pinned key, and only then pushes `gh-pages`. Approving
@@ -419,7 +421,7 @@ supply chain with signed provenance.
     [Pinned native dependencies](#pinned-native-dependencies)).
   - the **MSVC runtime DLLs** the Windows build ships app-local
     (`vcruntime140.dll`, `vcruntime140_1.dll`, `msvcp140.dll`). Their version
-    is whatever the runner's Visual Studio carries, so the Windows job writes
+    is whatever the runner's Visual Studio carries, so the Windows leg writes
     each staged DLL's file version and SHA-256 to `msvc-runtime.json`
     (workflow artifact `native-components-windows`, not a release asset), and
     `publish_draft` passes it to `gen_sbom.py --msvc-runtime`.
@@ -508,7 +510,7 @@ hop and silently report no update.
 On every real tagged release the `pages` job publishes the selected manifests
 to those URLs. The channel advances only after verification and public release (it is not
 ordered against the mobile store uploads (TestFlight / Google Play), which run independently after
-`verify`): the job needs `verify`, waits behind the `release-publication` approval (granted after
+`verify`): the job needs `verify`, waits behind the `release-manifest` approval (granted after
 the draft is published), and fails closed unless the release is public and its
 manifests download anonymously. It then downloads the `channel-manifests`
 artifact (the exact signed `stable.json` / `beta.json` files that `publish_draft`
@@ -865,8 +867,12 @@ gh workflow run pages-site.yml
 ## Dry run (no release created)
 
 A manual dispatch with no `release_tag` builds + packages without creating any
-release. The packaged artifacts are uploaded as **workflow run artifacts**
-instead:
+release. It still enters the `release-signing` environment like a tag run does,
+so the run waits for that approval before any platform builds (and, with the
+five Windows `AZURE_*` variables set, signs the Windows artifacts of the ref it
+was dispatched from; see
+[OIDC scope of the build matrix](#oidc-scope-of-the-build-matrix)). The
+packaged artifacts are uploaded as **workflow run artifacts** instead:
 
 ```sh
 gh workflow run release.yml
