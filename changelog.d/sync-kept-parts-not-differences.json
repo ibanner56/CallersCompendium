@@ -1,0 +1,14 @@
+{
+  "id": "sync-kept-parts-not-differences",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "When two devices disagree about a record and one of them is on a newer version of the app, Device Sync no longer lists versions that look the same to you as separate choices because of details this version can't show. The conflict screen also no longer names such a detail as the difference for a source, custom field or difficulty level."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "syncUserVisibleBody, and so syncUserVisibleContentHash, the review resolver and the conflict details, compare only the part of a record this build syncs, leaving out the parts it keeps for a newer version, as the merge already did."
+    ]
+  }
+}
