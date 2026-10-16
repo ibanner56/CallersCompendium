@@ -221,8 +221,9 @@ def test_windows_leg_is_in_the_build_matrix() -> None:
 
 
 def test_windows_only_steps_are_guarded_to_the_windows_leg() -> None:
-    # Every step below is PowerShell or Windows-specific. The matrix is shared,
-    # so without the guard it would run (and fail) on the other four legs.
+    # Every step below is PowerShell or Windows-specific (the gate step is
+    # bash). The matrix is shared, so without the guard it would run (and
+    # fail) on the other four legs.
     job = windows_job()
     for step_name in (
         SIGNING_GATE_STEP,
@@ -321,7 +322,7 @@ SBOM_STEP = "Generate CycloneDX SBOM"
 
 def test_stage_step_records_what_it_shipped_for_the_sbom() -> None:
     # platform-5: the SBOM lists the MSVC runtime, but it is generated on
-    # Linux in publish_draft, so the Windows job records the staged DLLs.
+    # Linux in publish_draft, so the Windows leg records the staged DLLs.
     script = run_script(windows_job(), STAGE_STEP)
     assert "msvc-runtime.json" in script, "write the MSVC runtime manifest"
     assert "Get-FileHash" in script and "SHA256" in script, "hash each staged DLL"
