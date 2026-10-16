@@ -29,9 +29,12 @@ on:
   pull_request_review:
     types: [submitted]
 
+# Labels on a PR go through the issues API, which for a pull request also needs
+# pull-requests: write (observed on #1800: issues: write alone returned HTTP 403
+# "Resource not accessible by integration").
 permissions:
   issues: write
-  pull-requests: read
+  pull-requests: write
 
 concurrency:
   # The newest event for a PR decides its label. A review by anyone but Claude
