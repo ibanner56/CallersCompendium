@@ -3775,6 +3775,20 @@ settles or asks, and that outcome then arrives here as a newer version.
 Comparing what a user is shown draws only on the part this build syncs. Decided
 by Isaac (maintainer) in planning this change.
 
+The same holds when two records collide on a natural key (§6.6) and tie on
+`updatedAt` while differing only in a part this build keeps (two tags with one
+name, one copy carrying a kept part the other lacks). The collision path compares
+whole bodies, kept parts included, so it does not settle the tie: it queues a
+review, `natural-key collision has different bodies at the same updatedAt`, that
+this build cannot act on (the difference is a part its user is not shown), reports
+nothing, and does not apply the peer's copy. Comparing only the parts this build knows would
+pick the inbound copy on every device, so two devices holding different kept
+parts would each take the other's copy and stay different at one `updatedAt`,
+which this section forbids. Accepted by Isaac (maintainer) on review,
+2026-10-16; the alternative of comparing known parts only was rejected for that
+reason. The test is `sync_retained_fields_storage_test.dart`, "two tags with one
+name, the same updatedAt, and a kept part on only one side".
+
 Rejecting both fields is what makes a poisoned value always **local**.
 
 **Quarantine.** A record whose own `existenceAt` or `updatedAt` exceeds
@@ -5953,8 +5967,9 @@ refuses the record as `newerRecordFields` or `newerFigures`** (mutation: let
 figure decoding drop the key — the dance applies, truncated). **A tie in kept
 parts is left to a device that understands them** (mutation: settle it as a tie
 in nothing the user is shown — the copy without the newer field can win
-everywhere). **A merge restore or an archive import keeps the parts kept for records
-it did not write** (mutation: clear the whole table — the peer's copy at the same
+everywhere; on a natural-key collision, compare the known parts only — the
+inbound copy wins on every device). **A merge restore or an archive import keeps
+the parts kept for records it did not write** (mutation: clear the whole table — the peer's copy at the same
 `updatedAt` is a tie that never returns the field, and the next edit overwrites
 it everywhere). **After an upgrade that starts syncing a kept field, the record
 holds it and the kept copy no longer wins** (mutation: keep putting the kept
