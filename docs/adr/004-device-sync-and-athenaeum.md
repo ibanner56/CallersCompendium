@@ -1534,6 +1534,10 @@ makes self-hosting materially harder, which constraint 4 forbids.
   > **Amended 2026-10-15.** A fifth key joins them: `compound_shorthands`,
   > the user's shorthands for their own compound figures (#709), compared and
   > combined token by token like `shorthand_mappings`.
+  >
+  > **Amended 2026-10-16.** A sixth joins them: `user_figure_shorthands`, the
+  > user's shorthands for their own new figures (#1023), compared and combined
+  > the same way.
 - **Re-attaching to the same store can leave the previous attachment behind
   as an inactive device.** Because each attachment has its own device ID, an
   old manifest left on the server stays under the old identifier. It shows

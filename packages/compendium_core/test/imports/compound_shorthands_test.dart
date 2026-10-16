@@ -36,22 +36,31 @@ void main() {
       ]) {
         expect(CompoundShorthands.decode(bad).isEmpty, isTrue, reason: '$bad');
       }
+      // Each bad entry has a token of its own, so it is dropped for what is
+      // wrong with it, not as a second use of a token.
       final kept = CompoundShorthands.decode([
         entry(),
         entry(token: '   '),
         entry(token: 'x' * (maxShorthandTokenLength + 1)),
         entry(token: 7),
-        entry(compound: ''),
-        entry(name: ''),
-        entry(args: 'hand=right'),
-        entry(args: {for (var i = 0; i <= maxCompoundParams; i++) 'p$i': 'v'}),
-        entry(args: {'': 'v'}),
+        entry(token: 'bad1', compound: ''),
+        entry(token: 'bad2', name: ''),
+        entry(token: 'bad3', args: 'hand=right'),
         entry(
+          token: 'bad4',
+          args: {for (var i = 0; i <= maxCompoundParams; i++) 'p$i': 'v'},
+        ),
+        entry(token: 'bad5', args: {'': 'v'}),
+        entry(
+          token: 'bad6',
           args: {
             'hand': const ['right'],
           },
         ),
-        entry(args: {'text': 'x' * (maxCompoundShorthandTextArgLength + 1)}),
+        entry(
+          token: 'bad7',
+          args: {'text': 'x' * (maxCompoundShorthandTextArgLength + 1)},
+        ),
         'not a map',
       ]);
       expect([for (final s in kept.shorthands) s.token], ['GRL']);
