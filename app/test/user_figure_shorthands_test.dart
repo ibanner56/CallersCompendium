@@ -409,6 +409,59 @@ void main() {
       expect(use!.id, 'zoom-id');
       expect(figures[1].params['text'], 'role2s zoom briskly');
     });
+
+    // A count on a shorthand for one of the user's own figures is that use's
+    // beats (#1861), as it is for a one-figure plain shorthand (#1827).
+    for (final line in ['16 zm', 'zm (16)', 'ZM 16 beats']) {
+      testWidgets('"$line" inserts the use with that count as its beats', (
+        tester,
+      ) async {
+        final repos = await pump(tester, shorthands: [shorthand()]);
+        await typeLine(tester, line);
+        final figure = (await saved(tester, repos)).single;
+        final use = userFigureUseOf(figure);
+        expect(use, isNotNull);
+        expect(use!.id, 'zoom-id');
+        expect(use.args, {'who': 'role2s', 'pace': 'c2'});
+        expect(figure.params['beats'], 16);
+      });
+
+      testWidgets('"$line" typed into an existing row\'s Move box replaces '
+          'the row in place with that count', (tester) async {
+        final repos = await pump(tester, shorthands: [shorthand()]);
+        await typeInExistingRow(tester, line);
+        final figures = await saved(tester, repos);
+        expect(figures, hasLength(3));
+        expect(figures[0].move, 'swing');
+        expect(figures[2].move, 'turn_alone');
+        expect(userFigureUseOf(figures[1])?.id, 'zoom-id');
+        expect(figures[1].params['beats'], 16);
+      });
+    }
+
+    testWidgets('a count replaces a shorthand\'s saved beats and the '
+        'figure\'s default', (tester) async {
+      final repos = await pump(tester, shorthands: [shorthand(beats: null)]);
+      await typeLine(tester, '16 zm');
+      expect((await saved(tester, repos)).single.params['beats'], 16);
+    });
+
+    testWidgets('a figure shorthand with the same token wins over a counted '
+        'use', (tester) async {
+      final repos = await pump(tester, shorthands: [shorthand()]);
+      final controller = ShorthandMappingsScope.controllerOf(
+        tester.element(find.byType(DanceEditorScreen)),
+      );
+      await tester.runAsync(
+        () => repos.settings.set(kShorthandMappingsKey, [
+          ShorthandMapping(token: 'ZM', figures: [swing()]).toJson(),
+        ]),
+      );
+      await tester.runAsync(controller.load);
+      await tester.pumpAndSettle();
+      await typeLine(tester, '16 zm');
+      expect((await saved(tester, repos)).single.move, 'swing');
+    });
   });
 
   group('the shorthands screen', () {

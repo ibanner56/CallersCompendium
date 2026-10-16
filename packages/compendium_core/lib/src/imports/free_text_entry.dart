@@ -355,6 +355,18 @@ List<Figure>? _resolveClause(String clause, ShorthandMappings shorthands) {
   ];
 }
 
+/// [line] with a leading `16 pbs` or trailing `pbs (16)` beat count peeled
+/// off, or `null` when it states none (issue #1861). The same split a plain
+/// shorthand gets above, for the callers that match a shorthand of their own
+/// kind (a compound, or one of the user's own figures) and so cannot go
+/// through [parseFreeTextFigureEntry]: the caller matches `text` against its
+/// tokens and decides what `beats` means for what it inserts.
+({String text, int beats})? splitShorthandCount(String line) {
+  final split = _splitInlineBeats(line.trim());
+  if (split.beats == 0) return null;
+  return (text: split.text, beats: split.beats);
+}
+
 /// Splits [line] at bracket-depth-0 `;`, trimming each clause and keeping empty
 /// ones so the caller can decline a degenerate run (`pbs;;swing`). Brackets are
 /// opaque, as in the parser's own `;` split, so a `(PR;WL)` pass list is not

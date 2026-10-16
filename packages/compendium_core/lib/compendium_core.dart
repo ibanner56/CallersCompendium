@@ -48,7 +48,8 @@ export 'src/imports/free_text_entry.dart'
     show
         maxFreeTextEntryLength,
         parseFreeTextFigureEntry,
-        shorthandTokenShadowsFigure;
+        shorthandTokenShadowsFigure,
+        splitShorthandCount;
 export 'src/imports/fmp/fmp_reader.dart';
 export 'src/imports/generic_json_adapter.dart';
 export 'src/imports/import_error.dart';
