@@ -3649,6 +3649,33 @@ void main() {
       expect(drafts.single.customOrigin, CustomOrigin.userEntered);
     });
 
+    testWidgets('a pasted line break becomes a space, not nothing (#1824)', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(fieldKey),
+        'neighbor balance & swing\r\npartner swing',
+      );
+      expect(
+        tester.widget<TextField>(find.byKey(fieldKey)).controller?.text,
+        'neighbor balance & swing partner swing',
+      );
+      // The field still submits on the keyboard's action; Enter is not a
+      // newline in it.
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(drafts, hasLength(1));
+      expect(
+        drafts.single.toFigure()!.params['text'],
+        'neighbor balance & swing partner swing',
+      );
+    });
+
     testWidgets('keeps input when the callback accepts no figures', (
       tester,
     ) async {
