@@ -28,6 +28,13 @@ import 'user_figure_use_editor.dart';
 /// real move is chosen, so nothing is lost if the editor is collapsed as-is.
 const String _standStillMove = 'stand_still';
 
+/// Replaces each run of line breaks, with the spaces around it, by one space.
+final TextInputFormatter _lineBreaksToSpaces = FilteringTextInputFormatter(
+  RegExp(r'[ \t]*[\r\n]+[ \t]*'),
+  allow: false,
+  replacementString: ' ',
+);
+
 /// Editable, keyboard-first figure list for the dance editor (`docs/design/
 /// ux.md` §3, roadmap 3.3b + 3.3c). Adopts a collapse-to-sentence accordion:
 /// each figure rests as a single glanceable summary row (rendered sentence +
@@ -1026,6 +1033,16 @@ class _FigureListEditorState extends State<FigureListEditor> {
                 focusNode: _freeTextFocusNode,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _submitFreeText(),
+                // One figure line, but not a `maxLines: 1` field: Flutter puts
+                // its single-line formatter ahead of ours and that deletes a
+                // pasted line break, gluing `swing⏎partner` into `swingpartner`.
+                // A few lines with a text keyboard still submits on the action
+                // key; [_lineBreaksToSpaces] turns any line break into a space,
+                // keeping a paste one line (#419 rules out splitting it).
+                keyboardType: TextInputType.text,
+                minLines: 1,
+                maxLines: 4,
+                inputFormatters: [_lineBreaksToSpaces],
                 maxLength: maxFreeTextEntryLength,
                 maxLengthEnforcement: MaxLengthEnforcement.enforced,
                 // A figure line is short; the cap is a defensive bound, not a

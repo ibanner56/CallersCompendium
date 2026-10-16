@@ -345,9 +345,10 @@ void main() {
       expect(fs, hasLength(1));
       expect(fs.single.isCustom, isTrue);
       expect(fs.single.customOrigin, CustomOrigin.importGap);
-      // The trailing inline beat is still peeled before the fan-out parse.
+      // The trailing inline beat is peeled before the fan-out parse and rides
+      // on the custom, whose text stays as typed (#1824).
       expect(fs.single.params['beats'], 16);
-      expect(fs.single.params['text'], 'qwx zzz nonsense');
+      expect(fs.single.params['text'], 'qwx zzz nonsense (16)');
     });
   });
 
