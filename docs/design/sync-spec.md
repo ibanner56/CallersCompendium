@@ -5933,8 +5933,8 @@ refuses the record as `newerRecordFields` or `newerFigures`** (mutation: let
 figure decoding drop the key — the dance applies, truncated). **A tie in kept
 parts is left to a device that understands them** (mutation: settle it as a tie
 in nothing the user is shown — the copy without the newer field can win
-everywhere). **A merge or an import keeps the parts kept for records it did
-not write** (mutation: clear the whole table — the peer's copy at the same
+everywhere). **A merge restore or an archive import keeps the parts kept for records
+it did not write** (mutation: clear the whole table — the peer's copy at the same
 `updatedAt` is a tie that never returns the field, and the next edit overwrites
 it everywhere). **After an upgrade that starts syncing a kept field, the record
 holds it and the kept copy no longer wins** (mutation: keep putting the kept
