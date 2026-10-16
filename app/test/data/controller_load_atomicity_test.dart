@@ -156,4 +156,23 @@ void main() {
     await expectLater(c.load(), throwsStateError);
     expect(c.mappings.map((m) => m.token), ['ns']);
   });
+
+  test('ShorthandMappingsController keeps every kind when the new figures\' '
+      'read fails (#1023)', () async {
+    final (_, settings) = await _open();
+    final c = ShorthandMappingsController(settings);
+    await c.upsert(
+      ShorthandMapping(
+        token: 'ns',
+        figures: [
+          Figure(move: 'swing', params: const {'who': 'neighbors'}),
+        ],
+      ),
+    );
+    await c.load();
+    await settings.set(kShorthandMappingsKey, const <Object?>[]);
+    settings.failingKey = kUserFigureShorthandsKey;
+    await expectLater(c.load(), throwsStateError);
+    expect(c.mappings.map((m) => m.token), ['ns']);
+  });
 }

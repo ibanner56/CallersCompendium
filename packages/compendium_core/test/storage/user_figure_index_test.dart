@@ -138,6 +138,54 @@ void main() {
     expect(await repos.dances.searchText('neighbors'), ['d1']);
   });
 
+  test('the "has figure" filter finds a live use at the top level, in a '
+      'meanwhile and in a modifier, and not a detached or deleted one '
+      '(#1023)', () async {
+    Future<List<String>> hasFigure(String id) => repos.dances.search(
+      FigureFilter.leaf(customMove, params: {userFigureRefKey: id}),
+    );
+    await repos.userGlossary.upsert(figure(), at: created);
+    await repos.userGlossary.upsert(figure(id: 'other-id'), at: created);
+    final detached = use().copyWith(
+      params: {...use().params, 'text': 'typed on an older device'},
+    );
+    await repos.dances.create(dance('top', [use()]));
+    await repos.dances.create(
+      dance('side', [
+        Figure.meanwhile(
+          figures: [
+            Figure(move: 'swing'),
+            use(),
+          ],
+          beats: 8,
+        ),
+      ]),
+    );
+    await repos.dances.create(
+      dance('mod', [
+        Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            use(),
+          ],
+          beats: 8,
+        ),
+      ]),
+    );
+    await repos.dances.create(dance('detached', [detached]));
+    await repos.dances.create(dance('other', [use(id: 'other-id')]));
+
+    expect(await hasFigure('zoom-id'), unorderedEquals(['top', 'side', 'mod']));
+    expect(await hasFigure('other-id'), ['other']);
+
+    await repos.userGlossary.delete('other-id', at: removed);
+    expect(
+      await hasFigure('other-id'),
+      isEmpty,
+      reason: 'a deleted figure\'s uses are plain text',
+    );
+  });
+
   test('a use of a figure this device does not have yet is indexed as its '
       'line, and reindexed when the figure arrives', () async {
     await repos.dances.create(dance('d1', [use(text: 'neighbors zoom')]));
