@@ -30,8 +30,8 @@ reasoning below when a gate fails, or when you are checking by hand.
 - **No `BLOCK` verdict in the latest Claude review.** Only when Claude is the
   reviewer (`--reviewer claude`). A blocker on a line outside the diff exists in
   the review body only, so no inline comment or thread records it and the other
-  gates pass. `findings` prints the latest round's `## Review verdict:` line and
-  fails on `BLOCK`. Details:
+  gates pass. `findings` prints the latest `## Review verdict:` line and fails on
+  `BLOCK`. Details:
   [code-review.md](code-review.md#requesting-a-claude-review).
 
 - **CI green on the commit being merged.** Re-check after any push; a green run

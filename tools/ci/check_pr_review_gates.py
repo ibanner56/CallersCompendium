@@ -11,7 +11,7 @@ hand-rolled versions read as PASS when they should have failed:
                 that ``GET /pulls/<N>/comments``, thread state and the inline
                 comment count are all blind to. Reads every page of review
                 bodies, every round. For ``--reviewer claude`` it also prints
-                the latest round's ``## Review verdict:`` line and FAILS on
+                the latest ``## Review verdict:`` line and FAILS on
                 ``BLOCK``: a finding on a line outside the diff exists only in
                 the review body, so no inline comment or thread records it.
 ``review``      Review freshness, filtered by *reviewer identity* rather than
@@ -232,25 +232,31 @@ def gate_findings(
 
     ok = True
     if reviewer == CLAUDE and reviews:
-        # Only the latest round: an earlier BLOCK that a later round cleared is
+        # The latest round that CARRIES a verdict line. A reply to an inline
+        # thread records an empty-body review entry, and claude.yml also posts
+        # as claude[bot]; neither has a verdict, so neither may stand in for
+        # the round that does. An earlier BLOCK that a later verdict cleared is
         # history, and the `review` gate already fails a latest round that is
         # not on the head. A BLOCK is judged whichever commit it sits on -- a
         # BLOCK nobody has re-reviewed is not cleared.
-        match = VERDICT_LINE.search(reviews[-1].get("body") or "")
-        commit = (reviews[-1].get("commit_id") or "")[:8] or "(none)"
-        where = f"round {len(reviews)}, {commit}"
-        if match is None:
-            lines.insert(
-                0, f"  no `## Review verdict:` line in the latest review ({where})"
-            )
+        carrying = [
+            (index, review, match)
+            for index, review in enumerate(reviews, start=1)
+            if (match := VERDICT_LINE.search(review.get("body") or ""))
+        ]
+        if not carrying:
+            lines.insert(0, "  no `## Review verdict:` line in any review")
         else:
+            index, review, match = carrying[-1]
+            commit = (review.get("commit_id") or "")[:8] or "(none)"
+            where = f"round {index}, {commit}"
             verdict = match.group(1).upper()
             lines.insert(0, f"  verdict {verdict} ({where})")
             if verdict == "BLOCK":
                 ok = False
                 summary = (
-                    "BLOCK verdict in the latest review; its findings may be "
-                    f"body-only, so read the review body -- {summary}"
+                    "BLOCK verdict in the latest verdict-bearing review; its "
+                    f"findings may be body-only, so read the review body -- {summary}"
                 )
     return ok, [summary, *lines]
 

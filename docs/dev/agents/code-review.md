@@ -112,8 +112,9 @@ reviewed. Findings appear twice: in the body's template and as inline comments
 on diff lines. A finding on a line outside the diff appears in the body only,
 so it has no inline comment and no thread, and neither `findings` nor
 `threads` lists it. What `findings --reviewer claude` does read from the body is
-the `## Review verdict:` line of the latest round: it prints it and fails on
-`BLOCK`, so a body-only blocker cannot pass the gate. Read the body itself for
+the latest `## Review verdict:` line (entries without one, such as the empty
+review entry a reply to an inline thread records, are skipped): it prints it
+and fails on `BLOCK`, so a body-only blocker cannot pass the gate. Read the body itself for
 the findings. There is no `Suppressed comments` block.
 
 What a round is given and asked for:
@@ -151,7 +152,7 @@ What a round is given and asked for:
   gate counts only resolved threads). `findings` prints the first 160 characters
   of each comment with newlines collapsed, so the rubric leads each comment with
   the ID, severity and title. For a Claude review it passes unless the latest
-  round's verdict is `BLOCK`; for Copilot it is informational and always passes.
+  verdict is `BLOCK`; for Copilot it is informational and always passes.
   The job cannot run tests or scripts, so it never reports that something is
   merely unverified, and the workflow (not the rubric) leaves out the template's
   "Verification the author still owes" checklist, which CI and the merge gate
@@ -160,8 +161,9 @@ What a round is given and asked for:
   hazard class. `APPROVE` requires it to be complete, so an `APPROVE` over a
   thin `Coverage` is a reason to distrust the review, not to merge. The merge
   gate does not read `Coverage`, and reads the verdict only to fail on `BLOCK`:
-  an `APPROVE` or `APPROVE-WITH-NITS` is printed, not trusted, and a missing
-  verdict line is printed as missing without failing, since `claude.yml` also
+  an `APPROVE` or `APPROVE-WITH-NITS` is printed, not trusted, and a PR
+  where no Claude entry carries a verdict line is printed as such without
+  failing, since `claude.yml` also
   posts as `claude[bot]`.
 
 Traps:
@@ -216,7 +218,7 @@ Traps:
   multiply the most expensive part of the cycle.
 - **Read findings through the script, not raw JSON.** `check_pr_review_gates.py
   findings <N>` (add `--reviewer claude` for a Claude review) prints one line per finding — including the suppressed block, or for
-  Claude the latest round's verdict — instead of pages of paginated review JSON.
+  Claude the latest verdict — instead of pages of paginated review JSON.
 - **Reply after the fix is pushed**, so the reply and the corrected code are
   visible together. Note that replies are recorded as review entries, which is
   why review-freshness must be filtered by reviewer identity
