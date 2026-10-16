@@ -115,8 +115,10 @@ class ShorthandMappingsScreen extends StatelessWidget {
     try {
       await controller.upsert(edited);
     } on ArgumentError {
-      // The list filled while the editor was open (e.g. a sync landed); the
-      // other rejections are screened by the editor.
+      // diagnostics: silent — the expected cap refusal, shown to the user as a
+      // snackbar; any other ArgumentError is rethrown. The list filled while
+      // the editor was open (e.g. a sync landed); the editor screens the other
+      // rejections.
       if (controller.mappings.length < maxShorthandMappings) rethrow;
       if (context.mounted) _showLimitReached(context);
     }
