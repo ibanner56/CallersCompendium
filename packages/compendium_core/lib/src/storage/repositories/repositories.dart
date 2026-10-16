@@ -12,6 +12,7 @@ import '../../privacy/settings_registry.dart';
 import '../../serialization/figure_codec.dart';
 import '../../sync/sync_storage.dart' show CompendiumSyncStorage;
 import '../../taxonomy/taxonomy.dart';
+import '../../taxonomy/user_figure_switch.dart';
 import '../database.dart';
 import '../shareable_text.dart';
 import 'choreographer_repository.dart';
@@ -274,6 +275,26 @@ class CompendiumRepositories {
       final frozen = await dances.freezeUserFigureUses(id, now: now);
       await userGlossary.delete(id, at: now);
       return frozen;
+    });
+  }
+
+  /// Switches every use of the figure of your own [id] in a live dance to the
+  /// shipped figure [mapping] names, then retires the figure (#1023,
+  /// maintainer decision 5: a later version shipped a figure of the same
+  /// name, and the user chose the app's), in one transaction: a failure
+  /// leaves every dance and the figure as they were. Returns the number of
+  /// dances switched. Throws, writing nothing, as
+  /// [DanceRepository.switchUserFigureUses] does.
+  Future<int> switchUserFigureToBuiltIn(
+    String id,
+    UserFigureSwitch mapping, {
+    DateTime? at,
+  }) {
+    final now = resolveStamp(at);
+    return transaction(() async {
+      final switched = await dances.switchUserFigureUses(id, mapping, now: now);
+      await userGlossary.delete(id, at: now);
+      return switched;
     });
   }
 

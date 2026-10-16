@@ -211,6 +211,7 @@ export 'src/taxonomy/param_types.dart';
 export 'src/taxonomy/taxonomy.dart';
 export 'src/taxonomy/user_figure_definition.dart';
 export 'src/taxonomy/user_figure_seed.dart';
+export 'src/taxonomy/user_figure_switch.dart';
 export 'src/taxonomy/user_figure_use.dart';
 export 'src/util/argb.dart';
 export 'src/util/colour_name_seed.dart';
