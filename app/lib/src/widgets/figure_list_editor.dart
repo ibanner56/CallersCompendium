@@ -10,6 +10,7 @@ import '../data/reduce_motion_scope.dart';
 import '../data/capitalize_figures_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../editor/figure_draft.dart';
+import '../editor/user_figure_draft.dart';
 import '../glossary/custom_figures.dart';
 import '../search/facet_labels.dart';
 import 'compound_argument_editor.dart';
@@ -17,6 +18,7 @@ import 'figure_param_editors.dart';
 import 'import_gap_badge.dart';
 import 'lingo_text_editing_controller.dart';
 import 'move_autocomplete.dart';
+import 'user_figure_use_editor.dart';
 
 /// Move id of the placeholder "stand still" figure that seeds new dances (see
 /// `defaultNewDanceFigureTemplate`). Activating such a figure opens its editor
@@ -78,6 +80,7 @@ class FigureListEditor extends StatefulWidget {
     this.allowCustom = true,
     this.compoundOptions,
     this.resolveCompound,
+    this.userFigureOptions,
     this.keyPrefix = 'figure',
   });
 
@@ -246,6 +249,12 @@ class FigureListEditor extends StatefulWidget {
   /// arguments and show what it expands to. Null in every editor that cannot
   /// hold a placeholder.
   final CompoundResolver? resolveCompound;
+
+  /// The user's own new figures (#1023) a row's move picker offers, in a
+  /// meanwhile side or modifier child too (maintainer decision 11): picking
+  /// one makes the row a use of it. Null or empty offers none; only the dance
+  /// editor sets it, and only while Custom Figures is on.
+  final List<UserGlossaryEntry>? userFigureOptions;
 
   /// Whether ordinary children may be converted into the one legal opposite
   /// container kind. Nested editors at the maximum depth disable this so the
@@ -446,6 +455,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         widget.taxonomy,
         _l10n,
         _dialect,
+        UserFiguresScope.catalogOf(context),
       );
       _announce(_l10n.danceEditorEditingFigureAnnouncement(i + 1, name));
     }
@@ -762,6 +772,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
             widget.taxonomy,
             l10n,
             dialect,
+            UserFiguresScope.catalogOf(context),
           );
 
     _FigureDraftCard buildCard(int i, {required bool draggable}) {
@@ -788,6 +799,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         allowCustom: widget.allowCustom,
         compoundOptions: widget.compoundOptions,
         resolveCompound: widget.resolveCompound,
+        userFigureOptions: widget.userFigureOptions,
         onChanged: widget.onChanged,
         onActivate: () => _toggleDraft(draft.id),
         onClose: () => _closeDraft(draft.id),
@@ -924,6 +936,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
                         widget.taxonomy,
                         l10n,
                         dialect,
+                        UserFiguresScope.catalogOf(context),
                       ),
                     ),
                     onPaste: () => _paste(i + 1),
@@ -1055,6 +1068,7 @@ String _figureDisplayName(
   Taxonomy taxonomy,
   AppLocalizations l10n,
   Dialect dialect,
+  UserFigureCatalog userFigures,
 ) {
   if (draft.compound case final compound?) {
     return FigureRenderer(taxonomy).renderFreeText(compound.name, dialect);
@@ -1069,9 +1083,17 @@ String _figureDisplayName(
   if (move == null) return l10n.danceEditorEmptyFigureName;
   if (move == customMove) {
     final text = draft.params['text'] as String?;
-    return text != null && text.isNotEmpty
+    if (text == null || text.isEmpty) return l10n.danceEditorCustomFigureName;
+    // A use of one of the user's own figures (#1023) reads as the row's
+    // summary does, from the figure as it is now; its stored line is the
+    // fallback when the figure can't render it.
+    final figure = isUserFigureDraft(draft) ? draft.toFigure() : null;
+    return figure == null
         ? text
-        : l10n.danceEditorCustomFigureName;
+        : FigureRenderer(
+            taxonomy,
+            userFigures: userFigures,
+          ).render(figure, dialect);
   }
   final alias = taxonomy.aliases[move];
   final def = taxonomy.resolve(move);
@@ -1151,6 +1173,7 @@ class _FigureDraftCard extends StatefulWidget {
     this.allowCustom = true,
     this.compoundOptions,
     this.resolveCompound,
+    this.userFigureOptions,
     this.onGroupWithNext,
     this.onGroupWithNextAsModifier,
     this.onCollapseMeanwhileGroup,
@@ -1237,6 +1260,9 @@ class _FigureDraftCard extends StatefulWidget {
 
   /// See [FigureListEditor.compoundOptions].
   final List<UserGlossaryEntry>? compoundOptions;
+
+  /// See [FigureListEditor.userFigureOptions].
+  final List<UserGlossaryEntry>? userFigureOptions;
 
   /// See [FigureListEditor.resolveCompound].
   final CompoundResolver? resolveCompound;
@@ -1424,28 +1450,37 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     }
   }
 
-  /// The user's compounds as move-picker options, named in the dialect.
-  List<MoveOption> _compoundPickerOptions() {
-    final renderer = FigureRenderer(widget.taxonomy);
-    return [
-      for (final entry in widget.compoundOptions ?? const <UserGlossaryEntry>[])
-        MoveOption(
-          id: entry.id,
-          displayName: renderer.renderFreeText(entry.name, widget.dialect),
-          kind: MoveOptionKind.compound,
-          searchTerms: [
-            for (final k in entry.keywords)
-              renderer.renderFreeText(k, widget.dialect),
-          ],
-        ),
-    ];
-  }
+  /// The user's compounds and new figures as move-picker options, named in
+  /// the dialect.
+  List<MoveOption> _compoundPickerOptions() => [
+    ..._userEntryPickerOptions(
+      widget.compoundOptions,
+      MoveOptionKind.compound,
+      widget.dialect,
+    ),
+    ..._userEntryPickerOptions(
+      widget.userFigureOptions,
+      MoveOptionKind.userFigure,
+      widget.dialect,
+    ),
+  ];
 
   void _onMoveOptionSelected(MoveOption option) => switch (option.kind) {
     MoveOptionKind.modifier => _selectModifier(),
     MoveOptionKind.compound => _selectCompound(option.id),
+    MoveOptionKind.userFigure => _selectUserFigure(option.id),
     MoveOptionKind.move => _selectMove(option.id),
   };
+
+  /// Makes this row a use of the user's figure [entryId] (#1023), with its
+  /// defaults and its default beats. Whatever the row held before is
+  /// replaced, as picking a move replaces it.
+  void _selectUserFigure(String entryId) {
+    if (selectUserFigure(widget.draft, entryId, widget.userFigureOptions)) {
+      _showMoreOptions = false;
+      widget.onChanged();
+    }
+  }
 
   void _createCustom(String text) {
     final trimmed = text.trim();
@@ -1919,6 +1954,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       widget.taxonomy,
       l10n,
       widget.dialect,
+      UserFiguresScope.catalogOf(context),
     );
     return ReorderableDragStartListener(
       index: widget.index,
@@ -1938,6 +1974,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       widget.taxonomy,
       l10n,
       widget.dialect,
+      UserFiguresScope.catalogOf(context),
     );
     return MenuAnchor(
       builder: (context, controller, child) => IconButton(
@@ -2051,6 +2088,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     }
     if (draft.isCompoundPlaceholder) {
       return _buildCompoundEditor(context);
+    }
+    if (isUserFigureDraft(draft)) {
+      return _buildUserFigureEditor(context);
     }
     final move = draft.move;
     final def = move == null ? null : widget.taxonomy.resolve(move);
@@ -2275,6 +2315,79 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     );
   }
 
+  // --- Use of one of the user's own figures (#1023) -------------------------
+
+  /// Expanded editor for a use of one of the user's own figures: the move
+  /// picker (to replace it), one editor per parameter the figure declares,
+  /// its beats, and the progression mark and note. Its line is the figure's
+  /// wording, so it has no line of its own to edit, and no walkthrough or
+  /// wording override.
+  Widget _buildUserFigureEditor(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final draft = widget.draft;
+    final view = UserFiguresScope.catalogOf(context)[userFigureIdOf(draft)!];
+    final name = _userEntryRenderer.renderFreeText(
+      view?.name ?? (draft.params['text'] as String?) ?? '',
+      widget.dialect,
+    );
+    return Focus(
+      canRequestFocus: false,
+      onKeyEvent: _handleEditorKey,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+            borderRadius: BorderRadius.circular(8),
+            color: theme.colorScheme.surfaceContainerLow,
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              MoveAutocomplete(
+                key: _key('move'),
+                fieldKey: 'figure-${widget.index}-move',
+                taxonomy: widget.taxonomy,
+                dialect: widget.dialect,
+                initialText: name,
+                includeModifier: widget.allowModifierSelection,
+                includeCustomMove: widget.allowCustom,
+                compoundOptions: _compoundPickerOptions(),
+                compoundMarkerLabel: l10n.glossaryCustomMarker,
+                onSelected: _onMoveOptionSelected,
+                onCustomSubmitted: widget.allowCustom ? _createCustom : null,
+                onCleared: _clearMove,
+              ),
+              const SizedBox(height: 12),
+              UserFigureUseEditor(
+                key: _key('user-figure-${draft.id}'),
+                keyPrefix: 'figure-${widget.index}-userFigure',
+                params: draft.params,
+                dialect: widget.dialect,
+                mixer: widget.mixer,
+                onChanged: (next) {
+                  if (next['beats'] != draft.params['beats']) {
+                    draft.beatsTouched = true;
+                  }
+                  draft.params
+                    ..clear()
+                    ..addAll(next);
+                  widget.onChanged();
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildProgressionToggle(context),
+              const SizedBox(height: 8),
+              _buildNote(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // --- Structural container editor (#590/#593/#1198) ------------------------
 
   /// Expanded editor for a structural container draft: one shared Beats field
@@ -2476,6 +2589,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                   allowAdding: false,
                                   allowDuplicating: false,
                                   showPhraseStructure: false,
+                                  userFigureOptions: widget.userFigureOptions,
                                   keyPrefix: '$keyPrefix-nested-$i',
                                 ),
                               ],
@@ -2497,6 +2611,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                             mixer: widget.mixer,
                             moveParamDefaults: widget.moveParamDefaults,
                             showWordingOverride: widget.showWordingOverride,
+                            userFigureOptions: widget.userFigureOptions,
                             onChanged: widget.onChanged,
                             includeModifier:
                                 widget.allowModifierSelection &&
@@ -3101,6 +3216,7 @@ class _MeanwhileSideEditor extends StatefulWidget {
     this.moveParamDefaults,
     this.showWordingOverride = false,
     this.includeModifier = false,
+    this.userFigureOptions,
     required this.onChanged,
     this.onMoveUp,
     this.onMoveDown,
@@ -3124,6 +3240,10 @@ class _MeanwhileSideEditor extends StatefulWidget {
   final Map<String, Map<String, Object?>>? moveParamDefaults;
   final bool showWordingOverride;
   final bool includeModifier;
+
+  /// See [FigureListEditor.userFigureOptions].
+  final List<UserGlossaryEntry>? userFigureOptions;
+
   final VoidCallback onChanged;
 
   /// Null when this side is already first/last within the group.
@@ -3175,6 +3295,12 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
   void _selectModifier() {
     _initializeModifierContainer(widget.draft);
     widget.onChanged();
+  }
+
+  void _selectUserFigure(String entryId) {
+    if (selectUserFigure(widget.draft, entryId, widget.userFigureOptions)) {
+      widget.onChanged();
+    }
   }
 
   void _createCustom(String text) {
@@ -3272,8 +3398,17 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     final draft = widget.draft;
     final move = draft.move;
     final def = move == null ? null : widget.taxonomy.resolve(move);
+    final userFigureId = userFigureIdOf(draft);
+    final userFigure = userFigureId == null
+        ? null
+        : UserFiguresScope.catalogOf(context)[userFigureId];
     final moveText = move == null
         ? ''
+        : userFigureId != null
+        ? _userEntryRenderer.renderFreeText(
+            userFigure?.name ?? (draft.params['text'] as String?) ?? '',
+            widget.dialect,
+          )
         : FigureRenderer(
             widget.taxonomy,
           ).displayMoveName(move, widget.dialect, params: draft.params);
@@ -3352,15 +3487,39 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
               initialText: moveText,
               autofocus: false,
               includeModifier: widget.includeModifier,
-              onSelected: (option) => option.kind == MoveOptionKind.modifier
-                  ? _selectModifier()
-                  : _selectMove(option.id),
+              compoundOptions: _userEntryPickerOptions(
+                widget.userFigureOptions,
+                MoveOptionKind.userFigure,
+                widget.dialect,
+              ),
+              compoundMarkerLabel: l10n.glossaryCustomMarker,
+              onSelected: (option) => switch (option.kind) {
+                MoveOptionKind.modifier => _selectModifier(),
+                MoveOptionKind.userFigure => _selectUserFigure(option.id),
+                _ => _selectMove(option.id),
+              },
               onCustomSubmitted: _createCustom,
               onCleared: _clearMove,
             ),
             if (def != null) ...[
               const SizedBox(height: 8),
-              if (draft.move == customMove)
+              if (userFigureId != null)
+                // The group owns the beats, as for any side.
+                UserFigureUseEditor(
+                  key: ValueKey('${widget.keyPrefix}-user-figure-${draft.id}'),
+                  keyPrefix: '${widget.keyPrefix}-userFigure',
+                  params: draft.params,
+                  dialect: widget.dialect,
+                  mixer: widget.mixer,
+                  showBeats: false,
+                  onChanged: (next) {
+                    draft.params
+                      ..clear()
+                      ..addAll(next);
+                    widget.onChanged();
+                  },
+                )
+              else if (draft.move == customMove)
                 _LingoCustomTextField(
                   key: ValueKey('${widget.keyPrefix}-text-${draft.id}'),
                   fieldKey: '${widget.keyPrefix}-text',
@@ -3990,3 +4149,24 @@ class _BeatSummary extends StatelessWidget {
     );
   }
 }
+
+final FigureRenderer _userEntryRenderer = FigureRenderer(contraTaxonomy);
+
+/// The user's [entries] (compounds or new figures, by [kind]) as move-picker
+/// options, named and found by their keywords in [dialect].
+List<MoveOption> _userEntryPickerOptions(
+  List<UserGlossaryEntry>? entries,
+  MoveOptionKind kind,
+  Dialect dialect,
+) => [
+  for (final entry in entries ?? const <UserGlossaryEntry>[])
+    MoveOption(
+      id: entry.id,
+      displayName: _userEntryRenderer.renderFreeText(entry.name, dialect),
+      kind: kind,
+      searchTerms: [
+        for (final k in entry.keywords)
+          _userEntryRenderer.renderFreeText(k, dialect),
+      ],
+    ),
+];
