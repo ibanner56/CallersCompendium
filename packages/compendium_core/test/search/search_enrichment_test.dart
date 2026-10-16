@@ -37,6 +37,19 @@ void main() {
       expect(e.moveSynonyms.length, 1);
     });
 
+    test('skips a key naming a figure of your own (#1023)', () {
+      final e = SearchEnrichment.fromDialects([
+        Dialect(
+          name: 'Mine',
+          moves: {
+            userFigureKeyFor('fig-1'): 'my reel',
+            'shoulder_round': 'gypsy',
+          },
+        ),
+      ]);
+      expect(e.moveSynonyms, {'gypsy': 'shoulder_round'});
+    });
+
     test('keeps a display term shared by two dialects with the SAME token', () {
       final other = Dialect(
         name: 'Also follows',
@@ -165,9 +178,8 @@ void main() {
         Dialect.larksRobins,
         SearchEnrichment.empty,
       ).compile(const FullTextFilter('robins allemande'));
-      final without = FilterCompiler(
-        Dialect.larksRobins,
-      ).compile(const FullTextFilter('robins allemande'));
+      final without = FilterCompiler(Dialect.larksRobins)
+          .compile(const FullTextFilter('robins allemande'));
       expect(withEmpty.binds, without.binds);
     });
   });

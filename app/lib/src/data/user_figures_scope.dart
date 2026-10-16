@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/widgets.dart';
 
 import '../diagnostics/error_log.dart';
+import 'show_custom_figures_scope.dart';
 
 /// The user's own figures (#1023), kept current from their glossary: what
 /// renders a use of one live wherever a dance is shown.
@@ -61,6 +62,16 @@ class UserFiguresScope extends InheritedNotifier<UserFiguresController> {
           ?.notifier
           ?.catalog ??
       UserFigureCatalog.empty;
+
+  /// The user's figures while Custom Figures is shown ([customFiguresShown]),
+  /// else none: for a surface that lists the figures themselves, such as the
+  /// program matrix's columns, rather than rendering a dance's lines (which
+  /// read the same with it off, maintainer decision 9 on #1023). Registers a
+  /// rebuild dependency on the catalog and both toggles.
+  static UserFigureCatalog shownCatalogOf(BuildContext context) =>
+      customFiguresShown(context)
+      ? catalogOf(context)
+      : UserFigureCatalog.empty;
 
   /// A renderer that shows a use of one of the user's figures live, for every
   /// place that shows a dance's figures. Registers a rebuild dependency.

@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart' show roleTokens;
+import '../taxonomy/user_figure_use.dart';
 
 const MapEquality<Object?, Object?> _mapEq = MapEquality<Object?, Object?>();
 
@@ -52,7 +53,8 @@ class SearchEnrichment {
   /// **dropped** entirely; same-target duplicates are kept. Terms that collide
   /// with a canonical token itself (e.g. a display term literally `role1`) are
   /// dropped so they can't shadow the pass-through of typed canonical tokens.
-  /// Templated (`%S`) move substitutions are skipped.
+  /// Templated (`%S`) move substitutions are skipped, as are keys naming a
+  /// figure of your own ([isUserFigureKey]).
   ///
   /// This union never overrides the built-in legacy synonyms or the active
   /// dialect — that precedence is enforced where the maps are applied — so it
@@ -68,6 +70,8 @@ class SearchEnrichment {
         roles.add(entry.value.plural.toLowerCase(), '${token}s');
       }
       for (final entry in dialect.moves.entries) {
+        // A figure of your own's wording is not a move synonym.
+        if (isUserFigureKey(entry.key)) continue;
         final display = entry.value;
         if (display.contains('%S')) continue;
         moves.add(display.toLowerCase(), entry.key);

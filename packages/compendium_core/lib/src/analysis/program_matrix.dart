@@ -48,6 +48,7 @@ import '../model/formation.dart';
 import '../model/phrase_structure.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/taxonomy.dart';
+import '../taxonomy/user_figure_use.dart';
 import 'matrix_column_config.dart';
 
 /// What kind of move a [MatrixColumn] represents, so the UI can label and
@@ -87,6 +88,13 @@ enum MatrixColumnKind {
   /// opaque `compound:<uuid>` id, labelled from
   /// [MatrixColumnConfig.renames]. Defined in Phase 2; matching is Phase 5.
   compound,
+
+  /// One figure of your own (#1023): its uses, each of which renders live
+  /// from the figure's definition, get a column of their own rather than the
+  /// collapsed [custom] one. Its [MatrixColumn.moveId] is
+  /// `userFigure:<id>` ([userFigureKeyFor]) and its [MatrixColumn.label] is
+  /// the figure's name when the matrix was built.
+  userFigure,
 }
 
 /// The parent move id for [swingColumnKey]-style split columns.
@@ -240,6 +248,7 @@ class MatrixColumn {
     required this.kind,
     this.baseMoveId,
     this.variant,
+    this.label,
   }) : assert(
          (kind == MatrixColumnKind.split) == (baseMoveId != null),
          'split columns require baseMoveId; non-split columns must omit it',
@@ -247,6 +256,10 @@ class MatrixColumn {
        assert(
          (baseMoveId != null) == (variant != null),
          'baseMoveId and variant are set together or not at all',
+       ),
+       assert(
+         (kind == MatrixColumnKind.userFigure) == (label != null),
+         'a figure of your own\'s column carries its name; no other does',
        );
 
   /// Canonical move id, an unknown raw id, [customMove] for the custom bucket,
@@ -263,6 +276,11 @@ class MatrixColumn {
   /// `full`); `null` for every other kind.
   final String? variant;
 
+  /// For a [MatrixColumnKind.userFigure] column, the figure's name, read
+  /// from the catalog the matrix was built with, so a header needs no
+  /// catalog of its own; `null` for every other kind.
+  final String? label;
+
   bool get isCustom => kind == MatrixColumnKind.custom;
   bool get isSplit => kind == MatrixColumnKind.split;
 
@@ -272,10 +290,11 @@ class MatrixColumn {
       other.moveId == moveId &&
       other.kind == kind &&
       other.baseMoveId == baseMoveId &&
-      other.variant == variant;
+      other.variant == variant &&
+      other.label == label;
 
   @override
-  int get hashCode => Object.hash(moveId, kind, baseMoveId, variant);
+  int get hashCode => Object.hash(moveId, kind, baseMoveId, variant, label);
 
   @override
   String toString() => 'MatrixColumn($moveId, ${kind.name})';
@@ -608,8 +627,10 @@ class ProgramMatrix {
 }
 
 /// Column key for a [figure] under [taxonomy] and optional [config]: a matching
-/// parameterized column captures the figure before the built-in route. Custom
-/// figures all map to
+/// parameterized column captures the figure before the built-in route. A use
+/// of a figure of your own in [userFigures] that renders live maps to its
+/// figure's `userFigure:<id>` key ([userFigureColumnKeyOf], #1023); every other
+/// custom figure maps to
 /// [customMove]; `swing` maps to a compound `swing:<role>` key (widened to
 /// `swing:<role>:<prefix>` for a `balance`/`meltdown` prefix); `allemande` and
 /// `chain` map to `allemande:<role>` / `chain:<role>`; `hey` maps to
@@ -626,8 +647,11 @@ String columnKeyForFigure(
   Figure figure,
   Taxonomy taxonomy, [
   MatrixColumnConfig config = MatrixColumnConfig.empty,
+  UserFigureCatalog userFigures = UserFigureCatalog.empty,
 ]) {
-  if (figure.isCustom) return customMove;
+  if (figure.isCustom) {
+    return userFigureColumnKeyOf(figure, taxonomy, userFigures) ?? customMove;
+  }
   final canonicalId = taxonomy.resolve(figure.move)?.id;
   if (canonicalId != null && config.parameterized.isNotEmpty) {
     final effective = taxonomy.effectiveParams(figure);
@@ -662,6 +686,27 @@ String columnKeyForFigure(
     default:
       return figure.move;
   }
+}
+
+/// The `userFigure:<id>` column key of [figure] when it is a use of a figure
+/// of your own in [userFigures] that renders live, else null (#1023).
+///
+/// "Renders live" is the test the dance index applies before it keeps a
+/// use's reference ([FigureRenderer.renderUserFigureCanonical]), so a use
+/// the "has figure" search would not find is not counted in its figure's
+/// column either: a detached use, one whose figure was deleted, or one with
+/// an argument the figure no longer takes stays in the custom column.
+String? userFigureColumnKeyOf(
+  Figure figure,
+  Taxonomy taxonomy,
+  UserFigureCatalog userFigures,
+) {
+  if (userFigures.isEmpty) return null;
+  final use = userFigureUseOf(figure);
+  if (use == null) return null;
+  final renderer = FigureRenderer(taxonomy, userFigures: userFigures);
+  if (renderer.renderUserFigureCanonical(figure) == null) return null;
+  return userFigureKeyFor(use.id);
 }
 
 bool _stepMatchesFigure(Figure figure, StepMatcher step, Taxonomy taxonomy) {
@@ -791,6 +836,7 @@ ProgramMatrix buildProgramMatrix(
   List<int>? alternateGroups,
   MatrixCollisionMode collisionMode = MatrixCollisionMode.exactBeats,
   MatrixColumnConfig config = MatrixColumnConfig.empty,
+  UserFigureCatalog userFigures = UserFigureCatalog.empty,
 }) {
   final tax = taxonomy ?? contraTaxonomy;
   if (sections != null && sections.length != dances.length) {
@@ -851,7 +897,7 @@ ProgramMatrix buildProgramMatrix(
     };
     var beat = 0;
     for (final figure in danceFigures) {
-      final key = columnKeyForFigure(figure, tax, config);
+      final key = columnKeyForFigure(figure, tax, config, userFigures);
       final canonicalId = tax.resolve(figure.move)?.id;
       if (canonicalId == swingMoveId) {
         final effective = tax.effectiveParams(figure);
@@ -898,7 +944,12 @@ ProgramMatrix buildProgramMatrix(
         title: dance.title,
         firstMoveId: danceFigures.isEmpty
             ? null
-            : columnKeyForFigure(danceFigures.first, tax, config),
+            : columnKeyForFigure(
+                danceFigures.first,
+                tax,
+                config,
+                userFigures,
+              ),
         presentMoveIds: rowMoves,
         phraseLabelsByMove: phraseLabels,
         beatSpansByMove: beatSpans,
@@ -980,6 +1031,18 @@ ProgramMatrix buildProgramMatrix(
     }
   }
 
+  // A column per figure of your own that some dance uses (#1023), ordered by
+  // name, then id. Taken out of `present` here so none reads as an unknown
+  // move below.
+  final userFigureColumns = <MatrixColumn>[];
+  for (final view in userFigures.figures) {
+    final key = userFigureKeyFor(view.id);
+    if (present.remove(key)) {
+      userFigureColumns.add(_userFigureColumn(key, view.name));
+    }
+  }
+  userFigureColumns.sort(_compareUserFigureColumns);
+
   // Anything left in `present` other than declared parameterized ids is an
   // unknown move id (not in the taxonomy), sorted for deterministic output.
   final customIds = config.customColumnIds;
@@ -988,6 +1051,8 @@ ProgramMatrix buildProgramMatrix(
   for (final id in unknown) {
     columns.add(MatrixColumn(moveId: id, kind: MatrixColumnKind.unknown));
   }
+
+  columns.addAll(userFigureColumns);
 
   // Single trailing custom column.
   if (hasCustom) {
@@ -1096,6 +1161,8 @@ List<MatrixColumn> _applyColumnConfig(
 ///   shoulder/hand) can't be resolved at the column level, so they fall back
 ///   to the display name;
 /// - unknown → the raw move id (nothing silently dropped);
+/// - userFigure → the figure's name ([MatrixColumn.label]) in [dialect], as
+///   free text, so its role words read in the dialect (#1023);
 /// - parameterized / compound → the user-defined header from
 ///   [MatrixColumnConfig.renames] (Phase 4/5 columns have no built-in label),
 ///   falling back to the raw id if none is set.
@@ -1119,6 +1186,10 @@ String matrixColumnLabel(
       // Fall back to the raw id so nothing renders blank before Phase 3's UI
       // guarantees a label.
       return column.moveId;
+    case MatrixColumnKind.userFigure:
+      return FigureRenderer(
+        taxonomy,
+      ).renderFreeText(column.label ?? column.moveId, dialect);
     case MatrixColumnKind.custom:
     case MatrixColumnKind.split:
     case MatrixColumnKind.known:
@@ -1228,6 +1299,23 @@ String _splitColumnLabel(
   };
   return _roleColumnLabel(role, moveWord, dialect);
 }
+
+MatrixColumn _userFigureColumn(String key, String name) =>
+    MatrixColumn(moveId: key, kind: MatrixColumnKind.userFigure, label: name);
+
+int _compareUserFigureColumns(MatrixColumn a, MatrixColumn b) {
+  final byName = a.label!.toLowerCase().compareTo(b.label!.toLowerCase());
+  return byName != 0 ? byName : a.moveId.compareTo(b.moveId);
+}
+
+/// A column for every figure of your own in [userFigures] (#1023), ordered as
+/// [buildProgramMatrix] orders the ones a program uses: by name, then id.
+/// The column editor lists these beside [builtInColumnCatalog], so each can
+/// be hidden, moved or renamed before any program uses it.
+List<MatrixColumn> userFigureColumnCatalog(UserFigureCatalog userFigures) => [
+  for (final view in userFigures.figures)
+    _userFigureColumn(userFigureKeyFor(view.id), view.name),
+]..sort(_compareUserFigureColumns);
 
 /// The parent move ids that [buildProgramMatrix] expands into split columns.
 const Set<String> _splitParentMoveIds = {
