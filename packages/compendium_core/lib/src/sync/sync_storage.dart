@@ -3945,7 +3945,10 @@ final class CompendiumSyncStorage
   /// stored where this build reads it. A setting kept whole is applied the
   /// same way, unless this device already holds a newer copy of it, which
   /// wins. A deleted record is left alone; its kept parts are pruned wherever
-  /// they would be put back, so they cannot win over it either. A kept part
+  /// they would be put back, so they cannot win over it either. That has two
+  /// costs (spec §6.7): its row stays due, so each open builds a full
+  /// snapshot, and a record restored from the trash gets the kept value at the
+  /// next open, over any edit made to that field in between. A kept part
   /// that this build now syncs but can no longer decode is dropped, the rest
   /// kept, rather than failing the open.
   Future<void> promoteRetainedSyncFields() async {
@@ -4185,6 +4188,19 @@ final class CompendiumSyncStorage
     );
   }
 
+  /// The copy whose content a natural-key collision keeps, or null when the two
+  /// tie on `updatedAt` and their bodies differ.
+  ///
+  /// At an equal `updatedAt` the whole bodies are compared, the parts this build
+  /// keeps for a newer app version included, so a pair that differs only in a
+  /// kept part returns null and is queued by [_reconcileNaturalKeyCollision] as
+  /// a review the user is not offered to resolve, with the peer left
+  /// unapplied. That is deliberate (sync-spec §6.7, "A tie this build cannot judge is left to one
+  /// that can"; accepted by Isaac, maintainer, 2026-10-16): comparing the known
+  /// parts only would pick the inbound copy on every device, so two devices
+  /// holding different kept parts would each take the other's copy and stay
+  /// different at one `updatedAt`. Pinned by
+  /// `sync_retained_fields_storage_test.dart`.
   SyncMergeCandidate? _newerNaturalContent({
     required SyncMergeCandidate candidate,
     required SyncMergeCandidate? other,

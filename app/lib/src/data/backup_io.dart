@@ -8,6 +8,8 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'picker_extensions.dart';
+
 /// Delivers a finished backup [json] to the user as a file named
 /// [suggestedFileName]. Returns `true` if the backup was delivered/saved, or
 /// `false` if the user cancelled the save/share dialog without picking a
@@ -36,9 +38,11 @@ bool Function() isDesktopPlatform = () =>
 /// routing without depending on the host OS.
 bool Function() isMacOsPlatform = () => Platform.isMacOS;
 
-const _jsonTypeGroup = XTypeGroup(
+/// The file-type filter behind the backup save and restore dialogs.
+@visibleForTesting
+XTypeGroup backupJsonTypeGroup({bool? isLinux}) => XTypeGroup(
   label: 'Backup (JSON)',
-  extensions: ['json'],
+  extensions: pickerExtensions(['json'], isLinux),
   uniformTypeIdentifiers: ['public.json'],
   mimeTypes: ['application/json'],
 );
@@ -233,7 +237,7 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
   if (isDesktopPlatform()) {
     final location = await getSaveLocation(
       suggestedName: suggestedFileName,
-      acceptedTypeGroups: const [_jsonTypeGroup],
+      acceptedTypeGroups: [backupJsonTypeGroup()],
     );
     if (location == null) return false;
     await writeDesktopBackup(location.path, json);
@@ -310,7 +314,7 @@ Future<void> writeStringToUserSelectedPath(String path, String contents) {
 /// text (subject to the [kMaxBackupFileBytes] size cap). Returns `null` when the
 /// user cancels.
 Future<String?> pickBackupFile() async {
-  final file = await openFile(acceptedTypeGroups: const [_jsonTypeGroup]);
+  final file = await openFile(acceptedTypeGroups: [backupJsonTypeGroup()]);
   if (file == null) return null;
   return readBackupFile(file);
 }

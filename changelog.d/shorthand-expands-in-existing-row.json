@@ -1,0 +1,9 @@
+{
+  "id": "shorthand-expands-in-existing-row",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "With Free-text entry on, typing a shorthand for a combination or for one of your own figures into an existing figure's Move box and pressing Enter now replaces that figure with what the shorthand stands for, in place, as other typed lines already do. Before, the box kept the typed text as a custom figure."
+    ]
+  }
+}

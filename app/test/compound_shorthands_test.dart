@@ -240,6 +240,29 @@ void main() {
       return figuresOf(dance);
     }
 
+    /// Seeds three plain rows, then types [line] into the Move box of the
+    /// middle one and presses Enter (#1847).
+    Future<void> typeInExistingRow(WidgetTester tester, String line) async {
+      await typeLine(tester, 'neighbors swing');
+      for (final seed in ['partners swing', 'turn alone']) {
+        await tester.enterText(
+          find.byKey(const ValueKey('figure-free-text-field')),
+          seed,
+        );
+        await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.byKey(const ValueKey('figure-1-summary')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-1-move-input')),
+        line,
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+    }
+
     testWidgets('inserts the figure it stands for, expanded on save', (
       tester,
     ) async {
@@ -256,6 +279,22 @@ void main() {
           ('pull_by', 'partners', 'right'),
         ],
       );
+    });
+
+    testWidgets('typed into an existing row, one whose figure is gone is read '
+        'as an ordinary line in that row\'s place (#1847)', (tester) async {
+      final repos = await pump(
+        tester,
+        compounds: [shorthand()],
+        storeEntry: false,
+      );
+      await typeInExistingRow(tester, 'grl');
+      final figures = await saved(tester, repos);
+      expect(figures, hasLength(3));
+      expect(figures[1].move, customMove);
+      expect(figures[1].params['text'], 'grl');
+      // Parsed, not stated: it keeps the parser-gap marker (#398).
+      expect(figures[1].customOrigin, CustomOrigin.importGap);
     });
 
     testWidgets('one whose figure is gone is read as an ordinary line', (
@@ -300,6 +339,19 @@ void main() {
       await typeLine(tester, 'grl');
       final figures = await saved(tester, repos);
       expect(figures.single.move, 'swing');
+    });
+
+    testWidgets('typed into an existing row\'s Move box, replaces the row in '
+        'place (#1847)', (tester) async {
+      final repos = await pump(tester, compounds: [shorthand()]);
+      await typeInExistingRow(tester, 'grl');
+      final figures = await saved(tester, repos);
+      expect(
+        [for (final f in figures) f.move],
+        ['swing', 'pull_by', 'pull_by', 'pull_by', 'pull_by', 'turn_alone'],
+      );
+      expect(figures[1].params['who'], 'partners');
+      expect(figures[1].params['hand'], 'left');
     });
   });
 

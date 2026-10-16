@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 
 import '../search/collection_query.dart' show ByPhraseSelections;
+import 'picker_extensions.dart';
 import 'usr_archive_isolate.dart';
 
 /// Hard cap on the size of a **local file** chosen for import, in bytes.
@@ -234,30 +235,11 @@ Future<Uint8List?> pickImportUsrFile() async {
   return readImportUsrBytesCapped(file);
 }
 
-/// Extensions as the platform picker should be told them.
-///
-/// `file_selector_linux` turns each extension into a GTK `*.<ext>` pattern and
-/// GTK patterns are case-sensitive, so on Linux a bare `usr` hides the
-/// CallersCompanion2.USR files Caller's Companion actually writes (#1823).
-/// There we list the lower-case, UPPER-case and Capitalised spellings. macOS and
-/// Windows match extensions case-insensitively, so they keep the bare list.
-///
-/// Our call: three spellings, not every case permutation (`ccshare` alone would
-/// be 128 patterns) and not a GTK suffix filter (the plugin does not expose
-/// one); a `.UsR` file can still be opened by typing its name in the dialog.
-List<String> _pickerExtensions(List<String> extensions, bool? isLinux) {
-  if (!(isLinux ?? Platform.isLinux)) return extensions;
-  String cap(String e) => e.isEmpty ? e : e[0].toUpperCase() + e.substring(1);
-  return [
-    for (final e in extensions) ...{e.toLowerCase(), e.toUpperCase(), cap(e)},
-  ];
-}
-
 /// The file-type filter behind [pickImportFile].
 @visibleForTesting
 XTypeGroup importJsonTypeGroup({bool? isLinux}) => XTypeGroup(
   label: 'Compendium share',
-  extensions: _pickerExtensions(['ccshare', 'json'], isLinux),
+  extensions: pickerExtensions(['ccshare', 'json'], isLinux),
   uniformTypeIdentifiers: [
     'org.callerscompendium.compendiumApp.share',
     'public.json',
@@ -269,7 +251,7 @@ XTypeGroup importJsonTypeGroup({bool? isLinux}) => XTypeGroup(
 @visibleForTesting
 XTypeGroup importUsrTypeGroup({bool? isLinux}) => XTypeGroup(
   label: "Caller's Companion .USR",
-  extensions: _pickerExtensions(['usr'], isLinux),
+  extensions: pickerExtensions(['usr'], isLinux),
   // FileMaker's `.usr` has no registered UTI/MIME; match on extension only.
   uniformTypeIdentifiers: ['public.data'],
 );

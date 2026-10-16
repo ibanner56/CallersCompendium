@@ -1,8 +1,11 @@
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+
+import '../data/picker_extensions.dart';
 
 /// Delivers the exported diagnostics [contents] to the user as a file named
 /// [suggestedFileName]. Returns `true` if it was saved/shared, or `false` if
@@ -16,9 +19,11 @@ typedef LogSaver =
 bool Function() isDesktopPlatformForLog = () =>
     Platform.isMacOS || Platform.isWindows || Platform.isLinux;
 
-const _logTypeGroup = XTypeGroup(
+/// The file-type filter behind the diagnostics-log save dialog.
+@visibleForTesting
+XTypeGroup crashLogTypeGroup({bool? isLinux}) => XTypeGroup(
   label: 'Diagnostics log',
-  extensions: ['log', 'txt'],
+  extensions: pickerExtensions(['log', 'txt'], isLinux),
   uniformTypeIdentifiers: ['public.plain-text'],
   mimeTypes: ['text/plain'],
 );
@@ -47,7 +52,7 @@ Future<bool> saveDiagnosticsLog(
   if (isDesktopPlatformForLog()) {
     final location = await getSaveLocation(
       suggestedName: suggestedFileName,
-      acceptedTypeGroups: const [_logTypeGroup],
+      acceptedTypeGroups: [crashLogTypeGroup()],
     );
     if (location == null) return false;
     await File(location.path).writeAsString(contents);

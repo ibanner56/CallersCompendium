@@ -142,6 +142,13 @@ the shorthand says so and typing it is read as an ordinary line. Turning
 Custom Figures off hides these shorthands and stops them working; it doesn't
 delete them.
 
+A shorthand of any kind works in an existing figure's **Move** box too: with
+**Free-text entry** on, type it there and press Enter, and the figure is
+replaced by what the shorthand stands for, in the same place in the dance. If
+the shorthand can't be used (its figure or combination has been deleted, or no
+longer accepts the values), what you typed is read as an ordinary line
+instead, the same as for any other text typed there.
+
 ### Adjust a figure
 
 Select a figure to open it. What you can change depends on the move:
@@ -257,7 +264,9 @@ offered, but a dance that already uses one still reads with its wording.
 
 ### Reorder, cut, and duplicate
 
-Each figure row has a drag handle and an actions menu:
+Each figure row has a drag handle and an actions menu. From the keyboard, Tab to
+the row's **⋮** button and press Space or Enter to open it; the arrow keys move
+between actions, Enter runs one, and Escape closes the menu:
 
 | Action | What it does |
 |---|---|

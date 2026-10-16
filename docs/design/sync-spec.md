@@ -3589,6 +3589,19 @@ stays kept, and opening the app MUST NOT fail over it. No body or hash this
 device builds changes by it, since the part was already dropped from every body
 once the build synced its field.
 
+**A deleted record is not promoted.** The move above skips a soft-deleted
+record. Its kept row stays, and is pruned from every body this device builds
+like any already-synced part, so it cannot win over the record. Two costs
+follow and are not fixed: while such a row exists, every open builds
+a full snapshot to look at it; and a record restored from the trash after the
+upgrade holds the field empty until the next open, because the kept value was
+never stored in it. Nothing in a trash restore touches the kept row, so that
+open then writes the kept value into the record, over any edit made to that
+field in between. Writing the tombstone through the ordinary record writer is
+not a remedy: for a dance whose choreographer or source is also deleted it
+drops the dance's links to them, and a deleted record that a live one still
+cites would become a pending deletion.
+
 For `kind: "setting"`, a key this build does not classify `shareable` is kept
 **whole**: the peer's blob is stored as it came, published back as this
 device's copy of that record, and never written to `settings`. The two
@@ -3779,6 +3792,21 @@ nothing, and reports `newerRecordFields`; a device that understands the field
 settles or asks, and that outcome then arrives here as a newer version.
 Comparing what a user is shown draws only on the part this build syncs. Decided
 by Isaac (maintainer) in planning this change.
+
+The same holds when two records collide on a natural key (§6.6) and tie on
+`updatedAt` while differing only in a part this build keeps (two tags with one
+name, one copy carrying a kept part the other lacks). The collision path compares
+whole bodies, kept parts included, so it does not settle the tie: it queues a
+review, `natural-key collision has different bodies at the same updatedAt`,
+that this build does not offer the user to resolve
+(`SyncReviewQueueItem.isActionable` is false for it, kept part or not),
+reports nothing, and does not apply the peer's copy. Comparing only the
+parts this build knows would pick the inbound copy on every device, so two
+devices holding different kept parts would each take the other's copy and stay
+different at one `updatedAt`, which this section forbids. Accepted by Isaac
+(maintainer) on review, 2026-10-16; the alternative of comparing known parts only was rejected for that
+reason. The test is `sync_retained_fields_storage_test.dart`, "two tags with one
+name, the same updatedAt, and a kept part on only one side".
 
 Rejecting both fields is what makes a poisoned value always **local**.
 
@@ -5958,11 +5986,13 @@ refuses the record as `newerRecordFields` or `newerFigures`** (mutation: let
 figure decoding drop the key — the dance applies, truncated). **A tie in kept
 parts is left to a device that understands them** (mutation: settle it as a tie
 in nothing the user is shown — the copy without the newer field can win
-everywhere). **A merge restore or an archive import keeps the parts kept for every record,
-those it writes included** (mutation: clear the rows of the records a merge
-restore writes — the restored copy is stamped newer, `SyncMergeEngine.plan`
-uploads a body without the field, and it is stripped from the peer everywhere;
-a replace restore still clears the table, and a test pins that). **After an upgrade that starts syncing a kept field, the record
+everywhere; on a natural-key collision, compare the known parts only — the
+inbound copy wins on every device). **A merge restore or an archive import
+keeps the parts kept for every record, those it writes included** (mutation:
+clear the rows of the records a merge restore writes — the restored copy is
+stamped newer, `SyncMergeEngine.plan` uploads a body without the field, and it
+is stripped from the peer everywhere; a replace restore still clears the table,
+and a test pins that). **After an upgrade that starts syncing a kept field, the record
 holds it and the kept copy no longer wins** (mutation: keep putting the kept
 copy back — the user's edit to the now-synced field is shared with the old
 value). These are client-side and
