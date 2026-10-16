@@ -25,7 +25,7 @@ narrative behind each rule stays in
 ## Before you start
 
 Steps and commands below assume the tools a local session has. A CI reviewer
-limited to reading files, `gh pr diff` and `gh pr view` uses the equivalents
+limited to reading files and `gh pr diff` uses the equivalents
 available to it (the PR description's linked text where an issue cannot be
 read), and does not need to run `git` or `tools/preflight.py`. The checks only
 an author can perform (a test proven red before green, a measurement re-taken
