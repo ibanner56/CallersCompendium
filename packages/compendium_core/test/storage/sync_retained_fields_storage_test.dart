@@ -255,8 +255,8 @@ void main() {
         expect(result.reports, isEmpty);
 
         // One review row, filed under the inbound id with this device's tag as
-        // the counterpart, that the user cannot act on: the difference is a
-        // part this build cannot show.
+        // the counterpart, that the user is not offered to resolve: this
+        // reason is never actionable, kept part or not.
         final rows = await repositories.syncLocal.listReviewQueue();
         expect(rows, hasLength(1));
         expect(rows.single.reason, reason);

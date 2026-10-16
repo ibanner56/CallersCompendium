@@ -4191,8 +4191,8 @@ final class CompendiumSyncStorage
   /// At an equal `updatedAt` the whole bodies are compared, the parts this build
   /// keeps for a newer app version included, so a pair that differs only in a
   /// kept part returns null and is queued by [_reconcileNaturalKeyCollision] as
-  /// a review this build cannot act on, with the peer left unapplied. That is
-  /// deliberate (sync-spec §6.7, "A tie this build cannot judge is left to one
+  /// a review the user is not offered to resolve, with the peer left
+  /// unapplied. That is deliberate (sync-spec §6.7, "A tie this build cannot judge is left to one
   /// that can"; accepted by Isaac, maintainer, 2026-10-16): comparing the known
   /// parts only would pick the inbound copy on every device, so two devices
   /// holding different kept parts would each take the other's copy and stay

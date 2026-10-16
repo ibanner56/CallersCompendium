@@ -3780,12 +3780,13 @@ The same holds when two records collide on a natural key (§6.6) and tie on
 name, one copy carrying a kept part the other lacks). The collision path compares
 whole bodies, kept parts included, so it does not settle the tie: it queues a
 review, `natural-key collision has different bodies at the same updatedAt`,
-that this build cannot act on (the difference is a part its user is not
-shown), reports nothing, and does not apply the peer's copy. Comparing only the
+that this build does not offer the user to resolve
+(`SyncReviewQueueItem.isActionable` is false for it, kept part or not),
+reports nothing, and does not apply the peer's copy. Comparing only the
 parts this build knows would pick the inbound copy on every device, so two
 devices holding different kept parts would each take the other's copy and stay
-different at one `updatedAt`, which this section forbids. Accepted by Isaac (maintainer) on review,
-2026-10-16; the alternative of comparing known parts only was rejected for that
+different at one `updatedAt`, which this section forbids. Accepted by Isaac
+(maintainer) on review, 2026-10-16; the alternative of comparing known parts only was rejected for that
 reason. The test is `sync_retained_fields_storage_test.dart`, "two tags with one
 name, the same updatedAt, and a kept part on only one side".
 
