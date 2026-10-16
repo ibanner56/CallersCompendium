@@ -762,8 +762,11 @@ class SyncController extends ChangeNotifier {
           failure: SyncFailure.fromError(error),
         );
       }
-      await _recordResult(result);
-      _reportAppliedSettings(result);
+      try {
+        await _recordResult(result);
+      } finally {
+        _reportAppliedSettings(result);
+      }
       _planRetry(result);
       return SyncGateOutcome.ran;
     } finally {
@@ -802,9 +805,9 @@ class SyncController extends ChangeNotifier {
   /// Calls [_onSettingsApplied] when [result] wrote `settings` rows.
   ///
   /// After [_recordResult], so its own last-success write has landed before
-  /// the reload starts rather than during it, and regardless of [_detaching]:
-  /// a detach keeps the pass out of the status surface, but the rows it
-  /// applied are in the database either way.
+  /// the reload starts rather than during it, and even when that write fails
+  /// or [_detaching] skips the recording: the rows the pass applied are in
+  /// the database either way.
   void _reportAppliedSettings(SyncPassResult result) {
     if (_disposed) return;
     if (result.appliedKinds.contains(SyncRecordKind.setting)) {
@@ -1018,8 +1021,11 @@ class SyncController extends ChangeNotifier {
           failure: SyncFailure.fromError(error),
         );
       }
-      await _recordResult(result);
-      _reportAppliedSettings(result);
+      try {
+        await _recordResult(result);
+      } finally {
+        _reportAppliedSettings(result);
+      }
       // Only a genuinely completed confirmation resolves the decision. A
       // failure (e.g. a 500 from `POST /v1/store`) leaves the coordinator's
       // own replacement-pending state untouched — it never emits a fresh
