@@ -45,7 +45,10 @@ import 'seed_service.dart' show kInitialSeedCompletedKey;
 import 'settings_keys.dart';
 import 'set_list_color_coding_scope.dart' show kSetListColorCodingKey;
 import 'shorthand_mappings_controller.dart'
-    show kCompoundShorthandsKey, kShorthandMappingsKey;
+    show
+        kCompoundShorthandsKey,
+        kShorthandMappingsKey,
+        kUserFigureShorthandsKey;
 import 'soft_delete_retention.dart' show kSoftDeleteRetentionKey;
 import 'verbose_figure_rendering_scope.dart' show kVerboseFigureRenderingKey;
 import 'venue_call_count_scope.dart' show kVenueCallCountMax;
@@ -173,6 +176,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // JSON string, so accept either and let it validate entries.
   kShorthandMappingsKey: _isListOrString,
   kCompoundShorthandsKey: _isListOrString,
+  kUserFigureShorthandsKey: _isListOrString,
   // Collection tile fields (#767), hidden filter sections (#1419), and the
   // shared-program dance-field picker (#1434) persist as JSON lists of name
   // strings; every decoder (`decodeStored`) treats a non-List as "unset" and

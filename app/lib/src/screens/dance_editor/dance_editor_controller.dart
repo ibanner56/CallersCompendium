@@ -1452,6 +1452,48 @@ class DanceEditorController extends ChangeNotifier {
     return true;
   }
 
+  /// Appends a use of the new figure [shorthand] stands for, with its values
+  /// and beats (#1023), when that figure is here and renders with them;
+  /// otherwise inserts nothing and returns false, so the line is parsed as
+  /// usual. Like a compound shorthand, it is not held to the dance's form:
+  /// typing the token is choosing the figure.
+  bool insertUserFigureShorthand(UserFigureShorthand shorthand) {
+    final entry = _userFigureEntries[shorthand.figureId];
+    final definition = _userFigureCatalog[shorthand.figureId]?.definition;
+    if (entry == null || definition == null) return false;
+    final draft = FigureDraft();
+    if (!selectUserFigure(draft, entry.id, [entry])) return false;
+    draft.params
+      ..clear()
+      ..addAll(
+        userFigureDraftParams(
+          entry,
+          definition,
+          args: {...shorthand.args},
+          beats: shorthand.beats,
+        ),
+      );
+    // Beats the shorthand sets count as chosen; without them the row has the
+    // figure's default beats, as picking the figure gives it.
+    draft.beatsTouched = shorthand.beats != null;
+    // Values the figure no longer accepts would show only the stored line.
+    final renders =
+        FigureRenderer(
+          contraTaxonomy,
+          userFigures: _userFigureCatalog,
+        ).renderUserFigureCanonical(
+          Figure(move: customMove, params: draft.params),
+        ) !=
+        null;
+    if (!renders) return false;
+    figureDrafts.add(draft);
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+    return true;
+  }
+
   void deleteFigure(FigureDraft draft) {
     figureDrafts.remove(draft);
     recomputeWarnings();

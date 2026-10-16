@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
@@ -5,8 +7,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/screens/settings/matrix_column_editor.dart';
 import 'package:compendium_app/src/data/program_matrix_column_config_scope.dart';
+import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
+import 'package:compendium_app/src/data/show_glossary_scope.dart';
+import 'package:compendium_app/src/data/user_figures_scope.dart';
+import 'package:compendium_app/src/screens/settings/matrix_column_editor_screen.dart';
 
 import 'support/l10n_harness.dart';
+import 'support/test_repositories.dart';
 
 /// A small taxonomy (three plain "known" moves) so the editor renders a handful
 /// of rows that all fit on screen — the full contra taxonomy has ~100 columns,
@@ -42,11 +51,13 @@ class _Harness extends StatefulWidget {
     required this.initial,
     required this.onChanged,
     required this.taxonomy,
+    this.userFigures = UserFigureCatalog.empty,
   });
 
   final MatrixColumnConfig initial;
   final ValueChanged<MatrixColumnConfig> onChanged;
   final Taxonomy taxonomy;
+  final UserFigureCatalog userFigures;
 
   @override
   State<_Harness> createState() => _HarnessState();
@@ -60,6 +71,7 @@ class _HarnessState extends State<_Harness> {
     config: _config,
     dialect: Dialect.larksRobins,
     taxonomy: widget.taxonomy,
+    userFigures: widget.userFigures,
     onConfigChanged: (config) {
       setState(() => _config = config);
       widget.onChanged(config);
@@ -71,6 +83,7 @@ Future<MatrixColumnConfig Function()> _pumpEditor(
   WidgetTester tester, {
   MatrixColumnConfig initial = MatrixColumnConfig.empty,
   Taxonomy? taxonomy,
+  UserFigureCatalog userFigures = UserFigureCatalog.empty,
 }) async {
   final activeTaxonomy = taxonomy ?? _smallTaxonomy;
   await tester.binding.setSurfaceSize(const Size(1200, 1400));
@@ -84,6 +97,7 @@ Future<MatrixColumnConfig Function()> _pumpEditor(
         body: _Harness(
           initial: initial,
           taxonomy: activeTaxonomy,
+          userFigures: userFigures,
           onChanged: (config) => latest = config,
         ),
       ),
@@ -694,6 +708,216 @@ void main() {
       final catalogSize = builtInColumnCatalog(contraTaxonomy).length;
       expect(catalogSize, greaterThan(50));
       handle.dispose();
+    });
+  });
+
+  group('figures of your own (#1023)', () {
+    UserGlossaryEntry figure(String id, String name) => UserGlossaryEntry(
+      id: id,
+      kindName: UserGlossaryEntryKind.customFigure.name,
+      name: name,
+      definition: 'A figure.',
+      description: 'Of your own.',
+      payload: const {
+        'template': '{move}',
+        'defaultBeats': 8,
+        'params': <Object?>[],
+      },
+      createdAt: DateTime.utc(2026, 10, 16),
+    );
+    final catalog = UserFigureCatalog.fromEntries([
+      figure('a-id', 'zoom'),
+      figure('larks-id', 'role1s whirl'),
+    ]);
+
+    testWidgets('each is a column, by name in the dialect, before the custom '
+        'column, and can be hidden and renamed', (tester) async {
+      final read = await _pumpEditor(tester, userFigures: catalog);
+      final order = [
+        for (final element
+            in find
+                .byWidgetPredicate(
+                  (w) =>
+                      w.key is ValueKey<String> &&
+                      (w.key! as ValueKey<String>).value.startsWith(
+                        'matrix-column-remove-',
+                      ),
+                )
+                .evaluate())
+          (element.widget.key! as ValueKey<String>).value.substring(
+            'matrix-column-remove-'.length,
+          ),
+      ];
+      expect(order.sublist(order.length - 3), [
+        'userFigure:larks-id',
+        'userFigure:a-id',
+        customMove,
+      ]);
+      expect(find.text('larks whirl'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-remove-userFigure:a-id')),
+      );
+      await tester.pumpAndSettle();
+      expect(read().hidden, contains('userFigure:a-id'));
+
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-rename-userFigure:larks-id')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('matrix-column-rename-field')),
+        'Mine',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-rename-confirm')),
+      );
+      await tester.pumpAndSettle();
+      expect(read().renames['userFigure:larks-id'], 'Mine');
+    });
+
+    testWidgets('none is listed without the catalog', (tester) async {
+      await _pumpEditor(tester);
+      expect(
+        find.byKey(const ValueKey('matrix-column-remove-userFigure:a-id')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('restore removed defaults brings back a removed figure, in '
+        'catalog order before the custom column', (tester) async {
+      final read = await _pumpEditor(
+        tester,
+        userFigures: catalog,
+        initial: const MatrixColumnConfig(
+          order: ['do_si_do'],
+          hidden: {'userFigure:a-id'},
+        ),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('matrix-column-reset-removed')),
+      );
+      await tester.pumpAndSettle();
+      final config = read();
+      expect(config.hidden, isEmpty);
+      expect(config.order, [
+        ...catalogIds.where((id) => id != customMove),
+        'userFigure:larks-id',
+        'userFigure:a-id',
+        customMove,
+      ]);
+    });
+
+    Future<List<String>> reorderFirstToThird(
+      WidgetTester tester,
+      List<String> initial,
+    ) async {
+      final read = await _pumpEditor(
+        tester,
+        initial: MatrixColumnConfig(order: initial),
+      );
+      tester
+          .widget<ReorderableListView>(find.byType(ReorderableListView))
+          .onReorderItem!(0, 2);
+      await tester.pumpAndSettle();
+      return read().order;
+    }
+
+    List<String> movedFirstToThird() {
+      final moved = [...catalogIds];
+      moved.insert(2, moved.removeAt(0));
+      return moved;
+    }
+
+    testWidgets('reordering while your figures are not listed keeps one '
+        'placed first, first', (tester) async {
+      expect(
+        await reorderFirstToThird(tester, ['userFigure:a-id', ...catalogIds]),
+        ['userFigure:a-id', ...movedFirstToThird()],
+      );
+    });
+
+    testWidgets('reordering while your figures are not listed keeps them '
+        'after the column they followed, in their own order', (tester) async {
+      // do_si_do moves to third; the two figures stay right after it.
+      final moved = movedFirstToThird();
+      expect(moved[2], catalogIds.first);
+      expect(
+        await reorderFirstToThird(tester, [
+          catalogIds.first,
+          'userFigure:a-id',
+          'userFigure:b-id',
+          ...catalogIds.skip(1),
+        ]),
+        [
+          ...moved.take(3),
+          'userFigure:a-id',
+          'userFigure:b-id',
+          ...moved.skip(3),
+        ],
+      );
+    });
+
+    testWidgets('the Matrix columns screen lists your figures only while '
+        'Custom Figures is on', (tester) async {
+      final repos = openTestRepositories();
+      await tester.runAsync(
+        () => repos.userGlossary.upsert(figure('a-id', 'zoom')),
+      );
+      final userFigures = UserFiguresController(repos.userGlossary);
+      addTearDown(userFigures.dispose);
+      unawaited(userFigures.start());
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      final config = ValueNotifier(MatrixColumnConfig.empty);
+      final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+      final glossary = ValueNotifier(true);
+      final custom = ValueNotifier(false);
+      for (final n in <ChangeNotifier>[config, dialect, glossary, custom]) {
+        addTearDown(n.dispose);
+      }
+      await tester.binding.setSurfaceSize(const Size(1200, 1400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: RepositoriesScope(
+            repositories: repos,
+            child: ProgramMatrixColumnConfigScope(
+              notifier: config,
+              child: ActiveDialectScope(
+                notifier: dialect,
+                child: ShowGlossaryScope(
+                  notifier: glossary,
+                  child: ShowCustomFiguresScope(
+                    notifier: custom,
+                    child: UserFiguresScope(
+                      controller: userFigures,
+                      child: const MatrixColumnEditorScreen(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      // The full catalog is ~100 rows, so read what the screen hands the
+      // editor rather than scrolling to the last rows.
+      List<String> listed() => [
+        for (final c in userFigureColumnCatalog(
+          tester
+              .widget<MatrixColumnEditor>(find.byType(MatrixColumnEditor))
+              .userFigures,
+        ))
+          c.moveId,
+      ];
+      expect(listed(), isEmpty);
+
+      custom.value = true;
+      await tester.pumpAndSettle();
+      expect(listed(), ['userFigure:a-id']);
     });
   });
 }

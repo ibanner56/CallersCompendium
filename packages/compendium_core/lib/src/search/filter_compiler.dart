@@ -2,6 +2,7 @@ import '../dialect/canonicalize.dart';
 import '../dialect/dialect.dart';
 import '../model/enums.dart';
 import '../taxonomy/taxonomy.dart';
+import '../taxonomy/user_figure_use.dart';
 import 'filter.dart';
 import 'fts_query.dart';
 import 'search_enrichment.dart';
@@ -71,10 +72,13 @@ class FilterCompiler {
     // skipping templated (`%S`) substitutions which aren't reversible by a
     // plain word match. Conservative: unknown/unmapped moves pass through.
     // The enrichment's union move synonyms are layered underneath, so the
-    // active dialect's own move substitutions win where they overlap.
+    // active dialect's own move substitutions win where they overlap. A key
+    // naming a figure of your own ([isUserFigureKey]) is not a move, so its
+    // wording never maps a query back to it.
     final reverse = <String, String>{};
     reverse.addAll(this.enrichment.moveSynonyms);
     for (final entry in this.dialect.moves.entries) {
+      if (isUserFigureKey(entry.key)) continue;
       final display = entry.value;
       if (display.contains('%S')) continue;
       reverse[display.toLowerCase()] = entry.key;
@@ -534,7 +538,7 @@ class FilterCompiler {
         throw ArgumentError.value(key, 'params key', 'illegal JSON path key');
       }
       parts.add("json_extract($alias.params_json, '\$.$key') = ?");
-      binds.add(_paramBind(leaf.params[key]));
+      binds.add(_paramBind(key, leaf.params[key]));
     }
     if (leaf.section != null) {
       parts.add('$alias.section = ?');
@@ -550,8 +554,11 @@ class FilterCompiler {
 
   /// Prepares a figure-param value for binding against `json_extract`'s
   /// natural typing. Role-valued strings are canonicalized; booleans compare
-  /// against `json_extract`'s 1/0.
-  Object? _paramBind(Object? value) {
+  /// against `json_extract`'s 1/0. The id of a figure of your own
+  /// ([userFigureRefKey]) is bound as given: it is an id, not text, and
+  /// canonicalizing it could turn a role word inside it into a token.
+  Object? _paramBind(String key, Object? value) {
+    if (key == userFigureRefKey) return value;
     if (value is String) {
       return canonicalizeText(
         value,
