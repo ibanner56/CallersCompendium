@@ -354,8 +354,8 @@ void main() {
       expect(figures[1].params['hand'], 'left');
     });
 
-    // A compound is several figures, so a count has nothing single to set and
-    // is dropped (#1861), as for a several-figure plain shorthand (#1827).
+    // A compound row takes its beats from the compound, so a count is dropped
+    // (#1861), even for a one-figure compound.
     for (final line in ['16 grl', 'grl (16)', 'GRL 16 beats']) {
       testWidgets('"$line" inserts the compound as saved, ignoring the count', (
         tester,
