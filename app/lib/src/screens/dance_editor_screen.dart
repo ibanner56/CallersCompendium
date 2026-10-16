@@ -940,6 +940,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       compoundShorthands: ShorthandMappingsScope.maybeOf(
         context,
       )?.compoundStore,
+      userFigureShorthands: ShorthandMappingsScope.maybeOf(
+        context,
+      )?.userFigureStore,
       dialect: dialect,
       isNew: widget.isNew,
       authorOptions: [
