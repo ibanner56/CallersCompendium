@@ -512,7 +512,7 @@ void main() {
       expect(find.byKey(const ValueKey('figure-add-figure')), findsOneWidget);
     }
 
-    testWidgets('Down + Enter reaches the free-text box from an empty dance', (
+    testWidgets('Enter on the first item reaches the free-text box from an empty dance', (
       tester,
     ) async {
       final drafts = <FigureDraft>[];
