@@ -253,13 +253,14 @@ went through.
 it with the current `CompendiumDatabase`, runs `ensureMigrated`, and asserts
 `user_version` reached head, `foreign_key_check` and `integrity_check` are
 clean, and that every value the generator seeds to something other than a
-default reads back unchanged: the dances (titles, hooks, calling notes, walkthrough, rating, tunes,
-timestamps, figures with their moves and params, tags, authors, custom-field
-values, links with kind, url, label and target, citations, provenance), the tags
-and their colours, authors, the venue, the published source, the custom-field
-definition, the program (date, venue, level, caller, band, notes, and slots with
-ids, positions, minutes and guest caller), the `ui.*` settings and the default
-difficulty levels. Columns left at their defaults are not read. FTS search is only
+default reads back unchanged: the dances (titles, hooks, calling notes,
+walkthrough, rating, tunes, timestamps, figures with their moves and params,
+tags, authors, custom-field values, links with kind, url, label and target,
+citations, provenance), the tags and their colours, authors, the venue, the
+published source, the custom-field definition, the program (date, venue, level,
+caller, band, notes, and slots with ids, positions, minutes and guest caller),
+the `ui.*` settings and the default difficulty levels. Columns left at their
+defaults are not read. FTS search is only
 checked to *work* (including diacritic folding). Values the open legitimately
 rebuilds are not compared: the FTS tables, `dance_figures` (including
 `canonical_text`) and the `__*_done` repair markers, which a migration that
