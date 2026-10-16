@@ -684,7 +684,7 @@ class CompendiumArchiveImporter {
       await repositories.transaction(() async {
         await repositories.syncLocal.clearForRestore(
           restoredRecords: const [],
-          replacesAllRecords: false,
+          clearRetainedParts: false,
           revalidatePending: false,
         );
         await repositories.resetNormalisationStateForRestore();

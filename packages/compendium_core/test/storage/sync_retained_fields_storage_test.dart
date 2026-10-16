@@ -378,17 +378,17 @@ void main() {
     await apply(newerProgram(program()));
     await repositories.syncLocal.clearForRestore(
       restoredRecords: const [],
-      replacesAllRecords: true,
+      clearRetainedParts: true,
     );
     expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
   });
 
   group('a restore that is not a full replace', () {
-    // Kept parts belong to the peer's copy of a record, so a merge-like writer
-    // may drop them only for a record it writes itself. Dropping an unrelated
-    // record's parts leaves a peer copy at the same `updatedAt` a tie that never
-    // returns them, and the next local edit then overwrites the peer's copy with
-    // a body that lacks them.
+    // Kept parts belong to the peer's copy of a record, so a writer that edits
+    // the records it matches, as a merge restore and an archive import do,
+    // keeps them: the record it writes is stamped newer than the peer's copy,
+    // and a body without the parts would win and strip them from the peer.
+    // Only a restore that replaces the whole library clears them.
     Tag tag() => Tag(id: 't1', name: 'Tag');
 
     CompendiumArchive archiveOf(List<Program> programs) =>
