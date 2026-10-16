@@ -322,6 +322,81 @@ void main() {
     });
   });
 
+  group('SyncReviewQueueResolver.listConflicts and a kept part of a dance or '
+      'a setting (spec §6.7)', () {
+    test('a kept key nested in a field the comparison shows whole is not a '
+        'difference', () async {
+      const address = (kind: SyncRecordKind.dance, recordId: 'd1');
+      await repositories.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Hey Day',
+          formation: const Formation(FormationShape.reverseProgressionImproper),
+          createdAt: tie,
+          updatedAt: tie,
+        ),
+      );
+      await repositories.syncLocal.setRetainedSyncFields(
+        kind: address.kind,
+        recordId: address.recordId,
+        payload: canonicalJson({
+          'formation': {
+            'm': {
+              'addedLater': {'v': 'kept'},
+            },
+          },
+        }),
+      );
+      final local = await localCandidate(address);
+      final formation = local.blob.body['formation']! as Map<String, Object?>;
+      expect(formation['addedLater'], 'kept');
+      // Queued before this device kept the nested key, or against a copy
+      // that never had it: it shows the same dance.
+      final peer = peerVersion(local, {
+        ...local.blob.body,
+        'formation': {...formation}..remove('addedLater'),
+      });
+      await repositories.syncLocal.enqueueReview(
+        kind: address.kind,
+        recordId: address.recordId,
+        counterpartId: peer.wireHash,
+        reason: syncConflictChoiceReason,
+        candidateBlob: encodeSyncRecordBlob(peer.blob),
+        candidateHash: peer.wireHash,
+        localHash: local.wireHash,
+        queuedAt: tie,
+      );
+
+      expect(await SyncReviewQueueResolver(storage).listConflicts(), isEmpty);
+    });
+
+    test('a setting with a kept part is compared without it', () async {
+      await repositories.settings.set('theme_mode', 'dark', at: tie);
+      await repositories.syncLocal.setRetainedSyncFields(
+        kind: SyncRecordKind.setting,
+        recordId: 'theme_mode',
+        payload: canonicalJson({
+          'addedLater': {'v': 'kept'},
+        }),
+      );
+      final local = await localCandidate(themeAddress);
+      expect(local.blob.body['addedLater'], 'kept');
+      final peer = peerVersion(local, {'value': 'dark'});
+      await repositories.syncLocal.enqueueReview(
+        kind: themeAddress.kind,
+        recordId: themeAddress.recordId,
+        counterpartId: peer.wireHash,
+        reason: syncConflictChoiceReason,
+        candidateBlob: encodeSyncRecordBlob(peer.blob),
+        candidateHash: peer.wireHash,
+        localHash: local.wireHash,
+        queuedAt: tie,
+      );
+
+      expect(await SyncReviewQueueResolver(storage).listConflicts(), isEmpty);
+    });
+  });
+
   group('resolveConflicts', () {
     Future<({Object? value, DateTime updatedAt})> themeRow() async {
       final row = await (db.select(

@@ -149,7 +149,8 @@ void main() {
   group('syncUserVisibleBody', () {
     // Spec §6.7: comparing what a user is shown draws only on the part this
     // build syncs. A kind with no list of shown fields shows every synced
-    // field, so a part kept for a newer version must not count as one.
+    // field, so a part kept for a newer version must not count as one; nor
+    // may one nested in a field a list shows whole.
     for (final (kind, body) in [
       (SyncRecordKind.publishedSource, {'title': 'Source', 'year': 1990}),
       (SyncRecordKind.difficultyLevel, {'label': 'Easy', 'position': 0}),
@@ -175,6 +176,40 @@ void main() {
         );
       });
     }
+
+    test('a part kept inside a field shown whole is not shown either', () {
+      // `formation`, `customFields` and `sourceCitations` are listed whole,
+      // with no sub-paths, so a kept key nested in them is not told apart by
+      // the list of shown fields.
+      Map<String, Object?> dance({String? kept}) => {
+        'title': 'Hey Day',
+        'formation': {'shape': 'improper', if (kept != null) 'zz': kept},
+        'customFields': [
+          {'fieldId': 'cf', 'value': 1, if (kept != null) 'zz': kept},
+        ],
+        'sourceCitations': [
+          {'sourceId': 's1', 'page': '4', if (kept != null) 'zz': kept},
+        ],
+      };
+
+      final shown = syncUserVisibleBody(SyncRecordKind.dance, dance());
+      expect(shown.keys, containsAll(['formation', 'customFields']));
+      expect(
+        syncUserVisibleBody(SyncRecordKind.dance, dance(kept: 'x')),
+        shown,
+      );
+      expect(
+        syncDifferingFields(
+          shown,
+          syncUserVisibleBody(SyncRecordKind.dance, dance(kept: 'y')),
+        ),
+        isEmpty,
+      );
+      expect(
+        syncUserVisibleContentHash(SyncRecordKind.dance, dance(kept: 'x')),
+        syncUserVisibleContentHash(SyncRecordKind.dance, dance()),
+      );
+    });
 
     test('a field this build syncs still counts', () {
       expect(
