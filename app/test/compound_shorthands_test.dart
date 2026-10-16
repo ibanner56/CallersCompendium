@@ -281,6 +281,20 @@ void main() {
       );
     });
 
+    testWidgets('typed into an existing row, one whose figure is gone leaves '
+        'a stated custom figure there (#1847)', (tester) async {
+      final repos = await pump(
+        tester,
+        compounds: [shorthand()],
+        storeEntry: false,
+      );
+      await typeInExistingRow(tester, 'grl');
+      final figures = await saved(tester, repos);
+      expect(figures, hasLength(3));
+      expect(figures[1].move, customMove);
+      expect(figures[1].params['text'], 'grl');
+    });
+
     testWidgets('one whose figure is gone is read as an ordinary line', (
       tester,
     ) async {
