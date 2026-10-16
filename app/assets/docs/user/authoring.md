@@ -72,8 +72,9 @@ Turn on **Free-text entry** in
 instead of one move at a time. Type `neighbor balance & swing` and you get both
 figures; type `16 circle left 3/4` and you get a sixteen-beat circle left
 three-quarters. A line that states no count starts with the figure's usual
-beats, and they follow the figure if you change its options. The app tells you
-how many figures it added and invites you to type another.
+beats, and they follow the figure if you change its options. A line under the
+box tells you how many figures it added and invites you to type another (a
+screen reader announces the count too); it goes away when you start typing.
 
 The same works on a figure that is already in the dance. Open it, type a line
 into its move over what is there, and press Enter: if the line is not simply the

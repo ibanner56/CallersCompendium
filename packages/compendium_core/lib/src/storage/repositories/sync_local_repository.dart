@@ -229,12 +229,12 @@ class SyncLocalRepository {
 
   Future<void> clearForRestore({
     required Iterable<SyncRecordAddress> restoredRecords,
-    required bool replacesAllRecords,
+    required bool clearRetainedParts,
     bool revalidatePending = true,
   }) => transaction(
     (tx) => tx.clearForRestore(
       restoredRecords: restoredRecords,
-      replacesAllRecords: replacesAllRecords,
+      clearRetainedParts: clearRetainedParts,
       revalidatePending: revalidatePending,
     ),
   );
@@ -513,31 +513,30 @@ class SyncLocalTransaction {
         .go();
   }
 
-  /// Clears what a restore or import makes stale: the baseline, and the parts
-  /// kept for records the restore replaces.
+  /// Clears what a restore or import makes stale: the baseline, and, when
+  /// [clearRetainedParts] is set, the parts kept for records a peer's newer
+  /// build wrote (`retained_sync_fields`).
   ///
-  /// [replacesAllRecords] is true when the writer replaced the whole dataset,
-  /// so the kept parts of every record it replaced are gone. Otherwise only the
-  /// parts of [restoredRecords] go: the kept parts of a record the writer did
-  /// not touch are still the only copy of what a peer's newer build put there.
+  /// [clearRetainedParts] is true only for a writer that replaced the whole
+  /// dataset, so the kept parts of every record it replaced are gone (sync-spec
+  /// §3.2). It clears the whole table, never the rows of [restoredRecords]
+  /// alone. A merge restore and an archive import pass false: they edit the
+  /// records they match as a local edit does, which keeps the kept parts, and
+  /// the kept part of a record is the only copy of what a peer's newer build
+  /// put there. Clearing it for a record the writer stamps newer would let the
+  /// body without it win last-writer-wins and strip it from the peer (§6.7).
+  /// [restoredRecords] only scopes which pending deletions survive, and only
+  /// when [revalidatePending] is true.
   Future<void> clearForRestore({
     required Iterable<SyncRecordAddress> restoredRecords,
-    required bool replacesAllRecords,
+    required bool clearRetainedParts,
     bool revalidatePending = true,
   }) async {
     await clearBaseline();
-    // What a restored record carried for a newer version, if anything, arrives
+    // What a replaced record carried for a newer version, if anything, arrives
     // again from a peer.
-    if (replacesAllRecords) {
+    if (clearRetainedParts) {
       await _db.delete(_db.retainedSyncFields).go();
-    } else {
-      for (final record in restoredRecords) {
-        await setRetainedSyncFields(
-          kind: record.kind,
-          recordId: record.recordId,
-          payload: null,
-        );
-      }
     }
     if (revalidatePending) {
       await revalidatePendingDeletions(restoredRecords: restoredRecords);
