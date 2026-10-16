@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/settings_keys.dart';
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
 import 'package:compendium_app/src/editor/editor_snapshot.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
@@ -2522,6 +2523,166 @@ void main() {
       final saved = await repos.dances.getById('d1');
       expect(figuresOf(saved!), hasLength(1));
       expect(figuresOf(saved).single.move, 'swing');
+    });
+  });
+
+  // Decision D2 on #1177 (Isaac, orchestration session, 2026-10-16): with
+  // Free-text entry on, a new dance starts empty and Enter on unmatched text
+  // in an existing row's Move box runs the free-text parser.
+  group('free-text entry on existing rows and new dances (#1177)', () {
+    Future<CompendiumRepositories> freeTextRepos({bool on = true}) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, on);
+      return repos;
+    }
+
+    Future<void> submitInMoveBox(
+      WidgetTester tester,
+      int index,
+      String line,
+    ) async {
+      await _openFigure(tester, index);
+      await tester.enterText(
+        find.byKey(ValueKey('figure-$index-move-input')),
+        line,
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+    }
+
+    Future<List<Figure>> saveAndRead(
+      WidgetTester tester,
+      CompendiumRepositories repos,
+    ) async {
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      return figuresOf(
+        await repos.dances.getById('d1') ??
+            (await repos.dances.listAll()).single,
+      );
+    }
+
+    Future<void> seedDance(CompendiumRepositories repos) => repos.dances.create(
+      _dance(
+        id: 'd1',
+        figures: [
+          Figure(move: 'stand_still', params: const {'beats': 8}),
+          Figure(move: 'stand_still', params: const {'beats': 8}),
+          Figure(move: 'swing', params: const {'who': 'partners', 'beats': 8}),
+        ],
+      ),
+    );
+
+    testWidgets('a new dance with no saved template starts with no figures', (
+      tester,
+    ) async {
+      final repos = await freeTextRepos();
+      await _pumpEditor(tester, repos);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Typed Dance',
+      );
+      final saved = await saveAndRead(tester, repos);
+      expect(saved, isEmpty);
+    });
+
+    testWidgets('a saved starting template still seeds a new dance', (
+      tester,
+    ) async {
+      final repos = await freeTextRepos();
+      await repos.settings.set(
+        kDefaultDanceFiguresTemplateKey,
+        encodeFigures([
+          Figure(move: 'swing', params: const {'who': 'neighbors', 'beats': 8}),
+        ]),
+      );
+      await _pumpEditor(tester, repos);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Templated',
+      );
+      final saved = await saveAndRead(tester, repos);
+      expect(saved.single.move, 'swing');
+    });
+
+    testWidgets('Enter on a typed line in an existing row replaces the row '
+        'with the parsed figure', (tester) async {
+      final repos = await freeTextRepos();
+      await seedDance(repos);
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await submitInMoveBox(tester, 0, 'neighbors balance & swing');
+
+      final saved = await saveAndRead(tester, repos);
+      expect(saved.map((f) => f.move), ['swing', 'stand_still', 'swing']);
+      expect(saved[0].params['who'], 'neighbors');
+      expect(saved[0].params['prefix'], 'balance');
+      expect(saved[0].customOrigin, CustomOrigin.userEntered);
+    });
+
+    testWidgets('a line that parses to several figures replaces the row with '
+        'all of them, in place', (tester) async {
+      final repos = await freeTextRepos();
+      await seedDance(repos);
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await submitInMoveBox(tester, 1, 'circle left 3/4; turn alone');
+
+      final saved = await saveAndRead(tester, repos);
+      expect(saved.map((f) => f.move), [
+        'stand_still',
+        'circle',
+        'turn_alone',
+        'swing',
+      ]);
+    });
+
+    testWidgets('an unrecognized line becomes a flagged parser-gap custom', (
+      tester,
+    ) async {
+      final repos = await freeTextRepos();
+      await seedDance(repos);
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await submitInMoveBox(tester, 0, 'do a barrel roll into the sunset');
+
+      final saved = await saveAndRead(tester, repos);
+      expect(saved, hasLength(3));
+      expect(saved[0].isCustom, isTrue);
+      // A parser gap, not a stated choice: badged and reparse-eligible.
+      expect(saved[0].customOrigin, CustomOrigin.importGap);
+    });
+
+    testWidgets('with free text off, unmatched text in an existing row still '
+        'makes a stated custom', (tester) async {
+      final repos = await freeTextRepos(on: false);
+      await seedDance(repos);
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await submitInMoveBox(tester, 1, 'circle left 3/4; turn alone');
+
+      final saved = await saveAndRead(tester, repos);
+      expect(saved, hasLength(3));
+      expect(saved[1].isCustom, isTrue);
+      expect(saved[1].params['text'], 'circle left 3/4; turn alone');
+      expect(saved[1].customOrigin, CustomOrigin.userEntered);
+    });
+
+    testWidgets('with free text off, a new dance keeps the stand-still '
+        'template', (tester) async {
+      final repos = await freeTextRepos(on: false);
+      await _pumpEditor(tester, repos);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Seeded',
+      );
+      final saved = await saveAndRead(tester, repos);
+      expect(saved, hasLength(8));
+      expect(saved.every((f) => f.move == 'stand_still'), isTrue);
     });
   });
 
