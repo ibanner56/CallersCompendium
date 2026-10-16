@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
+import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/glossary/cc_term_import.dart';
 import 'package:compendium_app/src/screens/import_cc_terms_screen.dart';
@@ -286,6 +288,26 @@ void main() {
           MapEntry(21, {1: 'Contra Corners', 4: '1', 5: 'A teaching note.'}),
         ],
       ),
+      // A call button, so the shorthand step comes first and is answered
+      // after Done has closed the review (#1819), as with a real file.
+      FmpFixtureTable(
+        index: 3,
+        name: 'InsertCall',
+        columnNames: [
+          'InsertButtonLabel',
+          'InsertButtonText',
+          'zk_Constant',
+          'InsertButtonBeats',
+        ],
+        rows: [
+          MapEntry(900, {
+            1: 'B&S-N',
+            2: 'neighbor balance and swing',
+            3: '1',
+            4: '16',
+          }),
+        ],
+      ),
     ]);
 
     Future<CompendiumRepositories> runImport(
@@ -299,6 +321,9 @@ void main() {
       final shown = ValueNotifier(glossary);
       addTearDown(dialect.dispose);
       addTearDown(shown.dispose);
+      final shorthands = ShorthandMappingsController(repos.settings);
+      addTearDown(shorthands.dispose);
+      await tester.runAsync(shorthands.load);
       await tester.pumpWidget(
         MaterialApp(
           localizationsDelegates: testLocalizationsDelegates,
@@ -307,7 +332,10 @@ void main() {
             repositories: repos,
             child: ActiveDialectScope(
               notifier: dialect,
-              child: ShowGlossaryScope(notifier: shown, child: child!),
+              child: ShorthandMappingsScope(
+                controller: shorthands,
+                child: ShowGlossaryScope(notifier: shown, child: child!),
+              ),
             ),
           ),
           home: Builder(
@@ -345,6 +373,11 @@ void main() {
       await tester.pumpAndSettle();
       // Done closes the review screen before the terms are offered (#1819).
       await tester.tap(find.byKey(const ValueKey('import-done-button')));
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pumpAndSettle();
+      // The shorthand step comes first.
+      expect(find.byKey(const ValueKey('seed-skip')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('seed-skip')));
       await tester.runAsync(() => Future<void>.delayed(Duration.zero));
       await tester.pumpAndSettle();
       return repos;
