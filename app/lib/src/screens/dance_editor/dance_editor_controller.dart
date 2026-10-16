@@ -1466,22 +1466,40 @@ class DanceEditorController extends ChangeNotifier {
     return inserted.length;
   }
 
-  /// Puts the shorthand row [draft] at the end of the list, or in place of
+  /// Puts the shorthand rows [drafts] at the end of the list, or in place of
   /// [replacing] (#1847) when that row is still in the list. Returns false,
-  /// changing nothing, when [replacing] was given but is gone.
-  bool _placeShorthandDraft(FigureDraft draft, FigureDraft? replacing) {
+  /// changing nothing, when [replacing] was given but is gone or [drafts] is
+  /// empty.
+  bool placeShorthandDrafts(
+    List<FigureDraft> drafts, {
+    FigureDraft? replacing,
+  }) {
+    if (drafts.isEmpty) return false;
     if (replacing == null) {
-      figureDrafts.add(draft);
+      figureDrafts.addAll(drafts);
     } else {
       final index = figureDrafts.indexOf(replacing);
       if (index == -1) return false;
-      figureDrafts[index] = draft;
+      figureDrafts.replaceRange(index, index + 1, drafts);
     }
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
     _notify();
     return true;
+  }
+
+  /// The rows for [figures] parsed from one `;` clause of a shorthand line
+  /// (#1866), built as [insertFreeTextFigures] builds them but not inserted:
+  /// the caller places them with the line's other clauses through
+  /// [placeShorthandDrafts], all or none.
+  List<FigureDraft> draftsForFreeTextFigures(List<Figure> figures) {
+    final drafts = [
+      for (final figure in figures)
+        FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
+    ];
+    _renderDraftTextRecursively(drafts);
+    return drafts;
   }
 
   /// Appends a row for the compound [shorthand] stands for, with its values
@@ -1493,6 +1511,13 @@ class DanceEditorController extends ChangeNotifier {
     CompoundShorthand shorthand, {
     FigureDraft? replacing,
   }) {
+    final draft = compoundShorthandDraft(shorthand);
+    return draft != null && placeShorthandDrafts([draft], replacing: replacing);
+  }
+
+  /// The row [insertCompoundShorthand] inserts, or null when the compound
+  /// cannot be expanded with the shorthand's values. Inserts nothing.
+  FigureDraft? compoundShorthandDraft(CompoundShorthand shorthand) {
     final compound = CompoundPlaceholder(
       id: shorthand.compoundId,
       name:
@@ -1501,9 +1526,9 @@ class DanceEditorController extends ChangeNotifier {
       args: {...shorthand.args},
     );
     final expanded = expandPlaceholder(compound, resolveCompound);
-    if (expanded == null) return false;
+    if (expanded == null) return null;
     compound.beats = CompoundDefinition.beatsOf(expanded, contraTaxonomy);
-    return _placeShorthandDraft(FigureDraft(compound: compound), replacing);
+    return FigureDraft(compound: compound);
   }
 
   /// Appends a use of the new figure [shorthand] stands for, with its values
@@ -1519,11 +1544,21 @@ class DanceEditorController extends ChangeNotifier {
     FigureDraft? replacing,
     int? beats,
   }) {
+    final draft = userFigureShorthandDraft(shorthand, beats: beats);
+    return draft != null && placeShorthandDrafts([draft], replacing: replacing);
+  }
+
+  /// The row [insertUserFigureShorthand] inserts, or null when the figure is
+  /// gone or no longer renders with the shorthand's values. Inserts nothing.
+  FigureDraft? userFigureShorthandDraft(
+    UserFigureShorthand shorthand, {
+    int? beats,
+  }) {
     final entry = _userFigureEntries[shorthand.figureId];
     final definition = _userFigureCatalog[shorthand.figureId]?.definition;
-    if (entry == null || definition == null) return false;
+    if (entry == null || definition == null) return null;
     final draft = FigureDraft();
-    if (!selectUserFigure(draft, entry.id, [entry])) return false;
+    if (!selectUserFigure(draft, entry.id, [entry])) return null;
     draft.params
       ..clear()
       ..addAll(
@@ -1546,8 +1581,7 @@ class DanceEditorController extends ChangeNotifier {
           Figure(move: customMove, params: draft.params),
         ) !=
         null;
-    if (!renders) return false;
-    return _placeShorthandDraft(draft, replacing);
+    return renders ? draft : null;
   }
 
   void deleteFigure(FigureDraft draft) {

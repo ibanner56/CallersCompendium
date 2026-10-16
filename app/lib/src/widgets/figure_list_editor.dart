@@ -175,18 +175,18 @@ class FigureListEditor extends StatefulWidget {
   /// Offered each free-text line before it is parsed (#709): inserts a row for
   /// one of the user's own figures, a compound or (#1023) a new figure, when
   /// the line is a shorthand for one that can be used (with or without a
-  /// leading or trailing beat count, #1861), and says whether it did. A line it
-  /// declines
-  /// is parsed as usual. Null (the default) offers none.
-  final bool Function(String line)? onSubmitCompoundShorthand;
+  /// leading or trailing beat count, #1861), or a `;` list with one as a
+  /// clause (#1866), and returns how many rows it inserted. A line it declines
+  /// (0) is parsed as usual. Null (the default) offers none.
+  final int Function(String line)? onSubmitCompoundShorthand;
 
   /// [onSubmitCompoundShorthand] for a line typed into the Move box of the
   /// existing row [draft] (#1847): on a match it puts that shorthand's row in
   /// the row's place, so the old row is replaced as a parsed line replaces it,
-  /// and says whether it did. A line it declines is parsed and replaces the
+  /// and returns how many rows replaced it. A line it declines (0) is parsed and replaces the
   /// row as before (#1177). Only used when free-text entry is
   /// active; null offers none.
-  final bool Function(FigureDraft draft, String line)? onReplaceWithShorthand;
+  final int Function(FigureDraft draft, String line)? onReplaceWithShorthand;
 
   /// User-defined shorthand → figure(s) mappings (issue #420) consulted
   /// during free-text entry before the parser (after
@@ -667,9 +667,10 @@ class _FigureListEditorState extends State<FigureListEditor> {
     if (onAddFreeText == null) return;
     // A compound shorthand inserts a placeholder row, which is not a [Figure]
     // the parser could return, so it is offered the line first.
-    if (widget.onSubmitCompoundShorthand?.call(_freeTextController.text) ??
-        false) {
-      _freeTextAccepted(1);
+    final shorthandRows =
+        widget.onSubmitCompoundShorthand?.call(_freeTextController.text) ?? 0;
+    if (shorthandRows > 0) {
+      _freeTextAccepted(shorthandRows);
       return;
     }
     final figures = parseFreeTextFigureEntry(
@@ -717,8 +718,9 @@ class _FigureListEditorState extends State<FigureListEditor> {
     // A shorthand for a compound or one of the user's figures is offered the
     // line first, as in the composer, since it is not a [Figure] the parser
     // returns.
-    if (widget.onReplaceWithShorthand?.call(draft, line) ?? false) {
-      _afterRowReplaced(draft, index, 1);
+    final shorthandRows = widget.onReplaceWithShorthand?.call(draft, line) ?? 0;
+    if (shorthandRows > 0) {
+      _afterRowReplaced(draft, index, shorthandRows);
       return true;
     }
     final figures = parseFreeTextFigureEntry(
