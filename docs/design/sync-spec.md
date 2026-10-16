@@ -262,7 +262,7 @@ last-writer-wins and strip them from the peer on every device (§6.7). The
 replace restore still clears the table, unchanged. That is a separate decision
 from the one for a merge restore, not a consequence of it: a replace may carry
 the same hazard (it too writes records stamped at restore time), and whether it
-should keep the rows is for the maintainer to settle. A row MUST follow its
+should keep the rows is not decided here. A row MUST follow its
 record when two identities become one, and MUST go when its record is
 hard-deleted or purged;
 every snapshot drops a row whose record no longer exists, so third-party

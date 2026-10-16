@@ -525,7 +525,8 @@ class SyncLocalTransaction {
   /// the kept part of a record is the only copy of what a peer's newer build
   /// put there. Clearing it for a record the writer stamps newer would let the
   /// body without it win last-writer-wins and strip it from the peer (§6.7).
-  /// [restoredRecords] only scopes which pending deletions survive.
+  /// [restoredRecords] only scopes which pending deletions survive, and only
+  /// when [revalidatePending] is true.
   Future<void> clearForRestore({
     required Iterable<SyncRecordAddress> restoredRecords,
     required bool clearRetainedParts,

@@ -453,7 +453,7 @@ void main() {
       // The archive carries tag t1 as the peer's copy has it, bar the field
       // this build does not know. A merge restore writes the tag, stamped at
       // restore time, so it is the newest copy: if the kept part went with the
-      // write, the zz-less body would win last-writer-wins and strip the field
+      // write, the body without it would win last-writer-wins and strip the field
       // from the peer on every device (spec §6.7).
       final peer = newerTag();
       await apply(peer);
