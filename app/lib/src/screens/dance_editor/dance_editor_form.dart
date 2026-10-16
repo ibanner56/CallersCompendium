@@ -142,10 +142,10 @@ class DanceEditorForm extends StatelessWidget {
   }
 
   /// Inserts the compound or own-figure shorthand whose token is [token], and
-  /// says whether it did. [beats] is a count typed with it: a compound is
-  /// several figures with beats of their own, so it ignores one, as a plain
-  /// shorthand for several figures does (#1827); an own figure is one, so it
-  /// takes it as its beats.
+  /// says whether it did. [beats] is a count typed with it: a compound row
+  /// takes its beats from the compound, so it ignores one (even for a compound
+  /// of a single figure); an own figure is one figure, so it takes it as its
+  /// beats.
   bool _insertShorthand(String token, int? beats, FigureDraft? replacing) {
     // Tokens are kept unique, but two devices can each add one before they
     // sync, and then the plain shorthand wins.

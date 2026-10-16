@@ -152,8 +152,8 @@ The same counts work on the shorthands for [your own figures](#your-own-figures)
 and for combinations, described below, whether typed into the free-text box or
 into the Move box of a row you are changing. `16 zm` and `zm (16)` add your
 figure with 16 beats, in place of the beats the shorthand was saved with, since
-it is one figure. A combination stands for several figures, each with its own
-beats, so the count is ignored and it is added as saved. A shorthand for a
+it is one figure. A count typed with a combination is ignored: it is added
+with the beats it was saved with. A shorthand for a
 plain figure with the same token as the one left after the count is taken off
 wins, as it does for a whole line.
 
