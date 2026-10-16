@@ -588,6 +588,85 @@ void main() {
     });
   });
 
+  group('Row ⋮ menu is operable from the keyboard alone (#1831)', () {
+    // Tab until the focused widget sits under the ⋮ button of row [index], then
+    // open the menu with Space — no pointer event anywhere.
+    Future<void> openRowMenuByKeyboard(WidgetTester tester, int index) async {
+      final menuKey = ValueKey('figure-$index-menu');
+      bool onMenuButton() {
+        var found = false;
+        FocusManager.instance.primaryFocus?.context?.visitAncestorElements((e) {
+          if (e.widget.key == menuKey) found = true;
+          return !found;
+        });
+        return found;
+      }
+
+      var guard = 0;
+      while (!onMenuButton() && guard++ < 120) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+      }
+      expect(onMenuButton(), isTrue, reason: 'Tab should reach the ⋮ button');
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pumpAndSettle();
+      expect(find.byKey(ValueKey('figure-$index-cut')), findsOneWidget);
+    }
+
+    testWidgets('Enter activates the first enabled item (Move down on row 0)', (
+      tester,
+    ) async {
+      final drafts = [
+        FigureDraft(move: 'balance', params: {'beats': 4}),
+        FigureDraft(move: 'swing', params: {'beats': 8}),
+      ];
+      await _pump(tester, drafts);
+      await openRowMenuByKeyboard(tester, 0);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+
+      expect(drafts.map((d) => d.move), ['swing', 'balance']);
+    });
+
+    testWidgets('Down + Enter reaches the next item (Cut)', (tester) async {
+      final drafts = [
+        FigureDraft(move: 'balance', params: {'beats': 4}),
+        FigureDraft(move: 'swing', params: {'beats': 8}),
+      ];
+      await _pump(tester, drafts);
+      await openRowMenuByKeyboard(tester, 1);
+
+      // Row 1 opens on Move up; Down is Move down (disabled on the last row,
+      // so skipped) and lands on Cut.
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+
+      expect(drafts.map((d) => d.move), ['balance']);
+    });
+
+    testWidgets('Escape closes the menu and returns focus to the ⋮ button', (
+      tester,
+    ) async {
+      await _pump(tester, [FigureDraft(move: 'balance')]);
+      await openRowMenuByKeyboard(tester, 0);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('figure-0-cut')), findsNothing);
+      final focus = FocusManager.instance.primaryFocus!;
+      var onButton = false;
+      focus.context!.visitAncestorElements((e) {
+        if (e.widget.key == const ValueKey('figure-0-menu')) onButton = true;
+        return !onButton;
+      });
+      expect(onButton, isTrue);
+    });
+  });
+
   testWidgets('Add menu hides unavailable container actions', (tester) async {
     final drafts = <FigureDraft>[];
     await _pump(tester, drafts, wireAddModifier: true);
