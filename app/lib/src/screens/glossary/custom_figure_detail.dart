@@ -167,7 +167,8 @@ class _GlossaryCustomFigureDetailState
     final l10n = AppLocalizations.of(context);
     final navigator = Navigator.of(context);
     final repos = _repos!;
-    // Read before anything is awaited: the delete can unmount this page.
+    // Read before anything is awaited: the delete can unmount this page (in
+    // the wide Glossary it does).
     final dialects = DialectLibraryScope.maybeOf(context);
     // A figure of your own is used by reference (#1023): say how many dances
     // keep its current wording as plain text (maintainer decision 2).
@@ -209,12 +210,14 @@ class _GlossaryCustomFigureDetailState
       // page from closing.
       try {
         await dialects?.forgetUserFigure(widget.entryId);
-        // The page stays until it pops below, so the matrix scope is still
-        // at hand.
-        if (mounted &&
-            ProgramMatrixColumnConfigScope.maybeNotifierOf(this.context) !=
+        // Through the navigator's context: in the wide Glossary the delete
+        // unmounts this page as soon as the list no longer holds the entry,
+        // and the matrix scope sits above the navigator.
+        final scopeContext = navigator.context;
+        if (scopeContext.mounted &&
+            ProgramMatrixColumnConfigScope.maybeNotifierOf(scopeContext) !=
                 null) {
-          await _dropMatrixColumn(repos);
+          await _dropMatrixColumn(scopeContext, repos);
         }
       } on Object catch (e, stackTrace) {
         logCaughtError(
@@ -231,8 +234,11 @@ class _GlossaryCustomFigureDetailState
 
   /// Drops the deleted figure's matrix column from the live config, then
   /// stores it, as the Matrix columns screen writes it (#1023, plan C9).
-  Future<void> _dropMatrixColumn(CompendiumRepositories repos) {
-    final matrix = ProgramMatrixColumnConfigScope.notifierOf(context);
+  Future<void> _dropMatrixColumn(
+    BuildContext scopeContext,
+    CompendiumRepositories repos,
+  ) {
+    final matrix = ProgramMatrixColumnConfigScope.notifierOf(scopeContext);
     final kept = matrix.value.withoutColumn(userFigureKeyFor(widget.entryId));
     if (identical(kept, matrix.value)) return Future.value();
     matrix.value = kept;

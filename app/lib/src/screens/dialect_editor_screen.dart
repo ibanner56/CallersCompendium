@@ -280,10 +280,6 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     return incomplete;
   }
 
-  /// Returns the edited dialect to the caller. If the assembled dialect has
-  /// validation issues (empty or ambiguous substitutions), they are surfaced
-  /// inline and the editor stays open. Templates that omit available slots are
-  /// saved only after the user confirms the affected figures.
   /// [dialect] without a wording for one of the user's figures that is just
   /// the figure's own (#1023): such a copy would freeze it, so a later edit to
   /// the figure's wording would not reach this dialect.
@@ -306,6 +302,10 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     );
   }
 
+  /// Returns the edited dialect to the caller. If the assembled dialect has
+  /// validation issues (empty or ambiguous substitutions), they are surfaced
+  /// inline and the editor stays open. Templates that omit available slots are
+  /// saved only after the user confirms the affected figures.
   Future<void> _save() async {
     final edited = _withoutOwnWordings(_assemble());
     final issues = edited.validate();
