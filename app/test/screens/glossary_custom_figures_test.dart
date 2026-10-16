@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/decimal_turns_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -519,9 +521,13 @@ void main() {
         find.byKey(const ValueKey('glossary-notes-field')),
         'Larks finish on the left',
       );
-      await tester.tap(find.byKey(const ValueKey('glossary-notes-save')));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNotNull);
+      // The failure escapes the button's callback, as an unexpected one does.
+      final uncaught = <Object>[];
+      await runZonedGuarded(() async {
+        await tester.tap(find.byKey(const ValueKey('glossary-notes-save')));
+        await tester.pumpAndSettle();
+      }, (error, _) => uncaught.add(error));
+      expect(uncaught, hasLength(1));
       final save = find.byKey(const ValueKey('glossary-notes-save'));
       expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
       // And the retry goes through once the failure is gone.
