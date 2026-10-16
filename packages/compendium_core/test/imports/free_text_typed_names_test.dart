@@ -118,10 +118,13 @@ void main() {
     });
 
     test('the import grammar wins when it reads the line', () {
-      // `pull by` is the move's name and two aliases' names; the grammar
-      // reads it as the move, and the name table is never consulted.
-      final f = parseFreeTextFigureEntry('pull by').single;
-      expect(f.move, 'pull_by');
+      // The grammar reads `swing` with its subject; the name table would
+      // state none, so it must not be consulted first.
+      expect(parseFreeTextFigureEntry('swing').single.params, {
+        'who': 'partners',
+      });
+      // `pull by` is the move's name and two aliases' names: the move.
+      expect(parseFreeTextFigureEntry('pull by').single.move, 'pull_by');
     });
 
     test(
