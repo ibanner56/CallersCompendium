@@ -238,7 +238,7 @@ Future<Uint8List?> pickImportUsrFile() async {
 ///
 /// `file_selector_linux` turns each extension into a GTK `*.<ext>` pattern and
 /// GTK patterns are case-sensitive, so on Linux a bare `usr` hides the
-/// `CallersCompanion2.USR` files Caller's Companion actually writes (#1823).
+/// CallersCompanion2.USR files Caller's Companion actually writes (#1823).
 /// There we list the lower-case, UPPER-case and Capitalised spellings. macOS and
 /// Windows match extensions case-insensitively, so they keep the bare list.
 ///
