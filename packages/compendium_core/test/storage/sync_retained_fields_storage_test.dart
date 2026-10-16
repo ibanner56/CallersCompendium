@@ -219,6 +219,7 @@ void main() {
     await apply(peer);
     expect(await repositories.syncLocal.listRetainedSyncFields(), hasLength(1));
 
+    // ignore: unused_result
     await repositories.customFieldDefs.upsert(
       CustomFieldDef(
         id: 'f1',
