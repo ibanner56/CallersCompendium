@@ -274,8 +274,12 @@ role names and wording the app uses when it describes dances.
 - **Open dance details in canonical terms** — when this and **Canonical figure
   text** are both on, dance details open in canonical wording. While
   **Canonical figure text** is off, this preference is kept but has no effect.
-- **Free-text entry** — when on, adding a figure lets you type a whole line
-  (for example "neighbor balance & swing") instead of building it field by field.
+- **Free-text entry** (off by default) — when on, adding a figure lets you type
+  a whole line (for example "neighbor balance & swing") instead of building it
+  field by field. A figure already in the dance still opens in the full editor,
+  but a line typed into its move and entered replaces it with what the line
+  reads as, and a new dance starts with no figures unless you have saved
+  starting figures. See [Free-text entry](./authoring.md#free-text-entry).
 - **Figure shorthands** — map short tokens to one or more figures you can insert
   during free-text entry. See
   [Figure shorthands](./authoring.md#figure-shorthands).
@@ -403,8 +407,9 @@ open this group. You can override any of them per dance, and
   dance.
 - **Default phrase structure** — leave blank for the standard 4×16 A1 A2 B1 B2, or
   set your own.
-- **Starting figures** — the figures a new dance begins with; defaults to a single
-  stand still of eight beats. Clear it for a blank new dance.
+- **Starting figures** — the figures a new dance begins with; defaults to eight
+  stand stills of eight beats each, or to none while **Free-text entry** is on.
+  Clear it for a blank new dance.
 - **Meanwhile defaults** — the ordinary side figures used when you choose **Add
   meanwhile** while authoring a dance. Leave this list empty to start with two
   blank sides, or configure up to six ordinary sides. If only one side is

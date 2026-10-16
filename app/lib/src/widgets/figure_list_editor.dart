@@ -20,8 +20,8 @@ import 'lingo_text_editing_controller.dart';
 import 'move_autocomplete.dart';
 import 'user_figure_use_editor.dart';
 
-/// Move id of the placeholder "stand still" figure that seeds new dances (see
-/// `defaultNewDanceFigureTemplate`). Activating such a figure opens its editor
+/// Move id of the placeholder "stand still" figure that seeds new dances while
+/// Free-text entry is off (see `defaultNewDanceFigureTemplate`). Activating such a figure opens its editor
 /// with the Move field cleared so the caller can type over the placeholder
 /// immediately, without first deleting the "stand still" text. Only the
 /// editing field is blanked — the stored draft keeps its move/params until a
@@ -1567,6 +1567,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // A user-authored custom figure carries no assumed subject (#460).
     widget.draft.assumedSubject = false;
     // Authoring a custom by hand is a stated choice, not a parser gap (#419).
+    // With free-text entry on, the line reaches here only when the list
+    // declined to replace the row with the parsed figures (#1177).
     widget.draft.customOrigin = CustomOrigin.userEntered;
     widget.draft.wordingOverride = null;
     _applyMoveParamDefaults(customMove);
