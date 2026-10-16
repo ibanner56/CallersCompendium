@@ -158,6 +158,102 @@ void main() {
     });
   });
 
+  group('parseFreeTextFigureEntry — a count is never silently dropped '
+      '(#1824)', () {
+    test('a leading "(N)" is the beat count, like a trailing one', () {
+      final f = parseFreeTextFigureEntry('(16) swing').single;
+      expect(f.move, 'swing');
+      expect(f.params['beats'], 16);
+    });
+
+    test('a bracketed "[N]" count is read at either end', () {
+      final lead = parseFreeTextFigureEntry('[8] circle left').single;
+      expect(lead.move, 'circle');
+      expect(lead.params['beats'], 8);
+      final trail = parseFreeTextFigureEntry('neighbor swing [16]').single;
+      expect(trail.move, 'swing');
+      expect(trail.params['beats'], 16);
+    });
+
+    test(
+      'a second stated count the parser would drop keeps the line whole',
+      () {
+        final f = parseFreeTextFigureEntry('(16) swing (8)').single;
+        expect(f.isCustom, isTrue);
+        expect(f.params['text'], '(16) swing (8)');
+        expect(f.params['beats'], 8);
+      },
+    );
+
+    test('a count too long to be beats is kept in a custom, not dropped', () {
+      for (final line in ['(99999) swing', 'swing [99999]']) {
+        final f = parseFreeTextFigureEntry(line).single;
+        expect(f.isCustom, isTrue, reason: line);
+        expect(f.params['text'], line);
+      }
+    });
+
+    test('a bracketed count glued to the move is still a count', () {
+      final lead = parseFreeTextFigureEntry('(16)swing').single;
+      expect(lead.move, 'swing');
+      expect(lead.params['beats'], 16);
+      final both = parseFreeTextFigureEntry('swing(16)(8)').single;
+      expect(both.isCustom, isTrue);
+      expect(both.params['text'], 'swing(16)(8)');
+    });
+
+    test('re-parse never drops a count a free-text custom kept', () {
+      for (final line in ['(99999) neighbors swing', '(16) swing (8)']) {
+        final custom = parseFreeTextFigureEntry(line);
+        final out = reparseImportGapFigures(custom);
+        expect(out.upgradedCount, 0, reason: line);
+        expect(out.figures.single.params['text'], line);
+      }
+    });
+
+    test('re-parse peels the count the beats already state', () {
+      final custom = customFigure(
+        '16 neighbor swing',
+        beats: 16,
+        origin: CustomOrigin.importGap,
+      );
+      final out = reparseImportGapFigures([custom]);
+      expect(out.upgradedCount, 1);
+      expect(out.figures.single.move, 'swing');
+      expect(out.figures.single.params['beats'], 16);
+    });
+
+    test('a zero count stays unspecified and tolerated, as before', () {
+      final f = parseFreeTextFigureEntry('(0) swing').single;
+      expect(f.isCustom, isFalse);
+      expect(f.params.containsKey('beats'), isFalse);
+    });
+
+    test('a compound that fails keeps every clause\'s count in its text', () {
+      final f = parseFreeTextFigureEntry(
+        '8 neighbor swing; 8 partner swing',
+      ).single;
+      expect(f.isCustom, isTrue);
+      expect(f.params['text'], '8 neighbor swing; 8 partner swing');
+    });
+
+    test('a custom keeps the typed count in its text, beats alongside', () {
+      final lead = parseFreeTextFigureEntry('16 foo bar').single;
+      expect(lead.params['text'], '16 foo bar');
+      expect(lead.params['beats'], 16);
+      final trail = parseFreeTextFigureEntry('foo bar (16)').single;
+      expect(trail.params['text'], 'foo bar (16)');
+      expect(trail.params['beats'], 16);
+    });
+
+    test('a line that structures is unchanged by the verbatim rule', () {
+      final fs = parseFreeTextFigureEntry('8 neighbor swing; partner swing');
+      expect(fs, hasLength(2));
+      expect(fs.every((f) => !f.isCustom), isTrue);
+      expect(fs.first.params['beats'], 8);
+    });
+  });
+
   group('parseFreeTextFigureEntry — bounded input (OWASP)', () {
     test('a line exactly at the length bound is still processed', () {
       // A non-trimmable payload exactly at the bound is not dropped: it flows
@@ -282,9 +378,10 @@ void main() {
       expect(fs, hasLength(1));
       expect(fs.single.isCustom, isTrue);
       expect(fs.single.customOrigin, CustomOrigin.importGap);
-      // The trailing inline beat is still peeled before the fan-out parse.
+      // The trailing inline beat is peeled before the fan-out parse and rides
+      // on the custom, whose text stays as typed (#1824).
       expect(fs.single.params['beats'], 16);
-      expect(fs.single.params['text'], 'qwx zzz nonsense');
+      expect(fs.single.params['text'], 'qwx zzz nonsense (16)');
     });
   });
 

@@ -3,7 +3,9 @@ import '../dialect/dialect.dart';
 import '../model/figure.dart';
 import '../taxonomy/taxonomy.dart';
 import 'figure_front_end_fan_out.dart';
+import 'figure_text_scrub.dart';
 import 'shorthand_mappings.dart';
+import 'structured_draft.dart';
 
 /// Longest inline beat count we will read from a free-text line. Bounds the
 /// captured digit run so a hostile/absurd value (`(999999999999)`) can never
@@ -22,21 +24,33 @@ const int _maxInlineBeatDigits = 4;
 /// rather than relying on any UI-side field limit.
 const int maxFreeTextEntryLength = 2000;
 
-/// A leading bare beat count: `16 balance and swing`. The digits must be
+/// A leading beat count: a bare `16 balance and swing`, or a bracketed
+/// `(16) balance and swing` / `[16] balance and swing`. A bare count must be
 /// followed by whitespace AND a non-empty remainder, so a fraction/positional
 /// token glued to the digits (`1/2 hey`, `1s cross`) is NOT mistaken for a
-/// count (there is no space after the leading digits in those).
+/// count (there is no space after the leading digits in those). A bracketed
+/// count needs no space (`(16)swing`), as the trailing form needs none.
 final RegExp _leadingBeats = RegExp(
-  '^(\\d{1,$_maxInlineBeatDigits})\\s+(\\S.*)\$',
+  '^(?:(\\d{1,$_maxInlineBeatDigits})\\s+'
+  '|[(\\[](\\d{1,$_maxInlineBeatDigits})[)\\]]\\s*)(\\S.*)\$',
 );
 
-/// A trailing parenthesised beat count: `balance and swing (16)`. Only a
-/// digits-only parenthesised group at the very end counts — a trailing prose
-/// annotation (`allemande (once)`) is left untouched because its contents are
-/// not all digits.
+/// A trailing bracketed beat count: `balance and swing (16)` or `… [16]`. Only
+/// a digits-only group at the very end counts — a trailing prose annotation
+/// (`allemande (once)`) is left untouched because its contents are not all
+/// digits.
 final RegExp _trailingBeats = RegExp(
-  '^(.*\\S)\\s*\\((\\d{1,$_maxInlineBeatDigits})\\)\$',
+  '^(.*\\S)\\s*[(\\[](\\d{1,$_maxInlineBeatDigits})[)\\]]\$',
 );
+
+/// A positive digits-only `(N)`/`[N]` group of ANY length at the start or end
+/// of a line. The recogniser tolerates such a group as an annotation and drops
+/// it, so one that [_splitInlineBeats] did not turn into the beat count (a
+/// second count, or one too long to be beats) must keep the line out of the
+/// parser or the number would vanish. A zero group is not matched: 0 is
+/// "unspecified", see [_splitInlineBeats].
+final RegExp _strayLeadingCount = RegExp(r'^[(\[]\s*0*[1-9]\d*\s*[)\]]');
+final RegExp _strayTrailingCount = RegExp(r'[(\[]\s*0*[1-9]\d*\s*[)\]]$');
 
 /// Result of splitting an optional inline beat count off a free-text line.
 class _BeatSplit {
@@ -48,15 +62,21 @@ class _BeatSplit {
   /// The extracted beat count, or 0 when the line stated none (0 is treated as
   /// "unspecified" everywhere downstream — see [parseFigureLine]).
   final int beats;
+
+  /// Whether [text] still starts or ends with a stated count that was not read
+  /// as [beats].
+  bool get hasStrayCount =>
+      _strayLeadingCount.hasMatch(text) || _strayTrailingCount.hasMatch(text);
 }
 
 /// Extracts an optional inline beat count from a trimmed free-text [line]. A
-/// trailing `(N)` is checked first (it is unambiguous — digits inside parens at
-/// the end), then a leading `N `. Returns the line unchanged with 0 beats when
-/// neither form is present — or when the stated count parses to 0. Because 0 is
-/// "unspecified" downstream, stripping a `(0)`/`0 ` token would silently mutate
-/// the user's text for no gain, so a zero count leaves the whole line intact
-/// (it flows into the parser verbatim — e.g. as an honest custom).
+/// trailing `(N)`/`[N]` is checked first (it is unambiguous — digits inside
+/// brackets at the end), then a leading `N `, `(N)` or `[N]`. Returns the
+/// line unchanged with 0 beats when neither form is present — or when the
+/// stated count parses to 0. Because 0 is "unspecified" downstream, stripping a
+/// `(0)`/`0 ` token would silently mutate the user's text for no gain, so a
+/// zero count leaves the whole line intact (it flows into the parser verbatim
+/// — e.g. as an honest custom).
 _BeatSplit _splitInlineBeats(String line) {
   final trailing = _trailingBeats.firstMatch(line);
   if (trailing != null) {
@@ -67,9 +87,9 @@ _BeatSplit _splitInlineBeats(String line) {
   }
   final leading = _leadingBeats.firstMatch(line);
   if (leading != null) {
-    final beats = int.tryParse(leading.group(1)!);
+    final beats = int.tryParse(leading.group(1) ?? leading.group(2)!);
     if (beats != null && beats > 0) {
-      return _BeatSplit(leading.group(2)!.trim(), beats);
+      return _BeatSplit(leading.group(3)!.trim(), beats);
     }
   }
   return _BeatSplit(line, 0);
@@ -111,13 +131,20 @@ _BeatSplit _splitInlineBeats(String line) {
 ///
 /// Before parsing, an optional inline beat count is peeled off the line and
 /// passed as the `beats` argument:
-/// - a **leading** `16 …` (a bare integer + space), or
-/// - a **trailing** `… (16)` (a parenthesised integer at the end).
+/// - a **leading** `16 …`, `(16) …` or `[16] …` (a bare integer + space, or a
+///   bracketed one, with or without a space), or
+/// - a **trailing** `… (16)` or `… [16]` (a bracketed integer at the end).
 ///
-/// Only ONE inline form is honoured per line: a trailing `(N)` is checked
-/// first and wins, so a line that redundantly supplies both (`16 … (8)`) keeps
-/// the leftover leading digits in its text (and typically degrades to a
-/// verbatim custom) rather than guessing which count the caller meant.
+/// Only ONE inline form is honoured per line: a trailing count is checked
+/// first and wins. A count that is not the one honoured (the leading digits of
+/// `16 … (8)`, a second bracketed group, one too long to be beats) is never
+/// dropped: it stays in the text, which then no longer parses and is kept as a
+/// custom. A zero count is not a count (0 is "unspecified"); it is left where
+/// it is.
+///
+/// A line that ends up custom keeps its typed text, counts included, rather
+/// than the remainder after a count was peeled; the peeled count still rides
+/// on the custom as its beats.
 ///
 /// When the line states no inline count the beats argument is left at 0, which
 /// [parseFigureLine] treats as "unspecified": a matched structured figure then
@@ -131,8 +158,9 @@ _BeatSplit _splitInlineBeats(String line) {
 /// (nothing to insert) or when it exceeds [maxFreeTextEntryLength] (treated as
 /// malformed/hostile input). Matched lines yield structured taxonomy figures;
 /// unrecognised lines yield [customMove] figures tagged
-/// [CustomOrigin.importGap] (via [parseFigureLine]) so they surface the #398
-/// parser-gap marker and remain eligible for the reparse-customs upgrade.
+/// [CustomOrigin.importGap] so they surface the #398 parser-gap marker. They
+/// remain eligible for the reparse-customs upgrade, except a line kept whole
+/// for a stray count, which [splitForReparse] keeps custom.
 List<Figure> parseFreeTextFigureEntry(
   String input, {
   Taxonomy? taxonomy,
@@ -151,6 +179,45 @@ List<Figure> parseFreeTextFigureEntry(
     if (expanded != null) return expanded;
   }
   final split = _splitInlineBeats(trimmed);
+  // A stray count keeps the line out of the parser, which would drop the
+  // number: it is kept whole as a custom.
+  final result = split.hasStrayCount
+      ? [_typedCustom(trimmed, split.beats)]
+      : _parseSplit(split, taxonomy: taxonomy, dialect: dialect);
+  // A line that stayed custom keeps the text as typed: the count peeled above
+  // would have left the custom with only its remainder.
+  if (split.beats > 0 && result.length == 1 && result.single.isCustom) {
+    return [_typedCustom(trimmed, split.beats)];
+  }
+  return result;
+}
+
+/// What to re-parse for a saved import-gap custom with [text] and [beats]
+/// (`reparseImportGapFigures`), or `null` when the line must stay custom.
+///
+/// A free-text custom keeps its count in its text and in its beats; peeling the
+/// count the beats already state lets the line upgrade once the parser learns
+/// it. A stray count (see [_BeatSplit.hasStrayCount]) keeps the line custom,
+/// since the recogniser would drop the number.
+({String text, int beats})? splitForReparse(String text, int beats) {
+  final split = _splitInlineBeats(text);
+  final peel = split.beats > 0 && split.beats == beats;
+  final line = peel ? split : _BeatSplit(text, 0);
+  if (line.hasStrayCount) return null;
+  return (text: line.text, beats: beats);
+}
+
+Figure _typedCustom(String trimmed, int beats) => customFigure(
+  scrubFigureText(trimmed),
+  beats: beats,
+  origin: CustomOrigin.importGap,
+);
+
+List<Figure> _parseSplit(
+  _BeatSplit split, {
+  Taxonomy? taxonomy,
+  Dialect? dialect,
+}) {
   // Fan OUT across the three source front-ends in precedence order
   // (ContraDB > CallersBox/TCB > CallersCompanion) and take the highest-
   // precedence attempt that structures the whole line to non-custom figure(s);

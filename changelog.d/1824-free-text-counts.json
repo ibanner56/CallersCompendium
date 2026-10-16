@@ -1,0 +1,14 @@
+{
+  "id": "1824-free-text-counts",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Free-text entry no longer glues words together when you paste text with a line break: the break becomes a space. A count in brackets, such as `(16) swing` or `[8] circle left`, is now read as the figure's beats instead of being silently dropped, and a line kept as a custom figure keeps your words as you typed them, count included."
+    ]
+  },
+  "core": {
+    "changed": [
+      "`parseFreeTextFigureEntry` reads a bracketed `(N)` or `[N]` count at either end as the beats, keeps a count it cannot use in a custom figure instead of dropping it, and keeps a custom figure's typed text, count included. Re-parsing a saved custom figure no longer drops such a count."
+    ]
+  }
+}
