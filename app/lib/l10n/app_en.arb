@@ -10585,9 +10585,9 @@
   "@retirementBannerLater": {
     "description": "End-of-support banner action that hides the banner until the app is next launched."
   },
-  "installLocationBannerMessage": "{appName} isn't installed yet: it is running from the downloaded disk image or archive. Quit it, drag it to your Applications folder, then open it from there.",
+  "installLocationBannerMessage": "{appName} may not be installed. It is running from the downloaded disk image or archive, or from a temporary read-only location that macOS set up for it. Quit it, drag or copy it into your Applications folder in Finder, then open it from there. If it is already in your Applications folder, you can dismiss this notice.",
   "@installLocationBannerMessage": {
-    "description": "macOS-only app-wide banner shown when the app was opened from inside the mounted .dmg (or a quarantined, translocated copy) instead of from Applications. 'Applications' is the macOS folder name; use the localized Finder name.",
+    "description": "macOS-only app-wide banner shown when the app's bundle is on a read-only volume: opened from inside the mounted .dmg, or from the temporary read-only location Gatekeeper makes for a quarantined app ('app translocation'), which is suspected (not reproduced) to happen to an app that is already in Applications too. Because of that second case the text must say the app 'may' not be installed rather than assert it, must not promise that moving it fixes the notice, and tells an already-installed user they can dismiss it. 'Applications' is the macOS folder name; use the localized Finder name. 'Finder' is the macOS file manager and keeps its name.",
     "placeholders": {
       "appName": {
         "type": "String"
