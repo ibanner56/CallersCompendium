@@ -534,7 +534,8 @@ class UpdateController extends ChangeNotifier {
   /// Deletes update-download directories that earlier runs left in the temp
   /// directory and nobody has touched for [kUpdateTempDirMinAge]; see
   /// [sweepStaleUpdateTempDirs]. The app calls it once per launch, fire and
-  /// forget. It needs no opt-in (it is local housekeeping and sends nothing)
+  /// forget, on every platform; only the Windows and Linux download flow makes
+  /// such directories, so elsewhere it finds nothing. It needs no opt-in (it is local housekeeping and sends nothing)
   /// and never throws: a temp directory that cannot be resolved or listed just
   /// means nothing is swept.
   ///

@@ -26,9 +26,11 @@ import 'package:path/path.dart' as p;
 
 import 'update_config.dart';
 
-/// What Dart's `Directory.createTemp` appends to a prefix: a run of ASCII
-/// letters and digits. Anything else after [kUpdateTempDirPrefix] was not
-/// created by the download, so it is not ours to delete.
+/// What Dart's `Directory.createTemp` normally appends to a prefix: a run of
+/// ASCII letters and digits. Anything else after [kUpdateTempDirPrefix] is not
+/// ours to delete, which at worst leaves the rare directory named some other
+/// way (Windows falls back to a hyphenated name when its first pick is taken)
+/// unswept.
 final RegExp _updateDirName = RegExp('^$kUpdateTempDirPrefix[A-Za-z0-9]+\$');
 
 /// The files this process is running from, for [sweepStaleUpdateTempDirs]'s
@@ -60,8 +62,8 @@ List<String> runningExecutablePaths({
 ///
 /// * it is a real directory (not a symlink, so a link planted in the shared
 ///   temp directory can never redirect the delete) whose name is
-///   [kUpdateTempDirPrefix] followed by letters and digits only, which is all
-///   `Directory.createTemp` ever generates;
+///   [kUpdateTempDirPrefix] followed by letters and digits only, which is what
+///   `Directory.createTemp` normally generates;
 /// * it does not contain any of [inUsePaths] (the running executable: pass
 ///   [runningExecutablePaths]). Paths are compared after resolving symbolic
 ///   links, by whole path segments, so `cc_update_ab` never protects or

@@ -874,6 +874,8 @@ void main() {
     // path off real I/O (which fake time cannot drive).
     testWidgets('cancel returns within a few seconds and the deferred cleanup '
         'removes the file once the close finally lands', (tester) async {
+      // The bound this test relies on, pinned so loosening it is a decision.
+      expect(kUpdateDiscardCloseTimeout, const Duration(seconds: 3));
       final sink = _HungCloseSink();
       final file = _MemoryFile('${tempDir.path}/artifact.exe', sink);
       // An `onCancel` is needed under fake time: without one, a controller's
