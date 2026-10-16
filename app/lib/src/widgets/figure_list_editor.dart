@@ -20,12 +20,13 @@ import 'lingo_text_editing_controller.dart';
 import 'move_autocomplete.dart';
 import 'user_figure_use_editor.dart';
 
-/// Move id of the placeholder "stand still" figure that seeds new dances (see
-/// `defaultNewDanceFigureTemplate`). Activating such a figure opens its editor
-/// with the Move field cleared so the caller can type over the placeholder
-/// immediately, without first deleting the "stand still" text. Only the
-/// editing field is blanked — the stored draft keeps its move/params until a
-/// real move is chosen, so nothing is lost if the editor is collapsed as-is.
+/// Move id of the placeholder "stand still" figure that seeds new dances while
+/// Free-text entry is off (see `defaultNewDanceFigureTemplate`). Activating
+/// such a figure opens its editor with the Move field cleared so the caller
+/// can type over the placeholder immediately, without first deleting the
+/// "stand still" text. Only the editing field is blanked — the stored draft
+/// keeps its move/params until a real move is chosen, so nothing is lost if
+/// the editor is collapsed as-is.
 const String _standStillMove = 'stand_still';
 
 /// Editable, keyboard-first figure list for the dance editor (`docs/design/
@@ -58,6 +59,7 @@ class FigureListEditor extends StatefulWidget {
     this.moveParamDefaults,
     this.freeTextEntry = false,
     this.onAddFreeText,
+    this.onReplaceWithFreeText,
     this.onSubmitCompoundShorthand,
     this.shorthandMappings,
     this.snippetLibraryDefaultFor,
@@ -140,8 +142,11 @@ class FigureListEditor extends StatefulWidget {
   /// typed line is routed through the shared core parser
   /// ([parseFreeTextFigureEntry]) and its result is inserted as editable row(s)
   /// via [onAddFreeText]. The callback returns the number of figures accepted
-  /// so filtered or capped input is not reported as inserted. Editing an
-  /// EXISTING figure always uses the structured editor regardless of this flag.
+  /// so filtered or capped input is not reported as inserted. An EXISTING
+  /// figure still opens in the structured editor, but when
+  /// [onReplaceWithFreeText] is also provided, Enter on text in its Move box
+  /// that matches no move runs the same parser and replaces the row (#1177,
+  /// decision D2) instead of making a stated custom figure.
   /// Takes effect only when [onAddFreeText] is also provided; otherwise the Add
   /// flow falls back to the structured [onAdd].
   final bool freeTextEntry;
@@ -150,6 +155,14 @@ class FigureListEditor extends StatefulWidget {
   /// list. Only used when [freeTextEntry] is true. A single typed line may yield
   /// more than one figure when it is a `;`-compound.
   final int Function(List<Figure> figures)? onAddFreeText;
+
+  /// Replaces the row [draft] with the figure(s) parsed from a line typed into
+  /// its Move box (#1177), in its place. Only used when free-text entry is
+  /// active (see [freeTextEntry]). Returns the number of figures accepted; 0
+  /// leaves the row as it was, and the line becomes a stated custom figure as
+  /// it does with free-text entry off. Null keeps that behaviour always.
+  final int Function(FigureDraft draft, List<Figure> figures)?
+  onReplaceWithFreeText;
 
   /// Offered each free-text line before it is parsed (#709): inserts a row for
   /// one of the user's own figures, a compound or (#1023) a new figure, when
@@ -660,6 +673,34 @@ class _FigureListEditorState extends State<FigureListEditor> {
     });
   }
 
+  /// Replaces [draft] with the figure(s) parsed from [line], typed into its
+  /// Move box and matching no move (#1177). Returns false when nothing was
+  /// replaced, so the caller makes the line a stated custom figure instead.
+  bool _replaceWithFreeText(FigureDraft draft, String line) {
+    final onReplace = widget.onReplaceWithFreeText;
+    if (!_freeTextEnabled || onReplace == null) return false;
+    final figures = parseFreeTextFigureEntry(
+      line,
+      taxonomy: widget.taxonomy,
+      shorthands: widget.shorthandMappings,
+      dialect: _dialect,
+    );
+    if (figures.isEmpty) return false;
+    final index = widget.drafts.indexOf(draft);
+    if (index == -1) return false;
+    final acceptedCount = onReplace(draft, figures);
+    if (acceptedCount <= 0) return false;
+    // The replaced row is gone; its replacements arrive collapsed, as rows
+    // from the composer do, with focus on the first of them.
+    if (_openDraftId == draft.id) setState(() => _openDraftId = null);
+    _announce(_l10n.danceEditorFreeTextRowReplacedAnnouncement(acceptedCount));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || index >= widget.drafts.length) return;
+      _rowFocusNode(widget.drafts[index].id).requestFocus();
+    });
+    return true;
+  }
+
   /// Closes the free-text composer and returns focus to Add or the last row.
   void _dismissFreeText({bool focusAddButton = true}) {
     _freeTextController.clear();
@@ -813,6 +854,10 @@ class _FigureListEditorState extends State<FigureListEditor> {
         compoundOptions: widget.compoundOptions,
         resolveCompound: widget.resolveCompound,
         userFigureOptions: widget.userFigureOptions,
+        onSubmitUnmatchedText:
+            _freeTextEnabled && widget.onReplaceWithFreeText != null
+            ? (line) => _replaceWithFreeText(draft, line)
+            : null,
         onChanged: widget.onChanged,
         onActivate: () => _toggleDraft(draft.id),
         onClose: () => _closeDraft(draft.id),
@@ -1168,6 +1213,7 @@ class _FigureDraftCard extends StatefulWidget {
     required this.draggable,
     required this.isOpen,
     required this.rowFocusNode,
+    this.onSubmitUnmatchedText,
     required this.onChanged,
     required this.onActivate,
     required this.onClose,
@@ -1230,6 +1276,11 @@ class _FigureDraftCard extends StatefulWidget {
 
   /// Focus node for the collapsed summary row (keyboard focus + focus ring).
   final FocusNode rowFocusNode;
+
+  /// Offered text entered in the Move box that matches no move, before it
+  /// becomes a stated custom figure; true means it replaced this row (#1177).
+  /// See [FigureListEditor.onReplaceWithFreeText].
+  final bool Function(String line)? onSubmitUnmatchedText;
 
   final VoidCallback onChanged;
 
@@ -1495,6 +1546,14 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     }
   }
 
+  /// Enter on Move-box text that matches no move: with free-text entry on, the
+  /// line is parsed and replaces this row (#1177); otherwise, or when the
+  /// replacement is declined, it becomes a stated custom figure.
+  void _submitUnmatched(String text) {
+    if (widget.onSubmitUnmatchedText?.call(text) ?? false) return;
+    _createCustom(text);
+  }
+
   void _createCustom(String text) {
     final trimmed = text.trim();
     // Ignore an all-whitespace submission rather than creating an empty
@@ -1509,6 +1568,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // A user-authored custom figure carries no assumed subject (#460).
     widget.draft.assumedSubject = false;
     // Authoring a custom by hand is a stated choice, not a parser gap (#419).
+    // With free-text entry on, the line reaches here only when the list
+    // declined to replace the row with the parsed figures (#1177).
     widget.draft.customOrigin = CustomOrigin.userEntered;
     widget.draft.wordingOverride = null;
     _applyMoveParamDefaults(customMove);
@@ -2168,7 +2229,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                   context,
                 ).glossaryCustomMarker,
                 onSelected: _onMoveOptionSelected,
-                onCustomSubmitted: widget.allowCustom ? _createCustom : null,
+                onCustomSubmitted: widget.allowCustom ? _submitUnmatched : null,
                 onCleared: _clearMove,
               ),
               if (def != null) ...[
@@ -2272,7 +2333,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 compoundOptions: _compoundPickerOptions(),
                 compoundMarkerLabel: l10n.glossaryCustomMarker,
                 onSelected: _onMoveOptionSelected,
-                onCustomSubmitted: widget.allowCustom ? _createCustom : null,
+                onCustomSubmitted: widget.allowCustom ? _submitUnmatched : null,
                 onCleared: _clearMove,
               ),
               if (definition != null)
@@ -2370,7 +2431,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 compoundOptions: _compoundPickerOptions(),
                 compoundMarkerLabel: l10n.glossaryCustomMarker,
                 onSelected: _onMoveOptionSelected,
-                onCustomSubmitted: widget.allowCustom ? _createCustom : null,
+                onCustomSubmitted: widget.allowCustom ? _submitUnmatched : null,
                 onCleared: _clearMove,
               ),
               const SizedBox(height: 12),

@@ -414,7 +414,9 @@ String dancePhraseStructureRawFromStored(Object? stored) {
 /// Key used to persist the default starting-figures TEMPLATE for new dances
 /// (ROADMAP DD.2). Stored as a `figures_json` string (the same shape a dance's
 /// figures use — see [encodeFigures]/[decodeFigures]). Absent/non-string/empty/
-/// invalid ⇒ [defaultNewDanceFigureTemplate] (ContraDB's `stand_still × 8`).
+/// invalid ⇒ [defaultNewDanceFigureTemplate] (ContraDB's `stand_still × 8`), or
+/// no figures when Free-text entry is on (#1177); see
+/// [danceFiguresTemplateFromStored].
 const String kDefaultDanceFiguresTemplateKey = 'default_dance_figures_template';
 
 /// Key used to persist the default side figures for a newly inserted meanwhile
@@ -428,8 +430,8 @@ const String kDefaultMeanwhileSideFiguresKey = 'default_meanwhile_side_figures';
 const String kDefaultModifierFiguresKey = 'default_modifier_figures';
 
 /// The default figure list a blank NEW dance begins with when the user hasn't
-/// configured a template (ROADMAP DD.2). Matches ContraDB's new-dance template:
-/// EIGHT `stand_still` figures, each of 8 beats.
+/// configured a template and Free-text entry is off (ROADMAP DD.2). Matches
+/// ContraDB's new-dance template: EIGHT `stand_still` figures, each of 8 beats.
 ///
 /// Returns a fresh list on each call so callers can safely map it into mutable
 /// drafts without sharing state.
@@ -447,10 +449,16 @@ List<Figure> defaultNewDanceFigureTemplate() => [
 /// Resolves a persisted settings value into the starting-figures template.
 ///
 /// A valid `figures_json` string is decoded verbatim — including `'[]'`, which
-/// yields an intentional EMPTY template. `null`, a non-string, or an
-/// unparseable/garbage string falls back to [defaultNewDanceFigureTemplate],
-/// preserving ContraDB parity for users who never touch the setting.
-List<Figure> danceFiguresTemplateFromStored(Object? stored) {
+/// yields an intentional EMPTY template — whatever [freeTextEntry] says. `null`,
+/// a non-string, or an unparseable/garbage string falls back to
+/// [defaultNewDanceFigureTemplate], preserving ContraDB parity for users who
+/// never touch the setting — unless [freeTextEntry] is on, when it falls back
+/// to no figures: rows are added by typing them, and placeholders would only
+/// have to be deleted first (#1177, decision D2).
+List<Figure> danceFiguresTemplateFromStored(
+  Object? stored, {
+  bool freeTextEntry = false,
+}) {
   if (stored is String) {
     try {
       return decodeFigures(
@@ -460,7 +468,7 @@ List<Figure> danceFiguresTemplateFromStored(Object? stored) {
       // diagnostics: silent — empty/malformed JSON falls back to the default template
     }
   }
-  return defaultNewDanceFigureTemplate();
+  return freeTextEntry ? <Figure>[] : defaultNewDanceFigureTemplate();
 }
 
 /// The safe fallback for a newly inserted meanwhile when no valid side

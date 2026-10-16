@@ -58,6 +58,7 @@ class _Host extends StatefulWidget {
     this.wireAddModifier = false,
     this.meanwhileAdder,
     this.freeTextAdder,
+    this.freeTextReplacer,
     this.allowAdding = true,
     this.allowDuplicating = true,
     this.allowModifierSelection = true,
@@ -80,6 +81,7 @@ class _Host extends StatefulWidget {
   final bool wireAddModifier;
   final Future<String?> Function(List<FigureDraft> drafts)? meanwhileAdder;
   final int Function(List<Figure> figures)? freeTextAdder;
+  final int Function(FigureDraft draft, List<Figure> figures)? freeTextReplacer;
   final bool allowAdding;
   final bool allowDuplicating;
   final bool allowModifierSelection;
@@ -176,6 +178,21 @@ class _HostState extends State<_Host> {
                       return figures.length;
                     }
                   : null,
+              onReplaceWithFreeText: widget.freeTextEntry
+                  ? (draft, figures) {
+                      if (widget.freeTextReplacer != null) {
+                        return widget.freeTextReplacer!(draft, figures);
+                      }
+                      final index = widget.drafts.indexOf(draft);
+                      setState(
+                        () => widget.drafts.replaceRange(index, index + 1, [
+                          for (final figure in figures)
+                            FigureDraft.fromFigure(figure),
+                        ]),
+                      );
+                      return figures.length;
+                    }
+                  : null,
               onDelete: (d) => setState(() => widget.drafts.remove(d)),
               onDuplicate: widget.wireDuplicate
                   ? (d) => setState(() {
@@ -247,6 +264,7 @@ Future<void> _pump(
   bool wireAddModifier = false,
   Future<String?> Function(List<FigureDraft> drafts)? meanwhileAdder,
   int Function(List<Figure> figures)? freeTextAdder,
+  int Function(FigureDraft draft, List<Figure> figures)? freeTextReplacer,
   bool allowAdding = true,
   bool allowDuplicating = true,
   bool allowModifierSelection = true,
@@ -278,6 +296,7 @@ Future<void> _pump(
       wireAddModifier: wireAddModifier,
       meanwhileAdder: meanwhileAdder,
       freeTextAdder: freeTextAdder,
+      freeTextReplacer: freeTextReplacer,
       allowAdding: allowAdding,
       allowDuplicating: allowDuplicating,
       allowModifierSelection: allowModifierSelection,
@@ -3763,9 +3782,8 @@ void main() {
       expect(drafts, isEmpty);
     });
 
-    testWidgets('editing an existing figure still uses the structured editor', (
-      tester,
-    ) async {
+    testWidgets('editing an existing figure still opens the structured '
+        'editor', (tester) async {
       final drafts = <FigureDraft>[
         FigureDraft.fromFigure(
           Figure(move: 'swing', params: const {'beats': 8}),
@@ -3773,11 +3791,122 @@ void main() {
       ];
       await _pump(tester, drafts, freeTextEntry: true);
 
-      // Opening an existing row never shows the free-text field; it opens the
-      // structured move input.
+      // Opening an existing row never shows the composer; it opens the
+      // structured move input, whose Enter on unmatched text runs the parser
+      // (below).
       await _openFigure(tester, 0);
       expect(find.byKey(const ValueKey('figure-0-move-input')), findsOneWidget);
       expect(find.byKey(fieldKey), findsNothing);
+    });
+
+    // Decision D2 on #1177 (Isaac, orchestration session, 2026-10-16) revisits
+    // the #419 ruling that a line typed into an existing row is a stated
+    // custom: with free text on, Enter on unmatched Move-box text runs the
+    // parser and replaces the row.
+    Future<void> submitInMoveBox(
+      WidgetTester tester,
+      int index,
+      String line,
+    ) async {
+      await _openFigure(tester, index);
+      await tester.enterText(
+        find.byKey(ValueKey('figure-$index-move-input')),
+        line,
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+    }
+
+    List<FigureDraft> threeRows() => [
+      FigureDraft.fromFigure(
+        Figure(move: 'stand_still', params: const {'beats': 8}),
+      ),
+      FigureDraft.fromFigure(
+        Figure(move: 'stand_still', params: const {'beats': 8}),
+      ),
+      FigureDraft.fromFigure(
+        Figure(move: 'swing', params: const {'who': 'partners', 'beats': 8}),
+      ),
+    ];
+
+    testWidgets('Enter on unmatched text in an existing row replaces it with '
+        'the parsed figures, in place, collapsed (#1177)', (tester) async {
+      final drafts = threeRows();
+      final kept = drafts[2];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await submitInMoveBox(tester, 1, 'circle left 3/4; turn alone');
+
+      expect(drafts.map((d) => d.move), [
+        'stand_still',
+        'circle',
+        'turn_alone',
+        'swing',
+      ]);
+      expect(drafts[3], same(kept));
+      // The replacements arrive collapsed, as composer rows do, with focus on
+      // the first of them.
+      expect(find.byKey(const ValueKey('figure-1-move-input')), findsNothing);
+      expect(
+        tester.binding.focusManager.primaryFocus?.debugLabel,
+        'figure-row-${drafts[1].id}',
+      );
+    });
+
+    testWidgets('an unrecognized line replaces the row with a badged '
+        'parser-gap custom (#1177)', (tester) async {
+      final drafts = threeRows();
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await submitInMoveBox(tester, 0, 'do a barrel roll into the sunset');
+
+      expect(drafts, hasLength(3));
+      expect(drafts[0].move, customMove);
+      expect(drafts[0].customOrigin, CustomOrigin.importGap);
+      expect(find.byType(ImportGapBadge), findsOneWidget);
+    });
+
+    testWidgets('a replacement the list declines falls back to a stated '
+        'custom (#1177)', (tester) async {
+      final drafts = threeRows();
+      await _pump(
+        tester,
+        drafts,
+        freeTextEntry: true,
+        freeTextReplacer: (_, _) => 0,
+      );
+
+      await submitInMoveBox(tester, 0, 'circle left 3/4; turn alone');
+
+      expect(drafts, hasLength(3));
+      expect(drafts[0].move, customMove);
+      expect(drafts[0].params['text'], 'circle left 3/4; turn alone');
+      expect(drafts[0].customOrigin, CustomOrigin.userEntered);
+    });
+
+    testWidgets('with free text off, unmatched text is still a stated custom '
+        '(#419)', (tester) async {
+      final drafts = threeRows();
+      await _pump(tester, drafts);
+
+      await submitInMoveBox(tester, 0, 'circle left 3/4; turn alone');
+
+      expect(drafts, hasLength(3));
+      expect(drafts[0].move, customMove);
+      expect(drafts[0].customOrigin, CustomOrigin.userEntered);
+    });
+
+    testWidgets('text that matches a move still selects it (#1177)', (
+      tester,
+    ) async {
+      final drafts = threeRows();
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await submitInMoveBox(tester, 0, 'circle');
+
+      expect(drafts, hasLength(3));
+      expect(drafts[0].move, 'circle');
     });
 
     testWidgets('Add appends a blank structured draft when disabled', (

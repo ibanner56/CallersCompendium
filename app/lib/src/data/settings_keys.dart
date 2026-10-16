@@ -90,7 +90,9 @@ const String kVenueEntityModeKey = 'venue_entity_mode';
 /// #419). Stored as a bool; absent/unset means off (`false`), so free-text
 /// entry is strictly opt-in. When on, adding a NEW figure opens a single
 /// free-text field (routed through the shared core parser) instead of a blank
-/// structured draft; editing an existing figure always stays structured.
+/// structured draft. An existing figure still opens structured, but Enter on
+/// Move-box text that matches no move replaces it with the parsed line, and a
+/// new dance with no saved starting template begins empty (#1177).
 const String kFreeTextEntryKey = 'free_text_entry';
 
 /// Idempotency latch for the one-time disclosure shown when a user creates

@@ -166,7 +166,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   /// live [FigureDraft] list driving the embedded [FigureListEditor]. Pre-seeded
   /// synchronously with the default `stand_still × 8` so the first frame shows a
   /// sensible template; [_ensureDefaultsLoaded] replaces it with the saved
-  /// template unless the user has already edited it (guard below).
+  /// template (or, when none is saved and Free-text entry is on, no figures —
+  /// #1177) unless the user has already edited it (guard below).
   final List<FigureDraft> _defaultDanceFigureDrafts = [
     for (final figure in defaultNewDanceFigureTemplate())
       FigureDraft.fromFigure(figure),
@@ -301,10 +302,20 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           },
         ),
         // The three figure templates keep their pre-seeded defaults on a
-        // failed read.
-        _loadSetting<List<Figure>>(
-          key: kDefaultDanceFiguresTemplateKey,
-          decode: danceFiguresTemplateFromStored,
+        // failed read. An unset starting template shows what a new dance
+        // gets, which depends on Free-text entry (#1177), so both are read.
+        _guardedRead<(Object?, Object?), List<Figure>>(
+          read: () async {
+            final settings = repos.settings;
+            return (
+              await settings.get(kDefaultDanceFiguresTemplateKey),
+              await settings.get(kFreeTextEntryKey),
+            );
+          },
+          decode: (stored) => danceFiguresTemplateFromStored(
+            stored.$1,
+            freeTextEntry: stored.$2 == true,
+          ),
           userSet: () => _defaultDanceFiguresUserSet,
           apply: (figures) => setState(() {
             _defaultDanceFigureDrafts
@@ -439,6 +450,40 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       if (superseded() || fallback == null) return;
       apply(fallback);
     }
+  }
+
+  /// Replaces [draft] in [drafts] with the figure(s) parsed from a line typed
+  /// into its Move box (#1177), then persists with [persist]. A [cap] marks a
+  /// side or modifier list, which holds only ordinary figures and at most
+  /// [cap] of them (the replaced row frees one place). Returns the number of
+  /// rows inserted; 0 changes nothing.
+  int _replaceWithFreeText(
+    List<FigureDraft> drafts,
+    FigureDraft draft,
+    List<Figure> figures, {
+    int? cap,
+    required Future<void> Function() persist,
+  }) {
+    final index = drafts.indexOf(draft);
+    if (index == -1) return 0;
+    var accepted = figures;
+    if (cap != null) {
+      final room = cap - drafts.length + 1;
+      if (room <= 0) return 0;
+      accepted = figures
+          .where((figure) => !figure.isContainer)
+          .take(room)
+          .toList();
+    }
+    if (accepted.isEmpty) return 0;
+    setState(
+      () => drafts.replaceRange(index, index + 1, [
+        for (final figure in accepted)
+          FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
+      ]),
+    );
+    unawaited(persist());
+    return accepted.length;
   }
 
   Future<void> _persistStartingProgramTemplate() async {
@@ -900,6 +945,13 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         _persistDanceFiguresTemplate();
         return figures.length;
       },
+      onDanceFigureTemplateReplaceWithFreeText: (draft, figures) =>
+          _replaceWithFreeText(
+            _defaultDanceFigureDrafts,
+            draft,
+            figures,
+            persist: _persistDanceFiguresTemplate,
+          ),
       onDanceFigureTemplateDelete: (draft) {
         setState(() => _defaultDanceFigureDrafts.remove(draft));
         _persistDanceFiguresTemplate();
@@ -949,6 +1001,14 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         _persistMeanwhileSideDefaults();
         return accepted.length;
       },
+      onMeanwhileSideReplaceWithFreeText: (draft, figures) =>
+          _replaceWithFreeText(
+            _defaultMeanwhileSideDrafts,
+            draft,
+            figures,
+            cap: kMaxMeanwhileSides,
+            persist: _persistMeanwhileSideDefaults,
+          ),
       onMeanwhileSideDelete: (draft) {
         setState(() => _defaultMeanwhileSideDrafts.remove(draft));
         _persistMeanwhileSideDefaults();
@@ -996,6 +1056,13 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         _persistModifierDefaults();
         return accepted.length;
       },
+      onModifierReplaceWithFreeText: (draft, figures) => _replaceWithFreeText(
+        _defaultModifierDrafts,
+        draft,
+        figures,
+        cap: kMaxModifierFigures,
+        persist: _persistModifierDefaults,
+      ),
       onModifierDelete: (draft) {
         setState(() => _defaultModifierDrafts.remove(draft));
         _persistModifierDefaults();
@@ -1334,6 +1401,7 @@ class _DefaultsView extends StatelessWidget {
     required this.onDanceFigureTemplateAdd,
     required this.onDanceFigureTemplateAddMeanwhile,
     required this.onDanceFigureTemplateAddFreeText,
+    required this.onDanceFigureTemplateReplaceWithFreeText,
     required this.onDanceFigureTemplateDelete,
     required this.onDanceFigureTemplateDuplicate,
     required this.onDanceFigureTemplateReorder,
@@ -1343,6 +1411,7 @@ class _DefaultsView extends StatelessWidget {
     required this.onMeanwhileSideChanged,
     required this.onMeanwhileSideAdd,
     required this.onMeanwhileSideAddFreeText,
+    required this.onMeanwhileSideReplaceWithFreeText,
     required this.onMeanwhileSideDelete,
     required this.onMeanwhileSideDuplicate,
     required this.onMeanwhileSideReorder,
@@ -1350,6 +1419,7 @@ class _DefaultsView extends StatelessWidget {
     required this.onModifierChanged,
     required this.onModifierAdd,
     required this.onModifierAddFreeText,
+    required this.onModifierReplaceWithFreeText,
     required this.onModifierDelete,
     required this.onModifierDuplicate,
     required this.onModifierReorder,
@@ -1416,6 +1486,11 @@ class _DefaultsView extends StatelessWidget {
   /// Inserts the figure(s) parsed from one free-text line into the template
   /// (#419); only used when [freeTextEntry] is on.
   final int Function(List<Figure>) onDanceFigureTemplateAddFreeText;
+
+  /// Replaces a template row with the figure(s) parsed from a line typed into
+  /// its Move box (#1177); only used when [freeTextEntry] is on.
+  final int Function(FigureDraft, List<Figure>)
+  onDanceFigureTemplateReplaceWithFreeText;
   final ValueChanged<FigureDraft> onDanceFigureTemplateDelete;
   final ValueChanged<FigureDraft> onDanceFigureTemplateDuplicate;
   final void Function(int oldIndex, int newIndex) onDanceFigureTemplateReorder;
@@ -1428,6 +1503,8 @@ class _DefaultsView extends StatelessWidget {
   final VoidCallback onMeanwhileSideChanged;
   final VoidCallback onMeanwhileSideAdd;
   final int Function(List<Figure>) onMeanwhileSideAddFreeText;
+  final int Function(FigureDraft, List<Figure>)
+  onMeanwhileSideReplaceWithFreeText;
   final ValueChanged<FigureDraft> onMeanwhileSideDelete;
   final ValueChanged<FigureDraft> onMeanwhileSideDuplicate;
   final void Function(int oldIndex, int newIndex) onMeanwhileSideReorder;
@@ -1435,6 +1512,7 @@ class _DefaultsView extends StatelessWidget {
   final VoidCallback onModifierChanged;
   final VoidCallback onModifierAdd;
   final int Function(List<Figure>) onModifierAddFreeText;
+  final int Function(FigureDraft, List<Figure>) onModifierReplaceWithFreeText;
   final ValueChanged<FigureDraft> onModifierDelete;
   final ValueChanged<FigureDraft> onModifierDuplicate;
   final void Function(int oldIndex, int newIndex) onModifierReorder;
@@ -2009,6 +2087,7 @@ class _DefaultsView extends StatelessWidget {
                 onChanged: onDanceFigureTemplateChanged,
                 onAdd: onDanceFigureTemplateAdd,
                 onAddFreeText: onDanceFigureTemplateAddFreeText,
+                onReplaceWithFreeText: onDanceFigureTemplateReplaceWithFreeText,
                 onDelete: onDanceFigureTemplateDelete,
                 onDuplicate: onDanceFigureTemplateDuplicate,
                 onReorder: onDanceFigureTemplateReorder,
@@ -2054,6 +2133,7 @@ class _DefaultsView extends StatelessWidget {
                 onChanged: onMeanwhileSideChanged,
                 onAdd: onMeanwhileSideAdd,
                 onAddFreeText: onMeanwhileSideAddFreeText,
+                onReplaceWithFreeText: onMeanwhileSideReplaceWithFreeText,
                 onDelete: onMeanwhileSideDelete,
                 onDuplicate: onMeanwhileSideDuplicate,
                 onReorder: onMeanwhileSideReorder,
@@ -2102,6 +2182,7 @@ class _DefaultsView extends StatelessWidget {
                 onChanged: onModifierChanged,
                 onAdd: onModifierAdd,
                 onAddFreeText: onModifierAddFreeText,
+                onReplaceWithFreeText: onModifierReplaceWithFreeText,
                 onDelete: onModifierDelete,
                 onDuplicate: onModifierDuplicate,
                 onReorder: onModifierReorder,

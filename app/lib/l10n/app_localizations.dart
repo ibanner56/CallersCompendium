@@ -3742,7 +3742,7 @@ abstract class AppLocalizations {
   /// Explanatory subtitle for the free-text-entry setting, describing what turning it on does.
   ///
   /// In en, this message translates to:
-  /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. Editing an existing figure always uses the full editor.'**
+  /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure\'s move and pressing Enter replaces that figure. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. New dances start with no figures unless you have saved starting figures.'**
   String get settingsDefaultsFreeTextEntrySubtitle;
 
   /// Title of the opt-in setting that makes the figure editor always recompute a figure's beat count from its move/params, even overriding a manually entered value (issue #689).
@@ -3832,7 +3832,7 @@ abstract class AppLocalizations {
   /// Explanation for the starting-figures default.
   ///
   /// In en, this message translates to:
-  /// **'The figures a new dance starts with. Defaults to a single stand still (8 beats); clear it for a blank new dance. Editable per dance.'**
+  /// **'The figures a new dance starts with. Defaults to eight stand stills (8 beats each), or to none while free-text entry is on; clear it for a blank new dance. Editable per dance.'**
   String get settingsDefaultsStartingFiguresSubtitle;
 
   /// Sub-heading for per-move default parameter overrides.
@@ -10745,6 +10745,12 @@ abstract class AppLocalizations {
   /// **'Type a move (e.g. \"sw\" → swing) and press Enter to add it with default params; unmatched text becomes a custom figure.'**
   String get danceEditorFiguresHelp;
 
+  /// Helper text above the figure list while the Free-text entry setting is on: figures are typed as whole lines, and a line typed into an existing figure's move field replaces it.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure\'s move replaces that figure. Anything unrecognized becomes a custom figure.'**
+  String get danceEditorFiguresHelpFreeText;
+
   /// Section heading for the dance notes fields.
   ///
   /// In en, this message translates to:
@@ -11678,6 +11684,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{Added 1 figure. Type another, or press Escape to finish.} other{Added {count} figures. Type another, or press Escape to finish.}}'**
   String danceEditorFreeTextFiguresAddedAnnouncement(int count);
+
+  /// Screen-reader announcement after a line typed into an existing figure's move field (with free-text entry on) replaced that figure with the figure(s) parsed from it.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Figure replaced.} other{Figure replaced with {count} figures.}}'**
+  String danceEditorFreeTextRowReplacedAnnouncement(int count);
 
   /// Screen-reader announcement after deleting a figure row.
   ///

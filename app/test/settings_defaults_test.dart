@@ -1691,6 +1691,90 @@ void main() {
       expect(stored.single.move, 'swing');
     });
 
+    testWidgets('with no template saved, the editor shows the empty start a '
+        'new dance gets (#1177)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('figure-0-summary')), findsNothing);
+      // Showing the default is not choosing it: nothing is persisted.
+      expect(
+        await repos.settings.contains(kDefaultDanceFiguresTemplateKey),
+        isFalse,
+      );
+    });
+
+    testWidgets('Enter on a line in a template row replaces the row with the '
+        'parsed figures (#1177)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+      await repos.settings.set(
+        kDefaultDanceFiguresTemplateKey,
+        encodeFigures([
+          Figure(move: 'stand_still', params: const {'beats': 8}),
+        ]),
+      );
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-move-input')),
+        'circle left 3/4; turn alone',
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      final stored = danceFiguresTemplateFromStored(
+        await repos.settings.get(kDefaultDanceFiguresTemplateKey),
+      );
+      expect(stored.map((f) => f.move), ['circle', 'turn_alone']);
+    });
+
+    testWidgets('a modifier-defaults row replaced at the cap keeps only the '
+        'figures that fit (#1177)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+      await repos.settings.set(
+        kDefaultModifierFiguresKey,
+        encodeModifierFigures([
+          for (var i = 0; i < kMaxModifierFigures; i++)
+            Figure(move: 'stand_still', params: const {'beats': 8}),
+        ]),
+      );
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('modifier-default-0-summary')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-move-input')),
+        'circle left 3/4; turn alone',
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      final stored = modifierFiguresFromStored(
+        await repos.settings.get(kDefaultModifierFiguresKey),
+      );
+      expect(stored, hasLength(kMaxModifierFigures));
+      expect(stored.first.move, 'circle');
+      expect(stored.skip(1).every((f) => f.move == 'stand_still'), isTrue);
+    });
+
     testWidgets('a line with no stated count persists its derived beats in the '
         'template (#1820)', (tester) async {
       final repos = openTestRepositories();

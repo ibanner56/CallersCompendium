@@ -75,6 +75,18 @@ three-quarters. A line that states no count starts with the figure's usual
 beats, and they follow the figure if you change its options. The app tells you
 how many figures it added and invites you to type another.
 
+The same works on a figure that is already in the dance. Open it, type a line
+into its move over what is there, and press Enter: if the line is not simply the
+name of a move, it is read the same way and the figure is replaced by what you
+typed, in its place. A line that reads as several figures replaces the one
+figure with all of them. Typing a move's name and choosing it still works as
+before. With **Free-text entry** off, a line typed there is kept as a custom
+figure holding your text.
+
+With **Free-text entry** on, a new dance starts with no figures, so there are no
+placeholders to delete first, unless you have saved your own
+[starting figures](#start-new-dances-the-way-you-work).
+
 It also understands common phrasings such as `N swing`, `neighbours balance and
 swing`, `half hey, ladies start by the right` and
 `allemande left 1 1/2 with neighbor`. A line whose leftover is only another
@@ -434,8 +446,9 @@ as:
 - **Type**, **Formation**, and **Progression** — what a new dance begins with.
 - **Default phrase structure** — seeded into new dances; blank means the standard
   4×16 (A1 A2 B1 B2).
-- **Starting figures** — the figures a new dance starts with. It defaults to a
-  single stand still of eight beats; clear it for a completely blank dance.
+- **Starting figures** — the figures a new dance starts with. It defaults to
+  eight stand stills of eight beats each, or to no figures while **Free-text
+  entry** is on; clear it for a completely blank dance.
 - **Meanwhile defaults** and **Modifier defaults** — the figures a new
   [meanwhile](#meanwhile-figures) or [modifier](#modifier-figures) group starts
   with.

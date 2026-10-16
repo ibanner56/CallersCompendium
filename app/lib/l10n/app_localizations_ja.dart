@@ -2316,7 +2316,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'オンにすると、新しいフィギュアを追加する際に「neighbor balance & swing」のように1行で入力できます（フィールドごとに入力する代わりに）。入力した行はフィギュアに解析されます。認識されなかった部分はカスタムフィギュアとして保存され、後で修正できます。既存のフィギュアの編集は常にフルエディターを使用します。';
+      'オンにすると、新しいフィギュアを追加する際に「neighbor balance & swing」のように1行で入力できます（フィールドごとに入力する代わりに）。既存のフィギュアのムーブに1行を入力してEnterキーを押すと、そのフィギュアが置き換えられます。入力した行はフィギュアに解析されます。認識されなかった部分はカスタムフィギュアとして保存され、後で修正できます。開始フィギュアを保存していない場合、新しいダンスはフィギュアなしで始まります。';
 
   @override
   String get settingsDefaultsAggressiveBeatsUpdateTitle => 'フィギュアの拍数を積極的に再計算';
@@ -2375,7 +2375,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDefaultsStartingFiguresSubtitle =>
-      '新しいダンスの開始フィギュアです。デフォルトは「静止」（8拍）です。空白の新しいダンスにする場合はクリアしてください。ダンスごとに編集可能です。';
+      '新しいダンスの開始フィギュアです。デフォルトは「静止」8つ（各8拍）で、フリーテキスト入力がオンの間はなしです。空白の新しいダンスにする場合はクリアしてください。ダンスごとに編集可能です。';
 
   @override
   String get settingsDefaultsMoveDefaultsTitle => 'ムーブのデフォルト設定';
@@ -6869,6 +6869,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'ムーブを入力して（例: \"sw\" → スイング）Enterキーを押すとデフォルトパラメーターで追加されます。一致しないテキストはカスタムフィギュアになります。';
 
   @override
+  String get danceEditorFiguresHelpFreeText =>
+      '「neighbor balance & swing」のように1行全体を入力してEnterキーを押すとフィギュアを追加できます。既存のフィギュアのムーブに1行を入力すると、そのフィギュアが置き換えられます。認識されなかった部分はカスタムフィギュアになります。';
+
+  @override
   String get danceEditorNotesSection => 'ノート';
 
   @override
@@ -7396,6 +7400,16 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other: '$count件のフィギュアを追加しました。さらに入力するか、Escキーを押して終了してください。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorFreeTextRowReplacedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'フィギュアを$count件のフィギュアに置き換えました。',
     );
     return '$_temp0';
   }

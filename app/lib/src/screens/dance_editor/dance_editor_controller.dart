@@ -478,9 +478,13 @@ class DanceEditorController extends ChangeNotifier {
   /// custom-field controllers from [fieldDefs], recomputes warnings, detects a
   /// pending autosave draft, and pushes the initial undo entry. Throwing
   /// propagates to the caller, which surfaces the load error.
+  ///
+  /// [freeTextEntry] is the "Free-text entry" setting: with it on, a new dance
+  /// with no saved starting template begins with no figures (#1177).
   Future<void> load({
     required Dance? dance,
     required List<CustomFieldDef> fieldDefs,
+    bool freeTextEntry = false,
   }) async {
     this.fieldDefs = fieldDefs;
     _difficultyLevels = await _repos.difficultyLevels.listAll();
@@ -599,20 +603,25 @@ class DanceEditorController extends ChangeNotifier {
         // diagnostics: silent — phrase structure default read failed; falls back to hardcoded standard.
       }
       // Seed the starting figures from the saved template (ROADMAP DD.2).
-      // Unset ⇒ the default `stand_still × 8`; a read/decode failure also
-      // falls back to the default rather than failing the editor load. This
+      // Unset ⇒ the default `stand_still × 8`, or no figures with Free-text
+      // entry on (#1177); a read/decode failure also falls back to that
+      // default rather than failing the editor load. This
       // runs BEFORE the draft-restore check + initial undo snapshot below, so
       // the first render shows the template, the initial undo entry captures
       // it, and a restored autosaved draft still overrides it.
       try {
         final template = danceFiguresTemplateFromStored(
           await _repos.settings.get(kDefaultDanceFiguresTemplateKey),
+          freeTextEntry: freeTextEntry,
         );
         figureDrafts.addAll(template.map(FigureDraft.fromFigure));
       } catch (_) {
-        // diagnostics: silent — figures template read/decode failed; falls back to default stand_still × 8.
+        // diagnostics: silent — figures template read/decode failed; falls back to the unset-template default.
         figureDrafts.addAll(
-          defaultNewDanceFigureTemplate().map(FigureDraft.fromFigure),
+          danceFiguresTemplateFromStored(
+            null,
+            freeTextEntry: freeTextEntry,
+          ).map(FigureDraft.fromFigure),
         );
       }
       _renderDraftTextRecursively(figureDrafts);
@@ -1427,6 +1436,28 @@ class DanceEditorController extends ChangeNotifier {
         FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
     ];
     figureDrafts.addAll(inserted);
+    _renderDraftTextRecursively(inserted);
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+    return inserted.length;
+  }
+
+  /// Replaces the row [draft] with the figure(s) parsed from a line typed into
+  /// its Move box (#1177, opt-in "Free-text entry"), in its place. The rows are
+  /// built as [insertFreeTextFigures] builds them, so parser-gap customs keep
+  /// the #398 marker and stay reparse-eligible. Returns the number of rows
+  /// inserted; 0 (an empty list, or [draft] no longer in the list) changes
+  /// nothing.
+  int replaceWithFreeTextFigures(FigureDraft draft, List<Figure> figures) {
+    final index = figureDrafts.indexOf(draft);
+    if (figures.isEmpty || index == -1) return 0;
+    final inserted = [
+      for (final figure in figures)
+        FigureDraft.fromFreeTextFigure(figure, contraTaxonomy),
+    ];
+    figureDrafts.replaceRange(index, index + 1, inserted);
     _renderDraftTextRecursively(inserted);
     recomputeWarnings();
     pushUndoNow();

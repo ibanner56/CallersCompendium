@@ -3050,7 +3050,7 @@
   "@settingsDefaultsFreeTextEntryTitle": {
     "description": "Title of the opt-in setting that lets a new figure be typed as one line instead of built field by field (#419)."
   },
-  "settingsDefaultsFreeTextEntrySubtitle": "When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. Editing an existing figure always uses the full editor.",
+  "settingsDefaultsFreeTextEntrySubtitle": "When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field, and typing a line into an existing figure's move and pressing Enter replaces that figure. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. New dances start with no figures unless you have saved starting figures.",
   "@settingsDefaultsFreeTextEntrySubtitle": {
     "description": "Explanatory subtitle for the free-text-entry setting, describing what turning it on does."
   },
@@ -3115,7 +3115,7 @@
   "@settingsDefaultsStartingFiguresTitle": {
     "description": "Sub-heading for the figures a new dance starts with."
   },
-  "settingsDefaultsStartingFiguresSubtitle": "The figures a new dance starts with. Defaults to a single stand still (8 beats); clear it for a blank new dance. Editable per dance.",
+  "settingsDefaultsStartingFiguresSubtitle": "The figures a new dance starts with. Defaults to eight stand stills (8 beats each), or to none while free-text entry is on; clear it for a blank new dance. Editable per dance.",
   "@settingsDefaultsStartingFiguresSubtitle": {
     "description": "Explanation for the starting-figures default."
   },
@@ -9240,6 +9240,10 @@
   "@danceEditorFiguresHelp": {
     "description": "Helper text above the figure list explaining type-ahead figure entry."
   },
+  "danceEditorFiguresHelpFreeText": "Add a figure by typing a whole line (e.g. \"neighbor balance & swing\") and pressing Enter. Typing a line into an existing figure's move replaces that figure. Anything unrecognized becomes a custom figure.",
+  "@danceEditorFiguresHelpFreeText": {
+    "description": "Helper text above the figure list while the Free-text entry setting is on: figures are typed as whole lines, and a line typed into an existing figure's move field replaces it."
+  },
   "danceEditorNotesSection": "Notes",
   "@danceEditorNotesSection": {
     "description": "Section heading for the dance notes fields."
@@ -10005,6 +10009,16 @@
   "danceEditorFreeTextFiguresAddedAnnouncement": "{count, plural, =1{Added 1 figure. Type another, or press Escape to finish.} other{Added {count} figures. Type another, or press Escape to finish.}}",
   "@danceEditorFreeTextFiguresAddedAnnouncement": {
     "description": "Screen-reader announcement after adding figure(s) from free-text entry.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorFreeTextRowReplacedAnnouncement": "{count, plural, =1{Figure replaced.} other{Figure replaced with {count} figures.}}",
+  "@danceEditorFreeTextRowReplacedAnnouncement": {
+    "description": "Screen-reader announcement after a line typed into an existing figure's move field (with free-text entry on) replaced that figure with the figure(s) parsed from it.",
     "placeholders": {
       "count": {
         "type": "int",
