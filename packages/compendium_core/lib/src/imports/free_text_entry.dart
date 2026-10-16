@@ -274,19 +274,18 @@ List<Figure> parseFreeTextFigureEntry(
 ///
 /// Only the unit-less counts are read here (`_reparseCounts`): this also runs
 /// over customs that came from imports, so a `beats` unit (#1826) is left to
-/// the parser, as it was before. One exception: once a count is peeled, a
-/// `beats`-unit count still left at either end is stray too
-/// (`circle left 8 beats (16)`), so the line stays custom as free-text entry
-/// kept it, rather than upgrading with two counts. Free-text and import
-/// customs share [CustomOrigin.importGap], so this applies to both.
+/// the parser, as it was before. One exception: a line that free-text entry
+/// would itself keep custom for a stray count, honouring the stored [beats]
+/// (`circle left 8 beats (16)`, `circle left 8 beats (16 beats)`), stays
+/// custom here too, rather than upgrading with two counts. Free-text and
+/// import customs share [CustomOrigin.importGap], so this applies to both.
 ({String text, int beats})? splitForReparse(String text, int beats) {
+  final typed = _splitInlineBeats(text);
+  if (beats > 0 && typed.beats == beats && typed.hasStrayCount) return null;
   final split = _splitInlineBeats(text, _reparseCounts);
   final peel = split.beats > 0 && split.beats == beats;
   final line = peel ? split : _BeatSplit(text, 0, _reparseCounts);
   if (line.hasStrayCount) return null;
-  if (peel && _BeatSplit(line.text, 0, _typedCounts).hasStrayCount) {
-    return null;
-  }
   return (text: line.text, beats: beats);
 }
 

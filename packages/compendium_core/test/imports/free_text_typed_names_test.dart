@@ -291,12 +291,19 @@ void main() {
 
     test('a line free text kept custom for a stray unit count stays custom '
         'on re-parse', () {
-      final typed = parseFreeTextFigureEntry('circle left 8 beats (16)').single;
-      expect(typed.isCustom, isTrue);
-      final outcome = reparseImportGapFigures([typed]);
-      expect(outcome.upgradedCount, 0);
-      expect(outcome.figures.single.isCustom, isTrue);
-      expect(outcome.figures.single.params['text'], 'circle left 8 beats (16)');
+      for (final line in [
+        'circle left 8 beats (16)',
+        // The honoured count has a unit too, which re-parse does not peel.
+        'circle left 8 beats (16 beats)',
+        '(8 beats) circle left 16 beats',
+        '16 beats circle left (8 beats)',
+      ]) {
+        final typed = parseFreeTextFigureEntry(line).single;
+        expect(typed.isCustom, isTrue, reason: line);
+        final outcome = reparseImportGapFigures([typed]);
+        expect(outcome.upgradedCount, 0, reason: line);
+        expect(outcome.figures.single.params['text'], line, reason: line);
+      }
     });
 
     test('a second count keeps the whole line custom', () {
