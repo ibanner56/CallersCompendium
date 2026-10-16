@@ -68,6 +68,7 @@ class FigureListEditor extends StatefulWidget {
     this.onAddFreeText,
     this.onReplaceWithFreeText,
     this.onSubmitCompoundShorthand,
+    this.onReplaceWithShorthand,
     this.shorthandMappings,
     this.snippetLibraryDefaultFor,
     this.onSnippetCommitted,
@@ -177,6 +178,14 @@ class FigureListEditor extends StatefulWidget {
   /// did. A line it declines
   /// is parsed as usual. Null (the default) offers none.
   final bool Function(String line)? onSubmitCompoundShorthand;
+
+  /// [onSubmitCompoundShorthand] for a line typed into the Move box of the
+  /// existing row [draft] (#1847): on a match it puts that shorthand's row in
+  /// the row's place, so the old row is replaced as a parsed line replaces it,
+  /// and says whether it did. A line it declines is parsed and replaces the
+  /// row as before (#1177). Only used when free-text entry is
+  /// active; null offers none.
+  final bool Function(FigureDraft draft, String line)? onReplaceWithShorthand;
 
   /// User-defined shorthand → figure(s) mappings (issue #420) consulted
   /// during free-text entry before the parser (after
@@ -686,6 +695,15 @@ class _FigureListEditorState extends State<FigureListEditor> {
   bool _replaceWithFreeText(FigureDraft draft, String line) {
     final onReplace = widget.onReplaceWithFreeText;
     if (!_freeTextEnabled || onReplace == null) return false;
+    final index = widget.drafts.indexOf(draft);
+    if (index == -1) return false;
+    // A shorthand for a compound or one of the user's figures is offered the
+    // line first, as in the composer, since it is not a [Figure] the parser
+    // returns.
+    if (widget.onReplaceWithShorthand?.call(draft, line) ?? false) {
+      _afterRowReplaced(draft, index, 1);
+      return true;
+    }
     final figures = parseFreeTextFigureEntry(
       line,
       taxonomy: widget.taxonomy,
@@ -693,10 +711,15 @@ class _FigureListEditorState extends State<FigureListEditor> {
       dialect: _dialect,
     );
     if (figures.isEmpty) return false;
-    final index = widget.drafts.indexOf(draft);
-    if (index == -1) return false;
     final acceptedCount = onReplace(draft, figures);
     if (acceptedCount <= 0) return false;
+    _afterRowReplaced(draft, index, acceptedCount);
+    return true;
+  }
+
+  /// Settles the editor after [draft], at [index], was replaced by
+  /// [acceptedCount] rows.
+  void _afterRowReplaced(FigureDraft draft, int index, int acceptedCount) {
     // The replaced row is gone; its replacements arrive collapsed, as rows
     // from the composer do, with focus on the first of them.
     if (_openDraftId == draft.id) setState(() => _openDraftId = null);
@@ -705,7 +728,6 @@ class _FigureListEditorState extends State<FigureListEditor> {
       if (!mounted || index >= widget.drafts.length) return;
       _rowFocusNode(widget.drafts[index].id).requestFocus();
     });
-    return true;
   }
 
   /// Closes the free-text composer and returns focus to Add or the last row.

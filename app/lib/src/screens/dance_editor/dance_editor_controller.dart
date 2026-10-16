@@ -1466,10 +1466,33 @@ class DanceEditorController extends ChangeNotifier {
     return inserted.length;
   }
 
+  /// Puts the shorthand row [draft] at the end of the list, or in place of
+  /// [replacing] (#1847) when that row is still in the list. Returns false,
+  /// changing nothing, when [replacing] was given but is gone.
+  bool _placeShorthandDraft(FigureDraft draft, FigureDraft? replacing) {
+    if (replacing == null) {
+      figureDrafts.add(draft);
+    } else {
+      final index = figureDrafts.indexOf(replacing);
+      if (index == -1) return false;
+      figureDrafts[index] = draft;
+    }
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+    return true;
+  }
+
   /// Appends a row for the compound [shorthand] stands for, with its values
   /// (#709), when that compound can be expanded with them; otherwise inserts
-  /// nothing and returns false, so the line is parsed as usual.
-  bool insertCompoundShorthand(CompoundShorthand shorthand) {
+  /// nothing and returns false, so the line is parsed as usual. With
+  /// [replacing] (#1847, a line typed into that row's Move box) the row takes
+  /// that row's place instead, and the old row is gone.
+  bool insertCompoundShorthand(
+    CompoundShorthand shorthand, {
+    FigureDraft? replacing,
+  }) {
     final compound = CompoundPlaceholder(
       id: shorthand.compoundId,
       name:
@@ -1480,20 +1503,19 @@ class DanceEditorController extends ChangeNotifier {
     final expanded = expandPlaceholder(compound, resolveCompound);
     if (expanded == null) return false;
     compound.beats = CompoundDefinition.beatsOf(expanded, contraTaxonomy);
-    figureDrafts.add(FigureDraft(compound: compound));
-    recomputeWarnings();
-    pushUndoNow();
-    scheduleAutosave();
-    _notify();
-    return true;
+    return _placeShorthandDraft(FigureDraft(compound: compound), replacing);
   }
 
   /// Appends a use of the new figure [shorthand] stands for, with its values
   /// and beats (#1023), when that figure is here and renders with them;
   /// otherwise inserts nothing and returns false, so the line is parsed as
   /// usual. Like a compound shorthand, it is not held to the dance's form:
-  /// typing the token is choosing the figure.
-  bool insertUserFigureShorthand(UserFigureShorthand shorthand) {
+  /// typing the token is choosing the figure. With [replacing] (#1847) the row
+  /// takes that row's place instead of being appended.
+  bool insertUserFigureShorthand(
+    UserFigureShorthand shorthand, {
+    FigureDraft? replacing,
+  }) {
     final entry = _userFigureEntries[shorthand.figureId];
     final definition = _userFigureCatalog[shorthand.figureId]?.definition;
     if (entry == null || definition == null) return false;
@@ -1522,12 +1544,7 @@ class DanceEditorController extends ChangeNotifier {
         ) !=
         null;
     if (!renders) return false;
-    figureDrafts.add(draft);
-    recomputeWarnings();
-    pushUndoNow();
-    scheduleAutosave();
-    _notify();
-    return true;
+    return _placeShorthandDraft(draft, replacing);
   }
 
   void deleteFigure(FigureDraft draft) {

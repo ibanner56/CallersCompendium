@@ -117,6 +117,33 @@ class DanceEditorForm extends StatelessWidget {
   /// contract `onCreateSource` has carried for a cancelled dialog.
   final Future<String?> Function(String name) onCreateTag;
 
+  /// Offers a free-text line to the compound and own-figure shorthands (#709,
+  /// #1023), appending a row, or with [replacing] (#1847) putting it in place of
+  /// that row. Null while neither kind is usable. Says whether it expanded.
+  bool Function(String line)? _shorthandSubmit(
+    BuildContext context, {
+    FigureDraft? replacing,
+  }) {
+    if ((compoundShorthands == null && userFigureShorthands == null) ||
+        !customFiguresShown(context)) {
+      return null;
+    }
+    return (line) {
+      // Tokens are kept unique, but two devices can each add one before they
+      // sync.
+      if (shorthandMappings?.resolve(line) != null) return false;
+      if (compoundShorthands?.resolve(line) case final shorthand?) {
+        return controller.insertCompoundShorthand(
+          shorthand,
+          replacing: replacing,
+        );
+      }
+      final mine = userFigureShorthands?.resolve(line);
+      return mine != null &&
+          controller.insertUserFigureShorthand(mine, replacing: replacing);
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -336,27 +363,11 @@ class DanceEditorForm extends StatelessWidget {
                       CanonicalDiscouragedTermsScope.of(context),
                   onAddFreeText: controller.insertFreeTextFigures,
                   onReplaceWithFreeText: controller.replaceWithFreeTextFigures,
-                  onSubmitCompoundShorthand:
-                      (compoundShorthands == null &&
-                              userFigureShorthands == null) ||
-                          !customFiguresShown(context)
+                  onSubmitCompoundShorthand: _shorthandSubmit(context),
+                  onReplaceWithShorthand: _shorthandSubmit(context) == null
                       ? null
-                      : (line) {
-                          // Tokens are kept unique, but two devices can each
-                          // add one before they sync.
-                          if (shorthandMappings?.resolve(line) != null) {
-                            return false;
-                          }
-                          if (compoundShorthands?.resolve(line)
-                              case final shorthand?) {
-                            return controller.insertCompoundShorthand(
-                              shorthand,
-                            );
-                          }
-                          final mine = userFigureShorthands?.resolve(line);
-                          return mine != null &&
-                              controller.insertUserFigureShorthand(mine);
-                        },
+                      : (draft, line) =>
+                            _shorthandSubmit(context, replacing: draft)!(line),
                   onDelete: controller.deleteFigure,
                   onDuplicate: controller.duplicateFigure,
                   onReorder: controller.reorderFigure,

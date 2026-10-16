@@ -293,6 +293,29 @@ void main() {
       return figuresOf(dance);
     }
 
+    /// Seeds three plain rows, then types [line] into the Move box of the
+    /// middle one and presses Enter (#1847).
+    Future<void> typeInExistingRow(WidgetTester tester, String line) async {
+      await typeLine(tester, 'neighbors swing');
+      for (final seed in ['partners swing', 'turn alone']) {
+        await tester.enterText(
+          find.byKey(const ValueKey('figure-free-text-field')),
+          seed,
+        );
+        await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.byKey(const ValueKey('figure-1-summary')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-1-move-input')),
+        line,
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+    }
+
     testWidgets('inserts a use of the figure with its values and beats', (
       tester,
     ) async {
@@ -371,6 +394,20 @@ void main() {
       await tester.pumpAndSettle();
       await typeLine(tester, 'zm');
       expect((await saved(tester, repos)).single.move, 'swing');
+    });
+
+    testWidgets('typed into an existing row\'s Move box, replaces the row in '
+        'place (#1847)', (tester) async {
+      final repos = await pump(tester, shorthands: [shorthand()]);
+      await typeInExistingRow(tester, 'zm');
+      final figures = await saved(tester, repos);
+      expect(figures, hasLength(3));
+      expect(figures[0].move, 'swing');
+      expect(figures[2].move, 'turn_alone');
+      final use = userFigureUseOf(figures[1]);
+      expect(use, isNotNull);
+      expect(use!.id, 'zoom-id');
+      expect(figures[1].params['text'], 'role2s zoom briskly');
     });
   });
 
