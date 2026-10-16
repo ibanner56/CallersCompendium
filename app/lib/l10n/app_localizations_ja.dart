@@ -7793,7 +7793,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String installLocationBannerMessage(String appName) {
-    return '$appNameはまだインストールされていません。ダウンロードしたディスクイメージまたはアーカイブから実行されています。アプリを終了し、「アプリケーション」フォルダにドラッグしてから、そこから開いてください。';
+    return '$appNameはインストールされていない可能性があります。ダウンロードしたディスクイメージまたはアーカイブから、あるいはmacOSが一時的に用意した読み取り専用の場所から実行されています。アプリを終了し、Finderで「アプリケーション」フォルダにドラッグまたはコピーしてから、そこから開いてください。すでに「アプリケーション」フォルダにある場合は、この通知を閉じてかまいません。';
   }
 
   @override

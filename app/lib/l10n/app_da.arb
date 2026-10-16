@@ -8026,9 +8026,9 @@
   "@retirementBannerLater": {
     "x-sourceSha256": "73b6e48a1b552d112502d37a7b7870436efc5ea1de0bca58ccf12d6ae15d3a0c"
   },
-  "installLocationBannerMessage": "{appName} er ikke installeret endnu: det kører fra det downloadede diskbillede eller arkiv. Afslut det, træk det til mappen Programmer, og åbn det derfra.",
+  "installLocationBannerMessage": "{appName} er muligvis ikke installeret. Det kører fra det downloadede diskbillede eller arkiv eller fra en midlertidig skrivebeskyttet placering, som macOS har oprettet til det. Afslut det, træk eller kopiér det til mappen Programmer i Finder, og åbn det derfra. Hvis det allerede ligger i mappen Programmer, kan du afvise denne meddelelse.",
   "@installLocationBannerMessage": {
-    "x-sourceSha256": "12c4548b3d19d088333888d7b32255d0bbea9beb23584cc08ffca881d395df8b"
+    "x-sourceSha256": "ee41af592bd281994bc194fd8b2ada6f12e842dfba13fb0ab0161cb3242f031c"
   },
   "installLocationBannerDismiss": "Afvis",
   "@installLocationBannerDismiss": {

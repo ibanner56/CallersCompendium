@@ -168,12 +168,27 @@ class FigureNoteInvalid implements Exception {
 /// The whole glossary, entries and [FigureNoteRepository] notes together, is
 /// held to [maxBytes] ([maxUserGlossaryBytes]) when written: see [upsert].
 class UserGlossaryRepository {
-  UserGlossaryRepository(this._db, {this.maxBytes = maxUserGlossaryBytes});
+  UserGlossaryRepository(
+    this._db, {
+    this.onUserFigureChanged,
+    this.maxBytes = maxUserGlossaryBytes,
+  });
 
   final CompendiumDatabase _db;
 
   /// The glossary's byte budget; only a test passes anything but the default.
   final int maxBytes;
+
+  /// Called, inside the write's transaction, after [upsert] or [delete]
+  /// writes an entry that is or was a figure of your own (#1023): the dance
+  /// index renders their uses from it, so the dances using it are reindexed.
+  /// An inbound sync apply needs nothing of its own: the apply engine
+  /// rebuilds every derived row after each batch, from the live figures.
+  final Future<void> Function(String id)? onUserFigureChanged;
+
+  Future<void> _userFigureChanged(String id, {required bool wasOrIs}) async {
+    if (wasOrIs) await onUserFigureChanged?.call(id);
+  }
 
   /// Every live entry, oldest first; with [includeDeleted], tombstones too.
   Future<List<UserGlossaryEntry>> listAll({bool includeDeleted = false}) async {
@@ -302,6 +317,12 @@ class UserGlossaryRepository {
         key: entry.id,
         at: now,
       );
+      await _userFigureChanged(
+        entry.id,
+        wasOrIs:
+            entry.kindName == UserGlossaryEntryKind.customFigure.name ||
+            existing?.kind == UserGlossaryEntryKind.customFigure.name,
+      );
       // Measured on what is stored, after the write, so what is counted is
       // what the backup will carry (not a second computation of it); throwing
       // rolls the whole write back.
@@ -378,14 +399,23 @@ class UserGlossaryRepository {
       );
 
   /// Deletes entry [id] softly, leaving a tombstone for sync to carry.
-  Future<void> delete(String id, {DateTime? at}) => stampExistenceTransition(
-    _db,
-    table: _db.userGlossaryEntries,
-    keyColumn: 'id',
-    key: id,
-    at: resolveStamp(at),
-    deleted: true,
-  );
+  Future<void> delete(String id, {DateTime? at}) => _db.transaction(() async {
+    await stampExistenceTransition(
+      _db,
+      table: _db.userGlossaryEntries,
+      keyColumn: 'id',
+      key: id,
+      at: resolveStamp(at),
+      deleted: true,
+    );
+    final row = await (_db.select(
+      _db.userGlossaryEntries,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    await _userFigureChanged(
+      id,
+      wasOrIs: row?.kind == UserGlossaryEntryKind.customFigure.name,
+    );
+  });
 
   SimpleSelectStatement<$UserGlossaryEntriesTable, UserGlossaryEntryRow>
   _live() =>
@@ -397,6 +427,11 @@ class UserGlossaryRepository {
     (t) => OrderingTerm.asc(t.createdAt),
     (t) => OrderingTerm.asc(t.id),
   ];
+
+  /// The model of a stored [row], for readers outside this repository (the
+  /// dance index reads the user's own figures, #1023).
+  static UserGlossaryEntry modelFromRow(UserGlossaryEntryRow row) =>
+      _toModel(row);
 
   static UserGlossaryEntry _toModel(UserGlossaryEntryRow row) =>
       UserGlossaryEntry(
