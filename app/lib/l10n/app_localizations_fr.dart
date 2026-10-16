@@ -7890,6 +7890,19 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String danceEditorFreeTextFiguresAddedConfirmation(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count figures ajoutées. Saisissez-en une autre ou choisissez « Terminé » pour terminer.',
+      one:
+          '1 figure ajoutée. Saisissez-en une autre ou choisissez « Terminé » pour terminer.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String danceEditorFreeTextRowReplacedAnnouncement(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

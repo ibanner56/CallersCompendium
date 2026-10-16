@@ -7746,6 +7746,10 @@
   "@danceEditorFreeTextFiguresAddedAnnouncement": {
     "x-sourceSha256": "c4d66c29eef8a2480eeff9c01651a491f5f23569bc7a17aa9f6d79d0e522c6ed"
   },
+  "danceEditorFreeTextFiguresAddedConfirmation": "{count, plural, =1{1 figure ajoutée. Saisissez-en une autre ou choisissez « Terminé » pour terminer.} other{{count} figures ajoutées. Saisissez-en une autre ou choisissez « Terminé » pour terminer.}}",
+  "@danceEditorFreeTextFiguresAddedConfirmation": {
+    "x-sourceSha256": "9d440af03e3cb398e592743aab104875b7a185a58ec28037919fb3fd2b40d32a"
+  },
   "danceEditorFreeTextRowReplacedAnnouncement": "{count, plural, =1{Figure remplacée.} other{Figure remplacée par {count} figures.}}",
   "@danceEditorFreeTextRowReplacedAnnouncement": {
     "x-sourceSha256": "692f1ac40a943ce8eda3d48e21914b9660167c3563fa0bce6ed3422af96115de"

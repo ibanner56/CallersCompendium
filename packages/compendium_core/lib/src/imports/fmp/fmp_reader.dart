@@ -154,7 +154,7 @@ const int kMaxCcInsertCallRows = 20000;
 /// A **CC-semantic** bound applied on top of [kMaxFmpRecords], for the same
 /// reason as [kMaxCcInsertCallRows]: a hand-built [FmpDatabase] bypasses the
 /// byte reader, and a hostile file could aim its whole record budget at the
-/// `Term` table. A real `CallersCompanion2.USR` has a handful of rows (the one
+/// `Term` table. A real CallersCompanion2.USR file has a handful of rows (the one
 /// seen has 2); 20k is vast headroom while refusing a pathological table.
 /// Exceeding it **fails closed** with a [FmpResourceLimitException].
 const int kMaxCcTermRows = 20000;
