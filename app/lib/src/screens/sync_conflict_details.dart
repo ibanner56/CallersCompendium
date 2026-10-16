@@ -571,6 +571,28 @@ class SyncConflictComparison extends StatelessWidget {
         // with the values it gives.
         return compoundShorthandValueText(l10n, value, dialect) ??
             l10n.syncConflictValueNotSet;
+      case userFigureShorthandsSettingKey:
+        // A use of one of the user's new figures (#1023): the line it would
+        // insert, in the figure's current wording, or, when this device can't
+        // render it, the figure's stored name and values, as a compound
+        // shorthand reads; then its beats, when it sets them.
+        final shorthand = UserFigureShorthands.decode([
+          value,
+        ]).shorthands.firstOrNull;
+        if (shorthand == null) return l10n.syncConflictValueNotSet;
+        final use = userFigureUseFigure(
+          id: shorthand.figureId,
+          args: shorthand.args,
+          text: shorthand.figureName,
+          beats: shorthand.beats,
+        );
+        final renderer = UserFiguresScope.rendererOf(context);
+        final line = renderer.renderUserFigureCanonical(use) != null
+            ? renderer.render(use, dialect)
+            : compoundShorthandValueText(l10n, value, dialect) ??
+                  renderer.render(use, dialect);
+        final beats = shorthand.beats;
+        return beats == null ? line : '$line · ${l10n.danceFigureBeats(beats)}';
       default:
         // A dialect or theme: name what differs inside it is beyond this
         // view; its name and a count of its parts tell the two apart.

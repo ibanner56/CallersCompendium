@@ -39,7 +39,10 @@ import 'package:compendium_app/src/data/soft_delete_retention.dart'
 import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart'
     show kWalkthroughSnippetsKey;
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart'
-    show kShorthandMappingsKey;
+    show
+        kCompoundShorthandsKey,
+        kShorthandMappingsKey,
+        kUserFigureShorthandsKey;
 import 'package:compendium_app/src/screens/settings_screen.dart'
     show
         kAppThemeKey,
@@ -322,6 +325,20 @@ void main() {
         }),
         isFalse,
       );
+    });
+
+    test('every kind of shorthand accepts a list or a string, and nothing '
+        'else (#709, #1023)', () {
+      for (final key in [kCompoundShorthandsKey, kUserFigureShorthandsKey]) {
+        expect(validateBackupSettingValue(key, []), isTrue, reason: key);
+        expect(validateBackupSettingValue(key, '[]'), isTrue, reason: key);
+        expect(validateBackupSettingValue(key, 42), isFalse, reason: key);
+        expect(
+          validateBackupSettingValue(key, <String, int>{'a': 1}),
+          isFalse,
+          reason: key,
+        );
+      }
     });
 
     test('program-matrix column config (#935): only a codec-parseable Map', () {
