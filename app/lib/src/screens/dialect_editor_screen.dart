@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/user_figures_scope.dart';
 import '../data/validation_issue_labels.dart';
 import '../search/facet_labels.dart' show humanizeToken;
 import '../widgets/collapsible_section.dart';
@@ -222,7 +223,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   List<String> _invalidMoveWordingLabels(Dialect dialect) => [
     for (final entry in dialect.moveWordings.entries)
       if (!FigureRenderer.isValidMoveWordingTemplate(entry.value))
-        _moveLabel(entry.key),
+        _label(entry.key),
   ];
 
   Map<String, String> _incompleteMoveWordings(Dialect dialect) {
@@ -235,7 +236,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
               .toList()
             ..sort();
       if (missing.isNotEmpty) {
-        incomplete[_moveLabel(entry.key)] = _renderer
+        incomplete[_label(entry.key)] = _renderer
             .moveWordingSlotLabels(entry.key, missing)
             .join(', ');
       }
@@ -263,7 +264,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
         if (missing.isNotEmpty ||
             !FigureRenderer.isValidMoveWordingTemplate(wording)) {
           final label = l10n.dialectEditorMoveWordingsConditionalLabel(
-            '${_moveLabel(moveEntry.key)}: ${_branchLabel(branchEntry.key, l10n)}',
+            '${_label(moveEntry.key)}: ${_branchLabel(branchEntry.key, l10n)}',
           );
           incomplete[label] = missing.isEmpty
               ? l10n.dialectEditorMoveWordingInvalid
@@ -401,7 +402,40 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     _onEdited();
   }
 
+  /// A move's label, or a figure of your own's name (#1023).
+  String _label(String id) => _entryLabel(
+    id,
+    UserFiguresScope.catalogOf(context),
+    _working,
+    AppLocalizations.of(context),
+  );
+
+  /// The keys of the user's figures a dialect can name or word, while Custom
+  /// Figures is on (#1023): each one whose definition decodes, by name.
+  List<String> _userFigureKeys() {
+    final catalog = UserFiguresScope.shownCatalogOf(context);
+    return [
+      for (final view in catalog.figures)
+        if (view.definition != null) userFigureKeyFor(view.id),
+    ]..sort(
+      (a, b) => _label(a).toLowerCase().compareTo(_label(b).toLowerCase()),
+    );
+  }
+
   void _addMoveWording(String moveId) {
+    if (isUserFigureKey(moveId)) {
+      // A figure of your own starts from its own wording.
+      final view = UserFiguresScope.catalogOf(
+        context,
+      )[moveId.substring(userFigureRefPrefix.length)];
+      setState(() {
+        _wordingCtrls[moveId] = TextEditingController(
+          text: view?.definition?.template ?? '',
+        );
+      });
+      _onEdited();
+      return;
+    }
     setState(() {
       final branches = _renderer.moveWordingBranchIds(moveId);
       if (branches.isEmpty) {
@@ -560,7 +594,15 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
         child: Text(
           [
-            ..._issues.map((i) => validationIssueMessage(l10n, i)),
+            ..._issues.map(
+              (i) => validationIssueMessage(
+                l10n,
+                i,
+                // Only a figure of your own's key is renamed: the other
+                // messages name moves and roles as they always have.
+                keyLabel: (key) => isUserFigureKey(key) ? _label(key) : key,
+              ),
+            ),
             if (_invalidMoveWordings.isNotEmpty)
               l10n.dialectEditorMoveWordingSaveError(
                 _invalidMoveWordings.join(', '),
@@ -589,6 +631,8 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       expanded: _showMoves,
       onExpansionChanged: (expanded) => setState(() => _showMoves = expanded),
       child: _MoveSubstitutionsEditor(
+        label: _label,
+        userFigureKeys: _userFigureKeys(),
         controllers: _moveCtrls,
         onEdited: _onEdited,
         onAdd: _addMoveSubstitution,
@@ -615,6 +659,9 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       onExpansionChanged: (expanded) =>
           setState(() => _showWordings = expanded),
       child: _MoveWordingsEditor(
+        label: _label,
+        userFigureKeys: _userFigureKeys(),
+        userFigures: UserFiguresScope.catalogOf(context),
         controllers: _wordingCtrls,
         branchControllers: _branchWordingCtrls,
         dialect: _working,
@@ -763,6 +810,8 @@ class _RoleTermsEditor extends StatelessWidget {
 /// other move. `%S` in a substitution injects the figure's handedness.
 class _MoveSubstitutionsEditor extends StatelessWidget {
   const _MoveSubstitutionsEditor({
+    required this.label,
+    required this.userFigureKeys,
     required this.controllers,
     required this.onEdited,
     required this.onAdd,
@@ -774,22 +823,24 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
   final ValueChanged<String> onAdd;
   final ValueChanged<String> onRemove;
 
-  static String _moveLabel(String id) =>
-      contraTaxonomy.moves[id]?.displayName ?? id;
+  /// A move's label, or a figure of your own's name.
+  final String Function(String id) label;
+
+  /// The user's figures that can be named (#1023), offered after the moves.
+  final List<String> userFigureKeys;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final overridden = controllers.keys.toList().reversed;
-    final available =
-        [
-          for (final m in contraTaxonomy.moves.values)
-            if (m.id != customMoveId && !controllers.containsKey(m.id)) m.id,
-        ]..sort(
-          (a, b) => _moveLabel(
-            a,
-          ).toLowerCase().compareTo(_moveLabel(b).toLowerCase()),
-        );
+    final available = [
+      for (final m in contraTaxonomy.moves.values)
+        if (m.id != customMoveId && !controllers.containsKey(m.id)) m.id,
+    ]..sort((a, b) => label(a).toLowerCase().compareTo(label(b).toLowerCase()));
+    available.addAll([
+      for (final key in userFigureKeys)
+        if (!controllers.containsKey(key)) key,
+    ]);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -810,10 +861,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
               iconEnabledColor: Theme.of(context).colorScheme.secondary,
               items: [
                 for (final id in available)
-                  DropdownMenuItem<String>(
-                    value: id,
-                    child: Text(_moveLabel(id)),
-                  ),
+                  DropdownMenuItem<String>(value: id, child: Text(label(id))),
               ],
               onChanged: (id) {
                 if (id != null) onAdd(id);
@@ -828,7 +876,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
                   SizedBox(
                     width: 140,
                     child: Text(
-                      _moveLabel(id),
+                      label(id),
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
@@ -837,7 +885,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
                       key: ValueKey('dialect-move-$id'),
                       controller: controllers[id],
                       decoration: InputDecoration(
-                        labelText: _moveLabel(id),
+                        labelText: label(id),
                         hintText: l10n.dialectEditorMoveSubHint,
                         hintMaxLines: 4,
                       ),
@@ -859,7 +907,25 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
   }
 }
 
-String _moveLabel(String id) => contraTaxonomy.moves[id]?.displayName ?? id;
+final FigureRenderer _labelRenderer = FigureRenderer(contraTaxonomy);
+
+/// A dialect entry's label: a move's name, or, for a figure of your own's
+/// `userFigure:<id>` key (#1023), the figure's name in [dialect], or a note
+/// that it isn't on this device when [userFigures] lacks it.
+String _entryLabel(
+  String id,
+  UserFigureCatalog userFigures,
+  Dialect dialect,
+  AppLocalizations l10n,
+) {
+  if (isUserFigureKey(id)) {
+    final view = userFigures[id.substring(userFigureRefPrefix.length)];
+    return view == null
+        ? l10n.dialectEditorUserFigureGone
+        : _labelRenderer.renderFreeText(view.name, dialect);
+  }
+  return contraTaxonomy.moves[id]?.displayName ?? id;
+}
 
 String _branchLabel(String branch, AppLocalizations l10n) => switch (branch) {
   'inOnly' => l10n.dialectEditorMoveWordingBranchInOnly,
@@ -877,6 +943,9 @@ String _branchLabel(String branch, AppLocalizations l10n) => switch (branch) {
 /// renderer still falls back defensively for imported or migrated data.
 class _MoveWordingsEditor extends StatelessWidget {
   const _MoveWordingsEditor({
+    required this.label,
+    required this.userFigureKeys,
+    required this.userFigures,
     required this.controllers,
     required this.branchControllers,
     required this.dialect,
@@ -896,24 +965,32 @@ class _MoveWordingsEditor extends StatelessWidget {
   final ValueChanged<String> onRemoveBranch;
   final VoidCallback onRestoreDefaults;
 
+  /// A move's label, or a figure of your own's name.
+  final String Function(String id) label;
+
+  /// The user's figures that can be worded (#1023), offered after the moves.
+  final List<String> userFigureKeys;
+
+  /// The user's figures, for a figure's slots and preview.
+  final UserFigureCatalog userFigures;
+
   static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final configured = controllers.keys.toList().reversed;
-    final available =
-        [
-          for (final move in contraTaxonomy.moves.values)
-            if (move.id != customMoveId &&
-                !controllers.containsKey(move.id) &&
-                !branchControllers.containsKey(move.id))
-              move.id,
-        ]..sort(
-          (a, b) => _moveLabel(
-            a,
-          ).toLowerCase().compareTo(_moveLabel(b).toLowerCase()),
-        );
+    final available = [
+      for (final move in contraTaxonomy.moves.values)
+        if (move.id != customMoveId &&
+            !controllers.containsKey(move.id) &&
+            !branchControllers.containsKey(move.id))
+          move.id,
+    ]..sort((a, b) => label(a).toLowerCase().compareTo(label(b).toLowerCase()));
+    available.addAll([
+      for (final key in userFigureKeys)
+        if (!controllers.containsKey(key)) key,
+    ]);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -954,10 +1031,7 @@ class _MoveWordingsEditor extends StatelessWidget {
               iconEnabledColor: Theme.of(context).colorScheme.secondary,
               items: [
                 for (final id in available)
-                  DropdownMenuItem<String>(
-                    value: id,
-                    child: Text(_moveLabel(id)),
-                  ),
+                  DropdownMenuItem<String>(value: id, child: Text(label(id))),
               ],
               onChanged: (id) {
                 if (id != null) onAdd(id);
@@ -980,6 +1054,7 @@ class _MoveWordingsEditor extends StatelessWidget {
   }
 
   Widget _wordingRow(BuildContext context, String id, AppLocalizations l10n) {
+    if (isUserFigureKey(id)) return _userFigureWordingRow(context, id, l10n);
     final controller = controllers[id]!;
     final text = controller.text;
     final known = _renderer.moveWordingSlots(id);
@@ -1008,7 +1083,7 @@ class _MoveWordingsEditor extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  _moveLabel(id),
+                  label(id),
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
@@ -1073,6 +1148,114 @@ class _MoveWordingsEditor extends StatelessWidget {
     );
   }
 
+  /// A wording for one of the user's figures (#1023): its slots are the
+  /// figure's own, a slot it lacks makes the figure keep its own wording, and
+  /// the preview reads with its defaults. A parameter the wording leaves out
+  /// is only noted, as the figure's own wording may leave one out.
+  Widget _userFigureWordingRow(
+    BuildContext context,
+    String id,
+    AppLocalizations l10n,
+  ) {
+    final theme = Theme.of(context);
+    final controller = controllers[id]!;
+    final text = controller.text;
+    final figureId = id.substring(userFigureRefPrefix.length);
+    final definition = userFigures[figureId]?.definition;
+    final known = definition?.slots ?? const <String>{};
+    final used = userFigureTemplateSlots(text);
+    final unknown = used.difference(known).toList()..sort();
+    final valid = FigureRenderer.isValidMoveWordingTemplate(text);
+    final unused = definition == null
+        ? const <String>[]
+        : ([
+            for (final p in definition.params)
+              if (!used.contains(p.key) &&
+                  !used.contains(userFigureOppositeSlot(p.key)))
+                p.key,
+          ]..sort());
+    final preview = definition == null
+        ? null
+        : FigureRenderer(contraTaxonomy, userFigures: userFigures).render(
+            userFigureUseFigure(
+              id: figureId,
+              args: {
+                for (final p in definition.params)
+                  if (p.defaultValue != null) p.key: p.defaultValue,
+              },
+              text: '',
+            ),
+            dialect.copyWith(moveWordings: {...dialect.moveWordings, id: text}),
+          );
+    String slotList(Iterable<String> slots) =>
+        [for (final slot in slots) '{$slot}'].join(', ');
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(label(id), style: theme.textTheme.bodyMedium),
+              ),
+              IconButton(
+                key: ValueKey('dialect-wording-delete-$id'),
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: theme.colorScheme.error,
+                ),
+                tooltip: l10n.commonRemove,
+                onPressed: () => onRemove(id),
+              ),
+            ],
+          ),
+          TextField(
+            key: ValueKey('dialect-wording-$id'),
+            controller: controller,
+            maxLength: kMaxMoveWordingLength,
+            decoration: InputDecoration(
+              labelText: l10n.dialectEditorMoveWordingLabel,
+              hintText: definition?.template,
+            ),
+            onChanged: (_) => onEdited(),
+          ),
+          if (definition != null)
+            Text(
+              l10n.dialectEditorMoveWordingSlots(
+                slotList(known.toList()..sort()),
+              ),
+              style: theme.textTheme.bodySmall,
+            ),
+          if (!valid)
+            Text(
+              l10n.dialectEditorMoveWordingInvalid,
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          if (unknown.isNotEmpty)
+            Text(
+              l10n.dialectEditorUserFigureWordingUnknownSlots(
+                slotList(unknown),
+              ),
+              key: ValueKey('dialect-wording-unknown-$id'),
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          if (valid && unknown.isEmpty && unused.isNotEmpty)
+            Text(
+              l10n.dialectEditorMoveWordingOptionalSlots(slotList(unused)),
+              style: TextStyle(color: theme.colorScheme.tertiary),
+            ),
+          if (preview != null)
+            Text(
+              l10n.dialectEditorMoveWordingPreview(preview),
+              key: ValueKey('dialect-wording-preview-$id'),
+              style: theme.textTheme.bodySmall,
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _branchWordingGroup(
     BuildContext context,
     String moveId,
@@ -1088,9 +1271,7 @@ class _MoveWordingsEditor extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  l10n.dialectEditorMoveWordingsConditionalLabel(
-                    _moveLabel(moveId),
-                  ),
+                  l10n.dialectEditorMoveWordingsConditionalLabel(label(moveId)),
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),

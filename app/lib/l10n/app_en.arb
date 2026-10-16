@@ -12078,6 +12078,19 @@
       }
     }
   },
+  "dialectEditorUserFigureGone": "One of your figures, not on this device",
+  "@dialectEditorUserFigureGone": {
+    "description": "Label of a dialect's name or wording for one of the user's own new figures (#1023) when that figure is not on this device (deleted, or not yet synced here)."
+  },
+  "dialectEditorUserFigureWordingUnknownSlots": "Your figure has no {slots}, so it reads with its own wording until you remove them.",
+  "@dialectEditorUserFigureWordingUnknownSlots": {
+    "description": "Shown under a dialect's wording for one of the user's own new figures (#1023) when the wording uses slots the figure doesn't have: the figure then keeps its own wording. {slots} is a comma-separated list such as '{gone}, {other}'.",
+    "placeholders": {
+      "slots": {
+        "type": "String"
+      }
+    }
+  },
   "dialectEditorMoveWordingOptionalSlots": "This template omits optional slots: {slots}",
   "@dialectEditorMoveWordingOptionalSlots": {
     "description": "Notice shown when a move wording template omits optional placeholders.",

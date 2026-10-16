@@ -288,6 +288,26 @@ class MatrixColumnConfig {
     for (final c in compound) c.id,
   };
 
+  /// This config without the column [id] in its order, hidden set or renames:
+  /// what deleting the figure of your own a `userFigure:<id>` column stands
+  /// for leaves of it (#1023, plan C9). The same instance when [id] is in
+  /// none of them.
+  MatrixColumnConfig withoutColumn(String id) {
+    if (!order.contains(id) &&
+        !hidden.contains(id) &&
+        !renames.containsKey(id)) {
+      return this;
+    }
+    return copyWith(
+      order: [
+        for (final o in order)
+          if (o != id) o,
+      ],
+      hidden: {...hidden}..remove(id),
+      renames: {...renames}..remove(id),
+    );
+  }
+
   /// JSON-encodable map. [hidden] is emitted as a sorted list for deterministic
   /// output (JSON has no set type).
   Map<String, Object?> toJson() => {

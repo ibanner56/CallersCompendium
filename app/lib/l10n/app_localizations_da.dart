@@ -9215,6 +9215,15 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get dialectEditorUserFigureGone =>
+      'En af dine figurer, ikke på denne enhed';
+
+  @override
+  String dialectEditorUserFigureWordingUnknownSlots(String slots) {
+    return 'Din figur har ingen $slots, så den læses med sin egen ordlyd, indtil du fjerner dem.';
+  }
+
+  @override
   String dialectEditorMoveWordingOptionalSlots(String slots) {
     return 'Denne skabelon udelader valgfrie pladsholdere: $slots';
   }

@@ -5,8 +5,12 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
+import '../../data/dialect_library_controller.dart';
 import '../../data/dialect_library_scope.dart';
+import '../../data/persisted_preference.dart';
+import '../../data/program_matrix_column_config_scope.dart';
 import '../../data/repositories_scope.dart';
+import '../../data/settings_keys.dart';
 import '../../data/show_custom_figures_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
 import '../../glossary/custom_figures.dart';
@@ -163,6 +167,9 @@ class _GlossaryCustomFigureDetailState
     final l10n = AppLocalizations.of(context);
     final navigator = Navigator.of(context);
     final repos = _repos!;
+    // Read before anything is awaited: the delete can unmount this page.
+    final dialects = DialectLibraryScope.maybeOf(context);
+    final matrix = ProgramMatrixColumnConfigScope.maybeNotifierOf(context);
     // A figure of your own is used by reference (#1023): say how many dances
     // keep its current wording as plain text (maintainer decision 2).
     final uses = isFigure
@@ -195,10 +202,36 @@ class _GlossaryCustomFigureDetailState
     if (confirmed != true) return;
     if (isFigure) {
       await repos.deleteUserFigure(widget.entryId);
+      await _forgetInSettings(repos, dialects, matrix);
     } else {
       await repos.userGlossary.delete(widget.entryId);
     }
     if (!widget.showName && mounted) navigator.pop();
+  }
+
+  /// Drops what the settings keep for a deleted figure (#1023, plan C9): each
+  /// dialect's name and wording for it, and its matrix column's place, hiding
+  /// and rename. Nothing would read them again, and they would otherwise
+  /// stay in every backup and sync.
+  Future<void> _forgetInSettings(
+    CompendiumRepositories repos,
+    DialectLibraryController? dialects,
+    ValueNotifier<MatrixColumnConfig>? matrix,
+  ) async {
+    await dialects?.forgetUserFigure(widget.entryId);
+    final column = userFigureKeyFor(widget.entryId);
+    final stored = MatrixColumnConfig.tryDecode(
+      await repos.settings.get(kProgramMatrixColumnsKey),
+    );
+    final kept = stored?.withoutColumn(column);
+    if (stored != null && kept != null && !identical(kept, stored)) {
+      await persistSetting(
+        repos.settings,
+        kProgramMatrixColumnsKey,
+        kept.toJson(),
+      );
+    }
+    if (matrix != null) matrix.value = matrix.value.withoutColumn(column);
   }
 
   @override

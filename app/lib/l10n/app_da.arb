@@ -9146,6 +9146,14 @@
   "@dialectEditorMoveWordingMissingSlots": {
     "x-sourceSha256": "3426369df24bbb63eb6223087bcfe4c111e6c6e5424616d6bddb2d0e9f371b37"
   },
+  "dialectEditorUserFigureGone": "En af dine figurer, ikke på denne enhed",
+  "@dialectEditorUserFigureGone": {
+    "x-sourceSha256": "998281e8de9118241968955c28d763ffbbc2217b909331b160022c289c4cfde1"
+  },
+  "dialectEditorUserFigureWordingUnknownSlots": "Din figur har ingen {slots}, så den læses med sin egen ordlyd, indtil du fjerner dem.",
+  "@dialectEditorUserFigureWordingUnknownSlots": {
+    "x-sourceSha256": "de788db6fdbfc47a07c303c2fb01008d1a6f5b0e6a5f2f9ed81a178db331e8dd"
+  },
   "dialectEditorMoveWordingOptionalSlots": "Denne skabelon udelader valgfrie pladsholdere: {slots}",
   "@dialectEditorMoveWordingOptionalSlots": {
     "x-sourceSha256": "c83e2a59ab83671799d5dc290d7783a6f95509a6de891d8f219f8a2834a3e782"

@@ -9326,6 +9326,15 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get dialectEditorUserFigureGone =>
+      'Eine deiner Figuren, nicht auf diesem Gerät';
+
+  @override
+  String dialectEditorUserFigureWordingUnknownSlots(String slots) {
+    return 'Deine Figur hat kein $slots, daher wird sie mit ihrem eigenen Wortlaut gelesen, bis du sie entfernst.';
+  }
+
+  @override
   String dialectEditorMoveWordingOptionalSlots(String slots) {
     return 'Diese Vorlage lässt optionale Platzhalter aus: $slots';
   }

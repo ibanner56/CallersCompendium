@@ -9283,6 +9283,15 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get dialectEditorUserFigureGone =>
+      'Een van je figuren, niet op dit apparaat';
+
+  @override
+  String dialectEditorUserFigureWordingUnknownSlots(String slots) {
+    return 'Je figuur heeft geen $slots, dus wordt die met zijn eigen bewoording gelezen tot je ze verwijdert.';
+  }
+
+  @override
   String dialectEditorMoveWordingOptionalSlots(String slots) {
     return 'Deze template laat optionele slots weg: $slots';
   }

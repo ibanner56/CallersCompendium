@@ -400,7 +400,12 @@ class SyncConflictComparison extends StatelessWidget {
     SyncCollectionEntry other,
   ) {
     final parts = switch (group.recordId) {
-      'custom_dialects' => _dialectParts(l10n, local.value, other.value),
+      'custom_dialects' => _dialectParts(
+        l10n,
+        local.value,
+        other.value,
+        keyName: (key) => _dialectKeyName(context, l10n, key),
+      ),
       'custom_themes' => _themeParts(l10n, local.value, other.value),
       _ => null,
     };
@@ -429,13 +434,33 @@ class SyncConflictComparison extends StatelessWidget {
     ];
   }
 
+  /// How a dialect's key reads: a figure of your own's `userFigure:<id>` by
+  /// the figure's name, or a note that it isn't on this device (#1023); any
+  /// other key as it is.
+  String _dialectKeyName(
+    BuildContext context,
+    AppLocalizations l10n,
+    String key,
+  ) {
+    if (!isUserFigureKey(key)) return key;
+    final view = UserFiguresScope.catalogOf(
+      context,
+    )[key.substring(userFigureRefPrefix.length)];
+    if (view == null) return l10n.dialectEditorUserFigureGone;
+    return _renderer.renderFreeText(
+      view.name,
+      ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+    );
+  }
+
   /// The parts of a dialect that differ: each section, showing only the
-  /// terms that differ within it.
+  /// terms that differ within it, each named by [keyName].
   List<({String label, String local, String other})>? _dialectParts(
     AppLocalizations l10n,
     Object? local,
-    Object? other,
-  ) {
+    Object? other, {
+    required String Function(String key) keyName,
+  }) {
     if (local is! Map || other is! Map) return null;
     final parts = <({String label, String local, String other})>[];
     if (local['name'] != other['name']) {
@@ -473,7 +498,8 @@ class SyncConflictComparison extends StatelessWidget {
       String side(Map<String, Object?> terms) {
         final text = [
           for (final name in differing)
-            if (terms.containsKey(name)) '$name → ${term(terms[name])}',
+            if (terms.containsKey(name))
+              '${keyName(name)} → ${term(terms[name])}',
         ].join(', ');
         return text.isEmpty ? l10n.syncConflictValueNotSet : text;
       }
