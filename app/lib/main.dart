@@ -1653,7 +1653,9 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// Loads every persisted preference and app-local controller from the
   /// `settings` table into the live notifiers/controllers. Extracted from the
   /// startup sequence so a backup restore (ROADMAP G.5) can re-run exactly this
-  /// step — via [reloadFromSettings] — to refresh the UI without a relaunch.
+  /// step — via [reloadFromSettings] — to refresh the UI without a relaunch,
+  /// and so can a sync pass that applied `settings` rows (#1828, via
+  /// [_reloadSyncedSettings], without the device-state controllers).
   ///
   /// Two phases: every read is awaited into a local first (each guarded, so one
   /// unreadable key leaves that preference at its default instead of failing
