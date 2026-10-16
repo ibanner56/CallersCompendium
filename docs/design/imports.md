@@ -719,12 +719,21 @@ PR that added this mapping).
   `userFigures` array: each of the sender's own new figures its dances use,
   attached, as `id`, `name`, `definition`, `description`, `keywords`, `payload`
   and `createdAt`. A figure's notes are left out. Backup mode never writes it;
-  a backup carries the whole glossary in its own section. The reader keeps an
-  entry only when it is whole: a non-empty id, text within the glossary's own
-  bounds (scrubbed as every imported string is), and a payload that decodes as
-  a figure's definition. Anything else, and anything past 500 entries, is left
-  out with a warning, never an error, because the dances that use a figure
-  still read, each as the line it carries.
+  a backup carries the whole glossary in its own section. The reader
+  (`decodeArchiveUserFigures`) keeps an entry only when:
+  - a dance in the archive uses it, attached, so a use's own reference bounds
+    its id;
+  - its id is non-empty and in the glossary's normalised form;
+  - its name, definition, description and keywords fit the glossary's own
+    bounds, once scrubbed as every imported string is;
+  - its payload fits the glossary's size and depth bounds and decodes as a
+    figure's definition;
+  - and it is the first entry for its id.
+
+  Anything else, and anything past 500 entries, is left out with a warning,
+  never an error, because the dances that use a figure still read, each as
+  the line it carries.
+
   - **Not versioned, by the maintainer's decision.** Every build before the
     one that added the array refuses a shared archive newer than it knows when
     it is opened from the share sheet or "Open with" (its Import screen still
