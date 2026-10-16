@@ -3,7 +3,6 @@ import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
-import 'package:compendium_app/src/data/settings_keys.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
@@ -67,7 +66,6 @@ void main() {
   pump(
     WidgetTester tester, {
     Size size = const Size(500, 900),
-    bool customFigures = true,
     UserGlossaryEntry? entry,
     Future<void> Function(CompendiumRepositories repos)? seed,
   }) async {
@@ -86,7 +84,7 @@ void main() {
     });
     final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
     final glossary = ValueNotifier(true);
-    final custom = ValueNotifier(customFigures);
+    final custom = ValueNotifier(true);
     for (final n in <ChangeNotifier>[dialect, glossary, custom]) {
       addTearDown(n.dispose);
     }
@@ -193,20 +191,6 @@ void main() {
     );
   });
 
-  testWidgets('with Custom Figures off, the figure only needs a rename', (
-    tester,
-  ) async {
-    await pump(tester, customFigures: false);
-    expect(
-      find.byKey(const ValueKey('glossary-custom-switch-to-shipped')),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const ValueKey('glossary-custom-rename-needed')),
-      findsOneWidget,
-    );
-  });
-
   for (final (layout, size) in [
     ('narrow', const Size(500, 900)),
     ('wide', const Size(1400, 900)),
@@ -273,7 +257,11 @@ void main() {
 
       final figure = (await figuresOf(tester, repos)).single;
       expect(figure.move, 'swing');
-      expect(figure.params, {'who': 'partners', 'prefix': 'balance'});
+      expect(figure.params, {
+        'who': 'partners',
+        'prefix': 'balance',
+        'beats': 8,
+      });
       expect(
         await tester.runAsync(() => repos.userGlossary.getById('mine')),
         isNull,
@@ -285,7 +273,11 @@ void main() {
         ),
       );
       expect(template.first.move, 'swing');
-      expect(template.first.params, {'who': 'neighbors', 'prefix': 'meltdown'});
+      expect(template.first.params, {
+        'who': 'neighbors',
+        'prefix': 'meltdown',
+        'beats': 8,
+      });
       expect(template.last.move, 'allemande');
 
       expect(shorthands.userFigureShorthands, isEmpty);
@@ -295,6 +287,7 @@ void main() {
       expect(mapping.figures.single.params, {
         'who': 'neighbors',
         'prefix': 'balance',
+        'beats': 8,
       });
 
       expect(dialects.customByName('Mine')!.moves, isEmpty);

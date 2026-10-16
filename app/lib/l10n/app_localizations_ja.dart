@@ -280,46 +280,46 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String glossaryCustomShippedNameBody(String name) {
-    return 'The app now has its own figure called $name. Rename yours, or switch your dances to the app\'s figure and remove yours.';
+    return 'アプリに $name という独自のフィギュアが追加されました。自分のフィギュアの名前を変更するか、ダンスをアプリのフィギュアに切り替えて自分のフィギュアを削除してください。';
   }
 
   @override
-  String get glossaryCustomRenameMine => 'Rename mine';
+  String get glossaryCustomRenameMine => '自分のものの名前を変更';
 
   @override
-  String get glossaryCustomSwitchToShipped => 'Switch to the app\'s';
+  String get glossaryCustomSwitchToShipped => 'アプリのものに切り替え';
 
   @override
   String userFigureSwitchTitle(String name) {
-    return 'Switch to $name';
+    return '$name に切り替え';
   }
 
   @override
   String userFigureSwitchIntro(String name) {
-    return 'Choose what each of your figure\'s settings becomes in $name, and which of its values each of your choices becomes. Every one must be chosen before you can switch.';
+    return '自分のフィギュアの各設定が $name で何になるか、また各選択肢がその値のどれになるかを選んでください。切り替えるには、すべてを選ぶ必要があります。';
   }
 
   @override
   String userFigureSwitchParam(String param) {
-    return 'Your $param becomes';
+    return '自分の $param の切り替え先';
   }
 
   @override
   String userFigureSwitchChoice(String choice) {
-    return 'Your $choice becomes';
+    return '自分の $choice の切り替え先';
   }
 
   @override
   String userFigureSwitchNoTarget(String name, String param) {
-    return '$name has nothing your $param can become. Remove it from your figure first, or rename yours instead.';
+    return '$name には自分の $param の切り替え先がありません。先にフィギュアから削除するか、代わりに自分のものの名前を変更してください。';
   }
 
   @override
-  String get userFigureSwitchAction => 'Switch';
+  String get userFigureSwitchAction => '切り替え';
 
   @override
   String userFigureSwitchConfirmTitle(String name) {
-    return 'Switch to $name?';
+    return '$name に切り替えますか？';
   }
 
   @override
@@ -328,33 +328,29 @@ class AppLocalizationsJa extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          '$count dances use your figure, and will use $name instead. Yours is removed from your Glossary.',
-      one:
-          '1 dance uses your figure, and will use $name instead. Yours is removed from your Glossary.',
-      zero:
-          'No dance in your collection uses your figure. It\'s removed from your Glossary.',
+          '$count件のダンスが自分のフィギュアを使っており、代わりに $name を使うようになります。自分のフィギュアは用語集から削除されます。',
+      zero: 'コレクションに自分のフィギュアを使っているダンスはありません。用語集から削除されます。',
     );
     return '$_temp0';
   }
 
   @override
   String get userFigureSwitchConfirmDefaults =>
-      'Your default figures use it too, and switch the same way.';
+      '既定のフィギュアもこのフィギュアを使っており、同じように切り替わります。';
 
   @override
   String userFigureSwitchConfirmShorthands(int count, String name) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Its $count shorthands will insert $name.',
-      one: 'Its shorthand will insert $name.',
+      other: '$count件のショートハンドは $name を挿入するようになります。',
     );
     return '$_temp0';
   }
 
   @override
   String get userFigureSwitchFailed =>
-      'Nothing was switched: your figure changed or is gone. Open it again to switch.';
+      '切り替えられませんでした。フィギュアが変更されたか、削除されています。もう一度開いて切り替えてください。';
 
   @override
   String get glossaryNoDefinition => '定義はまだありません。';

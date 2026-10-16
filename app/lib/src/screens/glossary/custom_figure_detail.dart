@@ -552,10 +552,9 @@ class _GlossaryCustomFigureDetailState
     final figure = item.figure;
     // A later version of the app shipped a figure of this one's name (#1023,
     // maintainer decision 5): rename it, or switch to the app's. Only a
-    // figure of your own that can be used can switch, and only while Custom
-    // Figures is shown.
-    final shippedTarget =
-        figure != null && !item.unsupported && customFiguresShown(context)
+    // figure of your own that can be used can switch. (With Custom Figures
+    // off, the Glossary lists none.)
+    final shippedTarget = figure != null && !item.unsupported
         ? shippedFigureNamed(entry.name, contraTaxonomy)
         : null;
     final example = figure == null ? null : _exampleOf(entry, figure, dialect);

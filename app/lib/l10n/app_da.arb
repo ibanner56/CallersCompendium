@@ -300,6 +300,62 @@
   "@glossaryCustomCopiedFrom": {
     "x-sourceSha256": "3c803d847c47bd231f3c3bb39109df7e6a49945c0432bbed0fbc3cacbc72db5e"
   },
+  "glossaryCustomShippedNameBody": "Appen har nu sin egen figur ved navn {name}. Omdøb din, eller skift dine danse over til appens figur og fjern din.",
+  "@glossaryCustomShippedNameBody": {
+    "x-sourceSha256": "01c2a7364d0611f3cf2f3c5e1e881f8619329a10ea1260d42b72fd89438ce235"
+  },
+  "glossaryCustomRenameMine": "Omdøb min",
+  "@glossaryCustomRenameMine": {
+    "x-sourceSha256": "92774acac46a395771b8567a51b62d7c7caaf01153e8fb950a2eff9cb729bb7e"
+  },
+  "glossaryCustomSwitchToShipped": "Skift til appens",
+  "@glossaryCustomSwitchToShipped": {
+    "x-sourceSha256": "dc4bcea65689cb824ea7bbec5b0ee15145743c7b5ca807de1e3d1e4b84fbcd72"
+  },
+  "userFigureSwitchTitle": "Skift til {name}",
+  "@userFigureSwitchTitle": {
+    "x-sourceSha256": "f6d893e24f3c3d2f5209b0b66739979a81d30738415c7b6f33b0dfab7ee6fd59"
+  },
+  "userFigureSwitchIntro": "Vælg, hvad hver af din figurs indstillinger bliver til i {name}, og hvilken af dens værdier hvert af dine valg bliver til. Alle skal vælges, før du kan skifte.",
+  "@userFigureSwitchIntro": {
+    "x-sourceSha256": "384646561be1f7305e01ed7d262c7c84d0b42c21f32e098607a8d4e7c5ebd8e8"
+  },
+  "userFigureSwitchParam": "Din {param} bliver til",
+  "@userFigureSwitchParam": {
+    "x-sourceSha256": "9555daf65e9aa3e56e650d486335c23f89fefcea3d4349ca056fcf9b9500cf26"
+  },
+  "userFigureSwitchChoice": "Din {choice} bliver til",
+  "@userFigureSwitchChoice": {
+    "x-sourceSha256": "ccc67a7da72e32a32103737d92123efb731cca6c1c292e1f3e80a5b8a74bce6a"
+  },
+  "userFigureSwitchNoTarget": "{name} har intet, som din {param} kan blive til. Fjern den fra din figur først, eller omdøb din i stedet.",
+  "@userFigureSwitchNoTarget": {
+    "x-sourceSha256": "2f9c52f0aab2b8c1f621780332550762031afc82090537ed6416a0e1f59315c7"
+  },
+  "userFigureSwitchAction": "Skift",
+  "@userFigureSwitchAction": {
+    "x-sourceSha256": "39921a740bf2b67802a2042e1f87e9dec566131c2458aba5683e2827ced0d2c3"
+  },
+  "userFigureSwitchConfirmTitle": "Skift til {name}?",
+  "@userFigureSwitchConfirmTitle": {
+    "x-sourceSha256": "c0fa6ef1a7cf72c4e579b1a860a6743dc306d376c92650dd44cf987e76cf19b3"
+  },
+  "userFigureSwitchConfirmUses": "{count, plural, =0{Ingen dans i din samling bruger din figur. Den fjernes fra din ordliste.} =1{1 dans bruger din figur og vil bruge {name} i stedet. Din fjernes fra din ordliste.} other{{count} danse bruger din figur og vil bruge {name} i stedet. Din fjernes fra din ordliste.}}",
+  "@userFigureSwitchConfirmUses": {
+    "x-sourceSha256": "b4d15a1fd86ce4c4d3ab39abcb5247de11ac4f88deaae35541e5ff7047a61c08"
+  },
+  "userFigureSwitchConfirmDefaults": "Dine standardfigurer bruger den også og skifter på samme måde.",
+  "@userFigureSwitchConfirmDefaults": {
+    "x-sourceSha256": "c1697c77ab5e374a3eb47917625a399901be0df1dfb4c4e07ab46a731af2ac62"
+  },
+  "userFigureSwitchConfirmShorthands": "{count, plural, =1{Dens kortform vil indsætte {name}.} other{Dens {count} kortformer vil indsætte {name}.}}",
+  "@userFigureSwitchConfirmShorthands": {
+    "x-sourceSha256": "d4d2a6ad284fafd94197e4b565bfaedc778486cc6870c4ca4b32137325c8edc7"
+  },
+  "userFigureSwitchFailed": "Intet blev skiftet: din figur er ændret eller væk. Åbn den igen for at skifte.",
+  "@userFigureSwitchFailed": {
+    "x-sourceSha256": "4a2bd70eb2cb59832ca5bb89e5437b082c9982df3dd51e8ca07643d4159b523a"
+  },
   "glossaryNoDefinition": "Ingen definition endnu.",
   "@glossaryNoDefinition": {
     "x-sourceSha256": "5a97ad24f6d76f144e5f2008ca1291720b18e718c28f36afb8014dd089028959"
