@@ -8,7 +8,7 @@
   },
   "core": {
     "added": [
-      "`userFigureSeedFromMove` derives a new figure of the user's own from a shipped move: its parameters its wording uses (choices given choice ids of the user's own shape, \"none\" and \"not stated\" left out), its default beats, and its wording, always valid (#1023)."
+      "`userFigureSeedFromMove` derives a new figure of the user's own from a shipped move: its parameters its wording uses (choices given choice ids of the user's own shape, \"not stated\" and a default \"none\" left out; an alias's pinned values as defaults), its default beats, and its wording, always valid (#1023)."
     ]
   }
 }

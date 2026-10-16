@@ -74,27 +74,49 @@ void main() {
   });
 
   test('a choice\'s default follows its value to the new choice id', () {
-    // A move whose choice default is a real value, used by its wording.
-    final ids = contraTaxonomy.moves.keys.where((id) {
-      final seed = userFigureSeedFromMove(contraTaxonomy, id)!;
-      return seed.params.any(
-        (p) => p.kind == ParamKind.choice && p.defaultValue != null,
-      );
-    });
-    expect(ids, isNotEmpty);
-    final id = ids.first;
-    final def = contraTaxonomy.moves[id]!;
+    // Its default is not the first value, so taking the first would show.
+    final taxonomy = Taxonomy(
+      version: 1,
+      form: DanceForm.contra,
+      moves: [
+        MoveDef(
+          id: 'turn',
+          displayName: 'turn',
+          params: {
+            'way': ParamSpec(
+              ParamKind.choice,
+              defaultValue: 'right',
+              choices: ['left', 'right', 'around'],
+            ),
+          },
+          renderTemplate: '{move} {way}',
+        ),
+      ],
+    );
     final seed = userFigureSeedFromMove(
-      contraTaxonomy,
-      id,
-      choiceLabel: (key, value) => '$key:$value',
+      taxonomy,
+      'turn',
+      choiceLabel: (key, value) => value,
     )!;
-    final param = seed.params.firstWhere(
-      (p) => p.kind == ParamKind.choice && p.defaultValue != null,
-    );
-    expect(
-      param.choiceLabel(param.defaultValue),
-      '${param.key}:${def.params[param.key]!.defaultValue}',
-    );
+    final way = seed.param('way')!;
+    expect(way.choiceLabel(way.defaultValue), 'right');
+  });
+
+  test('"none" is kept where it is a value of its own, not the default', () {
+    // A slice with no return is a slice of its own.
+    final slice = userFigureSeedFromMove(
+      contraTaxonomy,
+      'slice',
+      choiceLabel: (key, value) => value,
+    )!;
+    final ret = slice.params.where((p) => p.key == 'return').firstOrNull;
+    expect(ret, isNotNull);
+    expect(ret!.choices.map((c) => c.label), contains('none'));
+  });
+
+  test('an alias starts from the values it pins', () {
+    final seed = userFigureSeedFromMove(contraTaxonomy, 'pull_by_dancers')!;
+    expect(seed.copiedFrom, 'pull_by');
+    expect(seed.param('who')?.defaultValue, 'neighbors');
   });
 }

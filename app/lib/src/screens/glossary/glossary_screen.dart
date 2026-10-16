@@ -212,9 +212,9 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
       entryId: entry.id,
       entries: _entries,
       showName: showName,
-      // A figure of your own needs Custom Figures (maintainer decision 9);
-      // free text has nothing to copy.
-      onCopy: customFiguresShown(context) && entry.id != customMove
+      // A figure of your own needs Custom Figures (maintainer decision 9),
+      // and somewhere to be saved.
+      onCopy: customFiguresShown(context) && _repos != null
           ? () => _copy(context, entry)
           : null,
     );
@@ -226,6 +226,26 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
   /// description, under the name "`<name>` (copy)", numbered if the user
   /// already has one. Nothing is stored until the user saves.
   Future<void> _copy(BuildContext context, FigureGlossaryEntry entry) async {
+    if (_copying) return;
+    _copying = true;
+    try {
+      await _copyOnce(context, entry);
+    } finally {
+      _copying = false;
+    }
+  }
+
+  /// Whether a copy's editor is open or opening: a second tap does nothing.
+  bool _copying = false;
+
+  /// Whether the Glossary was last laid out split, the detail beside the
+  /// list.
+  bool _wide = false;
+
+  Future<void> _copyOnce(
+    BuildContext context,
+    FigureGlossaryEntry entry,
+  ) async {
     final l10n = AppLocalizations.of(context);
     final dialect = ActiveDialectScope.of(context);
     final seed = userFigureSeedFromMove(
@@ -235,10 +255,12 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
       paramLabel: (key) => figureParamKeyLabel(l10n, key, moveId: entry.id),
     );
     if (seed == null) return;
+    // Names are stored canonical, so a name is compared in that form, as the
+    // editor checks it.
+    String stored(String name) =>
+        normalizeGlossaryName(canonicalizeGlossaryText(name, dialect));
     final taken = {
-      for (final e in await RepositoriesScope.of(
-        context,
-      ).userGlossary.listAll())
+      for (final e in await _repos!.userGlossary.listAll())
         normalizeGlossaryName(e.name),
     };
     if (!context.mounted) return;
@@ -246,7 +268,7 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
       _entryTitle(l10n, entry, _entries, dialect),
     );
     var name = base;
-    for (var n = 2; taken.contains(normalizeGlossaryName(name)); n++) {
+    for (var n = 2; taken.contains(stored(name)); n++) {
       name = '$base $n';
     }
     final definition = entry.definition;
@@ -267,8 +289,30 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
         ),
       ),
     );
-    if (saved != null && mounted) {
-      setState(() => _selectedId = customSelectionId(saved.id));
+    if (saved == null || !mounted) return;
+    setState(() => _selectedId = customSelectionId(saved.id));
+    // Narrow, the built-in's page is still on top: show the copy in its
+    // place, as the wide pane shows it beside the list.
+    if (!_wide && context.mounted) {
+      unawaited(
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => Scaffold(
+              appBar: AppBar(
+                title: CustomFigureTitle(
+                  entryId: saved.id,
+                  fallback: saved.name,
+                ),
+              ),
+              body: GlossaryCustomFigureDetail(
+                key: ValueKey('glossary-detail-${customSelectionId(saved.id)}'),
+                entryId: saved.id,
+                showName: false,
+              ),
+            ),
+          ),
+        ),
+      );
     }
   }
 
@@ -335,6 +379,7 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final wide = constraints.maxWidth >= GlossaryScreen.splitBreakpoint;
+          _wide = wide;
           final list = _GlossaryList(
             search: _search,
             onQueryChanged: (q) => setState(() => _query = q),

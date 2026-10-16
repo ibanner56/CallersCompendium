@@ -73,6 +73,11 @@ class UserFigureUseEditor extends StatelessWidget {
                   : param.defaultValue,
               dialect: dialect,
               mixer: mixer,
+              // A choice with no default can be left unchosen, as it starts:
+              // its wording leaves it out (#1023).
+              allowNone:
+                  param.kind == ParamKind.choice && param.defaultValue == null,
+              noneLabel: AppLocalizations.of(context).danceEditorParamNotStated,
               onChanged: (value) => report({
                 ...params,
                 userFigureArgsKey: {...args, param.key: value},

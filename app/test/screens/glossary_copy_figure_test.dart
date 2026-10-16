@@ -19,14 +19,17 @@ void main() {
     bool customFigures = true,
     CompendiumRepositories? repositories,
     Size size = const Size(500, 1400),
+    Dialect? dialect,
+    String search = 'swing',
+    String entryId = 'swing',
   }) async {
     await tester.binding.setSurfaceSize(size);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final repos = repositories ?? openTestRepositories();
-    final dialect = ValueNotifier<Dialect>(Dialect.canonical);
+    final active = ValueNotifier<Dialect>(dialect ?? Dialect.canonical);
     final glossary = ValueNotifier(true);
     final custom = ValueNotifier(customFigures);
-    for (final n in <ChangeNotifier>[dialect, glossary, custom]) {
+    for (final n in <ChangeNotifier>[active, glossary, custom]) {
       addTearDown(n.dispose);
     }
     await tester.pumpWidget(
@@ -36,7 +39,7 @@ void main() {
         builder: (context, child) => RepositoriesScope(
           repositories: repos,
           child: ActiveDialectScope(
-            notifier: dialect,
+            notifier: active,
             child: ShowGlossaryScope(
               notifier: glossary,
               child: ShowCustomFiguresScope(notifier: custom, child: child!),
@@ -49,10 +52,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('glossary-search')),
-      'swing',
+      search,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('glossary-entry-swing')));
+    await tester.tap(find.byKey(ValueKey('glossary-entry-$entryId')));
     await tester.pumpAndSettle();
     return repos;
   }
@@ -85,7 +88,29 @@ void main() {
     expect(definition.copiedFrom, 'swing');
     expect(definition.params.map((p) => p.key), ['who', 'prefix']);
     expect(definition.defaultBeats, 8);
-    expect(contraTaxonomy.moves['swing']!.params.keys, contains('beats'));
+  });
+
+  testWidgets('narrow, the copy\'s page takes the built-in\'s place once it '
+      'is saved', (tester) async {
+    await pump(tester);
+    await copyAndSave(tester);
+    expect(
+      find.byKey(const ValueKey('glossary-custom-detail')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('glossary-copy-figure')), findsNothing);
+  });
+
+  testWidgets('backing out of the editor stores nothing', (tester) async {
+    final repos = await pump(tester);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('glossary-copy-figure')),
+    );
+    await tester.tap(find.byKey(const ValueKey('glossary-copy-figure')));
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(await tester.runAsync(repos.userGlossary.listAll), isEmpty);
   });
 
   testWidgets('a second copy is numbered', (tester) async {
@@ -110,6 +135,43 @@ void main() {
         e.name,
     ];
     expect(names, containsAll(['swing (copy)', 'swing (copy) 2']));
+  });
+
+  testWidgets('a name is numbered in the form names are stored in', (
+    tester,
+  ) async {
+    // A dialect that names a figure with a role word: the copy's name is
+    // stored with the role's canonical token, and compared so.
+    final repos = openTestRepositories();
+    await tester.runAsync(
+      () => repos.userGlossary.upsert(
+        UserGlossaryEntry(
+          id: 'first',
+          kindName: UserGlossaryEntryKind.customFigure.name,
+          name: 'role1s chain (copy)',
+          definition: 'A copy.',
+          description: 'Mine.',
+          payload: userFigureSeedFromMove(contraTaxonomy, 'chain')!.toJson(),
+          createdAt: DateTime.utc(2026, 10, 16),
+        ),
+      ),
+    );
+    await pump(
+      tester,
+      repositories: repos,
+      dialect: Dialect.larksRobins.copyWith(
+        name: 'Mine',
+        moves: {'chain': 'larks chain'},
+      ),
+      search: 'chain',
+      entryId: 'chain',
+    );
+    await copyAndSave(tester);
+    final names = [
+      for (final e in (await tester.runAsync(repos.userGlossary.listAll))!)
+        e.name,
+    ];
+    expect(names, contains('role1s chain (copy) 2'));
   });
 
   testWidgets('a copy says what it was copied from', (tester) async {
