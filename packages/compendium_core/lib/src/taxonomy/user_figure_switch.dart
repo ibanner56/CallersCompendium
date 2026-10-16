@@ -188,8 +188,7 @@ List<Figure> switchUserFigureUsesIn(
     text: use.attached ? renderer.renderUserFigureCanonical(figure) : null,
   );
   if (!use.attached) return freeze();
-  final target = taxonomy.resolve(mapping.target);
-  if (target == null) return freeze();
+  if (taxonomy.resolve(mapping.target) == null) return freeze();
   final params = <String, Object?>{};
   for (final param in definition.params) {
     final to = mapping.params[param.key];
@@ -204,7 +203,6 @@ List<Figure> switchUserFigureUsesIn(
       mapped = value;
     }
     if (mapped == null) return freeze();
-    if (target.params[to]?.validate(mapped) != true) return freeze();
     params[to] = mapped;
   }
   final beats = switch (figure.params['beats']) {
