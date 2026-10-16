@@ -269,9 +269,13 @@ def test_claude_review_without_a_verdict_line_says_so_and_does_not_fail() -> Non
 
 
 def test_a_block_mentioned_in_prose_is_not_a_verdict() -> None:
-    body = "## Review verdict: APPROVE\n\nRound 1 said ## Review verdict: BLOCK."
-    ok, lines = gates.gate_findings(_claude_reviews((HEAD, body)), 1, CLAUDE)
-    assert ok, lines
+    for body in (
+        "Round 1 said ## Review verdict: BLOCK, now fixed.\n\n## Review verdict: APPROVE",
+        "## Review verdict: APPROVE\n\nRound 1 said ## Review verdict: BLOCK.",
+    ):
+        ok, lines = gates.gate_findings(_claude_reviews((HEAD, body)), 1, CLAUDE)
+        assert ok, (body, lines)
+        assert any("verdict APPROVE" in line for line in lines), lines
 
 
 def test_a_copilot_review_is_not_read_for_a_verdict() -> None:

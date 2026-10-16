@@ -10,7 +10,10 @@ hand-rolled versions read as PASS when they should have failed:
 ``findings``    Review findings, including the ``Suppressed comments`` blocks
                 that ``GET /pulls/<N>/comments``, thread state and the inline
                 comment count are all blind to. Reads every page of review
-                bodies, every round.
+                bodies, every round. For ``--reviewer claude`` it also prints
+                the latest round's ``## Review verdict:`` line and FAILS on
+                ``BLOCK``: a finding on a line outside the diff exists only in
+                the review body, so no inline comment or thread records it.
 ``review``      Review freshness, filtered by *reviewer identity* rather than
                 ``.[-1].commit_id`` -- author replies are recorded as review
                 entries and carry the new head SHA, so the naive read matches
@@ -82,6 +85,14 @@ REVIEWERS = {"copilot": COPILOT, "claude": CLAUDE}
 
 REVIEWER_LOGIN = COPILOT.review_login
 REVIEWER_COMMENT_LOGIN = COPILOT.comment_login
+
+# The first line of a Claude review (.github/skills/code-review/SKILL.md). Models
+# decorate it (`**BLOCK**`, backticks, a different heading level), so those are
+# tolerated; the value must start the line's heading, so a "## Review verdict:"
+# quoted mid-sentence in prose is not a verdict.
+VERDICT_LINE = re.compile(
+    r"^#{1,6}[ \t]*Review verdict:[ \t]*[*_`]*([A-Za-z][A-Za-z-]*)", re.MULTILINE
+)
 
 SUPPRESSED_BLOCK = re.compile(
     r"<details>\s*<summary>\s*Suppressed comments?\s*\((\d+)\)\s*</summary>(.*?)</details>",
@@ -218,7 +229,30 @@ def gate_findings(
     )
     if reviews and suppressed_total == 0 and not inline:
         summary += " (a zero here is a claim about the query as much as the PR)"
-    return True, [summary, *lines]
+
+    ok = True
+    if reviewer == CLAUDE and reviews:
+        # Only the latest round: an earlier BLOCK that a later round cleared is
+        # history, and the `review` gate already fails a latest round that is
+        # not on the head. A BLOCK is judged whichever commit it sits on -- a
+        # BLOCK nobody has re-reviewed is not cleared.
+        match = VERDICT_LINE.search(reviews[-1].get("body") or "")
+        commit = (reviews[-1].get("commit_id") or "")[:8] or "(none)"
+        where = f"round {len(reviews)}, {commit}"
+        if match is None:
+            lines.insert(
+                0, f"  no `## Review verdict:` line in the latest review ({where})"
+            )
+        else:
+            verdict = match.group(1).upper()
+            lines.insert(0, f"  verdict {verdict} ({where})")
+            if verdict == "BLOCK":
+                ok = False
+                summary = (
+                    "BLOCK verdict in the latest review; its findings may be "
+                    f"body-only, so read the review body -- {summary}"
+                )
+    return ok, [summary, *lines]
 
 
 def _suppressed_findings(block: str) -> list[str]:

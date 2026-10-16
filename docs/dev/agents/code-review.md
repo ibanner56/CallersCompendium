@@ -110,8 +110,11 @@ Each round submits **one** PR review, using
 as its checklist and output format. The review's `commit_id` is the head it
 reviewed. Findings appear twice: in the body's template and as inline comments
 on diff lines. A finding on a line outside the diff appears in the body only,
-and `check_pr_review_gates.py findings` lists inline comments only, so read the
-body of a Claude review as well. There is no `Suppressed comments` block.
+so it has no inline comment and no thread, and neither `findings` nor
+`threads` lists it. What `findings --reviewer claude` does read from the body is
+the `## Review verdict:` line of the latest round: it prints it and fails on
+`BLOCK`, so a body-only blocker cannot pass the gate. Read the body itself for
+the findings. There is no `Suppressed comments` block.
 
 What a round is given and asked for:
 
@@ -145,9 +148,10 @@ What a round is given and asked for:
   clean `APPROVE`), and want a one-line confirm or dismiss.
   They are inline comments like any finding, so `gate threads` counts them:
   reply to confirm or dismiss each, then resolve its thread before merging (the
-  gate counts only resolved threads). `findings` is informational and always
-  passes; it prints the first 160 characters of each comment with newlines
-  collapsed, so the rubric leads each comment with the ID, severity and title.
+  gate counts only resolved threads). `findings` prints the first 160 characters
+  of each comment with newlines collapsed, so the rubric leads each comment with
+  the ID, severity and title. For a Claude review it passes unless the latest
+  round's verdict is `BLOCK`; for Copilot it is informational and always passes.
   The job cannot run tests or scripts, so it never reports that something is
   merely unverified, and the workflow (not the rubric) leaves out the template's
   "Verification the author still owes" checklist, which CI and the merge gate
@@ -155,7 +159,10 @@ What a round is given and asked for:
 - **A `Coverage` section** lists every changed file and the disposition of each
   hazard class. `APPROVE` requires it to be complete, so an `APPROVE` over a
   thin `Coverage` is a reason to distrust the review, not to merge. The merge
-  gate does not read the verdict or `Coverage`: they are for you.
+  gate does not read `Coverage`, and reads the verdict only to fail on `BLOCK`:
+  an `APPROVE` or `APPROVE-WITH-NITS` is printed, not trusted, and a missing
+  verdict line is printed as missing without failing, since `claude.yml` also
+  posts as `claude[bot]`.
 
 Traps:
 
@@ -208,8 +215,8 @@ Traps:
   round re-reads the diff and re-pays the resident prompt, so per-comment pushes
   multiply the most expensive part of the cycle.
 - **Read findings through the script, not raw JSON.** `check_pr_review_gates.py
-  findings <N>` (add `--reviewer claude` for a Claude review) prints one line per finding — including the suppressed block —
-  instead of pages of paginated review JSON.
+  findings <N>` (add `--reviewer claude` for a Claude review) prints one line per finding — including the suppressed block, or for
+  Claude the latest round's verdict — instead of pages of paginated review JSON.
 - **Reply after the fix is pushed**, so the reply and the corrected code are
   visible together. Note that replies are recorded as review entries, which is
   why review-freshness must be filtered by reviewer identity
