@@ -110,8 +110,34 @@ Each round submits **one** PR review, using
 as its checklist and output format. The review's `commit_id` is the head it
 reviewed. Findings appear twice: in the body's template and as inline comments
 on diff lines. A finding on a line outside the diff appears in the body only,
-and `check_pr_review_gates.py findings` lists inline comments only, so read the
-body of a Claude review as well. There is no `Suppressed comments` block.
+so it has no inline comment and no thread, and neither `findings` nor
+`threads` lists it. What `findings --reviewer claude` does read from the body is
+the latest `## Review verdict:` line (entries without one, such as the empty
+review entry a reply to an inline thread records, are skipped): it prints it
+and fails on `BLOCK`, so a body-only blocker cannot pass the gate. Read the body itself for
+the findings. There is no `Suppressed comments` block.
+
+Status label: while `review: claude` is on,
+[`claude-review-status.yml`](../../../.github/workflows/claude-review-status.yml)
+keeps exactly one traffic-light label on the PR, so the PR list shows the state
+without opening anything:
+
+| Label | Color | Meaning |
+| --- | --- | --- |
+| `claude: reviewing` | gray | a round is requested or running on the current head (set on label, push, ready-for-review, reopen) |
+| `claude: approved` | green | verdict `APPROVE`: no findings, no Suspected items, complete Coverage |
+| `claude: nits` | yellow | verdict `APPROVE-WITH-NITS`: no blocker, but a minor finding or Suspected item remains |
+| `claude: blocked` | red | verdict `BLOCK` |
+
+Only a true `APPROVE` is green. The label is read from the first
+`## Review verdict:` line of the `claude[bot]` review whose `commit_id` is the
+PR's current head; a review of an older head is ignored, and a review with no
+readable verdict clears the label and fails the job rather than leave a stale
+color. Removing `review: claude` removes the status label. It is a display
+aid: the merge gate does not read it, so read the review itself
+before merging. It is a separate workflow because a PR that edits
+`claude-code-review.yml` may change nothing else (see Traps below). The labels
+are defined in [`labels.yml`](../../../.github/labels.yml).
 
 What a round is given and asked for:
 
@@ -145,9 +171,10 @@ What a round is given and asked for:
   clean `APPROVE`), and want a one-line confirm or dismiss.
   They are inline comments like any finding, so `gate threads` counts them:
   reply to confirm or dismiss each, then resolve its thread before merging (the
-  gate counts only resolved threads). `findings` is informational and always
-  passes; it prints the first 160 characters of each comment with newlines
-  collapsed, so the rubric leads each comment with the ID, severity and title.
+  gate counts only resolved threads). `findings` prints the first 160 characters
+  of each comment with newlines collapsed, so the rubric leads each comment with
+  the ID, severity and title. For a Claude review it passes unless the latest
+  verdict is `BLOCK`; for Copilot it is informational and always passes.
   The job cannot run tests or scripts, so it never reports that something is
   merely unverified, and the workflow (not the rubric) leaves out the template's
   "Verification the author still owes" checklist, which CI and the merge gate
@@ -155,7 +182,11 @@ What a round is given and asked for:
 - **A `Coverage` section** lists every changed file and the disposition of each
   hazard class. `APPROVE` requires it to be complete, so an `APPROVE` over a
   thin `Coverage` is a reason to distrust the review, not to merge. The merge
-  gate does not read the verdict or `Coverage`: they are for you.
+  gate does not read `Coverage`, and reads the verdict only to fail on `BLOCK`:
+  an `APPROVE` or `APPROVE-WITH-NITS` is printed, not trusted, and a PR
+  where no Claude entry carries a verdict line is printed as such without
+  failing, since `claude.yml` also
+  posts as `claude[bot]`.
 
 Traps:
 
@@ -208,8 +239,8 @@ Traps:
   round re-reads the diff and re-pays the resident prompt, so per-comment pushes
   multiply the most expensive part of the cycle.
 - **Read findings through the script, not raw JSON.** `check_pr_review_gates.py
-  findings <N>` (add `--reviewer claude` for a Claude review) prints one line per finding — including the suppressed block —
-  instead of pages of paginated review JSON.
+  findings <N>` (add `--reviewer claude` for a Claude review) prints one line per finding — including the suppressed block, or for
+  Claude the latest verdict — instead of pages of paginated review JSON.
 - **Reply after the fix is pushed**, so the reply and the corrected code are
   visible together. Note that replies are recorded as review entries, which is
   why review-freshness must be filtered by reviewer identity
