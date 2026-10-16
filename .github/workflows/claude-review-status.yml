@@ -105,11 +105,20 @@ jobs:
 
           # Whether the PR currently asks for Claude reviews.
           wants_review() {
-            gh api --paginate "repos/${REPO}/issues/${PR}/labels?per_page=100" --jq '.[].name' |
-              grep -qxF 'review: claude'
+            local have
+            # Captured first: `grep -q` exiting early would SIGPIPE `gh` and,
+            # under pipefail, report a present label as absent.
+            have=$(gh api --paginate "repos/${REPO}/issues/${PR}/labels?per_page=100" --jq '.[].name')
+            grep -qxF 'review: claude' <<<"${have}"
           }
 
           if [ "${EVENT}" = "pull_request_review" ]; then
+            # claude-code-review.yml does not stop a running round when the
+            # label is removed, so its verdict can land on a PR that opted out.
+            if ! wants_review; then
+              clear_status
+              exit 0
+            fi
             # A review from an older head says nothing about this one.
             if [ "${REVIEWED_SHA}" != "${HEAD_SHA}" ]; then
               echo "review of ${REVIEWED_SHA} is not for head ${HEAD_SHA}; ignored"
