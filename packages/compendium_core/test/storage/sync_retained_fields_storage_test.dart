@@ -174,6 +174,64 @@ void main() {
     expect(mine.wireHash, SyncMergeCandidate(blob: peer).wireHash);
   });
 
+  test('two peers\' tags with the same name and the same kept field are one '
+      'tag, not a review', () async {
+    // A natural-key collision at the same `updatedAt` compares the whole body,
+    // and the local copy's body only carries the kept field because the
+    // candidate builder puts it back. Without it the two copies differ in a
+    // field neither user can see, and the pair is queued for a review that has
+    // nothing to decide.
+    SyncRecordBlob newerTag(String id) {
+      final blob = syncRecordBlobForEntity(
+        SyncRecordKind.tag,
+        Tag(id: id, name: 'Same Tag'),
+        updatedAt: _stamp,
+        existenceAt: _stamp,
+      )!;
+      return SyncRecordBlob(
+        kind: SyncRecordKind.tag,
+        id: id,
+        updatedAt: blob.updatedAt,
+        deletedAt: null,
+        existenceAt: blob.existenceAt,
+        body: {...blob.body, 'addedLater': 'kept'},
+      );
+    }
+
+    await apply(newerTag('t-a'));
+    expect(await repositories.syncLocal.listRetainedSyncFields(), hasLength(1));
+
+    final result = await const SyncApplyEngine().apply(
+      candidates: [SyncMergeCandidate(blob: newerTag('t-b'))],
+      storage: storage,
+    );
+
+    expect(result.reports, isEmpty);
+    expect(await repositories.syncLocal.listReviewQueue(), isEmpty);
+  });
+
+  test('a setting this build syncs keeps a newer build\'s extra part and '
+      'shares it back', () async {
+    final peer = SyncRecordBlob(
+      kind: SyncRecordKind.setting,
+      id: 'custom_dialects',
+      updatedAt: _stamp,
+      deletedAt: null,
+      existenceAt: _stamp,
+      body: const {
+        'value': ['Contra'],
+        'addedLater': {'on': true},
+      },
+    );
+    await apply(peer);
+
+    // The known part lands in settings; the extra one is only kept.
+    expect(await repositories.settings.get('custom_dialects'), ['Contra']);
+    final mine = await published(peer.address);
+    expect(mine.blob.body['addedLater'], {'on': true});
+    expect(mine.wireHash, SyncMergeCandidate(blob: peer).wireHash);
+  });
+
   test('kept parts go when their record is hard-deleted', () async {
     await apply(newerProgram(program()));
     expect(await repositories.syncLocal.listRetainedSyncFields(), hasLength(1));
