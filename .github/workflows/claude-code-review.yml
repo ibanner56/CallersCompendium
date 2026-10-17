@@ -55,17 +55,22 @@
 # (new guard test proven red before green, docs updated in the PR): those stay
 # the author's, and the review does not check them in CI mode.
 #
-# A round in which Claude ran but posted no review fails the job: the model can
-# end its turn "successfully" without ever submitting (#1893 had three such
-# rounds across two heads, then a re-run of the last one posted). A step after
-# the action looks for a `claude[bot]` review of the head submitted since the
-# round started, and the job goes red without one. The action prints none of the
-# model's turns to the log, so a failed round also keeps its transcript (the
-# action's execution file) as a run artifact for 7 days. Anyone who can read
-# the run can download it. It holds what the model read and ran: normally the
+# A round in which Claude finished but posted no review fails the job: the
+# model can end its turn "successfully" without ever submitting (#1893 had
+# three such rounds across two heads, then a re-run of the last one posted). A
+# step after the action looks for a `claude[bot]` review of the head that is
+# newer than any Claude review there was when the round started, and the job
+# goes red without one. Unless the run has step debug on, the action prints
+# none of the model's turns to the log, so such a round, or one where the
+# action failed after Claude finished, keeps its transcript (the action's
+# execution file) as a run artifact for 7 days. A round stopped by the timeout
+# or cancelled by a newer push writes no transcript. Anyone who can read the
+# run can download the artifact. It records every tool result: normally the
 # diff, the checkout and .claude-review/, all public here. Read is not confined
-# to the checkout, so a round steered into reading some other runner file would
-# put it in the transcript; that model can already put it in the review body.
+# to the checkout, though, so a round steered into reading a runner file would
+# record it, and Actions masks secrets in logs but not in artifacts. The upload
+# therefore replaces the Claude token's value and anything shaped like an
+# Anthropic or GitHub token first.
 #
 # The action refuses to run (and the job still reports success) when this file
 # differs from the default branch's copy, so a PR that edits this workflow is
@@ -256,12 +261,30 @@ jobs:
           rm -f closing-raw.json closing-issues.tmp
           ls -l
 
-      # The review check below accepts only a review submitted after this. The
-      # minute of slack absorbs clock skew between the runner and GitHub; the
-      # model takes longer than that to read the change before it can post.
+      # The review check below accepts only a Claude review with a higher id
+      # (ids only grow) than the newest one on the PR now, so a review from an
+      # earlier round on the same head does not count. If the reviews cannot
+      # be read, `after_id` is empty and the check falls back to the time: a
+      # review submitted after this, less a minute for clock skew between the
+      # runner and GitHub (the model takes longer than that to post).
       - name: Record when the round starts
         id: round-start
-        run: echo "at=$(date -u -d '1 minute ago' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -uo pipefail
+          echo "at=$(date -u -d '1 minute ago' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+          for attempt in 1 2 3; do
+            if after=$(gh api --paginate "repos/${REPO}/pulls/${PR}/reviews?per_page=100" |
+                jq -s '[ (add // [])[] | select(.user.login == "claude[bot]") | .id ] | max // 0'); then
+              echo "after_id=${after}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          echo "::warning::could not read earlier reviews; the review check falls back to the round's start time"
 
       - name: Run Claude Code Review
         id: claude-review
@@ -387,43 +410,68 @@ jobs:
             --max-turns 80
             --allowedTools "Read,Glob,Grep,Write,Bash(gh pr diff:*),Bash(gh api --method POST repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews:*)"
 
-      # The action sets `execution_file` only once Claude has run, so this is
-      # skipped when the action skips itself (this file differs from main's) and
-      # when the actor check fails, which already fails the step. Retries cover
-      # a transient API error and a review not yet listed; then the job fails.
+      # The action sets `conclusion` only once Claude has finished, so this is
+      # skipped when the action skips itself (this file differs from main's),
+      # when the actor check fails (which already fails the step), and when the
+      # round times out or is cancelled. Retries cover a transient API error and
+      # a review not yet listed; then the job fails.
       - name: Check that the round posted a review
-        if: steps.claude-review.outputs.execution_file != ''
+        if: steps.claude-review.outputs.conclusion != ''
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          AFTER_ID: ${{ steps.round-start.outputs.after_id }}
           SINCE: ${{ steps.round-start.outputs.at }}
         run: |
           set -uo pipefail
           for attempt in 1 2 3; do
             if count=$(gh api --paginate "repos/${REPO}/pulls/${PR}/reviews?per_page=100" |
-                jq -s --arg sha "${HEAD_SHA}" --arg since "${SINCE}" '
+                jq -s --arg sha "${HEAD_SHA}" --arg after "${AFTER_ID}" --arg since "${SINCE}" '
                   [ (add // [])[] | select(.user.login == "claude[bot]"
                                            and .commit_id == $sha
                                            and .state != "PENDING"
-                                           and (.submitted_at // "") >= $since) ]
+                                           and (if $after != "" then .id > ($after | tonumber)
+                                                else (.submitted_at // "") >= $since end)) ]
                   | length') && [ "${count}" -gt 0 ]; then
               echo "claude[bot] reviewed ${HEAD_SHA} in this round."
               exit 0
             fi
-            sleep $((attempt * 5))
+            if [ "${attempt}" -lt 3 ]; then sleep $((attempt * 15)); fi
           done
-          echo "::error::Claude ran but no claude[bot] review of ${HEAD_SHA} submitted since ${SINCE} was found. Its transcript is uploaded as this run's claude-review-transcript-<attempt> artifact."
+          echo "::error::Claude finished but posted no review of ${HEAD_SHA} in this round. Its transcript is uploaded as this run's claude-review-transcript-<attempt> artifact."
           exit 1
 
-      # Only for a failed round in which Claude ran: the log hides the model's
-      # turns, and the file is gone once the runner is.
-      - name: Keep the transcript of a failed round
+      # Only for a failed round in which Claude finished: the log hides the
+      # model's turns, and the file is gone once the runner is. Token values
+      # are replaced first (see the header).
+      - name: Redact the transcript of a failed round
+        id: redact
         if: failure() && steps.claude-review.outputs.execution_file != ''
+        env:
+          EXECUTION_FILE: ${{ steps.claude-review.outputs.execution_file }}
+          CLAUDE_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          out="${RUNNER_TEMP}/claude-review-transcript.json"
+          python3 - "${EXECUTION_FILE}" "${out}" <<'PY'
+          import os, re, sys
+          text = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+          token = os.environ.get("CLAUDE_TOKEN", "")
+          if token:
+              text = text.replace(token, "[REDACTED]")
+          text = re.sub(r"sk-ant-[A-Za-z0-9_-]+|gh[pousr]_[A-Za-z0-9]+|github_pat_[A-Za-z0-9_]+",
+                        "[REDACTED]", text)
+          open(sys.argv[2], "w", encoding="utf-8").write(text)
+          PY
+          echo "file=${out}" >> "$GITHUB_OUTPUT"
+
+      - name: Keep the transcript of a failed round
+        if: failure() && steps.redact.outputs.file != ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: claude-review-transcript-${{ github.run_attempt }}
-          path: ${{ steps.claude-review.outputs.execution_file }}
+          path: ${{ steps.redact.outputs.file }}
           retention-days: 7
           if-no-files-found: warn
