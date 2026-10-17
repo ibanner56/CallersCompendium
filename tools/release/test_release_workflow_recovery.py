@@ -500,7 +500,7 @@ def main() -> None:
     # client can reach the release: the mobile uploads and the update manifest
     # both wait on it, so a failed deploy stops the run before either starts.
     deploy_server = _job_section(text, "deploy_server")
-    assert "    environment: release-server-deploy\n" in deploy_server, (
+    assert "    environment: release-server\n" in deploy_server, (
         "the server deploy must sit behind its own approval environment"
     )
     deploy_needs = re.search(r"^    needs:\s*\[([^\]]+)\]\s*$", deploy_server, re.MULTILINE)

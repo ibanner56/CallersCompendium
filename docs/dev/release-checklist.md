@@ -131,7 +131,7 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  the chosen track by hand. Without the secret the step is a clean skip; download
  the `android-aab` artifact and upload it manually instead.
 - [ ] Athenaeum server deployed **before** any client shipped — the
- `deploy_server` job (`release-server-deploy` approval) succeeded on **that tag's**
+ `deploy_server` job (`release-server` approval) succeeded on **that tag's**
  run, ahead of `publish_mobile` and `pages`; it builds the tagged commit as
  `callers-compendium-athenaeum:<version>` and waits for `/heartbeat`.
 - [ ] Update channel advanced **after** the draft was published — the `pages` job

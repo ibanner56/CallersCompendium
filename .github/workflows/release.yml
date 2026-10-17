@@ -1979,7 +1979,7 @@ jobs:
   # a release that cannot reach its server must stop, not skip the deploy.
   #
   # LEAST PRIVILEGE: read-only token. The SSH key, pinned host key and host
-  # coordinates live in the `release-server-deploy` environment so only this
+  # coordinates live in the `release-server` environment so only this
   # approved job can read them (docs/dev/releasing.md#deploying-the-athenaeum-server).
   deploy_server:
     name: Deploy Athenaeum server
@@ -1988,7 +1988,7 @@ jobs:
       github.repository == 'ibanner56/CallersCompendium' &&
       needs.meta.outputs.is_release == 'true'
     runs-on: ubuntu-latest
-    environment: release-server-deploy
+    environment: release-server
     timeout-minutes: 30
     # Two releases must not build and swap the one container at the same time.
     concurrency:
@@ -2015,7 +2015,7 @@ jobs:
           set -euo pipefail
           for name in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS; do
             if [ -z "${!name:-}" ]; then
-              echo "::error::${name} is not set in the release-server-deploy environment; the server cannot be deployed, so the release stops here."
+              echo "::error::${name} is not set in the release-server environment; the server cannot be deployed, so the release stops here."
               exit 1
             fi
           done

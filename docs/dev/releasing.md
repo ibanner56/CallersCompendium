@@ -342,10 +342,10 @@ and produces no Android artifact.
    publish a draft whose `verify` job failed or was skipped** — a red `verify`
    means the attestations don't check out. See
    [Verifying attestations](#verifying-attestations).
-   `deploy_server` then waits for the `release-server-deploy` approval; see step 9.
+   `deploy_server` then waits for the `release-server` approval; see step 9.
 8. **Publish** the draft manually once the `verify` job is green and the draft
    looks right.
-9. **Approve the `deploy_server` job** (`release-server-deploy` environment) once
+9. **Approve the `deploy_server` job** (`release-server` environment) once
    `verify` is green. It deploys this tag's Athenaeum server before the mobile
    uploads and the update manifest can start; if it fails, neither runs. See
    [Deploying the Athenaeum server](#deploying-the-athenaeum-server).
@@ -367,7 +367,7 @@ The `deploy_server` job puts the server for the tagged commit into production
 before any client can reach the release. `publish_mobile` (TestFlight, Google
 Play) and `pages` (the update manifest) both `need` it, so a failed deploy stops
 the run before either starts. It runs after `verify`, behind its own
-`release-server-deploy` approval, and it also runs on an existing-tag recovery
+`release-server` approval, and it also runs on an existing-tag recovery
 (rebuilding the same commit under the same image tag is idempotent, and the
 manifest still waits on it). A build-only `workflow_dispatch` dry run skips it.
 
@@ -391,7 +391,7 @@ leave the new container down or crash-looping; the previous image is still on th
 host, so roll back as the runbook's *Upgrade, rollback, and release order* says,
 fix forward, and re-run the failed job (or recover the tag).
 
-### Maintainer: the `release-server-deploy` environment (one-time)
+### Maintainer: the `release-server` environment (one-time)
 
 Create the environment under **Settings → Environments** with **Required
 reviewers** (it is the approval gate), and restrict deployment to `v*` tags if you
