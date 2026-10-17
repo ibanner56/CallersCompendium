@@ -41,15 +41,20 @@ up to as you go.
 ### Type and press Enter
 
 Figure entry is keyboard-first. Choose **Add figure** (or **Add first figure** on
-an empty dance) and type into **Type a figure**. When the dance can also hold a
-meanwhile or a modifier, the button opens a small menu: press Space or Enter on
-it and focus lands on **Add figure**. Press Enter to choose it, use the up and
-down arrow keys to reach the other choices, and press Escape to close the menu.
+an empty dance). When the dance can also hold a meanwhile or a modifier, the
+button opens a small menu: press Space or Enter on it and focus lands on **Add
+figure**. Press Enter to choose it, use the up and down arrow keys to reach the
+other choices, and press Escape to close the menu.
 
-As the app recognises what you
-are typing it offers matching [moves](./glossary.md#move); press Enter to accept
-one and it is added with that move's default settings. Typing `sw` and pressing
-Enter, for example, gives you a swing.
+With **Free-text entry** off, **Add figure** adds a row with its **Move** box
+focused. As you type there, the app offers matching [moves](./glossary.md#move);
+press Enter to accept one and it is added with that move's default settings.
+Typing `sw` and pressing Enter, for example, gives you a swing.
+
+With **Free-text entry** on, **Add figure** opens **Type a figure** instead: one
+box that takes a whole line and offers no move suggestions. Press Enter and the
+line is added; `sw` typed there on its own is a custom figure, not a swing. See
+[Free-text entry](#free-text-entry) below.
 
 Anything the app cannot recognise is still kept — it becomes a **custom figure**,
 holding your text. Nothing you type is ever thrown away because the app did not
@@ -69,10 +74,11 @@ Enter. Press Escape when you are done.
 Turn on **Free-text entry** in
 [Settings](./settings.md#dance-details--shorthands) ▸ **Dialect** ▸
 **Dance details & shorthands** and the same box accepts a whole line at a time
-instead of one move at a time. Type `neighbor balance & swing` and you get both
-figures; type `16 circle left 3/4` and you get a sixteen-beat circle left
-three-quarters. A line that states no count starts with the figure's usual
-beats, and they follow the figure if you change its options. A line under the
+instead of one move at a time. Type `neighbor balance & swing` and you get one
+figure, a swing with a balance; type `16 circle left 3/4` and you get a
+sixteen-beat circle left three-quarters. A line that states no count starts
+with the figure's usual beats, and they follow the figure if you change its
+options. A line under the
 box tells you how many figures it added and invites you to type another (a
 screen reader announces the count too); it goes away when you start typing.
 
@@ -112,10 +118,10 @@ what they mean (`ravens chain` is the same as `robins chain`), unless your own
 role terms use that word, in which case it means your role.
 
 A count can also be written in brackets, `(16) circle left` or `[16] circle
-left`, and goes at the end as well (`circle left [16]`). Any of these can say
-`beats`: `neighbor swing (16 beats)`, `neighbor swing 16 beats` or `16 beats
-neighbor swing`. A count in bars (`circle left 4 bars`) is kept as a note on
-the figure, because how many beats a bar holds depends on the dance's music.
+left`, and goes at the end as well: `circle left (16)` or `circle left [16]`.
+Any of these can say `beats`: `neighbor swing (16 beats)`,
+`neighbor swing 16 beats` or `16 beats neighbor swing`. A count in bars
+(`circle left 4 bars`) is kept as a note on the figure, because how many beats a bar holds depends on the dance's music.
 A count is never dropped: if the line states one the app cannot use (a second
 count, or one too long to be beats), the line is kept whole as a custom figure. A line kept
 as a custom figure keeps your words as you typed them, count included, and the
@@ -124,6 +130,13 @@ count you gave is also its beats.
 Pasting several lines into the box keeps them as one line, with a space where
 each line break was; type or paste one figure line at a time to get one figure
 per line.
+
+A `;` between figures makes a list, and each part is read as its own figure:
+`circle left 3/4; turn alone` gives two figures, in order. If any part cannot be
+read as a figure, the whole line is kept as one custom figure instead. A `||`
+makes its two sides a [meanwhile](./glossary.md#meanwhile):
+`circle left || neighbor swing` gives one meanwhile group whose sides are the
+circle and the swing.
 
 As always, anything it cannot parse is kept as a custom figure rather than
 dropped.
@@ -185,7 +198,8 @@ wording. Its token is unique among all your shorthands, of every kind. If its
 figure has been deleted, or changed so that it no longer accepts the values,
 the shorthand says so and typing it is read as an ordinary line. Turning
 Custom Figures off hides these shorthands and stops them working; it doesn't
-delete them.
+delete them. Each of the two kinds, for combinations and for new figures, keeps
+up to 500 of its own, separate from the 500 figure shorthands.
 
 A shorthand of any kind works in an existing figure's **Move** box too: with
 **Free-text entry** on, type it there and press Enter, and the figure is
