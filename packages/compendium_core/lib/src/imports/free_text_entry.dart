@@ -14,9 +14,10 @@ import 'typed_figure_names.dart';
 /// Longest inline beat count we will parse from a free-text line. Bounds the
 /// digits turned into an int so a hostile/absurd value (`(999999999999)`) can
 /// never overflow one or drive downstream duration math off the rails — a count
-/// past four digits is never parsed: it is not a beat count, and free-text
-/// entry keeps it as a note ([_BeatSplit.unread], #1863). Four digits (≤ 9999)
-/// comfortably covers any real contra figure while staying safe.
+/// past four digits is never parsed: it is not a beat count. Free-text entry
+/// keeps it in the figure's note when the line states no readable count, and in
+/// a custom's typed text otherwise ([_BeatSplit.unread], #1863). Four digits
+/// (≤ 9999) comfortably covers any real contra figure while staying safe.
 const int _maxInlineBeatDigits = 4;
 
 /// Upper bound on the length of a single free-text entry line we will feed
