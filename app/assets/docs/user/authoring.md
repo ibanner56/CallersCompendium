@@ -123,7 +123,7 @@ Any of these can say `beats`: `neighbor swing (16 beats)`,
 `neighbor swing 16 beats` or `16 beats neighbor swing`. A count in bars
 (`circle left 4 bars`) is kept as a note on the figure, because how many beats a bar holds depends on the dance's music.
 A count is never dropped: if the line states one the app cannot use (a second
-count, or one too long to be beats), the line is kept whole as a custom figure. A line kept
+count on the same figure, or one too long to be beats), the line is kept whole as a custom figure. A line kept
 as a custom figure keeps your words as you typed them, count included, and the
 count you gave is also its beats.
 

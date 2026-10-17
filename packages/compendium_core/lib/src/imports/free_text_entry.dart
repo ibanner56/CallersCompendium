@@ -3,6 +3,7 @@ import '../dialect/dialect.dart';
 import '../model/figure.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/taxonomy.dart';
+import '../validation/validation.dart';
 import 'callersbox_figure_dialect.dart' show hasTopLevelSeparator;
 import 'figure_front_end_fan_out.dart';
 import 'figure_text_scrub.dart';
@@ -228,8 +229,8 @@ _BeatSplit _splitInlineBeats(String line, [_CountForms? forms]) {
 /// not read: beats per bar is the dance's phrase structure, which a line does
 /// not see, so it stays in the text.
 ///
-/// Only ONE inline form is honoured per line: a trailing count is checked
-/// first and wins. A count that is not the one honoured (the leading digits of
+/// Only ONE inline form is honoured per line (per `;` clause, see below): a
+/// trailing count is checked first and wins. A count that is not the one honoured (the leading digits of
 /// `16 … (8)`, a second bracketed group, one too long to be beats) is never
 /// dropped: it stays in the text, which then no longer parses and is kept as a
 /// custom. A zero count is not a count (0 is "unspecified"); it is left where
@@ -472,7 +473,7 @@ List<Figure>? _parseCountedClauses(
   if (figures.isEmpty || figures.any((f) => f.isCustom)) return const [];
   if (splits.skip(1).every((s) => s.beats == 0)) return figures;
   if (figures.length != clauses.length) return const [];
-  return [
+  final counted = [
     for (var i = 0; i < figures.length; i++)
       splits[i].beats > 0 && i > 0
           ? figures[i].copyWith(
@@ -480,6 +481,16 @@ List<Figure>? _parseCountedClauses(
             )
           : figures[i],
   ];
+  // The first clause's count went through the parser, which refuses a value
+  // the taxonomy does not allow (more than 64 beats); a later clause's was set
+  // here, so it is held to the same rule.
+  final tax = taxonomy ?? contraTaxonomy;
+  final invalid = counted.any(
+    (f) => tax
+        .validateFigure(f)
+        .any((i) => i.severity == ValidationSeverity.error),
+  );
+  return invalid ? const [] : counted;
 }
 
 /// What to re-parse for a saved import-gap custom with [text] and [beats]
