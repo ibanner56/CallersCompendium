@@ -307,9 +307,9 @@ def main() -> None:
     # is required (e.g. the recovery provenance predicate), never as a checkout.
     # Match the checkout step's own indentation so the checks job's
     # `checkout_ref:` pass-through (which also ends in "ref:") is not counted.
-    assert text.count("\n          ref: ${{ needs.meta.outputs.source_sha }}") == 3, (
-        "build (every platform, Windows included), publish, and Pages jobs must "
-        "all check out the resolved source SHA"
+    assert text.count("\n          ref: ${{ needs.meta.outputs.source_sha }}") == 4, (
+        "build (every platform, Windows included), publish, server deploy, and "
+        "Pages jobs must all check out the resolved source SHA"
     )
     assert text.count("\n          ref: ${{ needs.meta.outputs.release_ref }}") == 0, (
         "no job may check out the mutable release_ref; the tag name is passed via "
@@ -345,8 +345,9 @@ def main() -> None:
         "every _checks.yml job (validate, core, app, server) must check out "
         "the passed-in ref"
     )
-    assert text.count("needs.meta.outputs.is_release == 'true'") == 4, (
-        "draft, mobile, provenance verification, and Pages must share the release guard"
+    assert text.count("needs.meta.outputs.is_release == 'true'") == 5, (
+        "draft, mobile, server deploy, provenance verification, and Pages must "
+        "share the release guard"
     )
 
     ios_gate = _section(
@@ -494,6 +495,46 @@ def main() -> None:
         other_tag,
     )
     assert "  cancel-in-progress: false" in text
+
+    # The Athenaeum server deploys after provenance verification and before any
+    # client can reach the release: the mobile uploads and the update manifest
+    # both wait on it, so a failed deploy stops the run before either starts.
+    deploy_server = _job_section(text, "deploy_server")
+    assert "    environment: release-server\n" in deploy_server, (
+        "the server deploy must sit behind its own approval environment"
+    )
+    deploy_needs = re.search(r"^    needs:\s*\[([^\]]+)\]\s*$", deploy_server, re.MULTILINE)
+    assert deploy_needs is not None and {"meta", "verify"}.issubset(
+        {item.strip() for item in deploy_needs.group(1).split(",")}
+    ), "deploy_server must wait for provenance verification"
+    assert "needs.meta.outputs.recovery" not in deploy_server, (
+        "a recovery run must still deploy: the manifest waits on this job"
+    )
+    assert "continue-on-error" not in deploy_server, "a failed deploy must fail the run"
+    assert "permissions:\n      contents: read\n" in deploy_server
+    assert "persist-credentials: false" in deploy_server
+    assert "StrictHostKeyChecking=yes" in deploy_server, "the host key must be pinned"
+    assert 'bash -s -- "$SOURCE_SHA" "$VERSION"' in deploy_server
+    assert "SOURCE_SHA: ${{ needs.meta.outputs.source_sha }}" in deploy_server
+    assert "VERSION: ${{ needs.meta.outputs.version }}" in deploy_server
+    assert "< tools/release/deploy_athenaeum.sh" in deploy_server
+    assert deploy_server.index("refusing to deploy") < deploy_server.index("\n          ssh "), (
+        "the SHA and version must be validated before ssh joins them into a command"
+    )
+    for name in (
+        "secrets.ATHENAEUM_DEPLOY_SSH_KEY",
+        "secrets.ATHENAEUM_DEPLOY_KNOWN_HOSTS",
+        "vars.ATHENAEUM_DEPLOY_HOST",
+        "vars.ATHENAEUM_DEPLOY_USER",
+    ):
+        assert name in deploy_server, name
+    for downstream in ("publish_mobile", "pages"):
+        needs = re.search(
+            r"^    needs:\s*\[([^\]]+)\]\s*$", _job_section(text, downstream), re.MULTILINE
+        )
+        assert needs is not None and "deploy_server" in {
+            item.strip() for item in needs.group(1).split(",")
+        }, f"{downstream} must wait for the server deploy"
 
     # Issues 04/05/06: the channel advances only after verification and public
     # release. Ordering against publish_mobile is deliberately NOT asserted.

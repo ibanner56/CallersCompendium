@@ -431,6 +431,7 @@ STEPS: tuple[Step, ...] = (
             py("tools/release/test_gen_release_notes.py"),
             py("tools/release/test_gen_recovery_provenance.py"),
             py("tools/release/test_release_workflow_recovery.py"),
+            py("tools/release/test_deploy_athenaeum.py"),
             py("tools/release/test_release_windows_crt.py"),
             py("tools/release/test_linux_desktop_integration.py"),
             py("tools/release/test_macos_dmg.py"),
