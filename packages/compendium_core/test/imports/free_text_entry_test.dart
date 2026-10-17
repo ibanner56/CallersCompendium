@@ -310,6 +310,8 @@ void main() {
         // A clause that is only a note, so which figure a later count
         // belongs to is a guess.
         'circle left (8); gibberish xyz; turn alone (4)',
+        'circle left; face up; turn alone (4)',
+        'circle left; face up (4)',
         // A second count on one clause: the parser would drop one.
         'circle left (8) (4); turn alone',
         // A count too long to be beats.
