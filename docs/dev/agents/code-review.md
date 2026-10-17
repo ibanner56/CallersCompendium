@@ -110,6 +110,25 @@ same head again, do the same. To stop further rounds, remove the label. Each
 round costs a model run on the maintainer's Claude subscription, so remove the
 label once you no longer need reviews.
 
+A round can also end with Claude finished and no review posted: the model ends
+its turn without submitting (#1893 had three such rounds). The job then fails
+its `Check that the round posted a review` step, so `claude-review` is red on
+that head. The step accepts only a `claude[bot]` review entry of the head newer
+than the newest one on the PR when the round started, so a review from an
+earlier round on the same head does not count. An inline-thread reply that
+`claude.yml` posts during the round also records such an entry, and would pass
+the step. To try again, remove the label and add it back. Re-running the failed
+job reuses its original event: after a newer push it files its review against
+that run's old head, although `gh pr diff` gives it the PR's current diff, and
+it runs even if the label has since been removed. By default the action hides
+the model's turns from the log, so a round with no review, or one where the
+action failed after Claude ran (at the 80-turn limit, for example), uploads its
+transcript as a `claude-review-transcript-<attempt>` artifact on the run, kept
+for 7 days. The Claude token's value and anything shaped like an Anthropic or
+GitHub token are replaced before upload, but the repository is public, so any
+signed-in GitHub user can download it. A round stopped by the 30-minute timeout,
+or cancelled by a newer push, writes no transcript.
+
 Each round submits **one** PR review, using
 [`.github/skills/code-review/SKILL.md`](../../../.github/skills/code-review/SKILL.md)
 as its checklist and output format. The review's `commit_id` is the head it
@@ -148,8 +167,9 @@ A round that does not end in a review leaves `claude: reviewing` standing. The
 status workflow sets that label when a round is requested and changes it only
 when `claude[bot]` submits a review of the current head or the `review: claude`
 label is removed, so a failed round, one stopped by the job's limits (30
-minutes, 80 model turns), and a push whose actor check failed (see above) all
-look "in progress" until someone reads the run.
+minutes, 80 model turns), a push whose actor check failed and a round that
+posted no review (see above) all look "in progress" until someone reads the
+run.
 
 What a round is given and asked for:
 
@@ -212,7 +232,10 @@ Traps:
 - **A green `claude-review` check does not prove a review happened.** The
   action skips itself, and still reports success, when the workflow file
   differs from `main`'s copy. So a PR that edits `claude-code-review.yml` is
-  never reviewed by it (observed on #1736). The review entry is the evidence;
+  never reviewed by it (observed on #1736). The job's `Check that the round
+  posted a review` step does not run then, because Claude did not. Otherwise a
+  round in which Claude finished goes red unless a new `claude[bot]` review
+  entry of the head appeared. The review entry is the evidence;
   `check_pr_review_gates.py review <N> --reviewer claude` reads that entry, not
   the check.
 - **A PR that changes `claude-code-review.yml` may change nothing else.**
