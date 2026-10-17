@@ -917,6 +917,105 @@ void main() {
         );
         expect(fs.map((f) => f.move), ['circle', 'turn_alone']);
       });
+
+      group('a count outside the beats range (#1879)', () {
+        // The shape a non-shorthand line with the same count has (#1878,
+        // #1880): the rule a shorthand follows, so the two cannot drift.
+        void expectKeptWhole(String line, String sibling) {
+          final fs = parseFreeTextFigureEntry(line, shorthands: shorthands);
+          final twin = parseFreeTextFigureEntry(sibling).single;
+          expect(fs, hasLength(1), reason: line);
+          expect(fs.single.isCustom, isTrue, reason: line);
+          expect(fs.single.params['text'], line, reason: line);
+          expect(fs.single.params['beats'], twin.params['beats'], reason: line);
+          expect(fs.single.note, isNull, reason: line);
+        }
+
+        test('65..9999 on a one-figure shorthand keeps the whole line custom, '
+            'as `circle left (100)` is', () {
+          expectKeptWhole('pbs (100)', 'circle left (100)');
+          expectKeptWhole('100 pbs', '100 circle left');
+          expectKeptWhole('pbs (65)', 'circle left (65)');
+          expectKeptWhole('pbs [100 beats]', 'circle left [100 beats]');
+          expectKeptWhole('9999 pbs', '9999 circle left');
+        });
+
+        test('5 or more digits take the figure as saved, default beats, with '
+            'the count in its note, as `circle left (10000)` does', () {
+          for (final line in ['pbs (10000)', '10000 pbs', 'pbs 10000 beats']) {
+            final fs = parseFreeTextFigureEntry(line, shorthands: shorthands);
+            expect(fs, hasLength(1), reason: line);
+            expect(fs.single.move, 'swing', reason: line);
+            expect(fs.single.params['who'], 'partners', reason: line);
+            expect(fs.single.params.containsKey('beats'), isFalse);
+            expect(fs.single.note, startsWith('10000'), reason: line);
+          }
+        });
+
+        test('a multi-figure shorthand drops any count, as it does an in-range '
+            'one, so nothing invalid is made', () {
+          for (final line in ['combo (100)', '100 combo', 'combo (10000)']) {
+            final fs = parseFreeTextFigureEntry(line, shorthands: shorthands);
+            expect(fs.map((f) => f.move), [
+              'swing',
+              'turn_alone',
+            ], reason: line);
+            expect(fs.every((f) => f.note == null), isTrue, reason: line);
+            expect(fs.every((f) => !f.params.containsKey('beats')), isTrue);
+          }
+        });
+
+        test('in a `;` line the whole line stays custom with its text as '
+            'typed, whichever clause holds the count', () {
+          for (final line in [
+            'pbs (100); circle left',
+            'circle left; pbs (100)',
+            'pbs; 100 pbs',
+            'pbs (64); pbs (65)',
+          ]) {
+            final fs = parseFreeTextFigureEntry(line, shorthands: shorthands);
+            expect(fs, hasLength(1), reason: line);
+            expect(fs.single.isCustom, isTrue, reason: line);
+            expect(fs.single.params['text'], line, reason: line);
+          }
+        });
+
+        test('5 or more digits on a `;` clause ride on that clause', () {
+          final fs = parseFreeTextFigureEntry(
+            'pbs (10000); circle left',
+            shorthands: shorthands,
+          );
+          expect(fs.map((f) => f.move), ['swing', 'circle']);
+          expect(fs.first.note, '10000');
+          expect(fs.last.note, isNull);
+        });
+
+        test('64 is the last count a shorthand takes, 1 the first', () {
+          for (final (line, beats) in [
+            ('pbs (64)', 64),
+            ('64 pbs', 64),
+            ('pbs (1)', 1),
+            ('pbs (64); circle left', 64),
+            ('circle left; 64 pbs', 64),
+          ]) {
+            final fs = parseFreeTextFigureEntry(line, shorthands: shorthands);
+            expect(fs.every((f) => !f.isCustom), isTrue, reason: line);
+            expect(
+              fs.firstWhere((f) => f.move == 'swing').params['beats'],
+              beats,
+              reason: line,
+            );
+          }
+        });
+
+        test('a zero count is no count: the line stays custom as typed', () {
+          for (final line in ['pbs (0)', '0 pbs']) {
+            final fs = parseFreeTextFigureEntry(line, shorthands: shorthands);
+            expect(fs.single.isCustom, isTrue, reason: line);
+            expect(fs.single.params['text'], line, reason: line);
+          }
+        });
+      });
     },
   );
 
