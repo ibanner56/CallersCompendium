@@ -225,9 +225,12 @@ Figure _withUnreadCount(Figure figure, String token) => figure.copyWith(
 /// - a **leading** `16 pbs` or **trailing** `pbs (16)` count (the same two forms
 ///   as below) is peeled off and the rest matched. A shorthand that expands to
 ///   exactly ONE figure (a single meanwhile or modifier container included, whose
-///   own beats it sets) takes the count as that figure's beats; one that
-///   expands to several figures is inserted as saved and the count is
-///   dropped, because there is no single figure it could belong to.
+///   own beats it sets) takes the count as that figure's beats, if the taxonomy
+///   allows that many (0..64; `pbs (100)` stays one custom with its text as
+///   typed, as `circle left (100)` does), and a count of five or more digits
+///   rides in its note, as for any figure (#1879); one that expands to several
+///   figures is inserted as saved and the count is dropped, because there is no
+///   single figure it could belong to.
 ///   A token that itself contains a count (`3 swings`) still matches in
 ///   full, first.
 /// - a `;` line is split into clauses at bracket depth 0, and each clause is
@@ -396,9 +399,15 @@ List<Figure>? _expandShorthandClauses(
   final expansions = <List<Figure>?>[];
   var anyShorthand = false;
   for (final clause in clauses) {
-    final expansion = _resolveClause(clause, shorthands);
+    final expansion = _resolveClause(clause, shorthands, taxonomy);
+    // A count the shorthand's figure cannot take keeps the whole line custom
+    // with its text as typed, as for a `;` line with a clause that does not
+    // structure (#1879); the line's own edge count, if any, is its beats.
+    if (expansion != null && expansion.refused) {
+      return [_typedCustom(line, _splitInlineBeats(line).beats)];
+    }
     anyShorthand = anyShorthand || expansion != null;
-    expansions.add(expansion);
+    expansions.add(expansion?.figures);
   }
   if (!anyShorthand) return null;
   final result = <Figure>[];
@@ -415,21 +424,51 @@ List<Figure>? _expandShorthandClauses(
   return result;
 }
 
+/// What one `;` clause is as a shorthand: its [figures], or [refused] when the
+/// count typed with it cannot be put on the one figure it expands to.
+typedef _ClauseExpansion = ({List<Figure> figures, bool refused});
+
 /// The figures a single [clause] expands to as a shorthand, with an inline
 /// count applied when the shorthand is one figure, or `null` if it is not one.
-List<Figure>? _resolveClause(String clause, ShorthandMappings shorthands) {
+///
+/// The count follows the rule a line with no shorthand does: up to four digits
+/// it is the figure's beats if the taxonomy allows that many (0..64), and
+/// [_ClauseExpansion.refused] otherwise (`pbs (100)`, as `circle left (100)` is
+/// kept custom); five or more digits are not beats, so the figure keeps its
+/// beats and the count rides on its note (#1863). A shorthand of several
+/// figures drops any count, as ever: it has no one figure to hold it.
+_ClauseExpansion? _resolveClause(
+  String clause,
+  ShorthandMappings shorthands,
+  Taxonomy? taxonomy,
+) {
   final whole = shorthands.resolve(clause);
-  if (whole != null) return whole;
+  if (whole != null) return (figures: whole, refused: false);
   final split = _splitInlineBeats(clause);
-  if (split.beats == 0) return null;
+  final unread = split.unread;
+  if (split.beats == 0 && unread == null) return null;
   final expanded = shorthands.resolve(split.text);
   if (expanded == null) return null;
-  if (expanded.length != 1) return expanded;
+  if (expanded.length != 1) return (figures: expanded, refused: false);
   final only = expanded.single;
-  return [
-    only.copyWith(params: {...only.params, 'beats': split.beats}),
-  ];
+  if (unread != null) {
+    return (figures: [_withUnreadCount(only, unread)], refused: false);
+  }
+  final counted = only.copyWith(params: {...only.params, 'beats': split.beats});
+  return (
+    figures: [counted],
+    refused: _errorCount(counted, taxonomy) > _errorCount(only, taxonomy),
+  );
 }
+
+/// How many errors [taxonomy] finds in [figure]: compared before and after a
+/// count is put on a shorthand's figure, so only what the count broke counts
+/// against it, not a fault the saved figure already had.
+int _errorCount(Figure figure, Taxonomy? taxonomy) =>
+    (taxonomy ?? contraTaxonomy)
+        .validateFigure(figure)
+        .where((i) => i.severity == ValidationSeverity.error)
+        .length;
 
 /// [line] split into its `;` clauses, trimmed, for a caller that matches a
 /// shorthand of its own kind per clause (a compound, or one of the user's own
@@ -451,11 +490,13 @@ List<String>? splitShorthandClauses(String line) {
 /// shorthand gets above, for the callers that match a shorthand of their own
 /// kind (a compound, or one of the user's own figures) and so cannot go
 /// through [parseFreeTextFigureEntry]: the caller matches `text` against its
-/// tokens and decides what `beats` means for what it inserts.
-({String text, int beats})? splitShorthandCount(String line) {
+/// tokens and decides what `beats` means for what it inserts. A count too long
+/// to be beats (five or more digits) is `unread`, with `beats` 0 (#1863): it is
+/// not a beat count, and the caller decides where the number goes.
+({String text, int beats, String? unread})? splitShorthandCount(String line) {
   final split = _splitInlineBeats(line.trim());
-  if (split.beats == 0) return null;
-  return (text: split.text, beats: split.beats);
+  if (split.beats == 0 && split.unread == null) return null;
+  return (text: split.text, beats: split.beats, unread: split.unread);
 }
 
 /// Splits [line] at bracket-depth-0 `;`, trimming each clause and keeping empty

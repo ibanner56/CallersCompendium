@@ -1069,9 +1069,35 @@ void main() {
 
   group('splitShorthandCount (#1861)', () {
     test('peels a leading or trailing count', () {
-      expect(splitShorthandCount('16 pbs'), (text: 'pbs', beats: 16));
-      expect(splitShorthandCount('pbs (16)'), (text: 'pbs', beats: 16));
-      expect(splitShorthandCount('  pbs 16 beats '), (text: 'pbs', beats: 16));
+      expect(splitShorthandCount('16 pbs'), (
+        text: 'pbs',
+        beats: 16,
+        unread: null,
+      ));
+      expect(splitShorthandCount('pbs (16)'), (
+        text: 'pbs',
+        beats: 16,
+        unread: null,
+      ));
+      expect(splitShorthandCount('  pbs 16 beats '), (
+        text: 'pbs',
+        beats: 16,
+        unread: null,
+      ));
+    });
+
+    test('a count too long to be beats is unread, with no beats (#1879)', () {
+      expect(splitShorthandCount('pbs (10000)'), (
+        text: 'pbs',
+        beats: 0,
+        unread: '10000',
+      ));
+      // Four digits are still beats here; the range is the caller's to hold.
+      expect(splitShorthandCount('100 pbs'), (
+        text: 'pbs',
+        beats: 100,
+        unread: null,
+      ));
     });
 
     test('is null when the line states no count', () {

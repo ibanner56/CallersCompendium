@@ -439,6 +439,56 @@ void main() {
       });
     }
 
+    // A count the beats range (0..64) refuses is not the use's beats (#1879),
+    // as it is not a plain shorthand's: the line is kept as one custom figure
+    // with its text as typed, as `circle left (100)` is.
+    for (final line in [
+      'zm (100)',
+      '100 zm',
+      'zm (65)',
+      'zm; zm (100)',
+      'zm (100); turn alone',
+    ]) {
+      testWidgets('"$line" is kept as one custom figure, as typed', (
+        tester,
+      ) async {
+        final repos = await pump(tester, shorthands: [shorthand()]);
+        await typeLine(tester, line);
+        final figure = (await saved(tester, repos)).single;
+        expect(userFigureUseOf(figure), isNull);
+        expect(figure.isCustom, isTrue);
+        expect(figure.params['text'], line);
+      });
+
+      testWidgets('"$line" typed into an existing row\'s Move box makes that '
+          'row a custom figure as typed', (tester) async {
+        final repos = await pump(tester, shorthands: [shorthand()]);
+        await typeInExistingRow(tester, line);
+        final figures = await saved(tester, repos);
+        expect(figures, hasLength(3));
+        expect(figures.map(userFigureUseOf), everyElement(isNull));
+        expect(figures[1].params['text'], line);
+      });
+    }
+
+    testWidgets('64 is the last count the use takes', (tester) async {
+      final repos = await pump(tester, shorthands: [shorthand()]);
+      await typeLine(tester, 'zm (64)');
+      final figure = (await saved(tester, repos)).single;
+      expect(userFigureUseOf(figure)?.id, 'zoom-id');
+      expect(figure.params['beats'], 64);
+    });
+
+    testWidgets('a count too long to be beats leaves the use its beats and '
+        'rides in its note (#1863)', (tester) async {
+      final repos = await pump(tester, shorthands: [shorthand()]);
+      await typeLine(tester, 'zm (10000)');
+      final figure = (await saved(tester, repos)).single;
+      expect(userFigureUseOf(figure)?.id, 'zoom-id');
+      expect(figure.params['beats'], 4);
+      expect(figure.note, '10000');
+    });
+
     // A `;` clause may be one of these shorthands, with its own count (#1866),
     // as it may be a plain shorthand (#1827). Rows come out in typed order.
     final clauseLines = <String, List<String?>>{
