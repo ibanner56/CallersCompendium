@@ -441,12 +441,15 @@ void main() {
     expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
   });
 
-  test('a restore clears what was kept', () async {
+  test('clearing for a restore leaves what was kept to the next snapshot, '
+      'which drops it once its record is gone', () async {
     await apply(newerProgram(program()));
-    await repositories.syncLocal.clearForRestore(
-      restoredRecords: const [],
-      clearRetainedParts: true,
-    );
+    await repositories.programs.hardDelete(['p1']);
+
+    await repositories.syncLocal.clearForRestore(restoredRecords: const []);
+    expect(await repositories.syncLocal.listRetainedSyncFields(), hasLength(1));
+
+    await storage.snapshot();
     expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
   });
 

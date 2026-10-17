@@ -253,16 +253,15 @@ wire cannot take that class. The kept `body` names the peer's id too and is
 never sent anywhere.
 
 `retained_sync_fields` is record content, not store state: it MUST survive an
-epoch reset and a detach, like the record it belongs to. A restore that
-replaces the whole library MUST clear the table. A merge restore and an archive
-import MUST clear no row: each edits the records it matches as a local edit does,
-which keeps the kept parts, and a record a merge restore writes is stamped
-newer than the peer's copy, so a body without the kept parts would win
-last-writer-wins and strip them from the peer on every device (§6.7). The
-replace restore still clears the table, unchanged. That is a separate decision
-from the one for a merge restore, not a consequence of it: a replace may carry
-the same hazard (it too writes records stamped at restore time), and whether it
-should keep the rows is not decided here. A row MUST follow its
+epoch reset and a detach, like the record it belongs to. A restore of either
+mode and an archive import MUST clear no row: each writes the records it matches
+as a local edit does, which keeps the kept parts, and a record a restore writes
+is stamped at restore time, newer than the peer's copy, so a body without the
+kept parts would win last-writer-wins and strip them from the peer on every
+device (§6.7). A replace restore deletes the old records first, but the row of a
+record the backup restores under the same id survives and is put back, and the
+row of a record the backup does not hold is dropped by the next snapshot, as
+below, so the restore need not clear anything. A row MUST follow its
 record when two identities become one, and MUST go when its record is
 hard-deleted or purged;
 every snapshot drops a row whose record no longer exists, so third-party
@@ -4126,9 +4125,8 @@ judged, in either mode.** The codebase has three such entry points —
 latent; but a merge writes rows the pass never saw exactly as a replace does, so
 the rule is stated over the event and not over the mode, and holds unchanged
 when merge-mode sharing ships. The one clearing this does not extend to is
-`retained_sync_fields` (§3.2), whose rows are record content: only a restore
-that replaces the whole library clears them, and a merge restore and an archive
-import clear none.
+`retained_sync_fields` (§3.2), whose rows are record content: no restore of
+either mode and no archive import clears them.
 
 Restore converges on a deletion only while some peer still advertises the
 tombstone.
@@ -6017,12 +6015,13 @@ figure decoding drop the key — the dance applies, truncated). **A tie in kept
 parts is left to a device that understands them** (mutation: settle it as a tie
 in nothing the user is shown — the copy without the newer field can win
 everywhere; on a natural-key collision, compare the known parts only — the
-inbound copy wins on every device). **A merge restore or an archive import
+inbound copy wins on every device). **A restore of either mode or an archive import
 keeps the parts kept for every record, those it writes included** (mutation:
-clear the rows of the records a merge restore writes — the restored copy is
-stamped newer, `SyncMergeEngine.plan` uploads a body without the field, and it
-is stripped from the peer everywhere; a replace restore still clears the table,
-and a test pins that). **After an upgrade that starts syncing a kept field, the record
+clear the rows of the records a restore writes, or the whole table after a
+replace — the restored copy is stamped newer, `SyncMergeEngine.plan` uploads a
+body without the field, and it is stripped from the peer everywhere; a test
+pins both modes, and that the row of a record a replace left out is dropped by
+the next snapshot). **After an upgrade that starts syncing a kept field, the record
 holds it and the kept copy no longer wins** (mutation: keep putting the kept
 copy back — the user's edit to the now-synced field is shared with the old
 value). These are client-side and

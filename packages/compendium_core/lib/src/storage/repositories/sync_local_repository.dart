@@ -229,12 +229,10 @@ class SyncLocalRepository {
 
   Future<void> clearForRestore({
     required Iterable<SyncRecordAddress> restoredRecords,
-    required bool clearRetainedParts,
     bool revalidatePending = true,
   }) => transaction(
     (tx) => tx.clearForRestore(
       restoredRecords: restoredRecords,
-      clearRetainedParts: clearRetainedParts,
       revalidatePending: revalidatePending,
     ),
   );
@@ -514,30 +512,23 @@ class SyncLocalTransaction {
   }
 
   /// Clears what a restore or import makes stale: the baseline, and, when
-  /// [clearRetainedParts] is set, the parts kept for records a peer's newer
-  /// build wrote (`retained_sync_fields`).
+  /// [revalidatePending] is true, the pending deletions of records it did not
+  /// restore.
   ///
-  /// [clearRetainedParts] is true only for a writer that replaced the whole
-  /// dataset, so the kept parts of every record it replaced are gone (sync-spec
-  /// §3.2). It clears the whole table, never the rows of [restoredRecords]
-  /// alone. A merge restore and an archive import pass false: they edit the
-  /// records they match as a local edit does, which keeps the kept parts, and
-  /// the kept part of a record is the only copy of what a peer's newer build
-  /// put there. Clearing it for a record the writer stamps newer would let the
-  /// body without it win last-writer-wins and strip it from the peer (§6.7).
-  /// [restoredRecords] only scopes which pending deletions survive, and only
-  /// when [revalidatePending] is true.
+  /// It clears no `retained_sync_fields` row, in either restore mode or for an
+  /// archive import. A writer that restores a record stamps it at restore time,
+  /// so its body wins last-writer-wins against a peer's copy, and the kept part
+  /// of a record is the only copy of what a peer's newer build put there:
+  /// clearing it would let the body without it win and strip it from the peer
+  /// (sync-spec §6.7). A row for a record the restore left no longer existing
+  /// is dropped by the next snapshot, which sweeps every row whose record is
+  /// gone, so the writer need not. [restoredRecords] only scopes which pending
+  /// deletions survive, and only when [revalidatePending] is true.
   Future<void> clearForRestore({
     required Iterable<SyncRecordAddress> restoredRecords,
-    required bool clearRetainedParts,
     bool revalidatePending = true,
   }) async {
     await clearBaseline();
-    // What a replaced record carried for a newer version, if anything, arrives
-    // again from a peer.
-    if (clearRetainedParts) {
-      await _db.delete(_db.retainedSyncFields).go();
-    }
     if (revalidatePending) {
       await revalidatePendingDeletions(restoredRecords: restoredRecords);
     }

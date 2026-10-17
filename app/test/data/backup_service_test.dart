@@ -220,6 +220,63 @@ void main() {
     },
   );
 
+  test('a replace restore keeps what a newer build added to a setting, and '
+      'to one this build does not sync', () async {
+    // The settings the backup carries are applied after the core commit, by
+    // `settings.set`, which stamps the moment of the restore: the restored
+    // value is the newest copy, so its body must still carry what a peer's
+    // newer build put beside it (sync-spec §6.7).
+    final source = openTestRepositories();
+    await _seed(source);
+    final json = await BackupService(source).exportToJson();
+
+    final target = openTestRepositories();
+    final peerAt = DateTime.utc(2026, 7, 15, 12);
+    SyncRecordBlob peer(
+      String key,
+      Object? value,
+      Map<String, Object?> extra,
+    ) => SyncRecordBlob(
+      kind: SyncRecordKind.setting,
+      id: key,
+      updatedAt: peerAt,
+      deletedAt: null,
+      existenceAt: peerAt,
+      body: {'value': value, ...extra},
+    );
+    final dialects = peer(kCustomDialectsKey, const [], {'addedLater': 'kept'});
+    final unknown = peer('a_setting_added_later', {'on': true}, const {});
+    final storage = CompendiumSyncStorage(target);
+    final applied = await const SyncApplyEngine().apply(
+      candidates: [
+        SyncMergeCandidate(blob: dialects),
+        SyncMergeCandidate(blob: unknown),
+      ],
+      storage: storage,
+    );
+    expect(applied.reports, isEmpty);
+    expect(await target.syncLocal.listRetainedSyncFields(), hasLength(2));
+
+    final outcome = await BackupService(target).restoreFromJson(json);
+    expect(outcome.hasErrors, isFalse);
+    expect(outcome.applied, isTrue);
+
+    final local = (await storage.snapshot()).local;
+    final restored =
+        local[(kind: SyncRecordKind.setting, recordId: kCustomDialectsKey)]!
+            .blob;
+    expect(restored.updatedAt.isAfter(peerAt), isTrue);
+    expect(restored.body['value'], [Dialect(name: 'My Dialect').toJson()]);
+    expect(restored.body['addedLater'], 'kept');
+    final whole =
+        local[(
+          kind: SyncRecordKind.setting,
+          recordId: 'a_setting_added_later',
+        )]!;
+    expect(whole.wireHash, SyncMergeCandidate(blob: unknown).wireHash);
+    expect(await target.syncLocal.listRetainedSyncFields(), hasLength(2));
+  });
+
   test('restore reruns normalization for a surviving merge row', () async {
     final source = openTestRepositories();
     final json = await BackupService(source).exportToJson();
