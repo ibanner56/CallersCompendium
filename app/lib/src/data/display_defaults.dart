@@ -28,6 +28,17 @@ const String kDefaultCollectionSortKey = 'default_collection_sort';
 /// its historical default (`title`).
 const String kDefaultProgramSortKey = 'default_program_sort';
 
+/// Keys holding the direction of a **fixed** default sort, mirroring
+/// [kDefaultCollectionSortKey] / [kDefaultProgramSortKey] (issue #1841). Stored
+/// as the `SortDirection` enum's stable `.name`, read through
+/// [sortDirectionFromName]. Absent/invalid ⇒ the sort's natural direction, so an
+/// untouched install behaves as it did before the key existed and nothing is
+/// written on upgrade. Ignored while the default is [kLastUsedSortSentinel],
+/// which seeds its direction from the `kLastUsed*SortDirectionKey` keys below.
+const String kDefaultCollectionSortDirectionKey =
+    'default_collection_sort_direction';
+const String kDefaultProgramSortDirectionKey = 'default_program_sort_direction';
+
 /// The sentinel value stored under [kDefaultCollectionSortKey] /
 /// [kDefaultProgramSortKey] to mean "seed the list from its own last-used sort
 /// (key + direction), not a fixed one" (issue #895) — never a member of

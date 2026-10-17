@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -1128,6 +1129,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get syncSettingLastProgramSortDirection => 'プログラムの並び替え方向（前回使用）';
+
+  @override
+  String get syncSettingDefaultCollectionSortDirection => 'コレクションの並び替え方向（既定）';
+
+  @override
+  String get syncSettingDefaultProgramSortDirection => 'プログラムの並び替え方向（既定）';
 
   @override
   String get syncSettingPerformStageTheme => 'パフォームのステージテーマ';
@@ -2281,6 +2288,15 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsDefaultsProgramSortSubtitle =>
       'プログラム一覧を開いたときの並び順です。閲覧中に並び順を変更することもできます。';
+
+  @override
+  String get settingsDefaultsSortLastUsedSubtitle => '前回使用した並び順と方向で開きます。';
+
+  @override
+  String get settingsDefaultsSortAscending => '昇順';
+
+  @override
+  String get settingsDefaultsSortDescending => '降順';
 
   @override
   String get settingsDefaultsCanonicalTitle => 'ダンスの詳細を正式な用語で表示する';

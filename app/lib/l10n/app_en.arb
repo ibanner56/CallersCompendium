@@ -1526,6 +1526,14 @@
   "@syncSettingLastProgramSortDirection": {
     "description": "Name of the synced setting that remembers the last sort direction chosen on the Programs page."
   },
+  "syncSettingDefaultCollectionSortDirection": "Collection sort direction (default)",
+  "@syncSettingDefaultCollectionSortDirection": {
+    "description": "Name of the synced setting holding the direction the Collection list opens in when a fixed default sort is chosen in Settings > Defaults (issue #1841). Distinct from the last-used direction."
+  },
+  "syncSettingDefaultProgramSortDirection": "Programs sort direction (default)",
+  "@syncSettingDefaultProgramSortDirection": {
+    "description": "Name of the synced setting holding the direction the Programs list opens in when a fixed default sort is chosen in Settings > Defaults (issue #1841). Distinct from the last-used direction."
+  },
   "syncSettingPerformStageTheme": "Stage theme in Perform",
   "@syncSettingPerformStageTheme": {
     "description": "Name of the synced setting that turns on the dark stage theme in Perform."
@@ -3005,6 +3013,18 @@
   "settingsDefaultsProgramSortSubtitle": "How the Programs list is sorted when you open it. You can still change the sort while browsing.",
   "@settingsDefaultsProgramSortSubtitle": {
     "description": "Explanation for the default Programs sort-order picker (issue #895), mirroring settingsDefaultsSortSubtitle."
+  },
+  "settingsDefaultsSortLastUsedSubtitle": "Opens with the sort and direction you last used.",
+  "@settingsDefaultsSortLastUsedSubtitle": {
+    "description": "Explanation shown under the Collection and Programs default sort-order pickers while Last used is selected (issue #1841). Replaces the fixed-sort explanation, and tells the user that Last used remembers direction as well as sort."
+  },
+  "settingsDefaultsSortAscending": "Ascending",
+  "@settingsDefaultsSortAscending": {
+    "description": "Segment of the default sort-direction toggle in Settings > Defaults (issue #1841): the list opens sorted ascending."
+  },
+  "settingsDefaultsSortDescending": "Descending",
+  "@settingsDefaultsSortDescending": {
+    "description": "Segment of the default sort-direction toggle in Settings > Defaults (issue #1841): the list opens sorted descending."
   },
   "settingsDefaultsCanonicalTitle": "Open dance details in canonical terms",
   "@settingsDefaultsCanonicalTitle": {

@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -1195,6 +1196,14 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get syncSettingLastProgramSortDirection =>
       'Sortierrichtung der Programme (zuletzt verwendet)';
+
+  @override
+  String get syncSettingDefaultCollectionSortDirection =>
+      'Sortierrichtung der Sammlung (Standard)';
+
+  @override
+  String get syncSettingDefaultProgramSortDirection =>
+      'Sortierrichtung der Programme (Standard)';
 
   @override
   String get syncSettingPerformStageTheme => 'Bühnen-Design in Perform';
@@ -2422,6 +2431,16 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsDefaultsProgramSortSubtitle =>
       'Wie die Programmliste beim Öffnen sortiert wird. Du kannst die Sortierung beim Durchsuchen weiterhin ändern.';
+
+  @override
+  String get settingsDefaultsSortLastUsedSubtitle =>
+      'Öffnet mit der Sortierung und Richtung, die du zuletzt verwendet hast.';
+
+  @override
+  String get settingsDefaultsSortAscending => 'Aufsteigend';
+
+  @override
+  String get settingsDefaultsSortDescending => 'Absteigend';
 
   @override
   String get settingsDefaultsCanonicalTitle =>

@@ -117,6 +117,8 @@ final Map<String, DataClassification> settingsClassifications = {
   // -- Collection and editing defaults --------------------------------------
   'default_collection_sort': _preference,
   'default_program_sort': _preference,
+  'default_collection_sort_direction': _preference,
+  'default_program_sort_direction': _preference,
   'last_used_collection_sort': _preference,
   'last_used_collection_sort_direction': _preference,
   'last_used_program_sort': _preference,

@@ -1652,6 +1652,18 @@ abstract class AppLocalizations {
   /// **'Programs sort direction (last used)'**
   String get syncSettingLastProgramSortDirection;
 
+  /// Name of the synced setting holding the direction the Collection list opens in when a fixed default sort is chosen in Settings > Defaults (issue #1841). Distinct from the last-used direction.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection sort direction (default)'**
+  String get syncSettingDefaultCollectionSortDirection;
+
+  /// Name of the synced setting holding the direction the Programs list opens in when a fixed default sort is chosen in Settings > Defaults (issue #1841). Distinct from the last-used direction.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs sort direction (default)'**
+  String get syncSettingDefaultProgramSortDirection;
+
   /// Name of the synced setting that turns on the dark stage theme in Perform.
   ///
   /// In en, this message translates to:
@@ -3630,6 +3642,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'How the Programs list is sorted when you open it. You can still change the sort while browsing.'**
   String get settingsDefaultsProgramSortSubtitle;
+
+  /// Explanation shown under the Collection and Programs default sort-order pickers while Last used is selected (issue #1841). Replaces the fixed-sort explanation, and tells the user that Last used remembers direction as well as sort.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens with the sort and direction you last used.'**
+  String get settingsDefaultsSortLastUsedSubtitle;
+
+  /// Segment of the default sort-direction toggle in Settings > Defaults (issue #1841): the list opens sorted ascending.
+  ///
+  /// In en, this message translates to:
+  /// **'Ascending'**
+  String get settingsDefaultsSortAscending;
+
+  /// Segment of the default sort-direction toggle in Settings > Defaults (issue #1841): the list opens sorted descending.
+  ///
+  /// In en, this message translates to:
+  /// **'Descending'**
+  String get settingsDefaultsSortDescending;
 
   /// Toggle title: open dances in canonical terms rather than the active dialect.
   ///

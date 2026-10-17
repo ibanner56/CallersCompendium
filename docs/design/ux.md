@@ -31,8 +31,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 ### 1. Collection (browse + search)
 - Virtualized list: title, authors, formation chip, tags, custom list fields.
   Sort by title/author/recently-added/last-called; opens in the saved
-  default sort (Settings ▸ Defaults), or in whatever sort was last used if
-  "Last used" is selected there (issue #895). Sort survives crossing the
+  default sort (Settings ▸ Defaults) and direction (ascending or descending,
+  the sort's natural direction unless changed there, issue #1841), or in
+  whatever sort and direction were last used if "Last used" is selected there
+  (issue #895). Sort survives crossing the
   list/detail split-pane breakpoint (e.g. a tablet rotation), which used to
   discard the list's state.
 - Search bar = unified FTS; **filter panel** for structured search: formation,
@@ -109,8 +111,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 
 ### 4. Programs list & builder
 - List: sort by title/recently-updated/event date; opens in the saved default
-  sort (Settings ▸ Defaults, added by issue #895 — Programs previously had
-  none), or the last-used sort if that mode is selected. Survives crossing the
+  sort and direction (Settings ▸ Defaults, added by issue #895 — Programs
+  previously had none; the direction control by issue #1841, natural unless
+  changed), or the last-used sort and direction if that mode is selected.
+  Survives crossing the
   list/detail split-pane breakpoint, same as Collection above.
 - Builder: two-pane — program (ordered slots) | collection picker with the
   same filter panel as Collection, including caller-scoped Called / Not called

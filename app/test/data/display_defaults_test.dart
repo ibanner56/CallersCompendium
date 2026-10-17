@@ -442,6 +442,31 @@ void main() {
       );
       expect(kLastUsedSortSentinel, 'last_used');
     });
+
+    test('the default-direction keys (issue #1841) use their stable strings '
+        'and are distinct from the last-used ones', () {
+      expect(
+        kDefaultCollectionSortDirectionKey,
+        'default_collection_sort_direction',
+      );
+      expect(kDefaultProgramSortDirectionKey, 'default_program_sort_direction');
+      expect({
+        kDefaultCollectionSortDirectionKey,
+        kDefaultProgramSortDirectionKey,
+        kLastUsedCollectionSortDirectionKey,
+        kLastUsedProgramSortDirectionKey,
+      }, hasLength(4));
+    });
+
+    test('sortDirectionFromName leaves an absent or unrecognised stored '
+        'direction to the caller (natural-direction fallback)', () {
+      expect(sortDirectionFromName(null), isNull);
+      expect(sortDirectionFromName('sideways'), isNull);
+      expect(sortDirectionFromName(1), isNull);
+      for (final d in SortDirection.values) {
+        expect(sortDirectionFromName(d.name), d);
+      }
+    });
   });
 
   group('SortDefaultSetting equality (issue #895)', () {

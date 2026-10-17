@@ -682,12 +682,23 @@ class _DanceListScreenState extends State<DanceListScreen> {
       }
       if (!mounted || _sortUserSet) return;
     } else {
-      // A fixed default always uses that sort's natural direction, regardless
-      // of what was last used in the list (Isaac's ruling, issue #895) — never
-      // the stored last-used direction, which is why this branch never reads
-      // the last-used keys at all.
+      // A fixed default opens in the direction chosen in Settings ▸ Defaults
+      // (issue #1841), or the sort's natural direction when none is stored or
+      // it is unrecognised. Never the last-used direction, so this branch never
+      // reads the last-used keys.
       sort = mode.sort;
       direction = sort.searchSort.defaultDirection;
+      try {
+        direction =
+            sortDirectionFromName(
+              await _repos.settings.get(kDefaultCollectionSortDirectionKey),
+            ) ??
+            direction;
+      } catch (_) {
+        // diagnostics: silent — direction read failed; the fixed sort still
+        // applies, in its natural direction.
+      }
+      if (!mounted || _sortUserSet) return;
     }
 
     // Compare the (sort, direction) PAIR, not just the sort key: a key-only

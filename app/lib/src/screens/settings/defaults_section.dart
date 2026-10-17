@@ -58,11 +58,20 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   /// `null` = not yet loaded, shown as `title` until the read resolves.
   SortDefaultSetting<ProgramSort>? _defaultProgramSort;
 
+  /// Direction of a fixed default sort (issue #1841). `null` = absent or
+  /// unrecognised, which the view shows as the sort's natural direction. Each
+  /// has its own user-set guard, and changing the sort sets it too: the sort
+  /// change resets the direction, which a late direction read must not undo.
+  SortDirection? _defaultCollectionSortDirection;
+  SortDirection? _defaultProgramSortDirection;
+
   bool _defaultsRequested = false;
   // Separate per-setting guards: a user changing one default before its read
   // resolves must not suppress seeding the *other* default from storage.
   bool _defaultSortUserSet = false;
   bool _defaultProgramSortUserSet = false;
+  bool _defaultSortDirectionUserSet = false;
+  bool _defaultProgramSortDirectionUserSet = false;
 
   /// Default caller/band for new programs (ROADMAP G.3). Free text seeded once
   /// from storage into these controllers; a late read must not clobber text the
@@ -243,6 +252,20 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           userSet: () => _defaultSortUserSet,
           apply: (value) => setState(() => _defaultCollectionSort = value),
           fallback: const SortDefaultSetting.concrete(CollectionSort.title),
+        ),
+        _loadSetting<SortDirection?>(
+          key: kDefaultCollectionSortDirectionKey,
+          decode: sortDirectionFromName,
+          userSet: () => _defaultSortDirectionUserSet,
+          apply: (value) =>
+              setState(() => _defaultCollectionSortDirection = value),
+        ),
+        _loadSetting<SortDirection?>(
+          key: kDefaultProgramSortDirectionKey,
+          decode: sortDirectionFromName,
+          userSet: () => _defaultProgramSortDirectionUserSet,
+          apply: (value) =>
+              setState(() => _defaultProgramSortDirection = value),
         ),
         _loadSetting<SortDefaultSetting<ProgramSort>>(
           key: kDefaultProgramSortKey,
@@ -810,12 +833,24 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     super.dispose();
   }
 
+  /// Persists the new sort, then resets the direction to the new sort's
+  /// natural one, as the list's own sort menu does (issue #1841). Under "Last
+  /// used" the stored direction is ignored, so it is left alone. The reset is
+  /// written explicitly rather than by deleting the key: the stored value then
+  /// always matches what the control shows.
   Future<void> _onDefaultCollectionSortChanged(
     SortDefaultSetting<CollectionSort> value,
   ) async {
+    final direction = value.isLastUsed
+        ? _defaultCollectionSortDirection
+        : value.sort.searchSort.defaultDirection;
     setState(() {
       _defaultSortUserSet = true;
       _defaultCollectionSort = value;
+      if (!value.isLastUsed) {
+        _defaultSortDirectionUserSet = true;
+        _defaultCollectionSortDirection = direction;
+      }
     });
     final repos = RepositoriesScope.of(context);
     await persistSetting(
@@ -823,20 +858,70 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       kDefaultCollectionSortKey,
       encodeSortDefaultSetting(value),
     );
+    if (!value.isLastUsed) {
+      await persistSetting(
+        repos.settings,
+        kDefaultCollectionSortDirectionKey,
+        direction!.name,
+      );
+    }
   }
 
+  Future<void> _onDefaultCollectionSortDirectionChanged(
+    SortDirection value,
+  ) async {
+    setState(() {
+      _defaultSortDirectionUserSet = true;
+      _defaultCollectionSortDirection = value;
+    });
+    await persistSetting(
+      RepositoriesScope.of(context).settings,
+      kDefaultCollectionSortDirectionKey,
+      value.name,
+    );
+  }
+
+  /// As [_onDefaultCollectionSortChanged], for the Programs list.
   Future<void> _onDefaultProgramSortChanged(
     SortDefaultSetting<ProgramSort> value,
   ) async {
+    final direction = value.isLastUsed
+        ? _defaultProgramSortDirection
+        : value.sort.defaultDirection;
     setState(() {
       _defaultProgramSortUserSet = true;
       _defaultProgramSort = value;
+      if (!value.isLastUsed) {
+        _defaultProgramSortDirectionUserSet = true;
+        _defaultProgramSortDirection = direction;
+      }
     });
     final repos = RepositoriesScope.of(context);
     await persistSetting(
       repos.settings,
       kDefaultProgramSortKey,
       encodeSortDefaultSetting(value),
+    );
+    if (!value.isLastUsed) {
+      await persistSetting(
+        repos.settings,
+        kDefaultProgramSortDirectionKey,
+        direction!.name,
+      );
+    }
+  }
+
+  Future<void> _onDefaultProgramSortDirectionChanged(
+    SortDirection value,
+  ) async {
+    setState(() {
+      _defaultProgramSortDirectionUserSet = true;
+      _defaultProgramSortDirection = value;
+    });
+    await persistSetting(
+      RepositoriesScope.of(context).settings,
+      kDefaultProgramSortDirectionKey,
+      value.name,
     );
   }
 
@@ -866,10 +951,16 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           _defaultCollectionSort ??
           const SortDefaultSetting.concrete(CollectionSort.title),
       onDefaultCollectionSortChanged: _onDefaultCollectionSortChanged,
+      defaultCollectionSortDirection: _defaultCollectionSortDirection,
+      onDefaultCollectionSortDirectionChanged:
+          _onDefaultCollectionSortDirectionChanged,
       defaultProgramSort:
           _defaultProgramSort ??
           const SortDefaultSetting.concrete(ProgramSort.title),
       onDefaultProgramSortChanged: _onDefaultProgramSortChanged,
+      defaultProgramSortDirection: _defaultProgramSortDirection,
+      onDefaultProgramSortDirectionChanged:
+          _onDefaultProgramSortDirectionChanged,
       startingProgramTemplate: _startingProgramTemplate,
       startingProgramDanceTitles: _danceTitles ?? const {},
       onAddStartingProgramDance: _addStartingProgramDance,
@@ -1360,6 +1451,52 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
   }
 }
 
+/// The ascending/descending toggle under a default sort dropdown (issue #1841),
+/// in the same shape as the list's own sort menu plus ↑/↓ toggle. It sits on
+/// its own full-width line below the dropdown row rather than beside it, so it
+/// has the whole width at phone size and large text scales, where a trailing
+/// control would take width from the row's title.
+class _SortDirectionRow extends StatelessWidget {
+  const _SortDirectionRow({
+    required this.value,
+    required this.onChanged,
+    super.key,
+  });
+
+  final SortDirection value;
+  final ValueChanged<SortDirection> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        0,
+        AppSpacing.md,
+        AppSpacing.xs,
+      ),
+      child: SegmentedButton<SortDirection>(
+        showSelectedIcon: false,
+        segments: [
+          ButtonSegment(
+            value: SortDirection.ascending,
+            icon: const Icon(Icons.arrow_upward),
+            label: Text(l10n.settingsDefaultsSortAscending),
+          ),
+          ButtonSegment(
+            value: SortDirection.descending,
+            icon: const Icon(Icons.arrow_downward),
+            label: Text(l10n.settingsDefaultsSortDescending),
+          ),
+        ],
+        selected: {value},
+        onSelectionChanged: (selection) => onChanged(selection.single),
+      ),
+    );
+  }
+}
+
 /// The Defaults section: app-wide default values, grouped to mirror the
 /// ROADMAP's "Defaults (settings pane)" structure. It populates the
 /// **Program defaults** subsection (ROADMAP G.3), the **Display defaults**
@@ -1378,6 +1515,10 @@ class _DefaultsView extends StatelessWidget {
     required this.onDefaultCollectionSortChanged,
     required this.defaultProgramSort,
     required this.onDefaultProgramSortChanged,
+    required this.defaultCollectionSortDirection,
+    required this.onDefaultCollectionSortDirectionChanged,
+    required this.defaultProgramSortDirection,
+    required this.onDefaultProgramSortDirectionChanged,
     required this.startingProgramTemplate,
     required this.startingProgramDanceTitles,
     required this.onAddStartingProgramDance,
@@ -1440,6 +1581,13 @@ class _DefaultsView extends StatelessWidget {
   final SortDefaultSetting<ProgramSort> defaultProgramSort;
   final ValueChanged<SortDefaultSetting<ProgramSort>>
   onDefaultProgramSortChanged;
+
+  /// The stored direction of a fixed default sort, or `null` for the sort's
+  /// natural direction (issue #1841).
+  final SortDirection? defaultCollectionSortDirection;
+  final ValueChanged<SortDirection> onDefaultCollectionSortDirectionChanged;
+  final SortDirection? defaultProgramSortDirection;
+  final ValueChanged<SortDirection> onDefaultProgramSortDirectionChanged;
   final List<StartingProgramTemplateEntry> startingProgramTemplate;
   final Map<String, String> startingProgramDanceTitles;
   final VoidCallback onAddStartingProgramDance;
@@ -1563,7 +1711,11 @@ class _DefaultsView extends StatelessWidget {
         SectionHeader(title: l10n.settingsDefaultsDisplayHeader),
         SettingsDropdownRow(
           title: Text(l10n.settingsDefaultsSortTitle),
-          subtitle: Text(l10n.settingsDefaultsSortSubtitle),
+          subtitle: Text(
+            defaultCollectionSort.isLastUsed
+                ? l10n.settingsDefaultsSortLastUsedSubtitle
+                : l10n.settingsDefaultsSortSubtitle,
+          ),
           dropdownBuilder: (expanded) =>
               DropdownButton<SortDefaultSetting<CollectionSort>>(
                 isExpanded: expanded,
@@ -1585,9 +1737,21 @@ class _DefaultsView extends StatelessWidget {
                 ],
               ),
         ),
+        if (!defaultCollectionSort.isLastUsed)
+          _SortDirectionRow(
+            key: const ValueKey('defaults-collection-sort-direction'),
+            value:
+                defaultCollectionSortDirection ??
+                defaultCollectionSort.sort.searchSort.defaultDirection,
+            onChanged: onDefaultCollectionSortDirectionChanged,
+          ),
         SettingsDropdownRow(
           title: Text(l10n.settingsDefaultsProgramSortTitle),
-          subtitle: Text(l10n.settingsDefaultsProgramSortSubtitle),
+          subtitle: Text(
+            defaultProgramSort.isLastUsed
+                ? l10n.settingsDefaultsSortLastUsedSubtitle
+                : l10n.settingsDefaultsProgramSortSubtitle,
+          ),
           dropdownBuilder: (expanded) =>
               DropdownButton<SortDefaultSetting<ProgramSort>>(
                 isExpanded: expanded,
@@ -1609,6 +1773,14 @@ class _DefaultsView extends StatelessWidget {
                 ],
               ),
         ),
+        if (!defaultProgramSort.isLastUsed)
+          _SortDirectionRow(
+            key: const ValueKey('defaults-program-sort-direction'),
+            value:
+                defaultProgramSortDirection ??
+                defaultProgramSort.sort.defaultDirection,
+            onChanged: onDefaultProgramSortDirectionChanged,
+          ),
         SectionHeader(title: l10n.settingsDefaultsCollectionCardHeader),
         Padding(
           padding: const EdgeInsets.fromLTRB(
