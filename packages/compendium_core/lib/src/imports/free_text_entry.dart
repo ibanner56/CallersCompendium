@@ -11,10 +11,12 @@ import 'shorthand_mappings.dart';
 import 'structured_draft.dart';
 import 'typed_figure_names.dart';
 
-/// Longest inline beat count we will read from a free-text line. Bounds the
-/// captured digit run so a hostile/absurd value (`(999999999999)`) can never
-/// overflow an int or drive downstream duration math off the rails — anything
-/// past four digits is treated as ordinary text, not a beat count. Four digits
+/// Longest inline beat count we will parse from a free-text line. Bounds the
+/// digits turned into an int so a hostile/absurd value (`(999999999999)`) can
+/// never overflow one or drive downstream duration math off the rails — a count
+/// past four digits is never parsed: it is not a beat count. Free-text entry
+/// keeps it in the figure's note when the line states no readable count, and in
+/// a custom's typed text otherwise ([_BeatSplit.unread], #1863). Four digits
 /// (≤ 9999) comfortably covers any real contra figure while staying safe.
 const int _maxInlineBeatDigits = 4;
 
@@ -39,8 +41,8 @@ const String _beatsUnit = '(?:\\s*beats?)';
 /// count (there is no space after the leading digits in those). A bracketed
 /// count needs no space (`(16)swing`), as the trailing form needs none.
 final RegExp _leadingBeats = RegExp(
-  '^(?:(\\d{1,$_maxInlineBeatDigits})(?:\\s+beats?)?\\s+'
-  '|[(\\[](\\d{1,$_maxInlineBeatDigits})$_beatsUnit?[)\\]]\\s*)(\\S.*)\$',
+  '^(?:(\\d+)(?:\\s+beats?)?\\s+'
+  '|[(\\[](\\d+)$_beatsUnit?[)\\]]\\s*)(\\S.*)\$',
   caseSensitive: false,
 );
 
@@ -51,8 +53,8 @@ final RegExp _leadingBeats = RegExp(
 /// trailing number with no unit (`neighbors swing 16`), which free text keeps
 /// custom (see `demoteNoteTails`).
 final RegExp _trailingBeats = RegExp(
-  '^(.*\\S)(?:\\s*[(\\[](\\d{1,$_maxInlineBeatDigits})$_beatsUnit?[)\\]]'
-  '|\\s+(\\d{1,$_maxInlineBeatDigits})\\s*beats?)\$',
+  '^(.*\\S)(?:\\s*[(\\[](\\d+)$_beatsUnit?[)\\]]'
+  '|\\s+(\\d+)\\s*beats?)\$',
   caseSensitive: false,
 );
 
@@ -60,9 +62,10 @@ final RegExp _trailingBeats = RegExp(
 /// or a count with a `beats` unit there (`(8 beats)`, `16 beats`). The
 /// recogniser tolerates a digits-only group as an annotation and drops it, and
 /// keeps a unit count as a note, so one that [_splitInlineBeats] did not turn
-/// into the beat count (a second count, or one too long to be beats) must keep
-/// the line out of the parser or the number would vanish or be misread. A zero
-/// count is not matched: 0 is "unspecified", see [_splitInlineBeats].
+/// into the beat count (a second count) must keep the line out of the parser
+/// or the number would vanish or be misread. A count too long to be beats is
+/// peeled instead ([_BeatSplit.unread]). A zero count is not matched: 0 is
+/// "unspecified", see [_splitInlineBeats].
 final RegExp _strayLeadingCount = RegExp(
   r'^(?:[(\[]\s*0*[1-9]\d*(?:\s*beats?)?\s*[)\]]|0*[1-9]\d*\s*beats?\b)',
   caseSensitive: false,
@@ -79,6 +82,7 @@ typedef _CountForms = ({
   RegExp trailing,
   RegExp strayLeading,
   RegExp strayTrailing,
+  bool keepsUnread,
 });
 
 /// Free-text entry's forms, `beats` unit included.
@@ -87,6 +91,7 @@ final _CountForms _typedCounts = (
   trailing: _trailingBeats,
   strayLeading: _strayLeadingCount,
   strayTrailing: _strayTrailingCount,
+  keepsUnread: true,
 );
 
 /// The re-parse upgrade's forms ([splitForReparse]): the unit-less ones, as
@@ -100,11 +105,12 @@ final _CountForms _reparseCounts = (
   trailing: RegExp('^(.*\\S)\\s*[(\\[](\\d{1,$_maxInlineBeatDigits})[)\\]]\$'),
   strayLeading: RegExp(r'^[(\[]\s*0*[1-9]\d*\s*[)\]]'),
   strayTrailing: RegExp(r'[(\[]\s*0*[1-9]\d*\s*[)\]]$'),
+  keepsUnread: false,
 );
 
 /// Result of splitting an optional inline beat count off a free-text line.
 class _BeatSplit {
-  const _BeatSplit(this.text, this.beats, this.forms);
+  const _BeatSplit(this.text, this.beats, this.forms, {this.unread});
 
   /// The line with any recognised inline beat token removed.
   final String text;
@@ -115,6 +121,11 @@ class _BeatSplit {
 
   /// The count forms [text] was split with.
   final _CountForms forms;
+
+  /// The count that was peeled off but is not a beat count: five or more
+  /// digits (`10000 beats`). Free text keeps it as a note on the figure it was
+  /// typed with (#1863); [beats] is 0, so the figure takes its default.
+  final String? unread;
 
   /// Whether [text] still starts or ends with a stated count that was not read
   /// as [beats].
@@ -131,24 +142,73 @@ class _BeatSplit {
 /// `(0)`/`0 ` token would silently mutate the user's text for no gain, so a
 /// zero count leaves the whole line intact (it flows into the parser verbatim
 /// — e.g. as an honest custom). [forms] defaults to free-text entry's.
+///
+/// A count of more than [_maxInlineBeatDigits] digits is not a beat count. It is
+/// only peeled when the line states no count that is: it becomes
+/// [_BeatSplit.unread] with 0 beats, so the figure takes its default (#1863).
+/// The reparse forms never read one. A count of four digits or fewer is the
+/// beats here, whatever its size: the parser and [_parseCountedClauses] hold it
+/// to the taxonomy's 0..64 range.
 _BeatSplit _splitInlineBeats(String line, [_CountForms? forms]) {
   final f = forms ?? _typedCounts;
-  final trailing = f.trailing.firstMatch(line);
-  if (trailing != null) {
-    final beats = int.tryParse(trailing.group(2) ?? trailing.group(3)!);
-    if (beats != null && beats > 0) {
-      return _BeatSplit(trailing.group(1)!.trim(), beats, f);
-    }
+  bool isZero(String digits) => digits.replaceAll('0', '').isEmpty;
+  int? readable(String digits) {
+    if (digits.length > _maxInlineBeatDigits) return null;
+    final beats = int.parse(digits);
+    return beats > 0 ? beats : null;
   }
+
+  final trailing = f.trailing.firstMatch(line);
+  final trailingDigits = trailing == null
+      ? null
+      : trailing.group(2) ?? trailing.group(3)!;
   final leading = f.leading.firstMatch(line);
-  if (leading != null) {
-    final beats = int.tryParse(leading.group(1) ?? leading.group(2)!);
-    if (beats != null && beats > 0) {
-      return _BeatSplit(leading.group(3)!.trim(), beats, f);
+  final leadingDigits = leading == null
+      ? null
+      : leading.group(1) ?? leading.group(2)!;
+  final trailingBeats = trailingDigits == null
+      ? null
+      : readable(trailingDigits);
+  if (trailingBeats != null) {
+    return _BeatSplit(trailing!.group(1)!.trim(), trailingBeats, f);
+  }
+  final leadingBeats = leadingDigits == null ? null : readable(leadingDigits);
+  if (leadingBeats != null) {
+    return _BeatSplit(leading!.group(3)!.trim(), leadingBeats, f);
+  }
+  if (f.keepsUnread) {
+    if (trailingDigits != null && !isZero(trailingDigits)) {
+      final token = line.substring(trailing!.group(1)!.length);
+      return _BeatSplit(
+        trailing.group(1)!.trim(),
+        0,
+        f,
+        unread: _countToken(token),
+      );
+    }
+    if (leadingDigits != null && !isZero(leadingDigits)) {
+      final token = line.substring(0, line.length - leading!.group(3)!.length);
+      return _BeatSplit(
+        leading.group(3)!.trim(),
+        0,
+        f,
+        unread: _countToken(token),
+      );
     }
   }
   return _BeatSplit(line, 0, f);
 }
+
+/// A count as typed, without its brackets: `(10000 beats)` is `10000 beats`.
+String _countToken(String typed) => typed
+    .replaceAll(RegExp(r'[()\[\]]'), '')
+    .trim()
+    .replaceAll(RegExp(r'\s+'), ' ');
+
+/// [figure] with the unread count [token] added to its note.
+Figure _withUnreadCount(Figure figure, String token) => figure.copyWith(
+  note: figure.note == null ? token : '${figure.note}; $token',
+);
 
 /// Parses one free-text figure line typed in the editor's opt-in "Free-text
 /// entry" mode (issue #419) into structured/custom [Figure]s.
@@ -230,11 +290,20 @@ _BeatSplit _splitInlineBeats(String line, [_CountForms? forms]) {
 /// not see, so it stays in the text.
 ///
 /// Only ONE inline form is honoured per line (per `;` clause, see below): a
-/// trailing count is checked first and wins. A count that is not the one honoured (the leading digits of
-/// `16 … (8)`, a second bracketed group, one too long to be beats) is never
-/// dropped: it stays in the text, which then no longer parses and is kept as a
-/// custom. A zero count is not a count (0 is "unspecified"); it is left where
-/// it is.
+/// trailing count is checked first and wins. A count that is not the one
+/// honoured (the leading digits of `16 … (8)`, a second bracketed group) is
+/// never dropped: it stays in the text, which then no longer parses and is kept
+/// as a custom. A zero count is not a count (0 is "unspecified"); it is left
+/// where it is.
+///
+/// A count of five or more digits (`circle left 10000 beats`, `(10000) circle
+/// left`) cannot be beats, and is not an error either (#1863). When the line
+/// states no count that can be, it is taken off the line, the rest is read as
+/// usual, and the figure keeps its default beats, as one entered through the
+/// figure picker does. The number is kept as a note on the figure it was typed
+/// with (`10000 beats`), so it is not dropped. If the rest is not read in full,
+/// the whole line is kept as a custom with its text as typed. A count of up to
+/// four digits is left to the beats range (0..64) as before.
 ///
 /// In a `;` line each clause may state its own count, and keeps it
 /// ([_parseCountedClauses], #1870): `circle left (8); turn alone` and
@@ -428,6 +497,19 @@ List<Figure> _parseLine(String trimmed, Taxonomy? taxonomy, Dialect? dialect) {
   final result = split.hasStrayCount
       ? [_typedCustom(trimmed, split.beats)]
       : _parseSplit(split, taxonomy: taxonomy, dialect: dialect);
+  // A count that cannot be beats leaves the figure its default beats and rides
+  // on it as a note; a line the parser did not read in full keeps the number in
+  // its typed text instead (#1863).
+  final unread = split.unread;
+  if (unread != null) {
+    final read =
+        !split.hasStrayCount &&
+        result.isNotEmpty &&
+        !result.any((f) => f.isCustom);
+    return read
+        ? [_withUnreadCount(result.first, unread), ...result.skip(1)]
+        : [_typedCustom(trimmed, 0)];
+  }
   // A line that stayed custom keeps the text as typed: the count peeled above
   // would have left the custom with only its remainder.
   if (split.beats > 0 && result.length == 1 && result.single.isCustom) {
@@ -462,7 +544,9 @@ List<Figure>? _parseCountedClauses(
   final clauses = splitShorthandClauses(line);
   if (clauses == null || clauses.length < 2) return null;
   final splits = [for (final c in clauses) _splitInlineBeats(c)];
-  if (!splits.any((s) => s.beats > 0 || s.hasStrayCount)) return null;
+  if (!splits.any((s) => s.beats > 0 || s.unread != null || s.hasStrayCount)) {
+    return null;
+  }
   if (splits.any((s) => s.hasStrayCount)) return const [];
   final first = splits.first;
   final figures = _parseSplit(
@@ -471,15 +555,17 @@ List<Figure>? _parseCountedClauses(
     dialect: dialect,
   );
   if (figures.isEmpty || figures.any((f) => f.isCustom)) return const [];
-  if (splits.skip(1).every((s) => s.beats == 0)) return figures;
+  final later = splits.skip(1);
+  if (later.every((s) => s.beats == 0 && s.unread == null)) {
+    final unread = first.unread;
+    return unread == null
+        ? figures
+        : [_withUnreadCount(figures.first, unread), ...figures.skip(1)];
+  }
   if (figures.length != clauses.length) return const [];
   final counted = [
     for (var i = 0; i < figures.length; i++)
-      splits[i].beats > 0 && i > 0
-          ? figures[i].copyWith(
-              params: {...figures[i].params, 'beats': splits[i].beats},
-            )
-          : figures[i],
+      _placeClauseCount(figures[i], splits[i], first: i == 0),
   ];
   // The first clause's count went through the parser, which refuses a value
   // the taxonomy does not allow (more than 64 beats); a later clause's was set
@@ -491,6 +577,21 @@ List<Figure>? _parseCountedClauses(
         .any((i) => i.severity == ValidationSeverity.error),
   );
   return invalid ? const [] : counted;
+}
+
+/// [figure], the one made from the clause [split] was read from, with that
+/// clause's own count on it. The first clause's beats went through the parser.
+Figure _placeClauseCount(
+  Figure figure,
+  _BeatSplit split, {
+  required bool first,
+}) {
+  final beats = first ? 0 : split.beats;
+  final counted = beats > 0
+      ? figure.copyWith(params: {...figure.params, 'beats': beats})
+      : figure;
+  final unread = split.unread;
+  return unread == null ? counted : _withUnreadCount(counted, unread);
 }
 
 /// What to re-parse for a saved import-gap custom with [text] and [beats]
