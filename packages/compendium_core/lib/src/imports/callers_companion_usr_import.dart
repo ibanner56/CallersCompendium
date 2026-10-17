@@ -546,8 +546,8 @@ class CallersCompanionUsrImporter {
   /// rewritten to the real definition id.
   ///
   /// Matching follows the native archive importer (`ShareMetadataImporter`),
-  /// except that keys are compared case-folded (`naturalKeyMatchKey`): a *live
-  /// text* definition under the same key is reused untouched, and a
+  /// except that keys are compared case-folded (`naturalKeyMatchKey`), wider
+  /// than the repository's byte-exact key check: a *live text* definition under the same key is reused untouched, and a
   /// tombstoned *text* one is revived. A key held by a definition of **another
   /// type** is never reused (that would store text in a number or choice field)
   /// and `upsert` would refuse to create onto it, so the field is created under
@@ -586,20 +586,34 @@ class CallersCompanionUsrImporter {
     }
 
     final existing = await _customFields.listAllWithDeleted();
-    final byCanonical = <String, ({CustomFieldDef field, bool deleted})>{};
+    // Every existing row under a case-folded key. The repository's own key
+    // check is byte-exact, so `Tempo` and `tempo` can both exist; matching is
+    // deliberately wider than that, so a key typed as `Tempo` is found by the
+    // CC column "Tempo", and [find] then picks among the variants.
+    final byFolded = <String, List<({CustomFieldDef field, bool deleted})>>{};
     for (final item in existing) {
-      final canonical = naturalKeyMatchKey(item.field.key);
-      final held = byCanonical[canonical];
-      // Case-folded like the custom-fields screen's duplicate check, so a key
-      // the person typed as `Tempo` is found by the CC column "Tempo". A
-      // live row beats a tombstone, then the smallest id: the precedence
-      // `ShareMetadataImporter` applies, so the choice is load-order free.
-      if (held == null ||
-          (held.deleted && !item.deleted) ||
-          (held.deleted == item.deleted &&
-              item.field.id.compareTo(held.field.id) < 0)) {
-        byCanonical[canonical] = item;
-      }
+      byFolded
+          .putIfAbsent(naturalKeyMatchKey(item.field.key), () => [])
+          .add(item);
+    }
+    // The row [candidate] resolves to, or null when its key is free. A text
+    // definition beats one of another type, a live one beats a tombstone, and
+    // an exact key beats a case variant; ties go to the smallest id (the
+    // precedence `ShareMetadataImporter` applies), so the choice is
+    // load-order free and never passes over an exact text match.
+    ({CustomFieldDef field, bool deleted})? find(String candidate) {
+      final rows = byFolded[naturalKeyMatchKey(candidate)];
+      if (rows == null || rows.isEmpty) return null;
+      final exact = normalizeShareableText(candidate);
+      int rank(({CustomFieldDef field, bool deleted}) r) =>
+          (r.field.type == CustomFieldType.text ? 0 : 4) +
+          (r.deleted ? 2 : 0) +
+          (r.field.key == exact ? 0 : 1);
+      return rows.reduce((best, r) {
+        final byRank = rank(r).compareTo(rank(best));
+        if (byRank != 0) return byRank < 0 ? r : best;
+        return r.field.id.compareTo(best.field.id) < 0 ? r : best;
+      });
     }
 
     final usedIds = {for (final item in existing) item.field.id};
@@ -624,7 +638,7 @@ class CallersCompanionUsrImporter {
         var candidate = key;
         for (var n = 2; ; n++) {
           final canonical = naturalKeyMatchKey(candidate);
-          final match = byCanonical[canonical];
+          final match = find(candidate);
           if (match == null) {
             final def = CustomFieldDef(
               id: freshId(),
@@ -639,7 +653,7 @@ class CallersCompanionUsrImporter {
                 'custom field "$candidate" resolved to an unexpected id',
               );
             }
-            byCanonical[canonical] = (field: def, deleted: false);
+            byFolded[canonical] = [(field: def, deleted: false)];
             createdFor[canonical] = key;
             idByKey[key] = def.id;
             break;
@@ -650,7 +664,8 @@ class CallersCompanionUsrImporter {
             if (match.deleted) {
               await _customFields.restore(match.field.id, at: now);
               restored.add(match.field.id);
-              byCanonical[canonical] = (field: match.field, deleted: false);
+              final rows = byFolded[canonical]!;
+              rows[rows.indexOf(match)] = (field: match.field, deleted: false);
             }
             // Claimed even when reused untouched: two columns must never
             // resolve to one definition, or a dance would carry two values

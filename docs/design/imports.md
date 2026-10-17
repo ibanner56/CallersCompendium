@@ -354,11 +354,14 @@ declines the collapse.
     `cc_user_field_label_missing` as info. Across dances the key is the
     identity, so "Tempo" in one dance and "tempo!" in another share one field and
     the first dance seen names it.
-  - **Existing key.** Keys compare case-folded (`naturalKeyMatchKey`, as the
-    custom-fields screen's duplicate check does), so a key typed as `Tempo`
-    matches the column "Tempo". A live **text** definition under the key is
-    reused as it is (never edited); a tombstoned text one is revived. A definition of another
-    type is never reused — storing text in a number or choice field would
+  - **Existing key.** Keys compare case-folded (`naturalKeyMatchKey`), which
+    is deliberately wider than the repository's byte-exact key check (so the
+    custom-fields screen can hold both `Tempo` and `tempo`): a key typed as
+    `Tempo` matches the column "Tempo". Among case variants a text definition
+    beats one of another type, a live one beats a tombstone, and an exact key
+    beats a case variant, so an exact text match is never passed over. A live
+    **text** definition under the key is reused as it is (never edited); a
+    tombstoned text one is revived. A definition of another type is never reused — storing text in a number or choice field would
     corrupt it, and `upsert` refuses to create onto a live key (#1348) — so the
     column is created as `<key>_2`, `_3`, … with a `cc_user_field_key_conflict`
     note on `CcUsrImportResult.customFieldIssues`. Matching is explicit, as in

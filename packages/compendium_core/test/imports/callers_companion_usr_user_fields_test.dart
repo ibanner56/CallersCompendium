@@ -269,6 +269,53 @@ void main() {
       expect((await danceNamed('A')).customFields.single.fieldId, 'typed');
     });
 
+    test('an exact text key beats a case variant of another type', () async {
+      // The screen allows both: the key check is byte-exact. `a` sorts first.
+      await seed(
+        CustomFieldDef(
+          id: 'a',
+          key: 'Tempo',
+          label: 'Tempo',
+          type: CustomFieldType.number,
+        ),
+      );
+      await seed(
+        CustomFieldDef(
+          id: 'b',
+          key: 'tempo',
+          label: 'tempo',
+          type: CustomFieldType.text,
+        ),
+      );
+      final result = await run(
+        _usrBytes([
+          row('4', 'A', [('fast', 'Tempo')]),
+        ]),
+      );
+      expect(result.insertedCustomFieldIds, isEmpty);
+      expect(result.customFieldIssues, isEmpty);
+      expect((await danceNamed('A')).customFields.single.fieldId, 'b');
+    });
+
+    test('with two text case variants the exact key is reused', () async {
+      for (final (id, key) in [('a', 'Tempo'), ('b', 'tempo')]) {
+        await seed(
+          CustomFieldDef(
+            id: id,
+            key: key,
+            label: key,
+            type: CustomFieldType.text,
+          ),
+        );
+      }
+      await run(
+        _usrBytes([
+          row('4', 'A', [('fast', 'Tempo')]),
+        ]),
+      );
+      expect((await danceNamed('A')).customFields.single.fieldId, 'b');
+    });
+
     test('reuses a live text definition with the same key', () async {
       await seed(
         CustomFieldDef(
