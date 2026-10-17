@@ -11,11 +11,11 @@ single source of truth.
 What gets mirrored, from ``docs/`` into ``app/assets/docs/`` (paths preserved):
 
   * every ``docs/user/*.md`` guide **except** ``style-guide.md`` (a contributor
-    authoring-conventions doc, not user-facing).
-
-The in-app guide is intentionally **text-only**: images embedded in the guides
-are rendered there as alt-text captions rather than bundled. The hosted Pages
-renderer handles its own image assets separately.
+    authoring-conventions doc, not user-facing);
+  * every regular file under ``docs/user/images/`` **except** its ``README.md``
+    (a contributor doc), so the screenshots the guides embed render in the app.
+    A guide's image that is not mirrored here falls back to an alt-text caption
+    in the app, so a missing file degrades gracefully but should still be fixed.
 
 Guides are **discovered**, never hard-coded, so a new ``docs/user/*.md`` guide
 is picked up automatically and the drift-check then enforces that the committed
@@ -47,6 +47,11 @@ BUNDLE_DIR = REPO_ROOT / "app" / "assets" / "docs"
 
 # Contributor-only authoring conventions doc — deliberately not user-facing.
 EXCLUDED_GUIDES = {"style-guide.md"}
+
+# Image directory under docs/user that ships with the guides, and the one file
+# in it that is contributor-only (the image conventions), not user-facing.
+IMAGES_DIR = USER_DOCS / "images"
+EXCLUDED_IMAGE_FILES = {"README.md"}
 
 # Finder can create this metadata file while the checker walks the local bundle.
 # It is not documentation and is excluded by app/.gitignore, so it must not make
@@ -80,6 +85,16 @@ def _collect_sources() -> dict[str, Path]:
     for guide in discover_guides():
         rel = guide.relative_to(DOCS_ROOT).as_posix()
         mapping[rel] = guide
+    if IMAGES_DIR.is_dir():
+        for image in sorted(IMAGES_DIR.iterdir()):
+            if (
+                image.is_symlink()
+                or not image.is_file()
+                or image.name in EXCLUDED_IMAGE_FILES
+                or image.name in _IGNORED_BUNDLE_FILENAMES
+            ):
+                continue
+            mapping[image.relative_to(DOCS_ROOT).as_posix()] = image
     return mapping
 
 

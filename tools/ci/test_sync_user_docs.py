@@ -26,8 +26,40 @@ def _cases() -> None:
         assert sync_user_docs._relative_files(root) == {"user/settings.md"}
 
 
+def _image_cases() -> None:
+    original = (
+        sync_user_docs.DOCS_ROOT,
+        sync_user_docs.USER_DOCS,
+        sync_user_docs.IMAGES_DIR,
+    )
+    try:
+        with tempfile.TemporaryDirectory() as temp:
+            docs = Path(temp) / "docs"
+            images = docs / "user" / "images"
+            images.mkdir(parents=True)
+            (docs / "user" / "settings.md").write_text("# S\n", encoding="utf-8")
+            (images / "shot.png").write_bytes(b"png")
+            (images / "README.md").write_text("contributor doc", encoding="utf-8")
+            (images / ".DS_Store").write_bytes(b"finder metadata")
+            sync_user_docs.DOCS_ROOT = docs
+            sync_user_docs.USER_DOCS = docs / "user"
+            sync_user_docs.IMAGES_DIR = images
+
+            assert set(sync_user_docs._collect_sources()) == {
+                "user/settings.md",
+                "user/images/shot.png",
+            }
+    finally:
+        (
+            sync_user_docs.DOCS_ROOT,
+            sync_user_docs.USER_DOCS,
+            sync_user_docs.IMAGES_DIR,
+        ) = original
+
+
 def main() -> int:
     _cases()
+    _image_cases()
     print("OK: all user-doc sync checker tests passed")
     return 0
 

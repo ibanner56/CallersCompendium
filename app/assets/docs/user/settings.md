@@ -12,9 +12,9 @@ details.
 > first time a dance term appears it links to [App terms](./glossary.md), so
 > you can get a plain-language definition without losing your place.
 
-*The Settings Dialect section with the section list beside controls for the
-active dialect and custom wording.*
-![The Settings Dialect section showing the section list, active-dialect picker, and custom wording controls](images/settings-dialect.png)
+*The Settings screen with the section list beside the controls for the Dialect
+section.*
+![The Settings screen with the section list on the left and the Dialect section open, showing the dialect presets and wording switches](images/settings-dialect.png)
 
 ## Finding Settings
 

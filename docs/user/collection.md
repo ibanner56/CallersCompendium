@@ -39,7 +39,7 @@ card fields**.
 *The Collection screen with a search query, the Filters panel open, and matching
 dances visible.*
 
-![The Collection screen showing a search query with the Filters panel open and several matching dances listed](images/collection-search-filters.png)
+![The Collection screen with a figure search for "petronella", three formations chosen in the Filters panel, and the first of four matching dances open beside the list](images/collection-search-filters.png)
 
 To change the order, open the **Sort** control at the top of the list. You can
 sort by:

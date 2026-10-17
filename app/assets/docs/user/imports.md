@@ -475,7 +475,7 @@ source you pick:
 *The import review screen lists each dance and the action available for its
 current result, so you can inspect the batch before committing it.*
 
-![The import review screen showing per-dance results with actions to import, edit, skip, or resolve each item](images/import-review.png)
+![The import review screen listing each dance with its structured-figure count and the choices to re-import it, import it as a duplicate, or skip it](images/import-review.png)
 
 ## Avoiding duplicates
 

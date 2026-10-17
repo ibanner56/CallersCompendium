@@ -5,11 +5,15 @@ diagrams, and illustrations.
 
 ## Status: screenshots are enhancements
 
-The user guides are bundled into the app, and the in-app reader does not render
-images — it shows the alt text as a caption instead. GitHub and the hosted Pages
-guide render the screenshots themselves. No guide may depend on an image to make
-sense in the app. Write every procedure so it stands on its own words; treat an
-image as an enhancement.
+The user guides are bundled into the app along with every file in this folder
+except this README (`tools/ci/sync_user_docs.py` mirrors them), so the in-app
+reader, GitHub and the hosted Pages guide all show the screenshots. Screen-reader
+and low-vision readers rely on the alt text, and the in-app reader shows it as a
+caption if an image fails to load. No guide may depend on an image to make sense.
+Write every procedure so it stands on its own words; treat an image as an
+enhancement.
+
+Every image file here ships inside the app, so keep each one small.
 
 The guides use real PNG screenshots for the Collection, dance detail, Programs
 builder and matrix, Perform mode, Settings/Dialect, import review, and dance

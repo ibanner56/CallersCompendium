@@ -21,10 +21,13 @@ import 'user_guide_docs.dart';
 ///    heading — whether the link points at another guide or at a section of the
 ///    guide already open. Without this, an "on this page" link would work on
 ///    GitHub but silently do nothing in the app.
-/// * **Images** are not bundled with the app. Each image reference renders as
-///   a subtle italic caption of its alt text via [_GuideImageCaption] — no
-///   asset lookup, no network, no broken-image icon. GitHub and Pages render
-///   the same references as screenshots.
+/// * **Images** are bundled with the guides (`assets/docs/user/images/`,
+///   mirrored from `docs/user/images/`). A reference such as `images/x.png`
+///   renders that asset via [_GuideImage], announced to screen readers as an
+///   image labelled with its alt text (an empty alt marks it decorative).
+///   Nothing is fetched from the network. A reference that is not a bundled
+///   guide image, or whose asset fails to load, renders as a subtle italic
+///   caption of its alt text instead of a broken-image icon.
 ///
 /// The Markdown lays out inside a [SingleChildScrollView] rather than letting
 /// the renderer own a lazy [ListView], so every heading is built and therefore
@@ -173,7 +176,7 @@ class _UserGuideDocViewState extends State<UserGuideDocView> {
         onTapLink: (text, href, title) {
           if (href != null) widget.onTapLink(href);
         },
-        imageBuilder: (uri, title, alt) => _GuideImageCaption(alt: alt),
+        imageBuilder: (uri, title, alt) => _GuideImage(uri: uri, alt: alt),
       ),
     );
   }
@@ -220,29 +223,95 @@ class _AnchoredHeadingBuilder extends MarkdownElementBuilder {
   }
 }
 
-/// Stands in for an image the guide references. The guide is text-only for now,
-/// so instead of loading an asset this renders the image's alt text as a subtle
-/// italic caption — a graceful, non-blocking placeholder that keeps the page
-/// readable (and accessible) until real screenshots are bundled.
-class _GuideImageCaption extends StatelessWidget {
-  const _GuideImageCaption({required this.alt});
+/// Where the guides' bundled screenshots live, relative to the app's asset
+/// root. Only files under here are ever loaded for a guide image.
+const String _guideAssetDir = 'assets/docs/user/';
+const String _guideImageAssetDir = '${_guideAssetDir}images/';
 
+/// The widest a screenshot is drawn, in logical pixels. The captures are up to
+/// 1800 px wide; letting them span a very wide window would only blow them up.
+const double _guideImageMaxWidth = 720;
+
+/// The bundled asset key a guide's image [uri] names, or `null` when it is not
+/// a guide image (an `http(s)` URL, an absolute path, or anything that resolves
+/// outside `images/`). Guides reference images relative to themselves
+/// (`images/x.png`), and every guide sits at the top of `assets/docs/user`.
+String? _guideImageAssetKey(Uri uri) {
+  if (uri.hasScheme || uri.hasAuthority || uri.path.startsWith('/')) {
+    return null;
+  }
+  final key = Uri.parse(_guideAssetDir).resolveUri(uri).path;
+  return key.startsWith(_guideImageAssetDir) ? key : null;
+}
+
+/// An image the guide references: the bundled screenshot when there is one,
+/// else its alt text as a subtle italic caption.
+///
+/// The picture is exposed to assistive technology as one image labelled with
+/// the alt text (and its pixels excluded, so the label is not read twice). An
+/// empty alt marks the image decorative: it is hidden from assistive
+/// technology, and a decorative image that cannot load renders nothing.
+class _GuideImage extends StatelessWidget {
+  const _GuideImage({required this.uri, required this.alt});
+
+  final Uri uri;
   final String? alt;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final text = alt?.trim() ?? '';
-    if (text.isEmpty) {
+    final caption = _GuideImageCaption(alt: text);
+    final key = _guideImageAssetKey(uri);
+    // Whichever of picture or caption is drawn, it is one labelled image.
+    Widget labelled(Widget child) => text.isEmpty
+        ? ExcludeSemantics(child: child)
+        : Semantics(image: true, label: text, child: child);
+    if (key == null) return labelled(caption);
+
+    // Decode no wider than the picture is drawn, so a guide with several
+    // screenshots does not hold each one at full resolution.
+    final cacheWidth =
+        (_guideImageMaxWidth * MediaQuery.devicePixelRatioOf(context)).round();
+    final picture = Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _guideImageMaxWidth),
+          child: Image.asset(
+            key,
+            fit: BoxFit.contain,
+            cacheWidth: cacheWidth,
+            filterQuality: FilterQuality.medium,
+            excludeFromSemantics: true,
+            errorBuilder: (context, error, stackTrace) => caption,
+          ),
+        ),
+      ),
+    );
+    return labelled(picture);
+  }
+}
+
+/// The text stand-in for an image the guide references but cannot show: its alt
+/// text as a subtle italic caption, so the page stays readable. Carries no
+/// semantics of its own: [_GuideImage] labels it.
+class _GuideImageCaption extends StatelessWidget {
+  const _GuideImageCaption({required this.alt});
+
+  final String alt;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (alt.isEmpty) {
       return const SizedBox.shrink();
     }
-    return Semantics(
-      image: true,
-      label: text,
+    // The label is on the enclosing Semantics; the text must not repeat it.
+    return ExcludeSemantics(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Text(
-          text,
+          alt,
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
