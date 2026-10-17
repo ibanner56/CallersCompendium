@@ -231,10 +231,16 @@ void main() {
 
     test('a compound that fails keeps every clause\'s count in its text', () {
       final f = parseFreeTextFigureEntry(
-        '8 neighbor swing; 8 partner swing',
+        '8 neighbor swing; 8 gibberish xyz',
       ).single;
       expect(f.isCustom, isTrue);
-      expect(f.params['text'], '8 neighbor swing; 8 partner swing');
+      expect(f.params['text'], '8 neighbor swing; 8 gibberish xyz');
+    });
+
+    test('a compound whose clauses each state a count keeps both (#1870)', () {
+      final fs = parseFreeTextFigureEntry('8 neighbor swing; 8 partner swing');
+      expect(fs.map((f) => f.move), ['swing', 'swing']);
+      expect(fs.map((f) => f.params['beats']), [8, 8]);
     });
 
     test('a custom keeps the typed count in its text, beats alongside', () {
@@ -251,6 +257,126 @@ void main() {
       expect(fs, hasLength(2));
       expect(fs.every((f) => !f.isCustom), isTrue);
       expect(fs.first.params['beats'], 8);
+    });
+  });
+
+  group('parseFreeTextFigureEntry — a count on any `;` clause is that '
+      "clause's own (#1870)", () {
+    List<Object?> beatsOf(List<Figure> fs) => [
+      for (final f in fs) f.params['beats'],
+    ];
+
+    test('a bracketed count on the first clause stays on it', () {
+      for (final line in [
+        'circle left (8); turn alone',
+        'circle left [8]; turn alone',
+        'circle left (8 beats); turn alone',
+        'circle left 3/4 (8); turn alone',
+      ]) {
+        final fs = parseFreeTextFigureEntry(line);
+        expect(fs.map((f) => f.move), ['circle', 'turn_alone'], reason: line);
+        expect(beatsOf(fs), [8, null], reason: line);
+        expect(fs.any((f) => f.note != null), isFalse, reason: line);
+      }
+    });
+
+    test('a count on a later clause stays on that clause', () {
+      final fs = parseFreeTextFigureEntry('turn alone; circle left (8)');
+      expect(fs.map((f) => f.move), ['turn_alone', 'circle']);
+      expect(beatsOf(fs), [null, 8]);
+      final tail = parseFreeTextFigureEntry('circle left; turn alone (4)');
+      expect(tail.map((f) => f.move), ['circle', 'turn_alone']);
+      expect(beatsOf(tail), [null, 4]);
+    });
+
+    test('every clause keeps its own count', () {
+      final fs = parseFreeTextFigureEntry(
+        'circle left (8); turn alone (4); neighbor swing [16]',
+      );
+      expect(fs.map((f) => f.move), ['circle', 'turn_alone', 'swing']);
+      expect(beatsOf(fs), [8, 4, 16]);
+      final bare = parseFreeTextFigureEntry(
+        'circle left; 4 turn alone; neighbor swing 16 beats',
+      );
+      expect(bare.map((f) => f.move), ['circle', 'turn_alone', 'swing']);
+      expect(beatsOf(bare), [null, 4, 16]);
+    });
+
+    test('a clause whose count cannot be honoured keeps the whole line '
+        'as a custom, typed text intact', () {
+      for (final line in [
+        // A clause no parse reads.
+        'gibberish xyz; circle left (8)',
+        // A clause that is only a note, so which figure a later count
+        // belongs to is a guess.
+        'circle left (8); gibberish xyz; turn alone (4)',
+        'circle left; face up; turn alone (4)',
+        'circle left; face up (4)',
+        // A later count the beats range (0..64) refuses, as it does on the
+        // first clause or a one-clause line.
+        'circle left; turn alone (100)',
+        'circle left (64); turn alone (65)',
+        // A second count on one clause: the parser would drop one.
+        'circle left (8) (4); turn alone',
+        // A count too long to be beats.
+        'circle left (99999); turn alone',
+      ]) {
+        final f = parseFreeTextFigureEntry(line).single;
+        expect(f.isCustom, isTrue, reason: line);
+        expect(f.params['text'], line, reason: line);
+      }
+    });
+
+    test('a shorthand clause and a counted clause each keep their own', () {
+      final shorthands = ShorthandMappings([
+        ShorthandMapping(
+          token: 'pbs',
+          figures: [
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+          ],
+        ),
+      ]);
+      final first = parseFreeTextFigureEntry(
+        'circle left (8); pbs',
+        shorthands: shorthands,
+      );
+      expect(first.map((f) => f.move), ['circle', 'swing']);
+      expect(beatsOf(first), [8, null]);
+      final second = parseFreeTextFigureEntry(
+        'pbs; circle left (8)',
+        shorthands: shorthands,
+      );
+      expect(second.map((f) => f.move), ['swing', 'circle']);
+      expect(beatsOf(second), [null, 8]);
+      // No shorthand in the line: the same reading as without a store.
+      final none = parseFreeTextFigureEntry(
+        'circle left (8); turn alone',
+        shorthands: shorthands,
+      );
+      expect(beatsOf(none), [8, null]);
+    });
+
+    test('a clause that is only a note to the one before keeps working', () {
+      final f = parseFreeTextFigureEntry('circle left (8); face up').single;
+      expect(f.move, 'circle');
+      expect(f.params['beats'], 8);
+      expect(f.note, 'face up');
+    });
+
+    test('forms that already worked are unchanged', () {
+      // A count at the line's start is the first clause's.
+      final lead = parseFreeTextFigureEntry('(8) circle left; turn alone');
+      expect(lead.map((f) => f.move), ['circle', 'turn_alone']);
+      expect(beatsOf(lead), [8, null]);
+      // A count-free compound gets no beats.
+      final plain = parseFreeTextFigureEntry('circle left 3/4; turn alone');
+      expect(beatsOf(plain), [null, null]);
+      // A bare number with no unit is not a count; the line stays custom.
+      final bare = parseFreeTextFigureEntry('circle left 8; turn alone');
+      expect(bare.single.isCustom, isTrue);
+      expect(bare.single.params['text'], 'circle left 8; turn alone');
+      // One clause: the count is the line's, as ever.
+      expect(beatsOf(parseFreeTextFigureEntry('circle left (8)')), [8]);
     });
   });
 

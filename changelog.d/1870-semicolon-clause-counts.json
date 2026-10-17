@@ -1,0 +1,14 @@
+{
+  "id": "1870-semicolon-clause-counts",
+  "user_visible": true,
+  "core": {
+    "fixed": [
+      "Free-text entry keeps a beat count on the `;` clause it was typed with (#1870): `circle left (8); turn alone` gives the circle 8 beats instead of dropping the count, and a count on a later clause (`turn alone; circle left (8)`) goes on that clause's figure instead of the first one. When the clauses and figures do not line up one for one (a clause that became a note), the line is kept whole as a custom figure with its text as typed, rather than guess which figure a later count belongs to."
+    ]
+  },
+  "app": {
+    "fixed": [
+      "In free-text entry, a beat count typed after a figure in a `;` list (`circle left (8); turn alone`) now stays on that figure, and a count on a later figure no longer lands on the first one. A count the app cannot place keeps the whole line as a custom figure, as typed."
+    ]
+  }
+}

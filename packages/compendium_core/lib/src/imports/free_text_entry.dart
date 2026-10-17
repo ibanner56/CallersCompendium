@@ -3,6 +3,8 @@ import '../dialect/dialect.dart';
 import '../model/figure.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/taxonomy.dart';
+import '../validation/validation.dart';
+import 'callersbox_figure_dialect.dart' show hasTopLevelSeparator;
 import 'figure_front_end_fan_out.dart';
 import 'figure_text_scrub.dart';
 import 'shorthand_mappings.dart';
@@ -227,12 +229,17 @@ _BeatSplit _splitInlineBeats(String line, [_CountForms? forms]) {
 /// not read: beats per bar is the dance's phrase structure, which a line does
 /// not see, so it stays in the text.
 ///
-/// Only ONE inline form is honoured per line: a trailing count is checked
-/// first and wins. A count that is not the one honoured (the leading digits of
+/// Only ONE inline form is honoured per line (per `;` clause, see below): a
+/// trailing count is checked first and wins. A count that is not the one honoured (the leading digits of
 /// `16 … (8)`, a second bracketed group, one too long to be beats) is never
 /// dropped: it stays in the text, which then no longer parses and is kept as a
 /// custom. A zero count is not a count (0 is "unspecified"); it is left where
 /// it is.
+///
+/// In a `;` line each clause may state its own count, and keeps it
+/// ([_parseCountedClauses], #1870): `circle left (8); turn alone` and
+/// `circle left; turn alone (4)`. A count that cannot be placed on a figure
+/// keeps the line whole as a custom.
 ///
 /// A line that ends up custom keeps its typed text, counts included, rather
 /// than the remainder after a count was peeled; the peeled count still rides
@@ -409,6 +416,13 @@ List<String> _splitClauses(String line) {
 /// inline count, fan out across the front-ends, and retry dialect-canonicalised.
 List<Figure> _parseLine(String trimmed, Taxonomy? taxonomy, Dialect? dialect) {
   final split = _splitInlineBeats(trimmed);
+  final counted = _parseCountedClauses(trimmed, taxonomy, dialect);
+  if (counted != null) {
+    // A clause that does not structure keeps the line whole, as for any other
+    // `;` line, with its text as typed and the line's own edge count (if any)
+    // as its beats.
+    return counted.isEmpty ? [_typedCustom(trimmed, split.beats)] : counted;
+  }
   // A stray count keeps the line out of the parser, which would drop the
   // number: it is kept whole as a custom.
   final result = split.hasStrayCount
@@ -420,6 +434,63 @@ List<Figure> _parseLine(String trimmed, Taxonomy? taxonomy, Dialect? dialect) {
     return [_typedCustom(trimmed, split.beats)];
   }
   return result;
+}
+
+/// A `;` line in which some clause states a count, read so each count stays on
+/// the clause it was typed with (#1870). Peeled off the whole line, a count at
+/// the far end would ride on the FIRST clause (the parser puts a line's total
+/// on its first figure), and one inside the line would be dropped.
+///
+/// The clauses are read together, count-free, because the parser reads a clause
+/// in the context of its neighbours (`face up` after a move is that move's
+/// note, not a figure). The first clause's count is the line's, as ever; a
+/// count on a later clause is put on that clause's figure, which is only known
+/// when every clause made exactly one figure, in order. Anything else (a clause
+/// that became a note or was folded into a neighbour) cannot say which figure
+/// the count belongs to, so the line is kept whole rather than guess.
+///
+/// Returns `null` when the line is not such a line (no `;`, a `||`, an empty
+/// clause, or no clause with a count), so it is read whole as before; the
+/// empty list when the counts cannot be kept, so the caller keeps the line as
+/// one custom with its text as typed.
+List<Figure>? _parseCountedClauses(
+  String line,
+  Taxonomy? taxonomy,
+  Dialect? dialect,
+) {
+  if (hasTopLevelSeparator(line, '||')) return null;
+  final clauses = splitShorthandClauses(line);
+  if (clauses == null || clauses.length < 2) return null;
+  final splits = [for (final c in clauses) _splitInlineBeats(c)];
+  if (!splits.any((s) => s.beats > 0 || s.hasStrayCount)) return null;
+  if (splits.any((s) => s.hasStrayCount)) return const [];
+  final first = splits.first;
+  final figures = _parseSplit(
+    _BeatSplit(splits.map((s) => s.text).join('; '), first.beats, first.forms),
+    taxonomy: taxonomy,
+    dialect: dialect,
+  );
+  if (figures.isEmpty || figures.any((f) => f.isCustom)) return const [];
+  if (splits.skip(1).every((s) => s.beats == 0)) return figures;
+  if (figures.length != clauses.length) return const [];
+  final counted = [
+    for (var i = 0; i < figures.length; i++)
+      splits[i].beats > 0 && i > 0
+          ? figures[i].copyWith(
+              params: {...figures[i].params, 'beats': splits[i].beats},
+            )
+          : figures[i],
+  ];
+  // The first clause's count went through the parser, which refuses a value
+  // the taxonomy does not allow (more than 64 beats); a later clause's was set
+  // here, so it is held to the same rule.
+  final tax = taxonomy ?? contraTaxonomy;
+  final invalid = counted.any(
+    (f) => tax
+        .validateFigure(f)
+        .any((i) => i.severity == ValidationSeverity.error),
+  );
+  return invalid ? const [] : counted;
 }
 
 /// What to re-parse for a saved import-gap custom with [text] and [beats]
