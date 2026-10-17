@@ -11,6 +11,7 @@ import '../../data/shorthand_mappings_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
+import '../../widgets/app_bar_text_action.dart';
 import '../../widgets/figure_list_editor.dart';
 import '../../widgets/user_figure_argument_editor.dart';
 import 'custom_figure_detail.dart' show compoundParamKindLabel;
@@ -905,10 +906,13 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                 : l10n.compoundEditorTitleEdit,
           ),
           actions: [
-            TextButton(
+            // An icon when "Save" doesn't fit, as at a large text size on a
+            // phone, so the toolbar never overflows.
+            AppBarTextAction(
               key: const ValueKey('compound-editor-save'),
+              label: l10n.commonSave,
+              icon: Icons.check,
               onPressed: _saving ? null : _save,
-              child: Text(l10n.commonSave),
             ),
           ],
         ),

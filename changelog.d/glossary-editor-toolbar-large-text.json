@@ -1,0 +1,9 @@
+{
+  "id": "glossary-editor-toolbar-large-text",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "The Glossary editor's toolbar no longer runs off the screen on a narrow phone with large text, as in French at twice the text size: when the Save button's word doesn't fit, it shows a check mark instead, still named Save for screen readers and in its tooltip."
+    ]
+  }
+}
