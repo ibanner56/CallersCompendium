@@ -658,6 +658,90 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(CompoundEditorScreen), findsNothing);
   });
+
+  group('the toolbar at a phone\'s width and a large text size', () {
+    final term = UserGlossaryEntry(
+      id: 'term-id',
+      kindName: UserGlossaryEntryKind.term.name,
+      name: 'gypsy',
+      definition: 'Walk around.',
+      description: 'Eyes on your partner.',
+      payload: glossaryTermPayload('contra'),
+      createdAt: created,
+    );
+
+    Future<void> open(
+      WidgetTester tester,
+      CompoundEditorScreen screen, {
+      required Locale locale,
+      required double scale,
+    }) async {
+      await tester.binding.setSurfaceSize(const Size(320, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final repos = openTestRepositories();
+      final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+      addTearDown(dialect.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: locale,
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(scale)),
+            child: RepositoriesScope(
+              repositories: repos,
+              child: ActiveDialectScope(notifier: dialect, child: child!),
+            ),
+          ),
+          home: screen,
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    // Every title the editor has: a new entry, a new term, an edit, and a
+    // term being made a figure.
+    final screens = {
+      'new': () => const CompoundEditorScreen(),
+      'new term': () => const CompoundEditorScreen(termsOnly: true),
+      'edit': () => CompoundEditorScreen(initial: twoPullBys()),
+      'make a figure': () =>
+          CompoundEditorScreen(initial: term, convertToFigure: true),
+    };
+    for (final MapEntry(key: name, value: screen) in screens.entries) {
+      testWidgets('$name: in French at 2x, Save is an icon and nothing '
+          'overflows', (tester) async {
+        await open(tester, screen(), locale: const Locale('fr'), scale: 2);
+        expect(tester.takeException(), isNull);
+        final save = find.byKey(const ValueKey('compound-editor-save'));
+        expect(
+          find.descendant(of: save, matching: find.byIcon(Icons.check)),
+          findsOneWidget,
+        );
+        expect(find.byTooltip('Enregistrer'), findsOneWidget);
+      });
+    }
+
+    testWidgets('where it fits, Save is still a word', (tester) async {
+      await open(
+        tester,
+        const CompoundEditorScreen(),
+        locale: const Locale('en'),
+        scale: 1,
+      );
+      final save = find.byKey(const ValueKey('compound-editor-save'));
+      expect(
+        find.descendant(of: save, matching: find.text('Save')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: save, matching: find.byIcon(Icons.check)),
+        findsNothing,
+      );
+    });
+  });
 }
 
 const twoPullBysBindings = [
