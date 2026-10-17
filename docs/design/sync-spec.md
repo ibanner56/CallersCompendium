@@ -254,8 +254,8 @@ never sent anywhere.
 
 `retained_sync_fields` is record content, not store state: it MUST survive an
 epoch reset and a detach, like the record it belongs to. A restore of either
-mode and an archive import MUST clear no row: each writes the records it matches
-as a local edit does, which keeps the kept parts, and a record a restore writes
+mode and an archive import MUST clear no row: a local edit keeps the kept parts
+and these writes are no different, and a record a restore writes
 is stamped at restore time, newer than the peer's copy, so a body without the
 kept parts would win last-writer-wins and strip them from the peer on every
 device (§6.7). A replace restore deletes the old records first, but the row of a

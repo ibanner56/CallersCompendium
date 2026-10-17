@@ -614,8 +614,8 @@ void main() {
       }
 
       test('a setting kept whole is still kept and shared back', () async {
-        // A key this build does not sync is kept whole and is in no table a
-        // replace clears, so there is nothing it replaced.
+        // A key this build does not sync is kept whole. A replace used to
+        // delete its row; it must now survive and be shared back byte for byte.
         final peer = SyncRecordBlob(
           kind: SyncRecordKind.setting,
           id: 'a_setting_added_later',

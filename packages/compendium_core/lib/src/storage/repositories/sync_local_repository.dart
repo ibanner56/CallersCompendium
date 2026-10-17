@@ -520,7 +520,7 @@ class SyncLocalTransaction {
   /// so its body wins last-writer-wins against a peer's copy, and the kept part
   /// of a record is the only copy of what a peer's newer build put there:
   /// clearing it would let the body without it win and strip it from the peer
-  /// (sync-spec §6.7). A row for a record the restore left no longer existing
+  /// (sync-spec §6.7). A row whose record no longer exists after the restore
   /// is dropped by the next snapshot, which sweeps every row whose record is
   /// gone, so the writer need not. [restoredRecords] only scopes which pending
   /// deletions survive, and only when [revalidatePending] is true.

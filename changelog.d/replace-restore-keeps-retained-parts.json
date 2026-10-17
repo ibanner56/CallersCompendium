@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Restoring a backup no longer makes Device Sync lose the details a newer version of the app added to your records. Before, the restore wiped what this device was keeping for them while marking the restored records as the newest copies, so the next sync removed those details on your other devices."
+      "If another device you sync with runs a newer version of the app, restoring a backup no longer makes Device Sync lose the details that version added to your records. Before, the restore wiped what this device was keeping for them while marking the restored records as the newest copies, so the next sync removed those details on your other devices."
     ]
   },
   "core": {
