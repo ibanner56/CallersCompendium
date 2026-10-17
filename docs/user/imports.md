@@ -225,8 +225,8 @@ A few honest notes:
 
 ## Import a Caller's Compendium file
 
-Dances shared as a **Caller's Compendium** file (the app's own `.json` format)
-come in through the same review flow:
+Dances shared as a **Caller's Compendium** file (the app's own `.json` or
+`.ccshare` format) come in through the same review flow:
 
 1. Open **Settings**, choose **General**, and choose **Import…**.
 2. Set the source to **a Caller's Compendium JSON file**.
@@ -357,8 +357,8 @@ and the count of dances to import only reflects what could be read, so the
 warning is the sign that something is absent. Copy the file again from the
 original and import it again; dances you already imported are recognised and
 offered as updates rather than duplicated. The same warning area
-also tells you when figures, programs or related-dance links in the file could
-not be read.
+also tells you when figures, programs, glossary terms or related-dance links in
+the file could not be read.
 
 Your own **glossary terms** can come across too, if the
 [Glossary](settings.md#glossary-and-custom-figures) is shown. See
@@ -507,7 +507,7 @@ watches for matches:
   status, links and source citations. The review warns how many existing dances
   will be overwritten before you commit.
 - **Same name, different choreography.** When the title and author match
-  confidently but the *figures* differ, the app shows a **Variation?** block with
+  confidently but the *figures* differ, the app shows a **Variation of "…"?** block with
   an inline diff of exactly which lines changed, and offers **Import as a
   variation** — which keeps it as its own dance, optionally linked back to the
   original as a related dance — or **Same dance — replace**. Two dances that

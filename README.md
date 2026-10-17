@@ -58,8 +58,8 @@ stay up to date.
   ships role-neutral presets (Larks/Robins by default, and Leads/Follows); you
   can build your own dialects, preview edits live, and switch dialects per gig.
 - **Imports** — Bring dances in from The Caller's Box and ContraDB by link or
-  ID, migrate from Caller's Companion (its formatted-text export or its `.USR`
-  library file), or open a Caller's Compendium file. Every import passes through
+  ID, migrate from Caller's Companion (its `.USR` library file), or open a
+  Caller's Compendium file. Every import passes through
   a review queue before anything reaches your collection.
 - **Device Sync** *(experimental, opt-in)* — Keep your library in step across
   your own devices, with no account and no sign-in. It is off until you turn it
