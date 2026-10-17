@@ -1959,21 +1959,27 @@ jobs:
           done
           echo "All ${#artifacts[@]} artifact(s) passed provenance + SBOM verification."
 
-  # Deploy the Athenaeum sync server for this tag BEFORE any client can reach
-  # the release: the mobile uploads and the update manifest both need this job,
-  # because a client that ships ahead of its server talks to a service that does
-  # not know it. It runs after `verify` (never deploy artifacts whose provenance
-  # failed) behind its own approval, and a failure here fails the run, so
-  # `publish_mobile` and `pages` never start.
+  # Deploy the Athenaeum sync server for this tag BEFORE the mobile uploads and
+  # the update manifest: both need this job, because a client that ships ahead of
+  # its server talks to a service that does not know it. Publishing the draft is
+  # a manual step this workflow cannot gate, so approve this job and let it go
+  # green BEFORE publishing (docs/dev/releasing.md, Cutting a release). It runs
+  # after `verify` (never deploy artifacts whose provenance failed) behind its own
+  # approval, and a failure here fails the run, so `publish_mobile` and `pages`
+  # never start.
   #
   # It runs for an existing-tag recovery too (the manifest still waits on it).
-  # That is safe: it rebuilds the same immutable commit under the same image tag.
+  # That is safe while the recovered tag is the newest release: it rebuilds the
+  # same immutable commit under the same image tag. deploy_athenaeum.sh refuses to
+  # replace a newer running release with an older one, so recovering an old tag
+  # fails here rather than rolling the server back.
   #
   # The remote commands live in tools/release/deploy_athenaeum.sh and are piped
   # over SSH from the checkout of `source_sha`, so what runs on the host is what
-  # the tag contains. Tag and SHA reach the remote shell as positional arguments
-  # to `bash -s`, never spliced into a command line; `meta` has already
-  # restricted them to vX.Y.Z[-beta] and a commit SHA.
+  # the tag contains. ssh joins Tag and SHA into the remote command string and the
+  # remote login shell parses it, so they are only safe because `meta` restricts
+  # them to a commit SHA and vX.Y.Z[-beta] and the step below re-checks both
+  # before ssh runs. Do not pass any other value this way.
   #
   # Unlike the signing legs this job does NOT no-op without its credentials:
   # a release that cannot reach its server must stop, not skip the deploy.
@@ -2019,6 +2025,14 @@ jobs:
               exit 1
             fi
           done
+
+          # ssh hands these to the remote login shell as one command string, so
+          # check them here, before ssh, rather than trusting only `meta`.
+          if [[ ! "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] \
+            || [[ ! "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-beta)?$ ]]; then
+            echo "::error::refusing to deploy: '${SOURCE_SHA}' / '${VERSION}' is not a commit SHA / X.Y.Z[-beta] release version"
+            exit 1
+          fi
 
           umask 077
           key_file="$RUNNER_TEMP/athenaeum_deploy_key"

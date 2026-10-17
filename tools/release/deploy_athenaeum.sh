@@ -13,6 +13,9 @@
 #   <version>  the tag without its `v` (`0.7.0-beta`); it becomes the image tag
 #              callers-compendium-athenaeum:<version>.
 #
+# It refuses to replace a newer release with an older one (see below), so
+# recovering an old tag cannot roll the server back.
+#
 # Any failure exits non-zero, which fails the release before the mobile uploads
 # and the update manifest. The image is built BEFORE the running container is
 # touched, so a broken build leaves the previous release serving. A failure after
@@ -54,6 +57,26 @@ image="callers-compendium-athenaeum:${version}"
 # runs, and the `exit` after it means bash never reads stdin again.
 {
 echo "Deploying Athenaeum ${version} from ${sha}"
+
+# A recovery or an out-of-order tag must not replace a newer server with an older
+# one: clients on the newer release would then be ahead of their server. Order is
+# the updater's: X.Y.Z-beta precedes X.Y.Z. A container whose image tag is not a
+# release version (the legacy date tag, say) cannot be ordered and is replaced.
+version_key() {
+  local v="$1" stable=1 major minor patch
+  if [[ "$v" == *-beta ]]; then stable=0; fi
+  IFS=. read -r major minor patch <<< "${v%-beta}"
+  printf '%09d%09d%09d%d' "$((10#$major))" "$((10#$minor))" "$((10#$patch))" "$stable"
+}
+if sudo -n docker container inspect "$container" >/dev/null 2>&1; then
+  running_image="$(sudo -n docker inspect --format '{{.Config.Image}}' "$container")"
+  running_version="${running_image##*:}"
+  if [[ "$running_version" =~ ^${core_re}(-beta)?$ ]] \
+    && [[ "$(version_key "$running_version")" > "$(version_key "$version")" ]]; then
+    echo "::error::${container} is already running ${running_version}, newer than ${version}; refusing to downgrade the server" >&2
+    exit 1
+  fi
+fi
 
 cd "$repo_dir"
 # Fetch the commit itself rather than a branch: the tag may sit on a commit

@@ -62,6 +62,7 @@ def _run(
     heartbeat_ok: bool = True,
     inspect: str | None = None,
     existing_container: bool = True,
+    running_image: str = "callers-compendium-athenaeum:2026-10-17",
 ) -> tuple[subprocess.CompletedProcess, list[str]]:
     stubs = tmp / "stubs"
     stubs.mkdir(exist_ok=True)
@@ -79,7 +80,10 @@ cat > /dev/null  # a stdin reader must not swallow the rest of the script
 case "$1" in
   build) echo "tree=$(cat marker.txt)" >> '{log}' ;;
   container) [ "{int(existing_container)}" = 1 ] || exit 1 ;;
-  inspect) echo '{inspect if inspect is not None else "true callers-compendium-athenaeum:" + version + " 0"}' ;;
+  inspect) case "$*" in
+    *RestartCount*) echo '{inspect if inspect is not None else "true callers-compendium-athenaeum:" + version + " 0"}' ;;
+    *) echo '{running_image}' ;;
+  esac ;;
 esac
 [ "$1" = "{docker_fail}" ] && exit 1
 exit 0
@@ -160,10 +164,35 @@ def main() -> None:
             res, _ = _run(tmp, host, tagged, "0.7.0-beta", inspect=state)
             assert res.returncode != 0 and "is not the fresh" in res.stdout + res.stderr, state
 
-        # A commit origin does not have fails before docker is touched.
+        # The server is never downgraded: an older (or beta-of-the-same-core)
+        # release is refused before anything is fetched or built, while the same
+        # version, a newer one, and a legacy date-tagged container proceed.
+        image = "callers-compendium-athenaeum:"
+        for running, new_version, allowed in (
+            ("0.8.0-beta", "0.7.0-beta", False),
+            ("0.7.0", "0.7.0-beta", False),
+            ("0.10.0", "0.9.0", False),
+            ("0.7.0-beta", "0.7.0-beta", True),
+            ("0.7.0-beta", "0.7.0", True),
+            ("0.7.0", "0.10.0", True),
+            ("2026-10-17", "0.7.0-beta", True),
+        ):
+            res, calls = _run(
+                tmp, host, tagged, new_version, running_image=image + running
+            )
+            if allowed:
+                assert res.returncode == 0, (running, new_version, res.stdout, res.stderr)
+            else:
+                assert res.returncode != 0 and "refusing to downgrade" in (
+                    res.stdout + res.stderr
+                ), (running, new_version)
+                assert not {"build", "stop", "rm", "run"} & set(_docker_verbs(calls)), calls
+
+        # A commit origin does not have fails before anything is built or replaced.
         missing = "0" * 40
         res, calls = _run(tmp, host, missing, "0.7.0-beta")
-        assert res.returncode != 0 and not _docker_verbs(calls), calls
+        assert res.returncode != 0, res.stdout + res.stderr
+        assert not {"build", "stop", "rm", "run"} & set(_docker_verbs(calls)), calls
 
         # Malformed arguments are rejected before git or docker run.
         for sha, version in (

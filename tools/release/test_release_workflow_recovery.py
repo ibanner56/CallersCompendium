@@ -518,6 +518,9 @@ def main() -> None:
     assert "SOURCE_SHA: ${{ needs.meta.outputs.source_sha }}" in deploy_server
     assert "VERSION: ${{ needs.meta.outputs.version }}" in deploy_server
     assert "< tools/release/deploy_athenaeum.sh" in deploy_server
+    assert deploy_server.index("refusing to deploy") < deploy_server.index("\n          ssh "), (
+        "the SHA and version must be validated before ssh joins them into a command"
+    )
     for name in (
         "secrets.ATHENAEUM_DEPLOY_SSH_KEY",
         "secrets.ATHENAEUM_DEPLOY_KNOWN_HOSTS",

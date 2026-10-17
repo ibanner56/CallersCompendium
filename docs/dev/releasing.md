@@ -342,13 +342,16 @@ and produces no Android artifact.
    publish a draft whose `verify` job failed or was skipped** — a red `verify`
    means the attestations don't check out. See
    [Verifying attestations](#verifying-attestations).
-   `deploy_server` then waits for the `release-server` approval; see step 9.
-8. **Publish** the draft manually once the `verify` job is green and the draft
-   looks right.
-9. **Approve the `deploy_server` job** (`release-server` environment) once
-   `verify` is green. It deploys this tag's Athenaeum server before the mobile
-   uploads and the update manifest can start; if it fails, neither runs. See
+   `deploy_server` then waits for the `release-server` approval; see step 8.
+8. **Approve the `deploy_server` job** (`release-server` environment) once
+   `verify` is green, and **wait for it to go green before publishing**. It
+   deploys this tag's Athenaeum server, and the mobile uploads and the update
+   manifest cannot start until it succeeds. Publishing the draft is a manual step
+   the workflow cannot gate, and it makes the desktop binaries public, so
+   publishing first would let people run a client ahead of its server. See
    [Deploying the Athenaeum server](#deploying-the-athenaeum-server).
+9. **Publish** the draft manually once `deploy_server` is green and the draft
+   looks right.
 10. **Approve the `pages` job** (`release-manifest` environment) **after** the
    draft is public. `pages` needs `verify`, checks that the release is no longer a
    draft and that its manifests download anonymously, verifies every manifest
@@ -364,17 +367,21 @@ in-flight one replaces the second.)
 ## Deploying the Athenaeum server
 
 The `deploy_server` job puts the server for the tagged commit into production
-before any client can reach the release. `publish_mobile` (TestFlight, Google
+before the mobile uploads and the update manifest. `publish_mobile` (TestFlight, Google
 Play) and `pages` (the update manifest) both `need` it, so a failed deploy stops
 the run before either starts. It runs after `verify`, behind its own
 `release-server` approval, and it also runs on an existing-tag recovery
-(rebuilding the same commit under the same image tag is idempotent, and the
-manifest still waits on it). A build-only `workflow_dispatch` dry run skips it.
+(rebuilding the same commit under the same image tag is idempotent while that
+tag is the newest release, and the manifest still waits on it; the script refuses
+to replace a newer running release with an older one, so recovering an old tag
+fails at this job instead of rolling the server back). A build-only `workflow_dispatch` dry run skips it.
 
 It SSHes to the host and pipes
 [`tools/release/deploy_athenaeum.sh`](../../tools/release/deploy_athenaeum.sh)
 from the tagged commit into `bash -s`, passing the commit SHA and the release
-version as arguments. On the host the script:
+version as arguments (the step validates both before ssh, which joins them into
+one command string for the remote login shell). On the host the script first
+refuses if the running container is a newer release than this tag, then:
 
 1. fetches that exact commit into `/opt/CallersCompendium` and checks it out
    detached (the tag's commit, not whatever `main` is now);
@@ -410,8 +417,9 @@ fails the job rather than skipping it.
 | Variable | `ATHENAEUM_DEPLOY_PORT` | Optional; defaults to `22` |
 
 The account needs passwordless `sudo` for `docker` (the script uses `sudo -n`,
-which fails instead of prompting), read access to `/opt/CallersCompendium` with
-`origin` able to fetch, and `curl`. Prefer a dedicated key, and constrain it on
+which fails instead of prompting), write access to the `/opt/CallersCompendium`
+checkout (it fetches and checks out the tagged commit, so the account must own it,
+or git refuses it as dubious ownership; `origin` must be fetchable), and `curl`. Prefer a dedicated key, and constrain it on
 the host (`authorized_keys` options such as `restrict`, plus `from=` for GitHub's
 runner ranges if you accept maintaining them): the key can run arbitrary commands
 as that account, so its protection is the environment's reviewers.
