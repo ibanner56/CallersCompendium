@@ -1,0 +1,9 @@
+{
+  "id": "app-bar-actions-large-text",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "The Save, Import and Switch buttons at the top of the shorthand, dialect and theme editors, the plain-text and ContraDB program imports, and the switch to an app figure no longer run off a narrow phone's screen at large text sizes: when the word doesn't fit, the button shows an icon instead, still named for screen readers and in its tooltip."
+    ]
+  }
+}
