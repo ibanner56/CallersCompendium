@@ -325,6 +325,23 @@ The import now reads that choreography, so a migrated dance arrives with real
 A1/A2/B1/B2 figures you can search and edit. Anything the app cannot represent
 faithfully is kept word-for-word as text rather than guessed at.
 
+The up to three **custom columns** you defined in Caller's Companion come
+across as **custom fields**, one per column name, filled in on each dance, so
+you can show, search and sort by them like any field you made yourself. If you
+already have a text field whose key is the column name in lower case with
+punctuation turned into underscores (a column called "Card colour" matches a
+field with the key `card_colour` or `Card_Colour`), it is reused;
+if that key is taken by a field of another kind (a number, say), the column
+arrives as a new field with `_2` on the end. A column with no name is called
+"User field" and its number. New fields are shared like any other custom field, so if a
+column holds private notes, turn off **Include in sharing** for that field in
+the custom fields settings before you share. Dances you imported in an earlier version keep those
+values as lines in their calling notes.
+
+Importing a dance again no longer clears custom-field values you have added to
+it since. A column you emptied in Caller's Companion does not clear the value
+already in that field; clear it in the app.
+
 Your **venues** and **related-dance links** come across as well. Set locations
 become real venue entries — matching one you already have when it is clearly the
 same place, and creating a new one when it isn't (an ambiguous match always

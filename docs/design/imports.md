@@ -335,7 +335,61 @@ declines the collapse.
   after scrubbing is retained: recognised moves structure into taxonomy
   figures, the rest as `importGap` customs (parse-never-fails); a line that is
   empty after scrubbing yields nothing (nothing to store). Sets → Programs; user
-  fields → notes.
+  fields → typed custom fields (below).
+- **`UserDefined_1..3` → text custom fields (#1890).** Each non-empty column
+  becomes a `CustomFieldValue` on the dance; the column's `_Name` label (or
+  `User field N` when blank) becomes `CustomFieldDef.label`. The mapper is pure
+  and runs before any definition exists, so it writes a placeholder field id
+  (`cc-user-field:<key>:<label>`); `CallersCompanionUsrImporter.commit` resolves
+  every key to a real definition **before** the pipeline commits and rewrites
+  the ids, and `undo` removes them after the dances.
+  - **Key.** `ccUserFieldKeyForLabel`: lower-case, runs of non-`[a-z0-9]`
+    collapse to `_`, `f_` prefix before a leading digit, 48-character bound. A
+    label with nothing to slug (blank after trimming, or wholly non-Latin) gets
+    `cc_<FNV-1a hash of the label>`, so the same label gives the same key in
+    every dance and every import. Two labels in **one dance** that slug alike get
+    `_2`, `_3`, … (a `cc_user_field_key_adjusted` warning on the draft; the
+    no-slug fallback raises the same code as info). A column with no
+    `_Name` (the reader calls it `User field N`) raises
+    `cc_user_field_label_missing` as info. Across dances the key is the
+    identity, so "Tempo" in one dance and "tempo!" in another share one field and
+    the first dance seen names it.
+  - **Existing key.** Keys compare case-folded (`naturalKeyMatchKey`), which
+    is deliberately wider than the repository's byte-exact key check (so the
+    custom-fields screen can hold both `Tempo` and `tempo`): a key typed as
+    `Tempo` matches the column "Tempo". Among case variants a text definition
+    beats one of another type, a live one beats a tombstone, and an exact key
+    beats a case variant, so an exact text match is never passed over. A live
+    **text** definition under the key is reused as it is (never edited); a
+    tombstoned text one is revived. A definition of another type is never reused — storing text in a number or choice field would
+    corrupt it, and `upsert` refuses to create onto a live key (#1348) — so the
+    column is created as `<key>_2`, `_3`, … with a `cc_user_field_key_conflict`
+    note on `CcUsrImportResult.customFieldIssues`. Matching is explicit, as in
+    `ShareMetadataImporter`, not an upsert.
+  - **Created definitions** are `text`, `showInList: false`, `searchable: true`,
+    `shareable: true` (the default every new field gets). Shareable means these
+    values travel in shared bundles and, with sync on, to the person's other
+    devices, and CC user columns can hold personal notes; the person turns
+    **Include in sharing** off per field in the custom fields settings. Decided
+    by the repository owner while implementing #1890 (their answer to the
+    question, not a ruling recorded elsewhere): keep the model default. The
+    alternative, defaulting these to `false` so personal notes stay on-device
+    until opted in, was recommended and not taken.
+  - **Rollback.** Definitions created or revived by a failed commit are removed
+    with it. A definition no committed dance ended up using (every dance that
+    carried the key was skipped) is dropped straight after the commit.
+    `undo` removes exactly the inserted definitions and re-tombstones the
+    revived ones, each behind the repository's in-use guard so a definition a
+    surviving dance holds a value for stays.
+  - **Re-import** replaces a dance's content from the file, but a custom-field
+    value the draft does not carry is kept: `DanceRepository.update` deletes
+    every stored value and rewrites only what the dance holds, so the pipeline
+    now merges the matched dance's existing values under the draft's (the draft
+    wins for a field it carries). Before #1890 a re-import dropped every custom
+    value for every adapter. Known limit: a column **emptied** at the source
+    carries nothing, so the value already stored for it is kept.
+  - **Not migrated:** dances imported before #1890 keep the `Label: value`
+    lines in their calling notes.
 - Library-scale behaviour (a ~20 000-dance `.USR` is ~240 MB and ~40 s of
   parsing): the app reads the file on a **background isolate** (the adapter takes
   an injectable `CcUsrArchiveReader`; the default source uses
