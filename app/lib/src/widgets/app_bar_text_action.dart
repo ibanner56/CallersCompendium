@@ -16,12 +16,17 @@ class AppBarTextAction extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.onPressed,
+    this.busy = false,
     this.maxWidthFraction = 0.4,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback? onPressed;
+
+  /// Shows a small progress indicator in place of the label or icon, with the
+  /// action disabled, while the action it starts is running.
+  final bool busy;
 
   /// The share of the screen's width the label's button may take.
   final double maxWidthFraction;
@@ -32,6 +37,19 @@ class AppBarTextAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (busy) {
+      return Semantics(
+        label: label,
+        child: const TextButton(
+          onPressed: null,
+          child: SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
     final style =
         TextButtonTheme.of(context).style?.textStyle?.resolve(const {}) ??
         Theme.of(context).textTheme.labelLarge;

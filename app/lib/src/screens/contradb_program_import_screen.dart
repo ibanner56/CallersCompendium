@@ -16,6 +16,7 @@ import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../utils/undo_snack_bar.dart';
+import '../widgets/app_bar_text_action.dart';
 
 /// How the user is choosing which ContraDB program to import.
 enum _ImportMode {
@@ -535,16 +536,12 @@ class _ContraDbProgramImportScreenState
       appBar: AppBar(
         title: Text(l10n.importContraDbTitle),
         actions: [
-          TextButton(
+          AppBarTextAction(
             key: const ValueKey('contradb-program-commit'),
+            label: l10n.importAction,
+            icon: Icons.download_done,
+            busy: _committing,
             onPressed: _canCommit ? _commit : null,
-            child: _committing
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(l10n.importAction),
           ),
         ],
       ),

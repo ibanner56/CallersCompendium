@@ -5,6 +5,7 @@ import '../data/app_theme_labels_l10n.dart';
 import '../data/custom_theme.dart';
 import '../theme/wcag.dart';
 import '../widgets/color_edit_dialog.dart';
+import '../widgets/app_bar_text_action.dart';
 
 /// Full-role editor for a [CustomTheme] (`docs/design/ux-modernization.md`
 /// §4B). Lets the user rename the theme and edit every major color role, with
@@ -89,7 +90,13 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.themeEditorTitle),
-        actions: [TextButton(onPressed: _save, child: Text(l10n.commonSave))],
+        actions: [
+          AppBarTextAction(
+            label: l10n.commonSave,
+            icon: Icons.check,
+            onPressed: _save,
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
