@@ -553,6 +553,25 @@ void main() {
       );
     });
 
+    testWidgets('a plain shorthand clause whose count is refused keeps the '
+        'whole line custom (#1879)', (tester) async {
+      final repos = await pump(tester, shorthands: [shorthand()]);
+      final controller = ShorthandMappingsScope.controllerOf(
+        tester.element(find.byType(DanceEditorScreen)),
+      );
+      await tester.runAsync(
+        () => repos.settings.set(kShorthandMappingsKey, [
+          ShorthandMapping(token: 'ns', figures: [swing()]).toJson(),
+        ]),
+      );
+      await tester.runAsync(controller.load);
+      await tester.pumpAndSettle();
+      await typeLine(tester, 'zm; ns (100)');
+      final figure = (await saved(tester, repos)).single;
+      expect(figure.isCustom, isTrue);
+      expect(figure.params['text'], 'zm; ns (100)');
+    });
+
     testWidgets('65 clauses are not expanded', (tester) async {
       final repos = await pump(tester, shorthands: [shorthand()]);
       await typeLine(tester, List.filled(65, 'zm').join('; '));

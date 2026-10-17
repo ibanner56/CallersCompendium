@@ -222,13 +222,17 @@ class DanceEditorForm extends StatelessWidget {
   }
 
   /// Whether [clause] is a plain shorthand, counted or not, whose figures may
-  /// include a custom one the user chose.
+  /// include a custom one the user chose. A count it cannot take is not one.
   bool _isPlainShorthandClause(String clause) {
     final mappings = shorthandMappings;
     if (mappings == null) return false;
     if (mappings.resolve(clause) != null) return true;
     final split = splitShorthandCount(clause);
-    return split != null && mappings.resolve(split.text) != null;
+    if (split == null || mappings.resolve(split.text) == null) return false;
+    // A count the beats range refuses made the clause a custom figure the user
+    // did not choose, so the line is kept whole (#1879).
+    return split.unread != null ||
+        ParamSpec(ParamKind.beats, defaultValue: 8).validate(split.beats);
   }
 
   @override

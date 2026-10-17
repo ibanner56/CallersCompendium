@@ -3,12 +3,12 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "A figure shorthand typed with a count over 64 beats, like `pbs (100)`, no longer adds a figure with beats outside the range a figure can take. The line is kept as a custom figure with your text, as for any other figure. A count of five digits or more, like `pbs (10000)`, is kept in the figure's note with the beats the shorthand was saved with."
+      "A figure shorthand typed with a count over 64 beats, like `pbs (100)`, no longer expands to a figure with that many beats. The line is kept as a custom figure with your text, as for any other figure typed with such a count. A count of five digits or more, like `pbs (10000)`, is kept in the figure's note with the beats the shorthand was saved with."
     ]
   },
   "core": {
     "fixed": [
-      "Free-text entry holds the count typed with a one-figure shorthand to the taxonomy's 0..64 beats range, and reads a count too long to be beats (`splitShorthandCount(...).unread`) as a note on the figure, as it does for a line with no shorthand (#1879)."
+      "Free-text entry no longer gives a one-figure shorthand a count outside the taxonomy's 0..64 beats range: the line is kept as a custom, as for a line with no shorthand. A count too long to be beats is read as a note on the figure (`splitShorthandCount(...).unread`) (#1879)."
     ]
   }
 }
