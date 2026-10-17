@@ -176,6 +176,16 @@ with the beats it was saved with. A shorthand for a
 plain figure with the same token as the one left after the count is taken off
 wins, as it does for a whole line.
 
+They also work as one part of a `;` list, mixed with shorthands of any kind and
+with ordinary figures: `zm; ladies chain`, `ladies chain; zm` and
+`16 zm; ladies chain` each add a row per part, in the order typed, in the
+free-text box or in place of the row whose **Move** box you typed into. Each
+part takes its own count as above. A combination is one row and counts as one
+part, however many figures it holds. A list can have at most 64 parts. As with
+the shorthands above, it is all or nothing: if one part is not a shorthand, a
+figure the app understands or a shorthand that can be used, the whole line is
+added as one custom figure instead.
+
 Shorthands are your own; each one has to be unique, and the app tells you if you
 reuse a token that is already taken. Shorthands are matched before the app tries
 to read a line as a figure, so a shorthand named for something the app already

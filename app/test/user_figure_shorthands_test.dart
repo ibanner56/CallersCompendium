@@ -439,6 +439,86 @@ void main() {
       });
     }
 
+    // A `;` clause may be one of these shorthands, with its own count (#1866),
+    // as it may be a plain shorthand (#1827). Rows come out in typed order.
+    final clauseLines = <String, List<String?>>{
+      'zm; ladies chain': ['zoom-id:4', 'chain'],
+      'ladies chain; zm': ['chain', 'zoom-id:4'],
+      '16 zm; ladies chain': ['zoom-id:16', 'chain'],
+      'ladies chain; zm (16)': ['chain', 'zoom-id:16'],
+      'zm; 8 zm; ladies chain': ['zoom-id:4', 'zoom-id:8', 'chain'],
+    };
+
+    /// `zoom-id:<beats>` for a use of the figure, else the move.
+    String describe(Figure f) {
+      final use = userFigureUseOf(f);
+      return use == null ? f.move : '${use.id}:${f.params['beats']}';
+    }
+
+    for (final MapEntry(key: line, value: want) in clauseLines.entries) {
+      testWidgets('"$line" inserts a row per clause', (tester) async {
+        final repos = await pump(tester, shorthands: [shorthand()]);
+        await typeLine(tester, line);
+        expect([for (final f in await saved(tester, repos)) describe(f)], want);
+      });
+
+      testWidgets('"$line" typed into an existing row\'s Move box replaces '
+          'the row in place with the clauses', (tester) async {
+        final repos = await pump(tester, shorthands: [shorthand()]);
+        await typeInExistingRow(tester, line);
+        final figures = await saved(tester, repos);
+        expect(
+          [for (final f in figures) describe(f)],
+          ['swing', ...want, 'turn_alone'],
+        );
+      });
+    }
+
+    testWidgets('a clause that is not a figure leaves the whole line '
+        'unexpanded (all or nothing)', (tester) async {
+      final repos = await pump(tester, shorthands: [shorthand()]);
+      await typeLine(tester, 'zm; flibbertigibbet');
+      final figures = await saved(tester, repos);
+      expect(figures.any((f) => userFigureUseOf(f) != null), isFalse);
+    });
+
+    testWidgets('a plain shorthand with the same token wins in a clause', (
+      tester,
+    ) async {
+      final repos = await pump(tester, shorthands: [shorthand()]);
+      final controller = ShorthandMappingsScope.controllerOf(
+        tester.element(find.byType(DanceEditorScreen)),
+      );
+      await tester.runAsync(
+        () => repos.settings.set(kShorthandMappingsKey, [
+          ShorthandMapping(token: 'ZM', figures: [swing()]).toJson(),
+        ]),
+      );
+      await tester.runAsync(controller.load);
+      await tester.pumpAndSettle();
+      await typeLine(tester, 'zm; ladies chain');
+      expect(
+        [for (final f in await saved(tester, repos)) f.move],
+        ['swing', 'chain'],
+      );
+    });
+
+    testWidgets('65 clauses are not expanded', (tester) async {
+      final repos = await pump(tester, shorthands: [shorthand()]);
+      await typeLine(tester, List.filled(65, 'zm').join('; '));
+      expect(
+        (await saved(tester, repos)).any((f) => userFigureUseOf(f) != null),
+        isFalse,
+      );
+    });
+
+    testWidgets('64 clauses expand to 64 rows', (tester) async {
+      final repos = await pump(tester, shorthands: [shorthand()]);
+      await typeLine(tester, List.filled(64, 'zm').join('; '));
+      final figures = await saved(tester, repos);
+      expect(figures.where((f) => userFigureUseOf(f) != null), hasLength(64));
+    });
+
     testWidgets('a count replaces a shorthand\'s saved beats and the '
         'figure\'s default', (tester) async {
       final repos = await pump(tester, shorthands: [shorthand(beats: null)]);

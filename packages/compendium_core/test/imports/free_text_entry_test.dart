@@ -670,6 +670,33 @@ void main() {
     });
   });
 
+  group('splitShorthandClauses (#1866)', () {
+    test('splits at top-level ; and trims each clause', () {
+      expect(splitShorthandClauses('zm ;  ladies chain'), [
+        'zm',
+        'ladies chain',
+      ]);
+      expect(splitShorthandClauses('zm'), ['zm']);
+    });
+
+    test('keeps a bracketed ; inside its clause', () {
+      expect(splitShorthandClauses('zm; pass (PR;WL)'), ['zm', 'pass (PR;WL)']);
+    });
+
+    test('declines an empty clause', () {
+      expect(splitShorthandClauses('zm;;swing'), isNull);
+      expect(splitShorthandClauses('zm;'), isNull);
+    });
+
+    test('allows 64 clauses and declines 65', () {
+      expect(
+        splitShorthandClauses(List.filled(64, 'zm').join(';')),
+        hasLength(64),
+      );
+      expect(splitShorthandClauses(List.filled(65, 'zm').join(';')), isNull);
+    });
+  });
+
   group('splitShorthandCount (#1861)', () {
     test('peels a leading or trailing count', () {
       expect(splitShorthandCount('16 pbs'), (text: 'pbs', beats: 16));

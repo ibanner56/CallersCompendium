@@ -118,9 +118,10 @@ class DanceEditorForm extends StatelessWidget {
   final Future<String?> Function(String name) onCreateTag;
 
   /// Offers a free-text line to the compound and own-figure shorthands (#709,
-  /// #1023), appending a row, or with [replacing] (#1847) putting it in place of
-  /// that row. Null while neither kind is usable. Says whether it expanded.
-  bool Function(String line)? _shorthandSubmit(
+  /// #1023), appending rows, or with [replacing] (#1847) putting them in place
+  /// of that row. Null while neither kind is usable. Returns how many rows it
+  /// inserted, 0 when the line is not for these shorthands.
+  int Function(String line)? _shorthandSubmit(
     BuildContext context, {
     FigureDraft? replacing,
   }) {
@@ -129,40 +130,91 @@ class DanceEditorForm extends StatelessWidget {
       return null;
     }
     return (line) {
-      // A count typed with the token (`16 grl`, `grl (16)`) is split off as
-      // it is for a plain shorthand (#1861), after the whole line, so a
-      // token that itself holds a number still matches in full.
       // A plain shorthand that is the whole line wins before any split.
-      if (shorthandMappings?.resolve(line) != null) return false;
-      final split = splitShorthandCount(line);
-      return _insertShorthand(line, null, replacing) ||
-          (split != null &&
-              _insertShorthand(split.text, split.beats, replacing));
+      if (shorthandMappings?.resolve(line) != null) return 0;
+      final draft = _shorthandDraft(line);
+      if (draft != null) {
+        return controller.placeShorthandDrafts([draft], replacing: replacing)
+            ? 1
+            : 0;
+      }
+      return _insertShorthandClauses(line, replacing);
     };
   }
 
-  /// Inserts the compound or own-figure shorthand whose token is [token], and
-  /// says whether it did. [beats] is a count typed with it: a compound row
-  /// takes its beats from the compound, so it ignores one (even for a compound
-  /// of a single figure); an own figure is one figure, so it takes it as its
-  /// beats.
-  bool _insertShorthand(String token, int? beats, FigureDraft? replacing) {
+  /// The row for [clause] when it is a compound or own-figure shorthand, else
+  /// null. A count typed with the token (`16 grl`, `grl (16)`) is split off as
+  /// it is for a plain shorthand (#1861), after the whole clause, so a token
+  /// that itself holds a number still matches in full.
+  FigureDraft? _shorthandDraft(String clause) {
+    final split = splitShorthandCount(clause);
+    return _draftForToken(clause, null) ??
+        (split == null ? null : _draftForToken(split.text, split.beats));
+  }
+
+  /// The row for the compound or own-figure shorthand whose token is [token].
+  /// [beats] is a count typed with it: a compound row takes its beats from the
+  /// compound, so it ignores one (even for a compound of a single figure); an
+  /// own figure is one figure, so it takes it as its beats.
+  FigureDraft? _draftForToken(String token, int? beats) {
     // Tokens are kept unique, but two devices can each add one before they
     // sync, and then the plain shorthand wins.
-    if (shorthandMappings?.resolve(token) != null) return false;
+    if (shorthandMappings?.resolve(token) != null) return null;
     if (compoundShorthands?.resolve(token) case final shorthand?) {
-      return controller.insertCompoundShorthand(
-        shorthand,
-        replacing: replacing,
-      );
+      return controller.compoundShorthandDraft(shorthand);
     }
     final mine = userFigureShorthands?.resolve(token);
-    return mine != null &&
-        controller.insertUserFigureShorthand(
-          mine,
-          replacing: replacing,
-          beats: beats,
-        );
+    return mine == null
+        ? null
+        : controller.userFigureShorthandDraft(mine, beats: beats);
+  }
+
+  /// Expands a `;` line some of whose clauses are compound or own-figure
+  /// shorthands (#1866), clause by clause as a plain shorthand does (#1827):
+  /// all or nothing, so a clause that is neither one of these, a plain
+  /// shorthand nor a figure the parser structures leaves the line to the
+  /// ordinary path. Returns the rows inserted, 0 when nothing was.
+  int _insertShorthandClauses(String line, FigureDraft? replacing) {
+    final clauses = splitShorthandClauses(line);
+    if (clauses == null || clauses.length < 2) return 0;
+    final drafts = <FigureDraft>[];
+    var anyOfOurs = false;
+    for (final clause in clauses) {
+      final draft = _shorthandDraft(clause);
+      if (draft != null) {
+        anyOfOurs = true;
+        drafts.add(draft);
+        continue;
+      }
+      // Anything else is read as a one-clause line, so a plain shorthand and
+      // a counted figure resolve as they do on their own.
+      final figures = parseFreeTextFigureEntry(
+        clause,
+        taxonomy: taxonomy,
+        shorthands: shorthandMappings,
+        dialect: dialect,
+      );
+      if (figures.isEmpty ||
+          (!_isPlainShorthandClause(clause) &&
+              figures.any((f) => f.isCustom))) {
+        return 0;
+      }
+      drafts.addAll(controller.draftsForFreeTextFigures(figures));
+    }
+    if (!anyOfOurs) return 0;
+    return controller.placeShorthandDrafts(drafts, replacing: replacing)
+        ? drafts.length
+        : 0;
+  }
+
+  /// Whether [clause] is a plain shorthand, counted or not, whose figures may
+  /// include a custom one the user chose.
+  bool _isPlainShorthandClause(String clause) {
+    final mappings = shorthandMappings;
+    if (mappings == null) return false;
+    if (mappings.resolve(clause) != null) return true;
+    final split = splitShorthandCount(clause);
+    return split != null && mappings.resolve(split.text) != null;
   }
 
   @override

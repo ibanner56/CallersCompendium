@@ -315,12 +315,11 @@ List<Figure>? _expandShorthandClauses(
   Taxonomy? taxonomy,
   Dialect? dialect,
 ) {
-  final clauses = _splitClauses(line);
-  if (clauses.length > _maxShorthandClauses) return null;
+  final clauses = splitShorthandClauses(line);
+  if (clauses == null) return null;
   final expansions = <List<Figure>?>[];
   var anyShorthand = false;
   for (final clause in clauses) {
-    if (clause.isEmpty) return null;
     final expansion = _resolveClause(clause, shorthands);
     anyShorthand = anyShorthand || expansion != null;
     expansions.add(expansion);
@@ -354,6 +353,21 @@ List<Figure>? _resolveClause(String clause, ShorthandMappings shorthands) {
   return [
     only.copyWith(params: {...only.params, 'beats': split.beats}),
   ];
+}
+
+/// [line] split into its `;` clauses, trimmed, for a caller that matches a
+/// shorthand of its own kind per clause (a compound, or one of the user's own
+/// figures, #1866). The same split a plain shorthand gets
+/// ([_expandShorthandClauses]), so the kinds agree on where a clause ends.
+/// `null` when the line cannot be expanded clause by clause: it has an empty
+/// clause (`pbs;;swing`) or more than [maxShorthandTargetFigures] clauses. A
+/// line with no `;` is one clause.
+List<String>? splitShorthandClauses(String line) {
+  final clauses = _splitClauses(line);
+  if (clauses.length > _maxShorthandClauses || clauses.any((c) => c.isEmpty)) {
+    return null;
+  }
+  return clauses;
 }
 
 /// [line] with a leading `16 pbs` or trailing `pbs (16)` beat count peeled
