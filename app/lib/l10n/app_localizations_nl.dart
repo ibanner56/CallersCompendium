@@ -8682,6 +8682,46 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String importShorthandSeedUnreadableNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count oproepknoppen zijn weggelaten omdat hun tekst niet als figuren te lezen is.',
+      one:
+          '1 oproepknop is weggelaten omdat de tekst niet als figuren te lezen is.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedRoomHint(int free, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      free,
+      locale: localeName,
+      other:
+          'Er is plek voor nog $free afkortingen (limiet $max). Alleen de eerste $free die geselecteerd blijven, worden toegevoegd.',
+      one:
+          'Er is plek voor nog 1 afkorting (limiet $max). Alleen de eerste die geselecteerd blijft, wordt toegevoegd.',
+      zero: 'Je lijst met afkortingen is vol ($max), dus er kan niets bij.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedLimitSkipped(int skipped, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      skipped,
+      locale: localeName,
+      other:
+          '$skipped afkortingen zijn niet toegevoegd omdat de lijst vol is (limiet $max). Verwijder er een om een nieuwe toe te voegen.',
+      one:
+          '1 afkorting is niet toegevoegd omdat de lijst vol is (limiet $max). Verwijder er een om een nieuwe toe te voegen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get themeEditorTitle => 'Thema bewerken';
 
   @override

@@ -234,6 +234,9 @@ class _ShorthandMappingEditorScreenState
               drafts: _drafts,
               taxonomy: contraTaxonomy,
               phraseStructure: PhraseStructure.standard,
+              // A shorthand expands to a snippet, not a whole dance: phrase
+              // labels and the beat total belong to dances only (#1830).
+              showPhraseStructure: false,
               dialect: ActiveDialectScope.of(context),
               onChanged: _onFiguresChanged,
               onAdd: _addFigure,

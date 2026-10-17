@@ -8294,6 +8294,38 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String importShorthandSeedUnreadableNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のコールボタンは、テキストをフィギュアとして読み取れないため除外されました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedRoomHint(int free, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      free,
+      locale: localeName,
+      other: 'あと$free件追加できます（上限$max件）。選択したままの先頭$free件だけが追加されます。',
+      zero: 'ショートハンドの一覧がいっぱい（$max件）のため、追加できません。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedLimitSkipped(int skipped, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      skipped,
+      locale: localeName,
+      other:
+          '一覧がいっぱい（上限$max件）のため、$skipped件のショートハンドは追加されませんでした。追加するには、いずれかを削除してください。',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get themeEditorTitle => 'テーマを編集';
 
   @override

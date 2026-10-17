@@ -134,6 +134,34 @@ List<ShorthandSeedCandidate> buildInsertCallShorthandCandidates(
   return result;
 }
 
+/// How many of the file's [insertCalls] could not become a shorthand because
+/// their call text does not read as figures (issue #1830): the buttons
+/// [buildInsertCallShorthandCandidates] leaves out for that reason, so the
+/// seeding screen can say so instead of dropping them in silence.
+///
+/// Counted per token ([normalizeShorthandToken]), and only for a token that no
+/// readable button supplies: a second, unreadable button under a token the
+/// first one already seeds is not a loss. Buttons whose label is empty or over
+/// [maxShorthandTokenLength] are not counted; they never were a usable token.
+int countUnreadableInsertCalls(
+  Iterable<CcInsertCall> insertCalls, {
+  required Taxonomy taxonomy,
+}) {
+  final readable = <String>{};
+  final unreadable = <String>{};
+  for (final button in insertCalls) {
+    final token = button.label.trim();
+    if (token.isEmpty || token.length > maxShorthandTokenLength) continue;
+    final key = normalizeShorthandToken(token);
+    if (_parseExpansion(button.text, button.beats, taxonomy) == null) {
+      unreadable.add(key);
+    } else {
+      readable.add(key);
+    }
+  }
+  return unreadable.difference(readable).length;
+}
+
 /// Structures [text] through the free-text fan-out and returns the expansion
 /// only when it is a usable seed: non-empty, within [maxShorthandTargetFigures],
 /// and entirely non-custom. Returns `null` otherwise.

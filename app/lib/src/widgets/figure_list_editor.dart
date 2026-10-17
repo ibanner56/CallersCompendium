@@ -1120,64 +1120,67 @@ class _FigureListEditorState extends State<FigureListEditor> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: TextField(
-                      key: _key('free-text-field'),
-                      controller: _freeTextController,
-                      focusNode: _freeTextFocusNode,
-                      textInputAction: TextInputAction.done,
-                      onChanged: (_) {
-                        if (_freeTextConfirmation != null) {
-                          setState(() => _freeTextConfirmation = null);
-                        }
-                      },
-                      onSubmitted: (_) => _submitFreeText(),
-                      // One figure line, but not a `maxLines: 1` field: Flutter puts
-                      // its single-line formatter ahead of ours and that deletes a
-                      // pasted line break, gluing `swing⏎partner` into `swingpartner`.
-                      // A few lines with a text keyboard still submits on the action
-                      // key; [_lineBreaksToSpaces] turns any line break into a space,
-                      // keeping a paste one line (#419 rules out splitting it).
-                      keyboardType: TextInputType.text,
-                      minLines: 1,
-                      maxLines: 4,
-                      inputFormatters: [_lineBreaksToSpaces],
-                      maxLength: maxFreeTextEntryLength,
-                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                      // A figure line is short; the cap is a defensive bound, not a
-                      // budget to show off — suppress the character counter.
-                      buildCounter:
-                          (
-                            _, {
-                            required int currentLength,
-                            required bool isFocused,
-                            int? maxLength,
-                          }) => null,
-                      decoration: InputDecoration(
-                        isDense: true,
-                        border: const OutlineInputBorder(),
-                        labelText: l10n.danceEditorTypeFigureLabel,
-                        helperText: l10n.danceEditorTypeFigureHelper,
-                        helperMaxLines: 3,
-                      ),
+              TextField(
+                key: _key('free-text-field'),
+                controller: _freeTextController,
+                focusNode: _freeTextFocusNode,
+                textInputAction: TextInputAction.done,
+                onChanged: (_) {
+                  if (_freeTextConfirmation != null) {
+                    setState(() => _freeTextConfirmation = null);
+                  }
+                },
+                onSubmitted: (_) => _submitFreeText(),
+                // One figure line, but not a `maxLines: 1` field: Flutter puts
+                // its single-line formatter ahead of ours and that deletes a
+                // pasted line break, gluing `swing⏎partner` into `swingpartner`.
+                // A few lines with a text keyboard still submits on the action
+                // key; [_lineBreaksToSpaces] turns any line break into a space,
+                // keeping a paste one line (#419 rules out splitting it).
+                keyboardType: TextInputType.text,
+                minLines: 1,
+                maxLines: 4,
+                inputFormatters: [_lineBreaksToSpaces],
+                maxLength: maxFreeTextEntryLength,
+                maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                // A figure line is short; the cap is a defensive bound, not a
+                // budget to show off — suppress the character counter.
+                buildCounter:
+                    (
+                      _, {
+                      required int currentLength,
+                      required bool isFocused,
+                      int? maxLength,
+                    }) => null,
+                decoration: InputDecoration(
+                  isDense: true,
+                  border: const OutlineInputBorder(),
+                  labelText: l10n.danceEditorTypeFigureLabel,
+                  // A widget, not `helperText`: that one is a single ellipsised
+                  // line unless capped, and any cap cuts a long translation.
+                  helper: Text(
+                    l10n.danceEditorTypeFigureHelper,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: FilledButton(
+                ),
+              ),
+              // Add and Done sit beneath the field, not beside it: beside it
+              // they left the field too narrow for its help at phone width,
+              // where the help was cut off mid-word (#1830).
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    FilledButton(
                       key: _key('free-text-submit'),
                       onPressed: _submitFreeText,
                       child: Text(l10n.commonAdd),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: TextButton(
+                    const SizedBox(width: 4),
+                    TextButton(
                       key: _key('free-text-done'),
                       onPressed: _dismissFreeText,
                       child: Text(
@@ -1185,8 +1188,8 @@ class _FigureListEditorState extends State<FigureListEditor> {
                         style: TextStyle(color: theme.colorScheme.primary),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               if (confirmation != null)
                 Padding(
