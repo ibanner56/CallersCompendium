@@ -132,8 +132,11 @@ each line break was; type or paste one figure line at a time to get one figure
 per line.
 
 A `;` between figures makes a list, and each part is read as its own figure:
-`circle left 3/4; turn alone` gives two figures, in order. If any part cannot be
-read as a figure, the whole line is kept as one custom figure instead. A `||`
+`circle left 3/4; turn alone` gives two figures, in order. A count stays with
+the part it follows: `circle left (8); turn alone` gives the circle 8 beats, and
+`circle left; turn alone (4)` gives the turn 4. If any part cannot be read as a
+figure, or a count cannot be matched to a figure (a part that became a note on
+the one before it), the whole line is kept as one custom figure instead. A `||`
 makes its two sides a [meanwhile](./glossary.md#meanwhile):
 `circle left || neighbor swing` gives one meanwhile group whose sides are the
 circle and the swing.

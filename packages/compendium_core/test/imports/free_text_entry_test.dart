@@ -231,10 +231,16 @@ void main() {
 
     test('a compound that fails keeps every clause\'s count in its text', () {
       final f = parseFreeTextFigureEntry(
-        '8 neighbor swing; 8 partner swing',
+        '8 neighbor swing; 8 gibberish xyz',
       ).single;
       expect(f.isCustom, isTrue);
-      expect(f.params['text'], '8 neighbor swing; 8 partner swing');
+      expect(f.params['text'], '8 neighbor swing; 8 gibberish xyz');
+    });
+
+    test('a compound whose clauses each state a count keeps both (#1870)', () {
+      final fs = parseFreeTextFigureEntry('8 neighbor swing; 8 partner swing');
+      expect(fs.map((f) => f.move), ['swing', 'swing']);
+      expect(fs.map((f) => f.params['beats']), [8, 8]);
     });
 
     test('a custom keeps the typed count in its text, beats alongside', () {
@@ -300,7 +306,10 @@ void main() {
         'as a custom, typed text intact', () {
       for (final line in [
         // A clause no parse reads.
-        'circle left (8); gibberish xyz',
+        'gibberish xyz; circle left (8)',
+        // A clause that is only a note, so which figure a later count
+        // belongs to is a guess.
+        'circle left (8); gibberish xyz; turn alone (4)',
         // A second count on one clause: the parser would drop one.
         'circle left (8) (4); turn alone',
         // A count too long to be beats.
@@ -339,6 +348,13 @@ void main() {
         shorthands: shorthands,
       );
       expect(beatsOf(none), [8, null]);
+    });
+
+    test('a clause that is only a note to the one before keeps working', () {
+      final f = parseFreeTextFigureEntry('circle left (8); face up').single;
+      expect(f.move, 'circle');
+      expect(f.params['beats'], 8);
+      expect(f.note, 'face up');
     });
 
     test('forms that already worked are unchanged', () {
