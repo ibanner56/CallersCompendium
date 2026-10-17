@@ -213,7 +213,7 @@
 {"in":"PhraseText","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"PhraseText\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"PhraseText_GenderSwap_LR","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"PhraseText_GenderSwap_LR\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"B1","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"B1\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"(8) hey for four","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(8) hey for four\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"beats\":8}}]"}
+{"in":"(8) hey for four","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(8) hey for four\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"length\":\"half\",\"beats\":8}}]"}
 {"in":"GENDER SWAPPED - must be ignored","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"GENDER SWAPPED - must be ignored\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"A2","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"A2\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"(8) circle left 3 places","fanOut":"[{\"schemaVersion\":1,\"move\":\"circle\",\"params\":{\"direction\":\"left\",\"places\":3}}]","freeText":"[{\"schemaVersion\":1,\"move\":\"circle\",\"params\":{\"direction\":\"left\",\"places\":3,\"beats\":8}}]"}
@@ -230,7 +230,7 @@
 {"in":"a compound-beat line structures AND carries its summed beats (#560);","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"a compound-beat line structures AND carries its summed beats (#560);\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"an out-of-coverage line is an importGap custom (never dropped)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"an out-of-coverage line is an importGap custom (never dropped)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"text","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"text\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"hey for four","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"hey for four\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"hey\"}]"}
+{"in":"hey for four","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"hey for four\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"length\":\"full\"}}]"}
 {"in":"every dance in the file carries figures","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"every dance in the file carries figures\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"full importer commit (pipeline path)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"full importer commit (pipeline path)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"committed dances carry the Phrase figures; undo reverts them","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"committed dances carry the Phrase figures; undo reverts them\"},\"customOrigin\":\"importGap\"}]"}
@@ -317,7 +317,7 @@
 {"in":"parses a full dance: header fields, dates, and figures","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"parses a full dance: header fields, dates, and figures\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Music: any good 32-bar reels","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Music: any good 32-bar reels\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"partners","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"partners\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"Hey for four","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Hey for four\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"hey\"}]"}
+{"in":"Hey for four","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Hey for four\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"length\":\"full\"}}]"}
 {"in":"quality reflects the mix of structured + custom figures","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"quality reflects the mix of structured + custom figures\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"maps shipped external difficulty labels to their fixed IDs","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"maps shipped external difficulty labels to their fixed IDs\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Beginner","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Beginner\"},\"customOrigin\":\"importGap\"}]"}
@@ -3382,7 +3382,7 @@
 {"in":"(8) Ladies chain to partner","scrub":"(8) role2s chain to partner","fanOut":"[{\"schemaVersion\":1,\"move\":\"chain\",\"params\":{\"who\":\"role2s\",\"hand\":\"right\"},\"note\":\"to partner\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"chain\",\"params\":{\"who\":\"role2s\",\"hand\":\"right\",\"beats\":8},\"note\":\"to partner\"}]"}
 {"in":"(8) Right and left through","fanOut":"[{\"schemaVersion\":1,\"move\":\"right_left_through\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"right_left_through\",\"params\":{\"beats\":8}}]"}
 {"in":"(8) Circle left 3 places","fanOut":"[{\"schemaVersion\":1,\"move\":\"circle\",\"params\":{\"direction\":\"left\",\"places\":3}}]","freeText":"[{\"schemaVersion\":1,\"move\":\"circle\",\"params\":{\"direction\":\"left\",\"places\":3,\"beats\":8}}]"}
-{"in":"(8) Hey for four","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(8) Hey for four\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"beats\":8}}]"}
+{"in":"(8) Hey for four","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(8) Hey for four\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"length\":\"half\",\"beats\":8}}]"}
 {"in":"(8) Gents allemande left 1 1/2","scrub":"(8) role1s allemande left 1 1/2","fanOut":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"role1s\",\"hand\":\"left\",\"travel\":1.5}}]","freeText":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"role1s\",\"hand\":\"left\",\"travel\":1.5,\"beats\":8}}]"}
 {"in":"(8) Petronella spin","fanOut":"[{\"schemaVersion\":1,\"move\":\"petronella\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"petronella\",\"params\":{\"beats\":8}}]"}
 {"in":"(8) Ladies allemande right 1 1/2 with neighbor","scrub":"(8) role2s allemande right 1 1/2 with neighbor","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"(8) role2s allemande right 1 1/2 with neighbor\"},\"customOrigin\":\"importGap\"}]","freeText":"[{\"schemaVersion\":1,\"move\":\"allemande\",\"params\":{\"who\":\"role2s\",\"hand\":\"right\",\"beats\":8},\"note\":\"1 1/2 with neighbor\"}]"}

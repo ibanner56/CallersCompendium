@@ -1,0 +1,14 @@
+{
+  "id": "1887-free-text-hey-for-four-full",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "With Free-text entry, \"hey for four\" (or \"hey for 4\") now adds a full hey of 16 beats instead of a half hey. Give it a count of 8, as in \"(8) hey for four\", and it is a half hey."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Free-text entry reads `hey for four` and `hey for 4` as a full hey, or a half hey when the line's count is a half hey's beats."
+    ]
+  }
+}

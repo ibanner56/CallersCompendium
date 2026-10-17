@@ -111,11 +111,13 @@ the singular `partner` or `neighbor`) in front of the name of a move that takes
 dancers and they are the dancers: `neighbor pass by`, `ones arch and dive`. A
 move that does not take dancers that way (`hey`, `slice`), a word the app does
 not know in the dancer's place, or anything else on the line stays a custom
-figure unless the line is read as above. The app also reads `hey
-for four`, `half hey`, `full hey`, `turn as a couple`, turn amounts in words
+figure unless the line is read as above. The app also reads `hey for four`,
+`half hey`, `full hey`, `turn as a couple`, turn amounts in words
 (`allemande right once and a half`), and older role words such as `ravens` by
 what they mean (`ravens chain` is the same as `robins chain`), unless your own
-role terms use that word, in which case it means your role.
+role terms use that word, in which case it means your role. `hey for four` (or
+`hey for 4`) is a full hey, 16 beats, unless you give it a count of 8, as in
+`(8) hey for four`, which makes it a half hey.
 
 A count can also be written in brackets, `(16) circle left` or `[16] circle
 left`, and goes at the end as well: `circle left (16)` or `circle left [16]`.
