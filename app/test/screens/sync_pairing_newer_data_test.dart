@@ -80,11 +80,11 @@ void main() {
     }
   });
 
-  testWidgets('shown by this build, which advertises glossary.v1 (#709)', (
-    tester,
-  ) async {
+  testWidgets('shown by this build, which advertises glossary.v1 and '
+      'glossary.v2 (#709, #1023)', (tester) async {
     expect(SyncCapabilityPolicy.build.advertised, {
       SyncCapabilities.glossaryV1,
+      SyncCapabilities.glossaryV2,
     });
     for (final path in const ['create', 'connect']) {
       await pump(tester, SyncCapabilityPolicy.build);
