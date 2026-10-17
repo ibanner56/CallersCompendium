@@ -254,6 +254,110 @@ void main() {
     });
   });
 
+  group('parseFreeTextFigureEntry — a count on any `;` clause is that '
+      "clause's own (#1870)", () {
+    List<Object?> beatsOf(List<Figure> fs) => [
+      for (final f in fs) f.params['beats'],
+    ];
+
+    test('a bracketed count on the first clause stays on it', () {
+      for (final line in [
+        'circle left (8); turn alone',
+        'circle left [8]; turn alone',
+        'circle left (8 beats); turn alone',
+        'circle left 3/4 (8); turn alone',
+      ]) {
+        final fs = parseFreeTextFigureEntry(line);
+        expect(fs.map((f) => f.move), ['circle', 'turn_alone'], reason: line);
+        expect(beatsOf(fs), [8, null], reason: line);
+        expect(fs.any((f) => f.note != null), isFalse, reason: line);
+      }
+    });
+
+    test('a count on a later clause stays on that clause', () {
+      final fs = parseFreeTextFigureEntry('turn alone; circle left (8)');
+      expect(fs.map((f) => f.move), ['turn_alone', 'circle']);
+      expect(beatsOf(fs), [null, 8]);
+      final tail = parseFreeTextFigureEntry('circle left; turn alone (4)');
+      expect(tail.map((f) => f.move), ['circle', 'turn_alone']);
+      expect(beatsOf(tail), [null, 4]);
+    });
+
+    test('every clause keeps its own count', () {
+      final fs = parseFreeTextFigureEntry(
+        'circle left (8); turn alone (4); neighbor swing [16]',
+      );
+      expect(fs.map((f) => f.move), ['circle', 'turn_alone', 'swing']);
+      expect(beatsOf(fs), [8, 4, 16]);
+      final bare = parseFreeTextFigureEntry(
+        'circle left; 4 turn alone; neighbor swing 16 beats',
+      );
+      expect(bare.map((f) => f.move), ['circle', 'turn_alone', 'swing']);
+      expect(beatsOf(bare), [null, 4, 16]);
+    });
+
+    test('a clause whose count cannot be honoured keeps the whole line '
+        'as a custom, typed text intact', () {
+      for (final line in [
+        // A clause no parse reads.
+        'circle left (8); gibberish xyz',
+        // A second count on one clause: the parser would drop one.
+        'circle left (8) (4); turn alone',
+        // A count too long to be beats.
+        'circle left (99999); turn alone',
+      ]) {
+        final f = parseFreeTextFigureEntry(line).single;
+        expect(f.isCustom, isTrue, reason: line);
+        expect(f.params['text'], line, reason: line);
+      }
+    });
+
+    test('a shorthand clause and a counted clause each keep their own', () {
+      final shorthands = ShorthandMappings([
+        ShorthandMapping(
+          token: 'pbs',
+          figures: [
+            Figure(move: 'swing', params: const {'who': 'partners'}),
+          ],
+        ),
+      ]);
+      final first = parseFreeTextFigureEntry(
+        'circle left (8); pbs',
+        shorthands: shorthands,
+      );
+      expect(first.map((f) => f.move), ['circle', 'swing']);
+      expect(beatsOf(first), [8, null]);
+      final second = parseFreeTextFigureEntry(
+        'pbs; circle left (8)',
+        shorthands: shorthands,
+      );
+      expect(second.map((f) => f.move), ['swing', 'circle']);
+      expect(beatsOf(second), [null, 8]);
+      // No shorthand in the line: the same reading as without a store.
+      final none = parseFreeTextFigureEntry(
+        'circle left (8); turn alone',
+        shorthands: shorthands,
+      );
+      expect(beatsOf(none), [8, null]);
+    });
+
+    test('forms that already worked are unchanged', () {
+      // A count at the line's start is the first clause's.
+      final lead = parseFreeTextFigureEntry('(8) circle left; turn alone');
+      expect(lead.map((f) => f.move), ['circle', 'turn_alone']);
+      expect(beatsOf(lead), [8, null]);
+      // A count-free compound gets no beats.
+      final plain = parseFreeTextFigureEntry('circle left 3/4; turn alone');
+      expect(beatsOf(plain), [null, null]);
+      // A bare number with no unit is not a count; the line stays custom.
+      final bare = parseFreeTextFigureEntry('circle left 8; turn alone');
+      expect(bare.single.isCustom, isTrue);
+      expect(bare.single.params['text'], 'circle left 8; turn alone');
+      // One clause: the count is the line's, as ever.
+      expect(beatsOf(parseFreeTextFigureEntry('circle left (8)')), [8]);
+    });
+  });
+
   group('parseFreeTextFigureEntry — bounded input (OWASP)', () {
     test('a line exactly at the length bound is still processed', () {
       // A non-trimmable payload exactly at the bound is not dropped: it flows
