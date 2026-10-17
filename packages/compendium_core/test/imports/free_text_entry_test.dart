@@ -380,6 +380,124 @@ void main() {
     });
   });
 
+  group('parseFreeTextFigureEntry — a count that cannot be beats takes the '
+      'figure\'s default (#1863)', () {
+    // What the figure picker gives the same move and options: no explicit
+    // beats, the default derived on read.
+    final picked = Figure(move: 'circle', params: const {'direction': 'left'});
+    final pickedBeats = contraTaxonomy.effectiveParams(picked)['beats'];
+
+    void expectDefaultWithNote(String line, String note) {
+      final f = parseFreeTextFigureEntry(line).single;
+      expect(f.isCustom, isFalse, reason: line);
+      expect(f.move, 'circle', reason: line);
+      expect(f.params['direction'], 'left', reason: line);
+      expect(f.params.containsKey('beats'), isFalse, reason: line);
+      expect(contraTaxonomy.effectiveParams(f)['beats'], pickedBeats);
+      expect(f.note, note, reason: line);
+    }
+
+    test('five or more digits read as the move at its default beats, the '
+        'number kept as a note', () {
+      expectDefaultWithNote('circle left 10000 beats', '10000 beats');
+      expectDefaultWithNote('circle left (10000)', '10000');
+      expectDefaultWithNote('circle left [10000 beats]', '10000 beats');
+      expectDefaultWithNote('10000 circle left', '10000');
+      expectDefaultWithNote('10000 beats circle left', '10000 beats');
+      expectDefaultWithNote('(10000) circle left', '10000');
+      // Longer than any int: never parsed, so it cannot overflow.
+      expectDefaultWithNote('circle left (${'9' * 40})', '9' * 40);
+    });
+
+    test('a count over the 0..64 beats range follows the same default', () {
+      expectDefaultWithNote('circle left 65 beats', '65 beats');
+      expectDefaultWithNote('circle left (100)', '100');
+      expectDefaultWithNote('9999 circle left', '9999');
+    });
+
+    test('a count in range is still the beats, and 64 is the last one', () {
+      final ok = parseFreeTextFigureEntry('circle left 64 beats').single;
+      expect(ok.params['beats'], 64);
+      expect(ok.note, isNull);
+    });
+
+    test(
+      'on a `;` clause the number stays on the clause it was typed with',
+      () {
+        final last = parseFreeTextFigureEntry(
+          'circle left; turn alone (10000)',
+        );
+        expect(last.map((f) => f.move), ['circle', 'turn_alone']);
+        expect(last[0].note, isNull);
+        expect(last[1].note, '10000');
+        expect(last[1].params.containsKey('beats'), isFalse);
+        final first = parseFreeTextFigureEntry(
+          '10000 beats circle left; turn alone (4)',
+        );
+        expect(first.map((f) => f.move), ['circle', 'turn_alone']);
+        expect(first[0].note, '10000 beats');
+        expect(first[0].params.containsKey('beats'), isFalse);
+        expect(first[1].params['beats'], 4);
+        final over = parseFreeTextFigureEntry('circle left; turn alone (100)');
+        expect(over.map((f) => f.move), ['circle', 'turn_alone']);
+        expect(over[1].note, '100');
+      },
+    );
+
+    test('a valid count elsewhere on the line wins and the long one is kept '
+        'whole, as a second count always is', () {
+      for (final line in [
+        '10000 circle left (8)',
+        'circle left 10000 beats (8)',
+        '(10000) circle left (20000)',
+      ]) {
+        final f = parseFreeTextFigureEntry(line).single;
+        expect(f.isCustom, isTrue, reason: line);
+        expect(f.params['text'], line, reason: line);
+      }
+    });
+
+    test(
+      'a line the parser cannot read stays a custom with its typed text',
+      () {
+        for (final line in ['gibberish xyz 10000 beats', '(10000) gibberish']) {
+          final f = parseFreeTextFigureEntry(line).single;
+          expect(f.isCustom, isTrue, reason: line);
+          expect(f.params['text'], line, reason: line);
+          expect(f.params.containsKey('beats'), isFalse, reason: line);
+        }
+      },
+    );
+
+    test('a bare trailing number is still not a count', () {
+      final f = parseFreeTextFigureEntry('circle left 10000').single;
+      expect(f.isCustom, isTrue);
+      expect(f.params['text'], 'circle left 10000');
+    });
+
+    test('re-check upgrades a custom stored with the long count as before', () {
+      final custom = customFigure(
+        'circle left 10000 beats',
+        origin: CustomOrigin.importGap,
+      );
+      final out = reparseImportGapFigures([custom]);
+      expect(out.upgradedCount, 1);
+      expect(out.figures.single.move, 'circle');
+      expect(out.figures.single.params.containsKey('beats'), isFalse);
+      expect(out.figures.single.note, contains('10000'));
+    });
+
+    test('re-check keeps a bracketed long count custom, never dropping it', () {
+      final custom = customFigure(
+        'circle left (10000)',
+        origin: CustomOrigin.importGap,
+      );
+      final out = reparseImportGapFigures([custom]);
+      expect(out.upgradedCount, 0);
+      expect(out.figures.single.params['text'], 'circle left (10000)');
+    });
+  });
+
   group('parseFreeTextFigureEntry — bounded input (OWASP)', () {
     test('a line exactly at the length bound is still processed', () {
       // A non-trimmable payload exactly at the bound is not dropped: it flows
