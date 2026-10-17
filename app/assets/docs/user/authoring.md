@@ -97,9 +97,15 @@ the leading `16 neighbors swing` form to set the beats.
 
 Any move's own name typed on its own works, whatever your dialect: `hey`, `mad
 robin`, `contra corners`, `give & take` (or `give and take`, `give-and-take`),
-in capitals or not. Your dialect's own name for a move works too. A name on its
-own gives the figure with its usual options, which you can then change; with
-anything else on the line, the line is read as above. The app also reads `hey
+in capitals or not, with or without a full stop, comma or exclamation mark
+after it (`hey.`). Your dialect's own name for a move works too. A name on its
+own gives the figure with its usual options, which you can then change.
+Put `ones`, `twos`, `partners`, `neighbors`, `everyone`, `role1s`, `role2s` (or
+the singular `partner` or `neighbor`) in front of the name of a move that takes
+dancers and they are the dancers: `neighbor pass by`, `ones arch and dive`. A
+move that does not take dancers that way (`hey`, `slice`), a word the app does
+not know in the dancer's place, or anything else on the line stays a custom
+figure unless the line is read as above. The app also reads `hey
 for four`, `half hey`, `full hey`, `turn as a couple`, turn amounts in words
 (`allemande right once and a half`), and older role words such as `ravens` by
 what they mean (`ravens chain` is the same as `robins chain`), unless your own
@@ -147,6 +153,15 @@ A shorthand also works with a beat count and in a `;` list:
   part can have its own count. As with any `;` list, if one part is neither a
   shorthand nor a figure the app understands, the whole line is added as one
   custom figure instead.
+
+The same counts work on the shorthands for [your own figures](#your-own-figures)
+and for combinations, described below, whether typed into the free-text box or
+into the Move box of a row you are changing. `16 zm` and `zm (16)` add your
+figure with 16 beats, in place of the beats the shorthand was saved with, since
+it is one figure. A count typed with a combination is ignored: it is added
+with the beats it was saved with. A shorthand for a
+plain figure with the same token as the one left after the count is taken off
+wins, as it does for a whole line.
 
 Shorthands are your own; each one has to be unique, and the app tells you if you
 reuse a token that is already taken. Shorthands are matched before the app tries

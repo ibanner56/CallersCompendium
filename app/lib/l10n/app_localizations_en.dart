@@ -8655,6 +8655,47 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String importShorthandSeedUnreadableNote(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count call buttons were left out because their text does not read as figures.',
+      one:
+          '1 call button was left out because its text does not read as figures.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedRoomHint(int free, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      free,
+      locale: localeName,
+      other:
+          'There is room for $free more shorthands (limit $max). Only the first $free you leave selected will be added.',
+      one:
+          'There is room for 1 more shorthand (limit $max). Only the first one you leave selected will be added.',
+      zero:
+          'Your shorthand list is full ($max), so none of these can be added.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importShorthandSeedLimitSkipped(int skipped, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      skipped,
+      locale: localeName,
+      other:
+          '$skipped shorthands were not added because the list is full (limit $max). Delete one to add another.',
+      one:
+          '1 shorthand was not added because the list is full (limit $max). Delete one to add another.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get themeEditorTitle => 'Edit theme';
 
   @override

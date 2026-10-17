@@ -669,4 +669,17 @@ void main() {
       expect(shorthandTokenShadowsFigure('swing; zzqx widget'), isFalse);
     });
   });
+
+  group('splitShorthandCount (#1861)', () {
+    test('peels a leading or trailing count', () {
+      expect(splitShorthandCount('16 pbs'), (text: 'pbs', beats: 16));
+      expect(splitShorthandCount('pbs (16)'), (text: 'pbs', beats: 16));
+      expect(splitShorthandCount('  pbs 16 beats '), (text: 'pbs', beats: 16));
+    });
+
+    test('is null when the line states no count', () {
+      expect(splitShorthandCount('pbs'), isNull);
+      expect(splitShorthandCount('pbs (0)'), isNull);
+    });
+  });
 }

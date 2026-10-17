@@ -96,7 +96,9 @@ class UserFigureShorthands {
   bool get isEmpty => shorthands.isEmpty;
 
   /// The shorthand whose token is the whole of [line], ignoring case and
-  /// surrounding space, or null. When two share a token the first wins, as
+  /// surrounding space, or null. A beat count typed with the token is not
+  /// handled here: the caller splits it off first ([splitShorthandCount]).
+  /// When two share a token the first wins, as
   /// [decode] keeps.
   UserFigureShorthand? resolve(String line) {
     final key = normalizeShorthandToken(line);

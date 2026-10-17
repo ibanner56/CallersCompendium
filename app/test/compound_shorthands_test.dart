@@ -353,6 +353,57 @@ void main() {
       expect(figures[1].params['who'], 'partners');
       expect(figures[1].params['hand'], 'left');
     });
+
+    // A compound row takes its beats from the compound, so a count is dropped
+    // (#1861), even for a one-figure compound.
+    for (final line in ['16 grl', 'grl (16)', 'GRL 16 beats']) {
+      testWidgets('"$line" inserts the compound as saved, ignoring the count', (
+        tester,
+      ) async {
+        final repos = await pump(tester, compounds: [shorthand()]);
+        await typeLine(tester, line);
+        expect(find.text('grand pull: partners, left'), findsOneWidget);
+        final figures = await saved(tester, repos);
+        expect(
+          [for (final f in figures) (f.move, f.params['hand'])],
+          [
+            ('pull_by', 'left'),
+            ('pull_by', 'right'),
+            ('pull_by', 'left'),
+            ('pull_by', 'right'),
+          ],
+        );
+      });
+
+      testWidgets('"$line" typed into an existing row\'s Move box replaces '
+          'the row in place', (tester) async {
+        final repos = await pump(tester, compounds: [shorthand()]);
+        await typeInExistingRow(tester, line);
+        final figures = await saved(tester, repos);
+        expect(
+          [for (final f in figures) f.move],
+          ['swing', 'pull_by', 'pull_by', 'pull_by', 'pull_by', 'turn_alone'],
+        );
+      });
+    }
+
+    testWidgets('a figure shorthand with the same token wins over a counted '
+        'compound', (tester) async {
+      final repos = await pump(tester, compounds: [shorthand()]);
+      // Past the controller's uniqueness check, as above.
+      final controller = ShorthandMappingsScope.controllerOf(
+        tester.element(find.byType(DanceEditorScreen)),
+      );
+      await tester.runAsync(
+        () => repos.settings.set(kShorthandMappingsKey, [
+          ShorthandMapping(token: 'GRL', figures: [swing()]).toJson(),
+        ]),
+      );
+      await tester.runAsync(controller.load);
+      await tester.pumpAndSettle();
+      await typeLine(tester, '16 grl');
+      expect((await saved(tester, repos)).single.move, 'swing');
+    });
   });
 
   group('the shorthands screen', () {

@@ -152,11 +152,19 @@ a move word (`lead` in "ones lead down the hall") keeps parsing as the move.
 On a second miss it reads the built-in discouraged role terms by their meaning,
 as user-glossary text is read (`canonicalizeGlossaryText`): `ravens chain` is a
 `role2s` chain, unless the active dialect's own role word is or holds the term,
-which keeps the dialect's meaning. Only when every parse misses is the whole
-line looked up as a move's name (#1826, `imports/typed_figure_names.dart`):
+which keeps the dialect's meaning. Only when every parse misses is the line
+looked up as a move's name (#1826, `imports/typed_figure_names.dart`):
 taxonomy display names, then alias names, then a few caller phrasings, then the
 active dialect's own move names, so a dialect name that is another move's
-taxonomy name does not shadow that move. Imports read none of these.
+taxonomy name does not shadow that move. Punctuation at the end of the line
+(`hey.`) is ignored. A name read whole wins; failing that, a dancer word
+(`ones`, `twos`, `partner(s)`, `neighbor(s)`, `everyone`, `role1s`, `role2s`)
+followed by a name reads as the move with that `who` (#1857, `neighbor pass by`).
+Only a move with a `who` param takes one; for any other (`hey` names its
+dancers in `pass1`) or an unknown word the line stays custom. Role words
+(`ravens mad robin`) are not in that list: the dancer lookup also runs on the
+retries' text above, so they keep the meaning the dialect gives them. Imports
+read none of these.
 
 **Role words that are also move words.** The chokepoint does not rewrite every
 role term it finds (`RoleCanonicalizer`, `dialect/role_canonicalizer.dart`).

@@ -1733,30 +1733,39 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           seedable: partition.seedable,
           conflicting: partition.conflicting,
           dialect: dialect,
+          unreadableCount: countUnreadableInsertCalls(
+            archive.insertCalls,
+            taxonomy: contraTaxonomy,
+          ),
+          freeSlots: maxShorthandMappings - controller.mappings.length,
         ),
       ),
     );
     if (chosen == null || chosen.isEmpty) return;
 
     final outcome = await seedShorthandMappings(controller, chosen);
-    if (outcome.skippedAtCap > 0) {
-      // The cap is the one refusal worth explaining: the user chose these
-      // seeds, so tell them why some were not added.
-      messenger.showSnackBar(
-        SnackBar(
-          key: const ValueKey('shorthand-seed-limit-reached'),
-          content: Text(
-            l10n.shorthandMappingsLimitReached(maxShorthandMappings),
-          ),
-        ),
-      );
-    }
     final seeded = outcome.seeded;
-    if (seeded == 0) return;
+    final skipped = outcome.skippedAtCap;
+    if (seeded == 0 && skipped == 0) return;
+    // One snackbar: when the cap cut the seeding short, the user chose these
+    // seeds, so the count that was not added rides with the count that was.
+    final lines = [
+      if (seeded > 0) l10n.importShorthandSeedComplete(seeded),
+      if (skipped > 0)
+        l10n.importShorthandSeedLimitSkipped(skipped, maxShorthandMappings),
+    ];
     messenger.showSnackBar(
       SnackBar(
-        key: const ValueKey('shorthand-seed-complete'),
-        content: Text(l10n.importShorthandSeedComplete(seeded)),
+        key: ValueKey(
+          skipped > 0
+              ? 'shorthand-seed-limit-reached'
+              : 'shorthand-seed-complete',
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [for (final line in lines) Text(line)],
+        ),
       ),
     );
   }
