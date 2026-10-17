@@ -8,7 +8,7 @@
   },
   "core": {
     "fixed": [
-      "An archive import clears no retained_sync_fields row, as a local edit does, instead of clearing the whole table. A replace restore still clears it."
+      "An archive import clears no retained_sync_fields row, as a local edit does, instead of clearing the whole table."
     ]
   }
 }

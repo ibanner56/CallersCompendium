@@ -1,0 +1,14 @@
+{
+  "id": "replace-restore-keeps-retained-parts",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "If another device you sync with runs a newer version of the app, restoring a backup no longer makes Device Sync lose the details that version added to your records. Before, the restore wiped what this device was keeping for them while marking the restored records as the newest copies, so the next sync removed those details on your other devices."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "A replace restore keeps the retained_sync_fields rows, as a merge restore and an archive import do, instead of clearing the whole table. A row of a record the backup does not hold is dropped by the next snapshot. SyncLocalRepository.clearForRestore no longer deletes any retained_sync_fields row."
+    ]
+  }
+}

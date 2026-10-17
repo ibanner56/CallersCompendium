@@ -148,12 +148,15 @@ class ArchiveRestorer {
             abortedForRollback = true;
             throw const _RestoreAborted();
           }
-          // The whole library was replaced, so the parts kept for a peer's
-          // newer build are cleared with it (sync-spec §3.2). Whether a
-          // replace should keep them is a separate decision, not made here.
+          // The parts kept for a peer's newer build are not cleared with the
+          // library: a record restored here is stamped at restore time, so a
+          // body without them would win and strip them from the peer. Rows of
+          // records the backup lacks are dropped by the next snapshot
+          // (sync-spec §3.2, §6.7). A row still due for a record that was in
+          // the trash is not exempt: its kept value replaces the backup's at
+          // the next open, the cost §6.7 accepts for a trash restore.
           await _repos.syncLocal.clearForRestore(
             restoredRecords: restoredRecords,
-            clearRetainedParts: true,
             revalidatePending: true,
           );
         } else {
@@ -163,13 +166,8 @@ class ArchiveRestorer {
             causalAt: causalAt,
             onProgress: onProgress,
           );
-          // A merge edits the records it matches as a local edit does, so it
-          // keeps the parts kept for them too: a restored record is stamped
-          // newer than the peer's copy, and a body without those parts would
-          // win and strip them from the peer (sync-spec §6.7).
           await _repos.syncLocal.clearForRestore(
             restoredRecords: restoredRecords,
-            clearRetainedParts: false,
             revalidatePending: false,
           );
         }
